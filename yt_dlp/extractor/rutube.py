@@ -217,10 +217,6 @@ class RutubeIE(RutubeBaseIE):
         'only_matching': True,
     }]
 
-    @classmethod
-    def suitable(cls, url):
-        return False if RutubePlaylistIE.suitable(url) else super().suitable(url)
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         query = parse_qs(url)
@@ -376,37 +372,15 @@ class RutubePersonIE(RutubePlaylistBaseIE):
 class RutubePlaylistIE(RutubePlaylistBaseIE):
     IE_NAME = 'rutube:playlist'
     IE_DESC = 'Rutube playlists'
-    _VALID_URL = r'https?://rutube\.ru/(?:video|(?:play/)?embed)/[\da-z]{32}/\?.*?\bpl_id=(?P<id>\d+)'
+    _VALID_URL = r'https?://rutube\.ru/plst/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://rutube.ru/video/cecd58ed7d531fc0f3d795d51cee9026/?pl_id=3097&pl_type=tag',
+        'url': 'https://rutube.ru/plst/308547/',
         'info_dict': {
-            'id': '3097',
+            'id': '308547',
         },
-        'playlist_count': 27,
-    }, {
-        'url': 'https://rutube.ru/video/10b3a03fc01d5bbcc632a2f3514e8aab/?pl_id=4252&pl_type=source',
-        'only_matching': True,
+        'playlist_mincount': 22,
     }]
-
-    _PAGE_TEMPLATE = 'https://rutube.ru/api/playlist/%s/%s/?page=%s&format=json'
-
-    @classmethod
-    def suitable(cls, url):
-        from ..utils import int_or_none, parse_qs
-
-        if not super().suitable(url):
-            return False
-        params = parse_qs(url)
-        return params.get('pl_type', [None])[0] and int_or_none(params.get('pl_id', [None])[0])
-
-    def _next_page_url(self, page_num, playlist_id, item_kind):
-        return self._PAGE_TEMPLATE % (item_kind, playlist_id, page_num)
-
-    def _real_extract(self, url):
-        qs = parse_qs(url)
-        playlist_kind = qs['pl_type'][0]
-        playlist_id = qs['pl_id'][0]
-        return self._extract_playlist(playlist_id, item_kind=playlist_kind)
+    _PAGE_TEMPLATE = 'https://rutube.ru/api/playlist/custom/%s/videos?page=%s&format=json'
 
 
 class RutubeChannelIE(RutubePlaylistBaseIE):
@@ -441,17 +415,3 @@ class RutubeChannelIE(RutubePlaylistBaseIE):
         playlist = self._extract_playlist(playlist_id, section=section)
         playlist['id'] = f'{playlist_id}_{section}'
         return playlist
-
-
-class RutubeCustomPlaylistIE(RutubePlaylistBaseIE):
-    IE_NAME = 'rutube:customplaylist'
-    IE_DESC = 'Rutube custom playlist'
-    _VALID_URL = r'https?://rutube\.ru/plst/(?P<id>\d+)'
-    _TESTS = [{
-        'url': 'https://rutube.ru/plst/308547/',
-        'info_dict': {
-            'id': '308547',
-        },
-        'playlist_mincount': 22,
-    }]
-    _PAGE_TEMPLATE = 'https://rutube.ru/api/playlist/custom/%s/videos?page=%s&format=json'
