@@ -2,6 +2,7 @@ import itertools
 
 from .common import InfoExtractor
 from ..utils import (
+    UnsupportedError,
     bool_or_none,
     determine_ext,
     int_or_none,
@@ -388,7 +389,7 @@ class RutubePlaylistIE(RutubePlaylistBaseIE):
 class RutubeChannelIE(RutubePlaylistBaseIE):
     IE_NAME = 'rutube:channel'
     IE_DESC = 'Rutube channel'
-    _VALID_URL = r'https?://rutube\.ru/(?:channel/(?P<id>\d+)|u/(?P<slug>\w+))(?:/(?P<section>videos|shorts))?'
+    _VALID_URL = r'https?://rutube\.ru/(?:channel/(?P<id>\d+)|u/(?P<slug>\w+))(?:/(?P<section>videos|shorts|playlists))?'
     _TESTS = [{
         'url': 'https://rutube.ru/channel/639184/videos/',
         'info_dict': {
@@ -427,6 +428,8 @@ class RutubeChannelIE(RutubePlaylistBaseIE):
 
     def _real_extract(self, url):
         playlist_id, slug, section = self._match_valid_url(url).group('id', 'slug', 'section')
+        if section == 'playlists':
+            raise UnsupportedError(url)
         if slug:
             webpage = self._download_webpage(url, slug)
             redux_state = self._search_json(
