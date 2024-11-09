@@ -41,11 +41,6 @@ jobs:
         with:
           path: dist
           name: build-pypi
-      - name: Verify SHA2-256SUMS
-        run: |
-          cd ./dist/
-          sha256sum -c SHA2-256SUMS
-          rm SHA2-256SUMS
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:

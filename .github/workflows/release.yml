@@ -267,8 +267,6 @@ jobs:
           sed -i -E '0,/(name = ")[^"]+(")/s//\1${{ env.pypi_project }}\2/' pyproject.toml
 
       - name: Build
-        env:
-          event_name: ${{ github.event_name }}
         run: |
           rm -rf dist/*
           make pypi-files
@@ -279,17 +277,6 @@ jobs:
           python devscripts/set-variant.py pip -M "You installed yt-dlp with pip or using the wheel from PyPi; Use that to update"
           make clean-cache
           python -m build --no-isolation .
-          cd ./dist/
-          # print SHA sums to stdout
-          sha256sum -- * | tee SHA2-256SUMS
-          # also print as permanent annotations to the summary page
-          while read -r shasum; do
-            echo "::notice title=${shasum##* }::sha256: ${shasum% *}"
-          done < SHA2-256SUMS
-          # if we're publishing from this workflow, we need to remove SHA2-256SUMS from ./dist/ now
-          if [[ "${event_name}" == "workflow_dispatch" ]]; then
-            rm SHA2-256SUMS
-          fi
 
       - name: Upload artifacts
         if: github.event_name != 'workflow_dispatch'
