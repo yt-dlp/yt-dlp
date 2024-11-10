@@ -66,6 +66,7 @@ class SpreakerIE(InfoExtractor):
                             v2/episodes
                         )/
                         (?P<id>\d+)
+                        (?:\?key=(?P<key>[^&]+))?
                     '''
     _TESTS = [{
         'url': 'https://api.spreaker.com/episode/12534508',
@@ -94,28 +95,33 @@ class SpreakerIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        episode_id = self._match_id(url)
+        episode_id, key = self._match_valid_url(url).group(
+            'id', 'key')
+        query = {}
+        if key is not None:
+            query = {'key': key}
         data = self._download_json(
             f'https://api.spreaker.com/v2/episodes/{episode_id}',
-            episode_id)['response']['episode']
+            episode_id,
+            query=query)['response']['episode']
         return _extract_episode(data, episode_id)
 
 
 class SpreakerPageIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/user/[^/]+/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/episode/(?P<title>[^/?#]+)-(?P<id>\d+)(?:\?key=(?P<key>[^&]+))?'
     _TESTS = [{
-        'url': 'https://www.spreaker.com/user/9780658/swm-ep15-how-to-market-your-music-part-2',
+        'url': 'https://www.spreaker.com/episode/ep-15-music-marketing-likes-part-2--12534508',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        episode_id = self._search_regex(
-            (r'data-episode_id=["\'](?P<id>\d+)',
-             r'episode_id\s*:\s*(?P<id>\d+)'), webpage, 'episode id')
+        episode_id, key = self._match_valid_url(url).group(
+            'id', 'key')
+        url = f'https://api.spreaker.com/episode/{episode_id}'
+        if key is not None:
+            url = f'https://api.spreaker.com/episode/{episode_id}?key={key}'
         return self.url_result(
-            f'https://api.spreaker.com/episode/{episode_id}',
+            url,
             ie=SpreakerIE.ie_key(), video_id=episode_id)
 
 
@@ -170,23 +176,3 @@ class SpreakerShowPageIE(InfoExtractor):
         return self.url_result(
             f'https://api.spreaker.com/show/{show_id}',
             ie=SpreakerShowIE.ie_key(), video_id=show_id)
-
-
-class SpreakerEpisodeIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/episode/(?P<title>[^/?#]+)-(?P<id>\d+)(?:\?key=(?P<key>[^&]+))?'
-    _TESTS = [{
-        'url': 'https://www.spreaker.com/episode/ep-15-music-marketing-likes-part-2--12534508',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        episode_id, key = self._match_valid_url(url).group(
-            'id', 'key')
-        result = f'https://api.spreaker.com/episode/{episode_id}'
-        if key is not None:
-            access_key = f'?key={key}'
-            result = f'https://api.spreaker.com/episode/{episode_id}{access_key}'
-        data = self._download_json(
-            result,
-            episode_id)['response']['episode']
-        return _extract_episode(data, episode_id)
