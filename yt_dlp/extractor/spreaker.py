@@ -170,3 +170,23 @@ class SpreakerShowPageIE(InfoExtractor):
         return self.url_result(
             f'https://api.spreaker.com/show/{show_id}',
             ie=SpreakerShowIE.ie_key(), video_id=show_id)
+
+
+class SpreakerEpisodeIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/episode/(?P<title>[^/?#]+)-(?P<id>\d+)(?:\?key=(?P<key>[^&]+))?'
+    _TESTS = [{
+        'url': 'https://www.spreaker.com/episode/ep-15-music-marketing-likes-part-2--12534508',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        episode_id, key = self._match_valid_url(url).group(
+            'id', 'key')
+        result = f'https://api.spreaker.com/episode/{episode_id}'
+        if key is not None:
+            access_key = f'?key={key}'
+            result = f'https://api.spreaker.com/episode/{episode_id}{access_key}'
+        data = self._download_json(
+            result,
+            episode_id)['response']['episode']
+        return _extract_episode(data, episode_id)
