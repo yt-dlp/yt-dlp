@@ -1939,7 +1939,6 @@ from .spotify import (
 )
 from .spreaker import (
     SpreakerIE,
-    SpreakerPageIE,
     SpreakerShowIE,
     SpreakerShowPageIE,
 )

@@ -4,11 +4,13 @@ from .common import InfoExtractor
 from ..utils import (
     float_or_none,
     int_or_none,
+    parse_qs,
     str_or_none,
     try_get,
     unified_timestamp,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 def _extract_episode(data, episode_id=None):
@@ -58,16 +60,18 @@ def _extract_episode(data, episode_id=None):
 
 
 class SpreakerIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                    https?://
-                        api\.spreaker\.com/
-                        (?:
-                            (?:download/)?episode|
-                            v2/episodes
-                        )/
-                        (?P<id>\d+)
-                        (?:\?key=(?P<key>[^&]+))?
-                    '''
+    _VALID_URL = [
+        r'''(?x)
+        https?://
+            api\.spreaker\.com/
+            (?:
+                (?:download/)?episode|
+                v2/episodes
+            )/
+            (?P<id>\d+)
+        ''',
+        r'https?://(?:www\.)?spreaker\.com/episode/[^#?/]*?(?P<id>\d+)/?(?:[?#]|$)',
+    ]
     _TESTS = [{
         'url': 'https://api.spreaker.com/episode/12534508',
         'info_dict': {
@@ -92,37 +96,36 @@ class SpreakerIE(InfoExtractor):
     }, {
         'url': 'https://api.spreaker.com/v2/episodes/12534508?export=episode_segments',
         'only_matching': True,
+    }, {
+        'note': 'episode',
+        'url': 'https://www.spreaker.com/episode/grunge-music-origins-the-raw-sound-that-defined-a-generation--60269615',
+        'info_dict': {
+            'id': '60269615',
+            'display_id': 'grunge-music-origins-the-raw-sound-that-',
+            'ext': 'mp3',
+            'title': 'Grunge Music Origins - The Raw Sound that Defined a Generation',
+            'description': str,
+            'timestamp': 1717468905,
+            'upload_date': '20170809',
+            'uploader': 'Katie Brown 2',
+            'uploader_id': '17733249',
+            'duration': 1063.42,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'series': '90s Grunge',
+        },
     }]
 
     def _real_extract(self, url):
-        episode_id, key = self._match_valid_url(url).group(
-            'id', 'key')
+        episode_id = self._match_id(url)
         query = {}
-        if key is not None:
+        if key := traverse_obj(url, ({parse_qs}, 'key', 0)):
             query = {'key': key}
         data = self._download_json(
             f'https://api.spreaker.com/v2/episodes/{episode_id}',
-            episode_id,
-            query=query)['response']['episode']
+            episode_id, query=query)['response']['episode']
         return _extract_episode(data, episode_id)
-
-
-class SpreakerPageIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/episode/(?P<title>[^/?#]+)-(?P<id>\d+)(?:\?key=(?P<key>[^&]+))?'
-    _TESTS = [{
-        'url': 'https://www.spreaker.com/episode/ep-15-music-marketing-likes-part-2--12534508',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        episode_id, key = self._match_valid_url(url).group(
-            'id', 'key')
-        url = f'https://api.spreaker.com/episode/{episode_id}'
-        if key is not None:
-            url = f'https://api.spreaker.com/episode/{episode_id}?key={key}'
-        return self.url_result(
-            url,
-            ie=SpreakerIE.ie_key(), video_id=episode_id)
 
 
 class SpreakerShowIE(InfoExtractor):
