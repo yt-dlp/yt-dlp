@@ -3,7 +3,6 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     UserNotLive,
-    bool_or_none,
     int_or_none,
     str_or_none,
     url_or_none,
@@ -169,43 +168,4 @@ class MixchMovieIE(InfoExtractor):
                 'uploader_url': ('ownerInfo', 'id', {lambda x: x and f'https://mixch.tv/u/{x}'}),
             }),
             'live_status': 'not_live',
-            '__post_extractor': self.extract_comments(video_id),
         }
-
-    def _get_comments(self, video_id):
-        # Comments are organized in a json chain, connected with 'nextCursor' property.
-        # There are up to 20 comments in one json file.
-        COMMENTS_LIMIT = 20
-        # If json files are downloaded too frequently, the server might ban all the access from your IP.
-        comments_left = int_or_none(self._configuration_arg('max_comments', [''])[0]) or 120
-        fetch_interval_sec = int_or_none(self._configuration_arg('fetch_interval_sec', [''])[0])
-
-        base_url = f'https://mixch.tv/api-web/movies/{video_id}/comments'
-        has_next = True
-        next_cursor = ''
-        fragment = 1
-
-        while has_next and (comments_left > 0):
-            data = self._download_json(
-                base_url, video_id,
-                note=f'Downloading comments, fragment {fragment}', errnote='Failed to download comments',
-                query={'cursor': next_cursor, 'limit': COMMENTS_LIMIT})
-            fragment += 1
-            comments_left -= COMMENTS_LIMIT
-
-            # Some of the 'comments' are not real comments but gifts.
-            # Only real comments are extracted here.
-            yield from traverse_obj(data, ('comments', lambda _, v: v['comment'], {
-                'author': ('user_name', {str}),
-                'author_id': ('user_id', {int_or_none}),
-                'author_thumbnail': ('profile_image_url', {url_or_none}),
-                'id': ('id', {int_or_none}),
-                'text': ('comment', {str_or_none}),
-                'timestamp': ('created', {int_or_none}),
-            }))
-
-            if fetch_interval_sec:
-                self._sleep(fetch_interval_sec, video_id)
-
-            has_next = traverse_obj(data, ('hasNext'), {bool_or_none})
-            next_cursor = traverse_obj(data, ('nextCursor'), {str_or_none})
