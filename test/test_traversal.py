@@ -481,7 +481,7 @@ class TestTraversalHelpers:
             'id': 'name',
             'data': 'content',
             'url': 'url',
-        }, all, {subs_list_to_dict}]) == {
+        }, all, {subs_list_to_dict(lang=None)}]) == {
             'de': [{'url': 'https://example.com/subs/de.ass'}],
             'en': [{'data': 'content'}],
         }, 'subs with mandatory items missing should be filtered'
@@ -532,12 +532,29 @@ class TestTraversalHelpers:
             'id': 'name',
             'url': 'url',
             'ext': 'ext',
-        }, all, {subs_list_to_dict}]) == {
+        }, all, {subs_list_to_dict(lang=None)}]) == {
             'de': [
                 {'url': 'https://example.com/subs/de3'},
                 {'url': 'https://example.com/subs/de4'},
             ],
         }, 'non str types should be ignored for id and ext'
+        assert traverse_obj([
+            {'name': 1, 'url': 'https://example.com/subs/de1'},
+            {'name': {}, 'url': 'https://example.com/subs/de2'},
+            {'name': 'de', 'ext': 1, 'url': 'https://example.com/subs/de3'},
+            {'name': 'de', 'ext': {}, 'url': 'https://example.com/subs/de4'},
+        ], [..., {
+            'id': 'name',
+            'url': 'url',
+            'ext': 'ext',
+        }, all, {subs_list_to_dict(lang='de')}]) == {
+            'de': [
+                {'url': 'https://example.com/subs/de1'},
+                {'url': 'https://example.com/subs/de2'},
+                {'url': 'https://example.com/subs/de3'},
+                {'url': 'https://example.com/subs/de4'},
+            ],
+        }, 'non str types should be replaced by default id'
 
     def test_trim_str(self):
         with pytest.raises(TypeError):

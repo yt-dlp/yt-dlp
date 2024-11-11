@@ -332,14 +332,14 @@ class _RequiredError(ExtractorError):
 
 
 @typing.overload
-def subs_list_to_dict(*, lang: str | None = None, ext: str | None = None) -> collections.abc.Callable[[list[dict]], dict[str, list[dict]]]: ...
+def subs_list_to_dict(*, lang: str | None = 'und', ext: str | None = None) -> collections.abc.Callable[[list[dict]], dict[str, list[dict]]]: ...
 
 
 @typing.overload
-def subs_list_to_dict(subs: list[dict] | None, /, *, lang: str | None = None, ext: str | None = None) -> dict[str, list[dict]]: ...
+def subs_list_to_dict(subs: list[dict] | None, /, *, lang: str | None = 'und', ext: str | None = None) -> dict[str, list[dict]]: ...
 
 
-def subs_list_to_dict(subs: list[dict] | None = None, /, *, lang=None, ext=None):
+def subs_list_to_dict(subs: list[dict] | None = None, /, *, lang='und', ext=None):
     """
     Convert subtitles from a traversal into a subtitle dict.
     The path should have an `all` immediately before this function.
@@ -359,12 +359,14 @@ def subs_list_to_dict(subs: list[dict] | None = None, /, *, lang=None, ext=None)
     for sub in subs:
         if not url_or_none(sub.get('url')) and not sub.get('data'):
             continue
-        sub_id = sub.pop('id', None) or lang
+        sub_id = sub.pop('id', None)
         if not isinstance(sub_id, str):
-            continue
+            if not lang:
+                continue
+            sub_id = lang
         sub_ext = sub.get('ext')
         if not isinstance(sub_ext, str):
-            if ext is None:
+            if not ext:
                 sub.pop('ext', None)
             else:
                 sub['ext'] = ext
