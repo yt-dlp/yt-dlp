@@ -2,15 +2,18 @@ import itertools
 
 from .common import InfoExtractor
 from ..utils import (
+    UnsupportedError,
     bool_or_none,
     determine_ext,
     int_or_none,
+    js_to_json,
     parse_qs,
-    traverse_obj,
+    str_or_none,
     try_get,
     unified_timestamp,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RutubeBaseIE(InfoExtractor):
@@ -19,7 +22,7 @@ class RutubeBaseIE(InfoExtractor):
             query = {}
         query['format'] = 'json'
         return self._download_json(
-            f'http://rutube.ru/api/video/{video_id}/',
+            f'https://rutube.ru/api/video/{video_id}/',
             video_id, 'Downloading video JSON',
             'Unable to download video JSON', query=query)
 
@@ -61,18 +64,21 @@ class RutubeBaseIE(InfoExtractor):
             query = {}
         query['format'] = 'json'
         return self._download_json(
-            f'http://rutube.ru/api/play/options/{video_id}/',
+            f'https://rutube.ru/api/play/options/{video_id}/',
             video_id, 'Downloading options JSON',
             'Unable to download options JSON',
             headers=self.geo_verification_headers(), query=query)
 
-    def _extract_formats(self, options, video_id):
+    def _extract_formats_and_subtitles(self, options, video_id):
         formats = []
+        subtitles = {}
         for format_id, format_url in options['video_balancer'].items():
             ext = determine_ext(format_url)
             if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    format_url, video_id, 'mp4', m3u8_id=format_id, fatal=False))
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    format_url, video_id, 'mp4', m3u8_id=format_id, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             elif ext == 'f4m':
                 formats.extend(self._extract_f4m_formats(
                     format_url, video_id, f4m_id=format_id, fatal=False))
@@ -82,11 +88,19 @@ class RutubeBaseIE(InfoExtractor):
                     'format_id': format_id,
                 })
         for hls_url in traverse_obj(options, ('live_streams', 'hls', ..., 'url', {url_or_none})):
-            formats.extend(self._extract_m3u8_formats(hls_url, video_id, ext='mp4', fatal=False))
-        return formats
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                hls_url, video_id, 'mp4', fatal=False, m3u8_id='hls')
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+        for caption in traverse_obj(options, ('captions', lambda _, v: url_or_none(v['file']))):
+            subtitles.setdefault(caption.get('code') or 'ru', []).append({
+                'url': caption['file'],
+                'name': caption.get('langTitle'),
+            })
+        return formats, subtitles
 
-    def _download_and_extract_formats(self, video_id, query=None):
-        return self._extract_formats(
+    def _download_and_extract_formats_and_subtitles(self, video_id, query=None):
+        return self._extract_formats_and_subtitles(
             self._download_api_options(video_id, query=query), video_id)
 
 
@@ -97,8 +111,8 @@ class RutubeIE(RutubeBaseIE):
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//rutube\.ru/(?:play/)?embed/[\da-z]{32}.*?)\1']
 
     _TESTS = [{
-        'url': 'http://rutube.ru/video/3eac3b4561676c17df9132a9a1e62e3e/',
-        'md5': 'e33ac625efca66aba86cbec9851f2692',
+        'url': 'https://rutube.ru/video/3eac3b4561676c17df9132a9a1e62e3e/',
+        'md5': '3d73fdfe5bb81b9aef139e22ef3de26a',
         'info_dict': {
             'id': '3eac3b4561676c17df9132a9a1e62e3e',
             'ext': 'mp4',
@@ -111,26 +125,25 @@ class RutubeIE(RutubeBaseIE):
             'upload_date': '20131016',
             'age_limit': 0,
             'view_count': int,
-            'thumbnail': 'http://pic.rutubelist.ru/video/d2/a0/d2a0aec998494a396deafc7ba2c82add.jpg',
+            'thumbnail': 'https://pic.rutubelist.ru/video/d2/a0/d2a0aec998494a396deafc7ba2c82add.jpg',
             'categories': ['Новости и СМИ'],
             'chapters': [],
         },
-        'expected_warnings': ['Unable to download f4m'],
     }, {
-        'url': 'http://rutube.ru/play/embed/a10e53b86e8f349080f718582ce4c661',
+        'url': 'https://rutube.ru/play/embed/a10e53b86e8f349080f718582ce4c661',
         'only_matching': True,
     }, {
-        'url': 'http://rutube.ru/embed/a10e53b86e8f349080f718582ce4c661',
+        'url': 'https://rutube.ru/embed/a10e53b86e8f349080f718582ce4c661',
         'only_matching': True,
     }, {
-        'url': 'http://rutube.ru/video/3eac3b4561676c17df9132a9a1e62e3e/?pl_id=4252',
+        'url': 'https://rutube.ru/video/3eac3b4561676c17df9132a9a1e62e3e/?pl_id=4252',
         'only_matching': True,
     }, {
         'url': 'https://rutube.ru/video/10b3a03fc01d5bbcc632a2f3514e8aab/?pl_type=source',
         'only_matching': True,
     }, {
         'url': 'https://rutube.ru/video/private/884fb55f07a97ab673c7d654553e0f48/?p=x2QojCumHTS3rsKHWXN8Lg',
-        'md5': 'd106225f15d625538fe22971158e896f',
+        'md5': '4fce7b4fcc7b1bcaa3f45eb1e1ad0dd7',
         'info_dict': {
             'id': '884fb55f07a97ab673c7d654553e0f48',
             'ext': 'mp4',
@@ -143,11 +156,10 @@ class RutubeIE(RutubeBaseIE):
             'upload_date': '20221210',
             'age_limit': 0,
             'view_count': int,
-            'thumbnail': 'http://pic.rutubelist.ru/video/f2/d4/f2d42b54be0a6e69c1c22539e3152156.jpg',
+            'thumbnail': 'https://pic.rutubelist.ru/video/f2/d4/f2d42b54be0a6e69c1c22539e3152156.jpg',
             'categories': ['Видеоигры'],
             'chapters': [],
         },
-        'expected_warnings': ['Unable to download f4m'],
     }, {
         'url': 'https://rutube.ru/video/c65b465ad0c98c89f3b25cb03dcc87c6/',
         'info_dict': {
@@ -156,17 +168,16 @@ class RutubeIE(RutubeBaseIE):
             'chapters': 'count:4',
             'categories': ['Бизнес и предпринимательство'],
             'description': 'md5:252feac1305257d8c1bab215cedde75d',
-            'thumbnail': 'http://pic.rutubelist.ru/video/71/8f/718f27425ea9706073eb80883dd3787b.png',
+            'thumbnail': 'https://pic.rutubelist.ru/video/71/8f/718f27425ea9706073eb80883dd3787b.png',
             'duration': 782,
             'age_limit': 0,
             'uploader_id': '23491359',
             'timestamp': 1677153329,
             'view_count': int,
             'upload_date': '20230223',
-            'title': 'Бизнес с нуля: найм сотрудников. Интервью с директором строительной компании',
+            'title': 'Бизнес с нуля: найм сотрудников. Интервью с директором строительной компании #1',
             'uploader': 'Стас Быков',
         },
-        'expected_warnings': ['Unable to download f4m'],
     }, {
         'url': 'https://rutube.ru/live/video/c58f502c7bb34a8fcdd976b221fca292/',
         'info_dict': {
@@ -174,7 +185,7 @@ class RutubeIE(RutubeBaseIE):
             'ext': 'mp4',
             'categories': ['Телепередачи'],
             'description': '',
-            'thumbnail': 'http://pic.rutubelist.ru/video/14/19/14190807c0c48b40361aca93ad0867c7.jpg',
+            'thumbnail': 'https://pic.rutubelist.ru/video/14/19/14190807c0c48b40361aca93ad0867c7.jpg',
             'live_status': 'is_live',
             'age_limit': 0,
             'uploader_id': '23460655',
@@ -185,6 +196,24 @@ class RutubeIE(RutubeBaseIE):
             'uploader': 'Первый канал',
         },
     }, {
+        'url': 'https://rutube.ru/play/embed/03a9cb54bac3376af4c5cb0f18444e01/',
+        'info_dict': {
+            'id': '03a9cb54bac3376af4c5cb0f18444e01',
+            'ext': 'mp4',
+            'age_limit': 0,
+            'description': '',
+            'title': 'Церемония начала торгов акциями ПАО «ЕвроТранс»',
+            'chapters': [],
+            'upload_date': '20240829',
+            'duration': 293,
+            'uploader': 'MOEX - Московская биржа',
+            'timestamp': 1724946628,
+            'thumbnail': 'https://pic.rutubelist.ru/video/2e/24/2e241fddb459baf0fa54acfca44874f4.jpg',
+            'view_count': int,
+            'uploader_id': '38420507',
+            'categories': ['Интервью'],
+        },
+    }, {
         'url': 'https://rutube.ru/video/5ab908fccfac5bb43ef2b1e4182256b0/',
         'only_matching': True,
     }, {
@@ -192,40 +221,46 @@ class RutubeIE(RutubeBaseIE):
         'only_matching': True,
     }]
 
-    @classmethod
-    def suitable(cls, url):
-        return False if RutubePlaylistIE.suitable(url) else super().suitable(url)
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         query = parse_qs(url)
         info = self._download_and_extract_info(video_id, query)
-        info['formats'] = self._download_and_extract_formats(video_id, query)
-        return info
+        formats, subtitles = self._download_and_extract_formats_and_subtitles(video_id, query)
+        return {
+            **info,
+            'formats': formats,
+            'subtitles': subtitles,
+        }
 
 
 class RutubeEmbedIE(RutubeBaseIE):
     IE_NAME = 'rutube:embed'
     IE_DESC = 'Rutube embedded videos'
-    _VALID_URL = r'https?://rutube\.ru/(?:video|play)/embed/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://rutube\.ru/(?:video|play)/embed/(?P<id>[0-9]+)(?:[?#/]|$)'
 
     _TESTS = [{
-        'url': 'http://rutube.ru/video/embed/6722881?vk_puid37=&vk_puid38=',
+        'url': 'https://rutube.ru/video/embed/6722881?vk_puid37=&vk_puid38=',
         'info_dict': {
             'id': 'a10e53b86e8f349080f718582ce4c661',
             'ext': 'mp4',
             'timestamp': 1387830582,
             'upload_date': '20131223',
             'uploader_id': '297833',
-            'description': 'Видео группы ★http://vk.com/foxkidsreset★ музей Fox Kids и Jetix<br/><br/> восстановлено и сделано в шикоформате subziro89 http://vk.com/subziro89',
             'uploader': 'subziro89 ILya',
             'title': 'Мистический городок Эйри в Индиан 5 серия озвучка subziro89',
+            'age_limit': 0,
+            'duration': 1395,
+            'chapters': [],
+            'description': 'md5:a5acea57bbc3ccdc3cacd1f11a014b5b',
+            'view_count': int,
+            'thumbnail': 'https://pic.rutubelist.ru/video/d3/03/d3031f4670a6e6170d88fb3607948418.jpg',
+            'categories': ['Сериалы'],
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        'url': 'http://rutube.ru/play/embed/8083783',
+        'url': 'https://rutube.ru/play/embed/8083783',
         'only_matching': True,
     }, {
         # private video
@@ -240,11 +275,12 @@ class RutubeEmbedIE(RutubeBaseIE):
         query = parse_qs(url)
         options = self._download_api_options(embed_id, query)
         video_id = options['effective_video']
-        formats = self._extract_formats(options, video_id)
+        formats, subtitles = self._extract_formats_and_subtitles(options, video_id)
         info = self._download_and_extract_info(video_id, query)
         info.update({
             'extractor_key': 'Rutube',
             'formats': formats,
+            'subtitles': subtitles,
         })
         return info
 
@@ -295,14 +331,14 @@ class RutubeTagsIE(RutubePlaylistBaseIE):
     IE_DESC = 'Rutube tags'
     _VALID_URL = r'https?://rutube\.ru/tags/video/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'http://rutube.ru/tags/video/1800/',
+        'url': 'https://rutube.ru/tags/video/1800/',
         'info_dict': {
             'id': '1800',
         },
         'playlist_mincount': 68,
     }]
 
-    _PAGE_TEMPLATE = 'http://rutube.ru/api/tags/video/%s/?page=%s&format=json'
+    _PAGE_TEMPLATE = 'https://rutube.ru/api/tags/video/%s/?page=%s&format=json'
 
 
 class RutubeMovieIE(RutubePlaylistBaseIE):
@@ -310,8 +346,8 @@ class RutubeMovieIE(RutubePlaylistBaseIE):
     IE_DESC = 'Rutube movies'
     _VALID_URL = r'https?://rutube\.ru/metainfo/tv/(?P<id>\d+)'
 
-    _MOVIE_TEMPLATE = 'http://rutube.ru/api/metainfo/tv/%s/?format=json'
-    _PAGE_TEMPLATE = 'http://rutube.ru/api/metainfo/tv/%s/video?page=%s&format=json'
+    _MOVIE_TEMPLATE = 'https://rutube.ru/api/metainfo/tv/%s/?format=json'
+    _PAGE_TEMPLATE = 'https://rutube.ru/api/metainfo/tv/%s/video?page=%s&format=json'
 
     def _real_extract(self, url):
         movie_id = self._match_id(url)
@@ -327,62 +363,82 @@ class RutubePersonIE(RutubePlaylistBaseIE):
     IE_DESC = 'Rutube person videos'
     _VALID_URL = r'https?://rutube\.ru/video/person/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'http://rutube.ru/video/person/313878/',
+        'url': 'https://rutube.ru/video/person/313878/',
         'info_dict': {
             'id': '313878',
         },
-        'playlist_mincount': 37,
+        'playlist_mincount': 36,
     }]
 
-    _PAGE_TEMPLATE = 'http://rutube.ru/api/video/person/%s/?page=%s&format=json'
+    _PAGE_TEMPLATE = 'https://rutube.ru/api/video/person/%s/?page=%s&format=json'
 
 
 class RutubePlaylistIE(RutubePlaylistBaseIE):
     IE_NAME = 'rutube:playlist'
     IE_DESC = 'Rutube playlists'
-    _VALID_URL = r'https?://rutube\.ru/(?:video|(?:play/)?embed)/[\da-z]{32}/\?.*?\bpl_id=(?P<id>\d+)'
+    _VALID_URL = r'https?://rutube\.ru/plst/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://rutube.ru/video/cecd58ed7d531fc0f3d795d51cee9026/?pl_id=3097&pl_type=tag',
+        'url': 'https://rutube.ru/plst/308547/',
         'info_dict': {
-            'id': '3097',
+            'id': '308547',
         },
-        'playlist_count': 27,
-    }, {
-        'url': 'https://rutube.ru/video/10b3a03fc01d5bbcc632a2f3514e8aab/?pl_id=4252&pl_type=source',
-        'only_matching': True,
+        'playlist_mincount': 22,
     }]
-
-    _PAGE_TEMPLATE = 'http://rutube.ru/api/playlist/%s/%s/?page=%s&format=json'
-
-    @classmethod
-    def suitable(cls, url):
-        from ..utils import int_or_none, parse_qs
-
-        if not super().suitable(url):
-            return False
-        params = parse_qs(url)
-        return params.get('pl_type', [None])[0] and int_or_none(params.get('pl_id', [None])[0])
-
-    def _next_page_url(self, page_num, playlist_id, item_kind):
-        return self._PAGE_TEMPLATE % (item_kind, playlist_id, page_num)
-
-    def _real_extract(self, url):
-        qs = parse_qs(url)
-        playlist_kind = qs['pl_type'][0]
-        playlist_id = qs['pl_id'][0]
-        return self._extract_playlist(playlist_id, item_kind=playlist_kind)
+    _PAGE_TEMPLATE = 'https://rutube.ru/api/playlist/custom/%s/videos?page=%s&format=json'
 
 
 class RutubeChannelIE(RutubePlaylistBaseIE):
     IE_NAME = 'rutube:channel'
     IE_DESC = 'Rutube channel'
-    _VALID_URL = r'https?://rutube\.ru/channel/(?P<id>\d+)/videos'
+    _VALID_URL = r'https?://rutube\.ru/(?:channel/(?P<id>\d+)|u/(?P<slug>\w+))(?:/(?P<section>videos|shorts|playlists))?'
     _TESTS = [{
         'url': 'https://rutube.ru/channel/639184/videos/',
         'info_dict': {
-            'id': '639184',
+            'id': '639184_videos',
         },
-        'playlist_mincount': 133,
+        'playlist_mincount': 129,
+    }, {
+        'url': 'https://rutube.ru/channel/25902603/shorts/',
+        'info_dict': {
+            'id': '25902603_shorts',
+        },
+        'playlist_mincount': 277,
+    }, {
+        'url': 'https://rutube.ru/channel/25902603/',
+        'info_dict': {
+            'id': '25902603',
+        },
+        'playlist_mincount': 406,
+    }, {
+        'url': 'https://rutube.ru/u/rutube/videos/',
+        'info_dict': {
+            'id': '23704195_videos',
+        },
+        'playlist_mincount': 113,
     }]
 
-    _PAGE_TEMPLATE = 'http://rutube.ru/api/video/person/%s/?page=%s&format=json'
+    _PAGE_TEMPLATE = 'https://rutube.ru/api/video/person/%s/?page=%s&format=json&origin__type=%s'
+
+    def _next_page_url(self, page_num, playlist_id, section):
+        origin_type = {
+            'videos': 'rtb,rst,ifrm,rspa',
+            'shorts': 'rshorts',
+            None: '',
+        }.get(section)
+        return self._PAGE_TEMPLATE % (playlist_id, page_num, origin_type)
+
+    def _real_extract(self, url):
+        playlist_id, slug, section = self._match_valid_url(url).group('id', 'slug', 'section')
+        if section == 'playlists':
+            raise UnsupportedError(url)
+        if slug:
+            webpage = self._download_webpage(url, slug)
+            redux_state = self._search_json(
+                r'window\.reduxState\s*=', webpage, 'redux state', slug, transform_source=js_to_json)
+            playlist_id = traverse_obj(redux_state, (
+                'api', 'queries', lambda k, _: k.startswith('channelIdBySlug'),
+                'data', 'channel_id', {int}, {str_or_none}, any))
+        playlist = self._extract_playlist(playlist_id, section=section)
+        if section:
+            playlist['id'] = f'{playlist_id}_{section}'
+        return playlist

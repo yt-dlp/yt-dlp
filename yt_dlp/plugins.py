@@ -1,10 +1,12 @@
 import contextlib
+import functools
 import importlib
 import importlib.abc
 import importlib.machinery
 import importlib.util
 import inspect
 import itertools
+import os
 import pkgutil
 import sys
 import traceback
@@ -12,8 +14,8 @@ import zipimport
 from pathlib import Path
 from zipfile import ZipFile
 
-from .compat import functools  # isort: split
 from .utils import (
+    Config,
     get_executable_path,
     get_system_config_dirs,
     get_user_config_dirs,
@@ -83,6 +85,12 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         with contextlib.suppress(ValueError):  # Added when running __main__.py directly
             candidate_locations.remove(Path(__file__).parent)
 
+        # TODO(coletdjnz): remove when plugin globals system is implemented
+        if Config._plugin_dirs:
+            candidate_locations.extend(_get_package_paths(
+                *Config._plugin_dirs,
+                containing_folder=''))
+
         parts = Path(*fullname.split('.'))
         for path in orderedSet(candidate_locations, lazy=True):
             candidate = path / parts
@@ -137,6 +145,8 @@ def load_module(module, module_name, suffix):
 
 def load_plugins(name, suffix):
     classes = {}
+    if os.environ.get('YTDLP_NO_PLUGINS'):
+        return classes
 
     for finder, module_name, _ in iter_modules(name):
         if any(x.startswith('_') for x in module_name.split('.')):

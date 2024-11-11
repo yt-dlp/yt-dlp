@@ -6,13 +6,11 @@ from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
-    get_element_by_class,
-    get_element_html_by_id,
     join_nonempty,
     parse_duration,
     unified_timestamp,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import find_element, traverse_obj
 
 
 class LearningOnScreenIE(InfoExtractor):
@@ -32,28 +30,24 @@ class LearningOnScreenIE(InfoExtractor):
 
     def _real_initialize(self):
         if not self._get_cookies('https://learningonscreen.ac.uk/').get('PHPSESSID-BOB-LIVE'):
-            self.raise_login_required(
-                'Use --cookies for authentication. See '
-                ' https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  '
-                'for how to manually pass cookies', method=None)
+            self.raise_login_required(method='session_cookies')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
         details = traverse_obj(webpage, (
-            {functools.partial(get_element_html_by_id, 'programme-details')}, {
-                'title': ({functools.partial(re.search, r'<h2>([^<]+)</h2>')}, 1, {clean_html}),
+            {find_element(id='programme-details', html=True)}, {
+                'title': ({find_element(tag='h2')}, {clean_html}),
                 'timestamp': (
-                    {functools.partial(get_element_by_class, 'broadcast-date')},
+                    {find_element(cls='broadcast-date')},
                     {functools.partial(re.match, r'([^<]+)')}, 1, {unified_timestamp}),
                 'duration': (
-                    {functools.partial(get_element_by_class, 'prog-running-time')},
-                    {clean_html}, {parse_duration}),
+                    {find_element(cls='prog-running-time')}, {clean_html}, {parse_duration}),
             }))
 
         title = details.pop('title', None) or traverse_obj(webpage, (
-            {functools.partial(get_element_html_by_id, 'add-to-existing-playlist')},
+            {find_element(id='add-to-existing-playlist', html=True)},
             {extract_attributes}, 'data-record-title', {clean_html}))
 
         entries = self._parse_html5_media_entries(
