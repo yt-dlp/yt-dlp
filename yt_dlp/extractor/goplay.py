@@ -5,56 +5,63 @@ import hashlib
 import hmac
 import json
 import os
+import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    int_or_none,
+    js_to_json,
+    remove_end,
     traverse_obj,
-    unescapeHTML,
 )
 
 
 class GoPlayIE(InfoExtractor):
-    _VALID_URL = r'https?://(www\.)?goplay\.be/video/([^/]+/[^/]+/|)(?P<display_id>[^/#]+)'
+    _VALID_URL = r'https?://(www\.)?goplay\.be/video/([^/?#]+/[^/?#]+/|)(?P<id>[^/#]+)'
 
     _NETRC_MACHINE = 'goplay'
 
     _TESTS = [{
-        'url': 'https://www.goplay.be/video/de-container-cup/de-container-cup-s3/de-container-cup-s3-aflevering-2#autoplay',
+        'url': 'https://www.goplay.be/video/de-slimste-mens-ter-wereld/de-slimste-mens-ter-wereld-s22/de-slimste-mens-ter-wereld-s22-aflevering-1',
         'info_dict': {
-            'id': '9c4214b8-e55d-4e4b-a446-f015f6c6f811',
+            'id': '2baa4560-87a0-421b-bffc-359914e3c387',
             'ext': 'mp4',
-            'title': 'S3 - Aflevering 2',
-            'series': 'De Container Cup',
-            'season': 'Season 3',
-            'season_number': 3,
-            'episode': 'Episode 2',
-            'episode_number': 2,
+            'title': 'S22 - Aflevering 1',
+            'description': r're:In aflevering 1 nemen Daan Alferink, Tess Elst en Xander De Rycke .{66}',
+            'series': 'De Slimste Mens ter Wereld',
+            'episode': 'Episode 1',
+            'season_number': 22,
+            'episode_number': 1,
+            'season': 'Season 22',
         },
+        'params': {'skip_download': True},
         'skip': 'This video is only available for registered users',
     }, {
-        'url': 'https://www.goplay.be/video/a-family-for-thr-holidays-s1-aflevering-1#autoplay',
+        'url': 'https://www.goplay.be/video/1917',
         'info_dict': {
-            'id': '74e3ed07-748c-49e4-85a0-393a93337dbf',
+            'id': '40cac41d-8d29-4ef5-aa11-75047b9f0907',
             'ext': 'mp4',
-            'title': 'A Family for the Holidays',
+            'title': '1917',
+            'description': r're:Op het hoogtepunt van de Eerste Wereldoorlog krijgen twee jonge .{94}',
         },
+        'params': {'skip_download': True},
         'skip': 'This video is only available for registered users',
     }, {
         'url': 'https://www.goplay.be/video/de-mol/de-mol-s11/de-mol-s11-aflevering-1#autoplay',
         'info_dict': {
-            'id': '03eb8f2f-153e-41cb-9805-0d3a29dab656',
+            'id': 'ecb79672-92b9-4cd9-a0d7-e2f0250681ee',
             'ext': 'mp4',
             'title': 'S11 - Aflevering 1',
+            'description': r're:Tien kandidaten beginnen aan hun verovering van Amerika en ontmoeten .{102}',
             'episode': 'Episode 1',
             'series': 'De Mol',
             'season_number': 11,
             'episode_number': 1,
             'season': 'Season 11',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': True},
         'skip': 'This video is only available for registered users',
     }]
 
@@ -69,27 +76,42 @@ class GoPlayIE(InfoExtractor):
         if not self._id_token:
             raise self.raise_login_required(method='password')
 
-    def _real_extract(self, url):
-        url, display_id = self._match_valid_url(url).group(0, 'display_id')
-        webpage = self._download_webpage(url, display_id)
-        video_data_json = self._html_search_regex(r'<div\s+data-hero="([^"]+)"', webpage, 'video_data')
-        video_data = self._parse_json(unescapeHTML(video_data_json), display_id).get('data')
+    def _find_json(self, s):
+        return self._search_json(
+            r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=None)
 
-        movie = video_data.get('movie')
-        if movie:
-            video_id = movie['videoUuid']
-            info_dict = {
-                'title': movie.get('title'),
-            }
-        else:
-            episode = traverse_obj(video_data, ('playlists', ..., 'episodes', lambda _, v: v['pageInfo']['url'] == url), get_all=False)
-            video_id = episode['videoUuid']
-            info_dict = {
-                'title': episode.get('episodeTitle'),
-                'series': traverse_obj(episode, ('program', 'title')),
-                'season_number': episode.get('seasonNumber'),
-                'episode_number': episode.get('episodeNumber'),
-            }
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+
+        nextjs_data = traverse_obj(
+            re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
+            (..., {js_to_json}, {json.loads}, ..., {self._find_json}, ...))
+        meta = traverse_obj(nextjs_data, (
+            ..., lambda _, v: v['meta']['path'] == urllib.parse.urlparse(url).path, 'meta', any))
+
+        video_id = meta['uuid']
+        info_dict = traverse_obj(meta, {
+            'title': ('title', {str}),
+            'description': ('description', {str.strip}),
+        })
+
+        if traverse_obj(meta, ('program', 'subtype')) != 'movie':
+            for season_data in traverse_obj(nextjs_data, (..., 'children', ..., 'playlists', ...)):
+                episode_data = traverse_obj(
+                    season_data, ('videos', lambda _, v: v['videoId'] == video_id, any))
+                if not episode_data:
+                    continue
+
+                episode_title = traverse_obj(
+                    episode_data, 'contextualTitle', 'episodeTitle', expected_type=str)
+                info_dict.update({
+                    'title': episode_title or info_dict.get('title'),
+                    'series': remove_end(info_dict.get('title'), f' - {episode_title}'),
+                    'season_number': traverse_obj(season_data, ('season', {int_or_none})),
+                    'episode_number': traverse_obj(episode_data, ('episodeNumber', {int_or_none})),
+                })
+                break
 
         api = self._download_json(
             f'https://api.goplay.be/web/v1/videos/long-form/{video_id}',
