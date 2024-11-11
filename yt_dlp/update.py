@@ -18,7 +18,6 @@ from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
     NO_DEFAULT,
     Popen,
-    deprecation_warning,
     format_field,
     remove_end,
     shell_quote,
@@ -199,8 +198,6 @@ class UpdateInfo:
 
     binary_name: str | None = _get_binary_name()  # noqa: RUF009: Always returns the same value
     checksum: str | None = None
-
-    _has_update = True
 
 
 class Updater:
@@ -560,57 +557,6 @@ class Updater:
         self._report_error(
             f'Unable to {action}{delim} visit  '
             f'https://github.com/{self.requested_repo}/releases/{path}', True)
-
-    # XXX: Everything below this line in this class is deprecated / for compat only
-    @property
-    def _target_tag(self):
-        """Deprecated; requested tag with 'tags/' prepended when necessary for API calls"""
-        return f'tags/{self.requested_tag}' if self.requested_tag != 'latest' else self.requested_tag
-
-    def _check_update(self):
-        """Deprecated; report whether there is an update available"""
-        return bool(self.query_update(_output=True))
-
-    def __getattr__(self, attribute: str):
-        """Compat getter function for deprecated attributes"""
-        deprecated_props_map = {
-            'check_update': '_check_update',
-            'target_tag': '_target_tag',
-            'target_channel': 'requested_channel',
-        }
-        update_info_props_map = {
-            'has_update': '_has_update',
-            'new_version': 'version',
-            'latest_version': 'requested_version',
-            'release_name': 'binary_name',
-            'release_hash': 'checksum',
-        }
-
-        if attribute not in deprecated_props_map and attribute not in update_info_props_map:
-            raise AttributeError(f'{type(self).__name__!r} object has no attribute {attribute!r}')
-
-        msg = f'{type(self).__name__}.{attribute} is deprecated and will be removed in a future version'
-        if attribute in deprecated_props_map:
-            source_name = deprecated_props_map[attribute]
-            if not source_name.startswith('_'):
-                msg += f'. Please use {source_name!r} instead'
-            source = self
-            mapping = deprecated_props_map
-
-        else:  # attribute in update_info_props_map
-            msg += '. Please call query_update() instead'
-            source = self.query_update()
-            if source is None:
-                source = UpdateInfo('', None, None, None)
-                source._has_update = False
-            mapping = update_info_props_map
-
-        deprecation_warning(msg)
-        for target_name, source_name in mapping.items():
-            value = getattr(source, source_name)
-            setattr(self, target_name, value)
-
-        return getattr(self, attribute)
 
 
 def run_update(ydl):
