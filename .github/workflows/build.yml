@@ -411,7 +411,7 @@ jobs:
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python devscripts/install_deps.py -o --include build
           python devscripts/install_deps.py --include curl-cffi
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-6.10.0-py3-none-any.whl"
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-6.11.1-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -460,7 +460,7 @@ jobs:
         run: |
           python devscripts/install_deps.py -o --include build
           python devscripts/install_deps.py
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-6.10.0-py3-none-any.whl"
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-6.11.1-py3-none-any.whl"
 
       - name: Prepare
         run: |
