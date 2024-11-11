@@ -30,42 +30,13 @@ class ChaturbateIE(InfoExtractor):
         'url': 'https://en.chaturbate.com/siswet19/',
         'only_matching': True,
     }, {
-        'url': 'https://www.chaturbate.eu/siswet19/',
-        'info_dict': {
-               'id': 'siswet19',
-               'ext': 'mp4',
-               'title': 're:^siswet19 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
-               'age_limit': 18,
-               'is_live': True,
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'Room is offline',
+        'url': 'https://chaturbate.eu/siswet19/',
+        'only_matching': True,
     }, {
         'url': 'https://chaturbate.eu/fullvideo/?b=caylin',
         'only_matching': True,
     }, {
-        'url': 'https://en.chaturbate.eu/siswet19/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.chaturbate.global/siswet19/',
-        'info_dict': {
-               'id': 'siswet19',
-               'ext': 'mp4',
-               'title': 're:^siswet19 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
-               'age_limit': 18,
-               'is_live': True,
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'Room is offline',
-    }, {
-        'url': 'https://chaturbate.global/fullvideo/?b=caylin',
-        'only_matching': True,
-    }, {
-        'url': 'https://en.chaturbate.global/siswet19/',
+        'url': 'https://chaturbate.global/siswet19/',
         'only_matching': True,
     }]
 
