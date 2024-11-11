@@ -1940,7 +1940,6 @@ from .spotify import (
 from .spreaker import (
     SpreakerIE,
     SpreakerShowIE,
-    SpreakerShowPageIE,
 )
 from .springboardplatform import SpringboardPlatformIE
 from .sprout import SproutIE

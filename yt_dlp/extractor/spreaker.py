@@ -2,6 +2,7 @@ import itertools
 
 from .common import InfoExtractor
 from ..utils import (
+    filter_dict,
     float_or_none,
     int_or_none,
     parse_qs,
@@ -119,29 +120,46 @@ class SpreakerIE(InfoExtractor):
     def _real_extract(self, url):
         episode_id = self._match_id(url)
         data = self._download_json(
-            f'https://api.spreaker.com/v2/episodes/{episode_id}',
-            episode_id, query=traverse_obj(parse_qs(url), {'key': ('key', 0)}))['response']['episode']
+            f'https://api.spreaker.com/v2/episodes/{episode_id}', episode_id,
+            query=traverse_obj(parse_qs(url), {'key': ('key', 0)}))['response']['episode']
         return _extract_episode(data, episode_id)
 
 
 class SpreakerShowIE(InfoExtractor):
-    _VALID_URL = r'https?://api\.spreaker\.com/show/(?P<id>\d+)'
+    _VALID_URL = [
+        r'https?://api\.spreaker\.com/show/(?P<id>\d+)',
+        r'https?://(?:www\.)?spreaker\.com/podcast/[\w-]+--(?P<id>[\d]+)',
+        r'https?://(?:www\.)?spreaker\.com/show/(?P<id>\d+)/episodes/feed',
+    ]
     _TESTS = [{
         'url': 'https://api.spreaker.com/show/4652058',
         'info_dict': {
             'id': '4652058',
         },
         'playlist_mincount': 118,
+    }, {
+        'url': 'https://www.spreaker.com/podcast/health-wealth--5918323',
+        'info_dict': {
+            'id': '5918323',
+        },
+        'playlist_mincount': 60,
+    }, {
+        'url': 'https://www.spreaker.com/show/5887186/episodes/feed',
+        'info_dict': {
+            'id': '5887186',
+        },
+        'playlist_mincount': 290,
     }]
 
-    def _entries(self, show_id):
+    def _entries(self, show_id, key=None):
         for page_num in itertools.count(1):
             episodes = self._download_json(
                 f'https://api.spreaker.com/show/{show_id}/episodes',
-                show_id, note=f'Downloading JSON page {page_num}', query={
+                show_id, note=f'Downloading JSON page {page_num}', query=filter_dict({
                     'page': page_num,
                     'max_per_page': 100,
-                })
+                    'key': key,
+                }))
             pager = try_get(episodes, lambda x: x['response']['pager'], dict)
             if not pager:
                 break
@@ -157,21 +175,5 @@ class SpreakerShowIE(InfoExtractor):
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        return self.playlist_result(self._entries(show_id), playlist_id=show_id)
-
-
-class SpreakerShowPageIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/show/(?P<id>[^/?#&]+)'
-    _TESTS = [{
-        'url': 'https://www.spreaker.com/show/success-with-music',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        show_id = self._search_regex(
-            r'show_id\s*:\s*(?P<id>\d+)', webpage, 'show id')
-        return self.url_result(
-            f'https://api.spreaker.com/show/{show_id}',
-            ie=SpreakerShowIE.ie_key(), video_id=show_id)
+        key = traverse_obj(parse_qs(url), ('key', 0))
+        return self.playlist_result(self._entries(show_id, key), playlist_id=show_id)
