@@ -78,7 +78,7 @@ class GoPlayIE(InfoExtractor):
 
     def _find_json(self, s):
         return self._search_json(
-            r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=[])
+            r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=None)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
