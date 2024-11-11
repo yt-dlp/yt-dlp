@@ -134,7 +134,7 @@ class MixchMovieIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'comment_count': int,
-            'timestamp': int,
+            'timestamp': 1724070828,
             'uploader_url': 'https://mixch.tv/u/12299174',
             'live_status': 'not_live',
             'upload_date': '20240819',
