@@ -61,15 +61,7 @@ def _extract_episode(data, episode_id=None):
 
 class SpreakerIE(InfoExtractor):
     _VALID_URL = [
-        r'''(?x)
-        https?://
-            api\.spreaker\.com/
-            (?:
-                (?:download/)?episode|
-                v2/episodes
-            )/
-            (?P<id>\d+)
-        ''',
+        r'https?://api\.spreaker\.com/(?:(?:download/)?episode|v2/episodes)/(?P<id>\d+)',
         r'https?://(?:www\.)?spreaker\.com/episode/[^#?/]*?(?P<id>\d+)/?(?:[?#]|$)',
     ]
     _TESTS = [{
@@ -119,12 +111,9 @@ class SpreakerIE(InfoExtractor):
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)
-        query = {}
-        if key := traverse_obj(url, ({parse_qs}, 'key', 0)):
-            query = {'key': key}
         data = self._download_json(
             f'https://api.spreaker.com/v2/episodes/{episode_id}',
-            episode_id, query=query)['response']['episode']
+            episode_id, query=traverse_obj(parse_qs(url), {'key': ('key', 0)}))['response']['episode']
         return _extract_episode(data, episode_id)
 
 
