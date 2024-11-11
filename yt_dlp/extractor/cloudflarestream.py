@@ -63,7 +63,6 @@ class CloudflareStreamIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, domain = self._match_valid_url(url).group('id', 'domain')
-
         if domain != 'bytehighway.net':
             domain = 'cloudflarestream.com'
         base_url = f'https://{domain}/{video_id}/'
