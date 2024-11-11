@@ -1938,12 +1938,8 @@ from .spotify import (
     SpotifyShowIE,
 )
 from .spreaker import (
-    SpreakerFeedPageIE,
     SpreakerIE,
-    SpreakerPageIE,
-    SpreakerPodcastPageIE,
     SpreakerShowIE,
-    SpreakerShowPageIE,
 )
 from .springboardplatform import SpringboardPlatformIE
 from .sprout import SproutIE
