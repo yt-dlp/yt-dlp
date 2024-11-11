@@ -944,8 +944,8 @@ def bug_reports_message(before=';'):
     from ..version import CHANNEL
 
     msg = (
-        'if possible, please pull the latest changes from the master branch' if detect_variant() == 'sourcex'
-        else 'please check if the bug is already fixed in the latest nightly version' if CHANNEL == 'stablex'
+        'if possible, please pull the latest changes from the master branch' if detect_variant() == 'source'
+        else 'please check if the bug is already fixed in the latest nightly version' if CHANNEL == 'stable'
         else f'please report this issue on  https://github.com/{REPOSITORY}/issues?q= , '
         'filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U')
 
