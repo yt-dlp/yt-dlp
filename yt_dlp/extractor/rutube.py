@@ -88,7 +88,8 @@ class RutubeBaseIE(InfoExtractor):
                     'format_id': format_id,
                 })
         for hls_url in traverse_obj(options, ('live_streams', 'hls', ..., 'url', {url_or_none})):
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(hls_url, video_id, ext='mp4', fatal=False)
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                hls_url, video_id, 'mp4', fatal=False, m3u8_id='hls')
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
         for caption in traverse_obj(options, ('captions', lambda _, v: url_or_none(v['file']))):
