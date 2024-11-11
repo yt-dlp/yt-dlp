@@ -83,7 +83,7 @@ test = [
     "pytest-rerunfailures~=14.0",
 ]
 pyinstaller = [
-    "pyinstaller>=6.10.0",  # Windows temp cleanup fixed in 6.10.0
+    "pyinstaller>=6.11.1",  # Windows temp cleanup fixed in 6.11.1
 ]
 
 [project.urls]
