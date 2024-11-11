@@ -80,7 +80,9 @@ class SpreakerIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'comment_count': int,
-            'series': 'Success With Music (SWM)',
+            'series': 'Success With Music | SWM',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/t_square_limited_160/images.spreaker.com/original/777ce4f96b71b0e1b7c09a5e625210e3.jpg',
+            'creators': ['SWM'],
         },
     }, {
         'url': 'https://api.spreaker.com/download/episode/12534508/swm_ep15_how_to_market_your_music_part_2.mp3',
@@ -98,15 +100,20 @@ class SpreakerIE(InfoExtractor):
             'title': 'Grunge Music Origins - The Raw Sound that Defined a Generation',
             'description': str,
             'timestamp': 1717468905,
-            'upload_date': '20170809',
+            'upload_date': '20240604',
             'uploader': 'Katie Brown 2',
             'uploader_id': '17733249',
-            'duration': 1063.42,
+            'duration': 818.83,
             'view_count': int,
             'like_count': int,
             'comment_count': int,
             'series': '90s Grunge',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/t_square_limited_160/images.spreaker.com/original/bb0d4178f7cf57cc8786dedbd9c5d969.jpg',
+            'creators': ['Katie Brown 2'],
         },
+    }, {
+        'url': 'https://www.spreaker.com/episode/60269615',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
