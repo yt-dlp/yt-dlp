@@ -85,7 +85,7 @@ class GoPlayIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         nextjs_data = traverse_obj(
-            re.findall(r'<script>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\)\s*</script>', webpage),
+            re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
             (..., {js_to_json}, {json.loads}, ..., {self._find_json}, ...))
         meta = traverse_obj(nextjs_data, (
             ..., lambda _, v: v['meta']['path'] == urllib.parse.urlparse(url).path, 'meta', any))
