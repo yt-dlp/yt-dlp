@@ -39,12 +39,12 @@ class GoPlayIE(InfoExtractor):
         'params': {'skip_download': True},
         'skip': 'This video is only available for registered users',
     }, {
-        'url': 'https://www.goplay.be/video/fantastic-beasts-the-secrets-of-dumbledore',
+        'url': 'https://www.goplay.be/video/1917',
         'info_dict': {
-            'id': '046a91f1-db9c-41ff-8652-d35881ea72c4',
+            'id': '40cac41d-8d29-4ef5-aa11-75047b9f0907',
             'ext': 'mp4',
-            'title': 'Fantastic Beasts: The Secrets of Dumbledore',
-            'description': r're:Professor Albus Dumbledore ontdekt dat de duistere tovenaar .{132}',
+            'title': '1917',
+            'description': r're:Op het hoogtepunt van de Eerste Wereldoorlog krijgen twee jonge .{94}',
         },
         'params': {'skip_download': True},
         'skip': 'This video is only available for registered users',
