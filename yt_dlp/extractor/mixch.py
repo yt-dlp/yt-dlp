@@ -12,7 +12,7 @@ from ..utils.traversal import traverse_obj
 
 class MixchIE(InfoExtractor):
     IE_NAME = 'mixch'
-    _VALID_URL = r'https?://(?:www\.)?mixch\.tv/u/(?P<id>\d+)'
+    _VALID_URL = r'https?://mixch\.tv/u/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://mixch.tv/u/16943797/live',
@@ -74,7 +74,7 @@ class MixchIE(InfoExtractor):
 
 class MixchArchiveIE(InfoExtractor):
     IE_NAME = 'mixch:archive'
-    _VALID_URL = r'https?://(?:www\.)?mixch\.tv/archive/(?P<id>\d+)'
+    _VALID_URL = r'https?://mixch\.tv/archive/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://mixch.tv/archive/421',
@@ -120,7 +120,7 @@ class MixchArchiveIE(InfoExtractor):
 
 class MixchMovieIE(InfoExtractor):
     IE_NAME = 'mixch:movie'
-    _VALID_URL = r'https?://(?:www\.)?mixch\.tv/m/(?P<id>\w+)'
+    _VALID_URL = r'https?://mixch\.tv/m/(?P<id>\w+)'
 
     _TESTS = [{
         'url': 'https://mixch.tv/m/Ve8KNkJ5',
