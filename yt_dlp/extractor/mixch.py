@@ -165,7 +165,7 @@ class MixchMovieIE(InfoExtractor):
                 'like_count': ('movie', 'favCount', {int_or_none}),
                 'comment_count': ('movie', 'commentCount', {int_or_none}),
                 'timestamp': ('movie', 'published', {int_or_none}),
-                'uploader_url': ('ownerInfo', 'id', {lambda x: x and f'https://mixch.tv/u/{x}'}),
+                'uploader_url': ('ownerInfo', 'id', {lambda x: x and f'https://mixch.tv/u/{x}'}, filter),
             }),
             'live_status': 'not_live',
         }
