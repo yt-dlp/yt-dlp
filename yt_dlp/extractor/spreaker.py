@@ -4,11 +4,13 @@ from .common import InfoExtractor
 from ..utils import (
     float_or_none,
     int_or_none,
+    parse_qs,
     str_or_none,
     try_get,
     unified_timestamp,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 def _extract_episode(data, episode_id=None):
@@ -58,15 +60,10 @@ def _extract_episode(data, episode_id=None):
 
 
 class SpreakerIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                    https?://
-                        api\.spreaker\.com/
-                        (?:
-                            (?:download/)?episode|
-                            v2/episodes
-                        )/
-                        (?P<id>\d+)
-                    '''
+    _VALID_URL = [
+        r'https?://api\.spreaker\.com/(?:(?:download/)?episode|v2/episodes)/(?P<id>\d+)',
+        r'https?://(?:www\.)?spreaker\.com/episode/[^#?/]*?(?P<id>\d+)/?(?:[?#]|$)',
+    ]
     _TESTS = [{
         'url': 'https://api.spreaker.com/episode/12534508',
         'info_dict': {
@@ -84,7 +81,7 @@ class SpreakerIE(InfoExtractor):
             'like_count': int,
             'comment_count': int,
             'series': 'Success With Music | SWM',
-            'thumbnail': r're:https?://.*\.jpg',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/t_square_limited_160/images.spreaker.com/original/777ce4f96b71b0e1b7c09a5e625210e3.jpg',
             'creators': ['SWM'],
         },
     }, {
@@ -93,13 +90,37 @@ class SpreakerIE(InfoExtractor):
     }, {
         'url': 'https://api.spreaker.com/v2/episodes/12534508?export=episode_segments',
         'only_matching': True,
+    }, {
+        'note': 'episode',
+        'url': 'https://www.spreaker.com/episode/grunge-music-origins-the-raw-sound-that-defined-a-generation--60269615',
+        'info_dict': {
+            'id': '60269615',
+            'display_id': 'grunge-music-origins-the-raw-sound-that-',
+            'ext': 'mp3',
+            'title': 'Grunge Music Origins - The Raw Sound that Defined a Generation',
+            'description': str,
+            'timestamp': 1717468905,
+            'upload_date': '20240604',
+            'uploader': 'Katie Brown 2',
+            'uploader_id': '17733249',
+            'duration': 818.83,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'series': '90s Grunge',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/t_square_limited_160/images.spreaker.com/original/bb0d4178f7cf57cc8786dedbd9c5d969.jpg',
+            'creators': ['Katie Brown 2'],
+        },
+    }, {
+        'url': 'https://www.spreaker.com/episode/60269615',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)
         data = self._download_json(
             f'https://api.spreaker.com/v2/episodes/{episode_id}',
-            episode_id)['response']['episode']
+            episode_id, query=traverse_obj(parse_qs(url), {'key': ('key', 0)}))['response']['episode']
         return _extract_episode(data, episode_id)
 
 
