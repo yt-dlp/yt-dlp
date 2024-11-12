@@ -563,13 +563,13 @@ class FacebookIE(InfoExtractor):
                 return extract_video_data(try_get(
                     js_data, lambda x: x['jsmods']['instances'], list) or [])
 
-        def extract_dash_manifest(video, formats):
+        def extract_dash_manifest(vid_data, formats, mpd_url=None):
             dash_manifest = traverse_obj(
-                video, 'dash_manifest', 'playlist', 'dash_manifest_xml_string', expected_type=str)
+                vid_data, 'dash_manifest', 'playlist', 'dash_manifest_xml_string', 'manifest_xml', expected_type=str)
             if dash_manifest:
                 formats.extend(self._parse_mpd_formats(
                     compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest)),
-                    mpd_url=url_or_none(video.get('dash_manifest_url'))))
+                    mpd_url=url_or_none(video.get('dash_manifest_url')) or mpd_url))
 
         def process_formats(info):
             # Downloads with browser's User-Agent are rate limited. Working around
@@ -619,9 +619,12 @@ class FacebookIE(InfoExtractor):
                         video = video['creation_story']
                         video['owner'] = traverse_obj(video, ('short_form_video_context', 'video_owner'))
                         video.update(reel_info)
-                    fmt_data = traverse_obj(video, ('videoDeliveryLegacyFields', {dict})) or video
+
                     formats = []
                     q = qualities(['sd', 'hd'])
+
+                    # Legacy formats extraction
+                    fmt_data = traverse_obj(video, ('videoDeliveryLegacyFields', {dict})) or video
                     for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
                                            ('playable_url_dash', ''), ('browser_native_hd_url', 'hd'),
                                            ('browser_native_sd_url', 'sd')):
@@ -629,7 +632,7 @@ class FacebookIE(InfoExtractor):
                         if not playable_url:
                             continue
                         if determine_ext(playable_url) == 'mpd':
-                            formats.extend(self._extract_mpd_formats(playable_url, video_id))
+                            formats.extend(self._extract_mpd_formats(playable_url, video_id, fatal=False))
                         else:
                             formats.append({
                                 'format_id': format_id,
@@ -638,6 +641,28 @@ class FacebookIE(InfoExtractor):
                                 'url': playable_url,
                             })
                     extract_dash_manifest(fmt_data, formats)
+
+                    # New videoDeliveryResponse formats extraction
+                    fmt_data = traverse_obj(video, ('videoDeliveryResponseFragment', 'videoDeliveryResponseResult'))
+                    mpd_urls = traverse_obj(fmt_data, ('dash_manifest_urls', ..., 'manifest_url', {url_or_none}))
+                    dash_manifests = traverse_obj(fmt_data, ('dash_manifests', lambda _, v: v['manifest_xml']))
+                    for idx, dash_manifest in enumerate(dash_manifests):
+                        extract_dash_manifest(dash_manifest, formats, mpd_url=traverse_obj(mpd_urls, idx))
+                    if not dash_manifests:
+                        # Only extract from MPD URLs if the manifests are not already provided
+                        for mpd_url in mpd_urls:
+                            formats.extend(self._extract_mpd_formats(mpd_url, video_id, fatal=False))
+                    for prog_fmt in traverse_obj(fmt_data, ('progressive_urls', lambda _, v: v['progressive_url'])):
+                        format_id = traverse_obj(prog_fmt, ('metadata', 'quality', {str.lower}))
+                        formats.append({
+                            'format_id': format_id,
+                            # sd, hd formats w/o resolution info should be deprioritized below DASH
+                            'quality': q(format_id) - 3,
+                            'url': prog_fmt['progressive_url'],
+                        })
+                    for m3u8_url in traverse_obj(fmt_data, ('hls_playlist_urls', ..., 'hls_playlist_url', {url_or_none})):
+                        formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', fatal=False, m3u8_id='hls'))
+
                     if not formats:
                         # Do not append false positive entry w/o any formats
                         return
