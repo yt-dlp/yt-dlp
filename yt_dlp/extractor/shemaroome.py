@@ -1,7 +1,7 @@
 import base64
 
 from .common import InfoExtractor
-from ..aes import aes_cbc_decrypt, unpad_pkcs7
+from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..utils import (
     ExtractorError,
     unified_strdate,
@@ -66,10 +66,10 @@ class ShemarooMeIE(InfoExtractor):
         data_json = self._download_json('https://www.shemaroome.com/users/user_all_lists', video_id, data=data.encode())
         if not data_json.get('status'):
             raise ExtractorError('Premium videos cannot be downloaded yet.', expected=True)
-        url_data = list(base64.b64decode(data_json['new_play_url']))
-        key = list(base64.b64decode(data_json['key']))
-        iv = [0] * 16
-        m3u8_url = unpad_pkcs7(bytes(aes_cbc_decrypt(url_data, key, iv))).decode('ascii')
+        url_data = base64.b64decode(data_json['new_play_url'])
+        key = base64.b64decode(data_json['key'])
+        iv = bytes([0] * 16)
+        m3u8_url = unpad_pkcs7(aes_cbc_decrypt_bytes(url_data, key, iv)).decode('ascii')
         headers = {'stream_key': data_json['stream_key']}
         formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, fatal=False, headers=headers)
         for fmt in formats:
