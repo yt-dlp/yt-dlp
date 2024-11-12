@@ -18,6 +18,7 @@ from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
     NO_DEFAULT,
     Popen,
+    deprecation_warning,
     format_field,
     remove_end,
     shell_quote,
@@ -563,6 +564,9 @@ def run_update(ydl):
     """Update the program file with the latest version from the repository
     @returns    Whether there was a successful update (No update = False)
     """
+    deprecation_warning(
+        '"yt_dlp.update.run_update(ydl)" is deprecated and may be removed in a future version. '
+        'Use "yt_dlp.update.Updater(ydl).update()" instead')
     return Updater(ydl).update()
 
 
