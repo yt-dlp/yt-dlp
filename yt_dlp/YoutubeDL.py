@@ -977,8 +977,9 @@ class YoutubeDL:
     def __enter__(self):
         self.save_console_title()
         if self.params.get('consoletitle'):
-            # Set progress bar to "indeterminate"
-            self._send_console_code('\033]9;4;3\007')
+            # Set progress to "indeterminate"
+            # See: https://conemu.github.io/en/AnsiEscapeCodes.html#ConEmu_specific_OSC
+            self._send_console_code('\033]9;4;3;0\007')
         return self
 
     def save_cookies(self):
@@ -988,8 +989,9 @@ class YoutubeDL:
     def __exit__(self, *args):
         self.restore_console_title()
         if self.params.get('consoletitle'):
-            # Set progress bar to "disabled"
-            self._send_console_code('\033]9;4;0\007')
+            # Set progress to "disabled"
+            # See: https://conemu.github.io/en/AnsiEscapeCodes.html#ConEmu_specific_OSC
+            self._send_console_code('\033]9;4;0;0\007')
         self.close()
 
     def close(self):

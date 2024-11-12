@@ -340,8 +340,9 @@ class FileDownloader:
         percent = s.get('_percent')
         if s['status'] not in ('downloading', 'error', 'finished') or percent is None:
             return
+        # Emit ConEmu progress codes: https://conemu.github.io/en/AnsiEscapeCodes.html#ConEmu_specific_OSC
         if s['status'] == 'finished':
-            self.ydl._send_console_code('\033]9;4;3\007')
+            self.ydl._send_console_code('\033]9;4;3;0\007')
             return
         state = 1 if s['status'] == 'downloading' else 2
         self.ydl._send_console_code(f'\033]9;4;{state};{int(percent)}\007')
