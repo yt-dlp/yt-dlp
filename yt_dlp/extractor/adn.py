@@ -199,7 +199,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
         message = list(json.dumps({
             'k': self._K,
             't': token,
-        }))
+        }).encode())
 
         # Sometimes authentication fails for no good reason, retry with
         # a different random padding

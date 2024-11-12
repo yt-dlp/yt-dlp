@@ -233,7 +233,7 @@ class AnvatoIE(InfoExtractor):
         input_data = f'{server_time}~{md5_text(video_data_url)}~{md5_text(server_time)}'
 
         auth_secret = bytes(aes_encrypt(
-            list(input_data[:64]), list(self._AUTH_KEY)))
+            list(input_data[:64]).encode(), list(self._AUTH_KEY)))
         query = {
             'X-Anvato-Adst-Auth': base64.b64encode(auth_secret).decode('ascii'),
             'rtyp': 'fp',
