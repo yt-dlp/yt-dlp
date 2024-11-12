@@ -335,7 +335,7 @@ class ArchiveOrgIE(InfoExtractor):
                 info['comments'].append({
                     'id': review.get('review_id'),
                     'author': review.get('reviewer'),
-                    'text': str_or_none(review.get('reviewtitle'), '') + '\n\n' + review.get('reviewbody'),
+                    'text': join_nonempty('reviewtitle', 'reviewbody', from_dict=review, delim='\n\n'),
                     'timestamp': unified_timestamp(review.get('createdate')),
                     'parent': 'root'})
 
