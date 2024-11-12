@@ -33,8 +33,8 @@ if not websockets:
 import websockets.version
 
 websockets_version = tuple(map(int_or_none, websockets.version.version.split('.')))
-if websockets_version < (12, 0):
-    raise ImportError('Only websockets>=12.0 is supported')
+if websockets_version < (13, 0):
+    raise ImportError('Only websockets>=13.0 is supported')
 
 import websockets.sync.client
 from websockets.uri import parse_uri
@@ -47,10 +47,7 @@ from websockets.uri import parse_uri
 # 2: "AttributeError: 'ClientConnection' object has no attribute 'recv_events_exc'. Did you mean: 'recv_events'?"
 import websockets.sync.connection  # isort: split
 with contextlib.suppress(Exception):
-    # > 12.0
     websockets.sync.connection.Connection.recv_exc = None
-    # 12.0
-    websockets.sync.connection.Connection.recv_events_exc = None
 
 
 class WebsocketsResponseAdapter(WebSocketResponse):
@@ -162,7 +159,7 @@ class WebsocketsRH(WebSocketRequestHandler):
                 additional_headers=headers,
                 open_timeout=timeout,
                 user_agent_header=None,
-                ssl_context=ssl_ctx if wsuri.secure else None,
+                ssl=ssl_ctx if wsuri.secure else None,
                 close_timeout=0,  # not ideal, but prevents yt-dlp hanging
             )
             return WebsocketsResponseAdapter(conn, url=request.url)
