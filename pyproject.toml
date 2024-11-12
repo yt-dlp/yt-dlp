@@ -52,11 +52,11 @@ default = [
     "pycryptodomex",
     "requests>=2.32.2,<3",
     "urllib3>=1.26.17,<3",
-    "websockets>=13.0,<14",
+    "websockets < 14.0, >= 13.0",
 ]
 curl-cffi = [
-    "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
-    "curl-cffi>=0.5.10,!=0.6.*,<0.7.2; os_name!='nt' and implementation_name=='cpython'",
+    "curl-cffi == 0.7.3 ; os_name == \"nt\" and implementation_name == \"cpython\"",
+    "curl-cffi != 0.6.*, < 0.7.3, >= 0.5.10 ; os_name != \"nt\" and implementation_name == \"cpython\"",
 ]
 secretstorage = [
     "cffi",
