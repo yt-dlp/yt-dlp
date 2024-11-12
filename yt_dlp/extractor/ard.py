@@ -299,7 +299,7 @@ class ARDBetaMediathekIE(InfoExtractor):
         'info_dict': {
             'id': '94834686',
             'ext': 'mp4',
-            'duration': 2700,
+            'duration': 2670,
             'episode': '7 Tage ... unter harten Jungs',
             'description': 'md5:0f215470dcd2b02f59f4bd10c963f072',
             'upload_date': '20231005',
@@ -307,9 +307,27 @@ class ARDBetaMediathekIE(InfoExtractor):
             'display_id': 'N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3',
             'series': '7 Tage ...',
             'channel': 'HR',
-            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:f6e6d5ffac41925c?w=960&ch=fa32ba69bc87989a',
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:430c86d233afa42d?w=960&ch=fa32ba69bc87989a',
             'title': '7 Tage ... unter harten Jungs',
             '_old_archive_ids': ['ardbetamediathek N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3'],
+        },
+    }, {
+        'url': 'https://www.ardmediathek.de/video/lokalzeit-aus-duesseldorf/lokalzeit-aus-duesseldorf-oder-31-10-2024/wdr-duesseldorf/Y3JpZDovL3dkci5kZS9CZWl0cmFnLXNvcGhvcmEtOWFkMTc0ZWMtMDA5ZS00ZDEwLWFjYjctMGNmNTdhNzVmNzUz',
+        'info_dict': {
+            'id': '13847165',
+            'chapters': 'count:8',
+            'ext': 'mp4',
+            'channel': 'WDR',
+            'display_id': 'Y3JpZDovL3dkci5kZS9CZWl0cmFnLXNvcGhvcmEtOWFkMTc0ZWMtMDA5ZS00ZDEwLWFjYjctMGNmNTdhNzVmNzUz',
+            'episode': 'Lokalzeit aus Düsseldorf | 31.10.2024',
+            'series': 'Lokalzeit aus Düsseldorf',
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:f02ec9bd9b7bd5f6?w=960&ch=612491dcd5e09b0c',
+            'title': 'Lokalzeit aus Düsseldorf | 31.10.2024',
+            'upload_date': '20241031',
+            'timestamp': 1730399400,
+            'description': 'md5:12db30b3b706314efe3778b8df1a7058',
+            'duration': 1759,
+            '_old_archive_ids': ['ardbetamediathek Y3JpZDovL3dkci5kZS9CZWl0cmFnLXNvcGhvcmEtOWFkMTc0ZWMtMDA5ZS00ZDEwLWFjYjctMGNmNTdhNzVmNzUz'],
         },
     }, {
         'url': 'https://beta.ardmediathek.de/ard/video/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydC9mYmM4NGM1NC0xNzU4LTRmZGYtYWFhZS0wYzcyZTIxNGEyMDE',
@@ -455,6 +473,12 @@ class ARDBetaMediathekIE(InfoExtractor):
             'subtitles': subtitles,
             'is_live': is_live,
             'age_limit': age_limit,
+            **traverse_obj(media_data, {
+                'chapters': ('pluginData', 'jumpmarks@all', 'chapterArray', lambda _, v: int_or_none(v['chapterTime']), {
+                    'start_time': ('chapterTime', {int_or_none}),
+                    'title': ('chapterTitle', {str}),
+                }),
+            }),
             **traverse_obj(media_data, ('meta', {
                 'title': 'title',
                 'description': 'synopsis',

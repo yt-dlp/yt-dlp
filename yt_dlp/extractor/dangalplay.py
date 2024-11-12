@@ -40,7 +40,7 @@ class DangalPlayBaseIE(InfoExtractor):
                 'id': ('content_id', {str}),
                 'title': ('display_title', {str}),
                 'episode': ('title', {str}),
-                'series': ('show_name', {str}, {lambda x: x or None}),
+                'series': ('show_name', {str}, filter),
                 'series_id': ('catalog_id', {str}),
                 'duration': ('duration', {int_or_none}),
                 'release_timestamp': ('release_date_uts', {int_or_none}),

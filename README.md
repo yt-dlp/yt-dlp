@@ -479,7 +479,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --no-download-archive           Do not use archive file (default)
     --max-downloads NUMBER          Abort after downloading NUMBER files
     --break-on-existing             Stop the download process when encountering
-                                    a file that is in the archive
+                                    a file that is in the archive supplied with
+                                    the --download-archive option
     --no-break-on-existing          Do not stop the download process when
                                     encountering a file that is in the archive
                                     (default)

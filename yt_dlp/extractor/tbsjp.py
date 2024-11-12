@@ -3,14 +3,12 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
-    get_element_text_and_html_by_tag,
     int_or_none,
     str_or_none,
-    traverse_obj,
-    try_call,
     unified_timestamp,
     urljoin,
 )
+from ..utils.traversal import find_element, traverse_obj
 
 
 class TBSJPEpisodeIE(InfoExtractor):
@@ -64,7 +62,7 @@ class TBSJPEpisodeIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
 
         return {
-            'title': try_call(lambda: clean_html(get_element_text_and_html_by_tag('h3', webpage)[0])),
+            'title': traverse_obj(webpage, ({find_element(tag='h3')}, {clean_html})),
             'id': video_id,
             **traverse_obj(episode, {
                 'categories': ('keywords', {list}),
