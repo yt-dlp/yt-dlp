@@ -17,6 +17,7 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     traverse_obj,
+    try_call,
     url_or_none,
     urljoin,
 )
@@ -406,10 +407,9 @@ class PatreonIE(PatreonBaseIE):
             cursor = None
             for comment in traverse_obj(response, (('data', ('included', lambda _, v: v['type'] == 'comment')), ...)):
                 count += 1
-                comment_id = comment.get('id')
-                attributes = comment.get('attributes') or {}
-                if comment_id is None:
+                if (comment_id := try_call(lambda: comment.get('id'))) is None:
                     continue
+                attributes = comment.get('attributes') or {}
                 author_id = traverse_obj(comment, ('relationships', 'commenter', 'data', 'id'))
                 author_info = traverse_obj(
                     response, ('included', lambda _, v: v['id'] == author_id and v['type'] == 'user', 'attributes'),
