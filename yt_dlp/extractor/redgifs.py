@@ -231,7 +231,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by recent',
             },
-            'playlist_count': 30,
+            'playlist_mincount': 31,
         },
         {
             'url': 'https://www.redgifs.com/users/lamsinka89?order=best&type=g',
