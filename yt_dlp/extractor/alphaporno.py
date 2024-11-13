@@ -50,7 +50,7 @@ class AlphaPornoIE(InfoExtractor):
             video_id = self._search_regex(
                 r'video_id=(\d+)\b', webpage, 'video id')
             formats = []
-            joined_url = urljoin(urlh.geturl(), rf'/get_file/\d.+?/{video_id}/{video_id}_(\w+)\..+?')
+            joined_url = urljoin(urlh.url, rf'/get_file/\d.+?/{video_id}/{video_id}_(\w+)\..+?')
             for video_url, res in re.findall(rf'''({joined_url})(?:'|"|\b)\s''', webpage):
                 fmt = {
                     'format_id': f'f{res}',
@@ -58,7 +58,6 @@ class AlphaPornoIE(InfoExtractor):
                 }
                 fmt.update(parse_resolution(res) or {})
                 formats.append(fmt)
-            self._sort_formats(formats)
             info['formats'] = formats
 
         title = (
