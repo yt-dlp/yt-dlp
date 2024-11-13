@@ -13,23 +13,41 @@ from ..utils import (
 
 class AlphaPornoIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?alphaporno\.com/videos/(?P<id>[^/]+)'
-    _TEST = {
-        'url': 'http://www.alphaporno.com/videos/sensual-striptease-porn-with-samantha-alexandra/',
-        'md5': '7e6a1cdd48fa67362a5a11d7039164e7',
-        'info_dict': {
-            'id': '258807',
-            'display_id': 'sensual-striptease-porn-with-samantha-alexandra',
-            'ext': 'mp4',
-            'title': 'Sensual striptease porn with Samantha Alexandra',
-            'description': 'md5:3c6d31008980654acaeb11451454a62c',
-            'thumbnail': r're:https?://.*\.jpg$',
-            'timestamp': 1418701811,
-            'upload_date': '20141216',
-            'duration': 387,
-            'categories': list,
-            'age_limit': 18,
+    _TESTS = [
+        {
+            'url': 'http://www.alphaporno.com/videos/sensual-striptease-porn-with-samantha-alexandra/',
+            'md5': '7e6a1cdd48fa67362a5a11d7039164e7',
+            'info_dict': {
+                'id': '258807',
+                'display_id': 'sensual-striptease-porn-with-samantha-alexandra',
+                'ext': 'mp4',
+                'title': 'Sensual striptease porn with Samantha Alexandra',
+                'description': 'md5:3c6d31008980654acaeb11451454a62c',
+                'thumbnail': r're:https?://.*\.jpg$',
+                'timestamp': 1418701811,
+                'upload_date': '20141216',
+                'duration': 387,
+                'categories': list,
+                'age_limit': 18,
+            },
         },
-    }
+        {
+            'url': 'https://www.alphaporno.com/videos/amazing-inches-hammering-her-pussy-in-such-addictive-ways/',
+            'info_dict': {
+                'id': '433761',
+                'ext': 'mp4',
+                'title': 'Amazing inches hammering her pussy in such addictive ways',
+                'display_id': 'amazing-inches-hammering-her-pussy-in-such-addictive-ways',
+                'timestamp': 1641065820,
+                'upload_date': '20220101',
+                'description': 'md5:8bf8e04807b890b847cc9238c445783a',
+                'categories': 'count:12',
+                'age_limit': 18,
+                'thumbnail': r're:https?://.*\.jpg$',
+                'duration': 298.0,
+            },
+        },
+    ]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
