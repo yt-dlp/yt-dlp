@@ -17,7 +17,6 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     traverse_obj,
-    try_call,
     url_or_none,
     urljoin,
 )
