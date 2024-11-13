@@ -213,7 +213,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
 class RedGifsUserIE(RedGifsBaseInfoExtractor):
     IE_DESC = 'Redgifs user'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/users/(?P<username>[^/?#]+)(?:\?(?P<query>[^#]+))?'
-    _PAGE_SIZE = 30
+    _PAGE_SIZE = 80
     _TESTS = [
         {
             'url': 'https://www.redgifs.com/users/lamsinka89',
