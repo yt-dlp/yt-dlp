@@ -253,6 +253,27 @@ class PatreonIE(PatreonBaseIE):
             'thumbnail': r're:^https?://.+',
         },
         'skip': 'Patron-only content',
+    }, {
+        # Contains a comment reply in the 'included' section
+        'url': 'https://www.patreon.com/posts/114721679',
+        'info_dict': {
+            'id': '114721679',
+            'ext': 'mp4',
+            'upload_date': '20241025',
+            'uploader': 'Japanalysis',
+            'like_count': int,
+            'thumbnail': r're:^https?://.+',
+            'comment_count': int,
+            'title': 'Karasawa Part 2',
+            'description': 'Part 2 of this video https://www.youtube.com/watch?v=Azms2-VTASk',
+            'uploader_url': 'https://www.patreon.com/japanalysis',
+            'uploader_id': '80504268',
+            'channel_url': 'https://www.patreon.com/japanalysis',
+            'channel_follower_count': int,
+            'timestamp': 1729897015,
+            'channel_id': '9346307',
+        },
+        'params': {'getcomments': True},
     }]
     _RETURN_TYPE = 'video'
 
