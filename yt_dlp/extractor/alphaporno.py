@@ -47,6 +47,22 @@ class AlphaPornoIE(InfoExtractor):
                 'duration': 298.0,
             },
         },
+        {
+            'url': 'https://www.alphaporno.com/videos/anal-threesome-for-girls-younger-than-the-average/',
+            'info_dict': {
+                'id': '435603',
+                'ext': 'mp4',
+                'duration': 358.0,
+                'description': 'md5:bf8ca502575c20e15f4f33740cd20a94',
+                'categories': 'count:21',
+                'title': 'Anal threesome for girls y***er than the average',
+                'display_id': 'anal-threesome-for-girls-younger-than-the-average',
+                'upload_date': '20220209',
+                'thumbnail': r're:https?://.*\.jpg$',
+                'age_limit': 18,
+                'timestamp': 1644387720,
+            },
+        },
     ]
 
     def _real_extract(self, url):
