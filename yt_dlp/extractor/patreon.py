@@ -428,9 +428,8 @@ class PatreonIE(PatreonBaseIE):
             cursor = None
             for comment in traverse_obj(response, (('data', 'included'), lambda _, v: v['type'] == 'comment' and v['id'])):
                 count += 1
-                if (comment_id := try_call(lambda: comment.get('id'))) is None:
-                    continue
-                attributes = comment.get('attributes') or {}
+                comment_id = comment['id']
+                attributes = traverse_obj(comment, ('attributes', {dict})) or {}
                 author_id = traverse_obj(comment, ('relationships', 'commenter', 'data', 'id'))
                 author_info = traverse_obj(
                     response, ('included', lambda _, v: v['id'] == author_id and v['type'] == 'user', 'attributes'),
