@@ -8,7 +8,7 @@ class CTVNewsIE(InfoExtractor):
     _VALID_URL = r'https?://(?:.+?\.)?ctvnews\.ca/(?:video\?(?:clip|playlist|bin)Id=|.*?)(?P<id>[0-9.]+)'
     _TESTS = [{
         'url': 'http://www.ctvnews.ca/video?clipId=901995',
-        'md5': '9b8624ba66351a23e0b6e1391971f9af',
+        'md5': 'b608f466c7fa24b9666c6439d766ab7e',
         'info_dict': {
             'id': '901995',
             'ext': 'flv',
@@ -16,6 +16,14 @@ class CTVNewsIE(InfoExtractor):
             'description': 'md5:958dd3b4f5bbbf0ed4d045c790d89285',
             'timestamp': 1467286284,
             'upload_date': '20160630',
+            'categories': [],
+            'season_number': 0,
+            'season': 'Season 0',
+            'tags': [],
+            'series': 'CTV News National | Archive | Stories 2',
+            'season_id': '57981',
+            'thumbnail': r're:https?://.*\.jpg$',
+            'duration': 764.631,
         },
     }, {
         'url': 'http://www.ctvnews.ca/video?playlistId=1.2966224',
