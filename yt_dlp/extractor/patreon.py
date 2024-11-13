@@ -16,10 +16,10 @@ from ..utils import (
     parse_iso8601,
     smuggle_url,
     str_or_none,
-    traverse_obj,
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj, value
 
 
 class PatreonBaseIE(InfoExtractor):
@@ -427,22 +427,22 @@ class PatreonIE(PatreonBaseIE):
             cursor = None
             for comment in traverse_obj(response, (('data', 'included'), lambda _, v: v['type'] == 'comment' and v['id'])):
                 count += 1
-                comment_id = comment['id']
-                attributes = traverse_obj(comment, ('attributes', {dict})) or {}
                 author_id = traverse_obj(comment, ('relationships', 'commenter', 'data', 'id'))
-                author_info = traverse_obj(
-                    response, ('included', lambda _, v: v['id'] == author_id and v['type'] == 'user', 'attributes'),
-                    get_all=False, expected_type=dict, default={})
 
                 yield {
-                    'id': comment_id,
-                    'text': attributes.get('body'),
-                    'timestamp': parse_iso8601(attributes.get('created')),
-                    'parent': traverse_obj(comment, ('relationships', 'parent', 'data', 'id'), default='root'),
-                    'author_is_uploader': attributes.get('is_by_creator'),
+                    **traverse_obj(comment, {
+                        'id': 'id',
+                        'text': ('attributes', 'body', {str}),
+                        'timestamp': ('attributes', 'created', {parse_iso8601}),
+                        'parent': ('relationships', 'parent', 'data', ('id', {value('root')}), {str}, any),
+                        'author_is_uploader': ('attributes', 'is_by_creator', {bool}),
+                    }),
+                    **traverse_obj(response, (
+                        'included', lambda _, v: v['id'] == author_id and v['type'] == 'user', 'attributes', {
+                            'author': ('full_name', {str}),
+                            'author_thumbnail': ('image_url', {url_or_none}),
+                        }), get_all=False),
                     'author_id': author_id,
-                    'author': author_info.get('full_name'),
-                    'author_thumbnail': author_info.get('image_url'),
                 }
 
             if count < traverse_obj(response, ('meta', 'count')):
