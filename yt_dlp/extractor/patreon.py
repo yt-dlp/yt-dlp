@@ -426,7 +426,7 @@ class PatreonIE(PatreonBaseIE):
                 f'posts/{post_id}/comments', post_id, query=params, note=f'Downloading comments page {page}')
 
             cursor = None
-            for comment in traverse_obj(response, (('data', ('included', lambda _, v: v['type'] == 'comment')), ...)):
+            for comment in traverse_obj(response, (('data', 'included'), lambda _, v: v['type'] == 'comment' and v['id'])):
                 count += 1
                 if (comment_id := try_call(lambda: comment.get('id'))) is None:
                     continue
