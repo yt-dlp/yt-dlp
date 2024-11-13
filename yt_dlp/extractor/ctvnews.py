@@ -53,7 +53,6 @@ class CTVNewsIE(InfoExtractor):
         'info_dict':
         {
             'id': '1.6665797',
-            'ext': 'mp4',
         },
         'playlist_mincount': 1,
     }]
