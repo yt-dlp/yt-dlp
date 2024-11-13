@@ -222,7 +222,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by recent',
             },
-            'playlist_mincount': 100,
+            'playlist_mincount': 391,
         },
         {
             'url': 'https://www.redgifs.com/users/lamsinka89?page=3',
@@ -240,7 +240,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by best',
             },
-            'playlist_mincount': 100,
+            'playlist_mincount': 391,
         },
         {
             'url': 'https://www.redgifs.com/users/ignored52',
