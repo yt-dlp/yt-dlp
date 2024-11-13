@@ -242,6 +242,16 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
             },
             'playlist_mincount': 100,
         },
+        {
+            'url': 'https://www.redgifs.com/users/ignored52',
+            'note': 'Issues #7382 and #9131; _PAGE_SIZE was set to a value that was too low',
+            'info_dict': {
+                'id': 'ignored52',
+                'title': 'ignored52',
+                'description': 'RedGifs user ignored52, ordered by recent',
+            },
+            'playlist_mincount': 31,
+        },
     ]
 
     def _real_extract(self, url):
