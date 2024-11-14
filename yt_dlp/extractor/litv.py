@@ -72,10 +72,7 @@ class LiTVIE(InfoExtractor):
 
         vod_data = self._search_nextjs_data(webpage, video_id, default={})
 
-        program_info = traverse_obj(
-            vod_data,
-            ('props', 'pageProps', 'programInformation'),
-            default={}, expected_type=dict)
+        program_info = traverse_obj(vod_data, ('props', 'pageProps', 'programInformation', {dict})) or {}
         series_id = program_info.get('series_id')
         playlist_data = traverse_obj(vod_data, ('props', 'pageProps', 'seriesTree'))
         if playlist_data is not None and self._yes_playlist(series_id, video_id, smuggled_data):
