@@ -1,3 +1,4 @@
+import functools
 import json
 import uuid
 
@@ -5,10 +6,12 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     smuggle_url,
     traverse_obj,
     try_call,
     unsmuggle_url,
+    urljoin,
 )
 
 
@@ -73,11 +76,9 @@ class LiTVIE(InfoExtractor):
         vod_data = self._search_nextjs_data(webpage, video_id, default={})
 
         program_info = traverse_obj(vod_data, ('props', 'pageProps', 'programInformation', {dict})) or {}
-        series_id = program_info.get('series_id')
         playlist_data = traverse_obj(vod_data, ('props', 'pageProps', 'seriesTree'))
-        if playlist_data is not None and self._yes_playlist(series_id, video_id, smuggled_data):
-            content_type = program_info.get('content_type')
-            return self._extract_playlist(playlist_data, content_type)
+        if playlist_data is not None and self._yes_playlist(program_info.get('series_id'), video_id, smuggled_data):
+            return self._extract_playlist(playlist_data, program_info.get('content_type'))
 
         asset_id = traverse_obj(program_info, ('assets', 0, 'asset_id'))
         if asset_id is None:  # live stream case
@@ -91,10 +92,9 @@ class LiTVIE(InfoExtractor):
             endpoint = 'get-urls-no-auth'
         else:
             endpoint = 'get-urls'
-        payload = {'AssetId': asset_id, 'MediaType': media_type, 'puid': puid}
         video_data = self._download_json(
             f'https://www.litv.tv/api/{endpoint}', video_id,
-            data=json.dumps(payload).encode(),
+            data=json.dumps({'AssetId': asset_id, 'MediaType': media_type, 'puid': puid}).encode(),
             headers={'Content-Type': 'application/json'})
 
         if video_data.get('error'):
@@ -116,20 +116,14 @@ class LiTVIE(InfoExtractor):
             # LiTV HLS segments doesn't like compressions
             a_format.setdefault('http_headers', {})['Accept-Encoding'] = 'identity'
 
-        title = program_info['title'] + program_info.get('secondary_mark', '')
-        description = program_info.get('description')
-        thumbnail = program_info.get('picture')
-        if thumbnail is not None:
-            thumbnail = 'https://p-cdnstatic.svc.litv.tv/' + thumbnail
-        categories = [item['name'] for item in program_info.get('genres', [])]
-        episode = int_or_none(program_info.get('episode'))
-
         return {
             'id': video_id,
             'formats': formats,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'categories': categories,
-            'episode_number': episode,
+            'title': join_nonempty('title', 'secondary_mark', delim='', from_dict=program_info),
+            **traverse_obj(program_info, {
+                'description': ('description', {str}),
+                'thumbnail': ('picture', {functools.partial(urljoin, 'https://p-cdnstatic.svc.litv.tv/')}),
+                'categories': ('genres', ..., 'name', {str}),
+                'episode_number': ('episode', {int_or_none}),
+            }),
         }
