@@ -2,7 +2,6 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    UnsupportedError,
     float_or_none,
     int_or_none,
     parse_iso8601,
@@ -379,8 +378,6 @@ class BandlabPlaylistIE(BandlabBaseIE):
             'collections': ['collections'],
             'embed': ['collections', 'albums'],
         }.get(playlist_type)
-        if not endpoints:
-            raise UnsupportedError(url)
         for endpoint in endpoints:
             playlist_data = self._download_json(
                 f'https://www.bandlab.com/api/v1.3/{endpoint}/{playlist_id}', playlist_id,
