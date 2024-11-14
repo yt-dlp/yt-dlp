@@ -66,6 +66,14 @@ class AfreecaTVBaseIE(InfoExtractor):
             extensions={'legacy_ssl': True}), display_id,
             'Downloading API JSON', 'Unable to download API JSON')
 
+    @staticmethod
+    def _fixup_thumb(thumb_url):
+        if not url_or_none(thumb_url):
+            return None
+        # Core would determine_ext as 'php' from the url, so we need to provide the real ext
+        # See: https://github.com/yt-dlp/yt-dlp/issues/11537
+        return [{'url': thumb_url, 'ext': 'jpg'}]
+
 
 class AfreecaTVIE(AfreecaTVBaseIE):
     IE_NAME = 'soop'
@@ -155,7 +163,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'uploader': ('writer_nick', {str}),
             'uploader_id': ('bj_id', {str}),
             'duration': ('total_file_duration', {int_or_none(scale=1000)}),
-            'thumbnail': ('thumb', {url_or_none}),
+            'thumbnails': ('thumb', {self._fixup_thumb}),
         })
 
         entries = []
@@ -226,8 +234,7 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
 
         return self.playlist_result(self._entries(data), video_id)
 
-    @staticmethod
-    def _entries(data):
+    def _entries(self, data):
         # 'files' is always a list with 1 element
         yield from traverse_obj(data, (
             'data', lambda _, v: v['story_type'] == 'catch',
@@ -238,7 +245,7 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
                 'title': ('title', {str}),
                 'uploader': ('writer_nick', {str}),
                 'uploader_id': ('writer_id', {str}),
-                'thumbnail': ('thumb', {url_or_none}),
+                'thumbnails': ('thumb', {self._fixup_thumb}),
                 'timestamp': ('write_timestamp', {int_or_none}),
             }))
 
