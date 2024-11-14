@@ -106,8 +106,7 @@ class LiTVIE(InfoExtractor):
             raise ExtractorError(f'Unexpected error from {self.IE_NAME}')
 
         formats = self._extract_m3u8_formats(
-            video_data['result']['AssetURLs'][0], video_id, ext='mp4',
-            entry_protocol='m3u8_native', m3u8_id='hls')
+            video_data['result']['AssetURLs'][0], video_id, ext='mp4', m3u8_id='hls')
         for a_format in formats:
             # LiTV HLS segments doesn't like compressions
             a_format.setdefault('http_headers', {})['Accept-Encoding'] = 'identity'
