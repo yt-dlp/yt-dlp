@@ -80,18 +80,18 @@ class LiTVIE(InfoExtractor):
         if playlist_data is not None and self._yes_playlist(program_info.get('series_id'), video_id, smuggled_data):
             return self._extract_playlist(playlist_data, program_info.get('content_type'))
 
-        asset_id = traverse_obj(program_info, ('assets', 0, 'asset_id'))
-        if asset_id is None:  # live stream case
-            asset_id = program_info.get('content_id')
-            media_type = program_info.get('content_type')
-        else:  # vod case
+        asset_id = traverse_obj(program_info, ('assets', 0, 'asset_id', {str}))
+        if asset_id:  # This is a live stream
             media_type = 'vod'
+        else:  # This is a VOD
+            asset_id = program_info['content_id']
+            media_type = program_info['content_type']
         puid = try_call(lambda: self._get_cookies('https://www.litv.tv/')['PUID'].value)
-        if puid is None:
+        if puid:
+            endpoint = 'get-urls'
+        else:
             puid = str(uuid.uuid4())
             endpoint = 'get-urls-no-auth'
-        else:
-            endpoint = 'get-urls'
         video_data = self._download_json(
             f'https://www.litv.tv/api/{endpoint}', video_id,
             data=json.dumps({'AssetId': asset_id, 'MediaType': media_type, 'puid': puid}).encode(),
