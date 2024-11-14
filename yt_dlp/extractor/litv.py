@@ -97,20 +97,16 @@ class LiTVIE(InfoExtractor):
             data=json.dumps({'AssetId': asset_id, 'MediaType': media_type, 'puid': puid}).encode(),
             headers={'Content-Type': 'application/json'})
 
-        if video_data.get('error'):
-            error_msg = traverse_obj(video_data, ('error', 'message'))
-            if error_msg == 'OutsideRegionError: ':
+        if error := traverse_obj(video_data, ('error', {dict})):
+            error_msg = traverse_obj(error, ('message', {str}))
+            if error_msg and 'OutsideRegionError' in error_msg:
                 self.raise_geo_restricted('This video is available in Taiwan only')
-            if error_msg:
+            elif error_msg:
                 raise ExtractorError(f'{self.IE_NAME} said: {error_msg}', expected=True)
             raise ExtractorError(f'Unexpected error from {self.IE_NAME}')
 
-        try:
-            asset_url = video_data['result']['AssetURLs'][0]
-        except KeyError:
-            raise ExtractorError(f'Unexpected result from {self.IE_NAME}')
         formats = self._extract_m3u8_formats(
-            asset_url, video_id, ext='mp4',
+            video_data['result']['AssetURLs'][0], video_id, ext='mp4',
             entry_protocol='m3u8_native', m3u8_id='hls')
         for a_format in formats:
             # LiTV HLS segments doesn't like compressions
