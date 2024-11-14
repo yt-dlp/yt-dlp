@@ -70,9 +70,7 @@ class LiTVIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        vod_data = self._parse_json(self._search_regex(
-            r'<script\s+id="__NEXT_DATA__"[^>]*>(.+)</script>', webpage, 'VOD data', default='{}'),
-            video_id)
+        vod_data = self._search_nextjs_data(webpage, video_id, default={})
 
         program_info = traverse_obj(
             vod_data,
