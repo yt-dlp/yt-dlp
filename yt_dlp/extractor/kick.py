@@ -1,4 +1,3 @@
-import functools
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -137,7 +136,7 @@ class KickVODIE(KickBaseIE):
                 'uploader': ('livestream', 'channel', 'user', 'username', {str}),
                 'uploader_id': ('livestream', 'channel', 'user_id', {int}, {str_or_none}),
                 'timestamp': ('created_at', {parse_iso8601}),
-                'duration': ('livestream', 'duration', {functools.partial(float_or_none, scale=1000)}),
+                'duration': ('livestream', 'duration', {float_or_none(scale=1000)}),
                 'thumbnail': ('livestream', 'thumbnail', {url_or_none}),
                 'categories': ('livestream', 'categories', ..., 'name', {str}),
                 'view_count': ('views', {int_or_none}),
@@ -148,7 +147,7 @@ class KickVODIE(KickBaseIE):
 
 class KickClipIE(KickBaseIE):
     IE_NAME = 'kick:clips'
-    _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+/?\?(?:[^#]+&)?clip=(?P<id>clip_[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+(?:/clips/|/?\?(?:[^#]+&)?clip=)(?P<id>clip_[\w-]+)'
     _TESTS = [{
         'url': 'https://kick.com/mxddy?clip=clip_01GYXVB5Y8PWAPWCWMSBCFB05X',
         'info_dict': {
@@ -186,6 +185,26 @@ class KickClipIE(KickBaseIE):
             'view_count': int,
             'like_count': int,
             'categories': ['Just Chatting'],
+            'age_limit': 0,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://kick.com/spreen/clips/clip_01J8RGZRKHXHXXKJEHGRM932A5',
+        'info_dict': {
+            'id': 'clip_01J8RGZRKHXHXXKJEHGRM932A5',
+            'ext': 'mp4',
+            'title': 'KLJASLDJKLJKASDLJKDAS',
+            'channel': 'spreen',
+            'channel_id': '5312671',
+            'uploader': 'AnormalBarraBaja',
+            'uploader_id': '26518262',
+            'duration': 43.0,
+            'upload_date': '20240927',
+            'timestamp': 1727399987,
+            'thumbnail': 'https://clips.kick.com/clips/f2/clip_01J8RGZRKHXHXXKJEHGRM932A5/thumbnail.webp',
+            'view_count': int,
+            'like_count': int,
+            'categories': ['Minecraft'],
             'age_limit': 0,
         },
         'params': {'skip_download': 'm3u8'},
