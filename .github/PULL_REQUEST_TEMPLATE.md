@@ -22,7 +22,7 @@ Fixes #
 
     - You will be asked some questions, please read them **carefully** and answer honestly
     - Put an `x` into all the boxes `[ ]` relevant to your *pull request* (like [x])
-    - Use *Preview* tab to see how your *pull request* will actually look like
+    - Use *Preview* tab to see what your *pull request* will actually look like
 -->
 
 ### Before submitting a *pull request* make sure you have:
