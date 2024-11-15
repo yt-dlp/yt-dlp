@@ -1,6 +1,7 @@
 import re
 
 from .common import InfoExtractor
+from ..networking import Request
 from ..utils import (
     ExtractorError,
     lowercase_escape,
@@ -41,10 +42,54 @@ class ChaturbateIE(InfoExtractor):
     }]
 
     _ROOM_OFFLINE = 'Room is currently offline'
+    _ROOM_PRIVATE = 'Room is currently in a private show'
+    _ROOM_AWAY = 'Performer is currently away'
+    _ROOM_PASSWORD = 'Room is password protected'
+    _ROOM_HIDDEN = 'Hidden session in progress'
+    _ROOM_BLOCKED = 'Room is not avaiable in this region'
 
-    def _real_extract(self, url):
-        video_id, tld = self._match_valid_url(url).group('id', 'tld')
+    def _extract_from_api(self, video_id, tld):
+        req = Request(
+            f'https://chaturbate.{tld}/get_edge_hls_url_ajax/',
+            data=f'room_slug={video_id}'.encode(),
+            headers={
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        )
+        response = self._download_json(req, video_id, fatal=False)
 
+        status = response.get('room_status')
+        if status == 'offline':
+            raise ExtractorError(self._ROOM_OFFLINE, expected=True)
+        elif status == 'private':
+            raise ExtractorError(self._ROOM_PRIVATE, expected=True)
+        elif status == 'away':
+            raise ExtractorError(self._ROOM_AWAY, expected=True)
+        elif status == 'hidden':
+            raise ExtractorError(self._ROOM_HIDDEN, expected=True)
+        elif status == 'password protected':
+            raise ExtractorError(self._ROOM_PASSWORD, expected=True)
+        elif status != 'public':
+            return None
+
+        m3u8_url = response.get('url')
+        if not m3u8_url:
+            raise ExtractorError(self._ROOM_BLOCKED, expected=True)
+
+        formats = self._extract_m3u8_formats(
+            m3u8_url, video_id, ext='mp4',
+            fatal=False, live=True)
+
+        return {
+            'id': video_id,
+            'title': video_id,
+            'thumbnail': f'https://roomimg.stream.highwebmedia.com/ri/{video_id}.jpg',
+            'is_live': True,
+            'formats': formats,
+        }
+
+    def _extract_from_webpage(self, video_id, tld):
         webpage = self._download_webpage(
             f'https://chaturbate.{tld}/{video_id}/', video_id,
             headers=self.geo_verification_headers())
@@ -113,3 +158,10 @@ class ChaturbateIE(InfoExtractor):
             'is_live': True,
             'formats': formats,
         }
+
+    def _real_extract(self, url):
+        video_id, tld = self._match_valid_url(url).group('id', 'tld')
+        extraction = self._extract_from_api(video_id, tld)
+        if extraction is None:
+            extraction = self._extract_from_webpage(video_id, tld)
+        return extraction
