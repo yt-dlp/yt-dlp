@@ -41,12 +41,13 @@ class ChaturbateIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _ROOM_OFFLINE = 'Room is currently offline'
-    _ROOM_PRIVATE = 'Room is currently in a private show'
-    _ROOM_AWAY = 'Performer is currently away'
-    _ROOM_PASSWORD = 'Room is password protected'
-    _ROOM_HIDDEN = 'Hidden session in progress'
-    _ROOM_BLOCKED = 'Room is not avaiable in this region'
+    _ERROR_MAP = {
+        'offline': 'Room is currently offline',
+        'private': 'Room is currently in a private show',
+        'away': 'Performer is currently away',
+        'password protected': 'Room is password protected',
+        'hidden': 'Hidden session in progress',
+    }
 
     def _extract_from_api(self, video_id, tld):
         req = Request(
@@ -60,17 +61,10 @@ class ChaturbateIE(InfoExtractor):
         response = self._download_json(req, video_id, fatal=False)
 
         status = response.get('room_status')
-        if status == 'offline':
-            raise ExtractorError(self._ROOM_OFFLINE, expected=True)
-        elif status == 'private':
-            raise ExtractorError(self._ROOM_PRIVATE, expected=True)
-        elif status == 'away':
-            raise ExtractorError(self._ROOM_AWAY, expected=True)
-        elif status == 'hidden':
-            raise ExtractorError(self._ROOM_HIDDEN, expected=True)
-        elif status == 'password protected':
-            raise ExtractorError(self._ROOM_PASSWORD, expected=True)
-        elif status != 'public':
+        if status != 'public':
+            if error := self._ERROR_MAP.get(status):
+                raise ExtractorError(error, expected=True)
+            self.report_warning('Falling back to webpage extraction')
             return None
 
         m3u8_url = response.get('url')
@@ -130,8 +124,8 @@ class ChaturbateIE(InfoExtractor):
                 webpage, 'error', group='error', default=None)
             if not error:
                 if any(p in webpage for p in (
-                        self._ROOM_OFFLINE, 'offline_tipping', 'tip_offline')):
-                    error = self._ROOM_OFFLINE
+                        self._ERROR_MAP['offline'], 'offline_tipping', 'tip_offline')):
+                    error = self.ERROR_MAP['offline']
             if error:
                 raise ExtractorError(error, expected=True)
             raise ExtractorError('Unable to find stream URL')
