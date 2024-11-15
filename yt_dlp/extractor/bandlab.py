@@ -14,17 +14,17 @@ from ..utils.traversal import traverse_obj, value
 
 
 class BandlabBaseIE(InfoExtractor):
-    _API_HEADERS = {
-        'accept': 'application/json',
-        'referer': 'https://www.bandlab.com/',
-        'x-client-id': 'BandLab-Web',
-        'x-client-version': '10.1.124',
-    }
-
     def _call_api(self, endpoint, asset_id, **kwargs):
+        headers = kwargs.pop('headers', None) or {}
         return self._download_json(
             f'https://www.bandlab.com/api/v1.3/{endpoint}/{asset_id}',
-            asset_id, headers=self._API_HEADERS, **kwargs)
+            asset_id, headers={
+                'accept': 'application/json',
+                'referer': 'https://www.bandlab.com/',
+                'x-client-id': 'BandLab-Web',
+                'x-client-version': '10.1.124',
+                **headers,
+            }, **kwargs)
 
     def _parse_revision(self, revision_data, url=None):
         return {
