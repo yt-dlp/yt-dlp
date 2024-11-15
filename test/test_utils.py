@@ -72,7 +72,6 @@ from yt_dlp.utils import (
     intlist_to_bytes,
     iri_to_uri,
     is_html,
-    join_nonempty,
     js_to_json,
     limit_length,
     locked_file,
@@ -2157,10 +2156,6 @@ Line 1
         assert int_or_none(10, scale=0.1) == 100, 'positionally passed argument should call function'
         assert int_or_none(v=10) == 10, 'keyword passed positional should call function'
         assert int_or_none(scale=0.1)(10) == 100, 'call after partial application should call the function'
-
-        assert callable(join_nonempty(delim=', ')), 'varargs positional should apply partially'
-        assert callable(join_nonempty()), 'varargs positional should apply partially'
-        assert join_nonempty(None, delim=', ') == '', 'passed varargs should call the function'
 
 
 if __name__ == '__main__':

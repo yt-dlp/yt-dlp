@@ -216,7 +216,7 @@ def partial_application(func):
     sig = inspect.signature(func)
     required_args = [
         param.name for param in sig.parameters.values()
-        if param.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.VAR_POSITIONAL)
+        if param.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
         if param.default is inspect.Parameter.empty
     ]
 
@@ -4837,7 +4837,6 @@ def number_of_digits(number):
     return len('%d' % number)
 
 
-@partial_application
 def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
         values = (traversal.traverse_obj(from_dict, variadic(v)) for v in values)

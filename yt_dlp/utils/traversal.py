@@ -452,9 +452,9 @@ def trim_str(*, start=None, end=None):
     return trim
 
 
-def unpack(func):
+def unpack(func, **kwargs):
     @functools.wraps(func)
-    def inner(items, **kwargs):
+    def inner(items):
         return func(*items, **kwargs)
 
     return inner
