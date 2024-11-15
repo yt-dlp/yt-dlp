@@ -102,8 +102,8 @@ class BandlabBaseIE(InfoExtractor):
 
 class BandlabIE(BandlabBaseIE):
     _VALID_URL = [
-        r'https?://(?:www\.)?bandlab.com/(?:track|post|revision)/(?P<id>[\da-f_-]+)',
-        r'https?://(?:www\.)?bandlab.com/embed/\?(?:[^#]*&)?id=(?P<id>[\da-f-]+)',
+        r'https?://(?:www\.)?bandlab.com/(?P<url_type>track|post|revision)/(?P<id>[\da-f_-]+)',
+        r'https?://(?:www\.)?bandlab.com/(?P<url_type>embed)/\?(?:[^#]*&)?id=(?P<id>[\da-f-]+)',
     ]
     _EMBED_REGEX = [rf'<iframe[^>]+src=[\'"](?P<url>{_VALID_URL[1]})[\'"]']
     _TESTS = [{
@@ -279,11 +279,11 @@ class BandlabIE(BandlabBaseIE):
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        display_id, url_type = self._match_valid_url(url).group('id', 'url_type')
 
         qs = parse_qs(url)
         revision_id = traverse_obj(qs, (('revId', 'id'), 0, any))
-        if 'bandlab.com/revision/' in url:
+        if url_type == 'revision':
             revision_id = display_id
 
         revision_data = None
@@ -301,7 +301,7 @@ class BandlabIE(BandlabBaseIE):
                     return self._parse_video(post_data, url=url)
                 if post_type == 'Track':
                     return self._parse_track(post_data, url=url)
-                raise ExtractorError('Could not extract data')
+                raise ExtractorError(f'Could not extract data for post type {post_type!r}')
 
         if not revision_data:
             revision_data = self._call_api(
@@ -415,8 +415,8 @@ class BandlabPlaylistIE(BandlabBaseIE):
             if not playlist_data.get('errorCode'):
                 playlist_type = endpoint
                 break
-        if playlist_data.get('errorCode'):
-            raise ExtractorError('Could not find playlist data')
+        if error_code := playlist_data.get('errorCode'):
+            raise ExtractorError(f'Could not find playlist data. Error code: {error_code!r}')
 
         return self.playlist_result(
             self._entries(playlist_data), playlist_id,
@@ -426,7 +426,7 @@ class BandlabPlaylistIE(BandlabBaseIE):
                 'uploader': ('creator', 'name', {str}),
                 'uploader_id': ('creator', 'username', {str}),
                 'timestamp': ('createdOn', {parse_iso8601}),
-                'release_date': ('releaseDate', {lambda x: x and x.replace('-', '')}),
+                'release_date': ('releaseDate', {lambda x: x.replace('-', '')}, filter),
                 'thumbnail': ('picture', ('original', 'url'), {url_or_none}, any),
                 'like_count': ('counters', 'likes', {int_or_none}),
                 'comment_count': ('counters', 'comments', {int_or_none}),
