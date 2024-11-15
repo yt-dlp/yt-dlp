@@ -525,7 +525,7 @@ class TestTraversalHelpers:
     def test_unpack(self):
         assert unpack(lambda *x: ''.join(map(str, x)))([1, 2, 3]) == '123'
         assert unpack(join_nonempty)([1, 2, 3]) == '1-2-3'
-        assert unpack(join_nonempty(delim=' '))([1, 2, 3]) == '1 2 3'
+        assert unpack(join_nonempty, delim=' ')([1, 2, 3]) == '1 2 3'
         with pytest.raises(TypeError):
             unpack(join_nonempty)()
         with pytest.raises(TypeError):
