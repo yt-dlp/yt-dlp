@@ -15,10 +15,16 @@ from ..utils.traversal import traverse_obj, value
 
 class BandlabBaseIE(InfoExtractor):
     _API_HEADERS = {
+        'accept': 'application/json',
         'referer': 'https://www.bandlab.com/',
         'x-client-id': 'BandLab-Web',
-        'x-client-version': '10.1.123',
+        'x-client-version': '10.1.124',
     }
+
+    def _call_api(self, endpoint, asset_id, **kwargs):
+        return self._download_json(
+            f'https://www.bandlab.com/api/v1.3/{endpoint}/{asset_id}',
+            asset_id, headers=self._API_HEADERS, **kwargs)
 
     def _parse_revision(self, revision_data, url=None):
         return {
@@ -282,9 +288,8 @@ class BandlabIE(BandlabBaseIE):
 
         revision_data = None
         if not revision_id:
-            post_data = self._download_json(
-                f'https://www.bandlab.com/api/v1.3/posts/{display_id}', display_id,
-                note='Downloading post data', headers=self._API_HEADERS,
+            post_data = self._call_api(
+                'posts', display_id, note='Downloading post data',
                 query=traverse_obj(qs, {'sharedKey': ('sharedKey', 0)}))
 
             revision_id = traverse_obj(post_data, (('revisionId', ('revision', 'id')), {str}, any))
@@ -299,9 +304,8 @@ class BandlabIE(BandlabBaseIE):
                 raise ExtractorError('Could not extract data')
 
         if not revision_data:
-            revision_data = self._download_json(
-                f'https://www.bandlab.com/api/v1.3/revisions/{revision_id}', revision_id,
-                note='Downloading revision data', headers=self._API_HEADERS, query={'edit': 'false'})
+            revision_data = self._call_api(
+                'revisions', revision_id, note='Downloading revision data', query={'edit': 'false'})
 
         return self._parse_revision(revision_data, url=url)
 
@@ -405,9 +409,8 @@ class BandlabPlaylistIE(BandlabBaseIE):
             'embed': ['collections', 'albums'],
         }.get(playlist_type)
         for endpoint in endpoints:
-            playlist_data = self._download_json(
-                f'https://www.bandlab.com/api/v1.3/{endpoint}/{playlist_id}', playlist_id,
-                note=f'Downloading {endpoint[:-1]} data', headers=self._API_HEADERS,
+            playlist_data = self._call_api(
+                endpoint, playlist_id, note=f'Downloading {endpoint[:-1]} data',
                 fatal=False, expected_status=404)
             if not playlist_data.get('errorCode'):
                 playlist_type = endpoint
