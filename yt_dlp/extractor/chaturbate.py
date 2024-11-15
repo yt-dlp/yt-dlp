@@ -1,11 +1,11 @@
 import re
 
 from .common import InfoExtractor
-from ..networking import Request
 from ..utils import (
     ExtractorError,
     lowercase_escape,
     url_or_none,
+    urlencode_postdata,
 )
 
 
@@ -50,15 +50,14 @@ class ChaturbateIE(InfoExtractor):
     }
 
     def _extract_from_api(self, video_id, tld):
-        req = Request(
-            f'https://chaturbate.{tld}/get_edge_hls_url_ajax/',
-            data=f'room_slug={video_id}'.encode(),
+        response = self._download_json(
+            f'https://chaturbate.{tld}/get_edge_hls_url_ajax/', video_id,
+            data=urlencode_postdata({'room_slug': video_id}),
             headers={
+                **self.geo_verification_headers(),
                 'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-        )
-        response = self._download_json(req, video_id, fatal=False)
+                'Accept': 'application/json',
+            }, fatal=False) or {}
 
         status = response.get('room_status')
         if status != 'public':
@@ -82,7 +81,7 @@ class ChaturbateIE(InfoExtractor):
     def _extract_from_webpage(self, video_id, tld):
         webpage = self._download_webpage(
             f'https://chaturbate.{tld}/{video_id}/', video_id,
-            headers=self.geo_verification_headers())
+            headers=self.geo_verification_headers(), impersonate=True)
 
         found_m3u8_urls = []
 
@@ -151,7 +150,4 @@ class ChaturbateIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, tld = self._match_valid_url(url).group('id', 'tld')
-        extraction = self._extract_from_api(video_id, tld)
-        if extraction is None:
-            extraction = self._extract_from_webpage(video_id, tld)
-        return extraction
+        return self._extract_from_api(video_id, tld) or self._extract_from_webpage(video_id, tld)
