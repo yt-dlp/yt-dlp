@@ -69,7 +69,7 @@ class ChaturbateIE(InfoExtractor):
 
         m3u8_url = response.get('url')
         if not m3u8_url:
-            raise ExtractorError(self._ROOM_BLOCKED, expected=True)
+            self.raise_geo_restricted()
 
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, ext='mp4',
