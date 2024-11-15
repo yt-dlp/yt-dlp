@@ -586,7 +586,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     @property
     def _youtube_login_hint(self):
         return (f'{self._login_hint(method="cookies")}. '
-                'See  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for help with cookies')
+                'See  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  '
+                'for tips on effectively exporting Youtube cookies')
 
     def _check_login_required(self):
         if self._LOGIN_REQUIRED and not self.is_authenticated:
