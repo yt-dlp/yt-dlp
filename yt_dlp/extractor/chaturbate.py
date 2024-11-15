@@ -71,16 +71,12 @@ class ChaturbateIE(InfoExtractor):
         if not m3u8_url:
             self.raise_geo_restricted()
 
-        formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, ext='mp4',
-            fatal=False, live=True)
-
         return {
             'id': video_id,
             'title': video_id,
             'thumbnail': f'https://roomimg.stream.highwebmedia.com/ri/{video_id}.jpg',
             'is_live': True,
-            'formats': formats,
+            'formats': self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True),
         }
 
     def _extract_from_webpage(self, video_id, tld):
