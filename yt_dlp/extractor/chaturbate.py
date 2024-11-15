@@ -57,7 +57,7 @@ class ChaturbateIE(InfoExtractor):
                 **self.geo_verification_headers(),
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json',
-            }, fatal=False) or {}
+            }, fatal=False, impersonate=True) or {}
 
         status = response.get('room_status')
         if status != 'public':
@@ -75,6 +75,7 @@ class ChaturbateIE(InfoExtractor):
             'title': video_id,
             'thumbnail': f'https://roomimg.stream.highwebmedia.com/ri/{video_id}.jpg',
             'is_live': True,
+            'age_limit': 18,
             'formats': self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True),
         }
 
@@ -120,7 +121,7 @@ class ChaturbateIE(InfoExtractor):
             if not error:
                 if any(p in webpage for p in (
                         self._ERROR_MAP['offline'], 'offline_tipping', 'tip_offline')):
-                    error = self.ERROR_MAP['offline']
+                    error = self._ERROR_MAP['offline']
             if error:
                 raise ExtractorError(error, expected=True)
             raise ExtractorError('Unable to find stream URL')
