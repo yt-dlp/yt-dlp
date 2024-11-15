@@ -3,13 +3,14 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     float_or_none,
+    format_field,
     int_or_none,
     parse_iso8601,
     parse_qs,
     truncate_string,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import traverse_obj, value
 
 
 class BandlabBaseIE(InfoExtractor):
@@ -19,10 +20,14 @@ class BandlabBaseIE(InfoExtractor):
         'x-client-version': '10.1.123',
     }
 
-    def _parse_revision(self, revision_data):
+    def _parse_revision(self, revision_data, url=None):
         return {
             'vcodec': 'none',
+            'extractor_key': BandlabIE.ie_key(),
+            'extractor': BandlabIE.IE_NAME,
             **traverse_obj(revision_data, {
+                'webpage_url': (
+                    'id', ({value(url)}, {format_field(template='https://www.bandlab.com/revision/%s')}), filter, any),
                 'id': (('revisionId', 'id'), {str}, any),
                 'title': ('song', 'name', {str}),
                 'track': ('song', 'name', {str}),
@@ -40,10 +45,14 @@ class BandlabBaseIE(InfoExtractor):
             }),
         }
 
-    def _parse_track(self, track_data):
+    def _parse_track(self, track_data, url=None):
         return {
             'vcodec': 'none',
+            'extractor_key': BandlabIE.ie_key(),
+            'extractor': BandlabIE.IE_NAME,
             **traverse_obj(track_data, {
+                'webpage_url': (
+                    'id', ({value(url)}, {format_field(template='https://www.bandlab.com/post/%s')}), filter, any),
                 'id': (('revisionId', 'id'), {str}, any),
                 'url': ('track', 'sample', 'audioUrl', {url_or_none}),
                 'title': ('track', 'name', {str}),
@@ -60,20 +69,26 @@ class BandlabBaseIE(InfoExtractor):
             }),
         }
 
-    def _parse_video(self, video_data):
-        return traverse_obj(video_data, {
-            'id': ('id', {str}),
-            'url': ('video', 'url', {url_or_none}),
-            'title': ('caption', {lambda x: x.replace('\n', ' ')}, {truncate_string(left=50)}),
-            'description': ('caption', {str}),
-            'thumbnail': ('video', 'picture', 'url', {url_or_none}),
-            'view_count': ('video', 'counters', 'plays', {int_or_none}),
-            'like_count': ('video', 'counters', 'likes', {int_or_none}),
-            'comment_count': ('counters', 'comments', {int_or_none}),
-            'duration': ('video', 'duration', {float_or_none}),
-            'uploader': ('creator', 'name', {str}),
-            'uploader_id': ('creator', 'username', {str}),
-        })
+    def _parse_video(self, video_data, url=None):
+        return {
+            'extractor_key': BandlabIE.ie_key(),
+            'extractor': BandlabIE.IE_NAME,
+            **traverse_obj(video_data, {
+                'id': ('id', {str}),
+                'webpage_url': (
+                    'id', ({value(url)}, {format_field(template='https://www.bandlab.com/post/%s')}), filter, any),
+                'url': ('video', 'url', {url_or_none}),
+                'title': ('caption', {lambda x: x.replace('\n', ' ')}, {truncate_string(left=50)}),
+                'description': ('caption', {str}),
+                'thumbnail': ('video', 'picture', 'url', {url_or_none}),
+                'view_count': ('video', 'counters', 'plays', {int_or_none}),
+                'like_count': ('video', 'counters', 'likes', {int_or_none}),
+                'comment_count': ('counters', 'comments', {int_or_none}),
+                'duration': ('video', 'duration', {float_or_none}),
+                'uploader': ('creator', 'name', {str}),
+                'uploader_id': ('creator', 'username', {str}),
+            }),
+        }
 
 
 class BandlabIE(BandlabBaseIE):
@@ -267,9 +282,9 @@ class BandlabIE(BandlabBaseIE):
             if not revision_data and not revision_id:
                 post_type = post_data.get('type')
                 if post_type == 'Video':
-                    return self._parse_video(post_data)
+                    return self._parse_video(post_data, url=url)
                 if post_type == 'Track':
-                    return self._parse_track(post_data)
+                    return self._parse_track(post_data, url=url)
                 raise ExtractorError('Could not extract data')
 
         if not revision_data:
@@ -277,7 +292,7 @@ class BandlabIE(BandlabBaseIE):
                 f'https://www.bandlab.com/api/v1.3/revisions/{revision_id}', revision_id,
                 note='Downloading revision data', headers=self._API_HEADERS, query={'edit': 'false'})
 
-        return self._parse_revision(revision_data)
+        return self._parse_revision(revision_data, url=url)
 
 
 class BandlabPlaylistIE(BandlabBaseIE):
