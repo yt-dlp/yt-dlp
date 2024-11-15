@@ -582,13 +582,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 f'Login with OAuth is no longer supported. {self._youtube_login_hint}', expected=True)
 
         self.report_warning(
-            f'Login with password is not supported for this website. {self._youtube_login_hint}')
+            f'Login with password is not supported for YouTube. {self._youtube_login_hint}')
 
     @property
     def _youtube_login_hint(self):
-        return (f'{self._login_hint(method="cookies")}. '
-                'See  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  '
-                'for tips on effectively exporting Youtube cookies')
+        return (f'{self._login_hint(method="cookies")}. Also see  '
+                'https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  '
+                'for tips on effectively exporting YouTube cookies')
 
     def _check_login_required(self):
         if self._LOGIN_REQUIRED and not self.is_authenticated:
@@ -4463,7 +4463,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 reason += f'. {subreason}'
             if reason:
                 if 'sign in' in reason.lower():
-                    reason = remove_end(reason, ' This helps protect our community. Learn more')
+                    reason = remove_end(reason, 'This helps protect our community. Learn more')
                     reason = f'{remove_end(reason.strip(), ".")}. {self._youtube_login_hint}'
                 self.raise_no_formats(reason, expected=True)
 
