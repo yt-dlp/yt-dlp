@@ -97,10 +97,12 @@ class IcareusIE(InfoExtractor):
                 'token': self._search_regex(r"_icareus\['token'\]\s*=\s*'([a-f0-9]+)'", webpage, 'icareus_token'),
             }))
 
-        subtitles = {
-            remove_end(sdesc.split(' ')[0], ':'): [{'url': url_or_none(surl)}]
-            for _, sdesc, surl in assets.get('subtitles') or []
-        }
+        subtitles = {}
+
+        for sub_info in assets.get('subtitles') or []:
+            _, sdesc, surl = sub_info[:3]
+            sub_name = remove_end(sdesc.split(' ')[0], ':')
+            subtitles[sub_name] = [{'url': url_or_none(surl)}]
 
         formats = [{
             'format': item.get('name'),
