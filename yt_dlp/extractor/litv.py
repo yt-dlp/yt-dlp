@@ -16,7 +16,7 @@ from ..utils import (
 
 
 class LiTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?litv\.tv/(?:[^/]+/watch/|vod/[^/]+/content\.do\?content_id=)(?P<id>[a-z\-A-Z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?litv\.tv/(?:[^/?#]+/watch/|vod/[^/?#]+/content\.do\?content_id=)(?P<id>[\w-]+)'
 
     _URL_TEMPLATE = 'https://www.litv.tv/%s/watch/%s'
 
