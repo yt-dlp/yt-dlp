@@ -23,6 +23,7 @@ class BandlabBaseIE(InfoExtractor):
     def _parse_revision(self, revision_data, url=None):
         return {
             'vcodec': 'none',
+            'media_type': 'revision',
             'extractor_key': BandlabIE.ie_key(),
             'extractor': BandlabIE.IE_NAME,
             **traverse_obj(revision_data, {
@@ -48,6 +49,7 @@ class BandlabBaseIE(InfoExtractor):
     def _parse_track(self, track_data, url=None):
         return {
             'vcodec': 'none',
+            'media_type': 'track',
             'extractor_key': BandlabIE.ie_key(),
             'extractor': BandlabIE.IE_NAME,
             **traverse_obj(track_data, {
@@ -71,6 +73,7 @@ class BandlabBaseIE(InfoExtractor):
 
     def _parse_video(self, video_data, url=None):
         return {
+            'media_type': 'video',
             'extractor_key': BandlabIE.ie_key(),
             'extractor': BandlabIE.IE_NAME,
             **traverse_obj(video_data, {
@@ -116,6 +119,7 @@ class BandlabIE(BandlabBaseIE):
             'genres': ['Lofi'],
             'uploader': 'ender milze',
             'comment_count': int,
+            'media_type': 'revision',
         },
     }, {
         # Same track as above but post URL
@@ -137,6 +141,7 @@ class BandlabIE(BandlabBaseIE):
             'genres': ['Lofi'],
             'uploader': 'ender milze',
             'comment_count': int,
+            'media_type': 'revision',
         },
     }, {
         # SharedKey Example
@@ -158,6 +163,7 @@ class BandlabIE(BandlabBaseIE):
             'upload_date': '20240305',
             'uploader': 'Erna Wageneder',
             'title': 'PodcastMaerchen4b',
+            'media_type': 'revision',
         },
     }, {
         # Different Revision selected
@@ -179,6 +185,7 @@ class BandlabIE(BandlabBaseIE):
             'upload_date': '20200430',
             'like_count': int,
             'duration': 279.43,
+            'media_type': 'revision',
         },
     }, {
         # Video
@@ -195,6 +202,7 @@ class BandlabIE(BandlabBaseIE):
             'uploader': 'auraa',
             'like_count': int,
             'description': 'backing vocals',
+            'media_type': 'video',
         },
     }, {
         # Embed Example
@@ -216,6 +224,7 @@ class BandlabIE(BandlabBaseIE):
             'uploader_id': 'microfreaks',
             'title': 'Positronic Meltdown',
             'like_count': int,
+            'media_type': 'revision',
         },
     }, {
         # Track without revisions available
@@ -235,6 +244,7 @@ class BandlabIE(BandlabBaseIE):
             'thumbnail': 'https://bandlabimages.azureedge.net/v1.0/users/572a351a-0f3a-4c6a-ac39-1a5defdeeb1c/',
             'timestamp': 1691162128,
             'upload_date': '20230804',
+            'media_type': 'track',
         },
     }, {
         'url': 'https://www.bandlab.com/revision/014de0a4-7d82-ea11-a94c-0003ffd19c0f',
@@ -258,6 +268,7 @@ class BandlabIE(BandlabBaseIE):
             'title': 'Vermilion Pt. 2 (Cover)',
             'track': 'Vermilion Pt. 2 (Cover)',
             'thumbnail': 'https://bandlabimages.azureedge.net/v1.0/songs/62b10750-7aef-4f42-ad08-1af52f577e97/',
+            'media_type': 'revision',
         },
     }]
 
