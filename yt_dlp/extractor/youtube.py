@@ -862,11 +862,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         for alert_type, alert_message in (warnings + errors[:-1]):
             self.report_warning(f'YouTube said: {alert_type} - {alert_message}', only_once=only_once)
         if errors:
-            msg = errors[-1][1]
-            if msg and 'sign in' in msg.lower():
-                expected = True
-                msg += '\n' + self._youtube_login_hint
-            raise ExtractorError(f'YouTube said: {msg}', expected=expected)
+            raise ExtractorError(f'YouTube said: {errors[-1][1]}', expected=expected)
 
     def _extract_and_report_alerts(self, data, *args, **kwargs):
         return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
