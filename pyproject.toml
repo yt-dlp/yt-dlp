@@ -52,7 +52,7 @@ default = [
     "pycryptodomex",
     "requests>=2.32.2,<3",
     "urllib3>=1.26.17,<3",
-    "websockets>=13.0",
+    "websockets>=13.0,<14",
 ]
 curl-cffi = [
     "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
@@ -83,7 +83,7 @@ test = [
     "pytest-rerunfailures~=14.0",
 ]
 pyinstaller = [
-    "pyinstaller>=6.10.0",  # Windows temp cleanup fixed in 6.10.0
+    "pyinstaller>=6.11.1",  # Windows temp cleanup fixed in 6.11.1
 ]
 
 [project.urls]

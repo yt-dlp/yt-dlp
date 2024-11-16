@@ -66,6 +66,14 @@ class AfreecaTVBaseIE(InfoExtractor):
             extensions={'legacy_ssl': True}), display_id,
             'Downloading API JSON', 'Unable to download API JSON')
 
+    @staticmethod
+    def _fixup_thumb(thumb_url):
+        if not url_or_none(thumb_url):
+            return None
+        # Core would determine_ext as 'php' from the url, so we need to provide the real ext
+        # See: https://github.com/yt-dlp/yt-dlp/issues/11537
+        return [{'url': thumb_url, 'ext': 'jpg'}]
+
 
 class AfreecaTVIE(AfreecaTVBaseIE):
     IE_NAME = 'soop'
@@ -154,8 +162,8 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'title': ('title', {str}),
             'uploader': ('writer_nick', {str}),
             'uploader_id': ('bj_id', {str}),
-            'duration': ('total_file_duration', {functools.partial(int_or_none, scale=1000)}),
-            'thumbnail': ('thumb', {url_or_none}),
+            'duration': ('total_file_duration', {int_or_none(scale=1000)}),
+            'thumbnails': ('thumb', {self._fixup_thumb}),
         })
 
         entries = []
@@ -178,7 +186,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 'title': f'{common_info.get("title") or "Untitled"} (part {file_num})',
                 'formats': formats,
                 **traverse_obj(file_element, {
-                    'duration': ('duration', {functools.partial(int_or_none, scale=1000)}),
+                    'duration': ('duration', {int_or_none(scale=1000)}),
                     'timestamp': ('file_start', {unified_timestamp}),
                 }),
             })
@@ -226,19 +234,18 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
 
         return self.playlist_result(self._entries(data), video_id)
 
-    @staticmethod
-    def _entries(data):
+    def _entries(self, data):
         # 'files' is always a list with 1 element
         yield from traverse_obj(data, (
             'data', lambda _, v: v['story_type'] == 'catch',
             'catch_list', lambda _, v: v['files'][0]['file'], {
                 'id': ('files', 0, 'file_info_key', {str}),
                 'url': ('files', 0, 'file', {url_or_none}),
-                'duration': ('files', 0, 'duration', {functools.partial(int_or_none, scale=1000)}),
+                'duration': ('files', 0, 'duration', {int_or_none(scale=1000)}),
                 'title': ('title', {str}),
                 'uploader': ('writer_nick', {str}),
                 'uploader_id': ('writer_id', {str}),
-                'thumbnail': ('thumb', {url_or_none}),
+                'thumbnails': ('thumb', {self._fixup_thumb}),
                 'timestamp': ('write_timestamp', {int_or_none}),
             }))
 
