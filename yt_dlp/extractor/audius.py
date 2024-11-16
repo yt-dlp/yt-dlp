@@ -1,7 +1,7 @@
 import random
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_str, compat_urllib_parse_unquote
 from ..utils import ExtractorError, str_or_none, try_get
 
 
@@ -15,13 +15,13 @@ class AudiusBaseIE(InfoExtractor):
             if response_data is not None:
                 return response_data
             if len(response) == 1 and 'message' in response:
-                raise ExtractorError('API error: %s' % response['message'],
+                raise ExtractorError('API error: {}'.format(response['message']),
                                      expected=True)
         raise ExtractorError('Unexpected API response')
 
     def _select_api_base(self):
         """Selecting one of the currently available API hosts"""
-        response = super(AudiusBaseIE, self)._download_json(
+        response = super()._download_json(
             'https://api.audius.co/', None,
             note='Requesting available API hosts',
             errnote='Unable to request available API hosts')
@@ -41,8 +41,8 @@ class AudiusBaseIE(InfoExtractor):
         anything from this link, since the Audius API won't be able to resolve
         this url
         """
-        url = compat_urllib_parse_unquote(url)
-        title = compat_urllib_parse_unquote(title)
+        url = urllib.parse.unquote(url)
+        title = urllib.parse.unquote(title)
         if '/' in title or '%2F' in title:
             fixed_title = title.replace('/', '%5C').replace('%2F', '%5C')
             return url.replace(title, fixed_title)
@@ -54,19 +54,19 @@ class AudiusBaseIE(InfoExtractor):
         if self._API_BASE is None:
             self._select_api_base()
         try:
-            response = super(AudiusBaseIE, self)._download_json(
-                '%s%s%s' % (self._API_BASE, self._API_V, path), item_id, note=note,
+            response = super()._download_json(
+                f'{self._API_BASE}{self._API_V}{path}', item_id, note=note,
                 errnote=errnote, expected_status=expected_status)
         except ExtractorError as exc:
             # some of Audius API hosts may not work as expected and return HTML
-            if 'Failed to parse JSON' in compat_str(exc):
+            if 'Failed to parse JSON' in str(exc):
                 raise ExtractorError('An error occurred while receiving data. Try again',
                                      expected=True)
             raise exc
         return self._get_response_data(response)
 
     def _resolve_url(self, url, item_id):
-        return self._api_request('/resolve?url=%s' % url, item_id,
+        return self._api_request(f'/resolve?url={url}', item_id,
                                  expected_status=404)
 
 
@@ -91,7 +91,7 @@ class AudiusIE(AudiusBaseIE):
                 'view_count': int,
                 'like_count': int,
                 'repost_count': int,
-            }
+            },
         },
         {
             # Regular track
@@ -109,14 +109,14 @@ class AudiusIE(AudiusBaseIE):
                 'view_count': int,
                 'like_count': int,
                 'repost_count': int,
-            }
+            },
         },
     ]
 
     _ARTWORK_MAP = {
-        "150x150": 150,
-        "480x480": 480,
-        "1000x1000": 1000
+        '150x150': 150,
+        '480x480': 480,
+        '1000x1000': 1000,
     }
 
     def _real_extract(self, url):
@@ -130,7 +130,7 @@ class AudiusIE(AudiusBaseIE):
         else:  # API link
             title = None
             # uploader = None
-            track_data = self._api_request('/tracks/%s' % track_id, track_id)
+            track_data = self._api_request(f'/tracks/{track_id}', track_id)
 
         if not isinstance(track_data, dict):
             raise ExtractorError('Unexpected API response')
@@ -144,7 +144,7 @@ class AudiusIE(AudiusBaseIE):
         if isinstance(artworks_data, dict):
             for quality_key, thumbnail_url in artworks_data.items():
                 thumbnail = {
-                    "url": thumbnail_url
+                    'url': thumbnail_url,
                 }
                 quality_code = self._ARTWORK_MAP.get(quality_key)
                 if quality_code is not None:
@@ -154,12 +154,12 @@ class AudiusIE(AudiusBaseIE):
         return {
             'id': track_id,
             'title': track_data.get('title', title),
-            'url': '%s/v1/tracks/%s/stream' % (self._API_BASE, track_id),
+            'url': f'{self._API_BASE}/v1/tracks/{track_id}/stream',
             'ext': 'mp3',
             'description': track_data.get('description'),
             'duration': track_data.get('duration'),
             'track': track_data.get('title'),
-            'artist': try_get(track_data, lambda x: x['user']['name'], compat_str),
+            'artist': try_get(track_data, lambda x: x['user']['name'], str),
             'genre': track_data.get('genre'),
             'thumbnails': thumbnails,
             'view_count': track_data.get('play_count'),
@@ -175,11 +175,11 @@ class AudiusTrackIE(AudiusIE):  # XXX: Do not subclass from concrete IE
     _TESTS = [
         {
             'url': 'audius:9RWlo',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'audius:http://discoveryprovider.audius.prod-us-west-2.staked.cloud/v1/tracks/9RWlo',
-            'only_matching': True
+            'only_matching': True,
         },
     ]
 
@@ -207,7 +207,7 @@ class AudiusPlaylistIE(AudiusBaseIE):
             if not track_id:
                 raise ExtractorError('Unable to get track ID from playlist')
             entries.append(self.url_result(
-                'audius:%s' % track_id,
+                f'audius:{track_id}',
                 ie=AudiusTrackIE.ie_key(), video_id=track_id))
         return entries
 
@@ -231,7 +231,7 @@ class AudiusPlaylistIE(AudiusBaseIE):
             raise ExtractorError('Unable to get playlist ID')
 
         playlist_tracks = self._api_request(
-            '/playlists/%s/tracks' % playlist_id,
+            f'/playlists/{playlist_id}/tracks',
             title, note='Downloading playlist tracks metadata',
             errnote='Unable to download playlist tracks metadata')
         if not isinstance(playlist_tracks, list):
@@ -267,5 +267,5 @@ class AudiusProfileIE(AudiusPlaylistIE):  # XXX: Do not subclass from concrete I
         profile_audius_id = _profile_data[0]['id']
         profile_bio = _profile_data[0].get('bio')
 
-        api_call = self._api_request('/full/users/handle/%s/tracks' % profile_id, profile_id)
+        api_call = self._api_request(f'/full/users/handle/{profile_id}/tracks', profile_id)
         return self.playlist_result(self._build_playlist(api_call), profile_audius_id, profile_id, profile_bio)

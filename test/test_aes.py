@@ -83,11 +83,23 @@ class TestAES(unittest.TestCase):
                 data, intlist_to_bytes(self.key), authentication_tag, intlist_to_bytes(self.iv[:12]))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
+    def test_gcm_aligned_decrypt(self):
+        data = b'\x159Y\xcf5eud\x90\x9c\x85&]\x14\x1d\x0f'
+        authentication_tag = b'\x08\xb1\x9d!&\x98\xd0\xeaRq\x90\xe6;\xb5]\xd8'
+
+        decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(
+            list(data), self.key, list(authentication_tag), self.iv[:12]))
+        self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg[:16])
+        if Cryptodome.AES:
+            decrypted = aes_gcm_decrypt_and_verify_bytes(
+                data, bytes(self.key), authentication_tag, bytes(self.iv[:12]))
+            self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg[:16])
+
     def test_decrypt_text(self):
         password = intlist_to_bytes(self.key).decode()
         encrypted = base64.b64encode(
             intlist_to_bytes(self.iv[:8])
-            + b'\x17\x15\x93\xab\x8d\x80V\xcdV\xe0\t\xcdo\xc2\xa5\xd8ksM\r\xe27N\xae'
+            + b'\x17\x15\x93\xab\x8d\x80V\xcdV\xe0\t\xcdo\xc2\xa5\xd8ksM\r\xe27N\xae',
         ).decode()
         decrypted = (aes_decrypt_text(encrypted, password, 16))
         self.assertEqual(decrypted, self.secret_msg)
@@ -95,7 +107,7 @@ class TestAES(unittest.TestCase):
         password = intlist_to_bytes(self.key).decode()
         encrypted = base64.b64encode(
             intlist_to_bytes(self.iv[:8])
-            + b'\x0b\xe6\xa4\xd9z\x0e\xb8\xb9\xd0\xd4i_\x85\x1d\x99\x98_\xe5\x80\xe7.\xbf\xa5\x83'
+            + b'\x0b\xe6\xa4\xd9z\x0e\xb8\xb9\xd0\xd4i_\x85\x1d\x99\x98_\xe5\x80\xe7.\xbf\xa5\x83',
         ).decode()
         decrypted = (aes_decrypt_text(encrypted, password, 32))
         self.assertEqual(decrypted, self.secret_msg)
@@ -132,16 +144,16 @@ class TestAES(unittest.TestCase):
         block = [0x21, 0xA0, 0x43, 0xFF]
 
         self.assertEqual(pad_block(block, 'pkcs7'),
-                         block + [0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C])
+                         [*block, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C])
 
         self.assertEqual(pad_block(block, 'iso7816'),
-                         block + [0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+                         [*block, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
 
         self.assertEqual(pad_block(block, 'whitespace'),
-                         block + [0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20])
+                         [*block, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20])
 
         self.assertEqual(pad_block(block, 'zero'),
-                         block + [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+                         [*block, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
 
         block = list(range(16))
         for mode in ('pkcs7', 'iso7816', 'whitespace', 'zero'):

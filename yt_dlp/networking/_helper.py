@@ -10,7 +10,7 @@ import typing
 import urllib.parse
 import urllib.request
 
-from .exceptions import RequestError, UnsupportedRequest
+from .exceptions import RequestError
 from ..dependencies import certifi
 from ..socks import ProxyType, sockssocket
 from ..utils import format_field, traverse_obj
@@ -206,7 +206,7 @@ def wrap_request_errors(func):
     def wrapper(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
-        except UnsupportedRequest as e:
+        except RequestError as e:
             if e.handler is None:
                 e.handler = self
             raise
@@ -235,7 +235,7 @@ def create_socks_proxy_socket(dest_addr, proxy_args, proxy_ip_addr, timeout, sou
         connect_proxy_args = proxy_args.copy()
         connect_proxy_args.update({'addr': sa[0], 'port': sa[1]})
         sock.setproxy(**connect_proxy_args)
-        if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # noqa: E721
+        if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
             sock.settimeout(timeout)
         if source_address:
             sock.bind(source_address)
@@ -251,7 +251,7 @@ def create_connection(
     timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
     source_address=None,
     *,
-    _create_socket_func=_socket_connect
+    _create_socket_func=_socket_connect,
 ):
     # Work around socket.create_connection() which tries all addresses from getaddrinfo() including IPv6.
     # This filters the addresses based on the given source_address.

@@ -1,6 +1,6 @@
+import itertools
 import json
 import random
-import itertools
 import urllib.parse
 
 from .common import InfoExtractor
@@ -34,7 +34,7 @@ class WeiboBaseIE(InfoExtractor):
                     'browser': f'Chrome{chrome_ver},0,0,0',
                     'fonts': 'undefined',
                     'screenInfo': '1920*1080*24',
-                    'plugins': ''
+                    'plugins': '',
                 }, separators=(',', ':'))}))['data']
 
         self._download_webpage(
@@ -52,6 +52,7 @@ class WeiboBaseIE(InfoExtractor):
             })
 
     def _weibo_download_json(self, url, video_id, *args, fatal=True, note='Downloading JSON metadata', **kwargs):
+        # XXX: Always fatal; _download_webpage_handle only returns False (not a tuple) on error
         webpage, urlh = self._download_webpage_handle(url, video_id, *args, fatal=fatal, note=note, **kwargs)
         if urllib.parse.urlparse(urlh.url).netloc == 'passport.weibo.com':
             self._update_visitor_cookies(urlh.url, video_id)
@@ -66,7 +67,7 @@ class WeiboBaseIE(InfoExtractor):
                 'format': ('quality_desc', {str}),
                 'format_id': ('label', {str}),
                 'ext': ('mime', {mimetype2ext}),
-                'tbr': ('bitrate', {int_or_none}, {lambda x: x or None}),
+                'tbr': ('bitrate', {int_or_none}, filter),
                 'vcodec': ('video_codecs', {str}),
                 'fps': ('fps', {int_or_none}),
                 'width': ('width', {int_or_none}),
@@ -90,7 +91,7 @@ class WeiboBaseIE(InfoExtractor):
                             'video_details', lambda _, v: v['label'].startswith(format_id), {
                                 'size': ('size', {int_or_none}),
                                 'tbr': ('bitrate', {int_or_none}),
-                            }
+                            },
                         ), get_all=False),
                     })
         return formats
@@ -106,14 +107,14 @@ class WeiboBaseIE(InfoExtractor):
             **traverse_obj(video_info, {
                 'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
-                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {str}, {lambda x: x or None}),
+                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {str}, filter),
                 'description': ('text_raw', {str}),
                 'duration': ('page_info', 'media_info', 'duration', {int_or_none}),
                 'timestamp': ('page_info', 'media_info', 'video_publish_time', {int_or_none}),
                 'thumbnail': ('page_info', 'page_pic', {url_or_none}),
                 'uploader': ('user', 'screen_name', {str}),
                 'uploader_id': ('user', ('id', 'id_str'), {str_or_none}),
-                'uploader_url': ('user', 'profile_url', {lambda x: urljoin('https://weibo.com/', x)}),
+                'uploader_url': ('user', 'profile_url', {urljoin('https://weibo.com/')}),
                 'view_count': ('page_info', 'media_info', 'online_users_number', {int_or_none}),
                 'like_count': ('attitudes_count', {int_or_none}),
                 'repost_count': ('reposts_count', {int_or_none}),
@@ -162,7 +163,7 @@ class WeiboIE(WeiboBaseIE):
             'view_count': int,
             'like_count': int,
             'repost_count': int,
-        }
+        },
     }, {
         'url': 'https://weibo.com/0/4224132150961381',
         'note': 'no playback_list example',
@@ -185,7 +186,7 @@ class WeiboVideoIE(WeiboBaseIE):
             'ext': 'mp4',
             'display_id': 'LEZDodaiW',
             'title': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了',
-            'description': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了 http://t.cn/A6aerGsM ​​​',
+            'description': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了 http://t.cn/A6aerGsM \u200b\u200b\u200b',
             'duration': 76,
             'timestamp': 1659344278,
             'upload_date': '20220801',
@@ -196,7 +197,7 @@ class WeiboVideoIE(WeiboBaseIE):
             'view_count': int,
             'like_count': int,
             'repost_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):

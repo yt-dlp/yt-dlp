@@ -9,7 +9,7 @@ from ..utils import (
 
 
 class ChaturbateIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?chaturbate\.com/(?:fullvideo/?\?.*?\bb=)?(?P<id>[^/?&#]+)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?chaturbate\.(?P<tld>com|eu|global)/(?:fullvideo/?\?.*?\bb=)?(?P<id>[^/?&#]+)'
     _TESTS = [{
         'url': 'https://www.chaturbate.com/siswet19/',
         'info_dict': {
@@ -29,15 +29,24 @@ class ChaturbateIE(InfoExtractor):
     }, {
         'url': 'https://en.chaturbate.com/siswet19/',
         'only_matching': True,
+    }, {
+        'url': 'https://chaturbate.eu/siswet19/',
+        'only_matching': True,
+    }, {
+        'url': 'https://chaturbate.eu/fullvideo/?b=caylin',
+        'only_matching': True,
+    }, {
+        'url': 'https://chaturbate.global/siswet19/',
+        'only_matching': True,
     }]
 
     _ROOM_OFFLINE = 'Room is currently offline'
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, tld = self._match_valid_url(url).group('id', 'tld')
 
         webpage = self._download_webpage(
-            'https://chaturbate.com/%s/' % video_id, video_id,
+            f'https://chaturbate.{tld}/{video_id}/', video_id,
             headers=self.geo_verification_headers())
 
         found_m3u8_urls = []
@@ -85,7 +94,7 @@ class ChaturbateIE(InfoExtractor):
         formats = []
         for m3u8_url in m3u8_urls:
             for known_id in ('fast', 'slow'):
-                if '_%s' % known_id in m3u8_url:
+                if f'_{known_id}' in m3u8_url:
                     m3u8_id = known_id
                     break
             else:
@@ -99,7 +108,7 @@ class ChaturbateIE(InfoExtractor):
         return {
             'id': video_id,
             'title': video_id,
-            'thumbnail': 'https://roomimg.stream.highwebmedia.com/ri/%s.jpg' % video_id,
+            'thumbnail': f'https://roomimg.stream.highwebmedia.com/ri/{video_id}.jpg',
             'age_limit': self._rta_search(webpage),
             'is_live': True,
             'formats': formats,

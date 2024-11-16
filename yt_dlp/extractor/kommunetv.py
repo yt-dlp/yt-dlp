@@ -10,16 +10,16 @@ class KommunetvIE(InfoExtractor):
         'info_dict': {
             'id': '921',
             'title': 'Bystyremøte',
-            'ext': 'mp4'
-        }
+            'ext': 'mp4',
+        },
     }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         headers = {
-            'Accept': 'application/json'
+            'Accept': 'application/json',
         }
-        data = self._download_json('https://oslo.kommunetv.no/api/streams?streamType=1&id=%s' % video_id, video_id, headers=headers)
+        data = self._download_json(f'https://oslo.kommunetv.no/api/streams?streamType=1&id={video_id}', video_id, headers=headers)
         title = data['stream']['title']
         file = data['playlist'][0]['playlist'][0]['file']
         url = update_url(file, query=None, fragment=None)
@@ -27,5 +27,5 @@ class KommunetvIE(InfoExtractor):
         return {
             'id': video_id,
             'formats': formats,
-            'title': title
+            'title': title,
         }
