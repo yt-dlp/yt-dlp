@@ -1,5 +1,3 @@
-import urllib.parse
-
 from .common import InfoExtractor
 from ..utils import (
     get_element_by_id,
@@ -8,6 +6,7 @@ from ..utils import (
     mimetype2ext,
     traverse_obj,
     url_or_none,
+    urljoin,
 )
 
 
@@ -147,7 +146,7 @@ class AparatPlaylistIE(InfoExtractor):
         info_dict.update(**traverse_obj(info, ('included', lambda _, v: v['type'] == 'channel', 'attributes', {
             'channel': ('username'),
             'channel_id': ('id'),
-            'channel_url': ('link', {lambda x: urllib.parse.urljoin(url, x)}),  # starts with a slash
+            'channel_url': ('link', filter, {urljoin(base=url)}),  # starts with a slash
             'channel_follower_count': ('follower_cnt', {int_or_none}),
         }), get_all=False))
 
