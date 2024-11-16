@@ -99,8 +99,7 @@ class Kenh14VideoIE(InfoExtractor):
                 or clean_html(get_element_by_class('vdbw-sapo', webpage))),
             'thumbnail': (self._og_search_thumbnail(webpage) or attrs.get('data-thumb')),
             'uploader': traverse_obj(metadata, ('author', {strip_or_none})),
-            'timestamp': traverse_obj(metadata, (
-                'uploadtime', {lambda x: parse_iso8601(x, delimiter=' ')})),
+            'timestamp': traverse_obj(metadata, ('uploadtime', {parse_iso8601(delimiter=' ')})),
             'view_count': traverse_obj(metadata, ('views', {int_or_none})),
             'tags': traverse_obj(self._html_search_meta('keywords', webpage), (
                 {lambda x: x.split(';')}, ..., filter)),
@@ -147,4 +146,4 @@ class Kenh14PlaylistIE(InfoExtractor):
                 or unescapeHTML(embed_info.get('alternateName'))),
             thumbnail=traverse_obj(
                 self._og_search_thumbnail(webpage),
-                ({url_or_none}, {lambda x: update_url(x, query=None)})))
+                ({url_or_none}, {update_url(query=None)})))
