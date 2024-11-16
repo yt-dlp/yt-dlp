@@ -449,9 +449,6 @@ class PornHubIE(PornHubBaseIE):
 
         model_profile = self._search_json(
             r'var\s+MODEL_PROFILE\s*=', webpage, 'model profile', video_id, fatal=False)
-        video_uploader = self._html_search_regex(
-            r'<script type="application\/ld\+json">(?:.|\n)+"author" : "(.+)",',
-            webpage, 'uploader', default=None) or model_profile.get('username')
 
         def extract_vote_count(kind, name):
             return self._extract_count(
@@ -479,7 +476,6 @@ class PornHubIE(PornHubBaseIE):
 
         return merge_dicts({
             'id': video_id,
-            'uploader': video_uploader,
             'uploader_id': remove_start(model_profile.get('modelProfileLink'), '/model/'),
             'upload_date': upload_date,
             'title': title,
