@@ -4381,7 +4381,9 @@ class YoutubeDL:
             return None
 
         for idx, t in list(enumerate(thumbnails))[::-1]:
-            thumb_ext = (f'{t["id"]}.' if multiple else '') + determine_ext(t['url'], 'jpg')
+            thumb_ext = t.get('ext') or determine_ext(t['url'], 'jpg')
+            if multiple:
+                thumb_ext = f'{t["id"]}.{thumb_ext}'
             thumb_display_id = f'{label} thumbnail {t["id"]}'
             thumb_filename = replace_extension(filename, thumb_ext, info_dict.get('ext'))
             thumb_filename_final = replace_extension(thumb_filename_base, thumb_ext, info_dict.get('ext'))

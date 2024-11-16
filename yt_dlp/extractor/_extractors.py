@@ -208,6 +208,10 @@ from .bandcamp import (
     BandcampUserIE,
     BandcampWeeklyIE,
 )
+from .bandlab import (
+    BandlabIE,
+    BandlabPlaylistIE,
+)
 from .bannedvideo import BannedVideoIE
 from .bbc import (
     BBCIE,
@@ -1649,6 +1653,7 @@ from .radiokapital import (
     RadioKapitalIE,
     RadioKapitalShowIE,
 )
+from .radioradicale import RadioRadicaleIE
 from .radiozet import RadioZetPodcastIE
 from .radlive import (
     RadLiveChannelIE,
