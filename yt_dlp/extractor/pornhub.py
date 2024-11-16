@@ -5,8 +5,6 @@ import operator
 import re
 
 from .common import InfoExtractor
-from .openload import PhantomJSwrapper
-from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     NO_DEFAULT,
@@ -29,31 +27,6 @@ from ..utils import (
 class PornHubBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'pornhub'
     _PORNHUB_HOST_RE = r'(?:(?P<host>pornhub(?:premium)?\.(?:com|net|org))|pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd\.onion)'
-
-    def _download_webpage_handle(self, *args, **kwargs):
-        def dl(*args, **kwargs):
-            return super(PornHubBaseIE, self)._download_webpage_handle(*args, **kwargs)
-
-        ret = dl(*args, **kwargs)
-
-        if not ret:
-            return ret
-
-        webpage, urlh = ret
-
-        if any(re.search(p, webpage) for p in (
-                r'<body\b[^>]+\bonload=["\']go\(\)',
-                r'document\.cookie\s*=\s*["\']RNKEY=',
-                r'document\.location\.reload\(true\)')):
-            url_or_request = args[0]
-            url = (url_or_request.url
-                   if isinstance(url_or_request, Request)
-                   else url_or_request)
-            phantom = PhantomJSwrapper(self, required_version='2.0')
-            phantom.get(url, html=webpage)
-            webpage, urlh = dl(*args, **kwargs)
-
-        return webpage, urlh
 
     def _real_initialize(self):
         self._logged_in = False
@@ -137,7 +110,7 @@ class PornHubIE(PornHubBaseIE):
     _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?pornhub(?:premium)?\.(?:com|net|org)/embed/[\da-z]+)']
     _TESTS = [{
         'url': 'http://www.pornhub.com/view_video.php?viewkey=648719015',
-        'md5': 'a6391306d050e4547f62b3f485dd9ba9',
+        'md5': '4d4a4e9178b655776f86cf89ecaf0edf',
         'info_dict': {
             'id': '648719015',
             'ext': 'mp4',
@@ -146,6 +119,7 @@ class PornHubIE(PornHubBaseIE):
             'upload_date': '20130628',
             'timestamp': 1372447216,
             'duration': 361,
+            'uploader_id': '/users/babes-com',
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
@@ -154,6 +128,7 @@ class PornHubIE(PornHubBaseIE):
             'tags': list,
             'categories': list,
             'cast': list,
+            'thumbnail': r're:https?://.*\.jpg',
         },
     }, {
         # non-ASCII title
@@ -207,11 +182,22 @@ class PornHubIE(PornHubBaseIE):
         'url': 'http://www.pornhub.com/view_video.php?viewkey=ph601dc30bae19a',
         'info_dict': {
             'id': 'ph601dc30bae19a',
+            'ext': 'mp4',
             'uploader': 'Projekt Melody',
             'uploader_id': 'projekt-melody',
             'upload_date': '20210205',
             'title': '"Welcome to My Pussy Mansion" - CB Stream (02/03/21)',
             'thumbnail': r're:https?://.+',
+            'age_limit': 18,
+            'duration': 8173,
+            'tags': ['masturbate', 'anime', 'conversation', 'funny'],
+            'timestamp': 1612564932,
+            'dislike_count': int,
+            'comment_count': int,
+            'view_count': int,
+            'categories': ['60FPS', 'Cartoon', 'HD Porn', 'Masturbation', 'Solo Female', 'Webcam'],
+            'cast': [],
+            'like_count': int,
         },
     }, {
         'url': 'http://www.pornhub.com/view_video.php?viewkey=ph557bbb6676d2d',
@@ -464,7 +450,7 @@ class PornHubIE(PornHubBaseIE):
         model_profile = self._search_json(
             r'var\s+MODEL_PROFILE\s*=', webpage, 'model profile', video_id, fatal=False)
         video_uploader = self._html_search_regex(
-            r'(?s)From:&nbsp;.+?<(?:a\b[^>]+\bhref=["\']/(?:(?:user|channel)s|model|pornstar)/|span\b[^>]+\bclass=["\']username)[^>]+>(.+?)<',
+            r'<script type="application\/ld\+json">(?:.|\n)+"author" : "(.+)",',
             webpage, 'uploader', default=None) or model_profile.get('username')
 
         def extract_vote_count(kind, name):
@@ -539,22 +525,31 @@ class PornHubUserIE(PornHubPlaylistBaseIE):
     _VALID_URL = rf'(?P<url>https?://(?:[^/]+\.)?{PornHubBaseIE._PORNHUB_HOST_RE}/(?:(?:user|channel)s|model|pornstar)/(?P<id>[^/?#&]+))(?:[?#&]|/(?!videos)|$)'
     _TESTS = [{
         'url': 'https://www.pornhub.com/model/zoe_ph',
-        'playlist_mincount': 118,
+        'info_dict': {
+            'id': 'model/zoe_ph/videos',
+        },
+        'playlist_mincount': 292,
     }, {
         'url': 'https://www.pornhub.com/pornstar/liz-vicious',
         'info_dict': {
-            'id': 'liz-vicious',
+            'id': 'pornstar/liz-vicious/videos',
         },
-        'playlist_mincount': 118,
+        'playlist_mincount': 139,
     }, {
         'url': 'https://www.pornhub.com/users/russianveet69',
         'only_matching': True,
     }, {
         'url': 'https://www.pornhub.com/channels/povd',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'channels/povd/videos',
+        },
+        'playlist_mincount': 632,
     }, {
         'url': 'https://www.pornhub.com/model/zoe_ph?abc=1',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'model/zoe_ph/videos',
+        },
+        'playlist_mincount': 292,
     }, {
         # Unavailable via /videos page, but available with direct pagination
         # on pornstar page (see [1]), requires premium
@@ -652,15 +647,15 @@ class PornHubPagedVideoListIE(PornHubPagedPlaylistBaseIE):
         'url': 'http://www.pornhub.com/users/rushandlia/videos',
         'only_matching': True,
     }, {
-        'url': 'https://www.pornhub.com/pornstar/jenny-blighe/videos',
+        'url': 'https://www.pornhub.com/pornstar/riley-reid/videos',
         'info_dict': {
-            'id': 'pornstar/jenny-blighe/videos',
+            'id': 'pornstar/riley-reid/videos',
         },
-        'playlist_mincount': 149,
+        'playlist_mincount': 300,
     }, {
-        'url': 'https://www.pornhub.com/pornstar/jenny-blighe/videos?page=3',
+        'url': 'https://www.pornhub.com/pornstar/riley-reid/videos?page=3',
         'info_dict': {
-            'id': 'pornstar/jenny-blighe/videos',
+            'id': 'pornstar/riley-reid/videos',
         },
         'playlist_mincount': 40,
     }, {
@@ -669,7 +664,7 @@ class PornHubPagedVideoListIE(PornHubPagedPlaylistBaseIE):
         'info_dict': {
             'id': 'channels/povd/videos',
         },
-        'playlist_mincount': 293,
+        'playlist_mincount': 632,
     }, {
         # Top Rated Videos
         'url': 'https://www.pornhub.com/channels/povd/videos?o=ra',
@@ -752,16 +747,16 @@ class PornHubPagedVideoListIE(PornHubPagedPlaylistBaseIE):
 class PornHubUserVideosUploadIE(PornHubPagedPlaylistBaseIE):
     _VALID_URL = rf'(?P<url>https?://(?:[^/]+\.)?{PornHubBaseIE._PORNHUB_HOST_RE}/(?:(?:user|channel)s|model|pornstar)/(?P<id>[^/]+)/videos/upload)'
     _TESTS = [{
-        'url': 'https://www.pornhub.com/pornstar/jenny-blighe/videos/upload',
+        'url': 'https://www.pornhub.com/pornstar/riley-reid/videos/upload',
         'info_dict': {
-            'id': 'jenny-blighe',
+            'id': 'riley-reid',
         },
-        'playlist_mincount': 129,
+        'playlist_mincount': 300,
     }, {
         'url': 'https://www.pornhub.com/model/zoe_ph/videos/upload',
         'only_matching': True,
     }, {
-        'url': 'http://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/pornstar/jenny-blighe/videos/upload',
+        'url': 'http://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/pornstar/riley-reid/videos/upload',
         'only_matching': True,
     }]
 
@@ -773,7 +768,7 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
         'info_dict': {
             'id': '44121572',
         },
-        'playlist_count': 77,
+        'playlist_count': 50,
     }, {
         'url': 'https://www.pornhub.com/playlist/4667351',
         'only_matching': True,
