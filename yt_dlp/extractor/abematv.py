@@ -6,7 +6,6 @@ import hmac
 import io
 import json
 import re
-import struct
 import time
 import urllib.parse
 import uuid
@@ -70,7 +69,7 @@ class AbemaLicenseRH(RequestHandler):
             })
 
         res = decode_base_n(license_response['k'], table=self._STRTABLE)
-        encvideokey = list(struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff))
+        encvideokey = list(res.to_bytes(16, 'big'))
 
         h = hmac.new(
             binascii.unhexlify(self._HKEY),
