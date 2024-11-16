@@ -208,6 +208,10 @@ from .bandcamp import (
     BandcampUserIE,
     BandcampWeeklyIE,
 )
+from .bandlab import (
+    BandlabIE,
+    BandlabPlaylistIE,
+)
 from .bannedvideo import BannedVideoIE
 from .bbc import (
     BBCIE,
