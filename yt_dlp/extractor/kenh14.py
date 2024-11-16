@@ -96,8 +96,7 @@ class Kenh14VideoIE(InfoExtractor):
                 or clean_html(get_element_by_class('vdbw-title', webpage))),
             'formats': [
                 {'url': f'https://{direct_url}', 'format_id': 'http'},
-                *self._extract_m3u8_formats(
-                    f'https://{direct_url}/master.m3u8', video_id, fatal=False),
+                *self._extract_m3u8_formats(f'https://{direct_url}/master.m3u8', video_id, fatal=False),
             ],
             'description': (
                 clean_html(self._og_search_description(webpage))
