@@ -213,7 +213,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
 class RedGifsUserIE(RedGifsBaseInfoExtractor):
     IE_DESC = 'Redgifs user'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/users/(?P<username>[^/?#]+)(?:\?(?P<query>[^#]+))?'
-    _PAGE_SIZE = 30
+    _PAGE_SIZE = 80
     _TESTS = [
         {
             'url': 'https://www.redgifs.com/users/lamsinka89',
@@ -222,7 +222,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by recent',
             },
-            'playlist_mincount': 100,
+            'playlist_mincount': 391,
         },
         {
             'url': 'https://www.redgifs.com/users/lamsinka89?page=3',
@@ -231,7 +231,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by recent',
             },
-            'playlist_count': 30,
+            'playlist_count': 80,
         },
         {
             'url': 'https://www.redgifs.com/users/lamsinka89?order=best&type=g',
@@ -240,7 +240,17 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by best',
             },
-            'playlist_mincount': 100,
+            'playlist_mincount': 391,
+        },
+        {
+            'url': 'https://www.redgifs.com/users/ignored52',
+            'note': 'https://github.com/yt-dlp/yt-dlp/issues/7382',
+            'info_dict': {
+                'id': 'ignored52',
+                'title': 'ignored52',
+                'description': 'RedGifs user ignored52, ordered by recent',
+            },
+            'playlist_mincount': 121,
         },
     ]
 
