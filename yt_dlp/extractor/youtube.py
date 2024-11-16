@@ -124,6 +124,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
+        'REQUIRE_AUTH': True,
     },
     'android': {
         'INNERTUBE_CONTEXT': {
@@ -140,6 +141,7 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_PO_TOKEN': True,
     },
+    # This client now requires sign-in for every video
     'android_music': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -154,6 +156,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_PO_TOKEN': True,
+        'REQUIRE_AUTH': True,
     },
     # This client now requires sign-in for every video
     'android_creator': {
@@ -170,6 +173,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_PO_TOKEN': True,
+        'REQUIRE_AUTH': True,
     },
     # YouTube Kids videos aren't returned on this client for some reason
     'android_vr': {
@@ -205,6 +209,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
         'REQUIRE_JS_PLAYER': False,
     },
+    # This client now requires sign-in for every video
     'ios_music': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -219,6 +224,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_AUTH': True,
     },
     # This client now requires sign-in for every video
     'ios_creator': {
@@ -235,6 +241,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_AUTH': True,
     },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
@@ -267,6 +274,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 85,
+        'REQUIRE_AUTH': True,
     },
     # This client now requires sign-in for every video
     # It may be able to receive pre-merged video+audio 720p/1080p streams
@@ -279,6 +287,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 95,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_AUTH': True,
     },
 }
 
@@ -307,6 +316,7 @@ def build_innertube_clients():
         ytcfg.setdefault('INNERTUBE_HOST', 'www.youtube.com')
         ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
         ytcfg.setdefault('REQUIRE_PO_TOKEN', False)
+        ytcfg.setdefault('REQUIRE_AUTH', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
