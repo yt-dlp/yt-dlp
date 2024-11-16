@@ -4171,10 +4171,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.to_screen(
                     f'{video_id}: This video is age-restricted and YouTube is requiring '
                     'account age-verification; some formats may be missing', only_once=True)
-                # web_creator and mediaconnect can work around the age-verification requirement
-                # _testsuite & _vr variants can also work around age-verification
+                # web_creator can work around the age-verification requirement
+                # android_vr and mediaconnect may also be able to work around age-verification
                 # tv_embedded may(?) still work around age-verification if the video is embeddable
-                append_client('web_creator', 'mediaconnect')
+                append_client('web_creator')
 
         prs.extend(deprioritized_prs)
 
