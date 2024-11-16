@@ -278,6 +278,7 @@ from .bleacherreport import (
 from .blerp import BlerpIE
 from .blogger import BloggerIE
 from .bloomberg import BloombergIE
+from .bluesky import BlueskyIE
 from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
 from .boosty import BoostyIE
@@ -363,7 +364,10 @@ from .ccc import (
 )
 from .ccma import CCMAIE
 from .cctv import CCTVIE
-from .cda import CDAIE
+from .cda import (
+    CDAIE,
+    CDAFolderIE,
+)
 from .cellebrite import CellebriteIE
 from .ceskatelevize import CeskaTelevizeIE
 from .cgtn import CGTNIE
@@ -398,8 +402,6 @@ from .cmt import CMTIE
 from .cnbc import CNBCVideoIE
 from .cnn import (
     CNNIE,
-    CNNArticleIE,
-    CNNBlogsIE,
     CNNIndonesiaIE,
 )
 from .comedycentral import (
@@ -706,6 +708,7 @@ from .gab import (
     GabTVIE,
 )
 from .gaia import GaiaIE
+from .gamedevtv import GameDevTVDashboardIE
 from .gamejolt import (
     GameJoltCommunityIE,
     GameJoltGameIE,
@@ -730,6 +733,7 @@ from .genius import (
     GeniusIE,
     GeniusLyricsIE,
 )
+from .germanupa import GermanupaIE
 from .getcourseru import (
     GetCourseRuIE,
     GetCourseRuPlayerIE,
@@ -1152,6 +1156,7 @@ from .mitele import MiTeleIE
 from .mixch import (
     MixchArchiveIE,
     MixchIE,
+    MixchMovieIE,
 )
 from .mixcloud import (
     MixcloudIE,
@@ -1166,6 +1171,7 @@ from .mlb import (
 )
 from .mlssoccer import MLSSoccerIE
 from .mocha import MochaVideoIE
+from .mojevideo import MojevideoIE
 from .mojvideo import MojvideoIE
 from .monstercat import MonstercatIE
 from .motherless import (
@@ -1879,6 +1885,7 @@ from .slideshare import SlideshareIE
 from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
 from .smotrim import SmotrimIE
+from .snapchat import SnapchatSpotlightIE
 from .snotr import SnotrIE
 from .sohu import (
     SohuIE,
@@ -1933,9 +1940,7 @@ from .spotify import (
 )
 from .spreaker import (
     SpreakerIE,
-    SpreakerPageIE,
     SpreakerShowIE,
-    SpreakerShowPageIE,
 )
 from .springboardplatform import SpringboardPlatformIE
 from .sprout import SproutIE
