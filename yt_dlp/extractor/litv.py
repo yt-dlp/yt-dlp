@@ -1,4 +1,3 @@
-import functools
 import json
 import uuid
 
@@ -117,7 +116,7 @@ class LiTVIE(InfoExtractor):
             'title': join_nonempty('title', 'secondary_mark', delim='', from_dict=program_info),
             **traverse_obj(program_info, {
                 'description': ('description', {str}),
-                'thumbnail': ('picture', {functools.partial(urljoin, 'https://p-cdnstatic.svc.litv.tv/')}),
+                'thumbnail': ('picture', {urljoin('https://p-cdnstatic.svc.litv.tv/')}),
                 'categories': ('genres', ..., 'name', {str}),
                 'episode_number': ('episode', {int_or_none}),
             }),
