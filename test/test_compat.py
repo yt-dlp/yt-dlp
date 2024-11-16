@@ -12,12 +12,7 @@ import struct
 
 from yt_dlp import compat
 from yt_dlp.compat import urllib  # isort: split
-from yt_dlp.compat import (
-    compat_etree_fromstring,
-    compat_expanduser,
-    compat_urllib_parse_unquote,  # noqa: TID251
-    compat_urllib_parse_urlencode,  # noqa: TID251
-)
+from yt_dlp.compat import compat_etree_fromstring, compat_expanduser
 from yt_dlp.compat.urllib.request import getproxies
 
 
@@ -42,39 +37,6 @@ class TestCompat(unittest.TestCase):
             self.assertEqual(compat_expanduser('~'), test_str)
         finally:
             os.environ['HOME'] = old_home or ''
-
-    def test_compat_urllib_parse_unquote(self):
-        self.assertEqual(compat_urllib_parse_unquote('abc%20def'), 'abc def')
-        self.assertEqual(compat_urllib_parse_unquote('%7e/abc+def'), '~/abc+def')
-        self.assertEqual(compat_urllib_parse_unquote(''), '')
-        self.assertEqual(compat_urllib_parse_unquote('%'), '%')
-        self.assertEqual(compat_urllib_parse_unquote('%%'), '%%')
-        self.assertEqual(compat_urllib_parse_unquote('%%%'), '%%%')
-        self.assertEqual(compat_urllib_parse_unquote('%2F'), '/')
-        self.assertEqual(compat_urllib_parse_unquote('%2f'), '/')
-        self.assertEqual(compat_urllib_parse_unquote('%E6%B4%A5%E6%B3%A2'), '津波')
-        self.assertEqual(
-            compat_urllib_parse_unquote('''<meta property="og:description" content="%E2%96%81%E2%96%82%E2%96%83%E2%96%84%25%E2%96%85%E2%96%86%E2%96%87%E2%96%88" />
-%<a href="https://ar.wikipedia.org/wiki/%D8%AA%D8%B3%D9%88%D9%86%D8%A7%D9%85%D9%8A">%a'''),
-            '''<meta property="og:description" content="▁▂▃▄%▅▆▇█" />
-%<a href="https://ar.wikipedia.org/wiki/تسونامي">%a''')
-        self.assertEqual(
-            compat_urllib_parse_unquote('''%28%5E%E2%97%A3_%E2%97%A2%5E%29%E3%81%A3%EF%B8%BB%E3%83%87%E2%95%90%E4%B8%80    %E2%87%80    %E2%87%80    %E2%87%80    %E2%87%80    %E2%87%80    %E2%86%B6%I%Break%25Things%'''),
-            '''(^◣_◢^)っ︻デ═一    ⇀    ⇀    ⇀    ⇀    ⇀    ↶%I%Break%Things%''')
-
-    def test_compat_urllib_parse_unquote_plus(self):
-        self.assertEqual(urllib.parse.unquote_plus('abc%20def'), 'abc def')
-        self.assertEqual(urllib.parse.unquote_plus('%7e/abc+def'), '~/abc def')
-
-    def test_compat_urllib_parse_urlencode(self):
-        self.assertEqual(compat_urllib_parse_urlencode({'abc': 'def'}), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode({'abc': b'def'}), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode({b'abc': 'def'}), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode({b'abc': b'def'}), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode([('abc', 'def')]), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode([('abc', b'def')]), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode([(b'abc', 'def')]), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode([(b'abc', b'def')]), 'abc=def')
 
     def test_compat_etree_fromstring(self):
         xml = '''

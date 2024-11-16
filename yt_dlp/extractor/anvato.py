@@ -8,10 +8,8 @@ import time
 from .common import InfoExtractor
 from ..aes import aes_encrypt
 from ..utils import (
-    bytes_to_intlist,
     determine_ext,
     int_or_none,
-    intlist_to_bytes,
     join_nonempty,
     smuggle_url,
     strip_jsonp,
@@ -234,8 +232,8 @@ class AnvatoIE(InfoExtractor):
         server_time = self._server_time(access_key, video_id)
         input_data = f'{server_time}~{md5_text(video_data_url)}~{md5_text(server_time)}'
 
-        auth_secret = intlist_to_bytes(aes_encrypt(
-            bytes_to_intlist(input_data[:64]), bytes_to_intlist(self._AUTH_KEY)))
+        auth_secret = bytes(aes_encrypt(
+            list(input_data[:64].encode()), list(self._AUTH_KEY)))
         query = {
             'X-Anvato-Adst-Auth': base64.b64encode(auth_secret).decode('ascii'),
             'rtyp': 'fp',

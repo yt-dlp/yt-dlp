@@ -9,7 +9,6 @@ import types
 
 import yt_dlp.extractor
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_os_name
 from yt_dlp.utils import preferredencoding, try_call, write_string, find_available_port
 
 if 'pytest' in sys.modules:
@@ -49,7 +48,7 @@ def report_warning(message, *args, **kwargs):
     Print the message to stderr, it will be prefixed with 'WARNING:'
     If stderr is a tty file the 'WARNING:' will be colored
     """
-    if sys.stderr.isatty() and compat_os_name != 'nt':
+    if sys.stderr.isatty() and os.name != 'nt':
         _msg_header = '\033[0;33mWARNING:\033[0m'
     else:
         _msg_header = 'WARNING:'

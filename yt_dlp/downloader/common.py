@@ -20,9 +20,7 @@ from ..utils import (
     Namespace,
     RetryManager,
     classproperty,
-    decodeArgument,
     deprecation_warning,
-    encodeFilename,
     format_bytes,
     join_nonempty,
     parse_bytes,
@@ -219,7 +217,7 @@ class FileDownloader:
     def temp_name(self, filename):
         """Returns a temporary filename for the given filename."""
         if self.params.get('nopart', False) or filename == '-' or \
-                (os.path.exists(encodeFilename(filename)) and not os.path.isfile(encodeFilename(filename))):
+                (os.path.exists(filename) and not os.path.isfile(filename)):
             return filename
         return filename + '.part'
 
@@ -273,7 +271,7 @@ class FileDownloader:
         """Try to set the last-modified time of the given file."""
         if last_modified_hdr is None:
             return
-        if not os.path.isfile(encodeFilename(filename)):
+        if not os.path.isfile(filename):
             return
         timestr = last_modified_hdr
         if timestr is None:
@@ -432,13 +430,13 @@ class FileDownloader:
         """
         nooverwrites_and_exists = (
             not self.params.get('overwrites', True)
-            and os.path.exists(encodeFilename(filename))
+            and os.path.exists(filename)
         )
 
         if not hasattr(filename, 'write'):
             continuedl_and_exists = (
                 self.params.get('continuedl', True)
-                and os.path.isfile(encodeFilename(filename))
+                and os.path.isfile(filename)
                 and not self.params.get('nopart', False)
             )
 
@@ -448,7 +446,7 @@ class FileDownloader:
                 self._hook_progress({
                     'filename': filename,
                     'status': 'finished',
-                    'total_bytes': os.path.getsize(encodeFilename(filename)),
+                    'total_bytes': os.path.getsize(filename),
                 }, info_dict)
                 self._finish_multiline_status()
                 return True, False
@@ -489,9 +487,7 @@ class FileDownloader:
         if not self.params.get('verbose', False):
             return
 
-        str_args = [decodeArgument(a) for a in args]
-
         if exe is None:
-            exe = os.path.basename(str_args[0])
+            exe = os.path.basename(args[0])
 
-        self.write_debug(f'{exe} command line: {shell_quote(str_args)}')
+        self.write_debug(f'{exe} command line: {shell_quote(args)}')
