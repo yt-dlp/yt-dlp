@@ -948,6 +948,7 @@ from .kick import (
 )
 from .kicker import KickerIE
 from .kickstarter import KickStarterIE
+from .kika import KikaIE
 from .kinja import KinjaEmbedIE
 from .kinopoisk import KinoPoiskIE
 from .kommunetv import KommunetvIE
@@ -2314,6 +2315,7 @@ from .videomore import (
     VideomoreVideoIE,
 )
 from .videopress import VideoPressIE
+from .vidflex import VidflexIE
 from .vidio import (
     VidioIE,
     VidioLiveIE,
