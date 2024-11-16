@@ -4,10 +4,10 @@ from ..utils import (
     int_or_none,
     merge_dicts,
     mimetype2ext,
-    traverse_obj,
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class AparatIE(InfoExtractor):
