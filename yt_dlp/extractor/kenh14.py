@@ -1,5 +1,3 @@
-import urllib.parse
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
@@ -11,9 +9,9 @@ from ..utils import (
     parse_duration,
     parse_iso8601,
     remove_start,
-    str_or_none,
     strip_or_none,
     unescapeHTML,
+    update_url,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -87,23 +85,25 @@ class Kenh14VideoIE(InfoExtractor):
         return {
             'id': video_id,
             'title': (
-                strip_or_none(metadata.get('title'))
+                traverse_obj(metadata, ('title', {strip_or_none}))
                 or clean_html(self._og_search_title(webpage))
                 or clean_html(get_element_by_class('vdbw-title', webpage))),
             'formats': [
                 {'url': f'https://{direct_url}', 'format_id': 'http'},
-                *self._extract_m3u8_formats(f'https://{direct_url}/master.m3u8', video_id, fatal=False),
+                *self._extract_m3u8_formats(
+                    f'https://{direct_url}/master.m3u8', video_id, fatal=False),
             ],
-            'duration': parse_duration(metadata.get('duration')),
+            'duration': traverse_obj(metadata, ('duration', {parse_duration})),
             'description': (
                 clean_html(self._og_search_description(webpage))
                 or clean_html(get_element_by_class('vdbw-sapo', webpage))),
             'thumbnail': (self._og_search_thumbnail(webpage) or attrs.get('data-thumb')),
-            'uploader': strip_or_none(metadata.get('author')),
-            'timestamp': parse_iso8601(metadata.get('uploadtime'), delimiter=' '),
-            'view_count': int_or_none(metadata.get('views')),
+            'uploader': traverse_obj(metadata, ('author', {strip_or_none})),
+            'timestamp': traverse_obj(metadata, (
+                'uploadtime', {lambda x: parse_iso8601(x, delimiter=' ')})),
+            'view_count': traverse_obj(metadata, ('views', {int_or_none})),
             'tags': traverse_obj(self._html_search_meta('keywords', webpage), (
-                {lambda x: x.split(';')}, lambda _, v: v, {str_or_none})),
+                {lambda x: x.split(';')}, ..., filter)),
         }
 
 
@@ -133,10 +133,10 @@ class Kenh14PlaylistIE(InfoExtractor):
         playlist_id = self._match_id(url)
         webpage = self._download_webpage(url, playlist_id)
 
-        category_detail = get_element_by_class('category-detail', webpage)
+        category_detail = get_element_by_class('category-detail', webpage) or ''
         embed_info = traverse_obj(
             self._yield_json_ld(webpage, playlist_id),
-            (lambda _, v: v['name'] and v['alternateName']), get_all=False)
+            (lambda _, v: v['name'] and v['alternateName'], any)) or {}
 
         return self.playlist_from_matches(
             get_elements_html_by_class('video-item', webpage), playlist_id,
@@ -147,4 +147,4 @@ class Kenh14PlaylistIE(InfoExtractor):
                 or unescapeHTML(embed_info.get('alternateName'))),
             thumbnail=traverse_obj(
                 self._og_search_thumbnail(webpage),
-                ({url_or_none}, {lambda x: urllib.parse.urlunparse(urllib.parse.urlparse(x)._replace(query=None))})))
+                ({url_or_none}, {lambda x: update_url(x, query=None)})))
