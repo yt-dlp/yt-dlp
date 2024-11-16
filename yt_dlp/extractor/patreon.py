@@ -431,7 +431,7 @@ class PatreonIE(PatreonBaseIE):
 
                 yield {
                     **traverse_obj(comment, {
-                        'id': 'id',
+                        'id': ('id', {str_or_none}),
                         'text': ('attributes', 'body', {str}),
                         'timestamp': ('attributes', 'created', {parse_iso8601}),
                         'parent': ('relationships', 'parent', 'data', ('id', {value('root')}), {str}, any),
