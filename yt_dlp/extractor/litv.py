@@ -67,16 +67,13 @@ class LiTVIE(InfoExtractor):
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
-
         video_id = self._match_id(url)
-
         webpage = self._download_webpage(url, video_id)
-
         vod_data = self._search_nextjs_data(webpage, video_id)['props']['pageProps']
 
         program_info = traverse_obj(vod_data, ('programInformation', {dict})) or {}
         playlist_data = traverse_obj(vod_data, ('seriesTree'))
-        if playlist_data is not None and self._yes_playlist(program_info.get('series_id'), video_id, smuggled_data):
+        if playlist_data and self._yes_playlist(program_info.get('series_id'), video_id, smuggled_data):
             return self._extract_playlist(playlist_data, program_info.get('content_type'))
 
         asset_id = traverse_obj(program_info, ('assets', 0, 'asset_id', {str}))
