@@ -208,6 +208,10 @@ from .bandcamp import (
     BandcampUserIE,
     BandcampWeeklyIE,
 )
+from .bandlab import (
+    BandlabIE,
+    BandlabPlaylistIE,
+)
 from .bannedvideo import BannedVideoIE
 from .bbc import (
     BBCIE,
@@ -217,6 +221,7 @@ from .bbc import (
     BBCCoUkIPlayerGroupIE,
     BBCCoUkPlaylistIE,
 )
+from .beacon import BeaconTvIE
 from .beatbump import (
     BeatBumpPlaylistIE,
     BeatBumpVideoIE,
@@ -277,6 +282,7 @@ from .bleacherreport import (
 from .blerp import BlerpIE
 from .blogger import BloggerIE
 from .bloomberg import BloombergIE
+from .bluesky import BlueskyIE
 from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
 from .boosty import BoostyIE
@@ -362,7 +368,10 @@ from .ccc import (
 )
 from .ccma import CCMAIE
 from .cctv import CCTVIE
-from .cda import CDAIE
+from .cda import (
+    CDAIE,
+    CDAFolderIE,
+)
 from .cellebrite import CellebriteIE
 from .ceskatelevize import CeskaTelevizeIE
 from .cgtn import CGTNIE
@@ -397,8 +406,6 @@ from .cmt import CMTIE
 from .cnbc import CNBCVideoIE
 from .cnn import (
     CNNIE,
-    CNNArticleIE,
-    CNNBlogsIE,
     CNNIndonesiaIE,
 )
 from .comedycentral import (
@@ -705,6 +712,7 @@ from .gab import (
     GabTVIE,
 )
 from .gaia import GaiaIE
+from .gamedevtv import GameDevTVDashboardIE
 from .gamejolt import (
     GameJoltCommunityIE,
     GameJoltGameIE,
@@ -729,6 +737,7 @@ from .genius import (
     GeniusIE,
     GeniusLyricsIE,
 )
+from .germanupa import GermanupaIE
 from .getcourseru import (
     GetCourseRuIE,
     GetCourseRuPlayerIE,
@@ -822,7 +831,10 @@ from .hungama import (
     HungamaIE,
     HungamaSongIE,
 )
-from .huya import HuyaLiveIE
+from .huya import (
+    HuyaLiveIE,
+    HuyaVideoIE,
+)
 from .hypem import HypemIE
 from .hypergryph import MonsterSirenHypergryphMusicIE
 from .hytale import HytaleIE
@@ -1037,10 +1049,7 @@ from .livestream import (
     LivestreamShortenerIE,
 )
 from .livestreamfails import LivestreamfailsIE
-from .lnkgo import (
-    LnkGoIE,
-    LnkIE,
-)
+from .lnk import LnkIE
 from .loom import (
     LoomFolderIE,
     LoomIE,
@@ -1151,6 +1160,7 @@ from .mitele import MiTeleIE
 from .mixch import (
     MixchArchiveIE,
     MixchIE,
+    MixchMovieIE,
 )
 from .mixcloud import (
     MixcloudIE,
@@ -1165,6 +1175,7 @@ from .mlb import (
 )
 from .mlssoccer import MLSSoccerIE
 from .mocha import MochaVideoIE
+from .mojevideo import MojevideoIE
 from .mojvideo import MojvideoIE
 from .monstercat import MonstercatIE
 from .motherless import (
@@ -1643,6 +1654,7 @@ from .radiokapital import (
     RadioKapitalIE,
     RadioKapitalShowIE,
 )
+from .radioradicale import RadioRadicaleIE
 from .radiozet import RadioZetPodcastIE
 from .radlive import (
     RadLiveChannelIE,
@@ -1812,6 +1824,7 @@ from .screen9 import Screen9IE
 from .screencast import ScreencastIE
 from .screencastify import ScreencastifyIE
 from .screencastomatic import ScreencastOMaticIE
+from .screenrec import ScreenRecIE
 from .scrippsnetworks import (
     ScrippsNetworksIE,
     ScrippsNetworksWatchIE,
@@ -1822,6 +1835,7 @@ from .scte import (
     SCTECourseIE,
 )
 from .sejmpl import SejmIE
+from .sen import SenIE
 from .senalcolombia import SenalColombiaLiveIE
 from .senategov import (
     SenateGovIE,
@@ -1877,6 +1891,7 @@ from .slideshare import SlideshareIE
 from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
 from .smotrim import SmotrimIE
+from .snapchat import SnapchatSpotlightIE
 from .snotr import SnotrIE
 from .sohu import (
     SohuIE,
@@ -1931,9 +1946,7 @@ from .spotify import (
 )
 from .spreaker import (
     SpreakerIE,
-    SpreakerPageIE,
     SpreakerShowIE,
-    SpreakerShowPageIE,
 )
 from .springboardplatform import SpringboardPlatformIE
 from .sprout import SproutIE
