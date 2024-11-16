@@ -81,9 +81,9 @@ class LiTVIE(InfoExtractor):
             return self._extract_playlist(playlist_data, program_info.get('content_type'))
 
         asset_id = traverse_obj(program_info, ('assets', 0, 'asset_id', {str}))
-        if asset_id:  # This is a live stream
+        if asset_id:  # This is a VOD
             media_type = 'vod'
-        else:  # This is a VOD
+        else:  # This is a live stream
             asset_id = program_info['content_id']
             media_type = program_info['content_type']
         puid = try_call(lambda: self._get_cookies('https://www.litv.tv/')['PUID'].value)
