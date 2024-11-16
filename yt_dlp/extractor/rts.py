@@ -242,9 +242,9 @@ class RTSIE(SRGSSRIE):
 
         media_list = []
         article_details = self._search_json(r'articleDetails\s*=\s*', webpage, 'article details', display_id)
-        traverse_obj(article_details, ('mainMedia', {lambda x: media_list.append(x) if x else None}))
-        traverse_obj(article_details, ('innerMediaElements', {lambda x: media_list.extend(x)}))
-        traverse_obj(article_details, ('mediaElements', {lambda x: media_list.extend(x)}))
+        traverse_obj(article_details, ('mainMedia', filter, {media_list.append}))
+        traverse_obj(article_details, ('innerMediaElements', filter, {media_list.extend}))
+        traverse_obj(article_details, ('mediaElements', filter, {media_list.extend}))
         media_list = orderedSet(media_list)
 
         entries = []
