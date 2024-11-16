@@ -4055,9 +4055,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             for requested_client in requested_clients:
                 _, base_client, variant = _split_innertube_client(requested_client)
-                music_client = f'{base_client}_music'
+                music_client = f'{base_client}_music' if base_client != 'mweb' else 'web_music'
                 if variant != 'music' and music_client in INNERTUBE_CLIENTS:
-                    requested_clients.append(music_client)
+                    if not INNERTUBE_CLIENTS[music_client]['REQUIRE_AUTH'] or self.is_authenticated:
+                        requested_clients.append(music_client)
 
         return orderedSet(requested_clients)
 
