@@ -47,6 +47,7 @@ from ..utils import (
     FormatSorter,
     GeoRestrictedError,
     GeoUtils,
+    ISO639Utils,
     LenientJSONDecoder,
     Popen,
     RegexNotFoundError,
@@ -278,6 +279,7 @@ class InfoExtractor:
     thumbnails:     A list of dictionaries, with the following entries:
                         * "id" (optional, string) - Thumbnail format ID
                         * "url"
+                        * "ext" (optional, string) - actual image extension if not given in URL
                         * "preference" (optional, int) - quality of the image
                         * "width" (optional, int)
                         * "height" (optional, int)
@@ -333,7 +335,7 @@ class InfoExtractor:
     like_count:     Number of positive ratings of the video
     dislike_count:  Number of negative ratings of the video
     repost_count:   Number of reposts of the video
-    average_rating: Average rating give by users, the scale used depends on the webpage
+    average_rating: Average rating given by users, the scale used depends on the webpage
     comment_count:  Number of comments on the video
     comments:       A list of comments, each with one or more of the following
                     properties (all but one of text or html optional):
@@ -520,7 +522,7 @@ class InfoExtractor:
     or _extract_from_webpage as necessary. While these are normally classmethods,
     _extract_from_webpage is allowed to be an instance method.
 
-    _extract_from_webpage may raise self.StopExtraction() to stop further
+    _extract_from_webpage may raise self.StopExtraction to stop further
     processing of the webpage and obtain exclusive rights to it. This is useful
     when the extractor cannot reliably be matched using just the URL,
     e.g. invidious/peertube instances
@@ -573,13 +575,13 @@ class InfoExtractor:
 
     def _login_hint(self, method=NO_DEFAULT, netrc=None):
         password_hint = f'--username and --password, --netrc-cmd, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
+        cookies_hint = 'See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies'
         return {
             None: '',
-            'any': f'Use --cookies, --cookies-from-browser, {password_hint}',
+            'any': f'Use --cookies, --cookies-from-browser, {password_hint}. {cookies_hint}',
             'password': f'Use {password_hint}',
-            'cookies': (
-                'Use --cookies-from-browser or --cookies for the authentication. '
-                'See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies'),
+            'cookies': f'Use --cookies-from-browser or --cookies for the authentication. {cookies_hint}',
+            'session_cookies': f'Use --cookies for the authentication (--cookies-from-browser might not work). {cookies_hint}',
         }[method if method is not NO_DEFAULT else 'any' if self.supports_login() else 'cookies']
 
     def __init__(self, downloader=None):
@@ -1408,6 +1410,13 @@ class InfoExtractor:
             return None, None
 
         self.write_debug(f'Using netrc for {netrc_machine} authentication')
+
+        # compat: <=py3.10: netrc cannot parse tokens as empty strings, will return `""` instead
+        # Ref: https://github.com/yt-dlp/yt-dlp/issues/11413
+        #      https://github.com/python/cpython/commit/15409c720be0503131713e3d3abc1acd0da07378
+        if sys.version_info < (3, 11):
+            return tuple(x if x != '""' else '' for x in info[::2])
+
         return info[0], info[2]
 
     def _get_login_info(self, username_option='username', password_option='password', netrc_machine=None):
@@ -1570,7 +1579,9 @@ class InfoExtractor:
         if default is not NO_DEFAULT:
             fatal = False
         for mobj in re.finditer(JSON_LD_RE, html):
-            json_ld_item = self._parse_json(mobj.group('json_ld'), video_id, fatal=fatal)
+            json_ld_item = self._parse_json(
+                mobj.group('json_ld'), video_id, fatal=fatal,
+                errnote=False if default is not NO_DEFAULT else None)
             for json_ld in variadic(json_ld_item):
                 if isinstance(json_ld, dict):
                     yield json_ld
@@ -3071,7 +3082,11 @@ class InfoExtractor:
             url_pattern = stream.attrib['Url']
             stream_timescale = int_or_none(stream.get('TimeScale')) or timescale
             stream_name = stream.get('Name')
-            stream_language = stream.get('Language', 'und')
+            # IsmFD expects ISO 639 Set 2 language codes (3-character length)
+            # See: https://github.com/yt-dlp/yt-dlp/issues/11356
+            stream_language = stream.get('Language') or 'und'
+            if len(stream_language) != 3:
+                stream_language = ISO639Utils.short2long(stream_language) or 'und'
             for track in stream.findall('QualityLevel'):
                 KNOWN_TAGS = {'255': 'AACL', '65534': 'EC-3'}
                 fourcc = track.get('FourCC') or KNOWN_TAGS.get(track.get('AudioTag'))
