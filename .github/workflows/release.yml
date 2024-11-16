@@ -2,10 +2,6 @@ name: Release
 on:
   workflow_call:
     inputs:
-      prerelease:
-        required: false
-        default: true
-        type: boolean
       source:
         required: false
         default: ''
@@ -18,6 +14,10 @@ on:
         required: false
         default: ''
         type: string
+      prerelease:
+        required: false
+        default: true
+        type: boolean
   workflow_dispatch:
     inputs:
       source:
@@ -204,7 +204,7 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -u
           git commit -m "Release ${{ env.version }}" \
-            -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all :ci run dl"
+            -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all"
           git push origin --force ${{ github.event.ref }}:release
 
       - name: Get target commitish
@@ -278,7 +278,17 @@ jobs:
           make clean-cache
           python -m build --no-isolation .
 
+      - name: Upload artifacts
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-pypi
+          path: |
+            dist/*
+          compression-level: 0
+
       - name: Publish to PyPI
+        if: github.event_name == 'workflow_dispatch'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
@@ -325,7 +335,7 @@ jobs:
               "(https://github.com/yt-dlp/yt-dlp-master-builds/releases/latest \"Master builds\")"' || '' }} > ./RELEASE_NOTES
           printf '\n\n' >> ./RELEASE_NOTES
           cat >> ./RELEASE_NOTES << EOF
-          #### A description of the various files are in the [README](https://github.com/${{ github.repository }}#release-files)
+          #### A description of the various files is in the [README](https://github.com/${{ github.repository }}#release-files)
           ---
           $(python ./devscripts/make_changelog.py -vv --collapsible)
           EOF
