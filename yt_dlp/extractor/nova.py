@@ -7,10 +7,10 @@ from ..utils import (
     int_or_none,
     js_to_json,
     strip_or_none,
-    traverse_obj,
     unified_strdate,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class NovaEmbedIE(InfoExtractor):
