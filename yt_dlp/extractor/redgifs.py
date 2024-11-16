@@ -244,7 +244,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
         },
         {
             'url': 'https://www.redgifs.com/users/ignored52',
-            'note': 'https://github.com/yt-dlp/yt-dlp/issues/7382,
+            'note': 'https://github.com/yt-dlp/yt-dlp/issues/7382',
             'info_dict': {
                 'id': 'ignored52',
                 'title': 'ignored52',
