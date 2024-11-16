@@ -4,6 +4,7 @@
 import os
 import sys
 import unittest
+import unittest.mock
 import warnings
 import datetime as dt
 
@@ -343,11 +344,13 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(remove_start(None, 'A - '), None)
         self.assertEqual(remove_start('A - B', 'A - '), 'B')
         self.assertEqual(remove_start('B - A', 'A - '), 'B - A')
+        self.assertEqual(remove_start('non-empty', ''), 'non-empty')
 
     def test_remove_end(self):
         self.assertEqual(remove_end(None, ' - B'), None)
         self.assertEqual(remove_end('A - B', ' - B'), 'A')
         self.assertEqual(remove_end('B - A', ' - B'), 'B - A')
+        self.assertEqual(remove_end('non-empty', ''), 'non-empty')
 
     def test_remove_quotes(self):
         self.assertEqual(remove_quotes(None), None)
@@ -2147,6 +2150,12 @@ Line 1
             args = [sys.executable, '-c', 'import sys; print(end=sys.argv[1])', argument, 'end']
             assert run_shell(args) == expected
             assert run_shell(shell_quote(args, shell=True)) == expected
+
+    def test_partial_application(self):
+        assert callable(int_or_none(scale=10)), 'missing positional parameter should apply partially'
+        assert int_or_none(10, scale=0.1) == 100, 'positionally passed argument should call function'
+        assert int_or_none(v=10) == 10, 'keyword passed positional should call function'
+        assert int_or_none(scale=0.1)(10) == 100, 'call after partial application should call the function'
 
 
 if __name__ == '__main__':
