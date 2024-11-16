@@ -1650,6 +1650,7 @@ from .radiokapital import (
     RadioKapitalIE,
     RadioKapitalShowIE,
 )
+from .radioradicale import RadioRadicaleIE
 from .radiozet import RadioZetPodcastIE
 from .radlive import (
     RadLiveChannelIE,
