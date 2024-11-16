@@ -1,4 +1,5 @@
 import enum
+import functools
 import json
 import os
 import re
@@ -9,7 +10,6 @@ import time
 import uuid
 
 from .fragment import FragmentFD
-from ..compat import functools
 from ..networking import Request
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
@@ -108,7 +108,7 @@ class ExternalFD(FragmentFD):
         return all((
             not info_dict.get('to_stdout') or Features.TO_STDOUT in cls.SUPPORTED_FEATURES,
             '+' not in info_dict['protocol'] or Features.MULTIPLE_FORMATS in cls.SUPPORTED_FEATURES,
-            not traverse_obj(info_dict, ('hls_aes', ...), 'extra_param_to_segment_url'),
+            not traverse_obj(info_dict, ('hls_aes', ...), 'extra_param_to_segment_url', 'extra_param_to_key_url'),
             all(proto in cls.SUPPORTED_PROTOCOLS for proto in info_dict['protocol'].split('+')),
         ))
 
@@ -508,7 +508,7 @@ class FFmpegFD(ExternalFD):
         env = None
         proxy = self.params.get('proxy')
         if proxy:
-            if not re.match(r'^[\da-zA-Z]+://', proxy):
+            if not re.match(r'[\da-zA-Z]+://', proxy):
                 proxy = f'http://{proxy}'
 
             if proxy.startswith('socks'):
@@ -559,7 +559,7 @@ class FFmpegFD(ExternalFD):
 
         selected_formats = info_dict.get('requested_formats') or [info_dict]
         for i, fmt in enumerate(selected_formats):
-            is_http = re.match(r'^https?://', fmt['url'])
+            is_http = re.match(r'https?://', fmt['url'])
             cookies = self.ydl.cookiejar.get_cookies_for_url(fmt['url']) if is_http else []
             if cookies:
                 args.extend(['-cookies', ''.join(

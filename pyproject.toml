@@ -9,10 +9,11 @@ maintainers = [
     {name = "Grub4K", email = "contact@grub4k.xyz"},
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
+    {name = "sepro", email = "sepro@sepr0.com"},
 ]
 description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = [
     "youtube-dl",
     "video-downloader",
@@ -28,11 +29,11 @@ classifiers = [
     "Environment :: Console",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
@@ -40,7 +41,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dynamic = ["version"]
-dependencies = [
+dependencies = []
+
+[project.optional-dependencies]
+default = [
     "brotli; implementation_name=='cpython'",
     "brotlicffi; implementation_name!='cpython'",
     "certifi",
@@ -48,12 +52,12 @@ dependencies = [
     "pycryptodomex",
     "requests>=2.32.2,<3",
     "urllib3>=1.26.17,<3",
-    "websockets>=12.0",
+    "websockets>=13.0,<14",
 ]
-
-[project.optional-dependencies]
-default = []
-curl-cffi = ["curl-cffi==0.5.10; implementation_name=='cpython'"]
+curl-cffi = [
+    "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,<0.7.2; os_name!='nt' and implementation_name=='cpython'",
+]
 secretstorage = [
     "cffi",
     "secretstorage",
@@ -62,7 +66,7 @@ build = [
     "build",
     "hatchling",
     "pip",
-    "setuptools",
+    "setuptools>=71.0.2",  # 71.0.0 broke pyinstaller
     "wheel",
 ]
 dev = [
@@ -72,16 +76,14 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.4.4",
+    "ruff~=0.7.0",
 ]
 test = [
     "pytest~=8.1",
+    "pytest-rerunfailures~=14.0",
 ]
 pyinstaller = [
-    "pyinstaller>=6.7.0",  # for compat with setuptools>=70
-]
-py2exe = [
-    "py2exe>=0.12",
+    "pyinstaller>=6.11.1",  # Windows temp cleanup fixed in 6.11.1
 ]
 
 [project.urls]
@@ -158,7 +160,6 @@ lint-fix = "ruff check --fix {args:.}"
 features = ["test"]
 dependencies = [
     "pytest-randomly~=3.15",
-    "pytest-rerunfailures~=14.0",
     "pytest-xdist[psutil]~=3.5",
 ]
 
@@ -168,13 +169,11 @@ run-cov = "echo Code coverage not implemented && exit 1"
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [
-    "3.8",
     "3.9",
     "3.10",
     "3.11",
     "3.12",
-    "pypy3.8",
-    "pypy3.9",
+    "3.13",
     "pypy3.10",
 ]
 
@@ -211,6 +210,7 @@ ignore = [
     "TD002",   # missing-todo-author
     "TD003",   # missing-todo-link
     "PLE0604", # invalid-all-object (false positives)
+    "PLE0643", # potential-index-error (false positives)
     "PLW0603", # global-statement
     "PLW1510", # subprocess-run-without-check
     "PLW2901", # redefined-loop-name
@@ -298,7 +298,7 @@ banned-from = [
     "string",
     "sys",
     "time",
-    "urllib",
+    "urllib.parse",
     "uuid",
     "xml",
 ]

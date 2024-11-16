@@ -8,6 +8,9 @@ from .common import InfoExtractor
 from .commonprotocols import RtmpIE
 from .youtube import YoutubeIE
 from ..compat import compat_etree_fromstring
+from ..cookies import LenientSimpleCookie
+from ..networking.exceptions import HTTPError
+from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     KNOWN_EXTENSIONS,
     MEDIA_EXTENSIONS,
@@ -43,6 +46,7 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
+from ..utils._utils import _UnsafeExtensionError
 
 
 class GenericIE(InfoExtractor):
@@ -2167,7 +2171,15 @@ class GenericIE(InfoExtractor):
                 urllib.parse.urlparse(fragment_query).query or fragment_query
                 or urllib.parse.urlparse(manifest_url).query or None)
 
-        hex_or_none = lambda x: x if re.fullmatch(r'(0x)?[\da-f]+', x, re.IGNORECASE) else None
+        key_query = self._configuration_arg('key_query', [None], casesense=True)[0]
+        if key_query is not None:
+            info['extra_param_to_key_url'] = (
+                urllib.parse.urlparse(key_query).query or key_query
+                or urllib.parse.urlparse(manifest_url).query or None)
+
+        def hex_or_none(value):
+            return value if re.fullmatch(r'(0x)?[\da-f]+', value, re.IGNORECASE) else None
+
         info['hls_aes'] = traverse_obj(self._configuration_arg('hls_key', casesense=True), {
             'uri': (0, {url_or_none}), 'key': (0, {hex_or_none}), 'iv': (1, {hex_or_none}),
         }) or None
@@ -2331,7 +2343,7 @@ class GenericIE(InfoExtractor):
                 default_search = 'fixup_error'
 
             if default_search in ('auto', 'auto_warning', 'fixup_error'):
-                if re.match(r'^[^\s/]+\.[^\s/]+/', url):
+                if re.match(r'[^\s/]+\.[^\s/]+/', url):
                     self.report_warning('The url doesn\'t specify the protocol, trying with http')
                     return self.url_result('http://' + url)
                 elif default_search != 'fixup_error':
@@ -2364,6 +2376,11 @@ class GenericIE(InfoExtractor):
         else:
             video_id = self._generic_id(url)
 
+        # Do not impersonate by default; see https://github.com/yt-dlp/yt-dlp/issues/11335
+        impersonate = self._configuration_arg('impersonate', ['false'])
+        if 'false' in impersonate:
+            impersonate = None
+
         # Some webservers may serve compressed content of rather big size (e.g. gzipped flac)
         # making it impossible to download only chunk of the file (yet we need only 512kB to
         # test whether it's HTML or not). According to yt-dlp default Accept-Encoding
@@ -2372,10 +2389,29 @@ class GenericIE(InfoExtractor):
         # to accept raw bytes and being able to download only a chunk.
         # It may probably better to solve this by checking Content-Type for application/octet-stream
         # after a HEAD request, but not sure if we can rely on this.
-        full_response = self._request_webpage(url, video_id, headers=filter_dict({
-            'Accept-Encoding': 'identity',
-            'Referer': smuggled_data.get('referer'),
-        }))
+        try:
+            full_response = self._request_webpage(url, video_id, headers=filter_dict({
+                'Accept-Encoding': 'identity',
+                'Referer': smuggled_data.get('referer'),
+            }), impersonate=impersonate)
+        except ExtractorError as e:
+            if not (isinstance(e.cause, HTTPError) and e.cause.status == 403
+                    and e.cause.response.get_header('cf-mitigated') == 'challenge'
+                    and e.cause.response.extensions.get('impersonate') is None):
+                raise
+            cf_cookie_domain = traverse_obj(
+                LenientSimpleCookie(e.cause.response.get_header('set-cookie')),
+                ('__cf_bm', 'domain'))
+            if cf_cookie_domain:
+                self.write_debug(f'Clearing __cf_bm cookie for {cf_cookie_domain}')
+                self.cookiejar.clear(domain=cf_cookie_domain, path='/', name='__cf_bm')
+            msg = 'Got HTTP Error 403 caused by Cloudflare anti-bot challenge; '
+            if not self._downloader._impersonate_target_available(ImpersonateTarget()):
+                msg += ('see  https://github.com/yt-dlp/yt-dlp#impersonation  for '
+                        'how to install the required impersonation dependency, and ')
+            raise ExtractorError(
+                f'{msg}try again with  --extractor-args "generic:impersonate"', expected=True)
+
         new_url = full_response.url
         if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
@@ -2391,7 +2427,7 @@ class GenericIE(InfoExtractor):
 
         # Check for direct link to a video
         content_type = full_response.headers.get('Content-Type', '').lower()
-        m = re.match(r'^(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
+        m = re.match(r'(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
         if m:
             self.report_detected('direct video link')
             headers = filter_dict({'Referer': smuggled_data.get('referer')})
@@ -2438,9 +2474,13 @@ class GenericIE(InfoExtractor):
         if not is_html(first_bytes):
             self.report_warning(
                 'URL could be a direct video link, returning it as such.')
+            ext = determine_ext(url)
+            if ext not in _UnsafeExtensionError.ALLOWED_EXTENSIONS:
+                ext = 'unknown_video'
             info_dict.update({
                 'direct': True,
                 'url': url,
+                'ext': ext,
             })
             return info_dict
 

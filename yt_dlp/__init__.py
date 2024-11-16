@@ -1,8 +1,8 @@
 import sys
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 9):
     raise ImportError(
-        f'You are using an unsupported version of Python. Only Python versions 3.8 and above are supported by yt-dlp')  # noqa: F541
+        f'You are using an unsupported version of Python. Only Python versions 3.9 and above are supported by yt-dlp')  # noqa: F541
 
 __license__ = 'The Unlicense'
 
@@ -15,7 +15,7 @@ import re
 import traceback
 
 from .compat import compat_os_name
-from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
+from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS, CookieLoadError
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
@@ -34,6 +34,7 @@ from .postprocessor import (
 )
 from .update import Updater
 from .utils import (
+    Config,
     NO_DEFAULT,
     POSTPROCESS_WHEN,
     DateRange,
@@ -64,6 +65,7 @@ from .utils import (
     write_string,
 )
 from .utils.networking import std_headers
+from .utils._utils import _UnsafeExtensionError
 from .YoutubeDL import YoutubeDL
 
 _IN_CLI = False
@@ -157,6 +159,9 @@ def set_compat_opts(opts):
             opts.embed_infojson = False
     if 'format-sort' in opts.compat_opts:
         opts.format_sort.extend(FormatSorter.ytdl_default)
+    elif 'prefer-vp9-sort' in opts.compat_opts:
+        opts.format_sort.extend(FormatSorter._prefer_vp9_sort)
+
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
     _audio_multistreams_set = set_default_compat('multistreams', 'allow_multiple_audio_streams', False, remove_compat=False)
     if _video_multistreams_set is False and _audio_multistreams_set is False:
@@ -234,6 +239,11 @@ def validate_options(opts):
         validate_regex('format sorting', f, FormatSorter.regex)
 
     # Postprocessor formats
+    if opts.convertsubtitles == 'none':
+        opts.convertsubtitles = None
+    if opts.convertthumbnails == 'none':
+        opts.convertthumbnails = None
+
     validate_regex('merge output format', opts.merge_output_format,
                    r'({0})(/({0}))*'.format('|'.join(map(re.escape, FFmpegMergerPP.SUPPORTED_EXTS))))
     validate_regex('audio format', opts.audioformat, FFmpegExtractAudioPP.FORMAT_RE)
@@ -467,7 +477,7 @@ def validate_options(opts):
             default_downloader = ed.get_basename()
 
     for policy in opts.color.values():
-        if policy not in ('always', 'auto', 'no_color', 'never'):
+        if policy not in ('always', 'auto', 'auto-tty', 'no_color', 'no_color-tty', 'never'):
             raise ValueError(f'"{policy}" is not a valid color policy')
 
     warnings, deprecation_warnings = [], []
@@ -592,6 +602,13 @@ def validate_options(opts):
         opts.password = getpass.getpass('Type account password and press [Return]: ')
     if opts.ap_username is not None and opts.ap_password is None:
         opts.ap_password = getpass.getpass('Type TV provider account password and press [Return]: ')
+
+    # compat option changes global state destructively; only allow from cli
+    if 'allow-unsafe-ext' in opts.compat_opts:
+        warnings.append(
+            'Using allow-unsafe-ext opens you up to potential attacks. '
+            'Use with great care!')
+        _UnsafeExtensionError.sanitize_extension = lambda x, prepend=False: x
 
     return warnings, deprecation_warnings
 
@@ -954,6 +971,11 @@ def _real_main(argv=None):
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
 
+    # HACK: Set the plugin dirs early on
+    # TODO(coletdjnz): remove when plugin globals system is implemented
+    if opts.plugin_dirs is not None:
+        Config._plugin_dirs = list(map(expand_path, opts.plugin_dirs))
+
     # Dump user agent
     if opts.dump_user_agent:
         ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
@@ -1071,7 +1093,7 @@ def main(argv=None):
     _IN_CLI = True
     try:
         _exit(*variadic(_real_main(argv)))
-    except DownloadError:
+    except (CookieLoadError, DownloadError):
         _exit(1)
     except SameFileError as e:
         _exit(f'ERROR: {e}')

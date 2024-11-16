@@ -15,6 +15,7 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 _ID_RE = r'(?:[0-9a-f]{32,34}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12,14})'
 
@@ -212,13 +213,14 @@ class MediasiteIE(InfoExtractor):
                 stream_type, 'type%u' % stream_type)
 
             stream_formats = []
-            for unum, video_url in enumerate(video_urls):
-                video_url = url_or_none(video_url.get('Location'))
+            for unum, video in enumerate(video_urls):
+                video_url = url_or_none(video.get('Location'))
                 if not video_url:
                     continue
                 # XXX: if Stream.get('CanChangeScheme', False), switch scheme to HTTP/HTTPS
 
-                media_type = video_url.get('MediaType')
+                media_type = video.get('MediaType')
+                ext = mimetype2ext(video.get('MimeType'))
                 if media_type == 'SS':
                     stream_formats.extend(self._extract_ism_formats(
                         video_url, resource_id,
@@ -229,15 +231,20 @@ class MediasiteIE(InfoExtractor):
                         video_url, resource_id,
                         mpd_id=f'{stream_id}-{snum}.{unum}',
                         fatal=False))
+                elif ext in ('m3u', 'm3u8'):
+                    stream_formats.extend(self._extract_m3u8_formats(
+                        video_url, resource_id,
+                        m3u8_id=f'{stream_id}-{snum}.{unum}',
+                        fatal=False))
                 else:
                     stream_formats.append({
                         'format_id': f'{stream_id}-{snum}.{unum}',
                         'url': video_url,
-                        'ext': mimetype2ext(video_url.get('MimeType')),
+                        'ext': ext,
                     })
 
-            if stream.get('HasSlideContent', False):
-                images = player_options['PlayerLayoutOptions']['Images']
+            images = traverse_obj(player_options, ('PlayerLayoutOptions', 'Images', {dict}))
+            if stream.get('HasSlideContent') and images:
                 stream_formats.append(self.__extract_slides(
                     stream_id=stream_id,
                     snum=snum,

@@ -16,6 +16,7 @@ from ..utils import (
     determine_ext,
     float_or_none,
     int_or_none,
+    join_nonempty,
     mimetype2ext,
     parse_age_limit,
     parse_duration,
@@ -498,10 +499,8 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                     m3u8_id=format_id, fatal=False))
                 continue
             tbr = int_or_none(va.get('bitrate'), 1000)
-            if tbr:
-                format_id += f'-{tbr}'
             formats.append({
-                'format_id': format_id,
+                'format_id': join_nonempty(format_id, tbr),
                 'url': public_url,
                 'width': int_or_none(va.get('width')),
                 'height': int_or_none(va.get('height')),
