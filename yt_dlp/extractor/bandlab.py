@@ -398,7 +398,7 @@ class BandlabPlaylistIE(BandlabBaseIE):
             elif post_type == 'Video':
                 yield self._parse_video(post)
             else:
-                self.report_warning(f'Skipping unknown post type: {post_type!r}')
+                self.report_warning(f'Skipping unknown post type: "{post_type}"')
 
     def _real_extract(self, url):
         playlist_id, playlist_type = self._match_valid_url(url).group('id', 'type')
@@ -416,7 +416,7 @@ class BandlabPlaylistIE(BandlabBaseIE):
                 playlist_type = endpoint
                 break
         if error_code := playlist_data.get('errorCode'):
-            raise ExtractorError(f'Could not find playlist data. Error code: {error_code!r}')
+            raise ExtractorError(f'Could not find playlist data. Error code: "{error_code}"')
 
         return self.playlist_result(
             self._entries(playlist_data), playlist_id,
