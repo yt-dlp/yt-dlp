@@ -124,14 +124,15 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
+        'REQUIRE_AUTH': True,
     },
     'android': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '19.29.37',
+                'clientVersion': '19.44.38',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.youtube/19.44.38 (Linux; U; Android 11) gzip',
                 'osName': 'Android',
                 'osVersion': '11',
             },
@@ -140,13 +141,14 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_PO_TOKEN': True,
     },
+    # This client now requires sign-in for every video
     'android_music': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
-                'clientVersion': '7.11.50',
+                'clientVersion': '7.27.52',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.music/7.11.50 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.apps.youtube.music/7.27.52 (Linux; U; Android 11) gzip',
                 'osName': 'Android',
                 'osVersion': '11',
             },
@@ -154,15 +156,16 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_PO_TOKEN': True,
+        'REQUIRE_AUTH': True,
     },
     # This client now requires sign-in for every video
     'android_creator': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_CREATOR',
-                'clientVersion': '24.30.100',
+                'clientVersion': '24.45.100',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.creator/24.30.100 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.apps.youtube.creator/24.45.100 (Linux; U; Android 11) gzip',
                 'osName': 'Android',
                 'osVersion': '11',
             },
@@ -170,17 +173,18 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_PO_TOKEN': True,
+        'REQUIRE_AUTH': True,
     },
     # YouTube Kids videos aren't returned on this client for some reason
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_VR',
-                'clientVersion': '1.57.29',
+                'clientVersion': '1.60.19',
                 'deviceMake': 'Oculus',
                 'deviceModel': 'Quest 3',
                 'androidSdkVersion': 32,
-                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.57.29 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
+                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.60.19 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
                 'osName': 'Android',
                 'osVersion': '12L',
             },
@@ -188,68 +192,56 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 28,
         'REQUIRE_JS_PLAYER': False,
     },
-    'android_testsuite': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'ANDROID_TESTSUITE',
-                'clientVersion': '1.9',
-                'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/1.9 (Linux; U; Android 11) gzip',
-                'osName': 'Android',
-                'osVersion': '11',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 30,
-        'REQUIRE_JS_PLAYER': False,
-        'PLAYER_PARAMS': '2AMB',
-    },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
     'ios': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '19.29.1',
+                'clientVersion': '19.45.4',
                 'deviceMake': 'Apple',
                 'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+                'userAgent': 'com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)',
                 'osName': 'iPhone',
-                'osVersion': '17.5.1.21F90',
+                'osVersion': '18.1.0.22B83',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
         'REQUIRE_JS_PLAYER': False,
     },
+    # This client now requires sign-in for every video
     'ios_music': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MUSIC',
-                'clientVersion': '7.08.2',
+                'clientVersion': '7.27.0',
                 'deviceMake': 'Apple',
                 'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.youtubemusic/7.08.2 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+                'userAgent': 'com.google.ios.youtubemusic/7.27.0 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)',
                 'osName': 'iPhone',
-                'osVersion': '17.5.1.21F90',
+                'osVersion': '18.1.0.22B83',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_AUTH': True,
     },
     # This client now requires sign-in for every video
     'ios_creator': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_CREATOR',
-                'clientVersion': '24.30.100',
+                'clientVersion': '24.45.100',
                 'deviceMake': 'Apple',
                 'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.ytcreator/24.30.100 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+                'userAgent': 'com.google.ios.ytcreator/24.45.100 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)',
                 'osName': 'iPhone',
-                'osVersion': '17.5.1.21F90',
+                'osVersion': '18.1.0.22B83',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_AUTH': True,
     },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
@@ -282,8 +274,10 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 85,
+        'REQUIRE_AUTH': True,
     },
-    # This client has pre-merged video+audio 720p/1080p streams
+    # This client now requires sign-in for every video
+    # It may be able to receive pre-merged video+audio 720p/1080p streams
     'mediaconnect': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -293,6 +287,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 95,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_AUTH': True,
     },
 }
 
@@ -321,6 +316,7 @@ def build_innertube_clients():
         ytcfg.setdefault('INNERTUBE_HOST', 'www.youtube.com')
         ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
         ytcfg.setdefault('REQUIRE_PO_TOKEN', False)
+        ytcfg.setdefault('REQUIRE_AUTH', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
@@ -4059,9 +4055,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             for requested_client in requested_clients:
                 _, base_client, variant = _split_innertube_client(requested_client)
-                music_client = f'{base_client}_music'
+                music_client = f'{base_client}_music' if base_client != 'mweb' else 'web_music'
                 if variant != 'music' and music_client in INNERTUBE_CLIENTS:
-                    requested_clients.append(music_client)
+                    if not INNERTUBE_CLIENTS[music_client]['REQUIRE_AUTH'] or self.is_authenticated:
+                        requested_clients.append(music_client)
 
         return orderedSet(requested_clients)
 
@@ -4174,10 +4171,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.to_screen(
                     f'{video_id}: This video is age-restricted and YouTube is requiring '
                     'account age-verification; some formats may be missing', only_once=True)
-                # web_creator and mediaconnect can work around the age-verification requirement
-                # _testsuite & _vr variants can also work around age-verification
+                # web_creator can work around the age-verification requirement
+                # android_vr and mediaconnect may also be able to work around age-verification
                 # tv_embedded may(?) still work around age-verification if the video is embeddable
-                append_client('web_creator', 'mediaconnect')
+                append_client('web_creator')
 
         prs.extend(deprioritized_prs)
 
