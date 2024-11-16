@@ -231,7 +231,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by recent',
             },
-            'playlist_mincount': 31,
+            'playlist_count': 80,
         },
         {
             'url': 'https://www.redgifs.com/users/lamsinka89?order=best&type=g',
@@ -244,13 +244,13 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
         },
         {
             'url': 'https://www.redgifs.com/users/ignored52',
-            'note': 'Issues #7382 and #9131; _PAGE_SIZE was set to a value that was too low',
+            'note': 'https://github.com/yt-dlp/yt-dlp/issues/7382,
             'info_dict': {
                 'id': 'ignored52',
                 'title': 'ignored52',
                 'description': 'RedGifs user ignored52, ordered by recent',
             },
-            'playlist_mincount': 31,
+            'playlist_mincount': 121,
         },
     ]
 
