@@ -1,10 +1,7 @@
 import re
 
 from .wistia import WistiaBaseIE
-from ..utils import (
-    clean_html,
-    get_elements_html_by_class
-)
+from ..utils import clean_html, get_elements_html_by_class
 
 
 class ThirtyDaySingerBase(WistiaBaseIE):
@@ -28,7 +25,7 @@ class ThirtyDaySingerBase(WistiaBaseIE):
 
         return {
             'title': title or fallback_title,
-            'description': clean_html(self._format_html_list(description))
+            'description': clean_html(self._format_html_list(description)),
         }
 
     # The site makes extensive use of HTML lists for formatting and `clean_html`
@@ -38,7 +35,7 @@ class ThirtyDaySingerBase(WistiaBaseIE):
             '<ul>': '<br>',
             '</ul': '<br>',
             '<li>': '<br>- ',
-            '</li>': ''
+            '</li>': '',
         }
 
         for k, v in replacements.items():
@@ -61,8 +58,8 @@ class ThirtyDaySingerIE(ThirtyDaySingerBase):
             'description': 'md5:d3291de8988be57b1d3e411126ba4d33',
             'duration': 344.22,
             'timestamp': 1559952526,
-            'title': 'Welcome to 30 Day Singer'
-        }
+            'title': 'Welcome to 30 Day Singer',
+        },
     }]
 
     def _real_extract(self, url):
@@ -81,7 +78,7 @@ class ThirtyDaySingerPlaylistIE(ThirtyDaySingerBase):
             'title': '30 Day Beginner Course with Jonathan Estabrooks',
         },
         'playlist_count': 1,
-        'expected_warnings': ['This video is for premium members only']
+        'expected_warnings': ['This video is for premium members only'],
     }]
 
     def _real_extract(self, url):
