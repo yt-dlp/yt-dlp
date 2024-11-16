@@ -83,6 +83,12 @@ class Kenh14VideoIE(InfoExtractor):
                 remove_start(direct_url, 'kenh14cdn.com/')), video_id, fatal=False)
 
         return {
+            **traverse_obj(metadata, {
+                'duration': ('duration', {parse_duration}),
+                'uploader': ('author', {strip_or_none}),
+                'timestamp': ('uploadtime', {parse_iso8601(delimiter=' ')}),
+                'view_count': ('views', {int_or_none}),
+            }),
             'id': video_id,
             'title': (
                 traverse_obj(metadata, ('title', {strip_or_none}))
@@ -93,14 +99,10 @@ class Kenh14VideoIE(InfoExtractor):
                 *self._extract_m3u8_formats(
                     f'https://{direct_url}/master.m3u8', video_id, fatal=False),
             ],
-            'duration': traverse_obj(metadata, ('duration', {parse_duration})),
             'description': (
                 clean_html(self._og_search_description(webpage))
                 or clean_html(get_element_by_class('vdbw-sapo', webpage))),
             'thumbnail': (self._og_search_thumbnail(webpage) or attrs.get('data-thumb')),
-            'uploader': traverse_obj(metadata, ('author', {strip_or_none})),
-            'timestamp': traverse_obj(metadata, ('uploadtime', {parse_iso8601(delimiter=' ')})),
-            'view_count': traverse_obj(metadata, ('views', {int_or_none})),
             'tags': traverse_obj(self._html_search_meta('keywords', webpage), (
                 {lambda x: x.split(';')}, ..., filter)),
         }
