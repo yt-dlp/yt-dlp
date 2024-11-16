@@ -9,31 +9,23 @@ passthrough_module(__name__, '.._legacy', callback=lambda attr: warnings.warn(
 del passthrough_module
 
 
-from ._utils import preferredencoding
+import re
+import struct
 
 
-def encodeFilename(s, for_subprocess=False):
-    assert isinstance(s, str)
-    return s
+def bytes_to_intlist(bs):
+    if not bs:
+        return []
+    if isinstance(bs[0], int):  # Python 3
+        return list(bs)
+    else:
+        return [ord(c) for c in bs]
 
 
-def decodeFilename(b, for_subprocess=False):
-    return b
+def intlist_to_bytes(xs):
+    if not xs:
+        return b''
+    return struct.pack('%dB' % len(xs), *xs)
 
 
-def decodeArgument(b):
-    return b
-
-
-def decodeOption(optval):
-    if optval is None:
-        return optval
-    if isinstance(optval, bytes):
-        optval = optval.decode(preferredencoding())
-
-    assert isinstance(optval, str)
-    return optval
-
-
-def error_to_compat_str(err):
-    return str(err)
+compiled_regex_type = type(re.compile(''))
