@@ -15,7 +15,6 @@ import threading
 from test.helper import http_server_port, try_rm
 from yt_dlp import YoutubeDL
 from yt_dlp.downloader.http import HttpFD
-from yt_dlp.utils import encodeFilename
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -82,12 +81,12 @@ class TestHttpFD(unittest.TestCase):
         ydl = YoutubeDL(params)
         downloader = HttpFD(ydl, params)
         filename = 'testfile.mp4'
-        try_rm(encodeFilename(filename))
+        try_rm(filename)
         self.assertTrue(downloader.real_download(filename, {
             'url': f'http://127.0.0.1:{self.port}/{ep}',
         }), ep)
-        self.assertEqual(os.path.getsize(encodeFilename(filename)), TEST_SIZE, ep)
-        try_rm(encodeFilename(filename))
+        self.assertEqual(os.path.getsize(filename), TEST_SIZE, ep)
+        try_rm(filename)
 
     def download_all(self, params):
         for ep in ('regular', 'no-content-length', 'no-range', 'no-range-no-content-length'):
