@@ -13,7 +13,7 @@ class CTVNewsIE(InfoExtractor):
     _PLAYLIST_ID_RE = r'(?P<id>\d\.\d{5,})'
     _VALID_URL = [
         rf'{_BASE_REGEX}video/c{_VIDEO_ID_RE}',
-        rf'{_BASE_REGEX}video/?\?clipId={_VIDEO_ID_RE}',
+        rf'{_BASE_REGEX}video(?:-gallery)?/?\?clipId={_VIDEO_ID_RE}',
         rf'{_BASE_REGEX}video/?\?(?:playlist|bin)Id={_PLAYLIST_ID_RE}',
         rf'{_BASE_REGEX}(?!video/)[^?#]*?{_PLAYLIST_ID_RE}',
     ]
@@ -94,6 +94,25 @@ class CTVNewsIE(InfoExtractor):
             'thumbnail': 'http://images2.9c9media.com/image_asset/2019_3_28_35f5afc3-10f6-4d92-b194-8b9a86f55c6a_png_1920x1080.jpg',
             'timestamp': 1685105157,
             'duration': 253.553,
+        },
+    }, {
+        'url': 'https://stox.ctvnews.ca/video-gallery?clipId=582589',
+        'md5': '135cc592df607d29dddc931f1b756ae2',
+        'info_dict': {
+            'id': '582589',
+            'ext': 'flv',
+            'categories': [],
+            'timestamp': 1427906183,
+            'season_number': 0,
+            'duration': 125.559,
+            'thumbnail': 'http://images2.9c9media.com/image_asset/2019_3_28_35f5afc3-10f6-4d92-b194-8b9a86f55c6a_png_1920x1080.jpg',
+            'series': 'CTV News Stox',
+            'description': 'CTV original footage of the rise and fall of the Berlin Wall.',
+            'title': 'Berlin Wall',
+            'season_id': '63817',
+            'season': 'Season 0',
+            'tags': [],
+            'upload_date': '20150401',
         },
     }, {
         'url': 'http://www.ctvnews.ca/1.810401',
