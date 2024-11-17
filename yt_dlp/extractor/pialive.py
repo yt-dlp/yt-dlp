@@ -13,10 +13,10 @@ from ..utils.traversal import traverse_obj
 
 
 class PiaLiveIE(InfoExtractor):
-    PLAYER_ROOT_URL = 'https://player.pia-live.jp/'
-    PIA_LIVE_API_URL = 'https://api.pia-live.jp'
-    API_KEY = 'kfds)FKFps-dms9e'
     _VALID_URL = r'https?://player\.pia-live\.jp/stream/(?P<id>[\w-]+)'
+    _PLAYER_ROOT_URL = 'https://player.pia-live.jp/'
+    _PIA_LIVE_API_URL = 'https://api.pia-live.jp'
+    _API_KEY = 'kfds)FKFps-dms9e'
 
     _TESTS = [
         {
@@ -53,7 +53,7 @@ class PiaLiveIE(InfoExtractor):
         },
     ]
 
-    def _extract_vars(self, variable, html):
+    def _extract_var(self, variable, html):
         return self._search_regex(
             rf'(?:var|const|let)\s+{variable}\s*=\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
             html, f'variable {variable}', group='value')
@@ -62,8 +62,8 @@ class PiaLiveIE(InfoExtractor):
         video_key = self._match_id(url)
         webpage = self._download_webpage(url, video_key)
 
-        program_code = self._extract_vars('programCode', webpage)
-        article_code = self._extract_vars('articleCode', webpage)
+        program_code = self._extract_var('programCode', webpage)
+        article_code = self._extract_var('articleCode', webpage)
         title = self._html_extract_title(webpage)
 
         if get_element_html_by_class('play-end', webpage):
@@ -86,21 +86,21 @@ class PiaLiveIE(InfoExtractor):
 
         payload, content_type = multipart_encode({
             'play_url': video_key,
-            'api_key': self.API_KEY,
+            'api_key': self._API_KEY,
         })
         api_kwargs = {
             'video_id': program_code,
             'data': payload,
-            'headers': {'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
+            'headers': {'Content-Type': content_type, 'Referer': self._PLAYER_ROOT_URL},
         }
 
         player_tag_list = self._download_json(
-            f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}', **api_kwargs,
+            f'{self._PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}', **api_kwargs,
             note='Fetching player tag list', errnote='Unable to fetch player tag list')
         chat_room_url = None
         if self.get_param('getcomments'):
             chat_room_url = traverse_obj(self._download_json(
-                f'{self.PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}', **api_kwargs,
+                f'{self._PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}', **api_kwargs,
                 note='Fetching chat info', errnote='Unable to fetch chat info', fatal=False),
                 ('data', 'chat_one_tag', {extract_attributes}, 'src', {url_or_none}))
 
@@ -113,7 +113,7 @@ class PiaLiveIE(InfoExtractor):
         if not chat_room_url:
             return
         if comment_page := self._download_webpage(
-                chat_room_url, video_id, headers={'Referer': self.PLAYER_ROOT_URL},
+                chat_room_url, video_id, headers={'Referer': self._PLAYER_ROOT_URL},
                 note='Fetching comment page', errnote='Unable to fetch comment page', fatal=False):
             yield from traverse_obj(self._search_json(
                 r'var\s+_history\s*=', comment_page, 'comment list',

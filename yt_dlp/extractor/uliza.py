@@ -100,7 +100,7 @@ class UlizaPortalIE(InfoExtractor):
 
         expires = int_or_none(traverse_obj(parse_qs(url), ('expires', 0)))
         if expires and expires <= time_seconds():
-            raise ExtractorError('The link is expired.', video_id=video_id, expected=True)
+            raise ExtractorError('The link is expired', video_id=video_id, expected=True)
 
         webpage = self._download_webpage(url, video_id)
 
