@@ -63,32 +63,34 @@ class CTVNewsIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    @staticmethod
+    def _ninecninemedia_url_result(clip_id):
+        return {
+            '_type': 'url_transparent',
+            'id': clip_id,
+            'url': f'9c9media:ctvnews_web:{clip_id}',
+            'ie_key': 'NineCNineMedia',
+        }
+
     def _real_extract(self, url):
         page_id = self._match_id(url)
 
-        def ninecninemedia_url_result(clip_id):
-            return {
-                '_type': 'url_transparent',
-                'id': clip_id,
-                'url': f'9c9media:ctvnews_web:{clip_id}',
-                'ie_key': 'NineCNineMedia',
-            }
+        if page_id.isdecimal():
+            return self._ninecninemedia_url_result(page_id)
 
-        if page_id.isdigit():
-            return ninecninemedia_url_result(page_id)
-        else:
-            webpage = self._download_webpage(f'http://www.ctvnews.ca/{page_id}', page_id, query={
-                'ot': 'example.AjaxPageLayout.ot',
-                'maxItemsPerPage': 1000000,
-            })
-            entries = [ninecninemedia_url_result(clip_id) for clip_id in orderedSet(
-                re.findall(r'clip\.id\s*=\s*(\d+);', webpage))]
-            if not entries:
-                webpage = self._download_webpage(url, page_id)
-                if 'getAuthStates("' in webpage:
-                    entries = [ninecninemedia_url_result(clip_id) for clip_id in
-                               self._search_regex(r'getAuthStates\("([\d+,]+)"', webpage, 'clip ids').split(',')]
-                else:
-                    entries = [ninecninemedia_url_result(clip_id)
-                               for clip_id in orderedSet(re.findall(r'axisId&#34;:&#34;(\d+)', webpage))]
-            return self.playlist_result(entries, page_id)
+        webpage = self._download_webpage(f'https://www.ctvnews.ca/{page_id}', page_id, query={
+            'ot': 'example.AjaxPageLayout.ot',
+            'maxItemsPerPage': 1000000,
+        })
+        entries = [self._ninecninemedia_url_result(clip_id)
+                   for clip_id in orderedSet(re.findall(r'clip\.id\s*=\s*(\d+);', webpage))]
+        if not entries:
+            webpage = self._download_webpage(url, page_id)
+            if 'getAuthStates("' in webpage:
+                entries = [self._ninecninemedia_url_result(clip_id) for clip_id in
+                           self._search_regex(r'getAuthStates\("([\d+,]+)"', webpage, 'clip ids').split(',')]
+            else:
+                entries = [self._ninecninemedia_url_result(clip_id)
+                           for clip_id in orderedSet(re.findall(r'axisId&#34;:&#34;(\d+)', webpage))]
+
+        return self.playlist_result(entries, page_id)
