@@ -1,5 +1,6 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from .ninecninemedia import NineCNineMediaIE
@@ -15,7 +16,8 @@ class CTVNewsIE(InfoExtractor):
         rf'{_BASE_REGEX}video/c{_VIDEO_ID_RE}',
         rf'{_BASE_REGEX}video(?:-gallery)?/?\?clipId={_VIDEO_ID_RE}',
         rf'{_BASE_REGEX}video/?\?(?:playlist|bin)Id={_PLAYLIST_ID_RE}',
-        rf'{_BASE_REGEX}(?!video/)[^?#]*?{_PLAYLIST_ID_RE}',
+        rf'{_BASE_REGEX}(?!video/)[^?#]*?{_PLAYLIST_ID_RE}/?(?:$|[?#])',
+        rf'{_BASE_REGEX}(?!video/)[^?#]+\?binId={_PLAYLIST_ID_RE}',
     ]
     _TESTS = [{
         'url': 'http://www.ctvnews.ca/video?clipId=901995',
@@ -115,6 +117,27 @@ class CTVNewsIE(InfoExtractor):
             'upload_date': '20150401',
         },
     }, {
+        'url': 'https://ottawa.ctvnews.ca/features/regional-contact/regional-contact-archive?binId=1.1164587#3023759',
+        'md5': 'a14c0603557decc6531260791c23cc5e',
+        'info_dict': {
+            'id': '3023759',
+            'ext': 'flv',
+            'season_number': 2024,
+            'timestamp': 1731798000,
+            'season': '2024',
+            'episode': 'Episode 125',
+            'description': 'CTV News Ottawa at Six',
+            'duration': 2712.076,
+            'episode_number': 125,
+            'upload_date': '20241116',
+            'title': 'CTV News Ottawa at Six for Saturday, November 16, 2024',
+            'thumbnail': 'http://images2.9c9media.com/image_asset/2019_3_28_35f5afc3-10f6-4d92-b194-8b9a86f55c6a_png_1920x1080.jpg',
+            'categories': [],
+            'tags': [],
+            'series': 'CTV News Ottawa at Six',
+            'season_id': '92667',
+        },
+    }, {
         'url': 'http://www.ctvnews.ca/1.810401',
         'only_matching': True,
     }, {
@@ -131,7 +154,10 @@ class CTVNewsIE(InfoExtractor):
     def _real_extract(self, url):
         page_id = self._match_id(url)
 
-        if page_id.isdecimal():
+        if mobj := re.fullmatch(self._VIDEO_ID_RE, urllib.parse.urlparse(url).fragment):
+            page_id = mobj.group('id')
+
+        if re.fullmatch(self._VIDEO_ID_RE, page_id):
             return self._ninecninemedia_url_result(page_id)
 
         webpage = self._download_webpage(f'https://www.ctvnews.ca/{page_id}', page_id, query={
