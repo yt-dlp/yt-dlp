@@ -1,4 +1,3 @@
-import functools
 import re
 
 from .common import InfoExtractor
@@ -72,9 +71,9 @@ class VidyardBaseIE(InfoExtractor):
                 'id': ('facadeUuid', {str}),
                 'display_id': ('videoId', {int}, {str_or_none}),
                 'title': ('name', {str}),
-                'description': ('description', {str}, {unescapeHTML}, {lambda x: x or None}),
+                'description': ('description', {str}, {unescapeHTML}, filter),
                 'duration': ((
-                    ('milliseconds', {functools.partial(float_or_none, scale=1000)}),
+                    ('milliseconds', {float_or_none(scale=1000)}),
                     ('seconds', {int_or_none})), any),
                 'thumbnails': ('thumbnailUrls', ('small', 'normal'), {'url': {url_or_none}}),
                 'tags': ('tags', ..., 'name', {str}),

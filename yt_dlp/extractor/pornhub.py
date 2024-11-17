@@ -628,8 +628,7 @@ class PornHubPagedPlaylistBaseIE(PornHubPlaylistBaseIE):
             page_entries = self._extract_entries(webpage, host)
             if not page_entries:
                 break
-            for e in page_entries:
-                yield e
+            yield from page_entries
             if not self._has_more(webpage):
                 break
 

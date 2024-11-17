@@ -469,7 +469,7 @@ class TikTokBaseIE(InfoExtractor):
                 aweme_detail, aweme_id, traverse_obj(author_info, 'uploader', 'uploader_id', 'channel_id')),
             'thumbnails': thumbnails,
             'duration': (traverse_obj(video_info, (
-                (None, 'download_addr'), 'duration', {functools.partial(int_or_none, scale=1000)}, any))
+                (None, 'download_addr'), 'duration', {int_or_none(scale=1000)}, any))
                 or traverse_obj(music_info, ('duration', {int_or_none}))),
             'availability': self._availability(
                 is_private='Private' in labels,
@@ -542,15 +542,11 @@ class TikTokBaseIE(InfoExtractor):
                 **COMMON_FORMAT_INFO,
                 'format_id': 'download',
                 'url': self._proto_relative_url(download_url),
+                'format_note': 'watermarked',
+                'preference': -2,
             })
 
         self._remove_duplicate_formats(formats)
-
-        for f in traverse_obj(formats, lambda _, v: 'unwatermarked' not in v['url']):
-            f.update({
-                'format_note': join_nonempty(f.get('format_note'), 'watermarked', delim=', '),
-                'preference': f.get('preference') or -2,
-            })
 
         # Is it a slideshow with only audio for download?
         if not formats and traverse_obj(aweme_detail, ('music', 'playUrl', {url_or_none})):
@@ -565,7 +561,8 @@ class TikTokBaseIE(InfoExtractor):
                 'vcodec': 'none',
             })
 
-        return formats
+        # Filter out broken formats, see https://github.com/yt-dlp/yt-dlp/issues/11034
+        return [f for f in formats if urllib.parse.urlparse(f['url']).hostname != 'www.tiktok.com']
 
     def _parse_aweme_video_web(self, aweme_detail, webpage_url, video_id, extract_flat=False):
         author_info = traverse_obj(aweme_detail, (('authorInfo', 'author', None), {
@@ -586,7 +583,7 @@ class TikTokBaseIE(InfoExtractor):
                 author_info, ['uploader', 'uploader_id'], self._UPLOADER_URL_FORMAT, default=None),
             **traverse_obj(aweme_detail, ('music', {
                 'track': ('title', {str}),
-                'album': ('album', {str}, {lambda x: x or None}),
+                'album': ('album', {str}, filter),
                 'artists': ('authorName', {str}, {lambda x: re.split(r'(?:, | & )', x) if x else None}),
                 'duration': ('duration', {int_or_none}),
             })),
@@ -594,7 +591,7 @@ class TikTokBaseIE(InfoExtractor):
                 'title': ('desc', {str}),
                 'description': ('desc', {str}),
                 # audio-only slideshows have a video duration of 0 and an actual audio duration
-                'duration': ('video', 'duration', {int_or_none}, {lambda x: x or None}),
+                'duration': ('video', 'duration', {int_or_none}, filter),
                 'timestamp': ('createTime', {int_or_none}),
             }),
             **traverse_obj(aweme_detail, ('stats', {
@@ -1496,7 +1493,7 @@ class TikTokLiveIE(TikTokBaseIE):
 
             sdk_params = traverse_obj(stream, ('main', 'sdk_params', {parse_inner}, {
                 'vcodec': ('VCodec', {str}),
-                'tbr': ('vbitrate', {lambda x: int_or_none(x, 1000)}),
+                'tbr': ('vbitrate', {int_or_none(scale=1000)}),
                 'resolution': ('resolution', {lambda x: re.match(r'(?i)\d+x\d+|\d+p', x).group().lower()}),
             }))
 

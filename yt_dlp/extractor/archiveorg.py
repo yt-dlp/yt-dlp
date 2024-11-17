@@ -205,6 +205,26 @@ class ArchiveOrgIE(InfoExtractor):
                 },
             },
         ],
+    }, {
+        # The reviewbody is None for one of the reviews; just need to extract data without crashing
+        'url': 'https://archive.org/details/gd95-04-02.sbd.11622.sbeok.shnf/gd95-04-02d1t04.shn',
+        'info_dict': {
+            'id': 'gd95-04-02.sbd.11622.sbeok.shnf/gd95-04-02d1t04.shn',
+            'ext': 'mp3',
+            'title': 'Stuck Inside of Mobile with the Memphis Blues Again',
+            'creators': ['Grateful Dead'],
+            'duration': 338.31,
+            'track': 'Stuck Inside of Mobile with the Memphis Blues Again',
+            'description': 'md5:764348a470b986f1217ffd38d6ac7b72',
+            'display_id': 'gd95-04-02d1t04.shn',
+            'location': 'Pyramid Arena',
+            'uploader': 'jon@archive.org',
+            'album': '1995-04-02 - Pyramid Arena',
+            'upload_date': '20040519',
+            'track_number': 4,
+            'release_date': '19950402',
+            'timestamp': 1084927901,
+        },
     }]
 
     @staticmethod
@@ -335,7 +355,7 @@ class ArchiveOrgIE(InfoExtractor):
                 info['comments'].append({
                     'id': review.get('review_id'),
                     'author': review.get('reviewer'),
-                    'text': str_or_none(review.get('reviewtitle'), '') + '\n\n' + review.get('reviewbody'),
+                    'text': join_nonempty('reviewtitle', 'reviewbody', from_dict=review, delim='\n\n'),
                     'timestamp': unified_timestamp(review.get('createdate')),
                     'parent': 'root'})
 
