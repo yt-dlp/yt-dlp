@@ -244,6 +244,7 @@ class DigitalConcertHallIE(InfoExtractor):
         language, type_, video_id, part = self._match_valid_url(url).group('language', 'type', 'id', 'part')
         if not language:
             language = 'en'
+
         api_type = 'concert' if type_ == 'work' else type_
         vid_info = self._download_json(
             f'https://api.digitalconcerthall.com/v2/{api_type}/{video_id}', video_id, headers={
