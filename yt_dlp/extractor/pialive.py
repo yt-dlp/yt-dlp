@@ -6,6 +6,7 @@ from ..utils import (
     get_element_by_class,
     get_element_html_by_class,
     multipart_encode,
+    str_or_none,
     unified_timestamp,
     url_or_none,
 )
@@ -112,15 +113,17 @@ class PiaLiveIE(InfoExtractor):
     def _get_comments(self, video_id, chat_room_url):
         if not chat_room_url:
             return
-        if comment_page := self._download_webpage(
-                chat_room_url, video_id, headers={'Referer': self._PLAYER_ROOT_URL},
-                note='Fetching comment page', errnote='Unable to fetch comment page', fatal=False):
-            yield from traverse_obj(self._search_json(
-                r'var\s+_history\s*=', comment_page, 'comment list',
-                video_id, contains_pattern=r'\[(?s:.+)\]', fatal=False), (..., {
-                    'timestamp': 0,
-                    'author_is_uploader': (1, {lambda x: x == 2}),
-                    'author': 2,
-                    'text': 3,
-                    'id': 4,
-                }))
+        comment_page = self._download_webpage(
+            chat_room_url, video_id, headers={'Referer': self._PLAYER_ROOT_URL},
+            note='Fetching comment page', errnote='Unable to fetch comment page', fatal=False)
+        if not comment_page:
+            return
+        yield from traverse_obj(self._search_json(
+            r'var\s+_history\s*=', comment_page, 'comment list',
+            video_id, contains_pattern=r'\[(?s:.+)\]', fatal=False), (..., {
+                'timestamp': (0, {int}),
+                'author_is_uploader': (1, {lambda x: x == 2}),
+                'author': (2, {str}),
+                'text': (3, {str}),
+                'id': (4, {str_or_none}),
+            }))
