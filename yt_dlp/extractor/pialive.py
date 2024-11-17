@@ -18,41 +18,37 @@ class PiaLiveIE(InfoExtractor):
     _PLAYER_ROOT_URL = 'https://player.pia-live.jp/'
     _PIA_LIVE_API_URL = 'https://api.pia-live.jp'
     _API_KEY = 'kfds)FKFps-dms9e'
-
-    _TESTS = [
-        {
-            'url': 'https://player.pia-live.jp/stream/4JagFBEIM14s_hK9aXHKf3k3F3bY5eoHFQxu68TC6krUDqGOwN4d61dCWQYOd6CTxl4hjya9dsfEZGsM4uGOUdax60lEI4twsXGXf7crmz8Gk__GhupTrWxA7RFRVt76',
-            'info_dict': {
-                'id': '88f3109a-f503-4d0f-a9f7-9f39ac745d84',
-                'display_id': '2431867_001',
-                'title': 'こながめでたい日２０２４の視聴ページ | PIA LIVE STREAM(ぴあライブストリーム)',
-                'live_status': 'was_live',
-                'comment_count': int,
-            },
-            'params': {
-                'getcomments': True,
-                'skip_download': True,
-                'ignore_no_formats_error': True,
-            },
-            'skip': 'The video is no longer available',
+    _TESTS = [{
+        'url': 'https://player.pia-live.jp/stream/4JagFBEIM14s_hK9aXHKf3k3F3bY5eoHFQxu68TC6krUDqGOwN4d61dCWQYOd6CTxl4hjya9dsfEZGsM4uGOUdax60lEI4twsXGXf7crmz8Gk__GhupTrWxA7RFRVt76',
+        'info_dict': {
+            'id': '88f3109a-f503-4d0f-a9f7-9f39ac745d84',
+            'display_id': '2431867_001',
+            'title': 'こながめでたい日２０２４の視聴ページ | PIA LIVE STREAM(ぴあライブストリーム)',
+            'live_status': 'was_live',
+            'comment_count': int,
         },
-        {
-            'url': 'https://player.pia-live.jp/stream/4JagFBEIM14s_hK9aXHKf3k3F3bY5eoHFQxu68TC6krJdu0GVBVbVy01IwpJ6J3qBEm3d9TCTt1d0eWpsZGj7DrOjVOmS7GAWGwyscMgiThopJvzgWC4H5b-7XQjAfRZ',
-            'info_dict': {
-                'id': '9ce8b8ba-f6d1-4d1f-83a0-18c3148ded93',
-                'display_id': '2431867_002',
-                'title': 'こながめでたい日２０２４の視聴ページ | PIA LIVE STREAM(ぴあライブストリーム)',
-                'live_status': 'was_live',
-                'comment_count': int,
-            },
-            'params': {
-                'getcomments': True,
-                'skip_download': True,
-                'ignore_no_formats_error': True,
-            },
-            'skip': 'The video is no longer available',
+        'params': {
+            'getcomments': True,
+            'skip_download': True,
+            'ignore_no_formats_error': True,
         },
-    ]
+        'skip': 'The video is no longer available',
+    }, {
+        'url': 'https://player.pia-live.jp/stream/4JagFBEIM14s_hK9aXHKf3k3F3bY5eoHFQxu68TC6krJdu0GVBVbVy01IwpJ6J3qBEm3d9TCTt1d0eWpsZGj7DrOjVOmS7GAWGwyscMgiThopJvzgWC4H5b-7XQjAfRZ',
+        'info_dict': {
+            'id': '9ce8b8ba-f6d1-4d1f-83a0-18c3148ded93',
+            'display_id': '2431867_002',
+            'title': 'こながめでたい日２０２４の視聴ページ | PIA LIVE STREAM(ぴあライブストリーム)',
+            'live_status': 'was_live',
+            'comment_count': int,
+        },
+        'params': {
+            'getcomments': True,
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'skip': 'The video is no longer available',
+    }]
 
     def _extract_var(self, variable, html):
         return self._search_regex(
