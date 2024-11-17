@@ -1520,8 +1520,8 @@ from .pgatour import PGATourIE
 from .philharmoniedeparis import PhilharmonieDeParisIE
 from .phoenix import PhoenixIE
 from .photobucket import PhotobucketIE
+from .pialive import PiaLiveIE
 from .piapro import PiaproIE
-from .piaulizaportal import PIAULIZAPortalIE
 from .picarto import (
     PicartoIE,
     PicartoVodIE,
@@ -2250,6 +2250,10 @@ from .ufctv import (
 )
 from .ukcolumn import UkColumnIE
 from .uktvplay import UKTVPlayIE
+from .uliza import (
+    UlizaPlayerIE,
+    UlizaPortalIE,
+)
 from .umg import UMGDeIE
 from .unistra import UnistraIE
 from .unity import UnityIE
