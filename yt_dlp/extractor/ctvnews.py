@@ -6,7 +6,15 @@ from ..utils import orderedSet
 
 
 class CTVNewsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:.+?\.)?ctvnews\.ca/(?:video\?(?:clip|playlist|bin)Id=|.*?)(?P<id>[0-9.]+)(?:$|[#?&])'
+    _BASE_REGEX = r'https?://(?:[^.]+\.)?ctvnews\.ca/'
+    _VIDEO_ID_RE = r'(?P<id>\d{5,})'
+    _PLAYLIST_ID_RE = r'(?P<id>\d\.\d{5,})'
+    _VALID_URL = [
+        rf'{_BASE_REGEX}video/c{_VIDEO_ID_RE}',
+        rf'{_BASE_REGEX}video/?\?clipId={_VIDEO_ID_RE}',
+        rf'{_BASE_REGEX}video/?\?(?:playlist|bin)Id={_PLAYLIST_ID_RE}',
+        rf'{_BASE_REGEX}[^?#]*?{_PLAYLIST_ID_RE}',
+    ]
     _TESTS = [{
         'url': 'http://www.ctvnews.ca/video?clipId=901995',
         'md5': 'b608f466c7fa24b9666c6439d766ab7e',
@@ -25,6 +33,25 @@ class CTVNewsIE(InfoExtractor):
             'season_id': '57981',
             'thumbnail': r're:https?://.*\.jpg$',
             'duration': 764.631,
+        },
+    }, {
+        'url': 'https://barrie.ctvnews.ca/video/c3030933-here_s-what_s-making-news-for-nov--15?binId=1272429',
+        'md5': '8b8c2b33c5c1803e3c26bc74ff8694d5',
+        'info_dict': {
+            'id': '3030933',
+            'ext': 'flv',
+            'title': 'Here’s what’s making news for Nov. 15',
+            'description': 'Here are the top stories we’re working on for CTV News at 11 for Nov. 15',
+            'thumbnail': 'http://images2.9c9media.com/image_asset/2021_2_22_a602e68e-1514-410e-a67a-e1f7cccbacab_png_2000x1125.jpg',
+            'season_id': '58104',
+            'season_number': 0,
+            'tags': [],
+            'season': 'Season 0',
+            'categories': [],
+            'series': 'CTV News Barrie',
+            'upload_date': '20241116',
+            'duration': 42.943,
+            'timestamp': 1731722452,
         },
     }, {
         'url': 'http://www.ctvnews.ca/video?playlistId=1.2966224',
