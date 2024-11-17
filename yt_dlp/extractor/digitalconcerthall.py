@@ -245,7 +245,6 @@ class DigitalConcertHallIE(InfoExtractor):
         if not language:
             language = 'en'
         api_type = 'concert' if type_ == 'work' else type_
-
         vid_info = self._download_json(
             f'https://api.digitalconcerthall.com/v2/{api_type}/{video_id}', video_id, headers={
                 'Accept': 'application/json',
@@ -253,7 +252,6 @@ class DigitalConcertHallIE(InfoExtractor):
                 'User-Agent': self._USER_AGENT,
                 'Authorization': f'Bearer {self._access_token}',
             })
-
         videos = [vid_info] if type_ == 'film' else traverse_obj(vid_info, ('_embedded', ..., ...))
 
         if type_ == 'work':
