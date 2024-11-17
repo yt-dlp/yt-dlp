@@ -1,5 +1,11 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, int_or_none, parse_qs, time_seconds
+from ..utils import (
+    ExtractorError,
+    int_or_none,
+    make_archive_id,
+    parse_qs,
+    time_seconds,
+)
 from ..utils.traversal import traverse_obj
 
 
@@ -56,6 +62,7 @@ class UlizaPlayerIE(InfoExtractor):
                 'video': 'is_live',
                 'dvr': 'was_live',  # short-term archives
             }.get(m3u8_type, 'not_live'),  # VOD or long-term archives
+            '_old_archive_ids': [make_archive_id('PIAULIZAPortal', video_id)],
         }
 
 
