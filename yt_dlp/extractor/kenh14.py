@@ -83,17 +83,16 @@ class Kenh14VideoIE(InfoExtractor):
         subtitles = {}
         video_data = self._download_json(
             f'https://{direct_url}.json', video_id, note='Downloading video data', fatal=False)
-        if video_data:
-            if hls_url := video_data.get('hls'):
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    hls_url, video_id, m3u8_id='hls', fatal=False)
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
-            if dash_url := video_data.get('mpd'):
-                fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    dash_url, video_id, mpd_id='dash', fatal=False)
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
+        if hls_url := traverse_obj(video_data, ('hls', {url_or_none})):
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                hls_url, video_id, m3u8_id='hls', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+        if dash_url := traverse_obj(video_data, ('mpd', {url_or_none})):
+            fmts, subs = self._extract_mpd_formats_and_subtitles(
+                dash_url, video_id, mpd_id='dash', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
         return {
             **traverse_obj(metadata, {
