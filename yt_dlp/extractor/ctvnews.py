@@ -1,8 +1,10 @@
+import json
 import re
 
 from .common import InfoExtractor
 from .ninecninemedia import NineCNineMediaIE
-from ..utils import orderedSet
+from ..utils import extract_attributes, orderedSet
+from ..utils.traversal import find_element, traverse_obj
 
 
 class CTVNewsIE(InfoExtractor):
@@ -76,10 +78,23 @@ class CTVNewsIE(InfoExtractor):
         'playlist_mincount': 6,
     }, {
         'url': 'https://www.ctvnews.ca/business/respondents-to-bank-of-canada-questionnaire-largely-oppose-creating-a-digital-loonie-1.6665797',
+        'md5': '24bc4b88cdc17d8c3fc01dfc228ab72c',
         'info_dict': {
-            'id': '1.6665797',
+            'id': '2695026',
+            'ext': 'flv',
+            'season_id': '89852',
+            'series': 'From CTV News Channel',
+            'description': 'md5:796a985a23cacc7e1e2fafefd94afd0a',
+            'season': '2023',
+            'title': 'Bank of Canada asks public about digital currency',
+            'categories': [],
+            'tags': [],
+            'upload_date': '20230526',
+            'season_number': 2023,
+            'thumbnail': 'http://images2.9c9media.com/image_asset/2019_3_28_35f5afc3-10f6-4d92-b194-8b9a86f55c6a_png_1920x1080.jpg',
+            'timestamp': 1685105157,
+            'duration': 253.553,
         },
-        'playlist_mincount': 1,
     }, {
         'url': 'http://www.ctvnews.ca/1.810401',
         'only_matching': True,
@@ -112,7 +127,11 @@ class CTVNewsIE(InfoExtractor):
                 entries = [self._ninecninemedia_url_result(clip_id) for clip_id in
                            self._search_regex(r'getAuthStates\("([\d+,]+)"', webpage, 'clip ids').split(',')]
             else:
-                entries = [self._ninecninemedia_url_result(clip_id)
-                           for clip_id in orderedSet(re.findall(r'axisId&#34;:&#34;(\d+)', webpage))]
+                entries = [
+                    self._ninecninemedia_url_result(clip_id) for clip_id in
+                    traverse_obj(webpage, (
+                        {find_element(tag='jasper-player-container', html=True)},
+                        {extract_attributes}, 'axis-ids', {json.loads}, ..., 'axisId'))
+                ]
 
         return self.playlist_result(entries, page_id)
