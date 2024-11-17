@@ -45,9 +45,9 @@ class ShoutTVBaseIE(InfoExtractor):
             ShoutTVBaseIE._REFRESH_TOKEN = refresh_token  # 2 month TTL
         username, _ = self._get_login_info()
         if username and ShoutTVBaseIE._is_logged_in:
-            self.cache.store(self._NETRC_MACHINE, 'tokens', {
-                username: [ShoutTVBaseIE._ACCESS_TOKEN, ShoutTVBaseIE._REFRESH_TOKEN],
-            })
+            tokens = self.cache.load(self._NETRC_MACHINE, 'tokens', default={})
+            tokens[username] = [ShoutTVBaseIE._ACCESS_TOKEN, ShoutTVBaseIE._REFRESH_TOKEN]
+            self.cache.store(self._NETRC_MACHINE, 'tokens', tokens)
 
     def _fetch_access_token(self, content_id=None):
         if ShoutTVBaseIE._ACCESS_TOKEN and ShoutTVBaseIE._ACCESS_EXPIRY - 10 > time.time():
