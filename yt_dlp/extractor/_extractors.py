@@ -1139,12 +1139,6 @@ from .microsoftembed import (
     MicrosoftMediusIE,
 )
 from .microsoftstream import MicrosoftStreamIE
-from .mildom import (
-    MildomClipIE,
-    MildomIE,
-    MildomUserVodIE,
-    MildomVodIE,
-)
 from .minds import (
     MindsChannelIE,
     MindsGroupIE,
@@ -1563,10 +1557,6 @@ from .podbayfm import (
 )
 from .podchaser import PodchaserIE
 from .podomatic import PodomaticIE
-from .pokemon import (
-    PokemonIE,
-    PokemonWatchIE,
-)
 from .pokergo import (
     PokerGoCollectionIE,
     PokerGoIE,
