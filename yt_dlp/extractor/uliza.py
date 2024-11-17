@@ -18,6 +18,7 @@ class UlizaPlayerIE(InfoExtractor):
             'ext': 'mp4',
             'title': '88f3109a-f503-4d0f-a9f7-9f39ac745d84',
             'live_status': 'was_live',
+            '_old_archive_ids': ['piaulizaportal 88f3109a-f503-4d0f-a9f7-9f39ac745d84'],
         },
     }, {
         'url': 'https://player-api.p.uliza.jp/v1/players/uliza_jp_gallery_normal/promotion/admin?type=presentation&name=cookings&targetid=player1',
@@ -26,6 +27,7 @@ class UlizaPlayerIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'ae350126-5e22-4a7f-a8ac-8d0fd448b800',
             'live_status': 'not_live',
+            '_old_archive_ids': ['piaulizaportal ae350126-5e22-4a7f-a8ac-8d0fd448b800'],
         },
     }, {
         'url': 'https://player-api.p.uliza.jp/v1/players/default-player/pia/admin?type=normal&name=pia_movie_uliza_fix&targetid=ulizahtml5&repeatable=true',
@@ -34,6 +36,7 @@ class UlizaPlayerIE(InfoExtractor):
             'ext': 'mp4',
             'title': '0644ecc8-e354-41b4-b957-3b08a2d63df1',
             'live_status': 'not_live',
+            '_old_archive_ids': ['piaulizaportal 0644ecc8-e354-41b4-b957-3b08a2d63df1'],
         },
     }]
 
@@ -72,6 +75,7 @@ class UlizaPortalIE(InfoExtractor):
             'display_id': '005f18b7-e810-5618-cb82-0987c5755d44',
             'title': 'プレゼンテーションプレイヤーのサンプル',
             'live_status': 'not_live',
+            '_old_archive_ids': ['piaulizaportal ae350126-5e22-4a7f-a8ac-8d0fd448b800'],
         },
         'params': {
             'skip_download': True,
@@ -84,6 +88,7 @@ class UlizaPortalIE(InfoExtractor):
             'display_id': '005e1b23-fe93-5780-19a0-98e917cc4b7d',
             'title': '【確認用】視聴サンプルページ（ULIZA）',
             'live_status': 'not_live',
+            '_old_archive_ids': ['piaulizaportal 0644ecc8-e354-41b4-b957-3b08a2d63df1'],
         },
         'params': {
             'skip_download': True,
