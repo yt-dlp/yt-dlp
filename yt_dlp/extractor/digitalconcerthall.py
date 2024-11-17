@@ -199,13 +199,23 @@ class DigitalConcertHallIE(InfoExtractor):
     def _entries(self, items, language, type_, **kwargs):
         for item in items:
             video_id = item['id']
-            stream_info = self._download_json(
-                self._proto_relative_url(item['_links']['streams']['href']), video_id, headers={
-                    'Accept': 'application/json',
-                    'Authorization': f'Bearer {self._access_token}',
-                    'Accept-Language': language,
-                    'User-Agent': self._USER_AGENT,
-                })
+
+            for retry in (False, True):
+                try:
+                    stream_info = self._download_json(
+                        self._proto_relative_url(item['_links']['streams']['href']), video_id, headers={
+                            'Accept': 'application/json',
+                            'Authorization': f'Bearer {self._access_token}',
+                            'Accept-Language': language,
+                            'User-Agent': self._USER_AGENT,
+                        })
+                    break
+                except ExtractorError as error:
+                    if not retry and isinstance(error.cause, HTTPError) and error.cause.status == 401:
+                        self.report_warning('Access token has been invalidated')
+                        self._fetch_new_tokens()
+                        continue
+                    raise
 
             formats = []
             for m3u8_url in traverse_obj(stream_info, ('channel', ..., 'stream', ..., 'url', {url_or_none})):
@@ -236,20 +246,13 @@ class DigitalConcertHallIE(InfoExtractor):
             language = 'en'
         api_type = 'concert' if type_ == 'work' else type_
 
-        try:
-            vid_info = self._download_json(
-                f'https://api.digitalconcerthall.com/v2/{api_type}/{video_id}', video_id, headers={
-                    'Accept': 'application/json',
-                    'Accept-Language': language,
-                    'User-Agent': self._USER_AGENT,
-                    'Authorization': f'Bearer {self._access_token}',
-                })
-        except ExtractorError as error:
-            if isinstance(error.cause, HTTPError) and error.cause.status == 401:
-                self.report_warning('Access token has been invalidated')
-                self._fetch_new_tokens()
-            else:
-                raise
+        vid_info = self._download_json(
+            f'https://api.digitalconcerthall.com/v2/{api_type}/{video_id}', video_id, headers={
+                'Accept': 'application/json',
+                'Accept-Language': language,
+                'User-Agent': self._USER_AGENT,
+                'Authorization': f'Bearer {self._access_token}',
+            })
 
         videos = [vid_info] if type_ == 'film' else traverse_obj(vid_info, ('_embedded', ..., ...))
 
