@@ -24,7 +24,7 @@ from ..utils import (
 class LBRYBaseIE(InfoExtractor):
     _BASE_URL_REGEX = r'(?x)(?:https?://(?:www\.)?(?:lbry\.tv|odysee\.com)/|lbry://)'
     _CLAIM_ID_REGEX = r'[0-9a-f]{1,40}'
-    _OPT_CLAIM_ID = '[^$@:/?#&]+(?:[:#]%s)?' % _CLAIM_ID_REGEX
+    _OPT_CLAIM_ID = f'[^$@:/?#&]+(?:[:#]{_CLAIM_ID_REGEX})?'
     _SUPPORTED_STREAM_TYPES = ['video', 'audio']
     _PAGE_SIZE = 50
 
@@ -35,7 +35,7 @@ class LBRYBaseIE(InfoExtractor):
             headers['x-lbry-auth-token'] = token
         response = self._download_json(
             'https://api.lbry.tv/api/v1/proxy',
-            display_id, 'Downloading %s JSON metadata' % resource,
+            display_id, f'Downloading {resource} JSON metadata',
             headers=headers,
             data=json.dumps({
                 'method': method,
@@ -54,7 +54,7 @@ class LBRYBaseIE(InfoExtractor):
     def _permanent_url(self, url, claim_name, claim_id):
         return urljoin(
             url.replace('lbry://', 'https://lbry.tv/'),
-            '/%s:%s' % (claim_name, claim_id))
+            f'/{claim_name}:{claim_id}')
 
     def _parse_stream(self, stream, url):
         stream_type = traverse_obj(stream, ('value', 'stream_type', {str}))
@@ -66,7 +66,7 @@ class LBRYBaseIE(InfoExtractor):
             'license': ('value', 'license', {str}),
             'timestamp': ('timestamp', {int_or_none}),
             'release_timestamp': ('value', 'release_time', {int_or_none}),
-            'tags': ('value', 'tags', ..., {lambda x: x or None}),
+            'tags': ('value', 'tags', ..., filter),
             'duration': ('value', stream_type, 'duration', {int_or_none}),
             'channel': ('signing_channel', 'value', 'title', {str}),
             'channel_id': ('signing_channel', 'claim_id', {str}),
@@ -136,6 +136,7 @@ class LBRYBaseIE(InfoExtractor):
 
 class LBRYIE(LBRYBaseIE):
     IE_NAME = 'lbry'
+    IE_DESC = 'odysee.com'
     _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + rf'''
         (?:\$/(?:download|embed)/)?
         (?P<id>
@@ -169,9 +170,9 @@ class LBRYIE(LBRYBaseIE):
                 'lbc',
                 'lbry',
                 'start',
-                'tutorial'
+                'tutorial',
             ],
-        }
+        },
     }, {
         # Audio
         'url': 'https://lbry.tv/@LBRYFoundation:0/Episode-1:e',
@@ -194,7 +195,7 @@ class LBRYIE(LBRYBaseIE):
             'thumbnail': 'https://spee.ch/d/0bc63b0e6bf1492d.png',
             'license': 'None',
             'uploader_id': '@LBRYFoundation',
-        }
+        },
     }, {
         'url': 'https://odysee.com/@gardeningincanada:b/plants-i-will-never-grow-again.-the:e',
         'md5': 'c35fac796f62a14274b4dc2addb5d0ba',
@@ -216,7 +217,7 @@ class LBRYIE(LBRYBaseIE):
             'formats': 'mincount:3',
             'thumbnail': 'https://thumbnails.lbry.com/AgHSc_HzrrE',
             'license': 'Copyrighted (contact publisher)',
-        }
+        },
     }, {
         # HLS live stream (might expire)
         'url': 'https://odysee.com/@RT:fd/livestream_RT:d',
@@ -231,7 +232,6 @@ class LBRYIE(LBRYBaseIE):
             'release_timestamp': int,
             'release_date': str,
             'tags': list,
-            'duration': None,
             'channel': 'RT',
             'channel_id': 'fdd11cb3ab75f95efb7b3bc2d726aa13ac915b66',
             'channel_url': 'https://odysee.com/@RT:fdd11cb3ab75f95efb7b3bc2d726aa13ac915b66',
@@ -240,7 +240,7 @@ class LBRYIE(LBRYBaseIE):
             'license': 'None',
             'uploader_id': '@RT',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         # original quality format w/higher resolution than HLS formats
         'url': 'https://odysee.com/@wickedtruths:2/Biotechnological-Invasion-of-Skin-(April-2023):4',
@@ -365,6 +365,7 @@ class LBRYIE(LBRYBaseIE):
 
 class LBRYChannelIE(LBRYBaseIE):
     IE_NAME = 'lbry:channel'
+    IE_DESC = 'odysee.com channels'
     _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + rf'(?P<id>@{LBRYBaseIE._OPT_CLAIM_ID})/?(?:[?&]|$)'
     _TESTS = [{
         'url': 'https://lbry.tv/@LBRYFoundation:0',
@@ -392,6 +393,7 @@ class LBRYChannelIE(LBRYBaseIE):
 
 class LBRYPlaylistIE(LBRYBaseIE):
     IE_NAME = 'lbry:playlist'
+    IE_DESC = 'odysee.com playlists'
     _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'\$/(?:play)?list/(?P<id>[0-9a-f-]+)'
     _TESTS = [{
         'url': 'https://odysee.com/$/playlist/ffef782f27486f0ac138bde8777f72ebdd0548c2',

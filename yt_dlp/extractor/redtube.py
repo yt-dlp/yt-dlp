@@ -1,17 +1,18 @@
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     merge_dicts,
     str_to_int,
     unified_strdate,
     url_or_none,
+    urljoin,
 )
 
 
 class RedTubeIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:\w+\.)?redtube\.com/|embed\.redtube\.com/\?.*?\bid=)(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:(?:\w+\.)?redtube\.com(?:\.br)?/|embed\.redtube\.com/\?.*?\bid=)(?P<id>[0-9]+)'
     _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//embed\.redtube\.com/\?.*?\bid=\d+)']
     _TESTS = [{
         'url': 'https://www.redtube.com/38864951',
@@ -34,6 +35,9 @@ class RedTubeIE(InfoExtractor):
     }, {
         'url': 'http://it.redtube.com/66418',
         'only_matching': True,
+    }, {
+        'url': 'https://www.redtube.com.br/103224331',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -49,14 +53,14 @@ class RedTubeIE(InfoExtractor):
         for patterns, message in ERRORS:
             if any(p in webpage for p in patterns):
                 raise ExtractorError(
-                    'Video %s %s' % (video_id, message), expected=True)
+                    f'Video {video_id} {message}', expected=True)
 
         info = self._search_json_ld(webpage, video_id, default={})
 
         if not info.get('title'):
             info['title'] = self._html_search_regex(
                 (r'<h(\d)[^>]+class="(?:video_title_text|videoTitle|video_title)[^"]*">(?P<title>(?:(?!\1).)+)</h\1>',
-                 r'(?:videoTitle|title)\s*:\s*(["\'])(?P<title>(?:(?!\1).)+)\1',),
+                 r'(?:videoTitle|title)\s*:\s*(["\'])(?P<title>(?:(?!\1).)+)\1'),
                 webpage, 'title', group='title',
                 default=None) or self._og_search_title(webpage)
 
@@ -79,7 +83,7 @@ class RedTubeIE(InfoExtractor):
                 'media definitions', default='{}'),
             video_id, fatal=False)
         for media in medias if isinstance(medias, list) else []:
-            format_url = url_or_none(media.get('videoUrl'))
+            format_url = urljoin('https://www.redtube.com', media.get('videoUrl'))
             if not format_url:
                 continue
             format_id = media.get('format')

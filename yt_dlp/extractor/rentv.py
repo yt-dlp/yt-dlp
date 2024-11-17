@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     int_or_none,
@@ -8,6 +7,7 @@ from ..utils import (
 
 
 class RENTVIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'(?:rentv:|https?://(?:www\.)?ren\.tv/(?:player|video/epizod)/)(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://ren.tv/video/epizod/118577',
@@ -18,7 +18,7 @@ class RENTVIE(InfoExtractor):
             'title': 'Документальный спецпроект: "Промывка мозгов. Технологии XXI века"',
             'timestamp': 1472230800,
             'upload_date': '20160826',
-        }
+        },
     }, {
         'url': 'http://ren.tv/player/118577',
         'only_matching': True,
@@ -59,6 +59,7 @@ class RENTVIE(InfoExtractor):
 
 
 class RENTVArticleIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?ren\.tv/novosti/\d{4}-\d{2}-\d{2}/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'http://ren.tv/novosti/2016-10-26/video-mikroavtobus-popavshiy-v-dtp-s-gruzovikami-v-podmoskove-prevratilsya-v',
@@ -68,7 +69,7 @@ class RENTVArticleIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Видео: микроавтобус, попавший в ДТП с грузовиками в Подмосковье, превратился в груду металла',
             'description': 'Жертвами столкновения двух фур и микроавтобуса, по последним данным, стали семь человек.',
-        }
+        },
     }, {
         # TODO: invalid m3u8
         'url': 'http://ren.tv/novosti/2015-09-25/sluchaynyy-prohozhiy-poymal-avtougonshchika-v-murmanske-video',
@@ -97,6 +98,6 @@ class RENTVArticleIE(InfoExtractor):
             media_id = config_profile.get('mediaid')
             if not media_id:
                 continue
-            media_id = compat_str(media_id)
+            media_id = str(media_id)
             entries.append(self.url_result('rentv:' + media_id, 'RENTV', media_id))
         return self.playlist_result(entries, display_id)

@@ -3,6 +3,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     filter_dict,
+    float_or_none,
     int_or_none,
     parse_age_limit,
     smuggle_url,
@@ -13,7 +14,7 @@ from ..utils import (
 
 
 class CineverseBaseIE(InfoExtractor):
-    _VALID_URL_BASE = r'https://www\.(?P<host>%s)' % '|'.join(map(re.escape, (
+    _VALID_URL_BASE = r'https?://www\.(?P<host>{})'.format('|'.join(map(re.escape, (
         'cineverse.com',
         'asiancrush.com',
         'dovechannel.com',
@@ -21,7 +22,7 @@ class CineverseBaseIE(InfoExtractor):
         'midnightpulp.com',
         'fandor.com',
         'retrocrush.tv',
-    )))
+    ))))
 
 
 class CineverseIE(CineverseBaseIE):
@@ -38,7 +39,7 @@ class CineverseIE(CineverseBaseIE):
             'duration': 5811.597,
             'description': 'md5:892fd62a05611d394141e8394ace0bc6',
             'age_limit': 13,
-        }
+        },
     }, {
         'url': 'https://www.retrocrush.tv/watch/1000000023016/Archenemy! Crystal Bowie',
         'skip': 'geo-blocked',
@@ -55,7 +56,7 @@ class CineverseIE(CineverseBaseIE):
             'duration': 1485.067,
             'description': 'Cobra meets a beautiful bounty hunter by the name of Jane Royal.',
             'series': 'Space Adventure COBRA (Original Japanese)',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -67,7 +68,10 @@ class CineverseIE(CineverseBaseIE):
         html = self._download_webpage(url, video_id)
         idetails = self._search_nextjs_data(html, video_id)['props']['pageProps']['idetails']
 
-        if idetails.get('err_code') == 1200:
+        err_code = idetails.get('err_code')
+        if err_code == 1002:
+            self.raise_login_required()
+        elif err_code == 1200:
             self.raise_geo_restricted(
                 'This video is not available from your location due to geo restriction. '
                 'You may be able to bypass it by using the /details/ page instead of the /watch/ page',
@@ -82,7 +86,7 @@ class CineverseIE(CineverseBaseIE):
                 'title': 'title',
                 'id': ('details', 'item_id'),
                 'description': ('details', 'description'),
-                'duration': ('duration', {lambda x: x / 1000}),
+                'duration': ('duration', {float_or_none(scale=1000)}),
                 'cast': ('details', 'cast', {lambda x: x.split(', ')}),
                 'modified_timestamp': ('details', 'updated_by', 0, 'update_time', 'time', {int_or_none}),
                 'season_number': ('details', 'season', {int_or_none}),
@@ -101,7 +105,7 @@ class CineverseDetailsIE(CineverseBaseIE):
         'info_dict': {
             'title': 'Space Adventure COBRA (Original Japanese)',
             'id': '1000000023012',
-        }
+        },
     }, {
         'url': 'https://www.asiancrush.com/details/NNVG4938/Hansel-and-Gretel',
         'info_dict': {

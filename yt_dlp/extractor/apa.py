@@ -34,7 +34,7 @@ class APAIE(InfoExtractor):
         video_id, base_url = mobj.group('id', 'base_url')
 
         webpage = self._download_webpage(
-            '%s/player/%s' % (base_url, video_id), video_id)
+            f'{base_url}/player/{video_id}', video_id)
 
         jwplatform_id = self._search_regex(
             r'media[iI]d\s*:\s*["\'](?P<id>[a-zA-Z0-9]{8})', webpage,
@@ -47,7 +47,7 @@ class APAIE(InfoExtractor):
 
         def extract(field, name=None):
             return self._search_regex(
-                r'\b%s["\']\s*:\s*(["\'])(?P<value>(?:(?!\1).)+)\1' % field,
+                rf'\b{field}["\']\s*:\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
                 webpage, name or field, default=None, group='value')
 
         title = extract('title') or video_id

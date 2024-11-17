@@ -1,45 +1,68 @@
 import base64
 import binascii
-import datetime
+import datetime as dt
 import hashlib
 import hmac
 import json
 import os
+import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    int_or_none,
+    js_to_json,
+    remove_end,
     traverse_obj,
-    unescapeHTML,
 )
 
 
 class GoPlayIE(InfoExtractor):
-    _VALID_URL = r'https?://(www\.)?goplay\.be/video/([^/]+/[^/]+/|)(?P<display_id>[^/#]+)'
+    _VALID_URL = r'https?://(www\.)?goplay\.be/video/([^/?#]+/[^/?#]+/|)(?P<id>[^/#]+)'
 
     _NETRC_MACHINE = 'goplay'
 
     _TESTS = [{
-        'url': 'https://www.goplay.be/video/de-container-cup/de-container-cup-s3/de-container-cup-s3-aflevering-2#autoplay',
+        'url': 'https://www.goplay.be/video/de-slimste-mens-ter-wereld/de-slimste-mens-ter-wereld-s22/de-slimste-mens-ter-wereld-s22-aflevering-1',
         'info_dict': {
-            'id': '9c4214b8-e55d-4e4b-a446-f015f6c6f811',
+            'id': '2baa4560-87a0-421b-bffc-359914e3c387',
             'ext': 'mp4',
-            'title': 'S3 - Aflevering 2',
-            'series': 'De Container Cup',
-            'season': 'Season 3',
-            'season_number': 3,
-            'episode': 'Episode 2',
-            'episode_number': 2,
+            'title': 'S22 - Aflevering 1',
+            'description': r're:In aflevering 1 nemen Daan Alferink, Tess Elst en Xander De Rycke .{66}',
+            'series': 'De Slimste Mens ter Wereld',
+            'episode': 'Episode 1',
+            'season_number': 22,
+            'episode_number': 1,
+            'season': 'Season 22',
         },
-        'skip': 'This video is only available for registered users'
+        'params': {'skip_download': True},
+        'skip': 'This video is only available for registered users',
     }, {
-        'url': 'https://www.goplay.be/video/a-family-for-thr-holidays-s1-aflevering-1#autoplay',
+        'url': 'https://www.goplay.be/video/1917',
         'info_dict': {
-            'id': '74e3ed07-748c-49e4-85a0-393a93337dbf',
+            'id': '40cac41d-8d29-4ef5-aa11-75047b9f0907',
             'ext': 'mp4',
-            'title': 'A Family for the Holidays',
+            'title': '1917',
+            'description': r're:Op het hoogtepunt van de Eerste Wereldoorlog krijgen twee jonge .{94}',
         },
-        'skip': 'This video is only available for registered users'
+        'params': {'skip_download': True},
+        'skip': 'This video is only available for registered users',
+    }, {
+        'url': 'https://www.goplay.be/video/de-mol/de-mol-s11/de-mol-s11-aflevering-1#autoplay',
+        'info_dict': {
+            'id': 'ecb79672-92b9-4cd9-a0d7-e2f0250681ee',
+            'ext': 'mp4',
+            'title': 'S11 - Aflevering 1',
+            'description': r're:Tien kandidaten beginnen aan hun verovering van Amerika en ontmoeten .{102}',
+            'episode': 'Episode 1',
+            'series': 'De Mol',
+            'season_number': 11,
+            'episode_number': 1,
+            'season': 'Season 11',
+        },
+        'params': {'skip_download': True},
+        'skip': 'This video is only available for registered users',
     }]
 
     _id_token = None
@@ -53,40 +76,78 @@ class GoPlayIE(InfoExtractor):
         if not self._id_token:
             raise self.raise_login_required(method='password')
 
-    def _real_extract(self, url):
-        url, display_id = self._match_valid_url(url).group(0, 'display_id')
-        webpage = self._download_webpage(url, display_id)
-        video_data_json = self._html_search_regex(r'<div\s+data-hero="([^"]+)"', webpage, 'video_data')
-        video_data = self._parse_json(unescapeHTML(video_data_json), display_id).get('data')
+    def _find_json(self, s):
+        return self._search_json(
+            r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=None)
 
-        movie = video_data.get('movie')
-        if movie:
-            video_id = movie['videoUuid']
-            info_dict = {
-                'title': movie.get('title')
-            }
-        else:
-            episode = traverse_obj(video_data, ('playlists', ..., 'episodes', lambda _, v: v['pageInfo']['url'] == url), get_all=False)
-            video_id = episode['videoUuid']
-            info_dict = {
-                'title': episode.get('episodeTitle'),
-                'series': traverse_obj(episode, ('program', 'title')),
-                'season_number': episode.get('seasonNumber'),
-                'episode_number': episode.get('episodeNumber'),
-            }
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+
+        nextjs_data = traverse_obj(
+            re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
+            (..., {js_to_json}, {json.loads}, ..., {self._find_json}, ...))
+        meta = traverse_obj(nextjs_data, (
+            ..., lambda _, v: v['meta']['path'] == urllib.parse.urlparse(url).path, 'meta', any))
+
+        video_id = meta['uuid']
+        info_dict = traverse_obj(meta, {
+            'title': ('title', {str}),
+            'description': ('description', {str.strip}),
+        })
+
+        if traverse_obj(meta, ('program', 'subtype')) != 'movie':
+            for season_data in traverse_obj(nextjs_data, (..., 'children', ..., 'playlists', ...)):
+                episode_data = traverse_obj(
+                    season_data, ('videos', lambda _, v: v['videoId'] == video_id, any))
+                if not episode_data:
+                    continue
+
+                episode_title = traverse_obj(
+                    episode_data, 'contextualTitle', 'episodeTitle', expected_type=str)
+                info_dict.update({
+                    'title': episode_title or info_dict.get('title'),
+                    'series': remove_end(info_dict.get('title'), f' - {episode_title}'),
+                    'season_number': traverse_obj(season_data, ('season', {int_or_none})),
+                    'episode_number': traverse_obj(episode_data, ('episodeNumber', {int_or_none})),
+                })
+                break
 
         api = self._download_json(
             f'https://api.goplay.be/web/v1/videos/long-form/{video_id}',
-            video_id, headers={'Authorization': 'Bearer %s' % self._id_token})
+            video_id, headers={
+                'Authorization': f'Bearer {self._id_token}',
+                **self.geo_verification_headers(),
+            })
 
-        formats, subs = self._extract_m3u8_formats_and_subtitles(
-            api['manifestUrls']['hls'], video_id, ext='mp4', m3u8_id='HLS')
+        if 'manifestUrls' in api:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                api['manifestUrls']['hls'], video_id, ext='mp4', m3u8_id='HLS')
+
+        else:
+            if 'ssai' not in api:
+                raise ExtractorError('expecting Google SSAI stream')
+
+            ssai_content_source_id = api['ssai']['contentSourceID']
+            ssai_video_id = api['ssai']['videoID']
+
+            dai = self._download_json(
+                f'https://dai.google.com/ondemand/dash/content/{ssai_content_source_id}/vid/{ssai_video_id}/streams',
+                video_id, data=b'{"api-key":"null"}',
+                headers={'content-type': 'application/json'})
+
+            periods = self._extract_mpd_periods(dai['stream_manifest'], video_id)
+
+            # skip pre-roll and mid-roll ads
+            periods = [p for p in periods if '-ad-' not in p['id']]
+
+            formats, subtitles = self._merge_mpd_periods(periods)
 
         info_dict.update({
             'id': video_id,
             'formats': formats,
+            'subtitles': subtitles,
         })
-
         return info_dict
 
 
@@ -115,31 +176,32 @@ class AwsIdp:
         self.ie = ie
 
         self.pool_id = pool_id
-        if "_" not in self.pool_id:
-            raise ValueError("Invalid pool_id format. Should be <region>_<poolid>.")
+        if '_' not in self.pool_id:
+            raise ValueError('Invalid pool_id format. Should be <region>_<poolid>.')
 
         self.client_id = client_id
-        self.region = self.pool_id.split("_")[0]
-        self.url = "https://cognito-idp.%s.amazonaws.com/" % (self.region,)
+        self.region = self.pool_id.split('_')[0]
+        self.url = f'https://cognito-idp.{self.region}.amazonaws.com/'
 
         # Initialize the values
         # https://github.com/aws/amazon-cognito-identity-js/blob/master/src/AuthenticationHelper.js#L22
-        self.n_hex = 'FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1' + \
-                     '29024E088A67CC74020BBEA63B139B22514A08798E3404DD' + \
-                     'EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245' + \
-                     'E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED' + \
-                     'EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D' + \
-                     'C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F' + \
-                     '83655D23DCA3AD961C62F356208552BB9ED529077096966D' + \
-                     '670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B' + \
-                     'E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9' + \
-                     'DE2BCBF6955817183995497CEA956AE515D2261898FA0510' + \
-                     '15728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64' + \
-                     'ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7' + \
-                     'ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6B' + \
-                     'F12FFA06D98A0864D87602733EC86A64521F2B18177B200C' + \
-                     'BBE117577A615D6C770988C0BAD946E208E24FA074E5AB31' + \
-                     '43DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF'
+        self.n_hex = (
+            'FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1'
+            '29024E088A67CC74020BBEA63B139B22514A08798E3404DD'
+            'EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245'
+            'E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED'
+            'EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D'
+            'C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F'
+            '83655D23DCA3AD961C62F356208552BB9ED529077096966D'
+            '670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B'
+            'E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9'
+            'DE2BCBF6955817183995497CEA956AE515D2261898FA0510'
+            '15728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64'
+            'ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7'
+            'ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6B'
+            'F12FFA06D98A0864D87602733EC86A64521F2B18177B200C'
+            'BBE117577A615D6C770988C0BAD946E208E24FA074E5AB31'
+            '43DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF')
 
         # https://github.com/aws/amazon-cognito-identity-js/blob/master/src/AuthenticationHelper.js#L49
         self.g_hex = '2'
@@ -155,26 +217,26 @@ class AwsIdp:
         """ Authenticate with a username and password. """
         # Step 1: First initiate an authentication request
         auth_data_dict = self.__get_authentication_request(username)
-        auth_data = json.dumps(auth_data_dict).encode("utf-8")
+        auth_data = json.dumps(auth_data_dict).encode()
         auth_headers = {
-            "X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth",
-            "Accept-Encoding": "identity",
-            "Content-Type": "application/x-amz-json-1.1"
+            'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
+            'Accept-Encoding': 'identity',
+            'Content-Type': 'application/x-amz-json-1.1',
         }
         auth_response_json = self.ie._download_json(
             self.url, None, data=auth_data, headers=auth_headers,
             note='Authenticating username', errnote='Invalid username')
-        challenge_parameters = auth_response_json.get("ChallengeParameters")
+        challenge_parameters = auth_response_json.get('ChallengeParameters')
 
-        if auth_response_json.get("ChallengeName") != "PASSWORD_VERIFIER":
-            raise AuthenticationException(auth_response_json["message"])
+        if auth_response_json.get('ChallengeName') != 'PASSWORD_VERIFIER':
+            raise AuthenticationException(auth_response_json['message'])
 
         # Step 2: Respond to the Challenge with a valid ChallengeResponse
         challenge_request = self.__get_challenge_response_request(challenge_parameters, password)
-        challenge_data = json.dumps(challenge_request).encode("utf-8")
+        challenge_data = json.dumps(challenge_request).encode()
         challenge_headers = {
-            "X-Amz-Target": "AWSCognitoIdentityProviderService.RespondToAuthChallenge",
-            "Content-Type": "application/x-amz-json-1.1"
+            'X-Amz-Target': 'AWSCognitoIdentityProviderService.RespondToAuthChallenge',
+            'Content-Type': 'application/x-amz-json-1.1',
         }
         auth_response_json = self.ie._download_json(
             self.url, None, data=challenge_data, headers=challenge_headers,
@@ -184,7 +246,7 @@ class AwsIdp:
             raise InvalidLoginException(auth_response_json['message'])
         return (
             auth_response_json['AuthenticationResult']['IdToken'],
-            auth_response_json['AuthenticationResult']['RefreshToken']
+            auth_response_json['AuthenticationResult']['RefreshToken'],
         )
 
     def __get_authentication_request(self, username):
@@ -195,15 +257,14 @@ class AwsIdp:
         :return: A full Authorization request.
         :rtype: dict
         """
-        auth_request = {
-            "AuthParameters": {
-                "USERNAME": username,
-                "SRP_A": self.__long_to_hex(self.large_a_value)
+        return {
+            'AuthParameters': {
+                'USERNAME': username,
+                'SRP_A': self.__long_to_hex(self.large_a_value),
             },
-            "AuthFlow": "USER_SRP_AUTH",
-            "ClientId": self.client_id
+            'AuthFlow': 'USER_SRP_AUTH',
+            'ClientId': self.client_id,
         }
-        return auth_request
 
     def __get_challenge_response_request(self, challenge_parameters, password):
         """ Create a Challenge Response Request object.
@@ -214,11 +275,11 @@ class AwsIdp:
         :return: A valid and full request data object to use as a response for a challenge.
         :rtype: dict
         """
-        user_id = challenge_parameters["USERNAME"]
-        user_id_for_srp = challenge_parameters["USER_ID_FOR_SRP"]
-        srp_b = challenge_parameters["SRP_B"]
-        salt = challenge_parameters["SALT"]
-        secret_block = challenge_parameters["SECRET_BLOCK"]
+        user_id = challenge_parameters['USERNAME']
+        user_id_for_srp = challenge_parameters['USER_ID_FOR_SRP']
+        srp_b = challenge_parameters['SRP_B']
+        salt = challenge_parameters['SALT']
+        secret_block = challenge_parameters['SECRET_BLOCK']
 
         timestamp = self.__get_current_timestamp()
 
@@ -227,7 +288,7 @@ class AwsIdp:
             user_id_for_srp,
             password,
             self.__hex_to_long(srp_b),
-            salt
+            salt,
         )
         secret_block_bytes = base64.standard_b64decode(secret_block)
 
@@ -239,17 +300,16 @@ class AwsIdp:
             bytearray(timestamp, 'utf-8')
         hmac_obj = hmac.new(hkdf, msg, digestmod=hashlib.sha256)
         signature_string = base64.standard_b64encode(hmac_obj.digest()).decode('utf-8')
-        challenge_request = {
-            "ChallengeResponses": {
-                "USERNAME": user_id,
-                "TIMESTAMP": timestamp,
-                "PASSWORD_CLAIM_SECRET_BLOCK": secret_block,
-                "PASSWORD_CLAIM_SIGNATURE": signature_string
+        return {
+            'ChallengeResponses': {
+                'USERNAME': user_id,
+                'TIMESTAMP': timestamp,
+                'PASSWORD_CLAIM_SECRET_BLOCK': secret_block,
+                'PASSWORD_CLAIM_SIGNATURE': signature_string,
             },
-            "ChallengeName": "PASSWORD_VERIFIER",
-            "ClientId": self.client_id
+            'ChallengeName': 'PASSWORD_VERIFIER',
+            'ClientId': self.client_id,
         }
-        return challenge_request
 
     def __get_hkdf_key_for_password(self, username, password, server_b_value, salt):
         """ Calculates the final hkdf based on computed S value, and computed U value and the key.
@@ -266,18 +326,17 @@ class AwsIdp:
         u_value = self.__calculate_u(self.large_a_value, server_b_value)
         if u_value == 0:
             raise ValueError('U cannot be zero.')
-        username_password = '%s%s:%s' % (self.pool_id.split('_')[1], username, password)
-        username_password_hash = self.__hash_sha256(username_password.encode('utf-8'))
+        username_password = '{}{}:{}'.format(self.pool_id.split('_')[1], username, password)
+        username_password_hash = self.__hash_sha256(username_password.encode())
 
         x_value = self.__hex_to_long(self.__hex_hash(self.__pad_hex(salt) + username_password_hash))
         g_mod_pow_xn = pow(self.g, x_value, self.big_n)
         int_value2 = server_b_value - self.k * g_mod_pow_xn
         s_value = pow(int_value2, self.small_a_value + u_value * x_value, self.big_n)
-        hkdf = self.__compute_hkdf(
+        return self.__compute_hkdf(
             bytearray.fromhex(self.__pad_hex(s_value)),
-            bytearray.fromhex(self.__pad_hex(self.__long_to_hex(u_value)))
+            bytearray.fromhex(self.__pad_hex(self.__long_to_hex(u_value))),
         )
-        return hkdf
 
     def __compute_hkdf(self, ikm, salt):
         """ Standard hkdf algorithm
@@ -329,7 +388,7 @@ class AwsIdp:
 
     @staticmethod
     def __long_to_hex(long_num):
-        return '%x' % long_num
+        return f'{long_num:x}'
 
     @staticmethod
     def __hex_to_long(hex_string):
@@ -360,9 +419,9 @@ class AwsIdp:
         else:
             hash_str = long_int
         if len(hash_str) % 2 == 1:
-            hash_str = '0%s' % hash_str
+            hash_str = f'0{hash_str}'
         elif hash_str[0] in '89ABCDEFabcdef':
-            hash_str = '00%s' % hash_str
+            hash_str = f'00{hash_str}'
         return hash_str
 
     @staticmethod
@@ -383,12 +442,11 @@ class AwsIdp:
         months = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-        time_now = datetime.datetime.now(datetime.timezone.utc)
-        format_string = "{} {} {} %H:%M:%S UTC %Y".format(days[time_now.weekday()], months[time_now.month], time_now.day)
-        time_string = time_now.strftime(format_string)
-        return time_string
+        time_now = dt.datetime.now(dt.timezone.utc)
+        format_string = f'{days[time_now.weekday()]} {months[time_now.month]} {time_now.day} %H:%M:%S UTC %Y'
+        return time_now.strftime(format_string)
 
     def __str__(self):
-        return "AWS IDP Client for:\nRegion: %s\nPoolId: %s\nAppId:  %s" % (
-            self.region, self.pool_id.split("_")[1], self.client_id
+        return 'AWS IDP Client for:\nRegion: {}\nPoolId: {}\nAppId:  {}'.format(
+            self.region, self.pool_id.split('_')[1], self.client_id,
         )

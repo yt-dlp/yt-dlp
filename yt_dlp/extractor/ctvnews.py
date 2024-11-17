@@ -24,7 +24,7 @@ class CTVNewsIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'season': 'Season 0',
             'season_number': 0,
-        }
+        },
     }, {
         'url': 'http://www.ctvnews.ca/video?playlistId=1.2966224',
         'info_dict':
@@ -64,14 +64,14 @@ class CTVNewsIE(InfoExtractor):
             return {
                 '_type': 'url_transparent',
                 'id': clip_id,
-                'url': '9c9media:ctvnews_web:%s' % clip_id,
+                'url': f'9c9media:ctvnews_web:{clip_id}',
                 'ie_key': 'NineCNineMedia',
             }
 
         if page_id.isdigit():
             return ninecninemedia_url_result(page_id)
         else:
-            webpage = self._download_webpage('http://www.ctvnews.ca/%s' % page_id, page_id, query={
+            webpage = self._download_webpage(f'http://www.ctvnews.ca/{page_id}', page_id, query={
                 'ot': 'example.AjaxPageLayout.ot',
                 'maxItemsPerPage': 1000000,
             })

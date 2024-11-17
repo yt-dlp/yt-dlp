@@ -33,6 +33,7 @@ cookies
 *.gif
 *.jpeg
 *.jpg
+*.lrc
 *.m4a
 *.m4v
 *.mhtml
@@ -40,6 +41,7 @@ cookies
 *.mov
 *.mp3
 *.mp4
+*.mpg
 *.mpga
 *.oga
 *.ogg
@@ -47,8 +49,8 @@ cookies
 *.png
 *.sbv
 *.srt
+*.ssa
 *.swf
-*.swp
 *.tt
 *.ttml
 *.url
@@ -64,7 +66,7 @@ cookies
 # Python
 *.pyc
 *.pyo
-.pytest_cache
+.*_cache
 wine-py2exe/
 py2exe.log
 build/
@@ -116,6 +118,7 @@ yt-dlp.zip
 .vscode
 *.sublime-*
 *.code-workspace
+*.swp
 
 # Lazy extractors
 */extractor/lazy_extractors.py
