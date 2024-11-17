@@ -57,8 +57,7 @@ class CTVNewsIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.ctvnews.ca/business/respondents-to-bank-of-canada-questionnaire-largely-oppose-creating-a-digital-loonie-1.6665797',
-        'info_dict':
-        {
+        'info_dict': {
             'id': '1.6665797',
         },
         'playlist_mincount': 1,
@@ -90,6 +89,6 @@ class CTVNewsIE(InfoExtractor):
                     entries = [ninecninemedia_url_result(clip_id) for clip_id in
                                self._search_regex(r'getAuthStates\("([\d+,]+)"', webpage, 'clip ids').split(',')]
                 else:
-                    entries = [ninecninemedia_url_result(clip_id) for clip_id in orderedSet(
-                        re.findall(r'axisId&#34;:&#34;(\d+)', webpage))]
+                    entries = [ninecninemedia_url_result(clip_id)
+                               for clip_id in orderedSet(re.findall(r'axisId&#34;:&#34;(\d+)', webpage))]
             return self.playlist_result(entries, page_id)
