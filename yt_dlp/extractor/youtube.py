@@ -5087,7 +5087,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _rich_entries(self, rich_grid_renderer):
         renderer = traverse_obj(
             rich_grid_renderer,
-            ('content', ('videoRenderer', 'reelItemRenderer', 'playlistRenderer', 'shortsLockupViewModel'), any)) or {}
+            ('content', ('videoRenderer', 'reelItemRenderer', 'playlistRenderer', 'shortsLockupViewModel', 'lockupViewModel'), any)) or {}
         video_id = renderer.get('videoId')
         if video_id:
             yield self._extract_video(renderer)
@@ -5113,6 +5113,18 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'view_count': ('secondaryText', 'content', {parse_count}),
                 })),
                 thumbnails=self._extract_thumbnails(renderer, 'thumbnail', final_key='sources'))
+            return
+        # lockupViewModel extraction
+        content_id = renderer.get('contentId')
+        if content_id and renderer.get('contentType') == 'LOCKUP_CONTENT_TYPE_PODCAST':
+            yield self.url_result(
+                f'https://www.youtube.com/playlist?list={content_id}',
+                ie=YoutubeTabIE, video_id=content_id,
+                **traverse_obj(renderer, {
+                    'title': ('metadata', 'lockupMetadataViewModel', 'title', 'content', {str}),
+                }),
+                thumbnails=self._extract_thumbnails(renderer, (
+                    'contentImage', 'collectionThumbnailViewModel', 'primaryThumbnail', 'thumbnailViewModel', 'image'), final_key='sources'))
             return
 
     def _video_entry(self, video_renderer):
@@ -6706,22 +6718,22 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
         'playlist_count': 0,
     }, {
-        # Podcasts tab, with rich entry playlistRenderers
+        # Podcasts tab, with rich entry lockupViewModel
         'url': 'https://www.youtube.com/@99percentinvisiblepodcast/podcasts',
         'info_dict': {
             'id': 'UCVMF2HD4ZgC0QHpU9Yq5Xrw',
             'channel_id': 'UCVMF2HD4ZgC0QHpU9Yq5Xrw',
             'uploader_url': 'https://www.youtube.com/@99percentinvisiblepodcast',
             'description': 'md5:3a0ed38f1ad42a68ef0428c04a15695c',
-            'title': '99 Percent Invisible - Podcasts',
-            'uploader': '99 Percent Invisible',
+            'title': '99% Invisible - Podcasts',
+            'uploader': '99% Invisible',
             'channel_follower_count': int,
             'channel_url': 'https://www.youtube.com/channel/UCVMF2HD4ZgC0QHpU9Yq5Xrw',
             'tags': [],
-            'channel': '99 Percent Invisible',
+            'channel': '99% Invisible',
             'uploader_id': '@99percentinvisiblepodcast',
         },
-        'playlist_count': 0,
+        'playlist_count': 5,
     }, {
         # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
         'url': 'https://www.youtube.com/@AHimitsu/releases',
