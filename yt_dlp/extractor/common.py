@@ -3767,7 +3767,7 @@ class InfoExtractor:
         """ Merge subtitle dictionaries, language by language. """
         if target is None:
             target = {}
-        for d in dicts:
+        for d in filter(None, dicts):
             for lang, subs in d.items():
                 target[lang] = cls._merge_subtitle_items(target.get(lang, []), subs)
         return target
