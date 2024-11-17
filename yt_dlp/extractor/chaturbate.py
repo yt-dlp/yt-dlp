@@ -79,7 +79,7 @@ class ChaturbateIE(InfoExtractor):
             'formats': self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True),
         }
 
-    def _extract_from_webpage(self, video_id, tld):
+    def _extract_from_html(self, video_id, tld):
         webpage = self._download_webpage(
             f'https://chaturbate.{tld}/{video_id}/', video_id,
             headers=self.geo_verification_headers(), impersonate=True)
@@ -151,4 +151,4 @@ class ChaturbateIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, tld = self._match_valid_url(url).group('id', 'tld')
-        return self._extract_from_api(video_id, tld) or self._extract_from_webpage(video_id, tld)
+        return self._extract_from_api(video_id, tld) or self._extract_from_html(video_id, tld)
