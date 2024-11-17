@@ -194,7 +194,7 @@ class DigitalConcertHallIE(InfoExtractor):
 
     def _real_initialize(self):
         if not self._real_access_token:
-            self.raise_login_required(f'{self._LOGIN_HINT}, {self._REFRESH_HINT}', method='none')
+            self.raise_login_required(f'{self._LOGIN_HINT}, {self._REFRESH_HINT}', method=None)
 
     def _entries(self, items, language, type_, **kwargs):
         for item in items:
