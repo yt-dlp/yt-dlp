@@ -1,6 +1,7 @@
 import re
 
 from .common import InfoExtractor
+from .ninecninemedia import NineCNineMediaIE
 from ..utils import orderedSet
 
 
@@ -63,14 +64,8 @@ class CTVNewsIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _ninecninemedia_url_result(clip_id):
-        return {
-            '_type': 'url_transparent',
-            'id': clip_id,
-            'url': f'9c9media:ctvnews_web:{clip_id}',
-            'ie_key': 'NineCNineMedia',
-        }
+    def _ninecninemedia_url_result(self, clip_id):
+        return self.url_result(f'9c9media:ctvnews_web:{clip_id}', NineCNineMediaIE, clip_id)
 
     def _real_extract(self, url):
         page_id = self._match_id(url)
