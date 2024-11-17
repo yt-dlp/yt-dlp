@@ -569,7 +569,7 @@ class FacebookIE(InfoExtractor):
             if dash_manifest:
                 formats.extend(self._parse_mpd_formats(
                     compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest)),
-                    mpd_url=url_or_none(video.get('dash_manifest_url')) or mpd_url))
+                    mpd_url=url_or_none(vid_data.get('dash_manifest_url')) or mpd_url))
 
         def process_formats(info):
             # Downloads with browser's User-Agent are rate limited. Working around

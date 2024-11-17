@@ -176,7 +176,7 @@ class CTVNewsIE(InfoExtractor):
                     self._ninecninemedia_url_result(clip_id) for clip_id in
                     traverse_obj(webpage, (
                         {find_element(tag='jasper-player-container', html=True)},
-                        {extract_attributes}, 'axis-ids', {json.loads}, ..., 'axisId'))
+                        {extract_attributes}, 'axis-ids', {json.loads}, ..., 'axisId', {str}))
                 ]
 
         return self.playlist_result(entries, page_id)
