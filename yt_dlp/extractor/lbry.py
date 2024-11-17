@@ -66,7 +66,7 @@ class LBRYBaseIE(InfoExtractor):
             'license': ('value', 'license', {str}),
             'timestamp': ('timestamp', {int_or_none}),
             'release_timestamp': ('value', 'release_time', {int_or_none}),
-            'tags': ('value', 'tags', ..., {lambda x: x or None}),
+            'tags': ('value', 'tags', ..., filter),
             'duration': ('value', stream_type, 'duration', {int_or_none}),
             'channel': ('signing_channel', 'value', 'title', {str}),
             'channel_id': ('signing_channel', 'claim_id', {str}),
