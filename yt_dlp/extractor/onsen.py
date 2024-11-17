@@ -20,40 +20,40 @@ class OnsenIE(InfoExtractor):
     _NETRC_MACHINE = 'onsen'
     _VALID_URL = r'https?://(?:(?:share|www)\.)onsen\.ag/program/(?P<id>[\w-]+)'
     _TESTS = [{
-        'url': 'https://share.onsen.ag/program/tricolor?p=393&c=MTk2NjE',
+        'url': 'https://share.onsen.ag/program/onsenking?p=90&c=MTA0NjI',
         'info_dict': {
-            'id': '19661',
-            'title': '第0回',
-            'cast': ['礒部花凜', '土屋李央', '林鼓子'],
+            'id': '10462',
             'ext': 'm4a',
-            'description': 'md5:8435d68dcb7a43bc2c993911b0db245b',
-            'display_id': 'MTk2NjE=',
+            'title': '第SP回',
+            'cast': ['下野紘', '佐藤元', '守屋亨香'],
+            'description': 'md5:083c1eddf198694cd3cc83f4d5c03863',
+            'display_id': 'MTA0NjI=',
             'http_headers': {'Referer': 'https://www.onsen.ag/'},
             'media_type': 'sound',
-            'tags': ['かりこ'],
-            'thumbnail': 'https://d3bzklg4lms4gh.cloudfront.net/program_info/image/default/production/31/ea/c1db117c9b41655120d3a212b2038d15811f/image',
             'section_start': 0,
-            'series': '礒部花凜・土屋李央・林鼓子 トリコロールカラー',
-            'series_id': 'tricolor',
-            'upload_date': '20240907',
-            'webpage_url': 'https://www.onsen.ag/program/tricolor?c=MTk2NjE=',
+            'series': '音泉キング「下野紘」のラジオ きみはもちろん、＜音泉＞ファミリーだよね？',
+            'series_id': 'onsenking',
+            'tags': ['音泉キング', '音泉ジュニア'],
+            'thumbnail': r're:https://d3bzklg4lms4gh\.cloudfront\.net/program_info/image/default/production/.+$',
+            'upload_date': '20220627',
+            'webpage_url': 'https://www.onsen.ag/program/onsenking?c=MTA0NjI=',
         },
     }, {
         'url': 'https://share.onsen.ag/program/girls-band-cry-radio?p=370&c=MTgwMDE',
         'info_dict': {
             'id': '18001',
+            'ext': 'mp4',
             'title': '第4回',
             'cast': ['夕莉', '理名', '朱李', '凪都', '美怜'],
-            'ext': 'mp4',
             'description': 'md5:1d7f6a2f1f5a3e2a8ada4e9f652262dd',
             'display_id': 'MTgwMDE=',
             'http_headers': {'Referer': 'https://www.onsen.ag/'},
             'media_type': 'movie',
-            'tags': ['ガールズバンドクライ', 'ガルクラ', 'ガルクラジオ'],
-            'thumbnail': 'https://d3bzklg4lms4gh.cloudfront.net/program_info/image/default/production/95/a7/6a848c87bebf3ec085d8890f3ce038f9b4dd/image',
             'section_start': 0,
             'series': 'TVアニメ『ガールズバンドクライ』WEBラジオ「ガールズバンドクライ～ラジオにも全部ぶち込め。～」',
             'series_id': 'girls-band-cry-radio',
+            'tags': ['ガールズバンドクライ', 'ガルクラ', 'ガルクラジオ'],
+            'thumbnail': r're:https://d3bzklg4lms4gh\.cloudfront\.net/program_info/image/default/production/.+$',
             'upload_date': '20240425',
             'webpage_url': 'https://www.onsen.ag/program/girls-band-cry-radio?c=MTgwMDE=',
         },
@@ -83,7 +83,7 @@ class OnsenIE(InfoExtractor):
 
     def _get_info(self, program, program_id, metadata):
         m3u8 = program['streaming_url']
-        rd = self._search_regex(f'{program_id}(\\d{{6}})', m3u8, 'release_date', default=None)
+        rd = self._search_regex(rf'{program_id}(\d{{6}})', m3u8, 'release_date', default=None)
         display_id = base64.b64encode(str(program['id']).encode()).decode()
 
         return {
@@ -96,8 +96,8 @@ class OnsenIE(InfoExtractor):
             **traverse_obj(program, {
                 'id': ('id', {str_or_none}),
                 'title': ('title', {strip_or_none}),
-                'thumbnail': ('poster_image_url', {lambda x: x.split('?')[0]}),
                 'media_type': ('media_type', {str}),
+                'thumbnail': ('poster_image_url', {lambda x: x.split('?')[0]}),
             }),
             'cast': metadata['cast'] + traverse_obj(program, ('guests', ..., 'name', {str})),
         }
