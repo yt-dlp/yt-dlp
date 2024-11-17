@@ -141,8 +141,8 @@ class Kenh14PlaylistIE(InfoExtractor):
         return self.playlist_from_matches(
             get_elements_html_by_class('video-item', webpage), playlist_id,
             (clean_html(get_element_by_class('name', category_detail)) or unescapeHTML(embed_info.get('name'))),
-            getter=lambda x: 'https://video.kenh14.vn/video/{}.chn'.format(extract_attributes(x)['data-id']),
-            ie=Kenh14VideoIE.ie_key(), playlist_description=(
+            getter=lambda x: 'https://video.kenh14.vn/video/video-{}.chn'.format(extract_attributes(x)['data-id']),
+            ie=Kenh14VideoIE, playlist_description=(
                 clean_html(get_element_by_class('description', category_detail))
                 or unescapeHTML(embed_info.get('alternateName'))),
             thumbnail=traverse_obj(
