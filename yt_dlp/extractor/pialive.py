@@ -89,38 +89,35 @@ class PiaLiveIE(InfoExtractor):
             'play_url': video_key,
             'api_key': self._API_KEY,
         })
-        api_kwargs = {
-            'video_id': program_code,
+        api_data_and_headers = {
             'data': payload,
             'headers': {'Content-Type': content_type, 'Referer': self._PLAYER_ROOT_URL},
         }
 
         player_tag_list = self._download_json(
-            f'{self._PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}', **api_kwargs,
-            note='Fetching player tag list', errnote='Unable to fetch player tag list')
-        chat_room_url = None
-        if self.get_param('getcomments'):
-            chat_room_url = traverse_obj(self._download_json(
-                f'{self._PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}', **api_kwargs,
-                note='Fetching chat info', errnote='Unable to fetch chat info', fatal=False),
-                ('data', 'chat_one_tag', {extract_attributes}, 'src', {url_or_none}))
+            f'{self._PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}', program_code,
+            'Fetching player tag list', 'Unable to fetch player tag list', **api_data_and_headers)
 
         return self.url_result(
-            extract_attributes(player_tag_list['data']['movie_one_tag'])['src'], url_transparent=True,
-            video_title=title, display_id=program_code, __post_extractor=self.extract_comments(
-                program_code, chat_room_url))
+            extract_attributes(player_tag_list['data']['movie_one_tag'])['src'],
+            url_transparent=True, title=title, display_id=program_code,
+            __post_extractor=self.extract_comments(program_code, article_code, api_data_and_headers))
 
-    def _get_comments(self, video_id, chat_room_url):
+    def _get_comments(self, program_code, article_code, api_data_and_headers):
+        chat_room_url = traverse_obj(self._download_json(
+            f'{self._PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}', program_code,
+            'Fetching chat info', 'Unable to fetch chat info', fatal=False, **api_data_and_headers),
+            ('data', 'chat_one_tag', {extract_attributes}, 'src', {url_or_none}))
         if not chat_room_url:
             return
         comment_page = self._download_webpage(
-            chat_room_url, video_id, headers={'Referer': self._PLAYER_ROOT_URL},
-            note='Fetching comment page', errnote='Unable to fetch comment page', fatal=False)
+            chat_room_url, program_code, 'Fetching comment page', 'Unable to fetch comment page',
+            fatal=False, headers={'Referer': self._PLAYER_ROOT_URL})
         if not comment_page:
             return
         yield from traverse_obj(self._search_json(
             r'var\s+_history\s*=', comment_page, 'comment list',
-            video_id, contains_pattern=r'\[(?s:.+)\]', fatal=False), (..., {
+            program_code, contains_pattern=r'\[(?s:.+)\]', fatal=False), (..., {
                 'timestamp': (0, {int}),
                 'author_is_uploader': (1, {lambda x: x == 2}),
                 'author': (2, {str}),
