@@ -5,7 +5,7 @@ from ..utils import orderedSet
 
 
 class CTVNewsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:.+?\.)?ctvnews\.ca/(?:video\?(?:clip|playlist|bin)Id=|.*?)(?P<id>[0-9.]+)(?:$|[#?])'
+    _VALID_URL = r'https?://(?:.+?\.)?ctvnews\.ca/(?:video\?(?:clip|playlist|bin)Id=|.*?)(?P<id>[0-9.]+)(?:$|[#?&])'
     _TESTS = [{
         'url': 'http://www.ctvnews.ca/video?clipId=901995',
         'md5': 'b608f466c7fa24b9666c6439d766ab7e',
