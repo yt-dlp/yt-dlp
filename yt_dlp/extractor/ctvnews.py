@@ -47,6 +47,12 @@ class CTVNewsIE(InfoExtractor):
         },
         'playlist_mincount': 6,
     }, {
+        'url': 'https://www.ctvnews.ca/business/respondents-to-bank-of-canada-questionnaire-largely-oppose-creating-a-digital-loonie-1.6665797',
+        'info_dict': {
+            'id': '1.6665797',
+        },
+        'playlist_mincount': 1,
+    }, {
         'url': 'http://www.ctvnews.ca/1.810401',
         'only_matching': True,
     }, {
@@ -55,12 +61,6 @@ class CTVNewsIE(InfoExtractor):
     }, {
         'url': 'http://vancouverisland.ctvnews.ca/video?clipId=761241',
         'only_matching': True,
-    }, {
-        'url': 'https://www.ctvnews.ca/business/respondents-to-bank-of-canada-questionnaire-largely-oppose-creating-a-digital-loonie-1.6665797',
-        'info_dict': {
-            'id': '1.6665797',
-        },
-        'playlist_mincount': 1,
     }]
 
     def _real_extract(self, url):
