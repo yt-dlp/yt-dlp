@@ -13,7 +13,7 @@ class CTVNewsIE(InfoExtractor):
         rf'{_BASE_REGEX}video/c{_VIDEO_ID_RE}',
         rf'{_BASE_REGEX}video/?\?clipId={_VIDEO_ID_RE}',
         rf'{_BASE_REGEX}video/?\?(?:playlist|bin)Id={_PLAYLIST_ID_RE}',
-        rf'{_BASE_REGEX}[^?#]*?{_PLAYLIST_ID_RE}',
+        rf'{_BASE_REGEX}(?!video/)[^?#]*?{_PLAYLIST_ID_RE}',
     ]
     _TESTS = [{
         'url': 'http://www.ctvnews.ca/video?clipId=901995',
