@@ -160,17 +160,30 @@ class DigitalConcertHallIE(InfoExtractor):
         self._cache_tokens()
 
     def _perform_login(self, username, password):
-        if username not in ('refresh', 'token'):
-            raise ExtractorError(
-                'Login with username and password is no longer supported '
-                f'for this site. {self._LOGIN_HINT}, {self._REFRESH_HINT}', expected=True)
         self.report_login()
 
-        # Try first with passed refresh_token since user may want to override the cache with it
         if username == 'refresh':
             self._refresh_token = password
             self._fetch_new_tokens()
+
+        if username == 'token':
+            if not traverse_obj(password, {jwt_decode_hs256}):
+                raise ExtractorError(
+                    f'The access token passed to yt-dlp is not valid. {self._LOGIN_HINT}', expected=True)
+            self._set_access_token(password)
+            self._cache_tokens()
+
+        if username in ('refresh', 'token'):
+            if self.get_param('cachedir') is not False:
+                token_type = 'access' if username == 'token' else 'refresh'
+                self.to_screen(f'Your {token_type} token has been cached to disk. To use the cached '
+                               'token next time, pass  --username cache  along with any password')
             return
+
+        if username != 'cache':
+            raise ExtractorError(
+                'Login with username and password is no longer supported '
+                f'for this site. {self._LOGIN_HINT}, {self._REFRESH_HINT}', expected=True)
 
         # Try cached access_token
         cached_tokens = self.cache.load(self._NETRC_MACHINE, 'tokens', default={})
@@ -178,25 +191,9 @@ class DigitalConcertHallIE(InfoExtractor):
         self._refresh_token = cached_tokens.get('refresh_token')
         if not self._access_token_is_expired:
             return
-        if self._access_token:
-            self.write_debug('Cached access token has expired')
-        # Try cached refresh_token
-        if self._refresh_token:
-            try:
-                self._fetch_new_tokens()
-                return
-            except ExtractorError:
-                # Do not raise for cached tokens; invalidate and continue
-                self.write_debug('Cached refresh token has expired; invalidating')
-                # _fetch_new_tokens should've already invalidated access+refresh+cached, but to be sure:
-                self._refresh_token = None
 
-        # username is 'token'
-        if not traverse_obj(password, {jwt_decode_hs256}):
-            raise ExtractorError(
-                f'The access token passed to yt-dlp is not valid. {self._LOGIN_HINT}', expected=True)
-        self._set_access_token(password)
-        self._cache_tokens()
+        # Try cached refresh_token
+        self._fetch_new_tokens(invalidate=True)
 
     def _real_initialize(self):
         if not self._access_token:
