@@ -182,7 +182,7 @@ class DigitalConcertHallIE(InfoExtractor):
             try:
                 return self._fetch_new_tokens()
             except ExtractorError:
-                # Do not raise for caached tokens; invalidate and continue
+                # Do not raise for cached tokens; invalidate and continue
                 self._access_token = None
 
         # username is 'token'
