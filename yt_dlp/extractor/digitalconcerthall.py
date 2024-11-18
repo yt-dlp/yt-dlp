@@ -70,8 +70,8 @@ class DigitalConcertHallIE(InfoExtractor):
         'playlist_count': 1,
     }]
     _LOGIN_HINT = ('Use  --username token --password ACCESS_TOKEN  where ACCESS_TOKEN '
-                   'is the `access_token_production` from your browser local storage')
-    _REFRESH_HINT = 'or else use a `refresh_token` with  --username refresh --password REFRESH_TOKEN'
+                   'is the "access_token_production" from your browser local storage')
+    _REFRESH_HINT = 'or else use a "refresh_token" with  --username refresh --password REFRESH_TOKEN'
     _OAUTH_URL = 'https://api.digitalconcerthall.com/v2/oauth2/token'
     _CLIENT_ID = 'dch.webapp'
     _CLIENT_SECRET = '2ySLN+2Fwb'
@@ -114,7 +114,7 @@ class DigitalConcertHallIE(InfoExtractor):
             self._cache_tokens()
             raise ExtractorError(
                 'Access token has expired or been invalidated. '
-                'Get a new `access_token_production` value from your browser '
+                'Get a new "access_token_production" value from your browser '
                 f'and try again, {self._REFRESH_HINT}', expected=True)
 
         # If we only have a refresh token, we need a temporary "initial token" for the refresh flow
