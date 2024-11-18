@@ -83,7 +83,7 @@ class DigitalConcertHallIE(InfoExtractor):
         'Referer': 'https://www.digitalconcerthall.com/',
         'User-Agent': _USER_AGENT,
     }
-    _real_access_token = None
+    _access_token = None
     _access_token_expiry = 0
     _refresh_token = None
 
@@ -91,50 +91,48 @@ class DigitalConcertHallIE(InfoExtractor):
     def _access_token_is_expired(self):
         return self._access_token_expiry - 30 <= int(time.time())
 
-    @property
-    def _access_token(self):
-        if not self._real_access_token:
-            # return an initial access token that can be used to auth with password or refresh_token
-            return self._download_json(
-                self._OAUTH_URL, None, 'Obtaining initial token', 'Unable to obtain initial token',
-                data=urlencode_postdata({
-                    'affiliate': 'none',
-                    'grant_type': 'device',
-                    'device_vendor': 'unknown',
-                    # device_model 'Safari' gets split streams of 4K/HEVC video and lossless/FLAC audio,
-                    # but this is no longer effective since actual login is not possible anymore
-                    'device_model': 'unknown',
-                    'app_id': self._CLIENT_ID,
-                    'app_distributor': 'berlinphil',
-                    'app_version': '1.95.0',
-                    'client_secret': self._CLIENT_SECRET,
-                }), headers=self._OAUTH_HEADERS)['access_token']
-
-        if self._access_token_is_expired:
-            if not self._refresh_token:
-                raise ExtractorError(
-                    'Access token has expired. Get a new access_token from your browser '
-                    f'and try again, {self._REFRESH_HINT}', expected=True)
-            self._fetch_new_tokens()
-
-        return self._real_access_token
-
-    @_access_token.setter
-    def _access_token(self, value):
-        self._real_access_token = value
+    def _set_access_token(self, value):
+        self._access_token = value
         self._access_token_expiry = traverse_obj(value, ({jwt_decode_hs256}, 'exp', {int})) or 0
 
-    def _set_tokens(self, auth_data):
-        self._access_token = auth_data['access_token']
-        if refresh_token := traverse_obj(auth_data, ('refresh_token', {str})):
-            self.write_debug('New refresh token granted')
-            self._refresh_token = refresh_token
+    def _cache_tokens(self, /):
         self.cache.store(self._NETRC_MACHINE, 'tokens', {
-            'access_token': self._real_access_token,
+            'access_token': self._access_token,
             'refresh_token': self._refresh_token,
         })
 
-    def _fetch_new_tokens(self):
+    def _fetch_new_tokens(self, invalidate=False):
+        if invalidate:
+            self.report_warning('Access token has been invalidated')
+            self._set_access_token(None)
+
+        if not self._access_token_is_expired:
+            return
+
+        if not self._refresh_token:
+            self._set_access_token(None)
+            self._cache_tokens()
+            raise ExtractorError(
+                'Access token has expired or been invalidated. '
+                'Get a new `access_token_production` value from your browser '
+                f'and try again, {self._REFRESH_HINT}', expected=True)
+
+        # If we only have a refresh token, we need a temporary "initial token" for the refresh flow
+        bearer_token = self._access_token or self._download_json(
+            self._OAUTH_URL, None, 'Obtaining initial token', 'Unable to obtain initial token',
+            data=urlencode_postdata({
+                'affiliate': 'none',
+                'grant_type': 'device',
+                'device_vendor': 'unknown',
+                # device_model 'Safari' gets split streams of 4K/HEVC video and lossless/FLAC audio,
+                # but this is no longer effective since actual login is not possible anymore
+                'device_model': 'unknown',
+                'app_id': self._CLIENT_ID,
+                'app_distributor': 'berlinphil',
+                'app_version': '1.95.0',
+                'client_secret': self._CLIENT_SECRET,
+            }), headers=self._OAUTH_HEADERS)['access_token']
+
         try:
             response = self._download_json(
                 self._OAUTH_URL, None, 'Refreshing token', 'Unable to refresh token',
@@ -145,15 +143,21 @@ class DigitalConcertHallIE(InfoExtractor):
                     'client_secret': self._CLIENT_SECRET,
                 }), headers={
                     **self._OAUTH_HEADERS,
-                    'Authorization': f'Bearer {self._real_access_token or self._access_token}',
+                    'Authorization': f'Bearer {bearer_token}',
                 })
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                self._set_access_token(None)
                 self._refresh_token = None
-                self._set_tokens({'access_token': None})
+                self._cache_tokens()
                 raise ExtractorError('Your tokens have been invalidated', expected=True)
             raise
-        self._set_tokens(response)
+
+        self._set_access_token(response['access_token'])
+        if refresh_token := traverse_obj(response, ('refresh_token', {str})):
+            self.write_debug('New refresh token granted')
+            self._refresh_token = refresh_token
+        self._cache_tokens()
 
     def _perform_login(self, username, password):
         if username not in ('refresh', 'token'):
@@ -170,30 +174,32 @@ class DigitalConcertHallIE(InfoExtractor):
 
         # Try cached access_token
         cached_tokens = self.cache.load(self._NETRC_MACHINE, 'tokens', default={})
-        self._access_token = cached_tokens.get('access_token')
+        self._set_access_token(cached_tokens.get('access_token'))
         self._refresh_token = cached_tokens.get('refresh_token')
         if not self._access_token_is_expired:
             return
-        if self._real_access_token:
-            self.write_debug('Cached access token has expired, invalidating')
-            self._access_token = None
+        if self._access_token:
+            self.write_debug('Cached access token has expired')
         # Try cached refresh_token
         if self._refresh_token:
             try:
-                return self._fetch_new_tokens()
+                self._fetch_new_tokens()
+                return
             except ExtractorError:
                 # Do not raise for cached tokens; invalidate and continue
-                self._access_token = None
+                self.write_debug('Cached refresh token has expired; invalidating')
+                # _fetch_new_tokens should've already invalidated access+refresh+cached, but to be sure:
+                self._refresh_token = None
 
         # username is 'token'
         if not traverse_obj(password, {jwt_decode_hs256}):
             raise ExtractorError(
                 f'The access token passed to yt-dlp is not valid. {self._LOGIN_HINT}', expected=True)
-        self._access_token = password
-        self._set_tokens({'access_token': self._access_token})
+        self._set_access_token(password)
+        self._cache_tokens()
 
     def _real_initialize(self):
-        if not self._real_access_token:
+        if not self._access_token:
             self.raise_login_required(
                 'All content on this site is only available for registered users. '
                 f'{self._LOGIN_HINT}, {self._REFRESH_HINT}', method=None)
@@ -203,6 +209,7 @@ class DigitalConcertHallIE(InfoExtractor):
             video_id = item['id']
 
             for should_retry in (True, False):
+                self._fetch_new_tokens(invalidate=not should_retry)
                 try:
                     stream_info = self._download_json(
                         self._proto_relative_url(item['_links']['streams']['href']), video_id, headers={
@@ -214,8 +221,6 @@ class DigitalConcertHallIE(InfoExtractor):
                     break
                 except ExtractorError as error:
                     if should_retry and isinstance(error.cause, HTTPError) and error.cause.status == 401:
-                        self.report_warning('Access token has been invalidated')
-                        self._fetch_new_tokens()
                         continue
                     raise
 
@@ -253,7 +258,6 @@ class DigitalConcertHallIE(InfoExtractor):
                 'Accept': 'application/json',
                 'Accept-Language': language,
                 'User-Agent': self._USER_AGENT,
-                'Authorization': f'Bearer {self._access_token}',
             })
         videos = [vid_info] if type_ == 'film' else traverse_obj(vid_info, ('_embedded', ..., ...))
 
