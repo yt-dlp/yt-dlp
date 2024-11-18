@@ -26,7 +26,6 @@ import xml.etree.ElementTree
 from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
-    compat_os_name,
     urllib_req_to_req,
 )
 from ..cookies import LenientSimpleCookie
@@ -280,6 +279,7 @@ class InfoExtractor:
     thumbnails:     A list of dictionaries, with the following entries:
                         * "id" (optional, string) - Thumbnail format ID
                         * "url"
+                        * "ext" (optional, string) - actual image extension if not given in URL
                         * "preference" (optional, int) - quality of the image
                         * "width" (optional, int)
                         * "height" (optional, int)
@@ -1045,7 +1045,7 @@ class InfoExtractor:
         filename = sanitize_filename(f'{basen}.dump', restricted=True)
         # Working around MAX_PATH limitation on Windows (see
         # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
-        if compat_os_name == 'nt':
+        if os.name == 'nt':
             absfilepath = os.path.abspath(filename)
             if len(absfilepath) > 259:
                 filename = fR'\\?\{absfilepath}'
@@ -3784,7 +3784,7 @@ class InfoExtractor:
         """ Merge subtitle dictionaries, language by language. """
         if target is None:
             target = {}
-        for d in dicts:
+        for d in filter(None, dicts):
             for lang, subs in d.items():
                 target[lang] = cls._merge_subtitle_items(target.get(lang, []), subs)
         return target

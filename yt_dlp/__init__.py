@@ -15,7 +15,6 @@ import re
 import traceback
 import json
 
-from .compat import compat_os_name
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS, CookieLoadError
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
@@ -45,7 +44,6 @@ from .utils import (
     GeoUtils,
     PlaylistEntries,
     SameFileError,
-    decodeOption,
     download_range_func,
     expand_path,
     float_or_none,
@@ -924,8 +922,8 @@ def parse_options(argv=None):
         'listsubtitles': opts.listsubtitles,
         'subtitlesformat': opts.subtitlesformat,
         'subtitleslangs': opts.subtitleslangs,
-        'matchtitle': decodeOption(opts.matchtitle),
-        'rejecttitle': decodeOption(opts.rejecttitle),
+        'matchtitle': opts.matchtitle,
+        'rejecttitle': opts.rejecttitle,
         'max_downloads': opts.max_downloads,
         'prefer_free_formats': opts.prefer_free_formats,
         'trim_file_name': opts.trim_file_name,
@@ -1094,7 +1092,7 @@ def _real_main(argv=None):
             ydl.warn_if_short_id(args)
 
             # Show a useful error message and wait for keypress if not launched from shell on Windows
-            if not args and compat_os_name == 'nt' and getattr(sys, 'frozen', False):
+            if not args and os.name == 'nt' and getattr(sys, 'frozen', False):
                 import ctypes.wintypes
                 import msvcrt
 

@@ -342,8 +342,9 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     extractor plugins; postprocessor plugins can
                                     only be loaded from the default plugin
                                     directories
-    --flat-playlist                 Do not extract the videos of a playlist,
-                                    only list them
+    --flat-playlist                 Do not extract a playlist's URL result
+                                    entries; some entry metadata may be missing
+                                    and downloading may be bypassed
     --no-flat-playlist              Fully extract the videos of a playlist
                                     (default)
     --live-from-start               Download livestreams from the start.
@@ -1768,7 +1769,7 @@ The following extractors use this feature:
 #### youtube
 * `lang`: Prefer translated metadata (`title`, `description` etc) of this language code (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube.py](https://github.com/yt-dlp/yt-dlp/blob/c26f9b991a0681fd3ea548d535919cec1fbbd430/yt_dlp/extractor/youtube.py#L381-L390) for list of supported content language codes
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
-* `player_client`: Clients to extract video data from. The main clients are `web`, `ios` and `android`, with variants `_music` and `_creator` (e.g. `ios_creator`); and `mweb`, `mediaconnect`, `android_testsuite`, `android_vr`, `web_safari`, `web_embedded`, `tv` and `tv_embedded` with no variants. By default, `ios,mweb` is used, and `web_creator,mediaconnect` is added as needed for age-gated videos when account age verification is required. Similarly, the `_music` variants are added for `music.youtube.com` URLs. Some clients, such as `web` and `android`, require a `po_token` for their formats to be downloadable. Some clients, such as the `_creator` variants, will only work with authentication. You can use `all` to use all the clients, and `default` for the default clients. You can prefix a client with `-` to exclude it, e.g. `youtube:player_client=all,-web`
+* `player_client`: Clients to extract video data from. The main clients are `web`, `ios` and `android`, with variants `_music` and `_creator` (e.g. `ios_creator`); and `mweb`, `mediaconnect`, `android_vr`, `web_safari`, `web_embedded`, `tv` and `tv_embedded` with no variants. By default, `ios,mweb` is used, and `web_creator` is added as needed for age-gated videos when account age verification is required. Similarly, the `_music` variants are added for `music.youtube.com` URLs. Some clients, such as `web` and `android`, require a `po_token` for their formats to be downloadable. Some clients, such as the `_creator` variants, will only work with authentication. You can use `all` to use all the clients, and `default` for the default clients. You can prefix a client with `-` to exclude it, e.g. `youtube:player_client=all,-web`
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
 * `player_params`: YouTube player parameters to use for player requests. Will overwrite any default ones set by yt-dlp.
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
@@ -1866,8 +1867,8 @@ The following extractors use this feature:
 #### bilibili
 * `prefer_multi_flv`: Prefer extracting flv formats over mp4 for older videos that still provide legacy formats
 
-#### digitalconcerthall
-* `prefer_combined_hls`: Prefer extracting combined/pre-merged video and audio HLS formats. This will exclude 4K/HEVC video and lossless/FLAC audio formats, which are only available as split video/audio HLS formats
+#### sonylivseries
+* `sort_order`: Episode sort order for series extraction - one of `asc` (ascending, oldest first) or `desc` (descending, newest first). Default is `asc`
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
