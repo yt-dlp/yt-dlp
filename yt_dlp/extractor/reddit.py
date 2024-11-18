@@ -259,6 +259,8 @@ class RedditIE(InfoExtractor):
                 f'https://www.reddit.com/{slug}/.json', video_id, expected_status=403)
         except ExtractorError as e:
             if isinstance(e.cause, json.JSONDecodeError):
+                if self._get_cookies('https://www.reddit.com/').get('reddit_session'):
+                    raise ExtractorError('Your IP address is unable to access the Reddit API', expected=True)
                 self.raise_login_required('Account authentication is required')
             raise
 
