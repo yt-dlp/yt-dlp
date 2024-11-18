@@ -69,9 +69,9 @@ class DigitalConcertHallIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
         'playlist_count': 1,
     }]
-    _LOGIN_HINT = ('Use  --username token --password ACCESS_TOKEN  where ACCESS_TOKEN'
+    _LOGIN_HINT = ('Use  --username token --password ACCESS_TOKEN  where ACCESS_TOKEN '
                    'is the `access_token_production` from your browser local storage')
-    _REFRESH_HINT = 'or else use a refresh_token with  --username refresh --password REFRESH_TOKEN'
+    _REFRESH_HINT = 'or else use a `refresh_token` with  --username refresh --password REFRESH_TOKEN'
     _OAUTH_URL = 'https://api.digitalconcerthall.com/v2/oauth2/token'
     _CLIENT_ID = 'dch.webapp'
     _CLIENT_SECRET = '2ySLN+2Fwb'
@@ -194,7 +194,9 @@ class DigitalConcertHallIE(InfoExtractor):
 
     def _real_initialize(self):
         if not self._real_access_token:
-            self.raise_login_required(f'{self._LOGIN_HINT}, {self._REFRESH_HINT}', method=None)
+            self.raise_login_required(
+                'All content on this site is only available for registered users. '
+                f'{self._LOGIN_HINT}, {self._REFRESH_HINT}', method=None)
 
     def _entries(self, items, language, type_, **kwargs):
         for item in items:
