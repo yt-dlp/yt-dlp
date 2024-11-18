@@ -202,7 +202,7 @@ class DigitalConcertHallIE(InfoExtractor):
         for item in items:
             video_id = item['id']
 
-            for retry in (True, False):
+            for should_retry in (True, False):
                 try:
                     stream_info = self._download_json(
                         self._proto_relative_url(item['_links']['streams']['href']), video_id, headers={
@@ -213,7 +213,7 @@ class DigitalConcertHallIE(InfoExtractor):
                         })
                     break
                 except ExtractorError as error:
-                    if retry and isinstance(error.cause, HTTPError) and error.cause.status == 401:
+                    if should_retry and isinstance(error.cause, HTTPError) and error.cause.status == 401:
                         self.report_warning('Access token has been invalidated')
                         self._fetch_new_tokens()
                         continue
