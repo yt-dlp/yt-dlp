@@ -1867,9 +1867,6 @@ The following extractors use this feature:
 #### bilibili
 * `prefer_multi_flv`: Prefer extracting flv formats over mp4 for older videos that still provide legacy formats
 
-#### digitalconcerthall
-* `prefer_combined_hls`: Prefer extracting combined/pre-merged video and audio HLS formats. This will exclude 4K/HEVC video and lossless/FLAC audio formats, which are only available as split video/audio HLS formats
-
 #### sonylivseries
 * `sort_order`: Episode sort order for series extraction - one of `asc` (ascending, oldest first) or `desc` (descending, newest first). Default is `asc`
 
