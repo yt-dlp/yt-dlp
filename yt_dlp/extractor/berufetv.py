@@ -16,7 +16,7 @@ class BerufeTVIE(InfoExtractor):
             'tags': ['Studienfilm'],
             'duration': 602.440,
             'thumbnail': r're:^https://asset-out-cdn\.video-cdn\.net/private/videos/DvKC3DUpMKvUZ_6fEnfg3u/thumbnails/793063\?quality=thumbnail&__token__=[^\s]+$',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -54,7 +54,7 @@ class BerufeTVIE(InfoExtractor):
             subtitles.setdefault(track['language'], []).append({
                 'url': track['source'],
                 'name': track.get('label'),
-                'ext': 'vtt'
+                'ext': 'vtt',
             })
 
         return {

@@ -7,21 +7,19 @@ import time
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import compat_b64decode
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    ass_subtitles_timecode,
-    bytes_to_intlist,
-    bytes_to_long,
     ExtractorError,
+    ass_subtitles_timecode,
+    bytes_to_long,
     float_or_none,
     int_or_none,
-    intlist_to_bytes,
+    join_nonempty,
     long_to_bytes,
     parse_iso8601,
     pkcs1pad,
-    strip_or_none,
     str_or_none,
+    strip_or_none,
     try_get,
     unified_strdate,
     urlencode_postdata,
@@ -49,9 +47,9 @@ class ADNBaseIE(InfoExtractor):
 
 
 class ADNIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/[^/?#]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?animationdigitalnetwork\.com/(?:(?P<lang>de)/)?video/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://animationdigitalnetwork.fr/video/fruits-basket/9841-episode-1-a-ce-soir',
+        'url': 'https://animationdigitalnetwork.com/video/558-fruits-basket/9841-episode-1-a-ce-soir',
         'md5': '1c9ef066ceb302c86f80c2b371615261',
         'info_dict': {
             'id': '9841',
@@ -71,10 +69,7 @@ class ADNIE(ADNBaseIE):
         },
         'skip': 'Only available in French and German speaking Europe',
     }, {
-        'url': 'http://animedigitalnetwork.fr/video/blue-exorcist-kyoto-saga/7778-episode-1-debut-des-hostilites',
-        'only_matching': True,
-    }, {
-        'url': 'https://animationdigitalnetwork.de/video/the-eminence-in-shadow/23550-folge-1',
+        'url': 'https://animationdigitalnetwork.com/de/video/973-the-eminence-in-shadow/23550-folge-1',
         'md5': '5c5651bf5791fa6fcd7906012b9d94e8',
         'info_dict': {
             'id': '23550',
@@ -111,9 +106,9 @@ class ADNIE(ADNBaseIE):
 
         # http://animationdigitalnetwork.fr/components/com_vodvideo/videojs/adn-vjs.min.js
         dec_subtitles = unpad_pkcs7(aes_cbc_decrypt_bytes(
-            compat_b64decode(enc_subtitles[24:]),
+            base64.b64decode(enc_subtitles[24:]),
             binascii.unhexlify(self._K + '7fac1178830cfe0c'),
-            compat_b64decode(enc_subtitles[:24])))
+            base64.b64decode(enc_subtitles[:24])))
         subtitles_json = self._parse_json(dec_subtitles.decode(), None, fatal=False)
         if not subtitles_json:
             return None
@@ -136,7 +131,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 if start is None or end is None or text is None:
                     continue
                 alignment = self._POS_ALIGN_MAP.get(position_align, 2) + self._LINE_ALIGN_MAP.get(line_align, 0)
-                ssa += os.linesep + 'Dialogue: Marked=0,%s,%s,Default,,0,0,0,,%s%s' % (
+                ssa += os.linesep + 'Dialogue: Marked=0,{},{},Default,,0,0,0,,{}{}'.format(
                     ass_subtitles_timecode(start),
                     ass_subtitles_timecode(end),
                     '{\\a%d}' % alignment if alignment != 2 else '',
@@ -167,7 +162,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                     'username': username,
                 })) or {}).get('accessToken')
             if access_token:
-                self._HEADERS = {'authorization': 'Bearer ' + access_token}
+                self._HEADERS['Authorization'] = f'Bearer {access_token}'
         except ExtractorError as e:
             message = None
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
@@ -178,7 +173,8 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
-        video_base_url = self._PLAYER_BASE_URL + 'video/%s/' % video_id
+        self._HEADERS['X-Target-Distribution'] = lang or 'fr'
+        video_base_url = self._PLAYER_BASE_URL + f'video/{video_id}/'
         player = self._download_json(
             video_base_url + 'configuration', video_id,
             'Downloading player config JSON metadata',
@@ -200,16 +196,16 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
         links_url = try_get(options, lambda x: x['video']['url']) or (video_base_url + 'link')
         self._K = ''.join(random.choices('0123456789abcdef', k=16))
-        message = bytes_to_intlist(json.dumps({
+        message = list(json.dumps({
             'k': self._K,
             't': token,
-        }))
+        }).encode())
 
         # Sometimes authentication fails for no good reason, retry with
         # a different random padding
         links_data = None
         for _ in range(3):
-            padded_message = intlist_to_bytes(pkcs1pad(message, 128))
+            padded_message = bytes(pkcs1pad(message, 128))
             n, e = self._RSA_KEY
             encrypted_message = long_to_bytes(pow(bytes_to_long(padded_message), e, n))
             authorization = base64.b64encode(encrypted_message).decode()
@@ -218,13 +214,12 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 links_data = self._download_json(
                     links_url, video_id, 'Downloading links JSON metadata', headers={
                         'X-Player-Token': authorization,
-                        'X-Target-Distribution': lang,
-                        **self._HEADERS
+                        **self._HEADERS,
                     }, query={
                         'freeWithAds': 'true',
                         'adaptive': 'false',
                         'withMetadata': 'true',
-                        'source': 'Web'
+                        'source': 'Web',
                     })
                 break
             except ExtractorError as e:
@@ -256,7 +251,8 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             for quality, load_balancer_url in qualities.items():
                 load_balancer_data = self._download_json(
                     load_balancer_url, video_id,
-                    'Downloading %s %s JSON metadata' % (format_id, quality),
+                    f'Downloading {format_id} {quality} JSON metadata',
+                    headers=self._HEADERS,
                     fatal=False) or {}
                 m3u8_url = load_balancer_data.get('location')
                 if not m3u8_url:
@@ -276,8 +272,8 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             self.raise_login_required('This video requires a subscription', method='password')
 
         video = (self._download_json(
-            self._API_BASE_URL + 'video/%s' % video_id, video_id,
-            'Downloading additional video metadata', fatal=False) or {}).get('video') or {}
+            self._API_BASE_URL + f'video/{video_id}', video_id,
+            'Downloading additional video metadata', fatal=False, headers=self._HEADERS) or {}).get('video') or {}
         show = video.get('show') or {}
 
         return {
@@ -299,9 +295,9 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
 
 class ADNSeasonIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/(?P<id>[^/?#]+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?animationdigitalnetwork\.com/(?:(?P<lang>de)/)?video/(?P<id>\d+)[^/?#]*/?(?:$|[#?])'
     _TESTS = [{
-        'url': 'https://animationdigitalnetwork.fr/video/tokyo-mew-mew-new',
+        'url': 'https://animationdigitalnetwork.com/video/911-tokyo-mew-mew-new',
         'playlist_count': 12,
         'info_dict': {
             'id': '911',
@@ -312,24 +308,22 @@ class ADNSeasonIE(ADNBaseIE):
 
     def _real_extract(self, url):
         lang, video_show_slug = self._match_valid_url(url).group('lang', 'id')
+        self._HEADERS['X-Target-Distribution'] = lang or 'fr'
         show = self._download_json(
             f'{self._API_BASE_URL}show/{video_show_slug}/', video_show_slug,
             'Downloading show JSON metadata', headers=self._HEADERS)['show']
         show_id = str(show['id'])
         episodes = self._download_json(
             f'{self._API_BASE_URL}video/show/{show_id}', video_show_slug,
-            'Downloading episode list', headers={
-                'X-Target-Distribution': lang,
-                **self._HEADERS
-            }, query={
+            'Downloading episode list', headers=self._HEADERS, query={
                 'order': 'asc',
                 'limit': '-1',
             })
 
         def entries():
             for episode_id in traverse_obj(episodes, ('videos', ..., 'id', {str_or_none})):
-                yield self.url_result(
-                    f'https://animationdigitalnetwork.{lang}/video/{video_show_slug}/{episode_id}',
-                    ADNIE, episode_id)
+                yield self.url_result(join_nonempty(
+                    'https://animationdigitalnetwork.com', lang, 'video',
+                    video_show_slug, episode_id, delim='/'), ADNIE, episode_id)
 
         return self.playlist_result(entries(), show_id, show.get('title'))
