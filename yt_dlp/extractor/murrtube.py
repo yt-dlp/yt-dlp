@@ -97,7 +97,7 @@ class MurrtubePlaylistIE(MurrtubeBaseIE):
     IE_NAME = 'murrtube:playlist'
 
     _PAGE_SIZE = 20
-    _VALID_URL = r'https?://murrtube\.net/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://murrtube\.net/(?P<id>[\w-]+)(?:\?|$)'
     _TESTS = [{
         'url': 'https://murrtube.net/stormy',
         'info_dict': {
