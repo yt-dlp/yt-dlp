@@ -13,7 +13,7 @@ from ..utils.traversal import traverse_obj
 
 class OnsenIE(InfoExtractor):
     IE_NAME = 'onsen'
-    IE_DESC = '音泉'
+    IE_DESC = 'インターネットラジオステーション＜音泉＞'
 
     _BASE_URL = 'https://www.onsen.ag/'
     _HEADERS = {'Referer': _BASE_URL}
