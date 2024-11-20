@@ -5,9 +5,9 @@ from ..utils import (
     determine_ext,
     int_or_none,
     join_nonempty,
+    traverse_obj,
     unified_strdate,
     update_url_query,
-    traverse_obj,
 )
 
 
@@ -105,7 +105,7 @@ class DisneyIE(InfoExtractor):
                 r'Grill\.burger\s*=\s*({.+})\s*:',
                 webpage, 'grill data'))
             video_data = next(traverse_obj(s, ('data', 0, 'video')) or traverse_obj(s, ('data', 0)) for s in self._parse_json(grill,
-             display_id)['stack'] if s.get('type') in ('video', 'flexcontenthero'))
+                                                                                                                              display_id)['stack'] if s.get('type') in ('video', 'flexcontenthero'))
         else:
             webpage = self._download_webpage(
                 f'http://{domain}/embed/{video_id}', video_id, headers={'user-agent': self._USER_AGENT})
@@ -128,7 +128,7 @@ class DisneyIE(InfoExtractor):
             if '/emea-exit/' in flavor_url:
                 webpage = self._download_webpage(flavor_url, display_id, headers={'user-agent': self._USER_AGENT}, note=False)
                 flavor_url = self._search_regex(r'rel="canonical" href="([^"]+)',
-                webpage, 'redirect url')
+                                                webpage, 'redirect url')
             if not flavor_url or not re.match(r'https?://', flavor_url) or flavor_format == 'mp4_access':
                 continue
             tbr = int_or_none(flavor.get('bitrate'))
@@ -182,7 +182,7 @@ class DisneyIE(InfoExtractor):
             'description': video_data.get('description') or video_data.get('short_desc'),
             'thumbnail': video_data.get('thumb') or video_data.get('thumb_secure'),
             'duration': int_or_none(video_data.get('duration_sec')),
-            'upload_date': unified_strdate(video_data.get('publish_date')) or re.sub(r'\D', '', video_data.get('content_date').split('T')[0]),
+            'upload_date': unified_strdate(video_data.get('publish_date')) or re.sub(r'\D', '', video_data.get('content_date', '').split('T')[0]),
             'formats': formats,
             'subtitles': subtitles,
         }
