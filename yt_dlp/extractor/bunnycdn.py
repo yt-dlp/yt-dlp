@@ -122,7 +122,7 @@ class BunnyCDNIE(InfoExtractor):
             query=traverse_obj(parse_qs(url), {'token': 'token', 'expires': 'expires'}))
 
         if html_title := self._html_extract_title(webpage, default=None) == '403':
-            raise ExtractorError('This video is inaccessible. Consider passing a Referer', expected=True)
+            raise ExtractorError('This video is inaccessible. Setting a Referer header might be required to access the video', expected=True)
         elif html_title == '404':
             raise ExtractorError('This video does not exist', expected=True)
 
