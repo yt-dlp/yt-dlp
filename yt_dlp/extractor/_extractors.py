@@ -2354,10 +2354,6 @@ from .vimm import (
     VimmIE,
     VimmRecordingIE,
 )
-from .vine import (
-    VineIE,
-    VineUserIE,
-)
 from .viously import ViouslyIE
 from .viqeo import ViqeoIE
 from .viu import (
