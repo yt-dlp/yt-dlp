@@ -76,6 +76,22 @@ class DisneyIE(InfoExtractor):
     }, {
         'url': 'http://disneyjunior.disney.com/galactech-the-galactech-grab-galactech-an-admiral-rescue',
         'only_matching': True,
+    }, {
+        # Grill.burger
+        'url': 'http://kids.disney.co.jp/video/3178',
+        'info_dict': {
+            'id': '5e926e4097ecfebd6b4f2a72',
+            'ext': 'mp4',
+            'title': '本編第1話（ほんぺんだい1わ） マーベル アルティメット・スパイダーマン\u3000ウェブ・ウォーリアーズ',
+            'upload_date': '20221018',
+            'description': 'md5:7978279f5a9b79e350613b8e0a507c24',
+            'duration': 1320,
+            'thumbnail': 'https://lumiere-a.akamaihd.net/v1/images/26412_32232_31532_1_35441_12510_12540_12505_12523_12450_1e89505b.jpeg?region=0%2C0%2C1280%2C720',
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
     }]
 
     # https://www.starwars.com times out with the default user-agent
@@ -166,7 +182,7 @@ class DisneyIE(InfoExtractor):
             'description': video_data.get('description') or video_data.get('short_desc'),
             'thumbnail': video_data.get('thumb') or video_data.get('thumb_secure'),
             'duration': int_or_none(video_data.get('duration_sec')),
-            'upload_date': unified_strdate(video_data.get('publish_date')),
+            'upload_date': unified_strdate(video_data.get('publish_date')) or re.sub(r'\D', '', video_data.get('content_date').split('T')[0]),
             'formats': formats,
             'subtitles': subtitles,
         }
