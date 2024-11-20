@@ -8,6 +8,7 @@ from ..utils import (
     str_or_none,
     try_call,
     unified_timestamp,
+    update_url_query,
 )
 from ..utils.traversal import traverse_obj
 
@@ -80,11 +81,20 @@ class DuoplayIE(InfoExtractor):
         if not video_player or not video_player.get('manifest-url'):
             raise ExtractorError('No video found', expected=True)
 
+        manifest_url = video_player['manifest-url']
+        session_token = self._download_json(
+            'https://sts.postimees.ee/session/register', video_id, 'Registering session',
+            'Unable to register session', headers={
+                'Accept': 'application/json',
+                'X-Original-URI': manifest_url,
+            })['session']
+        manifest_url = update_url_query(manifest_url, {'s': session_token})
+
         episode_attr = self._parse_json(video_player.get(':episode') or '', video_id, fatal=False) or {}
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(video_player['manifest-url'], video_id, 'mp4'),
+            'formats': self._extract_m3u8_formats(manifest_url, video_id, 'mp4'),
             **traverse_obj(episode_attr, {
                 'title': 'title',
                 'description': 'synopsis',
