@@ -13,7 +13,8 @@ from ..utils.traversal import traverse_obj
 
 
 class DuoplayIE(InfoExtractor):
-    _VALID_URL = r'https?://duoplay\.ee/(?P<id>\d+)/[\w-]+/?(?:\?(?:[^#]+&)?ep=(?P<ep>\d+))?'
+    # https://duoplay.ee/9644?ep=185
+    _VALID_URL = r'https?://duoplay\.ee/(?P<id>\d+)(?:/[\w-]+/?(?:\?(?:[^#]+&))?ep=(?P<ep>\d+))?'
     _TESTS = [{
         'note': 'Siberi võmm S02E12',
         'url': 'https://duoplay.ee/4312/siberi-vomm?ep=24',
