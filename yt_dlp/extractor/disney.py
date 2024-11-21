@@ -104,8 +104,7 @@ class DisneyIE(InfoExtractor):
             grill = re.sub(r'"\s*\+\s*"', '', self._search_regex(
                 r'Grill\.burger\s*=\s*({.+})\s*:',
                 webpage, 'grill data'))
-            video_data = next(traverse_obj(s, ('data', 0, 'video')) or traverse_obj(s, ('data', 0)) for s in self._parse_json(grill,
-                                                                                                                              display_id)['stack'] if s.get('type') in ('video', 'flexcontenthero'))
+            video_data = next(traverse_obj(s, ('data', 0, 'video'), ('data', 0)) for s in self._parse_json(grill, display_id)['stack'] if s.get('type') in ('video', 'flexcontenthero'))
         else:
             webpage = self._download_webpage(
                 f'http://{domain}/embed/{video_id}', video_id, headers={'user-agent': self._USER_AGENT})
@@ -126,9 +125,8 @@ class DisneyIE(InfoExtractor):
             flavor_format = flavor.get('format')
             flavor_url = flavor.get('url')
             if '/emea-exit/' in flavor_url:
-                webpage = self._download_webpage(flavor_url, display_id, headers={'user-agent': self._USER_AGENT}, note=False)
-                flavor_url = self._search_regex(r'rel="canonical" href="([^"]+)',
-                                                webpage, 'redirect url')
+                webpage = self._download_webpage(flavor_url, display_id, headers={'user-agent': self._USER_AGENT}, note=f"Resolving format URL redirect: {flavor_format} {flavor.get('height')}p")
+                flavor_url = self._search_regex(r'rel="canonical" href="([^"]+)', webpage, 'redirect url')
             if not flavor_url or not re.match(r'https?://', flavor_url) or flavor_format == 'mp4_access':
                 continue
             tbr = int_or_none(flavor.get('bitrate'))
