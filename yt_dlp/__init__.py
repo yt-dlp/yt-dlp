@@ -1109,9 +1109,9 @@ def main(argv=None):
 from .extractor import gen_extractors, list_extractors
 
 __all__ = [
-    'main',
     'YoutubeDL',
-    'parse_options',
     'gen_extractors',
     'list_extractors',
+    'main',
+    'parse_options',
 ]
