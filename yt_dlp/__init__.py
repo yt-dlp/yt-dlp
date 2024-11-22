@@ -1062,7 +1062,7 @@ def _real_main(argv=None):
                 # If we only have a single process attached, then the executable was double clicked
                 # When using `pyinstaller` with `--onefile`, two processes get attached
                 is_onefile = hasattr(sys, '_MEIPASS') and os.path.basename(sys._MEIPASS).startswith('_MEI')
-                if attached_processes == 1 or is_onefile and attached_processes == 2:
+                if attached_processes == 1 or (is_onefile and attached_processes == 2):
                     print(parser._generate_error_message(
                         'Do not double-click the executable, instead call it from a command line.\n'
                         'Please read the README for further information on how to use yt-dlp: '
