@@ -76,8 +76,7 @@ class ExternalFD(FragmentFD):
             return True
         else:
             self.to_stderr('\n')
-            self.report_error('%s exited with code %d' % (
-                self.get_basename(), retval))
+            self.report_error(f'{self.get_basename()} exited with code {retval}')
             return False
 
     @classmethod

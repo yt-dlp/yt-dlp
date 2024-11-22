@@ -320,7 +320,7 @@ class RTBFIE(RedBeeBaseIE):
                 del f['protocol']
                 f.update({
                     'format_id': m3u8_f['format_id'].replace('hls-', 'http-'),
-                    'url': re.sub(height_re, '-%dp.' % height, http_url),
+                    'url': re.sub(height_re, f'-{height}p.', http_url),
                 })
                 formats.append(f)
         else:

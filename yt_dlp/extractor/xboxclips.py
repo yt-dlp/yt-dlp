@@ -43,7 +43,7 @@ class XboxClipsIE(InfoExtractor):
             r'>Recorded: (\d{2})-(Jan|Feb|Mar|Apr|May|Ju[nl]|Aug|Sep|Oct|Nov|Dec)-(\d{4})',
             webpage)
         if mobj:
-            upload_date = '%s%.2d%s' % (mobj.group(3), month_by_abbreviation(mobj.group(2)), mobj.group(1))
+            upload_date = f'{mobj.group(3)}{month_by_abbreviation(mobj.group(2)):02d}{mobj.group(1)}'
         filesize = parse_filesize(self._html_search_regex(
             r'>Size: ([^<]+)<', webpage, 'file size', fatal=False))
         duration = int_or_none(self._html_search_regex(

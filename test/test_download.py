@@ -199,14 +199,14 @@ def generator(test_case, tname):
                     self,
                     len(res_dict['entries']),
                     test_case['playlist_mincount'],
-                    'Expected at least %d in playlist %s, but got only %d' % (
+                    'Expected at least {} in playlist {}, but got only {}'.format(
                         test_case['playlist_mincount'], test_case['url'],
                         len(res_dict['entries'])))
             if 'playlist_count' in test_case:
                 self.assertEqual(
                     len(res_dict['entries']),
                     test_case['playlist_count'],
-                    'Expected %d entries in playlist %s, but got %d.' % (
+                    'Expected {} entries in playlist {}, but got {}.'.format(
                         test_case['playlist_count'],
                         test_case['url'],
                         len(res_dict['entries']),

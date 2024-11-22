@@ -113,7 +113,7 @@ class LeIE(InfoExtractor):
             if flag == 1:
                 self.raise_geo_restricted()
             else:
-                raise ExtractorError('Generic error. flag = %d' % flag, expected=True)
+                raise ExtractorError(f'Generic error. flag = {flag}', expected=True)
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
@@ -318,7 +318,7 @@ class LetvCloudIE(InfoExtractor):
             if play_json.get('message'):
                 raise ExtractorError('Letv cloud said: {}'.format(play_json['message']), expected=True)
             elif play_json.get('code'):
-                raise ExtractorError('Letv cloud returned error %d' % play_json['code'], expected=True)
+                raise ExtractorError('Letv cloud returned error {}'.format(play_json['code']), expected=True)
             else:
                 raise ExtractorError('Letv cloud returned an unknown error')
 

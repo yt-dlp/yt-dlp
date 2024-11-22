@@ -37,8 +37,8 @@ class FranceInterIE(InfoExtractor):
         if upload_date_str:
             upload_date_list = upload_date_str.split()
             upload_date_list.reverse()
-            upload_date_list[1] = '%02d' % (month_by_name(upload_date_list[1], lang='fr') or 0)
-            upload_date_list[2] = '%02d' % int(upload_date_list[2])
+            upload_date_list[1] = f'{(month_by_name(upload_date_list[1], lang="fr") or 0):02d}'
+            upload_date_list[2] = f'{int(upload_date_list[2]):02d}'
             upload_date = ''.join(upload_date_list)
         else:
             upload_date = None

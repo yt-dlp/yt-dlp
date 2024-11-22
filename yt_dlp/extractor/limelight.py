@@ -124,7 +124,7 @@ class LimelightBaseIE(InfoExtractor):
                 if rtmp:
                     format_id = 'rtmp'
                     if stream.get('videoBitRate'):
-                        format_id += '-%d' % int_or_none(stream['videoBitRate'])
+                        format_id += '-{}'.format(int_or_none(stream['videoBitRate']))
                     http_format_id = format_id.replace('rtmp', 'http')
 
                     CDN_HOSTS = (

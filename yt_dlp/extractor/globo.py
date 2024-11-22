@@ -114,7 +114,7 @@ class GloboIE(InfoExtractor):
                     f'{self.IE_NAME} returned error: {message}', expected=True)
 
         hash_code = security_hash[:2]
-        padding = '%010d' % random.randint(1, 10000000000)
+        padding = f'{random.randint(1, 10000000000):010d}'
         if hash_code in ('04', '14'):
             received_time = security_hash[3:13]
             received_md5 = security_hash[24:]

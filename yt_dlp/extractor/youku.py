@@ -165,7 +165,7 @@ class YoukuIE(InfoExtractor):
                 raise ExtractorError(
                     'Youku said: Sorry, this video is private', expected=True)
             else:
-                msg = 'Youku server reported error %i' % error.get('code')
+                msg = f'Youku server reported error {error.get("code")}'
                 if error_note is not None:
                     msg += ': ' + clean_html(error_note)
                 raise ExtractorError(msg)

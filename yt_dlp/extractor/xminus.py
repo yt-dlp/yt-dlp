@@ -61,7 +61,7 @@ class XMinusIE(InfoExtractor):
             'encoded data')
         h = time.time() / 3600
         a = sum(map(int, [compat_ord(c) for c in k])) + int(video_id) + h
-        video_url = 'http://x-minus.me/dl/minus?id=%s&tkn2=%df%d' % (video_id, a, h)
+        video_url = f'http://x-minus.me/dl/minus?id={video_id}&tkn2={a}f{h}'
 
         return {
             'id': video_id,

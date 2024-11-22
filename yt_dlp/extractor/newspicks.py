@@ -48,6 +48,6 @@ class NewsPicksIE(InfoExtractor):
             'description': description,
             'channel': channel,
             'channel_id': channel_id,
-            'release_date': ('%04d%02d%02d' % tuple(map(int, release_date))) if release_date else None,
+            'release_date': ('{:04d}{:02d}{:02d}'.format(*map(int, release_date))) if release_date else None,
         })
         return info

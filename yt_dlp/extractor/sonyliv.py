@@ -146,7 +146,7 @@ class SonyLIVIE(InfoExtractor):
             self.report_drm(video_id)
         dash_url = content['videoURL']
         headers = {
-            'x-playback-session-id': '%s-%d' % (uuid.uuid4().hex, time.time() * 1000),
+            'x-playback-session-id': f'{uuid.uuid4().hex}-{int(time.time() * 1000)}',
         }
         formats = self._extract_mpd_formats(
             dash_url, video_id, mpd_id='dash', headers=headers, fatal=False)

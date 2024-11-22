@@ -74,7 +74,7 @@ class XstreamIE(InfoExtractor):
                     'app': mobj.group('app'),
                     'ext': 'flv',
                     'tbr': tbr,
-                    'format_id': 'rtmp-%d' % tbr,
+                    'format_id': f'rtmp-{tbr}',
                 })
             else:
                 formats.append({

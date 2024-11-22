@@ -724,8 +724,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             metadata_file_content = ';FFMETADATA1\n'
             for chapter in chapters:
                 metadata_file_content += '[CHAPTER]\nTIMEBASE=1/1000\n'
-                metadata_file_content += 'START=%d\n' % (chapter['start_time'] * 1000)
-                metadata_file_content += 'END=%d\n' % (chapter['end_time'] * 1000)
+                metadata_file_content += f'START={int(chapter["start_time"] * 1000)}\n'
+                metadata_file_content += f'END={int(chapter["end_time"] * 1000)}\n'
                 chapter_title = chapter.get('title')
                 if chapter_title:
                     metadata_file_content += f'title={ffmpeg_escape(chapter_title)}\n'
@@ -1042,7 +1042,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
             return
 
         chapter['filepath'] = destination
-        self.to_screen('Chapter %03d; Destination: %s' % (number, destination))
+        self.to_screen(f'Chapter {number:03d}; Destination: {destination}')
         return (
             destination,
             ['-ss', str(chapter['start_time']),

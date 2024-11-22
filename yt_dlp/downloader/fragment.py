@@ -109,7 +109,7 @@ class FragmentFD(FileDownloader):
             frag_index_stream.close()
 
     def _download_fragment(self, ctx, frag_url, info_dict, headers=None, request_data=None):
-        fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], ctx['fragment_index'])
+        fragment_filename = '{}-Frag{}'.format(ctx['tmpfilename'], ctx['fragment_index'])
         fragment_info_dict = {
             'url': frag_url,
             'http_headers': headers or info_dict.get('http_headers'),
@@ -156,10 +156,10 @@ class FragmentFD(FileDownloader):
 
     def _prepare_frag_download(self, ctx):
         if not ctx.setdefault('live', False):
-            total_frags_str = '%d' % ctx['total_frags']
+            total_frags_str = str(ctx['total_frags'])
             ad_frags = ctx.get('ad_frags', 0)
             if ad_frags:
-                total_frags_str += ' (not including %d ad)' % ad_frags
+                total_frags_str += f' (not including {ad_frags} ad)'
         else:
             total_frags_str = 'unknown (live)'
         self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
@@ -322,10 +322,10 @@ class FragmentFD(FileDownloader):
         if 'live' not in ctx:
             ctx['live'] = False
         if not ctx['live']:
-            total_frags_str = '%d' % ctx['total_frags']
+            total_frags_str = str(ctx['total_frags'])
             ad_frags = ctx.get('ad_frags', 0)
             if ad_frags:
-                total_frags_str += ' (not including %d ad)' % ad_frags
+                total_frags_str += f' (not including {ad_frags} ad)'
         else:
             total_frags_str = 'unknown (live)'
         self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
@@ -445,7 +445,7 @@ class FragmentFD(FileDownloader):
             headers = HTTPHeaderDict(info_dict.get('http_headers'))
             byte_range = fragment.get('byte_range')
             if byte_range:
-                headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
+                headers['Range'] = 'bytes={}-{}'.format(byte_range['start'], byte_range['end'] - 1)
 
             # Never skip the first fragment
             fatal = is_fatal(fragment.get('index') or (frag_index - 1))

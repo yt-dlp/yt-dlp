@@ -1504,10 +1504,10 @@ class YoutubeDL:
             if view_count is not None:
                 min_views = self.params.get('min_views')
                 if min_views is not None and view_count < min_views:
-                    return 'Skipping %s, because it has not reached minimum view count (%d/%d)' % (video_title, view_count, min_views)
+                    return f'Skipping {video_title}, because it has not reached minimum view count ({view_count}/{min_views})'
                 max_views = self.params.get('max_views')
                 if max_views is not None and view_count > max_views:
-                    return 'Skipping %s, because it has exceeded the maximum view count (%d/%d)' % (video_title, view_count, max_views)
+                    return f'Skipping {video_title}, because it has exceeded the maximum view count ({view_count}/{max_views})'
             if age_restricted(info_dict.get('age_limit'), self.params.get('age_limit')):
                 return f'Skipping "{video_title}" because it is age restricted'
 
@@ -1654,7 +1654,7 @@ class YoutubeDL:
                 or ie_result.get('formats') or ie_result.get('url')):
             return
 
-        format_dur = lambda dur: '%02d:%02d:%02d' % timetuple_from_msec(dur * 1000)[:-1]
+        format_dur = lambda dur: '{:02}:{:02}:{:02}'.format(*timetuple_from_msec(dur * 1000)[:-1])
         last_msg = ''
 
         def progress(msg):
@@ -2634,7 +2634,7 @@ class YoutubeDL:
             if t.get('id') is None:
                 t['id'] = str(i)
             if t.get('width') and t.get('height'):
-                t['resolution'] = '%dx%d' % (t['width'], t['height'])
+                t['resolution'] = '{}x{}'.format(t['width'], t['height'])
             t['url'] = sanitize_url(t['url'])
 
         if self.params.get('check_formats') is True:
@@ -2694,7 +2694,7 @@ class YoutubeDL:
         # in order to always have clean titles. This is very common for TV series.
         for field in ('chapter', 'season', 'episode'):
             if final and info_dict.get(f'{field}_number') is not None and not info_dict.get(field):
-                info_dict[field] = '%s %d' % (field.capitalize(), info_dict[f'{field}_number'])
+                info_dict[field] = '{} {}'.format(field.capitalize(), info_dict[f'{field}_number'])
 
         for old_key, new_key in self._deprecated_multivalue_fields.items():
             if new_key in info_dict and old_key in info_dict:
@@ -3790,11 +3790,11 @@ class YoutubeDL:
         if format.get('resolution') is not None:
             return format['resolution']
         if format.get('width') and format.get('height'):
-            return '%dx%d' % (format['width'], format['height'])
+            return '{}x{}'.format(format['width'], format['height'])
         elif format.get('height'):
             return '{}p'.format(format['height'])
         elif format.get('width'):
-            return '%dx?' % format['width']
+            return '{}x?'.format(format['width'])
         return default
 
     def _list_format_headers(self, *headers):
@@ -3817,7 +3817,7 @@ class YoutubeDL:
         if fdict.get('tbr') is not None:
             if res:
                 res += ', '
-            res += '%4dk' % fdict['tbr']
+            res += '{:4d}k'.format(fdict['tbr'])
         if fdict.get('container') is not None:
             if res:
                 res += ', '
@@ -3832,7 +3832,7 @@ class YoutubeDL:
         elif fdict.get('vbr') is not None and fdict.get('abr') is not None:
             res += 'video@'
         if fdict.get('vbr') is not None:
-            res += '%4dk' % fdict['vbr']
+            res += '{:4d}k'.format(fdict['vbr'])
         if fdict.get('fps') is not None:
             if res:
                 res += ', '
@@ -3843,15 +3843,15 @@ class YoutubeDL:
             if fdict['acodec'] == 'none':
                 res += 'video only'
             else:
-                res += '%-5s' % fdict['acodec']
+                res += '{:<5}'.format(fdict['acodec'])
         elif fdict.get('abr') is not None:
             if res:
                 res += ', '
             res += 'audio'
         if fdict.get('abr') is not None:
-            res += '@%3dk' % fdict['abr']
+            res += '@{:3d}k'.format(fdict['abr'])
         if fdict.get('asr') is not None:
-            res += ' (%5dHz)' % fdict['asr']
+            res += ' ({:5d}Hz)'.format(fdict['asr'])
         if fdict.get('filesize') is not None:
             if res:
                 res += ', '

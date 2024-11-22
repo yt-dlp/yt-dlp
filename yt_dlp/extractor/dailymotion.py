@@ -454,7 +454,7 @@ class DailymotionPlaylistBaseIE(DailymotionBaseInfoExtractor):
           url
         }
       }
-    }''' % ('false' if self._FAMILY_FILTER else 'true', self._PAGE_SIZE, page),
+    }''' % ('false' if self._FAMILY_FILTER else 'true', self._PAGE_SIZE, page),  # noqa: UP031
             f'Downloading page {page}')['videos']
         for edge in videos['edges']:
             node = edge['node']

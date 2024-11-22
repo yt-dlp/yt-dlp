@@ -23,7 +23,7 @@ class FC2LiveFD(FileDownloader):
 
             try:
                 heartbeat_state[1] += 1
-                ws.send('{"name":"heartbeat","arguments":{},"id":%d}' % heartbeat_state[1])
+                ws.send('{"name":"heartbeat","arguments":{},"id":%d}' % heartbeat_state[1])  # noqa: UP031
             except Exception:
                 self.to_screen('[fc2:live] Heartbeat failed')
 

@@ -105,8 +105,8 @@ class IqiyiSDK:
         d = time.localtime(self.timestamp)
         strings = {
             'y': str(d.tm_year),
-            'm': '%02d' % d.tm_mon,
-            'd': '%02d' % d.tm_mday,
+            'm': f'{d.tm_mon:02d}',
+            'd': f'{d.tm_mday:02d}',
         }
         self.target += ''.join(strings[c] for c in scheme)
 

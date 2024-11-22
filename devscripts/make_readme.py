@@ -75,7 +75,7 @@ PATCHES = (
     ),
     (   # Avoid newline when a space is available b/w switch and description
         DISABLE_PATCH,  # This creates issues with prepare_manpage
-        r'(?m)^(\s{4}-.{%d})(%s)' % (switch_col_width - 6, delim),
+        r'(?m)^(\s{4}-.{%d})(%s)' % (switch_col_width - 6, delim),  # noqa: UP031
         r'\1 ',
     ),
     (   # Replace brackets with a Markdown link

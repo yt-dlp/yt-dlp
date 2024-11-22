@@ -61,7 +61,7 @@ class LinkedInLearningBaseIE(LinkedInBaseIE):
                 'videoSlug': video_slug,
                 'resolution': f'_{resolution}',
             })
-            sub = ' %dp' % resolution
+            sub = f' {resolution}p'
         api_url = 'https://www.linkedin.com/learning-api/detailedCourses'
         if not self._get_cookies(api_url).get('JSESSIONID'):
             self.raise_login_required()

@@ -38,5 +38,5 @@ class RtspFD(FileDownloader):
             return True
         else:
             self.to_stderr('\n')
-            self.report_error('%s exited with code %d' % (args[0], retval))
+            self.report_error(f'{args[0]} exited with code {retval}')
             return False

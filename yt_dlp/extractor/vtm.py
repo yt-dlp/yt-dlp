@@ -51,7 +51,7 @@ class VTMIE(InfoExtractor):
             '_type': 'url',
             'id': uuid,
             'title': video.get('title'),
-            'url': 'http://mychannels.video/embed/%d' % video['myChannelsVideo'],
+            'url': f'http://mychannels.video/embed/{video["myChannelsVideo"]}',
             'description': video.get('description'),
             'timestamp': parse_iso8601(video.get('publishedAt')),
             'duration': int_or_none(video.get('duration')),

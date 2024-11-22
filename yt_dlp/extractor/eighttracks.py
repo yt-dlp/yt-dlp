@@ -125,7 +125,7 @@ class EightTracksIE(InfoExtractor):
                 try:
                     api_json = self._download_webpage(
                         next_url, playlist_id,
-                        note='Downloading song information %d/%d' % (i + 1, track_count),
+                        note=f'Downloading song information {i + 1}/{track_count}',
                         errnote='Failed to download song information')
                 except ExtractorError:
                     if download_tries > 3:

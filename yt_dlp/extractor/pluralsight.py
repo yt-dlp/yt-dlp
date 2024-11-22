@@ -350,7 +350,7 @@ query viewClip {
                     'locale': 'en',
                     'moduleName': name,
                     'mediaType': ext,
-                    'quality': '%dx%d' % (f['width'], f['height']),
+                    'quality': '{}x{}'.format(f['width'], f['height']),
                 }
                 format_id = f'{ext}-{quality}'
 

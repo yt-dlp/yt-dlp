@@ -61,8 +61,7 @@ class PornotubeIE(InfoExtractor):
         primary_image_number = info.get('primaryImageNumber')
         thumbnail = None
         if movie_id and primary_image_number:
-            thumbnail = 'http://pic.aebn.net/dis/t/%s/%s_%08d.jpg' % (
-                movie_id, movie_id, primary_image_number)
+            thumbnail = f'http://pic.aebn.net/dis/t/{movie_id}/{movie_id}_{primary_image_number:08d}.jpg'
         start = int_or_none(info.get('startSecond'))
         end = int_or_none(info.get('endSecond'))
         duration = end - start if start and end else None
