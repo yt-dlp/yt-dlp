@@ -3380,12 +3380,12 @@ def parse_dfxp_time_expr(time_expr):
 
 
 def srt_subtitles_timecode(seconds):
-    return '{:02d}:{:02d}:{:02d},{:03d}'.format(*timetuple_from_msec(seconds * 1000))
+    return '{:02d}:{:02d}:{:02d},{:03d}'.format(*map(int, timetuple_from_msec(seconds * 1000)))
 
 
 def ass_subtitles_timecode(seconds):
     time = timetuple_from_msec(seconds * 1000)
-    return '{:01d}:{:02d}:{:02d}.{:02d}'.format(*time[:-1], int(time.milliseconds / 10))
+    return '{:01d}:{:02d}:{:02d}.{:02d}'.format(*map(int, time[:-1]), int(time.milliseconds / 10))
 
 
 def dfxp2srt(dfxp_data):

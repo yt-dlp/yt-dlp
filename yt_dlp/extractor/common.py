@@ -2230,7 +2230,7 @@ class InfoExtractor:
                     # format_id intact.
                     if not live:
                         stream_name = build_stream_name()
-                        format_id[1] = stream_name or f'{tbr or len(formats)}'
+                        format_id[1] = stream_name or f'{int(tbr) or len(formats)}'
                     f = {
                         'format_id': join_nonempty(*format_id),
                         'format_index': idx,
