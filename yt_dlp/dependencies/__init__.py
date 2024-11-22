@@ -52,7 +52,7 @@ except ImportError:
 
 
 try:
-    import websockets
+    import websockets.legacy as websockets
 except ImportError:
     websockets = None
 

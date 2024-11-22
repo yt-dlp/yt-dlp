@@ -212,9 +212,9 @@ class SocksHTTPTestRequestHandler(http.server.BaseHTTPRequestHandler, SocksTestR
 
 class SocksWebSocketTestRequestHandler(SocksTestRequestHandler):
     def handle(self):
-        import websockets.sync.server
+        import websockets.legacy.sync.server
         protocol = websockets.ServerProtocol()
-        connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=0)
+        connection = websockets.legacy.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=0)
         connection.handshake()
         connection.send(json.dumps(self.socks_info))
         connection.close()
