@@ -1,12 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    get_element_by_id,
-    int_or_none,
-    merge_dicts,
-    mimetype2ext,
-    url_or_none,
-    urljoin,
-)
+from ..utils import get_element_by_id, int_or_none, merge_dicts, mimetype2ext, str_or_none, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -26,6 +19,8 @@ class AparatIE(InfoExtractor):
             'timestamp': 1387394859,
             'upload_date': '20131218',
             'view_count': int,
+            'thumbnail': r're:https://static\.cdn\.asset\.aparat\.cloud/.+',
+            'like_count': int,
         },
     }, {
         # multiple formats
@@ -133,24 +128,35 @@ class AparatPlaylistIE(InfoExtractor):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
         info = self._download_json(
-            f'https://www.aparat.com/api/fa/v1/video/playlist/one/playlist_id/{playlist_id}', playlist_id)
+            f'https://www.aparat.com/api/fa/v1/video/playlist/one/playlist_id/{playlist_id}',
+            playlist_id, note='Getting playlist info', errnote='Failed to get playlist info')
 
-        info_dict = traverse_obj(info, ('data', 'attributes', {
-            'playlist_title': ('title'),
-            'description': ('description'),
-        }), default={})
-        info_dict.update(thumbnails=traverse_obj([
-            traverse_obj(info, ('data', 'attributes', {'url': ('big_poster', {url_or_none})})),
-            traverse_obj(info, ('data', 'attributes', {'url': ('small_poster', {url_or_none})})),
-        ], (...), default=[]))
-        info_dict.update(**traverse_obj(info, ('included', lambda _, v: v['type'] == 'channel', 'attributes', {
-            'channel': ('username'),
-            'channel_id': ('id'),
-            'channel_url': ('link', filter, {urljoin(base=url)}),  # starts with a slash
-            'channel_follower_count': ('follower_cnt', {int_or_none}),
-        }), get_all=False))
+        info_dict = {
+            **traverse_obj(info, ('data', 'attributes', {
+                'title': 'title',
+                'description': 'description',
+                'thumbnails': (('big_poster', 'small_poster'), all, ..., {url_or_none}, {lambda x: {'url': x}}),
+            }), default={}),
+            'id': playlist_id,
+            'entries': traverse_obj(info, (
+                'included', lambda _, v: v['type'] == 'Video', 'attributes', 'uid',
+                {lambda x: self.url_result(f'https://www.aparat.com/v/{x}?playlist={playlist_id}')},
+            ), default=[]),
+        }
 
-        return self.playlist_result(traverse_obj(info, (
-            'included', lambda _, v: v['type'] == 'Video', 'attributes', 'uid',
-            {lambda uid: self.url_result(f'https://www.aparat.com/v/{uid}?playlist={playlist_id}')},
-        ), default=[]), playlist_id, **info_dict)
+        if username := traverse_obj(
+                info, ('included', lambda _, v: v['type'] == 'channel', 'attributes', 'username'), get_all=False):
+            user_info = self._download_json(
+                f'https://www.aparat.com/api/fa/v1/user/user/information/username/{username}', playlist_id,
+                fatal=False, note=f'Getting channel info ({username})', errnote=f'Failed to get channel info ({username})',
+            )
+            info_dict.update({
+                **traverse_obj(user_info, ('data', 'attributes', {
+                    'channel_id': ('id', {str_or_none}),
+                    'channel_follower_count': ('follower_cnt_num', {int_or_none}),
+                })),
+                'channel': username,
+                'channel_url': f'https://www.aparat.com/{username}',
+            })
+
+        return self.playlist_result(**info_dict)
