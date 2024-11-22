@@ -27,7 +27,6 @@ from yt_dlp.aes import (
     pad_block,
 )
 from yt_dlp.dependencies import Cryptodome
-from yt_dlp.utils import bytes_to_intlist, intlist_to_bytes
 
 # the encrypted data can be generate with 'devscripts/generate_aes_testdata.py'
 
@@ -40,33 +39,33 @@ class TestAES(unittest.TestCase):
     def test_encrypt(self):
         msg = b'message'
         key = list(range(16))
-        encrypted = aes_encrypt(bytes_to_intlist(msg), key)
-        decrypted = intlist_to_bytes(aes_decrypt(encrypted, key))
+        encrypted = aes_encrypt(list(msg), key)
+        decrypted = bytes(aes_decrypt(encrypted, key))
         self.assertEqual(decrypted, msg)
 
     def test_cbc_decrypt(self):
         data = b'\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6\x27\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd'
-        decrypted = intlist_to_bytes(aes_cbc_decrypt(bytes_to_intlist(data), self.key, self.iv))
+        decrypted = bytes(aes_cbc_decrypt(list(data), self.key, self.iv))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
         if Cryptodome.AES:
-            decrypted = aes_cbc_decrypt_bytes(data, intlist_to_bytes(self.key), intlist_to_bytes(self.iv))
+            decrypted = aes_cbc_decrypt_bytes(data, bytes(self.key), bytes(self.iv))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_cbc_encrypt(self):
-        data = bytes_to_intlist(self.secret_msg)
-        encrypted = intlist_to_bytes(aes_cbc_encrypt(data, self.key, self.iv))
+        data = list(self.secret_msg)
+        encrypted = bytes(aes_cbc_encrypt(data, self.key, self.iv))
         self.assertEqual(
             encrypted,
             b'\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6\'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd')
 
     def test_ctr_decrypt(self):
-        data = bytes_to_intlist(b'\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08')
-        decrypted = intlist_to_bytes(aes_ctr_decrypt(data, self.key, self.iv))
+        data = list(b'\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08')
+        decrypted = bytes(aes_ctr_decrypt(data, self.key, self.iv))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_ctr_encrypt(self):
-        data = bytes_to_intlist(self.secret_msg)
-        encrypted = intlist_to_bytes(aes_ctr_encrypt(data, self.key, self.iv))
+        data = list(self.secret_msg)
+        encrypted = bytes(aes_ctr_encrypt(data, self.key, self.iv))
         self.assertEqual(
             encrypted,
             b'\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08')
@@ -75,19 +74,19 @@ class TestAES(unittest.TestCase):
         data = b'\x159Y\xcf5eud\x90\x9c\x85&]\x14\x1d\x0f.\x08\xb4T\xe4/\x17\xbd'
         authentication_tag = b'\xe8&I\x80rI\x07\x9d}YWuU@:e'
 
-        decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(
-            bytes_to_intlist(data), self.key, bytes_to_intlist(authentication_tag), self.iv[:12]))
+        decrypted = bytes(aes_gcm_decrypt_and_verify(
+            list(data), self.key, list(authentication_tag), self.iv[:12]))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
         if Cryptodome.AES:
             decrypted = aes_gcm_decrypt_and_verify_bytes(
-                data, intlist_to_bytes(self.key), authentication_tag, intlist_to_bytes(self.iv[:12]))
+                data, bytes(self.key), authentication_tag, bytes(self.iv[:12]))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_gcm_aligned_decrypt(self):
         data = b'\x159Y\xcf5eud\x90\x9c\x85&]\x14\x1d\x0f'
         authentication_tag = b'\x08\xb1\x9d!&\x98\xd0\xeaRq\x90\xe6;\xb5]\xd8'
 
-        decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(
+        decrypted = bytes(aes_gcm_decrypt_and_verify(
             list(data), self.key, list(authentication_tag), self.iv[:12]))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg[:16])
         if Cryptodome.AES:
@@ -96,38 +95,38 @@ class TestAES(unittest.TestCase):
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg[:16])
 
     def test_decrypt_text(self):
-        password = intlist_to_bytes(self.key).decode()
+        password = bytes(self.key).decode()
         encrypted = base64.b64encode(
-            intlist_to_bytes(self.iv[:8])
+            bytes(self.iv[:8])
             + b'\x17\x15\x93\xab\x8d\x80V\xcdV\xe0\t\xcdo\xc2\xa5\xd8ksM\r\xe27N\xae',
         ).decode()
         decrypted = (aes_decrypt_text(encrypted, password, 16))
         self.assertEqual(decrypted, self.secret_msg)
 
-        password = intlist_to_bytes(self.key).decode()
+        password = bytes(self.key).decode()
         encrypted = base64.b64encode(
-            intlist_to_bytes(self.iv[:8])
+            bytes(self.iv[:8])
             + b'\x0b\xe6\xa4\xd9z\x0e\xb8\xb9\xd0\xd4i_\x85\x1d\x99\x98_\xe5\x80\xe7.\xbf\xa5\x83',
         ).decode()
         decrypted = (aes_decrypt_text(encrypted, password, 32))
         self.assertEqual(decrypted, self.secret_msg)
 
     def test_ecb_encrypt(self):
-        data = bytes_to_intlist(self.secret_msg)
-        encrypted = intlist_to_bytes(aes_ecb_encrypt(data, self.key))
+        data = list(self.secret_msg)
+        encrypted = bytes(aes_ecb_encrypt(data, self.key))
         self.assertEqual(
             encrypted,
             b'\xaa\x86]\x81\x97>\x02\x92\x9d\x1bR[[L/u\xd3&\xd1(h\xde{\x81\x94\xba\x02\xae\xbd\xa6\xd0:')
 
     def test_ecb_decrypt(self):
-        data = bytes_to_intlist(b'\xaa\x86]\x81\x97>\x02\x92\x9d\x1bR[[L/u\xd3&\xd1(h\xde{\x81\x94\xba\x02\xae\xbd\xa6\xd0:')
-        decrypted = intlist_to_bytes(aes_ecb_decrypt(data, self.key, self.iv))
+        data = list(b'\xaa\x86]\x81\x97>\x02\x92\x9d\x1bR[[L/u\xd3&\xd1(h\xde{\x81\x94\xba\x02\xae\xbd\xa6\xd0:')
+        decrypted = bytes(aes_ecb_decrypt(data, self.key, self.iv))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_key_expansion(self):
         key = '4f6bdaa39e2f8cb07f5e722d9edef314'
 
-        self.assertEqual(key_expansion(bytes_to_intlist(bytearray.fromhex(key))), [
+        self.assertEqual(key_expansion(list(bytearray.fromhex(key))), [
             0x4F, 0x6B, 0xDA, 0xA3, 0x9E, 0x2F, 0x8C, 0xB0, 0x7F, 0x5E, 0x72, 0x2D, 0x9E, 0xDE, 0xF3, 0x14,
             0x53, 0x66, 0x20, 0xA8, 0xCD, 0x49, 0xAC, 0x18, 0xB2, 0x17, 0xDE, 0x35, 0x2C, 0xC9, 0x2D, 0x21,
             0x8C, 0xBE, 0xDD, 0xD9, 0x41, 0xF7, 0x71, 0xC1, 0xF3, 0xE0, 0xAF, 0xF4, 0xDF, 0x29, 0x82, 0xD5,
