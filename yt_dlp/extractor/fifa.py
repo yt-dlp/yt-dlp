@@ -11,6 +11,7 @@ from ..utils import (
     strip_or_none,
     unified_timestamp,
     update_url_query,
+    url_or_none,
 )
 from ..utils.traversal import traverse_obj
 
@@ -90,16 +91,18 @@ class FifaBaseIE(InfoExtractor):
         self._remove_duplicate_formats(formats)
 
         return {
+            **traverse_obj(video_info, {
+                'title': ('title', {strip_or_none}),
+                'duration': ('duration', {float_or_none(scale=1000)}),
+                'age_limit': ('parental', 'age', {int_or_none}),
+                'thumbnails': (
+                    ('posterUrl', 'wideCoverUrl'), {update_url_query(query={'width': 1408})},
+                    {lambda x: {'url': x, 'width': 1408}},
+                ),
+            }),
             'id': video_id,
-            'title': strip_or_none(video_info['title']),
-            'duration': float_or_none(video_info.get('duration'), scale=1000),
             'formats': formats,
             'subtitles': subtitles,
-            'age_limit': traverse_obj(video_info, ('parental', 'age', {int_or_none})),
-            'thumbnails': [{
-                'url': update_url_query(x, {'width': 1408}),
-                'width': 1408,
-            } for x in [video_info.get('posterUrl'), video_info.get('wideCoverUrl')] if x],
         }
 
 
@@ -259,16 +262,6 @@ class FifaArticleIE(InfoExtractor):
         },
         'playlist': [{
             'info_dict': {
-                'id': '6B2xtOT2SDMB4JeF3i9n2y',
-                'ext': 'mp4',
-                'title': 'Foord & Kerr: Friends and rivals',
-                'description': 'md5:756e14e1814196948ec4d2a9663f7214',
-                'duration': 82,
-                'categories': ['News', 'Interview'],
-                'thumbnail': r're:https://digitalhub\.fifa\.com/transform/[^/]+/\w+',
-            },
-        }, {
-            'info_dict': {
                 'id': 'R2Y1vbwvggrlSr02Cfr99',
                 'ext': 'mp4',
                 'title': 'Foord: 2023 will be the best Women\'s World Cup yet',
@@ -277,8 +270,32 @@ class FifaArticleIE(InfoExtractor):
                 'categories': ['News', 'Interview'],
                 'thumbnail': r're:https://digitalhub\.fifa\.com/transform/[^/]+/\w+',
             },
+        }, {
+            'info_dict': {
+                'id': '6B2xtOT2SDMB4JeF3i9n2y',
+                'ext': 'mp4',
+                'title': 'Foord & Kerr: Friends and rivals',
+                'description': 'md5:756e14e1814196948ec4d2a9663f7214',
+                'duration': 82,
+                'categories': ['News', 'Interview'],
+                'thumbnail': r're:https://digitalhub\.fifa\.com/transform/[^/]+/\w+',
+            },
         }],
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.fifa.com/en/articles/100-great-world-cup-moments-qatar-2022-11-pele-1958-sweden-youngest-scorer',
+        'md5': '2df0f3303650c5f4ee21bec24500bad3',
+        'info_dict': {
+            'id': '100-great-world-cup-moments-qatar-2022-11-pele-1958-sweden-youngest-scorer',
+            'ext': 'mp4',
+            'title': 'O Rei arrives in style (11) | 100 great World Cup moments',
+            'description': 'Watch some of the best goals ever scored in the FIFA World Cup™.',
+            'duration': 30,
+            'categories': ['FIFA Tournaments'],
+            'thumbnail': r're:https://digitalhub\.fifa\.com/transform/[^/]+/\w+',
+            'timestamp': 1667988000,
+            'upload_date': '20221109',
+        },
     }, {
         # https://www.fifa.com/en/articles/stars-set-to-collide-in-uwcl-final
         'url': 'https://www.fifa.com/fifaplus/en/articles/stars-set-to-collide-in-uwcl-final',
@@ -310,13 +327,15 @@ class FifaArticleIE(InfoExtractor):
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(content_data['playURL'], article_id)
 
             yield {
+                **traverse_obj(video_details, {
+                    'title': 'title',
+                    'description': 'description',
+                    'duration': ('duration', {int_or_none}),
+                    'release_timestamp': ('dateOfRelease', {unified_timestamp}),
+                    'categories': (('videoCategory', 'videoSubcategory'), all, ..., {str}),
+                    'thumbnail': ('backgroundImage', 'src', {url_or_none}),
+                }),
                 'id': video_id,
-                'title': video_details.get('title'),
-                'description': video_details.get('description'),
-                'duration': int_or_none(video_details.get('duration')),
-                'release_timestamp': unified_timestamp(video_details.get('dateOfRelease')),
-                'categories': traverse_obj(video_details, (('videoCategory', 'videoSubcategory'),)),
-                'thumbnail': traverse_obj(video_details, ('backgroundImage', 'src')),
                 'formats': formats,
                 'subtitles': subtitles,
             }
@@ -327,13 +346,26 @@ class FifaArticleIE(InfoExtractor):
         page_id = self._call_api(f'pages/en/articles/{article_id}', article_id)['pageId']
         page_info = self._call_api(f'sections/article/{page_id}', article_id, query={'locale': locale})
 
-        video_ids = []
+        video_ids = traverse_obj(page_info, (
+            'richtext', 'content', lambda _, v: v['data']['target']['contentTypesCheckboxValue'] == 'Video',
+            'data', 'target', 'sys', 'id'))
         if hero_video_entry_id := page_info.get('heroVideoEntryId'):
             video_ids.append(hero_video_entry_id)
-        video_ids.extend(traverse_obj(page_info, (
-            'richtext', 'content', lambda _, v: v['data']['target']['contentTypesCheckboxValue'] == 'Video',
-            'data', 'target', 'sys', 'id')))
 
-        return self.playlist_result(
-            self._entries(video_ids, article_id), article_id, page_info.get('articleTitle'),
-            timestamp=parse_iso8601(page_info.get('articlePublishedDate')))
+        entries = list(self._entries(video_ids, article_id))
+
+        common_info = {
+            **traverse_obj(page_info, {
+                'title': 'articleTitle',
+                'timestamp': ('articlePublishedDate', {parse_iso8601}),
+            }),
+            'id': article_id,
+        }
+
+        if len(entries) == 1:
+            return {
+                **entries[0],
+                **common_info,
+            }
+
+        return self.playlist_result(entries, **common_info)
