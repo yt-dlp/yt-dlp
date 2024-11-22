@@ -1,4 +1,5 @@
 import contextlib
+import functools
 import importlib
 import importlib.abc
 import importlib.machinery
@@ -13,8 +14,8 @@ import zipimport
 from pathlib import Path
 from zipfile import ZipFile
 
-from .compat import functools  # isort: split
 from .utils import (
+    Config,
     get_executable_path,
     get_system_config_dirs,
     get_user_config_dirs,
@@ -83,6 +84,12 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         candidate_locations.extend(map(Path, sys.path))  # PYTHONPATH
         with contextlib.suppress(ValueError):  # Added when running __main__.py directly
             candidate_locations.remove(Path(__file__).parent)
+
+        # TODO(coletdjnz): remove when plugin globals system is implemented
+        if Config._plugin_dirs:
+            candidate_locations.extend(_get_package_paths(
+                *Config._plugin_dirs,
+                containing_folder=''))
 
         parts = Path(*fullname.split('.'))
         for path in orderedSet(candidate_locations, lazy=True):

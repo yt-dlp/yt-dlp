@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import contextlib
+import functools
 import hashlib
 import json
 import os
@@ -12,8 +13,6 @@ import sys
 from dataclasses import dataclass
 from zipimport import zipimporter
 
-from .compat import functools  # isort: split
-from .compat import compat_realpath
 from .networking import Request
 from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
@@ -103,7 +102,6 @@ def current_git_head():
 
 _FILE_SUFFIXES = {
     'zip': '',
-    'py2exe': '_min.exe',
     'win_exe': '.exe',
     'win_x86_exe': '_x86.exe',
     'darwin_exe': '_macos',
@@ -117,6 +115,7 @@ _NON_UPDATEABLE_REASONS = {
     **{variant: None for variant in _FILE_SUFFIXES},  # Updatable
     **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
        for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
+    'py2exe': 'py2exe is no longer supported by yt-dlp; This executable cannot be updated',
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
     'unknown': 'You installed yt-dlp from a manual build or with a package manager; Use that to update',
     'other': 'You are using an unofficial build of yt-dlp; Build the executable again',
@@ -135,7 +134,7 @@ def _get_binary_name():
 
 
 def _get_system_deprecation():
-    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 8), (3, 9)
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 9), (3, 9)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
@@ -145,30 +144,6 @@ def _get_system_deprecation():
 
     if sys.version_info < MIN_SUPPORTED:
         return f'Python version {major}.{minor} is no longer supported! {PYTHON_MSG}'
-
-    EXE_MSG_TMPL = ('Support for {} has been deprecated. '
-                    'See  https://github.com/yt-dlp/yt-dlp/{}  for details.\n{}')
-    STOP_MSG = 'You may stop receiving updates on this version at any time!'
-    variant = detect_variant()
-
-    # Temporary until Windows builds use 3.9, which will drop support for Win7 and 2008ServerR2
-    if variant in ('win_exe', 'win_x86_exe', 'py2exe'):
-        platform_name = platform.platform()
-        if any(platform_name.startswith(f'Windows-{name}') for name in ('7', '2008ServerR2')):
-            return EXE_MSG_TMPL.format('Windows 7/Server 2008 R2', 'issues/10086', STOP_MSG)
-        elif variant == 'py2exe':
-            return EXE_MSG_TMPL.format(
-                'py2exe builds (yt-dlp_min.exe)', 'issues/10087',
-                'In a future update you will be migrated to the PyInstaller-bundled executable. '
-                'This will be done automatically; no action is required on your part')
-        return None
-
-    # Temporary until aarch64/armv7l build flow is bumped to Ubuntu 20.04 and Python 3.9
-    elif variant in ('linux_aarch64_exe', 'linux_armv7l_exe'):
-        libc_ver = version_tuple(os.confstr('CS_GNU_LIBC_VERSION').partition(' ')[2])
-        if libc_ver < (2, 31):
-            return EXE_MSG_TMPL.format('system glibc version < 2.31', 'pull/8638', STOP_MSG)
-        return None
 
     return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
 
@@ -224,8 +199,6 @@ class UpdateInfo:
 
     binary_name: str | None = _get_binary_name()  # noqa: RUF009: Always returns the same value
     checksum: str | None = None
-
-    _has_update = True
 
 
 class Updater:
@@ -362,7 +335,8 @@ class Updater:
                     continue
 
                 self._report_error(
-                    f'yt-dlp cannot be updated to {resolved_tag} since you are on an older Python version', True)
+                    f'yt-dlp cannot be updated to {resolved_tag} since you are on an older Python version '
+                    'or your operating system is not compatible with the requested build', True)
                 return None
 
         return resolved_tag
@@ -525,7 +499,7 @@ class Updater:
                 return os.rename(old_filename, self.filename)
 
         variant = detect_variant()
-        if variant.startswith('win') or variant == 'py2exe':
+        if variant.startswith('win'):
             atexit.register(Popen, f'ping 127.0.0.1 -n 5 -w 1000 & del /F "{old_filename}"',
                             shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         elif old_filename:
@@ -546,7 +520,7 @@ class Updater:
     @functools.cached_property
     def filename(self):
         """Filename of the executable"""
-        return compat_realpath(_get_variant_and_executable_path()[1])
+        return os.path.realpath(_get_variant_and_executable_path()[1])
 
     @functools.cached_property
     def cmd(self):
@@ -585,62 +559,14 @@ class Updater:
             f'Unable to {action}{delim} visit  '
             f'https://github.com/{self.requested_repo}/releases/{path}', True)
 
-    # XXX: Everything below this line in this class is deprecated / for compat only
-    @property
-    def _target_tag(self):
-        """Deprecated; requested tag with 'tags/' prepended when necessary for API calls"""
-        return f'tags/{self.requested_tag}' if self.requested_tag != 'latest' else self.requested_tag
-
-    def _check_update(self):
-        """Deprecated; report whether there is an update available"""
-        return bool(self.query_update(_output=True))
-
-    def __getattr__(self, attribute: str):
-        """Compat getter function for deprecated attributes"""
-        deprecated_props_map = {
-            'check_update': '_check_update',
-            'target_tag': '_target_tag',
-            'target_channel': 'requested_channel',
-        }
-        update_info_props_map = {
-            'has_update': '_has_update',
-            'new_version': 'version',
-            'latest_version': 'requested_version',
-            'release_name': 'binary_name',
-            'release_hash': 'checksum',
-        }
-
-        if attribute not in deprecated_props_map and attribute not in update_info_props_map:
-            raise AttributeError(f'{type(self).__name__!r} object has no attribute {attribute!r}')
-
-        msg = f'{type(self).__name__}.{attribute} is deprecated and will be removed in a future version'
-        if attribute in deprecated_props_map:
-            source_name = deprecated_props_map[attribute]
-            if not source_name.startswith('_'):
-                msg += f'. Please use {source_name!r} instead'
-            source = self
-            mapping = deprecated_props_map
-
-        else:  # attribute in update_info_props_map
-            msg += '. Please call query_update() instead'
-            source = self.query_update()
-            if source is None:
-                source = UpdateInfo('', None, None, None)
-                source._has_update = False
-            mapping = update_info_props_map
-
-        deprecation_warning(msg)
-        for target_name, source_name in mapping.items():
-            value = getattr(source, source_name)
-            setattr(self, target_name, value)
-
-        return getattr(self, attribute)
-
 
 def run_update(ydl):
     """Update the program file with the latest version from the repository
     @returns    Whether there was a successful update (No update = False)
     """
+    deprecation_warning(
+        '"yt_dlp.update.run_update(ydl)" is deprecated and may be removed in a future version. '
+        'Use "yt_dlp.update.Updater(ydl).update()" instead')
     return Updater(ydl).update()
 
 

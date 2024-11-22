@@ -136,7 +136,7 @@ class TeamcocoIE(TeamcocoBaseIE):
             'blocks', lambda _, v: v['name'] in ('meta-tags', 'video-player', 'video-info'), 'props', {dict})))
 
         thumbnail = traverse_obj(
-            info, (('image', 'poster'), {lambda x: urljoin('https://teamcoco.com/', x)}), get_all=False)
+            info, (('image', 'poster'), {urljoin('https://teamcoco.com/')}), get_all=False)
         video_id = traverse_obj(parse_qs(thumbnail), ('id', 0)) or display_id
 
         formats, subtitles = self._get_formats_and_subtitles(info, video_id)

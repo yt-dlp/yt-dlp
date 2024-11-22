@@ -37,14 +37,18 @@ Bugs and suggestions should be reported at: [yt-dlp/yt-dlp/issues](https://githu
 **Please include the full output of yt-dlp when run with `-vU`**, i.e. **add** `-vU` flag to **your command line**, copy the **whole** output and post it in the issue body wrapped in \`\`\` for better formatting. It should look similar to this:
 ```
 $ yt-dlp -vU <your command line>
-[debug] Command-line config: ['-v', 'demo.com']
-[debug] Encodings: locale UTF-8, fs utf-8, out utf-8, pref UTF-8
-[debug] yt-dlp version 2021.09.25 (zip)
-[debug] Python version 3.8.10 (CPython 64bit) - Linux-5.4.0-74-generic-x86_64-with-glibc2.29
-[debug] exe versions: ffmpeg 4.2.4, ffprobe 4.2.4
+[debug] Command-line config: ['-vU', 'https://www.example.com/']
+[debug] Encodings: locale cp65001, fs utf-8, pref cp65001, out utf-8, error utf-8, screen utf-8
+[debug] yt-dlp version nightly@... from yt-dlp/yt-dlp-nightly-builds [1a176d874] (win_exe)
+[debug] Python 3.10.11 (CPython AMD64 64bit) - Windows-10-10.0.20348-SP0 (OpenSSL 1.1.1t  7 Feb 2023)
+[debug] exe versions: ffmpeg 7.0.2 (setts), ffprobe 7.0.2
+[debug] Optional libraries: Cryptodome-3.21.0, brotli-1.1.0, certifi-2024.08.30, curl_cffi-0.5.10, mutagen-1.47.0, requests-2.32.3, sqlite3-3.40.1, urllib3-2.2.3, websockets-13.1
 [debug] Proxy map: {}
-Current Build Hash 25cc412d1d3c0725a1f2f5b7e4682f6fb40e6d15f7024e96f7afd572e9919535
-yt-dlp is up to date (2021.09.25)
+[debug] Request Handlers: urllib, requests, websockets, curl_cffi
+[debug] Loaded 1838 extractors
+[debug] Fetching release info: https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest
+Latest version: nightly@... from yt-dlp/yt-dlp-nightly-builds
+yt-dlp is up to date (nightly@... from yt-dlp/yt-dlp-nightly-builds)
 ...
 ```
 **Do not post screenshots of verbose logs; only plain text is acceptable.**
@@ -233,7 +237,7 @@ After you have ensured this site is distributing its content legally, you can fo
                 # * MD5 checksum; start the string with 'md5:', e.g.
                 #     'description': 'md5:098f6bcd4621d373cade4e832627b4f6',
                 # * A regular expression; start the string with 're:', e.g.
-                #     'thumbnail': r're:^https?://.*\.jpg$',
+                #     'thumbnail': r're:https?://.*\.jpg$',
                 # * A count of elements in a list; start the string with 'count:', e.g.
                 #     'tags': 'count:10',
                 # * Any Python type, e.g.
@@ -268,7 +272,7 @@ After you have ensured this site is distributing its content legally, you can fo
 
     You can use `hatch fmt` to automatically fix problems. Rules that the linter/formatter enforces should not be disabled with `# noqa` unless a maintainer requests it. The only exception allowed is for old/printf-style string formatting in GraphQL query templates (use `# noqa: UP031`).
 
-1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.8 and above. Backward compatibility is not required for even older versions of Python.
+1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython >=3.9 and PyPy >=3.10. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
     ```shell
@@ -302,10 +306,9 @@ Extractors are very fragile by nature since they depend on the layout of the sou
 For extraction to work yt-dlp relies on metadata your extractor extracts and provides to yt-dlp expressed by an [information dictionary](yt_dlp/extractor/common.py#L119-L440) or simply *info dict*. Only the following meta fields in the *info dict* are considered mandatory for a successful extraction process by yt-dlp:
 
  - `id` (media identifier)
- - `title` (media title)
  - `url` (media download URL) or `formats`
 
-The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While all extractors must return a `title`, they must also allow it's extraction to be non-fatal.
+The aforementioned metadata fields are the critical data without which extraction does not make any sense. If any of them fail to be extracted, then the extractor is considered broken. All other metadata extraction should be completely non-fatal.
 
 For pornographic sites, appropriate `age_limit` must also be returned.
 
