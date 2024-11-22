@@ -208,6 +208,10 @@ from .bandcamp import (
     BandcampUserIE,
     BandcampWeeklyIE,
 )
+from .bandlab import (
+    BandlabIE,
+    BandlabPlaylistIE,
+)
 from .bannedvideo import BannedVideoIE
 from .bbc import (
     BBCIE,
@@ -278,6 +282,7 @@ from .bleacherreport import (
 from .blerp import BlerpIE
 from .blogger import BloggerIE
 from .bloomberg import BloombergIE
+from .bluesky import BlueskyIE
 from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
 from .boosty import BoostyIE
@@ -711,6 +716,7 @@ from .gab import (
     GabTVIE,
 )
 from .gaia import GaiaIE
+from .gamedevtv import GameDevTVDashboardIE
 from .gamejolt import (
     GameJoltCommunityIE,
     GameJoltGameIE,
@@ -944,6 +950,10 @@ from .kaltura import KalturaIE
 from .kankanews import KankaNewsIE
 from .karaoketv import KaraoketvIE
 from .kelbyone import KelbyOneIE
+from .kenh14 import (
+    Kenh14PlaylistIE,
+    Kenh14VideoIE,
+)
 from .khanacademy import (
     KhanAcademyIE,
     KhanAcademyUnitIE,
@@ -1133,12 +1143,6 @@ from .microsoftembed import (
     MicrosoftMediusIE,
 )
 from .microsoftstream import MicrosoftStreamIE
-from .mildom import (
-    MildomClipIE,
-    MildomIE,
-    MildomUserVodIE,
-    MildomVodIE,
-)
 from .minds import (
     MindsChannelIE,
     MindsGroupIE,
@@ -1158,6 +1162,7 @@ from .mitele import MiTeleIE
 from .mixch import (
     MixchArchiveIE,
     MixchIE,
+    MixchMovieIE,
 )
 from .mixcloud import (
     MixcloudIE,
@@ -1519,8 +1524,8 @@ from .pgatour import PGATourIE
 from .philharmoniedeparis import PhilharmonieDeParisIE
 from .phoenix import PhoenixIE
 from .photobucket import PhotobucketIE
+from .pialive import PiaLiveIE
 from .piapro import PiaproIE
-from .piaulizaportal import PIAULIZAPortalIE
 from .picarto import (
     PicartoIE,
     PicartoVodIE,
@@ -1556,10 +1561,6 @@ from .podbayfm import (
 )
 from .podchaser import PodchaserIE
 from .podomatic import PodomaticIE
-from .pokemon import (
-    PokemonIE,
-    PokemonWatchIE,
-)
 from .pokergo import (
     PokerGoCollectionIE,
     PokerGoIE,
@@ -1650,6 +1651,7 @@ from .radiokapital import (
     RadioKapitalIE,
     RadioKapitalShowIE,
 )
+from .radioradicale import RadioRadicaleIE
 from .radiozet import RadioZetPodcastIE
 from .radlive import (
     RadLiveChannelIE,
@@ -1941,9 +1943,7 @@ from .spotify import (
 )
 from .spreaker import (
     SpreakerIE,
-    SpreakerPageIE,
     SpreakerShowIE,
-    SpreakerShowPageIE,
 )
 from .springboardplatform import SpringboardPlatformIE
 from .sprout import SproutIE
@@ -2254,6 +2254,10 @@ from .ufctv import (
 )
 from .ukcolumn import UkColumnIE
 from .uktvplay import UKTVPlayIE
+from .uliza import (
+    UlizaPlayerIE,
+    UlizaPortalIE,
+)
 from .umg import UMGDeIE
 from .unistra import UnistraIE
 from .unity import UnityIE
@@ -2282,10 +2286,6 @@ from .utreon import UtreonIE
 from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veo import VeoIE
-from .veoh import (
-    VeohIE,
-    VeohUserIE,
-)
 from .vesti import VestiIE
 from .vevo import (
     VevoIE,

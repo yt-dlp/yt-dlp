@@ -129,6 +129,8 @@
  - **Bandcamp:album**
  - **Bandcamp:user**
  - **Bandcamp:weekly**
+ - **Bandlab**
+ - **BandlabPlaylist**
  - **BannedVideo**
  - **bbc**: [*bbc*](## "netrc machine") BBC
  - **bbc.co.uk**: [*bbc*](## "netrc machine") BBC iPlayer
@@ -190,6 +192,7 @@
  - **blerp**
  - **blogger.com**
  - **Bloomberg**
+ - **Bluesky**
  - **BokeCC**
  - **BongaCams**
  - **Boosty**
@@ -247,7 +250,7 @@
  - **cbsnews:livevideo**: CBS News Live Videos
  - **cbssports**: (**Currently broken**)
  - **cbssports:embed**: (**Currently broken**)
- - **CCMA**
+ - **CCMA**: 3Cat, TV3 and Catalunya Ràdio
  - **CCTV**: 央视网
  - **CDA**: [*cdapl*](## "netrc machine")
  - **CDAFolder**
@@ -280,8 +283,6 @@
  - **cmt.com**: (**Currently broken**)
  - **CNBCVideo**
  - **CNN**
- - **CNNArticle**
- - **CNNBlogs**
  - **CNNIndonesia**
  - **ComedyCentral**
  - **ComedyCentralTV**
@@ -485,6 +486,7 @@
  - **Gab**
  - **GabTV**
  - **Gaia**: [*gaia*](## "netrc machine")
+ - **GameDevTVDashboard**: [*gamedevtv*](## "netrc machine")
  - **GameJolt**
  - **GameJoltCommunity**
  - **GameJoltGame**
@@ -652,6 +654,8 @@
  - **Karaoketv**
  - **Katsomo**: (**Currently broken**)
  - **KelbyOne**: (**Currently broken**)
+ - **Kenh14Playlist**
+ - **Kenh14Video**
  - **Ketnet**
  - **khanacademy**
  - **khanacademy:unit**
@@ -685,9 +689,9 @@
  - **LastFMPlaylist**
  - **LastFMUser**
  - **LaXarxaMes**: [*laxarxames*](## "netrc machine")
- - **lbry**
- - **lbry:channel**
- - **lbry:playlist**
+ - **lbry**: odysee.com
+ - **lbry:channel**: odysee.com channels
+ - **lbry:playlist**: odysee.com playlists
  - **LCI**
  - **Lcp**
  - **LcpPlay**
@@ -785,10 +789,6 @@
  - **MicrosoftLearnSession**
  - **MicrosoftMedius**
  - **microsoftstream**: Microsoft Stream
- - **mildom**: Record ongoing live by specific user in Mildom
- - **mildom:clip**: Clip in Mildom
- - **mildom:​user:vod**: Download all VODs from specific user in Mildom
- - **mildom:vod**: VOD in Mildom
  - **minds**
  - **minds:channel**
  - **minds:group**
@@ -799,6 +799,7 @@
  - **MiTele**: mitele.es
  - **mixch**
  - **mixch:archive**
+ - **mixch:movie**
  - **mixcloud**
  - **mixcloud:playlist**
  - **mixcloud:user**
@@ -1061,8 +1062,8 @@
  - **PhilharmonieDeParis**: Philharmonie de Paris
  - **phoenix.de**
  - **Photobucket**
+ - **PiaLive**
  - **Piapro**: [*piapro*](## "netrc machine")
- - **PIAULIZAPortal**: ulizaportal.jp - PIA LIVE STREAM
  - **Picarto**
  - **PicartoVod**
  - **Piksel**
@@ -1089,8 +1090,6 @@
  - **PodbayFMChannel**
  - **Podchaser**
  - **podomatic**: (**Currently broken**)
- - **Pokemon**
- - **PokemonWatch**
  - **PokerGo**: [*pokergo*](## "netrc machine")
  - **PokerGoCollection**: [*pokergo*](## "netrc machine")
  - **PolsatGo**
@@ -1161,6 +1160,7 @@
  - **RadioJavan**: (**Currently broken**)
  - **radiokapital**
  - **radiokapital:show**
+ - **RadioRadicale**
  - **RadioZetPodcast**
  - **radlive**
  - **radlive:channel**
@@ -1368,9 +1368,7 @@
  - **spotify**: Spotify episodes (**Currently broken**)
  - **spotify:show**: Spotify shows (**Currently broken**)
  - **Spreaker**
- - **SpreakerPage**
  - **SpreakerShow**
- - **SpreakerShowPage**
  - **SpringboardPlatform**
  - **Sprout**
  - **SproutVideo**
@@ -1446,7 +1444,7 @@
  - **TeleQuebecSquat**
  - **TeleQuebecVideo**
  - **TeleTask**: (**Currently broken**)
- - **Telewebion**
+ - **Telewebion**: (**Currently broken**)
  - **Tempo**
  - **TennisTV**: [*tennistv*](## "netrc machine")
  - **TenPlay**: [*10play*](## "netrc machine")
@@ -1571,6 +1569,8 @@
  - **UFCTV**: [*ufctv*](## "netrc machine")
  - **ukcolumn**: (**Currently broken**)
  - **UKTVPlay**
+ - **UlizaPlayer**
+ - **UlizaPortal**: ulizaportal.jp
  - **umg:de**: Universal Music Deutschland (**Currently broken**)
  - **Unistra**
  - **Unity**: (**Currently broken**)
@@ -1588,8 +1588,6 @@
  - **Varzesh3**: (**Currently broken**)
  - **Vbox7**
  - **Veo**
- - **Veoh**
- - **veoh:user**
  - **Vesti**: Вести.Ru (**Currently broken**)
  - **Vevo**
  - **VevoPlaylist**
