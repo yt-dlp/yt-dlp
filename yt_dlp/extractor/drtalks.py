@@ -5,7 +5,6 @@ from ..utils import extract_attributes, smuggle_url
 
 class DrTalksIE(InfoExtractor):
     _VALID_URL = r'https?://event\.drtalks\.com/(?P<id>.+/[^/]+)/?'
-
     _TESTS = [{
         'url': 'https://event.drtalks.com/reversing-heart-disease-summit/free-access-day-1',
         'info_dict': {
@@ -49,5 +48,5 @@ class DrTalksIE(InfoExtractor):
             player_attrs['data-playlist-id']), {'source_url': url})
 
         return self.url_result(
-            bc_url, BrightcoveNewIE.ie_key(), video_id, self._og_search_title(webpage),
+            bc_url, BrightcoveNewIE, video_id, self._og_search_title(webpage),
             url_transparent=True, thumbnail=self._og_search_thumbnail(webpage))
