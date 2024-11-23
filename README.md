@@ -1294,6 +1294,7 @@ The available fields are:
  - `playlist_uploader_id` (string): Nickname or id of the playlist uploader
  - `playlist_channel` (string): Display name of the channel that uploaded the playlist
  - `playlist_channel_id` (string): Identifier of the channel that uploaded the playlist
+ - `playlist_webpage_url` (string): URL of the playlist webpage
  - `webpage_url` (string): A URL to the video webpage which, if given to yt-dlp, should yield the same result again
  - `webpage_url_basename` (string): The basename of the webpage URL
  - `webpage_url_domain` (string): The domain of the webpage URL

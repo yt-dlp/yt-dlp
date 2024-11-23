@@ -1947,6 +1947,7 @@ class YoutubeDL:
             'playlist_uploader_id': ie_result.get('uploader_id'),
             'playlist_channel': ie_result.get('channel'),
             'playlist_channel_id': ie_result.get('channel_id'),
+            'playlist_webpage_url': ie_result.get('webpage_url'),
             **kwargs,
         }
         if strict:
