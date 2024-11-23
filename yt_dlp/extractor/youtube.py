@@ -4986,8 +4986,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         for item in grid_renderer['items']:
             if not isinstance(item, dict):
                 continue
-            if lookup_view_model := traverse_obj(item, ('lockupViewModel', {dict})):
-                if entry := self._extract_lookup_view_model(lookup_view_model):
+            if lockup_view_model := traverse_obj(item, ('lockupViewModel', {dict})):
+                if entry := self._extract_lockup_view_model(lookup_view_model):
                     yield entry
                 continue
             renderer = self._extract_basic_item_renderer(item)
@@ -5088,13 +5088,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 continue
             yield self._extract_video(renderer)
 
-    def _extract_lookup_view_model(self, view_model):
+    def _extract_lockup_view_model(self, view_model):
         content_id = view_model.get('contentId')
         if not content_id:
             return
         if view_model.get('contentType') not in ('LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_PODCAST'):
             self.report_warning(
-                f'Unsupported lookup view model content type "{view_model.get("contentType")}"{bug_reports_message()}', only_once=True)
+                f'Unsupported lockup view model content type "{view_model.get("contentType")}"{bug_reports_message()}', only_once=True)
             return
         return self.url_result(
             f'https://www.youtube.com/playlist?list={content_id}', ie=YoutubeTabIE, video_id=content_id,
@@ -5104,8 +5104,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'contentImage', 'collectionThumbnailViewModel', 'primaryThumbnail', 'thumbnailViewModel', 'image'), final_key='sources'))
 
     def _rich_entries(self, rich_grid_renderer):
-        if lookup_view_model := traverse_obj(rich_grid_renderer, ('content', 'lockupViewModel', {dict})):
-            if entry := self._extract_lookup_view_model(lookup_view_model):
+        if lockup_view_model := traverse_obj(rich_grid_renderer, ('content', 'lockupViewModel', {dict})):
+            if entry := self._extract_lockup_view_model(lookup_view_model):
                 yield entry
             return
         renderer = traverse_obj(
