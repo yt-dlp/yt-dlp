@@ -226,7 +226,7 @@ class SocksWebSocketTestRequestHandler(SocksTestRequestHandler):
 def socks_server(socks_server_class, request_handler, bind_ip=None, **socks_server_kwargs):
     server = server_thread = None
     try:
-        bind_address = bind_ip or '127.0.0.69'
+        bind_address = bind_ip or '127.0.0.1'
         server_type = ThreadingTCPServer if '.' in bind_address else IPv6ThreadingTCPServer
         server = server_type(
             (bind_address, 0), functools.partial(socks_server_class, request_handler, socks_server_kwargs))
