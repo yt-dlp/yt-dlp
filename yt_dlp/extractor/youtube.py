@@ -4986,6 +4986,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         for item in grid_renderer['items']:
             if not isinstance(item, dict):
                 continue
+            if lookup_view_model := item.get('lockupViewModel'):
+                entry = self._extract_lookup_view_model(lookup_view_model)
+                if entry:
+                    yield entry
+                continue
             renderer = self._extract_basic_item_renderer(item)
             if not isinstance(renderer, dict):
                 continue
@@ -5084,10 +5089,35 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 continue
             yield self._extract_video(renderer)
 
+    def _extract_lookup_view_model(self, renderer):
+        content_id = renderer.get('contentId')
+        if not content_id:
+            return
+        entry_url = None
+        if renderer.get('contentType') in ('LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_PODCAST'):
+            entry_url = f'https://www.youtube.com/playlist?list={content_id}'
+        else:
+            self.report_warning(
+                f'Unsupported lookup view model content type "{renderer.get("contentType")}"{bug_reports_message()}', only_once=True)
+            return
+        return self.url_result(
+            entry_url,
+            ie=YoutubeTabIE, video_id=content_id,
+            **traverse_obj(renderer, {
+                'title': ('metadata', 'lockupMetadataViewModel', 'title', 'content', {str}),
+            }),
+            thumbnails=self._extract_thumbnails(renderer, (
+                'contentImage', 'collectionThumbnailViewModel', 'primaryThumbnail', 'thumbnailViewModel', 'image'), final_key='sources'))
+
     def _rich_entries(self, rich_grid_renderer):
+        if lookup_view_model := traverse_obj(rich_grid_renderer, ('content', 'lockupViewModel', {dict})):
+            entry = self._extract_lookup_view_model(lookup_view_model)
+            if entry:
+                yield entry
+            return
         renderer = traverse_obj(
             rich_grid_renderer,
-            ('content', ('videoRenderer', 'reelItemRenderer', 'playlistRenderer', 'shortsLockupViewModel', 'lockupViewModel'), any)) or {}
+            ('content', ('videoRenderer', 'reelItemRenderer', 'playlistRenderer', 'shortsLockupViewModel'), any)) or {}
         video_id = renderer.get('videoId')
         if video_id:
             yield self._extract_video(renderer)
@@ -5113,18 +5143,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'view_count': ('secondaryText', 'content', {parse_count}),
                 })),
                 thumbnails=self._extract_thumbnails(renderer, 'thumbnail', final_key='sources'))
-            return
-        # lockupViewModel extraction
-        content_id = renderer.get('contentId')
-        if content_id and renderer.get('contentType') == 'LOCKUP_CONTENT_TYPE_PODCAST':
-            yield self.url_result(
-                f'https://www.youtube.com/playlist?list={content_id}',
-                ie=YoutubeTabIE, video_id=content_id,
-                **traverse_obj(renderer, {
-                    'title': ('metadata', 'lockupMetadataViewModel', 'title', 'content', {str}),
-                }),
-                thumbnails=self._extract_thumbnails(renderer, (
-                    'contentImage', 'collectionThumbnailViewModel', 'primaryThumbnail', 'thumbnailViewModel', 'image'), final_key='sources'))
             return
 
     def _video_entry(self, video_renderer):
@@ -5794,7 +5812,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCYO_jab_esuFRV4b17AJtAw',
             'title': '3Blue1Brown - Playlists',
-            'description': 'md5:4d1da95432004b7ba840ebc895b6b4c9',
+            'description': 'md5:602e3789e6a0cb7d9d352186b720e395',
             'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
             'channel': '3Blue1Brown',
             'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
