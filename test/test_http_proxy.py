@@ -7,7 +7,6 @@ import os
 import random
 import ssl
 import threading
-import time
 from http.server import BaseHTTPRequestHandler
 from socketserver import BaseRequestHandler, ThreadingTCPServer
 
@@ -255,9 +254,7 @@ class HTTPProxyTestContext(abc.ABC):
     REQUEST_PROTO = None
 
     def http_server(self, server_class, *args, **kwargs):
-        server = proxy_server(server_class, self.REQUEST_HANDLER_CLASS, *args, **kwargs)
-        time.sleep(1)
-        return server
+        return proxy_server(server_class, self.REQUEST_HANDLER_CLASS, *args, **kwargs)
 
     @abc.abstractmethod
     def proxy_info_request(self, handler, target_domain=None, target_port=None, **req_kwargs) -> dict:
