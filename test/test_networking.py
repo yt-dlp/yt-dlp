@@ -822,6 +822,24 @@ class TestRequestHandlerMisc:
         rh.close()
         assert len(logging_handlers) == before_count
 
+    def test_wrap_request_errors(self):
+        class TestRequestHandler(RequestHandler):
+            def _validate(self, request):
+                if request.headers.get('x-fail'):
+                    raise UnsupportedRequest('test error')
+
+            def _send(self, request: Request):
+                raise RequestError('test error')
+
+        with TestRequestHandler(logger=FakeLogger()) as rh:
+            with pytest.raises(UnsupportedRequest, match='test error') as exc_info:
+                rh.validate(Request('http://example.com', headers={'x-fail': '1'}))
+            assert exc_info.value.handler is rh
+
+            with pytest.raises(RequestError, match='test error') as exc_info:
+                rh.send(Request('http://example.com'))
+            assert exc_info.value.handler is rh
+
 
 @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
 class TestUrllibRequestHandler(TestRequestHandlerBase):
