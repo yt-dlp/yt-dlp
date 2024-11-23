@@ -4987,8 +4987,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if not isinstance(item, dict):
                 continue
             if lookup_view_model := item.get('lockupViewModel'):
-                entry = self._extract_lookup_view_model(lookup_view_model)
-                if entry:
+                if entry := self._extract_lookup_view_model(lookup_view_model):
                     yield entry
                 continue
             renderer = self._extract_basic_item_renderer(item)
