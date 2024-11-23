@@ -261,6 +261,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'tags': [],
             'view_count': int,
             'like_count': int,
+            'thumbnail': r're:https://\w+.dmcdn.net/v/WnEY61cmvMxt2Fi6d/x1080',
         },
     }, {
         # https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj
@@ -288,6 +289,25 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'description': 'À bord du « véloto », l’alternative à la voiture pour la campagne',
             'tags': ['biclou', 'vélo', 'véloto', 'campagne', 'voiture', 'environnement', 'véhicules intermédiaires'],
         },
+    }, {
+        # https://geo.dailymotion.com/player/xry80.html?video=x8vu47w
+        'url': 'https://www.metatube.com/en/videos/546765/This-frogs-decorates-Christmas-tree/',
+        'info_dict': {
+            'id': 'x8vu47w',
+            'ext': 'mp4',
+            'like_count': int,
+            'uploader': 'Metatube',
+            'thumbnail': r're:https://\w+.dmcdn.net/v/W1G_S1coGSFTfkTeR/x1080',
+            'upload_date': '20240326',
+            'view_count': int,
+            'timestamp': 1711496732,
+            'age_limit': 0,
+            'uploader_id': 'x2xpy74',
+            'title': 'Está lindas ranitas ponen su arbolito',
+            'duration': 28,
+            'description': 'Que lindura',
+            'tags': [],
+        },
     }]
     _GEO_BYPASS = False
     _COMMON_MEDIA_FIELDS = '''description
@@ -302,7 +322,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         yield from super()._extract_embed_urls(url, webpage)
         for mobj in re.finditer(
                 r'(?s)DM\.player\([^,]+,\s*{.*?video[\'"]?\s*:\s*["\']?(?P<id>[0-9a-zA-Z]+).+?}\s*\);', webpage):
-            yield from 'https://www.dailymotion.com/embed/video/' + mobj.group('id')
+            yield 'https://www.dailymotion.com/embed/video/' + mobj.group('id')
         for mobj in re.finditer(
                 r'(?s)<script [^>]*\bsrc=(["\'])(?:https?:)?//[\w-]+\.dailymotion\.com/player/(?:(?!\1).)+\1[^>]*>', webpage):
             attrs = extract_attributes(mobj.group(0))
