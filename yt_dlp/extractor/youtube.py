@@ -5094,25 +5094,20 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if not content_id:
             return
         entry_url = None
-        if renderer.get('contentType') in ('LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_PODCAST'):
-            entry_url = f'https://www.youtube.com/playlist?list={content_id}'
-        else:
+        if renderer.get('contentType') not in ('LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_PODCAST'):
             self.report_warning(
                 f'Unsupported lookup view model content type "{renderer.get("contentType")}"{bug_reports_message()}', only_once=True)
             return
+        entry_url = f'https://www.youtube.com/playlist?list={content_id}'
         return self.url_result(
-            entry_url,
-            ie=YoutubeTabIE, video_id=content_id,
-            **traverse_obj(renderer, {
-                'title': ('metadata', 'lockupMetadataViewModel', 'title', 'content', {str}),
-            }),
+            entry_url, ie=YoutubeTabIE, video_id=content_id, title=traverse_obj(renderer, (
+                'metadata', 'lockupMetadataViewModel', 'title', 'content', {str})),
             thumbnails=self._extract_thumbnails(renderer, (
                 'contentImage', 'collectionThumbnailViewModel', 'primaryThumbnail', 'thumbnailViewModel', 'image'), final_key='sources'))
 
     def _rich_entries(self, rich_grid_renderer):
         if lookup_view_model := traverse_obj(rich_grid_renderer, ('content', 'lockupViewModel', {dict})):
-            entry = self._extract_lookup_view_model(lookup_view_model)
-            if entry:
+            if entry := self._extract_lookup_view_model(lookup_view_model):
                 yield entry
             return
         renderer = traverse_obj(
