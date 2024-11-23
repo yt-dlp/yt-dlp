@@ -4987,7 +4987,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if not isinstance(item, dict):
                 continue
             if lockup_view_model := traverse_obj(item, ('lockupViewModel', {dict})):
-                if entry := self._extract_lockup_view_model(lookup_view_model):
+                if entry := self._extract_lockup_view_model(lockup_view_model):
                     yield entry
                 continue
             renderer = self._extract_basic_item_renderer(item)
@@ -5105,7 +5105,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _rich_entries(self, rich_grid_renderer):
         if lockup_view_model := traverse_obj(rich_grid_renderer, ('content', 'lockupViewModel', {dict})):
-            if entry := self._extract_lockup_view_model(lookup_view_model):
+            if entry := self._extract_lockup_view_model(lockup_view_model):
                 yield entry
             return
         renderer = traverse_obj(
