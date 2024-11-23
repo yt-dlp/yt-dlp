@@ -50,7 +50,7 @@ class FacebookIE(InfoExtractor):
                             [^/]+/videos/(?:[^/]+/)?|
                             [^/]+/posts/|
                             events/(?:[^/]+/)?|
-                            groups/[^/]+/(?:permalink|posts)/(?:[0-9a-f]+/)?|
+                            groups/[^/]+/(?:permalink|posts)/(?:[\da-f]+/)?|
                             watchparty/
                         )|
                     facebook:
