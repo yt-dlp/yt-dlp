@@ -5092,9 +5092,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         content_id = view_model.get('contentId')
         if not content_id:
             return
-        if view_model.get('contentType') not in ('LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_PODCAST'):
+        content_type = view_model.get('contentType')
+        if content_type not in ('LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_PODCAST'):
             self.report_warning(
-                f'Unsupported lockup view model content type "{view_model.get("contentType")}"{bug_reports_message()}', only_once=True)
+                f'Unsupported lockup view model content type "{content_type}"{bug_reports_message()}', only_once=True)
             return
         return self.url_result(
             f'https://www.youtube.com/playlist?list={content_id}', ie=YoutubeTabIE, video_id=content_id,
