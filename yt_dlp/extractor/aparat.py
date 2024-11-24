@@ -1,5 +1,12 @@
 from .common import InfoExtractor
-from ..utils import get_element_by_id, int_or_none, merge_dicts, mimetype2ext, str_or_none, url_or_none
+from ..utils import (
+    get_element_by_id,
+    int_or_none,
+    merge_dicts,
+    mimetype2ext,
+    str_or_none,
+    url_or_none,
+)
 from ..utils.traversal import traverse_obj
 
 
