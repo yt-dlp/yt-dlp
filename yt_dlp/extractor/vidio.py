@@ -76,7 +76,7 @@ class VidioBaseIE(InfoExtractor):
 
 class VidioIE(VidioBaseIE):
     _GEO_COUNTRIES = ['ID']
-    _VALID_URL = r'https?://(?:www\.)?vidio\.com/(watch|embed)/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?vidio\.com/(?:watch|embed)/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
     _EMBED_REGEX = [rf'(?x)<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'http://www.vidio.com/watch/165683-dj_ambred-booyah-live-2015',
@@ -356,7 +356,7 @@ class VidioIE(VidioBaseIE):
             'channel': channel,
             'channel_id': channel_id,
             'channel_url': f'{uploader_url}/channels/{channel_id}-{channel}',
-            'genres': traverse_obj(attrs, ('data-genres', {str_or_none}, {str.split(sep=',')}), default=[]),
+            'genres': traverse_obj(attrs, ('data-genres', {str_or_none}, {lambda x: x.split(',')}), default=[]),
             'season_id': traverse_obj(attrs, ('data-season-id', {str_or_none})),
             'season_name': traverse_obj(attrs, ('data-season-name', {str})),
             'uploader': uploader,
@@ -366,10 +366,10 @@ class VidioIE(VidioBaseIE):
             'duration': traverse_obj(attrs, ('data-video-duration', {str_to_int})),
             'description': traverse_obj(attrs, ('data-video-description', {str})),
             'availability': self._availability(needs_premium=(attrs.get('data-access-type') == 'premium')),
-            'tags': traverse_obj(attrs, ('data-video-tags', {str_or_none}, {str.split(sep=',')}), default=[]),
+            'tags': traverse_obj(attrs, ('data-video-tags', {str_or_none}, {lambda x: x.split(',')}), default=[]),
             'timestamp': traverse_obj(attrs, ('data-video-publish-date', {parse_iso8601(delimiter=' ')})),
             'age_limit': (traverse_obj(attrs, ('data-adult', {lambda x: 18 if x == 'true' else 0}))
-                          or traverse_obj(attrs, ('data-content-rating-option', {remove_end(end=' or more')}, {str_to_int}))),
+                          or traverse_obj(attrs, ('data-content-rating-option', {lambda x: remove_end(x, ' or more')}, {str_to_int}))),
             '__post_extractor': self.extract_comments(video_id),
         }
 
@@ -541,16 +541,16 @@ class VidioLiveIE(VidioBaseIE):
             'title': attrs.get('data-video-title'),
             'live_status': 'is_live',
             'formats': formats,
-            'genres': traverse_obj(attrs, ('data-genres', {str_or_none}, {str.split(sep=',')}), default=[]),
+            'genres': traverse_obj(attrs, ('data-genres', {str_or_none}, {lambda x: x.split(',')}), default=[]),
             'uploader': uploader,
             'uploader_id': traverse_obj(attrs, ('data-video-user-id', {str_or_none})),
             'uploader_url': uploader_url,
             'thumbnail': traverse_obj(attrs, ('data-video-image-url', {url_or_none})),
             'description': traverse_obj(attrs, ('data-video-description', {str})),
             'availability': self._availability(needs_premium=(attrs.get('data-access-type') == 'premium')),
-            'tags': traverse_obj(attrs, ('data-video-tags', {str_or_none}, {str.split(sep=',')}), default=[]),
+            'tags': traverse_obj(attrs, ('data-video-tags', {str_or_none}, {lambda x: x.split(',')}), default=[]),
             'age_limit': (traverse_obj(attrs, ('data-adult', {lambda x: 18 if x == 'true' else 0}))
-                          or traverse_obj(attrs, ('data-content-rating-option', {remove_end(end=' or more')}, {str_to_int}))),
+                          or traverse_obj(attrs, ('data-content-rating-option', {lambda x: remove_end(x, ' or more')}, {str_to_int}))),
             'like_count': int_or_none(stream_meta.get('like')),
             'dislike_count': int_or_none(stream_meta.get('dislike')),
             'timestamp': parse_iso8601(stream_meta.get('start_time')),
