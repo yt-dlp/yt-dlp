@@ -234,5 +234,10 @@
         "when": "57212a5f97ce367590aaa5c3e9a135eead8f81f7",
         "short": "[ie/vimeo] Fix API retries (#11351)",
         "authors": ["bashonly"]
+    },
+    {
+        "action": "add",
+        "when": "52c0ffe40ad6e8404d93296f575007b05b04c686",
+        "short": "[priority] **Login with OAuth is no longer supported for YouTube**\nDue to a change made by the site, yt-dlp is no longer able to support OAuth login for YouTube. [Read more](https://github.com/yt-dlp/yt-dlp/issues/11462#issuecomment-2471703090)"
     }
 ]
