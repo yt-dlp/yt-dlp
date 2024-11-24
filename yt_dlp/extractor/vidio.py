@@ -130,11 +130,10 @@ class VidioIE(VidioBaseIE):
             'tags': [],
             'uploader_url': 'https://www.vidio.com/@vidiooriginal',
             'live_status': 'not_live',
-            'genres': ['romance', 'drama', 'comedy', 'Teen', 'love triangle'],
+            'genres': ['romance', 'drama', 'comedy', 'Teen', 'love triangle', 'Female-Led'],
             'season_id': '8220',
             'season_name': 'Season 1',
             'age_limit': 13,
-            'availability': 'premium_only',
             'comment_count': int,
         },
         'expected_warnings': ['This video is DRM protected'],
@@ -171,11 +170,9 @@ class VidioIE(VidioBaseIE):
         },
     }, {
         'url': 'https://www.vidio.com/watch/1716926-mas-suka-masukin-aja',
-        'md5': 'acc4009eeac0033328419aada7bc6925',
         'info_dict': {
             'id': '1716926',
             'display_id': 'mas-suka-masukin-aja',
-            'ext': 'mp4',
             'title': 'Mas Suka, Masukin Aja',
             'description': 'md5:667093b08e07b6fb92f68037f81f2267',
             'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
@@ -197,9 +194,14 @@ class VidioIE(VidioBaseIE):
             'availability': 'premium_only',
         },
         'params': {
+            'skip_download': True,
             'ignore_no_formats_error': True,
         },
-        'expected_warnings': ['This show isn\'t available in your country'],
+        'expected_warnings': [
+            'This video requires subscription',
+            'No video formats found!',
+            'Requested format is not available',
+        ],
     }, {
         'url': 'https://www.vidio.com/watch/2372948-first-day-of-school-kindergarten-life-song-beabeo-nursery-rhymes-kids-songs',
         'md5': 'c6d1bde08eee88bea27cca9dc38bc3df',
@@ -221,19 +223,17 @@ class VidioIE(VidioBaseIE):
             'tags': [],
             'uploader_url': 'https://www.vidio.com/@kidsstartv',
             'live_status': 'not_live',
-            'genres': ['animation', 'Cartoon'],
+            'genres': ['3D cartoon', 'kids music'],
             'season_id': '6023',
             'season_name': 'school series',
         },
     }, {
         'url': 'https://www.vidio.com/watch/1550718-stand-by-me-doraemon',
-        'md5': '405b61a2f06c74e052e0bd67cad6b891',
         'info_dict': {
             'id': '1550718',
             'display_id': 'stand-by-me-doraemon',
-            'ext': 'mp4',
             'title': 'Stand by Me Doraemon',
-            'description': 'md5:673d899f6a58dd4b0d18aebe30545e2a',
+            'description': 'md5:19b658efb7c609895ea5472daa76b645',
             'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
             'duration': 5429,
             'uploader': 'vidiopremier',
@@ -246,16 +246,21 @@ class VidioIE(VidioBaseIE):
             'tags': ['anime-lucu', 'top-10-this-week', 'kids', 'stand-by-me-doraemon-2'],
             'uploader_url': 'https://www.vidio.com/@vidiopremier',
             'live_status': 'not_live',
-            'genres': ['anime', 'family', 'adventure', 'comedy', 'coming of age'],
+            'genres': 'count:11',
             'season_id': '237',
             'season_name': '',
             'age_limit': 7,
             'availability': 'premium_only',
         },
         'params': {
+            'skip_download': True,
             'ignore_no_formats_error': True,
         },
-        'expected_warnings': ['This show isn\'t available in your country'],
+        'expected_warnings': [
+            'This video requires subscription',
+            'No video formats found!',
+            'Requested format is not available',
+        ],
     }, {
         # 404 Not Found
         'url': 'https://www.vidio.com/watch/77949-south-korea-test-fires-missile-that-can-strike-all-of-the-north',
@@ -293,23 +298,11 @@ class VidioIE(VidioBaseIE):
         },
     }]
 
-    def _real_extract(self, url):
-        video_id, display_id = self._match_valid_url(url).groups()
-
-        webpage = self._download_webpage(url, video_id)
-        api_data = self._call_api(f'https://api.vidio.com/videos/{video_id}', display_id, 'Downloading API data')
+    def _get_formats_and_subtitles(self, attrs, video_id):
         interactions_stream = self._download_json(
             'https://www.vidio.com/interactions_stream.json', video_id,
             query={'video_id': video_id, 'type': 'videos'}, note='Downloading stream info',
             errnote='Unable to download stream info')
-
-        attrs = extract_attributes(get_element_html_by_id(f'player-data-{video_id}', webpage))
-
-        if traverse_obj(attrs, ('data-drm-enabled', {lambda x: x == 'true'})):
-            self.report_drm(video_id)
-        if traverse_obj(attrs, ('data-geoblock', {lambda x: x == 'true'})):
-            self.raise_geo_restricted(
-                'This show isn\'t available in your country', countries=['ID'], metadata_available=True)
 
         subtitles = dict(traverse_obj(attrs, ('data-subtitles', {json.loads}, ..., {
             lambda x: (x['language'], [{'url': x['file']['url']}]),
@@ -319,25 +312,46 @@ class VidioIE(VidioBaseIE):
         # There are time-based strings in the playlist URL,
         # so try the other URL iff no formats extracted from the prior one.
 
-        for m3u8_url in traverse_obj([
-                interactions_stream.get('source'),
-                attrs.get('data-vjs-clip-hls-url')], (..., {url_or_none})):
-            fmt, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4', m3u8_id='hls')
-            formats.extend(fmt)
-            self._merge_subtitles(subs, target=subtitles)
+        for m3u8_url in traverse_obj(
+                [interactions_stream.get('source'), attrs.get('data-vjs-clip-hls-url')], (..., {url_or_none})):
+            fmt, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4', m3u8_id='hls', fatal=False)
             if fmt:
+                formats.extend(fmt)
+                self._merge_subtitles(subs, target=subtitles)
                 break
 
-        for mpd_url in traverse_obj([
-                interactions_stream.get('source_dash'),
-                attrs.get('data-vjs-clip-dash-url')], (..., {url_or_none})):
-            fmt, subs = self._extract_mpd_formats_and_subtitles(mpd_url, video_id, mpd_id='dash')
-            formats.extend(fmt)
-            self._merge_subtitles(subs, target=subtitles)
+        for mpd_url in traverse_obj(
+                [interactions_stream.get('source_dash'), attrs.get('data-vjs-clip-dash-url')], (..., {url_or_none})):
+            fmt, subs = self._extract_mpd_formats_and_subtitles(mpd_url, video_id, mpd_id='dash', fatal=False)
             if fmt:
+                formats.extend(fmt)
+                self._merge_subtitles(subs, target=subtitles)
                 break
 
         # TODO: extract also short previews of premier-exclusive videos from "attrs['data-content-preview-url']".
+
+        return formats, subtitles
+
+    def _real_extract(self, url):
+        video_id, display_id = self._match_valid_url(url).groups()
+
+        webpage = self._download_webpage(url, video_id)
+        api_data = self._call_api(f'https://api.vidio.com/videos/{video_id}', display_id, 'Downloading API data')
+
+        attrs = extract_attributes(get_element_html_by_id(f'player-data-{video_id}', webpage))
+
+        availability = self._availability(needs_premium=(attrs.get('data-access-type') == 'premium'))
+
+        if traverse_obj(attrs, ('data-drm-enabled', {lambda x: x == 'true'})):
+            self.report_drm(video_id)
+
+        formats, subtitles = self._get_formats_and_subtitles(attrs, video_id)
+        if not formats:
+            if availability == 'premium_only':
+                self.raise_login_required('This video requires subscription', metadata_available=True)
+            elif traverse_obj(attrs, ('data-geoblock', {lambda x: x == 'true'})):
+                self.raise_geo_restricted(
+                    'This show isn\'t available in your country', countries=self._GEO_COUNTRIES, metadata_available=True)
 
         uploader = attrs.get('data-video-username')
         uploader_url = f'https://www.vidio.com/@{uploader}'
@@ -365,7 +379,7 @@ class VidioIE(VidioBaseIE):
             'thumbnail': traverse_obj(attrs, ('data-video-image-url', {url_or_none})),
             'duration': traverse_obj(attrs, ('data-video-duration', {str_to_int})),
             'description': traverse_obj(attrs, ('data-video-description', {str})),
-            'availability': self._availability(needs_premium=(attrs.get('data-access-type') == 'premium')),
+            'availability': availability,
             'tags': traverse_obj(attrs, ('data-video-tags', {str_or_none}, filter, {lambda x: x.split(',')}), default=[]),
             'timestamp': traverse_obj(attrs, ('data-video-publish-date', {parse_iso8601(delimiter=' ')})),
             'age_limit': (traverse_obj(attrs, ('data-adult', {lambda x: 18 if x == 'true' else 0}))
