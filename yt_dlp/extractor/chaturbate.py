@@ -59,16 +59,15 @@ class ChaturbateIE(InfoExtractor):
                 'Accept': 'application/json',
             }, fatal=False, impersonate=True) or {}
 
-        status = response.get('room_status')
-        if status != 'public':
-            if error := self._ERROR_MAP.get(status):
-                raise ExtractorError(error, expected=True)
-            self.report_warning('Falling back to webpage extraction')
-            return None
-
         m3u8_url = response.get('url')
         if not m3u8_url:
-            self.raise_geo_restricted()
+            status = response.get('room_status')
+            if error := self._ERROR_MAP.get(status):
+                raise ExtractorError(error, expected=True)
+            if status == 'public':
+                self.raise_geo_restricted()
+            self.report_warning(f'Got status "{status}" from API; falling back to webpage extraction')
+            return None
 
         return {
             'id': video_id,
