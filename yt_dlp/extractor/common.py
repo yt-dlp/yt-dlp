@@ -2469,7 +2469,7 @@ class InfoExtractor:
                     'url': streamer,
                     'play_path': src,
                     'ext': 'flv',
-                    'format_id': f'rtmp-{rtmp_count if bitrate is None else bitrate}',
+                    'format_id': f'rtmp-{(rtmp_count if bitrate is None else bitrate):.0f}',
                     'tbr': bitrate,
                     'filesize': filesize,
                     'width': width,
@@ -2493,7 +2493,7 @@ class InfoExtractor:
                 if len(m3u8_formats) == 1:
                     m3u8_count += 1
                     m3u8_formats[0].update({
-                        'format_id': f'hls-{m3u8_count if bitrate is None else bitrate}',
+                        'format_id': f'hls-{(m3u8_count if bitrate is None else bitrate):.0f}',
                         'tbr': bitrate,
                         'width': width,
                         'height': height,
@@ -2524,7 +2524,7 @@ class InfoExtractor:
                 formats.append({
                     'url': src_url,
                     'ext': ext or src_ext or 'flv',
-                    'format_id': f'http-{bitrate or http_count}',
+                    'format_id': f'http-{(bitrate or http_count):.0f}',
                     'tbr': bitrate,
                     'filesize': filesize,
                     'width': width,

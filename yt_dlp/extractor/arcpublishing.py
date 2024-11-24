@@ -118,7 +118,7 @@ class ArcPublishingIE(InfoExtractor):
                         if isinstance(f['tbr'], float):
                             f['vbr'] = f['tbr'] * 1000
                             del f['tbr']
-                            f['format_id'] = 'rtmp-{}'.format(f['vbr'])
+                            f['format_id'] = 'rtmp-{:.0f}'.format(f['vbr'])
                 formats.extend(smil_formats)
             elif stream_type in ('ts', 'hls'):
                 m3u8_formats = self._extract_m3u8_formats(

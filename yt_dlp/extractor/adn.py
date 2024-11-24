@@ -134,7 +134,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 ssa += os.linesep + 'Dialogue: Marked=0,{},{},Default,,0,0,0,,{}{}'.format(
                     ass_subtitles_timecode(start),
                     ass_subtitles_timecode(end),
-                    f'{{\\a{alignment}}}' if alignment != 2 else '',
+                    '{\\a%d}' % alignment if alignment != 2 else '',  # noqa: UP031
                     text.replace('\n', '\\N').replace('<i>', '{\\i1}').replace('</i>', '{\\i0}'))
 
             if sub_lang == 'vostf':

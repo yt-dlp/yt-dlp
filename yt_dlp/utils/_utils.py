@@ -927,12 +927,12 @@ def timetuple_from_msec(msec):
 def formatSeconds(secs, delim=':', msec=False):
     time = timetuple_from_msec(secs * 1000)
     if time.hours:
-        ret = f'{time.hours}{delim}{time.minutes:02d}{delim}{time.seconds:02d}'
+        ret = f'{time.hours:.0f}{delim}{time.minutes:02.0f}{delim}{time.seconds:02.0f}'
     elif time.minutes:
-        ret = f'{time.minutes}{delim}{time.seconds:02d}'
+        ret = f'{time.minutes:.0f}{delim}{time.seconds:02.0f}'
     else:
-        ret = f'{time.seconds}'
-    return f'{ret}.{time.milliseconds:03d}' if msec else ret
+        ret = f'{time.seconds:.0f}'
+    return f'{ret}.{time.milliseconds:03.0f}' if msec else ret
 
 
 def bug_reports_message(before=';'):
@@ -3380,12 +3380,12 @@ def parse_dfxp_time_expr(time_expr):
 
 
 def srt_subtitles_timecode(seconds):
-    return '{:02d}:{:02d}:{:02d},{:03d}'.format(*map(int, timetuple_from_msec(seconds * 1000)))
+    return '{:02.0f}:{:02.0f}:{:02.0f},{:03.0f}'.format(*timetuple_from_msec(seconds * 1000))
 
 
 def ass_subtitles_timecode(seconds):
     time = timetuple_from_msec(seconds * 1000)
-    return '{:01d}:{:02d}:{:02d}.{:02d}'.format(*map(int, time[:-1]), int(time.milliseconds / 10))
+    return '{:01.0f}:{:02.0f}:{:02.0f}.{:02.0f}'.format(*time[:-1], time.milliseconds / 10)
 
 
 def dfxp2srt(dfxp_data):

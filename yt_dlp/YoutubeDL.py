@@ -1654,7 +1654,7 @@ class YoutubeDL:
                 or ie_result.get('formats') or ie_result.get('url')):
             return
 
-        format_dur = lambda dur: '{:02}:{:02}:{:02}'.format(*timetuple_from_msec(dur * 1000)[:-1])
+        format_dur = lambda dur: '{:02.0f}:{:02.0f}:{:02.0f}'.format(*timetuple_from_msec(dur * 1000)[:-1])
         last_msg = ''
 
         def progress(msg):
@@ -3817,7 +3817,7 @@ class YoutubeDL:
         if fdict.get('tbr') is not None:
             if res:
                 res += ', '
-            res += '{:4d}k'.format(fdict['tbr'])
+            res += '{:4.0f}k'.format(fdict['tbr'])
         if fdict.get('container') is not None:
             if res:
                 res += ', '
@@ -3832,7 +3832,7 @@ class YoutubeDL:
         elif fdict.get('vbr') is not None and fdict.get('abr') is not None:
             res += 'video@'
         if fdict.get('vbr') is not None:
-            res += '{:4d}k'.format(fdict['vbr'])
+            res += '{:4.0f}k'.format(fdict['vbr'])
         if fdict.get('fps') is not None:
             if res:
                 res += ', '
@@ -3849,9 +3849,9 @@ class YoutubeDL:
                 res += ', '
             res += 'audio'
         if fdict.get('abr') is not None:
-            res += '@{:3d}k'.format(fdict['abr'])
+            res += '@{:3.0f}k'.format(fdict['abr'])
         if fdict.get('asr') is not None:
-            res += ' ({:5d}Hz)'.format(fdict['asr'])
+            res += ' ({:5.0f}Hz)'.format(fdict['asr'])
         if fdict.get('filesize') is not None:
             if res:
                 res += ', '
