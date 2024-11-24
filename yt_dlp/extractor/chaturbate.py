@@ -67,7 +67,7 @@ class ChaturbateIE(InfoExtractor):
                 raise ExtractorError(error, expected=True)
             if status == 'public':
                 self.raise_geo_restricted()
-            self.report_warning('Falling back to webpage extraction')
+            self.report_warning(f'Got status "{status}" from API; falling back to webpage extraction')
             return None
 
         return {
