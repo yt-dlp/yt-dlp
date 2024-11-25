@@ -1854,12 +1854,24 @@ class InfoExtractor:
 
     @staticmethod
     def _remove_duplicate_formats(formats):
-        format_urls = set()
+        seen_urls = set()
+        seen_fragments = set()
         unique_formats = []
         for f in formats:
-            if f['url'] not in format_urls:
-                format_urls.add(f['url'])
+            fragments = f.get('fragments')
+            if fragments and not callable(fragments):
+                if base_url := f.get('fragment_base_url'):
+                    fragments = map(urljoin(base_url), fragments)
+
+                fragments = frozenset(fragments)
+                if fragments not in seen_fragments:
+                    seen_fragments.add(fragments)
+                    unique_formats.append(f)
+
+            elif f['url'] not in seen_urls:
+                seen_urls.add(f['url'])
                 unique_formats.append(f)
+
         formats[:] = unique_formats
 
     def _is_valid_url(self, url, video_id, item='video', headers={}):
