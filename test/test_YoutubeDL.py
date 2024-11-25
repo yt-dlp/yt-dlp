@@ -741,7 +741,9 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(duration_string)s', ('27:46:40', '27-46-40'))
         test('%(resolution)s', '1080p')
         test('%(playlist_index|)s', '001')
-        test('%(playlist_index&{}!)s', '1!')
+        test('%(playlist_index&{}!)s', '01!')  # Should maintain padding with replacement
+        test('%(playlist_index&{} - |)s', '01')  # Should maintain padding with replacement
+        test('%(playlist_index)s%(playlist_index& - |)s', '01 - 1')  # Original issue example
         test('%(playlist_autonumber)s', '02')
         test('%(autonumber)s', '00001')
         test('%(autonumber+2)03d', '005', autonumber_start=3)

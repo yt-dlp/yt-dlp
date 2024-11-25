@@ -1354,8 +1354,16 @@ class YoutubeDL:
                     value, default = None, na
 
             fmt = outer_mobj.group('format')
-            if fmt == 's' and last_field in field_size_compat_map and isinstance(value, int):
-                fmt = f'0{field_size_compat_map[last_field]:d}d'
+            # Apply numeric padding for both direct numeric fields and fields with replacements
+            if last_field in field_size_compat_map and isinstance(value, (int, str)):
+                # Try to convert string values (from replacements) back to int
+                try:
+                    if isinstance(value, str):
+                        value = int(value)
+                    if isinstance(value, int):
+                        fmt = f'0{field_size_compat_map[last_field]:d}d'
+                except (ValueError, TypeError):
+                    pass
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
