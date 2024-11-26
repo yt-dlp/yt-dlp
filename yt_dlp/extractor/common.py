@@ -1859,7 +1859,10 @@ class InfoExtractor:
         unique_formats = []
         for f in formats:
             fragments = f.get('fragments')
-            if fragments and not callable(fragments):
+            if callable(fragments):
+                unique_formats.append(f)
+
+            elif fragments:
                 if base_url := f.get('fragment_base_url'):
                     fragments = map(urljoin(base_url), fragments)
 
