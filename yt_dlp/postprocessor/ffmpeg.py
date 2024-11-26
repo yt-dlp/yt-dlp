@@ -847,7 +847,7 @@ class FFmpegMergerPP(FFmpegPostProcessor):
             if fmt.get('vcodec') != 'none':
                 args.extend(['-map', f'{i}:v:0'])
         self.to_screen(f'Merging formats into "{filename}"')
-        self.run_ffmpeg_multiple_files(info['__files_to_merge'], temp_filename, args,  info_dict=info)
+        self.run_ffmpeg_multiple_files(info['__files_to_merge'], temp_filename, args, info_dict=info)
         os.rename(temp_filename, filename)
         return info['__files_to_merge'], info
 
