@@ -296,6 +296,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         extensions.pop('cookiejar', None)
         extensions.pop('timeout', None)
         extensions.pop('legacy_ssl', None)
+        extensions.pop('keep_header_casing', None)
 
     def _create_instance(self, cookiejar, legacy_ssl_support=None):
         session = RequestsSession()
@@ -323,6 +324,9 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
             cookiejar=self._get_cookiejar(request),
             legacy_ssl_support=request.extensions.get('legacy_ssl'),
         )
+
+        if request.extensions.get('keep_header_casing'):
+            headers = headers.sensitive()
 
         try:
             requests_res = session.request(
