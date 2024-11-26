@@ -17,7 +17,7 @@ from ..utils.traversal import traverse_obj
 
 
 class RTPIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rtp\.pt/play/(?:[^/#?]+/)?p(?P<program_id>[\d]+)/(?P<id>[e\d]+)'
+    _VALID_URL = r'https?://(?:www\.)?rtp\.pt/play/(?:[^/#?]+/)?p(?P<program_id>\d+)/(?P<id>e\d+)'
     _TESTS = [{
         'url': 'http://www.rtp.pt/play/p405/e174042/paixoes-cruzadas',
         'md5': 'e736ce0c665e459ddb818546220b4ef8',
