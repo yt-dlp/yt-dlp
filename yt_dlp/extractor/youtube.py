@@ -3083,8 +3083,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def gen_sig_code(idxs):
             def _genslice(start, end, step):
                 starts = '' if start == 0 else str(start)
-                ends = f':{end + step}' if end + step >= 0 else ':'
-                steps = '' if step == 1 else f':{step}'
+                ends = (':%d' % (end + step)) if end + step >= 0 else ':'
+                steps = '' if step == 1 else (':%d' % step)
                 return f's[{starts}{ends}{steps}]'
 
             step = None
@@ -3102,9 +3102,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     start = prev
                     continue
                 else:
-                    yield f's[{prev}]'
+                    yield 's[%d]' % prev
             if step is None:
-                yield f's[{i}]'
+                yield 's[%d]' % i
             else:
                 yield _genslice(start, i, step)
 
@@ -3628,7 +3628,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if is_first_continuation:
                     note_prefix = 'Downloading comment section API JSON'
                 else:
-                    note_prefix = '    Downloading comment API JSON reply thread {} {}'.format(
+                    note_prefix = '    Downloading comment API JSON reply thread %d %s' % (
                         tracker['current_page_thread'], comment_prog_str)
             else:
                 note_prefix = '{}Downloading comment{} API JSON page {} {}'.format(

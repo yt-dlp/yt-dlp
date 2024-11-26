@@ -100,7 +100,7 @@ class LivestreamIE(InfoExtractor):
                 furl += '&ssek=' + vn.attrib['clipBegin']
             formats.append({
                 'url': furl,
-                'format_id': f'smil_{tbr:.0f}',
+                'format_id': 'smil_%d' % tbr,
                 'ext': 'flv',
                 'tbr': tbr,
                 'preference': -1000,  # Strictly inferior than all other formats?

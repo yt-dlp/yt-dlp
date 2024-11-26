@@ -52,7 +52,7 @@ class PressTVIE(InfoExtractor):
         thumbnail = self._og_search_thumbnail(webpage)
         description = self._og_search_description(webpage)
 
-        upload_date = '{:04d}{:02d}{:02d}'.format(
+        upload_date = '%04d%02d%02d' % (
             int(mobj.group('y')),
             int(mobj.group('m')),
             int(mobj.group('d')),

@@ -118,7 +118,7 @@ class ArcPublishingIE(InfoExtractor):
                         if isinstance(f['tbr'], float):
                             f['vbr'] = f['tbr'] * 1000
                             del f['tbr']
-                            f['format_id'] = 'rtmp-{:.0f}'.format(f['vbr'])
+                            f['format_id'] = 'rtmp-%d' % f['vbr']
                 formats.extend(smil_formats)
             elif stream_type in ('ts', 'hls'):
                 m3u8_formats = self._extract_m3u8_formats(
@@ -130,7 +130,7 @@ class ArcPublishingIE(InfoExtractor):
                     if not height:
                         continue
                     vbr = self._search_regex(
-                        fr'[_x]{height}[_-](\d+)', f['url'], 'vbr', default=None)
+                        r'[_x]%d[_-](\d+)' % height, f['url'], 'vbr', default=None)
                     if vbr:
                         f['vbr'] = int(vbr)
                 formats.extend(m3u8_formats)

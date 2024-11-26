@@ -162,7 +162,7 @@ class NexxIE(InfoExtractor):
 
         ps = str(stream_data['originalDomain'])
         if stream_data['applyFolderHierarchy'] == 1:
-            s = f'{int(video_id):04d}'[::-1]
+            s = ('%04d' % int(video_id))[::-1]
             ps += f'/{s[0:2]}/{s[2:4]}'
         ps += f'/{video_id}/{video_hash}_'
 
@@ -294,7 +294,7 @@ class NexxIE(InfoExtractor):
             else:
                 prefix = 'd' if static else 'p'
             account = int(stream_data['azureAccount'].replace('nexxplayplus', '').replace('nexxplayfb', ''))
-            return f'http://nx-{prefix}{account:02d}.akamaized.net/'
+            return 'http://nx-%s%02d.akamaized.net/' % (prefix, account)
 
         language = video['general'].get('language_raw') or ''
 

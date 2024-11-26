@@ -2230,7 +2230,7 @@ class InfoExtractor:
                     # format_id intact.
                     if not live:
                         stream_name = build_stream_name()
-                        format_id[1] = stream_name or f'{int(tbr) or len(formats)}'
+                        format_id[1] = stream_name or '%d' % (tbr or len(formats))
                     f = {
                         'format_id': join_nonempty(*format_id),
                         'format_index': idx,
@@ -2469,7 +2469,7 @@ class InfoExtractor:
                     'url': streamer,
                     'play_path': src,
                     'ext': 'flv',
-                    'format_id': f'rtmp-{(rtmp_count if bitrate is None else bitrate):.0f}',
+                    'format_id': 'rtmp-%d' % (rtmp_count if bitrate is None else bitrate),
                     'tbr': bitrate,
                     'filesize': filesize,
                     'width': width,
@@ -2493,7 +2493,7 @@ class InfoExtractor:
                 if len(m3u8_formats) == 1:
                     m3u8_count += 1
                     m3u8_formats[0].update({
-                        'format_id': f'hls-{(m3u8_count if bitrate is None else bitrate):.0f}',
+                        'format_id': 'hls-%d' % (m3u8_count if bitrate is None else bitrate),
                         'tbr': bitrate,
                         'width': width,
                         'height': height,
@@ -2524,7 +2524,7 @@ class InfoExtractor:
                 formats.append({
                     'url': src_url,
                     'ext': ext or src_ext or 'flv',
-                    'format_id': f'http-{(bitrate or http_count):.0f}',
+                    'format_id': 'http-%d' % (bitrate or http_count),
                     'tbr': bitrate,
                     'filesize': filesize,
                     'width': width,
@@ -3985,7 +3985,7 @@ class SearchInfoExtractor(InfoExtractor):
             if n <= 0:
                 raise ExtractorError(f'invalid download number {n} for query "{query}"')
             elif n > self._MAX_RESULTS:
-                self.report_warning(f'{self._SEARCH_KEY} returns max {self._MAX_RESULTS} results (you requested {n})')
+                self.report_warning('%s returns max %i results (you requested %i)' % (self._SEARCH_KEY, self._MAX_RESULTS, n))
                 n = self._MAX_RESULTS
             return self._get_n_results(query, n)
 

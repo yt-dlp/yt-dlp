@@ -42,8 +42,9 @@ class GameJoltBaseIE(InfoExtractor):
         is_scrolled = sort_by in ('new', 'you')
         for page in itertools.count(1):
             comments_data = self._call_api(
-                f'comments/Fireside_Post/{post_num_id}/{sort_by}?'
-                f'{("scroll_id" if is_scrolled else "page")}={scroll_id if is_scrolled else page}',
+                'comments/Fireside_Post/%s/%s?%s=%d' % (
+                    post_num_id, sort_by,
+                    'scroll_id' if is_scrolled else 'page', scroll_id if is_scrolled else page),
                 post_hash_id, note=f'Downloading comments list page {page}')
             if not comments_data.get('comments'):
                 break

@@ -210,7 +210,7 @@ class MediasiteIE(InfoExtractor):
                 video_urls = []
 
             stream_id = self._STREAM_TYPES.get(
-                stream_type, f'type{stream_type}')
+                stream_type, 'type%u' % stream_type)
 
             stream_formats = []
             for unum, video in enumerate(video_urls):

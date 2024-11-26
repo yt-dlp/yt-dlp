@@ -42,7 +42,7 @@ class NiconicoDmcFD(FileDownloader):
                     timer[0].start()
 
         heartbeat_info_dict['ping']()
-        self.to_screen(f'[{self.FD_NAME}] Heartbeat with {heartbeat_interval} second interval ...')
+        self.to_screen('[%s] Heartbeat with %d second interval ...' % (self.FD_NAME, heartbeat_interval))
         try:
             heartbeat()
             if type(fd).__name__ == 'HlsFD':

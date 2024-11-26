@@ -73,7 +73,7 @@ class GaiaIE(InfoExtractor):
                 'path': 'video/' + display_id,
             })['id']
         node = self._download_json(
-            f'https://brooklyn.gaia.com/node/{node_id}', node_id)
+            'https://brooklyn.gaia.com/node/%d' % node_id, node_id)
         vdata = node[vtype]
         media_id = str(vdata['nid'])
         title = node['title']

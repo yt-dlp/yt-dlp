@@ -25,7 +25,8 @@ class FlvReader(io.BytesIO):
         data = self.read(n)
         if len(data) < n:
             raise DataTruncatedError(
-                f'FlvReader error: need {n} bytes while only {len(data)} bytes got')
+                'FlvReader error: need %d bytes while only %d bytes got' % (
+                    n, len(data)))
         return data
 
     # Utility functions for reading numbers and strings
@@ -234,7 +235,7 @@ def remove_encrypted_media(media):
 
 
 def _add_ns(prop, ver=1):
-    return '{http://ns.adobe.com/f4m/%d.0}%s' % (ver, prop)  # noqa: UP031
+    return '{http://ns.adobe.com/f4m/%d.0}%s' % (ver, prop)
 
 
 def get_base_url(manifest):
@@ -376,7 +377,7 @@ class F4mFD(FragmentFD):
             frag_index += 1
             if frag_index <= ctx['fragment_index']:
                 continue
-            name = f'Seg{seg_i}-Frag{frag_i}'
+            name = 'Seg%d-Frag%d' % (seg_i, frag_i)
             query = []
             if base_url_parsed.query:
                 query.append(base_url_parsed.query)
@@ -410,7 +411,7 @@ class F4mFD(FragmentFD):
                 if live and (err.status == 404 or err.status == 410):
                     # We didn't keep up with the live window. Continue
                     # with the next available fragment.
-                    msg = f'Fragment {frag_i} unavailable'
+                    msg = 'Fragment %d unavailable' % frag_i
                     self.report_warning(msg)
                     fragments_list = []
                 else:
@@ -420,7 +421,7 @@ class F4mFD(FragmentFD):
                 fragments_list = self._update_live_fragments(bootstrap_url, frag_i)
                 total_frags += len(fragments_list)
                 if fragments_list and (fragments_list[0][1] > frag_i + 1):
-                    msg = f'Missed {fragments_list[0][1] - (frag_i + 1)} fragments'
+                    msg = 'Missed %d fragments' % (fragments_list[0][1] - (frag_i + 1))
                     self.report_warning(msg)
 
         return self._finish_frag_download(ctx, info_dict)

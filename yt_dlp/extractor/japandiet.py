@@ -34,7 +34,7 @@ def _parse_japanese_date(text):
         # example input: 令和5年3月34日
         # even though each era have their end, don't check here
         year += ERA_TABLE[era]
-    return f'{year:04d}{month:02d}{day:02d}'
+    return '%04d%02d%02d' % (year, month, day)
 
 
 def _parse_japanese_duration(text):

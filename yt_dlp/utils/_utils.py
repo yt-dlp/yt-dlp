@@ -927,12 +927,12 @@ def timetuple_from_msec(msec):
 def formatSeconds(secs, delim=':', msec=False):
     time = timetuple_from_msec(secs * 1000)
     if time.hours:
-        ret = f'{time.hours:.0f}{delim}{time.minutes:02.0f}{delim}{time.seconds:02.0f}'
+        ret = '%d%s%02d%s%02d' % (time.hours, delim, time.minutes, delim, time.seconds)
     elif time.minutes:
-        ret = f'{time.minutes:.0f}{delim}{time.seconds:02.0f}'
+        ret = '%d%s%02d' % (time.minutes, delim, time.seconds)
     else:
-        ret = f'{time.seconds:.0f}'
-    return f'{ret}.{time.milliseconds:03.0f}' if msec else ret
+        ret = '%d' % time.seconds
+    return '%s.%03d' % (ret, time.milliseconds) if msec else ret
 
 
 def bug_reports_message(before=';'):
@@ -1434,7 +1434,7 @@ class DateRange:
 def system_identifier():
     python_implementation = platform.python_implementation()
     if python_implementation == 'PyPy' and hasattr(sys, 'pypy_version_info'):
-        python_implementation += ' version {}.{}.{}'.format(*sys.pypy_version_info[:3])
+        python_implementation += ' version %d.%d.%d' % sys.pypy_version_info[:3]
     libc_ver = []
     with contextlib.suppress(OSError):  # We may not have access to the executable
         libc_ver = platform.libc_ver()
@@ -3380,12 +3380,12 @@ def parse_dfxp_time_expr(time_expr):
 
 
 def srt_subtitles_timecode(seconds):
-    return '{:02.0f}:{:02.0f}:{:02.0f},{:03.0f}'.format(*timetuple_from_msec(seconds * 1000))
+    return '%02d:%02d:%02d,%03d' % timetuple_from_msec(seconds * 1000)
 
 
 def ass_subtitles_timecode(seconds):
     time = timetuple_from_msec(seconds * 1000)
-    return '{:01.0f}:{:02.0f}:{:02.0f}.{:02.0f}'.format(*time[:-1], time.milliseconds / 10)
+    return '%01d:%02d:%02d.%02d' % (*time[:-1], time.milliseconds / 10)
 
 
 def dfxp2srt(dfxp_data):
@@ -3547,10 +3547,11 @@ def dfxp2srt(dfxp_data):
             if not dur:
                 continue
             end_time = begin_time + dur
-        out.append(
-            f'{index}\n'
-            f'{srt_subtitles_timecode(begin_time)} --> {srt_subtitles_timecode(end_time)}\n'
-            f'{parse_node(para)}\n\n')
+        out.append('%d\n%s --> %s\n%s\n\n' % (
+            index,
+            srt_subtitles_timecode(begin_time),
+            srt_subtitles_timecode(end_time),
+            parse_node(para)))
 
     return ''.join(out)
 
@@ -4814,7 +4815,7 @@ def remove_terminal_sequences(string):
 
 
 def number_of_digits(number):
-    return len(f'{number}')
+    return len('%d' % number)
 
 
 def join_nonempty(*values, delim='-', from_dict=None):

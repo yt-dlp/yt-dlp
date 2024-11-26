@@ -208,5 +208,5 @@ class RtmpFD(FileDownloader):
             return True
         else:
             self.to_stderr('\n')
-            self.report_error(f'rtmpdump exited with code {retval}')
+            self.report_error('rtmpdump exited with code %d' % retval)
             return False

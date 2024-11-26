@@ -42,7 +42,7 @@ class UrortIE(InfoExtractor):
                 'quality': 3 if f['FileType'] == 'mp3' else 2,
             } for f in s['Files']]
             e = {
-                'id': '{}-{}'.format(s['BandId'], s['$id']),
+                'id': '%d-%s' % (s['BandId'], s['$id']),
                 'title': s['Title'],
                 'uploader_id': playlist_id,
                 'uploader': s.get('BandName', playlist_id),

@@ -49,7 +49,8 @@ class AudiomackIE(InfoExtractor):
 
         # Request the extended version of the api for extra fields like artist and title
         api_response = self._download_json(
-            f'http://www.audiomack.com/api/music/url/song/{album_url_tag}?extended=1&_={int(time.time())}',
+            'http://www.audiomack.com/api/music/url/song/%s?extended=1&_=%d' % (
+                album_url_tag, time.time()),
             album_url_tag)
 
         # API is inconsistent with errors
@@ -119,8 +120,9 @@ class AudiomackAlbumIE(InfoExtractor):
         for track_no in itertools.count():
             # Get song's metadata
             api_response = self._download_json(
-                f'http://www.audiomack.com/api/music/url/album/{album_url_tag}/{track_no}?extended=1&_={int(time.time())}',
-                album_url_tag, note=f'Querying song information ({track_no + 1})')
+                'http://www.audiomack.com/api/music/url/album/%s/%d?extended=1&_=%d'
+                % (album_url_tag, track_no, time.time()), album_url_tag,
+                note=f'Querying song information ({track_no + 1})')
 
             # Total failure, only occurs when url is totally wrong
             # Won't happen in middle of valid playlist (next case)

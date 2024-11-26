@@ -1641,7 +1641,7 @@ class BilibiliCategoryIE(InfoExtractor):
                 f'The subcategory {subcategory} isn\'t supported for this category. Supported subcategories: {list(rid_map[category].keys())}')
         rid_value = rid_map[category][subcategory]
 
-        api_url = f'https://api.bilibili.com/x/web-interface/newlist?rid={rid_value}&type=1&ps=20&jsonp=jsonp'
+        api_url = 'https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp' % rid_value
         page_json = self._download_json(api_url, query, query={'Search_key': query, 'pn': '1'})
         page_data = traverse_obj(page_json, ('data', 'page'), expected_type=dict)
         count, size = int_or_none(page_data.get('count')), int_or_none(page_data.get('size'))

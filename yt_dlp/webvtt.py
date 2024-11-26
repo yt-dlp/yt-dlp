@@ -111,7 +111,7 @@ def _format_ts(ts):
     Convert an MPEG PES timestamp into a WebVTT timestamp.
     This will lose sub-millisecond precision.
     """
-    return '{:02.0f}:{:02.0f}:{:02.0f}.{:03.0f}'.format(*timetuple_from_msec(int((ts + 45) // 90)))
+    return '%02u:%02u:%02u.%03u' % timetuple_from_msec(int((ts + 45) // 90))
 
 
 class Block:

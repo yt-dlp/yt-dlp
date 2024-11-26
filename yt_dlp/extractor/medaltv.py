@@ -99,7 +99,7 @@ class MedalTVIE(InfoExtractor):
         aspect_ratio = source_width / source_height if source_width and source_height else 16 / 9
 
         def add_item(container, item_url, height, id_key='format_id', item_id=None):
-            item_id = item_id or f'{height}p'
+            item_id = item_id or '%dp' % height
             if item_id not in item_url:
                 return
             width = int(round(aspect_ratio * height))

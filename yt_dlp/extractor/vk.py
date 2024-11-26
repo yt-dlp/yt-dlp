@@ -550,7 +550,7 @@ class VKUserVideosIE(VKBaseIE):
         while True:
             for video in video_list:
                 v = self._VIDEO._make(video[:2])
-                video_id = f'{v.owner_id}_{v.id}'
+                video_id = '%d_%d' % (v.owner_id, v.id)
                 yield self.url_result(
                     'http://vk.com/video' + video_id, VKIE.ie_key(), video_id)
             if count >= total:

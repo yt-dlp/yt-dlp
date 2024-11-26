@@ -294,7 +294,7 @@ class TwitCastingUserIE(InfoExtractor):
                 yield self.url_result(urljoin(base_url, mobj.group('url')))
 
             next_url = self._search_regex(
-                r'<a href="(/%s/show/%d-\d+)[?"]' % (re.escape(uploader_id), page_num),  # noqa: UP031
+                r'<a href="(/%s/show/%d-\d+)[?"]' % (re.escape(uploader_id), page_num),
                 webpage, 'next url', default=None)
             next_url = urljoin(base_url, next_url)
             if not next_url:

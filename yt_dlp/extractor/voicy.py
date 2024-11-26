@@ -55,7 +55,7 @@ class VoicyBaseIE(InfoExtractor):
         if response.get('Status') != 0:
             message = traverse_obj(response, ('Value', 'Error', 'Message'), expected_type=str)
             if not message:
-                message = f'There was a error in the response: {response.get("Status")}'
+                message = 'There was a error in the response: %d' % response.get('Status')
             raise ExtractorError(message, expected=False)
         return response.get('Value')
 
@@ -116,7 +116,7 @@ class VoicyChannelIE(VoicyBaseIE):
                 break
             yield from playlist_data
             last = playlist_data[-1]
-            pager = '&pid={}&p_date={}&play_count={}'.format(last['PlaylistId'], last['Published'], last['PlayCount'])
+            pager = '&pid=%d&p_date=%s&play_count=%s' % (last['PlaylistId'], last['Published'], last['PlayCount'])
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
@@ -133,7 +133,7 @@ class VoicyChannelIE(VoicyBaseIE):
         articles = itertools.chain([first_article], articles) if first_article else articles
 
         playlist = (
-            self.url_result(smuggle_url('https://voicy.jp/channel/{}/{}'.format(channel_id, value['PlaylistId']), value), VoicyIE.ie_key())
+            self.url_result(smuggle_url('https://voicy.jp/channel/%s/%d' % (channel_id, value['PlaylistId']), value), VoicyIE.ie_key())
             for value in articles)
         return {
             '_type': 'playlist',

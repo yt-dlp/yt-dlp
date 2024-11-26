@@ -125,7 +125,7 @@ class FileDownloader:
         time = timetuple_from_msec(seconds * 1000)
         if time.hours > 99:
             return '--:--:--'
-        return '{:02.0f}:{:02.0f}:{:02.0f}'.format(*time[:-1])
+        return '%02d:%02d:%02d' % time[:-1]
 
     @classmethod
     def format_eta(cls, seconds):

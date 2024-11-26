@@ -204,7 +204,7 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
             ext = media.get('ext') or determine_ext(media_url, 'mp4')
             format_id = ext
             if rate:
-                format_id += f'-{rate:.0f}k'
+                format_id += '-%dk' % rate
             formats.append({
                 'format_id': format_id,
                 'url': urljoin(download_base, media_url),

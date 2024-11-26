@@ -185,7 +185,7 @@ class PlutoTVIE(InfoExtractor):
                 return videos[0]
             playlist_title = series_name
             if season_number is not None:
-                playlist_title += f' - Season {season_number}'
+                playlist_title += ' - Season %d' % season_number
             return self.playlist_result(videos,
                                         playlist_id=video_json.get('_id', info_slug),
                                         playlist_title=playlist_title)

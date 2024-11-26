@@ -25,7 +25,7 @@ def bytes_to_intlist(bs):
 def intlist_to_bytes(xs):
     if not xs:
         return b''
-    return struct.pack('%dB' % len(xs), *xs)  # noqa: UP031
+    return struct.pack('%dB' % len(xs), *xs)
 
 
 compiled_regex_type = type(re.compile(''))

@@ -486,7 +486,7 @@ class PBSIE(InfoExtractor):
                     prg_id = prg_id.split('q')[1]
                 prg_id = int(prg_id, 16)
                 getdir = self._download_json(
-                    f'http://www.pbs.org/wgbh/pages/frontline/.json/getdir/getdir{prg_id}.json',
+                    'http://www.pbs.org/wgbh/pages/frontline/.json/getdir/getdir%d.json' % prg_id,
                     presumptive_id, 'Downloading getdir JSON',
                     transform_source=strip_jsonp)
                 return getdir['mid'], presumptive_id, upload_date, description
