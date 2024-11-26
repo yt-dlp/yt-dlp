@@ -186,6 +186,7 @@ ignore = [
     "E501",    # line-too-long
     "E731",    # lambda-assignment
     "E741",    # ambiguous-variable-name
+    "UP031",   # printf-string-formatting
     "UP036",   # outdated-version-block
     "B006",    # mutable-argument-default
     "B008",    # function-call-in-default-argument
