@@ -1855,7 +1855,7 @@ class InfoExtractor:
     @staticmethod
     def _remove_duplicate_formats(formats):
         seen_urls = set()
-        seen_fragments = set()
+        seen_fragment_urls = set()
         unique_formats = []
         for f in formats:
             fragments = f.get('fragments')
@@ -1863,12 +1863,11 @@ class InfoExtractor:
                 unique_formats.append(f)
 
             elif fragments:
-                if base_url := f.get('fragment_base_url'):
-                    fragments = map(urljoin(base_url), fragments)
-
-                fragments = frozenset(fragments)
-                if fragments not in seen_fragments:
-                    seen_fragments.add(fragments)
+                fragment_urls = frozenset(
+                    fragment.get('url') or urljoin(f['fragment_base_url'], fragment['path'])
+                    for fragment in fragments)
+                if fragment_urls not in seen_fragment_urls:
+                    seen_fragment_urls.add(fragment_urls)
                     unique_formats.append(f)
 
             elif f['url'] not in seen_urls:
