@@ -18,7 +18,6 @@ from ..utils import (
     RetryManager,
     _configuration_args,
     deprecation_warning,
-    encodeFilename,
     format_bytes,
     join_nonempty,
     try_call,
@@ -170,7 +169,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
 
     def try_utime(self, path, atime, mtime, errnote='Cannot update utime of file'):
         try:
-            os.utime(encodeFilename(path), (atime, mtime))
+            os.utime(path, (atime, mtime))
         except Exception:
             self.report_warning(errnote)
 
