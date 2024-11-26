@@ -52,7 +52,7 @@ class DropboxIE(InfoExtractor):
 
         for part in self._yield_decoded_parts(webpage):
             if '/sm/password' in part:
-                content_id = self._search_regex(r'content_id=([\w-]+)', part, 'content ID')
+                content_id = self._search_regex(r'content_id=([\w.+=/-]+)', part, 'content ID')
                 break
 
         if content_id and not self._get_cookies('https://dropbox.com/').get('sm_auth'):
