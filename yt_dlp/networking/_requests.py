@@ -317,6 +317,8 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
         headers = self._merge_headers(request.headers)
         add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
+        if request.extensions.get('keep_header_casing'):
+            headers = headers.sensitive()
 
         max_redirects_exceeded = False
 
@@ -324,9 +326,6 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
             cookiejar=self._get_cookiejar(request),
             legacy_ssl_support=request.extensions.get('legacy_ssl'),
         )
-
-        if request.extensions.get('keep_header_casing'):
-            headers = headers.sensitive()
 
         try:
             requests_res = session.request(
