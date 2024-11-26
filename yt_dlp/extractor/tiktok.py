@@ -420,6 +420,7 @@ class TikTokBaseIE(InfoExtractor):
                 thumbnails.append({
                     'id': cover_id,
                     'url': cover_url,
+                    'preference': -1 if cover_id in ('cover', 'origin_cover') else -2,
                 })
 
         stats_info = aweme_detail.get('statistics') or {}
@@ -572,11 +573,21 @@ class TikTokBaseIE(InfoExtractor):
             'uploader_id': (('authorId', 'uid', 'id'), {str_or_none}),
         }), get_all=False)
 
+        thumbnails = []
+        for cover_id in ('thumbnail', 'cover', 'dynamicCover', 'originCover'):
+            for cover_url in traverse_obj(aweme_detail, ((None, 'video'), cover_id, {url_or_none})):
+                thumbnails.append({
+                    'id': cover_id,
+                    'url': self._proto_relative_url(cover_url),
+                    'preference': -2 if cover_id == 'dynamicCover' else -1,
+                })
+
         return {
             'id': video_id,
             'formats': None if extract_flat else self._extract_web_formats(aweme_detail),
             'subtitles': None if extract_flat else self.extract_subtitles(aweme_detail, video_id, None),
             'http_headers': {'Referer': webpage_url},
+            'thumbnails': thumbnails,
             **author_info,
             'channel_url': format_field(author_info, 'channel_id', self._UPLOADER_URL_FORMAT, default=None),
             'uploader_url': format_field(
@@ -600,11 +611,6 @@ class TikTokBaseIE(InfoExtractor):
                 'repost_count': 'shareCount',
                 'comment_count': 'commentCount',
             }), expected_type=int_or_none),
-            'thumbnails': traverse_obj(aweme_detail, (
-                (None, 'video'), ('thumbnail', 'cover', 'dynamicCover', 'originCover'), {
-                    'url': ({url_or_none}, {self._proto_relative_url}),
-                },
-            )),
         }
 
 
