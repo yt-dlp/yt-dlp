@@ -55,7 +55,7 @@ class DropboxIE(InfoExtractor):
                 content_id = self._search_regex(r'content_id=([\w.+=/-]+)', part, 'content ID')
                 break
 
-        if content_id and not self._get_cookies('https://dropbox.com/').get('sm_auth'):
+        if content_id:
             password = self.get_param('videopassword')
             if not password:
                 raise ExtractorError('Password protected video, use --video-password <password>', expected=True)
