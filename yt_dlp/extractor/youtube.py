@@ -287,19 +287,6 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_AUTH': True,
         'SUPPORTS_COOKIES': True,
     },
-    # This client now requires sign-in for every video
-    # It may be able to receive pre-merged video+audio 720p/1080p streams
-    'mediaconnect': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'MEDIA_CONNECT_FRONTEND',
-                'clientVersion': '0.1',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 95,
-        'REQUIRE_JS_PLAYER': False,
-        'REQUIRE_AUTH': True,
-    },
 }
 
 
@@ -3989,7 +3976,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: This video is age-restricted and YouTube is requiring '
                     'account age-verification; some formats may be missing', only_once=True)
                 # web_creator can work around the age-verification requirement
-                # android_vr and mediaconnect may also be able to work around age-verification
+                # android_vr may also be able to work around age-verification
                 # tv_embedded may(?) still work around age-verification if the video is embeddable
                 append_client('web_creator')
             '''
