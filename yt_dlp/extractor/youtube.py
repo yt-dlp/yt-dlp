@@ -83,6 +83,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'REQUIRE_PO_TOKEN': True,
+        'SUPPORTS_COOKIES': True,
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
     'web_safari': {
@@ -95,6 +96,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'REQUIRE_PO_TOKEN': True,
+        'SUPPORTS_COOKIES': True,
     },
     'web_embedded': {
         'INNERTUBE_CONTEXT': {
@@ -104,6 +106,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
+        'SUPPORTS_COOKIES': True,
     },
     'web_music': {
         'INNERTUBE_HOST': 'music.youtube.com',
@@ -114,6 +117,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
+        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     'web_creator': {
@@ -125,6 +129,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
         'REQUIRE_AUTH': True,
+        'SUPPORTS_COOKIES': True,
     },
     'android': {
         'INNERTUBE_CONTEXT': {
@@ -157,6 +162,7 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
+        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     'android_creator': {
@@ -191,6 +197,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 28,
         'REQUIRE_JS_PLAYER': False,
+        'SUPPORTS_COOKIES': True,
     },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
@@ -225,6 +232,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_AUTH': True,
+        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     'ios_creator': {
@@ -253,6 +261,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
+        'SUPPORTS_COOKIES': True,
     },
     'tv': {
         'INNERTUBE_CONTEXT': {
@@ -262,6 +271,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
+        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     # It was previously an age-gate workaround for videos that were `playable_in_embed`
@@ -275,6 +285,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 85,
         'REQUIRE_AUTH': True,
+        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     # It may be able to receive pre-merged video+audio 720p/1080p streams
@@ -317,6 +328,7 @@ def build_innertube_clients():
         ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
         ytcfg.setdefault('REQUIRE_PO_TOKEN', False)
         ytcfg.setdefault('REQUIRE_AUTH', False)
+        ytcfg.setdefault('SUPPORTS_COOKIES', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
