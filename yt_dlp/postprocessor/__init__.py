@@ -1,47 +1,42 @@
-# flake8: noqa: F401
+import { readdirSync } from 'fs';
+import { join } from 'path';
 
-from .common import PostProcessor
-from .embedthumbnail import EmbedThumbnailPP
-from .exec import ExecAfterDownloadPP, ExecPP
-from .ffmpeg import (
-    FFmpegConcatPP,
-    FFmpegCopyStreamPP,
-    FFmpegEmbedSubtitlePP,
-    FFmpegExtractAudioPP,
-    FFmpegFixupDuplicateMoovPP,
-    FFmpegFixupDurationPP,
-    FFmpegFixupM3u8PP,
-    FFmpegFixupM4aPP,
-    FFmpegFixupStretchedPP,
-    FFmpegFixupTimestampPP,
-    FFmpegMergerPP,
-    FFmpegMetadataPP,
-    FFmpegPostProcessor,
-    FFmpegSplitChaptersPP,
-    FFmpegSubtitlesConvertorPP,
-    FFmpegThumbnailsConvertorPP,
-    FFmpegVideoConvertorPP,
-    FFmpegVideoRemuxerPP,
-)
-from .metadataparser import (
-    MetadataFromFieldPP,
-    MetadataFromTitlePP,
-    MetadataParserPP,
-)
-from .modify_chapters import ModifyChaptersPP
-from .movefilesafterdownload import MoveFilesAfterDownloadPP
-from .sponskrub import SponSkrubPP
-from .sponsorblock import SponsorBlockPP
-from .xattrpp import XAttrMetadataPP
-from ..plugins import load_plugins
+const postprocessorsDir = join(__dirname, 'postprocessors');
 
-_PLUGIN_CLASSES = load_plugins('postprocessor', 'PP')
+function dynamicImport(modulePath) {
+    return import(modulePath);
+}
 
+async function genPostprocessorClasses() {
+    const postprocessorFiles = readdirSync(postprocessorsDir).filter(file => file.endsWith('.js'));
+    const postprocessors = await Promise.all(postprocessorFiles.map(file => dynamicImport(join(postprocessorsDir, file))));
+    return postprocessors.map(postprocessor => postprocessor.default);
+}
 
-def get_postprocessor(key):
-    return globals()[key + 'PP']
+async function genPostprocessors() {
+    const postprocessorClasses = await genPostprocessorClasses();
+    return postprocessorClasses.map(PostprocessorClass => new PostprocessorClass());
+}
 
+async function listPostprocessorClasses(ageLimit = null) {
+    const postprocessors = await genPostprocessorClasses();
+    return postprocessors.filter(postprocessor => postprocessor.isSuitable(ageLimit)).sort((a, b) => a.name.localeCompare(b.name));
+}
 
-globals().update(_PLUGIN_CLASSES)
-__all__ = [name for name in globals() if name.endswith('PP')]
-__all__.extend(('PostProcessor', 'FFmpegPostProcessor'))
+async function listPostprocessors(ageLimit = null) {
+    const postprocessorClasses = await listPostprocessorClasses(ageLimit);
+    return postprocessorClasses.map(PostprocessorClass => new PostprocessorClass());
+}
+
+async function getPostprocessor(ppName) {
+    const postprocessors = await genPostprocessorClasses();
+    return postprocessors.find(postprocessor => postprocessor.name === ppName);
+}
+
+export {
+    genPostprocessorClasses,
+    genPostprocessors,
+    listPostprocessorClasses,
+    listPostprocessors,
+    getPostprocessor
+};

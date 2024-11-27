@@ -1,42 +1,42 @@
-from ..compat.compat_utils import passthrough_module
+import { readdirSync } from 'fs';
+import { join } from 'path';
 
-passthrough_module(__name__, '.extractors')
-del passthrough_module
+const extractorsDir = join(__dirname, 'extractors');
 
+function dynamicImport(modulePath) {
+    return import(modulePath);
+}
 
-def gen_extractor_classes():
-    """ Return a list of supported extractors.
-    The order does matter; the first extractor matched is the one handling the URL.
-    """
-    from .extractors import _ALL_CLASSES
+async function genExtractorClasses() {
+    const extractorFiles = readdirSync(extractorsDir).filter(file => file.endsWith('.js'));
+    const extractors = await Promise.all(extractorFiles.map(file => dynamicImport(join(extractorsDir, file))));
+    return extractors.map(extractor => extractor.default);
+}
 
-    return _ALL_CLASSES
+async function genExtractors() {
+    const extractorClasses = await genExtractorClasses();
+    return extractorClasses.map(ExtractorClass => new ExtractorClass());
+}
 
+async function listExtractorClasses(ageLimit = null) {
+    const extractors = await genExtractorClasses();
+    return extractors.filter(extractor => extractor.isSuitable(ageLimit)).sort((a, b) => a.name.localeCompare(b.name));
+}
 
-def gen_extractors():
-    """ Return a list of an instance of every supported extractor.
-    The order does matter; the first extractor matched is the one handling the URL.
-    """
-    return [klass() for klass in gen_extractor_classes()]
+async function listExtractors(ageLimit = null) {
+    const extractorClasses = await listExtractorClasses(ageLimit);
+    return extractorClasses.map(ExtractorClass => new ExtractorClass());
+}
 
+async function getInfoExtractor(ieName) {
+    const extractors = await genExtractorClasses();
+    return extractors.find(extractor => extractor.name === ieName);
+}
 
-def list_extractor_classes(age_limit=None):
-    """Return a list of extractors that are suitable for the given age, sorted by extractor name"""
-    from .generic import GenericIE
-
-    yield from sorted(filter(
-        lambda ie: ie.is_suitable(age_limit) and ie != GenericIE,
-        gen_extractor_classes()), key=lambda ie: ie.IE_NAME.lower())
-    yield GenericIE
-
-
-def list_extractors(age_limit=None):
-    """Return a list of extractor instances that are suitable for the given age, sorted by extractor name"""
-    return [ie() for ie in list_extractor_classes(age_limit)]
-
-
-def get_info_extractor(ie_name):
-    """Returns the info extractor class with the given ie_name"""
-    from . import extractors
-
-    return getattr(extractors, f'{ie_name}IE')
+export {
+    genExtractorClasses,
+    genExtractors,
+    listExtractorClasses,
+    listExtractors,
+    getInfoExtractor
+};
