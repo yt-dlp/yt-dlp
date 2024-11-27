@@ -3981,6 +3981,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else:
                     prs.append(pr)
 
+            ''' This code is pointless while web_creator is in _DEFAULT_AUTHED_CLIENTS
             # EU countries require age-verification for accounts to access age-restricted videos
             # If account is not age-verified, _is_agegated() will be truthy for non-embedded clients
             if self.is_authenticated and self._is_agegated(pr):
@@ -3991,6 +3992,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # android_vr and mediaconnect may also be able to work around age-verification
                 # tv_embedded may(?) still work around age-verification if the video is embeddable
                 append_client('web_creator')
+            '''
 
         prs.extend(deprioritized_prs)
 
