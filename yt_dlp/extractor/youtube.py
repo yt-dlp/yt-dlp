@@ -3862,8 +3862,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 _, base_client, variant = _split_innertube_client(requested_client)
                 music_client = f'{base_client}_music' if base_client != 'mweb' else 'web_music'
                 if variant != 'music' and music_client in INNERTUBE_CLIENTS:
-                    if not INNERTUBE_CLIENTS[music_client]['REQUIRE_AUTH'] or self.is_authenticated:
+                    client_info = INNERTUBE_CLIENTS[music_client]
+                    if not client_info['REQUIRE_AUTH'] or (self.is_authenticated and client_info['SUPPORTS_COOKIES']):
                         requested_clients.append(music_client)
+
+        if self.is_authenticated:
+            unsupported_clients = [
+                client for client in requested_clients if not INNERTUBE_CLIENTS[client]['SUPPORTS_COOKIES']
+            ]
+            for client in unsupported_clients:
+                self.report_warning(f'Skipping client "{client}" since it does not support cookies', only_once=True)
+                requested_clients.remove(client)
 
         return orderedSet(requested_clients)
 
