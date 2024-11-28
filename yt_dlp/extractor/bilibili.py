@@ -653,7 +653,7 @@ class BiliBiliIE(BilibiliBaseIE):
                     raise ExtractorError(
                         'This video may be deleted or geo-restricted. '
                         'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
-                play_info = self._download_playinfo(traverse_obj(initial_state, ('videoData', 'bvid'), default=video_id),
+                play_info = self._download_playinfo(initial_state['videoData']['bvid'],
                                                     initial_state['cid'], headers=headers)
             else:
                 play_info = traverse_obj(play_info_obj, ('data', {dict}))
