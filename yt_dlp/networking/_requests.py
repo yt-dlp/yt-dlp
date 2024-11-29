@@ -313,13 +313,12 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         session.trust_env = False  # no need, we already load proxies from env
         return session
 
+    def _prepare_headers(self, _, headers):
+        add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
+
     def _send(self, request):
 
-        headers = self._merge_headers(request.headers)
-        add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
-        if request.extensions.get('keep_header_casing'):
-            headers = headers.sensitive()
-
+        headers = self._get_headers(request)
         max_redirects_exceeded = False
 
         session = self._get_instance(
