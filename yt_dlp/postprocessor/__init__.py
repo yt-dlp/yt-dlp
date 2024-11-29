@@ -39,7 +39,7 @@ from ..utils import deprecation_warning
 
 
 def __getattr__(name):
-    lookup = plugin_pps.get()
+    lookup = plugin_pps.value
     if name in lookup:
         deprecation_warning(
             f'Importing a plugin Post-Processor from {__name__} is deprecated. '
@@ -50,7 +50,7 @@ def __getattr__(name):
 
 
 def get_postprocessor(key):
-    return postprocessors.get()[key + 'PP']
+    return postprocessors.value[key + 'PP']
 
 
 register_plugin_spec(PluginSpec(
@@ -65,6 +65,6 @@ _default_pps = {
     for name, value in globals().items()
     if name.endswith('PP') or name in ('PostProcessor', 'FFmpegPostProcessor')
 }
-postprocessors.set(_default_pps)
+postprocessors.value.update(_default_pps)
 
 __all__ = list(_default_pps.values())

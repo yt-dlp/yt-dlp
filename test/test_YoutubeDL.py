@@ -1399,9 +1399,9 @@ class TestYoutubeDL(unittest.TestCase):
 
     def test_load_plugins_compat(self):
         # Should try to reload plugins if they haven't already been loaded
-        all_plugins_loaded.set(False)
+        all_plugins_loaded.value = False
         FakeYDL().close()
-        assert all_plugins_loaded.get()
+        assert all_plugins_loaded.value
 
 
 if __name__ == '__main__':

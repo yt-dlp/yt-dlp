@@ -49,7 +49,7 @@ def main():
         '    _module = None',
         *extra_ie_code(DummyInfoExtractor),
         '\nclass LazyLoadSearchExtractor(LazyLoadExtractor):\n    pass\n',
-        *build_ies(list(extractors.get().values()), (InfoExtractor, SearchInfoExtractor), DummyInfoExtractor),
+        *build_ies(list(extractors.value.values()), (InfoExtractor, SearchInfoExtractor), DummyInfoExtractor),
     ))
 
     write_file(lazy_extractors_filename, f'{module_src}\n')

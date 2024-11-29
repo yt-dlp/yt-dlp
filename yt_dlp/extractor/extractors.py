@@ -8,9 +8,9 @@ _CLASS_LOOKUP = None
 if not os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
     try:
         from .lazy_extractors import _CLASS_LOOKUP
-        LAZY_EXTRACTORS.set(True)
+        LAZY_EXTRACTORS = True
     except ImportError:
-        LAZY_EXTRACTORS.set(None)
+        LAZY_EXTRACTORS = False
 
 if not _CLASS_LOOKUP:
     from . import _extractors
@@ -23,7 +23,7 @@ if not _CLASS_LOOKUP:
     _CLASS_LOOKUP['GenericIE'] = _extractors.GenericIE
 
 # We want to append to the main lookup
-_current = _extractors_context.get()
+_current = _extractors_context.value
 for name, ie in _CLASS_LOOKUP.items():
     _current.setdefault(name, ie)
 

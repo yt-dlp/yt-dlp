@@ -1,25 +1,32 @@
 from collections import defaultdict
-from contextvars import ContextVar
+
+
+class Indirect:
+    def __init__(self, initial, /):
+        self.value = initial
+
+    def __repr__(self, /):
+        return f'{type(self).__name__}({self.value!r})'
+
 
 # Internal only - no backwards compatibility guaranteed
-
-postprocessors = ContextVar('postprocessors', default={})
-extractors = ContextVar('extractors', default={})
-IN_CLI = ContextVar('IN_CLI', default=False)
+postprocessors = Indirect({})
+extractors = Indirect({})
+IN_CLI = Indirect(False)
 # `False`=force, `None`=disabled, `True`=enabled
-LAZY_EXTRACTORS = ContextVar('LAZY_EXTRACTORS', default=False)
+LAZY_EXTRACTORS = Indirect(False)
 
 
 # Plugins
 
-plugin_specs = ContextVar('plugin_specs', default={})
+plugin_specs = Indirect({})
 
 # Whether plugins have been loaded once
-all_plugins_loaded = ContextVar('all_plugins_loaded', default=False)
+all_plugins_loaded = Indirect(False)
 
-plugins_enabled = ContextVar('plugins_enabled', default=True)
+plugins_enabled = Indirect(True)
 
-plugin_dirs = ContextVar('plugin_dirs', default=('external', ))
-plugin_ies = ContextVar('plugin_ies', default={})
-plugin_overrides = ContextVar('plugin_overrides', default=defaultdict(list))
-plugin_pps = ContextVar('plugin_pps', default={})
+plugin_dirs = Indirect(['external'])
+plugin_ies = Indirect({})
+plugin_overrides = Indirect(defaultdict(list))
+plugin_pps = Indirect({})

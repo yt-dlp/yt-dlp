@@ -1,6 +1,5 @@
 import contextlib
 import dataclasses
-import enum
 import importlib
 import importlib.abc
 import importlib.machinery
@@ -12,7 +11,7 @@ import pkgutil
 import sys
 import traceback
 import zipimport
-from contextvars import ContextVar
+import functools
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -21,11 +20,10 @@ from ._globals import (
     all_plugins_loaded,
     plugin_specs,
     plugins_enabled,
+    Indirect,
 )
 
-from .compat import functools  # isort: split
 from .utils import (
-    Config,
     get_executable_path,
     get_system_config_dirs,
     get_user_config_dirs,
@@ -50,23 +48,18 @@ __all__ = [
     'add_plugin_dirs',
     'set_plugin_dirs',
     'disable_plugins',
-    'PluginDirs',
     'get_plugin_spec',
     'PACKAGE_NAME',
     'COMPAT_PACKAGE_NAME',
 ]
 
 
-class PluginDirs(enum.Enum):
-    DEFAULT_EXTERNAL = 'external'  # The default external plugin directories
-
-
 @dataclasses.dataclass
 class PluginSpec:
     module_name: str
     suffix: str
-    destination: ContextVar
-    plugin_destination: ContextVar
+    destination: Indirect
+    plugin_destination: Indirect
 
 
 class PluginLoader(importlib.abc.Loader):
@@ -139,8 +132,8 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
     def search_locations(self, fullname):
         candidate_locations = itertools.chain.from_iterable(
-            external_plugin_paths() if candidate == PluginDirs.DEFAULT_EXTERNAL else Path(candidate).iterdir()
-            for candidate in plugin_dirs.get()
+            external_plugin_paths() if candidate == 'external' else Path(candidate).iterdir()
+            for candidate in plugin_dirs.value
         )
 
         parts = Path(*fullname.split('.'))
@@ -201,7 +194,7 @@ def get_regular_classes(module, module_name, suffix):
 def load_plugins(plugin_spec: PluginSpec):
     name, suffix = plugin_spec.module_name, plugin_spec.suffix
     regular_classes = {}
-    if os.environ.get('YTDLP_NO_PLUGINS') or plugins_enabled.get() is False:
+    if os.environ.get('YTDLP_NO_PLUGINS') or plugins_enabled.value is False:
         return regular_classes
 
     for finder, module_name, _ in iter_modules(name):
@@ -228,7 +221,7 @@ def load_plugins(plugin_spec: PluginSpec):
     # Compat: old plugin system using __init__.py
     # Note: plugins imported this way do not show up in directories()
     # nor are considered part of the yt_dlp_plugins namespace package
-    if PluginDirs.DEFAULT_EXTERNAL in plugin_dirs.get():
+    if 'external' in plugin_dirs.value:
         with contextlib.suppress(FileNotFoundError):
             spec = importlib.util.spec_from_file_location(
                 name,
@@ -240,46 +233,46 @@ def load_plugins(plugin_spec: PluginSpec):
             regular_classes.update(get_regular_classes(plugins, spec.name, suffix))
 
     # Add the classes into the global plugin lookup for that type
-    plugin_spec.plugin_destination.set(regular_classes)
+    plugin_spec.plugin_destination.value = regular_classes
     # We want to prepend to the main lookup for that type
-    plugin_spec.destination.set(merge_dicts(regular_classes, plugin_spec.destination.get()))
+    plugin_spec.destination.value = merge_dicts(regular_classes, plugin_spec.destination.value)
 
     return regular_classes
 
 
 def load_all_plugins():
-    for plugin_spec in plugin_specs.get().values():
+    for plugin_spec in plugin_specs.value.values():
         load_plugins(plugin_spec)
-    all_plugins_loaded.set(True)
+    all_plugins_loaded.value = True
 
 
 def register_plugin_spec(plugin_spec: PluginSpec):
     # If the plugin spec for a module is already registered, it will not be added again
-    if plugin_spec.module_name not in plugin_specs.get():
-        plugin_specs.get()[plugin_spec.module_name] = plugin_spec
+    if plugin_spec.module_name not in plugin_specs.value:
+        plugin_specs.value[plugin_spec.module_name] = plugin_spec
         sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.{plugin_spec.module_name}'))
 
 
 def add_plugin_dirs(*paths):
     """Add external plugin dirs to the existing ones"""
-    plugin_dirs.set((*plugin_dirs.get(), *paths))
+    plugin_dirs.value.extend(paths)
 
 
 def set_plugin_dirs(*paths):
     """Set external plugin dirs, overriding the default ones"""
-    plugin_dirs.set(tuple(paths))
+    plugin_dirs.value = list(paths)
 
 
 def get_plugin_spec(module_name):
-    return plugin_specs.get().get(module_name)
+    return plugin_specs.value.get(module_name)
 
 
 def disable_plugins():
     if (
-        all_plugins_loaded.get()
-        or any(len(plugin_spec.plugin_destination.get()) != 0 for plugin_spec in plugin_specs.get().values())
+        all_plugins_loaded.value
+        or any(len(plugin_spec.plugin_destination.value) != 0 for plugin_spec in plugin_specs.value.values())
     ):
         # note: we can't detect all cases when plugins are loaded (e.g. if spec isn't registered)
         raise YoutubeDLError('Plugins have already been loaded. Cannot disable plugins after loading plugins.')
 
-    plugins_enabled.set(False)
+    plugins_enabled.value = False

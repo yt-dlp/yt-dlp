@@ -5,7 +5,7 @@ import sys
 import unittest
 from pathlib import Path
 import yt_dlp._globals
-from yt_dlp.plugins import set_plugin_dirs, add_plugin_dirs, PluginDirs, disable_plugins
+from yt_dlp.plugins import set_plugin_dirs, add_plugin_dirs, disable_plugins
 from yt_dlp.utils import YoutubeDLError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -37,12 +37,12 @@ class TestPlugins(unittest.TestCase):
     TEST_PLUGIN_DIR = TEST_DATA_DIR / PACKAGE_NAME
 
     def setUp(self):
-        plugin_ies.set({})
-        plugin_pps.set({})
-        plugin_dirs.set((PluginDirs.DEFAULT_EXTERNAL,))
-        plugin_specs.set({})
-        all_plugins_loaded.set(False)
-        plugins_enabled.set(True)
+        plugin_ies.value = {}
+        plugin_pps.value = {}
+        plugin_dirs.value = ['external']
+        plugin_specs.value = {}
+        all_plugins_loaded.value = False
+        plugins_enabled.value = True
         importlib.invalidate_caches()
         # Clearing override plugins is probably difficult
         for module_name in tuple(sys.modules):
@@ -64,29 +64,29 @@ class TestPlugins(unittest.TestCase):
             f'{PACKAGE_NAME}.extractor._ignore' in sys.modules,
             'loaded module beginning with underscore')
         self.assertNotIn('IgnorePluginIE', plugins_ie.keys())
-        self.assertNotIn('IgnorePluginIE', plugin_ies.get())
+        self.assertNotIn('IgnorePluginIE', plugin_ies.value)
 
         # Don't load extractors with underscore prefix
         self.assertNotIn('_IgnoreUnderscorePluginIE', plugins_ie.keys())
-        self.assertNotIn('_IgnoreUnderscorePluginIE', plugin_ies.get())
+        self.assertNotIn('_IgnoreUnderscorePluginIE', plugin_ies.value)
 
         # Don't load extractors not specified in __all__ (if supplied)
         self.assertNotIn('IgnoreNotInAllPluginIE', plugins_ie.keys())
-        self.assertNotIn('IgnoreNotInAllPluginIE', plugin_ies.get())
+        self.assertNotIn('IgnoreNotInAllPluginIE', plugin_ies.value)
         self.assertIn('InAllPluginIE', plugins_ie.keys())
-        self.assertIn('InAllPluginIE', plugin_ies.get())
+        self.assertIn('InAllPluginIE', plugin_ies.value)
 
         # Don't load override extractors
         self.assertNotIn('OverrideGenericIE', plugins_ie.keys())
-        self.assertNotIn('OverrideGenericIE', plugin_ies.get())
+        self.assertNotIn('OverrideGenericIE', plugin_ies.value)
         self.assertNotIn('_UnderscoreOverrideGenericIE', plugins_ie.keys())
-        self.assertNotIn('_UnderscoreOverrideGenericIE', plugin_ies.get())
+        self.assertNotIn('_UnderscoreOverrideGenericIE', plugin_ies.value)
 
     def test_postprocessor_classes(self):
         plugins_pp = load_plugins(POSTPROCESSOR_PLUGIN_SPEC)
         self.assertIn('NormalPluginPP', plugins_pp.keys())
         self.assertIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
-        self.assertIn('NormalPluginPP', plugin_pps.get())
+        self.assertIn('NormalPluginPP', plugin_pps.value)
 
     def test_importing_zipped_module(self):
         zip_path = TEST_DATA_DIR / 'zipped_plugins.zip'
@@ -130,7 +130,7 @@ class TestPlugins(unittest.TestCase):
                 plugins_ie['NormalPluginIE'].REPLACED,
                 msg='Reloading has not replaced original extractor plugin')
             self.assertTrue(
-                extractors.get()['NormalPluginIE'].REPLACED,
+                extractors.value['NormalPluginIE'].REPLACED,
                 msg='Reloading has not replaced original extractor plugin globally')
 
             plugins_pp = load_plugins(POSTPROCESSOR_PLUGIN_SPEC)
@@ -138,7 +138,7 @@ class TestPlugins(unittest.TestCase):
             self.assertTrue(plugins_pp['NormalPluginPP'].REPLACED,
                             msg='Reloading has not replaced original postprocessor plugin')
             self.assertTrue(
-                postprocessors.get()['NormalPluginPP'].REPLACED,
+                postprocessors.value['NormalPluginPP'].REPLACED,
                 msg='Reloading has not replaced original postprocessor plugin globally')
 
         finally:
@@ -172,7 +172,7 @@ class TestPlugins(unittest.TestCase):
         register_plugin_spec(EXTRACTOR_PLUGIN_SPEC)
         register_plugin_spec(POSTPROCESSOR_PLUGIN_SPEC)
         load_all_plugins()
-        self.assertTrue(yt_dlp._globals.all_plugins_loaded.get())
+        self.assertTrue(yt_dlp._globals.all_plugins_loaded.value)
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
         self.assertIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
@@ -182,36 +182,36 @@ class TestPlugins(unittest.TestCase):
         custom_plugin_dir = str(TEST_DATA_DIR / 'plugin_packages')
         set_plugin_dirs(custom_plugin_dir)
 
-        self.assertEqual(plugin_dirs.get(), (custom_plugin_dir, ))
-        self.assertNotIn('external', plugin_dirs.get())
+        self.assertEqual(plugin_dirs.value, [custom_plugin_dir])
+        self.assertNotIn('external', plugin_dirs.value)
         load_plugins(EXTRACTOR_PLUGIN_SPEC)
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.package', sys.modules.keys())
-        self.assertIn('PackagePluginIE', plugin_ies.get())
+        self.assertIn('PackagePluginIE', plugin_ies.value)
 
     def test_add_plugin_dirs(self):
         custom_plugin_dir = str(TEST_DATA_DIR / 'plugin_packages')
 
-        self.assertEqual(plugin_dirs.get(), (PluginDirs.DEFAULT_EXTERNAL,))
+        self.assertEqual(plugin_dirs.value, ['external'])
         add_plugin_dirs(custom_plugin_dir)
-        self.assertEqual(plugin_dirs.get(), (PluginDirs.DEFAULT_EXTERNAL, custom_plugin_dir))
+        self.assertEqual(plugin_dirs.value, ['external', custom_plugin_dir])
 
         load_plugins(EXTRACTOR_PLUGIN_SPEC)
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.package', sys.modules.keys())
-        self.assertIn('PackagePluginIE', plugin_ies.get())
+        self.assertIn('PackagePluginIE', plugin_ies.value)
 
     def test_disable_plugins(self):
         disable_plugins()
         ies = load_plugins(EXTRACTOR_PLUGIN_SPEC)
         self.assertEqual(ies, {})
         self.assertNotIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
-        self.assertNotIn('NormalPluginIE', plugin_ies.get())
+        self.assertNotIn('NormalPluginIE', plugin_ies.value)
 
         pps = load_plugins(POSTPROCESSOR_PLUGIN_SPEC)
         self.assertEqual(pps, {})
         self.assertNotIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
-        self.assertNotIn('NormalPluginPP', plugin_pps.get())
+        self.assertNotIn('NormalPluginPP', plugin_pps.value)
 
     def test_disable_plugins_already_loaded(self):
         register_plugin_spec(EXTRACTOR_PLUGIN_SPEC)
@@ -221,7 +221,7 @@ class TestPlugins(unittest.TestCase):
         with self.assertRaises(YoutubeDLError):
             disable_plugins()
 
-        self.assertTrue(plugins_enabled.get())
+        self.assertTrue(plugins_enabled.value)
 
         ies = load_plugins(EXTRACTOR_PLUGIN_SPEC)
         self.assertIn('NormalPluginIE', ies)

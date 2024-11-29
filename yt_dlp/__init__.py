@@ -23,7 +23,6 @@ from ._globals import IN_CLI as _IN_CLI
 from .options import parseOpts
 from .plugins import load_all_plugins as _load_all_plugins
 from .plugins import disable_plugins as _disable_plugins
-from .plugins import PluginDirs as _PluginDirs
 from .plugins import set_plugin_dirs as _set_plugin_dirs
 from .postprocessor import (
     FFmpegExtractAudioPP,
@@ -433,7 +432,7 @@ def validate_options(opts):
     # Other options
     opts.plugin_dirs = opts.plugin_dirs or []
     if 'no-external' not in opts.plugin_dirs:
-        opts.plugin_dirs.append(_PluginDirs.DEFAULT_EXTERNAL)
+        opts.plugin_dirs.append('external')
 
     if opts.playlist_items is not None:
         try:
@@ -1096,7 +1095,7 @@ def _real_main(argv=None):
 
 
 def main(argv=None):
-    _IN_CLI.set(True)
+    _IN_CLI.value = True
     try:
         _exit(*variadic(_real_main(argv)))
     except (CookieLoadError, DownloadError):

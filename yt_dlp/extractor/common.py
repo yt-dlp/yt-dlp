@@ -3969,13 +3969,13 @@ class InfoExtractor:
             while getattr(super_class, '__wrapped__', None):
                 super_class = super_class.__wrapped__
 
-            if not any(override.PLUGIN_NAME == plugin_name for override in _plugin_overrides.get()[super_class]):
+            if not any(override.PLUGIN_NAME == plugin_name for override in _plugin_overrides.value[super_class]):
                 cls.__wrapped__ = next_mro_class
                 cls.PLUGIN_NAME, cls.ie_key = plugin_name, next_mro_class.ie_key
                 cls.IE_NAME = f'{next_mro_class.IE_NAME}+{plugin_name}'
 
                 setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
-                _plugin_overrides.get()[super_class].append(cls)
+                _plugin_overrides.value[super_class].append(cls)
         return super().__init_subclass__(**kwargs)
 
 

@@ -19,7 +19,7 @@ def gen_extractor_classes():
     The order does matter; the first extractor matched is the one handling the URL.
     """
     import_extractors()
-    return list(_extractors_context.get().values())
+    return list(_extractors_context.value.values())
 
 
 def gen_extractors():
@@ -47,7 +47,7 @@ def list_extractors(age_limit=None):
 def get_info_extractor(ie_name):
     """Returns the info extractor class with the given ie_name"""
     import_extractors()
-    return _extractors_context.get()[f'{ie_name}IE']
+    return _extractors_context.value[f'{ie_name}IE']
 
 
 def import_extractors():

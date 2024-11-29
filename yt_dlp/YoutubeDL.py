@@ -648,7 +648,7 @@ class YoutubeDL:
         self.__header_cookies = []
 
         # compat for API: load plugins if they have not already
-        if not all_plugins_loaded.get():
+        if not all_plugins_loaded.value:
             load_all_plugins()
 
         stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
@@ -4032,14 +4032,14 @@ class YoutubeDL:
             _make_label(ORIGIN, CHANNEL.partition('@')[2] or __version__, __version__),
             f'[{RELEASE_GIT_HEAD[:9]}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
-            '' if IN_CLI.get() else 'API' if klass == YoutubeDL else f'API:{self.__module__}.{klass.__qualname__}',
+            '' if IN_CLI.value else 'API' if klass == YoutubeDL else f'API:{self.__module__}.{klass.__qualname__}',
             delim=' '))
 
-        if not IN_CLI.get():
+        if not IN_CLI.value:
             write_debug(f'params: {self.params}')
 
         import_extractors()
-        lazy_extractors = LAZY_EXTRACTORS.get()
+        lazy_extractors = LAZY_EXTRACTORS.value
         if lazy_extractors is None:
             write_debug('Lazy loading extractors is disabled')
         elif not lazy_extractors:
@@ -4079,19 +4079,19 @@ class YoutubeDL:
         for plugin_type, plugins in (('Extractor', plugin_ies), ('Post-Processor', plugin_pps)):
             display_list = [
                 klass.__name__ if klass.__name__ == name else f'{klass.__name__} as {name}'
-                for name, klass in plugins.get().items()]
+                for name, klass in plugins.value.items()]
             if plugin_type == 'Extractor':
                 display_list.extend(f'{plugins[-1].IE_NAME.partition("+")[2]} ({parent.__name__})'
-                                    for parent, plugins in plugin_overrides.get().items())
+                                    for parent, plugins in plugin_overrides.value.items())
             if not display_list:
                 continue
             write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')
 
-        if not plugins_enabled.get():
+        if not plugins_enabled.value:
             write_debug('Plugins are disabled')
 
         plugin_dirs = plugin_directories()
-        if plugin_dirs and plugins_enabled.get():
+        if plugin_dirs and plugins_enabled.value:
             write_debug(f'Plugin directories: {plugin_dirs}')
 
     @functools.cached_property
