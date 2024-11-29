@@ -1,4 +1,3 @@
-import functools
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -137,7 +136,7 @@ class KickVODIE(KickBaseIE):
                 'uploader': ('livestream', 'channel', 'user', 'username', {str}),
                 'uploader_id': ('livestream', 'channel', 'user_id', {int}, {str_or_none}),
                 'timestamp': ('created_at', {parse_iso8601}),
-                'duration': ('livestream', 'duration', {functools.partial(float_or_none, scale=1000)}),
+                'duration': ('livestream', 'duration', {float_or_none(scale=1000)}),
                 'thumbnail': ('livestream', 'thumbnail', {url_or_none}),
                 'categories': ('livestream', 'categories', ..., 'name', {str}),
                 'view_count': ('views', {int_or_none}),

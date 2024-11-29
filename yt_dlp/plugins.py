@@ -25,12 +25,14 @@ from ._globals import (
 
 from .compat import functools  # isort: split
 from .utils import (
+    Config,
     get_executable_path,
     get_system_config_dirs,
     get_user_config_dirs,
     merge_dicts,
     orderedSet,
-    write_string, YoutubeDLError,
+    write_string,
+    YoutubeDLError,
 )
 
 PACKAGE_NAME = 'yt_dlp_plugins'
