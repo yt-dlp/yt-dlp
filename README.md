@@ -338,10 +338,10 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --plugin-dirs PATH              Path to an additional directory to search
                                     for plugins. This option can be used
                                     multiple times to add multiple directories.
-                                    Note that this currently only works for
-                                    extractor plugins; postprocessor plugins can
-                                    only be loaded from the default plugin
-                                    directories
+                                    Add "no-external" to disable searching
+                                    default external plugin directories (outside
+                                    of python environment)
+    --no-plugins                    Do not load plugins
     --flat-playlist                 Do not extract a playlist's URL result
                                     entries; some entry metadata may be missing
                                     and downloading may be bypassed
@@ -366,12 +366,6 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     sequences). Use "auto-tty" or "no_color-tty"
                                     to decide based on terminal support only.
                                     Can be used multiple times
-    --plugin-dirs PATH              Directory to search for plugins. Can be used
-                                    multiple times to add multiple directories.
-                                    Add "no-external" to disable searching
-                                    default external plugin directories (outside
-                                    of python environment)
-    --no-plugins                    Do not load plugins
     --compat-options OPTS           Options that can help keep compatibility
                                     with youtube-dl or youtube-dlc
                                     configurations by reverting some of the
