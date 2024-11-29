@@ -7,7 +7,6 @@ import time
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -32,11 +31,55 @@ from ..utils import (
 )
 
 
-class NiconicoIE(InfoExtractor):
-    IE_NAME = 'niconico'
-    IE_DESC = 'ニコニコ動画'
+class NiconicoBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'niconico'
     _GEO_COUNTRIES = ['JP']
     _GEO_BYPASS = False
+
+    def _perform_login(self, username, password):
+        login_ok = True
+        login_form_strs = {
+            'mail_tel': username,
+            'password': password,
+        }
+        self._request_webpage(
+            'https://account.nicovideo.jp/login', None,
+            note='Acquiring Login session')
+        page = self._download_webpage(
+            'https://account.nicovideo.jp/login/redirector?show_button_twitter=1&site=niconico&show_button_facebook=1', None,
+            note='Logging in', errnote='Unable to log in',
+            data=urlencode_postdata(login_form_strs),
+            headers={
+                'Referer': 'https://account.nicovideo.jp/login',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            })
+        if 'oneTimePw' in page:
+            post_url = self._search_regex(
+                r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page, 'post url', group='url')
+            page = self._download_webpage(
+                urljoin('https://account.nicovideo.jp', post_url), None,
+                note='Performing MFA', errnote='Unable to complete MFA',
+                data=urlencode_postdata({
+                    'otp': self._get_tfa_info('6 digits code'),
+                }), headers={
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                })
+            if 'oneTimePw' in page or 'formError' in page:
+                err_msg = self._html_search_regex(
+                    r'formError["\']+>(.*?)</div>', page, 'form_error',
+                    default='There\'s an error but the message can\'t be parsed.',
+                    flags=re.DOTALL)
+                self.report_warning(f'Unable to log in: MFA challenge failed, "{err_msg}"')
+                return False
+        login_ok = 'class="notice error"' not in page
+        if not login_ok:
+            self.report_warning('Unable to log in: bad username or password')
+        return login_ok
+
+
+class NiconicoIE(NiconicoBaseIE):
+    IE_NAME = 'niconico'
+    IE_DESC = 'ニコニコ動画'
 
     _TESTS = [{
         'url': 'http://www.nicovideo.jp/watch/sm22312215',
@@ -176,7 +219,6 @@ class NiconicoIE(InfoExtractor):
     }]
 
     _VALID_URL = r'https?://(?:(?:www\.|secure\.|sp\.)?nicovideo\.jp/watch|nico\.ms)/(?P<id>(?:[a-z]{2})?[0-9]+)'
-    _NETRC_MACHINE = 'niconico'
     _API_HEADERS = {
         'X-Frontend-ID': '6',
         'X-Frontend-Version': '0',
@@ -184,46 +226,6 @@ class NiconicoIE(InfoExtractor):
         'Referer': 'https://www.nicovideo.jp/',
         'Origin': 'https://www.nicovideo.jp',
     }
-
-    def _perform_login(self, username, password):
-        login_ok = True
-        login_form_strs = {
-            'mail_tel': username,
-            'password': password,
-        }
-        self._request_webpage(
-            'https://account.nicovideo.jp/login', None,
-            note='Acquiring Login session')
-        page = self._download_webpage(
-            'https://account.nicovideo.jp/login/redirector?show_button_twitter=1&site=niconico&show_button_facebook=1', None,
-            note='Logging in', errnote='Unable to log in',
-            data=urlencode_postdata(login_form_strs),
-            headers={
-                'Referer': 'https://account.nicovideo.jp/login',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            })
-        if 'oneTimePw' in page:
-            post_url = self._search_regex(
-                r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page, 'post url', group='url')
-            page = self._download_webpage(
-                urljoin('https://account.nicovideo.jp', post_url), None,
-                note='Performing MFA', errnote='Unable to complete MFA',
-                data=urlencode_postdata({
-                    'otp': self._get_tfa_info('6 digits code'),
-                }), headers={
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                })
-            if 'oneTimePw' in page or 'formError' in page:
-                err_msg = self._html_search_regex(
-                    r'formError["\']+>(.*?)</div>', page, 'form_error',
-                    default='There\'s an error but the message can\'t be parsed.',
-                    flags=re.DOTALL)
-                self.report_warning(f'Unable to log in: MFA challenge failed, "{err_msg}"')
-                return False
-        login_ok = 'class="notice error"' not in page
-        if not login_ok:
-            self.report_warning('Unable to log in: bad username or password')
-        return login_ok
 
     def _get_heartbeat_info(self, info_dict):
         video_id, video_src_id, audio_src_id = info_dict['url'].split(':')[1].split('/')
@@ -906,7 +908,7 @@ class NiconicoUserIE(InfoExtractor):
         return self.playlist_result(self._entries(list_id), list_id)
 
 
-class NiconicoLiveIE(InfoExtractor):
+class NiconicoLiveIE(NiconicoBaseIE):
     IE_NAME = 'niconico:live'
     IE_DESC = 'ニコニコ生放送'
     _VALID_URL = r'https?://(?:sp\.)?live2?\.nicovideo\.jp/(?:watch|gate)/(?P<id>lv\d+)'
@@ -916,17 +918,30 @@ class NiconicoLiveIE(InfoExtractor):
         'info_dict': {
             'id': 'lv339533123',
             'title': '激辛ペヤング食べます\u202a( ;ᯅ; )\u202c（歌枠オーディション参加中）',
-            'view_count': 1526,
-            'comment_count': 1772,
+            'view_count': int,
+            'comment_count': int,
             'description': '初めましてもかって言います❕\nのんびり自由に適当に暮らしてます',
             'uploader': 'もか',
             'channel': 'ゲストさんのコミュニティ',
             'channel_id': 'co5776900',
             'channel_url': 'https://com.nicovideo.jp/community/co5776900',
             'timestamp': 1670677328,
-            'is_live': True,
+            'ext': None,
+            'live_latency': 'high',
+            'live_status': 'was_live',
+            'thumbnail': r're:^https://[\w.-]+/\w+/\w+',
+            'thumbnails': list,
+            'upload_date': '20221210',
         },
-        'skip': 'livestream',
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': [
+            'The live hasn\'t started yet or already ended.',
+            'No video formats found!',
+            'Requested format is not available',
+        ],
     }, {
         'url': 'https://live2.nicovideo.jp/watch/lv339533123',
         'only_matching': True,
@@ -940,36 +955,17 @@ class NiconicoLiveIE(InfoExtractor):
 
     _KNOWN_LATENCY = ('high', 'low')
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
-
-        embedded_data = self._parse_json(unescapeHTML(self._search_regex(
-            r'<script\s+id="embedded-data"\s*data-props="(.+?)"', webpage, 'embedded data')), video_id)
-
-        ws_url = traverse_obj(embedded_data, ('site', 'relive', 'webSocketUrl'))
-        if not ws_url:
-            raise ExtractorError('The live hasn\'t started yet or already ended.', expected=True)
-        ws_url = update_url_query(ws_url, {
-            'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
-        })
-
-        hostname = remove_start(urllib.parse.urlparse(urlh.url).hostname, 'sp.')
-        latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
-        if latency not in self._KNOWN_LATENCY:
-            latency = 'high'
-
+    def _yield_formats(self, ws_url, headers, latency, video_id, is_live):
         ws = self._request_webpage(
-            Request(ws_url, headers={'Origin': f'https://{hostname}'}),
-            video_id=video_id, note='Connecting to WebSocket server')
+            ws_url, video_id, note='Connecting to WebSocket server', headers=headers)
 
-        self.write_debug('[debug] Sending HLS server request')
+        self.write_debug('Sending HLS server request')
         ws.send(json.dumps({
             'type': 'startWatching',
             'data': {
                 'stream': {
                     'quality': 'abr',
-                    'protocol': 'hls+fmp4',
+                    'protocol': 'hls',
                     'latency': latency,
                     'chasePlay': False,
                 },
@@ -977,32 +973,55 @@ class NiconicoLiveIE(InfoExtractor):
                     'protocol': 'webSocket',
                     'commentable': True,
                 },
-                'reconnect': False,
             },
         }))
 
-        while True:
-            recv = ws.recv()
-            if not recv:
-                continue
-            data = json.loads(recv)
-            if not isinstance(data, dict):
-                continue
-            if data.get('type') == 'stream':
-                m3u8_url = data['data']['uri']
-                qualities = data['data']['availableQualities']
-                break
-            elif data.get('type') == 'disconnect':
-                self.write_debug(recv)
-                raise ExtractorError('Disconnected at middle of extraction')
-            elif data.get('type') == 'error':
-                self.write_debug(recv)
-                message = traverse_obj(data, ('body', 'code')) or recv
-                raise ExtractorError(message)
-            elif self.get_param('verbose', False):
-                if len(recv) > 100:
-                    recv = recv[:100] + '...'
-                self.write_debug(f'Server said: {recv}')
+        with ws:
+            while True:
+                recv = ws.recv()
+                if not recv:
+                    continue
+                data = json.loads(recv)
+                if not isinstance(data, dict):
+                    continue
+                if data.get('type') == 'stream':
+                    m3u8_url = data['data']['uri']
+                    qualities = data['data']['availableQualities']
+                    break
+                elif data.get('type') == 'disconnect':
+                    self.write_debug(data)
+                    raise ExtractorError('Disconnected at middle of extraction')
+                elif data.get('type') == 'error':
+                    self.write_debug(data)
+                    message = traverse_obj(data, ('data', 'code')) or recv
+                    raise ExtractorError(message)
+                elif self.get_param('verbose', False):
+                    if len(recv) > 100:
+                        recv = recv[:100] + '...'
+                    self.write_debug(f'Server said: {recv}')
+
+        formats = sorted(self._extract_m3u8_formats(
+            m3u8_url, video_id, ext='mp4', live=is_live), key=lambda f: f['tbr'], reverse=True)
+        for fmt, q in zip(formats, qualities[1:]):
+            fmt.update({
+                'format_id': q,
+                'protocol': 'niconico_live',
+            })
+            yield fmt
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
+        headers = {'Origin': 'https://' + remove_start(urllib.parse.urlparse(urlh.url).hostname, 'sp.')}
+
+        embedded_data = self._parse_json(unescapeHTML(self._search_regex(
+            r'<script\s+id="embedded-data"\s*data-props="(.+?)"', webpage, 'embedded data')), video_id)
+
+        ws_url = traverse_obj(embedded_data, ('site', 'relive', 'webSocketUrl'))
+        if ws_url:
+            ws_url = update_url_query(ws_url, {
+                'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
+            })
 
         title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(
             ('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
@@ -1028,16 +1047,19 @@ class NiconicoLiveIE(InfoExtractor):
                     **res,
                 })
 
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
-        for fmt, q in zip(formats, reversed(qualities[1:])):
-            fmt.update({
-                'format_id': q,
-                'protocol': 'niconico_live',
-                'ws': ws,
-                'video_id': video_id,
-                'live_latency': latency,
-                'origin': hostname,
-            })
+        live_status, availability = self._check_status_and_availability(embedded_data, video_id)
+
+        if availability == 'premium_only':
+            self.raise_login_required('This video requires premium', metadata_available=True)
+        elif availability == 'subscriber_only':
+            self.raise_login_required('This video is for members only', metadata_available=True)
+        elif availability == 'needs_auth':
+            # PPV or tickets for limited time viewing
+            self.raise_login_required('This video requires additional steps to watch', metadata_available=True)
+
+        latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
+        if latency not in self._KNOWN_LATENCY:
+            latency = 'high'
 
         return {
             'id': video_id,
@@ -1052,7 +1074,79 @@ class NiconicoLiveIE(InfoExtractor):
             }),
             'description': clean_html(traverse_obj(embedded_data, ('program', 'description'))),
             'timestamp': int_or_none(traverse_obj(embedded_data, ('program', 'openTime'))),
-            'is_live': True,
+            'live_status': live_status,
+            'availability': availability,
             'thumbnails': thumbnails,
-            'formats': formats,
+            'formats': [*self._yield_formats(
+                ws_url, headers, latency, video_id, live_status == 'is_live')] if ws_url else None,
+            'http_headers': headers,
+            'downloader_options': {
+                'live_latency': latency,
+                'ws_url': ws_url,
+            },
         }
+
+    def _check_status_and_availability(self, embedded_data, video_id):
+        live_status = {
+            'Before': 'is_live',
+            'Open': 'was_live',
+            'End': 'was_live',
+        }.get(traverse_obj(embedded_data, ('programTimeshift', 'publication', 'status', {str})), 'is_live')
+
+        if traverse_obj(embedded_data, ('userProgramWatch', 'canWatch', {bool})):
+            is_member_free = traverse_obj(embedded_data, ('program', 'isMemberFree', {bool}))
+            is_shown = traverse_obj(embedded_data, ('program', 'trialWatch', 'isShown', {bool}))
+            self.write_debug(f'.program.isMemberFree: {is_member_free}; .program.trialWatch.isShown: {is_shown}')
+
+            if is_member_free is None and is_shown is None:
+                return live_status, self._availability()
+
+            if is_member_free is False:
+                availability = {'needs_auth': True}
+                msg = 'Paid content cannot be accessed, the video may be blank.'
+            else:
+                availability = {'needs_subscription': True}
+                msg = 'Restricted content cannot be accessed, a part of the video or the entire video may be blank.'
+            self.report_warning(msg, video_id)
+            return live_status, self._availability(**availability)
+
+        if traverse_obj(embedded_data, ('userProgramWatch', 'isCountryRestrictionTarget', {bool})):
+            self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+            return live_status, self._availability()
+
+        rejected_reasons = traverse_obj(embedded_data, ('userProgramWatch', 'rejectedReasons', ..., {str}))
+        self.write_debug(f'.userProgramWatch.rejectedReasons: {rejected_reasons!r}')
+
+        if 'programNotBegun' in rejected_reasons:
+            self.report_warning('Live has not started', video_id)
+            live_status = 'is_upcoming'
+        elif 'timeshiftBeforeOpen' in rejected_reasons:
+            self.report_warning('Live has ended but timeshift is not yet processed', video_id)
+            live_status = 'post_live'
+        elif 'noTimeshiftProgram' in rejected_reasons:
+            self.report_warning('Timeshift is disabled', video_id)
+            live_status = 'was_live'
+        elif any(x in ['timeshiftClosed', 'timeshiftClosedAndNotFollow'] for x in rejected_reasons):
+            self.report_warning('Timeshift viewing period has ended', video_id)
+            live_status = 'was_live'
+
+        availability = self._availability(needs_premium='notLogin' in rejected_reasons, needs_subscription=any(x in [
+            'notSocialGroupMember',
+            'notCommunityMember',
+            'notChannelMember',
+            'notCommunityMemberAndNotHaveTimeshiftTicket',
+            'notChannelMemberAndNotHaveTimeshiftTicket',
+        ] for x in rejected_reasons), needs_auth=any(x in [
+            'timeshiftTicketExpired',
+            'notHaveTimeshiftTicket',
+            'notCommunityMemberAndNotHaveTimeshiftTicket',
+            'notChannelMemberAndNotHaveTimeshiftTicket',
+            'notHavePayTicket',
+            'notActivatedBySerial',
+            'notHavePayTicketAndNotActivatedBySerial',
+            'notUseTimeshiftTicket',
+            'notUseTimeshiftTicketOnOnceTimeshift',
+            'notUseTimeshiftTicketOnUnlimitedTimeshift',
+        ] for x in rejected_reasons))
+
+        return live_status, availability
