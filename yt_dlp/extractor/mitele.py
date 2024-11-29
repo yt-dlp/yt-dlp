@@ -81,7 +81,7 @@ class MiTeleIE(TelecincoBaseIE):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         pre_player = self._parse_json(self._search_regex(
-            r'window\.\$REACTBASE_STATE\.prePlayer_mtweb\s*=\s*({.+})',
+            r'window\.\$REACTBASE_STATE\.prePlayer_mtweb\s*=\s*({.+?})</script>',
             webpage, 'Pre Player'), display_id)['prePlayer']
         title = pre_player['title']
         video_info = self._parse_content(pre_player['video'], url)
