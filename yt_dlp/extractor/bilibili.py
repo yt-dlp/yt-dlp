@@ -690,16 +690,16 @@ class BiliBiliIE(BilibiliBaseIE):
             raise ExtractorError('Failed to extract play info')
 
         if video_data.get('is_upower_exclusive'):
-            # Supporter only, also indicated by
+            # Supporter-only, also indicated by
             # `not traverse_obj(play_info, ('support_formats', ..., 'codecs'))`
             # Ref: https://github.com/ytdl-org/youtube-dl/issues/32722#issuecomment-1950045012
             high_level = traverse_obj(initial_state, ('elecFullInfo', 'show_info', 'high_level'))
             # Should we inline the title and the subtitle?
             support_title = traverse_obj(high_level, 'title', default='')
-            support_sub_title = traverse_obj(high_level, 'sub_title', default='')
-            msg = f'{support_title}，{support_sub_title}'
+            support_subtitle = traverse_obj(high_level, 'sub_title', default='')
             raise ExtractorError(
-                f'This is a supporter-only video: {msg}. {self._login_hint()}', expected=True)
+                f'This is a supporter-only video: {support_title}，{support_subtitle}. '
+                f'{self._login_hint()}', expected=True)
 
         festival_info = {}
         if is_festival:
