@@ -118,7 +118,10 @@ def internal_plugin_paths():
 
 
 def candidate_plugin_paths(candidate):
-    yield from Path(candidate).iterdir()
+    candidate_path = Path(candidate)
+    if not candidate_path.is_dir():
+        raise ValueError(f'Invalid plugin directory: {candidate_path}')
+    yield from candidate_path.iterdir()
     yield from internal_plugin_paths()
 
 
