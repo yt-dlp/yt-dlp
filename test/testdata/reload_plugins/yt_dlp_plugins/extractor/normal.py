@@ -2,6 +2,7 @@ from yt_dlp.extractor.common import InfoExtractor
 
 
 class NormalPluginIE(InfoExtractor):
+    _VALID_URL = 'normal'
     REPLACED = True
 
 
