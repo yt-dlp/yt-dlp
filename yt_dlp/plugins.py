@@ -158,6 +158,9 @@ class PluginFinder(importlib.abc.MetaPathFinder):
                 write_string(f'Permission error while accessing modules in "{e.filename}"\n')
 
     def find_spec(self, fullname, path=None, target=None):
+        if not plugins_enabled.value:
+            return None
+
         if fullname not in self.packages:
             return None
 
