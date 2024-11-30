@@ -109,9 +109,17 @@ def external_plugin_paths():
         containing_folder='yt-dlp-plugins',
     )
 
-    # Load from PYTHONPATH folders
+    yield from internal_plugin_paths()
+
+
+def internal_plugin_paths():
+    # Always try load from PYTHONPATH folders
     yield from (path for path in map(Path, sys.path) if path != _BASE_PACKAGE_PATH)
-    # yield from _get_package_paths(*sys.path, containing_folder='')
+
+
+def candidate_plugin_paths(candidate):
+    yield from Path(candidate).iterdir()
+    yield from internal_plugin_paths()
 
 
 class PluginFinder(importlib.abc.MetaPathFinder):
@@ -131,8 +139,9 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         )
 
     def search_locations(self, fullname):
+
         candidate_locations = itertools.chain.from_iterable(
-            external_plugin_paths() if candidate == 'external' else Path(candidate).iterdir()
+            external_plugin_paths() if candidate == 'external' else candidate_plugin_paths(candidate)
             for candidate in plugin_dirs.value
         )
 
