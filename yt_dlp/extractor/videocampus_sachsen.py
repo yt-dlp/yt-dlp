@@ -190,8 +190,9 @@ class VideocampusSachsenIE(InfoExtractor):
 class ViMPPlaylistIE(InfoExtractor):
     IE_NAME = 'ViMP:Playlist'
     _VALID_URL = r'''(?x)(?P<host>https?://(?:{}))/(?:
-        album/view/aid/(?P<album_id>[0-9]+)|
-        (?P<mode>category|channel)/(?P<name>[\w-]+)/(?P<id>[0-9]+)
+        (?P<mode1>album)/view/aid/(?P<album_id>[0-9]+)|
+        (?P<mode2>category|channel)/(?P<name>[\w-]+)/(?P<channel_id>[0-9]+)|
+        (?P<mode3>tag)/(?P<tag_id>[0-9]+)
     )'''.format('|'.join(map(re.escape, VideocampusSachsenIE._INSTANCES)))
 
     _TESTS = [{
@@ -215,6 +216,13 @@ class ViMPPlaylistIE(InfoExtractor):
             'title': 'Online-Seminare ONYX - BPS - Bildungseinrichtungen - VCS',
         },
         'playlist_mincount': 7,
+    }, {
+        'url': 'https://videocampus.sachsen.de/tag/26902',
+        'info_dict': {
+            'id': 'tag-26902',
+            'title': 'advanced mobile and v2x communication - Tags - VCS',
+        },
+        'playlist_mincount': 6,
     }]
     _PAGE_SIZE = 10
 
@@ -222,34 +230,37 @@ class ViMPPlaylistIE(InfoExtractor):
         webpage = self._download_webpage(
             f'{host}/media/ajax/component/boxList/{url_part}', playlist_id,
             query={'page': page, 'page_only': 1}, data=urlencode_postdata(data))
-        urls = re.findall(r'"([^"]+/video/[^"]+)"', webpage)
+        urls = re.findall(r'"([^"]*/video/[^"]+)"', webpage)
 
         for url in urls:
             yield self.url_result(host + url, VideocampusSachsenIE)
 
     def _real_extract(self, url):
-        host, album_id, mode, name, playlist_id = self._match_valid_url(url).group(
-            'host', 'album_id', 'mode', 'name', 'id')
+        host, album_id, name, channel_id, tag_id, mode1, mode2, mode3 = self._match_valid_url(url).group(
+            'host', 'album_id', 'name', 'channel_id', 'tag_id', 'mode1', 'mode2', 'mode3')
 
-        webpage = self._download_webpage(url, album_id or playlist_id, fatal=False) or ''
+        mode = mode1 or mode2 or mode3
+        playlist_id = album_id or channel_id or tag_id
+
+        webpage = self._download_webpage(url, playlist_id, fatal=False) or ''
         title = (self._html_search_meta('title', webpage, fatal=False)
                  or self._html_extract_title(webpage))
 
         url_part = (f'aid/{album_id}' if album_id
-                    else f'category/{name}/category_id/{playlist_id}' if mode == 'category'
-                    else f'title/{name}/channel/{playlist_id}')
+                    else f'category/{name}/category_id/{channel_id}' if mode == 'category'
+                    else f'title/{name}/channel/{channel_id}' if mode == 'channel'
+                    else f'tag/{tag_id}')
 
-        mode = mode or 'album'
         data = {
             'vars[mode]': mode,
-            f'vars[{mode}]': album_id or playlist_id,
-            'vars[context]': '4' if album_id else '1' if mode == 'category' else '3',
-            'vars[context_id]': album_id or playlist_id,
+            f'vars[{mode}]': playlist_id,
+            'vars[context]': '4' if album_id else '1' if mode == 'category' else '3' if mode == 'album' else '0',
+            'vars[context_id]': playlist_id,
             'vars[layout]': 'thumb',
             'vars[per_page][thumb]': str(self._PAGE_SIZE),
         }
 
         return self.playlist_result(
             OnDemandPagedList(functools.partial(
-                self._fetch_page, host, url_part, album_id or playlist_id, data), self._PAGE_SIZE),
-            playlist_title=title, id=f'{mode}-{album_id or playlist_id}')
+                self._fetch_page, host, url_part, playlist_id, data), self._PAGE_SIZE),
+            playlist_title=title, id=f'{mode}-{playlist_id}')
