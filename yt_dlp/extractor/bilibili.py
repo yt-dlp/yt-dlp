@@ -640,12 +640,12 @@ class BiliBiliIE(BilibiliBaseIE):
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
         is_festival = 'videoData' not in initial_state
+        play_info = None
         if is_festival:
             video_data = initial_state['videoInfo']
         else:
             play_info_obj = self._search_json(
                 r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None)
-            play_info = None
             if not play_info_obj:
                 if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
                     self.raise_login_required()
@@ -653,11 +653,7 @@ class BiliBiliIE(BilibiliBaseIE):
                     raise ExtractorError(
                         'This video may be deleted or geo-restricted. '
                         'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
-                play_info = self._download_playinfo(initial_state['videoData']['bvid'],
-                                                    initial_state['cid'], headers=headers)
-            else:
-                play_info = traverse_obj(play_info_obj, ('data', {dict}))
-            if not play_info:
+            elif not (play_info := traverse_obj(play_info_obj, ('data', {dict}))):
                 if traverse_obj(play_info_obj, 'code') == 87007:
                     toast = get_element_by_class('tips-toast', webpage) or ''
                     msg = clean_html(
@@ -694,9 +690,9 @@ class BiliBiliIE(BilibiliBaseIE):
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
 
         festival_info = {}
-        if is_festival:
+        if not play_info:
             play_info = self._download_playinfo(video_id, cid, headers=headers)
-
+        if is_festival:
             festival_info = traverse_obj(initial_state, {
                 'uploader': ('videoInfo', 'upName'),
                 'uploader_id': ('videoInfo', 'upMid', {str_or_none}),
