@@ -18,7 +18,6 @@ from ..utils import (
     InAdvancePagedList,
     OnDemandPagedList,
     bool_or_none,
-    clean_html,
     determine_ext,
     filter_dict,
     float_or_none,
@@ -165,14 +164,18 @@ class BilibiliBaseIE(InfoExtractor):
         params['w_rid'] = hashlib.md5(f'{query}{self._get_wbi_key(video_id)}'.encode()).hexdigest()
         return params
 
-    def _download_playinfo(self, bvid, cid, headers=None, qn=None):
+    def _download_playinfo(self, bvid, cid, headers=None, fatal=True, qn=None):
         params = {'bvid': bvid, 'cid': cid, 'fnval': 4048}
         if qn:
             params['qn'] = qn
-        return self._download_json(
+        play_info_obj = self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
-            query=self._sign_wbi(params, bvid), headers=headers,
-            note=f'Downloading video formats for cid {cid} {qn or ""}')['data']
+            query=self._sign_wbi(params, bvid), headers=headers, fatal=fatal,
+            note=f'Downloading video formats for cid {cid} {qn or ""}')
+        if fatal:
+            return play_info_obj['data']
+        else:
+            return play_info_obj.get('data')
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -640,29 +643,17 @@ class BiliBiliIE(BilibiliBaseIE):
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
         is_festival = 'videoData' not in initial_state
-        play_info = None
         if is_festival:
             video_data = initial_state['videoInfo']
         else:
-            play_info_obj = self._search_json(
-                r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None)
-            if not play_info_obj:
-                if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
-                    self.raise_login_required()
-                if traverse_obj(initial_state, ('error', 'trueCode')) == -404:
-                    raise ExtractorError(
-                        'This video may be deleted or geo-restricted. '
-                        'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
-            elif not (play_info := traverse_obj(play_info_obj, ('data', {dict}))):
-                if traverse_obj(play_info_obj, 'code') == 87007:
-                    toast = get_element_by_class('tips-toast', webpage) or ''
-                    msg = clean_html(
-                        f'{get_element_by_class("belongs-to", toast) or ""}，'
-                        + (get_element_by_class('level', toast) or ''))
-                    raise ExtractorError(
-                        f'This is a supporter-only video: {msg}. {self._login_hint()}', expected=True)
-                raise ExtractorError('Failed to extract play info')
             video_data = initial_state['videoData']
+
+        if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
+            self.raise_login_required()
+        if traverse_obj(initial_state, ('error', 'trueCode')) == -404:
+            raise ExtractorError(
+                'This video may be deleted or geo-restricted. '
+                'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
 
         video_id, title = video_data['bvid'], video_data.get('title')
 
@@ -690,8 +681,27 @@ class BiliBiliIE(BilibiliBaseIE):
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
 
         festival_info = {}
+        play_info = (
+            traverse_obj(
+                self._search_json(
+                    r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
+                ('data', {dict}))
+            or self._download_playinfo(video_id, cid, headers=headers, fatal=False))
         if not play_info:
-            play_info = self._download_playinfo(video_id, cid, headers=headers)
+            raise ExtractorError('Failed to extract play info')
+
+        if video_data.get('is_upower_exclusive'):
+            # Supporter only, also indicated by
+            # `not traverse_obj(play_info, ('support_formats', ..., 'codecs'))`
+            # Ref: https://github.com/ytdl-org/youtube-dl/issues/32722#issuecomment-1950045012
+            high_level = traverse_obj(initial_state, ('elecFullInfo', 'show_info', 'high_level'))
+            # Should we inline the title and the subtitle?
+            support_title = traverse_obj(high_level, 'title', default='')
+            support_sub_title = traverse_obj(high_level, 'sub_title', default='')
+            msg = f'{support_title}，{support_sub_title}'
+            raise ExtractorError(
+                f'This is a supporter-only video: {msg}. {self._login_hint()}', expected=True)
+
         if is_festival:
             festival_info = traverse_obj(initial_state, {
                 'uploader': ('videoInfo', 'upName'),
