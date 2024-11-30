@@ -14,55 +14,57 @@ class VideocampusSachsenIE(InfoExtractor):
         'corporate.demo.vimp.com',
         'dancehalldatabase.com',
         'drehzahl.tv',
-        'educhannel.hs-gesundheit.de',
+        'educhannel.hs-gesundheit.de',  # Hochschule für Gesundheit NRW
         'emedia.ls.haw-hamburg.de',
         'globale-evolution.net',
         'hohu.tv',
         'htvideos.hightechhigh.org',
         'k210039.vimp.mivitec.net',
         'media.cmslegal.com',
-        'media.hs-furtwangen.de',
-        'media.hwr-berlin.de',
+        'media.hs-furtwangen.de',  # Hochschule Furtwangen
+        'media.hwr-berlin.de',  # Hochschule für Wirtschaft und Recht Berlin
         'mediathek.dkfz.de',
-        'mediathek.htw-berlin.de',
+        'mediathek.htw-berlin.de',  # Hochschule für Technik und Wirtschaft Berlin
         'mediathek.polizei-bw.de',
-        'medien.hs-merseburg.de',
-        'mportal.europa-uni.de',
+        'medien.hs-merseburg.de',  # Hochschule Merseburg
+        'mitmedia.manukau.ac.nz',  # Manukau Institute of Technology Auckland (NZ)
+        'mportal.europa-uni.de',  # Europa-Universität Viadrina
         'pacific.demo.vimp.com',
         'slctv.com',
         'streaming.prairiesouth.ca',
         'tube.isbonline.cn',
-        'univideo.uni-kassel.de',
+        'univideo.uni-kassel.de',  # Universität Kassel
         'ursula2.genetics.emory.edu',
         'ursulablicklevideoarchiv.com',
         'v.agrarumweltpaedagogik.at',
         'video.eplay-tv.de',
-        'video.fh-dortmund.de',
-        'video.hs-offenburg.de',
-        'video.hs-pforzheim.de',
-        'video.hspv.nrw.de',
+        'video.tu-dortmund.de',
+        'video.fh-dortmund.de',  # Fachhochschule Dortmund
+        'video.hs-offenburg.de',  # Hochschule Offenburg
+        'video.hs-pforzheim.de',  # Hochschule Pforzheim
+        'video.hspv.nrw.de',  # Hochschule für Polizei und öffentliche Verwaltung NRW
         'video.irtshdf.fr',
         'video.pareygo.de',
-        'video.tu-freiberg.de',
-        'videocampus.sachsen.de',
-        'videoportal.uni-freiburg.de',
-        'videoportal.vm.uni-freiburg.de',
+        'video.tu-freiberg.de',  # Technische Universität Bergakademie Freiberg
+        'videocampus.sachsen.de',  # Video Campus Sachsen (gemeinsame Videoplattform sächsischer Universitäten, Hochschulen und der Berufsakademie Sachsen)
+        'videoportal.uni-freiburg.de',  # Albert-Ludwigs-Universität Freiburg
+        'videoportal.vm.uni-freiburg.de',  # Albert-Ludwigs-Universität Freiburg
         'videos.duoc.cl',
-        'videos.uni-paderborn.de',
+        'videos.uni-paderborn.de',  # Universität Paderborn
         'vimp-bemus.udk-berlin.de',
         'vimp.aekwl.de',
         'vimp.hs-mittweida.de',
-        'vimp.oth-regensburg.de',
-        'vimp.ph-heidelberg.de',
+        'vimp.oth-regensburg.de',  # Ostbayerische Technische Hochschule Regensburg
+        'vimp.ph-heidelberg.de',  # Pädagogische Hochschule Heidelberg
         'vimp.sma-events.com',
         'vimp.weka-fachmedien.de',
         'webtv.univ-montp3.fr',
-        'www.b-tu.de/media',
+        'www.b-tu.de/media',  # Brandenburgische Technische Universität Cottbus-Senftenberg
         'www.bergauf.tv',
         'www.bigcitytv.de',
         'www.cad-videos.de',
         'www.drehzahl.tv',
-        'www.fh-bielefeld.de/medienportal',
+        'www.hsbi.de/medienportal',  # Hochschule Bielefeld
         'www.hohu.tv',
         'www.orvovideo.com',
         'www.rwe.tv',
