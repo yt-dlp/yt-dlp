@@ -51,7 +51,6 @@ from ..compat import (
     compat_HTMLParseError,
 )
 from ..dependencies import xattr
-from .._globals import IN_CLI
 
 __name__ = __name__.rsplit('.', 1)[0]  # noqa: A001: Pretend to be the parent module
 
@@ -1484,7 +1483,8 @@ def write_string(s, out=None, encoding=None):
 
 # TODO: Use global logger
 def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
-    if IN_CLI.value:
+    from .._globals import IN_CLI as _IN_CLI
+    if _IN_CLI.value:
         if msg in deprecation_warning._cache:
             return
         deprecation_warning._cache.add(msg)
