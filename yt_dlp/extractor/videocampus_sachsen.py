@@ -198,14 +198,14 @@ class ViMPPlaylistIE(InfoExtractor):
         'url': 'https://vimp.oth-regensburg.de/channel/Designtheorie-1-SoSe-2020/3',
         'info_dict': {
             'id': 'channel-3',
-            'title': 'Designtheorie 1 SoSe 2020 :: Channels :: ViMP OTH Regensburg',
+            'title': 'Designtheorie 1 SoSe 2020 - Channels - ViMP OTH Regensburg',
         },
         'playlist_mincount': 9,
     }, {
-        'url': 'https://www.fh-bielefeld.de/medienportal/album/view/aid/208',
+        'url': 'https://www.hsbi.de/medienportal/album/view/aid/208',
         'info_dict': {
             'id': 'album-208',
-            'title': 'KG Praktikum ABT/MEC :: Playlists :: FH-Medienportal',
+            'title': 'KG Praktikum ABT/MEC - Playlists - HSBI-Medienportal',
         },
         'playlist_mincount': 4,
     }, {
