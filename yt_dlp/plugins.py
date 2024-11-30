@@ -169,7 +169,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
 def directories():
     spec = importlib.util.find_spec(PACKAGE_NAME)
-    return spec.submodule_search_locations if spec else []
+    return list(spec.submodule_search_locations) if spec else []
 
 
 def iter_modules(subpackage):

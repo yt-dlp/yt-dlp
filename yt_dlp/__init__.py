@@ -433,6 +433,8 @@ def validate_options(opts):
     opts.plugin_dirs = opts.plugin_dirs or []
     if 'no-external' not in opts.plugin_dirs:
         opts.plugin_dirs.append('external')
+    else:
+        opts.plugin_dirs.remove('no-external')
 
     if opts.playlist_items is not None:
         try:
