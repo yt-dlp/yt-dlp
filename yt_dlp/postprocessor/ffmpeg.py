@@ -824,7 +824,7 @@ class FFmpegMergerPP(FFmpegPostProcessor):
     def run(self, info):
         filename = info['filepath']
         temp_filename = prepend_extension(filename, 'temp')
-        args = ['-c', 'copy']
+        args = ['-c', 'copy', '-copyts']
         audio_streams = 0
         for (i, fmt) in enumerate(info['requested_formats']):
             if fmt.get('acodec') != 'none':
