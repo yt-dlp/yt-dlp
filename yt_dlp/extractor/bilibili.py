@@ -686,8 +686,7 @@ class BiliBiliIE(BilibiliBaseIE):
 
         play_info = (
             traverse_obj(
-                self._search_json(
-                    r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
+                self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
                 ('data', {dict}))
             or self._download_playinfo(video_id, cid, headers=headers))
 
