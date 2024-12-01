@@ -168,11 +168,10 @@ class BilibiliBaseIE(InfoExtractor):
         params = {'bvid': bvid, 'cid': cid, 'fnval': 4048}
         if qn:
             params['qn'] = qn
-        play_info = self._download_json(
+        return self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
             query=self._sign_wbi(params, bvid), headers=headers,
-            note=f'Downloading video formats for cid {cid} {qn or ""}')
-        return play_info['data']
+            note=f'Downloading video formats for cid {cid} {qn or ""}')['data']
 
     def json2srt(self, json_data):
         srt_data = ''
