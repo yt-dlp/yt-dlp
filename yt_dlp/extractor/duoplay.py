@@ -8,7 +8,6 @@ from ..utils import (
     str_or_none,
     try_call,
     unified_timestamp,
-    update_url_query,
 )
 from ..utils.traversal import traverse_obj
 
@@ -108,13 +107,12 @@ class DuoplayIE(InfoExtractor):
                 'Accept': 'application/json',
                 'X-Original-URI': manifest_url,
             })['session']
-        manifest_url = update_url_query(manifest_url, {'s': session_token})
 
         episode_attr = self._parse_json(video_player.get(':episode') or '', video_id, fatal=False) or {}
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(manifest_url, video_id, 'mp4'),
+            'formats': self._extract_m3u8_formats(manifest_url, video_id, 'mp4', query={'s': session_token}),
             **traverse_obj(episode_attr, {
                 'title': 'title',
                 'description': 'synopsis',
