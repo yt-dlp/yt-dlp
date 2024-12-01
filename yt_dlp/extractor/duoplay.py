@@ -127,7 +127,7 @@ class DuoplayIE(InfoExtractor):
                 'release_year': ('year', {int_or_none}),
             }),
             **(traverse_obj(episode_attr, {
-                'title': (('subtitle', {str}, filter), ({value(f'Episode {episode}' if episode else None)})),
+                'title': (None, (('subtitle', {str}, filter), {value(f'Episode {episode}' if episode else None)})),
                 'series': ('title', {str}),
                 'series_id': ('telecast_id', {str_or_none}),
                 'season_number': ('season_id', {int_or_none}),
