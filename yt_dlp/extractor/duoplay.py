@@ -5,15 +5,16 @@ from ..utils import (
     get_element_text_and_html_by_tag,
     int_or_none,
     join_nonempty,
+    parse_qs,
     str_or_none,
     try_call,
     unified_timestamp,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import traverse_obj, value
 
 
 class DuoplayIE(InfoExtractor):
-    _VALID_URL = r'https?://duoplay\.ee/(?P<id>\d+)(?:/[\w-]+/?(?:\?(?:[^#]+&))?ep=(?P<ep>\d+))?'
+    _VALID_URL = r'https?://duoplay\.ee/(?P<id>\d+)(?:[/?#]|$)'
     _TESTS = [{
         'note': 'Siberi võmm S02E12',
         'url': 'https://duoplay.ee/4312/siberi-vomm?ep=24',
@@ -38,12 +39,12 @@ class DuoplayIE(InfoExtractor):
     }, {
         'note': 'Empty title',
         'url': 'https://duoplay.ee/17/uhikarotid?ep=14',
-        'md5': '6aca68be71112314738dd17cced7f8bf',
+        'md5': 'cba9f5dabf2582b224d80ac44fb80e47',
         'info_dict': {
             'id': '17_14',
             'ext': 'mp4',
-            'title': 'Ühikarotid',
-            'thumbnail': r're:https://.+\.jpg(?:\?c=\d+)?$',
+            'title': 'Episode 14',
+            'thumbnail': r're:https?://.+\.jpg',
             'description': 'md5:4719b418e058c209def41d48b601276e',
             'upload_date': '20100916',
             'timestamp': 1284661800,
@@ -53,6 +54,8 @@ class DuoplayIE(InfoExtractor):
             'season_number': 2,
             'episode_id': '14',
             'release_year': 2010,
+            'episode': 'Episode 14',
+            'episode_number': 14,
         },
     }, {
         'note': 'Movie without expiry',
@@ -75,12 +78,11 @@ class DuoplayIE(InfoExtractor):
         'url': 'https://duoplay.ee/9644?ep=185',
         'md5': '63f324b4fe2dbd8194dca16a6d52184a',
         'info_dict': {
-            'id': '9644',
+            'id': '9644_185',
             'ext': 'mp4',
-            'title': 'Episode 63',
-            'thumbnail': r're:https?://.+\.jpg(?:%3Fc%3D\d+)?$',
+            'title': 'Episode 185',
+            'thumbnail': r're:https?://.+\.jpg',
             'description': 'md5:ed25ba4e9e5d54bc291a4a0cdd241467',
-            'cast': 'count:1',
             'upload_date': '20241120',
             'timestamp': 1732077000,
             'episode': 'Episode 63',
@@ -94,7 +96,8 @@ class DuoplayIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        telecast_id, episode = self._match_valid_url(url).group('id', 'ep')
+        telecast_id = self._match_id(url)
+        episode = traverse_obj(parse_qs(url), ('ep', 0, {int_or_none}, {str_or_none}))
         video_id = join_nonempty(telecast_id, episode, delim='_')
         webpage = self._download_webpage(url, video_id)
         video_player = try_call(lambda: extract_attributes(
@@ -116,19 +119,19 @@ class DuoplayIE(InfoExtractor):
             'id': video_id,
             'formats': self._extract_m3u8_formats(manifest_url, video_id, 'mp4', query={'s': session_token}),
             **traverse_obj(episode_attr, {
-                'title': 'title',
-                'description': 'synopsis',
+                'title': ('title', {str}),
+                'description': ('synopsis', {str}),
                 'thumbnail': ('images', 'original'),
                 'timestamp': ('airtime', {lambda x: unified_timestamp(x + ' +0200')}),
-                'cast': ('cast', {lambda x: x.split(', ')}),
+                'cast': ('cast', filter, {lambda x: x.split(', ')}),
                 'release_year': ('year', {int_or_none}),
             }),
             **(traverse_obj(episode_attr, {
-                'title': (None, ('subtitle', ('episode_nr', {lambda x: f'Episode {x}' if x else None}))),
-                'series': 'title',
+                'title': (('subtitle', {str}, filter), ({value(f'Episode {episode}' if episode else None)})),
+                'series': ('title', {str}),
                 'series_id': ('telecast_id', {str_or_none}),
                 'season_number': ('season_id', {int_or_none}),
-                'episode': 'subtitle',
+                'episode': ('subtitle', {str}, filter),
                 'episode_number': ('episode_nr', {int_or_none}),
                 'episode_id': ('episode_id', {str_or_none}),
             }, get_all=False) if episode_attr.get('category') != 'movies' else {}),
