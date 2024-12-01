@@ -3846,6 +3846,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not requested_clients:
             raise ExtractorError('No player clients have been requested', expected=True)
 
+        if smuggled_data.get('is_music_url') or self.is_music_url(url):
+            for requested_client in requested_clients:
+                _, base_client, variant = _split_innertube_client(requested_client)
+                music_client = f'{base_client}_music' if base_client != 'mweb' else 'web_music'
+                if variant != 'music' and music_client in INNERTUBE_CLIENTS:
+                    client_info = INNERTUBE_CLIENTS[music_client]
+                    if not client_info['REQUIRE_AUTH'] or (self.is_authenticated and client_info['SUPPORTS_COOKIES']):
+                        requested_clients.append(music_client)
+
         if self.is_authenticated:
             unsupported_clients = [
                 client for client in requested_clients if not INNERTUBE_CLIENTS[client]['SUPPORTS_COOKIES']
