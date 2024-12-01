@@ -655,6 +655,7 @@ class BiliBiliIE(BilibiliBaseIE):
         if video_data.get('is_upower_exclusive'):
             high_level = traverse_obj(initial_state, ('elecFullInfo', 'show_info', 'high_level'))
             raise ExtractorError(
+                'This is a supporter-only video: '
                 f'{join_nonempty("title", "sub_title", from_dict=high_level, delim="，")}. '
                 f'{self._login_hint()}', expected=True)
 
