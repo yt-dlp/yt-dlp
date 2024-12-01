@@ -34,6 +34,7 @@ class DuoplayIE(InfoExtractor):
             'episode_number': 12,
             'episode_id': '24',
         },
+        'skip': 'No video found',
     }, {
         'note': 'Empty title',
         'url': 'https://duoplay.ee/17/uhikarotid?ep=14',
@@ -68,6 +69,7 @@ class DuoplayIE(InfoExtractor):
             'timestamp': 1671054000,
             'release_year': 2018,
         },
+        'skip': 'No video found',
     }, {
         'note': 'Episode url without show name',
         'url': 'https://duoplay.ee/9644?ep=185',
