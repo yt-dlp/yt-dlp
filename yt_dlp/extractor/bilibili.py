@@ -641,11 +641,6 @@ class BiliBiliIE(BilibiliBaseIE):
         headers['Referer'] = url
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
-        is_festival = 'videoData' not in initial_state
-        if is_festival:
-            video_data = initial_state['videoInfo']
-        else:
-            video_data = initial_state['videoData']
 
         if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
             self.raise_login_required()
@@ -653,6 +648,20 @@ class BiliBiliIE(BilibiliBaseIE):
             raise ExtractorError(
                 'This video may be deleted or geo-restricted. '
                 'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
+
+        is_festival = 'videoData' not in initial_state
+        if is_festival:
+            video_data = initial_state['videoInfo']
+        else:
+            video_data = initial_state['videoData']
+
+        if video_data.get('is_upower_exclusive'):
+            high_level = traverse_obj(initial_state, ('elecFullInfo', 'show_info', 'high_level'))
+            support_title = traverse_obj(high_level, 'title', default='')
+            support_subtitle = traverse_obj(high_level, 'sub_title', default='')
+            raise ExtractorError(
+                f'This is a supporter-only video: {support_title}，{support_subtitle}. '
+                f'{self._login_hint()}', expected=True)
 
         video_id, title = video_data['bvid'], video_data.get('title')
 
@@ -687,18 +696,6 @@ class BiliBiliIE(BilibiliBaseIE):
             or self._download_playinfo(video_id, cid, headers=headers, fatal=False))
         if not play_info:
             raise ExtractorError('Failed to extract play info')
-
-        if video_data.get('is_upower_exclusive'):
-            # Supporter-only, also indicated by
-            # `not traverse_obj(play_info, ('support_formats', ..., 'codecs'))`
-            # Ref: https://github.com/ytdl-org/youtube-dl/issues/32722#issuecomment-1950045012
-            high_level = traverse_obj(initial_state, ('elecFullInfo', 'show_info', 'high_level'))
-            # Should we inline the title and the subtitle?
-            support_title = traverse_obj(high_level, 'title', default='')
-            support_subtitle = traverse_obj(high_level, 'sub_title', default='')
-            raise ExtractorError(
-                f'This is a supporter-only video: {support_title}，{support_subtitle}. '
-                f'{self._login_hint()}', expected=True)
 
         festival_info = {}
         if is_festival:
