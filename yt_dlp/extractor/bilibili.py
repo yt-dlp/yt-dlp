@@ -18,7 +18,6 @@ from ..utils import (
     InAdvancePagedList,
     OnDemandPagedList,
     bool_or_none,
-    clean_html,
     determine_ext,
     filter_dict,
     float_or_none,
@@ -639,30 +638,26 @@ class BiliBiliIE(BilibiliBaseIE):
         headers['Referer'] = url
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
+
+        if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
+            self.raise_login_required()
+        if traverse_obj(initial_state, ('error', 'trueCode')) == -404:
+            raise ExtractorError(
+                'This video may be deleted or geo-restricted. '
+                'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
+
         is_festival = 'videoData' not in initial_state
         if is_festival:
             video_data = initial_state['videoInfo']
         else:
-            play_info_obj = self._search_json(
-                r'window\.__playinfo__\s*=', webpage, 'play info', video_id, fatal=False)
-            if not play_info_obj:
-                if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
-                    self.raise_login_required()
-                if traverse_obj(initial_state, ('error', 'trueCode')) == -404:
-                    raise ExtractorError(
-                        'This video may be deleted or geo-restricted. '
-                        'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
-            play_info = traverse_obj(play_info_obj, ('data', {dict}))
-            if not play_info:
-                if traverse_obj(play_info_obj, 'code') == 87007:
-                    toast = get_element_by_class('tips-toast', webpage) or ''
-                    msg = clean_html(
-                        f'{get_element_by_class("belongs-to", toast) or ""}，'
-                        + (get_element_by_class('level', toast) or ''))
-                    raise ExtractorError(
-                        f'This is a supporter-only video: {msg}. {self._login_hint()}', expected=True)
-                raise ExtractorError('Failed to extract play info')
             video_data = initial_state['videoData']
+
+        if video_data.get('is_upower_exclusive'):
+            high_level = traverse_obj(initial_state, ('elecFullInfo', 'show_info', 'high_level', {dict})) or {}
+            raise ExtractorError(
+                'This is a supporter-only video: '
+                f'{join_nonempty("title", "sub_title", from_dict=high_level, delim="，")}. '
+                f'{self._login_hint()}', expected=True)
 
         video_id, title = video_data['bvid'], video_data.get('title')
 
@@ -689,10 +684,14 @@ class BiliBiliIE(BilibiliBaseIE):
         old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
 
+        play_info = (
+            traverse_obj(
+                self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
+                ('data', {dict}))
+            or self._download_playinfo(video_id, cid, headers=headers))
+
         festival_info = {}
         if is_festival:
-            play_info = self._download_playinfo(video_id, cid, headers=headers)
-
             festival_info = traverse_obj(initial_state, {
                 'uploader': ('videoInfo', 'upName'),
                 'uploader_id': ('videoInfo', 'upMid', {str_or_none}),
