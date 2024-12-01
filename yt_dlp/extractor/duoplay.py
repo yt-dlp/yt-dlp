@@ -14,7 +14,6 @@ from ..utils.traversal import traverse_obj
 
 
 class DuoplayIE(InfoExtractor):
-    # https://duoplay.ee/9644?ep=185
     _VALID_URL = r'https?://duoplay\.ee/(?P<id>\d+)(?:/[\w-]+/?(?:\?(?:[^#]+&))?ep=(?P<ep>\d+))?'
     _TESTS = [{
         'note': 'Siberi võmm S02E12',
@@ -69,6 +68,27 @@ class DuoplayIE(InfoExtractor):
             'upload_date': '20221214',
             'timestamp': 1671054000,
             'release_year': 2018,
+        },
+    }, {
+        'note': 'Episode url without show name',
+        'url': 'https://duoplay.ee/9644?ep=185',
+        'md5': '63f324b4fe2dbd8194dca16a6d52184a',
+        'info_dict': {
+            'id': '9644',
+            'ext': 'mp4',
+            'title': 'Episode 63',
+            'thumbnail': r're:https?://.+\.jpg(?:%3Fc%3D\d+)?$',
+            'description': 'md5:ed25ba4e9e5d54bc291a4a0cdd241467',
+            'cast': 'count:1',
+            'upload_date': '20241120',
+            'timestamp': 1732077000,
+            'episode': 'Episode 63',
+            'episode_id': '185',
+            'episode_number': 63,
+            'season': 'Season 2',
+            'season_number': 2,
+            'series': 'Telehommik',
+            'series_id': '9644',
         },
     }]
 
