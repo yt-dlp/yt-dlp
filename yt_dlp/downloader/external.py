@@ -293,7 +293,7 @@ class Aria2cFD(ExternalFD):
         return super()._call_downloader(tmpfilename, info_dict)
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '-c', '--no-conf',
+        cmd = [self.exe, '--no-conf',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
                '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16']
         if 'fragments' in info_dict:
