@@ -21,6 +21,7 @@ class VideocampusSachsenIE(InfoExtractor):
         'htvideos.hightechhigh.org',
         'k210039.vimp.mivitec.net',
         'media.cmslegal.com',
+        'media.fh-swf.de',  # Fachhochschule Südwestfalen
         'media.hs-furtwangen.de',  # Hochschule Furtwangen
         'media.hwr-berlin.de',  # Hochschule für Wirtschaft und Recht Berlin
         'mediathek.dkfz.de',
@@ -38,13 +39,14 @@ class VideocampusSachsenIE(InfoExtractor):
         'ursulablicklevideoarchiv.com',
         'v.agrarumweltpaedagogik.at',
         'video.eplay-tv.de',
-        'video.tu-dortmund.de',
         'video.fh-dortmund.de',  # Fachhochschule Dortmund
+        'video.hs-nb.de',  # Hochschule Neubrandenburg
         'video.hs-offenburg.de',  # Hochschule Offenburg
         'video.hs-pforzheim.de',  # Hochschule Pforzheim
         'video.hspv.nrw.de',  # Hochschule für Polizei und öffentliche Verwaltung NRW
         'video.irtshdf.fr',
         'video.pareygo.de',
+        'video.tu-dortmund.de',  # Technische Universität Dortmund
         'video.tu-freiberg.de',  # Technische Universität Bergakademie Freiberg
         'videocampus.sachsen.de',  # Video Campus Sachsen (gemeinsame Videoplattform sächsischer Universitäten, Hochschulen und der Berufsakademie Sachsen)
         'videoportal.uni-freiburg.de',  # Albert-Ludwigs-Universität Freiburg
@@ -54,21 +56,27 @@ class VideocampusSachsenIE(InfoExtractor):
         'vimp-bemus.udk-berlin.de',
         'vimp.aekwl.de',
         'vimp.hs-mittweida.de',
+        'vimp.landesfilmdienste.de',
         'vimp.oth-regensburg.de',  # Ostbayerische Technische Hochschule Regensburg
         'vimp.ph-heidelberg.de',  # Pädagogische Hochschule Heidelberg
         'vimp.sma-events.com',
         'vimp.weka-fachmedien.de',
+        'vimpdesk.com',
         'webtv.univ-montp3.fr',
         'www.b-tu.de/media',  # Brandenburgische Technische Universität Cottbus-Senftenberg
         'www.bergauf.tv',
         'www.bigcitytv.de',
         'www.cad-videos.de',
         'www.drehzahl.tv',
-        'www.hsbi.de/medienportal',  # Hochschule Bielefeld
         'www.hohu.tv',
+        'www.hsbi.de/medienportal',  # Hochschule Bielefeld
+        'www.logistic.tv',
         'www.orvovideo.com',
+        'www.printtube.co.uk',
         'www.rwe.tv',
         'www.salzi.tv',
+        'www.signtube.co.uk',
+        'www.twb-power.com',
         'www.wenglor-media.com',
         'www2.univ-sba.dz',
     )
