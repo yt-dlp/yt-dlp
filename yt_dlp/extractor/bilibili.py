@@ -164,17 +164,15 @@ class BilibiliBaseIE(InfoExtractor):
         params['w_rid'] = hashlib.md5(f'{query}{self._get_wbi_key(video_id)}'.encode()).hexdigest()
         return params
 
-    def _download_playinfo(self, bvid, cid, headers=None, qn=None, fatal=True):
+    def _download_playinfo(self, bvid, cid, headers=None, qn=None):
         params = {'bvid': bvid, 'cid': cid, 'fnval': 4048}
         if qn:
             params['qn'] = qn
         play_info = self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
-            query=self._sign_wbi(params, bvid), headers=headers, fatal=fatal,
+            query=self._sign_wbi(params, bvid), headers=headers,
             note=f'Downloading video formats for cid {cid} {qn or ""}')
-        if fatal:
-            return play_info['data']
-        return traverse_obj(play_info, ('data', {dict})) or {}
+        return play_info['data']
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -693,9 +691,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 self._search_json(
                     r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
                 ('data', {dict}))
-            or self._download_playinfo(video_id, cid, headers=headers, fatal=False))
-        if not play_info:
-            raise ExtractorError('Failed to extract play info')
+            or self._download_playinfo(video_id, cid, headers=headers))
 
         festival_info = {}
         if is_festival:
