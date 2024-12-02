@@ -259,9 +259,6 @@ select = [
     "A002",   # builtin-argument-shadowing
     "C408",   # unnecessary-collection-call
 ]
-"yt_dlp/jsinterp.py" = [
-    "UP031",  # printf-string-formatting
-]
 
 [tool.ruff.lint.isort]
 known-first-party = [
