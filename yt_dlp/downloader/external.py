@@ -269,6 +269,7 @@ class WgetFD(ExternalFD):
 class Aria2cFD(ExternalFD):
     AVAILABLE_OPT = '-v'
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'dash_frag_urls', 'm3u8_frag_urls')
+    _CAPTURE_STDERR = False
 
     @staticmethod
     def supports_manifest(manifest):
@@ -293,11 +294,13 @@ class Aria2cFD(ExternalFD):
         return super()._call_downloader(tmpfilename, info_dict)
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '--no-conf',
+        cmd = [self.exe, '--no-conf', '--stderr=true',
+               '--auto-save-interval=10', '--allow-overwrite=true', '--always-resume=false',
+               '--auto-file-renaming=false', '--force-save=false',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
                '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16']
         if 'fragments' in info_dict:
-            cmd += ['--allow-overwrite=true', '--allow-piece-length-change=true']
+            cmd += ['--allow-piece-length-change=true']
         else:
             cmd += ['--min-split-size', '1M']
 
@@ -331,7 +334,6 @@ class Aria2cFD(ExternalFD):
             cmd += ['--dir', self._aria2c_filename(dn) + os.path.sep]
         if 'fragments' not in info_dict:
             cmd += ['--out', self._aria2c_filename(os.path.basename(tmpfilename))]
-        cmd += ['--auto-file-renaming=false']
 
         if 'fragments' in info_dict:
             cmd += ['--uri-selector=inorder']
