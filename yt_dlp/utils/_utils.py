@@ -2683,8 +2683,8 @@ def merge_dicts(*dicts):
     merged = {}
     for a_dict in dicts:
         for k, v in a_dict.items():
-            if (v is not None and k not in merged
-                    or isinstance(v, str) and merged[k] == ''):
+            if ((v is not None and k not in merged)
+                    or (isinstance(v, str) and merged[k] == '')):
                 merged[k] = v
     return merged
 

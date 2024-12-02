@@ -1116,7 +1116,7 @@ class YoutubeDL:
     def raise_no_formats(self, info, forced=False, *, msg=None):
         has_drm = info.get('_has_drm')
         ignored, expected = self.params.get('ignore_no_formats_error'), bool(msg)
-        msg = msg or has_drm and 'This video is DRM protected' or 'No video formats found!'
+        msg = msg or (has_drm and 'This video is DRM protected') or 'No video formats found!'
         if forced or not ignored:
             raise ExtractorError(msg, video_id=info['id'], ie=info['extractor'],
                                  expected=has_drm or ignored or expected)
@@ -2196,7 +2196,7 @@ class YoutubeDL:
     def _default_format_spec(self, info_dict):
         prefer_best = (
             self.params['outtmpl']['default'] == '-'
-            or info_dict.get('is_live') and not self.params.get('live_from_start'))
+            or (info_dict.get('is_live') and not self.params.get('live_from_start')))
 
         def can_merge():
             merger = FFmpegMergerPP(self)
@@ -2365,7 +2365,7 @@ class YoutubeDL:
                 vexts=[f['ext'] for f in video_fmts],
                 aexts=[f['ext'] for f in audio_fmts],
                 preferences=(try_call(lambda: self.params['merge_output_format'].split('/'))
-                             or self.params.get('prefer_free_formats') and ('webm', 'mkv')))
+                             or (self.params.get('prefer_free_formats') and ('webm', 'mkv'))))
 
             filtered = lambda *keys: filter(None, (traverse_obj(fmt, *keys) for fmt in formats_info))
 
@@ -3541,8 +3541,8 @@ class YoutubeDL:
                                      and info_dict.get('container') == 'm4a_dash',
                                      'writing DASH m4a. Only some players support this container',
                                      FFmpegFixupM4aPP)
-                        ffmpeg_fixup(downloader == 'hlsnative' and not self.params.get('hls_use_mpegts')
-                                     or info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None,
+                        ffmpeg_fixup((downloader == 'hlsnative' and not self.params.get('hls_use_mpegts'))
+                                     or (info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None),
                                      'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
                                      FFmpegFixupM3u8PP)
                         ffmpeg_fixup(downloader == 'dashsegments'

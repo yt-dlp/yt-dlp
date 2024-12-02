@@ -1276,8 +1276,8 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
     def _really_save(self, f, ignore_discard, ignore_expires):
         now = time.time()
         for cookie in self:
-            if (not ignore_discard and cookie.discard
-                    or not ignore_expires and cookie.is_expired(now)):
+            if ((not ignore_discard and cookie.discard)
+                    or (not ignore_expires and cookie.is_expired(now))):
                 continue
             name, value = cookie.name, cookie.value
             if value is None:

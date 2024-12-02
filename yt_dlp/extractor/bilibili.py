@@ -662,12 +662,12 @@ class BiliBiliIE(BilibiliBaseIE):
         video_id, title = video_data['bvid'], video_data.get('title')
 
         # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
-        page_list_json = not is_festival and traverse_obj(
+        page_list_json = (not is_festival and traverse_obj(
             self._download_json(
                 'https://api.bilibili.com/x/player/pagelist', video_id,
                 fatal=False, query={'bvid': video_id, 'jsonp': 'jsonp'},
                 note='Extracting videos in anthology', headers=headers),
-            'data', expected_type=list) or []
+            'data', expected_type=list)) or []
         is_anthology = len(page_list_json) > 1
 
         part_id = int_or_none(parse_qs(url).get('p', [None])[-1])

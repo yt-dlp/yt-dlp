@@ -626,7 +626,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             sub_ext = sub_info['ext']
             if sub_ext == 'json':
                 self.report_warning('JSON subtitles cannot be embedded')
-            elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
+            elif ext != 'webm' or (ext == 'webm' and sub_ext == 'vtt'):
                 sub_langs.append(lang)
                 sub_names.append(sub_info.get('name'))
                 sub_filenames.append(sub_info['filepath'])

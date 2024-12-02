@@ -76,7 +76,7 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.7.0",
+    "ruff~=0.8.0",
 ]
 test = [
     "pytest~=8.1",
@@ -186,6 +186,7 @@ ignore = [
     "E501",    # line-too-long
     "E731",    # lambda-assignment
     "E741",    # ambiguous-variable-name
+    "UP031",   # printf-string-formatting
     "UP036",   # outdated-version-block
     "B006",    # mutable-argument-default
     "B008",    # function-call-in-default-argument
@@ -257,9 +258,6 @@ select = [
     "T20",    # flake8-print
     "A002",   # builtin-argument-shadowing
     "C408",   # unnecessary-collection-call
-]
-"yt_dlp/jsinterp.py" = [
-    "UP031",  # printf-string-formatting
 ]
 
 [tool.ruff.lint.isort]

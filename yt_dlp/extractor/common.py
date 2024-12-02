@@ -3803,7 +3803,7 @@ class InfoExtractor:
     def mark_watched(self, *args, **kwargs):
         if not self.get_param('mark_watched', False):
             return
-        if self.supports_login() and self._get_login_info()[0] is not None or self._cookies_passed:
+        if (self.supports_login() and self._get_login_info()[0] is not None) or self._cookies_passed:
             self._mark_watched(*args, **kwargs)
 
     def _mark_watched(self, *args, **kwargs):
