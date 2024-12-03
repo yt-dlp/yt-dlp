@@ -405,13 +405,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: # 3.8 is used for Win7 support
-          python-version: "3.8"
+        with:
+          python-version: "3.10"
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python devscripts/install_deps.py -o --include build
           python devscripts/install_deps.py --include curl-cffi
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-6.10.0-py3-none-any.whl"
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-6.11.1-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -454,13 +454,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.10"
           architecture: "x86"
       - name: Install Requirements
         run: |
           python devscripts/install_deps.py -o --include build
           python devscripts/install_deps.py
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-6.10.0-py3-none-any.whl"
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-6.11.1-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -504,7 +504,8 @@ jobs:
       - windows32
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
           path: artifact
           pattern: build-bin-*
@@ -529,20 +530,28 @@ jobs:
           lock 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lock 2024.10.22 py2exe .+
-          lock 2024.10.22 linux_(?:armv7l|aarch64)_exe .+ glibc 2\.(?:[12]?\d|30)\b
+          lock 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
+          lock 2024.10.22 (?!\w+_exe).+ Python 3\.8
+          lock 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
           lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp 2024.10.22 py2exe .+
-          lockV2 yt-dlp/yt-dlp 2024.10.22 linux_(?:armv7l|aarch64)_exe .+ glibc 2\.(?:[12]?\d|30)\b
+          lockV2 yt-dlp/yt-dlp 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
+          lockV2 yt-dlp/yt-dlp 2024.10.22 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 py2exe .+
-          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 linux_(?:armv7l|aarch64)_exe .+ glibc 2\.(?:[12]?\d|30)\b
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.045052 py2exe .+
-          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 linux_(?:armv7l|aarch64)_exe .+ glibc 2\.(?:[12]?\d|30)\b
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           EOF
 
       - name: Sign checksum files

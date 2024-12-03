@@ -1,4 +1,5 @@
 import contextlib
+import functools
 import importlib
 import importlib.abc
 import importlib.machinery
@@ -13,7 +14,6 @@ import zipimport
 from pathlib import Path
 from zipfile import ZipFile
 
-from .compat import functools  # isort: split
 from .utils import (
     Config,
     get_executable_path,
@@ -183,4 +183,4 @@ def load_plugins(name, suffix):
 
 sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'))
 
-__all__ = ['directories', 'load_plugins', 'PACKAGE_NAME', 'COMPAT_PACKAGE_NAME']
+__all__ = ['COMPAT_PACKAGE_NAME', 'PACKAGE_NAME', 'directories', 'load_plugins']
