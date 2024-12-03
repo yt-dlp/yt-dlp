@@ -597,11 +597,9 @@ class VKUserVideosIE(VKBaseIE):
                 self._search_json(r'\bvar newCur\s*=', webpage, 'cursor data', u_id),
                 ('oid', {int}, {str_or_none}, {require('page id')}))
             section = traverse_obj(parse_qs(url), ('section', 0)) or 'all'
-        elif '_' in u_id:
-            page_id, section = u_id.split('_', 1)
-            section = f'playlist_{section}'
         else:
-            raise ExtractorError('Invalid URL', expected=True)
+            page_id, _, section = u_id.partition('_')
+            section = f'playlist_{section}'
 
         playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
         return self.playlist_result(self._entries(page_id, section), f'{page_id}_{section}', playlist_title)
