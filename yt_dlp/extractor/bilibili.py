@@ -724,9 +724,7 @@ class BiliBiliIE(BilibiliBaseIE):
 
         if video_data.get('is_upower_exclusive'):
             high_level = traverse_obj(initial_state, ('elecFullInfo', 'show_info', 'high_level', {dict})) or {}
-            msg = (
-                f'{join_nonempty("title", "sub_title", from_dict=high_level, delim="，")}. '
-                f'{self._login_hint()}')
+            msg = f'{join_nonempty("title", "sub_title", from_dict=high_level, delim="，")}. {self._login_hint()}'
             if not formats:
                 raise ExtractorError(f'This is a supporter-only video: {msg}', expected=True)
             if '试看' in traverse_obj(play_info, ('accept_description', ..., {str})):
