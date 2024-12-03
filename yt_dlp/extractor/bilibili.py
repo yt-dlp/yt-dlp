@@ -652,18 +652,6 @@ class BiliBiliIE(BilibiliBaseIE):
         else:
             video_data = initial_state['videoData']
 
-        if video_data.get('is_upower_exclusive') and not video_data.get('is_upower_play'):
-            high_level = traverse_obj(initial_state, ('elecFullInfo', 'show_info', 'high_level', {dict})) or {}
-            msg = (
-                f'{join_nonempty("title", "sub_title", from_dict=high_level, delim="，")}. '
-                f'{self._login_hint()}')
-            if video_data.get('is_upower_preview'):
-                self.report_warning(
-                    f'This is a supporter-only video, only the preview will be extracted: {msg}',
-                    video_id=video_id)
-            else:
-                raise ExtractorError(f'This is a supporter-only video: {msg}', expected=True)
-
         video_id, title = video_data['bvid'], video_data.get('title')
 
         # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
@@ -733,6 +721,18 @@ class BiliBiliIE(BilibiliBaseIE):
                 __post_extractor=self.extract_comments(aid))
         else:
             formats = self.extract_formats(play_info)
+
+            if video_data.get('is_upower_exclusive'):
+                high_level = traverse_obj(initial_state, ('elecFullInfo', 'show_info', 'high_level', {dict})) or {}
+                msg = (
+                    f'{join_nonempty("title", "sub_title", from_dict=high_level, delim="，")}. '
+                    f'{self._login_hint()}')
+                if not formats:
+                    raise ExtractorError(f'This is a supporter-only video: {msg}', expected=True)
+                if '试看' in traverse_obj(play_info, ('accept_description', ..., {str})):
+                    self.report_warning(
+                        f'This is a supporter-only video, only the preview will be extracted: {msg}',
+                        video_id=video_id)
 
             if not traverse_obj(play_info, ('dash')):
                 # we only have legacy formats and need additional work
