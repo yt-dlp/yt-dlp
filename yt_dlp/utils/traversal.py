@@ -20,6 +20,7 @@ from ._utils import (
     get_elements_html_by_class,
     get_elements_html_by_attribute,
     get_elements_by_attribute,
+    get_element_by_class,
     get_element_html_by_attribute,
     get_element_by_attribute,
     get_element_html_by_id,
@@ -331,14 +332,14 @@ class _RequiredError(ExtractorError):
 
 
 @typing.overload
-def subs_list_to_dict(*, ext: str | None = None) -> collections.abc.Callable[[list[dict]], dict[str, list[dict]]]: ...
+def subs_list_to_dict(*, lang: str | None = 'und', ext: str | None = None) -> collections.abc.Callable[[list[dict]], dict[str, list[dict]]]: ...
 
 
 @typing.overload
-def subs_list_to_dict(subs: list[dict] | None, /, *, ext: str | None = None) -> dict[str, list[dict]]: ...
+def subs_list_to_dict(subs: list[dict] | None, /, *, lang: str | None = 'und', ext: str | None = None) -> dict[str, list[dict]]: ...
 
 
-def subs_list_to_dict(subs: list[dict] | None = None, /, *, ext=None):
+def subs_list_to_dict(subs: list[dict] | None = None, /, *, lang='und', ext=None):
     """
     Convert subtitles from a traversal into a subtitle dict.
     The path should have an `all` immediately before this function.
@@ -351,7 +352,7 @@ def subs_list_to_dict(subs: list[dict] | None = None, /, *, ext=None):
     `quality`  The sort order for each subtitle
     """
     if subs is None:
-        return functools.partial(subs_list_to_dict, ext=ext)
+        return functools.partial(subs_list_to_dict, lang=lang, ext=ext)
 
     result = collections.defaultdict(list)
 
@@ -359,10 +360,16 @@ def subs_list_to_dict(subs: list[dict] | None = None, /, *, ext=None):
         if not url_or_none(sub.get('url')) and not sub.get('data'):
             continue
         sub_id = sub.pop('id', None)
-        if sub_id is None:
-            continue
-        if ext is not None and not sub.get('ext'):
-            sub['ext'] = ext
+        if not isinstance(sub_id, str):
+            if not lang:
+                continue
+            sub_id = lang
+        sub_ext = sub.get('ext')
+        if not isinstance(sub_ext, str):
+            if not ext:
+                sub.pop('ext', None)
+            else:
+                sub['ext'] = ext
         result[sub_id].append(sub)
     result = dict(result)
 
@@ -373,7 +380,7 @@ def subs_list_to_dict(subs: list[dict] | None = None, /, *, ext=None):
 
 
 @typing.overload
-def find_element(*, attr: str, value: str, tag: str | None = None, html=False): ...
+def find_element(*, attr: str, value: str, tag: str | None = None, html=False, regex=False): ...
 
 
 @typing.overload
@@ -381,34 +388,34 @@ def find_element(*, cls: str, html=False): ...
 
 
 @typing.overload
-def find_element(*, id: str, tag: str | None = None, html=False): ...
+def find_element(*, id: str, tag: str | None = None, html=False, regex=False): ...
 
 
 @typing.overload
-def find_element(*, tag: str, html=False): ...
+def find_element(*, tag: str, html=False, regex=False): ...
 
 
-def find_element(*, tag=None, id=None, cls=None, attr=None, value=None, html=False):
+def find_element(*, tag=None, id=None, cls=None, attr=None, value=None, html=False, regex=False):
     # deliberately using `id=` and `cls=` for ease of readability
     assert tag or id or cls or (attr and value), 'One of tag, id, cls or (attr AND value) is required'
-    if not tag:
-        tag = r'[\w:.-]+'
+    ANY_TAG = r'[\w:.-]+'
 
     if attr and value:
         assert not cls, 'Cannot match both attr and cls'
         assert not id, 'Cannot match both attr and id'
         func = get_element_html_by_attribute if html else get_element_by_attribute
-        return functools.partial(func, attr, value, tag=tag)
+        return functools.partial(func, attr, value, tag=tag or ANY_TAG, escape_value=not regex)
 
     elif cls:
         assert not id, 'Cannot match both cls and id'
         assert tag is None, 'Cannot match both cls and tag'
-        func = get_element_html_by_class if html else get_elements_by_class
+        assert not regex, 'Cannot use regex with cls'
+        func = get_element_html_by_class if html else get_element_by_class
         return functools.partial(func, cls)
 
     elif id:
         func = get_element_html_by_id if html else get_element_by_id
-        return functools.partial(func, id, tag=tag)
+        return functools.partial(func, id, tag=tag or ANY_TAG, escape_value=not regex)
 
     index = int(bool(html))
     return lambda html: get_element_text_and_html_by_tag(tag, html)[index]
@@ -419,21 +426,44 @@ def find_elements(*, cls: str, html=False): ...
 
 
 @typing.overload
-def find_elements(*, attr: str, value: str, tag: str | None = None, html=False): ...
+def find_elements(*, attr: str, value: str, tag: str | None = None, html=False, regex=False): ...
 
 
-def find_elements(*, tag=None, cls=None, attr=None, value=None, html=False):
+def find_elements(*, tag=None, cls=None, attr=None, value=None, html=False, regex=False):
     # deliberately using `cls=` for ease of readability
     assert cls or (attr and value), 'One of cls or (attr AND value) is required'
 
     if attr and value:
         assert not cls, 'Cannot match both attr and cls'
         func = get_elements_html_by_attribute if html else get_elements_by_attribute
-        return functools.partial(func, attr, value, tag=tag or r'[\w:.-]+')
+        return functools.partial(func, attr, value, tag=tag or r'[\w:.-]+', escape_value=not regex)
 
     assert not tag, 'Cannot match both cls and tag'
+    assert not regex, 'Cannot use regex with cls'
     func = get_elements_html_by_class if html else get_elements_by_class
     return functools.partial(func, cls)
+
+
+def trim_str(*, start=None, end=None):
+    def trim(s):
+        if s is None:
+            return None
+        start_idx = 0
+        if start and s.startswith(start):
+            start_idx = len(start)
+        if end and s.endswith(end):
+            return s[start_idx:-len(end)]
+        return s[start_idx:]
+
+    return trim
+
+
+def unpack(func, **kwargs):
+    @functools.wraps(func)
+    def inner(items):
+        return func(*items, **kwargs)
+
+    return inner
 
 
 def get_first(obj, *paths, **kwargs):
