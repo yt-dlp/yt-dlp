@@ -312,7 +312,12 @@ class VKIE(VKBaseIE):
         {
             'url': 'https://vk.com/clip30014565_456240946',
             'only_matching': True,
-        }]
+        },
+        {
+            'url': 'https://vkvideo.ru/video-127553155_456242961',
+            'only_matching': True,
+        },
+    ]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -533,6 +538,9 @@ class VKUserVideosIE(VKBaseIE):
             'title': 'Анонсы',
         },
         'playlist_mincount': 108,
+    }, {
+        'url': 'https://vkvideo.ru/@mobidevices',
+        'only_matching': True,
     }]
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
 
@@ -591,7 +599,7 @@ class VKUserVideosIE(VKBaseIE):
 
 class VKWallPostIE(VKBaseIE):
     IE_NAME = 'vk:wallpost'
-    _VALID_URL = r'https?://(?:(?:(?:(?:m|new)\.)?vk(?:video\.ru|\.com)/(?:[^?]+\?.*\bw=)?wall(?P<id>-?\d+_\d+)))'
+    _VALID_URL = r'https?://(?:(?:(?:(?:m|new)\.)?vk\.com/(?:[^?]+\?.*\bw=)?wall(?P<id>-?\d+_\d+)))'
     _TESTS = [{
         # public page URL, audio playlist
         'url': 'https://vk.com/bs.official?w=wall-23538238_35',
@@ -803,6 +811,9 @@ class VKPlayIE(VKPlayBaseIE):
     }, {
         'url': 'https://live.vkplay.ru/lebwa/record/33a4e4ce-e3ef-49db-bb14-f006cc6fabc9/records',
         'only_matching': True,
+    }, {
+        'url': 'https://live.vkvideo.ru/lebwa/record/33a4e4ce-e3ef-49db-bb14-f006cc6fabc9/records',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -844,6 +855,9 @@ class VKPlayLiveIE(VKPlayBaseIE):
         'params': {'skip_download': True},
     }, {
         'url': 'https://live.vkplay.ru/lebwa',
+        'only_matching': True,
+    }, {
+        'url': 'https://live.vkvideo.ru/panterka',
         'only_matching': True,
     }]
 
