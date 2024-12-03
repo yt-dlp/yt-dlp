@@ -168,8 +168,8 @@ class BilibiliBaseIE(InfoExtractor):
         params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **(query or {})}
         if self.is_logged_in:
             params.pop('try_look', None)
-        if query.get('qn'):
-            note = f'Downloading video format {query["qn"]} for cid {cid}'
+        if qn := params.get('qn'):
+            note = f'Downloading video format {qn} for cid {cid}'
         else:
             note = f'Downloading video formats for cid {cid}'
 
