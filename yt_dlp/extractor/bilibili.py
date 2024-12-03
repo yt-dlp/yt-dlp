@@ -857,10 +857,6 @@ class BiliBiliIE(BilibiliBaseIE):
                     f'This is a supporter-only video, only the preview will be extracted: {msg}',
                     video_id=video_id)
 
-        formats.append(self._extract_storyboard(
-            duration=float_or_none(play_info.get('timelength'), scale=1000),
-            bvid=video_id, cid=cid))
-
         if not traverse_obj(play_info, 'dash'):
             # we only have legacy formats and need additional work
             has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
@@ -905,6 +901,10 @@ class BiliBiliIE(BilibiliBaseIE):
                 } for idx, fragment in enumerate(formats[0]['fragments'])],
                 'duration': float_or_none(play_info.get('timelength'), scale=1000),
             }
+
+        formats.append(self._extract_storyboard(
+            duration=float_or_none(play_info.get('timelength'), scale=1000),
+            bvid=video_id, cid=cid))
 
         return {
             **metainfo,
