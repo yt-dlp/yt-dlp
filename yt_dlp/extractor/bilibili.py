@@ -18,7 +18,6 @@ from ..utils import (
     InAdvancePagedList,
     OnDemandPagedList,
     bool_or_none,
-    clean_html,
     determine_ext,
     filter_dict,
     float_or_none,
@@ -63,7 +62,7 @@ class BilibiliBaseIE(InfoExtractor):
                 'support_formats', lambda _, v: v['quality'] not in parsed_qualities))], delim=', ')
         if missing_formats:
             self.to_screen(
-                f'Format(s) {missing_formats} are missing; you have to login or '
+                f'Format(s) {missing_formats} are missing; you have to '
                 f'become a premium member to download them. {self._login_hint()}')
 
     def extract_formats(self, play_info):
@@ -165,14 +164,18 @@ class BilibiliBaseIE(InfoExtractor):
         params['w_rid'] = hashlib.md5(f'{query}{self._get_wbi_key(video_id)}'.encode()).hexdigest()
         return params
 
-    def _download_playinfo(self, bvid, cid, headers=None, qn=None):
-        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048}
-        if qn:
-            params['qn'] = qn
+    def _download_playinfo(self, bvid, cid, headers=None, query=None):
+        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **(query or {})}
+        if self.is_logged_in:
+            params.pop('try_look', None)
+        if qn := params.get('qn'):
+            note = f'Downloading video format {qn} for cid {cid}'
+        else:
+            note = f'Downloading video formats for cid {cid}'
+
         return self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
-            query=self._sign_wbi(params, bvid), headers=headers,
-            note=f'Downloading video formats for cid {cid} {qn or ""}')['data']
+            query=self._sign_wbi(params, bvid), headers=headers, note=note)['data']
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -191,7 +194,7 @@ class BilibiliBaseIE(InfoExtractor):
         }
 
         video_info = self._download_json(
-            'https://api.bilibili.com/x/player/v2', video_id,
+            'https://api.bilibili.com/x/player/wbi/v2', video_id,
             query={'aid': aid, 'cid': cid} if aid else {'bvid': video_id, 'cid': cid},
             note=f'Extracting subtitle info {cid}', headers=self._HEADERS)
         if traverse_obj(video_info, ('data', 'need_login_subtitle')):
@@ -207,7 +210,7 @@ class BilibiliBaseIE(InfoExtractor):
 
     def _get_chapters(self, aid, cid):
         chapters = aid and cid and self._download_json(
-            'https://api.bilibili.com/x/player/v2', aid, query={'aid': aid, 'cid': cid},
+            'https://api.bilibili.com/x/player/wbi/v2', aid, query={'aid': aid, 'cid': cid},
             note='Extracting chapters', fatal=False, headers=self._HEADERS)
         return traverse_obj(chapters, ('data', 'view_points', ..., {
             'title': 'content',
@@ -286,7 +289,7 @@ class BilibiliBaseIE(InfoExtractor):
             ('data', 'interaction', 'graph_version', {int_or_none}))
         cid_edges = self._get_divisions(video_id, graph_version, {1: {'cid': cid}}, 1)
         for cid, edges in cid_edges.items():
-            play_info = self._download_playinfo(video_id, cid, headers=headers)
+            play_info = self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1})
             yield {
                 **metainfo,
                 'id': f'{video_id}_{cid}',
@@ -639,40 +642,29 @@ class BiliBiliIE(BilibiliBaseIE):
         headers['Referer'] = url
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
+
+        if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
+            self.raise_login_required()
+        if traverse_obj(initial_state, ('error', 'trueCode')) == -404:
+            raise ExtractorError(
+                'This video may be deleted or geo-restricted. '
+                'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
+
         is_festival = 'videoData' not in initial_state
         if is_festival:
             video_data = initial_state['videoInfo']
         else:
-            play_info_obj = self._search_json(
-                r'window\.__playinfo__\s*=', webpage, 'play info', video_id, fatal=False)
-            if not play_info_obj:
-                if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
-                    self.raise_login_required()
-                if traverse_obj(initial_state, ('error', 'trueCode')) == -404:
-                    raise ExtractorError(
-                        'This video may be deleted or geo-restricted. '
-                        'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
-            play_info = traverse_obj(play_info_obj, ('data', {dict}))
-            if not play_info:
-                if traverse_obj(play_info_obj, 'code') == 87007:
-                    toast = get_element_by_class('tips-toast', webpage) or ''
-                    msg = clean_html(
-                        f'{get_element_by_class("belongs-to", toast) or ""}，'
-                        + (get_element_by_class('level', toast) or ''))
-                    raise ExtractorError(
-                        f'This is a supporter-only video: {msg}. {self._login_hint()}', expected=True)
-                raise ExtractorError('Failed to extract play info')
             video_data = initial_state['videoData']
 
         video_id, title = video_data['bvid'], video_data.get('title')
 
         # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
-        page_list_json = not is_festival and traverse_obj(
+        page_list_json = (not is_festival and traverse_obj(
             self._download_json(
                 'https://api.bilibili.com/x/player/pagelist', video_id,
                 fatal=False, query={'bvid': video_id, 'jsonp': 'jsonp'},
                 note='Extracting videos in anthology', headers=headers),
-            'data', expected_type=list) or []
+            'data', expected_type=list)) or []
         is_anthology = len(page_list_json) > 1
 
         part_id = int_or_none(parse_qs(url).get('p', [None])[-1])
@@ -689,10 +681,14 @@ class BiliBiliIE(BilibiliBaseIE):
         old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
 
+        play_info = (
+            traverse_obj(
+                self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
+                ('data', {dict}))
+            or self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1}))
+
         festival_info = {}
         if is_festival:
-            play_info = self._download_playinfo(video_id, cid, headers=headers)
-
             festival_info = traverse_obj(initial_state, {
                 'uploader': ('videoInfo', 'upName'),
                 'uploader_id': ('videoInfo', 'upMid', {str_or_none}),
@@ -727,62 +723,72 @@ class BiliBiliIE(BilibiliBaseIE):
                 self._get_interactive_entries(video_id, cid, metainfo, headers=headers), **metainfo,
                 duration=traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
                 __post_extractor=self.extract_comments(aid))
-        else:
-            formats = self.extract_formats(play_info)
 
-            if not traverse_obj(play_info, ('dash')):
-                # we only have legacy formats and need additional work
-                has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
-                for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
-                    formats.extend(traverse_obj(
-                        self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn)),
-                        lambda _, v: not has_qn(v['quality'])))
-                self._check_missing_formats(play_info, formats)
-                flv_formats = traverse_obj(formats, lambda _, v: v['fragments'])
-                if flv_formats and len(flv_formats) < len(formats):
-                    # Flv and mp4 are incompatible due to `multi_video` workaround, so drop one
-                    if not self._configuration_arg('prefer_multi_flv'):
-                        dropped_fmts = ', '.join(
-                            f'{f.get("format_note")} ({f.get("format_id")})' for f in flv_formats)
-                        formats = traverse_obj(formats, lambda _, v: not v.get('fragments'))
-                        if dropped_fmts:
-                            self.to_screen(
-                                f'Dropping incompatible flv format(s) {dropped_fmts} since mp4 is available. '
-                                'To extract flv, pass --extractor-args "bilibili:prefer_multi_flv"')
-                    else:
-                        formats = traverse_obj(
-                            # XXX: Filtering by extractor-arg is for testing purposes
-                            formats, lambda _, v: v['quality'] == int(self._configuration_arg('prefer_multi_flv')[0]),
-                        ) or [max(flv_formats, key=lambda x: x['quality'])]
+        formats = self.extract_formats(play_info)
 
-            if traverse_obj(formats, (0, 'fragments')):
-                # We have flv formats, which are individual short videos with their own timestamps and metainfo
-                # Binary concatenation corrupts their timestamps, so we need a `multi_video` workaround
-                return {
-                    **metainfo,
-                    '_type': 'multi_video',
-                    'entries': [{
-                        'id': f'{metainfo["id"]}_{idx}',
-                        'title': metainfo['title'],
-                        'http_headers': metainfo['http_headers'],
-                        'formats': [{
-                            **fragment,
-                            'format_id': formats[0].get('format_id'),
-                        }],
-                        'subtitles': self.extract_subtitles(video_id, cid) if idx == 0 else None,
-                        '__post_extractor': self.extract_comments(aid) if idx == 0 else None,
-                    } for idx, fragment in enumerate(formats[0]['fragments'])],
-                    'duration': float_or_none(play_info.get('timelength'), scale=1000),
-                }
-            else:
-                return {
-                    **metainfo,
-                    'formats': formats,
-                    'duration': float_or_none(play_info.get('timelength'), scale=1000),
-                    'chapters': self._get_chapters(aid, cid),
-                    'subtitles': self.extract_subtitles(video_id, cid),
-                    '__post_extractor': self.extract_comments(aid),
-                }
+        if video_data.get('is_upower_exclusive'):
+            high_level = traverse_obj(initial_state, ('elecFullInfo', 'show_info', 'high_level', {dict})) or {}
+            msg = f'{join_nonempty("title", "sub_title", from_dict=high_level, delim="，")}. {self._login_hint()}'
+            if not formats:
+                raise ExtractorError(f'This is a supporter-only video: {msg}', expected=True)
+            if '试看' in traverse_obj(play_info, ('accept_description', ..., {str})):
+                self.report_warning(
+                    f'This is a supporter-only video, only the preview will be extracted: {msg}',
+                    video_id=video_id)
+
+        if not traverse_obj(play_info, 'dash'):
+            # we only have legacy formats and need additional work
+            has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
+            for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
+                formats.extend(traverse_obj(
+                    self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, query={'qn': qn})),
+                    lambda _, v: not has_qn(v['quality'])))
+            self._check_missing_formats(play_info, formats)
+            flv_formats = traverse_obj(formats, lambda _, v: v['fragments'])
+            if flv_formats and len(flv_formats) < len(formats):
+                # Flv and mp4 are incompatible due to `multi_video` workaround, so drop one
+                if not self._configuration_arg('prefer_multi_flv'):
+                    dropped_fmts = ', '.join(
+                        f'{f.get("format_note")} ({f.get("format_id")})' for f in flv_formats)
+                    formats = traverse_obj(formats, lambda _, v: not v.get('fragments'))
+                    if dropped_fmts:
+                        self.to_screen(
+                            f'Dropping incompatible flv format(s) {dropped_fmts} since mp4 is available. '
+                            'To extract flv, pass --extractor-args "bilibili:prefer_multi_flv"')
+                else:
+                    formats = traverse_obj(
+                        # XXX: Filtering by extractor-arg is for testing purposes
+                        formats, lambda _, v: v['quality'] == int(self._configuration_arg('prefer_multi_flv')[0]),
+                    ) or [max(flv_formats, key=lambda x: x['quality'])]
+
+        if traverse_obj(formats, (0, 'fragments')):
+            # We have flv formats, which are individual short videos with their own timestamps and metainfo
+            # Binary concatenation corrupts their timestamps, so we need a `multi_video` workaround
+            return {
+                **metainfo,
+                '_type': 'multi_video',
+                'entries': [{
+                    'id': f'{metainfo["id"]}_{idx}',
+                    'title': metainfo['title'],
+                    'http_headers': metainfo['http_headers'],
+                    'formats': [{
+                        **fragment,
+                        'format_id': formats[0].get('format_id'),
+                    }],
+                    'subtitles': self.extract_subtitles(video_id, cid) if idx == 0 else None,
+                    '__post_extractor': self.extract_comments(aid) if idx == 0 else None,
+                } for idx, fragment in enumerate(formats[0]['fragments'])],
+                'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            }
+
+        return {
+            **metainfo,
+            'formats': formats,
+            'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            'chapters': self._get_chapters(aid, cid),
+            'subtitles': self.extract_subtitles(video_id, cid),
+            '__post_extractor': self.extract_comments(aid),
+        }
 
 
 class BiliBiliBangumiIE(BilibiliBaseIE):
@@ -860,10 +866,16 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             self.raise_login_required('This video is for premium members only')
 
         headers['Referer'] = url
-        play_info = self._download_json(
-            'https://api.bilibili.com/pgc/player/web/v2/playurl', episode_id,
-            'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
-            headers=headers)
+
+        play_info = (
+            self._search_json(
+                r'playurlSSRData\s*=', webpage, 'embedded page info', episode_id,
+                end_pattern='\n', default=None)
+            or self._download_json(
+                'https://api.bilibili.com/pgc/player/web/v2/playurl', episode_id,
+                'Extracting episode', query={'fnval': 12240, 'ep_id': episode_id},
+                headers=headers))
+
         premium_only = play_info.get('code') == -10403
         play_info = traverse_obj(play_info, ('result', 'video_info', {dict})) or {}
 
