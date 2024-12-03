@@ -62,7 +62,7 @@ class BilibiliBaseIE(InfoExtractor):
                 'support_formats', lambda _, v: v['quality'] not in parsed_qualities))], delim=', ')
         if missing_formats:
             self.to_screen(
-                f'Format(s) {missing_formats} are missing; you have to login or '
+                f'Format(s) {missing_formats} are missing; you have to '
                 f'become a premium member to download them. {self._login_hint()}')
 
     def extract_formats(self, play_info):
@@ -164,14 +164,18 @@ class BilibiliBaseIE(InfoExtractor):
         params['w_rid'] = hashlib.md5(f'{query}{self._get_wbi_key(video_id)}'.encode()).hexdigest()
         return params
 
-    def _download_playinfo(self, bvid, cid, headers=None, qn=None):
-        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048}
-        if qn:
-            params['qn'] = qn
+    def _download_playinfo(self, bvid, cid, headers=None, query=None):
+        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **(query or {})}
+        if self.is_logged_in:
+            params.pop('try_look', None)
+        if qn := params.get('qn'):
+            note = f'Downloading video format {qn} for cid {cid}'
+        else:
+            note = f'Downloading video formats for cid {cid}'
+
         return self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
-            query=self._sign_wbi(params, bvid), headers=headers,
-            note=f'Downloading video formats for cid {cid} {qn or ""}')['data']
+            query=self._sign_wbi(params, bvid), headers=headers, note=note)['data']
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -285,7 +289,7 @@ class BilibiliBaseIE(InfoExtractor):
             ('data', 'interaction', 'graph_version', {int_or_none}))
         cid_edges = self._get_divisions(video_id, graph_version, {1: {'cid': cid}}, 1)
         for cid, edges in cid_edges.items():
-            play_info = self._download_playinfo(video_id, cid, headers=headers)
+            play_info = self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1})
             yield {
                 **metainfo,
                 'id': f'{video_id}_{cid}',
@@ -681,7 +685,7 @@ class BiliBiliIE(BilibiliBaseIE):
             traverse_obj(
                 self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
                 ('data', {dict}))
-            or self._download_playinfo(video_id, cid, headers=headers))
+            or self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1}))
 
         festival_info = {}
         if is_festival:
@@ -737,7 +741,7 @@ class BiliBiliIE(BilibiliBaseIE):
             has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
             for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
                 formats.extend(traverse_obj(
-                    self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn)),
+                    self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, query={'qn': qn})),
                     lambda _, v: not has_qn(v['quality'])))
             self._check_missing_formats(play_info, formats)
             flv_formats = traverse_obj(formats, lambda _, v: v['fragments'])
@@ -862,10 +866,16 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             self.raise_login_required('This video is for premium members only')
 
         headers['Referer'] = url
-        play_info = self._download_json(
-            'https://api.bilibili.com/pgc/player/web/v2/playurl', episode_id,
-            'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
-            headers=headers)
+
+        play_info = (
+            self._search_json(
+                r'playurlSSRData\s*=', webpage, 'embedded page info', episode_id,
+                end_pattern='\n', default=None)
+            or self._download_json(
+                'https://api.bilibili.com/pgc/player/web/v2/playurl', episode_id,
+                'Extracting episode', query={'fnval': 12240, 'ep_id': episode_id},
+                headers=headers))
+
         premium_only = play_info.get('code') == -10403
         play_info = traverse_obj(play_info, ('result', 'video_info', {dict})) or {}
 
