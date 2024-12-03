@@ -62,7 +62,7 @@ class BilibiliBaseIE(InfoExtractor):
                 'support_formats', lambda _, v: v['quality'] not in parsed_qualities))], delim=', ')
         if missing_formats:
             self.to_screen(
-                f'Format(s) {missing_formats} are missing; you have to login or '
+                f'Format(s) {missing_formats} are missing; you have to '
                 f'become a premium member to download them. {self._login_hint()}')
 
     def extract_formats(self, play_info):
@@ -164,12 +164,12 @@ class BilibiliBaseIE(InfoExtractor):
         params['w_rid'] = hashlib.md5(f'{query}{self._get_wbi_key(video_id)}'.encode()).hexdigest()
         return params
 
-    def _download_playinfo(self, bvid, cid, headers=None, **kwargs):
-        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **kwargs}
+    def _download_playinfo(self, bvid, cid, headers=None, query={}):
+        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **query}
         if self.is_logged_in:
             params.pop('try_look', None)
-        if kwargs.get('qn'):
-            note = f'Downloading video format {kwargs["qn"]} for cid {cid}'
+        if query.get('qn'):
+            note = f'Downloading video format {query["qn"]} for cid {cid}'
         else:
             note = f'Downloading video formats for cid {cid}'
 
@@ -289,7 +289,7 @@ class BilibiliBaseIE(InfoExtractor):
             ('data', 'interaction', 'graph_version', {int_or_none}))
         cid_edges = self._get_divisions(video_id, graph_version, {1: {'cid': cid}}, 1)
         for cid, edges in cid_edges.items():
-            play_info = self._download_playinfo(video_id, cid, headers=headers, try_look=1)
+            play_info = self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1})
             yield {
                 **metainfo,
                 'id': f'{video_id}_{cid}',
@@ -680,15 +680,12 @@ class BiliBiliIE(BilibiliBaseIE):
         aid = video_data.get('aid')
         old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
-        if is_festival or not self.is_logged_in:
-            query = {'try_look': 1} if not self.is_logged_in else {}
-            play_info = self._download_playinfo(video_id, cid, headers=headers, **query)
 
         play_info = (
             traverse_obj(
                 self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
                 ('data', {dict}))
-            or self._download_playinfo(video_id, cid, headers=headers))
+            or self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1}))
 
         festival_info = {}
         if is_festival:
@@ -744,7 +741,7 @@ class BiliBiliIE(BilibiliBaseIE):
             has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
             for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
                 formats.extend(traverse_obj(
-                    self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn)),
+                    self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, query={'qn': qn})),
                     lambda _, v: not has_qn(v['quality'])))
             self._check_missing_formats(play_info, formats)
             flv_formats = traverse_obj(formats, lambda _, v: v['fragments'])
@@ -871,7 +868,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         headers['Referer'] = url
 
         play_info = self._search_json(
-            r'playurlSSRData\s*?=\s*?', webpage, 'embedded page info', episode_id,
+            r'playurlSSRData\s*=', webpage, 'embedded page info', episode_id,
             end_pattern='\n', default=None)
         if not play_info:
             play_info = self._download_json(
