@@ -867,14 +867,14 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
         headers['Referer'] = url
 
-        play_info = self._search_json(
-            r'playurlSSRData\s*=', webpage, 'embedded page info', episode_id,
-            end_pattern='\n', default=None)
-        if not play_info:
-            play_info = self._download_json(
+        play_info = (
+            self._search_json(
+                r'playurlSSRData\s*=', webpage, 'embedded page info', episode_id,
+                end_pattern='\n', default=None)
+            or self._download_json(
                 'https://api.bilibili.com/pgc/player/web/v2/playurl', episode_id,
                 'Extracting episode', query={'fnval': 12240, 'ep_id': episode_id},
-                headers=headers)
+                headers=headers))
 
         premium_only = play_info.get('code') == -10403
         play_info = traverse_obj(play_info, ('result', 'video_info', {dict})) or {}
