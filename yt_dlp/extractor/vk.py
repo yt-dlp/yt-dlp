@@ -517,7 +517,11 @@ class VKIE(VKBaseIE):
 class VKUserVideosIE(VKBaseIE):
     IE_NAME = 'vk:uservideos'
     IE_DESC = "VK - User's Videos"
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk(?:video\.ru|\.com/video)/(?:playlist/)?(?P<id>[^?$#/&]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
+    _BASE_REGEX = r'https?://(?:(?:m|new)\.)?vk(?:video\.ru|\.com/video)'
+    _VALID_URL = [
+        rf'{_BASE_REGEX}/playlist/(?P<id>-?\d+_\d+)',
+        rf'{_BASE_REGEX}/(?P<id>@[^/?#]+)(?:/all)?/?(?!\?.*\bz=video)(?:[?#]|$)',
+    ]
     _TEMPLATE_URL = 'https://vk.com/videos'
     _TESTS = [{
         'url': 'https://vk.com/video/@mobidevices',
@@ -538,8 +542,15 @@ class VKUserVideosIE(VKBaseIE):
             'title': 'Анонсы',
         },
         'playlist_mincount': 108,
+        'skip': 'Redirects to main page',
+    }, {
+        'url': 'https://vk.com/video/@gorkyfilmstudio/all',
+        'only_matching': True,
     }, {
         'url': 'https://vkvideo.ru/@mobidevices',
+        'only_matching': True,
+    }, {
+        'url': 'https://vkvideo.ru/playlist/-204353299_426',
         'only_matching': True,
     }]
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
