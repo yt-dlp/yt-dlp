@@ -17,6 +17,7 @@ from ..utils import (
     get_element_html_by_id,
     int_or_none,
     join_nonempty,
+    parse_qs,
     parse_resolution,
     str_or_none,
     str_to_int,
@@ -588,7 +589,7 @@ class VKUserVideosIE(VKBaseIE):
             video_list = video_list_json['list']
 
     def _real_extract(self, url):
-        u_id, section = self._match_valid_url(url).groups()
+        u_id = self._match_id(url)
         webpage = self._download_webpage(url, u_id)
 
         if u_id.startswith('@'):
@@ -601,8 +602,7 @@ class VKUserVideosIE(VKBaseIE):
         else:
             raise ExtractorError('Invalid URL', expected=True)
 
-        if not section:
-            section = 'all'
+        section = traverse_obj(parse_qs(url), ('section', 0)) or 'all'
 
         playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
         return self.playlist_result(self._entries(page_id, section), f'{page_id}_{section}', playlist_title)
