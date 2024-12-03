@@ -164,8 +164,8 @@ class BilibiliBaseIE(InfoExtractor):
         params['w_rid'] = hashlib.md5(f'{query}{self._get_wbi_key(video_id)}'.encode()).hexdigest()
         return params
 
-    def _download_playinfo(self, bvid, cid, headers=None, query={}):
-        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **query}
+    def _download_playinfo(self, bvid, cid, headers=None, query=None):
+        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **(query or {})}
         if self.is_logged_in:
             params.pop('try_look', None)
         if query.get('qn'):
