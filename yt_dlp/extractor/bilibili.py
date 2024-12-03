@@ -194,7 +194,7 @@ class BilibiliBaseIE(InfoExtractor):
         }
 
         video_info = self._download_json(
-            'https://api.bilibili.com/x/player/v2', video_id,
+            'https://api.bilibili.com/x/player/wbi/v2', video_id,
             query={'aid': aid, 'cid': cid} if aid else {'bvid': video_id, 'cid': cid},
             note=f'Extracting subtitle info {cid}', headers=self._HEADERS)
         if traverse_obj(video_info, ('data', 'need_login_subtitle')):
@@ -210,7 +210,7 @@ class BilibiliBaseIE(InfoExtractor):
 
     def _get_chapters(self, aid, cid):
         chapters = aid and cid and self._download_json(
-            'https://api.bilibili.com/x/player/v2', aid, query={'aid': aid, 'cid': cid},
+            'https://api.bilibili.com/x/player/wbi/v2', aid, query={'aid': aid, 'cid': cid},
             note='Extracting chapters', fatal=False, headers=self._HEADERS)
         return traverse_obj(chapters, ('data', 'view_points', ..., {
             'title': 'content',
