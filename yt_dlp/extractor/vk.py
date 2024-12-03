@@ -20,7 +20,6 @@ from ..utils import (
     parse_resolution,
     str_or_none,
     str_to_int,
-    traverse_obj,
     try_call,
     unescapeHTML,
     unified_timestamp,
@@ -29,6 +28,7 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class VKBaseIE(InfoExtractor):
@@ -512,7 +512,7 @@ class VKIE(VKBaseIE):
 class VKUserVideosIE(VKBaseIE):
     IE_NAME = 'vk:uservideos'
     IE_DESC = "VK - User's Videos"
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk(?:video\.ru|\.com)/video/(?:playlist/)?(?P<id>[^?$#/&]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk(?:video\.ru|\.com/video)/(?:playlist/)?(?P<id>[^?$#/&]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
     _TEMPLATE_URL = 'https://vk.com/videos'
     _TESTS = [{
         'url': 'https://vk.com/video/@mobidevices',
@@ -573,7 +573,9 @@ class VKUserVideosIE(VKBaseIE):
         webpage = self._download_webpage(url, u_id)
 
         if u_id.startswith('@'):
-            page_id = self._search_regex(r'data-owner-id\s?=\s?"([^"]+)"', webpage, 'page_id')
+            page_id = traverse_obj(
+                self._search_json(r'\bvar newCur\s*=', webpage, 'cursor data', u_id),
+                ('oid', {int}, {str_or_none}, {require('page id')}))
         elif '_' in u_id:
             page_id, section = u_id.split('_', 1)
             section = f'playlist_{section}'
