@@ -183,10 +183,10 @@ class VKIE(VKBaseIE):
                 'ext': 'mp4',
                 'title': "DSWD Awards 'Children's Joy Foundation, Inc.' Certificate of Registration and License to Operate",
                 'description': 'md5:bf9c26cfa4acdfb146362682edd3827a',
-                'duration': 178,
+                'duration': 179,
                 'upload_date': '20130117',
                 'uploader': "Children's Joy Foundation Inc.",
-                'uploader_id': 'thecjf',
+                'uploader_id': '@CJFIofficial',
                 'view_count': int,
                 'channel_id': 'UCgzCNQ11TmR9V97ECnhi3gw',
                 'availability': 'public',
@@ -194,7 +194,7 @@ class VKIE(VKBaseIE):
                 'live_status': 'not_live',
                 'playable_in_embed': True,
                 'channel': 'Children\'s Joy Foundation Inc.',
-                'uploader_url': 'http://www.youtube.com/user/thecjf',
+                'uploader_url': 'https://www.youtube.com/@CJFIofficial',
                 'thumbnail': r're:https?://.+\.jpg$',
                 'tags': 'count:27',
                 'start_time': 0.0,
@@ -202,6 +202,7 @@ class VKIE(VKBaseIE):
                 'channel_url': 'https://www.youtube.com/channel/UCgzCNQ11TmR9V97ECnhi3gw',
                 'channel_follower_count': int,
                 'age_limit': 0,
+                'timestamp': 1358394935,
             },
         },
         {
@@ -223,6 +224,7 @@ class VKIE(VKBaseIE):
                 'thumbnail': r're:https?://.+x1080$',
                 'tags': list,
             },
+            'skip': 'This video has been deleted and is no longer available.',
         },
         {
             'url': 'https://vk.com/clips-74006511?z=clip-74006511_456247211',
@@ -236,7 +238,7 @@ class VKIE(VKBaseIE):
                 'timestamp': 1664995597,
                 'title': 'Clip by @madempress',
                 'upload_date': '20221005',
-                'uploader': 'Шальная императрица',
+                'uploader': 'Шальная Императрица',
                 'uploader_id': '-74006511',
             },
         },
@@ -274,6 +276,7 @@ class VKIE(VKBaseIE):
             'params': {
                 'skip_download': True,
             },
+            'skip': 'No formats found',
         },
         {
             # live stream, hls and rtmp links, most likely already finished live
@@ -537,13 +540,11 @@ class VKUserVideosIE(VKBaseIE):
         },
         'playlist_mincount': 182,
     }, {
-        'url': 'https://vk.com/video/playlist/-174476437_2',
+        'url': 'https://vkvideo.ru/playlist/-204353299_426',
         'info_dict': {
-            'id': '-174476437_playlist_2',
-            'title': 'Анонсы',
+            'id': '-204353299_playlist_426',
         },
-        'playlist_mincount': 108,
-        'skip': 'Redirects to main page',
+        'playlist_mincount': 33,
     }, {
         'url': 'https://vk.com/video/@gorkyfilmstudio/all',
         'only_matching': True,
@@ -551,7 +552,7 @@ class VKUserVideosIE(VKBaseIE):
         'url': 'https://vkvideo.ru/@mobidevices',
         'only_matching': True,
     }, {
-        'url': 'https://vkvideo.ru/playlist/-204353299_426',
+        'url': 'https://vk.com/video/playlist/-174476437_2',
         'only_matching': True,
     }]
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
@@ -596,13 +597,12 @@ class VKUserVideosIE(VKBaseIE):
             page_id = traverse_obj(
                 self._search_json(r'\bvar newCur\s*=', webpage, 'cursor data', u_id),
                 ('oid', {int}, {str_or_none}, {require('page id')}))
+            section = traverse_obj(parse_qs(url), ('section', 0)) or 'all'
         elif '_' in u_id:
             page_id, section = u_id.split('_', 1)
             section = f'playlist_{section}'
         else:
             raise ExtractorError('Invalid URL', expected=True)
-
-        section = traverse_obj(parse_qs(url), ('section', 0)) or 'all'
 
         playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
         return self.playlist_result(self._entries(page_id, section), f'{page_id}_{section}', playlist_title)
