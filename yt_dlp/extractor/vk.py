@@ -517,10 +517,10 @@ class VKIE(VKBaseIE):
 class VKUserVideosIE(VKBaseIE):
     IE_NAME = 'vk:uservideos'
     IE_DESC = "VK - User's Videos"
-    _BASE_REGEX = r'https?://(?:(?:m|new)\.)?vk(?:video\.ru|\.com/video)'
+    _BASE_URL_RE = r'https?://(?:(?:m|new)\.)?vk(?:video\.ru|\.com/video)'
     _VALID_URL = [
-        rf'{_BASE_REGEX}/playlist/(?P<id>-?\d+_\d+)',
-        rf'{_BASE_REGEX}/(?P<id>@[^/?#]+)(?:/all)?/?(?!\?.*\bz=video)(?:[?#]|$)',
+        rf'{_BASE_URL_RE}/playlist/(?P<id>-?\d+_\d+)',
+        rf'{_BASE_URL_RE}/(?P<id>@[^/?#]+)(?:/all)?/?(?!\?.*\bz=video)(?:[?#]|$)',
     ]
     _TEMPLATE_URL = 'https://vk.com/videos'
     _TESTS = [{
