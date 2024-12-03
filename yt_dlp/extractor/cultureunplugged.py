@@ -1,7 +1,4 @@
-import time
-
 from .common import InfoExtractor
-from ..networking import HEADRequest
 from ..utils import int_or_none
 
 
@@ -31,9 +28,6 @@ class CultureUnpluggedIE(InfoExtractor):
         video_id = mobj.group('id')
         display_id = mobj.group('display_id') or video_id
 
-        # request setClientTimezone.php to get PHPSESSID cookie which is need to get valid json data in the next request
-        self._request_webpage(HEADRequest(
-            'http://www.cultureunplugged.com/setClientTimezone.php?timeOffset=%d' % -(time.timezone / 3600)), display_id)
         movie_data = self._download_json(
             f'http://www.cultureunplugged.com/movie-data/cu-{video_id}.json', display_id)
 
