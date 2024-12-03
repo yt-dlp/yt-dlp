@@ -526,7 +526,6 @@ class VKUserVideosIE(VKBaseIE):
         rf'{_BASE_URL_RE}/playlist/(?P<id>-?\d+_\d+)',
         rf'{_BASE_URL_RE}/(?P<id>@[^/?#]+)(?:/all)?/?(?!\?.*\bz=video)(?:[?#]|$)',
     ]
-    _TEMPLATE_URL = 'https://vk.com/videos'
     _TESTS = [{
         'url': 'https://vk.com/video/@mobidevices',
         'info_dict': {
