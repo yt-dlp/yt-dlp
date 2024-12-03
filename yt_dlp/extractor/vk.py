@@ -111,7 +111,7 @@ class VKIE(VKBaseIE):
 
     _TESTS = [
         {
-            'url': 'http://vk.com/videos-77521?z=video-77521_162222515%2Fclub77521',
+            'url': 'https://vk.com/videos-77521?z=video-77521_162222515%2Fclub77521',
             'info_dict': {
                 'id': '-77521_162222515',
                 'ext': 'mp4',
@@ -128,7 +128,7 @@ class VKIE(VKBaseIE):
             'params': {'skip_download': 'm3u8'},
         },
         {
-            'url': 'http://vk.com/video205387401_165548505',
+            'url': 'https://vk.com/video205387401_165548505',
             'info_dict': {
                 'id': '205387401_165548505',
                 'ext': 'mp4',
@@ -244,7 +244,7 @@ class VKIE(VKBaseIE):
         },
         {
             # video key is extra_data not url\d+
-            'url': 'http://vk.com/video-110305615_171782105',
+            'url': 'https://vk.com/video-110305615_171782105',
             'md5': 'e13fcda136f99764872e739d13fac1d1',
             'info_dict': {
                 'id': '-110305615_171782105',
@@ -347,7 +347,7 @@ class VKIE(VKBaseIE):
             video_id = '{}_{}'.format(mobj.group('oid'), mobj.group('id'))
 
             info_page = self._download_webpage(
-                'http://vk.com/video_ext.php?' + mobj.group('embed_query'), video_id)
+                'https://vk.com/video_ext.php?' + mobj.group('embed_query'), video_id)
 
             error_message = self._html_search_regex(
                 [r'(?s)<!><div[^>]+class="video_layer_message"[^>]*>(.+?)</div>',
@@ -441,7 +441,7 @@ class VKIE(VKBaseIE):
             if m_opts_url:
                 opts_url = m_opts_url.group(1)
                 if opts_url.startswith('//'):
-                    opts_url = 'http:' + opts_url
+                    opts_url = 'https:' + opts_url
                 return self.url_result(opts_url)
 
         data = player['params'][0]
@@ -573,7 +573,7 @@ class VKUserVideosIE(VKBaseIE):
                 v = self._VIDEO._make(video[:2])
                 video_id = '%d_%d' % (v.owner_id, v.id)
                 yield self.url_result(
-                    'http://vk.com/video' + video_id, VKIE.ie_key(), video_id)
+                    'https://vk.com/video' + video_id, VKIE.ie_key(), video_id)
             if count >= total:
                 break
             video_list_json = self._download_payload('al_video', page_id, {
