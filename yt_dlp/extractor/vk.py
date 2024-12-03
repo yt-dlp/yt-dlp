@@ -561,7 +561,11 @@ class VKUserVideosIE(VKBaseIE):
                 'oid': page_id,
                 'section': section,
             })[0][section]
-            count += video_list_json['count']
+            new_count = video_list_json['count']
+            if not new_count:
+                self.to_screen(f'{page_id}: Skipping {total - count} unavailable videos')
+                break
+            count += new_count
             video_list = video_list_json['list']
 
     def _real_extract(self, url):
