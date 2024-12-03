@@ -652,13 +652,6 @@ class BiliBiliIE(BilibiliBaseIE):
         else:
             video_data = initial_state['videoData']
 
-        if video_data.get('is_upower_exclusive'):
-            high_level = traverse_obj(initial_state, ('elecFullInfo', 'show_info', 'high_level', {dict})) or {}
-            raise ExtractorError(
-                'This is a supporter-only video: '
-                f'{join_nonempty("title", "sub_title", from_dict=high_level, delim="，")}. '
-                f'{self._login_hint()}', expected=True)
-
         video_id, title = video_data['bvid'], video_data.get('title')
 
         # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
@@ -726,62 +719,72 @@ class BiliBiliIE(BilibiliBaseIE):
                 self._get_interactive_entries(video_id, cid, metainfo, headers=headers), **metainfo,
                 duration=traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
                 __post_extractor=self.extract_comments(aid))
-        else:
-            formats = self.extract_formats(play_info)
 
-            if not traverse_obj(play_info, ('dash')):
-                # we only have legacy formats and need additional work
-                has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
-                for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
-                    formats.extend(traverse_obj(
-                        self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn)),
-                        lambda _, v: not has_qn(v['quality'])))
-                self._check_missing_formats(play_info, formats)
-                flv_formats = traverse_obj(formats, lambda _, v: v['fragments'])
-                if flv_formats and len(flv_formats) < len(formats):
-                    # Flv and mp4 are incompatible due to `multi_video` workaround, so drop one
-                    if not self._configuration_arg('prefer_multi_flv'):
-                        dropped_fmts = ', '.join(
-                            f'{f.get("format_note")} ({f.get("format_id")})' for f in flv_formats)
-                        formats = traverse_obj(formats, lambda _, v: not v.get('fragments'))
-                        if dropped_fmts:
-                            self.to_screen(
-                                f'Dropping incompatible flv format(s) {dropped_fmts} since mp4 is available. '
-                                'To extract flv, pass --extractor-args "bilibili:prefer_multi_flv"')
-                    else:
-                        formats = traverse_obj(
-                            # XXX: Filtering by extractor-arg is for testing purposes
-                            formats, lambda _, v: v['quality'] == int(self._configuration_arg('prefer_multi_flv')[0]),
-                        ) or [max(flv_formats, key=lambda x: x['quality'])]
+        formats = self.extract_formats(play_info)
 
-            if traverse_obj(formats, (0, 'fragments')):
-                # We have flv formats, which are individual short videos with their own timestamps and metainfo
-                # Binary concatenation corrupts their timestamps, so we need a `multi_video` workaround
-                return {
-                    **metainfo,
-                    '_type': 'multi_video',
-                    'entries': [{
-                        'id': f'{metainfo["id"]}_{idx}',
-                        'title': metainfo['title'],
-                        'http_headers': metainfo['http_headers'],
-                        'formats': [{
-                            **fragment,
-                            'format_id': formats[0].get('format_id'),
-                        }],
-                        'subtitles': self.extract_subtitles(video_id, cid) if idx == 0 else None,
-                        '__post_extractor': self.extract_comments(aid) if idx == 0 else None,
-                    } for idx, fragment in enumerate(formats[0]['fragments'])],
-                    'duration': float_or_none(play_info.get('timelength'), scale=1000),
-                }
-            else:
-                return {
-                    **metainfo,
-                    'formats': formats,
-                    'duration': float_or_none(play_info.get('timelength'), scale=1000),
-                    'chapters': self._get_chapters(aid, cid),
-                    'subtitles': self.extract_subtitles(video_id, cid),
-                    '__post_extractor': self.extract_comments(aid),
-                }
+        if video_data.get('is_upower_exclusive'):
+            high_level = traverse_obj(initial_state, ('elecFullInfo', 'show_info', 'high_level', {dict})) or {}
+            msg = f'{join_nonempty("title", "sub_title", from_dict=high_level, delim="，")}. {self._login_hint()}'
+            if not formats:
+                raise ExtractorError(f'This is a supporter-only video: {msg}', expected=True)
+            if '试看' in traverse_obj(play_info, ('accept_description', ..., {str})):
+                self.report_warning(
+                    f'This is a supporter-only video, only the preview will be extracted: {msg}',
+                    video_id=video_id)
+
+        if not traverse_obj(play_info, 'dash'):
+            # we only have legacy formats and need additional work
+            has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
+            for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
+                formats.extend(traverse_obj(
+                    self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn)),
+                    lambda _, v: not has_qn(v['quality'])))
+            self._check_missing_formats(play_info, formats)
+            flv_formats = traverse_obj(formats, lambda _, v: v['fragments'])
+            if flv_formats and len(flv_formats) < len(formats):
+                # Flv and mp4 are incompatible due to `multi_video` workaround, so drop one
+                if not self._configuration_arg('prefer_multi_flv'):
+                    dropped_fmts = ', '.join(
+                        f'{f.get("format_note")} ({f.get("format_id")})' for f in flv_formats)
+                    formats = traverse_obj(formats, lambda _, v: not v.get('fragments'))
+                    if dropped_fmts:
+                        self.to_screen(
+                            f'Dropping incompatible flv format(s) {dropped_fmts} since mp4 is available. '
+                            'To extract flv, pass --extractor-args "bilibili:prefer_multi_flv"')
+                else:
+                    formats = traverse_obj(
+                        # XXX: Filtering by extractor-arg is for testing purposes
+                        formats, lambda _, v: v['quality'] == int(self._configuration_arg('prefer_multi_flv')[0]),
+                    ) or [max(flv_formats, key=lambda x: x['quality'])]
+
+        if traverse_obj(formats, (0, 'fragments')):
+            # We have flv formats, which are individual short videos with their own timestamps and metainfo
+            # Binary concatenation corrupts their timestamps, so we need a `multi_video` workaround
+            return {
+                **metainfo,
+                '_type': 'multi_video',
+                'entries': [{
+                    'id': f'{metainfo["id"]}_{idx}',
+                    'title': metainfo['title'],
+                    'http_headers': metainfo['http_headers'],
+                    'formats': [{
+                        **fragment,
+                        'format_id': formats[0].get('format_id'),
+                    }],
+                    'subtitles': self.extract_subtitles(video_id, cid) if idx == 0 else None,
+                    '__post_extractor': self.extract_comments(aid) if idx == 0 else None,
+                } for idx, fragment in enumerate(formats[0]['fragments'])],
+                'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            }
+
+        return {
+            **metainfo,
+            'formats': formats,
+            'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            'chapters': self._get_chapters(aid, cid),
+            'subtitles': self.extract_subtitles(video_id, cid),
+            '__post_extractor': self.extract_comments(aid),
+        }
 
 
 class BiliBiliBangumiIE(BilibiliBaseIE):
