@@ -91,17 +91,17 @@ class VKBaseIE(InfoExtractor):
 class VKIE(VKBaseIE):
     IE_NAME = 'vk'
     IE_DESC = 'VK'
-    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://vk\.com/video_ext\.php.+?)\1']
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://vk(?:video\.ru|\.com)/video_ext\.php.+?)\1']
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
                             (?:
-                                (?:(?:m|new)\.)?vk\.com/video_|
+                                (?:(?:m|new)\.)?vk(?:video\.ru|\.com)/video_|
                                 (?:www\.)?daxab\.com/
                             )
                             ext\.php\?(?P<embed_query>.*?\boid=(?P<oid>-?\d+).*?\bid=(?P<id>\d+).*)|
                             (?:
-                                (?:(?:m|new)\.)?vk\.com/(?:.+?\?.*?z=)?(?:video|clip)|
+                                (?:(?:m|new)\.)?vk(?:video\.ru|\.com)/(?:.+?\?.*?z=)?(?:video|clip)|
                                 (?:www\.)?daxab\.com/embed/
                             )
                             (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
@@ -512,7 +512,7 @@ class VKIE(VKBaseIE):
 class VKUserVideosIE(VKBaseIE):
     IE_NAME = 'vk:uservideos'
     IE_DESC = "VK - User's Videos"
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/video/(?:playlist/)?(?P<id>[^?$#/&]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk(?:video\.ru|\.com)/video/(?:playlist/)?(?P<id>[^?$#/&]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
     _TEMPLATE_URL = 'https://vk.com/videos'
     _TESTS = [{
         'url': 'https://vk.com/video/@mobidevices',
@@ -585,7 +585,7 @@ class VKUserVideosIE(VKBaseIE):
 
 class VKWallPostIE(VKBaseIE):
     IE_NAME = 'vk:wallpost'
-    _VALID_URL = r'https?://(?:(?:(?:(?:m|new)\.)?vk\.com/(?:[^?]+\?.*\bw=)?wall(?P<id>-?\d+_\d+)))'
+    _VALID_URL = r'https?://(?:(?:(?:(?:m|new)\.)?vk(?:video\.ru|\.com)/(?:[^?]+\?.*\bw=)?wall(?P<id>-?\d+_\d+)))'
     _TESTS = [{
         # public page URL, audio playlist
         'url': 'https://vk.com/bs.official?w=wall-23538238_35',
@@ -717,7 +717,7 @@ class VKWallPostIE(VKBaseIE):
 
 
 class VKPlayBaseIE(InfoExtractor):
-    _BASE_URL_RE = r'https?://(?:vkplay\.live|live\.vkplay\.ru)/'
+    _BASE_URL_RE = r'https?://(?:vkplay\.live|live\.vk(?:play|video)\.ru)/'
     _RESOLUTIONS = {
         'tiny': '256x144',
         'lowest': '426x240',
