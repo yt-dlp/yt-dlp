@@ -257,7 +257,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'MWEB',
-                'clientVersion': '2.20240726.01.00',
+                'clientVersion': '2.20241202.07.00',
+                'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
