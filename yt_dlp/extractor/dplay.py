@@ -319,32 +319,6 @@ class DPlayIE(DPlayBaseIE):
             url, display_id, host, 'dplay' + country, country, domain)
 
 
-class HGTVDeIE(DPlayBaseIE):
-    _VALID_URL = r'https?://de\.hgtv\.com/sendungen' + DPlayBaseIE._PATH_REGEX
-    _TESTS = [{
-        'url': 'https://de.hgtv.com/sendungen/tiny-house-klein-aber-oho/wer-braucht-schon-eine-toilette/',
-        'info_dict': {
-            'id': '151205',
-            'display_id': 'tiny-house-klein-aber-oho/wer-braucht-schon-eine-toilette',
-            'ext': 'mp4',
-            'title': 'Wer braucht schon eine Toilette',
-            'description': 'md5:05b40a27e7aed2c9172de34d459134e2',
-            'duration': 1177.024,
-            'timestamp': 1595705400,
-            'upload_date': '20200725',
-            'creator': 'HGTV',
-            'series': 'Tiny House - klein, aber oho',
-            'season_number': 3,
-            'episode_number': 3,
-        },
-    }]
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        return self._get_disco_api_info(
-            url, display_id, 'eu1-prod.disco-api.com', 'hgtv', 'de')
-
-
 class DiscoveryPlusBaseIE(DPlayBaseIE):
     """Subclasses must set _PRODUCT, _DISCO_API_PARAMS"""
 
@@ -371,6 +345,45 @@ class DiscoveryPlusBaseIE(DPlayBaseIE):
 
     def _real_extract(self, url):
         return self._get_disco_api_info(url, self._match_id(url), **self._DISCO_API_PARAMS)
+
+
+class HGTVDeIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://de\.hgtv\.com/sendungen' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://de.hgtv.com/sendungen/mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
+        'info_dict': {
+            'id': '7332936',
+            'ext': 'mp4',
+            'display_id': 'mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
+            'title': 'Vom Landleben ins Loft',
+            'description': 'md5:e5f72c02c853970796dd3818f2e25745',
+            'episode': 'Episode 7',
+            'episode_number': 7,
+            'season': 'Season 7',
+            'season_number': 7,
+            'series': 'Mein Kleinstadt-Traumhaus',
+            'duration': 2645.0,
+            'timestamp': 1725998100,
+            'upload_date': '20240910',
+            'creators': ['HGTV'],
+            'tags': [],
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2024/08/09/82a386b9-c688-32c7-b9ff-0b13865f0bae.jpeg',
+        },
+    }]
+
+    _PRODUCT = 'hgtv'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'eu1-prod.disco-api.com',
+        'realm': 'hgtv',
+        'country': 'de',
+    }
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers.update({
+            'x-disco-params': f'realm={realm}',
+            'x-disco-client': 'Alps:HyogaPlayer:0.0.0',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })
 
 
 class GoDiscoveryIE(DiscoveryPlusBaseIE):

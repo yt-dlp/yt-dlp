@@ -187,4 +187,4 @@ class RTVSLOShowIE(InfoExtractor):
         return self.playlist_from_matches(
             re.findall(r'<a [^>]*\bhref="(/arhiv/[^"]+)"', webpage),
             playlist_id, self._html_extract_title(webpage),
-            getter=lambda x: urljoin('https://365.rtvslo.si', x), ie=RTVSLOIE)
+            getter=urljoin('https://365.rtvslo.si'), ie=RTVSLOIE)
