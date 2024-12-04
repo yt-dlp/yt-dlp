@@ -12,4 +12,4 @@ CHANNEL = 'stable'
 
 ORIGIN = 'yt-dlp/yt-dlp'
 
-_pkg_version = '2024.12.04'
+_pkg_version = '2024.12.03'
