@@ -1769,6 +1769,10 @@ Line 1
         <div itemprop="author" itemscope>foo</div>
     '''
 
+    GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING_UPPERCASE = '''
+        <DIV itemprop="author" itemscope>foo</DIV>
+    '''
+
     def test_get_element_by_attribute(self):
         html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
@@ -1777,6 +1781,10 @@ Line 1
         self.assertEqual(get_element_by_attribute('class', 'no-such-foo', html), None)
 
         html = self.GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING
+
+        self.assertEqual(get_element_by_attribute('itemprop', 'author', html), 'foo')
+
+        html = self.GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING_UPPERCASE
 
         self.assertEqual(get_element_by_attribute('itemprop', 'author', html), 'foo')
 
@@ -1851,6 +1859,11 @@ Line 1
     GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML = GET_ELEMENT_BY_TAG_TEST_STRING.strip()[78:119]
     GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT = GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML[6:-7]
 
+
+    GET_ELEMENT_BY_TAG_TEST_STRING_UPPERCASE = '''
+        <SPAN id="foo">nice</SPAN>
+    '''
+
     def test_get_element_text_and_html_by_tag(self):
         html = self.GET_ELEMENT_BY_TAG_TEST_STRING
 
@@ -1860,7 +1873,14 @@ Line 1
         self.assertEqual(
             get_element_text_and_html_by_tag('span', html),
             (self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT, self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML))
+
         self.assertRaises(compat_HTMLParseError, get_element_text_and_html_by_tag, 'article', html)
+
+        html = self.GET_ELEMENT_BY_TAG_TEST_STRING_UPPERCASE
+
+        self.assertEqual(
+            get_element_text_and_html_by_tag('SPAN', html),
+            ('nice', html.strip()), html)
 
     def test_iri_to_uri(self):
         self.assertEqual(
