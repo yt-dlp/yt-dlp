@@ -187,10 +187,14 @@ class RequestHandler(abc.ABC):
     @param source_address: Client-side IP address to bind to for requests.
     @param verbose: Print debug request and traffic information to stdout.
     @param prefer_system_certs: Whether to prefer system certificates over other means (e.g. certifi).
-    @param client_cert: SSL client certificate configuration.
+    @param client_cert: SSL client certificate configuration.z
             dict with {client_certificate, client_certificate_key, client_certificate_password}
+    @param proxy_client_cert: SSL client certificate configuration for proxy connections.
+        dict with {client_certificate, client_certificate_key, client_certificate_password}
     @param verify: Verify SSL certificates
+    @param proxy_verify: Verify SSL certificates of proxy connections
     @param legacy_ssl_support: Enable legacy SSL options such as legacy server connect and older cipher support.
+    @param proxy_legacy_ssl_support: Enable legacy SSL options such as legacy server connect and older cipher support for proxy connections.
 
     Some configuration options may be available for individual Requests too. In this case,
     either the Request configuration option takes precedence or they are merged.
@@ -230,8 +234,11 @@ class RequestHandler(abc.ABC):
         verbose: bool = False,
         prefer_system_certs: bool = False,
         client_cert: dict[str, str | None] | None = None,
+        proxy_client_cert: dict[str, str | None] | None = None,
         verify: bool = True,
+        proxy_verify: bool = True,
         legacy_ssl_support: bool = False,
+        proxy_legacy_ssl_support: bool = False,
         **_,
     ):
 
@@ -244,8 +251,11 @@ class RequestHandler(abc.ABC):
         self.verbose = verbose
         self.prefer_system_certs = prefer_system_certs
         self._client_cert = client_cert or {}
+        self._proxy_client_cert = proxy_client_cert or {}
         self.verify = verify
+        self.proxy_verify = proxy_verify
         self.legacy_ssl_support = legacy_ssl_support
+        self.proxy_legacy_ssl_support = proxy_legacy_ssl_support
         super().__init__()
 
     def _make_sslcontext(self, legacy_ssl_support=None):
@@ -254,6 +264,14 @@ class RequestHandler(abc.ABC):
             legacy_support=legacy_ssl_support if legacy_ssl_support is not None else self.legacy_ssl_support,
             use_certifi=not self.prefer_system_certs,
             **self._client_cert,
+        )
+
+    def _make_proxy_sslcontext(self, legacy_ssl_support=None):
+        return make_ssl_context(
+            verify=self.proxy_verify,
+            legacy_support=legacy_ssl_support if legacy_ssl_support is not None else self.proxy_legacy_ssl_support,
+            use_certifi=not self.prefer_system_certs,
+            **self._proxy_client_cert,
         )
 
     def _merge_headers(self, request_headers):
