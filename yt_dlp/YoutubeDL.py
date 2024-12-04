@@ -109,7 +109,6 @@ from .utils import (
     determine_ext,
     determine_protocol,
     encode_compat_str,
-    encodeFilename,
     escapeHTML,
     expand_path,
     extract_basic_auth,
@@ -1121,7 +1120,7 @@ class YoutubeDL:
     def raise_no_formats(self, info, forced=False, *, msg=None):
         has_drm = info.get('_has_drm')
         ignored, expected = self.params.get('ignore_no_formats_error'), bool(msg)
-        msg = msg or has_drm and 'This video is DRM protected' or 'No video formats found!'
+        msg = msg or (has_drm and 'This video is DRM protected') or 'No video formats found!'
         if forced or not ignored:
             raise ExtractorError(msg, video_id=info['id'], ie=info['extractor'],
                                  expected=has_drm or ignored or expected)
@@ -1952,6 +1951,7 @@ class YoutubeDL:
             'playlist_uploader_id': ie_result.get('uploader_id'),
             'playlist_channel': ie_result.get('channel'),
             'playlist_channel_id': ie_result.get('channel_id'),
+            'playlist_webpage_url': ie_result.get('webpage_url'),
             **kwargs,
         }
         if strict:
@@ -2200,7 +2200,7 @@ class YoutubeDL:
     def _default_format_spec(self, info_dict):
         prefer_best = (
             self.params['outtmpl']['default'] == '-'
-            or info_dict.get('is_live') and not self.params.get('live_from_start'))
+            or (info_dict.get('is_live') and not self.params.get('live_from_start')))
 
         def can_merge():
             merger = FFmpegMergerPP(self)
@@ -2369,7 +2369,7 @@ class YoutubeDL:
                 vexts=[f['ext'] for f in video_fmts],
                 aexts=[f['ext'] for f in audio_fmts],
                 preferences=(try_call(lambda: self.params['merge_output_format'].split('/'))
-                             or self.params.get('prefer_free_formats') and ('webm', 'mkv')))
+                             or (self.params.get('prefer_free_formats') and ('webm', 'mkv'))))
 
             filtered = lambda *keys: filter(None, (traverse_obj(fmt, *keys) for fmt in formats_info))
 
@@ -3259,9 +3259,9 @@ class YoutubeDL:
 
         if full_filename is None:
             return
-        if not self._ensure_dir_exists(encodeFilename(full_filename)):
+        if not self._ensure_dir_exists(full_filename):
             return
-        if not self._ensure_dir_exists(encodeFilename(temp_filename)):
+        if not self._ensure_dir_exists(temp_filename):
             return
 
         if self._write_description('video', info_dict,
@@ -3293,16 +3293,16 @@ class YoutubeDL:
         if self.params.get('writeannotations', False):
             annofn = self.prepare_filename(info_dict, 'annotation')
         if annofn:
-            if not self._ensure_dir_exists(encodeFilename(annofn)):
+            if not self._ensure_dir_exists(annofn):
                 return
-            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(annofn)):
+            if not self.params.get('overwrites', True) and os.path.exists(annofn):
                 self.to_screen('[info] Video annotations are already present')
             elif not info_dict.get('annotations'):
                 self.report_warning('There are no annotations to write.')
             else:
                 try:
                     self.to_screen('[info] Writing video annotations to: ' + annofn)
-                    with open(encodeFilename(annofn), 'w', encoding='utf-8') as annofile:
+                    with open(annofn, 'w', encoding='utf-8') as annofile:
                         annofile.write(info_dict['annotations'])
                 except (KeyError, TypeError):
                     self.report_warning('There are no annotations to write.')
@@ -3318,14 +3318,14 @@ class YoutubeDL:
                     f'Cannot write internet shortcut file because the actual URL of "{info_dict["webpage_url"]}" is unknown')
                 return True
             linkfn = replace_extension(self.prepare_filename(info_dict, 'link'), link_type, info_dict.get('ext'))
-            if not self._ensure_dir_exists(encodeFilename(linkfn)):
+            if not self._ensure_dir_exists(linkfn):
                 return False
-            if self.params.get('overwrites', True) and os.path.exists(encodeFilename(linkfn)):
+            if self.params.get('overwrites', True) and os.path.exists(linkfn):
                 self.to_screen(f'[info] Internet shortcut (.{link_type}) is already present')
                 return True
             try:
                 self.to_screen(f'[info] Writing internet shortcut (.{link_type}) to: {linkfn}')
-                with open(encodeFilename(to_high_limit_path(linkfn)), 'w', encoding='utf-8',
+                with open(to_high_limit_path(linkfn), 'w', encoding='utf-8',
                           newline='\r\n' if link_type == 'url' else '\n') as linkfile:
                     template_vars = {'url': url}
                     if link_type == 'desktop':
@@ -3356,7 +3356,7 @@ class YoutubeDL:
 
         if self.params.get('skip_download'):
             info_dict['filepath'] = temp_filename
-            info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
+            info_dict['__finaldir'] = os.path.dirname(os.path.abspath(full_filename))
             info_dict['__files_to_move'] = files_to_move
             replace_info_dict(self.run_pp(MoveFilesAfterDownloadPP(self, False), info_dict))
             info_dict['__write_download_archive'] = self.params.get('force_write_download_archive')
@@ -3486,7 +3486,7 @@ class YoutubeDL:
                         self.report_file_already_downloaded(dl_filename)
 
                 dl_filename = dl_filename or temp_filename
-                info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
+                info_dict['__finaldir'] = os.path.dirname(os.path.abspath(full_filename))
 
             except network_exceptions as err:
                 self.report_error(f'unable to download video data: {err}')
@@ -3545,8 +3545,8 @@ class YoutubeDL:
                                      and info_dict.get('container') == 'm4a_dash',
                                      'writing DASH m4a. Only some players support this container',
                                      FFmpegFixupM4aPP)
-                        ffmpeg_fixup(downloader == 'hlsnative' and not self.params.get('hls_use_mpegts')
-                                     or info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None,
+                        ffmpeg_fixup((downloader == 'hlsnative' and not self.params.get('hls_use_mpegts'))
+                                     or (info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None),
                                      'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
                                      FFmpegFixupM3u8PP)
                         ffmpeg_fixup(downloader == 'dashsegments'
@@ -4301,7 +4301,7 @@ class YoutubeDL:
         else:
             try:
                 self.to_screen(f'[info] Writing {label} description to: {descfn}')
-                with open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
+                with open(descfn, 'w', encoding='utf-8') as descfile:
                     descfile.write(ie_result['description'])
             except OSError:
                 self.report_error(f'Cannot write {label} description file {descfn}')
@@ -4385,7 +4385,9 @@ class YoutubeDL:
             return None
 
         for idx, t in list(enumerate(thumbnails))[::-1]:
-            thumb_ext = (f'{t["id"]}.' if multiple else '') + determine_ext(t['url'], 'jpg')
+            thumb_ext = t.get('ext') or determine_ext(t['url'], 'jpg')
+            if multiple:
+                thumb_ext = f'{t["id"]}.{thumb_ext}'
             thumb_display_id = f'{label} thumbnail {t["id"]}'
             thumb_filename = replace_extension(filename, thumb_ext, info_dict.get('ext'))
             thumb_filename_final = replace_extension(thumb_filename_base, thumb_ext, info_dict.get('ext'))
@@ -4401,7 +4403,7 @@ class YoutubeDL:
                 try:
                     uf = self.urlopen(Request(t['url'], headers=t.get('http_headers', {})))
                     self.to_screen(f'[info] Writing {thumb_display_id} to: {thumb_filename}')
-                    with open(encodeFilename(thumb_filename), 'wb') as thumbf:
+                    with open(thumb_filename, 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)
                     ret.append((thumb_filename, thumb_filename_final))
                     t['filepath'] = thumb_filename
