@@ -611,7 +611,6 @@ class InfoExtractor:
         # so that lazy_extractors works correctly
         return cls._match_valid_url(url) is not None
 
-
     @classmethod
     def list_regex_url(cls):
         return cls._VALID_URL if type(cls._VALID_URL) in [list, tuple] \
