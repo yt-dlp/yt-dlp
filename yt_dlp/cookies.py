@@ -195,7 +195,10 @@ def _extract_firefox_cookies(profile, container, logger):
 
 def _firefox_browser_dirs():
     if sys.platform in ('cygwin', 'win32'):
-        yield os.path.expandvars(R'%APPDATA%\Mozilla\Firefox\Profiles')
+        yield from map(os.path.expandvars, (
+            R'%APPDATA%\Mozilla\Firefox\Profiles',
+            R'%LOCALAPPDATA%\Packages\Mozilla.Firefox_n80bbvh6b1yt2\LocalCache\Roaming\Mozilla\Firefox\Profiles',
+        ))
 
     elif sys.platform == 'darwin':
         yield os.path.expanduser('~/Library/Application Support/Firefox/Profiles')
