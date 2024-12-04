@@ -141,7 +141,7 @@ def print_extractor_information(opts, urls):
                             'working': ie.working(),
                             'enabled': ie.is_enabled(),
                             'return_type': ie.return_type(),
-                            'regex_url': ie.list_regex_url(),
+                            'regex_urls': ie.list_regex_url(),
                             'matched_urls': matched_urls,
                             }
                     e_index += 1
@@ -155,7 +155,7 @@ def print_extractor_information(opts, urls):
                         'working': ie.working(),
                         'enabled': ie.is_enabled(),
                         'return_type': ie.return_type(),
-                        'regex_url': ie.list_regex_url(),
+                        'regex_urls': ie.list_regex_url(),
                         }
                 dicts.append(data)
                 e_index += 1
