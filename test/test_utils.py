@@ -1846,7 +1846,7 @@ Line 1
     random text lorem ipsum</p>
     <div>
         this should be returned
-        <span>this should also be returned</span>
+        <SPAN>this should also be returned</SPAN>
         <div>
             this should also be returned
         </div>
@@ -1859,10 +1859,6 @@ Line 1
     GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML = GET_ELEMENT_BY_TAG_TEST_STRING.strip()[78:119]
     GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT = GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML[6:-7]
 
-    GET_ELEMENT_BY_TAG_TEST_STRING_UPPERCASE = '''
-        <SPAN id="foo">nice</SPAN>
-    '''
-
     def test_get_element_text_and_html_by_tag(self):
         html = self.GET_ELEMENT_BY_TAG_TEST_STRING
 
@@ -1872,14 +1868,11 @@ Line 1
         self.assertEqual(
             get_element_text_and_html_by_tag('span', html),
             (self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT, self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML))
-
-        self.assertRaises(compat_HTMLParseError, get_element_text_and_html_by_tag, 'article', html)
-
-        html = self.GET_ELEMENT_BY_TAG_TEST_STRING_UPPERCASE
-
         self.assertEqual(
             get_element_text_and_html_by_tag('SPAN', html),
-            ('nice', html.strip()), html)
+            (self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT, self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML))
+
+        self.assertRaises(compat_HTMLParseError, get_element_text_and_html_by_tag, 'article', html)
 
     def test_iri_to_uri(self):
         self.assertEqual(

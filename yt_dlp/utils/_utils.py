@@ -430,10 +430,14 @@ def get_element_text_and_html_by_tag(tag, html):
     return its' content (text) and the whole element (html)
     """
     def find_or_raise(haystack, needle, exc):
-        try:
+        with contextlib.suppress(ValueError):
             return haystack.index(needle)
-        except ValueError:
-            raise exc
+
+        with contextlib.suppress(ValueError):
+            return haystack.index(needle.upper())
+
+        raise exc
+
     closing_tag = f'</{tag}>'
     whole_start = find_or_raise(
         html, f'<{tag}', compat_HTMLParseError(f'opening {tag} tag not found'))
