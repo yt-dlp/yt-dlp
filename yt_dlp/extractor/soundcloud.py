@@ -305,7 +305,7 @@ class SoundcloudBaseIE(InfoExtractor):
                 'format_id': join_nonempty(protocol, preset, is_preview and 'preview', delim='_'),
                 'url': stream_url,
                 'ext': ext,
-                'acodec': codec or ext,
+                'acodec': codec,
                 'vcodec': 'none',
                 'abr': abr,
                 'protocol': 'm3u8_native' if protocol in ('hls', 'hls-aes') else 'http',
