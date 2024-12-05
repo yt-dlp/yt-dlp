@@ -309,6 +309,7 @@ class SoundcloudBaseIE(InfoExtractor):
                 'vcodec': 'none',
                 'abr': abr,
                 'protocol': 'm3u8_native' if protocol in ('hls', 'hls-aes') else 'http',
+                'container': 'm4a_dash' if (protocol in ('hls', 'hls-aes') and ext == 'm4a') else None,
                 'quality': 5 if is_premium else 0 if (abr and abr >= 160) else -1,
                 'format_note': 'Premium' if is_premium else None,
                 'preference': -10 if is_preview else None,
