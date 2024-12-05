@@ -20,7 +20,7 @@ from ..utils import (
 
 
 class XHamsterIE(InfoExtractor):
-    _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.(com|desi)|xhday\.com|xhvid\.com)'
+    _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.(?:com|desi)|xhday\.com|xhvid\.com)'
     _VALID_URL = rf'''(?x)
                     https?://
                         (?:[^/?#]+\.)?{_DOMAINS}/
