@@ -291,7 +291,7 @@ class SoundcloudBaseIE(InfoExtractor):
             if not ext or ext == 'm3u8':
                 ext = preset_base
 
-            is_premium = traverse_obj(t, ('quality')) == 'hq'
+            is_premium = t.get('quality') == 'hq'
             abr = int_or_none(
                 self._search_regex(r'(\d+)k$', preset, 'abr', default=None)
                 or self._search_regex(r'\.(\d+)\.(?:opus|mp3)[/?]', stream_url, 'abr', default=None)
