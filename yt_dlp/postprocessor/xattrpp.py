@@ -1,7 +1,6 @@
 import os
 
 from .common import PostProcessor
-from ..compat import compat_os_name
 from ..utils import (
     PostProcessingError,
     XAttrMetadataError,
@@ -57,7 +56,7 @@ class XAttrMetadataPP(PostProcessor):
                 elif e.reason == 'VALUE_TOO_LONG':
                     self.report_warning(f'Unable to write extended attribute "{xattrname}" due to too long values.')
                 else:
-                    tip = ('You need to use NTFS' if compat_os_name == 'nt'
+                    tip = ('You need to use NTFS' if os.name == 'nt'
                            else 'You may have to enable them in your "/etc/fstab"')
                     raise PostProcessingError(f'This filesystem doesn\'t support extended attributes. {tip}')
 

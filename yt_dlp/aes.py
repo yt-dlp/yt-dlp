@@ -3,7 +3,6 @@ from math import ceil
 
 from .compat import compat_ord
 from .dependencies import Cryptodome
-from .utils import bytes_to_intlist, intlist_to_bytes
 
 if Cryptodome.AES:
     def aes_cbc_decrypt_bytes(data, key, iv):
@@ -17,15 +16,15 @@ if Cryptodome.AES:
 else:
     def aes_cbc_decrypt_bytes(data, key, iv):
         """ Decrypt bytes with AES-CBC using native implementation since pycryptodome is unavailable """
-        return intlist_to_bytes(aes_cbc_decrypt(*map(bytes_to_intlist, (data, key, iv))))
+        return bytes(aes_cbc_decrypt(*map(list, (data, key, iv))))
 
     def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
         """ Decrypt bytes with AES-GCM using native implementation since pycryptodome is unavailable """
-        return intlist_to_bytes(aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (data, key, tag, nonce))))
+        return bytes(aes_gcm_decrypt_and_verify(*map(list, (data, key, tag, nonce))))
 
 
 def aes_cbc_encrypt_bytes(data, key, iv, **kwargs):
-    return intlist_to_bytes(aes_cbc_encrypt(*map(bytes_to_intlist, (data, key, iv)), **kwargs))
+    return bytes(aes_cbc_encrypt(*map(list, (data, key, iv)), **kwargs))
 
 
 BLOCK_SIZE_BYTES = 16
@@ -221,7 +220,7 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
         j0 = [*nonce, 0, 0, 0, 1]
     else:
         fill = (BLOCK_SIZE_BYTES - (len(nonce) % BLOCK_SIZE_BYTES)) % BLOCK_SIZE_BYTES + 8
-        ghash_in = nonce + [0] * fill + bytes_to_intlist((8 * len(nonce)).to_bytes(8, 'big'))
+        ghash_in = nonce + [0] * fill + list((8 * len(nonce)).to_bytes(8, 'big'))
         j0 = ghash(hash_subkey, ghash_in)
 
     # TODO: add nonce support to aes_ctr_decrypt
@@ -234,9 +233,9 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     s_tag = ghash(
         hash_subkey,
         data
-        + [0] * pad_len                                         # pad
-        + bytes_to_intlist((0 * 8).to_bytes(8, 'big')           # length of associated data
-                           + ((len(data) * 8).to_bytes(8, 'big'))),  # length of data
+        + [0] * pad_len                                  # pad
+        + list((0 * 8).to_bytes(8, 'big')                # length of associated data
+               + ((len(data) * 8).to_bytes(8, 'big'))),  # length of data
     )
 
     if tag != aes_ctr_encrypt(s_tag, key, j0):
@@ -300,8 +299,8 @@ def aes_decrypt_text(data, password, key_size_bytes):
     """
     NONCE_LENGTH_BYTES = 8
 
-    data = bytes_to_intlist(base64.b64decode(data))
-    password = bytes_to_intlist(password.encode())
+    data = list(base64.b64decode(data))
+    password = list(password.encode())
 
     key = password[:key_size_bytes] + [0] * (key_size_bytes - len(password))
     key = aes_encrypt(key[:BLOCK_SIZE_BYTES], key_expansion(key)) * (key_size_bytes // BLOCK_SIZE_BYTES)
@@ -310,7 +309,7 @@ def aes_decrypt_text(data, password, key_size_bytes):
     cipher = data[NONCE_LENGTH_BYTES:]
 
     decrypted_data = aes_ctr_decrypt(cipher, key, nonce + [0] * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES))
-    return intlist_to_bytes(decrypted_data)
+    return bytes(decrypted_data)
 
 
 RCON = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
@@ -535,19 +534,17 @@ def ghash(subkey, data):
 __all__ = [
     'aes_cbc_decrypt',
     'aes_cbc_decrypt_bytes',
-    'aes_ctr_decrypt',
-    'aes_decrypt_text',
-    'aes_decrypt',
-    'aes_ecb_decrypt',
-    'aes_gcm_decrypt_and_verify',
-    'aes_gcm_decrypt_and_verify_bytes',
-
     'aes_cbc_encrypt',
     'aes_cbc_encrypt_bytes',
+    'aes_ctr_decrypt',
     'aes_ctr_encrypt',
+    'aes_decrypt',
+    'aes_decrypt_text',
+    'aes_ecb_decrypt',
     'aes_ecb_encrypt',
     'aes_encrypt',
-
+    'aes_gcm_decrypt_and_verify',
+    'aes_gcm_decrypt_and_verify_bytes',
     'key_expansion',
     'pad_block',
     'pkcs7_padding',

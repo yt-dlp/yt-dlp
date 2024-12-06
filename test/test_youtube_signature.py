@@ -68,6 +68,11 @@ _SIG_TESTS = [
         '2aq0aqSyOoJXtK73m-uME_jv7-pT15gOFC02RFkGMqWpzEICs69VdbwQ0LDp1v7j8xx92efCJlYFYb1sUkkBSPOlPmXgIARw8JQ0qOAOAA',
         'AOq0QJ8wRAIgXmPlOPSBkkUs1bYFYlJCfe29xx8j7v1pDL2QwbdV96sCIEzpWqMGkFR20CFOg51Tp-7vj_EMu-m37KtXJoOySqa0',
     ),
+    (
+        'https://www.youtube.com/s/player/3bb1f723/player_ias.vflset/en_US/base.js',
+        '2aq0aqSyOoJXtK73m-uME_jv7-pT15gOFC02RFkGMqWpzEICs69VdbwQ0LDp1v7j8xx92efCJlYFYb1sUkkBSPOlPmXgIARw8JQ0qOAOAA',
+        'MyOSJXtKI3m-uME_jv7-pT12gOFC02RFkGoqWpzE0Cs69VdbwQ0LDp1v7j8xx92efCJlYFYb1sUkkBSPOlPmXgIARw8JQ0qOAOAA',
+    ),
 ]
 
 _NSIG_TESTS = [
@@ -183,6 +188,10 @@ _NSIG_TESTS = [
         'https://www.youtube.com/s/player/b12cc44b/player_ias.vflset/en_US/base.js',
         'keLa5R2U00sR9SQK', 'N1OGyujjEwMnLw',
     ),
+    (
+        'https://www.youtube.com/s/player/3bb1f723/player_ias.vflset/en_US/base.js',
+        'gK15nzVyaXE9RsMP3z', 'ZFFWFLPWx9DEgQ',
+    ),
 ]
 
 
@@ -254,8 +263,11 @@ def signature(jscode, sig_input):
 
 
 def n_sig(jscode, sig_input):
-    funcname = YoutubeIE(FakeYDL())._extract_n_function_name(jscode)
-    return JSInterpreter(jscode).call_function(funcname, sig_input)
+    ie = YoutubeIE(FakeYDL())
+    funcname = ie._extract_n_function_name(jscode)
+    jsi = JSInterpreter(jscode)
+    func = jsi.extract_function_from_code(*ie._fixup_n_function_code(*jsi.extract_function_code(funcname)))
+    return func([sig_input])
 
 
 make_sig_test = t_factory(
