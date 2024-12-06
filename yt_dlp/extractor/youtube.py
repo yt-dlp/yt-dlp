@@ -3212,6 +3212,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # *  a.D&&(b="nn"[+a.D],c=a.get(b))&&(c=narray[idx](c),a.set(b,c),narray.length||nfunc("")
         # *  a.D&&(PL(a),b=a.j.n||null)&&(b=narray[0](b),a.set("n",b),narray.length||nfunc("")
         # *  a.D&&(b="nn"[+a.D],vL(a),c=a.j[b]||null)&&(c=narray[idx](c),a.set(b,c),narray.length||nfunc("")
+        # *  J.J="";J.url="";J.Z&&(R="nn"[+J.Z],mW(J),N=J.K[R]||null)&&(N=narray[idx](N),J.set(R,N))}};
         funcname, idx = self._search_regex(
             r'''(?x)
             (?:
@@ -3228,7 +3229,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     )\)&&\(c=|
                 \b(?P<var>[a-zA-Z0-9_$]+)=
             )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
-            (?(var),[a-zA-Z0-9_$]+\.set\("n"\,(?P=var)\),(?P=nfunc)\.length)''',
+            (?(var),[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,(?P=var)\))''',
             jscode, 'n function name', group=('nfunc', 'idx'), default=(None, None))
         if not funcname:
             self.report_warning(join_nonempty(
@@ -3237,7 +3238,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return self._search_regex(
                 r'''(?xs)
                 ;\s*(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
-                \s*\{(?:(?!};).)+?["']enhanced_except_''',
+                \s*\{(?:(?!};).)+?return\s*(?P<q>["'])[\w-]+_w8_(?P=q)\s*\+\s*[a-zA-Z0-9_$]+''',
                 jscode, 'Initial JS player n function name', group='name')
         elif not idx:
             return funcname
@@ -3245,6 +3246,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return json.loads(js_to_json(self._search_regex(
             rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])\s*[,;]', jscode,
             f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
+
+    def _fixup_n_function_code(self, argnames, code):
+        return argnames, re.sub(
+            rf';\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(["\'])undefined\1\s*\)\s*return\s+{argnames[0]};',
+            ';', code)
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
@@ -3257,7 +3263,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         func_name = self._extract_n_function_name(jscode, player_url=player_url)
 
-        func_code = jsi.extract_function_code(func_name)
+        # XXX: Workaround for the `typeof` gotcha
+        func_code = self._fixup_n_function_code(*jsi.extract_function_code(func_name))
 
         self.cache.store('youtube-nsig', player_id, func_code)
         return jsi, player_id, func_code
@@ -3273,7 +3280,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             except Exception as e:
                 raise JSInterpreter.Exception(traceback.format_exc(), cause=e)
 
-            if ret.startswith('enhanced_except_'):
+            if ret.startswith('enhanced_except_') or ret.endswith(f'_w8_{s}'):
                 raise JSInterpreter.Exception('Signature function returned an exception')
             return ret
 
