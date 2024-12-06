@@ -637,8 +637,18 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
         elif not restricted and char == '\n':
             return '\0 '
         elif is_id is NO_DEFAULT and not restricted and char in '"*:<>?|/\\':
-            # Replace with their full-width unicode counterparts
-            return {'/': '\u29F8', '\\': '\u29f9'}.get(char, chr(ord(char) + 0xfee0))
+            # Replace with lookalike characters
+            return {
+                '"': '\u2033',
+                '*': '\uA60E',
+                ':': '\u0589',
+                '<': '\u227A',
+                '>': '\u227B',
+                '?': '\uFF1F',
+                '|': '\u01C0',
+                '/': '\u29F8',
+                '\\': '\u29f9',
+            }[char]
         elif char == '?' or ord(char) < 32 or ord(char) == 127:
             return ''
         elif char == '"':
