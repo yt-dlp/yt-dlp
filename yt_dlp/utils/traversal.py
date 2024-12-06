@@ -332,14 +332,14 @@ class _RequiredError(ExtractorError):
 
 
 @typing.overload
-def subs_list_to_dict(*, ext: str | None = None) -> collections.abc.Callable[[list[dict]], dict[str, list[dict]]]: ...
+def subs_list_to_dict(*, lang: str | None = 'und', ext: str | None = None) -> collections.abc.Callable[[list[dict]], dict[str, list[dict]]]: ...
 
 
 @typing.overload
-def subs_list_to_dict(subs: list[dict] | None, /, *, ext: str | None = None) -> dict[str, list[dict]]: ...
+def subs_list_to_dict(subs: list[dict] | None, /, *, lang: str | None = 'und', ext: str | None = None) -> dict[str, list[dict]]: ...
 
 
-def subs_list_to_dict(subs: list[dict] | None = None, /, *, ext=None):
+def subs_list_to_dict(subs: list[dict] | None = None, /, *, lang='und', ext=None):
     """
     Convert subtitles from a traversal into a subtitle dict.
     The path should have an `all` immediately before this function.
@@ -352,7 +352,7 @@ def subs_list_to_dict(subs: list[dict] | None = None, /, *, ext=None):
     `quality`  The sort order for each subtitle
     """
     if subs is None:
-        return functools.partial(subs_list_to_dict, ext=ext)
+        return functools.partial(subs_list_to_dict, lang=lang, ext=ext)
 
     result = collections.defaultdict(list)
 
@@ -360,10 +360,16 @@ def subs_list_to_dict(subs: list[dict] | None = None, /, *, ext=None):
         if not url_or_none(sub.get('url')) and not sub.get('data'):
             continue
         sub_id = sub.pop('id', None)
-        if sub_id is None:
-            continue
-        if ext is not None and not sub.get('ext'):
-            sub['ext'] = ext
+        if not isinstance(sub_id, str):
+            if not lang:
+                continue
+            sub_id = lang
+        sub_ext = sub.get('ext')
+        if not isinstance(sub_ext, str):
+            if not ext:
+                sub.pop('ext', None)
+            else:
+                sub['ext'] = ext
         result[sub_id].append(sub)
     result = dict(result)
 
@@ -452,9 +458,9 @@ def trim_str(*, start=None, end=None):
     return trim
 
 
-def unpack(func):
+def unpack(func, **kwargs):
     @functools.wraps(func)
-    def inner(items, **kwargs):
+    def inner(items):
         return func(*items, **kwargs)
 
     return inner
