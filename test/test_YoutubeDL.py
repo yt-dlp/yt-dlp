@@ -827,7 +827,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats)j', (json.dumps(FORMATS), None))
         test('%(formats)#j', (
             json.dumps(FORMATS, indent=4),
-            json.dumps(FORMATS, indent=4).replace(':', '：').replace('"', '＂').replace('\n', ' '),
+            json.dumps(FORMATS, indent=4).replace(':', '\u0589').replace('"', '\u2033').replace('\n', ' '),
         ))
         test('%(title5).3B', 'á')
         test('%(title5)U', 'áéí 𝐀')
@@ -838,13 +838,13 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(filesize)#D', '1Ki')
         test('%(height)5.2D', ' 1.08k')
         test('%(title4)#S', 'foo_bar_test')
-        test('%(title4).10S', ('foo ＂bar＂ ', 'foo ＂bar＂' + ('#' if os.name == 'nt' else ' ')))
+        test('%(title4).10S', ('foo \u2033bar\u2033 ', 'foo \u2033bar\u2033' + ('#' if os.name == 'nt' else ' ')))
         if os.name == 'nt':
             test('%(title4)q', ('"foo ""bar"" test"', None))
             test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', None))
             test('%(formats.0.id)#q', ('"id 1"', None))
         else:
-            test('%(title4)q', ('\'foo "bar" test\'', '\'foo ＂bar＂ test\''))
+            test('%(title4)q', ('\'foo "bar" test\'', '\'foo \u2033bar\u2033 test\''))
             test('%(formats.:.id)#q', "'id 1' 'id 2' 'id 3'")
             test('%(formats.0.id)#q', "'id 1'")
 
@@ -869,7 +869,7 @@ class TestYoutubeDL(unittest.TestCase):
                           for f in FORMATS])
         test('%(formats.:.{id,height.:2})j', (out, None))
         test('%(formats.:.{id,height}.id)l', ', '.join(f['id'] for f in FORMATS))
-        test('%(.{id,title})j', ('{"id": "1234"}', '{＂id＂： ＂1234＂}'))
+        test('%(.{id,title})j', ('{"id": "1234"}', '{\u2033id\u2033\u0589 \u20331234\u2033}'))
 
         # Alternates
         test('%(title,id)s', '1234')
