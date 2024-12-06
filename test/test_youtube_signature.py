@@ -190,7 +190,7 @@ _NSIG_TESTS = [
     ),
     (
         'https://www.youtube.com/s/player/3bb1f723/player_ias.vflset/en_US/base.js',
-        'VJm3Qt8oaR7JZFaG_23', 'gg5tzBVPlOUNMgA',
+        'gK15nzVyaXE9RsMP3z', 'ZFFWFLPWx9DEgQ',
     ),
 ]
 
