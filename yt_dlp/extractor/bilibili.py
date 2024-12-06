@@ -681,12 +681,6 @@ class BiliBiliIE(BilibiliBaseIE):
         old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
 
-        play_info = (
-            traverse_obj(
-                self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
-                ('data', {dict}))
-            or self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1}))
-
         festival_info = {}
         if is_festival:
             festival_info = traverse_obj(initial_state, {
@@ -724,6 +718,13 @@ class BiliBiliIE(BilibiliBaseIE):
                 duration=traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
                 __post_extractor=self.extract_comments(aid))
 
+        play_info = None
+        if self.is_logged_in:
+            play_info = traverse_obj(
+                self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
+                ('data', {dict}))
+        if not play_info:
+            play_info = self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1})
         formats = self.extract_formats(play_info)
 
         if video_data.get('is_upower_exclusive'):
