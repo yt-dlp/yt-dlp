@@ -768,7 +768,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)s', '-abcd', info={'id': '-abcd'})
         test('%(id)s', '.abcd', info={'id': '.abcd'})
         test('%(id)s', 'ab__cd', info={'id': 'ab__cd'})
-        test('%(id)s', ('ab:cd', 'ab：cd'), info={'id': 'ab:cd'})
+        test('%(id)s', ('ab:cd', 'ab\u0589cd'), info={'id': 'ab:cd'})
         test('%(id.0)s', '-', info={'id': '--'})
 
         # Invalid templates
