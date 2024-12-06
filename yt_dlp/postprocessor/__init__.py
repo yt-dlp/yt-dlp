@@ -44,4 +44,4 @@ def get_postprocessor(key):
 
 globals().update(_PLUGIN_CLASSES)
 __all__ = [name for name in globals() if name.endswith('PP')]
-__all__.extend(('PostProcessor', 'FFmpegPostProcessor'))
+__all__.extend(('FFmpegPostProcessor', 'PostProcessor'))
