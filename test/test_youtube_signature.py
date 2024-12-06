@@ -183,6 +183,10 @@ _NSIG_TESTS = [
         'https://www.youtube.com/s/player/b12cc44b/player_ias.vflset/en_US/base.js',
         'keLa5R2U00sR9SQK', 'N1OGyujjEwMnLw',
     ),
+    (
+        'https://www.youtube.com/s/player/3bb1f723/player_ias.vflset/en_US/base.js',
+        'VJm3Qt8oaR7JZFaG_23', 'gg5tzBVPlOUNMgA',
+    ),
 ]
 
 
@@ -254,8 +258,11 @@ def signature(jscode, sig_input):
 
 
 def n_sig(jscode, sig_input):
-    funcname = YoutubeIE(FakeYDL())._extract_n_function_name(jscode)
-    return JSInterpreter(jscode).call_function(funcname, sig_input)
+    ie = YoutubeIE(FakeYDL())
+    funcname = ie._extract_n_function_name(jscode)
+    jsi = JSInterpreter(jscode)
+    func = jsi.extract_function_from_code(*ie._fixup_n_function_code(*jsi.extract_function_code(funcname)))
+    return func([sig_input])
 
 
 make_sig_test = t_factory(
