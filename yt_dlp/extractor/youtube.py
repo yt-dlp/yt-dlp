@@ -3280,7 +3280,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             except Exception as e:
                 raise JSInterpreter.Exception(traceback.format_exc(), cause=e)
 
-            if ret.startswith('enhanced_except_') or ret.endswith(f'_w8_{s}'):
+            if ret.startswith('enhanced_except_') or ret.endswith(s):
                 raise JSInterpreter.Exception('Signature function returned an exception')
             return ret
 
