@@ -302,6 +302,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     error occurs (Alias: --no-ignore-errors)
     --dump-user-agent               Display the current user-agent and exit
     --list-extractors               List all supported extractors and exit
+    --list-extractors-json          List all supported extractors in json and exit 
     --extractor-descriptions        Output descriptions of all supported
                                     extractors and exit
     --use-extractors NAMES          Extractor names to use separated by commas.
@@ -1875,7 +1876,21 @@ The following extractors use this feature:
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
 
+# EXTRACTOR INFO JSON
+parameter `--list-extractors-json` output information from extractor(s) formated as JSON. If some URL(s) are specified, only the extractors matching at list one URL are listed. If none is specified, all extractors are listed. The generic extractor is always the last in the list.  
 
+### List of values returned
+key         | type            | description
+:------------|:----------------|:----------------------------
+index        | int             | index in list, starting from 0  
+name         | string          | name of the extractor
+desc         | string          | description of the extractor
+working      | bool            | true if the extractor is working
+enabled      | bool            | true if the extractor is enabled
+return_type  | string          | type of data returned by the extractor ("video", "playlist", "any", or None)
+regex_urls   | array of string | list of regex used by the extractor to match a given url
+matched_urls | array of string | list of url(s) passed in the command line that matched the given extractor. Present only if URL(s) are specified.
+ 
 # PLUGINS
 
 Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. **Use plugins at your own risk and only if you trust the code!**

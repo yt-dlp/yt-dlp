@@ -13,6 +13,7 @@ import optparse
 import os
 import re
 import traceback
+import json
 
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS, CookieLoadError
 from .downloader.external import get_external_downloader
@@ -119,6 +120,45 @@ def print_extractor_information(opts, urls):
         out = 'Supported TV Providers:\n{}\n'.format(render_table(
             ['mso', 'mso name'],
             [[mso_id, mso_info['name']] for mso_id, mso_info in MSO_INFO.items()]))
+    elif opts.list_extractors_json:
+        from .extractor.generic import GenericIE
+        dicts = []
+        e_index = 0
+        urls = dict.fromkeys(urls, False)
+        if len(urls):
+            for ie in gen_extractors():
+                if ie == GenericIE:
+                    matched_urls = [url for url, matched in urls.items() if not matched]
+                else:
+                    matched_urls = tuple(filter(ie.suitable, urls.keys()))
+                    urls.update(dict.fromkeys(matched_urls, True))
+                # show only extractor with matched URL
+                if len(matched_urls):
+                    data = {'index': e_index,
+                            'name': ie.IE_NAME,
+                            'desc': ie.IE_DESC if ie.IE_DESC else '',
+                            'working': ie.working(),
+                            'enabled': ie.is_enabled(),
+                            'return_type': ie.return_type(),
+                            'regex_urls': ie.list_regex_url(),
+                            'matched_urls': matched_urls,
+                            }
+                    e_index += 1
+                    dicts.append(data)
+        else:
+            # show all extractors
+            for ie in gen_extractors():
+                data = {'index': e_index,
+                        'name': ie.IE_NAME,
+                        'desc': ie.IE_DESC if ie.IE_DESC else '',
+                        'working': ie.working(),
+                        'enabled': ie.is_enabled(),
+                        'return_type': ie.return_type(),
+                        'regex_urls': ie.list_regex_url(),
+                        }
+                dicts.append(data)
+                e_index += 1
+        out = json.dumps(dicts, indent=4)
     else:
         return False
     write_string(out, out=sys.stdout)
