@@ -407,7 +407,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
         '/redirect_dotsegments_absolute',
     ])
     def test_remove_dot_segments(self, handler, path):
-        with handler(verbose=True) as rh:
+        with handler() as rh:
             # This isn't a comprehensive test,
             # but it should be enough to check whether the handler is removing dot segments in required scenarios
             res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}{path}'))
@@ -1242,8 +1242,8 @@ class TestRequestHandlerValidation:
             ('socks5h', False),
         ]),
         ('Websockets', 'ws', [
-            ('http', UnsupportedRequest),
-            ('https', UnsupportedRequest),
+            ('http', False),
+            ('https', False),
             ('socks4', False),
             ('socks4a', False),
             ('socks5', False),
@@ -1336,8 +1336,8 @@ class TestRequestHandlerValidation:
         ('Websockets', False, 'ws'),
     ], indirect=['handler'])
     def test_no_proxy(self, handler, fail, scheme):
-        run_validation(handler, fail, Request(f'{scheme}://', proxies={'no': '127.0.0.1,github.com'}))
-        run_validation(handler, fail, Request(f'{scheme}://'), proxies={'no': '127.0.0.1,github.com'})
+        run_validation(handler, fail, Request(f'{scheme}://example.com', proxies={'no': '127.0.0.1,github.com'}))
+        run_validation(handler, fail, Request(f'{scheme}://example.com'), proxies={'no': '127.0.0.1,github.com'})
 
     @pytest.mark.parametrize('handler,scheme', [
         ('Urllib', 'http'),
