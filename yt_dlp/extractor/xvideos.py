@@ -1,14 +1,22 @@
+import functools
 import re
 import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
     clean_html,
     determine_ext,
+    get_element_by_class,
+    get_element_by_id,
     int_or_none,
+    js_to_json,
     parse_duration,
+    remove_end,
+    str_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class XVideosIE(InfoExtractor):
@@ -108,9 +116,8 @@ class XVideosIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        mobj = re.search(r'<h1 class="inlineError">(.+?)</h1>', webpage)
-        if mobj:
-            raise ExtractorError(f'{self.IE_NAME} said: {clean_html(mobj.group(1))}', expected=True)
+        if inline_error := get_element_by_class('inlineError', webpage):
+            raise ExtractorError(f'{self.IE_NAME} said: {clean_html(inline_error)}', expected=True)
 
         title = self._html_search_regex(
             (r'<title>(?P<title>.+?)\s+-\s+XVID',
@@ -223,3 +230,114 @@ class XVideosQuickiesIE(InfoExtractor):
     def _real_extract(self, url):
         domain, id_ = self._match_valid_url(url).group('domain', 'id')
         return self.url_result(f'https://{domain}/video{"" if id_.isdecimal() else "."}{id_}/_', XVideosIE, id_)
+
+
+class XVideosUserIE(InfoExtractor):
+    _VALID_URL = r'''(?x)
+        https?://(?:.+?\.)?xvideos\.(?:com|es)/
+        (?P<page_path>(?:channels|amateur-channels|model-channels|pornstar-channels|profiles)/
+        (?P<id>[^/?#&]+))(?:(?:(?!\#quickies).)+)?$'''
+    _TESTS = [{
+        # channel; "Most viewed"
+        'url': 'https://www.xvideos.com/channels/college_girls_gone_bad#_tabVideos,rating',
+        'info_dict': {
+            'id': '70472676',
+            'display_id': 'college_girls_gone_bad',
+            'title': 'College Girls Gone Bad',
+            'description': 'Hot college girls in real sorority hazing acts!',
+            'thumbnails': 'count:2',
+        },
+        'playlist_mincount': 99,
+    }, {
+        # channel; "New"
+        'url': 'https://www.xvideos.com/model-channels/shonariver#_tabVideos,new',
+        'info_dict': {
+            'id': '407014987',
+            'display_id': 'shonariver',
+            'title': 'Shona River',
+            'description': 'md5:ad6654037aee13535b0d15a020eb82d0',
+            'thumbnails': 'count:2',
+        },
+        'playlist_mincount': 9,
+    }, {
+        # channel; "Most commented"
+        'url': 'https://www.xvideos.com/amateur-channels/queanfuckingcucking#_tabVideos,comments',
+        'info_dict': {
+            'id': '227800369',
+            'display_id': 'queanfuckingcucking',
+            'title': 'Queanfuckingcucking',
+            'description': 'md5:265a602186d4e811082782cd6a97b064',
+            'thumbnails': 'count:2',
+        },
+        'playlist_mincount': 8,
+    }, {
+        # channel; "Watched recently" (default)
+        'url': 'https://www.xvideos.com/channels/girlfriendsfilmsofficial#_tabVideos',
+        'info_dict': {
+            'id': '244972019',
+            'display_id': 'girlfriendsfilmsofficial',
+            'title': 'Girlfriend\'s Films Official',
+            'thumbnails': 'count:2',
+        },
+        'playlist_mincount': 500,
+    }, {
+        # /profiles/***
+        'url': 'https://www.xvideos.com/profiles/jacobsy',
+        'info_dict': {
+            'id': '962189',
+            'display_id': 'jacobsy',
+            'title': 'Jacobsy',
+            'description': 'fetishist and bdsm lover...',
+            'thumbnails': 'count:2',
+        },
+        'playlist_mincount': 63,
+    }, {
+        # no description, no videos
+        'url': 'https://www.xvideos.com/profiles/espoder',
+        'info_dict': {
+            'id': '581228107',
+            'display_id': 'espoder',
+            'title': 'Espoder',
+            'thumbnails': 'count:2',
+        },
+        'playlist_count': 0,
+    }, {
+        # no description
+        'url': 'https://www.xvideos.com/profiles/alfsun',
+        'info_dict': {
+            'id': '551066909',
+            'display_id': 'alfsun',
+            'title': 'Alfsun',
+            'thumbnails': 'count:2',
+        },
+        'playlist_mincount': 3,
+    }]
+    _PAGE_SIZE = 36
+
+    def _real_extract(self, url):
+        page_path, display_id = self._match_valid_url(url).groups()
+        webpage = self._download_webpage(url, display_id)
+
+        fragment = urllib.parse.urlparse(url).fragment
+        sort_order = traverse_obj(
+            ['new', 'rating', 'comments'], (lambda _, v: v in fragment), default='best', get_all=False)
+        page_base_url = f'https://www.xvideos.com/{page_path}/videos/{sort_order}'
+
+        user_info = traverse_obj(self._search_json(
+            r'<script>.*?window\.xv\.conf\s*=', webpage, 'xv.conf',
+            display_id, transform_source=js_to_json, fatal=False), ('data', 'user'))
+        user_id = traverse_obj(user_info, ('id_user', {str_or_none})) or display_id
+
+        return self.playlist_result(
+            OnDemandPagedList(functools.partial(self._get_page, page_base_url, user_id), self._PAGE_SIZE),
+            user_id, traverse_obj(user_info, ('display', {str_or_none})),
+            remove_end(clean_html(get_element_by_id('header-about-me', webpage)), '+'),
+            display_id=(traverse_obj(user_info, ('username', {str_or_none})) or display_id),
+            thumbnails=traverse_obj(user_info, (['profile_picture_small', 'profile_picture'], {lambda x: {'url': x}})))
+
+    def _get_page(self, page_base_url, user_id, page_num):
+        page_info = self._download_json(
+            f'{page_base_url}/{page_num}', user_id, f'Downloading page {page_num + 1}')
+        yield from [self.url_result(
+            f'https://www.xvideos.com/video{video["id"]}/{video["eid"]}', ie=XVideosIE.ie_key())
+            for video in page_info['videos']]
