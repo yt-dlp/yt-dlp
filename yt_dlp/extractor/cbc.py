@@ -4,7 +4,6 @@ import json
 import re
 import time
 import urllib.parse
-import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -12,7 +11,6 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
-    join_nonempty,
     js_to_json,
     mimetype2ext,
     orderedSet,
@@ -455,8 +453,8 @@ class CBCPlayerIE(InfoExtractor):
 
         chapters = traverse_obj(data, (
             'media', 'chapters', lambda _, v: float(v['startTime']) is not None, {
-                'start_time': ('startTime', {functools.partial(float_or_none, scale=1000)}),
-                'end_time': ('endTime', {functools.partial(float_or_none, scale=1000)}),
+                'start_time': ('startTime', {float_or_none(scale=1000)}),
+                'end_time': ('endTime', {float_or_none(scale=1000)}),
                 'title': ('name', {str}),
             }))
         # Filter out pointless single chapters with start_time==0 and no end_time
@@ -467,8 +465,8 @@ class CBCPlayerIE(InfoExtractor):
             **traverse_obj(data, {
                 'title': ('title', {str}),
                 'description': ('description', {str.strip}),
-                'thumbnail': ('image', 'url', {url_or_none}, {functools.partial(update_url, query=None)}),
-                'timestamp': ('publishedAt', {functools.partial(float_or_none, scale=1000)}),
+                'thumbnail': ('image', 'url', {url_or_none}, {update_url(query=None)}),
+                'timestamp': ('publishedAt', {float_or_none(scale=1000)}),
                 'media_type': ('media', 'clipType', {str}),
                 'series': ('showName', {str}),
                 'season_number': ('media', 'season', {int_or_none}),
@@ -524,14 +522,13 @@ class CBCGemIE(InfoExtractor):
     _TESTS = [{
         # This is a normal, public, TV show video
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06e01',
-        'md5': '93dbb31c74a8e45b378cf13bd3f6f11e',
         'info_dict': {
             'id': 'schitts-creek/s06e01',
             'ext': 'mp4',
             'title': 'Smoke Signals',
             'description': 'md5:929868d20021c924020641769eb3e7f1',
-            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/episode/perso/cbc_schitts_creek_season_06e01_thumbnail_v01.jpg?im=Resize=(Size)',
-            'duration': 1314,
+            'thumbnail': r're:https://images\.radio-canada\.ca/[^#?]+/cbc_schitts_creek_season_06e01_thumbnail_v01\.jpg',
+            'duration': 1324,
             'categories': ['comedy'],
             'series': 'Schitt\'s Creek',
             'season': 'Season 6',
@@ -539,19 +536,21 @@ class CBCGemIE(InfoExtractor):
             'episode': 'Smoke Signals',
             'episode_number': 1,
             'episode_id': 'schitts-creek/s06e01',
+            'upload_date': '20210618',
+            'timestamp': 1623988800,
+            'release_date': '20200107',
+            'release_timestamp': 1578427200,
         },
         'params': {'format': 'bv'},
-        'skip': 'Geo-restricted to Canada',
     }, {
         # This video requires an account in the browser, but works fine in yt-dlp
         'url': 'https://gem.cbc.ca/media/schitts-creek/s01e01',
-        'md5': '297a9600f554f2258aed01514226a697',
         'info_dict': {
             'id': 'schitts-creek/s01e01',
             'ext': 'mp4',
             'title': 'The Cup Runneth Over',
             'description': 'md5:9bca14ea49ab808097530eb05a29e797',
-            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/episode/perso/cbc_schitts_creek_season_01e01_thumbnail_v01.jpg?im=Resize=(Size)',
+            'thumbnail': r're:https://images\.radio-canada\.ca/[^#?]+/cbc_schitts_creek_season_01e01_thumbnail_v01\.jpg',
             'series': 'Schitt\'s Creek',
             'season_number': 1,
             'season': 'Season 1',
@@ -560,9 +559,12 @@ class CBCGemIE(InfoExtractor):
             'episode_id': 'schitts-creek/s01e01',
             'duration': 1309,
             'categories': ['comedy'],
+            'upload_date': '20210617',
+            'timestamp': 1623902400,
+            'release_date': '20151124',
+            'release_timestamp': 1448323200,
         },
         'params': {'format': 'bv'},
-        'skip': 'Geo-restricted to Canada',
     }, {
         'url': 'https://gem.cbc.ca/nadiyas-family-favourites/s01e01',
         'only_matching': True,
@@ -631,38 +633,6 @@ class CBCGemIE(InfoExtractor):
             return
         self._claims_token = self.cache.load(self._NETRC_MACHINE, 'claims_token')
 
-    def _find_secret_formats(self, formats, video_id):
-        """ Find a valid video url and convert it to the secret variant """
-        base_format = next((f for f in formats if f.get('vcodec') != 'none'), None)
-        if not base_format:
-            return
-
-        base_url = re.sub(r'(Manifest\(.*?),filter=[\w-]+(.*?\))', r'\1\2', base_format['url'])
-        url = re.sub(r'(Manifest\(.*?),format=[\w-]+(.*?\))', r'\1\2', base_url)
-
-        secret_xml = self._download_xml(url, video_id, note='Downloading secret XML', fatal=False)
-        if not isinstance(secret_xml, xml.etree.ElementTree.Element):
-            return
-
-        for child in secret_xml:
-            if child.attrib.get('Type') != 'video':
-                continue
-            for video_quality in child:
-                bitrate = int_or_none(video_quality.attrib.get('Bitrate'))
-                if not bitrate or 'Index' not in video_quality.attrib:
-                    continue
-                height = int_or_none(video_quality.attrib.get('MaxHeight'))
-
-                yield {
-                    **base_format,
-                    'format_id': join_nonempty('sec', height),
-                    # Note: \g<1> is necessary instead of \1 since bitrate is a number
-                    'url': re.sub(r'(QualityLevels\()\d+(\))', fr'\g<1>{bitrate}\2', base_url),
-                    'width': int_or_none(video_quality.attrib.get('MaxWidth')),
-                    'tbr': bitrate / 1000.0,
-                    'height': height,
-                }
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_info = self._download_json(
@@ -676,7 +646,6 @@ class CBCGemIE(InfoExtractor):
         else:
             headers = {}
         m3u8_info = self._download_json(video_info['playSession']['url'], video_id, headers=headers)
-        m3u8_url = m3u8_info.get('url')
 
         if m3u8_info.get('errorCode') == 1:
             self.raise_geo_restricted(countries=['CA'])
@@ -685,9 +654,9 @@ class CBCGemIE(InfoExtractor):
         elif m3u8_info.get('errorCode') != 0:
             raise ExtractorError(f'{self.IE_NAME} said: {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}')
 
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id='hls')
+        formats = self._extract_m3u8_formats(
+            m3u8_info['url'], video_id, 'mp4', m3u8_id='hls', query={'manifestType': ''})
         self._remove_duplicate_formats(formats)
-        formats.extend(self._find_secret_formats(formats, video_id))
 
         for fmt in formats:
             if fmt.get('vcodec') == 'none':
@@ -703,20 +672,21 @@ class CBCGemIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': video_info['title'],
-            'description': video_info.get('description'),
-            'thumbnail': video_info.get('image'),
-            'series': video_info.get('series'),
-            'season_number': video_info.get('season'),
-            'season': f'Season {video_info.get("season")}',
-            'episode_number': video_info.get('episode'),
-            'episode': video_info.get('title'),
             'episode_id': video_id,
-            'duration': video_info.get('duration'),
-            'categories': [video_info.get('category')],
             'formats': formats,
-            'release_timestamp': video_info.get('airDate'),
-            'timestamp': video_info.get('availableDate'),
+            **traverse_obj(video_info, {
+                'title': ('title', {str}),
+                'episode': ('title', {str}),
+                'description': ('description', {str}),
+                'thumbnail': ('image', {url_or_none}),
+                'series': ('series', {str}),
+                'season_number': ('season', {int_or_none}),
+                'episode_number': ('episode', {int_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'categories': ('category', {str}, all),
+                'release_timestamp': ('airDate', {int_or_none(scale=1000)}),
+                'timestamp': ('availableDate', {int_or_none(scale=1000)}),
+            }),
         }
 
 
@@ -806,11 +776,11 @@ class CBCGemLiveIE(InfoExtractor):
                 'title': 'Ottawa',
                 'description': 'The live TV channel and local programming from Ottawa',
                 'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/CBC_OTT_VMS/Live_Channel_Static_Images/Ottawa_2880x1620.jpg',
-                'is_live': True,
+                'live_status': 'is_live',
                 'id': 'AyqZwxRqh8EH',
                 'ext': 'mp4',
-                'timestamp': 1492106160,
-                'upload_date': '20170413',
+                'release_timestamp': 1492106160,
+                'release_date': '20170413',
                 'uploader': 'CBCC-NEW',
             },
             'skip': 'Live might have ended',
@@ -839,49 +809,84 @@ class CBCGemLiveIE(InfoExtractor):
                 'description': 'March 24, 2023 | President Biden’s Ottawa visit ends with big pledges from both countries. Plus, Gwyneth Paltrow testifies in her ski collision trial.',
                 'live_status': 'is_live',
                 'thumbnail': r're:https://images.gem.cbc.ca/v1/cbc-gem/live/.*',
-                'timestamp': 1679706000,
-                'upload_date': '20230325',
+                'release_timestamp': 1679706000,
+                'release_date': '20230325',
             },
             'params': {'skip_download': True},
             'skip': 'Live might have ended',
         },
+        {   # event replay (medianetlive)
+            'url': 'https://gem.cbc.ca/live-event/42314',
+            'md5': '297a9600f554f2258aed01514226a697',
+            'info_dict': {
+                'id': '42314',
+                'ext': 'mp4',
+                'live_status': 'was_live',
+                'title': 'Women\'s Soccer - Canada vs New Zealand',
+                'description': 'md5:36200e5f1a70982277b5a6ecea86155d',
+                'thumbnail': r're:https://.+default\.jpg',
+                'release_timestamp': 1721917200,
+                'release_date': '20240725',
+            },
+            'params': {'skip_download': True},
+            'skip': 'Replay might no longer be available',
+        },
+        {   # event replay (medianetlive)
+            'url': 'https://gem.cbc.ca/live-event/43273',
+            'only_matching': True,
+        },
     ]
+    _GEO_COUNTRIES = ['CA']
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         video_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['data']
 
-        # Two types of metadata JSON
+        # Three types of video_info JSON: info in root, freeTv stream/item, event replay
         if not video_info.get('formattedIdMedia'):
-            video_info = traverse_obj(
-                video_info, (('freeTv', ('streams', ...)), 'items', lambda _, v: v['key'] == video_id, {dict}),
-                get_all=False, default={})
+            if traverse_obj(video_info, ('event', 'key')) == video_id:
+                video_info = video_info['event']
+            else:
+                video_info = traverse_obj(video_info, (
+                    ('freeTv', ('streams', ...)), 'items',
+                    lambda _, v: v['key'].partition('-')[0] == video_id, any)) or {}
 
         video_stream_id = video_info.get('formattedIdMedia')
         if not video_stream_id:
-            raise ExtractorError('Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
+            raise ExtractorError(
+                'Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
 
-        stream_data = self._download_json(
-            'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
-                'appCode': 'mpx',
-                'connectionType': 'hd',
-                'deviceType': 'ipad',
-                'idMedia': video_stream_id,
-                'multibitrate': 'true',
-                'output': 'json',
-                'tech': 'hls',
-                'manifestType': 'desktop',
-            })
+        live_status = 'was_live' if video_info.get('isVodEnabled') else 'is_live'
+        release_timestamp = traverse_obj(video_info, ('airDate', {parse_iso8601}))
+
+        if live_status == 'is_live' and release_timestamp and release_timestamp > time.time():
+            formats = []
+            live_status = 'is_upcoming'
+            self.raise_no_formats('This livestream has not yet started', expected=True)
+        else:
+            stream_data = self._download_json(
+                'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
+                    'appCode': 'medianetlive',
+                    'connectionType': 'hd',
+                    'deviceType': 'ipad',
+                    'idMedia': video_stream_id,
+                    'multibitrate': 'true',
+                    'output': 'json',
+                    'tech': 'hls',
+                    'manifestType': 'desktop',
+                })
+            formats = self._extract_m3u8_formats(
+                stream_data['url'], video_id, 'mp4', live=live_status == 'is_live')
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(stream_data['url'], video_id, 'mp4', live=True),
-            'is_live': True,
+            'formats': formats,
+            'live_status': live_status,
+            'release_timestamp': release_timestamp,
             **traverse_obj(video_info, {
-                'title': 'title',
-                'description': 'description',
+                'title': ('title', {str}),
+                'description': ('description', {str}),
                 'thumbnail': ('images', 'card', 'url'),
-                'timestamp': ('airDate', {parse_iso8601}),
             }),
         }

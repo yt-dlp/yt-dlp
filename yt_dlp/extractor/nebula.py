@@ -86,7 +86,7 @@ class NebulaBaseIE(InfoExtractor):
 
     def _extract_video_metadata(self, episode):
         channel_url = traverse_obj(
-            episode, (('channel_slug', 'class_slug'), {lambda x: urljoin('https://nebula.tv/', x)}), get_all=False)
+            episode, (('channel_slug', 'class_slug'), {urljoin('https://nebula.tv/')}), get_all=False)
         return {
             'id': episode['id'].partition(':')[2],
             **traverse_obj(episode, {
