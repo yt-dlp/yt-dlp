@@ -379,13 +379,15 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         opener.addheaders = []
         return opener
 
-    def _send(self, request):
-        headers = self._merge_headers(request.headers)
+    def _prepare_headers(self, _, headers):
         add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
+
+    def _send(self, request):
+        headers = self._get_headers(request)
         urllib_req = urllib.request.Request(
             url=request.url,
             data=request.data,
-            headers=dict(headers),
+            headers=headers,
             method=request.method,
         )
 
