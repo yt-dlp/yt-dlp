@@ -10,6 +10,7 @@ from ..utils.traversal import traverse_obj
 
 
 class PlVideoIE(InfoExtractor):
+    IE_DESC = 'Платформа'
     _VALID_URL = r'https?://(?:www\.)?plvideo\.ru/(?:watch\?(?:[^#]+&)?v=|shorts/)(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://plvideo.ru/watch?v=owo7vk1sTqzA',
