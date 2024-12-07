@@ -8,28 +8,29 @@ from ..utils import (
     determine_ext,
     float_or_none,
     qualities,
-    remove_end,
-    remove_start,
     try_get,
 )
 
 
 class RTVEALaCartaIE(InfoExtractor):
     IE_NAME = 'rtve.es:alacarta'
-    IE_DESC = 'RTVE a la carta'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(m/)?(alacarta/videos|filmoteca)/[^/]+/[^/]+/(?P<id>\d+)'
+    IE_DESC = 'RTVE a la carta and Play'
+    _VALID_URL = [
+        r'https?://(?:www\.)?rtve\.es/(m/)?(alacarta/videos|filmoteca)/[^/]+/[^/]+/(?P<id>\d+)',
+        r'https?://(?:www\.)?rtve\.es/(m/)?play/videos/[^/]+/[^/]+/(?P<id>\d+)',
+    ]
 
     _TESTS = [{
-        'url': 'http://www.rtve.es/alacarta/videos/balonmano/o-swiss-cup-masculina-final-espana-suecia/2491869/',
-        'md5': '1d49b7e1ca7a7502c56a4bf1b60f1b43',
+        'url': 'http://www.rtve.es/alacarta/videos/la-aventura-del-saber/aventuraentornosilla/3088905/',
+        'md5': 'a964547824359a5753aef09d79fe984b',
         'info_dict': {
-            'id': '2491869',
+            'id': '3088905',
             'ext': 'mp4',
-            'title': 'Balonmano - Swiss Cup masculina. Final: España-Suecia',
-            'duration': 5024.566,
-            'series': 'Balonmano',
+            'title': 'En torno a la silla',
+            'duration': 1216.981,
+            'series': 'La aventura del Saber',
+            'thumbnail': 'https://img2.rtve.es/v/aventuraentornosilla_3088905.png',
         },
-        'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
     }, {
         'note': 'Live stream',
         'url': 'http://www.rtve.es/alacarta/videos/television/24h-live/1694255/',
@@ -38,18 +39,23 @@ class RTVEALaCartaIE(InfoExtractor):
             'ext': 'mp4',
             'title': 're:^24H LIVE [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'is_live': True,
+            'live_status': 'is_live',
+            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
         },
         'params': {
             'skip_download': 'live stream',
         },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
     }, {
         'url': 'http://www.rtve.es/alacarta/videos/servir-y-proteger/servir-proteger-capitulo-104/4236788/',
-        'md5': 'd850f3c8731ea53952ebab489cf81cbf',
+        'md5': 'f3cf0d1902d008c48c793e736706c174',
         'info_dict': {
             'id': '4236788',
             'ext': 'mp4',
-            'title': 'Servir y proteger - Capítulo 104',
-            'duration': 3222.0,
+            'title': 'Episodio 104',
+            'duration': 3222.8,
+            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
+            'series': 'Servir y proteger',
         },
         'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
     }, {
@@ -58,6 +64,18 @@ class RTVEALaCartaIE(InfoExtractor):
     }, {
         'url': 'http://www.rtve.es/filmoteca/no-do/not-1-introduccion-primer-noticiario-espanol/1465256/',
         'only_matching': True,
+    }, {
+        'url': 'https://www.rtve.es/play/videos/saber-vivir/07-07-24/16177116/',
+        'md5': '9eebcf6e8d6306c3b7c46e86a0115f55',
+        'info_dict': {
+            'id': '16177116',
+            'ext': 'mp4',
+            'title': 'Saber vivir - 07/07/24',
+            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
+            'duration': 2162.68,
+            'series': 'Saber vivir',
+        },
+        'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
     }]
 
     def _real_initialize(self):
@@ -70,65 +88,86 @@ class RTVEALaCartaIE(InfoExtractor):
     def _decrypt_url(png):
         encrypted_data = io.BytesIO(base64.b64decode(png)[8:])
         while True:
-            length = struct.unpack('!I', encrypted_data.read(4))[0]
+            length_data = encrypted_data.read(4)
+            length = struct.unpack('!I', length_data)[0]
             chunk_type = encrypted_data.read(4)
             if chunk_type == b'IEND':
                 break
             data = encrypted_data.read(length)
             if chunk_type == b'tEXt':
-                alphabet_data, text = data.split(b'\0')
-                quality, url_data = text.split(b'%%')
-                alphabet = []
-                e = 0
-                d = 0
-                for l in alphabet_data.decode('iso-8859-1'):
-                    if d == 0:
-                        alphabet.append(l)
-                        d = e = (e + 1) % 4
-                    else:
-                        d -= 1
-                url = ''
-                f = 0
-                e = 3
-                b = 1
-                for letter in url_data.decode('iso-8859-1'):
-                    if f == 0:
-                        l = int(letter) * 10
-                        f = 1
-                    else:
-                        if e == 0:
-                            l += int(letter)
-                            url += alphabet[l]
-                            e = (b + 3) % 4
-                            f = 0
-                            b += 1
-                        else:
-                            e -= 1
+                if b'%%' in data:
+                    alphabet_data, text = data.split(b'\0')
+                    quality, url_data = text.split(b'%%')
+                    alphabet = RTVEALaCartaIE._get_alfabet(alphabet_data)
+                    url = RTVEALaCartaIE._get_url(alphabet, url_data)
+                    quality_str = quality.decode()
+                else:
+                    data = bytes(filter(None, data))
+                    alphabet_data, url_data = data.split(b'#')
+                    alphabet = RTVEALaCartaIE._get_alfabet(alphabet_data)
 
-                yield quality.decode(), url
+                    url = RTVEALaCartaIE._get_url(alphabet, url_data)
+                    quality_str = ''
+                yield quality_str, url
             encrypted_data.read(4)  # CRC
 
-    def _extract_png_formats(self, video_id):
-        png = self._download_webpage(
-            f'http://www.rtve.es/ztnr/movil/thumbnail/{self._manager}/videos/{video_id}.png',
-            video_id, 'Downloading url information', query={'q': 'v2'})
-        q = qualities(['Media', 'Alta', 'HQ', 'HD_READY', 'HD_FULL'])
-        formats = []
-        for quality, video_url in self._decrypt_url(png):
-            ext = determine_ext(video_url)
-            if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    video_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id='hls', fatal=False))
-            elif ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    video_url, video_id, 'dash', fatal=False))
+    @staticmethod
+    def _get_url(alphabet, url_data):
+        url = ''
+        f = 0
+        e = 3
+        b = 1
+        for letter in url_data.decode('iso-8859-1'):
+            if f == 0:
+                l = int(letter) * 10
+                f = 1
             else:
-                formats.append({
-                    'format_id': quality,
-                    'quality': q(quality),
-                    'url': video_url,
-                })
+                if e == 0:
+                    l += int(letter)
+                    url += alphabet[l]
+                    e = (b + 3) % 4
+                    f = 0
+                    b += 1
+                else:
+                    e -= 1
+        return url
+
+    @staticmethod
+    def _get_alfabet(alphabet_data):
+        alphabet = []
+        e = 0
+        d = 0
+        for l in alphabet_data.decode('iso-8859-1'):
+            if d == 0:
+                alphabet.append(l)
+                d = e = (e + 1) % 4
+            else:
+                d -= 1
+        return alphabet
+
+    def _extract_png_formats(self, video_id):
+        formats = []
+        q = qualities(['Media', 'Alta', 'HQ', 'HD_READY', 'HD_FULL'])
+        for manager in (self._manager, 'rtveplayw'):
+            png = self._download_webpage(
+                f'http://www.rtve.es/ztnr/movil/thumbnail/{manager}/videos/{video_id}.png',
+                video_id, 'Downloading url information', query={'q': 'v2'})
+
+            for quality, video_url in self._decrypt_url(png):
+                ext = determine_ext(video_url)
+                if ext == 'm3u8':
+                    formats.extend(self._extract_m3u8_formats(
+                        video_url, video_id, 'mp4', 'm3u8_native',
+                        m3u8_id='hls', fatal=False))
+                elif ext == 'mpd':
+                    formats.extend(self._extract_mpd_formats(
+                        video_url, video_id, 'dash', fatal=False))
+                else:
+                    formats.append({
+                        'format_id': quality,
+                        'quality': q(quality),
+                        'url': video_url,
+                    })
         return formats
 
     def _real_extract(self, url):
@@ -141,10 +180,8 @@ class RTVEALaCartaIE(InfoExtractor):
         title = info['title'].strip()
         formats = self._extract_png_formats(video_id)
 
-        subtitles = None
-        sbt_file = info.get('sbtFile')
-        if sbt_file:
-            subtitles = self.extract_subtitles(video_id, sbt_file)
+        sbt_file = f'https://api2.rtve.es/api/videos/{video_id}/subtitulos.json'
+        subtitles = self.extract_subtitles(video_id, sbt_file)
 
         is_live = info.get('live') is True
 
@@ -161,7 +198,7 @@ class RTVEALaCartaIE(InfoExtractor):
 
     def _get_subtitles(self, video_id, sub_file):
         subs = self._download_json(
-            sub_file + '.json', video_id,
+            sub_file, video_id,
             'Downloading subtitles info')['page']['items']
         return dict(
             (s['lang'], [{'ext': 'vtt', 'url': s['src']}])
@@ -180,7 +217,6 @@ class RTVEAudioIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
             'id': '5889192',
             'ext': 'mp3',
             'title': 'Códigos informáticos',
-            'thumbnail': r're:https?://.+/1598856591583.jpg',
             'duration': 349.440,
             'series': 'A hombros de gigantes',
         },
@@ -259,14 +295,15 @@ class RTVEInfantilIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?rtve\.es/infantil/serie/[^/]+/video/[^/]+/(?P<id>[0-9]+)/'
 
     _TESTS = [{
-        'url': 'http://www.rtve.es/infantil/serie/cleo/video/maneras-vivir/3040283/',
-        'md5': '5747454717aedf9f9fdf212d1bcfc48d',
+        'url': 'https://www.rtve.es/infantil/serie/agus-lui-churros-crafts/video/gusano/7048976/',
+        'md5': '7da8391b203a2d9cb665f11fae025e72',
         'info_dict': {
-            'id': '3040283',
+            'id': '7048976',
             'ext': 'mp4',
-            'title': 'Maneras de vivir',
-            'thumbnail': r're:https?://.+/1426182947956\.JPG',
-            'duration': 357.958,
+            'title': 'Gusano',
+            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
+            'duration': 292.86,
+            'series': 'Agus & Lui: Churros y Crafts',
         },
         'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
     }]
@@ -282,11 +319,13 @@ class RTVELiveIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
         'info_dict': {
             'id': 'la-1',
             'ext': 'mp4',
-            'title': 're:^La 1 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'title': str,
+            'live_status': 'is_live',
         },
         'params': {
             'skip_download': 'live stream',
         },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
     }]
 
     def _real_extract(self, url):
@@ -294,19 +333,18 @@ class RTVELiveIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
         video_id = mobj.group('id')
 
         webpage = self._download_webpage(url, video_id)
-        title = remove_end(self._og_search_title(webpage), ' en directo en RTVE.es')
-        title = remove_start(title, 'Estoy viendo ')
+        title = self._html_extract_title(webpage)
 
-        vidplayer_id = self._search_regex(
-            (r'playerId=player([0-9]+)',
-             r'class=["\'].*?\blive_mod\b.*?["\'][^>]+data-assetid=["\'](\d+)',
-             r'data-id=["\'](\d+)'),
-            webpage, 'internal video ID')
+        data_setup = self._search_regex(
+            r'<div[^>]+class="[^"]*videoPlayer[^"]*"[^>]*data-setup=\'([^\']*)\'',
+            webpage, 'data_setup',
+        )
+        data_setup = self._parse_json(data_setup, video_id)
 
         return {
             'id': video_id,
             'title': title,
-            'formats': self._extract_png_formats(vidplayer_id),
+            'formats': self._extract_png_formats(data_setup.get('idAsset')),
             'is_live': True,
         }
 
@@ -316,12 +354,14 @@ class RTVETelevisionIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rtve\.es/television/[^/]+/[^/]+/(?P<id>\d+).shtml'
 
     _TEST = {
-        'url': 'http://www.rtve.es/television/20160628/revolucion-del-movil/1364141.shtml',
+        'url': 'https://www.rtve.es/television/20091103/video-inedito-del-8o-programa/299020.shtml',
         'info_dict': {
-            'id': '3069778',
+            'id': '572515',
             'ext': 'mp4',
-            'title': 'Documentos TV - La revolución del móvil',
-            'duration': 3496.948,
+            'title': 'Clase inédita',
+            'duration': 335.817,
+            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
+            'series': 'El coro de la cárcel',
         },
         'params': {
             'skip_download': True,
@@ -332,11 +372,8 @@ class RTVETelevisionIE(InfoExtractor):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
 
-        alacarta_url = self._search_regex(
-            r'data-location="alacarta_videos"[^<]+url&quot;:&quot;(http://www\.rtve\.es/alacarta.+?)&',
-            webpage, 'alacarta url', default=None)
-        if alacarta_url is None:
-            raise ExtractorError(
-                'The webpage doesn\'t contain any video', expected=True)
+        play_url = self._html_search_meta('contentUrl', webpage)
+        if play_url is None:
+            raise ExtractorError('The webpage doesn\'t contain any video', expected=True)
 
-        return self.url_result(alacarta_url, ie=RTVEALaCartaIE.ie_key())
+        return self.url_result(play_url, ie=RTVEALaCartaIE.ie_key())
