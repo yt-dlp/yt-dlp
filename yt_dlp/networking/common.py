@@ -257,7 +257,8 @@ class RequestHandler(abc.ABC):
         )
 
     def _merge_headers(self, request_headers):
-        return HTTPHeaderDict(self.headers, request_headers)
+        header_type = type(request_headers) if isinstance(request_headers, HTTPHeaderDict) else HTTPHeaderDict
+        return header_type(self.headers, request_headers)
 
     def _calculate_timeout(self, request):
         return float(request.extensions.get('timeout') or self.timeout)
