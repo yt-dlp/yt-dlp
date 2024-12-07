@@ -36,10 +36,6 @@ class NetEaseMusicBaseIE(InfoExtractor):
     _API_BASE = 'http://music.163.com/api/'
     _GEO_BYPASS = False
 
-    @staticmethod
-    def _kilo_or_none(value):
-        return int_or_none(value, scale=1000)
-
     def _create_eapi_cipher(self, api_path, query_body, cookies):
         request_text = json.dumps({**query_body, 'header': cookies}, separators=(',', ':'))
 
@@ -101,7 +97,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 'vcodec': 'none',
                 **traverse_obj(song, {
                     'ext': ('type', {str}),
-                    'abr': ('br', {self._kilo_or_none}),
+                    'abr': ('br', {int_or_none(scale=1000)}),
                     'filesize': ('size', {int_or_none}),
                 }),
             })
@@ -282,9 +278,9 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             **lyric_data,
             **traverse_obj(info, {
                 'title': ('name', {str}),
-                'timestamp': ('album', 'publishTime', {self._kilo_or_none}),
+                'timestamp': ('album', 'publishTime', {int_or_none(scale=1000)}),
                 'thumbnail': ('album', 'picUrl', {url_or_none}),
-                'duration': ('duration', {self._kilo_or_none}),
+                'duration': ('duration', {int_or_none(scale=1000)}),
                 'album': ('album', 'name', {str}),
                 'average_rating': ('score', {int_or_none}),
             }),
@@ -440,7 +436,7 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
             'tags': ('tags', ..., {str}),
             'uploader': ('creator', 'nickname', {str}),
             'uploader_id': ('creator', 'userId', {str_or_none}),
-            'timestamp': ('updateTime', {self._kilo_or_none}),
+            'timestamp': ('updateTime', {int_or_none(scale=1000)}),
         }))
         if traverse_obj(info, ('playlist', 'specialType')) == 10:
             metainfo['title'] = f'{metainfo.get("title")} {strftime_or_none(metainfo.get("timestamp"), "%Y-%m-%d")}'
@@ -517,10 +513,10 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
             'creators': traverse_obj(info, ('artists', ..., 'name')) or [info.get('artistName')],
             **traverse_obj(info, {
                 'title': ('name', {str}),
-                'description': (('desc', 'briefDesc'), {str}, {lambda x: x or None}),
+                'description': (('desc', 'briefDesc'), {str}, filter),
                 'upload_date': ('publishTime', {unified_strdate}),
                 'thumbnail': ('cover', {url_or_none}),
-                'duration': ('duration', {self._kilo_or_none}),
+                'duration': ('duration', {int_or_none(scale=1000)}),
                 'view_count': ('playCount', {int_or_none}),
                 'like_count': ('likeCount', {int_or_none}),
                 'comment_count': ('commentCount', {int_or_none}),
@@ -588,7 +584,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'description': ('description', {str}),
             'creator': ('dj', 'brand', {str}),
             'thumbnail': ('coverUrl', {url_or_none}),
-            'timestamp': ('createTime', {self._kilo_or_none}),
+            'timestamp': ('createTime', {int_or_none(scale=1000)}),
         })
 
         if not self._yes_playlist(
@@ -598,7 +594,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             return {
                 'id': str(info['mainSong']['id']),
                 'formats': formats,
-                'duration': traverse_obj(info, ('mainSong', 'duration', {self._kilo_or_none})),
+                'duration': traverse_obj(info, ('mainSong', 'duration', {int_or_none(scale=1000)})),
                 **metainfo,
             }
 

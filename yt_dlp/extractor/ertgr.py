@@ -17,6 +17,7 @@ from ..utils import (
     url_or_none,
     variadic,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ERTFlixBaseIE(InfoExtractor):
@@ -74,29 +75,28 @@ class ERTFlixCodenameIE(ERTFlixBaseIE):
 
     def _extract_formats_and_subs(self, video_id):
         media_info = self._call_api(video_id, codename=video_id)
-        formats, subs = [], {}
-        for media_file in try_get(media_info, lambda x: x['MediaFiles'], list) or []:
-            for media in try_get(media_file, lambda x: x['Formats'], list) or []:
-                fmt_url = url_or_none(try_get(media, lambda x: x['Url']))
-                if not fmt_url:
-                    continue
-                ext = determine_ext(fmt_url)
-                if ext == 'm3u8':
-                    formats_, subs_ = self._extract_m3u8_formats_and_subtitles(
-                        fmt_url, video_id, m3u8_id='hls', ext='mp4', fatal=False)
-                elif ext == 'mpd':
-                    formats_, subs_ = self._extract_mpd_formats_and_subtitles(
-                        fmt_url, video_id, mpd_id='dash', fatal=False)
-                else:
-                    formats.append({
-                        'url': fmt_url,
-                        'format_id': str_or_none(media.get('Id')),
-                    })
-                    continue
-                formats.extend(formats_)
-                self._merge_subtitles(subs_, target=subs)
+        formats, subtitles = [], {}
+        for media in traverse_obj(media_info, (
+                'MediaFiles', lambda _, v: v['RoleCodename'] == 'main',
+                'Formats', lambda _, v: url_or_none(v['Url']))):
+            fmt_url = media['Url']
+            ext = determine_ext(fmt_url)
+            if ext == 'm3u8':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    fmt_url, video_id, m3u8_id='hls', ext='mp4', fatal=False)
+            elif ext == 'mpd':
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    fmt_url, video_id, mpd_id='dash', fatal=False)
+            else:
+                formats.append({
+                    'url': fmt_url,
+                    'format_id': str_or_none(media.get('Id')),
+                })
+                continue
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
-        return formats, subs
+        return formats, subtitles
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
