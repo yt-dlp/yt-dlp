@@ -63,7 +63,7 @@ register_plugin_spec(PluginSpec(
 _default_pps = {
     name: value
     for name, value in globals().items()
-    if name.endswith('PP') or name in ('PostProcessor', 'FFmpegPostProcessor')
+    if name.endswith('PP') or name in ('FFmpegPostProcessor', 'PostProcessor')
 }
 postprocessors.value.update(_default_pps)
 

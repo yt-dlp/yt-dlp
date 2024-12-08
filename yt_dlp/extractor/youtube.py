@@ -78,53 +78,58 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20240726.00.00',
+                'clientVersion': '2.20241126.01.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'REQUIRE_PO_TOKEN': True,
+        'SUPPORTS_COOKIES': True,
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
     'web_safari': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20240726.00.00',
+                'clientVersion': '2.20241126.01.00',
                 'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'REQUIRE_PO_TOKEN': True,
+        'SUPPORTS_COOKIES': True,
     },
     'web_embedded': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
-                'clientVersion': '1.20240723.01.00',
+                'clientVersion': '1.20241201.00.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
+        'SUPPORTS_COOKIES': True,
     },
     'web_music': {
         'INNERTUBE_HOST': 'music.youtube.com',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_REMIX',
-                'clientVersion': '1.20240724.00.00',
+                'clientVersion': '1.20241127.01.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
+        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     'web_creator': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_CREATOR',
-                'clientVersion': '1.20240723.03.00',
+                'clientVersion': '1.20241203.01.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
         'REQUIRE_AUTH': True,
+        'SUPPORTS_COOKIES': True,
     },
     'android': {
         'INNERTUBE_CONTEXT': {
@@ -157,6 +162,7 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
+        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     'android_creator': {
@@ -191,6 +197,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 28,
         'REQUIRE_JS_PLAYER': False,
+        'SUPPORTS_COOKIES': True,
     },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
@@ -225,6 +232,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_AUTH': True,
+        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     'ios_creator': {
@@ -249,19 +257,22 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'MWEB',
-                'clientVersion': '2.20240726.01.00',
+                'clientVersion': '2.20241202.07.00',
+                'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
+        'SUPPORTS_COOKIES': True,
     },
     'tv': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'TVHTML5',
-                'clientVersion': '7.20240724.13.00',
+                'clientVersion': '7.20241201.18.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
+        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     # It was previously an age-gate workaround for videos that were `playable_in_embed`
@@ -275,19 +286,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 85,
         'REQUIRE_AUTH': True,
-    },
-    # This client now requires sign-in for every video
-    # It may be able to receive pre-merged video+audio 720p/1080p streams
-    'mediaconnect': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'MEDIA_CONNECT_FRONTEND',
-                'clientVersion': '0.1',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 95,
-        'REQUIRE_JS_PLAYER': False,
-        'REQUIRE_AUTH': True,
+        'SUPPORTS_COOKIES': True,
     },
 }
 
@@ -317,6 +316,7 @@ def build_innertube_clients():
         ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
         ytcfg.setdefault('REQUIRE_PO_TOKEN', False)
         ytcfg.setdefault('REQUIRE_AUTH', False)
+        ytcfg.setdefault('SUPPORTS_COOKIES', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
@@ -1357,6 +1357,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
     _DEFAULT_CLIENTS = ('ios', 'mweb')
+    _DEFAULT_AUTHED_CLIENTS = ('web_creator', 'mweb')
 
     _GEO_BYPASS = False
 
@@ -2925,7 +2926,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Obtain from MPD's maximum seq value
             old_mpd_url = mpd_url
             last_error = ctx.pop('last_error', None)
-            expire_fast = immediate or last_error and isinstance(last_error, HTTPError) and last_error.status == 403
+            expire_fast = immediate or (last_error and isinstance(last_error, HTTPError) and last_error.status == 403)
             mpd_url, stream_number, is_live = (mpd_feed(format_id, 5 if expire_fast else 18000)
                                                or (mpd_url, stream_number, False))
             if not refresh_sequence:
@@ -3118,19 +3119,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self.to_screen('Extracted signature function:\n' + code)
 
     def _parse_sig_js(self, jscode):
+        # Examples where `sig` is funcname:
+        # sig=function(a){a=a.split(""); ... ;return a.join("")};
+        # ;c&&(c=sig(decodeURIComponent(c)),a.set(b,encodeURIComponent(c)));return a};
+        # {var l=f,m=h.sp,n=sig(decodeURIComponent(h.s));l.set(m,encodeURIComponent(n))}
+        # sig=function(J){J=J.split(""); ... ;return J.join("")};
+        # ;N&&(N=sig(decodeURIComponent(N)),J.set(R,encodeURIComponent(N)));return J};
+        # {var H=u,k=f.sp,v=sig(decodeURIComponent(f.s));H.set(k,encodeURIComponent(v))}
         funcname = self._search_regex(
-            (r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
+            (r'\b(?P<var>[a-zA-Z0-9$]+)&&\((?P=var)=(?P<sig>[a-zA-Z0-9$]{2,})\(decodeURIComponent\((?P=var)\)\)',
+             r'(?P<sig>[a-zA-Z0-9$]+)\s*=\s*function\(\s*(?P<arg>[a-zA-Z0-9$]+)\s*\)\s*{\s*(?P=arg)\s*=\s*(?P=arg)\.split\(\s*""\s*\)\s*;\s*[^}]+;\s*return\s+(?P=arg)\.join\(\s*""\s*\)',
+             r'(?:\b|[^a-zA-Z0-9$])(?P<sig>[a-zA-Z0-9$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)(?:;[a-zA-Z0-9$]{2}\.[a-zA-Z0-9$]{2}\(a,\d+\))?',
+             # Old patterns
+             r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\bm=(?P<sig>[a-zA-Z0-9$]{2,})\(decodeURIComponent\(h\.s\)\)',
-             r'\bc&&\(c=(?P<sig>[a-zA-Z0-9$]{2,})\(decodeURIComponent\(c\)\)',
-             r'(?:\b|[^a-zA-Z0-9$])(?P<sig>[a-zA-Z0-9$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)(?:;[a-zA-Z0-9$]{2}\.[a-zA-Z0-9$]{2}\(a,\d+\))?',
-             r'(?P<sig>[a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)',
              # Obsolete patterns
              r'("|\')signature\1\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\.sig\|\|(?P<sig>[a-zA-Z0-9$]+)\(',
              r'yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\('),
             jscode, 'Initial JS player signature function name', group='sig')
 
@@ -3204,6 +3212,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # *  a.D&&(b="nn"[+a.D],c=a.get(b))&&(c=narray[idx](c),a.set(b,c),narray.length||nfunc("")
         # *  a.D&&(PL(a),b=a.j.n||null)&&(b=narray[0](b),a.set("n",b),narray.length||nfunc("")
         # *  a.D&&(b="nn"[+a.D],vL(a),c=a.j[b]||null)&&(c=narray[idx](c),a.set(b,c),narray.length||nfunc("")
+        # *  J.J="";J.url="";J.Z&&(R="nn"[+J.Z],mW(J),N=J.K[R]||null)&&(N=narray[idx](N),J.set(R,N))}};
         funcname, idx = self._search_regex(
             r'''(?x)
             (?:
@@ -3220,7 +3229,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     )\)&&\(c=|
                 \b(?P<var>[a-zA-Z0-9_$]+)=
             )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
-            (?(var),[a-zA-Z0-9_$]+\.set\("n"\,(?P=var)\),(?P=nfunc)\.length)''',
+            (?(var),[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,(?P=var)\))''',
             jscode, 'n function name', group=('nfunc', 'idx'), default=(None, None))
         if not funcname:
             self.report_warning(join_nonempty(
@@ -3229,7 +3238,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return self._search_regex(
                 r'''(?xs)
                 ;\s*(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
-                \s*\{(?:(?!};).)+?["']enhanced_except_''',
+                \s*\{(?:(?!};).)+?return\s*(?P<q>["'])[\w-]+_w8_(?P=q)\s*\+\s*[a-zA-Z0-9_$]+''',
                 jscode, 'Initial JS player n function name', group='name')
         elif not idx:
             return funcname
@@ -3237,6 +3246,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return json.loads(js_to_json(self._search_regex(
             rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])\s*[,;]', jscode,
             f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
+
+    def _fixup_n_function_code(self, argnames, code):
+        return argnames, re.sub(
+            rf';\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(["\'])undefined\1\s*\)\s*return\s+{argnames[0]};',
+            ';', code)
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
@@ -3249,7 +3263,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         func_name = self._extract_n_function_name(jscode, player_url=player_url)
 
-        func_code = jsi.extract_function_code(func_name)
+        # XXX: Workaround for the `typeof` gotcha
+        func_code = self._fixup_n_function_code(*jsi.extract_function_code(func_name))
 
         self.cache.store('youtube-nsig', player_id, func_code)
         return jsi, player_id, func_code
@@ -3265,7 +3280,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             except Exception as e:
                 raise JSInterpreter.Exception(traceback.format_exc(), cause=e)
 
-            if ret.startswith('enhanced_except_'):
+            if ret.startswith('enhanced_except_') or ret.endswith(s):
                 raise JSInterpreter.Exception('Signature function returned an exception')
             return ret
 
@@ -3823,12 +3838,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
         excluded_clients = []
+        default_clients = self._DEFAULT_AUTHED_CLIENTS if self.is_authenticated else self._DEFAULT_CLIENTS
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
         for client in self._configuration_arg('player_client'):
             if client == 'default':
-                requested_clients.extend(self._DEFAULT_CLIENTS)
+                requested_clients.extend(default_clients)
             elif client == 'all':
                 requested_clients.extend(allowed_clients)
             elif client.startswith('-'):
@@ -3838,7 +3854,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             else:
                 requested_clients.append(client)
         if not requested_clients:
-            requested_clients.extend(self._DEFAULT_CLIENTS)
+            requested_clients.extend(default_clients)
         for excluded_client in excluded_clients:
             if excluded_client in requested_clients:
                 requested_clients.remove(excluded_client)
@@ -3850,8 +3866,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 _, base_client, variant = _split_innertube_client(requested_client)
                 music_client = f'{base_client}_music' if base_client != 'mweb' else 'web_music'
                 if variant != 'music' and music_client in INNERTUBE_CLIENTS:
-                    if not INNERTUBE_CLIENTS[music_client]['REQUIRE_AUTH'] or self.is_authenticated:
+                    client_info = INNERTUBE_CLIENTS[music_client]
+                    if not client_info['REQUIRE_AUTH'] or (self.is_authenticated and client_info['SUPPORTS_COOKIES']):
                         requested_clients.append(music_client)
+
+        if self.is_authenticated:
+            unsupported_clients = [
+                client for client in requested_clients if not INNERTUBE_CLIENTS[client]['SUPPORTS_COOKIES']
+            ]
+            for client in unsupported_clients:
+                self.report_warning(f'Skipping client "{client}" since it does not support cookies', only_once=True)
+                requested_clients.remove(client)
 
         return orderedSet(requested_clients)
 
@@ -3958,6 +3983,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else:
                     prs.append(pr)
 
+            ''' This code is pointless while web_creator is in _DEFAULT_AUTHED_CLIENTS
             # EU countries require age-verification for accounts to access age-restricted videos
             # If account is not age-verified, _is_agegated() will be truthy for non-embedded clients
             if self.is_authenticated and self._is_agegated(pr):
@@ -3965,9 +3991,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: This video is age-restricted and YouTube is requiring '
                     'account age-verification; some formats may be missing', only_once=True)
                 # web_creator can work around the age-verification requirement
-                # android_vr and mediaconnect may also be able to work around age-verification
+                # android_vr may also be able to work around age-verification
                 # tv_embedded may(?) still work around age-verification if the video is embeddable
                 append_client('web_creator')
+            '''
 
         prs.extend(deprioritized_prs)
 
@@ -3983,8 +4010,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return prs, player_url
 
     def _needs_live_processing(self, live_status, duration):
-        if (live_status == 'is_live' and self.get_param('live_from_start')
-                or live_status == 'post_live' and (duration or 0) > 2 * 3600):
+        if ((live_status == 'is_live' and self.get_param('live_from_start'))
+                or (live_status == 'post_live' and (duration or 0) > 2 * 3600)):
             return live_status
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, live_status, duration):
@@ -4180,7 +4207,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         skip_manifests = set(self._configuration_arg('skip'))
         if (not self.get_param('youtube_include_hls_manifest', True)
                 or needs_live_processing == 'is_live'  # These will be filtered out by YoutubeDL anyway
-                or needs_live_processing and skip_bad_formats):
+                or (needs_live_processing and skip_bad_formats)):
             skip_manifests.add('hls')
 
         if not self.get_param('youtube_include_dash_manifest', True):
@@ -4378,14 +4405,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             expected_type=dict)
 
         translated_title = self._get_text(microformats, (..., 'title'))
-        video_title = (self._preferred_lang and translated_title
+        video_title = ((self._preferred_lang and translated_title)
                        or get_first(video_details, 'title')  # primary
                        or translated_title
                        or search_meta(['og:title', 'twitter:title', 'title']))
         translated_description = self._get_text(microformats, (..., 'description'))
         original_description = get_first(video_details, 'shortDescription')
         video_description = (
-            self._preferred_lang and translated_description
+            (self._preferred_lang and translated_description)
             # If original description is blank, it will be an empty string.
             # Do not prefer translated description in this case.
             or original_description if original_description is not None else translated_description)
@@ -6825,7 +6852,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         tab_url = urljoin(base_url, traverse_obj(
             tab, ('endpoint', 'commandMetadata', 'webCommandMetadata', 'url')))
 
-        tab_id = (tab_url and self._get_url_mobj(tab_url)['tab'][1:]
+        tab_id = ((tab_url and self._get_url_mobj(tab_url)['tab'][1:])
                   or traverse_obj(tab, 'tabIdentifier', expected_type=str))
         if tab_id:
             return {
