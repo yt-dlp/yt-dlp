@@ -4,7 +4,6 @@ import shutil
 import sys
 import unittest
 from pathlib import Path
-from yt_dlp.utils import YoutubeDLError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEST_DATA_DIR = Path(os.path.dirname(os.path.abspath(__file__)), 'testdata')
@@ -34,6 +33,8 @@ from yt_dlp._globals import (
     plugin_specs,
     plugins_enabled,
 )
+
+from yt_dlp.utils import YoutubeDLError
 
 
 EXTRACTOR_PLUGIN_SPEC = PluginSpec(
