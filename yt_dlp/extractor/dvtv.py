@@ -162,7 +162,7 @@ class DVTVIE(InfoExtractor):
         items = re.findall(r'(?s)playlist\.push\(({.+?})\);', webpage)
         if items:
             return self.playlist_result(
-                [self._parse_video_metadata(i, video_id, timestamp) for i in items],
+                (self._parse_video_metadata(i, video_id, timestamp) for i in items),
                 video_id, self._html_search_meta('twitter:title', webpage))
 
         item = self._search_regex(
