@@ -177,8 +177,6 @@ from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
 if os.name == 'nt':
     import ctypes
 
-__all__ = ['YoutubeDL']
-
 
 def _catch_unsafe_extension_error(func):
     @functools.wraps(func)
