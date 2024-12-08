@@ -61,7 +61,8 @@ class NRKBaseIE(InfoExtractor):
         message = data.get('endUserMessage') or MESSAGES.get(message_type, message_type)
         raise ExtractorError(f'{self.IE_NAME} said: {message}', expected=True)
 
-    def _call_api(self, path, video_id, item=None, note=None, fatal=True, query=None):
+    def _call_api(self, path, video_id, item=None, note=None, fatal=True, query={}):
+        query['eea-portability'] = 'true'
         return self._download_json(
             urljoin('https://psapi.nrk.no/', path),
             video_id, note or f'Downloading {item} JSON',
@@ -203,7 +204,7 @@ class NRKIE(NRKBaseIE):
         alt_title = titles.get('subtitle')
 
         description = preplay.get('description')
-        # Use m3u8 vod dueration for NRKSkoleIE because of incorrect duration in metadata
+        # Use m3u8 vod duration for NRKSkoleIE because of incorrect duration in metadata
         duration = parse_duration(playable.get('duration')) or parse_duration(data.get('duration')) or self._extract_m3u8_vod_duration(formats[0]['url'], video_id)
 
         thumbnails = []
