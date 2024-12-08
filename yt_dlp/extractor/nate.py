@@ -29,7 +29,7 @@ class NateIE(InfoExtractor):
             'uploader_id': '3606',
             'tags': 'count:59',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://tv.nate.com/clip/4300566',
         'info_dict': {
@@ -47,7 +47,7 @@ class NateIE(InfoExtractor):
             'uploader_id': '27987',
             'tags': 'count:20',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     _QUALITY = {
@@ -60,8 +60,8 @@ class NateIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        video_data = self._download_json(f'https://tv.nate.com/api/v1/clip/{id}', id)
+        video_id = self._match_id(url)
+        video_data = self._download_json(f'https://tv.nate.com/api/v1/clip/{video_id}', video_id)
         formats = [{
             'format_id': f_url[-2:],
             'url': f_url,
@@ -69,7 +69,7 @@ class NateIE(InfoExtractor):
             'quality': int_or_none(f_url[-2:]),
         } for f_url in video_data.get('smcUriList') or []]
         return {
-            'id': id,
+            'id': video_id,
             'title': video_data.get('clipTitle'),
             'description': video_data.get('synopsis'),
             'thumbnail': video_data.get('contentImg'),
@@ -102,19 +102,19 @@ class NateProgramIE(InfoExtractor):
         },
     }]
 
-    def _entries(self, id):
+    def _entries(self, playlist_id):
         for page_num in itertools.count(1):
-            program_data = self._download_json(f'https://tv.nate.com/api/v1/program/{id}/clip/ranking?size=20&page={page_num}',
-                                               id, note=f'Downloading page {page_num}')
+            program_data = self._download_json(
+                f'https://tv.nate.com/api/v1/program/{playlist_id}/clip/ranking?size=20&page={page_num}',
+                playlist_id, note=f'Downloading page {page_num}')
             for clip in program_data.get('content') or []:
                 clip_id = clip.get('clipSeq')
                 if clip_id:
                     yield self.url_result(
-                        'https://tv.nate.com/clip/%s' % clip_id,
-                        ie=NateIE.ie_key(), video_id=clip_id)
+                        f'https://tv.nate.com/clip/{clip_id}', NateIE, playlist_id)
             if program_data.get('last'):
                 break
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        return self.playlist_result(self._entries(id), playlist_id=id)
+        playlist_id = self._match_id(url)
+        return self.playlist_result(self._entries(playlist_id), playlist_id=playlist_id)

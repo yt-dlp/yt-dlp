@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -21,11 +18,11 @@ class LyndaBaseIE(InfoExtractor):
 
     @staticmethod
     def _check_error(json_string, key_or_keys):
-        keys = [key_or_keys] if isinstance(key_or_keys, compat_str) else key_or_keys
+        keys = [key_or_keys] if isinstance(key_or_keys, str) else key_or_keys
         for key in keys:
             error = json_string.get(key)
             if error:
-                raise ExtractorError('Unable to login: %s' % error, expected=True)
+                raise ExtractorError(f'Unable to login: {error}', expected=True)
 
     def _perform_login_step(self, form_html, fallback_action_url, extra_form_data, note, referrer_url):
         action_url = self._search_regex(
@@ -33,7 +30,7 @@ class LyndaBaseIE(InfoExtractor):
             'post url', default=fallback_action_url, group='url')
 
         if not action_url.startswith('http'):
-            action_url = compat_urlparse.urljoin(self._SIGNIN_URL, action_url)
+            action_url = urllib.parse.urljoin(self._SIGNIN_URL, action_url)
 
         form_data = self._hidden_inputs(form_html)
         form_data.update(extra_form_data)
@@ -44,7 +41,7 @@ class LyndaBaseIE(InfoExtractor):
             headers={
                 'Referer': referrer_url,
                 'X-Requested-With': 'XMLHttpRequest',
-            }, expected_status=(418, 500, ))
+            }, expected_status=(418, 500))
 
         self._check_error(response, ('email', 'password', 'ErrorMessage'))
 
@@ -97,8 +94,8 @@ class LyndaIE(LyndaBaseIE):
             'id': '114408',
             'ext': 'mp4',
             'title': 'Using the exercise files',
-            'duration': 68
-        }
+            'duration': 68,
+        },
     }, {
         'url': 'https://www.lynda.com/player/embed/133770?tr=foo=1;bar=g;fizz=rt&fs=0',
         'only_matching': True,
@@ -116,7 +113,7 @@ class LyndaIE(LyndaBaseIE):
 
     def _raise_unavailable(self, video_id):
         self.raise_login_required(
-            'Video %s is only available for members' % video_id)
+            f'Video {video_id} is only available for members')
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -137,8 +134,7 @@ class LyndaIE(LyndaBaseIE):
             query['courseId'] = course_id
 
             play = self._download_json(
-                'https://www.lynda.com/ajax/course/%s/%s/play'
-                % (course_id, video_id), video_id, 'Downloading play JSON')
+                f'https://www.lynda.com/ajax/course/{course_id}/{video_id}/play', video_id, 'Downloading play JSON')
 
             if not play:
                 self._raise_unavailable(video_id)
@@ -154,7 +150,7 @@ class LyndaIE(LyndaBaseIE):
                         continue
                     formats.append({
                         'url': format_url,
-                        'format_id': '%s-%s' % (cdn, format_id) if cdn else format_id,
+                        'format_id': f'{cdn}-{format_id}' if cdn else format_id,
                         'height': int_or_none(format_id),
                     })
 
@@ -174,12 +170,12 @@ class LyndaIE(LyndaBaseIE):
 
         if 'Status' in video:
             raise ExtractorError(
-                'lynda returned error: %s' % video['Message'], expected=True)
+                'lynda returned error: {}'.format(video['Message']), expected=True)
 
         if video.get('HasAccess') is False:
             self._raise_unavailable(video_id)
 
-        video_id = compat_str(video.get('ID') or video_id)
+        video_id = str(video.get('ID') or video_id)
         duration = int_or_none(video.get('DurationInSeconds'))
         title = video['Title']
 
@@ -193,7 +189,7 @@ class LyndaIE(LyndaBaseIE):
                 'width': int_or_none(f.get('Width')),
                 'height': int_or_none(f.get('Height')),
                 'filesize': int_or_none(f.get('FileSize')),
-                'format_id': compat_str(f.get('Resolution')) if f.get('Resolution') else None,
+                'format_id': str(f.get('Resolution')) if f.get('Resolution') else None,
             } for f in fmts if f.get('Url')])
 
         prioritized_streams = video.get('PrioritizedStreams')
@@ -202,7 +198,7 @@ class LyndaIE(LyndaBaseIE):
                 formats.extend([{
                     'url': video_url,
                     'height': int_or_none(format_id),
-                    'format_id': '%s-%s' % (prioritized_stream_id, format_id),
+                    'format_id': f'{prioritized_stream_id}-{format_id}',
                 } for format_id, video_url in prioritized_stream.items()])
 
         self._check_formats(formats, video_id)
@@ -214,18 +210,16 @@ class LyndaIE(LyndaBaseIE):
             'title': title,
             'duration': duration,
             'subtitles': subtitles,
-            'formats': formats
+            'formats': formats,
         }
 
     def _fix_subtitles(self, subs):
         srt = ''
         seq_counter = 0
-        for pos in range(0, len(subs) - 1):
-            seq_current = subs[pos]
+        for seq_current, seq_next in zip(subs, subs[1:]):
             m_current = re.match(self._TIMECODE_REGEX, seq_current['Timecode'])
             if m_current is None:
                 continue
-            seq_next = subs[pos + 1]
             m_next = re.match(self._TIMECODE_REGEX, seq_next['Timecode'])
             if m_next is None:
                 continue
@@ -234,12 +228,12 @@ class LyndaIE(LyndaBaseIE):
             text = seq_current['Caption'].strip()
             if text:
                 seq_counter += 1
-                srt += '%s\r\n%s --> %s\r\n%s\r\n\r\n' % (seq_counter, appear_time, disappear_time, text)
+                srt += f'{seq_counter}\r\n{appear_time} --> {disappear_time}\r\n{text}\r\n\r\n'
         if srt:
             return srt
 
     def _get_subtitles(self, video_id):
-        url = 'https://www.lynda.com/ajax/player?videoId=%s&type=transcript' % video_id
+        url = f'https://www.lynda.com/ajax/player?videoId={video_id}&type=transcript'
         subs = self._download_webpage(
             url, video_id, 'Downloading subtitles JSON', fatal=False)
         if not subs or 'Status="NotFound"' in subs:
@@ -274,10 +268,10 @@ class LyndaCourseIE(LyndaBaseIE):
         course_path = mobj.group('coursepath')
         course_id = mobj.group('courseid')
 
-        item_template = 'https://www.lynda.com/%s/%%s-4.html' % course_path
+        item_template = f'https://www.lynda.com/{course_path}/%s-4.html'
 
         course = self._download_json(
-            'https://www.lynda.com/ajax/player?courseId=%s&type=course' % course_id,
+            f'https://www.lynda.com/ajax/player?courseId={course_id}&type=course',
             course_id, 'Downloading course JSON', fatal=False)
 
         if not course:
@@ -295,7 +289,7 @@ class LyndaCourseIE(LyndaBaseIE):
 
         if course.get('Status') == 'NotFound':
             raise ExtractorError(
-                'Course %s does not exist' % course_id, expected=True)
+                f'Course {course_id} does not exist', expected=True)
 
         unaccessible_videos = 0
         entries = []
@@ -316,13 +310,13 @@ class LyndaCourseIE(LyndaBaseIE):
                         'ie_key': LyndaIE.ie_key(),
                         'chapter': chapter.get('Title'),
                         'chapter_number': int_or_none(chapter.get('ChapterIndex')),
-                        'chapter_id': compat_str(chapter.get('ID')),
+                        'chapter_id': str(chapter.get('ID')),
                     })
 
         if unaccessible_videos > 0:
             self.report_warning(
-                '%s videos are only available for members (or paid members) and will not be downloaded. '
-                % unaccessible_videos + self._ACCOUNT_CREDENTIALS_HINT)
+                f'{unaccessible_videos} videos are only available for members (or paid members) '
+                f'and will not be downloaded. {self._ACCOUNT_CREDENTIALS_HINT}')
 
         course_title = course.get('Title')
         course_description = course.get('Description')

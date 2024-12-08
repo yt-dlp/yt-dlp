@@ -73,8 +73,8 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     def _extract_aetn_info(self, domain, filter_key, filter_value, url):
         requestor_id, brand = self._DOMAIN_MAP[domain]
         result = self._download_json(
-            'https://feeds.video.aetnd.com/api/v2/%s/videos' % brand,
-            filter_value, query={'filter[%s]' % filter_key: filter_value})
+            f'https://feeds.video.aetnd.com/api/v2/{brand}/videos',
+            filter_value, query={f'filter[{filter_key}]': filter_value})
         result = traverse_obj(
             result, ('results',
                      lambda k, v: k == 0 and v[filter_key] == filter_value),
@@ -142,7 +142,7 @@ class AENetworksIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
-        'skip': 'Geo-restricted - This content is not available in your location.'
+        'skip': 'Geo-restricted - This content is not available in your location.',
     }, {
         'url': 'http://www.aetv.com/shows/duck-dynasty/season-9/episode-1',
         'info_dict': {
@@ -171,28 +171,28 @@ class AENetworksIE(AENetworksBaseIE):
         'skip': 'This video is only available for users of participating TV providers.',
     }, {
         'url': 'http://www.fyi.tv/shows/tiny-house-nation/season-1/episode-8',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'http://www.mylifetime.com/shows/project-runway-junior/season-1/episode-6',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'http://www.mylifetime.com/movies/center-stage-on-pointe/full-movie',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://watch.lifetimemovieclub.com/movies/10-year-reunion/full-movie',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'http://www.history.com/specials/sniper-into-the-kill-zone/full-special',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.aetv.com/specials/hunting-jonbenets-killer-the-untold-story/preview-hunting-jonbenets-killer-the-untold-story',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'http://www.history.com/videos/history-of-valentines-day',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://play.aetv.com/shows/duck-dynasty/videos/best-of-duck-dynasty-getting-quack-in-shape',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -209,14 +209,14 @@ class AENetworksListBaseIE(AENetworksBaseIE):
   %s(slug: "%s") {
     %s
   }
-}''' % (resource, slug, fields),
+}''' % (resource, slug, fields),  # noqa: UP031
             }))['data'][resource]
 
     def _real_extract(self, url):
         domain, slug = self._match_valid_url(url).groups()
         _, brand = self._DOMAIN_MAP[domain]
         playlist = self._call_api(self._RESOURCE, slug, brand, self._FIELDS)
-        base_url = 'http://watch.%s' % domain
+        base_url = f'http://watch.{domain}'
 
         entries = []
         for item in (playlist.get(self._ITEMS_KEY) or []):
@@ -248,10 +248,10 @@ class AENetworksCollectionIE(AENetworksListBaseIE):
         'playlist_mincount': 12,
     }, {
         'url': 'https://watch.historyvault.com/shows/america-the-story-of-us-2/season-1/list/america-the-story-of-us',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.historyvault.com/collections/mysteryquest',
-        'only_matching': True
+        'only_matching': True,
     }]
     _RESOURCE = 'list'
     _ITEMS_KEY = 'items'
@@ -309,7 +309,7 @@ class HistoryTopicIE(AENetworksBaseIE):
         'info_dict': {
             'id': '40700995724',
             'ext': 'mp4',
-            'title': "History of Valentine’s Day",
+            'title': 'History of Valentine’s Day',
             'description': 'md5:7b57ea4829b391995b405fa60bd7b5f7',
             'timestamp': 1375819729,
             'upload_date': '20130806',
@@ -364,6 +364,6 @@ class BiographyIE(AENetworksBaseIE):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         player_url = self._search_regex(
-            r'<phoenix-iframe[^>]+src="(%s)' % HistoryPlayerIE._VALID_URL,
+            rf'<phoenix-iframe[^>]+src="({HistoryPlayerIE._VALID_URL})',
             webpage, 'player URL')
         return self.url_result(player_url, HistoryPlayerIE.ie_key())

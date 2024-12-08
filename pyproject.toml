@@ -9,10 +9,11 @@ maintainers = [
     {name = "Grub4K", email = "contact@grub4k.xyz"},
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
+    {name = "sepro", email = "sepro@sepr0.com"},
 ]
 description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = [
     "youtube-dl",
     "video-downloader",
@@ -28,11 +29,11 @@ classifiers = [
     "Environment :: Console",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
@@ -40,7 +41,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dynamic = ["version"]
-dependencies = [
+dependencies = []
+
+[project.optional-dependencies]
+default = [
     "brotli; implementation_name=='cpython'",
     "brotlicffi; implementation_name!='cpython'",
     "certifi",
@@ -48,12 +52,12 @@ dependencies = [
     "pycryptodomex",
     "requests>=2.32.2,<3",
     "urllib3>=1.26.17,<3",
-    "websockets>=12.0",
+    "websockets>=13.0",
 ]
-
-[project.optional-dependencies]
-default = []
-curl-cffi = ["curl-cffi==0.5.10; implementation_name=='cpython'"]
+curl-cffi = [
+    "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,<0.7.2; os_name!='nt' and implementation_name=='cpython'",
+]
 secretstorage = [
     "cffi",
     "secretstorage",
@@ -62,7 +66,7 @@ build = [
     "build",
     "hatchling",
     "pip",
-    "setuptools",
+    "setuptools>=71.0.2",  # 71.0.0 broke pyinstaller
     "wheel",
 ]
 dev = [
@@ -72,16 +76,14 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.4.4",
+    "ruff~=0.8.0",
 ]
 test = [
     "pytest~=8.1",
+    "pytest-rerunfailures~=14.0",
 ]
 pyinstaller = [
-    "pyinstaller>=6.7.0",  # for compat with setuptools>=70
-]
-py2exe = [
-    "py2exe>=0.12",
+    "pyinstaller>=6.11.1",  # Windows temp cleanup fixed in 6.11.1
 ]
 
 [project.urls]
@@ -158,7 +160,6 @@ lint-fix = "ruff check --fix {args:.}"
 features = ["test"]
 dependencies = [
     "pytest-randomly~=3.15",
-    "pytest-rerunfailures~=14.0",
     "pytest-xdist[psutil]~=3.5",
 ]
 
@@ -168,13 +169,11 @@ run-cov = "echo Code coverage not implemented && exit 1"
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [
-    "3.8",
     "3.9",
     "3.10",
     "3.11",
     "3.12",
-    "pypy3.8",
-    "pypy3.9",
+    "3.13",
     "pypy3.10",
 ]
 
@@ -183,21 +182,83 @@ line-length = 120
 
 [tool.ruff.lint]
 ignore = [
-    "E402",  # module level import not at top of file
-    "E501",  # line too long
-    "E731",  # do not assign a lambda expression, use a def
-    "E741",  # ambiguous variable name
+    "E402",    # module-import-not-at-top-of-file
+    "E501",    # line-too-long
+    "E731",    # lambda-assignment
+    "E741",    # ambiguous-variable-name
+    "UP031",   # printf-string-formatting
+    "UP036",   # outdated-version-block
+    "B006",    # mutable-argument-default
+    "B008",    # function-call-in-default-argument
+    "B011",    # assert-false
+    "B017",    # assert-raises-exception
+    "B023",    # function-uses-loop-variable (false positives)
+    "B028",    # no-explicit-stacklevel
+    "B904",    # raise-without-from-inside-except
+    "C401",    # unnecessary-generator-set
+    "C402",    # unnecessary-generator-dict
+    "PIE790",  # unnecessary-placeholder
+    "SIM102",  # collapsible-if
+    "SIM108",  # if-else-block-instead-of-if-exp
+    "SIM112",  # uncapitalized-environment-variables
+    "SIM113",  # enumerate-for-loop
+    "SIM114",  # if-with-same-arms
+    "SIM115",  # open-file-with-context-handler
+    "SIM117",  # multiple-with-statements
+    "SIM223",  # expr-and-false
+    "SIM300",  # yoda-conditions
+    "TD001",   # invalid-todo-tag
+    "TD002",   # missing-todo-author
+    "TD003",   # missing-todo-link
+    "PLE0604", # invalid-all-object (false positives)
+    "PLE0643", # potential-index-error (false positives)
+    "PLW0603", # global-statement
+    "PLW1510", # subprocess-run-without-check
+    "PLW2901", # redefined-loop-name
+    "RUF001",  # ambiguous-unicode-character-string
+    "RUF012",  # mutable-class-default
+    "RUF100",  # unused-noqa (flake8 has slightly different behavior)
 ]
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # import order
+    "E",      # pycodestyle Error
+    "W",      # pycodestyle Warning
+    "F",      # Pyflakes
+    "I",      # isort
+    "Q",      # flake8-quotes
+    "N803",   # invalid-argument-name
+    "N804",   # invalid-first-argument-name-for-class-method
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "A",      # flake8-builtins
+    "COM",    # flake8-commas
+    "C4",     # flake8-comprehensions
+    "FA",     # flake8-future-annotations
+    "ISC",    # flake8-implicit-str-concat
+    "ICN003", # banned-import-from
+    "PIE",    # flake8-pie
+    "T20",    # flake8-print
+    "RSE",    # flake8-raise
+    "RET504", # unnecessary-assign
+    "SIM",    # flake8-simplify
+    "TID251", # banned-api
+    "TD",     # flake8-todos
+    "PLC",    # Pylint Convention
+    "PLE",    # Pylint Error
+    "PLW",    # Pylint Warning
+    "RUF",    # Ruff-specific rules
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"devscripts/lazy_load_template.py" = ["F401"]
-"!yt_dlp/extractor/**.py" = ["I"]
+"devscripts/lazy_load_template.py" = [
+    "F401",   # unused-import
+]
+"!yt_dlp/extractor/**.py" = [
+    "I",      # isort
+    "ICN003", # banned-import-from
+    "T20",    # flake8-print
+    "A002",   # builtin-argument-shadowing
+    "C408",   # unnecessary-collection-call
+]
 
 [tool.ruff.lint.isort]
 known-first-party = [
@@ -206,6 +267,60 @@ known-first-party = [
     "test",
 ]
 relative-imports-order = "closest-to-furthest"
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+multiline-quotes = "single"
+inline-quotes = "single"
+avoid-escape = false
+
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = [
+    "yt_dlp.utils.classproperty",
+]
+
+[tool.ruff.lint.flake8-import-conventions]
+banned-from = [
+    "base64",
+    "datetime",
+    "functools",
+    "glob",
+    "hashlib",
+    "itertools",
+    "json",
+    "math",
+    "os",
+    "pathlib",
+    "random",
+    "re",
+    "string",
+    "sys",
+    "time",
+    "urllib.parse",
+    "uuid",
+    "xml",
+]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"yt_dlp.compat.compat_str".msg = "Use `str` instead."
+"yt_dlp.compat.compat_b64decode".msg = "Use `base64.b64decode` instead."
+"yt_dlp.compat.compat_urlparse".msg = "Use `urllib.parse` instead."
+"yt_dlp.compat.compat_parse_qs".msg = "Use `urllib.parse.parse_qs` instead."
+"yt_dlp.compat.compat_urllib_parse_unquote".msg = "Use `urllib.parse.unquote` instead."
+"yt_dlp.compat.compat_urllib_parse_urlencode".msg = "Use `urllib.parse.urlencode` instead."
+"yt_dlp.compat.compat_urllib_parse_urlparse".msg = "Use `urllib.parse.urlparse` instead."
+"yt_dlp.compat.compat_shlex_quote".msg = "Use `yt_dlp.utils.shell_quote` instead."
+"yt_dlp.utils.error_to_compat_str".msg = "Use `str` instead."
+"yt_dlp.utils.bytes_to_intlist".msg = "Use `list` instead."
+"yt_dlp.utils.intlist_to_bytes".msg = "Use `bytes` instead."
+"yt_dlp.utils.decodeArgument".msg = "Do not use"
+"yt_dlp.utils.decodeFilename".msg = "Do not use"
+"yt_dlp.utils.encodeFilename".msg = "Do not use"
+"yt_dlp.compat.compat_os_name".msg = "Use `os.name` instead."
+"yt_dlp.compat.compat_realpath".msg = "Use `os.path.realpath` instead."
+"yt_dlp.compat.functools".msg = "Use `functools` instead."
+"yt_dlp.utils.decodeOption".msg = "Do not use"
+"yt_dlp.utils.compiled_regex_type".msg = "Use `re.Pattern` instead."
 
 [tool.autopep8]
 max_line_length = 120

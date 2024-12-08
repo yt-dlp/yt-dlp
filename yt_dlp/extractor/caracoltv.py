@@ -78,13 +78,13 @@ class CaracolTvPlayIE(InfoExtractor):
                 'device_data': {
                     'device_id': str(uuid.uuid4()),
                     'device_token': '',
-                    'device_type': 'web'
+                    'device_type': 'web',
                 },
                 'login_data': {
                     'enabled': True,
                     'email': email,
                     'password': password,
-                }
+                },
             }).encode())['user_token']
 
     def _extract_video(self, video_data, series_id=None, season_id=None, season_number=None):

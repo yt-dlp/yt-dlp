@@ -89,10 +89,10 @@ class YandexVideoIE(InfoExtractor):
     title
     views_count
   }
-}''' % video_id).encode(), fatal=False)), lambda x: x['player']['content'])
+}''' % video_id).encode(), fatal=False)), lambda x: x['player']['content'])  # noqa: UP031
         if not player or player.get('error'):
             player = self._download_json(
-                'https://frontend.vh.yandex.ru/v23/player/%s.json' % video_id,
+                f'https://frontend.vh.yandex.ru/v23/player/{video_id}.json',
                 video_id, query={
                     'stream_options': 'hires',
                     'disable_trackings': 1,
@@ -179,10 +179,10 @@ class YandexVideoPreviewIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         data_raw = self._search_regex(r'window.Ya.__inline_params__\s*=\s*JSON.parse\(\'([^"]+?\\u0022video\\u0022:[^"]+?})\'\);', webpage, 'data_raw')
-        data_json = self._parse_json(data_raw, id, transform_source=lowercase_escape)
+        data_json = self._parse_json(data_raw, video_id, transform_source=lowercase_escape)
         return self.url_result(data_json['video']['url'])
 
 
@@ -196,7 +196,7 @@ class ZenYandexIE(InfoExtractor):
             'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
             'description': 'md5:8684912f6086f298f8078d4af0e8a600',
             'thumbnail': 're:^https://avatars.dzeninfra.ru/',
-            'uploader': 'AcademeG DailyStream'
+            'uploader': 'AcademeG DailyStream',
         },
         'params': {
             'skip_download': 'm3u8',

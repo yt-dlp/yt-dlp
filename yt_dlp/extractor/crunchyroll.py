@@ -442,7 +442,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         return {
             'id': data['id'],
             'title': ' \u2013 '.join((
-                ('%s%s' % (
+                ('{}{}'.format(
                     format_field(metadata, 'season_title'),
                     format_field(metadata, 'episode', ' Episode %s'))),
                 format_field(data, 'title'))),
@@ -456,7 +456,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
                 }),
             }),
             **traverse_obj(metadata, {
-                'duration': ('duration_ms', {lambda x: float_or_none(x, 1000)}),
+                'duration': ('duration_ms', {float_or_none(scale=1000)}),
                 'timestamp': ('upload_date', {parse_iso8601}),
                 'series': ('series_title', {str}),
                 'series_id': ('series_id', {str}),
@@ -484,7 +484,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
                 }),
             }),
             **traverse_obj(metadata, {
-                'duration': ('duration_ms', {lambda x: float_or_none(x, 1000)}),
+                'duration': ('duration_ms', {float_or_none(scale=1000)}),
                 'age_limit': ('maturity_ratings', -1, {parse_age_limit}),
             }),
         }
@@ -519,7 +519,7 @@ class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
             seasons_response = self._call_cms_api_signed(f'seasons?series_id={internal_id}', internal_id, lang, 'seasons')
             for season in traverse_obj(seasons_response, ('items', ..., {dict})):
                 episodes_response = self._call_cms_api_signed(
-                    f'episodes?season_id={season["id"]}', season["id"], lang, 'episode list')
+                    f'episodes?season_id={season["id"]}', season['id'], lang, 'episode list')
                 for episode_response in traverse_obj(episodes_response, ('items', ..., {dict})):
                     yield self.url_result(
                         f'{self._BASE_URL}/{lang}watch/{episode_response["id"]}',
@@ -535,7 +535,7 @@ class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
                     'url': ('source', {url_or_none}),
                     'width': ('width', {int_or_none}),
                     'height': ('height', {int_or_none}),
-                })
+                }),
             })))
 
 
