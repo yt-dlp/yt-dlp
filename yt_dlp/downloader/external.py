@@ -315,6 +315,7 @@ class Aria2cFD(ExternalFD):
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
         cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
+        cmd += self._bool_option('--remove-control-file', 'continuedl', 'false', 'true', '=')
         cmd += self._configuration_args()
 
         if '__rpc' in info_dict:
