@@ -19,6 +19,8 @@ from yt_dlp.dependencies import urllib3
 from yt_dlp.networking import Request
 from yt_dlp.networking.exceptions import HTTPError, ProxyError, SSLError
 
+MTLS_CERT_DIR = os.path.join(TEST_DIR, 'testdata', 'certificate')
+
 
 class HTTPProxyAuthMixin:
 
@@ -135,6 +137,35 @@ class HTTPSProxyHandler(HTTPProxyHandler):
         super().__init__(request, *args, **kwargs)
 
 
+class MTLSHTTPSProxyHandler(HTTPProxyHandler):
+    def __init__(self, request, *args, **kwargs):
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        cacertfn = os.path.join(MTLS_CERT_DIR, 'ca.crt')
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.verify_mode = ssl.CERT_REQUIRED
+        sslctx.load_verify_locations(cafile=cacertfn)
+        sslctx.load_cert_chain(certfn, None)
+        if isinstance(request, ssl.SSLSocket):
+            request = SSLTransport(request, ssl_context=sslctx, server_side=True)
+        else:
+            request = sslctx.wrap_socket(request, server_side=True)
+        super().__init__(request, *args, **kwargs)
+
+
+class LegacyHTTPSProxyHandler(HTTPProxyHandler):
+    def __init__(self, request, *args, **kwargs):
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+        sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
+        sslctx.load_cert_chain(certfn, None)
+        if isinstance(request, ssl.SSLSocket):
+            request = SSLTransport(request, ssl_context=sslctx, server_side=True)
+        else:
+            request = sslctx.wrap_socket(request, server_side=True)
+        super().__init__(request, *args, **kwargs)
+
+
 class HTTPConnectProxyHandler(BaseHTTPRequestHandler, HTTPProxyAuthMixin):
     protocol_version = 'HTTP/1.1'
     default_request_version = 'HTTP/1.1'
@@ -168,6 +199,39 @@ class HTTPSConnectProxyHandler(HTTPConnectProxyHandler):
     def __init__(self, request, *args, **kwargs):
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.load_cert_chain(certfn, None)
+        request = sslctx.wrap_socket(request, server_side=True)
+        self._original_request = request
+        super().__init__(request, *args, **kwargs)
+
+    def do_CONNECT(self):
+        super().do_CONNECT()
+        self.server.close_request(self._original_request)
+
+
+class MTLSHTTPSConnectProxyHandler(HTTPConnectProxyHandler):
+    def __init__(self, request, *args, **kwargs):
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        cacertfn = os.path.join(MTLS_CERT_DIR, 'ca.crt')
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.verify_mode = ssl.CERT_REQUIRED
+        sslctx.load_verify_locations(cafile=cacertfn)
+        sslctx.load_cert_chain(certfn, None)
+        request = sslctx.wrap_socket(request, server_side=True)
+        self._original_request = request
+        super().__init__(request, *args, **kwargs)
+
+    def do_CONNECT(self):
+        super().do_CONNECT()
+        self.server.close_request(self._original_request)
+
+
+class LegacyHTTPSConnectProxyHandler(HTTPConnectProxyHandler):
+    def __init__(self, request, *args, **kwargs):
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+        sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
         sslctx.load_cert_chain(certfn, None)
         request = sslctx.wrap_socket(request, server_side=True)
         self._original_request = request
@@ -285,7 +349,7 @@ class TestHTTPProxy:
     @pytest.mark.skip_handler('Urllib', 'urllib does not support https proxies')
     def test_https(self, handler, ctx):
         with ctx.http_server(HTTPSProxyHandler) as server_address:
-            with handler(verify=False, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
+            with handler(proxy_verify=False, verify=False, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
                 proxy_info = ctx.proxy_info_request(rh)
                 assert proxy_info['proxy'] == server_address
                 assert proxy_info['connect'] is False
@@ -294,10 +358,64 @@ class TestHTTPProxy:
     @pytest.mark.skip_handler('Urllib', 'urllib does not support https proxies')
     def test_https_verify_failed(self, handler, ctx):
         with ctx.http_server(HTTPSProxyHandler) as server_address:
-            with handler(verify=True, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
-                # Accept SSLError as may not be feasible to tell if it is proxy or request error.
-                # note: if request proto also does ssl verification, this may also be the error of the request.
-                # Until we can support passing custom cacerts to handlers, we cannot properly test this for all cases.
+            with handler(proxy_verify=True, verify=False, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
+                # Accept both ProxyError and SSLError as may not be feasible to tell if it is proxy or request error.
+                with pytest.raises((ProxyError, SSLError)):
+                    ctx.proxy_info_request(rh)
+
+    @pytest.mark.skip_handler('Urllib', 'urllib does not support https proxies')
+    @pytest.mark.skip_handler('CurlCFFI', 'legacy_ssl ignored by CurlCFFI')
+    def test_https_legacy_ssl_support(self, handler, ctx):
+        with ctx.http_server(LegacyHTTPSProxyHandler) as server_address:
+            with handler(proxy_verify=False, verify=False, proxy_legacy_ssl_support=True, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
+                proxy_info = ctx.proxy_info_request(rh)
+                assert proxy_info['proxy'] == server_address
+                assert proxy_info['connect'] is False
+                assert 'Proxy-Authorization' not in proxy_info['headers']
+
+            with handler(proxy_verify=False, verify=False, proxy_legacy_ssl_support=False, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
+                with pytest.raises((ProxyError, SSLError)):
+                    ctx.proxy_info_request(rh)
+
+    @pytest.mark.skip_handler('Urllib', 'urllib does not support https proxies')
+    @pytest.mark.parametrize('proxy_client_cert', [
+        {'client_certificate': os.path.join(MTLS_CERT_DIR, 'clientwithkey.crt')},
+        {
+            'client_certificate': os.path.join(MTLS_CERT_DIR, 'client.crt'),
+            'client_certificate_key': os.path.join(MTLS_CERT_DIR, 'client.key'),
+        },
+        {
+            'client_certificate': os.path.join(MTLS_CERT_DIR, 'clientwithencryptedkey.crt'),
+            'client_certificate_password': 'foobar',
+        },
+        {
+            'client_certificate': os.path.join(MTLS_CERT_DIR, 'client.crt'),
+            'client_certificate_key': os.path.join(MTLS_CERT_DIR, 'clientencrypted.key'),
+            'client_certificate_password': 'foobar',
+        },
+    ], ids=['combined_nopass', 'nocombined_nopass', 'combined_pass', 'nocombined_pass'])
+    def test_https_mtls(self, handler, ctx, proxy_client_cert):
+        with ctx.http_server(MTLSHTTPSProxyHandler) as server_address:
+            with handler(
+                proxy_verify=False,
+                verify=False,
+                proxy_client_cert=proxy_client_cert,
+                proxies={ctx.REQUEST_PROTO: f'https://{server_address}'},
+            ) as rh:
+                proxy_info = ctx.proxy_info_request(rh)
+                assert proxy_info['proxy'] == server_address
+                assert proxy_info['connect'] is False
+                assert 'Proxy-Authorization' not in proxy_info['headers']
+
+    @pytest.mark.skip_handler('Urllib', 'urllib does not support https proxies')
+    def test_https_mtls_error(self, handler, ctx):
+        with ctx.http_server(MTLSHTTPSProxyHandler) as server_address:
+            with handler(
+                proxy_verify=False,
+                verify=False,
+                proxy_client_cert=None,
+                proxies={ctx.REQUEST_PROTO: f'https://{server_address}'},
+            ) as rh:
                 with pytest.raises((ProxyError, SSLError)):
                     ctx.proxy_info_request(rh)
 
@@ -331,10 +449,6 @@ class TestHTTPConnectProxy:
                 assert proxy_info['proxy'] == server_address
                 assert 'Proxy-Authorization' in proxy_info['headers']
 
-    @pytest.mark.skip_handler(
-        'Requests',
-        'bug in urllib3 causes unclosed socket: https://github.com/urllib3/urllib3/issues/3374',
-    )
     def test_http_connect_bad_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler, username='test', password='test') as server_address:
             with handler(verify=False, proxies={ctx.REQUEST_PROTO: f'http://test:bad@{server_address}'}) as rh:
@@ -355,7 +469,7 @@ class TestHTTPConnectProxy:
     @pytest.mark.skipif(urllib3 is None, reason='requires urllib3 to test')
     def test_https_connect_proxy(self, handler, ctx):
         with ctx.http_server(HTTPSConnectProxyHandler) as server_address:
-            with handler(verify=False, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
+            with handler(proxy_verify=False, verify=False, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
                 proxy_info = ctx.proxy_info_request(rh)
                 assert proxy_info['proxy'] == server_address
                 assert proxy_info['connect'] is True
@@ -364,17 +478,71 @@ class TestHTTPConnectProxy:
     @pytest.mark.skipif(urllib3 is None, reason='requires urllib3 to test')
     def test_https_connect_verify_failed(self, handler, ctx):
         with ctx.http_server(HTTPSConnectProxyHandler) as server_address:
-            with handler(verify=True, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
-                # Accept SSLError as may not be feasible to tell if it is proxy or request error.
-                # note: if request proto also does ssl verification, this may also be the error of the request.
-                # Until we can support passing custom cacerts to handlers, we cannot properly test this for all cases.
+            with handler(proxy_verify=True, verify=False, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
+                # Accept both ProxyError and SSLError as may not be feasible to tell if it is proxy or request error.
                 with pytest.raises((ProxyError, SSLError)):
                     ctx.proxy_info_request(rh)
 
     @pytest.mark.skipif(urllib3 is None, reason='requires urllib3 to test')
     def test_https_connect_proxy_auth(self, handler, ctx):
         with ctx.http_server(HTTPSConnectProxyHandler, username='test', password='test') as server_address:
-            with handler(verify=False, proxies={ctx.REQUEST_PROTO: f'https://test:test@{server_address}'}) as rh:
+            with handler(proxy_verify=False, verify=False, proxies={ctx.REQUEST_PROTO: f'https://test:test@{server_address}'}) as rh:
                 proxy_info = ctx.proxy_info_request(rh)
                 assert proxy_info['proxy'] == server_address
                 assert 'Proxy-Authorization' in proxy_info['headers']
+
+    @pytest.mark.skipif(urllib3 is None, reason='requires urllib3 to test')
+    @pytest.mark.parametrize('proxy_client_cert', [
+        {'client_certificate': os.path.join(MTLS_CERT_DIR, 'clientwithkey.crt')},
+        {
+            'client_certificate': os.path.join(MTLS_CERT_DIR, 'client.crt'),
+            'client_certificate_key': os.path.join(MTLS_CERT_DIR, 'client.key'),
+        },
+        {
+            'client_certificate': os.path.join(MTLS_CERT_DIR, 'clientwithencryptedkey.crt'),
+            'client_certificate_password': 'foobar',
+        },
+        {
+            'client_certificate': os.path.join(MTLS_CERT_DIR, 'client.crt'),
+            'client_certificate_key': os.path.join(MTLS_CERT_DIR, 'clientencrypted.key'),
+            'client_certificate_password': 'foobar',
+        },
+    ], ids=['combined_nopass', 'nocombined_nopass', 'combined_pass', 'nocombined_pass'])
+    def test_https_connect_mtls(self, handler, ctx, proxy_client_cert):
+        with ctx.http_server(MTLSHTTPSConnectProxyHandler) as server_address:
+            with handler(
+                proxy_verify=False,
+                verify=False,
+                proxy_client_cert=proxy_client_cert,
+                proxies={ctx.REQUEST_PROTO: f'https://{server_address}'},
+            ) as rh:
+                proxy_info = ctx.proxy_info_request(rh)
+                assert proxy_info['proxy'] == server_address
+                assert proxy_info['connect'] is True
+                assert 'Proxy-Authorization' not in proxy_info['headers']
+
+    @pytest.mark.skipif(urllib3 is None, reason='requires urllib3 to test')
+    def test_https_connect_mtls_error(self, handler, ctx):
+        with ctx.http_server(MTLSHTTPSConnectProxyHandler) as server_address:
+            with handler(
+                proxy_verify=False,
+                verify=False,
+                proxy_client_cert=None,
+                proxies={ctx.REQUEST_PROTO: f'https://{server_address}'},
+            ) as rh:
+                with pytest.raises((ProxyError, SSLError)):
+                    ctx.proxy_info_request(rh)
+
+    @pytest.mark.skipif(urllib3 is None, reason='requires urllib3 to test')
+    @pytest.mark.skip_handler('CurlCFFI', 'legacy_ssl ignored by CurlCFFI')
+    def test_https_connect_legacy_ssl_support(self, handler, ctx):
+        with ctx.http_server(LegacyHTTPSConnectProxyHandler) as server_address:
+            with handler(proxy_verify=False, verify=False, proxy_legacy_ssl_support=True, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
+                proxy_info = ctx.proxy_info_request(rh)
+                assert proxy_info['proxy'] == server_address
+                assert proxy_info['connect'] is True
+                assert 'Proxy-Authorization' not in proxy_info['headers']
+
+            with handler(proxy_verify=False, verify=False, proxy_legacy_ssl_support=False, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
+                with pytest.raises((ProxyError, SSLError)):
+                    ctx.proxy_info_request(rh)
