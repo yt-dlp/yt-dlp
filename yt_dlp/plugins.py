@@ -73,11 +73,8 @@ class PluginLoader(importlib.abc.Loader):
 def dirs_in_zip(archive):
     try:
         with ZipFile(archive) as zip_:
-            return set(
-                itertools.chain.from_iterable(
-                    Path(file).parents for file in zip_.namelist()
-                ),
-            )
+            return set(itertools.chain.from_iterable(
+                Path(file).parents for file in zip_.namelist()))
     except FileNotFoundError:
         pass
     except Exception as e:
