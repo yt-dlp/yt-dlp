@@ -448,7 +448,7 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
     }]
 
     def _fetch_page(self, playlist_id, series_version, season_id, page):
-        query={
+        query = {
             'seriesVersion': series_version,
             'offset': str(page * self._PAGE_SIZE),
             'order': 'seq',
