@@ -421,7 +421,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
 
 class AbemaTVTitleIE(AbemaTVBaseIE):
-    _VALID_URL = r'https?://abema\.tv/video/title/(?P<id>[^?/]+)'
+    _VALID_URL = r'https?://abema\.tv/video/title/(?P<id>[^?/]+)(?:\?(?:.*?&)?s=(?P<season>[^&]+))?'
     _PAGE_SIZE = 25
 
     _TESTS = [{
@@ -447,30 +447,35 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
         'playlist_mincount': 24,
     }]
 
-    def _fetch_page(self, playlist_id, series_version, page):
+    def _fetch_page(self, playlist_id, series_version, season_id, page):
+        query={
+            'seriesVersion': series_version,
+            'offset': str(page * self._PAGE_SIZE),
+            'order': 'seq',
+            'limit': str(self._PAGE_SIZE),
+        }
+        if season_id:
+            query['seasonId'] = season_id
         programs = self._call_api(
             f'v1/video/series/{playlist_id}/programs', playlist_id,
             note=f'Downloading page {page + 1}',
-            query={
-                'seriesVersion': series_version,
-                'offset': str(page * self._PAGE_SIZE),
-                'order': 'seq',
-                'limit': str(self._PAGE_SIZE),
-            })
+            query=query
+        )
         yield from (
             self.url_result(f'https://abema.tv/video/episode/{x}')
             for x in traverse_obj(programs, ('programs', ..., 'id')))
 
-    def _entries(self, playlist_id, series_version):
+    def _entries(self, playlist_id, series_version, season_id):
         return OnDemandPagedList(
-            functools.partial(self._fetch_page, playlist_id, series_version),
+            functools.partial(self._fetch_page, playlist_id, series_version, season_id),
             self._PAGE_SIZE)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
+        season_id = self._match_valid_url(url).group('season')
         series_info = self._call_api(f'v1/video/series/{playlist_id}', playlist_id)
 
         return self.playlist_result(
-            self._entries(playlist_id, series_info['version']), playlist_id=playlist_id,
+            self._entries(playlist_id, series_info['version'], season_id), playlist_id=playlist_id,
             playlist_title=series_info.get('title'),
             playlist_description=series_info.get('content'))
