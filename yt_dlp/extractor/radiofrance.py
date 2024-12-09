@@ -277,7 +277,10 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
                 break
 
     def _extract_embedded_episodes(self, item, webpage, content_id):
-        """Certain episdoes data are embedded directly in the page, use these if the link is missing"""
+        """Certain episodes data are embedded directly in the page, use these if the link is missing"""
+        # this may be empty if the editor uploads a blank 'info' episode. ignore these.
+        if item['playerInfo']['media'] is None:
+            return None
         links = item['playerInfo']['media']['sources']
         item['formats'] = []
         for linkkey in links:
@@ -401,6 +404,9 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
             if item['model'] == 'Expression':
                 if item['link'] == '':
                     item = self._extract_embedded_episodes(item, webpage, podcast_id)
+                    # If could not extract the right info, skip
+                    if item is None:
+                        continue
                 resp['items'].append(item)
 
         # the pagination data is stored in a javascript object 'a'
@@ -466,6 +472,9 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
             if item['model'] == 'Expression':
                 if item.link == '':
                     item = self._extract_embedded_episodes(item, webpage, profile_id)
+                    # if could not extract info, skip
+                    if item is None:
+                        continue
                 resp['items'].append(item)
 
         resp['metadata'] = self._search_json(r'content:\s*', webpage, profile_id, profile_id,
