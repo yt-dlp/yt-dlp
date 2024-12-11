@@ -17,13 +17,14 @@ from ..utils import (
     urljoin,
 )
 
+_SUITABLE_NICOCHANNEL_PLUS_DOMAINS = set()
+
 
 class NiconicoChannelPlusBaseIE(InfoExtractor):
     _SITE_SETTINGS = {}
     _DOMAIN_SITE_ID = {}
     _CHANNEL_NAMES = {}
     _CHANNEL_AGE_LIMIT = {}
-    _SUITABLE_DOMAINS = set()
 
     def _get_settings(self, url, video_id=None):
         base_url = urljoin(url, '/')
@@ -33,7 +34,7 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
             if 'api_base_url' not in site_settings or 'fanclub_site_id' not in site_settings:
                 raise ExtractorError('Unable to get site settings')
             self._SITE_SETTINGS[base_url] = site_settings
-        self._SUITABLE_DOMAINS.add(urllib.parse.urlparse(url).netloc)
+        _SUITABLE_NICOCHANNEL_PLUS_DOMAINS.add(urllib.parse.urlparse(url).netloc)
 
         if self._SITE_SETTINGS[base_url].get('platform_id') not in ['CHPL', 'SHTA', 'JOQR', 'TKFM']:
             self.report_warning(f'Unknown platform type: {self._SITE_SETTINGS[base_url].get("platform_id")}')
@@ -174,8 +175,13 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return super().suitable(url) or (
-            urllib.parse.urlparse(url).netloc in cls._SUITABLE_DOMAINS and cls._match_video_id(url))
+        try:
+            return super().suitable(url) or (
+                urllib.parse.urlparse(url).netloc in _SUITABLE_NICOCHANNEL_PLUS_DOMAINS
+                and cls._match_video_id(url))
+        except NameError:
+            # fallback for lazy extractor
+            return super().suitable(url)
 
     def _extract_from_webpage(self, url, webpage):
         if self._match_video_id(url) and self._is_channel_plus_webpage(webpage):
@@ -306,6 +312,9 @@ class NiconicoChannelPlusChannelBaseIE(NiconicoChannelPlusBaseIE):
             },
             note=f'Getting channel info (page {page + 1})',
             errnote=f'Unable to get channel info (page {page + 1})')
+
+        # ensure that real extractor is instantiated over lazy extractor
+        self._downloader.get_info_extractor(NiconicoChannelPlusIE.ie_key())
 
         for entry in traverse_obj(response, ('data', 'video_pages', 'list', lambda _, v: v['content_code'])):
             # "video/{content_code}" works for both VOD and live, but "live/{content_code}" doesn't work for VOD
