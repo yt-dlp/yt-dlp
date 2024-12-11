@@ -93,6 +93,9 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
             ), ('data', 'fanclub_site', 'content_provider', 'age_limit', {int}))
         return self._CHANNEL_AGE_LIMIT[fanclub_site_id]
 
+    def _is_channel_plus_webpage(self, webpage):
+        return 'GTM-KXT7G5G' in webpage or 'NicoGoogleTagManagerDataLayer' in webpage
+
 
 class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
     IE_NAME = 'NiconicoChannelPlus'
@@ -159,22 +162,25 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
         'skip': 'subscriber only',
     }]
 
-    def _parse_video_id(self, url):
-        parsed = urllib.parse.urlparse(url)
-        return re.search(r'/(?:video|live)/(?P<id>\w+)', parsed.path)[1]
+    def _extract_from_webpage(self, url, webpage):
+        if self._match_video_id(url) and self._is_channel_plus_webpage(webpage):
+            yield self._real_extract(url)
+
+    def _match_video_id(self, url):
+        return re.search(r'/(?:video|audio|live)/(?P<id>sm\w+)', urllib.parse.urlparse(url).path)
 
     def _real_extract(self, url):
-        video_id = self._parse_video_id(url)
+        video_id = self._match_video_id(url).group('id')
 
         video_info = self._download_api_json(url, f'/video_pages/{video_id}', video_id,
                                              note='Downloading video info')['data']['video_page']
 
         live_status, session_payload, timestamp = self._parse_live_status(video_id, video_info)
-        session_info = self._download_api_json(
+        session_id = self._download_api_json(
             url, f'/video_pages/{video_id}/session_ids', video_id, data=json.dumps(session_payload).encode(),
-            headers={'content-type': 'application/json'}, note='Downloading video session')['data']
+            headers={'content-type': 'application/json'}, note='Downloading video session')['data']['session_id']
         formats = self._extract_m3u8_formats(
-            video_info['video_stream']['authenticated_url'].format(**session_info), video_id)
+            video_info['video_stream']['authenticated_url'].format(session_id=session_id), video_id)
 
         return {
             'id': video_id,
@@ -291,8 +297,7 @@ class NiconicoChannelPlusChannelBaseIE(NiconicoChannelPlusBaseIE):
 
         for content_code in traverse_obj(response, ('data', 'video_pages', 'list', ..., 'content_code')):
             # "video/{content_code}" works for both VOD and live, but "live/{content_code}" doesn't work for VOD
-            yield self.url_result(
-                f'{self._get_channel_url(site_url)}/video/{content_code}', NiconicoChannelPlusIE)
+            yield self.url_result(f'{self._get_channel_url(site_url)}/video/{content_code}')
 
 
 class NiconicoChannelPlusChannelVideosIE(NiconicoChannelPlusChannelBaseIE):
@@ -381,6 +386,10 @@ class NiconicoChannelPlusChannelVideosIE(NiconicoChannelPlusChannelBaseIE):
         'playlist_mincount': 6,
     }]
 
+    def _extract_from_webpage(self, url, webpage):
+        if re.search(r'/videos/?(?:[\?#]|$)', url) and self._is_channel_plus_webpage(webpage):
+            yield self._real_extract(url)
+
     def _real_extract(self, url):
         """
         API parameters:
@@ -443,6 +452,10 @@ class NiconicoChannelPlusChannelLivesIE(NiconicoChannelPlusChannelBaseIE):
         },
         'playlist_mincount': 6,
     }]
+
+    def _extract_from_webpage(self, url, webpage):
+        if re.search(r'/lives/?(?:[\?#]|$)', url) and self._is_channel_plus_webpage(webpage):
+            yield self._real_extract(url)
 
     def _real_extract(self, url):
         """
