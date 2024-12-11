@@ -194,11 +194,26 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                                              note='Downloading video info')['data']['video_page']
 
         live_status, session_payload, timestamp = self._parse_live_status(video_id, video_info)
-        session_id = self._download_api_json(
-            url, f'/video_pages/{video_id}/session_ids', video_id, data=json.dumps(session_payload).encode(),
-            headers={'content-type': 'application/json'}, note='Downloading video session')['data']['session_id']
-        formats = self._extract_m3u8_formats(
-            video_info['video_stream']['authenticated_url'].format(session_id=session_id), video_id)
+        if video_info.get('video'):
+            session_id = self._download_api_json(
+                url, f'/video_pages/{video_id}/session_ids', video_id, data=json.dumps(session_payload).encode(),
+                headers={'content-type': 'application/json'}, note='Downloading video session')['data']['session_id']
+            formats = self._extract_m3u8_formats(
+                video_info['video_stream']['authenticated_url'].format(session_id=session_id), video_id)
+        elif video_info.get('audio'):
+            audio_url = self._download_api_json(
+                url, f'/video_pages/{video_id}/content_access', video_id)['data']['resource']
+            format_id = traverse_obj(video_info, ('audio_filename_transcoded_list', lambda _, v: v['url'] == audio_url, 'video_filename_type', 'value', any))
+            if format_id != 'audio_paid':
+                self.report_warning('The audio may be empty, or incomplete and contains only trial parts.')
+            formats = [{
+                'url': audio_url,
+                'ext': 'm4a',
+                'protocol': 'm3u8_native',
+                'format_id': format_id,
+            }]
+        else:
+            raise ExtractorError('Unknown media type', video_id=video_id)
 
         return {
             'id': video_id,
