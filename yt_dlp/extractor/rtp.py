@@ -173,7 +173,7 @@ class RTPIE(InfoExtractor):
             data)
 
     def _extract_from_html(self, url, episode_id):
-        webpage = self._download_webpage(url, url)
+        webpage = self._download_webpage(url, episode_id)
 
         formats = []
         subtitles = {}
