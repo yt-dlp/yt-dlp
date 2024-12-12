@@ -457,7 +457,7 @@ class PatreonCampaignIE(PatreonBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?patreon\.com/(?:
             (?:m|api/campaigns)/(?P<campaign_id>\d+)|
-            (?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
+            (?:c/)?(?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
         )(?:/posts)?/?(?:$|[?#])'''
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
@@ -509,6 +509,26 @@ class PatreonCampaignIE(PatreonBaseIE):
             'thumbnail': r're:^https?://.*$',
         },
         'playlist_mincount': 201,
+    }, {
+        'url': 'https://www.patreon.com/c/OgSog',
+        'info_dict': {
+            'id': '8504388',
+            'title': 'OGSoG',
+            'description': r're:(?s)Hello and welcome to our Patreon page. We are Mari, Lasercorn, .+',
+            'channel': 'OGSoG',
+            'channel_id': '8504388',
+            'channel_url': 'https://www.patreon.com/OgSog',
+            'uploader_url': 'https://www.patreon.com/OgSog',
+            'uploader_id': '72323575',
+            'uploader': 'David Moss',
+            'thumbnail': r're:https?://.+/.+',
+            'channel_follower_count': int,
+            'age_limit': 0,
+        },
+        'playlist_mincount': 331,
+    }, {
+        'url': 'https://www.patreon.com/c/OgSog/posts',
+        'only_matching': True,
     }, {
         'url': 'https://www.patreon.com/dissonancepod/posts',
         'only_matching': True,
