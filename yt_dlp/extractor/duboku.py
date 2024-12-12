@@ -138,7 +138,10 @@ class DubokuIE(InfoExtractor):
 
         sign_url = 'https://w.duboku.io/static/player/vidjs25.php'
         sign_html = self._download_webpage(sign_url, video_id)
-        sign = re.search(r'encodeURIComponent\(\'(.*)\'\);', sign_html).group(1)
+        sign = re.search(r'encodeURIComponent\(\'(.*)\'\);', sign_html)
+        if not sign:
+            raise ExtractorError('Cannot find sign in player')
+        sign = sign.group(1)
 
         # if it is an embedded iframe, maybe it's an external source
         headers = {'Referer': webpage_url}
