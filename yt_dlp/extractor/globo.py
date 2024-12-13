@@ -104,7 +104,7 @@ class GloboIE(InfoExtractor):
             **traverse_obj(info, {
                 'title': ('headline', {str}),
                 'duration': ('duration', {float_or_none(scale=1000)}),
-                'uploader': ('title', 'headline', {str_or_none}),
+                'uploader': ('title', 'headline', {str}),
                 'uploader_id': ('title', 'originProgramId', {str_or_none}),
             }),
             'formats': formats,
