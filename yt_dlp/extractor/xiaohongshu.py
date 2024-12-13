@@ -10,7 +10,7 @@ from ..utils.traversal import traverse_obj
 
 
 class XiaoHongShuIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.xiaohongshu\.com/(explore|discovery/item)/(?P<id>[\da-f]+)'
+    _VALID_URL = r'https?://www\.xiaohongshu\.com/(?:explore|discovery/item)/(?P<id>[\da-f]+)'
     IE_DESC = '小红书'
     _TESTS = [{
         'url': 'https://www.xiaohongshu.com/explore/6411cf99000000001300b6d9',
