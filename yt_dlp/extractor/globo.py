@@ -62,13 +62,16 @@ class GloboIE(InfoExtractor):
 
         info = self._download_json(
             'https://cloud-jarvis.globo.com/graphql', video_id,
-            query={'operationName': 'getVideoView',
-                   'variables': f'{{"videoId":{video_id}}}',
-                   'query': self._VIDEO_VIEW},
-            headers={'content-type': 'application/json',
-                     'x-platform-id': 'web',
-                     'x-device-id': 'desktop',
-                     'x-client-version': '2024.12-5'})['data']['video']
+            query={
+                'operationName': 'getVideoView',
+                'variables': f'{{"videoId":{video_id}}}',
+                'query': self._VIDEO_VIEW,
+            }, headers={
+                'content-type': 'application/json',
+                'x-platform-id': 'web',
+                'x-device-id': 'desktop',
+                'x-client-version': '2024.12-5',
+            })['data']['video']
 
         formats = []
         video = self._download_json(
