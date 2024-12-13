@@ -343,7 +343,7 @@ class NYTimesCookingIE(NYTimesBaseIE):
         if media_ids:
             media_ids.append(lead_video_id)
             return self.playlist_result(
-                [self._extract_video(media_id) for media_id in media_ids], page_id, title, description)
+                map(self._extract_video, media_ids), page_id, title, description)
 
         return {
             **self._extract_video(lead_video_id),
