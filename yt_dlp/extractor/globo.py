@@ -2,7 +2,6 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..networking import HEADRequest
 from ..utils import (
     float_or_none,
     orderedSet,
@@ -48,13 +47,22 @@ class GloboIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        self._request_webpage(
-            HEADRequest('https://ab.g.globo/v2/selected-alternatives?experiments=player-isolated-experiment-02&skipImpressions=true'),
-            video_id, 'Getting cookies')
+        video_view = '''
+        query getVideoView($videoId: ID!) {
+            video(id: $videoId) {
+                duration
+                description
+                headline
+                title {
+                    originProgramId
+                    headline
+                }
+            }
+        }
+        '''
         video = self._download_json(
-            f'https://cloud-jarvis.globo.com/graphql?operationName=getVideoView&variables=%7B"videoId":"{video_id}"%7D&extensions=%7B"persistedQuery":%7B"version":1,"sha256Hash":"93309d471104ca6d6ed67f02ead5fe8db25b22bef7d6dedb3be98ea82e799d0a"%7D%7D', video_id,
+            f'https://cloud-jarvis.globo.com/graphql?operationName=getVideoView&variables=%7B"videoId":"{video_id}"%7D&query={video_view}', video_id,
             headers={'content-type': 'application/json', 'x-platform-id': 'web', 'x-device-id': 'desktop', 'x-client-version': '2024.12-5'})['data']['video']
-
         title = video['headline']
         uploader = video['title'].get('headline')
         uploader_id = str_or_none(video['title'].get('originProgramId'))
