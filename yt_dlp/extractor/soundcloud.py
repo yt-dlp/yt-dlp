@@ -259,6 +259,8 @@ class SoundcloudBaseIE(InfoExtractor):
             preset_base = preset.partition('_')[0]
 
             protocol = traverse_obj(t, ('format', 'protocol', {str})) or 'http'
+            if protocol.startswith(('ctr-', 'cbc-')):
+                continue
             if protocol == 'progressive':
                 protocol = 'http'
             if protocol != 'hls' and '/hls' in format_url:
