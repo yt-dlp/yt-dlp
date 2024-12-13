@@ -936,7 +936,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
 
         if content_type == 'playlist':
             return self.playlist_result(
-                (self._parse_brightcove_metadata(vid, vid.get('id'), headers)
+                (self._parse_brightcove_metadata(vid, vid['id'], headers)
                  for vid in traverse_obj(json_data, ('videos', lambda _, v: v['id']))),
                 json_data.get('id'), json_data.get('name'),
                 json_data.get('description'))
