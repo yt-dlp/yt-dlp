@@ -79,7 +79,7 @@ class GloboIE(InfoExtractor):
                 'tz': '-03:00',
                 'version': 1,
             }).encode())
-        if not self.get_param('allow_unplayable_formats') and security['resource'].get('drm_protection_enabled') is True:
+        if traverse_obj(video, ('resource', 'drm_protection_enabled', {bool})):
             self.report_drm(video_id)
 
         main_resource = security['sources'][0]
