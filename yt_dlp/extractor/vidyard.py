@@ -421,5 +421,5 @@ class VidyardIE(VidyardBaseIE):
             return self._process_video_json(video_json['chapters'][0], video_id)
 
         return self.playlist_result(
-            [self._process_video_json(chapter, video_id) for chapter in video_json['chapters']],
+            (self._process_video_json(chapter, video_id) for chapter in video_json['chapters']),
             str(video_json['playerUuid']), video_json.get('name'))
