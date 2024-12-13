@@ -4067,10 +4067,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if height:
                     res_qualities[height] = quality
 
+            display_name = audio_track.get('displayName') or ''
+            is_original = 'original' in display_name.lower()
+            is_descriptive = 'descriptive' in display_name.lower()
             is_default = audio_track.get('audioIsDefault')
-            is_descriptive = 'descriptive' in (audio_track.get('displayName') or '').lower()
             language_code = audio_track.get('id', '').split('.')[0]
-            if language_code and is_default:
+            if language_code and (is_original or (is_default and not original_language)):
                 original_language = language_code
 
             # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
@@ -4151,7 +4153,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'filesize': int_or_none(fmt.get('contentLength')),
                 'format_id': f'{itag}{"-drc" if fmt.get("isDrc") else ""}',
                 'format_note': join_nonempty(
-                    join_nonempty(audio_track.get('displayName'), is_default and ' (default)', delim=''),
+                    join_nonempty(display_name, is_default and ' (default)', delim=''),
                     name, fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
@@ -4170,7 +4172,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
                 'language': join_nonempty(language_code, 'desc' if is_descriptive else '') or None,
-                'language_preference': PREFERRED_LANG_VALUE if is_default else -10 if is_descriptive else -1,
+                'language_preference': PREFERRED_LANG_VALUE if is_original else 5 if is_default else -10 if is_descriptive else -1,
                 # Strictly de-prioritize broken, damaged and 3gp formats
                 'preference': -20 if is_broken else -10 if is_damaged else -2 if itag == '17' else None,
             }
