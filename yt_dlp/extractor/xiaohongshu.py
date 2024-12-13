@@ -34,7 +34,7 @@ class XiaoHongShuIE(InfoExtractor):
             'uploader_id': '63439913000000001901f49a',
             'duration': 28.073,
             'description': '#广州[话题]# #深圳[话题]# #香港[话题]# #街头采访[话题]# #是你喜欢的类型[话题]#',
-            'thumbnail': r're:https?://sns-webpic-qc\.xhscdn\.com/\d+/[0-9a-f]+/[^/]+',
+            'thumbnail': r're:https?://sns-webpic-qc\.xhscdn\.com/\d+/[\da-f]+/[^/]+',
             'tags': ['广州', '深圳', '香港', '街头采访', '是你喜欢的类型'],
         },
     }]
