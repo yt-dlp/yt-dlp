@@ -89,11 +89,13 @@ class GloboIE(InfoExtractor):
             self.report_drm(video_id)
 
         main_source = video['sources'][0]
-        resource_url = main_source['url']
 
-        fmts, subtitles = self._extract_m3u8_formats_and_subtitles(
-            resource_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
-        formats.extend(fmts)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            main_source['url'], video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
+        self._merge_subtitles(traverse_obj(main_source, ('text', ..., {
+            'id': 'por',
+            'url': ('subtitle', 'srt', 'url', {str}),
+        }, all, {subs_list_to_dict(lang='por')})))
 
         return {
             'id': video_id,
@@ -104,7 +106,7 @@ class GloboIE(InfoExtractor):
                 'uploader_id': ('title', 'originProgramId', {str_or_none}),
             }),
             'formats': formats,
-            'subtitles': subs_list_to_dict(traverse_obj(main_source, ('text', {dict.items}))),
+            'subtitles': subtitles,
         }
 
 
