@@ -6,13 +6,26 @@ from ..utils import (
     float_or_none,
     orderedSet,
     str_or_none,
-    try_get,
 )
+from ..utils.traversal import subs_list_to_dict, traverse_obj
 
 
 class GloboIE(InfoExtractor):
-    _VALID_URL = r'(?:globo:|https?://.+?\.globo\.com/(?:[^/]+/)*(?:v/(?:[^/]+/)?|videos/))(?P<id>\d{7,})'
+    _VALID_URL = r'(?:globo:|https?://.+?\.globo\.com/(?:[^/]+/))(?P<id>\d{7,})'
     _NETRC_MACHINE = 'globo'
+    _VIDEO_VIEW = '''
+    query getVideoView($videoId: ID!) {
+        video(id: $videoId) {
+            duration
+            description
+            headline
+            title {
+                originProgramId
+                headline
+            }
+        }
+    }
+    '''
     _TESTS = [{
         'url': 'https://globoplay.globo.com/v/3607726/',
         'info_dict': {
@@ -47,30 +60,22 @@ class GloboIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        video_view = '''
-        query getVideoView($videoId: ID!) {
-            video(id: $videoId) {
-                duration
-                description
-                headline
-                title {
-                    originProgramId
-                    headline
-                }
-            }
-        }
-        '''
-        video = self._download_json(
-            f'https://cloud-jarvis.globo.com/graphql?operationName=getVideoView&variables=%7B"videoId":"{video_id}"%7D&query={video_view}', video_id,
-            headers={'content-type': 'application/json', 'x-platform-id': 'web', 'x-device-id': 'desktop', 'x-client-version': '2024.12-5'})['data']['video']
-        title = video['headline']
-        uploader = video['title'].get('headline')
-        uploader_id = str_or_none(video['title'].get('originProgramId'))
+        info = self._download_json(
+            'https://cloud-jarvis.globo.com/graphql', video_id,
+            query={'operationName': 'getVideoView',
+                   'variables': f'{{"videoId":{video_id}}}',
+                   'query': self._VIDEO_VIEW},
+            headers={'content-type': 'application/json',
+                     'x-platform-id': 'web',
+                     'x-device-id': 'desktop',
+                     'x-client-version': '2024.12-5'})['data']['video']
 
         formats = []
-        security = self._download_json(
-            'https://playback.video.globo.com/v4/video-session', video_id, f'Downloading resource info for {video_id}',
-            headers={'Content-Type': 'application/json'}, data=json.dumps({
+        video = self._download_json(
+            'https://playback.video.globo.com/v4/video-session', video_id,
+            f'Downloading resource info for {video_id}',
+            headers={'Content-Type': 'application/json'},
+            data=json.dumps({
                 'player_type': 'desktop',
                 'video_id': video_id,
                 'quality': 'max',
@@ -79,33 +84,27 @@ class GloboIE(InfoExtractor):
                 'tz': '-03:00',
                 'version': 1,
             }).encode())
+
         if traverse_obj(video, ('resource', 'drm_protection_enabled', {bool})):
             self.report_drm(video_id)
 
-        main_resource = security['sources'][0]
-        resource_url = main_resource['url']
+        main_source = video['sources'][0]
+        resource_url = main_source['url']
 
         fmts, subtitles = self._extract_m3u8_formats_and_subtitles(
             resource_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
         formats.extend(fmts)
 
-        subs = try_get(security, lambda x: x['sources'][0]['text']) or {}
-        for sub in subs.items():
-            if sub['subtitle']:
-                subtitles.setdefault(sub or 'por', []).append({
-                    'url': sub['subtitle']['srt'].get('url'),
-                })
-
-        duration = float_or_none(video.get('duration'), 1000)
-
         return {
             'id': video_id,
-            'title': title,
-            'duration': duration,
-            'uploader': uploader,
-            'uploader_id': uploader_id,
+            **traverse_obj(info, {
+                'title': ('headline', {str}),
+                'duration': ('duration', {float_or_none(scale=1000)}),
+                'uploader': ('title', 'headline', {str_or_none}),
+                'uploader_id': ('title', 'originProgramId', {str_or_none}),
+            }),
             'formats': formats,
-            'subtitles': subtitles,
+            'subtitles': subs_list_to_dict(traverse_obj(main_source, ('text', {dict.items}))),
         }
 
 
