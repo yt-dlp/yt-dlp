@@ -691,6 +691,10 @@ def get_postprocessors(opts):
             'add_metadata': opts.addmetadata,
             'add_infojson': opts.embed_infojson,
         }
+    if opts.prefer_mutagen:
+        yield {
+            'key': 'Mutagen',
+        }
     # Deprecated
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
     # but must be below EmbedSubtitle and FFmpegMetadata
@@ -917,6 +921,7 @@ def parse_options(argv=None):
         'bidi_workaround': opts.bidi_workaround,
         'debug_printtraffic': opts.debug_printtraffic,
         'prefer_ffmpeg': opts.prefer_ffmpeg,
+        'prefer_mutagen': opts.prefer_mutagen,
         'include_ads': opts.include_ads,
         'default_search': opts.default_search,
         'dynamic_mpd': opts.dynamic_mpd,
