@@ -65,9 +65,14 @@ def _get_variant_and_executable_path():
             machine = '_legacy' if version_tuple(platform.mac_ver()[0]) < (10, 15) else ''
         else:
             machine = f'_{platform.machine().lower()}'
+            is_64bits = sys.maxsize > 2**32
             # Ref: https://en.wikipedia.org/wiki/Uname#Examples
             if machine[1:] in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
-                machine = '_x86' if platform.architecture()[0][:2] == '32' else ''
+                machine = '_x86' if not is_64bits else ''
+            # platform.machine() on 32-bit raspbian OS may return 'aarch64', so check "64-bitness"
+            # See: https://github.com/yt-dlp/yt-dlp/issues/11813
+            elif machine[1:] == 'aarch64' and not is_64bits:
+                machine = '_armv7l'
             # sys.executable returns a /tmp/ path for staticx builds (linux_static)
             # Ref: https://staticx.readthedocs.io/en/latest/usage.html#run-time-information
             if static_exe_path := os.getenv('STATICX_PROG_PATH'):
