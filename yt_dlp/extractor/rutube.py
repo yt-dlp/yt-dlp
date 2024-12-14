@@ -13,7 +13,10 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import (
+    subs_list_to_dict,
+    traverse_obj,
+)
 
 
 class RutubeBaseIE(InfoExtractor):
@@ -92,11 +95,11 @@ class RutubeBaseIE(InfoExtractor):
                 hls_url, video_id, 'mp4', fatal=False, m3u8_id='hls')
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
-        for caption in traverse_obj(options, ('captions', lambda _, v: url_or_none(v['file']))):
-            subtitles.setdefault(caption.get('code') or 'ru', []).append({
-                'url': caption['file'],
-                'name': caption.get('langTitle'),
-            })
+        self._merge_subtitles(traverse_obj(options, ('captions', ..., {
+            'id': 'code',
+            'url': 'file',
+            'name': ('langTitle', {str}),
+        }, all, {subs_list_to_dict(lang='ru')})), target=subtitles)
         return formats, subtitles
 
     def _download_and_extract_formats_and_subtitles(self, video_id, query=None):
