@@ -1,6 +1,7 @@
 import functools
 import json
 import re
+import time
 import urllib.parse
 
 from .common import InfoExtractor
@@ -9,6 +10,7 @@ from ..utils import (
     OnDemandPagedList,
     filter_dict,
     int_or_none,
+    jwt_decode_hs256,
     parse_qs,
     str_or_none,
     traverse_obj,
@@ -50,9 +52,22 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
             'fc_use_device': 'null',
             **headers,
         }
-        if jwt_arg := self._configuration_arg('jwt_token', ie_key='niconicochannelplus', casesense=True):
-            headers['Authorization'] = f'Bearer {jwt_arg}'
-        return self._download_json(f'{settings["api_base_url"]}{path}', video_id, headers=headers, **kwargs)
+        if jwt_args := self._configuration_arg('jwt_token', ie_key='niconicochannelplus', casesense=True):
+            jwt_token = jwt_args[0]
+            try:
+                if time.time() > jwt_decode_hs256(jwt_token)['exp']:
+                    self.report_warning('JWT token is expired. Access to video may be denied.')
+            except Exception:
+                self.report_warning('Possibly invalid JWT token is provided. Access to video may be denied.')
+            headers['Authorization'] = f'Bearer {jwt_token}'
+        data, handle = self._download_json_handle(
+            f'{settings["api_base_url"]}{path}', video_id, headers=headers, expected_status=403, **kwargs)
+        if handle.status == 403:
+            if not self._configuration_arg('jwt_token', ie_key='niconicochannelplus', casesense=True):
+                raise ExtractorError('Login is required. Use --extractor-args "niconicochannelplus:jwt_token=xxx"'
+                                     'to provide account credentials', expected=True)
+            raise ExtractorError('You may have no access to this video')
+        return data
 
     def _get_fanclub_site_id(self, url):
         settings = self._get_settings(url)
