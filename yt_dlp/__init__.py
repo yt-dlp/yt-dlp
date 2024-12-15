@@ -690,10 +690,7 @@ def get_postprocessors(opts):
             'add_chapters': opts.addchapters,
             'add_metadata': opts.addmetadata,
             'add_infojson': opts.embed_infojson,
-        }
-    if opts.prefer_mutagen:
-        yield {
-            'key': 'Mutagen',
+            'prefer_mutagen': opts.prefer_mutagen,
         }
     # Deprecated
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
