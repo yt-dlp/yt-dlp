@@ -449,9 +449,6 @@ class ZDFChannelIE(ZDFBaseIE):
         document_id = self._search_regex(
             r'docId\s*:\s*(["\'])(?P<doc_id>(?:(?!\1).)+)\1', webpage, 'document id', group='doc_id')
 
-        main_video = None
-        playlist_videos = []
-
         data = self._download_v2_doc(document_id)
 
         main_video = traverse_obj(data, (
