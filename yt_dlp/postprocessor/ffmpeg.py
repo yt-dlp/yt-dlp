@@ -697,7 +697,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         'genre': 'genre',
         'album': 'album',
         'albumartist': 'album_artist',
-        'description': 'description',
+        'comment': 'description',
         'composer': 'composer',
         'tracknumber': 'track',
         'WWWAUDIOFILE': 'purl',  # https://getmusicbee.com/forum/index.php?topic=39759.0
