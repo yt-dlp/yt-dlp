@@ -291,6 +291,7 @@ class YoutubeDL:
                        unless writeinfojson is also given
     writeannotations:  Write the video annotations to a .annotations.xml file
     writethumbnail:    Write the thumbnail image to a file
+    thumbnail_id:      ID of thumbnail to write
     allow_playlist_files: Whether to write playlists' description, infojson etc
                        also to disk when using the 'write*' options
     write_all_thumbnails:  Write all thumbnail formats to files
@@ -2605,6 +2606,7 @@ class YoutubeDL:
 
     def _sort_thumbnails(self, thumbnails):
         thumbnails.sort(key=lambda t: (
+            t.get('id') == self.params.get('thumbnail_id') if t.get('id') is not None else False,
             t.get('preference') if t.get('preference') is not None else -1,
             t.get('width') if t.get('width') is not None else -1,
             t.get('height') if t.get('height') is not None else -1,
@@ -2629,6 +2631,12 @@ class YoutubeDL:
                     self.to_screen(f'[info] Unable to connect to thumbnail {t["id"]} URL {t["url"]!r} - {err}. Skipping...')
                     continue
                 yield t
+
+        thumbnail_id = self.params.get('thumbnail_id')
+        if thumbnail_id and thumbnail_id not in [t.get('id') for t in thumbnails]:
+            self.raise_no_formats(info_dict, msg=(
+                'Invalid thumbnail ID specified. '
+                'Use --list-thumbnails to see available IDs'))
 
         self._sort_thumbnails(thumbnails)
         for i, t in enumerate(thumbnails):

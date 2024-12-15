@@ -1525,6 +1525,10 @@ def create_parser():
         action='store_false', dest='writethumbnail',
         help='Do not write thumbnail image to disk (default)')
     thumbnail.add_option(
+        '--thumbnail-id',
+        metavar='ID', dest='thumbnail_id',
+        help='ID of thumbnail to write to disk')
+    thumbnail.add_option(
         '--write-all-thumbnails',
         action='store_const', dest='writethumbnail', const='all',
         help='Write all thumbnail image formats to disk')
