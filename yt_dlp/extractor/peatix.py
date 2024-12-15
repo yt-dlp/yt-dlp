@@ -37,7 +37,7 @@ class PeatixIE(InfoExtractor):
             html, f'variable {variable}', group='value')
         return var[1:-1] if (var.startswith('"') and var.endswith('"')) or (var.startswith("'") and var.startswith('"')) else var
 
-    def get_player_status(self, broadcast_info, webpage):
+    def get_event_status(self, broadcast_info, webpage):
         """
         broadcast_info: Dict[str, Union[int, str]]
         A dictionary containing event data with the following keys:
@@ -73,7 +73,7 @@ class PeatixIE(InfoExtractor):
         player_webpage = self._download_webpage(f'{root_url}/event/{video_id}/watch_live', video_id,
                                                 note='Downloading player information', errnote='Failed to download player information')
         try:
-            state = self.get_player_status(self._download_json(f'{root_url}/event/{video_id}/broadcast_info', video_id)['json_data'], player_webpage)
+            state = self.get_event_status(self._download_json(f'{root_url}/event/{video_id}/broadcast_info', video_id)['json_data'], player_webpage)
 
         except ExtractorError as e:
             raise ExtractorError(e.msg, video_id=video_id)
