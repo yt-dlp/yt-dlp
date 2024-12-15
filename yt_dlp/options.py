@@ -1800,6 +1800,10 @@ def create_parser():
             '"after_video" (after downloading and processing all formats of a video), '
             'or "playlist" (at end of playlist). '
             'This option can be used multiple times to add different postprocessors'))
+    postproc.add_option(
+        '--prefer-mutagen', '--no-prefer-mutagen',
+        action='store_true', dest='prefer_mutagen',
+        help=optparse.SUPPRESS_HELP)
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
         'Make chapter entries for, or remove various segments (sponsor, introductions, etc.) '
