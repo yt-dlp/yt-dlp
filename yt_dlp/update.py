@@ -533,7 +533,7 @@ class Updater:
             argv = sys.argv
         # linux_static exe's argv[0] will be /tmp/staticx-NNNN/yt-dlp_linux if we don't fixup here
         if argv and os.getenv('STATICX_PROG_PATH'):
-            argv[0] = self.filename
+            argv = [self.filename, *argv[1:]]
         return argv
 
     def restart(self):
