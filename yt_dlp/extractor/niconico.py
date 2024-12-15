@@ -592,7 +592,8 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
     @staticmethod
     def _parse_owner(item):
         return {
-            'uploader': traverse_obj(item, ('owner', 'name')),
+            'uploader': traverse_obj(item, ('owner', 'name'))
+            or traverse_obj(item, ('owner', 'user', 'nickname')),
             'uploader_id': traverse_obj(item, ('owner', 'id')),
         }
 
@@ -666,7 +667,7 @@ class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
             mylist.get('name'), mylist.get('description'), **self._parse_owner(mylist))
 
 
-class NiconicoSeriesIE(InfoExtractor):
+class NiconicoSeriesIE(NiconicoPlaylistBaseIE):
     IE_NAME = 'niconico:series'
     _VALID_URL = r'https?://(?:(?:www\.|sp\.)?nicovideo\.jp(?:/user/\d+)?|nico\.ms)/series/(?P<id>\d+)'
 
@@ -689,19 +690,21 @@ class NiconicoSeriesIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _call_api(self, list_id, resource, query):
+        return self._download_json(
+            f'https://nvapi.nicovideo.jp/v2/series/{list_id}', list_id,
+            f'Downloading {resource}', query=query,
+            headers=self._API_HEADERS)['data']
+
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        webpage = self._download_webpage(url, list_id)
-
-        title = self._search_regex(
-            (r'<title>「(.+)（全',
-             r'<div class="TwitterShareButton"\s+data-text="(.+)\s+https:'),
-            webpage, 'title', fatal=False)
-        if title:
-            title = unescapeHTML(title)
-        json_data = next(self._yield_json_ld(webpage, None, fatal=False))
-        return self.playlist_from_matches(
-            traverse_obj(json_data, ('itemListElement', ..., 'url')), list_id, title, ie=NiconicoIE)
+        json_data = self._call_api(list_id, 'list', {
+            'pageSize': 1,
+        })
+        series = json_data['detail']
+        return self.playlist_result(
+            self._entries(list_id), list_id,
+            series.get('title'), series.get('description'), **self._parse_owner(series))
 
 
 class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
