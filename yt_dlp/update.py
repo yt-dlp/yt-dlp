@@ -525,11 +525,16 @@ class Updater:
     @functools.cached_property
     def cmd(self):
         """The command-line to run the executable, if known"""
+        argv = None
         # There is no sys.orig_argv in py < 3.10. Also, it can be [] when frozen
         if getattr(sys, 'orig_argv', None):
-            return sys.orig_argv
+            argv = sys.orig_argv
         elif getattr(sys, 'frozen', False):
-            return sys.argv
+            argv = sys.argv
+        # linux_static exe's argv[0] will be /tmp/staticx-NNNN/yt-dlp_linux if we don't fixup here
+        if argv and os.getenv('STATICX_PROG_PATH'):
+            argv[0] = self.filename
+        return argv
 
     def restart(self):
         """Restart the executable"""
