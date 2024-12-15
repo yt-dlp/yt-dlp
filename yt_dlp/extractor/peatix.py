@@ -23,29 +23,16 @@ class PeatixIE(InfoExtractor):
     _VALID_URL = r'(?P<root_url>https?://peatix\.com)/event/(?P<id>[0-9]+)'
 
     def _extract_var(self, variable, html):
-        var = self._search_regex(
+        return self._search_regex(
             rf'(?:var|let|const)\s+{variable}\s*=\s*(?P<value>([^;]+))\s*;?',
             html, f'variable {variable}', group='value')
-        return var[1:-1] if (var.startswith('"') and var.endswith('"')) or (var.startswith("'") and var.startswith('"')) else var
 
     def get_event_status(self, broadcast_info, webpage):
-        """
-        broadcast_info: Dict[str, Union[int, str]]
-        A dictionary containing event data with the following keys:
-        - 'started': int - Status indicating the start state (0 or 1)
-        - 'event_tz_name': str - Time zone name, e.g., 'Asia/Tokyo'
-        - 'go_live_epoch': int - Timestamp indicating when the live stream will start
-        - 'ended': int - Status indicating the end state (0 or 1)
-        - 'event_start_epoch': int - Epoch time for event start
-        - 'end_live_epoch': int - Timestamp indicating the end of the live stream
-        - 'event_end_epoch': int - Epoch time for event end
-        - 'is_streaming_software_connected': int - Connection status of streaming software (0 or 1)
-        """
         now = int(time.time())
-        go_live_epoch = broadcast_info['go_live_epoch'] / 1000
-        event_start_epoch = broadcast_info['event_start_epoch'] / 1000
-        end_live_epoch = broadcast_info['end_live_epoch'] / 1000
-        event_end_epoch = broadcast_info['event_end_epoch'] / 1000
+        go_live_epoch = broadcast_info.get('go_live_epoch') / 1000
+        event_start_epoch = broadcast_info.get('event_start_epoch') / 1000
+        end_live_epoch = broadcast_info.get('end_live_epoch') / 1000
+        event_end_epoch = broadcast_info.get('event_end_epoch') / 1000
         if now < go_live_epoch or now < event_start_epoch:
             return EventStatus.NOT_STARTED
         if now > end_live_epoch or now > event_end_epoch:
@@ -61,10 +48,11 @@ class PeatixIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, root_url = self._match_valid_url(url).group('id', 'root_url')
         event_webpage = self._download_webpage(f'{root_url}/event/{video_id}', video_id)
-        player_webpage = self._download_webpage(f'{root_url}/event/{video_id}/watch_live', video_id,
-                                                note='Downloading player information', errnote='Failed to download player information')
         try:
-            state = self.get_event_status(self._download_json(f'{root_url}/event/{video_id}/broadcast_info', video_id)['json_data'], player_webpage)
+            state = self.get_event_status(self._download_json(f'{root_url}/event/{video_id}/broadcast_info', video_id,
+                                                              note='Downloading broadcast information', errnote='Failed to download broadcast information').get('json_data'),
+                                          self._download_webpage(f'{root_url}/event/{video_id}/watch_live', video_id,
+                                                                 note='Downloading player information', errnote='Failed to download player information'))
 
         except ExtractorError as e:
             raise ExtractorError(e.msg, video_id=video_id)
