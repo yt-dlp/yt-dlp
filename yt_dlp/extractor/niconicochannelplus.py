@@ -50,6 +50,8 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
             'fc_use_device': 'null',
             **headers,
         }
+        if jwt_arg := self._configuration_arg('jwt_token', ie_key='niconicochannelplus', casesense=True):
+            headers['Authorization'] = f'Bearer {jwt_arg}'
         return self._download_json(f'{settings["api_base_url"]}{path}', video_id, headers=headers, **kwargs)
 
     def _get_fanclub_site_id(self, url):
