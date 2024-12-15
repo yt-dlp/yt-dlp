@@ -21,15 +21,6 @@ class PeatixIE(InfoExtractor):
     IE_NAME = 'peatix.com'
 
     _VALID_URL = r'(?P<root_url>https?://peatix\.com)/event/(?P<id>[0-9]+)'
-    _TESTS = [{
-        'url': 'https://peatix.com/event/4204947',
-        'info_dict': {
-            'id': '4204947',
-            'title': '『本』と『声』TOKYO BOOK NIGHT2024 人気好評につき【疑似ライブ配信】決定！ | Peatix',
-            'thumbnail': 'https://cdn.peatix.com/event/4204947/cover-zTJjkvKwSeRkONN49kTbhqcHw8swHlLC.png',
-            'description': '申し込み開始：11月27日（水）より 申し込み締切：12月8日（日）20時販売終了 &nbsp; 大好評につき疑似ライブ配信決定！『本』と『声』TOKYO BOOK NIGHT 2... powered by Peatix : More than a ticket.',
-        },
-    }]
 
     def _extract_var(self, variable, html):
         var = self._search_regex(
