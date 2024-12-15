@@ -24,7 +24,7 @@ class ZDFBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['DE']
     _QUALITIES = ('auto', 'low', 'med', 'high', 'veryhigh', 'hd', 'fhd', 'uhd')
 
-    def _download_mediathekv2_document(self, document_id):
+    def _download_v2_doc(self, document_id):
         return self._download_json(
             f'https://zdf-prod-futura.zdf.de/mediathekV2/document/{document_id}',
             document_id)
@@ -324,7 +324,7 @@ class ZDFIE(ZDFBaseIE):
         return self._extract_entry(player['content'], player, content, video_id)
 
     def _extract_mobile(self, video_id):
-        video = self._download_mediathekv2_document(video_id)
+        video = self._download_v2_doc(video_id)
 
         formats = []
         formitaeten = try_get(video, lambda x: x['document']['formitaeten'], list)
@@ -413,10 +413,6 @@ class ZDFChannelIE(ZDFBaseIE):
         title = super()._og_search_title(webpage, fatal=fatal)
         return re.split(r'\s+[-|]\s+ZDF(?:mediathek)?$', title or '')[0] or None
 
-    def _extract_document_id(self, webpage):
-        matches = re.search(r'docId\s*:\s*[\'"](?P<docid>[^\'"]+)[\'"]', webpage)
-        return matches and matches.group('docid')
-
     def _get_playlist_description(self, page_data):
         headline = traverse_obj(page_data, ('shortText', 'headline'))
         text = traverse_obj(page_data, ('shortText', 'text'))
@@ -425,56 +421,53 @@ class ZDFChannelIE(ZDFBaseIE):
         return headline or text
 
     def _convert_thumbnails(self, thumbnails):
-        return [{
-            'id': key,
-            'url': thumbnail_info['url'],
-            'width': int_or_none(thumbnail_info.get('width')),
-            'height': int_or_none(thumbnail_info.get('height')),
-        } for key, thumbnail_info in thumbnails.items() if url_or_none(thumbnail_info.get('url'))]
+        return traverse_obj(thumbnails, (
+            ..., {
+                'url': ('url', {url_or_none}),
+                'width': ('width', {int_or_none}),
+                'height': ('height', {int_or_none}),
+            }))
 
     def _teaser_to_url_result(self, teaser):
         return self.url_result(
-            teaser['sharingUrl'], ie=ZDFIE.ie_key(),
-            id=teaser.get('id'), title=teaser.get('titel', ''),
-            thumbnails=self._convert_thumbnails(teaser.get('teaserBild', {})),
-            description=teaser.get('beschreibung'),
-            duration=float_or_none(teaser.get('length')),
-            media_type=teaser.get('currentVideoType') or teaser.get('contentType'),
-            season_number=int_or_none(teaser.get('seasonNumber')),
-            episode_number=int_or_none(teaser.get('episodeNumber')))
+            ie=ZDFIE.ie_key(),
+            **traverse_obj(teaser, {
+                'url': ('sharingUrl', {url_or_none}),
+                'id': ('id'),
+                'title': ('titel'),
+                'thumbnails': ('teaserBild', {self._convert_thumbnails}),
+                'description': ('beschreibung'),
+                'duration': ('length', {float_or_none}),
+                'media_type': (('currentVideoType', 'contentType'), any),
+                'season_number': ('seasonNumber', {int_or_none}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+            }))
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-
         webpage = self._download_webpage(url, channel_id)
+        document_id = self._search_regex(
+            r'docId\s*:\s*(["\'])(?P<doc_id>(?:(?!\1).)+)\1', webpage, 'document id', group='doc_id')
 
         main_video = None
         playlist_videos = []
 
-        document_id = self._extract_document_id(webpage)
-        if document_id is not None:
-            data = self._download_mediathekv2_document(document_id)
+        data = self._download_v2_doc(document_id)
 
-            for cluster in data['cluster']:
-                for teaser in cluster['teaser']:
-                    if cluster['type'] == 'teaserContent' and teaser['type'] == 'video':
-                        main_video = main_video or teaser
-                    elif cluster['type'] == 'teaser' and teaser['type'] == 'video':
-                        if teaser['brandId'] != document_id:
-                            # These are unrelated 'You might also like' videos, filter them out
-                            continue
-                        playlist_videos.append(teaser)
+        main_video = traverse_obj(data, (
+            'cluster', lambda _, cluster: cluster['type'] == 'teaserContent',
+            'teaser', lambda _, teaser: teaser['type'] == 'video', any))
 
-        if self._downloader.params.get('noplaylist', False):
-            return self._teaser_to_url_result(main_video) if main_video else None
+        if not self._yes_playlist(channel_id, main_video and main_video['id']):
+            return self._teaser_to_url_result(main_video)
 
-        self.to_screen(f'Downloading playlist {channel_id} - add --no-playlist to download just the main video')
+        playlist_videos = traverse_obj(data, (
+            'cluster', lambda _, cluster: cluster['type'] == 'teaser',
+            # If 'brandId' differs, it is a 'You might also like' video. Filter these out.
+            'teaser', lambda _, teaser: teaser['type'] == 'video' and teaser['brandId'] == document_id))
 
-        thumbnails = (
-            traverse_obj(data, ('document', 'image'))
-            or traverse_obj(data, ('document', 'teaserBild'))
-            or traverse_obj(data, ('stageHeader', 'image'))
-            or {})
+        thumbnails = traverse_obj(
+            data, ('document', 'image'), ('document', 'teaserBild'), ('stageHeader', 'image'))
 
         return self.playlist_result(
             (self._teaser_to_url_result(video) for video in playlist_videos),
