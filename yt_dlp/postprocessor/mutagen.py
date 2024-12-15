@@ -1,11 +1,9 @@
 from __future__ import annotations
 import collections
 from functools import singledispatchmethod
-import os
 import re
 from typing import TypedDict
 
-from yt_dlp.compat import imghdr
 from yt_dlp.utils._utils import PostProcessingError, variadic
 from ..dependencies import mutagen
 
@@ -142,16 +140,6 @@ class MutagenPP(PostProcessor):
             if meta['track']:
                 file['trkn'] = [(meta['track'], 0)]
 
-    def _get_cover_art_file(self, info) -> str | None:
-        idx = next((-i for i, t in enumerate(info['thumbnails'][::-1], 1) if t.get('filepath')), None)
-        if idx is None:
-            return None
-        thumbnail_filename = info['thumbnails'][idx]['filepath']
-        if not os.path.exists(thumbnail_filename):
-            self.report_warning('Skipping embedding the cover art because the file is missing.')
-            return None
-        return thumbnail_filename
-
     def _get_metadata_from_info(self, info) -> MetadataInfo:
         meta_prefix = 'meta'
         metadata: dict[str, self.MetadataInfo] = collections.defaultdict(
@@ -191,21 +179,6 @@ class MutagenPP(PostProcessor):
             mobj = re.fullmatch(meta_regex, key)
             if value is not None and mobj:
                 metadata[mobj.group('i') or 'common'][mobj.group('key')] = value.replace('\0', '')
-
-        cover_art = self._get_cover_art_file(info)
-        if cover_art:
-            try:
-                with open(cover_art, 'rb') as cover_file:
-                    cover_data = cover_file.read()
-                type_ = imghdr.what(h=cover_data)
-                if not type_:
-                    raise ValueError('could not determine image type')
-                elif type_ not in ('jpeg', 'png'):
-                    raise ValueError(f'incompatible image type: {type_}')
-                metadata['common']['cover_art_data'] = cover_data
-                metadata['common']['cover_art_type'] = type_
-            except Exception as err:
-                self.report_warning(f'Skipping embedding cover art due to error; {err}')
 
         return metadata['common']
 
