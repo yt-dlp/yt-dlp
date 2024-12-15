@@ -8,6 +8,8 @@ import re
 import subprocess
 import time
 
+from yt_dlp.utils._utils import date_from_str
+
 from .common import PostProcessor
 from ..compat import imghdr
 from ..utils import (
@@ -693,11 +695,9 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         'title': 'title',
         'artist': 'artist',
         'genre': 'genre',
-        'date': 'date',
         'album': 'album',
         'albumartist': 'album_artist',
         'description': 'description',
-        'comment': 'comment',
         'composer': 'composer',
         'tracknumber': 'track',
         'WWWAUDIOFILE': 'purl',  # https://getmusicbee.com/forum/index.php?topic=39759.0
@@ -707,9 +707,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         'TPE1': 'artist',
         'COMM': 'description',
         'TCON': 'genre',
-        'WFED': 'purl',
         'WOAF': 'purl',
-        'TDAT': 'date',
         'TALB': 'album',
         'TPE2': 'album_artist',
         'TRCK': 'track',
@@ -720,7 +718,6 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         '\251ART': 'artist',
         '\251nam': 'title',
         '\251gen': 'genre',
-        '\251day': 'date',
         '\251alb': 'album',
         'aART': 'album_artist',
         '\251cmt': 'description',
@@ -774,6 +771,11 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 if meta.get(meta_key):
                     file[file_key] = meta[meta_key]
 
+            if meta.get('date'):
+                # Vorbis uses ISO 8601 format YYYY-MM-DD
+                date = date_from_str(meta['date'])
+                file['date'] = date.strftime('%Y-%m-%d')
+
         @_assemble_metadata.register(trueaudio.TrueAudio)
         @_assemble_metadata.register(dsf.DSF)
         @_assemble_metadata.register(dsdiff.DSDIFF)
@@ -789,16 +791,26 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                     else:
                         file[file_key] = id3_class(encoding=id3.Encoding.UTF8, text=meta[meta_key])
 
+            if meta.get('date'):
+                # ID3 uses ISO 8601 format YYYY-MM-DD
+                date = date_from_str(meta['date'])
+                file['TDRC'] = id3.TDRC(encoding=id3.Encoding.UTF8, text=date.strftime('%Y-%m-%d'))
+
         @_assemble_metadata.register(mp4.MP4)
         def _(self, file: mp4.MP4, meta: dict) -> None:
             for file_key, meta_key in self._MP4_METADATA.items():
                 if meta.get(meta_key):
                     file[file_key] = meta[meta_key]
 
+            if meta.get('date'):
+                # no standard but iTunes uses YYYY-MM-DD format
+                date = date_from_str(meta['date'])
+                file['\251day'] = date.strftime('%Y-%m-%d')
+
             if meta.get('purl'):
                 # https://getmusicbee.com/forum/index.php?topic=39759.0
                 file['----:com.apple.iTunes:WWWAUDIOFILE'] = meta['purl'].encode()
-                file['purl'] = meta['purl'].encode()
+                file['purl'] = meta['purl']
 
             if meta.get('track'):
                 file['trkn'] = [(meta['track'], 0)]
