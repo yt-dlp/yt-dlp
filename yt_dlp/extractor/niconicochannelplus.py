@@ -71,10 +71,7 @@ class NicoChannelCommonBaseIE(InfoExtractor):
 class NicoChannelAuthBaseIE(NicoChannelCommonBaseIE):
     _AUTH_SETTINGS = {}
     _AUTH_TOKENS = {}
-    _netrc_domain: str
-
-    def supports_login(self):
-        return True
+    _NETRC_MACHINE = False
 
     def _get_auth(self, url) -> dict:
         return self._AUTH_TOKENS.get(urljoin(url, '/'), {})
@@ -93,7 +90,7 @@ class NicoChannelAuthBaseIE(NicoChannelCommonBaseIE):
         fanclub_site_id = self._get_settings(url)['fanclub_site_id']
         if fanclub_site_id not in self._AUTH_SETTINGS:
             self._AUTH_SETTINGS[fanclub_site_id] = traverse_obj(self._download_api_json(
-                url, f'/fanclub_sites/{fanclub_site_id}/login', fanclub_site_id,
+                url, f'/fanclub_sites/{fanclub_site_id}/login', f'site/{fanclub_site_id}',
                 note='Downloading auth settings'), ('data', 'fanclub_site', {
                     'auth0_web_client': ('auth0_web_client_id', {str}),
                     'auth0_domain': ('fanclub_group', 'auth0_domain', {str}),
