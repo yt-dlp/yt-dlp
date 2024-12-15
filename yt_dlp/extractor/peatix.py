@@ -4,9 +4,7 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-)
+from ..utils import ExtractorError
 
 
 class EventStatus(enum.Enum):
