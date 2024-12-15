@@ -58,88 +58,89 @@ class MutagenPP(PostProcessor):
         episode_id: str | None
         episode_sort: str | None
 
-    @singledispatchmethod
-    @staticmethod
-    def _assemble_metadata(file: FileType, meta: MetadataInfo) -> None:
-        raise MutagenPPError(f'Filetype {file.__class__.__name__} is not currently supported')
+    if mutagen:
+        @singledispatchmethod
+        @staticmethod
+        def _assemble_metadata(file: FileType, meta: MetadataInfo) -> None:
+            raise MutagenPPError(f'Filetype {file.__class__.__name__} is not currently supported')
 
-    @staticmethod
-    def _set_metadata(file: FileType, meta: MetadataInfo, file_name: str, meta_name: str):
-        if meta[meta_name]:
-            file[file_name] = meta[meta_name]
-
-    @_assemble_metadata.register(oggvorbis.OggVorbis)
-    @_assemble_metadata.register(oggtheora.OggTheora)
-    @_assemble_metadata.register(oggspeex.OggSpeex)
-    @_assemble_metadata.register(oggopus.OggOpus)
-    @_assemble_metadata.register(flac.FLAC)
-    @staticmethod
-    def _(file: oggopus.OggOpus, meta: MetadataInfo) -> None:
-        MutagenPP._set_metadata(file, meta, 'artist', 'artist')
-        MutagenPP._set_metadata(file, meta, 'title', 'title')
-        MutagenPP._set_metadata(file, meta, 'genre', 'genre')
-        MutagenPP._set_metadata(file, meta, 'date', 'date')
-        MutagenPP._set_metadata(file, meta, 'album', 'album')
-        MutagenPP._set_metadata(file, meta, 'albumartist', 'album_artist')
-        MutagenPP._set_metadata(file, meta, 'description', 'description')
-        MutagenPP._set_metadata(file, meta, 'comment', 'comment')
-        MutagenPP._set_metadata(file, meta, 'composer', 'composer')
-        MutagenPP._set_metadata(file, meta, 'tracknumber', 'track')
-
-        # https://getmusicbee.com/forum/index.php?topic=39759.0
-        MutagenPP._set_metadata(file, meta, 'WWWAUDIOFILE', 'purl')
-
-    @_assemble_metadata.register(trueaudio.TrueAudio)
-    @_assemble_metadata.register(dsf.DSF)
-    @_assemble_metadata.register(dsdiff.DSDIFF)
-    @_assemble_metadata.register(aiff.AIFF)
-    @_assemble_metadata.register(mp3.MP3)
-    @_assemble_metadata.register(wave.WAVE)
-    @staticmethod
-    def _(file: wave.WAVE, meta: MetadataInfo) -> None:
-
-        def _set_metadata(file_name: str, meta_name: str):
+        @staticmethod
+        def _set_metadata(file: FileType, meta: MetadataInfo, file_name: str, meta_name: str):
             if meta[meta_name]:
-                id3_class = getattr(id3, file_name)
-                file[file_name] = id3_class(encoding=id3.Encoding.UTF8, text=meta[meta_name])
+                file[file_name] = meta[meta_name]
 
-        _set_metadata('TIT2', 'title')
-        _set_metadata('TPE1', 'artist')
-        _set_metadata('COMM', 'description')
-        _set_metadata('TCON', 'genre')
-        _set_metadata('WFED', 'purl')
-        _set_metadata('WOAF', 'purl')
-        _set_metadata('TDAT', 'date')
-        _set_metadata('TALB', 'album')
-        _set_metadata('TPE2', 'album_artist')
-        _set_metadata('TRCK', 'track')
-        _set_metadata('TCOM', 'composer')
-        _set_metadata('TPOS', 'disc')
+        @_assemble_metadata.register(oggvorbis.OggVorbis)
+        @_assemble_metadata.register(oggtheora.OggTheora)
+        @_assemble_metadata.register(oggspeex.OggSpeex)
+        @_assemble_metadata.register(oggopus.OggOpus)
+        @_assemble_metadata.register(flac.FLAC)
+        @staticmethod
+        def _(file: oggopus.OggOpus, meta: MetadataInfo) -> None:
+            MutagenPP._set_metadata(file, meta, 'artist', 'artist')
+            MutagenPP._set_metadata(file, meta, 'title', 'title')
+            MutagenPP._set_metadata(file, meta, 'genre', 'genre')
+            MutagenPP._set_metadata(file, meta, 'date', 'date')
+            MutagenPP._set_metadata(file, meta, 'album', 'album')
+            MutagenPP._set_metadata(file, meta, 'albumartist', 'album_artist')
+            MutagenPP._set_metadata(file, meta, 'description', 'description')
+            MutagenPP._set_metadata(file, meta, 'comment', 'comment')
+            MutagenPP._set_metadata(file, meta, 'composer', 'composer')
+            MutagenPP._set_metadata(file, meta, 'tracknumber', 'track')
 
-    @_assemble_metadata.register(mp4.MP4)
-    @staticmethod
-    def _(file: mp4.MP4, meta: MetadataInfo) -> None:
-        MutagenPP._set_metadata(file, meta, '\251ART', 'artist')
-        MutagenPP._set_metadata(file, meta, '\251nam', 'title')
-        MutagenPP._set_metadata(file, meta, '\251gen', 'genre')
-        MutagenPP._set_metadata(file, meta, '\251day', 'date')
-        MutagenPP._set_metadata(file, meta, '\251alb', 'album')
-        MutagenPP._set_metadata(file, meta, 'aART', 'album_artist')
-        MutagenPP._set_metadata(file, meta, '\251cmt', 'description')
-        MutagenPP._set_metadata(file, meta, '\251wrt', 'composer')
-        MutagenPP._set_metadata(file, meta, 'disk', 'disc')
-        MutagenPP._set_metadata(file, meta, 'tvsh', 'show')
-        MutagenPP._set_metadata(file, meta, 'tvsn', 'season_number')
-        MutagenPP._set_metadata(file, meta, 'egid', 'episode_id')
-        MutagenPP._set_metadata(file, meta, 'tven', 'episode_sort')
-
-        if meta['purl']:
             # https://getmusicbee.com/forum/index.php?topic=39759.0
-            file['----:com.apple.iTunes:WWWAUDIOFILE'] = meta['purl'].encode()
-            file['purl'] = meta['purl'].encode()
+            MutagenPP._set_metadata(file, meta, 'WWWAUDIOFILE', 'purl')
 
-        if meta['track']:
-            file['trkn'] = [(meta['track'], 0)]
+        @_assemble_metadata.register(trueaudio.TrueAudio)
+        @_assemble_metadata.register(dsf.DSF)
+        @_assemble_metadata.register(dsdiff.DSDIFF)
+        @_assemble_metadata.register(aiff.AIFF)
+        @_assemble_metadata.register(mp3.MP3)
+        @_assemble_metadata.register(wave.WAVE)
+        @staticmethod
+        def _(file: wave.WAVE, meta: MetadataInfo) -> None:
+
+            def _set_metadata(file_name: str, meta_name: str):
+                if meta[meta_name]:
+                    id3_class = getattr(id3, file_name)
+                    file[file_name] = id3_class(encoding=id3.Encoding.UTF8, text=meta[meta_name])
+
+            _set_metadata('TIT2', 'title')
+            _set_metadata('TPE1', 'artist')
+            _set_metadata('COMM', 'description')
+            _set_metadata('TCON', 'genre')
+            _set_metadata('WFED', 'purl')
+            _set_metadata('WOAF', 'purl')
+            _set_metadata('TDAT', 'date')
+            _set_metadata('TALB', 'album')
+            _set_metadata('TPE2', 'album_artist')
+            _set_metadata('TRCK', 'track')
+            _set_metadata('TCOM', 'composer')
+            _set_metadata('TPOS', 'disc')
+
+        @_assemble_metadata.register(mp4.MP4)
+        @staticmethod
+        def _(file: mp4.MP4, meta: MetadataInfo) -> None:
+            MutagenPP._set_metadata(file, meta, '\251ART', 'artist')
+            MutagenPP._set_metadata(file, meta, '\251nam', 'title')
+            MutagenPP._set_metadata(file, meta, '\251gen', 'genre')
+            MutagenPP._set_metadata(file, meta, '\251day', 'date')
+            MutagenPP._set_metadata(file, meta, '\251alb', 'album')
+            MutagenPP._set_metadata(file, meta, 'aART', 'album_artist')
+            MutagenPP._set_metadata(file, meta, '\251cmt', 'description')
+            MutagenPP._set_metadata(file, meta, '\251wrt', 'composer')
+            MutagenPP._set_metadata(file, meta, 'disk', 'disc')
+            MutagenPP._set_metadata(file, meta, 'tvsh', 'show')
+            MutagenPP._set_metadata(file, meta, 'tvsn', 'season_number')
+            MutagenPP._set_metadata(file, meta, 'egid', 'episode_id')
+            MutagenPP._set_metadata(file, meta, 'tven', 'episode_sort')
+
+            if meta['purl']:
+                # https://getmusicbee.com/forum/index.php?topic=39759.0
+                file['----:com.apple.iTunes:WWWAUDIOFILE'] = meta['purl'].encode()
+                file['purl'] = meta['purl'].encode()
+
+            if meta['track']:
+                file['trkn'] = [(meta['track'], 0)]
 
     def _get_cover_art_file(self, info) -> str | None:
         idx = next((-i for i, t in enumerate(info['thumbnails'][::-1], 1) if t.get('filepath')), None)
