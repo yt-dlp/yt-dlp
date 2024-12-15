@@ -2802,6 +2802,35 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'extractor_args': {'youtube': {'player_client': ['ios'], 'player_skip': ['webpage']}},
             },
         },
+        {
+            # uploader_id has non-ASCII characters that are percent-encoded in YT's JSON
+            'url': 'https://www.youtube.com/shorts/18NGQq7p3LY',
+            'info_dict': {
+                'id': '18NGQq7p3LY',
+                'ext': 'mp4',
+                'title': '아이브 이서 장원영 리즈 삐끼삐끼 챌린지',
+                'description': '',
+                'uploader': 'ㅇㅇ',
+                'uploader_id': '@으아-v1k',
+                'uploader_url': 'https://www.youtube.com/@으아-v1k',
+                'channel': 'ㅇㅇ',
+                'channel_id': 'UCC25oTm2J7ZVoi5TngOHg9g',
+                'channel_url': 'https://www.youtube.com/channel/UCC25oTm2J7ZVoi5TngOHg9g',
+                'thumbnail': r're:https?://.+/.+\.jpg',
+                'playable_in_embed': True,
+                'age_limit': 0,
+                'duration': 3,
+                'timestamp': 1724306170,
+                'upload_date': '20240822',
+                'availability': 'public',
+                'live_status': 'not_live',
+                'view_count': int,
+                'like_count': int,
+                'channel_follower_count': int,
+                'categories': ['People & Blogs'],
+                'tags': [],
+            },
+        },
     ]
 
     _WEBPAGE_TESTS = [
