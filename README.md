@@ -1822,6 +1822,8 @@ The following extractors use this feature:
 
 #### niconicochannelplus
 * `max_comments`: Maximum number of comments to extract - default is `120`
+* `jwt_token`: JWT token saved in browser localStorage for login and authorization of paid content, note lifetime of JWT token is only 5 minutes
+* `refresh_token`: refresh token saved in browser localStorage for obtaining new JWT token, note using this arg invalidates the token and browser login
 
 #### tiktok
 * `api_hostname`: Hostname to use for mobile API calls, e.g. `api22-normal-c-alisg.tiktokv.com`
