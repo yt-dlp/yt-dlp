@@ -114,7 +114,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
 
 
 class RedGifsIE(RedGifsBaseInfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/watch/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
+    _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/(?:watch|ifr)/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
     _TESTS = [{
         'url': 'https://www.redgifs.com/watch/squeakyhelplesswisent',
         'info_dict': {
@@ -133,6 +133,22 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
         },
     }, {
         'url': 'https://thumbs2.redgifs.com/SqueakyHelplessWisent-mobile.mp4#t=0',
+        'info_dict': {
+            'id': 'squeakyhelplesswisent',
+            'ext': 'mp4',
+            'title': 'Hotwife Legs Thick',
+            'timestamp': 1636287915,
+            'upload_date': '20211107',
+            'uploader': 'ignored52',
+            'duration': 16,
+            'view_count': int,
+            'like_count': int,
+            'categories': list,
+            'age_limit': 18,
+            'tags': list,
+        },
+    }, {
+        'url': 'https://www.redgifs.com/ifr/squeakyhelplesswisent',
         'info_dict': {
             'id': 'squeakyhelplesswisent',
             'ext': 'mp4',
