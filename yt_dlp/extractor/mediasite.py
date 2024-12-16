@@ -87,6 +87,24 @@ class MediasiteIE(InfoExtractor):
             },
         },
         {
+            'url': 'https://events7.mediasite.com/Mediasite/Play/a7812390a2d44739ae857527e05776091d',
+            'info_dict': {
+                'id': 'a7812390a2d44739ae857527e05776091d',
+                'ext': 'mp4',
+                'title': 'Practical Prevention, Detection and Responses to the New Threat Landscape',
+                'description': r're:^The bad guys aren’t standing still, and neither is Okta',
+                'thumbnail': 'https://events7.mediasite.com/Mediasite/FileServer/Presentation/a7812390a2d44739ae857527e05776091d/16e2f205-41a7-4ea5-a031-5c6152afc7bf.jpg?playbackTicket=be2577e1d1fa4629abc0a2f56465b1a7',
+                'cast': ['Franklin Rosado', 'Alex Bovee'],
+                'duration': 2415.487,
+                'timestamp': 1472567400,
+                'upload_date': '20160830',
+            },
+            'params': {
+                # frag 1 too small (only 768B)
+                'skip_download': True,
+            },
+        },
+        {
             'url': 'https://collegerama.tudelft.nl/Mediasite/Showcase/livebroadcast/Presentation/ada7020854f743c49fbb45c9ec7dbb351d',
             'only_matching': True,
         },
@@ -243,8 +261,8 @@ class MediasiteIE(InfoExtractor):
                         'ext': ext,
                     })
 
-            images = traverse_obj(player_options, ('PlayerLayoutOptions', 'Images', {dict}))
-            if stream.get('HasSlideContent') and images:
+            images = traverse_obj(player_options, ('PlayerLayoutOptions', 'Images', {dict}), default={})
+            if stream.get('HasSlideContent'):
                 stream_formats.append(self.__extract_slides(
                     stream_id=stream_id,
                     snum=snum,
