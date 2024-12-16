@@ -1054,6 +1054,7 @@ from .livestream import (
 )
 from .livestreamfails import LivestreamfailsIE
 from .lnk import LnkIE
+from .locals import LocalsIE
 from .loom import (
     LoomFolderIE,
     LoomIE,
