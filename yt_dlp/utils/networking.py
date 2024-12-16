@@ -79,6 +79,22 @@ class HTTPHeaderDict(collections.UserDict, dict):
         return super().__contains__(key.title() if isinstance(key, str) else key)
 
 
+class CaseSensitiveDict(HTTPHeaderDict):
+    def __setitem__(self, key, value):
+        if isinstance(value, bytes):
+            value = value.decode('latin-1')
+        self.data[key] = str(value).strip()
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __delitem__(self, key):
+        del self.data[key]
+
+    def __contains__(self, key):
+        return key in self.data
+
+
 std_headers = HTTPHeaderDict({
     'User-Agent': random_user_agent(),
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
