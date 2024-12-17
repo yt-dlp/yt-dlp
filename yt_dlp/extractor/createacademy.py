@@ -7,7 +7,7 @@ from ..utils import (
 )
 
 
-class CreateAcademyIE(InfoExtractor):
+class CreateAcademyBaseIE(InfoExtractor):
     _VALID_URL = r'https://www.createacademy.com/(?:[^/]+/)*lessons/(?P<id>[^/?#]+)'
 
     _TESTS = [
@@ -40,7 +40,7 @@ class CreateAcademyIE(InfoExtractor):
 
                     return {
                         'section_data': section,
-                        'title': prefix + num + ' - ' + lesson['title'].strip()
+                        'title': prefix + num + ' - ' + lesson['title'].strip(),
                     }
 
         return {
@@ -49,7 +49,7 @@ class CreateAcademyIE(InfoExtractor):
                 'number': 0,
                 'title': '',
             },
-            'title': prefix + '00 - ' + data['props']['lesson']['title'].strip()
+            'title': prefix + '00 - ' + data['props']['lesson']['title'].strip(),
         }
 
     def _get_policy_key(self, data, video_id):
@@ -61,7 +61,6 @@ class CreateAcademyIE(InfoExtractor):
         key = re.search(r'"(.*?)"', obj.group())
 
         return key.group().replace('"', '')
-
 
     def _get_manifest_url(self, data, video_id):
         hostVideoId = data['props']['lesson']['video']['host_video_id']
@@ -112,7 +111,7 @@ class CreateAcademyIE(InfoExtractor):
         }
 
 
-class CreateAcademyCourseIE(CreateAcademyIE):
+class CreateAcademyCourseIE(CreateAcademyBaseIE):
     _VALID_URL = r'https://www.createacademy.com/courses/(?P<id>[^/?#]+)'
 
     _TESTS = [
