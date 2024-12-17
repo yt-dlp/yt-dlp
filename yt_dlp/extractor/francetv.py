@@ -449,3 +449,92 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
             webpage, 'video id')
 
         return self._make_url_result(video_id, url=url)
+
+
+class FranceTVSiteShowIE(FranceTVBaseInfoExtractor):
+    IE_NAME = 'FranceTVSite:playlist'
+    _VALID_URL = r'''(?x)
+    https?://(?:(?:www\.)?france\.tv|mobile\.france\.tv)/
+    (?:[^/]+)/(?P<id>[^/]+)/
+    (?:toutes-les-videos|saison-(?P<season_number>\d+))/?$'''
+
+    _TESTS = [{
+        'url': 'https://www.france.tv/france-3/wakfu/saison-1/',
+        'info_dict': {
+            'id': 'Wakfu Season 1',
+            'title': 'Wakfu',
+            'description': 'md5:7d34b24a7fdde32da265bf01580803c3',
+        },
+        'playlist_count': 26,
+    }, {
+        'url': 'https://www.france.tv/france-2/dix-pour-cent/toutes-les-videos/',
+        'info_dict': {
+            'id': 'Dix pour Cent All available videos',
+            'title': 'Dix pour Cent',
+        },
+        'playlist_mincount': 24,
+    }, {
+        'url': 'https://www.france.tv/france-2/drag-race-france/toutes-les-videos/',
+        'info_dict': {
+            'id': 'Drag Race France All available videos',
+            'title': 'Drag Race France',
+        },
+        'playlist_mincount': 32,
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, display_id)
+
+        url_groups = self._match_valid_url(url).groupdict()
+        is_seasons_url = url_groups.get('season_number') is not None
+        info_dict = {}
+
+        if is_seasons_url:
+            display_title = self._search_regex(
+                r'<div\s*class=(["\'])c-hero-banner-program__data-description\1\s*><h1\s*class=\1c-headlines\1\s*>(?P<display_title>[^<]+)</h1\s*></div\s*>',
+                webpage, name='display_title', group='display_title')
+            display_title = display_title.split('-')[0].strip()
+            internal_id = f'{display_title} Season {url_groups["season_number"]}'
+            info_dict['playlist_description'] = self._search_regex(
+                r'<div\s*class=(["\'])c-hero-banner-program__data-synopsis\1\s*>(?P<series_description>[^<]+)</div\s*>',
+                webpage, name='series_description', group='series_description', default=None).strip()
+        else:
+            display_title = self._search_regex(
+                r'<h1\s*class=(["\'])c-headlines\s*c-page-title\s*c-headlines--title-1\1\s*>(?P<display_title>[^<]+)</h1\s*>',
+                webpage, name='display_title', group='display_title').strip()
+            internal_id = f'{display_title} All available videos'
+
+        info_dict['playlist_id'] = internal_id
+        info_dict['playlist_title'] = display_title
+
+        def entries():
+            # The page contains only the first videos, some calls must be made to ge the complete video list
+            (more_base_url, current_page, more_page_number) = self._search_regex(
+                r'''(?x)
+                (?:data-current-page\s*=)\s*(["\'])(?P<current_page>(?:(?!\1).)+)\1\s*
+                (?:data-url\s*=)\s*\1(?P<more_base_url>(?:(?!\1).)+)\1\s*
+                (?:data-max-page\s*=)\s*\1(?P<more_page_number>(?:(?!\1).)+)\1''',
+                webpage, 'more_base_url', group=['more_base_url', 'current_page', 'more_page_number'])
+
+            parsed_url = urllib.parse.urlparse(url)
+            (scheme, netloc, _, _, _, _) = parsed_url
+
+            videos_list = ''.join([
+                self._download_webpage(f'{scheme}://{netloc}/{more_base_url}?page={page}',
+                                       f'{display_id} page {page + 1}')
+                for page in range(int(current_page), int(more_page_number) + 1)
+            ])
+
+            video_ids = [
+                match.group('id') for match in re.finditer(
+                    r'(?:data-main-video\s*=|(?:video_factory_id|videoId)["\']?\s*[:=])\s*(["\'])(?P<id>(?:(?!\1).)+)\1',
+                    videos_list)
+            ]
+
+            for video_id in video_ids:
+                yield self.url_result(f'francetv:{video_id}', ie=FranceTVIE, video_id=video_id,
+                                      **FranceTVIE._extract_video(self, video_id, hostname=parsed_url.hostname))
+
+        return self.playlist_result(entries(), **info_dict)
