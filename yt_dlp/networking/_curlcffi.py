@@ -187,7 +187,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             # curl_cffi does not currently set these for proxies
             session.curl.setopt(CurlOpt.PROXY_CAINFO, certifi.where())
 
-            if not self.verify:
+            if not self.proxy_verify:
                 session.curl.setopt(CurlOpt.PROXY_SSL_VERIFYPEER, 0)
                 session.curl.setopt(CurlOpt.PROXY_SSL_VERIFYHOST, 0)
 
@@ -201,6 +201,15 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 session.curl.setopt(CurlOpt.SSLKEY, client_certificate_key)
             if client_certificate_password:
                 session.curl.setopt(CurlOpt.KEYPASSWD, client_certificate_password)
+
+        if self._proxy_client_cert:
+            session.curl.setopt(CurlOpt.PROXY_SSLCERT, self._proxy_client_cert['client_certificate'])
+            proxy_client_certificate_key = self._proxy_client_cert.get('client_certificate_key')
+            proxy_client_certificate_password = self._proxy_client_cert.get('client_certificate_password')
+            if proxy_client_certificate_key:
+                session.curl.setopt(CurlOpt.PROXY_SSLKEY, proxy_client_certificate_key)
+            if proxy_client_certificate_password:
+                session.curl.setopt(CurlOpt.PROXY_KEYPASSWD, proxy_client_certificate_password)
 
         timeout = self._calculate_timeout(request)
 
@@ -243,6 +252,8 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 or (e.code == CurlECode.RECV_ERROR and 'CONNECT' in str(e))
             ):
                 raise ProxyError(cause=e) from e
+            elif e.code == CurlECode.RECV_ERROR and 'SSL' in str(e):
+                raise SSLError(cause=e) from e
             else:
                 raise TransportError(cause=e) from e
 

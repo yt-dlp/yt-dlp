@@ -61,7 +61,7 @@ from yt_dlp.networking.impersonate import (
     ImpersonateRequestHandler,
     ImpersonateTarget,
 )
-from yt_dlp.utils import YoutubeDLError
+from yt_dlp.utils import YoutubeDLError, traverse_obj
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 from yt_dlp.utils.networking import HTTPHeaderDict, std_headers
 
@@ -771,6 +771,10 @@ class TestClientCertificate:
             'client_certificate_key': os.path.join(self.certdir, 'clientencrypted.key'),
             'client_certificate_password': 'foobar',
         })
+
+    def test_mtls_required(self, handler):
+        with pytest.raises(SSLError):
+            self._run_test(handler)
 
 
 @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
@@ -1776,6 +1780,7 @@ class TestYoutubeDLNetworking:
             'compat_opts': ['no-certifi'],
             'nocheckcertificate': True,
             'legacyserverconnect': True,
+            'proxy_nocheckcertificate': True,
         }) as ydl:
             rh = self.build_handler(ydl)
             assert rh.headers.get('test') == 'testtest'
@@ -1787,6 +1792,7 @@ class TestYoutubeDLNetworking:
             assert rh.prefer_system_certs is True
             assert rh.verify is False
             assert rh.legacy_ssl_support is True
+            assert rh.proxy_verify is False
 
     @pytest.mark.parametrize('ydl_params', [
         {'client_certificate': 'fakecert.crt'},
@@ -1798,6 +1804,22 @@ class TestYoutubeDLNetworking:
         with FakeYDL(ydl_params) as ydl:
             rh = self.build_handler(ydl)
             assert rh._client_cert == ydl_params  # XXX: Too bound to implementation
+
+    @pytest.mark.parametrize('client_cert', [
+        {'client_certificate': 'fakecert.crt'},
+        {'client_certificate': 'fakecert.crt', 'client_certificate_key': 'fakekey.key'},
+        {'client_certificate': 'fakecert.crt', 'client_certificate_key': 'fakekey.key', 'client_certificate_password': 'foobar'},
+        {'client_certificate_key': 'fakekey.key', 'client_certificate_password': 'foobar'},
+    ])
+    def test_proxy_client_certificate(self, client_cert):
+        ydl_params = traverse_obj(client_cert, {
+            'proxy_client_certificate': 'client_certificate',
+            'proxy_client_certificate_key': 'client_certificate_key',
+            'proxy_client_certificate_password': 'client_certificate_password',
+        })
+        with FakeYDL(ydl_params) as ydl:
+            rh = self.build_handler(ydl)
+            assert rh._proxy_client_cert == client_cert
 
     def test_urllib_file_urls(self):
         with FakeYDL({'enable_file_urls': False}) as ydl:

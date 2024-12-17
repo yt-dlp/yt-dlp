@@ -356,7 +356,7 @@ class TestWebsSocketRequestHandlerConformance:
             'client_certificate_key': os.path.join(MTLS_CERT_DIR, 'clientencrypted.key'),
             'client_certificate_password': 'foobar',
         },
-    ))
+    ), ids=['combined_nopass', 'nocombined_nopass', 'combined_pass', 'nocombined_pass'])
     def test_mtls(self, handler, client_cert):
         with handler(
             # Disable client-side validation of unacceptable self-signed testcert.pem
@@ -365,6 +365,15 @@ class TestWebsSocketRequestHandlerConformance:
             client_cert=client_cert,
         ) as rh:
             ws_validate_and_send(rh, Request(self.mtls_wss_base_url)).close()
+
+    def test_mtls_required(self, handler):
+        with handler(
+            # Disable client-side validation of unacceptable self-signed testcert.pem
+            # The test is of a check on the server side, so unaffected
+            verify=False,
+        ) as rh:
+            with pytest.raises(SSLError):
+                ws_validate_and_send(rh, Request(self.mtls_wss_base_url))
 
     def test_request_disable_proxy(self, handler):
         for proxy_proto in handler._SUPPORTED_PROXY_SCHEMES or ['ws']:
