@@ -1,4 +1,5 @@
 import functools
+import re
 
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
@@ -167,7 +168,8 @@ class DropoutIE(InfoExtractor):
 
 class DropoutSeasonIE(InfoExtractor):
     _PAGE_SIZE = 24
-    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)(?:/?$|/season:(?P<season>[0-9]+)/?$)'
+    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)(?:/season:(?P<season>[0-9]+))/?$'
+
     _TESTS = [
         {
             'url': 'https://www.dropout.tv/dimension-20-fantasy-high/season:1',
@@ -176,24 +178,6 @@ class DropoutSeasonIE(InfoExtractor):
             'info_dict': {
                 'id': 'dimension-20-fantasy-high-season-1',
                 'title': 'Dimension 20 Fantasy High - Season 1',
-            },
-        },
-        {
-            'url': 'https://www.dropout.tv/dimension-20-fantasy-high',
-            'note': 'Multi-season series with the season not in the url',
-            'playlist_count': 24,
-            'info_dict': {
-                'id': 'dimension-20-fantasy-high-season-1',
-                'title': 'Dimension 20 Fantasy High - Season 1',
-            },
-        },
-        {
-            'url': 'https://www.dropout.tv/dimension-20-shriek-week',
-            'note': 'Single-season series',
-            'playlist_count': 4,
-            'info_dict': {
-                'id': 'dimension-20-shriek-week-season-1',
-                'title': 'Dimension 20 Shriek Week - Season 1',
             },
         },
         {
@@ -222,3 +206,43 @@ class DropoutSeasonIE(InfoExtractor):
         return self.playlist_result(
             OnDemandPagedList(functools.partial(self._fetch_page, url, season_id), self._PAGE_SIZE),
             f'{season_id}-season-{season_num}', f'{season_title} - Season {season_num}')
+
+
+class DropoutShowIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)/?$'
+    _TEST = {
+        'url': 'https://www.dropout.tv/dirty-laundry/',
+        'info_dict': {
+            'id': 'dirty-laundry',
+            'title': 'Dirty Laundry',
+        },
+        'playlist_mincount': 3,
+    }
+
+    def _real_extract(self, url):
+        show_id = self._match_id(url)
+        webpage = self._download_webpage(url, show_id)
+        show_title = self._html_search_regex(
+            r'<h1[^>]*>(.+?)</h1>', webpage, 'show title',
+            default=None) or show_id.replace('-', ' ').title()
+
+        season_urls = re.findall(r'<option value="([^"]+)"', webpage)
+        entries = []
+        for season_url in season_urls:
+            season_id = self._search_regex(
+                r'/season:(\d+)', season_url, 'season id', default=None)
+
+            if not season_id:  # This continues if the season ID wasn't found in the URL
+                continue
+
+            season_entries = self.url_result(
+                season_url,
+                ie=DropoutSeasonIE.ie_key(),
+                video_id=f'{show_id}-season-{season_id}')
+
+            entries.append(season_entries)
+
+        if not entries:
+            self.raise_no_formats('No seasons found on the show page.', video_id=show_id)
+
+        return self.playlist_result(entries, show_id, show_title)
