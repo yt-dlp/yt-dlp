@@ -1892,7 +1892,9 @@ class BiliBiliDynamicIE(InfoExtractor):
                 'id': t_id,
             }, headers={
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            }), ('data', 'item', ((), 'orig'), 'modules', 'module_dynamic', (('major', 'archive'), ('additional', 'reserve')), 'jump_url', any, {sanitize_url}))
+            }), ('data', 'item', ((), 'orig'), 'modules', 'module_dynamic',
+                 (('major', ('archive', 'pgc')), ('additional', ('reserve', 'common'))),
+                 'jump_url', any, {sanitize_url}))
         if not video_url:
             self.raise_no_formats('No video found!', expected=True, video_id=t_id)
         return self.url_result(video_url)
