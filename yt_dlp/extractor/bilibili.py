@@ -32,6 +32,7 @@ from ..utils import (
     parse_qs,
     parse_resolution,
     qualities,
+    sanitize_url,
     smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
@@ -1859,6 +1860,42 @@ class BiliBiliPlayerIE(InfoExtractor):
         return self.url_result(
             f'http://www.bilibili.tv/video/av{video_id}/',
             ie=BiliBiliIE.ie_key(), video_id=video_id)
+
+
+class BiliBiliDynamicIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:t\.bilibili\.com|(?:www\.)?bilibili\.com/opus)/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://t.bilibili.com/998134289197432852',
+        'info_dict': {
+            'id': 'BV1TAmBYVEJr',
+            'ext': 'mp4',
+            'uploader_id': '1192648858',
+            'comment_count': int,
+            '_old_archive_ids': ['bilibili 113457567568273_part1'],
+            'thumbnail': 'http://i2.hdslb.com/bfs/archive/50091efd965d9f13ff6814f7ad374f90ab21e77d.jpg',
+            'duration': 929.238,
+            'upload_date': '20241110',
+            'uploader': '何同学工作室',
+            'like_count': int,
+            'view_count': int,
+            'title': '美国小朋友就玩这个？！何同学工作室11月开箱',
+            'description': '本期产品信息：\n机器狗\n气味模拟器\nCloudboom Strike LS\n无弦吉他\n蓝牙磁带音箱\n神奇画板',
+            'timestamp': 1731232800,
+            'tags': list,
+        },
+    }]
+
+    def _real_extract(self, url):
+        t_id = self._match_id(url)
+        video_url = traverse_obj(self._download_json(
+            'https://api.bilibili.com/x/polymer/web-dynamic/v1/detail', t_id, query={
+                'id': t_id,
+            }, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            }), ('data', 'item', ((), 'orig'), 'modules', 'module_dynamic', (('major', 'archive'), ('additional', 'reserve')), 'jump_url', any, {sanitize_url}))
+        if not video_url:
+            self.raise_no_formats('No video found!', expected=True, video_id=t_id)
+        return self.url_result(video_url)
 
 
 class BiliIntlBaseIE(InfoExtractor):
