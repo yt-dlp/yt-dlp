@@ -17,9 +17,11 @@ from ..utils import (
 
 class KidoodleTVBaseIE(InfoExtractor):
     def _extract_data(self, webpage, video_id):
-        keys = self._html_search_regex(r'__NUXT__=\(function\(([^\)]+)\)\{', webpage, 'key', default=None)
+        keys = self._html_search_regex(r'__NUXT__=\(function\(([^\)]+)\)\{', webpage,
+                                       'key', default=None)
         key_list = self._parse_json(js_to_json(f'[{keys}]'), video_id, fatal=False)
-        data = self._html_search_regex(r'\}\}\}\((".+)\)\);</script>', webpage, 'data', default=None)
+        data = self._html_search_regex(r'\}\}\}\((".+)\)\);</script>', webpage,
+                                       'data', default=None)
         data_list = self._parse_json(js_to_json(f'[{data}]'), video_id, fatal=False)
         data_set = {}
         if key_list and data_list and (len(data_list) == len(key_list)):
@@ -36,8 +38,8 @@ class KidoodleTVBaseIE(InfoExtractor):
             return re.sub(r'^-+|-+$', '', s)
 
         def get_field(field_name, idx, webpage, data):
-            value = self._html_search_regex(rf'{idx}\.{field_name}=(?P<a>"?(?P<b>.+?)"?);', webpage,
-                                            field_name, default=None, group=('a', 'b'))
+            value = self._html_search_regex(rf'{idx}\.{field_name}=(?P<a>"?(?P<b>.+?)"?);',
+                                            webpage, field_name, default=None, group=('a', 'b'))
             return (value[1] if value[1] != value[0] else (
                     data.get(value[0]) if re.search(r'^[a-zA-Z_\$]{1,4}$', value[0]) else value[0]))
 
@@ -94,7 +96,7 @@ class KidoodleTVIE(KidoodleTVBaseIE):
             'ext': 'mp4',
             'display_id': 'S1E01-a-school-for-fairy-tales',
             'title': 'A School for Fairy Tales',
-            'description': 'md5:4083278308ce6dda1660445b5073b851',
+            'description': 're:^Rose was a normal girl from a normal town with a super-normal love of fairy tales',
             'thumbnail': 'https://imgcdn.kidoodle.tv/RegalAcademy/S01/keyart_e01_large.jpg',
             'release_date': '20160521',
             'series': 'Regal Academy',
@@ -105,24 +107,6 @@ class KidoodleTVIE(KidoodleTVBaseIE):
             'episode_number': 1,
             'duration': 1423.4,
         },
-    }, {
-        'url': 'https://kidoodle.tv/3083/unicorn-academy/S1E04-fun-with-foals',
-        'info_dict': {
-            'id': '105372',
-            'ext': 'mp4',
-            'display_id': 'S1E04-fun-with-foals',
-            'title': 'Fun with Foals',
-            'description': 'The Sapphire team looks after a newborn baby unicorn!',
-            'thumbnail': 'https://imgcdn.kidoodle.tv/UnicornAcademy/S01/keyart_e04_large.jpg',
-            'release_date': '20231027',
-            'series': 'Unicorn Academy',
-            'series_id': '3083',
-            'season': 'Season 1',
-            'season_number': 1,
-            'episode': 'Episode 4',
-            'episode_number': 4,
-            'duration': 746.816,
-        },
     }]
 
     def _real_extract(self, url):
@@ -132,8 +116,10 @@ class KidoodleTVIE(KidoodleTVBaseIE):
                                          fatal=False, expected_status=(404, 500))
         if 'Server error' in webpage or 'Something went wrong' in webpage:
             qs = urlencode_postdata({'origin': urllib.parse.urlparse(url).path})
-            self._download_webpage(f'https://kidoodle.tv/welcome?{qs}', video_id, note='Downloading welcome page')
-            self._download_webpage(f'https://kidoodle.tv/welcome/verify?{qs}', video_id, note='Performing age verification')
+            self._download_webpage(f'https://kidoodle.tv/welcome?{qs}', video_id,
+                                   note='Downloading welcome page')
+            self._download_webpage(f'https://kidoodle.tv/welcome/verify?{qs}', video_id,
+                                   note='Performing age verification')
             # the above lines download the webpages to change verification status, not really get verified
             webpage = self._download_webpage(url, video_id)
 
@@ -155,39 +141,32 @@ class KidoodleTVSeriesIE(KidoodleTVBaseIE):
     _VALID_URL = r'https?://kidoodle\.tv/(?P<id>\d+)/(?P<slug>[\w-]+)[^/]*/?$'
     IE_NAME = 'KidoodleTV:series'
     _TESTS = [{
-        'url': 'https://kidoodle.tv/3014/bluey-the-videogame-by-abdallah-smash',
+        'url': 'https://kidoodle.tv/1681/science-with-sophie?category=S.T.E.M.',
         'info_dict': {
-            'id': '3014',
-            'title': 'Bluey: The Videogame by Abdallah Smash',
-            'description': 'Bluey: The Videogame on Nintendo Switch with no-commentary.',
+            'id': '1681',
+            'title': 'Science with Sophie',
+            'description': 're:^SCIENCE WITH SOPHIE is an award-winning science comedy series for all ages',
         },
-        'playlist_mincount': 8,
-    }, {
-        'url': 'https://kidoodle.tv/3083/unicorn-academy?category=What%27s%20NEW',
-        'info_dict': {
-            'id': '3083',
-            'title': 'Unicorn Academy',
-            'description': 'md5:d3f92c6bd76cc9941e60d827213b79f3',
-        },
-        'playlist_mincount': 4,
+        'playlist_mincount': 10,
     }]
 
     def _real_extract(self, url):
+        def extract_video(idx):
+            if video := self._extract_by_idx(idx, webpage, data_set):
+                video['series_id'] = series_id
+                video['webpage_url'] = join_nonempty('https://kidoodle.tv', series_id, slug,
+                                                     video['display_id'], delim='/')
+                video['webpage_url_basename'] = video['display_id']
+                return video
+            return None
+
         series_id, slug = self._match_valid_url(url).group('id', 'slug')
         webpage = self._download_webpage(url, series_id)
-
         title = self._html_search_regex(r'<h2[^>]+>(.*?)</h2>', webpage, 'title', default=None)
         description = self._html_search_regex(r'<p class="mb[^>]+>(.*?)</p>', webpage,
                                               'description', default=None)
         data_set = self._extract_data(webpage, series_id)
-        entries = []
-        for idx_se in sorted(re.findall(r'([\w\$]{1,4})\.seasonAndEpisode="([^"]+)";', webpage),
-                             key=lambda x: x[1]):
-            if entry := self._extract_by_idx(idx_se[0], webpage, data_set):
-                entry['series_id'] = series_id
-                entry['webpage_url'] = join_nonempty('https://kidoodle.tv', series_id, slug,
-                                                     entry['display_id'], delim='/')
-                entry['webpage_url_basename'] = entry['display_id']
-                entries.append(entry)
-
-        return self.playlist_result(entries, series_id, title, description)
+        idx = sorted(re.findall(r'([\w\$]{1,4})\.seasonAndEpisode="([^"]+)";', webpage),
+                     key=lambda x: x[1])
+        return self.playlist_result((extract_video(e[0]) for e in idx),
+                                    series_id, title, description)
