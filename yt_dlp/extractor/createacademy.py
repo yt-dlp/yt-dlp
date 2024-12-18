@@ -28,19 +28,14 @@ class CreateAcademyBaseIE(InfoExtractor):
     ]
 
     def _get_lesson_metadata(self, data, lesson_id):
-        prefix = 'Create Academy - s' + str(data['props']['course']['id']) + 'e'
+        prefix = 'Create Academy - s' + str(data['props']['course']['id']).zfill(2) + 'e'
 
         for section in data['props']['course']['curriculum']['sections']:
             for lesson in section['lessons']:
                 if lesson['id'] == lesson_id:
-                    if lesson['number'] < 10:
-                        num = '0' + str(lesson['number'])
-                    else:
-                        num = str(lesson['number'])
-
                     return {
                         'section_data': section,
-                        'title': prefix + num + ' - ' + lesson['title'].strip(),
+                        'title': prefix + str(lesson['number']).zfill(2) + ' - ' + lesson['title'].strip(),
                     }
 
         return {
