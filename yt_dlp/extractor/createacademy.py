@@ -4,6 +4,8 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
+    get_element_html_by_id,
+    traverse_obj,
 )
 
 
@@ -28,28 +30,32 @@ class CreateAcademyBaseIE(InfoExtractor):
     ]
 
     def _get_lesson_metadata(self, data, lesson_id):
-        prefix = 'Create Academy - s' + str(data['props']['course']['id']).zfill(2) + 'e'
+        course = traverse_obj(data, ('props', 'course'))
+        prefix = 'Create Academy - s' + str(course.get('id')).zfill(2) + 'e'
 
-        for section in data['props']['course']['curriculum']['sections']:
-            for lesson in section['lessons']:
-                if lesson['id'] == lesson_id:
+        sections = traverse_obj(course, ('curriculum', 'sections'))
+
+        for section in sections:
+            for lesson in section.get('lessons'):
+                if lesson.get('id') == lesson_id:
                     return {
-                        'section_data': section,
-                        'title': prefix + str(lesson['number']).zfill(2) + ' - ' + lesson['title'].strip(),
+                        'section': section,
+                        'title': prefix + str(lesson.get('number')).zfill(2) + ' - ' + lesson.get('title').strip(),
                     }
 
         return {
-            'section_data': {
+            'section': {
                 'id': 0,
                 'number': 0,
                 'title': '',
             },
-            'title': prefix + '00 - ' + data['props']['lesson']['title'].strip(),
+            'title': prefix + '00 - ' + traverse_obj(data, ('props', 'lesson', 'title')).strip(),
         }
 
     def _get_policy_key(self, data, video_id):
-        accountId = data['props']['brightcove']['accountId']
-        playerId = data['props']['brightcove']['playerId']
+        bc = traverse_obj(data, ('props', 'brightcove'))
+        accountId = bc.get('accountId')
+        playerId = bc.get('playerId')
 
         playerData = self._download_webpage(f'https://players.brightcove.net/{accountId}/{playerId}_default/index.min.js', video_id, 'Retrieving policy key')
         obj = re.search(r'{policyKey:"(.*?)"}', playerData)
@@ -58,28 +64,30 @@ class CreateAcademyBaseIE(InfoExtractor):
         return key.group().replace('"', '')
 
     def _get_manifest_url(self, data, video_id):
-        hostVideoId = data['props']['lesson']['video']['host_video_id']
-        accountId = data['props']['brightcove']['accountId']
+        host_video_id = traverse_obj(data, ('props', 'lesson', 'video', 'host_video_id'))
+        accountId = traverse_obj(data, ('props', 'brightcove', 'accountId'))
         policyKey = self._get_policy_key(data, video_id)
 
-        manifestData = self._download_json(f'https://edge.api.brightcove.com/playback/v1/accounts/{accountId}/videos/{hostVideoId}', video_id, 'Retrieving manifest URL', headers={'accept': f'application/json;pk={policyKey}'})
+        manifest_data = self._download_json(f'https://edge.api.brightcove.com/playback/v1/accounts/{accountId}/videos/{host_video_id}', video_id, 'Retrieving manifest URL', headers={'accept': f'application/json;pk={policyKey}'})
 
-        for source in manifestData['sources']:
-            if 'master.m3u8' in source['src']:
-                return source['src']
+        for source in manifest_data.get('sources'):
+            if 'master.m3u8' in source.get('src'):
+                return source.get('src')
 
     def _get_page_data(self, url, video_id):
         webpage = self._download_webpage(url, video_id)
 
-        page_elem = self._search_regex(r'(<div[^>]+>)', webpage, 'div')
+        page_elem = get_element_html_by_id('app', webpage)
         attributes = extract_attributes(page_elem)
 
-        return json.loads(attributes['data-page'])
+        return json.loads(attributes.get('data-page'))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._get_page_data(url, video_id)
-        createacademy_id = data['props']['lesson']['id']
+
+        lesson = traverse_obj(data, ('props', 'lesson'))
+        createacademy_id = lesson.get('id')
 
         # get media from manifest
         manifestUrl = self._get_manifest_url(data, video_id)
@@ -91,18 +99,19 @@ class CreateAcademyBaseIE(InfoExtractor):
         self._merge_subtitles(subs, target=subtitles)
 
         lesson_metadata = self._get_lesson_metadata(data, createacademy_id)
+        section = lesson_metadata.get('section')
 
         return {
             'id': str(createacademy_id),
-            'title': lesson_metadata['title'],
+            'title': lesson_metadata.get('title'),
             'display_id': video_id,
-            'description': data['props']['lesson']['description'],
-            'thumbnail': data['props']['lesson']['thumbnail'],
+            'description': lesson.get('description'),
+            'thumbnail': lesson.get('thumbnail'),
             'formats': formats,
             'subtitles': subtitles,
-            'chapter': lesson_metadata['section_data']['title'].strip(),
-            'chapter_number': lesson_metadata['section_data']['number'],
-            'chapter_id': str(lesson_metadata['section_data']['id']),
+            'chapter': section.get('title').strip(),
+            'chapter_number': section.get('number'),
+            'chapter_id': str(section.get('id')),
         }
 
 
@@ -132,10 +141,11 @@ class CreateAcademyCourseIE(CreateAcademyBaseIE):
 
         # iterate lessons
         entries = []
+        sections = traverse_obj(data, ('props', 'curriculum', 'sections'))
 
-        for section in data['props']['curriculum']['sections']:
-            for lesson in section['lessons']:
-                entries.append(super()._real_extract('https://www.createacademy.com' + lesson['lessonPath']))
+        for section in sections:
+            for lesson in section.get('lessons'):
+                entries.append(super()._real_extract('https://www.createacademy.com' + lesson.get('lessonPath')))
 
         return {
             '_type': 'multi_video',
