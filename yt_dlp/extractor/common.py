@@ -1064,7 +1064,7 @@ class InfoExtractor:
                 data = self._create_request(url_or_request, data).data
             filename = self._request_dump_filename(urlh.url, video_id, data)
             self.to_screen(f'Saving request to {filename}')
-            with open(filename, 'wb') as outf:
+            with open(filename, 'wb', buffering=65536) as outf:
                 outf.write(webpage_bytes)
 
         content = self.__decode_webpage(webpage_bytes, encoding, urlh.headers)
