@@ -9,7 +9,7 @@ from ..utils import (
 )
 
 
-class CreateAcademyBaseIE(InfoExtractor):
+class CreateAcademyIE(InfoExtractor):
     _VALID_URL = r'https://www.createacademy.com/(?:[^/]+/)*lessons/(?P<id>[^/?#]+)'
 
     _TESTS = [
@@ -83,7 +83,7 @@ class CreateAcademyBaseIE(InfoExtractor):
         return json.loads(attributes.get('data-page'))
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id = url.split('/')[-1]
         data = self._get_page_data(url, video_id)
 
         lesson = traverse_obj(data, ('props', 'lesson'))
@@ -115,8 +115,8 @@ class CreateAcademyBaseIE(InfoExtractor):
         }
 
 
-class CreateAcademyCourseIE(CreateAcademyBaseIE):
-    _VALID_URL = r'https://www.createacademy.com/courses/(?P<id>[^/?#]+)'
+class CreateAcademyCourseIE(CreateAcademyIE):
+    _VALID_URL = r'https://www.createacademy.com/courses/(?!.*\/lessons\/)(?P<id>[^/?#]+)'
 
     _TESTS = [
         {
@@ -129,7 +129,7 @@ class CreateAcademyCourseIE(CreateAcademyBaseIE):
                 'chapter_number': 1,
                 'thumbnail': 'https://cf-images.eu-west-1.prod.boltdns.net/v1/static/6222962662001/22f75006-c49f-4d95-8673-1b60df4223d2/45d953e0-fa58-4cb6-9217-1c7b3c80c932/1280x720/match/image.jpg',
                 'title': 'Create Academy - s10e01 - Meet Dan',
-                'display_id': 'dan-pearson',
+                'display_id': 'meet-dan',
                 'chapter': 'Introduction',
             },
         },

@@ -435,8 +435,8 @@ from .cracked import CrackedIE
 from .crackle import CrackleIE
 from .craftsy import CraftsyIE
 from .createacademy import (
-    CreateAcademyBaseIE,
     CreateAcademyCourseIE,
+    CreateAcademyIE,
 )
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
