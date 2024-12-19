@@ -148,6 +148,6 @@ class CreateAcademyCourseIE(CreateAcademyIE):
                 entries.append(super()._real_extract('https://www.createacademy.com' + lesson.get('lessonPath')))
 
         return {
-            '_type': 'multi_video',
+            '_type': 'playlist',
             'entries': entries,
         }
