@@ -74,7 +74,8 @@ class PiramideTVIE(PiramideTVBaseIE):
             if self.get_param('noplaylist'):
                 self.to_screen(f'Downloading just video {video_id} because of --no-playlist')
             else:
-                return self.playlist_result(self._entries(video, next_video_id),
+                return self.playlist_result(
+                    self._entries(video, next_video_id),
                     **traverse_obj(video, {
                         'id': ('id'),
                         'title': ('title', {lambda x: re.split(r'\s+\|?\s*Parte\s*\d', x,
