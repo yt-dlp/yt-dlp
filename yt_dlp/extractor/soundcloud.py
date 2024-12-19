@@ -210,6 +210,7 @@ class SoundcloudBaseIE(InfoExtractor):
 
         format_urls = set()
         formats = []
+        has_drm = False
         query = {'client_id': self._CLIENT_ID}
         if secret_token:
             query['secret_token'] = secret_token
@@ -245,6 +246,7 @@ class SoundcloudBaseIE(InfoExtractor):
                         'url': format_url,
                         'quality': 10,
                         'format_note': 'Original',
+                        'vcodec': 'none',
                     })
 
         def invalid_url(url):
@@ -259,6 +261,9 @@ class SoundcloudBaseIE(InfoExtractor):
             preset_base = preset.partition('_')[0]
 
             protocol = traverse_obj(t, ('format', 'protocol', {str})) or 'http'
+            if protocol.startswith(('ctr-', 'cbc-')):
+                has_drm = True
+                continue
             if protocol == 'progressive':
                 protocol = 'http'
             if protocol != 'hls' and '/hls' in format_url:
@@ -315,8 +320,11 @@ class SoundcloudBaseIE(InfoExtractor):
                 'preference': -10 if is_preview else None,
             })
 
-        if not formats and info.get('policy') == 'BLOCK':
-            self.raise_geo_restricted(metadata_available=True)
+        if not formats:
+            if has_drm:
+                self.report_drm(track_id)
+            if info.get('policy') == 'BLOCK':
+                self.raise_geo_restricted(metadata_available=True)
 
         user = info.get('user') or {}
 
