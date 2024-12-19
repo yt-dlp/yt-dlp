@@ -13,24 +13,41 @@ class STVPlayerIE(InfoExtractor):
     _VALID_URL = r'https?://player\.stv\.tv/(?P<type>episode|video)/(?P<id>[a-z0-9]{4})'
     _TESTS = [{
         # shortform
-        'url': 'https://player.stv.tv/video/4gwd/emmerdale/60-seconds-on-set-with-laura-norton/',
-        'md5': '5adf9439c31d554f8be0707c7abe7e0a',
+        'url': 'https://player.stv.tv/video/8r2v/archie/interview-with-jason-isaacs-and-laura-aikman',
+        'md5': 'ef6e9fb1c3d660b68f7ca86dc9dcf592',
         'info_dict': {
-            'id': '5333973339001',
+            'id': '6341315073112',
             'ext': 'mp4',
-            'upload_date': '20170301',
-            'title': '60 seconds on set with Laura Norton',
-            'description': "How many questions can Laura - a.k.a Kerry Wyatt - answer in 60 seconds? Let's find out!",
-            'timestamp': 1488388054,
+            'upload_date': '20231117',
+            'title': 'Archie - Extras - Interview with Jason Isaacs and Laura Aikman',
+            'description': 'md5:fe62251499216500d4953c632c5c71cc',
+            'timestamp': 1700240365,
             'uploader_id': '1486976045',
+            'tags': ['vp-archie-sf'],
+            'series': 'Archie',
+            'duration': 310.144,
+            'thumbnail': r're:https://.*/image\.jpg',
         },
-        'skip': 'this resource is unavailable outside of the UK',
     }, {
         # episodes
-        'url': 'https://player.stv.tv/episode/4125/jennifer-saunders-memory-lane',
-        'only_matching': True,
+        'url': 'https://player.stv.tv/episode/3sjc/seans-scotland',
+        'md5': '445f45f4cbba97886dcfd5e51f76a537',
+        'info_dict': {
+            'id': '6043990119001',
+            'ext': 'mp4',
+            'upload_date': '20190603',
+            'title': 'Sean\'s Scotland - Monday, June 3, 2019',
+            'description': 'md5:4c824ea1edd70afc5088f1616ca598f2',
+            'timestamp': 1559559623,
+            'uploader_id': '1486976045',
+            'tags': ['vp-seans-scotland'],
+            'series': 'Sean\'s Scotland',
+            'view_count': int,
+            'duration': 1340.075,
+            'thumbnail': r're:https://.*/image\.jpg',
+        },
     }]
-    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/1486976045/default_default/index.html?videoId=%s'
+    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
     _PTYPE_MAP = {
         'episode': 'episodes',
         'video': 'shortform',
@@ -72,13 +89,19 @@ class STVPlayerIE(InfoExtractor):
             })
 
         programme = result.get('programme') or {}
+        account_id = '1486976045'
         if programme.get('drmEnabled'):
-            self.report_drm(video_id)
+            if not self.get_param('allow_unplayable_formats'):
+                self.report_drm(video_id)
+            else:
+                account_id = '6204867266001'
 
         return {
             '_type': 'url_transparent',
             'id': video_id,
-            'url': smuggle_url(self.BRIGHTCOVE_URL_TEMPLATE % video_id, {'geo_countries': ['GB']}),
+            'url': smuggle_url(
+                self.BRIGHTCOVE_URL_TEMPLATE % (account_id, video_id),
+                {'geo_countries': ['GB']}),
             'description': result.get('summary'),
             'duration': float_or_none(video.get('length'), 1000),
             'subtitles': subtitles,
