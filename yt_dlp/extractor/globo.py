@@ -1,5 +1,6 @@
 import json
 import re
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
@@ -84,7 +85,10 @@ class GloboIE(InfoExtractor):
                 'video_id': video_id,
                 'quality': 'max',
                 'content_protection': 'widevine',
-                'vsid': '2938bc7c-9376-d4b7-ee91-ce46dbbf9f4d',
+                'vsid': f'{uuid.uuid4()}',
+                'consumption': 'streaming',
+                'capabilities': {'low_latency': True},
+                'metadata': {'name': 'web', 'device': {'type': 'desktop', 'os': {}}},
                 'tz': '-03:00',
                 'Authorization': try_get(self._get_cookies('https://globo.com'),
                                          lambda x: f'Bearer {x["GLBID"].value}') or '',
