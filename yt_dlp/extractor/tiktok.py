@@ -99,9 +99,13 @@ class TikTokBaseIE(InfoExtractor):
 
         return True
 
+    # @staticmethod
+    # def _create_url(user_id, video_id):
+    #     return f'https://www.tiktok.com/@{user_id or "_"}/video/{video_id}'
+
     @staticmethod
-    def _create_url(user_id, video_id):
-        return f'https://www.tiktok.com/@{user_id or "_"}/video/{video_id}'
+    def _create_url(user_id, video_id, media_type='video'):
+        return f'https://www.tiktok.com/@{user_id or "_"}/{media_type}/{video_id}'
 
     def _get_sigi_state(self, webpage, display_id):
         return self._search_json(
@@ -614,7 +618,8 @@ class TikTokBaseIE(InfoExtractor):
 
 
 class TikTokIE(TikTokBaseIE):
-    _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)?/video)/(?P<id>\d+)'
+    # _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)?/video)/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)?/(?P<type>video|photo))/(?P<id>\d+)'
     _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
 
     _TESTS = [{
@@ -881,7 +886,7 @@ class TikTokIE(TikTokBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id, user_id = self._match_valid_url(url).group('id', 'user_id')
+        video_id, media_type, user_id = self._match_valid_url(url).group('id', 'type', 'user_id')
 
         if self._KNOWN_APP_INFO:
             try:
@@ -890,7 +895,7 @@ class TikTokIE(TikTokBaseIE):
                 e.expected = True
                 self.report_warning(f'{e}; trying with webpage')
 
-        url = self._create_url(user_id, video_id)
+        url = self._create_url(user_id, video_id, media_type)
         video_data, status = self._extract_web_data_and_status(url, video_id)
 
         if video_data and status == 0:
@@ -1194,8 +1199,9 @@ class TikTokCollectionIE(TikTokBaseIE):
 
             for video in traverse_obj(response, ('itemList', lambda _, v: v['id'])):
                 video_id = video['id']
+                media_type = 'photo' if 'imagePost' in video else 'video'
                 author = traverse_obj(video, ('author', ('uniqueId', 'secUid', 'id'), {str}, any)) or '_'
-                webpage_url = self._create_url(author, video_id)
+                webpage_url = self._create_url(author, video_id, media_type)
                 yield self.url_result(
                     webpage_url, TikTokIE,
                     **self._parse_aweme_video_web(video, webpage_url, video_id, extract_flat=True))
