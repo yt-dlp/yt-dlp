@@ -240,7 +240,7 @@ class YoutubeDL:
                        You can also pass a function. The function takes 'ctx' as
                        argument and returns the formats to download.
                        See "build_format_selector" for an implementation
-    allow_unplayable_formats:   Allow unplayable formats to be extracted and downloaded.
+    allow_unplayable_formats:   Allow unplayable formats to be extracted.
     ignore_no_formats_error: Ignore "No video formats" error. Usefull for
                        extracting metadata even if the video is not actually
                        available for download (experimental)
@@ -683,11 +683,14 @@ class YoutubeDL:
             self.deprecated_feature(system_deprecation.replace('\n', '\n                    '))
 
         if self.params.get('allow_unplayable_formats'):
+            from . import _IN_CLI
+
+            switch = '--allow-unplayable-formats' if _IN_CLI else 'allow_unplayable_formats'
             self.report_warning(
-                f'You have asked for {self._format_err("UNPLAYABLE", self.Styles.EMPHASIS)} formats to be listed/downloaded. '
-                'This is a developer option intended for debugging. \n'
-                '         If you experience any issues while using this option, '
-                f'{self._format_err("DO NOT", self.Styles.ERROR)} open a bug report')
+                f'{switch} is a {self._format_err("developer option", self.Styles.EMPHASIS)} intended for {self._format_err("debugging", self.Styles.EMPHASIS)}. \n'
+                f'         If you experience issues {self._format_err("DO NOT", self.Styles.ERROR)} open a bug report.')
+            self.params['listformats'] = True
+            self.params['simulate'] = 'list_only'
 
         if self.params.get('bidi_workaround', False):
             try:
@@ -2811,6 +2814,7 @@ class YoutubeDL:
         info_dict['_has_drm'] = any(  # or None ensures --clean-infojson removes it
             f.get('has_drm') and f['has_drm'] != 'maybe' for f in formats) or None
         if not self.params.get('allow_unplayable_formats'):
+            # Allow bypassing flaky `has_drm` detection
             formats = [f for f in formats if not f.get('has_drm') or f['has_drm'] == 'maybe']
 
         if formats and all(f.get('acodec') == f.get('vcodec') == 'none' for f in formats):
@@ -3426,12 +3430,7 @@ class YoutubeDL:
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
                     else:
-                        if self.params.get('allow_unplayable_formats'):
-                            self.report_warning(
-                                'You have requested merging of multiple formats '
-                                'while also allowing unplayable formats to be downloaded. '
-                                'The formats won\'t be merged to prevent data corruption.')
-                        elif not merger.available:
+                        if not merger.available:
                             msg = 'You have requested merging of multiple formats but ffmpeg is not installed'
                             if not self.params.get('ignoreerrors'):
                                 self.report_error(f'{msg}. Aborting due to --abort-on-error')
@@ -3462,7 +3461,7 @@ class YoutubeDL:
                             info_dict['__real_download'] = info_dict['__real_download'] or real_download
                             success = success and partial_success
 
-                    if downloaded and merger.available and not self.params.get('allow_unplayable_formats'):
+                    if downloaded and merger.available:
                         info_dict['__postprocessors'].append(merger)
                         info_dict['__files_to_merge'] = downloaded
                         # Even if there were no downloads, it is being merged only now

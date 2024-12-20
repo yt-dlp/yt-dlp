@@ -15,6 +15,7 @@ from ..utils import (
     traverse_obj,
     update_url_query,
     urljoin,
+    deprecation_warning,
 )
 
 
@@ -38,6 +39,8 @@ class HlsFD(FragmentFD):
 
     @classmethod
     def can_download(cls, manifest, info_dict, allow_unplayable_formats=False):
+        if allow_unplayable_formats:
+            deprecation_warning('allow_unplayable_formats is not supported', stacklevel=1)
         UNSUPPORTED_FEATURES = [
             # r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
 
@@ -57,17 +60,15 @@ class HlsFD(FragmentFD):
             # 4. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.3.5
             # 5. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.5
         ]
-        if not allow_unplayable_formats:
-            UNSUPPORTED_FEATURES += [
-                r'#EXT-X-KEY:METHOD=(?!NONE|AES-128)',  # encrypted streams [1], but not necessarily DRM
-            ]
+        UNSUPPORTED_FEATURES += [
+            r'#EXT-X-KEY:METHOD=(?!NONE|AES-128)',  # encrypted streams [1], but not necessarily DRM
+        ]
 
         def check_results():
             yield not info_dict.get('is_live')
             for feature in UNSUPPORTED_FEATURES:
                 yield not re.search(feature, manifest)
-            if not allow_unplayable_formats:
-                yield not cls._has_drm(manifest)
+            yield not cls._has_drm(manifest)
         return all(check_results())
 
     def real_download(self, filename, info_dict):
@@ -78,7 +79,7 @@ class HlsFD(FragmentFD):
         man_url = urlh.url
         s = urlh.read().decode('utf-8', 'ignore')
 
-        can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
+        can_download, message = self.can_download(s, info_dict), None
         if can_download:
             has_ffmpeg = FFmpegFD.available()
             no_crypto = not Cryptodome.AES and '#EXT-X-KEY:METHOD=AES-128' in s
@@ -92,7 +93,7 @@ class HlsFD(FragmentFD):
                 message = ('Live HLS streams are not supported by the native downloader. If this is a livestream, '
                            f'please {install_ffmpeg}add "--downloader ffmpeg --hls-use-mpegts" to your command')
         if not can_download:
-            if self._has_drm(s) and not self.params.get('allow_unplayable_formats'):
+            if self._has_drm(s):
                 if info_dict.get('has_drm') and self.params.get('test'):
                     self.to_screen(f'[{self.FD_NAME}] This format is DRM protected', skip_eol=True)
                 else:

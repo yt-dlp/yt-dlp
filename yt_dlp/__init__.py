@@ -504,8 +504,7 @@ def validate_options(opts):
         opts.postprocessor_args['default'] = opts.postprocessor_args.pop('default-compat')
         opts.postprocessor_args.setdefault('sponskrub', [])
 
-    def report_conflict(arg1, opt1, arg2='--allow-unplayable-formats', opt2='allow_unplayable_formats',
-                        val1=NO_DEFAULT, val2=NO_DEFAULT, default=False):
+    def report_conflict(arg1, opt1, arg2, opt2, val1=NO_DEFAULT, val2=NO_DEFAULT, default=False):
         if val2 is NO_DEFAULT:
             val2 = getattr(opts, opt2)
         if not val2:
@@ -532,21 +531,6 @@ def validate_options(opts):
     report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-remove', 'sponsorblock_remove')
     report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters',
                     val1=opts.sponskrub and opts.sponskrub_cut)
-
-    # Conflicts with --allow-unplayable-formats
-    report_conflict('--embed-metadata', 'addmetadata')
-    report_conflict('--embed-chapters', 'addchapters')
-    report_conflict('--embed-info-json', 'embed_infojson')
-    report_conflict('--embed-subs', 'embedsubtitles')
-    report_conflict('--embed-thumbnail', 'embedthumbnail')
-    report_conflict('--extract-audio', 'extractaudio')
-    report_conflict('--fixup', 'fixup', val1=opts.fixup not in (None, 'never', 'ignore'), default='never')
-    report_conflict('--recode-video', 'recodevideo')
-    report_conflict('--remove-chapters', 'remove_chapters', default=[])
-    report_conflict('--remux-video', 'remuxvideo')
-    report_conflict('--sponskrub', 'sponskrub')
-    report_conflict('--sponsorblock-remove', 'sponsorblock_remove', default=set())
-    report_conflict('--xattrs', 'xattrs')
 
     # Fully deprecated options
     def report_deprecation(val, old, new=None):
