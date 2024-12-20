@@ -237,8 +237,7 @@ class RuutuIE(InfoExtractor):
                 return value or None
 
         if not formats:
-            if (not self.get_param('allow_unplayable_formats')
-                    and xpath_text(video_xml, './Clip/DRM', default=None)):
+            if xpath_text(video_xml, './Clip/DRM', default=None):
                 self.report_drm(video_id)
             ns_st_cds = pv('ns_st_cds')
             if ns_st_cds != 'free':

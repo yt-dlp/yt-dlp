@@ -91,11 +91,13 @@ class LimelightBaseIE(InfoExtractor):
 
         formats = []
         urls = []
+        has_drm = False
         for stream in pc_item.get('streams', []):
             stream_url = stream.get('url')
             if not stream_url or stream_url in urls:
                 continue
-            if not self.get_param('allow_unplayable_formats') and stream.get('drmProtected'):
+            if stream.get('drmProtected'):
+                has_drm = True
                 continue
             urls.append(stream_url)
             ext = determine_ext(stream_url)
@@ -159,8 +161,8 @@ class LimelightBaseIE(InfoExtractor):
             format_id = mobile_url.get('targetMediaPlatform')
             if not media_url or media_url in urls:
                 continue
-            if (format_id in ('Widevine', 'SmoothStreaming')
-                    and not self.get_param('allow_unplayable_formats', False)):
+            if format_id in ('Widevine', 'SmoothStreaming'):
+                has_drm = True
                 continue
             urls.append(media_url)
             ext = determine_ext(media_url)
@@ -178,6 +180,9 @@ class LimelightBaseIE(InfoExtractor):
                     'quality': -10,
                     'ext': ext,
                 })
+
+        if not formats and has_drm:
+            self.report_drm(video_id)
 
         subtitles = {}
         for flag in mobile_item.get('flags'):

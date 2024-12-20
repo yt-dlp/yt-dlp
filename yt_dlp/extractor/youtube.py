@@ -4511,7 +4511,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.write_debug(f'{video_id}: Video is in Post-Live Manifestless mode')
 
         if not formats:
-            if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
+            if traverse_obj(streaming_data, (..., 'licenseInfos')):
                 self.report_drm(video_id)
             pemr = get_first(
                 playability_statuses,

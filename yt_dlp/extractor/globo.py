@@ -87,7 +87,7 @@ class GloboIE(InfoExtractor):
         video = self._download_json(
             f'http://api.globovideos.com/videos/{video_id}/playlist',
             video_id)['videos'][0]
-        if not self.get_param('allow_unplayable_formats') and video.get('encrypted') is True:
+        if video.get('encrypted') is True:
             self.report_drm(video_id)
 
         title = video['title']

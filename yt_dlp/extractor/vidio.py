@@ -261,8 +261,7 @@ class VidioLiveIE(VidioBaseIE):
 
         formats = []
         if stream_meta.get('is_drm'):
-            if not self.get_param('allow_unplayable_formats'):
-                self.report_drm(video_id)
+            self.report_drm(video_id)
         if stream_meta.get('is_premium'):
             sources = self._download_json(
                 f'https://www.vidio.com/interactions_stream.json?video_id={video_id}&type=livestreamings',

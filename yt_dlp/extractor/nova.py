@@ -65,8 +65,7 @@ class NovaEmbedIE(InfoExtractor):
             for format_dict in format_list:
                 if not isinstance(format_dict, dict):
                     continue
-                if (not self.get_param('allow_unplayable_formats')
-                        and traverse_obj(format_dict, ('drm', 'keySystem'))):
+                if traverse_obj(format_dict, ('drm', 'keySystem')):
                     has_drm = True
                     continue
                 format_url = url_or_none(format_dict.get('src'))
