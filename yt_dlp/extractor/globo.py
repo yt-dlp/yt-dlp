@@ -96,8 +96,8 @@ class GloboIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             main_source['url'], video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
         self._merge_subtitles(traverse_obj(main_source, ('text', ..., {
-            'url': ('subtitle', 'srt', 'url', {str}),
-        }, all, {subs_list_to_dict(lang='por')})))
+            'url': ('subtitle', 'srt', 'url', {str_or_none}),
+        }, all, {subs_list_to_dict(lang='por')})), target=subtitles)
 
         return {
             'id': video_id,
@@ -113,7 +113,7 @@ class GloboIE(InfoExtractor):
 
 
 class GloboArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://.+?\.globo\.com/(?:[^/]+/)*(?P<id>[^/.]+)(?:\.html)?'
+    _VALID_URL = r'https?://(?!globoplay).+?\.globo\.com/(?:[^/]+/)*(?P<id>[^/.]+)(?:\.html)?'
 
     _VIDEOID_REGEXES = [
         r'\bdata-video-id=["\'](\d{7,})["\']',
