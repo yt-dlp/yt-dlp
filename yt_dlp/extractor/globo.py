@@ -6,6 +6,7 @@ from ..utils import (
     float_or_none,
     orderedSet,
     str_or_none,
+    try_get,
 )
 from ..utils.traversal import subs_list_to_dict, traverse_obj
 
@@ -85,6 +86,8 @@ class GloboIE(InfoExtractor):
                 'content_protection': 'widevine',
                 'vsid': '2938bc7c-9376-d4b7-ee91-ce46dbbf9f4d',
                 'tz': '-03:00',
+                'Authorization': try_get(self._get_cookies('.globo.com'),
+                                         lambda x: f'Bearer {x['GLBID'].value}') or '',
                 'version': 1,
             }).encode())
 
