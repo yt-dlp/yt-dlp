@@ -690,7 +690,7 @@ class YoutubeDL:
                 f'{switch} is a {self._format_err("developer option", self.Styles.EMPHASIS)} intended for {self._format_err("debugging", self.Styles.EMPHASIS)}. \n'
                 f'         If you experience issues {self._format_err("DO NOT", self.Styles.ERROR)} open a bug report.')
             self.params['listformats'] = True
-            self.params['simulate'] = 'list_only'
+            self.params['simulate'] = True
 
         if self.params.get('bidi_workaround', False):
             try:
