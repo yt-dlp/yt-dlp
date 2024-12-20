@@ -18,7 +18,8 @@ class CreateAcademyIE(InfoExtractor):
             'info_dict': {
                 'id': '265',
                 'ext': 'mp4',
-                'title': 'Create Academy - s10e01 - Meet Dan',
+                'file_prefix': 'Create Academy - s10e01',
+                'title': 'Meet Dan',
                 'description': 'md5:48c8af37219020571a84d5f406e75d86',
                 'display_id': 'meet-dan',
                 'chapter': 'Introduction',
@@ -40,7 +41,8 @@ class CreateAcademyIE(InfoExtractor):
                 if lesson.get('id') == lesson_id:
                     return {
                         'section': section,
-                        'title': prefix + str(lesson.get('number')).zfill(2) + ' - ' + lesson.get('title').strip(),
+                        'file_prefix': prefix + str(lesson.get('number')).zfill(2),
+                        'title': lesson.get('title').strip(),
                     }
 
         return {
@@ -49,7 +51,8 @@ class CreateAcademyIE(InfoExtractor):
                 'number': 0,
                 'title': '',
             },
-            'title': prefix + '00 - ' + traverse_obj(data, ('props', 'lesson', 'title')).strip(),
+            'file_prefix': 'Create Academy',
+            'title': traverse_obj(data, ('props', 'lesson', 'title')).strip(),
         }
 
     def _get_policy_key(self, data, video_id):
@@ -103,6 +106,7 @@ class CreateAcademyIE(InfoExtractor):
 
         return {
             'id': str(createacademy_id),
+            'file_prefix': lesson_metadata.get('file_prefix'),
             'title': lesson_metadata.get('title'),
             'display_id': video_id,
             'description': lesson.get('description'),
@@ -128,7 +132,8 @@ class CreateAcademyCourseIE(CreateAcademyIE):
                 'description': 'md5:48c8af37219020571a84d5f406e75d86',
                 'chapter_number': 1,
                 'thumbnail': 'https://cf-images.eu-west-1.prod.boltdns.net/v1/static/6222962662001/22f75006-c49f-4d95-8673-1b60df4223d2/45d953e0-fa58-4cb6-9217-1c7b3c80c932/1280x720/match/image.jpg',
-                'title': 'Create Academy - s10e01 - Meet Dan',
+                'file_prefix': 'Create Academy - s10e01',
+                'title': 'Meet Dan',
                 'display_id': 'meet-dan',
                 'chapter': 'Introduction',
             },
