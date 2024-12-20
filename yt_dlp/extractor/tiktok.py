@@ -986,10 +986,11 @@ class TikTokUserIE(TikTokBaseIE):
 
             for video in traverse_obj(response, ('itemList', lambda _, v: v['id'])):
                 video_id = video['id']
+                media_type = 'photo' if 'imagePost' in video else 'video'
                 if video_id in seen_ids:
                     continue
                 seen_ids.add(video_id)
-                webpage_url = self._create_url(display_id, video_id)
+                webpage_url = self._create_url(display_id, video_id, media_type)
                 yield self.url_result(
                     webpage_url, TikTokIE,
                     **self._parse_aweme_video_web(video, webpage_url, video_id, extract_flat=True))
