@@ -154,5 +154,6 @@ class CreateAcademyCourseIE(CreateAcademyIE):
 
         return {
             '_type': 'playlist',
+            'title': traverse_obj(data, ('props', 'course', 'name')),
             'entries': entries,
         }
