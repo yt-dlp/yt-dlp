@@ -80,6 +80,9 @@ class GloboIE(InfoExtractor):
             'title': 'Acordo de damas',
             'episode_number': 1,
             'season_number': 2
+        },
+        'params': {
+            'skip_download': True
         }
     }]
 
