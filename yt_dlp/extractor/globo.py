@@ -77,7 +77,7 @@ class GloboIE(InfoExtractor):
         'info_dict': {
             'id': '12824146',
             'ext': 'mp4',
-            'title': 'Acordo de damas'
+            'title': 'Acordo de damas',
             'episode_number': 1,
             'season_number': 2
         }
