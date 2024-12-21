@@ -61,30 +61,30 @@ class GloboIE(InfoExtractor):
         'url': 'globo:3607726',
         'only_matching': True,
     },
-    {
-        'url': 'globo:8013907', # needs subscription to globoplay
+        {
+        'url': 'globo:8013907',  # needs subscription to globoplay
         'info_dict': {
             'id': '8013907',
             'ext': 'mp4',
             'title': 'Capítulo de 14⧸08⧸1989',
-            'episode_number': 1
+            'episode_number': 1,
         },
         'params': {
             'skip_download': True,
-        }
+        },
     },
-    {
+        {
         'url': 'globo:12824146',
         'info_dict': {
             'id': '12824146',
             'ext': 'mp4',
             'title': 'Acordo de damas',
             'episode_number': 1,
-            'season_number': 2
+            'season_number': 2,
         },
         'params': {
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
