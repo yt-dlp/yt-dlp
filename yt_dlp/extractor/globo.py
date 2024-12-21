@@ -5,6 +5,7 @@ import uuid
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
+    int_or_none,
     orderedSet,
     str_or_none,
     try_get,
@@ -80,6 +81,9 @@ class GloboIE(InfoExtractor):
             'title': 'Acordo de damas',
             'episode_number': 1,
             'season_number': 2
+        },
+        'params': {
+            'skip_download': True
         }
     }]
 
@@ -138,7 +142,7 @@ class GloboIE(InfoExtractor):
                 'uploader': ('title', 'headline', {str}),
                 'uploader_id': ('title', 'originProgramId', {str_or_none}),
                 'episode_number': ('relatedEpisodeNumber', {int_or_none}),
-                'season_number' ('relatedSeasonNumber', {int_or_none}),
+                'season_number': ('relatedSeasonNumber', {int_or_none}),
             }),
             'formats': formats,
             'subtitles': subtitles,
