@@ -5,6 +5,7 @@ import uuid
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
+    int_or_none,
     orderedSet,
     str_or_none,
     try_get,
