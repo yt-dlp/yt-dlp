@@ -141,7 +141,7 @@ class GloboIE(InfoExtractor):
                 'uploader': ('title', 'headline', {str}),
                 'uploader_id': ('title', 'originProgramId', {str_or_none}),
                 'episode_number': ('relatedEpisodeNumber', {int_or_none}),
-                'season_number' ('relatedSeasonNumber', {int_or_none}),
+                'season_number': ('relatedSeasonNumber', {int_or_none}),
             }),
             'formats': formats,
             'subtitles': subtitles,
