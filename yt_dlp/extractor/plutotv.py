@@ -187,7 +187,7 @@ class PlutoTVIE(InfoExtractor):
 
 
 class PlutoTVLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/live-tv/(?P<id>.+)'
+    _VALID_URL = r'https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/live-tv/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://pluto.tv/live-tv/6093f9281db477000759fce0',
         'info_dict': {
