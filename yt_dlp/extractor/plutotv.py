@@ -3,13 +3,7 @@ import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    try_get,
-    url_or_none,
-)
+from ..utils import ExtractorError, float_or_none, int_or_none, traverse_obj, try_get, url_or_none
 
 
 class PlutoTVIE(InfoExtractor):
@@ -203,6 +197,26 @@ class PlutoTVLiveIE(InfoExtractor):
             'thumbnail': 'http://images.pluto.tv/channels/6093f9281db477000759fce0/featuredImage.jpg?fm=png&q=100',
             'title': r're:Super! SpongeBob',
             'display_id': 'super-spongebob-it',
+            'episode_id': str,
+            'series': 'Super! SpongeBob',
+            'series_id': str,
+            'episode': str,
+            'description': str,
+        },
+    }, {
+        'url': 'https://pluto.tv/it/live-tv/64c109a4798def0008a6e03e',
+        'info_dict': {
+            'id': '64c109a4798def0008a6e03e',
+            'ext': 'mp4',
+            'thumbnail': 'http://images.pluto.tv/channels/64c109a4798def0008a6e03e/featuredImage.jpg?fm=png&q=100',
+            'description': str,
+            'live_status': 'is_live',
+            'series_id': str,
+            'series': 'Top Gear',
+            'episode': str,
+            'title': r're:(?s)Top Gear: .+',
+            'episode_id': str,
+            'display_id': 'top-gear-it',
         },
     }]
 
@@ -210,6 +224,7 @@ class PlutoTVLiveIE(InfoExtractor):
         slug = self._match_id(url)
         start = self._download_json('https://boot.pluto.tv/v4/start?appName=web&appVersion=10.0.0&clientID=88eb6ea8-2fcd-4e69-8caa-f543a79e509a&clientModelNumber=1.0.0&serverSideAds=false&deviceVersion=132.0.0&deviceModel=web&deviceMake=chrome&deviceType=web&channelSlug=' + slug, slug, 'Downloading info json')
         channel = start['EPG'][0]
+        program = channel['timelines'][0]
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(start['servers']['stitcher'] + '/v2' + channel['stitched']['path'] + '?' + start['stitcherParams'] + '&jwt=' + start['sessionToken'], channel['id'])
         thumbnails = []
         for f in formats:
@@ -230,15 +245,20 @@ class PlutoTVLiveIE(InfoExtractor):
             thumbnails.append({
                 'id': image['type'],
                 'url': image['url'],
-                'width': image['defaultWidth'],
-                'height': image['defaultHeight'],
+                'width': image.get('defaultWidth'),
+                'height': image.get('defaultHeight'),
             })
         return {
             'id': channel['id'],
-            'title': channel['name'],
-            'display_id': channel['slug'],
+            'title': program.get('title'),
+            'display_id': channel.get('slug'),
             'thumbnails': thumbnails,
             'formats': formats,
             'subtitles': subtitles,
             'is_live': True,
+            'description': traverse_obj(program, ('episode', 'description')),
+            'episode': traverse_obj(program, ('episode', 'name')),
+            'series': traverse_obj(program, ('episode', 'series', 'name')),
+            'series_id': traverse_obj(program, ('episode', 'series', '_id')),
+            'episode_id': traverse_obj(program, ('episode', '_id')),
         }
