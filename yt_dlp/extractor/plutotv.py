@@ -190,3 +190,55 @@ class PlutoTVIE(InfoExtractor):
                                         playlist_id=video_json.get('_id', info_slug),
                                         playlist_title=playlist_title)
         return self._get_video_info(video_json, info_slug)
+
+
+class PlutoTVLiveIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/live-tv/(?P<id>.+)'
+    _TESTS = [{
+        'url': 'https://pluto.tv/live-tv/6093f9281db477000759fce0',
+        'info_dict': {
+            'id': '6093f9281db477000759fce0',
+            'ext': 'mp4',
+            'live_status': 'is_live',
+            'thumbnail': 'http://images.pluto.tv/channels/6093f9281db477000759fce0/featuredImage.jpg?fm=png&q=100',
+            'title': r're:Super! SpongeBob',
+            'display_id': 'super-spongebob-it',
+        },
+    }]
+
+    def _real_extract(self, url):
+        slug = self._match_id(url)
+        start = self._download_json('https://boot.pluto.tv/v4/start?appName=web&appVersion=10.0.0&clientID=88eb6ea8-2fcd-4e69-8caa-f543a79e509a&clientModelNumber=1.0.0&serverSideAds=false&deviceVersion=132.0.0&deviceModel=web&deviceMake=chrome&deviceType=web&channelSlug=' + slug, slug, 'Downloading info json')
+        channel = start['EPG'][0]
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(start['servers']['stitcher'] + '/v2' + channel['stitched']['path'] + '?' + start['stitcherParams'] + '&jwt=' + start['sessionToken'], channel['id'])
+        thumbnails = []
+        for f in formats:
+            f['url'] += '&jwt=' + start['sessionToken']
+            if f.get('vcodec') is None:
+                f['vcodec'] = 'avc1.64001f'
+            if f.get('acodec') is None:
+                f['acodec'] = 'mp4a.40.2'
+            if f.get('fps') is None:
+                f['fps'] = 30
+        for image in channel['images']:
+            if image['type'] == 'featuredImage':
+                thumbnails.append({
+                    'id': 'original',
+                    'url': re.sub(r'\?.*$', '?fm=png&q=100', image['url']),
+                    'preference': 1,
+                })
+            thumbnails.append({
+                'id': image['type'],
+                'url': image['url'],
+                'width': image['defaultWidth'],
+                'height': image['defaultHeight'],
+            })
+        return {
+            'id': channel['id'],
+            'title': channel['name'],
+            'display_id': channel['slug'],
+            'thumbnails': thumbnails,
+            'formats': formats,
+            'subtitles': subtitles,
+            'is_live': True,
+        }
