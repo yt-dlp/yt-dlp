@@ -220,9 +220,23 @@ class PlutoTVLiveIE(InfoExtractor):
         },
     }]
 
+    def _build_start_query(self, slug):
+        return {
+            'appName': 'web',
+            'appVersion': 'na',
+            'clientID': str(uuid.uuid1()),
+            'clientModelNumber': 'na',
+            'serverSideAds': 'false',
+            'deviceMake': 'unknown',
+            'deviceModel': 'web',
+            'deviceType': 'web',
+            'deviceVersion': 'unknown',
+            'channelSlug': slug,
+        }
+
     def _real_extract(self, url):
         slug = self._match_id(url)
-        start = self._download_json('https://boot.pluto.tv/v4/start?appName=web&appVersion=10.0.0&clientID=88eb6ea8-2fcd-4e69-8caa-f543a79e509a&clientModelNumber=1.0.0&serverSideAds=false&deviceVersion=132.0.0&deviceModel=web&deviceMake=chrome&deviceType=web&channelSlug=' + slug, slug, 'Downloading info json')
+        start = self._download_json('https://boot.pluto.tv/v4/start', slug, 'Downloading info json', query=self._build_start_query(slug))
         channel = start['EPG'][0]
         program = channel['timelines'][0]
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(start['servers']['stitcher'] + '/v2' + channel['stitched']['path'] + '?' + start['stitcherParams'] + '&jwt=' + start['sessionToken'], channel['id'])
