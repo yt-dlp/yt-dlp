@@ -162,7 +162,6 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
-        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     'android_creator': {
@@ -197,7 +196,6 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 28,
         'REQUIRE_JS_PLAYER': False,
-        'SUPPORTS_COOKIES': True,
     },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
@@ -214,6 +212,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
+        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_JS_PLAYER': False,
     },
     # This client now requires sign-in for every video
@@ -232,7 +231,6 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_AUTH': True,
-        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     'ios_creator': {
@@ -3973,13 +3971,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             )
 
             require_po_token = self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN')
-            if not po_token and require_po_token:
+            if not po_token and require_po_token and 'missing_pot' in self._configuration_arg('formats'):
                 self.report_warning(
                     f'No PO Token provided for {client} client, '
-                    f'which is required for working {client} formats. '
-                    f'You can manually pass a PO Token for this client with '
-                    f'--extractor-args "youtube:po_token={client}+XXX"',
-                    only_once=True)
+                    f'which may be required for working {client} formats. This client will be deprioritized', only_once=True)
                 deprioritize_pr = True
 
             pr = initial_pr if client == 'web' else None
@@ -4030,7 +4025,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: This video is age-restricted and YouTube is requiring '
                     'account age-verification; some formats may be missing', only_once=True)
                 # web_creator can work around the age-verification requirement
-                # android_vr may also be able to work around age-verification
                 # tv_embedded may(?) still work around age-verification if the video is embeddable
                 append_client('web_creator')
             '''
@@ -4052,6 +4046,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if ((live_status == 'is_live' and self.get_param('live_from_start'))
                 or (live_status == 'post_live' and (duration or 0) > 2 * 3600)):
             return live_status
+
+    def _report_pot_format_skipped(self, video_id, client_name, proto):
+        msg = (
+            f'{video_id}: {client_name} client {proto} formats require a PO Token which was not provided. '
+            'They will be skipped as they may yield HTTP Error 403. '
+            f'You can manually pass a PO Token for this client with --extractor-args "youtube:po_token={client_name}+XXX. '
+            'For more information, refer to  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#po-token-guide . '
+            'To enable these broken formats anyway, pass --extractor-args "youtube:formats=missing_pot"')
+
+        # Only raise a warning for non-default clients, to not confuse users.
+        # iOS HLS formats still work without PO Token, so we don't need to warn about them.
+        if client_name in (*self._DEFAULT_CLIENTS, *self._DEFAULT_AUTHED_CLIENTS):
+            self.write_debug(msg, only_once=True)
+        else:
+            self.report_warning(msg, only_once=True)
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, live_status, duration):
         CHUNK_SIZE = 10 << 20
@@ -4179,11 +4188,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 fmt_url = update_url_query(fmt_url, {'pot': po_token})
 
             # Clients that require PO Token return videoplayback URLs that may return 403
-            is_broken = (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN'))
-            if is_broken:
-                self.report_warning(
-                    f'{video_id}: {client_name} client formats require a PO Token which was not provided. '
-                    'They will be deprioritized as they may yield HTTP Error 403', only_once=True)
+            require_po_token = (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN'))
+            if require_po_token and 'missing_pot' not in self._configuration_arg('formats'):
+                self._report_pot_format_skipped(video_id, client_name, 'https')
+                continue
 
             name = fmt.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
             fps = int_or_none(fmt.get('fps')) or 0
@@ -4196,7 +4204,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     name, fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
-                    is_damaged and 'DAMAGED', is_broken and 'BROKEN',
+                    is_damaged and 'DAMAGED', require_po_token and 'MISSING POT',
                     (self.get_param('verbose') or all_formats) and short_client_name(client_name),
                     delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
@@ -4213,7 +4221,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'language': join_nonempty(language_code, 'desc' if is_descriptive else '') or None,
                 'language_preference': PREFERRED_LANG_VALUE if is_original else 5 if is_default else -10 if is_descriptive else -1,
                 # Strictly de-prioritize broken, damaged and 3gp formats
-                'preference': -20 if is_broken else -10 if is_damaged else -2 if itag == '17' else None,
+                'preference': -20 if require_po_token else -10 if is_damaged else -2 if itag == '17' else None,
             }
             mime_mobj = re.match(
                 r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt.get('mimeType') or '')
@@ -4271,10 +4279,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Clients that require PO Token return videoplayback URLs that may return 403
             # hls does not currently require PO Token
             if (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN')) and proto != 'hls':
-                self.report_warning(
-                    f'{video_id}: {client_name} client {proto} formats require a PO Token which was not provided. '
-                    'They will be deprioritized as they may yield HTTP Error 403', only_once=True)
-                f['format_note'] = join_nonempty(f.get('format_note'), 'BROKEN', delim=' ')
+                if 'missing_pot' not in self._configuration_arg('formats'):
+                    self._report_pot_format_skipped(video_id, client_name, proto)
+                    return False
+                f['format_note'] = join_nonempty(f.get('format_note'), 'MISSING POT', delim=' ')
                 f['source_preference'] -= 20
 
             if itag and all_formats:
