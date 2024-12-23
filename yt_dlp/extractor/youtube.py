@@ -3977,7 +3977,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not po_token and require_po_token and 'missing_pot' in self._configuration_arg('formats'):
                 self.report_warning(
                     f'No PO Token provided for {client} client, '
-                    f'which may be required for working {client} formats. This client will be deprioritized.', only_once=True)
+                    f'which may be required for working {client} formats. This client will be deprioritized', only_once=True)
                 deprioritize_pr = True
 
             pr = initial_pr if client == 'web' else None
