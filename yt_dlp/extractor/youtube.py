@@ -4057,7 +4057,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'They will be skipped as they may yield HTTP Error 403. '
             f'You can manually pass a PO Token for this client with --extractor-args "youtube:po_token={client_name}+XXX. '
             'For more information, refer to  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#po-token-guide . '
-            'To enable these broken formats anyway, pass --extractor-args "youtube:formats=missing_pot".')
+            'To enable these broken formats anyway, pass --extractor-args "youtube:formats=missing_pot"')
 
         # Only raise a warning for non-default clients, to not confuse users.
         # iOS HLS formats still work without PO Token, so we don't need to warn about them.
