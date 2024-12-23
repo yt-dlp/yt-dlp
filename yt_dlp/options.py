@@ -410,12 +410,19 @@ def create_parser():
             '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
         '--plugin-dirs',
-        dest='plugin_dirs', metavar='PATH', action='append',
+        metavar='PATH',
+        dest='plugin_dirs',
+        action='append',
         help=(
             'Path to an additional directory to search for plugins. '
             'This option can be used multiple times to add multiple directories. '
-            'Note that this currently only works for extractor plugins; '
-            'postprocessor plugins can only be loaded from the default plugin directories'))
+            'Add "no-external" to disable searching default external plugin directories (outside of python environment)'))
+    general.add_option(
+        '--no-plugins',
+        dest='plugins_enabled',
+        action='store_false',
+        default=True,
+        help='Do not load plugins')
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
