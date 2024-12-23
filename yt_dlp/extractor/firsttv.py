@@ -52,6 +52,9 @@ class FirstTVIE(InfoExtractor):
     }, {
         'url': 'http://www.1tv.ru/shows/tochvtoch-supersezon/vystupleniya/evgeniy-dyatlov-vladimir-vysockiy-koni-priveredlivye-toch-v-toch-supersezon-fragment-vypuska-ot-06-11-2016',
         'only_matching': True,
+    }, {
+        'url': 'https://www.sport1tv.ru/sport/chempionat-rossii-po-figurnomu-kataniyu-2025',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
