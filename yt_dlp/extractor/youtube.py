@@ -4284,7 +4284,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # hls does not currently require PO Token
             if (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN')) and proto != 'hls':
                 if 'missing_pot' not in self._configuration_arg('formats'):
-                    self._report_pot_format_skipped(video_id, client_name, 'https')
+                    self._report_pot_format_skipped(video_id, client_name, proto)
                     return False
                 f['format_note'] = join_nonempty(f.get('format_note'), 'MISSING POT', delim=' ')
                 f['source_preference'] -= 20
