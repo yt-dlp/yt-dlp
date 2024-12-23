@@ -761,6 +761,13 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(width)06d.%%(ext)s', 'NA.%(ext)s')
         test('%%(width)06d.%(ext)s', '%(width)06d.mp4')
 
+        # Sanitization options
+        test('%(title3)s', (None, 'foo⧸bar⧹test'))
+        test('%(title5)s', (None, 'aei_A'), restrictfilenames=True)
+        test('%(title3)s', (None, 'foo_bar_test'), windowsfilenames=False, restrictfilenames=True)
+        if sys.platform != 'win32':
+            test('%(title3)s', (None, 'foo⧸bar\\test'), windowsfilenames=False)
+
         # ID sanitization
         test('%(id)s', '_abcd', info={'id': '_abcd'})
         test('%(some_id)s', '_abcd', info={'some_id': '_abcd'})

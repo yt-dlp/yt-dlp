@@ -613,8 +613,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --no-restrict-filenames         Allow Unicode characters, "&" and spaces in
                                     filenames (default)
     --windows-filenames             Force filenames to be Windows-compatible
-    --no-windows-filenames          Make filenames Windows-compatible only if
-                                    using Windows (default)
+    --no-windows-filenames          Sanitize filenames only minimally
     --trim-filenames LENGTH         Limit the filename length (excluding
                                     extension) to the specified number of
                                     characters
