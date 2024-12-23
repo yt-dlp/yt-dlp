@@ -162,7 +162,6 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
-        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     'android_creator': {
@@ -197,7 +196,6 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 28,
         'REQUIRE_JS_PLAYER': False,
-        'SUPPORTS_COOKIES': True,
     },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
@@ -233,7 +231,6 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_AUTH': True,
-        'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
     'ios_creator': {
@@ -4028,7 +4025,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: This video is age-restricted and YouTube is requiring '
                     'account age-verification; some formats may be missing', only_once=True)
                 # web_creator can work around the age-verification requirement
-                # android_vr may also be able to work around age-verification
                 # tv_embedded may(?) still work around age-verification if the video is embeddable
                 append_client('web_creator')
             '''
