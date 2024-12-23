@@ -1467,6 +1467,8 @@
  - **ThisVid**
  - **ThisVidMember**
  - **ThisVidPlaylist**
+ - **Threads**
+ - **ThreadsIOS**: Threads' iOS `barcelona://` URL
  - **ThreeSpeak**
  - **ThreeSpeakUser**
  - **TikTok**
