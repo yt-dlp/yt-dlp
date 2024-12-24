@@ -3,13 +3,7 @@ import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    try_get,
-    url_or_none,
-)
+from ..utils import ExtractorError, float_or_none, int_or_none, traverse_obj, try_get, url_or_none
 
 
 class PlutoTVIE(InfoExtractor):
@@ -190,3 +184,95 @@ class PlutoTVIE(InfoExtractor):
                                         playlist_id=video_json.get('_id', info_slug),
                                         playlist_title=playlist_title)
         return self._get_video_info(video_json, info_slug)
+
+
+class PlutoTVLiveIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/live-tv/(?P<id>[^/]+)'
+    _TESTS = [{
+        'url': 'https://pluto.tv/live-tv/6093f9281db477000759fce0',
+        'info_dict': {
+            'id': '6093f9281db477000759fce0',
+            'ext': 'mp4',
+            'live_status': 'is_live',
+            'thumbnail': 'http://images.pluto.tv/channels/6093f9281db477000759fce0/featuredImage.jpg?fm=png&q=100',
+            'title': r're:Super! SpongeBob',
+            'display_id': 'super-spongebob-it',
+            'episode_id': str,
+            'series': 'Super! SpongeBob',
+            'series_id': str,
+            'episode': str,
+            'description': str,
+        },
+    }, {
+        'url': 'https://pluto.tv/it/live-tv/64c109a4798def0008a6e03e',
+        'info_dict': {
+            'id': '64c109a4798def0008a6e03e',
+            'ext': 'mp4',
+            'thumbnail': 'http://images.pluto.tv/channels/64c109a4798def0008a6e03e/featuredImage.jpg?fm=png&q=100',
+            'description': str,
+            'live_status': 'is_live',
+            'series_id': str,
+            'series': 'Top Gear',
+            'episode': str,
+            'title': r're:(?s)Top Gear: .+',
+            'episode_id': str,
+            'display_id': 'top-gear-it',
+        },
+    }]
+
+    def _build_start_query(self, slug):
+        return {
+            'appName': 'web',
+            'appVersion': 'na',
+            'clientID': str(uuid.uuid1()),
+            'clientModelNumber': 'na',
+            'serverSideAds': 'false',
+            'deviceMake': 'unknown',
+            'deviceModel': 'web',
+            'deviceType': 'web',
+            'deviceVersion': 'unknown',
+            'channelSlug': slug,
+        }
+
+    def _real_extract(self, url):
+        slug = self._match_id(url)
+        start = self._download_json('https://boot.pluto.tv/v4/start', slug, 'Downloading info json', query=self._build_start_query(slug))
+        channel = start['EPG'][0]
+        program = channel['timelines'][0]
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(start['servers']['stitcher'] + '/v2' + channel['stitched']['path'] + '?' + start['stitcherParams'] + '&jwt=' + start['sessionToken'], channel['id'])
+        thumbnails = []
+        for f in formats:
+            f['url'] += '&jwt=' + start['sessionToken']
+            if f.get('vcodec') is None:
+                f['vcodec'] = 'avc1.64001f'
+            if f.get('acodec') is None:
+                f['acodec'] = 'mp4a.40.2'
+            if f.get('fps') is None:
+                f['fps'] = 30
+        for image in channel['images']:
+            if image['type'] == 'featuredImage':
+                thumbnails.append({
+                    'id': 'original',
+                    'url': re.sub(r'\?.*$', '?fm=png&q=100', image['url']),
+                    'preference': 1,
+                })
+            thumbnails.append({
+                'id': image['type'],
+                'url': image['url'],
+                'width': image.get('defaultWidth'),
+                'height': image.get('defaultHeight'),
+            })
+        return {
+            'id': channel['id'],
+            'title': program.get('title'),
+            'display_id': channel.get('slug'),
+            'thumbnails': thumbnails,
+            'formats': formats,
+            'subtitles': subtitles,
+            'is_live': True,
+            'description': traverse_obj(program, ('episode', 'description')),
+            'episode': traverse_obj(program, ('episode', 'name')),
+            'series': traverse_obj(program, ('episode', 'series', 'name')),
+            'series_id': traverse_obj(program, ('episode', 'series', '_id')),
+            'episode_id': traverse_obj(program, ('episode', '_id')),
+        }
