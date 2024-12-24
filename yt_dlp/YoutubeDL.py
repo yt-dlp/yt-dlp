@@ -2606,7 +2606,6 @@ class YoutubeDL:
 
     def _sort_thumbnails(self, thumbnails):
         thumbnails.sort(key=lambda t: (
-            t.get('id') == self.params.get('thumbnail_format') if t.get('id') is not None else False,
             t.get('preference') if t.get('preference') is not None else -1,
             t.get('width') if t.get('width') is not None else -1,
             t.get('height') if t.get('height') is not None else -1,
@@ -2631,12 +2630,6 @@ class YoutubeDL:
                     self.to_screen(f'[info] Unable to connect to thumbnail {t["id"]} URL {t["url"]!r} - {err}. Skipping...')
                     continue
                 yield t
-
-        thumbnail_id = self.params.get('thumbnail_format')
-        if thumbnail_id and thumbnail_id not in [t.get('id') for t in thumbnails]:
-            self.raise_no_formats(info_dict, msg=(
-                'Invalid thumbnail ID specified. '
-                'Use --list-thumbnails to see available IDs'))
 
         self._sort_thumbnails(thumbnails)
         for i, t in enumerate(thumbnails):
@@ -4371,9 +4364,24 @@ class YoutubeDL:
     def _write_thumbnails(self, label, info_dict, filename, thumb_filename_base=None):
         """ Write thumbnails to file and return list of (thumb_filename, final_thumb_filename); or None if error """
         write_all = self.params.get('write_all_thumbnails', False)
+        write_any = write_all or self.params.get('writethumbnail', False)
         thumbnails, ret = [], []
-        if write_all or self.params.get('writethumbnail', False):
-            thumbnails = info_dict.get('thumbnails') or []
+
+        if write_any:
+            all_thumbnails = info_dict.get('thumbnails') or []
+            thumbnail_id = self.params.get('thumbnail_format')
+            if thumbnail_id and not write_all:
+                for t in all_thumbnails:
+                    if t.get('id') == thumbnail_id:
+                        thumbnails.append(t)
+                        break
+                else:
+                    self.raise_no_formats(
+                        info_dict, msg=('Invalid thumbnail ID specified. Use --list-thumbnails to see available IDs'),
+                    )
+            else:
+                thumbnails = all_thumbnails
+
             if not thumbnails:
                 self.to_screen(f'[info] There are no {label} thumbnails to download')
                 return ret
