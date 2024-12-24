@@ -459,8 +459,7 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
         programs = self._call_api(
             f'v1/video/series/{playlist_id}/programs', playlist_id,
             note=f'Downloading page {page + 1}',
-            query=query,
-        )
+            query=query)
         yield from (
             self.url_result(f'https://abema.tv/video/episode/{x}')
             for x in traverse_obj(programs, ('programs', ..., 'id')))
