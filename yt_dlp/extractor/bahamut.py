@@ -11,6 +11,7 @@ from ..utils.traversal import traverse_obj
 
 class BahamutIE(InfoExtractor):
     _VALID_URL = r'https?://ani\.gamer\.com\.tw/animeVideo\.php\?sn=(?P<id>\d+)'
+    _DEVICE_ID = None
 
     # see anime_player.js
     RATING_TO_AGE_LIMIT = {
@@ -22,16 +23,19 @@ class BahamutIE(InfoExtractor):
         6: 18,  # age-gated, needs login
     }
 
+    def _download_device_id(self, video_id):
+        return self._download_json(
+            'https://ani.gamer.com.tw/ajax/getdeviceid.php', video_id,
+            'Downloading device ID', 'Failed to download device ID',
+            impersonate=True, headers=self.geo_verification_headers())['deviceid']
+
     def _real_extract(self, url):
         url, unsmuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
-        device_id = (
-            self._configuration_arg('device_id', [None], casesense=True)[0]
-            or unsmuggled_data.get('device_id')
-            or self._download_json(
-                'https://ani.gamer.com.tw/ajax/getdeviceid.php', video_id,
-                'Downloading device ID', 'Failed to download device ID',
-                impersonate=True, headers=self.geo_verification_headers())['deviceid'])
+        if not self._DEVICE_ID:
+            self._DEVICE_ID = (
+                self._configuration_arg('device_id', [None], casesense=True)[0]
+                or self._download_device_id(video_id))
 
         # TODO: extract metadata from webpage
         metadata = {}
@@ -51,10 +55,8 @@ class BahamutIE(InfoExtractor):
             if self._yes_playlist(playlist_id, video_id) and unsmuggled_data.get('extract_playlist') is not False:
                 return self.playlist_result(
                     (self.url_result(
-                        # it may be better to use self.cache for storing device_id
                         smuggle_url(f'https://ani.gamer.com.tw/animeVideo.php?sn={ep["videoSn"]}', {
                             'extract_playlist': False,
-                            'device_id': device_id,
                         }), ie=BahamutIE,
                         video_id=ep['videoSn'], thumbnail=ep.get('cover')) for ep in traverse_obj(
                             api_result,
@@ -76,7 +78,7 @@ class BahamutIE(InfoExtractor):
             'https://ani.gamer.com.tw/ajax/m3u8.php', video_id,
             note='Downloading m3u8 URL', errnote='Failed to download m3u8 URL', query={
                 'sn': video_id,
-                'device': device_id,
+                'device': self._DEVICE_ID,
             }, impersonate=True, headers=self.geo_verification_headers(), expected_status=400)
 
         formats_fatal = True
@@ -87,10 +89,10 @@ class BahamutIE(InfoExtractor):
                 self.raise_geo_restricted(metadata_available=True)
                 formats_fatal = False
             elif error_code == 1007:
-                if unsmuggled_data.pop('device_id', None) is not None:
-                    return self.url_result(
-                        smuggle_url(f'https://ani.gamer.com.tw/animeVideo.php?sn={video_id}',
-                                    unsmuggled_data), ie=BahamutIE, video_id=video_id)
+                if self._configuration_arg('device_id', casesense=True):
+                    # the passed device id may be wrong or expired
+                    self._DEVICE_ID = self._download_device_id(video_id)
+                    return self.url_result(url, ie=BahamutIE, video_id=video_id)
                 raise ExtractorError('Invalid device id!')
             elif error_code == 1017:
                 self.raise_login_required(metadata_available=True)
