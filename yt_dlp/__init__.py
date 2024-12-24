@@ -870,7 +870,7 @@ def parse_options(argv=None):
         'clean_infojson': opts.clean_infojson,
         'getcomments': opts.getcomments,
         'writethumbnail': opts.writethumbnail is True,
-        'thumbnail_id': opts.thumbnail_id,
+        'thumbnail_format': opts.thumbnail_format,
         'write_all_thumbnails': opts.writethumbnail == 'all',
         'writelink': opts.writelink,
         'writeurllink': opts.writeurllink,
