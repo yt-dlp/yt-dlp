@@ -285,8 +285,8 @@ class MediasiteIE(InfoExtractor):
                 subtitles.setdefault(lang_code, []).append(t)
         if transcript_url := presentation.get('TranscriptUrl'):
             if determine_ext(transcript_url) != 'txt':
-                if len(transcripts) == 1 and captions:
-                    captions.setdefault(lang_code, []).append({
+                if len(transcripts) == 1:
+                    (captions or subtitles).setdefault(lang_code, []).append({
                         'url': transcript_url,
                         'name': lang_name,
                     })
