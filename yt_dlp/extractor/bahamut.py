@@ -10,6 +10,7 @@ from ..utils.traversal import traverse_obj
 
 
 class BahamutIE(InfoExtractor):
+    IE_DESC = '巴哈姆特動畫瘋 ani.gamer.com.tw'
     _VALID_URL = r'https?://ani\.gamer\.com\.tw/animeVideo\.php\?sn=(?P<id>\d+)'
     _DEVICE_ID = None
 
@@ -45,7 +46,7 @@ class BahamutIE(InfoExtractor):
     def _download_device_id(self, video_id):
         return self._download_json(
             'https://ani.gamer.com.tw/ajax/getdeviceid.php', video_id,
-            'Downloading device ID', 'Failed to download device ID',
+            note='Downloading device ID', errnote='Failed to download device ID',
             impersonate=True, headers=self.geo_verification_headers())['deviceid']
 
     def _real_extract(self, url):
@@ -60,7 +61,7 @@ class BahamutIE(InfoExtractor):
         metadata = {}
         if api_result := self._download_json(
                 'https://api.gamer.com.tw/anime/v1/video.php', video_id,
-                'Downloading video info', 'Failed to download video info',
+                note='Downloading video info', errnote='Failed to download video info',
                 impersonate=True, query={'videoSn': video_id}).get('data'):
 
             metadata.update(traverse_obj(api_result, ('anime', {
@@ -79,8 +80,7 @@ class BahamutIE(InfoExtractor):
                         }), ie=BahamutIE,
                         video_id=ep['videoSn'], thumbnail=ep.get('cover')) for ep in traverse_obj(
                             api_result,
-                            # This (the first ellipsis) extracts episodes of all languages,
-                            # maybe just extract episodes of the current language?
+                            # The first ellipsis extracts episodes of all languages
                             ('anime', 'episodes', ..., ...))),
                     playlist_id=playlist_id, **metadata)
 
@@ -106,7 +106,7 @@ class BahamutIE(InfoExtractor):
             error_code = traverse_obj(m3u8_info, ('error', 'code'))
             if error_code == 1011:
                 formats_fatal = False
-                self.raise_geo_restricted(metadata_available=not formats_fatal)
+                self.raise_geo_restricted(metadata_available=True)
             elif error_code == 1007:
                 if self._configuration_arg('device_id', casesense=True):
                     # the passed device id may be wrong or expired
@@ -115,7 +115,7 @@ class BahamutIE(InfoExtractor):
                 raise ExtractorError('Invalid device id!')
             elif error_code == 1017:
                 formats_fatal = False
-                self.raise_login_required(metadata_available=not formats_fatal)
+                self.raise_login_required(metadata_available=True)
             else:
                 raise ExtractorError(
                     traverse_obj(m3u8_info, ('error', 'message')) or 'Failed to download m3u8 URL')
