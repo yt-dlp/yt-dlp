@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from test.helper import FakeYDL, is_download_test, md5
 from yt_dlp.extractor import (
     NPOIE,
-    NRKTVIE,
+    NRKIE,
     PBSIE,
     CeskaTelevizeIE,
     ComedyCentralIE,
@@ -299,15 +299,16 @@ class TestMTVSubtitles(BaseTestSubtitles):
 
 @is_download_test
 class TestNRKSubtitles(BaseTestSubtitles):
-    url = 'http://tv.nrk.no/serie/ikke-gjoer-dette-hjemme/DMPV73000411/sesong-2/episode-1'
-    IE = NRKTVIE
+    url = 'nrk:DMPV73000411'  # http://tv.nrk.no/serie/ikke-gjoer-dette-hjemme/DMPV73000411/sesong-2/episode-1
+    IE = NRKIE
 
     def test_allsubtitles(self):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), {'nb-ttv'})
+        self.assertEqual(set(subtitles.keys()), {'nb-ttv', 'no'})
         self.assertEqual(md5(subtitles['nb-ttv']), '67e06ff02d0deaf975e68f6cb8f6a149')
+        self.assertEqual(md5(subtitles['no']), 'fc01036074116d245ddc6ba6f679263b')
 
 
 @is_download_test
