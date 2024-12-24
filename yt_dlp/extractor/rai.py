@@ -340,9 +340,8 @@ class RaiPlayIE(RaiBaseIE):
         media = self._download_json(
             f'{base}.json', video_id, 'Downloading video JSON')
 
-        if not self.get_param('allow_unplayable_formats'):
-            if traverse_obj(media, (('program_info', None), 'rights_management', 'rights', 'drm')):
-                self.report_drm(video_id)
+        if traverse_obj(media, (('program_info', None), 'rights_management', 'rights', 'drm')):
+            self.report_drm(video_id)
 
         video = media['video']
         relinker_info = self._extract_relinker_info(video['content_url'], video_id)
