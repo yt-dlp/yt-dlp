@@ -13,6 +13,25 @@ class BahamutIE(InfoExtractor):
     _VALID_URL = r'https?://ani\.gamer\.com\.tw/animeVideo\.php\?sn=(?P<id>\d+)'
     _DEVICE_ID = None
 
+    _TESTS = [{
+        'url': 'https://ani.gamer.com.tw/animeVideo.php?sn=40137',
+        'info_dict': {
+            'id': '40137',
+            'ext': 'mp4',
+            'title': '膽大黨 [1]',
+            'upload_date': '20241004',
+            'duration': 0.38333333333333336,
+            'age_limit': 12,
+            'tags': ['動作', '冒險', '奇幻', '超能力', '科幻', '喜劇', '戀愛', '青春', '血腥暴力', '靈異神怪'],
+            'thumbnail': 'https://p2.bahamut.com.tw/B/2KU/19/7d54e1421935f94781555420131rolv5.JPG',
+            'creators': ['山代風我'],
+            'timestamp': 1728000000,
+            'description': 'md5:c16931fb4d24d91b858715a2560362b5',
+        },
+        'params': {'noplaylist': True},
+        'skip': 'geo-restricted',
+    }]
+
     # see anime_player.js
     RATING_TO_AGE_LIMIT = {
         1: 0,
@@ -86,8 +105,8 @@ class BahamutIE(InfoExtractor):
             # TODO: handle more error codes, search for /case \d+{4}:/g in anime_player.js
             error_code = traverse_obj(m3u8_info, ('error', 'code'))
             if error_code == 1011:
-                self.raise_geo_restricted(metadata_available=True)
                 formats_fatal = False
+                self.raise_geo_restricted(metadata_available=not formats_fatal)
             elif error_code == 1007:
                 if self._configuration_arg('device_id', casesense=True):
                     # the passed device id may be wrong or expired
@@ -95,8 +114,8 @@ class BahamutIE(InfoExtractor):
                     return self.url_result(url, ie=BahamutIE, video_id=video_id)
                 raise ExtractorError('Invalid device id!')
             elif error_code == 1017:
-                self.raise_login_required(metadata_available=True)
                 formats_fatal = False
+                self.raise_login_required(metadata_available=not formats_fatal)
             else:
                 raise ExtractorError(
                     traverse_obj(m3u8_info, ('error', 'message')) or 'Failed to download m3u8 URL')
