@@ -425,10 +425,11 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
     _PAGE_SIZE = 25
 
     _TESTS = [{
-        'url': 'https://abema.tv/video/title/90-1597',
+        'url': 'https://abema.tv/video/title/90-1887',
         'info_dict': {
-            'id': '90-1597',
+            'id': '90-1887',
             'title': 'シャッフルアイランド',
+            'description': 'md5:61b2425308f41a5282a926edda66f178',
         },
         'playlist_mincount': 2,
     }, {
@@ -436,15 +437,25 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
         'info_dict': {
             'id': '193-132',
             'title': '真心が届く~僕とスターのオフィス・ラブ!?~',
+            'description': 'md5:9b59493d1f3a792bafbc7319258e7af8',
         },
         'playlist_mincount': 16,
     }, {
-        'url': 'https://abema.tv/video/title/25-102',
+        'url': 'https://abema.tv/video/title/25-1nzan-whrxe',
         'info_dict': {
-            'id': '25-102',
-            'title': 'ソードアート・オンライン アリシゼーション',
+            'id': '25-1nzan-whrxe',
+            'title': 'ソードアート・オンライン',
+            'description': 'md5:c094904052322e6978495532bdbf06e6',
         },
-        'playlist_mincount': 24,
+        'playlist_mincount': 25,
+    }, {
+        'url': 'https://abema.tv/video/title/26-2mzbynr-cph?s=26-2mzbynr-cph_s40',
+        'info_dict': {
+            'title': '〈物語〉シリーズ',
+            'id': '26-2mzbynr-cph',
+            'description': 'md5:e67873de1c88f360af1f0a4b84847a52',
+        },
+        'playlist_mincount': 31,
     }]
 
     def _fetch_page(self, playlist_id, series_version, season_id, page):
