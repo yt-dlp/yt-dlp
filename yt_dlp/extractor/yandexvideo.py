@@ -258,34 +258,42 @@ class ZenYandexIE(InfoExtractor):
             video_id = self._match_id(redirect)
             webpage = self._download_webpage(redirect, video_id, note='Redirecting')
         data_json = self._search_json(
-            r'("data"\s*:|data\s*=)', webpage, 'metadata', video_id, contains_pattern=r'{["\']_*serverState_*video.+}')
-        serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)', webpage, 'server state')
+            r'var _params=\(', webpage, 'metadata', video_id, contains_pattern=r'{.+streamsResponse.+}')
+        
         uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
                                       webpage, 'uploader', default='<a>')
         uploader_name = extract_attributes(uploader).get('aria-label')
-        item_id = traverse_obj(data_json, (serverstate, 'videoViewer', 'openedItemId', {str}))
-        video_json = traverse_obj(data_json, (serverstate, 'videoViewer', 'items', item_id, {dict})) or {}
-
+        video_meta = traverse_obj(data_json, ('ssrData', 'videoMetaResponse', {dict}))
+        video_meta2 = traverse_obj(video_meta, ('video', {dict}))     
+        m3u8_url = traverse_obj(video_meta2, ('id', {str}))
+        streams = traverse_obj(data_json, ('ssrData', 'streamsResponse', 'SingleStream', 0, {dict}))
+        
         formats, subtitles = [], {}
-        for s_url in traverse_obj(video_json, ('video', 'streams', ..., {url_or_none})):
+        for s_url in traverse_obj(streams, ('StreamInfo', ..., "OutputStream", {url_or_none})):
             ext = determine_ext(s_url)
+            
             if ext == 'mpd':
                 fmts, subs = self._extract_mpd_formats_and_subtitles(s_url, video_id, mpd_id='dash')
             elif ext == 'm3u8':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(s_url, video_id, 'mp4')
+            else:
+                fmts = [{'url': s_url}]
+                subs = {}
+        
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
+
         return {
             'id': video_id,
-            'title': video_json.get('title') or self._og_search_title(webpage),
+            'title': video_meta.get('title') or self._og_search_title(webpage),
             'formats': formats,
             'subtitles': subtitles,
-            'duration': int_or_none(video_json.get('duration')),
-            'view_count': int_or_none(video_json.get('views')),
-            'timestamp': int_or_none(video_json.get('publicationDate')),
-            'uploader': uploader_name or data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
-            'description': video_json.get('description') or self._og_search_description(webpage),
-            'thumbnail': self._og_search_thumbnail(webpage) or try_get(data_json, lambda x: x['og']['imageUrl']),
+            'duration': int_or_none(video_meta2.get('duration')),
+            'view_count': int_or_none(video_meta2.get('views')),
+            'timestamp': int_or_none(video_meta.get('publicationDate')),
+            'uploader': uploader_name or try_get(video_meta, lambda x: x['source']['title']),
+            'description': video_meta.get('description') or self._og_search_description(webpage),
+            'thumbnail': self._og_search_thumbnail(webpage) or video_meta.get('image'),
         }
 
 
