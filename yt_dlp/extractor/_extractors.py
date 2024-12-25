@@ -584,6 +584,10 @@ from .egghead import (
     EggheadCourseIE,
     EggheadLessonIE,
 )
+from .eggs import (
+    EggsIE,
+    EggsArtistIE,
+)
 from .eighttracks import EightTracksIE
 from .eitb import EitbIE
 from .elementorembed import ElementorEmbedIE
