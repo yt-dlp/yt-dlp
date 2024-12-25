@@ -6,6 +6,7 @@ from ..utils import (
     traverse_obj,
     url_or_none,
     urlhandle_detect_ext,
+    urljoin,
 )
 
 
@@ -77,7 +78,7 @@ class NZOnScreenIE(InfoExtractor):
         }],
         'info_dict': {
             'id': 'flatmates-episode-one-1997',
-            'title': 'Flatmates - 1, First Episode',
+            'title': 'Flatmates - Full Series',
         },
         'playlist_count': 5,
     }, {
@@ -124,7 +125,7 @@ class NZOnScreenIE(InfoExtractor):
     def _get_subtitles(self, playinfo, video_id):
         if caption := traverse_obj(playinfo, ('h264', 'caption_url')):
             subtitle, urlh = self._download_webpage_handle(
-                'https://www.nzonscreen.com' + caption, video_id, 'Downloading subtitles')
+                urljoin('https://www.nzonscreen.com', caption), video_id, 'Downloading subtitles')
             if subtitle:
                 return {'en': [{'ext': urlhandle_detect_ext(urlh), 'data': subtitle}]}
 
