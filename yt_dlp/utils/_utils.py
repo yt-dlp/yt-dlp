@@ -49,14 +49,10 @@ from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
     compat_HTMLParseError,
-    compat_os_name,
 )
 from ..dependencies import xattr
 
 __name__ = __name__.rsplit('.', 1)[0]  # noqa: A001: Pretend to be the parent module
-
-# This is not clearly defined otherwise
-compiled_regex_type = type(re.compile(''))
 
 
 class NO_DEFAULT:
@@ -874,7 +870,7 @@ class Popen(subprocess.Popen):
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
 
-        if shell and compat_os_name == 'nt' and kwargs.get('executable') is None:
+        if shell and os.name == 'nt' and kwargs.get('executable') is None:
             if not isinstance(args, str):
                 args = shell_quote(args, shell=True)
             shell = False
@@ -1457,7 +1453,7 @@ def system_identifier():
 @functools.cache
 def get_windows_version():
     """ Get Windows version. returns () if it's not running on Windows """
-    if compat_os_name == 'nt':
+    if os.name == 'nt':
         return version_tuple(platform.win32_ver()[1])
     else:
         return ()
@@ -1470,7 +1466,7 @@ def write_string(s, out=None, encoding=None):
     if not out:
         return
 
-    if compat_os_name == 'nt' and supports_terminal_sequences(out):
+    if os.name == 'nt' and supports_terminal_sequences(out):
         s = re.sub(r'([\r\n]+)', r' \1', s)
 
     enc, buffer = None, out
@@ -1501,21 +1497,6 @@ def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
 
 
 deprecation_warning._cache = set()
-
-
-def bytes_to_intlist(bs):
-    if not bs:
-        return []
-    if isinstance(bs[0], int):  # Python 3
-        return list(bs)
-    else:
-        return [ord(c) for c in bs]
-
-
-def intlist_to_bytes(xs):
-    if not xs:
-        return b''
-    return struct.pack('%dB' % len(xs), *xs)
 
 
 class LockingUnsupportedError(OSError):
@@ -1701,7 +1682,7 @@ _CMD_QUOTE_TRANS = str.maketrans({
 def shell_quote(args, *, shell=False):
     args = list(variadic(args))
 
-    if compat_os_name != 'nt':
+    if os.name != 'nt':
         return shlex.join(args)
 
     trans = _CMD_QUOTE_TRANS if shell else _WINDOWS_QUOTE_TRANS
@@ -2702,8 +2683,8 @@ def merge_dicts(*dicts):
     merged = {}
     for a_dict in dicts:
         for k, v in a_dict.items():
-            if (v is not None and k not in merged
-                    or isinstance(v, str) and merged[k] == ''):
+            if ((v is not None and k not in merged)
+                    or (isinstance(v, str) and merged[k] == '')):
                 merged[k] = v
     return merged
 
@@ -4516,7 +4497,7 @@ def urshift(val, n):
 def write_xattr(path, key, value):
     # Windows: Write xattrs to NTFS Alternate Data Streams:
     # http://en.wikipedia.org/wiki/NTFS#Alternate_data_streams_.28ADS.29
-    if compat_os_name == 'nt':
+    if os.name == 'nt':
         assert ':' not in key
         assert os.path.exists(path)
 
@@ -4778,12 +4759,12 @@ def jwt_decode_hs256(jwt):
     return json.loads(base64.urlsafe_b64decode(f'{payload_b64}==='))
 
 
-WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
+WINDOWS_VT_MODE = False if os.name == 'nt' else None
 
 
 @functools.cache
 def supports_terminal_sequences(stream):
-    if compat_os_name == 'nt':
+    if os.name == 'nt':
         if not WINDOWS_VT_MODE:
             return False
     elif not os.getenv('TERM'):
@@ -4877,7 +4858,7 @@ def parse_http_range(range):
 
 def read_stdin(what):
     if what:
-        eof = 'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'
+        eof = 'Ctrl+Z' if os.name == 'nt' else 'Ctrl+D'
         write_string(f'Reading {what} from STDIN - EOF ({eof}) to end:\n')
     return sys.stdin
 

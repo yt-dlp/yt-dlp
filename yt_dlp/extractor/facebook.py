@@ -50,7 +50,7 @@ class FacebookIE(InfoExtractor):
                             [^/]+/videos/(?:[^/]+/)?|
                             [^/]+/posts/|
                             events/(?:[^/]+/)?|
-                            groups/[^/]+/(?:permalink|posts)/|
+                            groups/[^/]+/(?:permalink|posts)/(?:[\da-f]+/)?|
                             watchparty/
                         )|
                     facebook:
@@ -410,6 +410,9 @@ class FacebookIE(InfoExtractor):
             'uploader': 'Comitato Liberi Pensatori',
             'uploader_id': '100065709540881',
         },
+    }, {
+        'url': 'https://www.facebook.com/groups/1513990329015294/posts/d41d8cd9/2013209885760000/?app=fbl',
+        'only_matching': True,
     }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
@@ -569,7 +572,7 @@ class FacebookIE(InfoExtractor):
             if dash_manifest:
                 formats.extend(self._parse_mpd_formats(
                     compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest)),
-                    mpd_url=url_or_none(video.get('dash_manifest_url')) or mpd_url))
+                    mpd_url=url_or_none(vid_data.get('dash_manifest_url')) or mpd_url))
 
         def process_formats(info):
             # Downloads with browser's User-Agent are rate limited. Working around
