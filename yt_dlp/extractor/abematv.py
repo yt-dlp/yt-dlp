@@ -470,8 +470,7 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
             self._PAGE_SIZE)
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url)
-        season_id = self._match_valid_url(url).group('season')
+        playlist_id, season_id = self._match_valid_url(url).group('id', 'season')
         series_info = self._call_api(f'v1/video/series/{playlist_id}', playlist_id)
 
         return self.playlist_result(
