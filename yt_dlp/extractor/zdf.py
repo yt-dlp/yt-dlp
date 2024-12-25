@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -74,7 +73,7 @@ class ZDFBaseIE(InfoExtractor):
             f.update({
                 'url': format_url,
                 'format_id': join_nonempty('http', meta.get('type'), meta.get('quality')),
-                'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None))
+                'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
             })
             new_formats = [f]
         formats.extend(merge_dicts(f, {
@@ -246,7 +245,7 @@ class ZDFIE(ZDFBaseIE):
             'timestamp': 1641355200,
             'upload_date': '20220105',
         },
-        'skip': 'No longer available "Diese Seite wurde leider nicht gefunden"'
+        'skip': 'No longer available "Diese Seite wurde leider nicht gefunden"',
     }, {
         'url': 'https://www.zdf.de/serien/soko-stuttgart/das-geld-anderer-leute-100.html',
         'info_dict': {
@@ -309,7 +308,7 @@ class ZDFIE(ZDFBaseIE):
         t = content['mainVideoContent']['http://zdf.de/rels/target']
         ptmd_path = traverse_obj(t, (
             (('streams', 'default'), None),
-            ('http://zdf.de/rels/streams/ptmd', 'http://zdf.de/rels/streams/ptmd-template')
+            ('http://zdf.de/rels/streams/ptmd', 'http://zdf.de/rels/streams/ptmd-template'),
         ), get_all=False)
         if not ptmd_path:
             raise ExtractorError('Could not extract ptmd_path')
@@ -342,7 +341,7 @@ class ZDFIE(ZDFBaseIE):
         chapters = [{
             'start_time': chap.get('anchorOffset'),
             'end_time': next_chap.get('anchorOffset'),
-            'title': chap.get('anchorLabel')
+            'title': chap.get('anchorLabel'),
         } for chap, next_chap in zip(chapter_marks, chapter_marks[1:])]
 
         target_info = traverse_obj(content, ('programmeItem', 0, 'http://zdf.de/rels/target'))
@@ -395,7 +394,7 @@ class ZDFIE(ZDFBaseIE):
         if isinstance(teaser_bild, dict):
             for thumbnail_key, thumbnail in teaser_bild.items():
                 thumbnail_url = try_get(
-                    thumbnail, lambda x: x['url'], compat_str)
+                    thumbnail, lambda x: x['url'], str)
                 if thumbnail_url:
                     thumbnails.append({
                         'url': thumbnail_url,
@@ -410,7 +409,7 @@ class ZDFIE(ZDFBaseIE):
             'description': document.get('beschreibung'),
             'duration': int_or_none(document.get('length')),
             'timestamp': unified_timestamp(document.get('date')) or unified_timestamp(
-                try_get(video, lambda x: x['meta']['editorialDate'], compat_str)),
+                try_get(video, lambda x: x['meta']['editorialDate'], str)),
             'thumbnails': thumbnails,
             'subtitles': self._extract_subtitles(document),
             'formats': formats,
@@ -459,10 +458,10 @@ class ZDFChannelIE(ZDFBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if ZDFIE.suitable(url) else super(ZDFChannelIE, cls).suitable(url)
+        return False if ZDFIE.suitable(url) else super().suitable(url)
 
     def _og_search_title(self, webpage, fatal=False):
-        title = super(ZDFChannelIE, self)._og_search_title(webpage, fatal=fatal)
+        title = super()._og_search_title(webpage, fatal=fatal)
         return re.split(r'\s+[-|]\s+ZDF(?:mediathek)?$', title or '')[0] or None
 
     def _real_extract(self, url):
