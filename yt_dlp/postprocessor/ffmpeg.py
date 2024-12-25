@@ -21,7 +21,6 @@ from ..utils import (
     determine_ext,
     dfxp2srt,
     encodeArgument,
-    encodeFilename,
     filter_dict,
     float_or_none,
     is_outdated_version,
@@ -243,13 +242,13 @@ class FFmpegPostProcessor(PostProcessor):
         try:
             if self.probe_available:
                 cmd = [
-                    encodeFilename(self.probe_executable, True),
+                    self.probe_executable,
                     encodeArgument('-show_streams')]
             else:
                 cmd = [
-                    encodeFilename(self.executable, True),
+                    self.executable,
                     encodeArgument('-i')]
-            cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
+            cmd.append(self._ffmpeg_filename_argument(path))
             self.write_debug(f'{self.basename} command line: {shell_quote(cmd)}')
             stdout, stderr, returncode = Popen.run(
                 cmd, text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -282,7 +281,7 @@ class FFmpegPostProcessor(PostProcessor):
         self.check_version()
 
         cmd = [
-            encodeFilename(self.probe_executable, True),
+            self.probe_executable,
             encodeArgument('-hide_banner'),
             encodeArgument('-show_format'),
             encodeArgument('-show_streams'),
@@ -335,9 +334,9 @@ class FFmpegPostProcessor(PostProcessor):
         self.check_version()
 
         oldest_mtime = min(
-            os.stat(encodeFilename(path)).st_mtime for path, _ in input_path_opts if path)
+            os.stat(path).st_mtime for path, _ in input_path_opts if path)
 
-        cmd = [encodeFilename(self.executable, True), encodeArgument('-y')]
+        cmd = [self.executable, encodeArgument('-y')]
         # avconv does not have repeat option
         if self.basename == 'ffmpeg':
             cmd += [encodeArgument('-loglevel'), encodeArgument('repeat+info')]
@@ -353,7 +352,7 @@ class FFmpegPostProcessor(PostProcessor):
                 args.append('-i')
             return (
                 [encodeArgument(arg) for arg in args]
-                + [encodeFilename(self._ffmpeg_filename_argument(file), True)])
+                + [self._ffmpeg_filename_argument(file)])
 
         for arg_type, path_opts in (('i', input_path_opts), ('o', output_path_opts)):
             cmd += itertools.chain.from_iterable(
@@ -522,8 +521,8 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
                 return [], information
             orig_path = prepend_extension(path, 'orig')
             temp_path = prepend_extension(path, 'temp')
-        if (self._nopostoverwrites and os.path.exists(encodeFilename(new_path))
-                and os.path.exists(encodeFilename(orig_path))):
+        if (self._nopostoverwrites and os.path.exists(new_path)
+                and os.path.exists(orig_path)):
             self.to_screen(f'Post-process file {new_path} exists, skipping')
             return [], information
 
@@ -627,7 +626,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             sub_ext = sub_info['ext']
             if sub_ext == 'json':
                 self.report_warning('JSON subtitles cannot be embedded')
-            elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
+            elif ext != 'webm' or (ext == 'webm' and sub_ext == 'vtt'):
                 sub_langs.append(lang)
                 sub_names.append(sub_info.get('name'))
                 sub_filenames.append(sub_info['filepath'])
@@ -838,7 +837,7 @@ class FFmpegMergerPP(FFmpegPostProcessor):
                 args.extend(['-map', f'{i}:v:0'])
         self.to_screen(f'Merging formats into "{filename}"')
         self.run_ffmpeg_multiple_files(info['__files_to_merge'], temp_filename, args)
-        os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+        os.rename(temp_filename, filename)
         return info['__files_to_merge'], info
 
     def can_merge(self):
@@ -1039,7 +1038,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
     def _ffmpeg_args_for_chapter(self, number, chapter, info):
         destination = self._prepare_filename(number, chapter, info)
-        if not self._downloader._ensure_dir_exists(encodeFilename(destination)):
+        if not self._downloader._ensure_dir_exists(destination):
             return
 
         chapter['filepath'] = destination

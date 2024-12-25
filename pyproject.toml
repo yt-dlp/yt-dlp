@@ -13,7 +13,7 @@ maintainers = [
 ]
 description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = [
     "youtube-dl",
     "video-downloader",
@@ -29,11 +29,11 @@ classifiers = [
     "Environment :: Console",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
@@ -41,7 +41,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dynamic = ["version"]
-dependencies = [
+dependencies = []
+
+[project.optional-dependencies]
+default = [
     "brotli; implementation_name=='cpython'",
     "brotlicffi; implementation_name!='cpython'",
     "certifi",
@@ -51,9 +54,6 @@ dependencies = [
     "urllib3>=1.26.17,<3",
     "websockets>=13.0",
 ]
-
-[project.optional-dependencies]
-default = []
 curl-cffi = [
     "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
     "curl-cffi>=0.5.10,!=0.6.*,<0.7.2; os_name!='nt' and implementation_name=='cpython'",
@@ -76,17 +76,14 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.6.0",
+    "ruff~=0.8.0",
 ]
 test = [
     "pytest~=8.1",
     "pytest-rerunfailures~=14.0",
 ]
 pyinstaller = [
-    "pyinstaller>=6.10.0",  # Windows temp cleanup fixed in 6.10.0
-]
-py2exe = [
-    "py2exe>=0.12",
+    "pyinstaller>=6.11.1",  # Windows temp cleanup fixed in 6.11.1
 ]
 
 [project.urls]
@@ -172,13 +169,11 @@ run-cov = "echo Code coverage not implemented && exit 1"
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [
-    "3.8",
     "3.9",
     "3.10",
     "3.11",
     "3.12",
-    "pypy3.8",
-    "pypy3.9",
+    "3.13",
     "pypy3.10",
 ]
 
@@ -191,6 +186,7 @@ ignore = [
     "E501",    # line-too-long
     "E731",    # lambda-assignment
     "E741",    # ambiguous-variable-name
+    "UP031",   # printf-string-formatting
     "UP036",   # outdated-version-block
     "B006",    # mutable-argument-default
     "B008",    # function-call-in-default-argument
@@ -263,9 +259,6 @@ select = [
     "A002",   # builtin-argument-shadowing
     "C408",   # unnecessary-collection-call
 ]
-"yt_dlp/jsinterp.py" = [
-    "UP031",  # printf-string-formatting
-]
 
 [tool.ruff.lint.isort]
 known-first-party = [
@@ -318,6 +311,16 @@ banned-from = [
 "yt_dlp.compat.compat_urllib_parse_urlparse".msg = "Use `urllib.parse.urlparse` instead."
 "yt_dlp.compat.compat_shlex_quote".msg = "Use `yt_dlp.utils.shell_quote` instead."
 "yt_dlp.utils.error_to_compat_str".msg = "Use `str` instead."
+"yt_dlp.utils.bytes_to_intlist".msg = "Use `list` instead."
+"yt_dlp.utils.intlist_to_bytes".msg = "Use `bytes` instead."
+"yt_dlp.utils.decodeArgument".msg = "Do not use"
+"yt_dlp.utils.decodeFilename".msg = "Do not use"
+"yt_dlp.utils.encodeFilename".msg = "Do not use"
+"yt_dlp.compat.compat_os_name".msg = "Use `os.name` instead."
+"yt_dlp.compat.compat_realpath".msg = "Use `os.path.realpath` instead."
+"yt_dlp.compat.functools".msg = "Use `functools` instead."
+"yt_dlp.utils.decodeOption".msg = "Do not use"
+"yt_dlp.utils.compiled_regex_type".msg = "Use `re.Pattern` instead."
 
 [tool.autopep8]
 max_line_length = 120

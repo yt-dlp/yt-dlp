@@ -211,10 +211,10 @@ class QQMusicIE(QQMusicBaseIE):
             'formats': formats,
             **traverse_obj(info_data, {
                 'title': ('title', {str}),
-                'album': ('album', 'title', {str}, {lambda x: x or None}),
+                'album': ('album', 'title', {str}, filter),
                 'release_date': ('time_public', {lambda x: x.replace('-', '') or None}),
                 'creators': ('singer', ..., 'name', {str}),
-                'alt_title': ('subtitle', {str}, {lambda x: x or None}),
+                'alt_title': ('subtitle', {str}, filter),
                 'duration': ('interval', {int_or_none}),
             }),
             **traverse_obj(init_data, ('detail', {
