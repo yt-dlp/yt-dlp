@@ -11,7 +11,7 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-class RTSIE(SRGSSRIE):
+class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
     _GEO_COUNTRIES = ['CH']
     IE_DESC = 'RTS.ch'
     _VALID_URL = [

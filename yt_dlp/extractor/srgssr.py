@@ -128,6 +128,10 @@ class SRGSSRIE(InfoExtractor):
                     'quality': q(quality),
                 })
 
+        for idx, fmt in enumerate(formats):
+            if fmt['format_id'].endswith('(AD)'):
+                formats[idx]['language_preference'] = -10
+
         if media_type == 'video':
             for sub in (media_data.get('subtitleList') or []):
                 sub_url = sub.get('url')
