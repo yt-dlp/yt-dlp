@@ -5,7 +5,6 @@ from ..utils import (
     strip_or_none,
     traverse_obj,
     url_or_none,
-    urlhandle_detect_ext,
     urljoin,
 )
 
@@ -90,15 +89,19 @@ class NZOnScreenIE(InfoExtractor):
             'height': 360,
             'width': 640,
             'subtitles': {
-                'en': [{'ext': 'SRT', 'data': 'md5:c2469f71020a32e55e228b532ded908f'}],
+                'en': [{'ext': 'vtt', 'url': 'https://www.nzonscreen.com/captions/3367'}],
             },
             'title': 'Reluctant Hero (clip 1)',
             'description': 'Part one of four from this full length documentary.',
             'display_id': 'reluctant-hero-2008',
             'duration': 1108.0,
+            'alt_title': 'Reluctant Hero',
             'thumbnail': r're:https://www\.nzonscreen\.com/content/images/.+\.jpg',
         },
-        'params': {'writesubtitles': True},
+        'params': {
+            # 'writesubtitles': True,
+            'noplaylist': True,
+        },
     }]
 
     def _extract_formats(self, playlist):
@@ -122,13 +125,6 @@ class NZOnScreenIE(InfoExtractor):
             }))
         return formats
 
-    def _get_subtitles(self, playinfo, video_id):
-        if caption := traverse_obj(playinfo, ('h264', 'caption_url')):
-            subtitle, urlh = self._download_webpage_handle(
-                urljoin('https://www.nzonscreen.com', caption), video_id, 'Downloading subtitles')
-            if subtitle:
-                return {'en': [{'ext': urlhandle_detect_ext(urlh), 'data': subtitle}]}
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
@@ -139,6 +135,9 @@ class NZOnScreenIE(InfoExtractor):
             f'https://www.nzonscreen.com/html5/video_data/{video_id}', video_id,
             'Downloading media data')
 
+        if not self._yes_playlist(video_id, video_id):
+            del playlist[1:]
+
         return self.playlist_result([{
             'alt_title': title if len(playlist) == 1 else None,
             'display_id': video_id,
@@ -146,7 +145,10 @@ class NZOnScreenIE(InfoExtractor):
                 'Referer': 'https://www.nzonscreen.com/',
                 'Origin': 'https://www.nzonscreen.com/',
             },
-            'subtitles': self.extract_subtitles(playinfo, video_id),
+            'subtitles': {'en': [{
+                'url': traverse_obj(playinfo, ('h264', 'caption_url', {urljoin('https://www.nzonscreen.com')})),
+                'ext': 'vtt',
+            }]},
             **traverse_obj(playinfo, {
                 'formats': {self._extract_formats},
                 'id': 'uuid',
