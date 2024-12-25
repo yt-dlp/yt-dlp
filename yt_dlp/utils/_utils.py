@@ -1382,7 +1382,7 @@ def datetime_round(dt_, precision='day'):
     if precision == 'microsecond':
         return dt_
 
-    time_scale = 1000000
+    time_scale = 1_000_000
     unit_seconds = {
         'day': 86400,
         'hour': 3600,
