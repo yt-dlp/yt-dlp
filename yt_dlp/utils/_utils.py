@@ -1364,6 +1364,17 @@ def datetime_add_months(dt_, months):
     return dt_.replace(year, month, day)
 
 
+def datetime_from_timestamp(timestamp):
+    # Working around out-of-range timestamp values (e.g. negative ones on Windows,
+    # see http://bugs.python.org/issue1646728)
+    # Using naive datetime here can break timestamp() in Windows
+    # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/94414
+    # Also, dt.datetime.fromtimestamp breaks for negative timestamps
+    # Ref: https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642
+    return (dt.datetime.fromtimestamp(0, dt.timezone.utc)
+            + dt.timedelta(seconds=timestamp))
+
+
 def datetime_round(dt_, precision='day'):
     """
     Round a datetime object's time to a specific precision
@@ -1371,6 +1382,7 @@ def datetime_round(dt_, precision='day'):
     if precision == 'microsecond':
         return dt_
 
+    time_scale = 1000000
     unit_seconds = {
         'day': 86400,
         'hour': 3600,
@@ -1378,8 +1390,8 @@ def datetime_round(dt_, precision='day'):
         'second': 1,
     }
     roundto = lambda x, n: ((x + n / 2) // n) * n
-    timestamp = roundto(calendar.timegm(dt_.timetuple()), unit_seconds[precision])
-    return dt.datetime.fromtimestamp(timestamp, dt.timezone.utc)
+    timestamp = roundto(calendar.timegm(dt_.timetuple()) * time_scale + dt_.microsecond, unit_seconds[precision] * time_scale) / time_scale
+    return datetime_from_timestamp(timestamp)
 
 
 def hyphenate_date(date_str):
@@ -2047,12 +2059,7 @@ def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
     datetime_object = None
     try:
         if isinstance(timestamp, (int, float)):  # unix timestamp
-            # Using naive datetime here can break timestamp() in Windows
-            # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/94414
-            # Also, dt.datetime.fromtimestamp breaks for negative timestamps
-            # Ref: https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642
-            datetime_object = (dt.datetime.fromtimestamp(0, dt.timezone.utc)
-                               + dt.timedelta(seconds=timestamp))
+            datetime_object = datetime_from_timestamp(timestamp)
         elif isinstance(timestamp, str):  # assume YYYYMMDD
             datetime_object = dt.datetime.strptime(timestamp, '%Y%m%d')
         date_format = re.sub(  # Support %s on windows
