@@ -98,10 +98,7 @@ class NZOnScreenIE(InfoExtractor):
             'alt_title': 'Reluctant Hero',
             'thumbnail': r're:https://www\.nzonscreen\.com/content/images/.+\.jpg',
         },
-        'params': {
-            # 'writesubtitles': True,
-            'noplaylist': True,
-        },
+        'params': {'noplaylist': True},
     }]
 
     def _extract_formats(self, playlist):
