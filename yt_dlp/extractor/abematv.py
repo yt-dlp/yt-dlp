@@ -421,7 +421,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
 
 class AbemaTVTitleIE(AbemaTVBaseIE):
-    _VALID_URL = r'https?://abema\.tv/video/title/(?P<id>[^?/]+)(?:\?(?:.*?&)?s=(?P<season>[^&]+))?'
+    _VALID_URL = r'https?://abema\.tv/video/title/(?P<id>[^?/]+)(?:\?(?:[^#]+&)?s=(?P<season>[^&#]+))?'
     _PAGE_SIZE = 25
 
     _TESTS = [{
