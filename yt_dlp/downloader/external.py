@@ -294,9 +294,7 @@ class Aria2cFD(ExternalFD):
         return super()._call_downloader(tmpfilename, info_dict)
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '--no-conf', '--stderr=true',
-               '--auto-save-interval=10', '--allow-overwrite=true', '--always-resume=false',
-               '--auto-file-renaming=false', '--force-save=false',
+        cmd = [self.exe, '--no-conf', '--stderr=true', '--auto-save-interval=10',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
                '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16']
         if 'fragments' in info_dict:
@@ -317,6 +315,11 @@ class Aria2cFD(ExternalFD):
         cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
         cmd += self._bool_option('--remove-control-file', 'continuedl', 'false', 'true', '=')
         cmd += self._configuration_args()
+        # do not allow changing these flags
+        cmd += ['--allow-overwrite=true']
+        cmd += ['--always-resume=false']
+        cmd += ['--auto-file-renaming=false']
+        cmd += ['--force-save=false']
 
         if '__rpc' in info_dict:
             cmd += [
