@@ -81,7 +81,7 @@ class GloboIE(InfoExtractor):
         video_id = self._match_id(url)
 
         self._request_webpage(
-            HEADRequest('https://globo-ab.globo.com/v2/selected-alternatives?experiments=player-isolated-experiment-02&skipImpressions=true'),
+            HEADRequest('https://ab.g.globo/v2/selected-alternatives?experiments=player-isolated-experiment-02&skipImpressions=true'),
             video_id, 'Getting cookies')
 
         video = self._download_json(
