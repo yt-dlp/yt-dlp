@@ -29,11 +29,11 @@ class ZDFBaseIE(InfoExtractor):
     def _call_api(self, url, video_id, item, api_token=None, referrer=None):
         headers = {}
         if api_token:
-            headers['Api-Auth'] = 'Bearer %s' % api_token
+            headers['Api-Auth'] = f'Bearer {api_token}'
         if referrer:
             headers['Referer'] = referrer
         return self._download_json(
-            url, video_id, 'Downloading JSON %s' % item, headers=headers)
+            url, video_id, f'Downloading JSON {item}', headers=headers)
 
     @staticmethod
     def _extract_subtitles(src):
@@ -375,7 +375,7 @@ class ZDFIE(ZDFBaseIE):
 
     def _extract_mobile(self, video_id):
         video = self._download_json(
-            'https://zdf-cdn.live.cellular.de/mediathekV2/document/%s' % video_id,
+            f'https://zdf-cdn.live.cellular.de/mediathekV2/document/{video_id}',
             video_id)
 
         formats = []
@@ -470,7 +470,7 @@ class ZDFChannelIE(ZDFBaseIE):
         webpage = self._download_webpage(url, channel_id)
 
         matches = re.finditer(
-            r'''<div\b[^>]*?\sdata-plusbar-id\s*=\s*(["'])(?P<p_id>[\w-]+)\1[^>]*?\sdata-plusbar-url=\1(?P<url>%s)\1''' % ZDFIE._VALID_URL,
+            fr'''<div\b[^>]*?\sdata-plusbar-id\s*=\s*(["'])(?P<p_id>[\w-]+)\1[^>]*?\sdata-plusbar-url=\1(?P<url>{ZDFIE._VALID_URL})\1''',
             webpage)
 
         if self._downloader.params.get('noplaylist', False):
@@ -481,11 +481,11 @@ class ZDFChannelIE(ZDFBaseIE):
             if entry:
                 return entry
         else:
-            self.to_screen('Downloading playlist %s - add --no-playlist to download just the main video' % (channel_id, ))
+            self.to_screen(f'Downloading playlist {channel_id} - add --no-playlist to download just the main video')
 
         def check_video(m):
             v_ref = self._search_regex(
-                r'''(<a\b[^>]*?\shref\s*=[^>]+?\sdata-target-id\s*=\s*(["'])%s\2[^>]*>)''' % (m.group('p_id'), ),
+                fr'''(<a\b[^>]*?\shref\s*=[^>]+?\sdata-target-id\s*=\s*(["']){m.group('p_id')}\2[^>]*>)''',
                 webpage, 'check id', default='')
             v_ref = extract_attributes(v_ref)
             return v_ref.get('data-target-video-type') != 'novideo'
