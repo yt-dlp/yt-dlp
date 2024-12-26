@@ -256,6 +256,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'MWEB',
                 'clientVersion': '2.20241202.07.00',
+                # mweb does not require PO Token with this UA
                 'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
         },
@@ -4051,7 +4052,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         msg = (
             f'{video_id}: {client_name} client {proto} formats require a PO Token which was not provided. '
             'They will be skipped as they may yield HTTP Error 403. '
-            f'You can manually pass a PO Token for this client with --extractor-args "youtube:po_token={client_name}+XXX. '
+            f'You can manually pass a PO Token for this client with --extractor-args "youtube:po_token={client_name}+XXX". '
             'For more information, refer to  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#po-token-guide . '
             'To enable these broken formats anyway, pass --extractor-args "youtube:formats=missing_pot"')
 
@@ -4271,7 +4272,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             key = (proto, f.get('language'))
             if not all_formats and key in itags[itag]:
                 return False
-            itags[itag].add(key)
 
             if f.get('source_preference') is None:
                 f['source_preference'] = -1
@@ -4284,6 +4284,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     return False
                 f['format_note'] = join_nonempty(f.get('format_note'), 'MISSING POT', delim=' ')
                 f['source_preference'] -= 20
+
+            itags[itag].add(key)
 
             if itag and all_formats:
                 f['format_id'] = f'{itag}-{proto}'
