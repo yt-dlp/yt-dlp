@@ -455,7 +455,7 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
             'id': '26-2mzbynr-cph',
             'description': 'md5:e67873de1c88f360af1f0a4b84847a52',
         },
-        'playlist_count': 31,
+        'playlist_count': 59,
     }]
 
     def _fetch_page(self, playlist_id, series_version, season_id, page):
