@@ -471,7 +471,7 @@ class ZDFChannelIE(ZDFBaseIE):
         webpage = self._download_webpage(url, channel_id)
 
         matches = re.finditer(
-            fr'''<div\b[^>]*?\sdata-plusbar-id\s*=\s*(["'])(?P<p_id>[\w-]+)\1[^>]*?\sdata-plusbar-url=\1(?P<url>{ZDFIE._VALID_URL})\1''',
+            rf'''<div\b[^>]*?\sdata-plusbar-id\s*=\s*(["'])(?P<p_id>[\w-]+)\1[^>]*?\sdata-plusbar-url=\1(?P<url>{ZDFIE._VALID_URL})\1''',
             webpage)
 
         if self._downloader.params.get('noplaylist', False):
@@ -486,7 +486,7 @@ class ZDFChannelIE(ZDFBaseIE):
 
         def check_video(m):
             v_ref = self._search_regex(
-                fr'''(<a\b[^>]*?\shref\s*=[^>]+?\sdata-target-id\s*=\s*(["']){m.group('p_id')}\2[^>]*>)''',
+                rf'''(<a\b[^>]*?\shref\s*=[^>]+?\sdata-target-id\s*=\s*(["']){m.group("p_id")}\2[^>]*>)''',
                 webpage, 'check id', default='')
             v_ref = extract_attributes(v_ref)
             return v_ref.get('data-target-video-type') != 'novideo'
