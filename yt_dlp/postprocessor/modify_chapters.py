@@ -341,11 +341,6 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 result.append(c)
                 continue
 
-            start_frame = bisect.bisect_left(keyframes, c['start_time'])
-            if start_frame >= len(keyframes):
-                continue
-
-            c['start_time'] = keyframes[start_frame]
             if c['end_time'] < keyframes[-1]:
                 c['end_time'] = keyframes[bisect.bisect_right(keyframes, c['end_time']) - 1]
             result.append(c)

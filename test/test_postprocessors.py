@@ -567,7 +567,7 @@ class TestModifyChaptersPP(unittest.TestCase):
         ])
         self.assertEqual(chapters, [
             {'start_time': 0, 'end_time': 2},
-            {'start_time': 3, 'end_time': 5, 'remove': True},
+            {'start_time': 2, 'end_time': 5, 'remove': True},
             {'start_time': 6, 'end_time': 10, 'remove': False},
         ])
 
