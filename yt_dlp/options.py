@@ -1778,6 +1778,17 @@ def create_parser():
         '--no-force-keyframes-at-cuts',
         action='store_false', dest='force_keyframes_at_cuts',
         help='Do not force keyframes around the chapters when cutting/splitting (default)')
+    postproc.add_option(
+        '--round-cuts-to-keyframes',
+        action='store_true', dest='round_cuts_to_keyframes', default=False,
+        help=(
+            'Rounds cuts to the nearest keyframe when removing sections. '
+            'This may result in some more content being included than specified, but makes problems around cuts '
+            'less likely'))
+    postproc.add_option(
+        '--no-round-cuts-to-keyframes',
+        action='store_false', dest='round_cuts_to_keyframes',
+        help='Do not rounds cuts to the nearest keyframe when removing sections (default)')
     _postprocessor_opts_parser = lambda key, val='': (
         *(item.split('=', 1) for item in (val.split(';') if val else [])),
         ('key', remove_end(key, 'PP')))
