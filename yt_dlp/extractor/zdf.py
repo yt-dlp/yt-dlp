@@ -137,6 +137,7 @@ class ZDFBaseIE(InfoExtractor):
 
 class ZDFIE(ZDFBaseIE):
     _VALID_URL = r'https?://www\.zdf\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)\.html'
+
     _TESTS = [{
         # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
         'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
@@ -287,7 +288,7 @@ class ZDFIE(ZDFBaseIE):
             'id': '240319_2310_sendung_not',
             'ext': 'mp4',
             'title': 'Begegnung auf der Brücke',
-            'description': 'Lloyd begegnet an einem verregneten Abend in Dublin einer jungen Frau, die völlig durchnässt auf der Grattan Bridge steht. Es ist der Beginn einer außergewöhnlichen Freundschaft.',
+            'description': 'md5:e53a555da87447f7f1207f10353f8e45',
             'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/c5ff1d1f-f5c8-4468-86ac-1b2f1dbecc76?layout=2400x1350',
             'upload_date': '20240319',
             'duration': 3083.0,
@@ -302,7 +303,6 @@ class ZDFIE(ZDFBaseIE):
             'episode_id': 'POS_71049438-024b-471f-b472-4fe2e490d1fb',
         },
     }]
-
     def _extract_entry(self, url, player, content, video_id):
         title = content.get('title') or content['teaserHeadline']
 
