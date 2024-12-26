@@ -146,8 +146,8 @@ class NZOnScreenIE(InfoExtractor):
                 'url': traverse_obj(playinfo, ('h264', 'caption_url', {urljoin('https://www.nzonscreen.com')})),
                 'ext': 'vtt',
             }]},
+            'formats': self._extract_formats(playinfo),
             **traverse_obj(playinfo, {
-                'formats': {self._extract_formats},
                 'id': 'uuid',
                 'title': ('label', {strip_or_none}),
                 'description': ('description', {strip_or_none}),
