@@ -344,7 +344,6 @@ class ZDFIE(ZDFBaseIE):
             'title': chap.get('anchorLabel'),
         } for chap, next_chap in zip(chapter_marks, chapter_marks[1:])]
 
-        target_info = traverse_obj(content, ('programmeItem', 0, 'http://zdf.de/rels/target'))
         return merge_dicts(info, {
             'title': title,
             'description': content.get('leadParagraph') or content.get('teasertext'),
@@ -352,14 +351,16 @@ class ZDFIE(ZDFBaseIE):
             'timestamp': unified_timestamp(content.get('editorialDate')),
             'thumbnails': thumbnails,
             'chapters': chapters or None,
-            'series_id': traverse_obj(target_info, ('http://zdf.de/rels/cmdm/series', 'seriesUuid')),
-            'series': traverse_obj(target_info, ('http://zdf.de/rels/cmdm/series', 'seriesTitle')),
-            'season': traverse_obj(target_info, ('http://zdf.de/rels/cmdm/season', 'seasonTitle')),
-            'season_number': traverse_obj(target_info, ('http://zdf.de/rels/cmdm/season', 'seasonNumber')),
-            'season_id': traverse_obj(target_info, ('http://zdf.de/rels/cmdm/season', 'seasonUuid')),
             'episode': title,
-            'episode_number': traverse_obj(target_info, 'episodeNumber'),
-            'episode_id': traverse_obj(target_info, 'contentId'),
+            **traverse_obj(content, ('programmeItem', 0, 'http://zdf.de/rels/target', {
+                'series_id': ('http://zdf.de/rels/cmdm/series', 'seriesUuid'),
+                'series': ('http://zdf.de/rels/cmdm/series', 'seriesTitle'),
+                'season': ('http://zdf.de/rels/cmdm/season', 'seasonTitle'),
+                'season_number': ('http://zdf.de/rels/cmdm/season', 'seasonNumber'),
+                'season_id': ('http://zdf.de/rels/cmdm/season', 'seasonUuid'),
+                'episode_number': 'episodeNumber',
+                'episode_id': 'contentId',
+            })),
         })
 
     def _extract_regular(self, url, player, video_id):
