@@ -280,6 +280,7 @@ class ZDFIE(ZDFBaseIE):
             'thumbnail': 'https://www.zdf.de/assets/unser-gruener-planet-making-of-1-tropen-100~3840x2160?cb=1653493335577',
             'episode': 'Making-of Unser grüner Planet - Tropen',
         },
+        'skip': 'No longer available: "Leider kein Video verfügbar"',
     }, {
         'url': 'https://www.zdf.de/serien/northern-lights/begegnung-auf-der-bruecke-100.html',
         'info_dict': {
