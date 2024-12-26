@@ -85,7 +85,7 @@ class NineNowIE(InfoExtractor):
         else:
             raise ExtractorError('Unable to find video data')
 
-        if not self.get_param('allow_unplayable_formats') and try_get(common_data, lambda x: x['episode']['video']['drm'], bool):
+        if try_get(common_data, lambda x: x['episode']['video']['drm'], bool):
             self.report_drm(display_id)
         brightcove_id = try_get(
             common_data, lambda x: x['episode']['video']['brightcoveId'], str) or 'ref:{}'.format(common_data['episode']['video']['referenceId'])

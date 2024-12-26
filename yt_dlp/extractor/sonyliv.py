@@ -142,7 +142,7 @@ class SonyLIVIE(InfoExtractor):
         video_id = self._match_id(url)
         content = self._call_api(
             '1.5', 'IN/CONTENT/VIDEOURL/VOD/' + video_id, video_id)
-        if not self.get_param('allow_unplayable_formats') and content.get('isEncrypted'):
+        if content.get('isEncrypted'):
             self.report_drm(video_id)
         dash_url = content['videoURL']
         headers = {
