@@ -303,6 +303,7 @@ class ZDFIE(ZDFBaseIE):
             'episode_id': 'POS_71049438-024b-471f-b472-4fe2e490d1fb',
         },
     }]
+
     def _extract_entry(self, url, player, content, video_id):
         title = content.get('title') or content['teaserHeadline']
 
