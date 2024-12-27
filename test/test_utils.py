@@ -270,6 +270,8 @@ class TestUtil(unittest.TestCase):
             ('C:abc\\..\\', 'C:'),
             ('C:abc\\..\\def\\..\\..\\', 'C:..'),
             ('C:\\abc\\xyz///..\\def\\', 'C:\\abc\\def'),
+            ('abc/../', '.'),
+            ('./abc/../', '.'),
         ]:
             result = sanitize_path(test)
             assert result == expected, f'{test} was incorrectly resolved'
