@@ -420,7 +420,7 @@ class NiconicoIE(InfoExtractor):
                 'x-request-with': 'https://www.nicovideo.jp',
             })['data']['contentUrl']
         # Getting all audio formats results in duplicate video formats which we filter out later
-        dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id)
+        dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id, 'mp4')
 
         # m3u8 extraction does not provide audio bitrates, so extract from the API data and fix
         for audio_fmt in traverse_obj(dms_fmts, lambda _, v: v['vcodec'] == 'none'):
@@ -432,7 +432,6 @@ class NiconicoIE(InfoExtractor):
                     'asr': ('samplingRate', {int_or_none}),
                 }), get_all=False),
                 'acodec': 'aac',
-                'ext': 'm4a',
             }
 
         # Sort before removing dupes to keep the format dicts with the lowest tbr
@@ -870,7 +869,7 @@ class NicovideoTagURLIE(NicovideoSearchBaseIE):
 
 
 class NiconicoUserIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/user/(?P<id>\d+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/user/(?P<id>\d+)(?:/video)?/?(?:$|[#?])'
     _TEST = {
         'url': 'https://www.nicovideo.jp/user/419948',
         'info_dict': {
@@ -878,7 +877,7 @@ class NiconicoUserIE(InfoExtractor):
         },
         'playlist_mincount': 101,
     }
-    _API_URL = 'https://nvapi.nicovideo.jp/v1/users/%s/videos?sortKey=registeredAt&sortOrder=desc&pageSize=%s&page=%s'
+    _API_URL = 'https://nvapi.nicovideo.jp/v2/users/%s/videos?sortKey=registeredAt&sortOrder=desc&pageSize=%s&page=%s'
     _PAGE_SIZE = 100
 
     _API_HEADERS = {
@@ -898,12 +897,13 @@ class NiconicoUserIE(InfoExtractor):
                 total_count = int_or_none(json_parsed['data'].get('totalCount'))
             for entry in json_parsed['data']['items']:
                 count += 1
-                yield self.url_result('https://www.nicovideo.jp/watch/{}'.format(entry['id']))
+                yield self.url_result(
+                    f'https://www.nicovideo.jp/watch/{entry["essential"]["id"]}', ie=NiconicoIE)
             page_num += 1
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        return self.playlist_result(self._entries(list_id), list_id, ie=NiconicoIE.ie_key())
+        return self.playlist_result(self._entries(list_id), list_id)
 
 
 class NiconicoLiveIE(InfoExtractor):
