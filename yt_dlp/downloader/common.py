@@ -31,6 +31,7 @@ from ..utils import (
     timetuple_from_msec,
     try_call,
 )
+from ..utils._utils import _ProgressState
 
 
 class FileDownloader:
@@ -333,17 +334,7 @@ class FileDownloader:
             progress_dict), s.get('progress_idx') or 0)
         self.to_console_title(self.ydl.evaluate_outtmpl(
             progress_template.get('download-title') or 'yt-dlp %(progress._default_template)s',
-            progress_dict))
-
-        percent = s.get('_percent')
-        if s['status'] not in ('downloading', 'error', 'finished') or percent is None:
-            return
-        # Emit ConEmu progress codes: https://conemu.github.io/en/AnsiEscapeCodes.html#ConEmu_specific_OSC
-        if s['status'] == 'finished':
-            self.ydl._send_console_code('\033]9;4;3;0\007')
-            return
-        state = 1 if s['status'] == 'downloading' else 2
-        self.ydl._send_console_code(f'\033]9;4;{state};{int(percent)}\007')
+            progress_dict), _ProgressState.from_dict(s), s.get('_progress'))
 
     def _format_progress(self, *args, **kwargs):
         return self.ydl._format_text(

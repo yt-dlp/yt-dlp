@@ -157,7 +157,7 @@ from .utils import (
     write_json_file,
     write_string,
 )
-from .utils._utils import _UnsafeExtensionError, _YDLLogger
+from .utils._utils import _UnsafeExtensionError, _YDLLogger, _ProgressState
 from .utils.networking import (
     HTTPHeaderDict,
     clean_headers,
@@ -955,13 +955,17 @@ class YoutubeDL:
         self._write_string(code, self._out_files.console)
         return True
 
-    def to_console_title(self, message):
+    def to_console_title(self, message=None, progress_state=None, percent=None):
         if not self.params.get('consoletitle'):
             return
-        message = remove_terminal_sequences(message)
-        if not self._send_console_code(f'\033]0;{message}\007'):
-            if os.name == 'nt' and ctypes.windll.kernel32.GetConsoleWindow():
+
+        if message:
+            success = self._send_console_code(f'\033]0;{remove_terminal_sequences(message)}\007')
+            if not success and os.name == 'nt' and ctypes.windll.kernel32.GetConsoleWindow():
                 ctypes.windll.kernel32.SetConsoleTitleW(message)
+
+        if isinstance(progress_state, _ProgressState):
+            self._send_console_code(progress_state.get_ansi_escape(percent))
 
     def save_console_title(self):
         if not self.params.get('consoletitle') or self.params.get('simulate'):
@@ -975,10 +979,7 @@ class YoutubeDL:
 
     def __enter__(self):
         self.save_console_title()
-        if self.params.get('consoletitle'):
-            # Set progress to "indeterminate"
-            # See: https://conemu.github.io/en/AnsiEscapeCodes.html#ConEmu_specific_OSC
-            self._send_console_code('\033]9;4;3;0\007')
+        self.to_console_title(progress_state=_ProgressState.INDETERMINATE)
         return self
 
     def save_cookies(self):
@@ -987,10 +988,7 @@ class YoutubeDL:
 
     def __exit__(self, *args):
         self.restore_console_title()
-        if self.params.get('consoletitle'):
-            # Set progress to "disabled"
-            # See: https://conemu.github.io/en/AnsiEscapeCodes.html#ConEmu_specific_OSC
-            self._send_console_code('\033]9;4;0;0\007')
+        self.to_console_title(progress_state=_ProgressState.HIDDEN)
         self.close()
 
     def close(self):
