@@ -221,7 +221,7 @@ class TNAEMPFlixBaseIE(TNAFlixNetworkBaseIE):
 
 
 class TNAFlixIE(TNAEMPFlixBaseIE):
-    _VALID_URL = r'https?://(?:(morigin|m|www)\.)?(?P<host>tnaflix)\.com/(?:[^/]+/){1,2}(?P<display_id>[^/]+)/video(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:(?:m(?:origin)?|www)\.)?(?P<host>tnaflix)\.com/(?:[^/?#]+/){1,2}(?P<display_id>[^/?#]+)/video(?P<id>\d+)'
 
     _TITLE_REGEX = r'<title>(.+?) - (?:TNAFlix Porn Videos|TNAFlix\.com)</title>'
 
