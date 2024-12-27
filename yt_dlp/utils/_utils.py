@@ -1110,6 +1110,15 @@ class ReExtractInfo(YoutubeDLError):
         self.expected = expected
 
 
+class ReExtractInfoLater(ReExtractInfo):
+    """ Video info needs to be re-extracted after a waiting period. """
+    msg = 'Video is not available yet'
+
+    def __init__(self, time):
+        super().__init__(self.msg, expected=True)
+        self.time = time
+
+
 class ThrottledDownload(ReExtractInfo):
     """ Download speed below --throttled-rate. """
     msg = 'The download speed is below throttle limit'

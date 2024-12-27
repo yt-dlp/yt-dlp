@@ -97,6 +97,7 @@ from .utils import (
     Popen,
     PostProcessingError,
     ReExtractInfo,
+    ReExtractInfoLater,
     RejectedVideoReached,
     SameFileError,
     UnavailableVideoError,
@@ -1619,11 +1620,24 @@ class YoutubeDL:
     def _handle_extraction_exceptions(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
+            wait_retries = 0
+            max_retries = self.params.get('wait_retries')
             while True:
                 try:
                     return func(self, *args, **kwargs)
                 except (CookieLoadError, DownloadCancelled, LazyList.IndexError, PagedList.IndexError):
                     raise
+                except ReExtractInfoLater as e:
+                    if wait_retries > max_retries:
+                        if max_retries > 0:
+                            self.report_error(f'[wait] Giving up after {wait_retries-1} {"retries" if wait_retries != 2 else "retry"} while waiting.')
+                        else:
+                            self.report_error('[wait] Video is still unavailable after waiting.')
+                        return
+                    self._wait_until(e.time)
+                    wait_retries += 1
+                    self.to_screen('[wait] Re-extracting data')
+                    continue
                 except ReExtractInfo as e:
                     if e.expected:
                         self.to_screen(f'{e}; Re-extracting data')
@@ -1648,24 +1662,9 @@ class YoutubeDL:
                 break
         return wrapper
 
-    def _wait_for_video(self, ie_result={}, extra_info={}):
-        if (not self.params.get('wait_for_video')
-                or ie_result.get('_type', 'video') != 'video'
-                or ie_result.get('formats') or ie_result.get('url')):
-            return
-
-        max_wait_retries = self.params.get('wait_retries')
-        wait_retries = extra_info.get('__attempt') or 0
-        if wait_retries > max_wait_retries:
-            if max_wait_retries > 0:
-                raise UserNotLive(f'[wait] Giving up after {wait_retries-1} {"retries" if wait_retries != 2 else "retry"} while waiting.')
-            else:
-                raise UserNotLive('[wait] Video is still unavailable after waiting.')
-        extra_info['__attempt'] = wait_retries + 1
-
+    def _wait_until(self, till):
         format_dur = lambda dur: '%02d:%02d:%02d' % timetuple_from_msec(dur * 1000)[:-1]
         last_msg = ''
-
         def progress(msg):
             nonlocal last_msg
             full_msg = f'{msg}\n'
@@ -1676,6 +1675,30 @@ class YoutubeDL:
             self.to_screen(full_msg, skip_eol=True)
             last_msg = msg
 
+        diff = till - time.time()
+        self.to_screen(f'[wait] Waiting for {format_dur(diff)} - Press Ctrl+C to interrupt')
+        try:
+            while True:
+                diff = till - time.time()
+                if diff <= 0:
+                    progress('')
+                    self.to_screen('[wait] Wait period ended')
+                    return
+                progress(f'[wait] Remaining time until next attempt: {self._format_screen(format_dur(diff), self.Styles.EMPHASIS)}')
+                time.sleep(1)
+        except KeyboardInterrupt:
+            progress('')
+            self.to_screen('[wait] Interrupted by user')
+        except BaseException as e:
+            self.to_screen('')
+            raise
+
+    def _wait_for_video(self, ie_result={}):
+        if (not self.params.get('wait_for_video')
+                or ie_result.get('_type', 'video') != 'video'
+                or ie_result.get('formats') or ie_result.get('url')):
+            return
+
         min_wait, max_wait = self.params.get('wait_for_video')
         diff = try_get(ie_result, lambda x: x['release_timestamp'] - time.time())
         if diff is None and ie_result.get('live_status') == 'is_upcoming':
@@ -1684,24 +1707,7 @@ class YoutubeDL:
         elif ie_result and (diff or 0) <= 0:
             self.report_warning('Video should already be available according to extracted info')
         diff = min(max(diff or 0, min_wait or 0), max_wait or float('inf'))
-        self.to_screen(f'[wait] Waiting for {format_dur(diff)} - Press Ctrl+C to try now')
-
-        wait_till = time.time() + diff
-        try:
-            while True:
-                diff = wait_till - time.time()
-                if diff <= 0:
-                    progress('')
-                    raise ReExtractInfo('[wait] Wait period ended', expected=True)
-                progress(f'[wait] Remaining time until next attempt: {self._format_screen(format_dur(diff), self.Styles.EMPHASIS)}')
-                time.sleep(1)
-        except KeyboardInterrupt:
-            progress('')
-            raise ReExtractInfo('[wait] Interrupted by user', expected=True)
-        except BaseException as e:
-            if not isinstance(e, ReExtractInfo):
-                self.to_screen('')
-            raise
+        raise ReExtractInfoLater(time.time() + diff)
 
     def _load_cookies(self, data, *, autoscope=True):
         """Loads cookies from a `Cookie` header
@@ -1770,7 +1776,7 @@ class YoutubeDL:
             if process:
                 if self.params.get('wait_for_video'):
                     self.report_warning(e)
-                self._wait_for_video(extra_info=extra_info)
+                self._wait_for_video()
             raise
         if ie_result is None:  # Finished already (backwards compatibility; listformats and friends should be moved here)
             self.report_warning(f'Extractor {ie.IE_NAME} returned nothing{bug_reports_message()}')
@@ -1785,7 +1791,7 @@ class YoutubeDL:
             ie_result.setdefault('original_url', extra_info['original_url'])
         self.add_default_extra_info(ie_result, ie, url)
         if process:
-            self._wait_for_video(ie_result, extra_info=extra_info)
+            self._wait_for_video(ie_result)
             return self.process_ie_result(ie_result, download, extra_info)
         else:
             return ie_result
