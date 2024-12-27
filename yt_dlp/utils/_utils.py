@@ -685,7 +685,8 @@ def _sanitize_path_parts(parts):
         elif part == '..':
             if sanitized_parts and sanitized_parts[-1] != '..':
                 sanitized_parts.pop()
-            sanitized_parts.append('..')
+            else:
+                sanitized_parts.append('..')
             continue
         # Replace invalid segments with `#`
         # - trailing dots and spaces (`asdf...` => `asdf..#`)
