@@ -826,6 +826,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         self.to_screen(f'Adding metadata to "{filename}"')
         try:
             f = mutagen.File(filename)
+            if f is None:
+                raise TypeError(f'Mutagen unable to determine type of file: {info["ext"]}')
             self._assemble_metadata(f, metadata)
             f.save()
         except Exception as err:
