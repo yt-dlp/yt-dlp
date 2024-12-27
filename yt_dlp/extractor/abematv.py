@@ -6,7 +6,6 @@ import hmac
 import io
 import json
 import re
-import struct
 import time
 import urllib.parse
 import uuid
@@ -18,10 +17,8 @@ from ..networking.exceptions import TransportError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
-    bytes_to_intlist,
     decode_base_n,
     int_or_none,
-    intlist_to_bytes,
     time_seconds,
     traverse_obj,
     update_url_query,
@@ -72,15 +69,15 @@ class AbemaLicenseRH(RequestHandler):
             })
 
         res = decode_base_n(license_response['k'], table=self._STRTABLE)
-        encvideokey = bytes_to_intlist(struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff))
+        encvideokey = list(res.to_bytes(16, 'big'))
 
         h = hmac.new(
             binascii.unhexlify(self._HKEY),
             (license_response['cid'] + self.ie._DEVICE_ID).encode(),
             digestmod=hashlib.sha256)
-        enckey = bytes_to_intlist(h.digest())
+        enckey = list(h.digest())
 
-        return intlist_to_bytes(aes_ecb_decrypt(encvideokey, enckey))
+        return bytes(aes_ecb_decrypt(encvideokey, enckey))
 
 
 class AbemaTVBaseIE(InfoExtractor):

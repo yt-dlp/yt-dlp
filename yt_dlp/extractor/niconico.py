@@ -371,11 +371,11 @@ class NiconicoIE(InfoExtractor):
             'acodec': 'aac',
             'vcodec': 'h264',
             **traverse_obj(audio_quality, ('metadata', {
-                'abr': ('bitrate', {functools.partial(float_or_none, scale=1000)}),
+                'abr': ('bitrate', {float_or_none(scale=1000)}),
                 'asr': ('samplingRate', {int_or_none}),
             })),
             **traverse_obj(video_quality, ('metadata', {
-                'vbr': ('bitrate', {functools.partial(float_or_none, scale=1000)}),
+                'vbr': ('bitrate', {float_or_none(scale=1000)}),
                 'height': ('resolution', 'height', {int_or_none}),
                 'width': ('resolution', 'width', {int_or_none}),
             })),
@@ -428,7 +428,7 @@ class NiconicoIE(InfoExtractor):
                 **audio_fmt,
                 **traverse_obj(audios, (lambda _, v: audio_fmt['format_id'].startswith(v['id']), {
                     'format_id': ('id', {str}),
-                    'abr': ('bitRate', {functools.partial(float_or_none, scale=1000)}),
+                    'abr': ('bitRate', {float_or_none(scale=1000)}),
                     'asr': ('samplingRate', {int_or_none}),
                 }), get_all=False),
                 'acodec': 'aac',
