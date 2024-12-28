@@ -3,7 +3,7 @@ import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, float_or_none, traverse_obj
+from ..utils import ExtractorError, float_or_none, int_or_none, traverse_obj
 
 
 class PlutoTVBase(InfoExtractor):
@@ -20,7 +20,10 @@ class PlutoTVBase(InfoExtractor):
     }
 
     def _extract_formats(self, start, element):
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(start['servers']['stitcher'] + '/v2' + element['stitched']['path'] + '?' + start['stitcherParams'] + '&jwt=' + start['sessionToken'], element['id'])
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            start['servers']['stitcher'] + '/v2' + element['stitched']['path'] + '?' + start['stitcherParams'] + '&jwt=' + start['sessionToken'],
+            element.get('id') or element.get('_id'),
+        )
         for f in formats:
             f['url'] += '&jwt=' + start['sessionToken']
             if f.get('vcodec') is None:
@@ -35,13 +38,65 @@ class PlutoTVBase(InfoExtractor):
 class PlutoTVIE(PlutoTVBase):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/on-demand
-        /(?P<video_type>movies|series)
+        /(movies|series)
         /(?P<slug>[^/]+)
         (?:
-            (?:/seasons?/(?P<season_no>\d+))?
-            (?:/episode/(?P<episode_slug>[^/]+))?
+            (?:/seasons?/(?P<season>\d+))?
+            (?:/episode/(?P<episode>[^/]+))?
         )?
         /?(?:$|[#?])'''
+    _TESTS = [{
+        'url': 'https://pluto.tv/it/on-demand/movies/6246b0adef11000014d220c3',
+        'md5': '5efe37ad6c1085a4ad4684b9b82cb1c1',
+        'info_dict': {
+            'id': '6246b0adef11000014d220c3',
+            'ext': 'mp4',
+            'episode_id': '6246b0adef11000014d220c3',
+            'description': 'md5:c9a412d330d3d73a527e9ba981c0ddb8',
+            'episode': 'Non Bussate A Quella Porta',
+            'thumbnail': 'http://images.pluto.tv/episodes/6246b0adef11000014d220c3/poster.jpg?fm=png&q=100',
+            'display_id': 'dont-knock-twice-it-2016-1-1',
+            'genres': ['Horror'],
+            'title': 'Non Bussate A Quella Porta',
+            'duration': 5940,
+        },
+    }, {
+        'url': 'https://pluto.tv/on-demand/movies/6246b0adef11000014d220c3',
+        'only_matching': True,
+    }, {
+        'url': 'https://pluto.tv/on-demand/series/6655b0c5cceea000134aee27',
+        'info_dict': {
+            'id': '6655b0c5cceea000134aee27',
+            'title': 'Mission Impossible',
+        },
+        'playlist_mincount': 100,
+    }, {
+        'url': 'https://pluto.tv/on-demand/series/66ab6d80b20e79001338fe4c/season/5',
+        'info_dict': {
+            'id': '66ab6d80b20e79001338fe4c-5',
+            'title': 'Squadra Speciale Cobra 11 - Season 5',
+        },
+        'playlist_count': 17,
+    }, {
+        'url': 'https://pluto.tv/on-demand/series/62f5fb1b51b268001a993666/season/2/episode/62fb6e32946347001bf008ca',
+        'md5': '7e100cd3b771e9dd9b6af81abdd812af',
+        'info_dict': {
+            'id': '62fb6e32946347001bf008ca',
+            'ext': 'mp4',
+            'display_id': 'serie-2-episodio-5-2006-2-5',
+            'episode_id': '62fb6e32946347001bf008ca',
+            'genres': ['Sci-Fi & Fantasy'],
+            'thumbnail': 'http://images.pluto.tv/episodes/62fb6e32946347001bf008ca/poster.jpg?fm=png&q=100',
+            'season_number': 2,
+            'series_id': '62f5fb1b51b268001a993666',
+            'title': 'Serie 2, Episodio 5',
+            'duration': 3120.0,
+            'season': 'Season 2',
+            'series': 'Doctor Who',
+            'description': 'md5:66965714ba60b02996bd1b551475f6fa',
+            'episode': 'Serie 2, Episodio 5',
+        },
+    }]
 
     def _to_ad_free_formats(self, video_id, formats, subtitles):
         ad_free_formats, ad_free_subtitles, m3u8_urls = [], {}, set()
@@ -77,7 +132,7 @@ class PlutoTVIE(PlutoTVBase):
             self.report_warning('Unable to find ad-free formats')
         return formats, subtitles
 
-    def _get_video_info(self, video_json, series, video, season_number):
+    def _get_video_info(self, video_json, video, series=None, season_number=None):
         formats, subtitles = self._extract_formats(video_json, video)
         thumbnails = [{
             'url': cover['url'],
@@ -92,7 +147,7 @@ class PlutoTVIE(PlutoTVBase):
                 'preference': 1,
             })
         return {
-            'id': video['id'],
+            'id': video.get('id') or video.get('_id'),
             'title': video.get('name'),
             'display_id': video.get('slug'),
             'thumbnails': thumbnails,
@@ -101,40 +156,37 @@ class PlutoTVIE(PlutoTVBase):
             'description': video.get('description'),
             'duration': float_or_none(video.get('duration'), scale=1000),
             'genres': [video.get('genre')],
-            'series_id': series.get('id'),
-            'series': series.get('name'),
+            'series_id': series.get('id') if series else None,
+            'series': series.get('name') if series else None,
             'episode': video.get('name'),
-            'episode_id': video['id'],
-            'season_number': season_number,
+            'episode_id': video.get('id') or video.get('_id'),
+            'season_number': int_or_none(season_number),
         }
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url).groupdict()
-        info_slug = mobj['slug']
-
-        if mobj['video_type'] == 'series':
-            season_number, episode_slug = mobj.get('season_no'), mobj.get('episode_slug')
-            if episode_slug is not None:
-                video_json = self._download_json('https://boot.pluto.tv/v4/start', info_slug, 'Downloading info json', query={**self._START_QUERY, 'seriesIDs': info_slug, 'episodeIDs': episode_slug})
-                series, video = video_json['VOD']
-                return self._get_video_info(video_json, series, video, season_number)
-            video_json = self._download_json('https://boot.pluto.tv/v4/start', info_slug, 'Downloading info json', query={**self._START_QUERY, 'seriesIDs': info_slug})
-            series = video_json['VOD'][0]
-            if season_number is not None:
-                for season in series['seasons']:
-                    if season['number'] == int(season_number):
-                        return self.playlist_result(
-                            [self._get_video_info(video_json, series, episode, season_number) for episode in season['episodes']],
-                            f"{series['id']}-{season_number}",
-                            f"{series['name']} - Season {season_number}",
-                        )
-                raise ExtractorError('Failed to find season %s' % season_number)
-            return self.playlist_result(
-                [self._get_video_info(video_json, series, episode, season['number']) for season in series['seasons'] for episode in season['episodes']],
-                series['id'],
-                series['name'],
-            )
-        raise ExtractorError('Not implemented')
+        slug = mobj['slug']
+        season_number, episode_id = mobj.get('season'), mobj.get('episode')
+        if episode_id is not None:
+            video_json = self._download_json('https://boot.pluto.tv/v4/start', slug, 'Downloading info json', query={**self._START_QUERY, 'seriesIDs': slug, 'episodeIDs': episode_id})
+            series, video = video_json['VOD'][:2]
+            return self._get_video_info(video_json, video, series, season_number)
+        video_json = self._download_json('https://boot.pluto.tv/v4/start', slug, 'Downloading info json', query={**self._START_QUERY, 'seriesIDs': slug})
+        series = video_json['VOD'][0]
+        if season_number is not None:
+            for season in series['seasons']:
+                if season['number'] == int(season_number):
+                    return self.playlist_result(
+                        [self._get_video_info(video_json, episode, series, season_number) for episode in season['episodes']],
+                        f"{series['id']}-{season_number}",
+                        f"{series['name']} - Season {season_number}",
+                    )
+            raise ExtractorError('Failed to find season %s' % season_number)
+        return self.playlist_result(
+            [self._get_video_info(video_json, episode, series, season['number']) for season in series['seasons'] for episode in season['episodes']],
+            series['id'],
+            series['name'],
+        ) if 'seasons' in series else self._get_video_info(video_json, series)
 
 
 class PlutoTVLiveIE(PlutoTVBase):
