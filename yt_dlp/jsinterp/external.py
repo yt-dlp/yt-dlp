@@ -113,8 +113,8 @@ class ExternalJSI(JSI, abc.ABC):
         return cls._EXE_NAME if cls.version else None
 
     @classproperty
-    def is_available(self):
-        return bool(self.exe)
+    def is_available(cls):
+        return bool(cls.exe)
 
 
 @register_jsi
