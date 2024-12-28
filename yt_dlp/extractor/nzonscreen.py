@@ -95,7 +95,6 @@ class NZOnScreenIE(InfoExtractor):
             'description': 'Part one of four from this full length documentary.',
             'display_id': 'reluctant-hero-2008',
             'duration': 1108.0,
-            'alt_title': 'Reluctant Hero',
             'thumbnail': r're:https://www\.nzonscreen\.com/content/images/.+\.jpg',
         },
         'params': {'noplaylist': True},
@@ -122,6 +121,28 @@ class NZOnScreenIE(InfoExtractor):
             }))
         return formats
 
+    def _extract_from_api_resp(self, vid_info, is_single_vid, title, video_id):
+        return {
+            'alt_title': title if is_single_vid else None,
+            'display_id': video_id,
+            'http_headers': {
+                'Referer': 'https://www.nzonscreen.com/',
+                'Origin': 'https://www.nzonscreen.com/',
+            },
+            'subtitles': {'en': [{
+                'url': traverse_obj(vid_info, ('h264', 'caption_url', {urljoin('https://www.nzonscreen.com')})),
+                'ext': 'vtt',
+            }]},
+            'formats': self._extract_formats(vid_info),
+            **traverse_obj(vid_info, {
+                'id': 'uuid',
+                'title': ('label', {strip_or_none}),
+                'description': ('description', {strip_or_none}),
+                'thumbnail': ('thumbnail', 'path'),
+                'duration': ('duration', {float_or_none}),
+            }),
+        }
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
@@ -132,26 +153,9 @@ class NZOnScreenIE(InfoExtractor):
             f'https://www.nzonscreen.com/html5/video_data/{video_id}', video_id,
             'Downloading media data')
 
-        if not self._yes_playlist(video_id, video_id):
-            del playlist[1:]
+        if self._yes_playlist(video_id, traverse_obj(playlist, (0, 'id'))):
+            return self.playlist_result(
+                [self._extract_from_api_resp(vid_info, len(playlist) == 1, title, video_id) for vid_info in playlist],
+                playlist_id=video_id, playlist_title=title)
 
-        return self.playlist_result([{
-            'alt_title': title if len(playlist) == 1 else None,
-            'display_id': video_id,
-            'http_headers': {
-                'Referer': 'https://www.nzonscreen.com/',
-                'Origin': 'https://www.nzonscreen.com/',
-            },
-            'subtitles': {'en': [{
-                'url': traverse_obj(playinfo, ('h264', 'caption_url', {urljoin('https://www.nzonscreen.com')})),
-                'ext': 'vtt',
-            }]},
-            'formats': self._extract_formats(playinfo),
-            **traverse_obj(playinfo, {
-                'id': 'uuid',
-                'title': ('label', {strip_or_none}),
-                'description': ('description', {strip_or_none}),
-                'thumbnail': ('thumbnail', 'path'),
-                'duration': ('duration', {float_or_none}),
-            }),
-        } for playinfo in playlist], video_id, title)
+        return self._extract_from_api_resp(playlist[0], len(playlist) == 1, title, video_id)
