@@ -240,7 +240,7 @@ def _base_preference(handler: JSI, *args):
 
 if typing.TYPE_CHECKING:
     from ..YoutubeDL import YoutubeDL
-    JsiClass = typing.TypeVar('JsiClass', bound=typing.Type[JSI])
+    JsiClass = typing.TypeVar('JsiClass', bound=type[JSI])
 
     class JSIPreference(typing.Protocol):
         def __call__(self, handler: JSI, method_name: str, *args, **kwargs) -> int:

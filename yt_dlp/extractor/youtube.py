@@ -20,7 +20,7 @@ import traceback
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..jsinterp import NativeJSI, PhantomJSwrapper
+from ..jsinterp import JSInterpreter, PhantomJSwrapper
 from ..networking.exceptions import HTTPError, network_exceptions
 from ..utils import (
     NO_DEFAULT,
@@ -3169,7 +3169,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
              r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\('),
             jscode, 'Initial JS player signature function name', group='sig')
 
-        jsi = NativeJSI(jscode)
+        jsi = JSInterpreter(jscode)
         initial_function = jsi.extract_function(funcname)
         return lambda s: initial_function([s])
 
@@ -3213,7 +3213,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         try:
             extract_nsig = self._cached(self._extract_n_function_from_code, 'nsig func', player_url)
             ret = extract_nsig(jsi, func_code)(s)
-        except NativeJSI.Exception as e:
+        except JSInterpreter.Exception as e:
             try:
                 jsi = PhantomJSwrapper(self, timeout=5000)
             except ExtractorError:
@@ -3283,7 +3283,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         player_id = self._extract_player_info(player_url)
         func_code = self.cache.load('youtube-nsig', player_id, min_ver='2024.07.09')
         jscode = func_code or self._load_player(video_id, player_url)
-        jsi = NativeJSI(jscode)
+        jsi = JSInterpreter(jscode)
 
         if func_code:
             return jsi, player_id, func_code
@@ -3302,13 +3302,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def extract_nsig(s):
             try:
                 ret = func([s])
-            except NativeJSI.Exception:
+            except JSInterpreter.Exception:
                 raise
             except Exception as e:
-                raise NativeJSI.Exception(traceback.format_exc(), cause=e)
+                raise JSInterpreter.Exception(traceback.format_exc(), cause=e)
 
             if ret.startswith('enhanced_except_') or ret.endswith(s):
-                raise NativeJSI.Exception('Signature function returned an exception')
+                raise JSInterpreter.Exception('Signature function returned an exception')
             return ret
 
         return extract_nsig
@@ -4156,7 +4156,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     })
                 except ExtractorError as e:
                     phantomjs_hint = ''
-                    if isinstance(e, NativeJSI.Exception):
+                    if isinstance(e, JSInterpreter.Exception):
                         phantomjs_hint = (f'         Install {self._downloader._format_err("PhantomJS", self._downloader.Styles.EMPHASIS)} '
                                           f'to workaround the issue. {PhantomJSwrapper.INSTALL_HINT}\n')
                     if player_url:

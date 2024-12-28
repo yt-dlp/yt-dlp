@@ -1,10 +1,10 @@
-from .native import JSInterpreter as NativeJSI
+from .native import JSInterpreter
 from .external import PhantomJSwrapper, DenoJSI, PuppeteerJSI
 from .common import _JSI_PREFERENCES, _JSI_HANDLERS, JSInterp
 
 
 __all__ = [
-    NativeJSI,
+    JSInterpreter,
     PhantomJSwrapper,
     DenoJSI,
     PuppeteerJSI,
