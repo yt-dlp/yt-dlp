@@ -3,23 +3,11 @@ import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, float_or_none, int_or_none, traverse_obj, try_get, url_or_none
+from ..utils import ExtractorError, float_or_none, traverse_obj
 
 
-class PlutoTVIE(InfoExtractor):
-    _WORKING = False
-    _VALID_URL = r'''(?x)
-        https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/on-demand
-        /(?P<video_type>movies|series)
-        /(?P<series_or_movie_slug>[^/]+)
-        (?:
-            (?:/seasons?/(?P<season_no>\d+))?
-            (?:/episode/(?P<episode_slug>[^/]+))?
-        )?
-        /?(?:$|[#?])'''
-
-    _INFO_URL = 'https://service-vod.clusters.pluto.tv/v3/vod/slugs/'
-    _INFO_QUERY_PARAMS = {
+class PlutoTVBase(InfoExtractor):
+    _START_QUERY = {
         'appName': 'web',
         'appVersion': 'na',
         'clientID': str(uuid.uuid1()),
@@ -29,66 +17,31 @@ class PlutoTVIE(InfoExtractor):
         'deviceModel': 'web',
         'deviceType': 'web',
         'deviceVersion': 'unknown',
-        'sid': str(uuid.uuid1()),
     }
-    _TESTS = [
-        {
-            'url': 'https://pluto.tv/on-demand/series/i-love-money/season/2/episode/its-in-the-cards-2009-2-3',
-            'md5': 'ebcdd8ed89aaace9df37924f722fd9bd',
-            'info_dict': {
-                'id': '5de6c598e9379ae4912df0a8',
-                'ext': 'mp4',
-                'title': 'It\'s In The Cards',
-                'episode': 'It\'s In The Cards',
-                'description': 'The teams face off against each other in a 3-on-2 soccer showdown.  Strategy comes into play, though, as each team gets to select their opposing teams’ two defenders.',
-                'series': 'I Love Money',
-                'season_number': 2,
-                'episode_number': 3,
-                'duration': 3600,
-            },
-        }, {
-            'url': 'https://pluto.tv/on-demand/series/i-love-money/season/1/',
-            'playlist_count': 11,
-            'info_dict': {
-                'id': '5de6c582e9379ae4912dedbd',
-                'title': 'I Love Money - Season 1',
-            },
-        }, {
-            'url': 'https://pluto.tv/on-demand/series/i-love-money/',
-            'playlist_count': 26,
-            'info_dict': {
-                'id': '5de6c582e9379ae4912dedbd',
-                'title': 'I Love Money',
-            },
-        }, {
-            'url': 'https://pluto.tv/on-demand/movies/arrival-2015-1-1',
-            'md5': '3cead001d317a018bf856a896dee1762',
-            'info_dict': {
-                'id': '5e83ac701fa6a9001bb9df24',
-                'ext': 'mp4',
-                'title': 'Arrival',
-                'description': 'When mysterious spacecraft touch down across the globe, an elite team - led by expert translator Louise Banks (Academy Award® nominee Amy Adams) – races against time to decipher their intent.',
-                'duration': 9000,
-            },
-        }, {
-            'url': 'https://pluto.tv/en/on-demand/series/manhunters-fugitive-task-force/seasons/1/episode/third-times-the-charm-1-1',
-            'only_matching': True,
-        }, {
-            'url': 'https://pluto.tv/it/on-demand/series/csi-vegas/episode/legacy-2021-1-1',
-            'only_matching': True,
-        },
-        {
-            'url': 'https://pluto.tv/en/on-demand/movies/attack-of-the-killer-tomatoes-1977-1-1-ptv1',
-            'md5': '7db56369c0da626a32d505ec6eb3f89f',
-            'info_dict': {
-                'id': '5b190c7bb0875c36c90c29c4',
-                'ext': 'mp4',
-                'title': 'Attack of the Killer Tomatoes',
-                'description': 'A group of scientists band together to save the world from mutated tomatoes that KILL! (1978)',
-                'duration': 5700,
-            },
-        },
-    ]
+
+    def _extract_formats(self, start, element):
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(start['servers']['stitcher'] + '/v2' + element['stitched']['path'] + '?' + start['stitcherParams'] + '&jwt=' + start['sessionToken'], element['id'])
+        for f in formats:
+            f['url'] += '&jwt=' + start['sessionToken']
+            if f.get('vcodec') is None:
+                f['vcodec'] = 'avc1.64001f'
+            if f.get('acodec') is None:
+                f['acodec'] = 'mp4a.40.2'
+            if f.get('fps') is None:
+                f['fps'] = 30
+        return formats, subtitles
+
+
+class PlutoTVIE(PlutoTVBase):
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/on-demand
+        /(?P<video_type>movies|series)
+        /(?P<slug>[^/]+)
+        (?:
+            (?:/seasons?/(?P<season_no>\d+))?
+            (?:/episode/(?P<episode_slug>[^/]+))?
+        )?
+        /?(?:$|[#?])'''
 
     def _to_ad_free_formats(self, video_id, formats, subtitles):
         ad_free_formats, ad_free_subtitles, m3u8_urls = [], {}, set()
@@ -124,69 +77,67 @@ class PlutoTVIE(InfoExtractor):
             self.report_warning('Unable to find ad-free formats')
         return formats, subtitles
 
-    def _get_video_info(self, video_json, slug, series_name=None):
-        video_id = video_json.get('_id', slug)
-        formats, subtitles = [], {}
-        for video_url in try_get(video_json, lambda x: x['stitched']['urls'], list) or []:
-            if video_url.get('type') != 'hls':
-                continue
-            url = url_or_none(video_url.get('url'))
-
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False)
-            formats.extend(fmts)
-            subtitles = self._merge_subtitles(subtitles, subs)
-
-        formats, subtitles = self._to_ad_free_formats(video_id, formats, subtitles)
-
-        info = {
-            'id': video_id,
+    def _get_video_info(self, video_json, series, video, season_number):
+        formats, subtitles = self._extract_formats(video_json, video)
+        thumbnails = [{
+            'url': cover['url'],
+            'width': int(m.group(1)) if (m := re.search(r'w=(\d+)&h=(\d+)', cover['url'])) else None,
+            'height': int(m.group(2)) if m else None,
+        } for cover in video.get('covers', [])]
+        first_cover = traverse_obj(video, ('covers', 0, 'url'))
+        if first_cover:
+            thumbnails.append({
+                'id': 'original',
+                'url': re.sub(r'\?.*$', '?fm=png&q=100', first_cover),
+                'preference': 1,
+            })
+        return {
+            'id': video['id'],
+            'title': video.get('name'),
+            'display_id': video.get('slug'),
+            'thumbnails': thumbnails,
             'formats': formats,
             'subtitles': subtitles,
-            'title': video_json.get('name'),
-            'description': video_json.get('description'),
-            'duration': float_or_none(video_json.get('duration'), scale=1000),
+            'description': video.get('description'),
+            'duration': float_or_none(video.get('duration'), scale=1000),
+            'genres': [video.get('genre')],
+            'series_id': series.get('id'),
+            'series': series.get('name'),
+            'episode': video.get('name'),
+            'episode_id': video['id'],
+            'season_number': season_number,
         }
-        if series_name:
-            info.update({
-                'series': series_name,
-                'episode': video_json.get('name'),
-                'season_number': int_or_none(video_json.get('season')),
-                'episode_number': int_or_none(video_json.get('number')),
-            })
-        return info
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url).groupdict()
-        info_slug = mobj['series_or_movie_slug']
-        video_json = self._download_json(self._INFO_URL + info_slug, info_slug, query=self._INFO_QUERY_PARAMS)
+        info_slug = mobj['slug']
 
         if mobj['video_type'] == 'series':
-            series_name = video_json.get('name', info_slug)
-            season_number, episode_slug = mobj.get('season_number'), mobj.get('episode_slug')
-
-            videos = []
-            for season in video_json['seasons']:
-                if season_number is not None and season_number != int_or_none(season.get('number')):
-                    continue
-                for episode in season['episodes']:
-                    if episode_slug is not None and episode_slug != episode.get('slug'):
-                        continue
-                    videos.append(self._get_video_info(episode, episode_slug, series_name))
-            if not videos:
-                raise ExtractorError('Failed to find any videos to extract')
-            if episode_slug is not None and len(videos) == 1:
-                return videos[0]
-            playlist_title = series_name
+            season_number, episode_slug = mobj.get('season_no'), mobj.get('episode_slug')
+            if episode_slug is not None:
+                video_json = self._download_json('https://boot.pluto.tv/v4/start', info_slug, 'Downloading info json', query={**self._START_QUERY, 'seriesIDs': info_slug, 'episodeIDs': episode_slug})
+                series, video = video_json['VOD']
+                return self._get_video_info(video_json, series, video, season_number)
+            video_json = self._download_json('https://boot.pluto.tv/v4/start', info_slug, 'Downloading info json', query={**self._START_QUERY, 'seriesIDs': info_slug})
+            series = video_json['VOD'][0]
             if season_number is not None:
-                playlist_title += ' - Season %d' % season_number
-            return self.playlist_result(videos,
-                                        playlist_id=video_json.get('_id', info_slug),
-                                        playlist_title=playlist_title)
-        return self._get_video_info(video_json, info_slug)
+                for season in series['seasons']:
+                    if season['number'] == int(season_number):
+                        return self.playlist_result(
+                            [self._get_video_info(video_json, series, episode, season_number) for episode in season['episodes']],
+                            f"{series['id']}-{season_number}",
+                            f"{series['name']} - Season {season_number}",
+                        )
+                raise ExtractorError('Failed to find season %s' % season_number)
+            return self.playlist_result(
+                [self._get_video_info(video_json, series, episode, season['number']) for season in series['seasons'] for episode in season['episodes']],
+                series['id'],
+                series['name'],
+            )
+        raise ExtractorError('Not implemented')
 
 
-class PlutoTVLiveIE(InfoExtractor):
+class PlutoTVLiveIE(PlutoTVBase):
     _VALID_URL = r'https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/live-tv/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://pluto.tv/live-tv/6093f9281db477000759fce0',
@@ -220,35 +171,13 @@ class PlutoTVLiveIE(InfoExtractor):
         },
     }]
 
-    def _build_start_query(self, slug):
-        return {
-            'appName': 'web',
-            'appVersion': 'na',
-            'clientID': str(uuid.uuid1()),
-            'clientModelNumber': 'na',
-            'serverSideAds': 'false',
-            'deviceMake': 'unknown',
-            'deviceModel': 'web',
-            'deviceType': 'web',
-            'deviceVersion': 'unknown',
-            'channelSlug': slug,
-        }
-
     def _real_extract(self, url):
         slug = self._match_id(url)
-        start = self._download_json('https://boot.pluto.tv/v4/start', slug, 'Downloading info json', query=self._build_start_query(slug))
+        start = self._download_json('https://boot.pluto.tv/v4/start', slug, 'Downloading info json', query={**self._START_QUERY, 'channelSlug': slug})
         channel = start['EPG'][0]
         program = channel['timelines'][0]
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(start['servers']['stitcher'] + '/v2' + channel['stitched']['path'] + '?' + start['stitcherParams'] + '&jwt=' + start['sessionToken'], channel['id'])
+        formats, subtitles = self._extract_formats(start, channel)
         thumbnails = []
-        for f in formats:
-            f['url'] += '&jwt=' + start['sessionToken']
-            if f.get('vcodec') is None:
-                f['vcodec'] = 'avc1.64001f'
-            if f.get('acodec') is None:
-                f['acodec'] = 'mp4a.40.2'
-            if f.get('fps') is None:
-                f['fps'] = 30
         for image in channel['images']:
             if image['type'] == 'featuredImage':
                 thumbnails.append({
