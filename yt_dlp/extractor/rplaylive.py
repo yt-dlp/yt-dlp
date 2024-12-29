@@ -25,7 +25,6 @@ class RPlayBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'rplaylive'
     _TOKEN_CACHE = {}
     _user_id = None
-    _login_type = None
     _jwt_token = None
     _tested_jwt = False
 
@@ -41,11 +40,6 @@ class RPlayBaseIE(InfoExtractor):
         return self._user_id
 
     @property
-    def login_type(self):
-        self._check_jwt_args()
-        return self._login_type
-
-    @property
     def jwt_token(self):
         self._check_jwt_args()
         return self._jwt_token
@@ -54,7 +48,7 @@ class RPlayBaseIE(InfoExtractor):
     def requestor_query(self):
         return {
             'requestorOid': self.user_id,
-            'loginType': self.login_type,
+            'loginType': 'plax',
         } if self.user_id else {}
 
     @property
@@ -106,7 +100,6 @@ class RPlayBaseIE(InfoExtractor):
 
         if user_info:
             self._user_id = traverse_obj(user_info, 'oid')
-            self._login_type = traverse_obj(user_info, 'accountType')
             self._jwt_token = jwt_token if self._user_id else None
         if not self._user_id:
             if raw_token_hint:
