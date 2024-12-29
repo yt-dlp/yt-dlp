@@ -1621,7 +1621,10 @@ class YoutubeDL:
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             wait_retries = 0
-            max_retries = self.params.get('wait_retries')
+            wait_range = self.params.get('wait_for_video')
+            max_retries = float('inf')
+            if wait_range and wait_range[2] is not None:
+                max_retries = wait_range[2]
             while True:
                 try:
                     return func(self, *args, **kwargs)
@@ -1699,7 +1702,7 @@ class YoutubeDL:
                 or ie_result.get('formats') or ie_result.get('url')):
             return
 
-        min_wait, max_wait = self.params.get('wait_for_video')
+        min_wait, max_wait, _ = self.params.get('wait_for_video')
         diff = try_get(ie_result, lambda x: x['release_timestamp'] - time.time())
         if diff is None and ie_result.get('live_status') == 'is_upcoming':
             diff = round(random.uniform(min_wait, max_wait) if (max_wait and min_wait) else (max_wait or min_wait), 0)

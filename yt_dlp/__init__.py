@@ -225,12 +225,36 @@ def validate_options(opts):
     else:
         validate_minmax(opts.sleep_interval, opts.max_sleep_interval, 'sleep interval')
 
+    def parse_retries(name, value):
+        if value is None:
+            return None
+        elif value in ('inf', 'infinite'):
+            return float('inf')
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            validate(False, f'{name} retry count', value)
+
+    def parse_range_with_arg(name, arg_name, value,
+                                  parse_limits=parse_duration, parse_arg=parse_retries):
+        # syntax: MIN[-MAX][:N]
+        m = re.fullmatch(r'([^-:]+)(-[^:]+)?(:.+)?', value)
+        validate(m, name, value)
+        min_val, max_val, arg_val = m.groups()
+
+        min_lim, max_lim = map(parse_limits, [min_val, (max_val and max_val[1:])])
+        validate(min_lim is not None, name, value)
+        validate(max_val is None or max_lim is not None, name, value)
+        validate_minmax(min_lim, max_lim, name)
+
+        parsed_arg = parse_arg(arg_name, arg_val and arg_val[1:])
+        return (min_lim, max_lim, parsed_arg)
+
     if opts.wait_for_video is not None:
-        min_wait, max_wait, *_ = map(parse_duration, [*opts.wait_for_video.split('-', 1), None])
-        validate(min_wait is not None and not (max_wait is None and '-' in opts.wait_for_video),
-                 'time range to wait for video', opts.wait_for_video)
-        validate_minmax(min_wait, max_wait, 'time range to wait for video')
-        opts.wait_for_video = (min_wait, max_wait)
+        min_wait, max_wait, wait_retries = parse_range_with_arg(
+                'time range to wait for video', 'waiting', opts.wait_for_video)
+        validate_positive('waiting retry count', wait_retries)
+        opts.wait_for_video = (min_wait, max_wait, wait_retries)
 
     # Format sort
     for f in opts.format_sort:
@@ -255,19 +279,8 @@ def validate_options(opts):
         validate_positive('audio quality', int_or_none(float_or_none(opts.audioquality), default=0))
 
     # Retries
-    def parse_retries(name, value):
-        if value is None:
-            return None
-        elif value in ('inf', 'infinite'):
-            return float('inf')
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            validate(False, f'{name} retry count', value)
-
     opts.retries = parse_retries('download', opts.retries)
     opts.fragment_retries = parse_retries('fragment', opts.fragment_retries)
-    opts.wait_retries = parse_retries('waiting', opts.wait_retries)
     opts.extractor_retries = parse_retries('extractor', opts.extractor_retries)
     opts.file_access_retries = parse_retries('file access', opts.file_access_retries)
 
@@ -928,7 +941,6 @@ def parse_options(argv=None):
         'extract_flat': opts.extract_flat,
         'live_from_start': opts.live_from_start,
         'wait_for_video': opts.wait_for_video,
-        'wait_retries': opts.wait_retries,
         'mark_watched': opts.mark_watched,
         'merge_output_format': opts.merge_output_format,
         'final_ext': final_ext,
