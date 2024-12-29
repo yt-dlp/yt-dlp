@@ -17,7 +17,7 @@ class FirstTVIE(InfoExtractor):
     _TESTS = [{
         # single format
         'url': 'http://www.1tv.ru/shows/naedine-so-vsemi/vypuski/gost-lyudmila-senchina-naedine-so-vsemi-vypusk-ot-12-02-2015',
-        'md5': 'a1b6b60d530ebcf8daacf4565762bbaf',
+        'md5': '8011ae8e88ff4150107ab9c5a8f5b659',
         'info_dict': {
             'id': '40049',
             'ext': 'mp4',
