@@ -671,7 +671,9 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
         return self.playlist_result(
             entries, playlist_id,
             playlist.get('title'),
-            playlist.get('description'))
+            playlist.get('description'),
+            uploader=playlist.get('user', {}).get('username'),
+            uploader_id=str_or_none(playlist.get('user', {}).get('id')))
 
 
 class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
