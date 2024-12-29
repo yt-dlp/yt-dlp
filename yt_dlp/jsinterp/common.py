@@ -4,16 +4,16 @@ import abc
 import typing
 import functools
 
-from ..utils import classproperty, variadic, ExtractorError
+from ..utils import classproperty, format_field, variadic, ExtractorError
 from ..extractor.common import InfoExtractor
 
 
-DEFAULT_TIMEOUT = 10000
 _JSI_HANDLERS: dict[str, type[JSI]] = {}
 _JSI_PREFERENCES: set[JSIPreference] = set()
 _ALL_FEATURES = {
     'js',
     'wasm',
+    'location',
     'dom',
 }
 
@@ -60,8 +60,9 @@ class JSInterp:
     @param jsi_params: extra kwargs to pass to `JSI.__init__()` for each JSI, using jsi key as dict key.
     @param preferred_order: list of JSI to use. First in list is tested first.
     @param fallback_jsi: list of JSI that may fail and should act non-fatal and fallback to other JSI. Pass `"all"` to always fallback
-    @param timeout: explicit timeout parameter in miliseconds for all chosen JSI
+    @param timeout: timeout parameter for all chosen JSI
     """
+
     def __init__(
         self,
         dl_or_ie: YoutubeDL | InfoExtractor,
@@ -71,7 +72,7 @@ class JSInterp:
         jsi_params: dict[str, dict] = {},
         preferred_order: typing.Iterable[str | type[JSI]] = [],
         fallback_jsi: typing.Iterable[str | type[JSI]] | typing.Literal['all'] = [],
-        timeout: float | None = None,
+        timeout: float | int = 10,
     ):
         self._downloader: YoutubeDL = dl_or_ie._downloader if isinstance(dl_or_ie, InfoExtractor) else dl_or_ie
         self._features = set(features)
@@ -86,7 +87,7 @@ class JSInterp:
         self.write_debug(f'Selected JSI classes for given features: {get_jsi_keys(handler_classes)}, '
                          f'included: {get_jsi_keys(only_include) or "all"}, excluded: {get_jsi_keys(exclude)}')
 
-        self._handler_dict = {cls.JSI_KEY: cls(self._downloader, timeout, **jsi_params.get(cls.JSI_KEY, {}))
+        self._handler_dict = {cls.JSI_KEY: cls(self._downloader, timeout=timeout, **jsi_params.get(cls.JSI_KEY, {}))
                               for cls in handler_classes}
         self.preferences: set[JSIPreference] = {order_to_pref(preferred_order, 100)} | _JSI_PREFERENCES
         self._fallback_jsi = get_jsi_keys(handler_classes) if fallback_jsi == 'all' else get_jsi_keys(fallback_jsi)
@@ -166,40 +167,56 @@ class JSInterp:
                 msg = f'{msg}. You can try installing one of unavailable JSI: {join_jsi_name(unavailable)}'
         raise ExtractorError(msg)
 
-    @require_features({'html': 'dom'})
-    def execute(self, jscode: str, url: str | None = None, html: str | None = None) -> str:
+    @require_features({'url': 'location', 'html': 'dom'})
+    def execute(self, jscode: str, video_id: str | None, **kwargs) -> str:
         """
         Execute JS code and return stdout from console.log
-        `html` requires `dom` feature
-        """
-        return self._dispatch_request('execute', jscode, url=url, html=html)
 
-    @require_features({'html': 'dom'})
-    def evaluate(self, jscode: str, url: str | None = None, html: str | None = None) -> typing.Any:
+        @param {str} jscode: JS code to execute
+        @param video_id: video id
+        @param note: note
+        @param {str} url: url to set location to, requires `location` feature
+        @param {str} html: html to load as document, requires `dom` feature
+        """
+        return self._dispatch_request('execute', jscode, video_id, **kwargs)
+
+    @require_features({'url': 'location', 'html': 'dom'})
+    def evaluate(self, jscode: str, video_id: str | None, **kwargs) -> typing.Any:
         """
         Evaluate JS code and return result
-        `html` requires `dom` feature
+
+        @param {str} jscode: JS code to execute
+        @param video_id: video id
+        @param note: note
+        @param {str} url: url to set location to, requires `location` feature
+        @param {str} html: html to load as document, requires `dom` feature
         """
-        return self._dispatch_request('evaluate', jscode, url=url, html=html)
+        return self._dispatch_request('evaluate', jscode, video_id, **kwargs)
 
 
 class JSI(abc.ABC):
     _SUPPORT_FEATURES: set[str] = set()
     _BASE_PREFERENCE: int = 0
 
-    def __init__(self, downloader: YoutubeDL, timeout: float | int | None = None):
+    def __init__(self, downloader: YoutubeDL, timeout: float | int):
         self._downloader = downloader
-        self.timeout = float(timeout or DEFAULT_TIMEOUT)
+        self.timeout = timeout
 
     @abc.abstractmethod
     def is_available(self) -> bool:
         raise NotImplementedError
 
-    def write_debug(self, message, only_once=False):
-        return self._downloader.write_debug(f'[{self.JSI_KEY}] {message}', only_once=only_once)
+    def write_debug(self, message, *args, **kwargs):
+        self._downloader.write_debug(f'[{self.JSI_KEY}] {message}', *args, **kwargs)
 
-    def report_warning(self, message, only_once=False):
-        return self._downloader.report_warning(f'[{self.JSI_KEY}] {message}', only_once=only_once)
+    def report_warning(self, message, *args, **kwargs):
+        self._downloader.report_warning(f'[{self.JSI_KEY}] {message}', *args, **kwargs)
+
+    def to_screen(self, msg, *args, **kwargs):
+        self._downloader.to_screen(f'[{self.JSI_KEY}] {msg}', *args, **kwargs)
+
+    def report_note(self, video_id, note):
+        self.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
 
     @classproperty
     def JSI_NAME(cls) -> str:
