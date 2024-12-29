@@ -255,6 +255,7 @@
  - **CDA**: [*cdapl*](## "netrc machine")
  - **CDAFolder**
  - **Cellebrite**
+ - **CekniTo**: ceknito.cz, ceknito.sk and ceknito.eu
  - **CeskaTelevize**
  - **CGTN**
  - **CharlieRose**
