@@ -372,6 +372,7 @@ from .cda import (
     CDAIE,
     CDAFolderIE,
 )
+from .ceknito import CekniToIE
 from .cellebrite import CellebriteIE
 from .ceskatelevize import CeskaTelevizeIE
 from .cgtn import CGTNIE
