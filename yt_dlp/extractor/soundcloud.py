@@ -647,7 +647,6 @@ class SoundcloudIE(SoundcloudBaseIE):
 class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
     def _extract_set(self, playlist, token=None):
         playlist_id = str(playlist['id'])
-        playlist_uploader = playlist.get('user') or {}
         tracks = playlist.get('tracks') or []
         if not all(t.get('permalink_url') for t in tracks) and token:
             tracks = self._call_api(
@@ -673,8 +672,8 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
             entries, playlist_id,
             playlist.get('title'),
             playlist.get('description'),
-            uploader=playlist_uploader.get('username'),
-            uploader_id=str_or_none(playlist_uploader.get('id')))
+            uploader=traverse_obj(playlist, ('user', 'username')),
+            uploader_id=str_or_none(traverse_obj(playlist, ('user', 'id'))))
 
 
 class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
