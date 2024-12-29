@@ -20,9 +20,9 @@ class PlutoTVBase(InfoExtractor):
     }
 
     def _extract_formats(self, start, element):
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(f'{start['servers']['stitcher']}/v2{element['stitched']['path']}?{start['stitcherParams']}&jwt={start['sessionToken']}', element.get('id') or element.get('_id'))
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(f"{start['servers']['stitcher']}/v2{element['stitched']['path']}?{start['stitcherParams']}&jwt={start['sessionToken']}", element.get('id') or element.get('_id'))
         for f in formats:
-            f['url'] += f'&jwt={start['sessionToken']}'
+            f['url'] += f"&jwt={start['sessionToken']}"
             f.setdefault('vcodec', 'avc1.64001f')
             f.setdefault('acodec', 'mp4a.40.2')
             f.setdefault('fps', 30)
@@ -157,6 +157,15 @@ class PlutoTVIE(PlutoTVBase):
             'season_number': int_or_none(season_number),
         }
 
+    def _season_playlist(self, video_json, series, season_number, season):
+        for ep in season['episodes']:
+            yield self._get_video_info(video_json, ep, series, season_number)
+
+    def _series_playlist(self, video_json, series):
+        for season in series['seasons']:
+            for ep in season['episodes']:
+                yield self._get_video_info(video_json, ep, series, season['number'])
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url).groupdict()
         slug = mobj['slug']
@@ -171,9 +180,9 @@ class PlutoTVIE(PlutoTVBase):
         if season_number:
             for season in series['seasons']:
                 if season['number'] == int(season_number):
-                    return self.playlist_result([self._get_video_info(video_json, ep, series, season_number) for ep in season['episodes']], f'{series['id']}-{season_number}", f"{series['name']} - Season {season_number}')
+                    return self.playlist_result(self._season_playlist(video_json, series, season_number, season), f"{series['id']}-{season_number}", f"{series['name']} - Season {season_number}")
             raise ExtractorError(f'Failed to find season {season_number}')
-        return self.playlist_result([self._get_video_info(video_json, ep, series, season['number']) for season in series['seasons'] for ep in season['episodes']], series['id'], series['name']) if 'seasons' in series else self._get_video_info(video_json, series)
+        return self.playlist_result(self._series_playlist(video_json, series), series['id'], series['name']) if 'seasons' in series else self._get_video_info(video_json, series)
 
 
 class PlutoTVLiveIE(PlutoTVBase):
