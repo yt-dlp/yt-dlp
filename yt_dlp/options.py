@@ -436,10 +436,12 @@ def create_parser():
         help='Download livestreams from the current time (default)')
     general.add_option(
         '--wait-for-video',
-        dest='wait_for_video', metavar='MIN[-MAX]', default=None,
+        dest='wait_for_video', metavar='MIN[-MAX][:RETRIES]', default=None,
         help=(
             'Wait for scheduled streams to become available. '
-            'Pass the minimum number of seconds (or range) to wait between retries'))
+            'Pass the minimum number of seconds (or range) to wait between retries. '
+            'RETRIES is the maximum number of additional attempts if the video '
+            'is still unavailable after waiting (default is infinite)'))
     general.add_option(
         '--no-wait-for-video',
         dest='wait_for_video', action='store_const', const=None,
