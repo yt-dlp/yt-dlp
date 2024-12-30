@@ -137,6 +137,12 @@ class DenoJSDomJSI(DenoJSI):
             self._run_deno(cmd)
         self._JSDOM_IMPORT_CHECKED = True
 
+    def _parse_script_tags(self, html: str):
+        for match_start in re.finditer(r'<script[^>]*>', html, re.DOTALL):
+            end = html.find('</script>', match_start.end())
+            if end > match_start.end():
+                yield html[match_start.end():end]
+
     def execute(self, jscode, video_id=None, note='Executing JS in Deno', location='', html='', cookiejar=None):
         self.report_note(video_id, note)
         self._ensure_jsdom()
@@ -144,13 +150,13 @@ class DenoJSDomJSI(DenoJSI):
 
         inline_scripts = '\n'.join([
             'try { %s } catch (e) {}' % script
-            for script in re.findall(r'<script[^>]*>(.+?)</script>', html, re.DOTALL)
+            for script in self._parse_script_tags(html)
         ])
 
         script = f'''{self._init_script};
         {self._override_navigator_js};
         import jsdom from "{self._JSDOM_URL}";
-        const {callback_varname} = (() => {{
+        let {callback_varname} = (() => {{
             const jar = jsdom.CookieJar.deserializeSync({json.dumps(self.serialize_cookie(cookiejar, location))});
             const dom = new jsdom.JSDOM({json.dumps(str(html))}, {{
                 {'url: %s,' % json.dumps(str(location)) if location else ''}
@@ -158,15 +164,18 @@ class DenoJSDomJSI(DenoJSI):
             }});
             Object.keys(dom.window).forEach((key) => {{try {{window[key] = dom.window[key]}} catch (e) {{}}}});
             delete window.jsdom;
-            const stdout = [];
-            const origLog = console.log;
-            console.log = (...msg) => stdout.push(msg.map(m => m.toString()).join(' '));
-            return () => {{ origLog(JSON.stringify({{
-                stdout: stdout.join('\\n'), cookies: jar.serializeSync().cookies}})); }}
+            return () => {{
+                const stdout = [];
+                const origLog = console.log;
+                console.log = (...msg) => stdout.push(msg.map(m => m.toString()).join(' '));
+                return () => {{ origLog(JSON.stringify({{
+                    stdout: stdout.join('\\n'), cookies: jar.serializeSync().cookies}})); }}
+            }}
         }})();
         await (async () => {{
             {inline_scripts}
         }})();
+        {callback_varname} = {callback_varname}();
         await (async () => {{
             {jscode}
         }})().finally({callback_varname});

@@ -32,6 +32,48 @@ class Base:
         def test_execute(self):
             self.assertEqual(self.jsi.execute('console.log("Hello, world!");'), 'Hello, world!')
 
+        def test_execute_dom_parse(self):
+            if 'dom' not in self.jsi._SUPPORTED_FEATURES:
+                self.skipTest('DOM not supported')
+            self.assertEqual(self.jsi.execute(
+                'console.log(document.getElementById("test-div").innerHTML);',
+                location='https://example.com',
+                html='<html><body><div id="test-div">Hello, world!</div></body></html>'),
+                'Hello, world!')
+
+        def test_execute_dom_script(self):
+            if 'dom' not in self.jsi._SUPPORTED_FEATURES:
+                self.skipTest('DOM not supported')
+            self.assertEqual(self.jsi.execute(
+                'console.log(document.getElementById("test-div").innerHTML);',
+                location='https://example.com',
+                html='''<html><body>
+                    <div id="test-div"></div>
+                    <script src="https://example.com/script.js"></script>
+                    <script type="text/javascript">
+                        document.getElementById("test-div").innerHTML = "Hello, world!"
+                    </script>
+                </body></html>'''),
+                'Hello, world!')
+
+        def test_execute_dom_script_with_error(self):
+            if 'dom' not in self.jsi._SUPPORTED_FEATURES:
+                self.skipTest('DOM not supported')
+            if self.jsi.JSI_KEY == 'PhantomJS':
+                self.skipTest('PhantomJS does not catch errors')
+            self.assertEqual(self.jsi.execute(
+                'console.log(document.getElementById("test-div").innerHTML);',
+                location='https://example.com',
+                html='''<html><body>
+                    <div id="test-div"></div>
+                    <script src="https://example.com/script.js"></script>
+                    <script type="text/javascript">
+                        document.getElementById("test-div").innerHTML = "Hello, world!"
+                        a = b; // Undefined variable assignment
+                    </script>
+                </body></html>'''),
+                'Hello, world!')
+
 
 class TestDeno(Base.TestExternalJSI):
     _JSI_CLASS = DenoJSI

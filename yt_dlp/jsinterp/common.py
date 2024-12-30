@@ -92,7 +92,7 @@ class JSInterp:
         jsi_keys = [key for key in get_jsi_keys(only_include or _JSI_HANDLERS) if key not in get_jsi_keys(exclude)]
         self.write_debug(f'Allowed JSI keys: {jsi_keys}')
         handler_classes = [_JSI_HANDLERS[key] for key in jsi_keys
-                           if _JSI_HANDLERS[key]._SUPPORT_FEATURES.issuperset(self._features)]
+                           if _JSI_HANDLERS[key]._SUPPORTED_FEATURES.issuperset(self._features)]
         self.write_debug(f'Selected JSI classes for given features: {get_jsi_keys(handler_classes)}, '
                          f'included: {get_jsi_keys(only_include) or "all"}, excluded: {get_jsi_keys(exclude)}')
 
@@ -106,7 +106,7 @@ class JSInterp:
     def add_handler(self, handler: JSI):
         """Add a handler. If a handler of the same JSI_KEY exists, it will overwrite it"""
         assert isinstance(handler, JSI), 'handler must be a JSI instance'
-        if not handler._SUPPORT_FEATURES.issuperset(self._features):
+        if not handler._SUPPORTED_FEATURES.issuperset(self._features):
             raise ExtractorError(f'{handler.JSI_NAME} does not support all required features: {self._features}')
         self._handler_dict[handler.JSI_KEY] = handler
 
@@ -193,11 +193,11 @@ class JSInterp:
 
 
 class JSI(abc.ABC):
-    _SUPPORT_FEATURES: set[str] = set()
+    _SUPPORTED_FEATURES: set[str] = set()
     _BASE_PREFERENCE: int = 0
 
     def __init__(self, downloader: YoutubeDL, timeout: float | int, features: set[str], user_agent=None):
-        if not self._SUPPORT_FEATURES.issuperset(features):
+        if not self._SUPPORTED_FEATURES.issuperset(features):
             raise ExtractorError(f'{self.JSI_NAME} does not support all required features: {features}')
         self._downloader = downloader
         self.timeout = timeout
@@ -250,7 +250,7 @@ def register_jsi(jsi_cls: JsiClass) -> JsiClass:
     """Register a JS interpreter class"""
     assert issubclass(jsi_cls, JSI), f'{jsi_cls} must be a subclass of JSI'
     assert jsi_cls.JSI_KEY not in _JSI_HANDLERS, f'JSI {jsi_cls.JSI_KEY} already registered'
-    assert jsi_cls._SUPPORT_FEATURES.issubset(_ALL_FEATURES), f'{jsi_cls._SUPPORT_FEATURES - _ALL_FEATURES}  not declared in `_All_FEATURES`'
+    assert jsi_cls._SUPPORTED_FEATURES.issubset(_ALL_FEATURES), f'{jsi_cls._SUPPORTED_FEATURES - _ALL_FEATURES}  not declared in `_All_FEATURES`'
     _JSI_HANDLERS[jsi_cls.JSI_KEY] = jsi_cls
     return jsi_cls
 
