@@ -4,8 +4,14 @@ import abc
 import typing
 import functools
 
-from ..utils import classproperty, format_field, variadic, ExtractorError
 from ..extractor.common import InfoExtractor
+from ..utils import (
+    classproperty,
+    format_field,
+    get_exe_version,
+    variadic,
+    ExtractorError,
+)
 
 
 _JSI_HANDLERS: dict[str, type[JSI]] = {}
@@ -218,6 +224,22 @@ class JSI(abc.ABC):
     def JSI_KEY(cls) -> str:
         assert cls.__name__.endswith('JSI'), 'JSI class names must end with "JSI"'
         return cls.__name__[:-3]
+
+
+class ExternalJSI(JSI, abc.ABC):
+    _EXE_NAME: str
+
+    @classproperty(cache=True)
+    def exe_version(cls):
+        return get_exe_version(cls._EXE_NAME, args=getattr(cls, 'V_ARGS', ['--version']), version_re=r'([0-9.]+)')
+
+    @classproperty
+    def exe(cls):
+        return cls._EXE_NAME if cls.exe_version else None
+
+    @classmethod
+    def is_available(cls):
+        return bool(cls.exe)
 
 
 def register_jsi(jsi_cls: JsiClass) -> JsiClass:
