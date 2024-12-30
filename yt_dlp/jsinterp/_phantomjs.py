@@ -11,6 +11,7 @@ import urllib.parse
 from ..utils import (
     ExtractorError,
     Popen,
+    filter_dict,
     int_or_none,
     is_outdated_version,
     shell_quote,
@@ -87,19 +88,17 @@ class PhantomJSJSI(ExternalJSI):
             if not cookie_dict['domain']:
                 cookie_dict['domain'] = urllib.parse.urlparse(url).hostname
                 cookie_dict['port'] = urllib.parse.urlparse(url).port
-            for key in [key for key, value in cookie_dict.items() if value is None]:
-                cookie_dict.pop(key)
             with contextlib.suppress(TypeError):
                 if (cookie.has_nonstandard_attr('httpOnly')
                         or cookie.has_nonstandard_attr('httponly')
                         or cookie.has_nonstandard_attr('HttpOnly')):
                     cookie_dict['httponly'] = True
-            return cookie_dict
+            return filter_dict(cookie_dict)
 
         cookies = cookiejar.get_cookies_for_url(url) if cookiejar else []
         return json.dumps([_cookie_to_dict(cookie) for cookie in cookies])
 
-    def _load_cookies(self, cookies_json: str, cookiejar):
+    def _load_cookies(self, cookies_json: str, cookiejar: YoutubeDLCookieJar | None):
         if not cookiejar:
             return
         cookies = json.loads(cookies_json)
@@ -110,7 +109,7 @@ class PhantomJSJSI(ExternalJSI):
                 cookie.get('path', '/'), True,
                 cookie.get('secure', False), cookie.get('expiry'),
                 cookie.get('discard', False), None, None,
-                {'httpOnly': None} if cookie.get('httponly') is True else {}
+                {'httpOnly': None} if cookie.get('httponly') is True else {},
             ))
 
     def _execute(self, jscode: str, video_id=None, *, note='Executing JS in PhantomJS'):
@@ -139,7 +138,7 @@ class PhantomJSJSI(ExternalJSI):
         html_file = TempFileWrapper(html, suffix='.html')
         cookie_file = TempFileWrapper(self._save_cookies(url, cookiejar), suffix='.json')
 
-        jscode = self._TEMPLATE.format(**{
+        jscode = self._TEMPLATE.format_map({
             'url': json.dumps(str(url)),
             'ua': json.dumps(str(self.user_agent)),
             'jscode': jscode,

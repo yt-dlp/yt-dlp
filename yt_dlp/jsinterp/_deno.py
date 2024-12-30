@@ -71,6 +71,7 @@ class DenoJSDomJSI(DenoJSI):
     _BASE_PREFERENCE = 4
     _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check']
     _JSDOM_IMPORT_CHECKED = False
+    _JSDOM_URL = 'https://cdn.esm.sh/jsdom'
 
     @staticmethod
     def serialize_cookie(cookiejar: YoutubeDLCookieJar | None, url: str):
@@ -80,11 +81,11 @@ class DenoJSDomJSI(DenoJSI):
         # https://github.com/salesforce/tough-cookie/blob/master/lib/cookie/cookie.ts
         if not cookiejar:
             return json.dumps({'cookies': []})
-        cookies: list[http.cookiejar.Cookie] = [cookie for cookie in cookiejar.get_cookies_for_url(url)]
+        cookies: list[http.cookiejar.Cookie] = list(cookiejar.get_cookies_for_url(url))
         return json.dumps({'cookies': [{
             'key': cookie.name,
             'value': cookie.value,
-            # leading dot must be removed, otherwise will fail to match
+            # leading dot of domain must be removed, otherwise will fail to match
             'domain': cookie.domain.lstrip('.') or urllib.parse.urlparse(url).hostname,
             'expires': int_or_none(cookie.expires, invscale=1000),
             'hostOnly': not cookie.domain_initial_dot,
@@ -118,7 +119,7 @@ class DenoJSDomJSI(DenoJSI):
     def _ensure_jsdom(self):
         if self._JSDOM_IMPORT_CHECKED:
             return
-        with TempFileWrapper('import jsdom from "https://cdn.esm.sh/jsdom"', suffix='.js') as js_file:
+        with TempFileWrapper(f'import jsdom from "{self._JSDOM_URL}"', suffix='.js') as js_file:
             cmd = [self.exe, 'run', js_file.name]
             self._run_deno(cmd)
         self._JSDOM_IMPORT_CHECKED = True
@@ -128,12 +129,13 @@ class DenoJSDomJSI(DenoJSI):
         self._ensure_jsdom()
         callback_varname = f'__callback_{random_string()}'
         script = f'''{self._init_script};
-        import jsdom from "https://cdn.esm.sh/jsdom";
+        import jsdom from "{self._JSDOM_URL}";
         const {callback_varname} = (() => {{
             const jar = jsdom.CookieJar.deserializeSync({json.dumps(self.serialize_cookie(cookiejar, location))});
             const dom = new jsdom.JSDOM({json.dumps(str(html))}, {{
                 {'url: %s,' % json.dumps(str(location)) if location else ''}
                 cookieJar: jar,
+                runScripts: 'dangerously',
             }});
             Object.keys(dom.window).forEach((key) => {{try {{window[key] = dom.window[key]}} catch (e) {{}}}});
             delete window.jsdom;
