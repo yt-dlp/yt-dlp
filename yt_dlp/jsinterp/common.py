@@ -62,6 +62,7 @@ class JSInterp:
     @param preferred_order: list of JSI to use. First in list is tested first.
     @param fallback_jsi: list of JSI that may fail and should act non-fatal and fallback to other JSI. Pass `"all"` to always fallback
     @param timeout: timeout parameter for all chosen JSI
+    @param user_agent: override user-agent to use for supported JSI
     """
 
     def __init__(
@@ -74,6 +75,7 @@ class JSInterp:
         preferred_order: typing.Iterable[str | type[JSI]] = [],
         fallback_jsi: typing.Iterable[str | type[JSI]] | typing.Literal['all'] = [],
         timeout: float | int = 10,
+        user_agent: str | None = None,
     ):
         self._downloader: YoutubeDL = dl_or_ie._downloader if isinstance(dl_or_ie, InfoExtractor) else dl_or_ie
         self._features = set(features)
@@ -88,8 +90,8 @@ class JSInterp:
         self.write_debug(f'Selected JSI classes for given features: {get_jsi_keys(handler_classes)}, '
                          f'included: {get_jsi_keys(only_include) or "all"}, excluded: {get_jsi_keys(exclude)}')
 
-        self._handler_dict = {cls.JSI_KEY: cls(self._downloader, timeout=timeout, **jsi_params.get(cls.JSI_KEY, {}))
-                              for cls in handler_classes}
+        self._handler_dict = {cls.JSI_KEY: cls(self._downloader, timeout=timeout, user_agent=user_agent,
+                                               **jsi_params.get(cls.JSI_KEY, {})) for cls in handler_classes}
         self.preferences: set[JSIPreference] = {order_to_pref(preferred_order, 100)} | _JSI_PREFERENCES
         self._fallback_jsi = get_jsi_keys(handler_classes) if fallback_jsi == 'all' else get_jsi_keys(fallback_jsi)
         self._is_test = self._downloader.params.get('test', False)
@@ -187,9 +189,10 @@ class JSI(abc.ABC):
     _SUPPORT_FEATURES: set[str] = set()
     _BASE_PREFERENCE: int = 0
 
-    def __init__(self, downloader: YoutubeDL, timeout: float | int):
+    def __init__(self, downloader: YoutubeDL, timeout: float | int, user_agent=None):
         self._downloader = downloader
         self.timeout = timeout
+        self.user_agent: str = user_agent or self._downloader.params['http_headers']['User-Agent']
 
     @abc.abstractmethod
     def is_available(self) -> bool:
