@@ -190,28 +190,31 @@ class PuhuTVSerieIE(InfoExtractor):
             season_id = season.get('id')
             if not season_id:
                 continue
+            season_position = season['position']
             page = 1
+            per = 100
             has_more = True
             while has_more is True:
                 season = self._download_json(
-                    f'https://galadriel.puhutv.com/seasons/{season_id}',
-                    season_id, f'Downloading page {page}', query={
+                    f'https://appservice.puhutv.com/api/seasons/{season_id}/episodes?v=2',
+                    season_id, f'Downloading episode {(page - 1) * per}-{page * per} metadata', query={
                         'page': page,
-                        'per': 40,
-                    })
-                episodes = season.get('episodes')
-                if isinstance(episodes, list):
-                    for ep in episodes:
-                        slug_path = str_or_none(ep.get('slugPath'))
-                        if not slug_path:
-                            continue
-                        video_id = str_or_none(int_or_none(ep.get('id')))
-                        yield self.url_result(
-                            f'https://puhutv.com/{slug_path}',
-                            ie=PuhuTVIE.ie_key(), video_id=video_id,
-                            video_title=ep.get('name') or ep.get('eventLabel'))
+                        'per': per,
+                    })['data']
+
+                episodes = season['episodes']
+                for episode in episodes:
+                    video_id = episode['id']
+                    video_title = episode['name']
+                    slug = episode.get('slug') or episode['assets'][0]['slug']
+                    if not slug:
+                        continue
+
+                    yield self.url_result(f'https://puhutv.com/{slug}',
+                       ie=PuhuTVIE.ie_key(), video_id=video_id,
+                       video_title=video_title)
                 page += 1
-                has_more = season.get('hasMore')
+                has_more = season['has_more']
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
