@@ -7,6 +7,7 @@ from ..utils import (
     parse_resolution,
     str_or_none,
     traverse_obj,
+    update_url,
     url_basename,
     urlencode_postdata,
     urljoin,
@@ -34,6 +35,7 @@ class ZoomIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Prépa AF2023 - Séance 5 du 11 avril - R20/VM/GO',
         },
+        'skip': 'This recording has expired',
     }, {
         # share URL
         'url': 'https://us02web.zoom.us/rec/share/hkUk5Zxcga0nkyNGhVCRfzkA2gX_mzgS3LpTxEEWJz9Y_QpIQ4mZFOUx7KZRZDQA.9LGQBdqmDAYgiZ_8',
@@ -61,41 +63,59 @@ class ZoomIE(InfoExtractor):
         return self._search_json(
             r'window\.__data__\s*=', webpage, 'data', video_id, transform_source=js_to_json)
 
-    def _get_real_webpage(self, url, base_url, video_id, url_type):
-        webpage = self._download_webpage(url, video_id, note=f'Downloading {url_type} webpage')
-        try:
-            form = self._form_hidden_inputs('password_form', webpage)
-        except ExtractorError:
-            return webpage
-
+    def _try_login(self, url, base_url, video_id, form):
+        # This will most likely only work for password-protected meetings
         password = self.get_param('videopassword')
         if not password:
             raise ExtractorError(
                 'This video is protected by a passcode, use the --video-password option', expected=True)
+
         is_meeting = form.get('useWhichPasswd') == 'meeting'
         validation = self._download_json(
-            base_url + 'rec/validate%s_passwd' % ('_meet' if is_meeting else ''),
+            base_url + 'nws/recording/1.0/validate%s-passwd' % ('-meeting' if is_meeting else ''),
             video_id, 'Validating passcode', 'Wrong passcode', data=urlencode_postdata({
-                'id': form[('meet' if is_meeting else 'file') + 'Id'],
+                'id': form[('meeting' if is_meeting else 'file') + '_id'],
                 'passwd': password,
                 'action': form.get('action'),
             }))
+
         if not validation.get('status'):
             raise ExtractorError(validation['errorMessage'], expected=True)
-        return self._download_webpage(url, video_id, note=f'Re-downloading {url_type} webpage')
+
+    def _get_real_webpage(self, url, base_url, video_id, url_type):
+        webpage = self._download_webpage(url, video_id, note=f'Downloading {url_type} webpage')
+
+        data = self._get_page_data(webpage, video_id)
+        if data.get('componentName') != 'need-password':  # not password protected
+            return webpage
+
+        # Password-protected:
+        self._try_login(url, base_url, video_id, form=data)
+        # Return the new HTML document
+        new_url = f"{base_url}rec/share/{data['meeting_id']}"
+        return self._download_webpage(new_url, video_id, note=f'Re-downloading {url_type} webpage')
+
+    def _get_share_redirect_url(self, url, base_url, video_id):
+        """Converts a `/rec/share` url to the corresponding `/rec/play` url, performs login if necessary"""
+        webpage = self._get_real_webpage(url, base_url, video_id, 'share')
+        meeting_id = self._get_page_data(webpage, video_id)['meetingId']
+        redirect_dict = self._download_json(
+            f'{base_url}nws/recording/1.0/play/share-info/{meeting_id}',
+            video_id, note='Downloading share info JSON')['result']
+        redirect_path = redirect_dict.pop('redirectUrl')
+        url = update_url(urljoin(base_url, redirect_path), query_update=redirect_dict)
+
+        if redirect_dict.get('componentName') == 'need-password':
+            # First login, then return redirection URL
+            return self._get_share_redirect_url(url, base_url, video_id)
+
+        return url
 
     def _real_extract(self, url):
         base_url, url_type, video_id = self._match_valid_url(url).group('base_url', 'type', 'id')
-        query = {}
 
         if url_type == 'share':
-            webpage = self._get_real_webpage(url, base_url, video_id, 'share')
-            meeting_id = self._get_page_data(webpage, video_id)['meetingId']
-            redirect_path = self._download_json(
-                f'{base_url}nws/recording/1.0/play/share-info/{meeting_id}',
-                video_id, note='Downloading share info JSON')['result']['redirectUrl']
-            url = urljoin(base_url, redirect_path)
-            query['continueMode'] = 'true'
+            url = self._get_share_redirect_url(url, base_url, video_id)
 
         webpage = self._get_real_webpage(url, base_url, video_id, 'play')
         file_id = self._get_page_data(webpage, video_id)['fileId']
@@ -104,10 +124,12 @@ class ZoomIE(InfoExtractor):
             raise ExtractorError('Unable to extract file ID')
 
         data = self._download_json(
-            f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id, query=query,
+            f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id, query={
+                'continueMode': 'true',  # Makes this return value include interpreter audio information
+            },
             note='Downloading play info JSON')['result']
-
         subtitles = {}
+        # XXX: Would be more appropriate to parse chapters separate from subtitles
         for _type in ('transcript', 'cc', 'chapter'):
             if data.get(f'{_type}Url'):
                 subtitles[_type] = [{
@@ -116,6 +138,19 @@ class ZoomIE(InfoExtractor):
                 }]
 
         formats = []
+
+        if data.get('interpreterAudioList'):
+            for audio in data.get('interpreterAudioList'):
+                formats.append({
+                    'format_note': f'Intepreter: {audio["languageText"]}',
+                    'url': audio['audioUrl'],
+                    'format_id': f'interpreter-{ audio["icon"].lower()}',
+                    'ext': 'm4a',
+                    # There doesn't seem to be an explicit field for a standardized language code,
+                    # sometimes the `language` field may be more accurate than `icon`
+                    'language': audio['icon'].lower(),
+                    'vcodec': 'none',
+                })
 
         if data.get('viewMp4Url'):
             formats.append({
