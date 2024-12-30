@@ -3,7 +3,7 @@ import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, float_or_none, int_or_none, traverse_obj
+from ..utils import ExtractorError, float_or_none, int_or_none, smuggle_url, traverse_obj, unsmuggle_url
 
 
 class PlutoTVBase(InfoExtractor):
@@ -19,14 +19,26 @@ class PlutoTVBase(InfoExtractor):
         'deviceVersion': 'unknown',
     }
 
-    def _extract_formats(self, start, element):
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(f"{start['servers']['stitcher']}/v2{element['stitched']['path']}?{start['stitcherParams']}&jwt={start['sessionToken']}", element.get('id') or element.get('_id'))
+    def _resolve_data(self, start, element):
+        return {
+            'stitcher': start['servers']['stitcher'],
+            'path': element['stitched']['path'],
+            'stitcherParams': start['stitcherParams'],
+            'sessionToken': start['sessionToken'],
+            'id': element.get('id') or element['_id'],
+        }
+
+    def _extract_formats(self, video_data):
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(f"{video_data['stitcher']}/v2{video_data['path']}?{video_data['stitcherParams']}&jwt={video_data['sessionToken']}", video_data['id'])
         for f in formats:
-            f['url'] += f"&jwt={start['sessionToken']}"
+            f['url'] += f"&jwt={video_data['sessionToken']}"
             f.setdefault('vcodec', 'avc1.64001f')
             f.setdefault('acodec', 'mp4a.40.2')
             f.setdefault('fps', 30)
-        return formats, subtitles
+        return {
+            'formats': formats,
+            'subtitles': subtitles,
+        }
 
 
 class PlutoTVIE(PlutoTVBase):
@@ -37,8 +49,7 @@ class PlutoTVIE(PlutoTVBase):
         (?:
             (?:/seasons?/(?P<season>\d+))?
             (?:/episode/(?P<episode>[^/]+))?
-        )?
-        /?(?:$|[#?])'''
+        )?'''
     _TESTS = [{
         'url': 'https://pluto.tv/it/on-demand/movies/6246b0adef11000014d220c3',
         'md5': '5efe37ad6c1085a4ad4684b9b82cb1c1',
@@ -62,8 +73,9 @@ class PlutoTVIE(PlutoTVBase):
         'info_dict': {
             'id': '6655b0c5cceea000134aee27',
             'title': 'Mission Impossible',
+            'description': 'md5:21604bf9971528825c359e0f4977d572',
         },
-        'playlist_mincount': 100,
+        'playlist_mincount': 113,
     }, {
         'url': 'https://pluto.tv/on-demand/series/66ab6d80b20e79001338fe4c/season/5',
         'info_dict': {
@@ -126,8 +138,7 @@ class PlutoTVIE(PlutoTVBase):
             self.report_warning('Unable to find ad-free formats')
         return formats, subtitles
 
-    def _get_video_info(self, video_json, video, series=None, season_number=None):
-        formats, subtitles = self._extract_formats(video_json, video)
+    def _get_video_info(self, video, series=None, season_number=None):
         thumbnails = [{
             'url': cover['url'],
             'width': int(m.group(1)) if (m := re.search(r'w=(\d+)&h=(\d+)', cover['url'])) else None,
@@ -141,45 +152,63 @@ class PlutoTVIE(PlutoTVBase):
                 'preference': 1,
             })
         return {
-            'id': video.get('id') or video.get('_id'),
+            'id': video.get('id') or video['_id'],
             'title': video.get('name'),
             'display_id': video.get('slug'),
             'thumbnails': thumbnails,
-            'formats': formats,
-            'subtitles': subtitles,
             'description': video.get('description'),
             'duration': float_or_none(video.get('duration'), scale=1000),
             'genres': [video.get('genre')],
             'series_id': series and series.get('id'),
             'series': series and series.get('name'),
             'episode': video.get('name'),
-            'episode_id': video.get('id') or video.get('_id'),
+            'episode_id': video.get('id') or video['_id'],
             'season_number': int_or_none(season_number),
         }
 
-    def _season_playlist(self, video_json, series, season_number, season):
-        for ep in season['episodes']:
-            yield self._get_video_info(video_json, ep, series, season_number)
-
-    def _series_playlist(self, video_json, series):
-        for season in series['seasons']:
-            for ep in season['episodes']:
-                yield self._get_video_info(video_json, ep, series, season['number'])
+    def _playlist_entry(self, video_json, series, season, ep):
+        episode_id = ep.get('id') or ep['_id']
+        return self.url_result(
+            smuggle_url(
+                f"https://pluto.tv/on-demand/series/{series.get('id') or series['_id']}/season/{season['number']}/episode/{episode_id}",
+                self._resolve_data(video_json, ep),
+            ),
+            PlutoTVIE,
+            episode_id,
+            ep.get('name'),
+            url_transparent=True,
+            **self._get_video_info(ep, series, season.get('number')),
+        )
 
     def _real_extract(self, url):
+        url, video_data = unsmuggle_url(url)
+        if video_data:
+            return {**self._extract_formats(video_data), 'id': video_data['id']}
+
         mobj = self._match_valid_url(url).groupdict()
         slug = mobj['slug']
         season_number, episode_id = mobj.get('season'), mobj.get('episode')
         query = {**self._START_QUERY, 'seriesIDs': slug}
         if episode_id:
             query['episodeIDs'] = episode_id
+
         video_json = self._download_json('https://boot.pluto.tv/v4/start', slug, 'Downloading info json', query=query)
         series = video_json['VOD'][0]
+
         if episode_id:
-            return self._get_video_info(video_json, video_json['VOD'][1], series, season_number)
+            episode = video_json['VOD'][1]
+            return {**self._get_video_info(episode, series, season_number), **self._extract_formats(self._resolve_data(video_json, episode))}
+
         if season_number:
-            for season in series['seasons']:
-                if season['number'] == int(season_number):
-                    return self.playlist_result(self._season_playlist(video_json, series, season_number, season), f"{series['id']}-{season_number}", f"{series['name']} - Season {season_number}")
-            raise ExtractorError(f'Failed to find season {season_number}')
-        return self.playlist_result(self._series_playlist(video_json, series), series['id'], series['name'], series.get('description')) if 'seasons' in series else self._get_video_info(video_json, series)
+            season = next((s for s in series['seasons'] if s['number'] == int(season_number)), None)
+            if not season:
+                raise ExtractorError(f'Failed to find season {season_number}')
+            return self.playlist_result(
+                [self._playlist_entry(video_json, series, season, ep) for ep in season['episodes']],
+                f"{series['id']}-{season_number}", f"{series['name']} - Season {season_number}",
+            )
+
+        return self.playlist_result(
+            [self._playlist_entry(video_json, series, season, ep) for season in series.get('seasons', []) for ep in season['episodes']],
+            series['id'], series['name'], series.get('description'),
+        ) if 'seasons' in series else {**self._get_video_info(series), **self._extract_formats(self._resolve_data(video_json, series))}
