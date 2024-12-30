@@ -685,6 +685,8 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
             'id': '2284613',
             'title': 'The Royal Concept EP',
             'description': 'md5:71d07087c7a449e8941a70a29e34671e',
+            'uploader': 'The Royal Concept',
+            'uploader_id': '9615865',
         },
         'playlist_mincount': 5,
     }, {
