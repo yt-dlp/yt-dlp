@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import http.cookiejar
 import json
+import re
 import subprocess
 import typing
 import urllib.parse
@@ -28,10 +29,22 @@ class DenoJSI(ExternalJSI):
     _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check']
     _INIT_SCRIPT = 'localStorage.clear(); delete window.Deno; global = window;\n'
 
-    def __init__(self, downloader: YoutubeDL, timeout=None, features: set[str] = {}, flags=[], replace_flags=False, init_script=None):
-        super().__init__(downloader, timeout, features)
+    def __init__(self, *args, flags=[], replace_flags=False, init_script=None, **kwargs):
+        super().__init__(*args, **kwargs)
         self._flags = flags if replace_flags else [*self._DENO_FLAGS, *flags]
         self._init_script = self._INIT_SCRIPT if init_script is None else init_script
+
+    @property
+    def _override_navigator_js(self):
+        return '\n'.join([
+            'Object.defineProperty(navigator, "%s", { value: %s, configurable: true });' % (k, json.dumps(v))
+            for k, v in {
+                'userAgent': self.user_agent,
+                'language': 'en-US',
+                'languages': ['en-US'],
+                'webdriver': False,
+            }.items()
+        ])
 
     def _run_deno(self, cmd):
         self.write_debug(f'Deno command line: {shell_quote(cmd)}')
@@ -49,7 +62,7 @@ class DenoJSI(ExternalJSI):
     def execute(self, jscode, video_id=None, note='Executing JS in Deno', location=None):
         self.report_note(video_id, note)
         location_args = ['--location', location] if location else []
-        with TempFileWrapper(f'{self._init_script};\n{jscode}', suffix='.js') as js_file:
+        with TempFileWrapper(f'{self._init_script};\n{self._override_navigator_js}\n{jscode}', suffix='.js') as js_file:
             cmd = [self.exe, 'run', *self._flags, *location_args, js_file.name]
             return self._run_deno(cmd)
 
@@ -128,14 +141,20 @@ class DenoJSDomJSI(DenoJSI):
         self.report_note(video_id, note)
         self._ensure_jsdom()
         callback_varname = f'__callback_{random_string()}'
+
+        inline_scripts = '\n'.join([
+            'try { %s } catch (e) {}' % script
+            for script in re.findall(r'<script[^>]*>(.+?)</script>', html, re.DOTALL)
+        ])
+
         script = f'''{self._init_script};
+        {self._override_navigator_js};
         import jsdom from "{self._JSDOM_URL}";
         const {callback_varname} = (() => {{
             const jar = jsdom.CookieJar.deserializeSync({json.dumps(self.serialize_cookie(cookiejar, location))});
             const dom = new jsdom.JSDOM({json.dumps(str(html))}, {{
                 {'url: %s,' % json.dumps(str(location)) if location else ''}
                 cookieJar: jar,
-                runScripts: 'dangerously',
             }});
             Object.keys(dom.window).forEach((key) => {{try {{window[key] = dom.window[key]}} catch (e) {{}}}});
             delete window.jsdom;
@@ -144,6 +163,9 @@ class DenoJSDomJSI(DenoJSI):
             console.log = (...msg) => stdout.push(msg.map(m => m.toString()).join(' '));
             return () => {{ origLog(JSON.stringify({{
                 stdout: stdout.join('\\n'), cookies: jar.serializeSync().cookies}})); }}
+        }})();
+        await (async () => {{
+            {inline_scripts}
         }})();
         await (async () => {{
             {jscode}
@@ -158,83 +180,5 @@ class DenoJSDomJSI(DenoJSI):
         return data['stdout']
 
 
-class PuppeteerJSI(ExternalJSI):
-    _PACKAGE_VERSION = '16.2.0'
-    _HEADLESS = False
-    _EXE_NAME = DenoJSI._EXE_NAME
-
-    @classproperty
-    def INSTALL_HINT(cls):
-        msg = f'Run "deno run -A https://deno.land/x/puppeteer@{cls._PACKAGE_VERSION}/install.ts" to install puppeteer'
-        if not DenoJSI.is_available:
-            msg = f'{DenoJSI.INSTALL_HINT}. Then {msg}'
-        return msg
-
-    @classproperty(cache=True)
-    def full_version(cls):
-        if not DenoJSI.is_available:
-            return
-        try:
-            browser_version = DenoJSI._execute(f'''
-                import puppeteer from "https://deno.land/x/puppeteer@{cls._PACKAGE_VERSION}/mod.ts";
-                const browser = await puppeteer.launch({{headless: {json.dumps(bool(cls._HEADLESS))}}});
-                try {{
-                    console.log(await browser.version())
-                }} finally {{
-                    await browser.close();
-                }}''', flags=['--allow-all'])
-            return f'puppeteer={cls._PACKAGE_VERSION} browser={browser_version}'
-        except ExtractorError:
-            return None
-
-    @classproperty
-    def exe_version(cls):
-        return DenoJSI.exe_version if cls.full_version else None
-
-    def __init__(self, downloader: YoutubeDL, timeout: float | int | None = None):
-        super().__init__(downloader, timeout)
-        self.deno = DenoJSI(downloader, timeout=(self.timeout + 30000))
-
-    def _deno_execute(self, jscode, note=None):
-        return self.deno.execute(f'''
-            import puppeteer from "https://deno.land/x/puppeteer@{self._PACKAGE_VERSION}/mod.ts";
-            const browser = await puppeteer.launch({{
-                headless: {json.dumps(bool(self._HEADLESS))}, args: ["--disable-web-security"]}});
-            try {{
-                {jscode}
-            }} finally {{
-                await browser.close();
-            }}''', note=note, flags=['--allow-all'], base_js='')
-
-    def execute(self, jscode, video_id=None, note='Executing JS in Puppeteer', url='about:blank'):
-        self.report_note(video_id, note)
-        return self._deno_execute(f'''
-            const page = await browser.newPage();
-            window.setTimeout(async () => {{
-                console.error('Puppeteer execution timed out');
-                await browser.close();
-                Deno.exit(1);
-            }}, {int(self.timeout)});
-            page.resourceTimeout = {int(self.timeout)};
-
-            // drop network requests
-            await page.setRequestInterception(true);
-            page.on("request", request => request.abort());
-            // capture console output
-            page.on("console", msg => {{
-                msg.type() === 'log' && console.log(msg.text());
-                msg.type() === 'error' && console.error(msg.text());
-            }});
-
-            const url = {json.dumps(str(url))};
-            await page.evaluate(`window.history.replaceState('', '', ${{JSON.stringify(url)}})`);
-
-            await page.evaluate({json.dumps(str(jscode))});
-            await browser.close();
-            Deno.exit(0);
-        ''')
-
-
 if typing.TYPE_CHECKING:
-    from ..YoutubeDL import YoutubeDL
     from ..cookies import YoutubeDLCookieJar

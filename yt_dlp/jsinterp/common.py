@@ -197,6 +197,8 @@ class JSI(abc.ABC):
     _BASE_PREFERENCE: int = 0
 
     def __init__(self, downloader: YoutubeDL, timeout: float | int, features: set[str], user_agent=None):
+        if not self._SUPPORT_FEATURES.issuperset(features):
+            raise ExtractorError(f'{self.JSI_NAME} does not support all required features: {features}')
         self._downloader = downloader
         self.timeout = timeout
         self.features = features

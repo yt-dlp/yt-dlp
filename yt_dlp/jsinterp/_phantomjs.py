@@ -173,12 +173,12 @@ class PhantomJSJSI(ExternalJSI):
                 'std_var': f'__stdout__values_{random_string()}',
                 'jscode': jscode,
             }
-            return self._execute_html(jscode, location, html, cookiejar, video_id=video_id, note=note)[1]
+            return self._execute_html(jscode, location, html, cookiejar, video_id=video_id, note=note)[1].strip()
         if html:
             self.report_warning('`location` is required to use `html`')
         if cookiejar:
             self.report_warning('`location` and `html` are required to use `cookiejar`')
-        return self._execute(jscode, video_id, note=note)
+        return self._execute(jscode, video_id, note=note).strip()
 
 
 class PhantomJSwrapper:
