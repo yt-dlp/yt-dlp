@@ -96,8 +96,9 @@ class JSInterp:
         self.write_debug(f'Selected JSI classes for given features: {get_jsi_keys(handler_classes)}, '
                          f'included: {get_jsi_keys(only_include) or "all"}, excluded: {get_jsi_keys(exclude)}')
 
-        self._handler_dict = {cls.JSI_KEY: cls(self._downloader, timeout=timeout, user_agent=user_agent,
-                                               **jsi_params.get(cls.JSI_KEY, {})) for cls in handler_classes}
+        self._handler_dict = {
+            cls.JSI_KEY: cls(self._downloader, timeout=timeout, features=self._features, user_agent=user_agent,
+                             **jsi_params.get(cls.JSI_KEY, {})) for cls in handler_classes}
         self.preferences: set[JSIPreference] = {order_to_pref(preferred_order, 100)} | _JSI_PREFERENCES
         self._fallback_jsi = get_jsi_keys(handler_classes) if fallback_jsi == 'all' else get_jsi_keys(fallback_jsi)
         self._is_test = self._downloader.params.get('test', False)
@@ -195,9 +196,10 @@ class JSI(abc.ABC):
     _SUPPORT_FEATURES: set[str] = set()
     _BASE_PREFERENCE: int = 0
 
-    def __init__(self, downloader: YoutubeDL, timeout: float | int, user_agent=None):
+    def __init__(self, downloader: YoutubeDL, timeout: float | int, features: set[str], user_agent=None):
         self._downloader = downloader
         self.timeout = timeout
+        self.features = features
         self.user_agent: str = user_agent or self._downloader.params['http_headers']['User-Agent']
 
     @abc.abstractmethod
