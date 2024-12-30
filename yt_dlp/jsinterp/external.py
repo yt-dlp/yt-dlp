@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import urllib.parse
 import typing
+import http.cookiejar
 
 
 from ..utils import (
@@ -19,6 +20,8 @@ from ..utils import (
     get_exe_version,
     is_outdated_version,
     shell_quote,
+    int_or_none,
+    unified_timestamp,
 )
 from .common import JSI, register_jsi
 
@@ -126,7 +129,7 @@ class DenoJSI(ExternalJSI):
         self._flags = flags if replace_flags else [*self._DENO_FLAGS, *flags]
         self._init_script = self._INIT_SCRIPT if init_script is None else init_script
 
-    def _run_deno(self, cmd, video_id=None):
+    def _run_deno(self, cmd):
         self.write_debug(f'Deno command line: {shell_quote(cmd)}')
         try:
             stdout, stderr, returncode = Popen.run(
@@ -136,15 +139,15 @@ class DenoJSI(ExternalJSI):
         if returncode:
             raise ExtractorError(f'Failed with returncode {returncode}:\n{stderr}')
         elif stderr:
-            self.report_warning(f'JS console error msg:\n{stderr.strip()}', video_id=video_id)
+            self.report_warning(f'JS console error msg:\n{stderr.strip()}')
         return stdout.strip()
 
-    def execute(self, jscode, video_id=None, note='Executing JS in Deno', url=None):
+    def execute(self, jscode, video_id=None, note='Executing JS in Deno', location=None):
         self.report_note(video_id, note)
         js_file = TempFileWrapper(f'{self._init_script};\n{jscode}', suffix='.js')
-        location_args = ['--location', url] if url else []
+        location_args = ['--location', location] if location else []
         cmd = [self.exe, 'run', *self._flags, *location_args, js_file.name]
-        return self._run_deno(cmd, video_id=video_id)
+        return self._run_deno(cmd)
 
 
 @register_jsi
@@ -159,34 +162,92 @@ class DenoJITlessJSI(DenoJSI):
 
 
 class DenoJSDomJSI(DenoJSI):
-    _SUPPORTED_FEATURES = {'js', 'wasm', 'dom'}
+    _SUPPORTED_FEATURES = {'js', 'wasm', 'location', 'dom', 'cookies'}
     _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check']
     _JSDOM_IMPORT = False
+
+    @staticmethod
+    def serialize_cookie(cookiejar: YoutubeDLCookieJar | None, url: str):
+        """serialize netscape-compatible fields from cookiejar for tough-cookie loading"""
+        # JSDOM use tough-cookie as its CookieJar https://github.com/jsdom/jsdom/blob/main/lib/api.js
+        # tough-cookie use Cookie.fromJSON and Cookie.toJSON for cookie serialization
+        # https://github.com/salesforce/tough-cookie/blob/master/lib/cookie/cookie.ts
+        if not cookiejar:
+            return json.dumps({'cookies': []})
+        cookies: list[http.cookiejar.Cookie] = [cookie for cookie in cookiejar.get_cookies_for_url(url)]
+        return json.dumps({'cookies': [{
+            'key': cookie.name,
+            'value': cookie.value,
+            # leading dot must be removed, otherwise will fail to match
+            'domain': cookie.domain.lstrip('.') or urllib.parse.urlparse(url).hostname,
+            'expires': int_or_none(cookie.expires, invscale=1000),
+            'hostOnly': not cookie.domain_initial_dot,
+            'secure': bool(cookie.secure),
+            'path': cookie.path,
+        } for cookie in cookies if cookie.value]})
+
+    @staticmethod
+    def apply_cookies(cookiejar: YoutubeDLCookieJar | None, cookies: list[dict]):
+        """apply cookies from serialized tough-cookie"""
+        # see serialize_cookie
+        if not cookiejar:
+            return
+        for cookie_dict in cookies:
+            if not all(cookie_dict.get(k) for k in ('key', 'value', 'domain')):
+                continue
+            if cookie_dict.get('hostOnly'):
+                cookie_dict['domain'] = cookie_dict['domain'].lstrip('.')
+            else:
+                cookie_dict['domain'] = '.' + cookie_dict['domain'].lstrip('.')
+
+            cookiejar.set_cookie(http.cookiejar.Cookie(
+                0, cookie_dict['key'], cookie_dict['value'],
+                None, False,
+                cookie_dict['domain'], True, not cookie_dict.get('hostOnly'),
+                cookie_dict.get('path', '/'), True,
+                bool(cookie_dict.get('secure')),
+                unified_timestamp(cookie_dict.get('expires')),
+                False, None, None, {}))
 
     def _ensure_jsdom(self):
         if self._JSDOM_IMPORT:
             return
-        js_file = TempFileWrapper('import { JSDOM } from "https://cdn.esm.sh/jsdom"', suffix='.js')
+        js_file = TempFileWrapper('import jsdom from "https://cdn.esm.sh/jsdom"', suffix='.js')
         cmd = [self.exe, 'run', js_file.name]
         self._run_deno(cmd)
         self._JSDOM_IMPORT = True
 
-    def execute(self, jscode, video_id=None, note='Executing JS in Deno', url=None, html=None):
+    def execute(self, jscode, video_id=None, note='Executing JS in Deno', location='', html='', cookiejar=None):
         self.report_note(video_id, note)
-        if html:
-            self._ensure_jsdom()
-            init_script = '''%s;
-            import { JSDOM } from "https://cdn.esm.sh/jsdom";
-            const dom = new JSDOM(%s);
-            Object.keys(dom.window).forEach((key) => {try {window[key] = dom.window[key]} catch (e) {}});
-            ''' % (self._init_script, json.dumps(html))
-        else:
-            init_script = self._init_script
-        js_file = TempFileWrapper(f'{init_script};\n{jscode}', suffix='.js')
+        self._ensure_jsdom()
+        script = f'''{self._init_script};
+        import jsdom from "https://cdn.esm.sh/jsdom";
+        const callback = (() => {{
+            const jar = jsdom.CookieJar.deserializeSync({json.dumps(self.serialize_cookie(cookiejar, location))});
+            const dom = new jsdom.JSDOM({json.dumps(str(html))}, {{
+                {'url: %s,' % json.dumps(str(location)) if location else ''}
+                cookieJar: jar,
+            }});
+            Object.keys(dom.window).forEach((key) => {{try {{window[key] = dom.window[key]}} catch (e) {{}}}});
+            delete window.jsdom;
+            const stdout = [];
+            const origLog = console.log;
+            console.log = (...msg) => stdout.push(msg.map(m => m.toString()).join(' '));
+            return () => {{ origLog(JSON.stringify({{
+                stdout: stdout.join('\\n'), cookies: jar.serializeSync().cookies}})); }}
+        }})();
+        await (async () => {{
+            {jscode}
+        }})().finally(callback);
+        '''
 
-        location_args = ['--location', url] if url else []
+        js_file = TempFileWrapper(script, suffix='.js')
+
+        location_args = ['--location', location] if location else []
         cmd = [self.exe, 'run', *self._flags, *location_args, js_file.name]
-        return self._run_deno(cmd, video_id=video_id)
+        data = json.loads(self._run_deno(cmd))
+        self.apply_cookies(cookiejar, data['cookies'])
+        return data['stdout']
 
 
 class PuppeteerJSI(ExternalJSI):
@@ -464,3 +525,4 @@ class PhantomJSwrapper(ExternalJSI):
 if typing.TYPE_CHECKING:
     from ..YoutubeDL import YoutubeDL
     from ..extractor.common import InfoExtractor
+    from ..cookies import YoutubeDLCookieJar

@@ -15,6 +15,7 @@ _ALL_FEATURES = {
     'wasm',
     'location',
     'dom',
+    'cookies',
 }
 
 
@@ -167,7 +168,7 @@ class JSInterp:
                 msg = f'{msg}. You can try installing one of unavailable JSI: {join_jsi_name(unavailable)}'
         raise ExtractorError(msg)
 
-    @require_features({'url': 'location', 'html': 'dom'})
+    @require_features({'location': 'location', 'html': 'dom', 'cookiejar': 'cookies'})
     def execute(self, jscode: str, video_id: str | None, **kwargs) -> str:
         """
         Execute JS code and return stdout from console.log
@@ -175,23 +176,11 @@ class JSInterp:
         @param {str} jscode: JS code to execute
         @param video_id: video id
         @param note: note
-        @param {str} url: url to set location to, requires `location` feature
+        @param {str} location: url to configure window.location, requires `location` feature
         @param {str} html: html to load as document, requires `dom` feature
+        @param {YoutubeDLCookieJar} cookiejar: cookiejar to set cookies, requires url and `cookies` feature
         """
         return self._dispatch_request('execute', jscode, video_id, **kwargs)
-
-    @require_features({'url': 'location', 'html': 'dom'})
-    def evaluate(self, jscode: str, video_id: str | None, **kwargs) -> typing.Any:
-        """
-        Evaluate JS code and return result
-
-        @param {str} jscode: JS code to execute
-        @param video_id: video id
-        @param note: note
-        @param {str} url: url to set location to, requires `location` feature
-        @param {str} html: html to load as document, requires `dom` feature
-        """
-        return self._dispatch_request('evaluate', jscode, video_id, **kwargs)
 
 
 class JSI(abc.ABC):
