@@ -59,9 +59,11 @@ class PhantomJSJSI(ExternalJSI):
           fs.write({cookies_fn}, JSON.stringify(phantom.cookies), write);
           phantom.exit();
         }};
+        var loaded = false;
         page.onLoadFinished = function(status) {{
-          if(page.url === "") {{
+          if(page.url === "" && !loaded) {{
             page.setContent(fs.read({html_fn}, read), {url});
+            loaded = true;
           }}
           else {{
             JSON.parse(fs.read({cookies_fn}, read)).forEach(function(x) {{
@@ -135,6 +137,10 @@ class PhantomJSJSI(ExternalJSI):
         if 'saveAndExit();' not in jscode:
             raise ExtractorError('`saveAndExit();` not found in `jscode`')
 
+        if cookiejar and not url:
+            self.report_warning('No valid url scope provided, cookiejar is not applied')
+            cookiejar = None
+
         html, inline_scripts = extract_script_tags(html)
         wrapped_scripts = '\n'.join([
             'page.evaluate(function() { try { %s } catch (e) {} });' % inline for inline in inline_scripts])
@@ -157,9 +163,8 @@ class PhantomJSJSI(ExternalJSI):
 
         return new_html, stdout
 
-    def execute(self, jscode, video_id=None,
-                note='Executing JS in PhantomJS', location=None, html='', cookiejar=None):
-        if location:
+    def execute(self, jscode, video_id=None, note='Executing JS in PhantomJS', html='', cookiejar=None):
+        if self._url or html or cookiejar:
             jscode = '''console.log(page.evaluate(function() {
                 var %(std_var)s = [];
                 console.log = function() {
@@ -177,11 +182,7 @@ class PhantomJSJSI(ExternalJSI):
                 'std_var': f'__stdout__values_{random_string()}',
                 'jscode': jscode,
             }
-            return self._execute_html(jscode, location, html, cookiejar, video_id=video_id, note=note)[1].strip()
-        if html:
-            self.report_warning('`location` is required to use `html`')
-        if cookiejar:
-            self.report_warning('`location` and `html` are required to use `cookiejar`')
+            return self._execute_html(jscode, self._url, html, cookiejar, video_id=video_id, note=note)[1].strip()
         return self._execute(jscode, video_id, note=note).strip()
 
 

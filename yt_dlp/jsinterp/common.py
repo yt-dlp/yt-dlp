@@ -8,8 +8,11 @@ from ..extractor.common import InfoExtractor
 from ..utils import (
     classproperty,
     format_field,
+    filter_dict,
     get_exe_version,
     variadic,
+    url_or_none,
+    sanitize_url,
     ExtractorError,
 )
 
@@ -47,7 +50,7 @@ def require_features(param_features: dict[str, str | typing.Iterable[str]]):
 
     def outer(func):
         @functools.wraps(func)
-        def inner(self: JSInterp, *args, **kwargs):
+        def inner(self: JSIWrapper, *args, **kwargs):
             for kw_name, kw_feature in param_features.items():
                 if kw_name in kwargs and not self._features.issuperset(variadic(kw_feature)):
                     raise ExtractorError(f'feature {kw_feature} is required for `{kw_name}` param but not declared')
@@ -56,12 +59,29 @@ def require_features(param_features: dict[str, str | typing.Iterable[str]]):
     return outer
 
 
-class JSInterp:
+class JSIWrapper:
     """
-    Helper class to forward JS interp request to a concrete JSI that supports it.
+    Helper class to forward JS interp request to a JSI that supports it.
+
+    Usage:
+    ```
+    def _real_extract(self, url):
+        ...
+        jsi = JSIWrapper(self, url, features=['js'])
+        result = jsi.execute(jscode, video_id)
+        ...
+    ```
+
+    Features:
+    - `js`: supports js syntax
+    - `wasm`: supports WebAssembly interface
+    - `location`: supports setting window.location
+    - `dom`: supports DOM interface
+    - `cookies`: supports document.cookie read & write
 
     @param dl_or_ie: `YoutubeDL` or `InfoExtractor` instance.
-    @param features: list of features that JSI must support.
+    @param url: setting url context, used by JSI that supports `location` feature
+    @param features: list of features that are necessary for JS interpretation.
     @param only_include: limit JSI to choose from.
     @param exclude: JSI to avoid using.
     @param jsi_params: extra kwargs to pass to `JSI.__init__()` for each JSI, using jsi key as dict key.
@@ -74,6 +94,7 @@ class JSInterp:
     def __init__(
         self,
         dl_or_ie: YoutubeDL | InfoExtractor,
+        url: str,
         features: typing.Iterable[str] = [],
         only_include: typing.Iterable[str | type[JSI]] = [],
         exclude: typing.Iterable[str | type[JSI]] = [],
@@ -84,7 +105,10 @@ class JSInterp:
         user_agent: str | None = None,
     ):
         self._downloader: YoutubeDL = dl_or_ie._downloader if isinstance(dl_or_ie, InfoExtractor) else dl_or_ie
+        self._url = sanitize_url(url_or_none(url)) or ''
         self._features = set(features)
+        if url and not self._url:
+            self.report_warning(f'Invalid URL: "{url}", using empty string instead')
 
         if unsupported_features := self._features - _ALL_FEATURES:
             raise ExtractorError(f'Unsupported features: {unsupported_features}, allowed features: {_ALL_FEATURES}')
@@ -97,18 +121,12 @@ class JSInterp:
                          f'included: {get_jsi_keys(only_include) or "all"}, excluded: {get_jsi_keys(exclude)}')
 
         self._handler_dict = {
-            cls.JSI_KEY: cls(self._downloader, timeout=timeout, features=self._features, user_agent=user_agent,
+            cls.JSI_KEY: cls(self._downloader, url=self._url, timeout=timeout,
+                             features=self._features, user_agent=user_agent,
                              **jsi_params.get(cls.JSI_KEY, {})) for cls in handler_classes}
         self.preferences: set[JSIPreference] = {order_to_pref(preferred_order, 100)} | _JSI_PREFERENCES
         self._fallback_jsi = get_jsi_keys(handler_classes) if fallback_jsi == 'all' else get_jsi_keys(fallback_jsi)
         self._is_test = self._downloader.params.get('test', False)
-
-    def add_handler(self, handler: JSI):
-        """Add a handler. If a handler of the same JSI_KEY exists, it will overwrite it"""
-        assert isinstance(handler, JSI), 'handler must be a JSI instance'
-        if not handler._SUPPORTED_FEATURES.issuperset(self._features):
-            raise ExtractorError(f'{handler.JSI_NAME} does not support all required features: {self._features}')
-        self._handler_dict[handler.JSI_KEY] = handler
 
     def write_debug(self, message, only_once=False):
         return self._downloader.write_debug(f'[JSIDirector] {message}', only_once=only_once)
@@ -178,17 +196,22 @@ class JSInterp:
         raise ExtractorError(msg)
 
     @require_features({'location': 'location', 'html': 'dom', 'cookiejar': 'cookies'})
-    def execute(self, jscode: str, video_id: str | None, **kwargs) -> str:
+    def execute(self, jscode: str, video_id: str | None, note: str | None = None,
+                html: str | None = None, cookiejar: YoutubeDLCookieJar | None = None) -> str:
         """
         Execute JS code and return stdout from console.log
 
-        @param {str} jscode: JS code to execute
-        @param video_id: video id
-        @param note: note
-        @param {str} location: url to configure window.location, requires `location` feature
-        @param {str} html: html to load as document, requires `dom` feature
-        @param {YoutubeDLCookieJar} cookiejar: cookiejar to set cookies, requires url and `cookies` feature
+        @param jscode: JS code to execute
+        @param video_id
+        @param note
+        @param html: html to load as document, requires `dom` feature
+        @param cookiejar: cookiejar to read and set cookies, requires `cookies` feature, pass `InfoExtractor.cookiejar` if you want to read and write cookies
         """
+        kwargs = filter_dict({
+            'note': note,
+            'html': html,
+            'cookiejar': cookiejar,
+        })
         return self._dispatch_request('execute', jscode, video_id, **kwargs)
 
 
@@ -196,10 +219,11 @@ class JSI(abc.ABC):
     _SUPPORTED_FEATURES: set[str] = set()
     _BASE_PREFERENCE: int = 0
 
-    def __init__(self, downloader: YoutubeDL, timeout: float | int, features: set[str], user_agent=None):
+    def __init__(self, downloader: YoutubeDL, url: str, timeout: float | int, features: set[str], user_agent=None):
         if not self._SUPPORTED_FEATURES.issuperset(features):
             raise ExtractorError(f'{self.JSI_NAME} does not support all required features: {features}')
         self._downloader = downloader
+        self._url = url
         self.timeout = timeout
         self.features = features
         self.user_agent: str = user_agent or self._downloader.params['http_headers']['User-Agent']
@@ -275,6 +299,7 @@ def _base_preference(handler: JSI, *args):
 
 if typing.TYPE_CHECKING:
     from ..YoutubeDL import YoutubeDL
+    from ..cookies import YoutubeDLCookieJar
     JsiClass = typing.TypeVar('JsiClass', bound=type[JSI])
 
     class JSIPreference(typing.Protocol):

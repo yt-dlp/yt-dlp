@@ -50,9 +50,9 @@ class DenoJSI(ExternalJSI):
             self.report_warning(f'JS console error msg:\n{stderr.strip()}')
         return stdout.strip()
 
-    def execute(self, jscode, video_id=None, note='Executing JS in Deno', location=None):
+    def execute(self, jscode, video_id=None, note='Executing JS in Deno'):
         self.report_note(video_id, note)
-        location_args = ['--location', location] if location else []
+        location_args = ['--location', self._url] if self._url else []
         with TempFileWrapper(f'{self._init_script};\n{self._override_navigator_js}\n{jscode}', suffix='.js') as js_file:
             cmd = [self.exe, 'run', *self._flags, *location_args, js_file.name]
             return self._run_deno(cmd)
@@ -128,21 +128,25 @@ class DenoJSDomJSI(DenoJSI):
             self._run_deno(cmd)
         self._JSDOM_IMPORT_CHECKED = True
 
-    def execute(self, jscode, video_id=None, note='Executing JS in Deno', location='', html='', cookiejar=None):
+    def execute(self, jscode, video_id=None, note='Executing JS in Deno', html='', cookiejar=None):
         self.report_note(video_id, note)
         self._ensure_jsdom()
-        callback_varname = f'__callback_{random_string()}'
+
+        if cookiejar and not self._url:
+            self.report_warning('No valid url scope provided, cookiejar is not applied')
+            cookiejar = None
 
         html, inline_scripts = extract_script_tags(html)
         wrapper_scripts = '\n'.join(['try { %s } catch (e) {}' % script for script in inline_scripts])
 
+        callback_varname = f'__callback_{random_string()}'
         script = f'''{self._init_script};
         {self._override_navigator_js};
         import jsdom from "{self._JSDOM_URL}";
         let {callback_varname} = (() => {{
-            const jar = jsdom.CookieJar.deserializeSync({json.dumps(self.serialize_cookie(cookiejar, location))});
+            const jar = jsdom.CookieJar.deserializeSync({json.dumps(self.serialize_cookie(cookiejar, self._url))});
             const dom = new jsdom.JSDOM({json.dumps(str(html))}, {{
-                {'url: %s,' % json.dumps(str(location)) if location else ''}
+                {'url: %s,' % json.dumps(str(self._url)) if self._url else ''}
                 cookieJar: jar,
             }});
             Object.keys(dom.window).forEach((key) => {{try {{window[key] = dom.window[key]}} catch (e) {{}}}});
@@ -166,7 +170,7 @@ class DenoJSDomJSI(DenoJSI):
         }}
         '''
 
-        location_args = ['--location', location] if location else []
+        location_args = ['--location', self._url] if self._url else []
         with TempFileWrapper(script, suffix='.js') as js_file:
             cmd = [self.exe, 'run', *self._flags, *location_args, js_file.name]
             result = self._run_deno(cmd)

@@ -56,47 +56,44 @@ class Base:
 
         def setUp(self):
             self.ydl = FakeYDL()
-            self.jsi = self._JSI_CLASS(self.ydl, 19, {})
-            if not self.jsi_available():
+            self.url = ''
+            if not self._JSI_CLASS.exe_version:
+                print(f'{self._JSI_CLASS.__name__} is not installed, skipping')
                 self.skipTest('Not available')
 
-        def jsi_available(self):
-            return self._JSI_CLASS and self._JSI_CLASS.exe_version
+        @property
+        def jsi(self):
+            return self._JSI_CLASS(self.ydl, self.url, 10, {})
 
         def test_execute(self):
             self.assertEqual(self.jsi.execute('console.log("Hello, world!");'), 'Hello, world!')
 
         def test_execute_dom_parse(self):
             if 'dom' not in self.jsi._SUPPORTED_FEATURES:
+                print(f'{self._JSI_CLASS.__name__} does not support DOM, skipping')
                 self.skipTest('DOM not supported')
             self.assertEqual(self.jsi.execute(
                 'console.log(document.getElementById("test-div").innerHTML);',
-                location='https://example.com',
                 html='<html><body><div id="test-div">Hello, world!</div></body></html>'),
                 'Hello, world!')
 
         def test_execute_dom_script(self):
             if 'dom' not in self.jsi._SUPPORTED_FEATURES:
+                print(f'{self._JSI_CLASS.__name__} does not support DOM, skipping')
                 self.skipTest('DOM not supported')
             self.assertEqual(self.jsi.execute(
                 'console.log(document.getElementById("test-div").innerHTML);',
-                location='https://example.com',
                 html='''<html><body>
                     <div id="test-div"></div>
-                    <script src="https://example.com/script.js"></script>
-                    <script type="text/javascript">
+                    <script>
                         document.getElementById("test-div").innerHTML = "Hello, world!"
                         console.log('this should not show up');
                     </script>
                 </body></html>'''),
                 'Hello, world!')
 
-        def test_execute_dom_script_with_error(self):
-            if 'dom' not in self.jsi._SUPPORTED_FEATURES:
-                self.skipTest('DOM not supported')
             self.assertEqual(self.jsi.execute(
                 'console.log(document.getElementById("test-div").innerHTML);',
-                location='https://example.com',
                 html='''<html><body>
                     <div id="test-div"></div>
                     <script src="https://example.com/script.js"></script>
@@ -108,20 +105,20 @@ class Base:
                 </body></html>'''),
                 'Hello, world!')
 
-        def assert_cookiejar_equal(self, cookiejar: http.cookiejar.CookieJar, ref_cookiejar: http.cookiejar.CookieJar):
-            for cookie in cookiejar:
-                ref_cookie = next((c for c in ref_cookiejar if c.name == cookie.name and c.domain == cookie.domain), None)
-                self.assertEqual(repr(cookie), repr(ref_cookie))
-
-        def assert_cookie_str_equal(self, cookie_str, ref_cookie_str):
-            print([cookie_str, ref_cookie_str])
-            self.assertEqual(set(cookie_str.split('; ')), set(ref_cookie_str.split('; ')))
-
         def test_execute_cookiejar(self):
             if 'cookies' not in self.jsi._SUPPORTED_FEATURES:
+                print(f'{self._JSI_CLASS.__name__} does not support cookies, skipping')
                 self.skipTest('Cookies not supported')
             cookiejar = YoutubeDLCookieJar()
             ref_cookiejar = YoutubeDLCookieJar()
+
+            def _assert_expected_execute(cookie_str, ref_cookie_str):
+                self.assertEqual(set(cookie_str.split('; ')), set(ref_cookie_str.split('; ')))
+                for cookie in cookiejar:
+                    ref_cookie = next((c for c in ref_cookiejar if c.name == cookie.name
+                                       and c.domain == cookie.domain), None)
+                    self.assertEqual(repr(cookie), repr(ref_cookie))
+
             for test_cookie in [
                 NetscapeFields('test1', 'test1', '.example.com', '/', False, int(time.time()) + 1000),
                 NetscapeFields('test2', 'test2', '.example.com', '/', True, int(time.time()) + 1000),
@@ -137,23 +134,20 @@ class Base:
                 ref_cookiejar.set_cookie(test_cookie.to_cookie())
 
             # test identity without modification from js
-            self.assert_cookie_str_equal(self.jsi.execute(
-                'console.log(document.cookie);',
-                location='http://example.com/123/456',
-                html='<html><body><div id="test-div">Hello, world!</div></body></html>',
-                cookiejar=cookiejar),
+            self.url = 'http://example.com/123/456'
+            _assert_expected_execute(self.jsi.execute(
+                'console.log(document.cookie);', cookiejar=cookiejar),
                 'test1=test1; test3=test3')
-            self.assert_cookiejar_equal(cookiejar, ref_cookiejar)
 
             # test modification of existing cookie from js
             new_cookie_1 = NetscapeFields('test1', 'new1', '.example.com', '/', True, int(time.time()) + 900)
             new_cookie_2 = NetscapeFields('test2', 'new2', '.example.com', '/', True, int(time.time()) + 900)
             ref_cookiejar.set_cookie(new_cookie_1.to_cookie())
             ref_cookiejar.set_cookie(new_cookie_2.to_cookie())
-            self.assert_cookie_str_equal(self.jsi.execute(
+            self.url = 'https://example.com/123/456'
+            _assert_expected_execute(self.jsi.execute(
                 f'''document.cookie = "test1=new1; secure; expires={new_cookie_1.expire_str()}; domain=.example.com; path=/";
                 console.log(document.cookie);''',
-                location='https://example.com/123/456',
                 html=f'''<html><body><div id="test-div">Hello, world!</div>
                     <script>
                         document.cookie = "test2=new2; secure; expires={new_cookie_2.expire_str()}; domain=.example.com; path=/";
@@ -161,7 +155,6 @@ class Base:
                 </body></html>''',
                 cookiejar=cookiejar),
                 'test1=new1; test2=new2; test3=test3; test5=test5')
-            self.assert_cookiejar_equal(cookiejar, ref_cookiejar)
 
 
 class TestDeno(Base.TestExternalJSI):
