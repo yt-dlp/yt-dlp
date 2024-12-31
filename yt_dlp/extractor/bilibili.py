@@ -1299,7 +1299,7 @@ class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
 
 
 class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)/?\?type=season\b'
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)/?(\?type=season\b|#|\??$)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/2142762/lists/3662502?type=season',
         'info_dict': {
@@ -1313,6 +1313,9 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
             'thumbnail': 'https://archive.biliimg.com/bfs/archive/22302e17dc849dd4533606d71bc89df162c3a9bf.jpg',
         },
         'playlist_mincount': 62,
+    }, {
+        'url': 'https://space.bilibili.com/2142762/lists/3662502',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
