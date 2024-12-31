@@ -1299,20 +1299,20 @@ class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
 
 
 class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail/?\?sid=(?P<sid>\d+)'
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)/?\?type=season\b'
     _TESTS = [{
-        'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
+        'url': 'https://space.bilibili.com/2142762/lists/3662502?type=season',
         'info_dict': {
-            'id': '2142762_57445',
-            'title': '【完结】《底特律 变人》全结局流程解说',
-            'description': '',
+            'id': '2142762_3662502',
+            'title': '合集·《黑神话悟空》流程解说',
+            'description': '黑神话悟空 相关节目',
             'uploader': '老戴在此',
             'uploader_id': '2142762',
             'timestamp': int,
             'upload_date': str,
-            'thumbnail': 'https://archive.biliimg.com/bfs/archive/e0e543ae35ad3df863ea7dea526bc32e70f4c091.jpg',
+            'thumbnail': 'https://archive.biliimg.com/bfs/archive/22302e17dc849dd4533606d71bc89df162c3a9bf.jpg',
         },
-        'playlist_mincount': 31,
+        'playlist_mincount': 62,
     }]
 
     def _real_extract(self, url):
@@ -1321,8 +1321,8 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
 
         def fetch_page(page_idx):
             return self._download_json(
-                'https://api.bilibili.com/x/polymer/space/seasons_archives_list',
-                playlist_id, note=f'Downloading page {page_idx}',
+                'https://api.bilibili.com/x/polymer/web-space/seasons_archives_list',
+                playlist_id, note=f'Downloading page {page_idx}', headers={'Referer': url},
                 query={'mid': mid, 'season_id': sid, 'page_num': page_idx + 1, 'page_size': 30})['data']
 
         def get_metadata(page_data):
@@ -1349,9 +1349,9 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
 
 
 class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/seriesdetail/?\?\bsid=(?P<sid>\d+)'
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)/?\?type=series\b'
     _TESTS = [{
-        'url': 'https://space.bilibili.com/1958703906/channel/seriesdetail?sid=547718&ctype=0',
+        'url': 'https://space.bilibili.com/1958703906/lists/547718?type=series',
         'info_dict': {
             'id': '1958703906_547718',
             'title': '直播回放',
@@ -1382,7 +1382,7 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
         def fetch_page(page_idx):
             return self._download_json(
                 'https://api.bilibili.com/x/series/archives',
-                playlist_id, note=f'Downloading page {page_idx}',
+                playlist_id, note=f'Downloading page {page_idx}', headers={'Referer': url},
                 query={'mid': mid, 'series_id': sid, 'pn': page_idx + 1, 'ps': 30})['data']
 
         def get_metadata(page_data):
