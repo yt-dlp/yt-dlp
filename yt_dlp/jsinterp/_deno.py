@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import http.cookiejar
 import json
-import re
 import subprocess
 import typing
 import urllib.parse
@@ -16,7 +15,7 @@ from ..utils import (
     shell_quote,
     unified_timestamp,
 )
-from ._helper import TempFileWrapper, random_string
+from ._helper import TempFileWrapper, random_string, override_navigator_js, extract_script_tags
 from .common import ExternalJSI, register_jsi
 
 
@@ -36,15 +35,7 @@ class DenoJSI(ExternalJSI):
 
     @property
     def _override_navigator_js(self):
-        return '\n'.join([
-            'Object.defineProperty(navigator, "%s", { value: %s, configurable: true });' % (k, json.dumps(v))
-            for k, v in {
-                'userAgent': self.user_agent,
-                'language': 'en-US',
-                'languages': ['en-US'],
-                'webdriver': False,
-            }.items()
-        ])
+        return override_navigator_js(self.user_agent)
 
     def _run_deno(self, cmd):
         self.write_debug(f'Deno command line: {shell_quote(cmd)}')
@@ -137,21 +128,13 @@ class DenoJSDomJSI(DenoJSI):
             self._run_deno(cmd)
         self._JSDOM_IMPORT_CHECKED = True
 
-    def _parse_script_tags(self, html: str):
-        for match_start in re.finditer(r'<script[^>]*>', html, re.DOTALL):
-            end = html.find('</script>', match_start.end())
-            if end > match_start.end():
-                yield html[match_start.end():end]
-
     def execute(self, jscode, video_id=None, note='Executing JS in Deno', location='', html='', cookiejar=None):
         self.report_note(video_id, note)
         self._ensure_jsdom()
         callback_varname = f'__callback_{random_string()}'
 
-        inline_scripts = '\n'.join([
-            'try { %s } catch (e) {}' % script
-            for script in self._parse_script_tags(html)
-        ])
+        html, inline_scripts = extract_script_tags(html)
+        wrapper_scripts = '\n'.join(['try { %s } catch (e) {}' % script for script in inline_scripts])
 
         script = f'''{self._init_script};
         {self._override_navigator_js};
@@ -164,27 +147,33 @@ class DenoJSDomJSI(DenoJSI):
             }});
             Object.keys(dom.window).forEach((key) => {{try {{window[key] = dom.window[key]}} catch (e) {{}}}});
             delete window.jsdom;
+            const origLog = console.log;
+            console.log = () => {{}};
+            console.info = () => {{}};
             return () => {{
                 const stdout = [];
-                const origLog = console.log;
                 console.log = (...msg) => stdout.push(msg.map(m => m.toString()).join(' '));
                 return () => {{ origLog(JSON.stringify({{
                     stdout: stdout.join('\\n'), cookies: jar.serializeSync().cookies}})); }}
             }}
         }})();
-        await (async () => {{
-            {inline_scripts}
-        }})();
-        {callback_varname} = {callback_varname}();
-        await (async () => {{
+        {wrapper_scripts}
+        {callback_varname} = {callback_varname}(); // begin to capture console.log
+        try {{
             {jscode}
-        }})().finally({callback_varname});
+        }} finally {{
+            {callback_varname}();
+        }}
         '''
 
         location_args = ['--location', location] if location else []
         with TempFileWrapper(script, suffix='.js') as js_file:
             cmd = [self.exe, 'run', *self._flags, *location_args, js_file.name]
-            data = json.loads(self._run_deno(cmd))
+            result = self._run_deno(cmd)
+            try:
+                data = json.loads(result)
+            except json.JSONDecodeError as e:
+                raise ExtractorError(f'Failed to parse JSON output from Deno: {result}', cause=e)
         self.apply_cookies(cookiejar, data['cookies'])
         return data['stdout']
 

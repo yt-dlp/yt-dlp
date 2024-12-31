@@ -1,7 +1,9 @@
 from __future__ import annotations
 import contextlib
+import json
 import os
 import random
+import re
 import string
 import tempfile
 
@@ -69,3 +71,31 @@ class TempFileWrapper:
 
 def random_string(length: int = 10) -> str:
     return ''.join(random.choices(string.ascii_letters, k=length))
+
+
+def override_navigator_js(user_agent: str) -> str:
+    return '\n'.join([
+        'Object.defineProperty(navigator, "%s", { value: %s, configurable: true });' % (k, json.dumps(v))
+        for k, v in {
+            'userAgent': user_agent,
+            'language': 'en-US',
+            'languages': ['en-US'],
+            'webdriver': False,
+        }.items()
+    ])
+
+
+def extract_script_tags(html: str) -> tuple[str, list[str]]:
+    script_indicies = []
+    inline_scripts = []
+
+    for match_start in re.finditer(r'<script[^>]*>', html, re.DOTALL):
+        end = html.find('</script>', match_start.end())
+        if end > match_start.end():
+            script_indicies.append((match_start.start(), end + len('</script>')))
+            inline_scripts.append(html[match_start.end():end])
+
+    for start, end in script_indicies:
+        html = html[:start] + html[end:]
+
+    return html, inline_scripts

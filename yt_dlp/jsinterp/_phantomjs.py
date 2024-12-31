@@ -16,7 +16,7 @@ from ..utils import (
     is_outdated_version,
     shell_quote,
 )
-from ._helper import TempFileWrapper, random_string
+from ._helper import TempFileWrapper, random_string, extract_script_tags
 from .common import ExternalJSI, register_jsi
 
 
@@ -135,19 +135,23 @@ class PhantomJSJSI(ExternalJSI):
         if 'saveAndExit();' not in jscode:
             raise ExtractorError('`saveAndExit();` not found in `jscode`')
 
+        html, inline_scripts = extract_script_tags(html)
+        wrapped_scripts = '\n'.join([
+            'page.evaluate(function() { try { %s } catch (e) {} });' % inline for inline in inline_scripts])
+
         html_file = TempFileWrapper(html, suffix='.html')
         cookie_file = TempFileWrapper(self._save_cookies(url, cookiejar), suffix='.json')
 
-        jscode = self._TEMPLATE.format_map({
+        script = self._TEMPLATE.format_map({
             'url': json.dumps(str(url)),
             'ua': json.dumps(str(self.user_agent)),
-            'jscode': jscode,
+            'jscode': f'{wrapped_scripts}\n{jscode}',
             'html_fn': json.dumps(html_file.name),
             'cookies_fn': json.dumps(cookie_file.name),
             'timeout': int(self.timeout * 1000),
         })
 
-        stdout = self._execute(jscode, video_id, note=note)
+        stdout = self._execute(script, video_id, note=note)
         self._load_cookies(cookie_file.read(), cookiejar)
         new_html = html_file.read()
 
