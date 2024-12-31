@@ -301,6 +301,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         session = RequestsSession()
         http_adapter = RequestsHTTPAdapter(
             ssl_context=self._make_sslcontext(legacy_ssl_support=legacy_ssl_support),
+            proxy_ssl_context=self._make_proxy_sslcontext(),
             source_address=self.source_address,
             max_retries=urllib3.util.retry.Retry(False),
         )

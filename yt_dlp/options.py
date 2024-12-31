@@ -792,6 +792,20 @@ def create_parser():
         help='Password for client certificate private key, if encrypted. '
              'If not provided, and the key is encrypted, yt-dlp will ask interactively')
 
+    authentication.add_option(
+        '--proxy-client-certificate',
+        dest='proxy_client_certificate', metavar='CERTFILE',
+        help='Path to client certificate file in PEM format for HTTPS proxy. May include the private key')
+    authentication.add_option(
+        '--proxy-client-certificate-key',
+        dest='proxy_client_certificate_key', metavar='KEYFILE',
+        help='Path to private key file for client certificate for HTTPS proxy')
+    authentication.add_option(
+        '--proxy-client-certificate-password',
+        dest='proxy_client_certificate_password', metavar='PASSWORD',
+        help='Password for client certificate private key, if encrypted, for HTTPS proxy. '
+             'If not provided, and the key is encrypted, yt-dlp will ask interactively')
+
     video_format = optparse.OptionGroup(parser, 'Video Format Options')
     video_format.add_option(
         '-f', '--format',
@@ -1096,6 +1110,10 @@ def create_parser():
         '--no-check-certificates',
         action='store_true', dest='no_check_certificate', default=False,
         help='Suppress HTTPS certificate validation')
+    workarounds.add_option(
+        '--proxy-no-check-certificates',
+        action='store_true', dest='proxy_no_check_certificate', default=False,
+        help='Suppress HTTPS Proxy certificate validation')
     workarounds.add_option(
         '--prefer-insecure', '--prefer-unsecure',
         action='store_true', dest='prefer_insecure',
