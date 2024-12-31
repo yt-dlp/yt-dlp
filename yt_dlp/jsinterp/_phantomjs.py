@@ -198,7 +198,7 @@ class PhantomJSwrapper:
         return PhantomJSJSI.exe_version
 
     def __init__(self, extractor: InfoExtractor, required_version=None, timeout=10000):
-        self._jsi = PhantomJSJSI(extractor._downloader, timeout=timeout / 1000)
+        self._jsi = PhantomJSJSI(extractor._downloader, '', timeout / 1000, {})
 
         if not self._jsi.is_available():
             raise ExtractorError(f'PhantomJS not found, {self.INSTALL_HINT}', expected=True)

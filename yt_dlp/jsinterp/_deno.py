@@ -70,6 +70,7 @@ class DenoJITlessJSI(DenoJSI):
         return DenoJSI.exe_version
 
 
+@register_jsi
 class DenoJSDomJSI(DenoJSI):
     _SUPPORTED_FEATURES = {'js', 'wasm', 'location', 'dom', 'cookies'}
     _BASE_PREFERENCE = 4
@@ -128,7 +129,7 @@ class DenoJSDomJSI(DenoJSI):
             self._run_deno(cmd)
         self._JSDOM_IMPORT_CHECKED = True
 
-    def execute(self, jscode, video_id=None, note='Executing JS in Deno', html='', cookiejar=None):
+    def execute(self, jscode, video_id=None, note='Executing JS in Deno with jsdom', html='', cookiejar=None):
         self.report_note(video_id, note)
         self._ensure_jsdom()
 
@@ -148,15 +149,35 @@ class DenoJSDomJSI(DenoJSI):
             const dom = new jsdom.JSDOM({json.dumps(str(html))}, {{
                 {'url: %s,' % json.dumps(str(self._url)) if self._url else ''}
                 cookieJar: jar,
+                pretendToBeVisual: true,
             }});
-            Object.keys(dom.window).forEach((key) => {{try {{window[key] = dom.window[key]}} catch (e) {{}}}});
+            Object.keys(dom.window).filter(key => !['atob', 'btoa'].includes(key)).forEach((key) => {{
+                try {{window[key] = dom.window[key]}} catch (e) {{}}
+            }});
+
+            window.screen = {{
+                availWidth: 1920,
+                availHeight: 1040,
+                width: 1920,
+                height: 1080,
+                colorDepth: 24,
+                isExtended: true,
+                onchange: null,
+                orientation: {{angle: 0, type: 'landscape-primary', onchange: null}},
+                pixelDepth: 24,
+                width: 1920,
+            }}
+            Object.defineProperty(document.body, 'clientWidth', {{value: 1903}});
+            Object.defineProperty(document.body, 'clientHeight', {{value: 1035}});
+            document.domain = location.hostname;
+
             delete window.jsdom;
             const origLog = console.log;
             console.log = () => {{}};
             console.info = () => {{}};
             return () => {{
                 const stdout = [];
-                console.log = (...msg) => stdout.push(msg.map(m => m.toString()).join(' '));
+                console.log = (...msg) => stdout.push(msg.map(m => '' + m).join(' '));
                 return () => {{ origLog(JSON.stringify({{
                     stdout: stdout.join('\\n'), cookies: jar.serializeSync().cookies}})); }}
             }}

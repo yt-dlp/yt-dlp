@@ -81,6 +81,16 @@ def override_navigator_js(user_agent: str) -> str:
             'language': 'en-US',
             'languages': ['en-US'],
             'webdriver': False,
+            'cookieEnabled': True,
+            'appCodeName': user_agent.split('/', maxsplit=1)[0],
+            'appName': 'Netscape',
+            'appVersion': user_agent.split('/', maxsplit=1)[-1],
+            'platform': 'Win32',
+            'product': 'Gecko',
+            'productSub': '20030107',
+            'vendor': 'Google Inc.',
+            'vendorSub': '',
+            'onLine': True,
         }.items()
     ])
 
