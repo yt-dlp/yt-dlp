@@ -142,7 +142,6 @@ class DenoJSDomJSI(DenoJSI):
 
         callback_varname = f'__callback_{random_string()}'
         script = f'''{self._init_script};
-        {self._override_navigator_js};
         import jsdom from "{self._JSDOM_URL}";
         let {callback_varname} = (() => {{
             const jar = jsdom.CookieJar.deserializeSync({json.dumps(self.serialize_cookie(cookiejar, self._url))});
@@ -151,9 +150,12 @@ class DenoJSDomJSI(DenoJSI):
                 cookieJar: jar,
                 pretendToBeVisual: true,
             }});
-            Object.keys(dom.window).filter(key => !['atob', 'btoa'].includes(key)).forEach((key) => {{
-                try {{window[key] = dom.window[key]}} catch (e) {{}}
+            Object.keys(dom.window).filter(key => !['atob', 'btoa', 'crypto', 'location'].includes(key))
+            .filter(key => !(window.location? [] : ['sessionStorage', 'localStorage']).includes(key))
+            .forEach((key) => {{
+                try {{window[key] = dom.window[key]}} catch (e) {{ console.error(e) }}
             }});
+            {self._override_navigator_js};
 
             window.screen = {{
                 availWidth: 1920,
@@ -168,8 +170,8 @@ class DenoJSDomJSI(DenoJSI):
                 width: 1920,
             }}
             Object.defineProperty(document.body, 'clientWidth', {{value: 1903}});
-            Object.defineProperty(document.body, 'clientHeight', {{value: 1035}});
-            document.domain = location.hostname;
+            Object.defineProperty(document.body, 'clientHeight', {{value: 2000}});
+            document.domain = location?.hostname;
 
             delete window.jsdom;
             const origLog = console.log;

@@ -55,18 +55,35 @@ class Base:
         maxDiff = 2000
 
         def setUp(self):
+            print()
             self.ydl = FakeYDL()
-            self.url = ''
+            self.url_param = ''
             if not self._JSI_CLASS.exe_version:
                 print(f'{self._JSI_CLASS.__name__} is not installed, skipping')
                 self.skipTest('Not available')
 
         @property
         def jsi(self):
-            return self._JSI_CLASS(self.ydl, self.url, 10, {})
+            return self._JSI_CLASS(self.ydl, self.url_param, 10, {})
 
         def test_execute(self):
             self.assertEqual(self.jsi.execute('console.log("Hello, world!");'), 'Hello, world!')
+
+        def test_user_agent(self):
+            ua = self.ydl.params['http_headers']['User-Agent']
+            self.assertEqual(self.jsi.execute('console.log(navigator.userAgent);'), ua)
+            self.assertNotEqual(self.jsi.execute('console.log(JSON.stringify(navigator.webdriver));'), 'true')
+
+            jsi = self._JSI_CLASS(self.ydl, self.url_param, 10, {}, user_agent='test/ua')
+            self.assertEqual(jsi.execute('console.log(navigator.userAgent);'), 'test/ua')
+
+        def test_location(self):
+            if 'location' not in self._JSI_CLASS._SUPPORTED_FEATURES:
+                print(f'{self._JSI_CLASS.__name__} does not support location, skipping')
+                self.skipTest('Location not supported')
+            self.url_param = 'https://example.com/123/456'
+            self.assertEqual(self.jsi.execute('console.log(JSON.stringify([location.href, location.hostname]));'),
+                             '["https://example.com/123/456","example.com"]')
 
         def test_execute_dom_parse(self):
             if 'dom' not in self.jsi._SUPPORTED_FEATURES:
@@ -81,29 +98,32 @@ class Base:
             if 'dom' not in self.jsi._SUPPORTED_FEATURES:
                 print(f'{self._JSI_CLASS.__name__} does not support DOM, skipping')
                 self.skipTest('DOM not supported')
+
             self.assertEqual(self.jsi.execute(
                 'console.log(document.getElementById("test-div").innerHTML);',
-                html='''<html><body>
+                html='''<html><head><title>Hello, world!</title><body>
                     <div id="test-div"></div>
-                    <script>
-                        document.getElementById("test-div").innerHTML = "Hello, world!"
+                    <script src="https://example.com/script.js"></script>
+                    <script type="text/javascript">
+                        document.getElementById("test-div").innerHTML = document.title;
                         console.log('this should not show up');
+                        a = b; // Errors should be ignored
                     </script>
                 </body></html>'''),
                 'Hello, world!')
 
+        def test_dom_location(self):
+            if not self._JSI_CLASS._SUPPORTED_FEATURES.issuperset({'dom', 'location'}):
+                print(f'{self._JSI_CLASS.__name__} does not support both DOM and location, skipping')
+                self.skipTest('DOM or location not supported')
+
+            self.url_param = 'https://example.com/123/456'
             self.assertEqual(self.jsi.execute(
                 'console.log(document.getElementById("test-div").innerHTML);',
-                html='''<html><body>
-                    <div id="test-div"></div>
-                    <script src="https://example.com/script.js"></script>
-                    <script type="text/javascript">
-                        document.getElementById("test-div").innerHTML = "Hello, world!"
-                        console.log('this should not show up');
-                        a = b; // Undefined variable assignment
-                    </script>
-                </body></html>'''),
-                'Hello, world!')
+                html='''<html><head><script>
+                document.querySelector("#test-div").innerHTML = document.domain</script></head>
+                <body><div id="test-div">Hello, world!</div></body></html>'''),
+                'example.com')
 
         def test_execute_cookiejar(self):
             if 'cookies' not in self.jsi._SUPPORTED_FEATURES:
@@ -134,7 +154,7 @@ class Base:
                 ref_cookiejar.set_cookie(test_cookie.to_cookie())
 
             # test identity without modification from js
-            self.url = 'http://example.com/123/456'
+            self.url_param = 'http://example.com/123/456'
             _assert_expected_execute(self.jsi.execute(
                 'console.log(document.cookie);', cookiejar=cookiejar),
                 'test1=test1; test3=test3')
@@ -144,7 +164,7 @@ class Base:
             new_cookie_2 = NetscapeFields('test2', 'new2', '.example.com', '/', True, int(time.time()) + 900)
             ref_cookiejar.set_cookie(new_cookie_1.to_cookie())
             ref_cookiejar.set_cookie(new_cookie_2.to_cookie())
-            self.url = 'https://example.com/123/456'
+            self.url_param = 'https://example.com/123/456'
             _assert_expected_execute(self.jsi.execute(
                 f'''document.cookie = "test1=new1; secure; expires={new_cookie_1.expire_str()}; domain=.example.com; path=/";
                 console.log(document.cookie);''',

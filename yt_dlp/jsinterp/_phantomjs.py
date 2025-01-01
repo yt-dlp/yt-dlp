@@ -164,26 +164,24 @@ class PhantomJSJSI(ExternalJSI):
         return new_html, stdout
 
     def execute(self, jscode, video_id=None, note='Executing JS in PhantomJS', html='', cookiejar=None):
-        if self._url or html or cookiejar:
-            jscode = '''console.log(page.evaluate(function() {
-                var %(std_var)s = [];
-                console.log = function() {
-                    var values = '';
-                    for (var i = 0; i < arguments.length; i++) {
-                        values += arguments[i] + ' ';
-                    }
-                    %(std_var)s.push(values);
+        jscode = '''console.log(page.evaluate(function() {
+            var %(std_var)s = [];
+            console.log = function() {
+                var values = '';
+                for (var i = 0; i < arguments.length; i++) {
+                    values += arguments[i] + ' ';
                 }
-                %(jscode)s;
-                return %(std_var)s.join('\\n');
-
-            }));
-            saveAndExit();''' % {
-                'std_var': f'__stdout__values_{random_string()}',
-                'jscode': jscode,
+                %(std_var)s.push(values);
             }
-            return self._execute_html(jscode, self._url, html, cookiejar, video_id=video_id, note=note)[1].strip()
-        return self._execute(jscode, video_id, note=note).strip()
+            %(jscode)s;
+            return %(std_var)s.join('\\n');
+
+        }));
+        saveAndExit();''' % {
+            'std_var': f'__stdout__values_{random_string()}',
+            'jscode': jscode,
+        }
+        return self._execute_html(jscode, self._url, html, cookiejar, video_id=video_id, note=note)[1].strip()
 
 
 class PhantomJSwrapper:

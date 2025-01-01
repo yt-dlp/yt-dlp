@@ -117,7 +117,7 @@ class JSIWrapper:
         self.write_debug(f'Allowed JSI keys: {jsi_keys}')
         handler_classes = [_JSI_HANDLERS[key] for key in jsi_keys
                            if _JSI_HANDLERS[key]._SUPPORTED_FEATURES.issuperset(self._features)]
-        self.write_debug(f'Selected JSI classes for given features: {get_jsi_keys(handler_classes)}, '
+        self.write_debug(f'Select JSI for features={self._features}: {get_jsi_keys(handler_classes)}, '
                          f'included: {get_jsi_keys(only_include) or "all"}, excluded: {get_jsi_keys(exclude)}')
 
         self._handler_dict = {
