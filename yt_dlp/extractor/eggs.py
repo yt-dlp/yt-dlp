@@ -130,7 +130,7 @@ class EggsBaseIE(InfoExtractor):
 class EggsIE(EggsBaseIE):
     IE_NAME = 'eggs:single'
     _VALID_URL = (
-        r'https?://(?:www\.)?eggs\.mu/artist/(?P<artist_id>[^/]+)/song/(?P<song_id>[^/?#&]+)'
+        r'https?://(?:www\.)?eggs\.mu/artist/(?P<artist_id>[^/]+)/song/(?P<song_id>[^/]+)'
     )
     _TESTS = [{
         'url': 'https://eggs.mu/artist/32_sunny_girl/song/0e95fd1d-4d61-4d5b-8b18-6092c551da90',
@@ -154,7 +154,7 @@ class EggsIE(EggsBaseIE):
 class EggsArtistIE(EggsBaseIE):
     IE_NAME = 'eggs:artist'
     _VALID_URL = (
-        r'https?://(?:www\.)?eggs\.mu/artist/(?P<artist_id>[^/?#]+)(?:[/?#].*)?$'
+        r'https?://(?:www\.)?eggs\.mu/artist/(?P<artist_id>[^/]+)'
     )
     _TESTS = [{
         'url': 'https://eggs.mu/artist/32_sunny_girl',
