@@ -635,6 +635,7 @@ class YoutubeDL:
         self._num_downloads = 0
         self._num_videos = 0
         self._playlist_level = 0
+        self._nested_playlist_index = ()
         self._playlist_urls = set()
         self.cache = Cache(self)
         self.__header_cookies = []
@@ -1987,7 +1988,7 @@ class YoutubeDL:
         self.to_screen(f'[download] Downloading {ie_result["_type"]}: {title}')
 
         all_entries = PlaylistEntries(self, ie_result)
-        entries = orderedSet(all_entries.get_requested_items(), lazy=True)
+        entries = orderedSet(all_entries.get_requested_items(self._nested_playlist_index), lazy=True)
 
         lazy = self.params.get('lazy_playlist')
         if lazy:
@@ -2064,10 +2065,13 @@ class YoutubeDL:
                 f'[download] Downloading item {self._format_screen(i + 1, self.Styles.ID)} '
                 f'of {self._format_screen(n_entries, self.Styles.EMPHASIS)}')
 
+            self._nested_playlist_index = (*self._nested_playlist_index, playlist_index)
             entry_result = self.__process_iterable_entry(entry, download, collections.ChainMap({
                 'playlist_index': playlist_index,
                 'playlist_autonumber': i + 1,
             }, extra))
+            self._nested_playlist_index = self._nested_playlist_index[:-1]
+
             if not entry_result:
                 failures += 1
             if failures >= max_failures:

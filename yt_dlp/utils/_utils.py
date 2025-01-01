@@ -2390,6 +2390,23 @@ class InAdvancePagedList(PagedList):
             yield from page_results
 
 
+def index_in_slice_inclusive(idx: int, slice_: slice):
+    start, step, stop = slice_.start, slice_.step, slice_.stop
+    if start is None:
+        start = 0
+    if step is None:
+        step = 1
+    if stop is None or stop == math.inf or stop == -math.inf:
+        if (idx - start) % step != 0:
+            return False
+        if step > 0:
+            return idx >= start and stop != -math.inf
+        else:
+            return idx <= start and stop != math.inf
+    else:
+        return idx in range(start, int(stop) + 1, step)
+
+
 class PlaylistEntries:
     MissingEntry = object()
     is_exhausted = False
@@ -2423,20 +2440,61 @@ class PlaylistEntries:
             (?::(?P<step>[+-]?\d+))?
         )?''')
 
+    NESTED_PLAYLIST_RE = re.compile(r'''(?x)
+        (?:\[
+            (?:[+-]?\d+)?
+            (?:[:-]
+                (?:[+-]?\d+|inf(?:inite)?)?
+                (?::(?:[+-]?\d+))?
+            )?
+        \])+''')
+
+    NESTED_PLAYLIST_SEGMENT_RE = re.compile(r'''(?x)
+        \[
+            (?P<start>[+-]?\d+)?
+            (?P<range>[:-]
+                (?P<end>[+-]?\d+|inf(?:inite)?)?
+                (?::(?P<step>[+-]?\d+))?
+            )?
+        \]''')
+
     @classmethod
-    def parse_playlist_items(cls, string):
+    def parse_playlist_items(cls, string, playlist_index):
         for segment in string.split(','):
             if not segment:
-                raise ValueError('There is two or more consecutive commas')
+                raise ValueError('There are two or more consecutive commas')
             mobj = cls.PLAYLIST_ITEMS_RE.fullmatch(segment)
-            if not mobj:
-                raise ValueError(f'{segment!r} is not a valid specification')
-            start, end, step, has_range = mobj.group('start', 'end', 'step', 'range')
-            if int_or_none(step) == 0:
-                raise ValueError(f'Step in {segment!r} cannot be zero')
-            yield slice(int_or_none(start), float_or_none(end), int_or_none(step)) if has_range else int(start)
+            if mobj:
+                start, end, step, has_range = mobj.group('start', 'end', 'step', 'range')
+                if int_or_none(step) == 0:
+                    raise ValueError(f'Step in {segment!r} cannot be zero')
+                yield slice(int_or_none(start), float_or_none(end), int_or_none(step)) if has_range else int(start)
+                continue
 
-    def get_requested_items(self):
+            if not cls.NESTED_PLAYLIST_RE.fullmatch(segment):
+                raise ValueError(f'{segment!r} is not a valid specification')
+
+            for depth, mobj in enumerate(cls.NESTED_PLAYLIST_SEGMENT_RE.finditer(segment)):
+                start, end, step, has_range = mobj.group('start', 'end', 'step', 'range')
+                if int_or_none(step) == 0:
+                    raise ValueError(f'Step in {segment!r} cannot be zero')
+
+                slice_ = (
+                    slice(int_or_none(start), float_or_none(end), int_or_none(step))
+                    if has_range
+                    else slice(int(start), int(start))
+                )
+
+                if depth == len(playlist_index):
+                    yield slice_
+                    break
+
+                if not index_in_slice_inclusive(playlist_index[depth], slice_):
+                    break
+            else:
+                yield slice(None)
+
+    def get_requested_items(self, playlist_index):
         playlist_items = self.ydl.params.get('playlist_items')
         playlist_start = self.ydl.params.get('playliststart', 1)
         playlist_end = self.ydl.params.get('playlistend')
@@ -2448,7 +2506,7 @@ class PlaylistEntries:
         elif playlist_start != 1 or playlist_end:
             self.ydl.report_warning('Ignoring playliststart and playlistend because playlistitems was given', only_once=True)
 
-        for index in self.parse_playlist_items(playlist_items):
+        for index in self.parse_playlist_items(playlist_items, playlist_index):
             for i, entry in self[index]:
                 yield i, entry
                 if not entry:
