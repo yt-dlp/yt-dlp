@@ -2460,31 +2460,30 @@ class PlaylistEntries:
 
     @classmethod
     def parse_playlist_items(cls, string, playlist_index):
+
+        def slice_from_mobj(segment, mobj):
+            start, end, step, has_range = mobj.group('start', 'end', 'step', 'range')
+            if int_or_none(step) == 0:
+                raise ValueError(f'Step in {segment!r} cannot be zero')
+            return (
+                slice(int_or_none(start), float_or_none(end), int_or_none(step))
+                if has_range
+                else slice(int(start), int(start))
+            )
+
         for segment in string.split(','):
             if not segment:
                 raise ValueError('There are two or more consecutive commas')
             mobj = cls.PLAYLIST_ITEMS_RE.fullmatch(segment)
             if mobj:
-                start, end, step, has_range = mobj.group('start', 'end', 'step', 'range')
-                if int_or_none(step) == 0:
-                    raise ValueError(f'Step in {segment!r} cannot be zero')
-                yield slice(int_or_none(start), float_or_none(end), int_or_none(step)) if has_range else int(start)
+                yield slice_from_mobj(segment, mobj)
                 continue
 
             if not cls.NESTED_PLAYLIST_RE.fullmatch(segment):
                 raise ValueError(f'{segment!r} is not a valid specification')
 
             for depth, mobj in enumerate(cls.NESTED_PLAYLIST_SEGMENT_RE.finditer(segment)):
-                start, end, step, has_range = mobj.group('start', 'end', 'step', 'range')
-                if int_or_none(step) == 0:
-                    raise ValueError(f'Step in {segment!r} cannot be zero')
-
-                slice_ = (
-                    slice(int_or_none(start), float_or_none(end), int_or_none(step))
-                    if has_range
-                    else slice(int(start), int(start))
-                )
-
+                slice_ = slice_from_mobj(segment, mobj)
                 if depth == len(playlist_index):
                     yield slice_
                     break
