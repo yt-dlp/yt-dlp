@@ -964,6 +964,8 @@ class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
             'id': '4110309',
             'title': 'TILT Brass - Bowery Poetry Club, August \'03 [Non-Site SCR 02]',
             'description': 're:.*?TILT Brass - Bowery Poetry Club',
+            'uploader': 'Non-Site Records',
+            'uploader_id': '33660914',
         },
         'playlist_count': 6,
     }]
