@@ -1749,6 +1749,11 @@ def create_parser():
             'You can specify multiple rules using similar syntax as "--remux-video". '
             'Use "--convert-thumbnails none" to disable conversion (default)'))
     postproc.add_option(
+        '--force-convert-thumbnails',
+        dest='force_convert_thumbnails', action='store_true', default=False,
+        help=(
+            'Convert the thumbnails to another format even if it\'s already in this format'))
+    postproc.add_option(
         '--split-chapters', '--split-tracks',
         dest='split_chapters', action='store_true', default=False,
         help=(
