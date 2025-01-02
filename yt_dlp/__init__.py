@@ -431,7 +431,7 @@ def validate_options(opts):
     # Other options
     if opts.playlist_items is not None:
         try:
-            tuple(PlaylistEntries.parse_playlist_items(opts.playlist_items))
+            tuple(PlaylistEntries.parse_playlist_items(opts.playlist_items, ()))
         except Exception as err:
             raise ValueError(f'Invalid playlist-items {opts.playlist_items!r}: {err}')
 

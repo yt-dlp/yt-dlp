@@ -1166,6 +1166,64 @@ class TestYoutubeDL(unittest.TestCase):
         test_selection({'playlist_items': '-15::2'}, INDICES[1::2], True)
         test_selection({'playlist_items': '-15::15'}, [], True)
 
+    def test_playlist_items_selection_nested(self):
+        ENTRIES_PER_PLAYLIST = 5
+        ALL_IDS = [f'{i + 1}-{j + 1}' for i in range(ENTRIES_PER_PLAYLIST) for j in range(ENTRIES_PER_PLAYLIST)]
+
+        def get_downloaded_info_dicts(params, entries):
+            ydl = YDL(params)
+            ydl.process_ie_result({
+                '_type': 'playlist',
+                'id': 'test',
+                'extractor': 'test:playlist',
+                'extractor_key': 'test:playlist',
+                'webpage_url': 'http://example.com',
+                'entries': entries,
+            })
+            return ydl.downloaded_info_dicts
+
+        def generate_entries(depth, cur_index=()):
+            entries = []
+            for i in range(1, ENTRIES_PER_PLAYLIST + 1):
+                idx = (*cur_index, i)
+                name = '-'.join(map(str, idx))
+                if depth == 1:
+                    entries.append({
+                        'id': name,
+                        'title': name,
+                        'url': TEST_URL,
+                    })
+                else:
+                    entries.append({
+                        '_type': 'playlist',
+                        'id': name,
+                        'extractor': 'test:playlist',
+                        'extractor_key': 'test:playlist',
+                        'webpage_url': f'http://example.com/{name}',
+                        'entries': generate_entries(depth - 1, idx),
+                    })
+            return entries
+
+        def test_selection(selection_str, expected_ids, depth=2):
+            entries = generate_entries(depth)
+            ret = get_downloaded_info_dicts({'playlist_items': selection_str}, entries)
+            self.assertEqual([info['id'] for info in ret], expected_ids)
+
+        test_selection('[:]', ALL_IDS)
+        test_selection('[:][:]', ALL_IDS)
+        test_selection('[:][1]', ['1-1', '2-1', '3-1', '4-1', '5-1'])
+        test_selection('[2][:]', ['2-1', '2-2', '2-3', '2-4', '2-5'])
+        test_selection('[3][5]', ['3-5'])
+        test_selection('[1][2],[3][1]', ['1-2', '3-1'])
+        test_selection('[1::2][3::-2]', ['1-3', '1-1', '3-3', '3-1', '5-3', '5-1'])
+        test_selection('[6]', [])
+        test_selection('[:][6]', [])
+        test_selection('[6][:]', [])
+        test_selection('[1:2][1],[1:2][4]', ['1-1', '1-4', '2-1', '2-4'])
+        test_selection('[1][1]', ['1-1-1', '1-1-2', '1-1-3', '1-1-4', '1-1-5'], 3)
+        test_selection('[1][:][1]', ['1-1-1', '1-2-1', '1-3-1', '1-4-1', '1-5-1'], 3)
+        test_selection('[:][:][6]', [], 3)
+
     def test_do_not_override_ie_key_in_url_transparent(self):
         ydl = YDL()
 
