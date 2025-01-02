@@ -638,6 +638,7 @@ def get_postprocessors(opts):
         yield {
             'key': 'FFmpegThumbnailsConvertor',
             'format': opts.convertthumbnails,
+            'force_convert_thumbnails': opts.force_convert_thumbnails,
             'when': 'before_dl',
         }
     if opts.extractaudio:
