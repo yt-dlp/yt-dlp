@@ -567,9 +567,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         pref.update({'hl': self._preferred_lang or 'en', 'tz': 'UTC'})
         self._set_cookie('.youtube.com', name='PREF', value=urllib.parse.urlencode(pref))
 
+    def _initialize_cookie_auth(self):
+        self._load_sid_cookies()
+        if self._SAPISID or self._1PSAPISID or self._3PSAPISID:
+            self.write_debug('Logged in using cookies')
+
     def _real_initialize(self):
         self._initialize_pref()
         self._initialize_consent()
+        self._initialize_cookie_auth()
         self._check_login_required()
 
     def _perform_login(self, username, password):
@@ -800,10 +806,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     @functools.cached_property
     def is_authenticated(self):
-        if bool(self._generate_sid_authorization()):
-            self.write_debug('Logged in using cookies')
-            return True
-        return False
+        return bool(self._generate_sid_authorization())
 
     def extract_ytcfg(self, video_id, webpage):
         if not webpage:
