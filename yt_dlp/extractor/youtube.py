@@ -657,19 +657,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 yt_cookies, ('SAPISID', '__Secure-3PAPISID'))
             if sapisid_cookie and sapisid_cookie.value:
                 self._SAPISID = sapisid_cookie.value
-                self.write_debug('Found SAPISID cookie')
 
         if self._1PSAPISID is None:
             _1papisid_cookie = yt_cookies.get('__Secure-1PAPISID')
             if _1papisid_cookie and _1papisid_cookie.value:
                 self._1PSAPISID = _1papisid_cookie.value
-                self.write_debug('Found 1PAPISID cookie')
 
         if self._3PSAPISID is None:
             _3papisid_cookie = yt_cookies.get('__Secure-3PAPISID')
             if _3papisid_cookie and _3papisid_cookie.value:
                 self._3PSAPISID = _3papisid_cookie.value
-                self.write_debug('Found 3PAPISID cookie')
 
     def _generate_sid_authorization(self, origin='https://www.youtube.com', user_session_id=None):
         """
