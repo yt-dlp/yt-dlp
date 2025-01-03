@@ -627,32 +627,81 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         client_context.update({'hl': self._preferred_lang or 'en', 'timeZone': 'UTC', 'utcOffsetMinutes': 0})
         return context
 
-    _SAPISID = None
+    @staticmethod
+    def _make_sid_authorization(scheme, sid, origin, additional_parts):
+        timestamp = str(round(time.time()))
 
-    def _generate_sapisidhash_header(self, origin='https://www.youtube.com'):
-        time_now = round(time.time())
+        hash_parts = []
+        if additional_parts:
+            hash_parts.append(':'.join(additional_parts.values()))
+        hash_parts.extend([timestamp, sid, origin])
+        sidhash = hashlib.sha1(' '.join(hash_parts).encode()).hexdigest()
+
+        parts = [timestamp, sidhash]
+        if additional_parts:
+            parts.append(''.join(additional_parts.keys()))
+
+        return f'{scheme} {"_".join(parts)}'
+
+    _SAPISID = _3PSAPISID = _1PSAPISID = None
+
+    def _load_sid_cookies(self):
+
+        yt_cookies = self._get_cookies('https://www.youtube.com')
         if self._SAPISID is None:
-            yt_cookies = self._get_cookies('https://www.youtube.com')
             # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
+            # YouTube also falls back to __Secure-3PAPISID if SAPISID is missing.
             # See: https://github.com/yt-dlp/yt-dlp/issues/393
+
             sapisid_cookie = dict_get(
-                yt_cookies, ('__Secure-3PAPISID', 'SAPISID'))
+                yt_cookies, ('SAPISID', '__Secure-3PAPISID'))
             if sapisid_cookie and sapisid_cookie.value:
                 self._SAPISID = sapisid_cookie.value
-                self.write_debug('Extracted SAPISID cookie')
-                # SAPISID cookie is required if not already present
-                if not yt_cookies.get('SAPISID'):
-                    self.write_debug('Copying __Secure-3PAPISID cookie to SAPISID cookie')
-                    self._set_cookie(
-                        '.youtube.com', 'SAPISID', self._SAPISID, secure=True, expire_time=time_now + 3600)
-            else:
-                self._SAPISID = False
-        if not self._SAPISID:
-            return None
-        # SAPISIDHASH algorithm from https://stackoverflow.com/a/32065323
-        sapisidhash = hashlib.sha1(
-            f'{time_now} {self._SAPISID} {origin}'.encode()).hexdigest()
-        return f'SAPISIDHASH {time_now}_{sapisidhash}'
+                self.write_debug('Found SAPISID cookie')
+
+        if self._1PSAPISID is None:
+            _1papisid_cookie = yt_cookies.get('__Secure-1PAPISID')
+            if _1papisid_cookie and _1papisid_cookie.value:
+                self._1PSAPISID = _1papisid_cookie.value
+                self.write_debug('Found 1PAPISID cookie')
+
+        if self._3PSAPISID is None:
+            _3papisid_cookie = yt_cookies.get('__Secure-3PAPISID')
+            if _3papisid_cookie and _3papisid_cookie.value:
+                self._3PSAPISID = _3papisid_cookie.value
+                self.write_debug('Found 3PAPISID cookie')
+
+    def _generate_sid_authorization(self, origin='https://www.youtube.com', user_session_id=None):
+        """
+        Generate API Session ID Authorization for Innertube requests. Assumes all requests are secure (https).
+        @param origin: Origin URL
+        @param user_session_id: Optional User Session ID
+        @return: Authorization header value
+        """
+
+        authorizations = []
+        additional_parts = {}
+        if user_session_id:
+            additional_parts['u'] = user_session_id
+
+        self._load_sid_cookies()
+
+        if self._SAPISID:
+            authorizations.append(
+                self._make_sid_authorization('SAPISIDHASH', self._SAPISID, origin, additional_parts))
+
+        if self._1PSAPISID:
+            authorizations.append(
+                self._make_sid_authorization('SAPISID1PHASH', self._1PSAPISID, origin, additional_parts))
+
+        if self._3PSAPISID:
+            authorizations.append(
+                self._make_sid_authorization('SAPISID3PHASH', self._3PSAPISID, origin, additional_parts))
+
+        if not authorizations:
+            return
+
+        return ' '.join(authorizations)
 
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
                   note='Downloading API JSON', errnote='Unable to download API page',
@@ -688,26 +737,46 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             if session_index is not None:
                 return session_index
 
-    def _data_sync_id_to_delegated_session_id(self, data_sync_id):
-        if not data_sync_id:
-            return
-        # datasyncid is of the form "channel_syncid||user_syncid" for secondary channel
-        # and just "user_syncid||" for primary channel. We only want the channel_syncid
-        channel_syncid, _, user_syncid = data_sync_id.partition('||')
-        if user_syncid:
-            return channel_syncid
-
-    def _extract_account_syncid(self, *args):
+    @staticmethod
+    def _parse_data_sync_id(data_sync_id):
         """
-        Extract current session ID required to download private playlists of secondary channels
+        Parse data_sync_id into delegated_session_id and user_session_id.
+
+        data_sync_id is of the form "delegated_session_id||user_session_id" for secondary channel
+        and just "user_session_id||" for primary channel.
+
+        @param data_sync_id: data_sync_id string
+        @return: Tuple of (delegated_session_id, user_session_id)
+        """
+        if not data_sync_id:
+            return None, None
+        first, _, second = data_sync_id.partition('||')
+        return first if second else None, second if second else first
+
+    def _extract_delegated_session_id(self, *args):
+        """
+        Extract current delegated session ID required to download private playlists of secondary channels
         @params response and/or ytcfg
+        @return: delegated session ID
         """
         # ytcfg includes channel_syncid if on secondary channel
         if delegated_sid := traverse_obj(args, (..., 'DELEGATED_SESSION_ID', {str}, any)):
             return delegated_sid
 
         data_sync_id = self._extract_data_sync_id(*args)
-        return self._data_sync_id_to_delegated_session_id(data_sync_id)
+        return self._parse_data_sync_id(data_sync_id)[0]
+
+    def _extract_user_session_id(self, *args):
+        """
+        Extract current user session ID
+        @params response and/or ytcfg
+        @return: user session ID
+        """
+        if user_sid := traverse_obj(args, (..., 'USER_SESSION_ID', {str}, any)):
+            return user_sid
+
+        data_sync_id = self._extract_data_sync_id(*args)
+        return self._parse_data_sync_id(data_sync_id)[1]
 
     def _extract_data_sync_id(self, *args):
         """
@@ -734,7 +803,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     @functools.cached_property
     def is_authenticated(self):
-        return bool(self._generate_sapisidhash_header())
+        if bool(self._generate_sid_authorization()):
+            self.write_debug('Logged in using cookies')
+            return True
+        return False
 
     def extract_ytcfg(self, video_id, webpage):
         if not webpage:
@@ -746,7 +818,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _generate_cookie_auth_headers(self, *, ytcfg=None, account_syncid=None, session_index=None, origin=None, **kwargs):
         headers = {}
-        account_syncid = account_syncid or self._extract_account_syncid(ytcfg)
+        account_syncid = account_syncid or self._extract_delegated_session_id(ytcfg)
         if account_syncid:
             headers['X-Goog-PageId'] = account_syncid
         if session_index is None:
@@ -754,7 +826,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if account_syncid or session_index is not None:
             headers['X-Goog-AuthUser'] = session_index if session_index is not None else 0
 
-        auth = self._generate_sapisidhash_header(origin)
+        auth = self._generate_sid_authorization(origin, user_session_id=self._extract_user_session_id(ytcfg))
         if auth is not None:
             headers['Authorization'] = auth
             headers['X-Origin'] = origin
@@ -3837,8 +3909,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             visitor_data=visitor_data,
             session_index=self._extract_session_index(master_ytcfg, player_ytcfg),
             account_syncid=(
-                self._data_sync_id_to_delegated_session_id(data_sync_id)
-                or self._extract_account_syncid(master_ytcfg, initial_pr, player_ytcfg)
+                self._parse_data_sync_id(data_sync_id)
+                or self._extract_delegated_session_id(master_ytcfg, initial_pr, player_ytcfg)
             ),
         )
 
@@ -5441,7 +5513,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         return self.playlist_result(
             self._entries(
                 selected_tab, metadata['id'], ytcfg,
-                self._extract_account_syncid(ytcfg, data),
+                self._extract_delegated_session_id(ytcfg, data),
                 self._extract_visitor_data(data, ytcfg)),
             **metadata)
 
@@ -5593,7 +5665,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             watch_endpoint = try_get(
                 playlist, lambda x: x['contents'][-1]['playlistPanelVideoRenderer']['navigationEndpoint']['watchEndpoint'])
             headers = self.generate_api_headers(
-                ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
+                ytcfg=ytcfg, account_syncid=self._extract_delegated_session_id(ytcfg, data),
                 visitor_data=self._extract_visitor_data(response, data, ytcfg))
             query = {
                 'playlistId': playlist_id,
@@ -5691,7 +5763,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if not is_playlist:
             return
         headers = self.generate_api_headers(
-            ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
+            ytcfg=ytcfg, account_syncid=self._extract_delegated_session_id(ytcfg, data),
             visitor_data=self._extract_visitor_data(data, ytcfg))
         query = {
             'params': 'wgYCCAA=',
