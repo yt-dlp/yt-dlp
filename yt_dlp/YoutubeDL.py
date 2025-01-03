@@ -1323,7 +1323,7 @@ class YoutubeDL:
         elif (sys.platform != 'win32' and not self.params.get('restrictfilenames')
                 and self.params.get('windowsfilenames') is False):
             def sanitize(key, value):
-                return value.replace('/', '\u29F8').replace('\0', '')
+                return str(value).replace('/', '\u29F8').replace('\0', '')
         else:
             def sanitize(key, value):
                 return filename_sanitizer(key, value, restricted=self.params.get('restrictfilenames'))
