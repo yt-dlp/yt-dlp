@@ -53,6 +53,18 @@ class TestInfoExtractor(unittest.TestCase):
     def test_ie_key(self):
         self.assertEqual(get_info_extractor(YoutubeIE.ie_key()), YoutubeIE)
 
+    def test_get_netrc_login_info(self):
+        for params in [
+            {'usenetrc': True, 'netrc_location': './test/testdata/netrc/netrc'},
+            {'netrc_cmd': f'{sys.executable} ./test/testdata/netrc/print_netrc.py'},
+        ]:
+            ie = DummyIE(FakeYDL(params))
+            self.assertEqual(ie._get_netrc_login_info(netrc_machine='normal_use'), ('user', 'pass'))
+            self.assertEqual(ie._get_netrc_login_info(netrc_machine='empty_user'), ('', 'pass'))
+            self.assertEqual(ie._get_netrc_login_info(netrc_machine='empty_pass'), ('user', ''))
+            self.assertEqual(ie._get_netrc_login_info(netrc_machine='both_empty'), ('', ''))
+            self.assertEqual(ie._get_netrc_login_info(netrc_machine='nonexistent'), (None, None))
+
     def test_html_search_regex(self):
         html = '<p id="foo">Watch this <a href="http://www.youtube.com/watch?v=BaW_jenozKc">video</a></p>'
         search = lambda re, *args: self.ie._html_search_regex(re, html, *args)
