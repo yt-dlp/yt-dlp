@@ -831,6 +831,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             headers['Authorization'] = auth
             headers['X-Origin'] = origin
 
+        if traverse_obj(ytcfg, 'LOGGED_IN', expected_type=bool):
+            headers['X-Youtube-Bootstrap-Logged-In'] = 'true'
+
         return headers
 
     def generate_api_headers(
@@ -3909,7 +3912,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             visitor_data=visitor_data,
             session_index=self._extract_session_index(master_ytcfg, player_ytcfg),
             account_syncid=(
-                self._parse_data_sync_id(data_sync_id)
+                self._parse_data_sync_id(data_sync_id)[0]
                 or self._extract_delegated_session_id(master_ytcfg, initial_pr, player_ytcfg)
             ),
         )
