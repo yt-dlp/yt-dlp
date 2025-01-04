@@ -24,6 +24,7 @@ class CreateAcademyIE(InfoExtractor):
                 'display_id': 'meet-dan',
                 'chapter': 'Introduction',
                 'chapter_id': '34',
+                'course_id': '10',
                 'chapter_number': 1,
                 'thumbnail': 'https://cf-images.eu-west-1.prod.boltdns.net/v1/static/6222962662001/22f75006-c49f-4d95-8673-1b60df4223d2/45d953e0-fa58-4cb6-9217-1c7b3c80c932/1280x720/match/image.jpg',
             },
@@ -116,6 +117,7 @@ class CreateAcademyIE(InfoExtractor):
             'chapter': section.get('title').strip(),
             'chapter_number': section.get('number'),
             'chapter_id': str(section.get('id')),
+            'course_id': str(traverse_obj(data, ('props', 'course', 'id'))).zfill(2),
         }
 
 
@@ -135,6 +137,7 @@ class CreateAcademyCourseIE(CreateAcademyIE):
                 'file_prefix': 'Create Academy - s10e01',
                 'title': 'Meet Dan',
                 'display_id': 'meet-dan',
+                'course_id': '10',
                 'chapter': 'Introduction',
             },
         },
