@@ -689,17 +689,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         self._load_sid_cookies()
 
-        if self._SAPISID:
-            authorizations.append(
-                self._make_sid_authorization('SAPISIDHASH', self._SAPISID, origin, additional_parts))
-
-        if self._1PSAPISID:
-            authorizations.append(
-                self._make_sid_authorization('SAPISID1PHASH', self._1PSAPISID, origin, additional_parts))
-
-        if self._3PSAPISID:
-            authorizations.append(
-                self._make_sid_authorization('SAPISID3PHASH', self._3PSAPISID, origin, additional_parts))
+        for scheme, sid in (('SAPISIDHASH', self._SAPISID),
+                            ('SAPISID1PHASH', self._1PSAPISID),
+                            ('SAPISID3PHASH', self._3PSAPISID)):
+            if sid:
+                authorizations.append(self._make_sid_authorization(scheme, sid, origin, additional_parts))
 
         if not authorizations:
             return
