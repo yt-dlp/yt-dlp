@@ -681,10 +681,13 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
             entries, playlist_id,
             playlist.get('title'),
             playlist.get('description'),
-            **traverse_obj(playlist, {
+            **(traverse_obj(playlist, {
                 'uploader': ('user', 'username', {str}),
                 'uploader_id': ('user', 'id', {str_or_none}),
-            }),
+                'album': ('title', {str}),
+                'album_artist': ('user', 'username', {str}),
+                'album_type': ('set_type', {str}),
+            })),
         )
 
 
@@ -699,6 +702,9 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
             'description': 'md5:71d07087c7a449e8941a70a29e34671e',
             'uploader': 'The Royal Concept',
             'uploader_id': '9615865',
+            'album': 'The Royal Concept EP',
+            'album_artists': ['The Royal Concept'],
+            'album_type': 'ep',
         },
         'playlist_mincount': 5,
     }, {
@@ -978,6 +984,9 @@ class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
             'description': 're:.*?TILT Brass - Bowery Poetry Club',
             'uploader': 'Non-Site Records',
             'uploader_id': '33660914',
+            'album_artists': ['Non-Site Records'],
+            'album_type': '',
+            'album': 'TILT Brass - Bowery Poetry Club, August \'03 [Non-Site SCR 02]',
         },
         'playlist_count': 6,
     }]
