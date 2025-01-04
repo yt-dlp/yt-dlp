@@ -32,7 +32,6 @@ from ..utils import (
     classproperty,
     clean_html,
     datetime_from_str,
-    dict_get,
     filesize_from_tbr,
     filter_dict,
     float_or_none,
@@ -652,27 +651,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _SAPISID = _3PSAPISID = _1PSAPISID = None
 
     def _load_sid_cookies(self):
-
         yt_cookies = self._get_cookies('https://www.youtube.com')
-        if self._SAPISID is None:
+        yt_sapisid = try_call(lambda: yt_cookies['SAPISID'].value)
+        yt_3papisid = try_call(lambda: yt_cookies['__Secure-3PAPISID'].value)
+
+        if not self._SAPISID:
             # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
             # YouTube also falls back to __Secure-3PAPISID if SAPISID is missing.
             # See: https://github.com/yt-dlp/yt-dlp/issues/393
+            self._SAPISID = yt_sapisid or yt_3papisid
 
-            sapisid_cookie = dict_get(
-                yt_cookies, ('SAPISID', '__Secure-3PAPISID'))
-            if sapisid_cookie and sapisid_cookie.value:
-                self._SAPISID = sapisid_cookie.value
+        if not self._1PSAPISID:
+            self._1PSAPISID = try_call(lambda: yt_cookies['__Secure-1PAPISID'].value)
 
-        if self._1PSAPISID is None:
-            _1papisid_cookie = yt_cookies.get('__Secure-1PAPISID')
-            if _1papisid_cookie and _1papisid_cookie.value:
-                self._1PSAPISID = _1papisid_cookie.value
-
-        if self._3PSAPISID is None:
-            _3papisid_cookie = yt_cookies.get('__Secure-3PAPISID')
-            if _3papisid_cookie and _3papisid_cookie.value:
-                self._3PSAPISID = _3papisid_cookie.value
+        if not self._3PSAPISID:
+            self._3PSAPISID = yt_3papisid
 
     def _generate_sid_authorization(self, origin='https://www.youtube.com', user_session_id=None):
         """
