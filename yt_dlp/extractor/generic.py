@@ -2156,7 +2156,7 @@ class GenericIE(InfoExtractor):
         self._downloader.to_screen(f'[redirect] Following redirect to {new_url}')
         if new_url in self.visited_redirect_urls:
             raise ExtractorError(
-                f"Redirect loop detected for URL: {new_url}",
+                f'Redirect loop detected for URL: {new_url}',
                 expected=True,
             )
         self.visited_redirect_urls.add(new_url)
