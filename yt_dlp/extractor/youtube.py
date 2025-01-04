@@ -696,7 +696,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 authorizations.append(self._make_sid_authorization(scheme, sid, origin, additional_parts))
 
         if not authorizations:
-            return
+            return None
 
         return ' '.join(authorizations)
 
