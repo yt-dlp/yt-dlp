@@ -54,6 +54,7 @@ class GenericIE(InfoExtractor):
     _VALID_URL = r'.*'
     IE_NAME = 'generic'
     _NETRC_MACHINE = False  # Suppress username warning
+    visited_redirect_urls = set()
     _TESTS = [
         # Direct link to a video
         {
@@ -2153,6 +2154,12 @@ class GenericIE(InfoExtractor):
     def report_following_redirect(self, new_url):
         """Report information extraction."""
         self._downloader.to_screen(f'[redirect] Following redirect to {new_url}')
+        if new_url in self.visited_redirect_urls:
+            raise ExtractorError(
+                f"Redirect loop detected for URL: {new_url}",
+                expected=True,
+            )
+        self.visited_redirect_urls.add(new_url)
 
     def report_detected(self, name, num=1, note=None):
         if num > 1:
