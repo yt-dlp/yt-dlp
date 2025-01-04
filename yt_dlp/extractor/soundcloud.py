@@ -372,6 +372,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'repost_count': extract_count('reposts'),
             'genres': traverse_obj(info, ('genre', {str}, filter, all, filter)),
             'artists': traverse_obj(info, ('publisher_metadata', 'artist', {str}, filter, all, filter)),
+            'track': info.get('title'),
             'formats': formats if not extract_flat else None,
         }
 
@@ -423,6 +424,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'thumbnail': 'https://i1.sndcdn.com/artworks-000031955188-rwb18x-original.jpg',
                 'uploader_url': 'https://soundcloud.com/ethmusic',
+                'track': 'Lostin Powers - She so Heavy (SneakPreview) Adrian Ackers Blueprint 1',
             },
         },
         # geo-restricted
@@ -447,6 +449,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'thumbnail': 'https://i1.sndcdn.com/artworks-v8bFHhXm7Au6-0-original.jpg',
                 'genres': ['Alternative'],
                 'artists': ['The Royal Concept'],
+                'track': 'Goldrushed',
             },
         },
         # private link
@@ -471,6 +474,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/jaimemf',
                 'thumbnail': 'https://a1.sndcdn.com/images/default_avatar_large.png',
                 'genres': ['youtubedl'],
+                'track': 'Youtube - Dl Test Video \'\' Ä↭',
             },
         },
         # private link (alt format)
@@ -495,6 +499,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/jaimemf',
                 'thumbnail': 'https://a1.sndcdn.com/images/default_avatar_large.png',
                 'genres': ['youtubedl'],
+                'track': 'Youtube - Dl Test Video \'\' Ä↭',
             },
         },
         # downloadable song
@@ -520,6 +525,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'view_count': int,
                 'genres': ['Dance & EDM'],
                 'artists': ['80M'],
+                'track': 'The Following',
             },
         },
         # private link, downloadable format
@@ -545,6 +551,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/oriuplift',
                 'genres': ['Trance'],
                 'artists': ['Ori Uplift'],
+                'track': 'Uplifting Only 238 [No Talking] (incl. Alex Feed Guestmix) (Aug 31, 2017) [wav]',
             },
         },
         # no album art, use avatar pic for thumbnail
@@ -569,6 +576,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'uploader_url': 'https://soundcloud.com/garyvee',
                 'artists': ['MadReal'],
+                'track': 'Sideways (Prod. Mad Real)',
             },
             'params': {
                 'skip_download': True,
@@ -595,6 +603,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'genres': ['Piano'],
                 'uploader_url': 'https://soundcloud.com/giovannisarani',
+                'track': 'Mezzo Valzer',
             },
         },
         {
@@ -672,8 +681,11 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
             entries, playlist_id,
             playlist.get('title'),
             playlist.get('description'),
-            uploader=traverse_obj(playlist, ('user', 'username')),
-            uploader_id=str_or_none(traverse_obj(playlist, ('user', 'id'))))
+            **traverse_obj(playlist, {
+                'uploader': ('user', 'username', {str}),
+                'uploader_id': ('user', 'id', {str_or_none}),
+            }),
+        )
 
 
 class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
