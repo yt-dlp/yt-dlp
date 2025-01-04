@@ -645,7 +645,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         parts = [timestamp, sidhash]
         if additional_parts:
-            parts.append(''.join(additional_parts.keys()))
+            parts.append(''.join(additional_parts))
 
         return f'{scheme} {"_".join(parts)}'
 
