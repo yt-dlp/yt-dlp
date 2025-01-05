@@ -1299,7 +1299,10 @@ class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
 
 
 class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)/?(\?type=season\b|#|\??$)'
+    _VALID_URL = [
+        r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail/?\?sid=(?P<sid>\d+)',
+        r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)/?(\?type=season\b|#|\??$)',
+    ]
     _TESTS = [{
         'url': 'https://space.bilibili.com/2142762/lists/3662502?type=season',
         'info_dict': {
@@ -1315,6 +1318,9 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
         'playlist_mincount': 62,
     }, {
         'url': 'https://space.bilibili.com/2142762/lists/3662502',
+        'only_matching': True,
+    }, {
+        'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
         'only_matching': True,
     }]
 
@@ -1352,7 +1358,10 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
 
 
 class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)/?\?type=series\b'
+    _VALID_URL = [
+        r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/seriesdetail/?\?\bsid=(?P<sid>\d+)',
+        r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)/?\?type=series\b',
+    ]
     _TESTS = [{
         'url': 'https://space.bilibili.com/1958703906/lists/547718?type=series',
         'info_dict': {
@@ -1367,6 +1376,9 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
             'modified_date': str,
         },
         'playlist_mincount': 513,
+    }, {
+        'url': 'https://space.bilibili.com/1958703906/channel/seriesdetail?sid=547718&ctype=0',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
