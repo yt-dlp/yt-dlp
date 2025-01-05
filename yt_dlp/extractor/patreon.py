@@ -63,6 +63,7 @@ class PatreonIE(PatreonBaseIE):
         'info_dict': {
             'id': '743933',
             'ext': 'mp3',
+            'alt_title': 'cd166.mp3',
             'title': 'Episode 166: David Smalley of Dogma Debate',
             'description': 'md5:34d207dd29aa90e24f1b3f58841b81c7',
             'uploader': 'Cognitive Dissonance Podcast',
@@ -280,7 +281,7 @@ class PatreonIE(PatreonBaseIE):
         video_id = self._match_id(url)
         post = self._call_api(
             f'posts/{video_id}', video_id, query={
-                'fields[media]': 'download_url,mimetype,size_bytes',
+                'fields[media]': 'download_url,mimetype,size_bytes,file_name',
                 'fields[post]': 'comment_count,content,embed,image,like_count,post_file,published_at,title,current_user_can_view',
                 'fields[user]': 'full_name,url',
                 'fields[post_tag]': 'value',
@@ -306,6 +307,7 @@ class PatreonIE(PatreonBaseIE):
                 media_attributes = traverse_obj(include, ('attributes', {dict})) or {}
                 download_url = url_or_none(media_attributes.get('download_url'))
                 ext = mimetype2ext(media_attributes.get('mimetype'))
+                alt_title = media_attributes.get('file_name')
 
                 # if size_bytes is None, this media file is likely unavailable
                 # See: https://github.com/yt-dlp/yt-dlp/issues/4608
@@ -317,6 +319,7 @@ class PatreonIE(PatreonBaseIE):
                         'ext': ext,
                         'filesize': size_bytes,
                         'url': download_url,
+                        'alt_title': alt_title,
                     })
 
             elif include_type == 'user':
