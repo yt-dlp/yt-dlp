@@ -168,12 +168,26 @@ class RedBullIE(InfoExtractor):
         'info_dict': {
             'id': 'AA-1MT8DQWA91W14',
             'ext': 'mp4',
-            'title': 'Grime - Hashtags S2E4',
+            'title': 'Grime',
             'description': 'md5:5546aa612958c08a98faaad4abce484d',
+            'duration': 904.0,
+        },
+        'params': {
+            'skip_download': True,
         },
     }, {
         'url': 'https://www.redbull.com/int-en/films/kilimanjaro-mountain-of-greatness',
-        'only_matching': True,
+        'md5': 'db8271a7200d40053a1809ed0dd574ff',
+        'info_dict': {
+            'id': 'AA-1UDTFEPTW1W12',
+            'ext': 'mp4',
+            'title': 'Kilimanjaro: Mountain of Greatness',
+            'description': 'md5:e44aedc87ff8587307a4a20fdfe8db61',
+            'duration': 1834.0,
+        },
+        'params': {
+            'skip_download': True,
+        },
     }, {
         'url': 'https://www.redbull.com/int-en/recap-videos/uci-mountain-bike-world-cup-2017-mens-xco-finals-from-vallnord',
         'only_matching': True,
@@ -210,14 +224,29 @@ class RedBullIE(InfoExtractor):
                 regions.append('INT')
         locale = '>'.join([f'{lang}-{reg}' for reg in regions])
 
-        rrn_id = self._download_json(
-            'https://www.redbull.com/v3/api/graphql/v1/v3/query/' + locale,
+        rrn_data = self._download_json(
+            'https://www.redbull.com/v3/api/graphql/v1/v3/feed/' + locale,
             display_id, query={
-                'filter[type]': filter_type,
-                'filter[uriSlug]': display_id,
-                'rb3Schema': 'v1:hero',
-            })['data']['id']
+                'filter[type]': filter_type, 'page[limit]': 1, 'filter[uriSlug]': display_id,
+                'disableUsageRestrictions': 'true', 'rb3Schema': 'v1:pageConfig',
+                'rb3PageUrl': '/' + region.lower() + '-' + lang.lower() + '/' + filter_type + '/' + display_id,
+            })['data']
 
-        return self.url_result(
-            'https://www.redbull.com/embed/' + rrn_id,
-            RedBullEmbedIE.ie_key(), rrn_id)
+        video_info = self._download_json(
+            'https://api-player.redbull.com/rbcom/videoresource', display_id, query={
+                'videoId': rrn_data['id'],
+                'localeMixing': locale,
+            })
+
+        video_id = video_info['assetId']
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_info['videoUrl'],
+                                                                      video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
+
+        return {
+            'id': video_id,
+            'title': video_info['title'],
+            'description': rrn_data['pageMeta'].get('description') or None,
+            'duration': float_or_none(video_info['duration']),
+            'formats': formats,
+            'subtitles': subtitles,
+        }
