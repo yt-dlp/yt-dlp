@@ -4219,6 +4219,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'filesize_approx': filesize_from_tbr(tbr, format_duration),
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
+                'init_range': fmt.get('initRange'),
+                'index_range': fmt.get('indexRange'),
                 'language': join_nonempty(language_code, 'desc' if is_descriptive else '') or None,
                 'language_preference': PREFERRED_LANG_VALUE if is_original else 5 if is_default else -10 if is_descriptive else -1,
                 # Strictly de-prioritize broken, damaged and 3gp formats
