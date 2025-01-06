@@ -2340,6 +2340,7 @@ class GenericIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
+        self.visited_redirect_urls.clear()
         if url.startswith('//'):
             return self.url_result(self.http_scheme() + url)
 
