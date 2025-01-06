@@ -585,8 +585,8 @@ from .egghead import (
     EggheadLessonIE,
 )
 from .eggs import (
-    EggsIE,
     EggsArtistIE,
+    EggsIE,
 )
 from .eighttracks import EightTracksIE
 from .eitb import EitbIE

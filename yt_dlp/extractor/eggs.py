@@ -3,8 +3,8 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    url_or_none,
     unescapeHTML,
+    url_or_none,
 )
 
 
@@ -12,8 +12,7 @@ class EggsBaseIE(InfoExtractor):
     def _parse_artist_name(self, webpage):
         artist = self._search_regex(
             r'<div[^>]+class=(["\'])artist_name\1[^>]*>([^<]+)</div>',
-            webpage, 'artist name', fatal=False, default=None, group=2
-        )
+            webpage, 'artist name', fatal=False, default=None, group=2)
         if artist:
             return artist.strip()
 
@@ -28,19 +27,16 @@ class EggsBaseIE(InfoExtractor):
     def _parse_single_song(self, url, webpage, default_artist='Unknown Artist'):
         song_id = self._search_regex(
             r'/song/(?P<id>[^/?#&]+)',
-            url, 'song id', fatal=False, default=None, group='id'
-        )
+            url, 'song id', fatal=False, default=None, group='id')
 
         track_title = self._search_regex(
             r'<div[^>]+class=(["\'])product_name\1[^>]*>\s*<p>([^<]+)</p>',
-            webpage, 'track title', fatal=False, default=None, group=2
-        )
+            webpage, 'track title', fatal=False, default=None, group=2)
 
         if not track_title:
             page_title = self._search_regex(
                 r'<title>(?P<title>[^<]+)</title>',
-                webpage, 'page title', fatal=False, default=None, group='title'
-            )
+                webpage, 'page title', fatal=False, default=None, group='title')
             if page_title:
                 inner_match = re.search(r'「(?P<inner>[^」]+)」', page_title)
                 if inner_match:
@@ -54,15 +50,13 @@ class EggsBaseIE(InfoExtractor):
             artist_regex = r'<span[^>]+class=(["\'])artist_name\1[^>]*>\s*<a[^>]*>([^<]+)</a>'
             fallback_artist = self._search_regex(
                 artist_regex, webpage, 'artist name',
-                fatal=False, default=None, group=2
-            )
+                fatal=False, default=None, group=2)
             if fallback_artist:
                 artist = fallback_artist.strip()
 
         audio_url = self._search_regex(
             r'<div[^>]+class=(["\'])[^"\']*player[^"\']*\1[^>]+data-src=(["\'])(?P<audio_url>[^"\']+)\2',
-            webpage, 'audio url', fatal=True, group='audio_url'
-        )
+            webpage, 'audio url', fatal=True, group='audio_url')
         audio_url = url_or_none(unescapeHTML(audio_url))
         if not audio_url:
             raise ExtractorError('Invalid audio URL.', expected=True)
@@ -71,8 +65,7 @@ class EggsBaseIE(InfoExtractor):
             self._html_search_meta(['og:image'], webpage, 'thumbnail', default=None)
             or self._search_regex(
                 r'<span[^>]*>\s*<img[^>]+src=(["\'])(?P<thumb>[^"\']+)\1',
-                webpage, 'thumbnail', fatal=False, default=None, group='thumb'
-            )
+                webpage, 'thumbnail', fatal=False, default=None, group='thumb')
         )
 
         return {
@@ -91,30 +84,26 @@ class EggsBaseIE(InfoExtractor):
         for block in song_blocks:
             audio_url = self._search_regex(
                 r'data-src=(["\'])(?P<url>https?://.*?\.(?:mp3|m4a).*?)\1',
-                block, 'audio url', fatal=False, default=None, group='url'
-            )
+                block, 'audio url', fatal=False, default=None, group='url')
             audio_url = url_or_none(unescapeHTML(audio_url))
             if not audio_url:
                 continue
 
             track_id = self._search_regex(
                 r'data-srcid=(["\'])(?P<id>[^"\'<>]+)\1',
-                block, 'track id', fatal=False, default=None, group='id'
-            )
+                block, 'track id', fatal=False, default=None, group='id')
             if not track_id:
                 continue
 
             title = self._search_regex(
                 r'data-srcname=(["\'])(?P<title>[^"\']+)\1',
-                block, 'track title', fatal=False, default=None, group='title'
-            )
+                block, 'track title', fatal=False, default=None, group='title')
             if not title:
                 title = 'Unknown Title'
 
             thumbnail = self._search_regex(
                 r'<img[^>]+src=(["\'])(?P<th>[^"\']+)\1',
-                block, 'thumbnail', fatal=False, default=None, group='th'
-            )
+                block, 'thumbnail', fatal=False, default=None, group='th')
 
             entries.append({
                 'id': track_id,
@@ -126,6 +115,7 @@ class EggsBaseIE(InfoExtractor):
             })
 
         return entries
+
 
 class EggsIE(EggsBaseIE):
     IE_NAME = 'eggs:single'
@@ -148,13 +138,13 @@ class EggsIE(EggsBaseIE):
         song_id = mobj.group('song_id')
         webpage = self._download_webpage(url, song_id)
         artist_name = self._parse_artist_name(webpage)
-        info = self._parse_single_song(url, webpage, artist_name)
-        return info
+        return self._parse_single_song(url, webpage, artist_name)
+
 
 class EggsArtistIE(EggsBaseIE):
     IE_NAME = 'eggs:artist'
     _VALID_URL = (
-        r'https?://(?:www\.)?eggs\.mu/artist/(?P<artist_id>[^/]+)'
+        r'https?://(?:www\.)?eggs\.mu/artist/(?P<artist_id>[^/]+)$'
     )
     _TESTS = [{
         'url': 'https://eggs.mu/artist/32_sunny_girl',
@@ -173,5 +163,5 @@ class EggsArtistIE(EggsBaseIE):
         return self.playlist_result(
             entries,
             playlist_id=artist_id,
-            playlist_title=artist_name
+            playlist_title=artist_name,
         )
