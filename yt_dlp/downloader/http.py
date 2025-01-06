@@ -300,7 +300,7 @@ class HttpFD(FileDownloader):
                 if ctx.data_len is None:
                     eta = None
                 else:
-                    eta = self.calc_eta(start, time.time(), ctx.data_len - ctx.resume_len, byte_counter - ctx.resume_len)
+                    eta = self.calc_eta(ctx.start_time, time.time(), ctx.data_len, byte_counter)
 
                 self._hook_progress({
                     'status': 'downloading',
