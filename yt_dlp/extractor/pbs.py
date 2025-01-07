@@ -47,7 +47,7 @@ class PBSIE(InfoExtractor):
         (r'video\.kpbs\.org', 'KPBS San Diego (KPBS)'),  # http://www.kpbs.org/
         (r'video\.kqed\.org', 'KQED (KQED)'),  # http://www.kqed.org
         (r'vids\.kvie\.org', 'KVIE Public Television (KVIE)'),  # http://www.kvie.org
-        (r'video\.pbssocal\.org', 'PBS SoCal/KOCE (KOCE)'),  # http://www.pbssocal.org/
+        (r'(?:video\.|www\.)pbssocal\.org', 'PBS SoCal/KOCE (KOCE)'),  # http://www.pbssocal.org/
         (r'video\.valleypbs\.org', 'ValleyPBS (KVPT)'),  # http://www.valleypbs.org/
         (r'video\.cptv\.org', 'CONNECTICUT PUBLIC TELEVISION (WEDH)'),  # http://cptv.org
         (r'watch\.knpb\.org', 'KNPB Channel 5 (KNPB)'),  # http://www.knpb.org/
@@ -185,14 +185,15 @@ class PBSIE(InfoExtractor):
 
     _VALID_URL = r'''(?x)https?://
         (?:
-           # Direct video URL
-           (?:{})/(?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
-           # Article with embedded player (or direct video)
-           (?:www\.)?pbs\.org/(?:[^/]+/){{1,5}}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
-           # Player
-           (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)
+            # Player
+            (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+) |
+            # Direct video URL, or article with embedded player
+            (?:%s)/(?:
+              (?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
+              (?:[^/]+/){1,5}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#])
+            )
         )
-    '''.format('|'.join(next(zip(*_STATIONS))))
+    ''' % '|'.join(next(zip(*_STATIONS)))
 
     _GEO_COUNTRIES = ['US']
 
