@@ -1425,12 +1425,11 @@ class YoutubeDL:
 
         return EXTERNAL_FORMAT_RE.sub(create_key, outtmpl), TMPL_DICT
 
-    def evaluate_outtmpl(self, outtmpl, info_dict, *args, **kwargs):
+    def evaluate_outtmpl(self, outtmpl, info_dict, *args, trim_filename=False, **kwargs):
         outtmpl, info_dict = self.prepare_outtmpl(outtmpl, info_dict, *args, **kwargs)
-        return self.escape_outtmpl(outtmpl) % info_dict
+        if not trim_filename:
+            return self.escape_outtmpl(outtmpl) % info_dict
 
-    def evaluate_outtmpl_for_filename(self, outtmpl, info_dict, *args, **kwargs):
-        outtmpl, info_dict = self.prepare_outtmpl(outtmpl, info_dict, *args, **kwargs)
         ext_suffix = '.%(ext\x00s)s'  # not sure why this has null char
         suffix = ''
         if outtmpl.endswith(ext_suffix):
@@ -1491,7 +1490,7 @@ class YoutubeDL:
             outtmpl = self.params['outtmpl'].get(tmpl_type or 'default', self.params['outtmpl']['default'])
         try:
             outtmpl = self._outtmpl_expandpath(outtmpl)
-            filename = self.evaluate_outtmpl_for_filename(outtmpl, info_dict, True)
+            filename = self.evaluate_outtmpl(outtmpl, info_dict, True, trim_filename=True)
             if not filename:
                 return None
 

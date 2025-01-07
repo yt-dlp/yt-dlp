@@ -720,7 +720,7 @@ class TestYoutubeDL(unittest.TestCase):
             ydl._num_downloads = 1
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
-            out = ydl.evaluate_outtmpl_for_filename(tmpl, info or self.outtmpl_info)
+            out = ydl.evaluate_outtmpl(tmpl, info or self.outtmpl_info, trim_filename=True)
             fname = ydl.prepare_filename(info or self.outtmpl_info)
 
             if not isinstance(expected, (list, tuple)):
