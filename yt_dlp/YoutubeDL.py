@@ -267,7 +267,6 @@ class YoutubeDL:
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
-    max_file_name:     Limit length of filename (extension included)
     filesystem_encoding: Encoding to use when calculating filename length in bytes
     windowsfilenames:  True: Force filenames to be Windows compatible
                        False: Sanitize filenames only minimally
@@ -1441,31 +1440,31 @@ class YoutubeDL:
         filename = outtmpl % info_dict
 
         def parse_max_file_name(max_file_name: str):
+            # old --trim-filenames format
+            try:
+                return 'c', int(max_file_name)
+            except ValueError:
+                pass
+
             try:
                 max_length = int(max_file_name[:-1])
             except ValueError:
-                raise ValueError('Invalid --max-filename-length specified')
+                raise ValueError('Invalid --trim-filenames specified')
 
             if max_file_name[-1].lower() == 'c':
                 return 'c', max_length
             elif max_file_name[-1].lower() == 'b':
                 return 'b', max_length
             else:
-                raise ValueError("--max-filename-length must end with 'b' or 'c'")
+                raise ValueError("--trim-filenames must end with 'b' or 'c'")
 
-        max_file_name = self.params.get('max_file_name', DEFAULT_MAX_FILE_NAME)
+        max_file_name = self.params.get('trim_file_name') or DEFAULT_MAX_FILE_NAME
         mode, max_file_name = parse_max_file_name(max_file_name)
-        encoding = self.params.get('filesystem_encoding', sys.getfilesystemencoding())
-
-        # extension may be replaced later
-        if mode == 'b':
-            max_suffix_len = len('.annotations.xml'.encode(encoding))
-        else:
-            max_suffix_len = len('.annotations.xml')
+        if max_file_name < 1:
+            raise ValueError('Invalid --trim-filenames specified')
+        encoding = self.params.get('filesystem_encoding') or sys.getfilesystemencoding()
 
         def trim_filename(name: str, length: int):
-            if length < 1:
-                raise ValueError('Cannot trim filename to such short length')
             if mode == 'b':
                 name = name.encode(encoding)
                 name = name[:length]
@@ -1475,7 +1474,7 @@ class YoutubeDL:
 
         # only trim last component of path - assume the directories are valid names
         head, tail = os.path.split(filename)
-        tail = trim_filename(tail, max_file_name - max_suffix_len)
+        tail = trim_filename(tail, max_file_name)
         filename = os.path.join(head, tail)
         return filename + suffix
 
@@ -1498,13 +1497,6 @@ class YoutubeDL:
                 force_ext = OUTTMPL_TYPES[tmpl_type]
                 if force_ext:
                     filename = replace_extension(filename, force_ext, info_dict.get('ext'))
-
-            # https://github.com/blackjack4494/youtube-dlc/issues/85
-            trim_file_name = self.params.get('trim_file_name', False)
-            if trim_file_name:
-                no_ext, *ext = filename.rsplit('.', 2)
-                filename = join_nonempty(no_ext[:trim_file_name], *ext, delim='.')
-
             return filename
         except ValueError as err:
             self.report_error('Error in output template: ' + str(err) + ' (encoding: ' + repr(preferredencoding()) + ')')

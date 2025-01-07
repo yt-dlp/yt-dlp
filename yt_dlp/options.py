@@ -1378,12 +1378,8 @@ def create_parser():
         help='Sanitize filenames only minimally')
     filesystem.add_option(
         '--trim-filenames', '--trim-file-names', metavar='LENGTH',
-        dest='trim_file_name', default=0, type=int,
-        help='Limit the filename length (excluding extension) to the specified number of characters')
-    filesystem.add_option(
-        '--max-filename-length', metavar='LENGTH',
-        dest='max_file_name',
-        help='Limit the filename length (including extension) to the specified number of characters or bytes')
+        dest='trim_file_name',
+        help='Limit the filename length (excluding extension) to the specified number of characters or bytes')
     filesystem.add_option(
         '--filesystem-encoding', metavar='ENCODING',
         dest='filesystem_encoding',

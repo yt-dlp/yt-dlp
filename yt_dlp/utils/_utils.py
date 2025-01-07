@@ -2854,9 +2854,9 @@ OUTTMPL_TYPES = {
 
 # https://en.m.wikipedia.org/wiki/Comparison_of_file_systems#Limits
 if platform.system() in ('Darwin', 'Windows'):
-    DEFAULT_MAX_FILE_NAME = '255c'
+    DEFAULT_MAX_FILE_NAME = f'{255 - len(".annotations.xml")}c'
 else:
-    DEFAULT_MAX_FILE_NAME = '255b'
+    DEFAULT_MAX_FILE_NAME = f'{255 - len(".annotations.xml".encode(sys.getfilesystemencoding()))}b'
 
 # As of [1] format syntax is:
 #  %[mapping_key][conversion_flags][minimum_width][.precision][length_modifier]type
