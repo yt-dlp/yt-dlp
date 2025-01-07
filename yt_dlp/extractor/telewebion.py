@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import functools
 import json
 import textwrap
@@ -9,10 +10,11 @@ from ..utils.traversal import traverse_obj
 
 
 def _fmt_url(url):
-    return functools.partial(format_field, template=url, default=None)
+    return format_field(template=url, default=None)
 
 
 class TelewebionIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?telewebion\.com/episode/(?P<id>(?:0x[a-fA-F\d]+|\d+))'
     _TESTS = [{
         'url': 'http://www.telewebion.com/episode/0x1b3139c/',
@@ -71,7 +73,7 @@ class TelewebionIE(InfoExtractor):
         result = self._download_json('https://graph.telewebion.com/graphql', video_id, note, data=json.dumps({
             'operationName': operation,
             'query': f'query {operation}{parameters} @cacheControl(maxAge: 60) {{{query}\n}}\n',
-            'variables': {name: value for name, (_, value) in (variables or {}).items()}
+            'variables': {name: value for name, (_, value) in (variables or {}).items()},
         }, separators=(',', ':')).encode(), headers={
             'Content-Type': 'application/json',
             'Accept': 'application/json',

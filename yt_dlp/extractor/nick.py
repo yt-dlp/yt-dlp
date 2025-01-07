@@ -22,7 +22,7 @@ class NickIE(MTVServicesInfoExtractor):
                     'title': 'SpongeBob SquarePants: "A Place for Pets/Lockdown for Love" S1',
                     'description': 'A Place for Pets/Lockdown for Love: When customers bring pets into the Krusty Krab, Mr. Krabs realizes pets are more profitable than owners. Plankton ruins another date with Karen, so she puts the Chum Bucket on lockdown until he proves his affection.',
 
-                }
+                },
             },
             {
                 'md5': '839a04f49900a1fcbf517020d94e0737',
@@ -32,7 +32,7 @@ class NickIE(MTVServicesInfoExtractor):
                     'title': 'SpongeBob SquarePants: "A Place for Pets/Lockdown for Love" S2',
                     'description': 'A Place for Pets/Lockdown for Love: When customers bring pets into the Krusty Krab, Mr. Krabs realizes pets are more profitable than owners. Plankton ruins another date with Karen, so she puts the Chum Bucket on lockdown until he proves his affection.',
 
-                }
+                },
             },
             {
                 'md5': 'f1145699f199770e2919ee8646955d46',
@@ -42,7 +42,7 @@ class NickIE(MTVServicesInfoExtractor):
                     'title': 'SpongeBob SquarePants: "A Place for Pets/Lockdown for Love" S3',
                     'description': 'A Place for Pets/Lockdown for Love: When customers bring pets into the Krusty Krab, Mr. Krabs realizes pets are more profitable than owners. Plankton ruins another date with Karen, so she puts the Chum Bucket on lockdown until he proves his affection.',
 
-                }
+                },
             },
             {
                 'md5': 'd463116875aee2585ee58de3b12caebd',
@@ -52,7 +52,7 @@ class NickIE(MTVServicesInfoExtractor):
                     'title': 'SpongeBob SquarePants: "A Place for Pets/Lockdown for Love" S4',
                     'description': 'A Place for Pets/Lockdown for Love: When customers bring pets into the Krusty Krab, Mr. Krabs realizes pets are more profitable than owners. Plankton ruins another date with Karen, so she puts the Chum Bucket on lockdown until he proves his affection.',
 
-                }
+                },
             },
         ],
     }, {
@@ -63,7 +63,7 @@ class NickIE(MTVServicesInfoExtractor):
             'description': 'md5:9d65a66df38e02254852794b2809d1cf',
             'title': 'Blue\'s Imagination Station',
         },
-        'skip': 'Not accessible?'
+        'skip': 'Not accessible?',
     }]
 
     def _get_feed_query(self, uri):
@@ -74,10 +74,10 @@ class NickIE(MTVServicesInfoExtractor):
 
     def _real_extract(self, url):
         domain, video_type, display_id = self._match_valid_url(url).groups()
-        if video_type.startswith("episodes"):
+        if video_type.startswith('episodes'):
             return super()._real_extract(url)
         video_data = self._download_json(
-            'http://%s/data/video.endLevel.json' % domain,
+            f'http://{domain}/data/video.endLevel.json',
             display_id, query={
                 'urlKey': display_id,
             })
@@ -184,7 +184,7 @@ class NickDeIE(MTVServicesInfoExtractor):
     def _get_feed_url(self, uri, url=None):
         video_id = self._id_from_uri(uri)
         config = self._download_json(
-            'http://media.mtvnservices.com/pmt/e1/access/index.html?uri=%s&configtype=edge&ref=%s' % (uri, url), video_id)
+            f'http://media.mtvnservices.com/pmt/e1/access/index.html?uri={uri}&configtype=edge&ref={url}', video_id)
         return self._remove_template_parameter(config['feedWithQueryParams'])
 
 
@@ -221,4 +221,4 @@ class NickRuIE(MTVServicesInfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         mgid = self._extract_mgid(webpage, url)
-        return self.url_result('http://media.mtvnservices.com/embed/%s' % mgid)
+        return self.url_result(f'http://media.mtvnservices.com/embed/{mgid}')

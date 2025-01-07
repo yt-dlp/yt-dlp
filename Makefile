@@ -21,13 +21,13 @@ clean-test:
 	rm -rf test/testdata/sigs/player-*.js tmp/ *.annotations.xml *.aria2 *.description *.dump *.frag \
 	*.frag.aria2 *.frag.urls *.info.json *.live_chat.json *.meta *.part* *.tmp *.temp *.unknown_video *.ytdl \
 	*.3gp *.ape *.ass *.avi *.desktop *.f4v *.flac *.flv *.gif *.jpeg *.jpg *.lrc *.m4a *.m4v *.mhtml *.mkv *.mov *.mp3 *.mp4 \
-	*.mpg *.mpga *.oga *.ogg *.opus *.png *.sbv *.srt *.ssa *.swf *.swp *.tt *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp
+	*.mpg *.mpga *.oga *.ogg *.opus *.png *.sbv *.srt *.ssa *.swf *.tt *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp
 clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
 	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS
 clean-cache:
 	find . \( \
-		-type d -name .pytest_cache -o -type d -name __pycache__ -o -name "*.pyc" -o -name "*.class" \
+		-type d -name ".*_cache" -o -type d -name __pycache__ -o -name "*.pyc" -o -name "*.class" \
 	\) -prune -exec rm -rf {} \;
 
 completion-bash: completions/bash/yt-dlp
@@ -70,14 +70,15 @@ uninstall:
 	rm -f $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d/yt-dlp.fish
 
 codetest:
-	flake8 .
+	ruff check .
+	autopep8 --diff .
 
 test:
-	$(PYTHON) -m pytest
+	$(PYTHON) -m pytest -Werror
 	$(MAKE) codetest
 
 offlinetest: codetest
-	$(PYTHON) -m pytest -k "not download"
+	$(PYTHON) -m pytest -Werror -m "not download"
 
 CODE_FOLDERS_CMD = find yt_dlp -type f -name '__init__.py' | sed 's,/__init__.py,,' | grep -v '/__' | sort
 CODE_FOLDERS != $(CODE_FOLDERS_CMD)
@@ -151,7 +152,7 @@ yt-dlp.tar.gz: all
 		--exclude '*.pyo' \
 		--exclude '*~' \
 		--exclude '__pycache__' \
-		--exclude '.pytest_cache' \
+		--exclude '.*_cache' \
 		--exclude '.git' \
 		-- \
 		README.md supportedsites.md Changelog.md LICENSE \
