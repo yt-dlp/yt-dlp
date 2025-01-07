@@ -79,6 +79,9 @@ class ArteTVIE(ArteTVBaseIE):
         'skip': '404 Not Found',
     }, {
         'url': 'https://www.arte.tv/fr/videos/115495-002-A/arte-regards/',
+        'params': {
+            'skip_download': 'true',
+        },
         'info_dict': {
             'id': '115495-002-A',
             'description': 'md5:dc09a63170a452b920b705fe9340f3a2',
