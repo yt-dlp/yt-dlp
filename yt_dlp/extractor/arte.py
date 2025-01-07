@@ -218,6 +218,7 @@ class ArteTVIE(ArteTVBaseIE):
             'alt_title': metadata.get('subtitle') and metadata.get('title'),
             'description': metadata.get('description'),
             'duration': traverse_obj(metadata, ('duration', 'seconds')),
+            'lang': metadata.get('language'),
             'language': metadata.get('language'),
             'timestamp': traverse_obj(config, ('data', 'attributes', 'rights', 'begin'), expected_type=parse_iso8601),
             'is_live': config['data']['attributes'].get('live', False),
