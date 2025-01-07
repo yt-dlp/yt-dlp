@@ -1424,8 +1424,20 @@ class YoutubeDL:
         return EXTERNAL_FORMAT_RE.sub(create_key, outtmpl), TMPL_DICT
 
     def evaluate_outtmpl(self, outtmpl, info_dict, *args, **kwargs):
+        print(outtmpl)
         outtmpl, info_dict = self.prepare_outtmpl(outtmpl, info_dict, *args, **kwargs)
-        return self.escape_outtmpl(outtmpl) % info_dict
+        ext_suffix = '.%(ext\x00s)s'  # not sure why this has null char
+        suffix = ''
+        if outtmpl.endswith(ext_suffix):
+            outtmpl = outtmpl[:-len(ext_suffix)]
+            suffix = ext_suffix % info_dict
+        outtmpl = self.escape_outtmpl(outtmpl)
+        filename = outtmpl % info_dict
+        encoding = sys.getfilesystemencoding()  # make option to override
+        filename = filename.encode(encoding)
+        filename = filename[:255 - len('.flac.part')]  # make option to override
+        filename = filename.decode(encoding, 'ignore')
+        return filename + suffix
 
     @_catch_unsafe_extension_error
     def _prepare_filename(self, info_dict, *, outtmpl=None, tmpl_type=None):
@@ -1435,6 +1447,7 @@ class YoutubeDL:
         try:
             outtmpl = self._outtmpl_expandpath(outtmpl)
             filename = self.evaluate_outtmpl(outtmpl, info_dict, True)
+            print(filename)
             if not filename:
                 return None
 
