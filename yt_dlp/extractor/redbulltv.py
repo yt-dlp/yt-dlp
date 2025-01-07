@@ -229,7 +229,7 @@ class RedBullIE(InfoExtractor):
             display_id, query={
                 'filter[type]': filter_type, 'page[limit]': 1, 'filter[uriSlug]': display_id,
                 'disableUsageRestrictions': 'true', 'rb3Schema': 'v1:pageConfig',
-                'rb3PageUrl': '/' + region.lower() + '-' + lang.lower() + '/' + filter_type + '/' + display_id,
+                'rb3PageUrl': f'/{region.lower()}-{lang.lower()}/{filter_type}/{display_id}',
             })['data']
 
         video_info = self._download_json(
