@@ -569,7 +569,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _initialize_cookie_auth(self):
         self._load_sid_cookies()
         if self._SAPISID or self._1PSAPISID or self._3PSAPISID:
-            self.write_debug('Logged in using cookies')
+            self.write_debug('Found YouTube account cookies')
 
     def _real_initialize(self):
         self._initialize_pref()
