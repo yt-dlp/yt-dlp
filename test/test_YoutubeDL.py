@@ -717,7 +717,7 @@ class TestYoutubeDL(unittest.TestCase):
             ydl._num_downloads = 1
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
-            out = ydl.evaluate_outtmpl(tmpl, info or self.outtmpl_info)
+            out = ydl.evaluate_outtmpl_for_filename(tmpl, info or self.outtmpl_info)
             fname = ydl.prepare_filename(info or self.outtmpl_info)
 
             if not isinstance(expected, (list, tuple)):
@@ -791,7 +791,7 @@ class TestYoutubeDL(unittest.TestCase):
                 self.assertEqual(got_dict.get(info_field), expected, info_field)
             return True
 
-        test('%()j', (expect_same_infodict, None))
+        test('%()j', (expect_same_infodict, None), trim_file_name=0)
 
         # NA placeholder
         NA_TEST_OUTTMPL = '%(uploader_date)s-%(width)d-%(x|def)s-%(id)s.%(ext)s'

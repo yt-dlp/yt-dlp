@@ -1458,10 +1458,16 @@ class YoutubeDL:
             else:
                 raise ValueError("--trim-filenames must end with 'b' or 'c'")
 
-        max_file_name = self.params.get('trim_file_name') or DEFAULT_MAX_FILE_NAME
+        max_file_name = self.params.get('trim_file_name')
+        if max_file_name is None:
+            max_file_name = DEFAULT_MAX_FILE_NAME
         mode, max_file_name = parse_max_file_name(max_file_name)
-        if max_file_name < 1:
+        if max_file_name < 0:
             raise ValueError('Invalid --trim-filenames specified')
+        if max_file_name == 0:
+            # no maximum
+            return filename + suffix
+
         encoding = self.params.get('filesystem_encoding') or sys.getfilesystemencoding()
 
         def trim_filename(name: str, length: int):
