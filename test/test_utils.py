@@ -398,7 +398,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(datetime_round(dt.datetime.strptime('1820-05-12T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ')),
                          dt.datetime(1820, 5, 12, tzinfo=dt.timezone.utc))
         self.assertEqual(datetime_round(dt.datetime.strptime('1969-12-31T23:34:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'hour'),
-                         dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc))
+                         dt.datetime(1970, 1, 1, 0, tzinfo=dt.timezone.utc))
         self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'minute'),
                          dt.datetime(2024, 12, 25, 1, 24, tzinfo=dt.timezone.utc))
         self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.123Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
