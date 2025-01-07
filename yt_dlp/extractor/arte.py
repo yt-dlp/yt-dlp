@@ -62,6 +62,7 @@ class ArteTVIE(ArteTVBaseIE):
                 'fr-forced': 'mincount:1',
             },
         },
+        'skip': '404 Not Found',
     }, {
         'note': 'age-restricted',
         'url': 'https://www.arte.tv/de/videos/006785-000-A/the-element-of-crime/',
@@ -76,6 +77,20 @@ class ArteTVIE(ArteTVBaseIE):
             'ext': 'mp4',
         },
         'skip': '404 Not Found',
+    }, {
+        'url': 'https://www.arte.tv/fr/videos/115495-002-A/arte-regards/',
+        'info_dict': {
+            'id': '115495-002-A',
+            'description': 'md5:dc09a63170a452b920b705fe9340f3a2',
+            'title': 'Suisse : un médecin face à l’exode rural',
+            'timestamp': 1735790400,
+            'duration': 1938,
+            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/VLuRAi2YB6deooG8DESZvS/940x530',
+            'upload_date': '20250102',
+            'ext': 'mp4',
+            'alt_title': 'ARTE Regards',
+            'lang': 'fr',
+        },
     }]
 
     _GEO_BYPASS = True
