@@ -1390,7 +1390,7 @@ def datetime_round(dt_, precision='day'):
         'second': 1,
     }
     roundto = lambda x, n: ((x + n / 2) // n) * n
-    timestamp = roundto(calendar.timegm(dt_.timetuple()) * time_scale + dt_.microsecond, unit_seconds[precision] * time_scale) / time_scale
+    timestamp = roundto(calendar.timegm(dt_.timetuple()) + dt_.microsecond / time_scale, unit_seconds[precision])
     return datetime_from_timestamp(timestamp)
 
 
