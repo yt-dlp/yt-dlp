@@ -239,8 +239,8 @@ class RedBullIE(InfoExtractor):
             })
 
         video_id = video_info['assetId']
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_info['videoUrl'],
-                                                                      video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            video_info['videoUrl'], video_id, 'mp4', m3u8_id='hls')
 
         return {
             'id': video_id,
