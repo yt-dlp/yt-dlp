@@ -225,7 +225,7 @@ class RedBullIE(InfoExtractor):
         locale = '>'.join([f'{lang}-{reg}' for reg in regions])
 
         rrn_data = self._download_json(
-            'https://www.redbull.com/v3/api/graphql/v1/v3/feed/' + locale,
+            f'https://www.redbull.com/v3/api/graphql/v1/v3/feed/{locale}',
             display_id, query={
                 'filter[type]': filter_type, 'page[limit]': 1, 'filter[uriSlug]': display_id,
                 'disableUsageRestrictions': 'true', 'rb3Schema': 'v1:pageConfig',
