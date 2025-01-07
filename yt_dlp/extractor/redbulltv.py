@@ -3,6 +3,7 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
+    traverse_obj
 )
 
 
@@ -227,26 +228,33 @@ class RedBullIE(InfoExtractor):
         rrn_data = self._download_json(
             f'https://www.redbull.com/v3/api/graphql/v1/v3/feed/{locale}',
             display_id, query={
-                'filter[type]': filter_type, 'page[limit]': 1, 'filter[uriSlug]': display_id,
-                'disableUsageRestrictions': 'true', 'rb3Schema': 'v1:pageConfig',
+                'filter[type]': filter_type, 
+                'page[limit]': 1, 
+                'filter[uriSlug]': display_id,
+                'disableUsageRestrictions': 'true', 
+                'rb3Schema': 'v1:pageConfig',
                 'rb3PageUrl': f'/{region.lower()}-{lang.lower()}/{filter_type}/{display_id}',
             })['data']
 
+        rrn_id = rrn_data.get('id')
+
         video_info = self._download_json(
-            'https://api-player.redbull.com/rbcom/videoresource', display_id, query={
-                'videoId': rrn_data['id'],
+            'https://api-player.redbull.com/rbcom/videoresource', rrn_id, query={
+                'videoId': rrn_id,
                 'localeMixing': locale,
             })
 
-        video_id = video_info['assetId']
+        video_id = video_info.get('assetId')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            video_info['videoUrl'], video_id, 'mp4', m3u8_id='hls')
+            video_info.get('videoUrl'), video_id, 'mp4', m3u8_id='hls')
 
         return {
             'id': video_id,
-            'title': video_info['title'],
-            'description': rrn_data['pageMeta'].get('description') or None,
-            'duration': float_or_none(video_info['duration']),
+            **traverse_obj(video_info, {
+                'title': 'title',
+                'duration': 'duration',
+            }),
+            'description': traverse_obj(rrn_data, ('pageMeta', 'description')),
             'formats': formats,
             'subtitles': subtitles,
         }
