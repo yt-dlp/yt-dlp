@@ -2852,6 +2852,12 @@ OUTTMPL_TYPES = {
     'pl_infojson': 'info.json',
 }
 
+# https://en.m.wikipedia.org/wiki/Comparison_of_file_systems#Limits
+if platform.system() in ('Darwin', 'Windows'):
+    DEFAULT_MAX_FILE_NAME = '255c'
+else:
+    DEFAULT_MAX_FILE_NAME = '255b'
+
 # As of [1] format syntax is:
 #  %[mapping_key][conversion_flags][minimum_width][.precision][length_modifier]type
 # 1. https://docs.python.org/2/library/stdtypes.html#string-formatting

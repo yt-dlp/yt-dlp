@@ -70,6 +70,7 @@ from .update import (
 )
 from .utils import (
     DEFAULT_OUTTMPL,
+    DEFAULT_MAX_FILE_NAME,
     IDENTITY,
     LINK_TEMPLATES,
     MEDIA_EXTENSIONS,
@@ -266,6 +267,8 @@ class YoutubeDL:
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
+    max_file_name:     Limit length of filename (extension included)
+    filesystem_encoding: Encoding to use when calculating filename length in bytes
     windowsfilenames:  True: Force filenames to be Windows compatible
                        False: Sanitize filenames only minimally
                        This option has no effect when running on Windows
@@ -1424,7 +1427,10 @@ class YoutubeDL:
         return EXTERNAL_FORMAT_RE.sub(create_key, outtmpl), TMPL_DICT
 
     def evaluate_outtmpl(self, outtmpl, info_dict, *args, **kwargs):
-        print(outtmpl)
+        outtmpl, info_dict = self.prepare_outtmpl(outtmpl, info_dict, *args, **kwargs)
+        return self.escape_outtmpl(outtmpl) % info_dict
+
+    def evaluate_outtmpl_for_filename(self, outtmpl, info_dict, *args, **kwargs):
         outtmpl, info_dict = self.prepare_outtmpl(outtmpl, info_dict, *args, **kwargs)
         ext_suffix = '.%(ext\x00s)s'  # not sure why this has null char
         suffix = ''
@@ -1433,10 +1439,44 @@ class YoutubeDL:
             suffix = ext_suffix % info_dict
         outtmpl = self.escape_outtmpl(outtmpl)
         filename = outtmpl % info_dict
-        encoding = sys.getfilesystemencoding()  # make option to override
-        filename = filename.encode(encoding)
-        filename = filename[:255 - len('.flac.part')]  # make option to override
-        filename = filename.decode(encoding, 'ignore')
+
+        def parse_max_file_name(max_file_name: str):
+            try:
+                max_length = int(max_file_name[:-1])
+            except ValueError:
+                raise ValueError('Invalid --max-filename-length specified')
+
+            if max_file_name[-1].lower() == 'c':
+                return 'c', max_length
+            elif max_file_name[-1].lower() == 'b':
+                return 'b', max_length
+            else:
+                raise ValueError("--max-filename-length must end with 'b' or 'c'")
+
+        max_file_name = self.params.get('max_file_name', DEFAULT_MAX_FILE_NAME)
+        mode, max_file_name = parse_max_file_name(max_file_name)
+        encoding = self.params.get('filesystem_encoding', sys.getfilesystemencoding())
+
+        # extension may be replaced later
+        if mode == 'b':
+            max_suffix_len = len('.annotations.xml'.encode(encoding))
+        else:
+            max_suffix_len = len('.annotations.xml')
+
+        def trim_filename(name: str, length: int):
+            if length < 1:
+                raise ValueError('Cannot trim filename to such short length')
+            if mode == 'b':
+                name = name.encode(encoding)
+                name = name[:length]
+                return name.decode(encoding, 'ignore')
+            else:
+                return name[:length]
+
+        # only trim last component of path - assume the directories are valid names
+        head, tail = os.path.split(filename)
+        tail = trim_filename(tail, max_file_name - max_suffix_len)
+        filename = os.path.join(head, tail)
         return filename + suffix
 
     @_catch_unsafe_extension_error
@@ -1446,8 +1486,7 @@ class YoutubeDL:
             outtmpl = self.params['outtmpl'].get(tmpl_type or 'default', self.params['outtmpl']['default'])
         try:
             outtmpl = self._outtmpl_expandpath(outtmpl)
-            filename = self.evaluate_outtmpl(outtmpl, info_dict, True)
-            print(filename)
+            filename = self.evaluate_outtmpl_for_filename(outtmpl, info_dict, True)
             if not filename:
                 return None
 
