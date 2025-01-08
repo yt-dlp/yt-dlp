@@ -70,7 +70,6 @@ from .update import (
 )
 from .utils import (
     DEFAULT_OUTTMPL,
-    DEFAULT_MAX_FILE_NAME,
     IDENTITY,
     LINK_TEMPLATES,
     MEDIA_EXTENSIONS,
@@ -267,6 +266,7 @@ class YoutubeDL:
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
+    trim_file_name_mode: Mode of filename trimming ('c' for characters or 'b' for bytes)
     filesystem_encoding: Encoding to use when calculating filename length in bytes
     windowsfilenames:  True: Force filenames to be Windows compatible
                        False: Sanitize filenames only minimally
@@ -1438,31 +1438,8 @@ class YoutubeDL:
         outtmpl = self.escape_outtmpl(outtmpl)
         filename = outtmpl % info_dict
 
-        def parse_max_file_name(max_file_name: str):
-            # old --trim-filenames format
-            try:
-                return 'c', int(max_file_name)
-            except ValueError:
-                pass
-
-            try:
-                max_length = int(max_file_name[:-1])
-            except ValueError:
-                raise ValueError('Invalid --trim-filenames specified')
-
-            if max_file_name[-1].lower() == 'c':
-                return 'c', max_length
-            elif max_file_name[-1].lower() == 'b':
-                return 'b', max_length
-            else:
-                raise ValueError("--trim-filenames must end with 'b' or 'c'")
-
         max_file_name = self.params.get('trim_file_name')
-        if max_file_name is None:
-            max_file_name = DEFAULT_MAX_FILE_NAME
-        mode, max_file_name = parse_max_file_name(max_file_name)
-        if max_file_name < 0:
-            raise ValueError('Invalid --trim-filenames specified')
+        mode = self.params.get('trim_file_name_mode')
         if max_file_name == 0:
             # no maximum
             return filename + suffix
