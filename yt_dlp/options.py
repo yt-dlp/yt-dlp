@@ -1381,10 +1381,6 @@ def create_parser():
         dest='trim_file_name', default='notrim',
         help='Limit the filename length (excluding extension) to the specified number of characters or bytes')
     filesystem.add_option(
-        '--filesystem-encoding', metavar='ENCODING',
-        dest='filesystem_encoding',
-        help='Override filesystem encoding used when calculating filename length in bytes')
-    filesystem.add_option(
         '-w', '--no-overwrites',
         action='store_false', dest='overwrites', default=None,
         help='Do not overwrite any files')
