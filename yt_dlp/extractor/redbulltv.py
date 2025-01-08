@@ -1,10 +1,6 @@
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    traverse_obj
-)
+from ..utils import ExtractorError, float_or_none, traverse_obj
 
 
 class RedBullTVIE(InfoExtractor):
@@ -173,9 +169,7 @@ class RedBullIE(InfoExtractor):
             'description': 'md5:5546aa612958c08a98faaad4abce484d',
             'duration': 904.0,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.redbull.com/int-en/films/kilimanjaro-mountain-of-greatness',
         'md5': 'db8271a7200d40053a1809ed0dd574ff',
@@ -186,9 +180,7 @@ class RedBullIE(InfoExtractor):
             'description': 'md5:e44aedc87ff8587307a4a20fdfe8db61',
             'duration': 1834.0,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.redbull.com/int-en/recap-videos/uci-mountain-bike-world-cup-2017-mens-xco-finals-from-vallnord',
         'only_matching': True,
@@ -228,10 +220,10 @@ class RedBullIE(InfoExtractor):
         rrn_data = self._download_json(
             f'https://www.redbull.com/v3/api/graphql/v1/v3/feed/{locale}',
             display_id, query={
-                'filter[type]': filter_type, 
-                'page[limit]': 1, 
+                'filter[type]': filter_type,
+                'page[limit]': 1,
                 'filter[uriSlug]': display_id,
-                'disableUsageRestrictions': 'true', 
+                'disableUsageRestrictions': 'true',
                 'rb3Schema': 'v1:pageConfig',
                 'rb3PageUrl': f'/{region.lower()}-{lang.lower()}/{filter_type}/{display_id}',
             })['data']
