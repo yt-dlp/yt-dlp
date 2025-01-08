@@ -2,6 +2,7 @@
 
 # Allow direct execution
 import os
+import platform
 import sys
 import unittest
 from unittest.mock import patch
@@ -930,11 +931,15 @@ class TestYoutubeDL(unittest.TestCase):
         # --trim-filenames
         test('%(title6)s.%(ext)s', 'あ' * 10 + '.mp4')
         test('%(title6)s.%(ext)s', 'あ' * 3 + '.mp4', trim_file_name='3c')
-        test('%(title6)s.%(ext)s', 'あ' * 3 + '.mp4', trim_file_name='9b', filesystem_encoding='utf-8')
-        test('%(title6)s.%(ext)s', 'あ' * 3 + '.mp4', trim_file_name='10b', filesystem_encoding='utf-8')
-        test('%(title6)s.%(ext)s', 'あ' * 3 + '.mp4', trim_file_name='11b', filesystem_encoding='utf-8')
-        test('%(title6)s.%(ext)s', 'あ' * 4 + '.mp4', trim_file_name='12b', filesystem_encoding='utf-8')
-        test('%(title6)s.%(ext)s', 'あ' * 6 + '.mp4', trim_file_name='12b', filesystem_encoding='utf-16le')
+        if sys.getfilesystemencoding() == 'utf-8' and platform.system() != 'Windows':
+            test('%(title6)s.%(ext)s', 'あ' * 3 + '.mp4', trim_file_name='9b')
+            test('%(title6)s.%(ext)s', 'あ' * 3 + '.mp4', trim_file_name='10b')
+            test('%(title6)s.%(ext)s', 'あ' * 3 + '.mp4', trim_file_name='11b')
+            test('%(title6)s.%(ext)s', 'あ' * 4 + '.mp4', trim_file_name='12b')
+        elif platform.system() == 'Windows':
+            test('%(title6)s.%(ext)s', 'あ' * 4 + '.mp4', trim_file_name='8b')
+            test('%(title6)s.%(ext)s', 'あ' * 4 + '.mp4', trim_file_name='9b')
+            test('%(title6)s.%(ext)s', 'あ' * 5 + '.mp4', trim_file_name='10b')
         test('folder/%(title6)s.%(ext)s', f'fol{os.path.sep}あああ.mp4', trim_file_name='3c')
 
     def test_format_note(self):

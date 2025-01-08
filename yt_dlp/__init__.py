@@ -1,4 +1,3 @@
-import codecs
 import sys
 
 if sys.version_info < (3, 9):
@@ -431,12 +430,6 @@ def validate_options(opts):
 
     # Other options
     validate_regex('trim filenames', opts.trim_file_name, r'(?:\d+[bc]?|notrim)')
-
-    if opts.filesystem_encoding is not None:
-        try:
-            codecs.lookup(opts.filesystem_encoding)
-        except LookupError:
-            raise ValueError(f'Invalid filesystem encoding: {opts.filesystem_encoding}')
 
     if opts.playlist_items is not None:
         try:
@@ -895,7 +888,6 @@ def parse_options(argv=None):
         'max_downloads': opts.max_downloads,
         'prefer_free_formats': opts.prefer_free_formats,
         'trim_file_name': opts.trim_file_name,
-        'filesystem_encoding': opts.filesystem_encoding,
         'verbose': opts.verbose,
         'dump_intermediate_pages': opts.dump_intermediate_pages,
         'write_pages': opts.write_pages,

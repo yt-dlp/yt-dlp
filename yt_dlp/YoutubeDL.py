@@ -13,6 +13,7 @@ import locale
 import operator
 import os
 from pathlib import Path
+import platform
 import random
 import re
 import shutil
@@ -267,7 +268,6 @@ class YoutubeDL:
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
-    filesystem_encoding: Encoding to use when calculating filename length in bytes
     windowsfilenames:  True: Force filenames to be Windows compatible
                        False: Sanitize filenames only minimally
                        This option has no effect when running on Windows
@@ -1449,7 +1449,7 @@ class YoutubeDL:
             # no maximum
             return filename + suffix
 
-        encoding = self.params.get('filesystem_encoding') or sys.getfilesystemencoding()
+        encoding = sys.getfilesystemencoding() if platform.system() != 'Windows' else 'utf-16-le'
 
         def trim_filename(name: str):
             if mode == 'b':
