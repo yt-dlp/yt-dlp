@@ -24,11 +24,7 @@ class EggsBaseIE(InfoExtractor):
 
         return 'Unknown Artist'
 
-    def _parse_single_song(self, url, webpage, default_artist='Unknown Artist'):
-        song_id = self._search_regex(
-            r'/song/(?P<id>[^/?#&]+)',
-            url, 'song id', fatal=False, default=None, group='id')
-
+    def _parse_single_song(self, url, webpage, song_id, default_artist='Unknown Artist'):
         track_title = self._search_regex(
             r'<div[^>]+class=(["\'])product_name\1[^>]*>\s*<p>([^<]+)</p>',
             webpage, 'track title', fatal=False, default=None, group=2)
@@ -120,7 +116,7 @@ class EggsBaseIE(InfoExtractor):
 class EggsIE(EggsBaseIE):
     IE_NAME = 'eggs:single'
     _VALID_URL = (
-        r'https?://(?:www\.)?eggs\.mu/artist/(?P<artist_id>[^/]+)/song/(?P<song_id>[^/]+)'
+        r'https?://(?:www\.)?eggs\.mu/artist/[^/]+/song/(?P<song_id>[^/]+)'
     )
     _TESTS = [{
         'url': 'https://eggs.mu/artist/32_sunny_girl/song/0e95fd1d-4d61-4d5b-8b18-6092c551da90',
@@ -138,7 +134,7 @@ class EggsIE(EggsBaseIE):
         song_id = mobj.group('song_id')
         webpage = self._download_webpage(url, song_id)
         artist_name = self._parse_artist_name(webpage)
-        return self._parse_single_song(url, webpage, artist_name)
+        return self._parse_single_song(url, webpage, song_id, artist_name)
 
 
 class EggsArtistIE(EggsBaseIE):
