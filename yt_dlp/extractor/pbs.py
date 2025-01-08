@@ -474,6 +474,7 @@ class PBSIE(InfoExtractor):
                     return tabbed_videos, presumptive_id, upload_date, description
 
             MEDIA_ID_REGEXES = [
+                r'\bhttps?://player\.pbs\.org/[\w-]+player/(\d+)',      # move to end to avoid false +ves?
                 r"div\s*:\s*'videoembed'\s*,\s*mediaid\s*:\s*'(\d+)'",  # frontline video embed
                 r'class="coveplayerid">([^<]+)<',                       # coveplayer
                 r'<section[^>]+data-coveid="(\d+)"',                    # coveplayer from http://www.pbs.org/wgbh/frontline/film/real-csi/
