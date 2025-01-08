@@ -12,6 +12,7 @@ import json
 import locale
 import operator
 import os
+from pathlib import Path
 import random
 import re
 import shutil
@@ -1446,18 +1447,15 @@ class YoutubeDL:
 
         encoding = self.params.get('filesystem_encoding') or sys.getfilesystemencoding()
 
-        def trim_filename(name: str, length: int):
+        def trim_filename(name: str):
             if mode == 'b':
                 name = name.encode(encoding)
-                name = name[:length]
+                name = name[:max_file_name]
                 return name.decode(encoding, 'ignore')
             else:
-                return name[:length]
+                return name[:max_file_name]
 
-        # only trim last component of path - assume the directories are valid names
-        head, tail = os.path.split(filename)
-        tail = trim_filename(tail, max_file_name)
-        filename = os.path.join(head, tail)
+        filename = os.path.join(*map(trim_filename, Path(filename).parts))
         return filename + suffix
 
     @_catch_unsafe_extension_error
