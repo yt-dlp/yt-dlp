@@ -1430,7 +1430,7 @@ class YoutubeDL:
         if not trim_filename:
             return self.escape_outtmpl(outtmpl) % info_dict
 
-        ext_suffix = '.%(ext\x00s)s'  # not sure why this has null char
+        ext_suffix = '.%(ext\0s)s'
         suffix = ''
         if outtmpl.endswith(ext_suffix):
             outtmpl = outtmpl[:-len(ext_suffix)]
