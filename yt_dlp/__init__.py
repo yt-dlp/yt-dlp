@@ -430,15 +430,8 @@ def validate_options(opts):
     }
 
     # Other options
-    opts.trim_file_name_mode = 'c'
-    if opts.trim_file_name is not None:
-        mobj = re.match(r'(?:(?P<length>\d+)(?P<mode>b|c)?|notrim)', opts.trim_file_name)
-        validate(mobj, 'trim filenames', opts.trim_file_name)
-        if opts.trim_file_name == 'notrim':
-            opts.trim_file_name = 0
-        else:
-            opts.trim_file_name = int(mobj.group('length'))
-            opts.trim_file_name_mode = mobj.group('mode') or 'c'
+    validate_regex('trim filenames', opts.trim_file_name, r'(?:\d+[bc]?|notrim)')
+
     if opts.filesystem_encoding is not None:
         try:
             codecs.lookup(opts.filesystem_encoding)
@@ -902,7 +895,6 @@ def parse_options(argv=None):
         'max_downloads': opts.max_downloads,
         'prefer_free_formats': opts.prefer_free_formats,
         'trim_file_name': opts.trim_file_name,
-        'trim_file_name_mode': opts.trim_file_name_mode,
         'filesystem_encoding': opts.filesystem_encoding,
         'verbose': opts.verbose,
         'dump_intermediate_pages': opts.dump_intermediate_pages,

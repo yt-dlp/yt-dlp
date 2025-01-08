@@ -714,7 +714,7 @@ class TestYoutubeDL(unittest.TestCase):
     def test_prepare_outtmpl_and_filename(self):
         def test(tmpl, expected, *, info=None, **params):
             if 'trim_file_name' not in params:
-                params['trim_file_name'] = 0  # disable trimming
+                params['trim_file_name'] = 'notrim'  # disable trimming
             params['outtmpl'] = tmpl
             ydl = FakeYDL(params)
             ydl._num_downloads = 1
@@ -935,7 +935,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title6)s.%(ext)s', 'あ' * 3 + '.mp4', trim_file_name='11b', filesystem_encoding='utf-8')
         test('%(title6)s.%(ext)s', 'あ' * 4 + '.mp4', trim_file_name='12b', filesystem_encoding='utf-8')
         test('%(title6)s.%(ext)s', 'あ' * 6 + '.mp4', trim_file_name='12b', filesystem_encoding='utf-16le')
-        test('folder/%(title6)s.%(ext)s', f'folder{os.path.sep}あああ.mp4', trim_file_name='3c')
+        test('folder/%(title6)s.%(ext)s', f'fol{os.path.sep}あああ.mp4', trim_file_name='3c')
 
     def test_format_note(self):
         ydl = YoutubeDL()

@@ -267,7 +267,6 @@ class YoutubeDL:
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
-    trim_file_name_mode: Mode of filename trimming ('c' for characters or 'b' for bytes)
     filesystem_encoding: Encoding to use when calculating filename length in bytes
     windowsfilenames:  True: Force filenames to be Windows compatible
                        False: Sanitize filenames only minimally
@@ -1439,8 +1438,13 @@ class YoutubeDL:
         outtmpl = self.escape_outtmpl(outtmpl)
         filename = outtmpl % info_dict
 
-        max_file_name = self.params.get('trim_file_name')
-        mode = self.params.get('trim_file_name_mode')
+        def parse_trim_file_name(trim_file_name):
+            if trim_file_name is None or trim_file_name == 'notrim':
+                return 0, None
+            mobj = re.match(r'(?:(?P<length>\d+)(?P<mode>b|c)?|notrim)', trim_file_name)
+            return int(mobj.group('length')), mobj.group('mode') or 'c'
+
+        max_file_name, mode = parse_trim_file_name(self.params.get('trim_file_name'))
         if max_file_name == 0:
             # no maximum
             return filename + suffix
