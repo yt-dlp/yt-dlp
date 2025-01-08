@@ -676,6 +676,9 @@ class NiconicoSeriesIE(NiconicoPlaylistBaseIE):
         'info_dict': {
             'id': '110226',
             'title': 'ご立派ァ！のシリーズ',
+            'description': '楽しそうな外人の吹き替えをさせたら終身名誉ホモガキの右に出る人はいませんね…',
+            'uploader': 'アルファるふぁ',
+            'uploader_id': '44113208',
         },
         'playlist_mincount': 10,
     }, {
@@ -683,6 +686,9 @@ class NiconicoSeriesIE(NiconicoPlaylistBaseIE):
         'info_dict': {
             'id': '12312',
             'title': 'バトルスピリッツ　お勧めカード紹介(調整中)',
+            'description': '',
+            'uploader': '野鳥',
+            'uploader_id': '2275360',
         },
         'playlist_mincount': 103,
     }, {
