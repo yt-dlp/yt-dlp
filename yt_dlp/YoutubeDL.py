@@ -1822,6 +1822,18 @@ class YoutubeDL:
         result_type = ie_result.get('_type', 'video')
 
         if result_type in ('url', 'url_transparent'):
+            if 'redirect_count' in extra_info:
+                extra_info['redirect_count'] = 1 + extra_info.get('redirect_count', 0)
+            else:
+                extra_info['redirect_count'] = 0
+
+            # TODO: make command line arg with large or infinite default
+            if extra_info['redirect_count'] >= 5:
+                raise ExtractorError(
+                    f"Too many redirects for URL: {ie_result['url']}",
+                    expected=True,
+                )
+
             ie_result['url'] = sanitize_url(
                 ie_result['url'], scheme='http' if self.params.get('prefer_insecure') else 'https')
             if ie_result.get('original_url') and not extra_info.get('original_url'):
