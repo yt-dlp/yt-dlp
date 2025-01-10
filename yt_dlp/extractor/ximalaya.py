@@ -222,10 +222,9 @@ class XimalayaAlbumIE(XimalayaBaseIE):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
-        title = self._download_json(
-            'https://www.ximalaya.com/revision/album/v1/simple',
-            playlist_id, note='Downloading album info', query={'albumId': playlist_id})['data']['albumPageMainInfo']['albumTitle']
-
+        meta = self._download_json('https://www.ximalaya.com/revision/album/v1/simple',
+            playlist_id, note='Downloading album info', query={'albumId': playlist_id})
+        title = traverse_obj(meta, ('data', 'albumPageMainInfo', 'albumTitle'))
 
         page_size = 30
         page_idx = 1
@@ -233,26 +232,27 @@ class XimalayaAlbumIE(XimalayaBaseIE):
         while True:
             page_data = self._fetch_page(playlist_id, page_idx, page_size)
             page_cache[str(page_idx)] = page_data
-            if len(page_data['tracksAudioPlay']) < page_size:
+            if len(page_data) < page_size:
                 break
             page_idx += 1
 
         page_count = page_idx
 
         entries = InAdvancePagedList(
-            lambda idx: self._get_entries(page_cache[str(idx+1)]),
+            lambda idx: self._get_entries(page_cache.get(str(idx+1))),
             page_count, page_size)
 
         return self.playlist_result(entries, playlist_id, title)
 
     def _fetch_page(self, playlist_id, page_idx, page_size=30):
-        return self._download_json(
+        meta = self._download_json(
             'https://www.ximalaya.com/revision/play/v1/show',
             playlist_id, note=f'Downloading tracks list page {page_idx}',
-            query={'id': playlist_id, 'num': page_idx, 'size': page_size, 'ptype': 0})['data']
+            query={'id': playlist_id, 'num': page_idx, 'size': page_size, 'ptype': 0})
+        return traverse_obj(meta, ('data', 'tracksAudioPlay'))
 
     def _get_entries(self, page_data):
-        for e in page_data['tracksAudioPlay']:
+        for e in page_data:
             yield self.url_result(
-                self._proto_relative_url(f'//www.ximalaya.com{e["trackUrl"]}'),
+                self._proto_relative_url(f'//www.ximalaya.com{e.get("trackUrl")}'),
                 XimalayaIE, e.get('trackId'), e.get('title'))
