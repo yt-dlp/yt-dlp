@@ -653,6 +653,51 @@ class InstagramUserIE(InstagramPlaylistBaseIE):
         }
 
 
+class InstagramUserReelsIE(InstagramBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?instagram\.com/(?P<id>[^/]{2,})/reels/?'
+    IE_DESC = 'Instagram user reels'
+    IE_NAME = 'instagram:user:reels'
+
+    def _real_extract(self, url):
+        username = self._match_valid_url(url).group('id')
+
+        webpage = self._download_webpage(url, username)
+        user_info = self._search_json(r'"props":', webpage, 'user info', username)
+
+        user_id = user_info['id']
+        csrf_token = self._get_cookies('https://www.instagram.com').get('csrftoken')
+
+        def reels():
+            max_id = None
+            for page in itertools.count(1):
+                resp = self._download_json(
+                    f'{self._API_BASE_URL}/clips/user/',
+                    video_id=username, note=f'Downloading page {page}',
+                    data=urlencode_postdata({
+                        'include_feed_video': 'true',
+                        'page_size': 12,
+                        'target_user_id': user_id,
+                        **({'max_id': max_id} if max_id else {}),
+                    }),
+                    headers={
+                        **self._API_HEADERS,
+                        'X-CSRFToken': csrf_token.value,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Referer': url,
+                    },
+                )
+
+                for item in resp['items']:
+                    yield self._extract_product(item['media'])
+
+                paging_info = resp['paging_info']
+                if not paging_info['more_available']:
+                    break
+                max_id = paging_info['max_id']
+
+        return self.playlist_result(reels(), playlist_id=username, playlist_title=f'Reels of {username}')
+
+
 class InstagramTagIE(InstagramPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/explore/tags/(?P<id>[^/]+)'
     IE_DESC = 'Instagram hashtag search URLs'
