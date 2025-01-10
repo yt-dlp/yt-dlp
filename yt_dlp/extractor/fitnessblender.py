@@ -18,9 +18,7 @@ class FitnessBlenderIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_valid_url(url).group('id')
 
-        account_id = '6036648099001'
-        player_id = 'skIgx8kLxj'
-
         return self.url_result(
-            f'https://players.brightcove.net/{account_id}/{player_id}_default/index.html?videoId={video_id}',
-            BrightcoveNewIE)
+            f'https://players.brightcove.net/6036648099001/skIgx8kLxj_default/index.html?videoId={video_id}',
+            BrightcoveNewIE, video_id)
+
