@@ -188,12 +188,12 @@ class PBSIE(InfoExtractor):
             # Player
             (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+) |
             # Direct video URL, or article with embedded player
-            (?:%s)/(?:
+            (?:{})/(?:
               (?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
-              (?:[^/]+/){1,5}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#])
+              (?:[^/]+/){{1,5}}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#])
             )
         )
-    ''' % '|'.join(next(zip(*_STATIONS)))
+    '''.format('|'.join(next(zip(*_STATIONS))))
 
     _GEO_COUNTRIES = ['US']
 
