@@ -3,7 +3,8 @@ from .common import InfoExtractor
 
 
 class FitnessBlenderIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?fitnessblender\.com/videos/[\w-]+/(?P<tc>T)?(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?fitnessblender\.com/videos/[\w-]+/T?(?P<id>\d+)'
+
     _TESTS = [{
         'url': 'https://www.fitnessblender.com/page/fb-plus-player-test',
         'info_dict': {
