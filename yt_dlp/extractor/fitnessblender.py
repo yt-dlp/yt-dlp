@@ -6,11 +6,11 @@ class FitnessBlenderIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?fitnessblender\.com/videos/[\w-]+/T?(?P<id>\d+)'
 
     _TESTS = [{
-        'url': 'https://www.fitnessblender.com/page/fb-plus-player-test',
+        'url': 'https://www.fitnessblender.com/videos/lower-body-strength-hiit-workout-strength-sets-with-hiit-cardio-burst',
         'info_dict': {
-            'id': '6076568195001',
+            'id': '6296677311001',
             'ext': 'mp4',
-            'title': 'Sports Endurance Workout - Stamina, Speed, and Agility Workout',
+            'title': 'WO 2022-02-02 Ks Lower Body HIIT and Strength',
             'thumbnail': r're:^https://.+\.jpg',
         },
         'params': {'skip_download': 'm3u8'},
