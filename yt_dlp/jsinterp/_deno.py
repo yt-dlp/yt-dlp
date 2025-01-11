@@ -22,7 +22,7 @@ from .common import ExternalJSI, register_jsi
 @register_jsi
 class DenoJSI(ExternalJSI):
     """JS interpreter class using Deno binary"""
-    _SUPPORTED_FEATURES = {'js', 'wasm', 'location'}
+    _SUPPORTED_FEATURES = {'wasm', 'location'}
     _BASE_PREFERENCE = 5
     _EXE_NAME = 'deno'
     _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check']
@@ -60,7 +60,7 @@ class DenoJSI(ExternalJSI):
 
 @register_jsi
 class DenoJITlessJSI(DenoJSI):
-    _SUPPORTED_FEATURES = {'js', 'location'}
+    _SUPPORTED_FEATURES = {'location'}
     _BASE_PREFERENCE = 6
     _EXE_NAME = DenoJSI._EXE_NAME
     _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check', '--v8-flags=--jitless,--noexpose-wasm']
@@ -72,7 +72,7 @@ class DenoJITlessJSI(DenoJSI):
 
 @register_jsi
 class DenoJSDomJSI(DenoJSI):
-    _SUPPORTED_FEATURES = {'js', 'wasm', 'location', 'dom', 'cookies'}
+    _SUPPORTED_FEATURES = {'wasm', 'location', 'dom', 'cookies'}
     _BASE_PREFERENCE = 4
     _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check']
     _JSDOM_IMPORT_CHECKED = False

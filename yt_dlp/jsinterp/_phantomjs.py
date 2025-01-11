@@ -23,7 +23,7 @@ from .common import ExternalJSI, register_jsi
 @register_jsi
 class PhantomJSJSI(ExternalJSI):
     _EXE_NAME = 'phantomjs'
-    _SUPPORTED_FEATURES = {'js', 'location', 'cookies', 'dom'}
+    _SUPPORTED_FEATURES = {'location', 'cookies', 'dom'}
     _BASE_PREFERENCE = 3
 
     _BASE_JS = R'''

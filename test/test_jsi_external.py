@@ -218,7 +218,7 @@ class TestPhantomJS(Base.TestExternalJSI):
     _JSI_CLASS = PhantomJSJSI
 
 
-expect_covered_features = set(_ALL_FEATURES) - {'js'}
+expect_covered_features = set(_ALL_FEATURES)
 assert covered_features.issuperset(expect_covered_features), f'Missing tests for features: {expect_covered_features - covered_features}'
 
 if __name__ == '__main__':

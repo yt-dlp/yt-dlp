@@ -20,7 +20,6 @@ from ..utils import (
 _JSI_HANDLERS: dict[str, type[JSI]] = {}
 _JSI_PREFERENCES: set[JSIPreference] = set()
 _ALL_FEATURES = {
-    'js',
     'wasm',
     'location',
     'dom',
@@ -39,10 +38,6 @@ def order_to_pref(jsi_order: typing.Iterable[str | type[JSI] | JSI], multiplier:
     def _pref(jsi: JSI, *args):
         return pref_score.get(jsi.JSI_KEY, 0)
     return _pref
-
-
-def join_jsi_name(jsi_list: typing.Iterable[str | type[JSI] | JSI], sep=', '):
-    return sep.join(get_jsi_keys(jok if isinstance(jok, str) else jok.JSI_NAME for jok in jsi_list))
 
 
 def require_features(param_features: dict[str, str | typing.Iterable[str]]):
@@ -73,15 +68,14 @@ class JSIWrapper:
     ```
 
     Features:
-    - `js`: supports js syntax
-    - `wasm`: supports WebAssembly interface
-    - `location`: supports setting window.location
-    - `dom`: supports DOM interface
+    - `wasm`: supports window.WebAssembly
+    - `location`: supports mocking window.location
+    - `dom`: supports DOM interface (not necessarily rendering)
     - `cookies`: supports document.cookie read & write
 
     @param dl_or_ie: `YoutubeDL` or `InfoExtractor` instance.
     @param url: setting url context, used by JSI that supports `location` feature
-    @param features: list of features that are necessary for JS interpretation.
+    @param features: only JSI that supports all of these features will be selected
     @param only_include: limit JSI to choose from.
     @param exclude: JSI to avoid using.
     @param jsi_params: extra kwargs to pass to `JSI.__init__()` for each JSI, using jsi key as dict key.
@@ -94,7 +88,7 @@ class JSIWrapper:
     def __init__(
         self,
         dl_or_ie: YoutubeDL | InfoExtractor,
-        url: str,
+        url: str = '',
         features: typing.Iterable[str] = [],
         only_include: typing.Iterable[str | type[JSI]] = [],
         exclude: typing.Iterable[str | type[JSI]] = [],
@@ -119,11 +113,13 @@ class JSIWrapper:
                            if _JSI_HANDLERS[key]._SUPPORTED_FEATURES.issuperset(self._features)]
         self.write_debug(f'Select JSI for features={self._features}: {get_jsi_keys(handler_classes)}, '
                          f'included: {get_jsi_keys(only_include) or "all"}, excluded: {get_jsi_keys(exclude)}')
+        if not handler_classes:
+            raise ExtractorError(f'No JSI supports features={self._features}')
 
-        self._handler_dict = {
-            cls.JSI_KEY: cls(self._downloader, url=self._url, timeout=timeout,
-                             features=self._features, user_agent=user_agent,
-                             **jsi_params.get(cls.JSI_KEY, {})) for cls in handler_classes}
+        self._handler_dict = {cls.JSI_KEY: cls(
+            self._downloader, url=self._url, timeout=timeout, features=self._features,
+            user_agent=user_agent, **jsi_params.get(cls.JSI_KEY, {})
+        ) for cls in handler_classes}
         self.preferences: set[JSIPreference] = {order_to_pref(preferred_order, 100)} | _JSI_PREFERENCES
         self._fallback_jsi = get_jsi_keys(handler_classes) if fallback_jsi == 'all' else get_jsi_keys(fallback_jsi)
         self._is_test = self._downloader.params.get('test', False)
@@ -153,7 +149,7 @@ class JSIWrapper:
     def _dispatch_request(self, method_name: str, *args, **kwargs):
         handlers = self._get_handlers(method_name, *args, **kwargs)
 
-        unavailable: list[JSI] = []
+        unavailable: list[str] = []
         exceptions: list[tuple[JSI, Exception]] = []
         test_results: list[tuple[JSI, typing.Any]] = []
 
@@ -162,8 +158,8 @@ class JSIWrapper:
                 if self._is_test:
                     raise Exception(f'{handler.JSI_NAME} is not available for testing, '
                                     f'add "{handler.JSI_KEY}" in `exclude` if it should not be used')
-                self.write_debug(f'{handler.JSI_NAME} is not available')
-                unavailable.append(handler)
+                self.write_debug(f'{handler.JSI_KEY} is not available')
+                unavailable.append(handler.JSI_NAME)
                 continue
             try:
                 self.write_debug(f'Dispatching `{method_name}` task to {handler.JSI_NAME}')
@@ -188,11 +184,11 @@ class JSIWrapper:
             return ref_result
 
         if not exceptions:
-            msg = f'No available JSI installed, please install one of: {join_jsi_name(unavailable)}'
+            msg = f'No available JSI installed, please install one of: {", ".join(unavailable)}'
         else:
             msg = f'Failed to perform {method_name}, total {len(exceptions)} errors'
             if unavailable:
-                msg = f'{msg}. You can try installing one of unavailable JSI: {join_jsi_name(unavailable)}'
+                msg = f'{msg}. You can try installing one of unavailable JSI: {", ".join(unavailable)}'
         raise ExtractorError(msg)
 
     @require_features({'location': 'location', 'html': 'dom', 'cookiejar': 'cookies'})
