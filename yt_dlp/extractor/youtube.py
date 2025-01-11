@@ -667,7 +667,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if not self._3PSAPISID:
             self._3PSAPISID = yt_3papisid
 
-    def _generate_sid_authorization(self, origin='https://www.youtube.com', user_session_id=None):
+    def _get_sid_authorization_header(self, origin='https://www.youtube.com', user_session_id=None):
         """
         Generate API Session ID Authorization for Innertube requests. Assumes all requests are secure (https).
         @param origin: Origin URL
@@ -793,7 +793,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     @functools.cached_property
     def is_authenticated(self):
-        return bool(self._generate_sid_authorization())
+        return bool(self._get_sid_authorization_header())
 
     def extract_ytcfg(self, video_id, webpage):
         if not webpage:
@@ -813,7 +813,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if delegated_session_id or session_index is not None:
             headers['X-Goog-AuthUser'] = session_index if session_index is not None else 0
 
-        auth = self._generate_sid_authorization(origin, user_session_id=user_session_id or self._extract_user_session_id(ytcfg))
+        auth = self._get_sid_authorization_header(origin, user_session_id=user_session_id or self._extract_user_session_id(ytcfg))
         if auth is not None:
             headers['Authorization'] = auth
             headers['X-Origin'] = origin
