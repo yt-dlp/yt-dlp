@@ -70,7 +70,14 @@ from ..utils import (
 )
 
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
-STREAMING_DATA_PO_TOKEN = '__yt_dlp_po_token'
+STREAMING_DATA_INITIAL_PO_TOKEN = '__yt_dlp_po_token'
+STREAMING_DATA_FETCH_PO_TOKEN = '__yt_dlp_fetch_po_token'
+
+
+class _PoTokenContext(enum.Enum):
+    PLAYER = 'player'
+    GVS = 'gvs'
+
 
 # any clients starting with _ cannot be explicitly requested by the user
 INNERTUBE_CLIENTS = {
@@ -82,7 +89,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
-        'REQUIRE_PO_TOKEN': True,
+        'REQUIRE_PO_TOKEN_CONTEXTS': [_PoTokenContext.GVS],
         'SUPPORTS_COOKIES': True,
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
@@ -95,7 +102,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
-        'REQUIRE_PO_TOKEN': True,
+        'REQUIRE_PO_TOKEN_CONTEXTS': [_PoTokenContext.GVS],
         'SUPPORTS_COOKIES': True,
     },
     'web_embedded': {
@@ -144,7 +151,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
         'REQUIRE_JS_PLAYER': False,
-        'REQUIRE_PO_TOKEN': True,
+        'REQUIRE_PO_TOKEN_CONTEXTS': [_PoTokenContext.GVS],
     },
     # This client now requires sign-in for every video
     'android_music': {
@@ -160,7 +167,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
         'REQUIRE_JS_PLAYER': False,
-        'REQUIRE_PO_TOKEN': True,
+        'REQUIRE_PO_TOKEN_CONTEXTS': [_PoTokenContext.GVS],
         'REQUIRE_AUTH': True,
     },
     # This client now requires sign-in for every video
@@ -177,7 +184,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
         'REQUIRE_JS_PLAYER': False,
-        'REQUIRE_PO_TOKEN': True,
+        'REQUIRE_PO_TOKEN_CONTEXTS': [_PoTokenContext.GVS],
         'REQUIRE_AUTH': True,
     },
     # YouTube Kids videos aren't returned on this client for some reason
@@ -212,7 +219,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
-        'REQUIRE_PO_TOKEN': True,
+        'REQUIRE_PO_TOKEN_CONTEXTS': [_PoTokenContext.GVS],
         'REQUIRE_JS_PLAYER': False,
     },
     # This client now requires sign-in for every video
@@ -313,7 +320,7 @@ def build_innertube_clients():
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
         ytcfg.setdefault('INNERTUBE_HOST', 'www.youtube.com')
         ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
-        ytcfg.setdefault('REQUIRE_PO_TOKEN', False)
+        ytcfg.setdefault('REQUIRE_PO_TOKEN_CONTEXTS', [])
         ytcfg.setdefault('REQUIRE_AUTH', False)
         ytcfg.setdefault('SUPPORTS_COOKIES', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
@@ -3766,38 +3773,74 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             **cls._get_checkok_params(),
         }
 
-    def _get_config_po_token(self, client):
+    def _get_config_po_token(self, client: str, context: _PoTokenContext):
         po_token_strs = self._configuration_arg('po_token', [], ie_key=YoutubeIE, casesense=True)
         for token_str in po_token_strs:
-            po_token_client, sep, po_token = token_str.partition('+')
+            po_token_meta, sep, po_token = token_str.partition('+')
             if not sep:
-                self.report_warning(
-                    f'Invalid po_token configuration format. Expected "client+po_token", got "{token_str}"', only_once=True)
+                self.report_warning(f'Invalid po_token configuration format. Expected "CLIENT.CONTEXT+PO_TOKEN", got "{token_str}"', only_once=True)
                 continue
-            if po_token_client == client:
+
+            po_token_client, sep, po_token_context = po_token_meta.partition('.')
+            if not sep:
+                # TODO(future): remove backwards-compatibility with old format
+                self.report_warning(
+                    f'Missing po_token context (got "{token_str})"; assuming GVS. '
+                    'This is a deprecated po_token configuration format, please use the format "CLIENT.CONTEXT+PO_TOKEN"',
+                    only_once=True)
+                po_token_context = _PoTokenContext.GVS.value
+
+            if po_token_client.lower() == client and po_token_context.lower() == context.value:
                 return po_token
 
-    def fetch_po_token(self, client='web', visitor_data=None, data_sync_id=None, player_url=None, **kwargs):
-        # PO Token is bound to visitor_data / Visitor ID when logged out. Must have visitor_data for it to function.
-        if not visitor_data and not self.is_authenticated and player_url:
+    def fetch_po_token(
+            self,
+            client='web',
+            context=_PoTokenContext.GVS,
+            visitor_data=None,
+            data_sync_id=None,
+            player_url=None,
+            video_id=None,
+            **kwargs):
+        """
+        Fetch a PO Token for a given client and context. This function will validate required parameters for a given context and client.
+
+        EXPERIMENTAL: This method is unstable and may change or be removed without notice.
+
+        @param client: The client to fetch the PO Token for.
+        @param context: The context in which the PO Token is used.
+        @param visitor_data: visitor data.
+        @param data_sync_id: data sync ID.
+        @param player_url: player URL.
+        @param video_id: video ID.
+        @param kwargs: Additional arguments to pass down. May be more added in the future.
+        @return: The fetched PO Token. None if it could not be fetched.
+        """
+
+        # GVS WebPO Token is bound to visitor_data / Visitor ID when logged out.
+        # Must have visitor_data for it to function.
+        if player_url and context == _PoTokenContext.GVS and not visitor_data and not self.is_authenticated:
             self.report_warning(
-                f'Unable to fetch PO Token for {client} client: Missing required Visitor Data. '
+                f'Unable to fetch GVS PO Token for {client} client: Missing required Visitor Data. '
                 f'You may need to pass Visitor Data with --extractor-args "youtube:visitor_data=XXX"')
             return
 
-        config_po_token = self._get_config_po_token(client)
+        if context == _PoTokenContext.PLAYER and not video_id:
+            raise ExtractorError(
+                f'Unable to fetch Player PO Token for {client} client: Missing required Video ID')
+
+        config_po_token = self._get_config_po_token(client, context)
         if config_po_token:
-            # PO token is bound to data_sync_id / account Session ID when logged in. However, for the config po_token,
-            # if using first channel in an account then we don't need the data_sync_id anymore...
-            if not data_sync_id and self.is_authenticated and player_url:
+            # GVS WebPO token is bound to data_sync_id / account Session ID when logged in.
+            if player_url and context == _PoTokenContext.GVS and not data_sync_id and self.is_authenticated:
                 self.report_warning(
-                    f'Got a PO Token for {client} client, but missing Data Sync ID for account. Formats may not work.'
+                    f'Got a GVS PO Token for {client} client, but missing Data Sync ID for account. Formats may not work.'
                     f'You may need to pass a Data Sync ID with --extractor-args "youtube:data_sync_id=XXX"')
 
             return config_po_token
 
-        # Require PO Token if logged in for external fetching
-        if not data_sync_id and self.is_authenticated and player_url:
+        # Require GVS WebPO Token if logged in for external fetching
+        if player_url and context == _PoTokenContext.GVS and not data_sync_id and self.is_authenticated:
             self.report_warning(
                 f'Unable to fetch PO Token for {client} client: Missing required Data Sync ID for account. '
                 f'You may need to pass a Data Sync ID with --extractor-args "youtube:data_sync_id=XXX"')
@@ -3805,14 +3848,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return self._fetch_po_token(
             client=client,
+            context=context,
             visitor_data=visitor_data,
             data_sync_id=data_sync_id,
             player_url=player_url,
+            video_id=video_id,
             **kwargs,
         )
 
-    def _fetch_po_token(self, client, visitor_data=None, data_sync_id=None, player_url=None, **kwargs):
-        """External PO Token fetch stub"""
+    def _fetch_po_token(self, client, **kwargs):
+        """(Unstable) External PO Token fetch stub"""
 
     @staticmethod
     def _is_agegated(player_response):
@@ -3965,16 +4010,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             visitor_data = visitor_data or self._extract_visitor_data(master_ytcfg, initial_pr, player_ytcfg)
             data_sync_id = data_sync_id or self._extract_data_sync_id(master_ytcfg, initial_pr, player_ytcfg)
-            po_token = self.fetch_po_token(
-                client=client, visitor_data=visitor_data,
-                data_sync_id=data_sync_id if self.is_authenticated else None,
-                player_url=player_url if require_js_player else None,
-            )
 
-            require_po_token = self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN')
-            if not po_token and require_po_token and 'missing_pot' in self._configuration_arg('formats'):
+            fetch_po_token_args = {
+                'client': client, 'visitor_data': visitor_data, 'video_id': video_id,
+                'data_sync_id': data_sync_id if self.is_authenticated else None,
+                'player_url': player_url if require_js_player else None,
+            }
+
+            player_po_token = self.fetch_po_token(
+                context=_PoTokenContext.PLAYER, **fetch_po_token_args)
+
+            gvs_po_token_func = lambda: self.fetch_po_token(
+                context=_PoTokenContext.GVS, **fetch_po_token_args)
+
+            # Fetch an initial PO Token for GVS upfront
+            gvs_po_token = gvs_po_token_func()
+
+            require_player_po_token = _PoTokenContext.PLAYER in self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN_CONTEXTS')
+            if not player_po_token and require_player_po_token:
                 self.report_warning(
-                    f'No PO Token provided for {client} client, '
+                    f'No Player PO Token provided for {client} client, '
+                    f'which may be required for working {client} formats. This client will be deprioritized'
+                    f'You can manually pass a Player PO Token for this client with --extractor-args "youtube:po_token={client}.player+XXX". '
+                    'For more information, refer to  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#po-token-guide .', only_once=True)
+                deprioritize_pr = True
+
+            require_gvs_po_token = _PoTokenContext.GVS in self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN_CONTEXTS')
+            if not gvs_po_token and require_gvs_po_token and 'missing_pot' in self._configuration_arg('formats'):
+                # xxx: warning with help message is provided later during format processing
+                self.report_warning(
+                    f'No GVS PO Token provided for {client} client, '
                     f'which may be required for working {client} formats. This client will be deprioritized', only_once=True)
                 deprioritize_pr = True
 
@@ -3988,7 +4053,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     initial_pr=initial_pr,
                     visitor_data=visitor_data,
                     data_sync_id=data_sync_id,
-                    po_token=po_token)
+                    po_token=player_po_token)
             except ExtractorError as e:
                 self.report_warning(e)
                 continue
@@ -3999,10 +4064,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Save client name for introspection later
                 sd = traverse_obj(pr, ('streamingData', {dict})) or {}
                 sd[STREAMING_DATA_CLIENT_NAME] = client
-                sd[STREAMING_DATA_PO_TOKEN] = po_token
+                sd[STREAMING_DATA_FETCH_PO_TOKEN] = gvs_po_token_func
+                sd[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
-                    f[STREAMING_DATA_PO_TOKEN] = po_token
+                    f[STREAMING_DATA_FETCH_PO_TOKEN] = gvs_po_token_func
+                    f[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
                 if deprioritize_pr:
                     deprioritized_prs.append(pr)
                 else:
@@ -4050,9 +4117,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _report_pot_format_skipped(self, video_id, client_name, proto):
         msg = (
-            f'{video_id}: {client_name} client {proto} formats require a PO Token which was not provided. '
+            f'{video_id}: {client_name} client {proto} formats require a GVS PO Token which was not provided. '
             'They will be skipped as they may yield HTTP Error 403. '
-            f'You can manually pass a PO Token for this client with --extractor-args "youtube:po_token={client_name}+XXX". '
+            f'You can manually pass a GVS PO Token for this client with --extractor-args "youtube:po_token={client_name}.gvs+XXX". '
             'For more information, refer to  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#po-token-guide . '
             'To enable these broken formats anyway, pass --extractor-args "youtube:formats=missing_pot"')
 
@@ -4183,13 +4250,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
             client_name = fmt[STREAMING_DATA_CLIENT_NAME]
-            po_token = fmt.get(STREAMING_DATA_PO_TOKEN)
+            po_token = fmt.get(STREAMING_DATA_INITIAL_PO_TOKEN)
 
             if po_token:
                 fmt_url = update_url_query(fmt_url, {'pot': po_token})
 
             # Clients that require PO Token return videoplayback URLs that may return 403
-            require_po_token = (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN'))
+            require_po_token = (not po_token and _PoTokenContext.GVS in self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN_CONTEXTS'))
             if require_po_token and 'missing_pot' not in self._configuration_arg('formats'):
                 self._report_pot_format_skipped(video_id, client_name, 'https')
                 continue
@@ -4278,7 +4345,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             # Clients that require PO Token return videoplayback URLs that may return 403
             # hls does not currently require PO Token
-            if (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN')) and proto != 'hls':
+            if (not po_token and _PoTokenContext.GVS in self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN_CONTEXTS')) and proto != 'hls':
                 if 'missing_pot' not in self._configuration_arg('formats'):
                     self._report_pot_format_skipped(video_id, client_name, proto)
                     return False
@@ -4319,7 +4386,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         subtitles = {}
         for sd in streaming_data:
             client_name = sd[STREAMING_DATA_CLIENT_NAME]
-            po_token = sd.get(STREAMING_DATA_PO_TOKEN)
+            po_token = sd.get(STREAMING_DATA_INITIAL_PO_TOKEN)
             hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
                 if po_token:
