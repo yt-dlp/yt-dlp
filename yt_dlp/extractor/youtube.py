@@ -741,7 +741,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if not data_sync_id:
             return None, None
         first, _, second = data_sync_id.partition('||')
-        return first if second else None, second if second else first
+        if second:
+            return first, second
+        return None, first
 
     def _extract_delegated_session_id(self, *args):
         """
