@@ -1552,6 +1552,7 @@ from .pluralsight import (
     PluralsightIE,
 )
 from .plutotv import PlutoTVIE
+from .plvideo import PlVideoIE
 from .podbayfm import (
     PodbayFMChannelIE,
     PodbayFMIE,
