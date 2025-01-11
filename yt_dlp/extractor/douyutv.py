@@ -1,4 +1,4 @@
-import hashlib
+import re
 import time
 import urllib
 import uuid
@@ -7,6 +7,7 @@ from .common import InfoExtractor
 from .openload import PhantomJSwrapper
 from ..utils import (
     ExtractorError,
+    RegexNotFoundError,
     UserNotLive,
     determine_ext,
     int_or_none,
@@ -17,7 +18,6 @@ from ..utils import (
     unescapeHTML,
     url_or_none,
     urlencode_postdata,
-    urljoin,
 )
 
 
@@ -49,9 +49,11 @@ class DouyuBaseIE(InfoExtractor):
         return {i: v[0] for i, v in urllib.parse.parse_qs(result).items()}
 
     def _search_js_sign_func(self, webpage, fatal=True):
-        # The greedy look-behind ensures last possible script tag is matched
-        return self._search_regex(
-            r'(?:<script.*)?<script[^>]*>(.*?ub98484234.*?)</script>', webpage, 'JS sign func', fatal=fatal)
+        for match in re.finditer(r'<script[^>]*>(.*?)</script>', webpage or '', flags=re.DOTALL):
+            if 'ub98484234' in match[1]:
+                return match[1]
+        if fatal:
+            raise RegexNotFoundError('Unable to extract JS sign func')
 
 
 class DouyuTVIE(DouyuBaseIE):
@@ -61,12 +63,14 @@ class DouyuTVIE(DouyuBaseIE):
         'url': 'https://www.douyu.com/pigff',
         'info_dict': {
             'id': '24422',
-            'display_id': 'pigff',
-            'ext': 'mp4',
+            'ext': 'flv',
             'title': 're:^【PIGFF】.* [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'description': r'≥15级牌子看鱼吧置顶帖进粉丝vx群',
             'thumbnail': str,
+            'timestamp': int,
+            'upload_date': r're:2025\d{4}',
             'uploader': 'pigff',
+            'uploader_id': '5JjALzg2QwXr',
             'is_live': True,
             'live_status': 'is_live',
         },
@@ -74,51 +78,26 @@ class DouyuTVIE(DouyuBaseIE):
             'skip_download': True,
         },
     }, {
-        'url': 'http://www.douyutv.com/85982',
-        'info_dict': {
-            'id': '85982',
-            'display_id': '85982',
-            'ext': 'flv',
-            'title': 're:^小漠从零单排记！——CSOL2躲猫猫 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
-            'description': 'md5:746a2f7a253966a06755a912f0acc0d2',
-            'thumbnail': r're:^https?://.*\.png',
-            'uploader': 'douyu小漠',
-            'is_live': True,
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'Room not found',
-    }, {
-        'url': 'http://www.douyutv.com/17732',
+        'url': 'http://www.douyu.com/17732',
         'info_dict': {
             'id': '17732',
-            'display_id': '17732',
             'ext': 'flv',
-            'title': 're:^清晨醒脑！根本停不下来！ [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'title': 're:^清晨醒脑！.* [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'description': r're:.*m7show@163\.com.*',
-            'thumbnail': r're:^https?://.*\.png',
+            'thumbnail': r're:^https?://.*',
+            'timestamp': int,
+            'upload_date': r're:2025\d{4}',
             'uploader': '7师傅',
+            'uploader_id': 'QY578Bp1rdEM',
             'is_live': True,
         },
         'params': {
             'skip_download': True,
         },
+        'skip': 'live',
     }, {
         'url': 'https://www.douyu.com/topic/ydxc?rid=6560603',
-        'info_dict': {
-            'id': '6560603',
-            'display_id': '6560603',
-            'ext': 'flv',
-            'title': 're:^阿余：新年快乐恭喜发财！ [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
-            'description': 're:.*直播时间.*',
-            'thumbnail': r're:^https?://.*\.png',
-            'uploader': '阿涛皎月Carry',
-            'live_status': 'is_live',
-        },
-        'params': {
-            'skip_download': True,
-        },
+        'only_matching': True,
     }, {
         'url': 'http://www.douyu.com/xiaocang',
         'only_matching': True,
@@ -136,9 +115,9 @@ class DouyuTVIE(DouyuBaseIE):
     def _extract_stream_formats(self, stream_formats):
         formats = []
         for stream_info in traverse_obj(stream_formats, (..., 'data')):
-            stream_url = urljoin(
-                traverse_obj(stream_info, 'rtmp_url'), traverse_obj(stream_info, 'rtmp_live'))
-            if stream_url:
+            base_url, stream_path = traverse_obj(stream_info, 'rtmp_url'), traverse_obj(stream_info, 'rtmp_live')
+            if base_url and stream_path:
+                stream_url = f'{base_url.rstrip("/")}/{stream_path.lstrip("/")}'
                 rate_id = traverse_obj(stream_info, ('rate', {int_or_none}))
                 rate_info = traverse_obj(stream_info, ('multirates', lambda _, v: v['rate'] == rate_id), get_all=False)
                 ext = determine_ext(stream_url)
@@ -166,20 +145,11 @@ class DouyuTVIE(DouyuBaseIE):
         if self._search_regex(r'\$ROOM\.show_status\s*=\s*(\d+)', webpage, 'status', default='') == '2':
             raise UserNotLive(video_id=video_id)
 
-        # Grab metadata from API
-        params = {
-            'aid': 'wp',
-            'client_sys': 'wp',
-            'time': int(time.time()),
-        }
-        params['auth'] = hashlib.md5(
-            f'room/{room_id}?{urllib.parse.urlencode(params)}zNzMV1y4EMxOHS6I5WKm'.encode()).hexdigest()
-        room = traverse_obj(self._download_json(
-            f'http://www.douyutv.com/api/v1/room/{room_id}', video_id,
-            note='Downloading room info', query=params, fatal=False), 'data')
+        room_info = traverse_obj(self._download_json(f'https://www.douyu.com/betard/{room_id}', video_id,
+                                                     note='Downloading room info', fatal=False), 'room')
 
         # 1 = live, 2 = offline
-        if traverse_obj(room, 'show_status') == '2':
+        if traverse_obj(room_info, 'show_status') == '2':
             raise UserNotLive(video_id=video_id)
 
         js_sign_func = self._search_js_sign_func(webpage, fatal=False) or self._get_sign_func(room_id, video_id)
@@ -204,12 +174,13 @@ class DouyuTVIE(DouyuBaseIE):
             'id': room_id,
             'formats': self._extract_stream_formats(stream_formats),
             'is_live': True,
-            **traverse_obj(room, {
-                'display_id': ('url', {str}, {lambda i: i[1:]}),
+            **traverse_obj(room_info, {
                 'title': ('room_name', {unescapeHTML}),
                 'description': ('show_details', {str}),
                 'uploader': ('nickname', {str}),
-                'thumbnail': ('room_src', {url_or_none}),
+                'uploader_id': ('up_id', {str}),
+                'thumbnail': ('room_pic', {url_or_none}),
+                'timestamp': ('show_time', {int_or_none}),
             }),
         }
 
