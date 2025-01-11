@@ -567,8 +567,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         self._set_cookie('.youtube.com', name='PREF', value=urllib.parse.urlencode(pref))
 
     def _initialize_cookie_auth(self):
-        self._load_sid_cookies()
-        if self._SAPISID or self._1PSAPISID or self._3PSAPISID:
+        yt_sapisid, yt_1psapisid, yt_3psapisid = self._get_sid_cookies()
+        if yt_sapisid or yt_1psapisid or yt_3psapisid:
             self.write_debug('Found YouTube account cookies')
 
     def _real_initialize(self):
@@ -648,24 +648,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         return f'{scheme} {"_".join(parts)}'
 
-    _SAPISID = _3PSAPISID = _1PSAPISID = None
-
-    def _load_sid_cookies(self):
+    def _get_sid_cookies(self):
+        """
+        Get SAPISID, 1PSAPISID, 3PSAPISID cookie values
+        @returns sapisid, 1psapisid, 3psapisid
+        """
         yt_cookies = self._get_cookies('https://www.youtube.com')
         yt_sapisid = try_call(lambda: yt_cookies['SAPISID'].value)
         yt_3papisid = try_call(lambda: yt_cookies['__Secure-3PAPISID'].value)
+        yt_1papisid = try_call(lambda: yt_cookies['__Secure-1PAPISID'].value)
 
-        if not self._SAPISID:
-            # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
-            # YouTube also falls back to __Secure-3PAPISID if SAPISID is missing.
-            # See: https://github.com/yt-dlp/yt-dlp/issues/393
-            self._SAPISID = yt_sapisid or yt_3papisid
+        # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
+        # YouTube also falls back to __Secure-3PAPISID if SAPISID is missing.
+        # See: https://github.com/yt-dlp/yt-dlp/issues/393
 
-        if not self._1PSAPISID:
-            self._1PSAPISID = try_call(lambda: yt_cookies['__Secure-1PAPISID'].value)
-
-        if not self._3PSAPISID:
-            self._3PSAPISID = yt_3papisid
+        return yt_sapisid or yt_3papisid, yt_1papisid, yt_3papisid
 
     def _get_sid_authorization_header(self, origin='https://www.youtube.com', user_session_id=None):
         """
@@ -680,11 +677,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if user_session_id:
             additional_parts['u'] = user_session_id
 
-        self._load_sid_cookies()
+        yt_sapisid, yt_1psapisid, yt_3psapisid = self._get_sid_cookies()
 
-        for scheme, sid in (('SAPISIDHASH', self._SAPISID),
-                            ('SAPISID1PHASH', self._1PSAPISID),
-                            ('SAPISID3PHASH', self._3PSAPISID)):
+        for scheme, sid in (('SAPISIDHASH', yt_sapisid),
+                            ('SAPISID1PHASH', yt_1psapisid),
+                            ('SAPISID3PHASH', yt_3psapisid)):
             if sid:
                 authorizations.append(self._make_sid_authorization(scheme, sid, origin, additional_parts))
 
