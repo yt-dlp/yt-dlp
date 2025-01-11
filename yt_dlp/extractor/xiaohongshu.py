@@ -10,7 +10,7 @@ from ..utils.traversal import traverse_obj
 
 
 class XiaoHongShuIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.xiaohongshu\.com/explore/(?P<id>[\da-f]+)'
+    _VALID_URL = r'https?://www\.xiaohongshu\.com/(?:explore|discovery/item)/(?P<id>[\da-f]+)'
     IE_DESC = '小红书'
     _TESTS = [{
         'url': 'https://www.xiaohongshu.com/explore/6411cf99000000001300b6d9',
@@ -24,6 +24,18 @@ class XiaoHongShuIE(InfoExtractor):
             'tags': ['今日快乐今日发', '吃货薯看这里', '香妃蛋糕', '小五卷蛋糕', '新手蛋糕卷'],
             'duration': 101.726,
             'thumbnail': r're:https?://sns-webpic-qc\.xhscdn\.com/\d+/[a-z0-9]+/[\w]+',
+        },
+    }, {
+        'url': 'https://www.xiaohongshu.com/discovery/item/674051740000000007027a15?xsec_token=CBgeL8Dxd1ZWBhwqRd568gAZ_iwG-9JIf9tnApNmteU2E=',
+        'info_dict': {
+            'id': '674051740000000007027a15',
+            'ext': 'mp4',
+            'title': '相互喜欢就可以了',
+            'uploader_id': '63439913000000001901f49a',
+            'duration': 28.073,
+            'description': '#广州[话题]# #深圳[话题]# #香港[话题]# #街头采访[话题]# #是你喜欢的类型[话题]#',
+            'thumbnail': r're:https?://sns-webpic-qc\.xhscdn\.com/\d+/[\da-f]+/[^/]+',
+            'tags': ['广州', '深圳', '香港', '街头采访', '是你喜欢的类型'],
         },
     }]
 
