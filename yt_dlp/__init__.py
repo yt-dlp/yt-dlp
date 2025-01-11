@@ -261,9 +261,11 @@ def validate_options(opts):
         elif value in ('inf', 'infinite'):
             return float('inf')
         try:
-            return int(value)
+            int_value = int(value)
         except (TypeError, ValueError):
             validate(False, f'{name} retry count', value)
+        validate_positive(f'{name} retry count', int_value)
+        return int_value
 
     opts.retries = parse_retries('download', opts.retries)
     opts.fragment_retries = parse_retries('fragment', opts.fragment_retries)
