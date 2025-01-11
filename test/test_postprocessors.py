@@ -564,7 +564,7 @@ class TestModifyChaptersPP(unittest.TestCase):
             {'start_time': 0, 'end_time': 2},
             {'start_time': 2, 'end_time': 6, 'remove': True},
             {'start_time': 6, 'end_time': 10, 'remove': False},
-        ])
+        ], duration=12)
         self.assertEqual(chapters, [
             {'start_time': 0, 'end_time': 2},
             {'start_time': 2, 'end_time': 5, 'remove': True},
@@ -577,7 +577,7 @@ class TestModifyChaptersPP(unittest.TestCase):
             {'start_time': 0, 'end_time': 2},
             {'start_time': 3, 'end_time': 7, 'remove': True},
             {'start_time': 6, 'end_time': 10, 'remove': False},
-        ])
+        ], duration=12)
         self.assertEqual(chapters, [
             {'start_time': 0, 'end_time': 2},
             {'start_time': 3, 'end_time': 7, 'remove': True},
@@ -589,7 +589,7 @@ class TestModifyChaptersPP(unittest.TestCase):
         chapters = self._pp._round_remove_chapters(keyframes, [
             {'start_time': 0, 'end_time': 2},
             {'start_time': 3, 'end_time': 8, 'remove': True},
-        ])
+        ], duration=8)
         self.assertEqual(chapters, [
             {'start_time': 0, 'end_time': 2},
             {'start_time': 3, 'end_time': 8, 'remove': True},
@@ -600,7 +600,7 @@ class TestModifyChaptersPP(unittest.TestCase):
         chapters = self._pp._round_remove_chapters(keyframes, [
             {'start_time': 0, 'end_time': 2},
             {'start_time': 8, 'end_time': 9, 'remove': True},
-        ])
+        ], duration=10)
         self.assertEqual(chapters, [
             {'start_time': 0, 'end_time': 2},
         ])

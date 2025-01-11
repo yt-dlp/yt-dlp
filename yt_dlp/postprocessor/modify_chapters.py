@@ -42,7 +42,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         chapters += sponsor_chapters
         if self._round_to_keyframes:
             keyframes = self.get_keyframe_timestamps(info['filepath'])
-            self._round_remove_chapters(keyframes, chapters)
+            self._round_remove_chapters(keyframes, chapters, info.get('duration') or real_duration)
 
         info['chapters'], cuts = self._remove_marked_arrange_sponsors(chapters)
         if not cuts:
@@ -334,11 +334,14 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         return out_file
 
     @staticmethod
-    def _round_remove_chapters(keyframes, chapters):
+    def _round_remove_chapters(keyframes, chapters, duration):
         result = []
         for c in chapters:
             if not c.get('remove', False) or not keyframes:
                 result.append(c)
+                continue
+
+            if c['end_time'] > keyframes[-1] and c['end_time'] != duration:
                 continue
 
             if c['end_time'] < keyframes[-1]:
