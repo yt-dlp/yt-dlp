@@ -25,7 +25,6 @@ import xml.etree.ElementTree
 from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
-    compat_os_name,
     urllib_req_to_req,
 )
 from ..cookies import LenientSimpleCookie
@@ -35,6 +34,7 @@ from ..networking import HEADRequest, Request
 from ..networking.exceptions import (
     HTTPError,
     IncompleteRead,
+    TransportError,
     network_exceptions,
 )
 from ..networking.impersonate import ImpersonateTarget
@@ -46,6 +46,7 @@ from ..utils import (
     FormatSorter,
     GeoRestrictedError,
     GeoUtils,
+    ISO639Utils,
     LenientJSONDecoder,
     Popen,
     RegexNotFoundError,
@@ -277,6 +278,7 @@ class InfoExtractor:
     thumbnails:     A list of dictionaries, with the following entries:
                         * "id" (optional, string) - Thumbnail format ID
                         * "url"
+                        * "ext" (optional, string) - actual image extension if not given in URL
                         * "preference" (optional, int) - quality of the image
                         * "width" (optional, int)
                         * "height" (optional, int)
@@ -332,7 +334,7 @@ class InfoExtractor:
     like_count:     Number of positive ratings of the video
     dislike_count:  Number of negative ratings of the video
     repost_count:   Number of reposts of the video
-    average_rating: Average rating give by users, the scale used depends on the webpage
+    average_rating: Average rating given by users, the scale used depends on the webpage
     comment_count:  Number of comments on the video
     comments:       A list of comments, each with one or more of the following
                     properties (all but one of text or html optional):
@@ -519,7 +521,7 @@ class InfoExtractor:
     or _extract_from_webpage as necessary. While these are normally classmethods,
     _extract_from_webpage is allowed to be an instance method.
 
-    _extract_from_webpage may raise self.StopExtraction() to stop further
+    _extract_from_webpage may raise self.StopExtraction to stop further
     processing of the webpage and obtain exclusive rights to it. This is useful
     when the extractor cannot reliably be matched using just the URL,
     e.g. invidious/peertube instances
@@ -572,13 +574,13 @@ class InfoExtractor:
 
     def _login_hint(self, method=NO_DEFAULT, netrc=None):
         password_hint = f'--username and --password, --netrc-cmd, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
+        cookies_hint = 'See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies'
         return {
             None: '',
-            'any': f'Use --cookies, --cookies-from-browser, {password_hint}',
+            'any': f'Use --cookies, --cookies-from-browser, {password_hint}. {cookies_hint}',
             'password': f'Use {password_hint}',
-            'cookies': (
-                'Use --cookies-from-browser or --cookies for the authentication. '
-                'See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies'),
+            'cookies': f'Use --cookies-from-browser or --cookies for the authentication. {cookies_hint}',
+            'session_cookies': f'Use --cookies for the authentication (--cookies-from-browser might not work). {cookies_hint}',
         }[method if method is not NO_DEFAULT else 'any' if self.supports_login() else 'cookies']
 
     def __init__(self, downloader=None):
@@ -965,6 +967,9 @@ class InfoExtractor:
             return False
         content = self._webpage_read_content(urlh, url_or_request, video_id, note, errnote, fatal,
                                              encoding=encoding, data=data)
+        if content is False:
+            assert not fatal
+            return False
         return (content, urlh)
 
     @staticmethod
@@ -1023,7 +1028,7 @@ class InfoExtractor:
         filename = sanitize_filename(f'{basen}.dump', restricted=True)
         # Working around MAX_PATH limitation on Windows (see
         # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
-        if compat_os_name == 'nt':
+        if os.name == 'nt':
             absfilepath = os.path.abspath(filename)
             if len(absfilepath) > 259:
                 filename = fR'\\?\{absfilepath}'
@@ -1039,7 +1044,15 @@ class InfoExtractor:
 
     def _webpage_read_content(self, urlh, url_or_request, video_id, note=None, errnote=None, fatal=True,
                               prefix=None, encoding=None, data=None):
-        webpage_bytes = urlh.read()
+        try:
+            webpage_bytes = urlh.read()
+        except TransportError as err:
+            errmsg = f'{video_id}: Error reading response: {err.msg}'
+            if fatal:
+                raise ExtractorError(errmsg, cause=err)
+            self.report_warning(errmsg)
+            return False
+
         if prefix is not None:
             webpage_bytes = prefix + webpage_bytes
         if self.get_param('dump_intermediate_pages', False):
@@ -1396,6 +1409,13 @@ class InfoExtractor:
             return None, None
 
         self.write_debug(f'Using netrc for {netrc_machine} authentication')
+
+        # compat: <=py3.10: netrc cannot parse tokens as empty strings, will return `""` instead
+        # Ref: https://github.com/yt-dlp/yt-dlp/issues/11413
+        #      https://github.com/python/cpython/commit/15409c720be0503131713e3d3abc1acd0da07378
+        if sys.version_info < (3, 11):
+            return tuple(x if x != '""' else '' for x in info[::2])
+
         return info[0], info[2]
 
     def _get_login_info(self, username_option='username', password_option='password', netrc_machine=None):
@@ -1558,7 +1578,9 @@ class InfoExtractor:
         if default is not NO_DEFAULT:
             fatal = False
         for mobj in re.finditer(JSON_LD_RE, html):
-            json_ld_item = self._parse_json(mobj.group('json_ld'), video_id, fatal=fatal)
+            json_ld_item = self._parse_json(
+                mobj.group('json_ld'), video_id, fatal=fatal,
+                errnote=False if default is not NO_DEFAULT else None)
             for json_ld in variadic(json_ld_item):
                 if isinstance(json_ld, dict):
                     yield json_ld
@@ -1698,7 +1720,7 @@ class InfoExtractor:
                 rating = traverse_obj(e, ('aggregateRating', 'ratingValue'), expected_type=float_or_none)
                 if rating is not None:
                     info['average_rating'] = rating
-                if is_type(e, 'TVEpisode', 'Episode'):
+                if is_type(e, 'TVEpisode', 'Episode', 'PodcastEpisode'):
                     episode_name = unescapeHTML(e.get('name'))
                     info.update({
                         'episode': episode_name,
@@ -1832,12 +1854,26 @@ class InfoExtractor:
 
     @staticmethod
     def _remove_duplicate_formats(formats):
-        format_urls = set()
+        seen_urls = set()
+        seen_fragment_urls = set()
         unique_formats = []
         for f in formats:
-            if f['url'] not in format_urls:
-                format_urls.add(f['url'])
+            fragments = f.get('fragments')
+            if callable(fragments):
                 unique_formats.append(f)
+
+            elif fragments:
+                fragment_urls = frozenset(
+                    fragment.get('url') or urljoin(f['fragment_base_url'], fragment['path'])
+                    for fragment in fragments)
+                if fragment_urls not in seen_fragment_urls:
+                    seen_fragment_urls.add(fragment_urls)
+                    unique_formats.append(f)
+
+            elif f['url'] not in seen_urls:
+                seen_urls.add(f['url'])
+                unique_formats.append(f)
+
         formats[:] = unique_formats
 
     def _is_valid_url(self, url, video_id, item='video', headers={}):
@@ -2065,7 +2101,7 @@ class InfoExtractor:
         has_drm = HlsFD._has_drm(m3u8_doc)
 
         def format_url(url):
-            return url if re.match(r'^https?://', url) else urllib.parse.urljoin(m3u8_url, url)
+            return url if re.match(r'https?://', url) else urllib.parse.urljoin(m3u8_url, url)
 
         if self.get_param('hls_split_discontinuity', False):
             def _extract_m3u8_playlist_indices(manifest_url=None, m3u8_doc=None):
@@ -2800,11 +2836,11 @@ class InfoExtractor:
                         base_url_e = element.find(_add_ns('BaseURL'))
                         if try_call(lambda: base_url_e.text) is not None:
                             base_url = base_url_e.text + base_url
-                            if re.match(r'^https?://', base_url):
+                            if re.match(r'https?://', base_url):
                                 break
                     if mpd_base_url and base_url.startswith('/'):
                         base_url = urllib.parse.urljoin(mpd_base_url, base_url)
-                    elif mpd_base_url and not re.match(r'^https?://', base_url):
+                    elif mpd_base_url and not re.match(r'https?://', base_url):
                         if not mpd_base_url.endswith('/'):
                             mpd_base_url += '/'
                         base_url = mpd_base_url + base_url
@@ -2894,7 +2930,7 @@ class InfoExtractor:
                         }
 
                     def location_key(location):
-                        return 'url' if re.match(r'^https?://', location) else 'path'
+                        return 'url' if re.match(r'https?://', location) else 'path'
 
                     if 'segment_urls' not in representation_ms_info and 'media' in representation_ms_info:
 
@@ -3059,7 +3095,11 @@ class InfoExtractor:
             url_pattern = stream.attrib['Url']
             stream_timescale = int_or_none(stream.get('TimeScale')) or timescale
             stream_name = stream.get('Name')
-            stream_language = stream.get('Language', 'und')
+            # IsmFD expects ISO 639 Set 2 language codes (3-character length)
+            # See: https://github.com/yt-dlp/yt-dlp/issues/11356
+            stream_language = stream.get('Language') or 'und'
+            if len(stream_language) != 3:
+                stream_language = ISO639Utils.short2long(stream_language) or 'und'
             for track in stream.findall('QualityLevel'):
                 KNOWN_TAGS = {'255': 'AACL', '65534': 'EC-3'}
                 fourcc = track.get('FourCC') or KNOWN_TAGS.get(track.get('AudioTag'))
@@ -3150,7 +3190,7 @@ class InfoExtractor:
                     })
         return formats, subtitles
 
-    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8_native', mpd_id=None, preference=None, quality=None):
+    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8_native', mpd_id=None, preference=None, quality=None, _headers=None):
         def absolute_url(item_url):
             return urljoin(base_url, item_url)
 
@@ -3174,11 +3214,11 @@ class InfoExtractor:
                 formats = self._extract_m3u8_formats(
                     full_url, video_id, ext='mp4',
                     entry_protocol=m3u8_entry_protocol, m3u8_id=m3u8_id,
-                    preference=preference, quality=quality, fatal=False)
+                    preference=preference, quality=quality, fatal=False, headers=_headers)
             elif ext == 'mpd':
                 is_plain_url = False
                 formats = self._extract_mpd_formats(
-                    full_url, video_id, mpd_id=mpd_id, fatal=False)
+                    full_url, video_id, mpd_id=mpd_id, fatal=False, headers=_headers)
             else:
                 is_plain_url = True
                 formats = [{
@@ -3272,6 +3312,8 @@ class InfoExtractor:
                         })
             for f in media_info['formats']:
                 f.setdefault('http_headers', {})['Referer'] = base_url
+                if _headers:
+                    f['http_headers'].update(_headers)
             if media_info['formats'] or media_info['subtitles']:
                 entries.append(media_info)
         return entries
@@ -3487,7 +3529,7 @@ class InfoExtractor:
                 continue
             urls.add(source_url)
             source_type = source.get('type') or ''
-            ext = mimetype2ext(source_type) or determine_ext(source_url)
+            ext = determine_ext(source_url, default_ext=mimetype2ext(source_type))
             if source_type == 'hls' or ext == 'm3u8' or 'format=m3u8-aapl' in source_url:
                 formats.extend(self._extract_m3u8_formats(
                     source_url, video_id, 'mp4', entry_protocol='m3u8_native',
@@ -3739,7 +3781,7 @@ class InfoExtractor:
         """ Merge subtitle dictionaries, language by language. """
         if target is None:
             target = {}
-        for d in dicts:
+        for d in filter(None, dicts):
             for lang, subs in d.items():
                 target[lang] = cls._merge_subtitle_items(target.get(lang, []), subs)
         return target
@@ -3761,7 +3803,7 @@ class InfoExtractor:
     def mark_watched(self, *args, **kwargs):
         if not self.get_param('mark_watched', False):
             return
-        if self.supports_login() and self._get_login_info()[0] is not None or self._cookies_passed:
+        if (self.supports_login() and self._get_login_info()[0] is not None) or self._cookies_passed:
             self._mark_watched(*args, **kwargs)
 
     def _mark_watched(self, *args, **kwargs):
