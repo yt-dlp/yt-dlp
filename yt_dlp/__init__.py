@@ -14,7 +14,6 @@ import os
 import re
 import traceback
 
-from .compat import compat_os_name
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS, CookieLoadError
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
@@ -44,7 +43,6 @@ from .utils import (
     GeoUtils,
     PlaylistEntries,
     SameFileError,
-    decodeOption,
     download_range_func,
     expand_path,
     float_or_none,
@@ -159,6 +157,9 @@ def set_compat_opts(opts):
             opts.embed_infojson = False
     if 'format-sort' in opts.compat_opts:
         opts.format_sort.extend(FormatSorter.ytdl_default)
+    elif 'prefer-vp9-sort' in opts.compat_opts:
+        opts.format_sort.extend(FormatSorter._prefer_vp9_sort)
+
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
     _audio_multistreams_set = set_default_compat('multistreams', 'allow_multiple_audio_streams', False, remove_compat=False)
     if _video_multistreams_set is False and _audio_multistreams_set is False:
@@ -260,9 +261,11 @@ def validate_options(opts):
         elif value in ('inf', 'infinite'):
             return float('inf')
         try:
-            return int(value)
+            int_value = int(value)
         except (TypeError, ValueError):
             validate(False, f'{name} retry count', value)
+        validate_positive(f'{name} retry count', int_value)
+        return int_value
 
     opts.retries = parse_retries('download', opts.retries)
     opts.fragment_retries = parse_retries('fragment', opts.fragment_retries)
@@ -880,8 +883,8 @@ def parse_options(argv=None):
         'listsubtitles': opts.listsubtitles,
         'subtitlesformat': opts.subtitlesformat,
         'subtitleslangs': opts.subtitleslangs,
-        'matchtitle': decodeOption(opts.matchtitle),
-        'rejecttitle': decodeOption(opts.rejecttitle),
+        'matchtitle': opts.matchtitle,
+        'rejecttitle': opts.rejecttitle,
         'max_downloads': opts.max_downloads,
         'prefer_free_formats': opts.prefer_free_formats,
         'trim_file_name': opts.trim_file_name,
@@ -1050,7 +1053,7 @@ def _real_main(argv=None):
             ydl.warn_if_short_id(args)
 
             # Show a useful error message and wait for keypress if not launched from shell on Windows
-            if not args and compat_os_name == 'nt' and getattr(sys, 'frozen', False):
+            if not args and os.name == 'nt' and getattr(sys, 'frozen', False):
                 import ctypes.wintypes
                 import msvcrt
 
@@ -1061,7 +1064,7 @@ def _real_main(argv=None):
                 # If we only have a single process attached, then the executable was double clicked
                 # When using `pyinstaller` with `--onefile`, two processes get attached
                 is_onefile = hasattr(sys, '_MEIPASS') and os.path.basename(sys._MEIPASS).startswith('_MEI')
-                if attached_processes == 1 or is_onefile and attached_processes == 2:
+                if attached_processes == 1 or (is_onefile and attached_processes == 2):
                     print(parser._generate_error_message(
                         'Do not double-click the executable, instead call it from a command line.\n'
                         'Please read the README for further information on how to use yt-dlp: '
@@ -1108,9 +1111,9 @@ def main(argv=None):
 from .extractor import gen_extractors, list_extractors
 
 __all__ = [
-    'main',
     'YoutubeDL',
-    'parse_options',
     'gen_extractors',
     'list_extractors',
+    'main',
+    'parse_options',
 ]

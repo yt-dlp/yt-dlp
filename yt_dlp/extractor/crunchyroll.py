@@ -456,7 +456,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
                 }),
             }),
             **traverse_obj(metadata, {
-                'duration': ('duration_ms', {lambda x: float_or_none(x, 1000)}),
+                'duration': ('duration_ms', {float_or_none(scale=1000)}),
                 'timestamp': ('upload_date', {parse_iso8601}),
                 'series': ('series_title', {str}),
                 'series_id': ('series_id', {str}),
@@ -484,7 +484,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
                 }),
             }),
             **traverse_obj(metadata, {
-                'duration': ('duration_ms', {lambda x: float_or_none(x, 1000)}),
+                'duration': ('duration_ms', {float_or_none(scale=1000)}),
                 'age_limit': ('maturity_ratings', -1, {parse_age_limit}),
             }),
         }
