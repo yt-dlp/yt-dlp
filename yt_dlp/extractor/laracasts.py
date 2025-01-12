@@ -32,7 +32,7 @@ class LaracastsBaseIE(InfoExtractor):
             VimeoIE, url_transparent=True,
             **traverse_obj(episode, {
                 'id': ('id', {int}, {str_or_none}),
-                'webpage_url': ('path', {lambda x: urljoin('https://laracasts.com', x)}),
+                'webpage_url': ('path', {urljoin('https://laracasts.com')}),
                 'title': ('title', {clean_html}),
                 'season_number': ('chapter', {int_or_none}),
                 'episode_number': ('position', {int_or_none}),
@@ -104,7 +104,7 @@ class LaracastsPlaylistIE(LaracastsBaseIE):
                 'description': ('body', {clean_html}),
                 'thumbnail': (('large_thumbnail', 'thumbnail'), {url_or_none}, any),
                 'duration': ('runTime', {parse_duration}),
-                'categories': ('taxonomy', 'name', {str}, {lambda x: x and [x]}),
+                'categories': ('taxonomy', 'name', {str}, all, filter),
                 'tags': ('topics', ..., 'name', {str}),
                 'modified_date': ('lastUpdated', {unified_strdate}),
             }),
