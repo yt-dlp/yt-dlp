@@ -1643,7 +1643,7 @@ class YoutubeDL:
                 except ReExtractInfoLater as e:
                     if wait_retries > max_retries:
                         if max_retries > 0:
-                            self.report_error(f'[wait] Giving up after {wait_retries-1} {"retries" if wait_retries != 2 else "retry"} while waiting.')
+                            self.report_error(f'[wait] Giving up after {wait_retries - 1} {"retries" if wait_retries != 2 else "retry"} while waiting.')
                         else:
                             self.report_error('[wait] Video is still unavailable after waiting.')
                         return
@@ -1678,6 +1678,7 @@ class YoutubeDL:
     def _wait_until(self, till):
         format_dur = lambda dur: '%02d:%02d:%02d' % timetuple_from_msec(dur * 1000)[:-1]
         last_msg = ''
+
         def progress(msg):
             nonlocal last_msg
             full_msg = f'{msg}\n'
