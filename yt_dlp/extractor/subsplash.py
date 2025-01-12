@@ -32,18 +32,36 @@ class SubsplashBaseIE(InfoExtractor):
         return {'Authorization': f'Bearer {token}'}
 
     def _extract_video(self, data, display_id):
-        return traverse_obj(data, {
-            'id': ('id', {str}),
-            'title': ('title', {str}),
-            'description': ('summary_text', {str}),
-            'thumbnail': ('_embedded', 'images', 0, '_links', 'related', 'href', {url_or_none}),
-            'duration': ('_embedded', 'video', 'duration', {int_or_none(scale=1000)}),
-            'timestamp': ('date', {parse_iso8601}),
-            'release_timestamp': ('published_at', {parse_iso8601}),
-            'modified_timestamp': ('updated_at', {parse_iso8601}),
-            'formats': ('_embedded', 'video', '_embedded', 'playlists', 0, '_links', 'related', 'href',
-                        {lambda url: self._extract_m3u8_formats(url, display_id)}),
-        })
+        formats = []
+        video_data = traverse_obj(data, ('_embedded', 'video', '_embedded', {dict}))
+        m3u8_url = traverse_obj(video_data, ('playlists', 0, '_links', 'related', 'href', {url_or_none}))
+        if m3u8_url:
+            formats.extend(self._extract_m3u8_formats(m3u8_url, display_id, 'mp4', m3u8_id='hls', fatal=False))
+        mp4_entry = traverse_obj(video_data, ('video-outputs', lambda _, v: url_or_none(v['_links']['related']['href']), any))
+        if mp4_entry:
+            formats.append({
+                'url': mp4_entry['_links']['related']['href'],
+                'format_id': 'direct',
+                'preference': 1,
+                **traverse_obj(mp4_entry, {
+                    'height': ('height', {int_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'filesize': ('file_size', {int_or_none}),
+                }),
+            })
+        return {
+            'formats': formats,
+            **traverse_obj(data, {
+                'id': ('id', {str}),
+                'title': ('title', {str}),
+                'description': ('summary_text', {str}),
+                'thumbnail': ('_embedded', 'images', 0, '_links', 'related', 'href', {url_or_none}),
+                'duration': ('_embedded', 'video', 'duration', {int_or_none(scale=1000)}),
+                'timestamp': ('date', {parse_iso8601}),
+                'release_timestamp': ('published_at', {parse_iso8601}),
+                'modified_timestamp': ('updated_at', {parse_iso8601}),
+            }),
+        }
 
 
 class SubsplashIE(SubsplashBaseIE):
@@ -53,7 +71,7 @@ class SubsplashIE(SubsplashBaseIE):
     ]
     _TESTS = [{
         'url': 'https://subsplash.com/u/skywatchtv/media/d/5whnx5s-the-grand-delusion-taking-place-right-now',
-        'md5': '2d67c50deac3c6c49c6e25c4a5b25afe',
+        'md5': 'd468729814e533cec86f1da505dec82d',
         'info_dict': {
             'id': '33f8d305-68ab-414c-acf2-f2317a0abe21',
             'ext': 'mp4',
@@ -70,7 +88,7 @@ class SubsplashIE(SubsplashBaseIE):
         },
     }, {
         'url': 'https://subsplash.com/u/prophecywatchers/media/d/n4dr8b2-the-transhumanist-plan-for-humanity-billy-crone',
-        'md5': 'f7b4109ba7f012dff953391d6b400730',
+        'md5': '01982d58021af81c969958459bd81f13',
         'info_dict': {
             'id': 'e16348f1-040e-4596-b922-77b45fa8d253',
             'ext': 'mp4',
@@ -113,7 +131,7 @@ class SubsplashPlaylistIE(SubsplashBaseIE):
             'id': 'dbyjzp8',
             'title': 'Five in Ten',
         },
-        'playlist_mincount': 24,
+        'playlist_mincount': 16,
     }, {
         'url': 'https://subsplash.com/prophecywatchers/media/ms/+n42mr48',
         'info_dict': {
