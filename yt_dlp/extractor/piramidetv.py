@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import parse_iso8601, url_or_none
+from ..utils import parse_iso8601, smuggle_url, unsmuggle_url, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -33,13 +33,13 @@ class PiramideTVIE(InfoExtractor):
         },
     }]
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
+    def _extract_video(self, video_id):
         video_data = self._download_json(
             f'https://hermes.piramide.tv/video/data/{video_id}', video_id, fatal=False)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'https://cdn.piramide.tv/video/{video_id}/manifest.m3u8', video_id, fatal=False)
-        return {
+        next_video = traverse_obj(video_data, ('video', 'next_video', 'id', {str}))
+        return next_video, {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
@@ -53,6 +53,23 @@ class PiramideTVIE(InfoExtractor):
                 'timestamp': ('date', {parse_iso8601}),
             })),
         }
+
+    def _entries(self, video_id):
+        visited = set()
+        while True:
+            next_video, info = self._extract_video(video_id)
+            yield info
+            if not next_video or next_video in visited:
+                break
+            visited.add(next_video)
+            video_id = next_video
+
+    def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
+        video_id = self._match_id(url)
+        if self._yes_playlist(video_id, video_id, smuggled_data):
+            return self.playlist_result(self._entries(video_id), video_id)
+        return self._extract_video(video_id)[1]
 
 
 class PiramideTVChannelIE(InfoExtractor):
@@ -69,7 +86,8 @@ class PiramideTVChannelIE(InfoExtractor):
         videos = self._download_json(
             f'https://hermes.piramide.tv/channel/list/{channel_name}/date/100000', channel_name)
         for video_id in traverse_obj(videos, ('videos', ..., 'id', {str})):
-            yield self.url_result(f'https://piramide.tv/video/{video_id}')
+            yield self.url_result(smuggle_url(
+                f'https://piramide.tv/video/{video_id}', {'force_noplaylist': True}))
 
     def _real_extract(self, url):
         channel_name = self._match_id(url)
