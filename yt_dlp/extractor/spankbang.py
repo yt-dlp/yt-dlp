@@ -113,6 +113,7 @@ class SpankBangIE(InfoExtractor):
             stream_key = self._search_regex(
                 r'data-streamkey\s*=\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
                 webpage, 'stream key', group='value')
+
             stream_domain = re.search(r'https?://(?:[^/]+\.)?(spankbang\.(?:com|party))/', url).group(1)
             stream_url = 'https://' + stream_domain + '/api/videos/stream'
             stream = self._download_json(
@@ -129,6 +130,11 @@ class SpankBangIE(InfoExtractor):
                 if format_url and isinstance(format_url, list):
                     format_url = format_url[0]
                 extract_format(format_id, format_url)
+
+        og_url = self._search_regex(
+            r'<meta property="og:url" content="(.*?)"', webpage, 'og:url', default=None)
+        if og_url:
+            video_id = self._search_regex(r'https://spankbang.(?:com|party)/([^/]+)/', og_url, 'video ID', default=None)
 
         info = self._search_json_ld(webpage, video_id, default={})
 
