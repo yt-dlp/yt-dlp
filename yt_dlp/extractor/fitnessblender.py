@@ -3,7 +3,7 @@ from .common import InfoExtractor
 
 
 class FitnessBlenderIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?fitnessblender\.com/videos/[\w-]+/T?(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?fitnessblender\.com/videos/'
 
     _TESTS = [{
         'url': 'https://www.fitnessblender.com/videos/lower-body-strength-hiit-workout-strength-sets-with-hiit-cardio-burst',
