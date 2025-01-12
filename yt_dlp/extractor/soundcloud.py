@@ -7,7 +7,6 @@ from .common import InfoExtractor, SearchInfoExtractor
 from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    KNOWN_EXTENSIONS,
     ExtractorError,
     float_or_none,
     int_or_none,
@@ -211,6 +210,7 @@ class SoundcloudBaseIE(InfoExtractor):
 
         format_urls = set()
         formats = []
+        has_drm = False
         query = {'client_id': self._CLIENT_ID}
         if secret_token:
             query['secret_token'] = secret_token
@@ -246,55 +246,24 @@ class SoundcloudBaseIE(InfoExtractor):
                         'url': format_url,
                         'quality': 10,
                         'format_note': 'Original',
+                        'vcodec': 'none',
                     })
 
         def invalid_url(url):
             return not url or url in format_urls
 
-        def add_format(f, protocol, is_preview=False):
-            mobj = re.search(r'\.(?P<abr>\d+)\.(?P<ext>[0-9a-z]{3,4})(?=[/?])', stream_url)
-            if mobj:
-                for k, v in mobj.groupdict().items():
-                    if not f.get(k):
-                        f[k] = v
-            format_id_list = []
-            if protocol:
-                format_id_list.append(protocol)
-            ext = f.get('ext')
-            if ext == 'aac':
-                f.update({
-                    'abr': 256,
-                    'quality': 5,
-                    'format_note': 'Premium',
-                })
-            for k in ('ext', 'abr'):
-                v = str_or_none(f.get(k))
-                if v:
-                    format_id_list.append(v)
-            preview = is_preview or re.search(r'/(?:preview|playlist)/0/30/', f['url'])
-            if preview:
-                format_id_list.append('preview')
-            abr = f.get('abr')
-            if abr:
-                f['abr'] = int(abr)
-            if protocol in ('hls', 'hls-aes'):
-                protocol = 'm3u8' if ext == 'aac' else 'm3u8_native'
-            else:
-                protocol = 'http'
-            f.update({
-                'format_id': '_'.join(format_id_list),
-                'protocol': protocol,
-                'preference': -10 if preview else None,
-            })
-            formats.append(f)
-
         # New API
-        for t in traverse_obj(info, ('media', 'transcodings', lambda _, v: url_or_none(v['url']))):
+        for t in traverse_obj(info, ('media', 'transcodings', lambda _, v: url_or_none(v['url']) and v['preset'])):
             if extract_flat:
                 break
             format_url = t['url']
+            preset = t['preset']
+            preset_base = preset.partition('_')[0]
 
-            protocol = traverse_obj(t, ('format', 'protocol', {str}))
+            protocol = traverse_obj(t, ('format', 'protocol', {str})) or 'http'
+            if protocol.startswith(('ctr-', 'cbc-')):
+                has_drm = True
+                continue
             if protocol == 'progressive':
                 protocol = 'http'
             if protocol != 'hls' and '/hls' in format_url:
@@ -302,35 +271,60 @@ class SoundcloudBaseIE(InfoExtractor):
             if protocol == 'encrypted-hls' or '/encrypted-hls' in format_url:
                 protocol = 'hls-aes'
 
-            ext = None
-            if preset := traverse_obj(t, ('preset', {str_or_none})):
-                ext = preset.split('_')[0]
-            if ext not in KNOWN_EXTENSIONS:
-                ext = mimetype2ext(traverse_obj(t, ('format', 'mime_type', {str})))
-
-            identifier = join_nonempty(protocol, ext, delim='_')
-            if not self._is_requested(identifier):
-                self.write_debug(f'"{identifier}" is not a requested format, skipping')
+            short_identifier = f'{protocol}_{preset_base}'
+            if preset_base == 'abr':
+                self.write_debug(f'Skipping broken "{short_identifier}" format')
+                continue
+            if not self._is_requested(short_identifier):
+                self.write_debug(f'"{short_identifier}" is not a requested format, skipping')
                 continue
 
             # XXX: if not extract_flat, 429 error must be caught where _extract_info_dict is called
             stream_url = traverse_obj(self._call_api(
-                format_url, track_id, f'Downloading {identifier} format info JSON',
+                format_url, track_id, f'Downloading {short_identifier} format info JSON',
                 query=query, headers=self._HEADERS), ('url', {url_or_none}))
-
             if invalid_url(stream_url):
                 continue
             format_urls.add(stream_url)
-            add_format({
+
+            mime_type = traverse_obj(t, ('format', 'mime_type', {str}))
+            codec = self._search_regex(r'codecs="([^"]+)"', mime_type, 'codec', default=None)
+            ext = {
+                'mp4a': 'm4a',
+                'opus': 'opus',
+            }.get(codec[:4] if codec else None) or mimetype2ext(mime_type, default=None)
+            if not ext or ext == 'm3u8':
+                ext = preset_base
+
+            is_premium = t.get('quality') == 'hq'
+            abr = int_or_none(
+                self._search_regex(r'(\d+)k$', preset, 'abr', default=None)
+                or self._search_regex(r'\.(\d+)\.(?:opus|mp3)[/?]', stream_url, 'abr', default=None)
+                or (256 if (is_premium and 'aac' in preset) else None))
+
+            is_preview = (t.get('snipped')
+                          or '/preview/' in format_url
+                          or re.search(r'/(?:preview|playlist)/0/30/', stream_url))
+
+            formats.append({
+                'format_id': join_nonempty(protocol, preset, is_preview and 'preview', delim='_'),
                 'url': stream_url,
                 'ext': ext,
-            }, protocol, t.get('snipped') or '/preview/' in format_url)
+                'acodec': codec,
+                'vcodec': 'none',
+                'abr': abr,
+                'protocol': 'm3u8_native' if protocol in ('hls', 'hls-aes') else 'http',
+                'container': 'm4a_dash' if ext == 'm4a' else None,
+                'quality': 5 if is_premium else 0 if (abr and abr >= 160) else -1,
+                'format_note': 'Premium' if is_premium else None,
+                'preference': -10 if is_preview else None,
+            })
 
-        for f in formats:
-            f['vcodec'] = 'none'
-
-        if not formats and info.get('policy') == 'BLOCK':
-            self.raise_geo_restricted(metadata_available=True)
+        if not formats:
+            if has_drm:
+                self.report_drm(track_id)
+            if info.get('policy') == 'BLOCK':
+                self.raise_geo_restricted(metadata_available=True)
 
         user = info.get('user') or {}
 
