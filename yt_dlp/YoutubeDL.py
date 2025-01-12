@@ -283,7 +283,10 @@ class YoutubeDL:
     lazy_playlist:     Process playlist entries as they are received.
     matchtitle:        Download only matching titles.
     rejecttitle:       Reject downloads for matching titles.
-    logger:            Log messages to a logging.Logger instance.
+    logger:            A class having a `debug`, `warning` and `error` function where
+                       each has a single string parameter, the message to be logged.
+                       For compatibility reasons, both debug and info messages are passed to `debug`.
+                       A debug message will have a prefix of `[debug] ` to discern it from info messages.
     logtostderr:       Print everything to stderr instead of stdout.
     consoletitle:      Display progress in the console window's titlebar.
     writedescription:  Write the video description to a .description file
