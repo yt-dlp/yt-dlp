@@ -1278,7 +1278,10 @@ from .nebula import (
 )
 from .nekohacker import NekoHackerIE
 from .nerdcubed import NerdCubedFeedIE
-from .nest import NestIE
+from .nest import (
+    NestClipIE,
+    NestIE,
+)
 from .neteasemusic import (
     NetEaseMusicAlbumIE,
     NetEaseMusicDjRadioIE,

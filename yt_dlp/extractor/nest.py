@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError
+from ..utils import ExtractorError, float_or_none, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -70,4 +70,45 @@ class NestIE(InfoExtractor):
             'availability': 'public' if item.get('is_public') else None,
             'formats': self._extract_m3u8_formats(m3u8, video_id, 'mp4', live=True),
             'is_live': True,
+        }
+
+
+class NestClipIE(InfoExtractor):
+    _VALID_URL = r'https?://video\.nest\.com/(?:embedded/)?clip/(?P<id>\w+)'
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
+    _TESTS = [{
+        'url': 'https://video.nest.com/clip/f34c9dd237a44eca9a0001af685e3dff',
+        'info_dict': {
+            'id': 'f34c9dd237a44eca9a0001af685e3dff',
+            'ext': 'mp4',
+            'title': 'NestClip video #f34c9dd237a44eca9a0001af685e3dff',
+            'thumbnail': 'https://clips.dropcam.com/f34c9dd237a44eca9a0001af685e3dff.jpg',
+            'timestamp': 1735413474.468,
+            'upload_date': '20241228',
+        },
+    }, {
+        'url': 'https://video.nest.com/embedded/clip/34e0432adc3c46a98529443d8ad5aa76',
+        'info_dict': {
+            'id': '34e0432adc3c46a98529443d8ad5aa76',
+            'ext': 'mp4',
+            'title': 'Shootout at Veterans Boulevard at Fleur De Lis Drive',
+            'thumbnail': 'https://clips.dropcam.com/34e0432adc3c46a98529443d8ad5aa76.jpg',
+            'upload_date': '20230817',
+            'timestamp': 1692262897.191,
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        data = self._download_json(
+            'https://video.nest.com/api/dropcam/videos.get_by_filename', video_id,
+            query={'filename': f'{video_id}.mp4'})
+        return {
+            'id': video_id,
+            **traverse_obj(data, ('items', 0, {
+                'title': ('title', {str}),
+                'thumbnail': ('thumbnail_url', {url_or_none}),
+                'url': ('download_url', {url_or_none}),
+                'timestamp': ('start_time', {float_or_none}),
+            })),
         }
