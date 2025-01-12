@@ -52,10 +52,9 @@ class NestIE(InfoExtractor):
             f'https://video.nest.com/api/dropcam/cameras.get_by_public_token?token={video_id}', video_id)
         item = traverse_obj(data, ('items', 0, {dict}))
         uuid = item.get('uuid')
-        domain = item.get('live_stream_host')
-        if not domain or not uuid:
+        stream_domain = item.get('live_stream_host')
+        if not stream_domain or not uuid:
             raise ExtractorError('Unable to construct playlist URL')
-        m3u8 = f'https://{domain}/nexus_aac/{uuid}/playlist.m3u8?public={video_id}'
 
         thumb_domain = item.get('nexus_api_nest_domain_host')
         return {
@@ -68,7 +67,8 @@ class NestIE(InfoExtractor):
             }),
             'thumbnail': f'https://{thumb_domain}/get_image?uuid={uuid}&public={video_id}' if thumb_domain else None,
             'availability': 'public' if item.get('is_public') else None,
-            'formats': self._extract_m3u8_formats(m3u8, video_id, 'mp4', live=True),
+            'formats': self._extract_m3u8_formats(
+                f'https://{stream_domain}/nexus_aac/{uuid}/playlist.m3u8?public={video_id}', video_id, 'mp4', live=True),
             'is_live': True,
         }
 
