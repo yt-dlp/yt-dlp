@@ -256,11 +256,12 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'MWEB',
                 'clientVersion': '2.20241202.07.00',
-                # mweb does not require PO Token with this UA
+                # mweb previously did not require PO Token with this UA
                 'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
+        'REQUIRE_PO_TOKEN': True,
         'SUPPORTS_COOKIES': True,
     },
     'tv': {
@@ -1356,8 +1357,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
-    _DEFAULT_CLIENTS = ('ios', 'mweb')
-    _DEFAULT_AUTHED_CLIENTS = ('web_creator', 'mweb')
+    _DEFAULT_CLIENTS = ('ios', 'tv')
+    _DEFAULT_AUTHED_CLIENTS = ('web_creator', 'tv')
 
     _GEO_BYPASS = False
 
