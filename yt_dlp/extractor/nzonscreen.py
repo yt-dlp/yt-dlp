@@ -160,6 +160,7 @@ class NZOnScreenIE(InfoExtractor):
 
         if ep_idx is None and playlist_len > 1 and self._yes_playlist(video_id, traverse_obj(playlist, (0, 'id'))):
             return self.playlist_result(
+                # the site's m3u8 URLs are short-lived, we have to extract them just before downloading
                 [self.url_result(smuggle_url(url, {'ep': idx}), NZOnScreenIE.ie_key()) for idx in range(playlist_len)],
                 playlist_id=video_id, playlist_title=title)
 
