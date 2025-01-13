@@ -555,6 +555,7 @@ from .dropout import (
     DropoutIE,
     DropoutSeasonIE,
 )
+from .drtalks import DrTalksIE
 from .drtuber import DrTuberIE
 from .drtv import (
     DRTVIE,
@@ -1551,6 +1552,7 @@ from .pluralsight import (
     PluralsightIE,
 )
 from .plutotv import PlutoTVIE
+from .plvideo import PlVideoIE
 from .podbayfm import (
     PodbayFMChannelIE,
     PodbayFMIE,
@@ -2353,10 +2355,6 @@ from .vimeo import (
 from .vimm import (
     VimmIE,
     VimmRecordingIE,
-)
-from .vine import (
-    VineIE,
-    VineUserIE,
 )
 from .viously import ViouslyIE
 from .viqeo import ViqeoIE
