@@ -4,6 +4,7 @@
 import os
 import sys
 import unittest
+import unittest.mock
 import warnings
 import datetime as dt
 
@@ -20,7 +21,6 @@ import xml.etree.ElementTree
 from yt_dlp.compat import (
     compat_etree_fromstring,
     compat_HTMLParseError,
-    compat_os_name,
 )
 from yt_dlp.utils import (
     Config,
@@ -48,7 +48,6 @@ from yt_dlp.utils import (
     dfxp2srt,
     encode_base_n,
     encode_compat_str,
-    encodeFilename,
     expand_path,
     extract_attributes,
     extract_basic_auth,
@@ -68,7 +67,6 @@ from yt_dlp.utils import (
     get_elements_html_by_class,
     get_elements_text_and_html_by_attribute,
     int_or_none,
-    intlist_to_bytes,
     iri_to_uri,
     is_html,
     js_to_json,
@@ -343,11 +341,13 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(remove_start(None, 'A - '), None)
         self.assertEqual(remove_start('A - B', 'A - '), 'B')
         self.assertEqual(remove_start('B - A', 'A - '), 'B - A')
+        self.assertEqual(remove_start('non-empty', ''), 'non-empty')
 
     def test_remove_end(self):
         self.assertEqual(remove_end(None, ' - B'), None)
         self.assertEqual(remove_end('A - B', ' - B'), 'A')
         self.assertEqual(remove_end('B - A', ' - B'), 'B - A')
+        self.assertEqual(remove_end('non-empty', ''), 'non-empty')
 
     def test_remove_quotes(self):
         self.assertEqual(remove_quotes(None), None)
@@ -563,10 +563,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(res_data, {'a': 'b', 'c': 'd'})
 
     def test_shell_quote(self):
-        args = ['ffmpeg', '-i', encodeFilename('ñ€ß\'.mp4')]
+        args = ['ffmpeg', '-i', 'ñ€ß\'.mp4']
         self.assertEqual(
             shell_quote(args),
-            """ffmpeg -i 'ñ€ß'"'"'.mp4'""" if compat_os_name != 'nt' else '''ffmpeg -i "ñ€ß'.mp4"''')
+            """ffmpeg -i 'ñ€ß'"'"'.mp4'""" if os.name != 'nt' else '''ffmpeg -i "ñ€ß'.mp4"''')
 
     def test_float_or_none(self):
         self.assertEqual(float_or_none('42.42'), 42.42)
@@ -1306,15 +1306,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(clean_html('a:\n   "b"'), 'a: "b"')
         self.assertEqual(clean_html('a<br>\xa0b'), 'a\nb')
 
-    def test_intlist_to_bytes(self):
-        self.assertEqual(
-            intlist_to_bytes([0, 1, 127, 128, 255]),
-            b'\x00\x01\x7f\x80\xff')
-
     def test_args_to_str(self):
         self.assertEqual(
             args_to_str(['foo', 'ba/r', '-baz', '2 be', '']),
-            'foo ba/r -baz \'2 be\' \'\'' if compat_os_name != 'nt' else 'foo ba/r -baz "2 be" ""',
+            'foo ba/r -baz \'2 be\' \'\'' if os.name != 'nt' else 'foo ba/r -baz "2 be" ""',
         )
 
     def test_parse_filesize(self):
@@ -2114,7 +2109,7 @@ Line 1
         assert extract_basic_auth('http://user:@foo.bar') == ('http://foo.bar', 'Basic dXNlcjo=')
         assert extract_basic_auth('http://user:pass@foo.bar') == ('http://foo.bar', 'Basic dXNlcjpwYXNz')
 
-    @unittest.skipUnless(compat_os_name == 'nt', 'Only relevant on Windows')
+    @unittest.skipUnless(os.name == 'nt', 'Only relevant on Windows')
     def test_windows_escaping(self):
         tests = [
             'test"&',
@@ -2147,6 +2142,12 @@ Line 1
             args = [sys.executable, '-c', 'import sys; print(end=sys.argv[1])', argument, 'end']
             assert run_shell(args) == expected
             assert run_shell(shell_quote(args, shell=True)) == expected
+
+    def test_partial_application(self):
+        assert callable(int_or_none(scale=10)), 'missing positional parameter should apply partially'
+        assert int_or_none(10, scale=0.1) == 100, 'positionally passed argument should call function'
+        assert int_or_none(v=10) == 10, 'keyword passed positional should call function'
+        assert int_or_none(scale=0.1)(10) == 100, 'call after partial application should call the function'
 
 
 if __name__ == '__main__':

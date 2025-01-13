@@ -15,7 +15,6 @@ import json
 
 from test.helper import FakeYDL, assertRegexpMatches, try_rm
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_os_name
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
@@ -762,6 +761,13 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(width)06d.%%(ext)s', 'NA.%(ext)s')
         test('%%(width)06d.%(ext)s', '%(width)06d.mp4')
 
+        # Sanitization options
+        test('%(title3)s', (None, 'foo⧸bar⧹test'))
+        test('%(title5)s', (None, 'aei_A'), restrictfilenames=True)
+        test('%(title3)s', (None, 'foo_bar_test'), windowsfilenames=False, restrictfilenames=True)
+        if sys.platform != 'win32':
+            test('%(title3)s', (None, 'foo⧸bar\\test'), windowsfilenames=False)
+
         # ID sanitization
         test('%(id)s', '_abcd', info={'id': '_abcd'})
         test('%(some_id)s', '_abcd', info={'some_id': '_abcd'})
@@ -839,8 +845,8 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(filesize)#D', '1Ki')
         test('%(height)5.2D', ' 1.08k')
         test('%(title4)#S', 'foo_bar_test')
-        test('%(title4).10S', ('foo ＂bar＂ ', 'foo ＂bar＂' + ('#' if compat_os_name == 'nt' else ' ')))
-        if compat_os_name == 'nt':
+        test('%(title4).10S', ('foo ＂bar＂ ', 'foo ＂bar＂' + ('#' if os.name == 'nt' else ' ')))
+        if os.name == 'nt':
             test('%(title4)q', ('"foo ""bar"" test"', None))
             test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', None))
             test('%(formats.0.id)#q', ('"id 1"', None))
@@ -903,9 +909,9 @@ class TestYoutubeDL(unittest.TestCase):
 
         # Environment variable expansion for prepare_filename
         os.environ['__yt_dlp_var'] = 'expanded'
-        envvar = '%__yt_dlp_var%' if compat_os_name == 'nt' else '$__yt_dlp_var'
+        envvar = '%__yt_dlp_var%' if os.name == 'nt' else '$__yt_dlp_var'
         test(envvar, (envvar, 'expanded'))
-        if compat_os_name == 'nt':
+        if os.name == 'nt':
             test('%s%', ('%s%', '%s%'))
             os.environ['s'] = 'expanded'
             test('%s%', ('%s%', 'expanded'))  # %s% should be expanded before escaping %s
