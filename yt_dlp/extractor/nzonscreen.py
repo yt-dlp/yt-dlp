@@ -2,8 +2,10 @@ from .common import InfoExtractor
 from ..utils import (
     float_or_none,
     int_or_none,
+    smuggle_url,
     strip_or_none,
     traverse_obj,
+    unsmuggle_url,
     url_or_none,
     urljoin,
 )
@@ -144,6 +146,8 @@ class NZOnScreenIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
+        ep_idx = smuggled_data.get('ep')
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         title = strip_or_none((
@@ -152,10 +156,31 @@ class NZOnScreenIE(InfoExtractor):
         playlist = self._download_json(
             f'https://www.nzonscreen.com/html5/video_data/{video_id}', video_id,
             'Downloading media data')
+        playlist_len = len(playlist)
 
-        if self._yes_playlist(video_id, traverse_obj(playlist, (0, 'id'))):
+        if ep_idx is None and playlist_len > 1 and self._yes_playlist(video_id, traverse_obj(playlist, (0, 'id'))):
             return self.playlist_result(
-                [self._extract_from_api_resp(vid_info, len(playlist) == 1, title, video_id) for vid_info in playlist],
+                [self.url_result(smuggle_url(url, {'ep': idx}), NZOnScreenIE.ie_key()) for idx in range(playlist_len)],
                 playlist_id=video_id, playlist_title=title)
 
-        return self._extract_from_api_resp(playlist[0], len(playlist) == 1, title, video_id)
+        vid_info = playlist[ep_idx or 0]
+        return {
+            'alt_title': title if playlist_len == 1 else None,
+            'display_id': video_id,
+            'http_headers': {
+                'Referer': 'https://www.nzonscreen.com/',
+                'Origin': 'https://www.nzonscreen.com/',
+            },
+            'subtitles': {'en': [{
+                'url': traverse_obj(vid_info, ('h264', 'caption_url', {urljoin('https://www.nzonscreen.com')})),
+                'ext': 'vtt',
+            }]},
+            'formats': self._extract_formats(vid_info),
+            **traverse_obj(vid_info, {
+                'id': 'uuid',
+                'title': ('label', {strip_or_none}),
+                'description': ('description', {strip_or_none}),
+                'thumbnail': ('thumbnail', 'path'),
+                'duration': ('duration', {float_or_none}),
+            }),
+        }
