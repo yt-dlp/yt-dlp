@@ -1,5 +1,4 @@
 import base64
-import math
 import time
 
 from .common import InfoExtractor
