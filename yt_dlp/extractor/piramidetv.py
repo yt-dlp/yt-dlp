@@ -43,6 +43,8 @@ class PiramideTVIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
+            'webpage_url': f'https://piramide.tv/video/{video_id}',
+            'original_url': f'https://piramide.tv/video/{video_id}',
             **traverse_obj(video_data, ('video', {
                 'id': ('id', {str}),
                 'title': ('title', {str}),
