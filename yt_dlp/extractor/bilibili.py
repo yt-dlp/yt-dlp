@@ -4,7 +4,9 @@ import hashlib
 import itertools
 import json
 import math
+import random
 import re
+import string
 import time
 import urllib.parse
 import uuid
@@ -23,8 +25,10 @@ from ..utils import (
     float_or_none,
     format_field,
     get_element_by_class,
+    get_element_by_id,
     int_or_none,
     join_nonempty,
+    jwt_decode_hs256,
     make_archive_id,
     merge_dicts,
     mimetype2ext,
@@ -1178,21 +1182,46 @@ class BilibiliSpaceBaseIE(BilibiliBaseIE):
 
 class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
     _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)(?P<video>/video)?/?(?:[?#]|$)'
+    _W_WEBID = None
     _TESTS = [{
         'url': 'https://space.bilibili.com/3985676/video',
         'info_dict': {
             'id': '3985676',
         },
         'playlist_mincount': 178,
-        'skip': 'login required',
     }, {
         'url': 'https://space.bilibili.com/313580179/video',
         'info_dict': {
             'id': '313580179',
         },
         'playlist_mincount': 92,
-        'skip': 'login required',
     }]
+
+    def _get_w_webid(self, url, video_id):
+        def validate_w_webid(w_webid):
+            if not w_webid:
+                return False
+            decoded = jwt_decode_hs256(w_webid)
+            created_at, ttl = decoded.get('created_at'), decoded.get('ttl')
+            if not isinstance(created_at, int) or not isinstance(ttl, int):
+                return False
+            return time.time() < created_at + ttl
+
+        if self._W_WEBID and validate_w_webid(self._W_WEBID):
+            return self._W_WEBID
+
+        self._W_WEBID = self.cache.load(self.ie_key(), 'w_webid')
+        if self._W_WEBID and validate_w_webid(self._W_WEBID):
+            return self._W_WEBID
+        webpage = self._download_webpage(url, video_id)
+        render_data = get_element_by_id('__RENDER_DATA__', webpage)
+        if render_data is None:
+            return None
+        self._W_WEBID = traverse_obj(render_data, ({urllib.parse.unquote}, {json.loads}, 'access_id'))
+        if self._W_WEBID and validate_w_webid(self._W_WEBID):
+            return self._W_WEBID
+
+        self.cache.store(self._NETRC_MACHINE, 'w_webid', self._W_WEBID)
 
     def _real_extract(self, url):
         playlist_id, is_video_url = self._match_valid_url(url).group('id', 'video')
@@ -1211,6 +1240,13 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                 'ps': 30,
                 'tid': 0,
                 'web_location': 1550101,
+                'dm_img_list': '[]',
+                'dm_img_str': base64.b64encode(
+                    ''.join(random.choices(string.printable, k=random.randint(16, 64))).encode())[:-2].decode(),
+                'dm_cover_img_str': base64.b64encode(
+                    ''.join(random.choices(string.printable, k=random.randint(32, 128))).encode())[:-2].decode(),
+                'dm_img_inter': '{"ds":[],"wh":[6093,6631,31],"of":[430,760,380]}',
+                'w_webid': self._get_w_webid(url, playlist_id),
             }
 
             try:
