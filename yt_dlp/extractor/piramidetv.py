@@ -34,27 +34,28 @@ class PiramideTVIE(InfoExtractor):
     }]
 
     def _extract_video(self, video_id):
-        video_data = self._download_json(
-            f'https://hermes.piramide.tv/video/data/{video_id}', video_id, fatal=False)
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            f'https://cdn.piramide.tv/video/{video_id}/manifest.m3u8', video_id, fatal=False)
-        next_video = traverse_obj(video_data, ('video', 'next_video', 'id', {str}))
-        return next_video, {
-            'id': video_id,
-            'formats': formats,
-            'subtitles': subtitles,
-            'webpage_url': f'https://piramide.tv/video/{video_id}',
-            'original_url': f'https://piramide.tv/video/{video_id}',
-            **traverse_obj(video_data, ('video', {
-                'id': ('id', {str}),
-                'title': ('title', {str}),
-                'description': ('description', {str}),
-                'thumbnail': ('media', 'thumbnail', {url_or_none}),
-                'channel': ('channel', 'name', {str}),
-                'channel_id': ('channel', 'id', {str}),
-                'timestamp': ('date', {parse_iso8601}),
-            })),
-        }
+        if video_data := self._download_json(
+                f'https://hermes.piramide.tv/video/data/{video_id}', video_id, fatal=False):
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                f'https://cdn.piramide.tv/video/{video_id}/manifest.m3u8', video_id, fatal=False)
+            next_video = traverse_obj(video_data, ('video', 'next_video', 'id', {str}))
+            return next_video, {
+                'id': video_id,
+                'formats': formats,
+                'subtitles': subtitles,
+                'webpage_url': f'https://piramide.tv/video/{video_id}',
+                'original_url': f'https://piramide.tv/video/{video_id}',
+                **traverse_obj(video_data, ('video', {
+                    'id': ('id', {str}),
+                    'title': ('title', {str}),
+                    'description': ('description', {str}),
+                    'thumbnail': ('media', 'thumbnail', {url_or_none}),
+                    'channel': ('channel', 'name', {str}),
+                    'channel_id': ('channel', 'id', {str}),
+                    'timestamp': ('date', {parse_iso8601}),
+                })),
+            }
+        return None, {'id': video_id}
 
     def _entries(self, video_id):
         visited = set()
