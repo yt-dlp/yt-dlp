@@ -88,9 +88,16 @@ class PiramideTVChannelIE(InfoExtractor):
     def _entries(self, channel_name):
         videos = self._download_json(
             f'https://hermes.piramide.tv/channel/list/{channel_name}/date/100000', channel_name)
-        for video_id in traverse_obj(videos, ('videos', ..., 'id', {str})):
-            yield self.url_result(smuggle_url(
-                f'https://piramide.tv/video/{video_id}', {'force_noplaylist': True}))
+        for video in videos.get('videos', []):
+            if video_id := video.get('id'):
+                yield self.url_result(smuggle_url(
+                    f'https://piramide.tv/video/{video_id}', {'force_noplaylist': True}),
+                    **traverse_obj(video, {
+                        'id': ('id', {str}),
+                        'title': ('title', {str}),
+                        'description': ('description', {str}),
+                        'webpage_url': ('id', {str}, {lambda v: f'https://piramide.tv/video/{v}'}),
+                    }))
 
     def _real_extract(self, url):
         channel_name = self._match_id(url)
