@@ -4,9 +4,9 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     str_or_none,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class EggsBaseIE(InfoExtractor):
