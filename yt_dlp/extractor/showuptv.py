@@ -49,7 +49,7 @@ class ShowupTvIE(InfoExtractor):
             'title': self._html_extract_title(webpage),
             'uploader_id': uploader_id,
             'uploader_url': f'https://showup.tv/profile/{uploader_id}',
-            'url': f'rtmp://{self._extract_player_var('transcoderAddr', webpage)}/webrtc/{stream_id}_aac',
+            'url': f'rtmp://{self._extract_player_var("transcoderAddr", webpage)}/webrtc/{stream_id}_aac',
             'ext': 'flv',
             'is_live': True,
         }
