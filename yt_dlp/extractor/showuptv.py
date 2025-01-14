@@ -32,7 +32,7 @@ class ShowupTvIE(InfoExtractor):
     def _real_initialize(self):
         self._set_cookie('showup.tv', 'accept_rules', 'true')
 
-    def _extract_player_args(self, variable, html):
+    def _extract_player_var(self, variable, html):
         return self._html_search_regex(
             rf'player\.{variable}\s*=\s*(["\'])(?P<value>(?:(?!\1).)+)\1', html, variable, group='value')
 
@@ -40,8 +40,8 @@ class ShowupTvIE(InfoExtractor):
         uploader_id = self._match_id(url)
         webpage = self._download_webpage(url, uploader_id)
 
-        stream_id = self._extract_player_args('streamID', webpage)
-        server_url = self._extract_player_args('transcoderAddr', webpage)
+        stream_id = self._extract_player_var('streamID', webpage)
+        server_url = self._extract_player_var('transcoderAddr', webpage)
 
         return {
             'id': stream_id,
