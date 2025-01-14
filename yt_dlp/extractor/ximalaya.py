@@ -222,7 +222,7 @@ class XimalayaAlbumIE(XimalayaBaseIE):
         playlist_id = self._match_id(url)
 
         meta = self._download_json('https://www.ximalaya.com/revision/album/v1/simple',
-            playlist_id, note='Downloading album info', query={'albumId': playlist_id})
+                                   playlist_id, note='Downloading album info', query={'albumId': playlist_id})
         title = traverse_obj(meta, ('data', 'albumPageMainInfo', 'albumTitle'))
 
         page_size = 30
@@ -238,7 +238,7 @@ class XimalayaAlbumIE(XimalayaBaseIE):
         page_count = page_idx
 
         entries = InAdvancePagedList(
-            lambda idx: self._get_entries(page_cache.get(str(idx+1))),
+            lambda idx: self._get_entries(page_cache.get(str(idx + 1))),
             page_count, page_size)
 
         return self.playlist_result(entries, playlist_id, title)
