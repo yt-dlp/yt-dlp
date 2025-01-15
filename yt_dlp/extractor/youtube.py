@@ -116,6 +116,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
+        'REQUIRE_PO_TOKEN': True,
         'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
@@ -212,8 +213,8 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
-        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_PO_TOKEN': True,
     },
     # This client now requires sign-in for every video
     'ios_music': {
@@ -230,6 +231,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
     },
     # This client now requires sign-in for every video
@@ -247,6 +249,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
     },
     # mweb has 'ultralow' formats
