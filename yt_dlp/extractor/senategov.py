@@ -177,8 +177,8 @@ class SenateGovIE(SenateBaseIE):
         display_id = self._generic_id(url)
         webpage = self._download_webpage(url, display_id)
         iframe_src = self._search_regex(
-            (r'<iframe class="[^>"]*streaminghearing[^>"]*"\s[^>]*\bsrc="([^">]*)',
-             r'<iframe title="[^>"]*[^>"]*"\s[^>]*\bsrc="([^">]*)'),
+            (r'<iframe class="[^>"]*streaminghearing[^>"]*"\s[^>]*\bsrc="([^>"]+)',
+             r'<iframe title="[^>"]*"\s[^>]*\bsrc="([^">]+)'),
             webpage, 'hearing URL').replace('&amp;', '&')
         parse_info = parse_qs(iframe_src)
         committee = parse_info['comm'][-1]
