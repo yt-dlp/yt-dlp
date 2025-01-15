@@ -52,6 +52,7 @@ class SenateBaseIE(InfoExtractor):
                              f'https://www-senate-gov-msl3archive.akamaized.net/{msl3}/{filename}_1/master.m3u8',
                              f'{stream_domain}/i/{filename}_1@{stream_num}/master.m3u8',
                              f'{stream_domain}/i/{filename}.mp4/master.m3u8']
+        formats = None
         for video_url in urls_alternatives:
             formats = self._extract_m3u8_formats(video_url, video_id, ext='mp4', fatal=False)
             if formats:
