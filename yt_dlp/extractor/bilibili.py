@@ -1257,14 +1257,14 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError(
-                        'Request is blocked by server (412), please add cookies, wait and try later.', expected=True)
+                        'Request is blocked by server (412), please wait and try later.', expected=True)
                 raise
             status_code = response['code']
             if status_code == -401:
                 raise ExtractorError(
-                    'Request is blocked by server (401), please add cookies, wait and try later.', expected=True)
-            elif status_code == -352 and not self.is_logged_in:
-                self.raise_login_required('Request is rejected, you need to login to access playlist')
+                    'Request is blocked by server (401), please wait and try later.', expected=True)
+            elif status_code == -352:
+                raise ExtractorError('Request is rejected by server (352)', expected=True)
             elif status_code != 0:
                 raise ExtractorError(f'Request failed ({status_code}): {response.get("message") or "Unknown error"}')
             return response['data']
