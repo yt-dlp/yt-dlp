@@ -4,6 +4,11 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.01.15
+
+#### Extractor changes
+- **youtube**: [Do not use `web_creator` as a default client](https://github.com/yt-dlp/yt-dlp/commit/c8541f8b13e743fcfa06667530d13fee8686e22a) ([#12087](https://github.com/yt-dlp/yt-dlp/issues/12087)) by [bashonly](https://github.com/bashonly)
+
 ### 2025.01.12
 
 #### Core changes
