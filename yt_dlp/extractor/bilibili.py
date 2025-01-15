@@ -1227,7 +1227,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
         playlist_id, is_video_url = self._match_valid_url(url).group('id', 'video')
         if not is_video_url:
             self.to_screen('A channel URL was given. Only the channel\'s videos will be downloaded. '
-                           'To download audios, add a "/audio" to the URL')
+                           'To download audios, add a "/upload/audio" to the URL')
 
         def fetch_page(page_idx):
             query = {
@@ -1286,9 +1286,9 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
 
 
 class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)/audio'
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)/(?:upload/)?audio'
     _TESTS = [{
-        'url': 'https://space.bilibili.com/313580179/audio',
+        'url': 'https://space.bilibili.com/313580179/upload/audio',
         'info_dict': {
             'id': '313580179',
         },
@@ -1311,7 +1311,8 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
             }
 
         def get_entries(page_data):
-            for entry in page_data.get('data', []):
+            # data is None when the playlist is empty
+            for entry in page_data.get('data') or []:
                 yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}', BilibiliAudioIE, entry['id'])
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
