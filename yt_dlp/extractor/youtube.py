@@ -1425,7 +1425,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
     _DEFAULT_CLIENTS = ('ios', 'tv')
-    _DEFAULT_AUTHED_CLIENTS = ('tv',)
+    _DEFAULT_AUTHED_CLIENTS = ('tv', 'web')
 
     _GEO_BYPASS = False
 
