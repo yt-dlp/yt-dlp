@@ -3785,7 +3785,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not sep:
                 # TODO(future): deprecate the old format?
                 self.write_debug(
-                    'Missing po_token configuration context; assuming GVS. '
+                    f'po_token configuration for {client} client is missing a context; assuming GVS. '
                     'You can provide a context with the format "CLIENT.CONTEXT+PO_TOKEN"',
                     only_once=True)
                 po_token_context = _PoTokenContext.GVS.value
