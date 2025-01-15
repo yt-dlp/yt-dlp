@@ -3848,7 +3848,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return self._fetch_po_token(
             client=client,
-            context=context,
+            context=context.value,
             visitor_data=visitor_data,
             data_sync_id=data_sync_id,
             player_url=player_url,
@@ -4028,6 +4028,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             require_player_po_token = _PoTokenContext.PLAYER in self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN_CONTEXTS')
             if not player_po_token and require_player_po_token:
+                # TODO: may need to skip player response request. Unsure yet..
                 self.report_warning(
                     f'No Player PO Token provided for {client} client, '
                     f'which may be required for working {client} formats. This client will be deprioritized'
@@ -4037,7 +4038,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             require_gvs_po_token = _PoTokenContext.GVS in self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN_CONTEXTS')
             if not gvs_po_token and require_gvs_po_token and 'missing_pot' in self._configuration_arg('formats'):
-                # xxx: warning with help message is provided later during format processing
+                # note: warning with help message is provided later during format processing
                 self.report_warning(
                     f'No GVS PO Token provided for {client} client, '
                     f'which may be required for working {client} formats. This client will be deprioritized', only_once=True)
