@@ -124,7 +124,7 @@ class WeiboBaseIE(InfoExtractor):
 
 
 class WeiboIE(WeiboBaseIE):
-    _VALID_URL = r'https?://(?:m\.weibo\.cn/status|(?:www\.)?weibo\.com/\d+)/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:m\.weibo\.cn/(?:status|detail)|(?:www\.)?weibo\.com/\d+)/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'url': 'https://weibo.com/7827771738/N4xlMvjhI',
         'info_dict': {
