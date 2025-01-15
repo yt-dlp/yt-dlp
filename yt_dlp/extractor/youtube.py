@@ -127,6 +127,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
+        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
         'SUPPORTS_COOKIES': True,
     },
@@ -1424,7 +1425,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
     _DEFAULT_CLIENTS = ('ios', 'tv')
-    _DEFAULT_AUTHED_CLIENTS = ('web_creator', 'tv')
+    _DEFAULT_AUTHED_CLIENTS = ('tv',)
 
     _GEO_BYPASS = False
 
@@ -4078,28 +4079,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     deprioritized_prs.append(pr)
                 else:
                     prs.append(pr)
-
-            # web_embedded can work around age-gate and age-verification for some embeddable videos
-            if self._is_agegated(pr) and variant != 'web_embedded':
-                append_client(f'web_embedded.{base_client}')
-            # Unauthenticated users will only get web_embedded client formats if age-gated
-            if self._is_agegated(pr) and not self.is_authenticated:
-                self.to_screen(
-                    f'{video_id}: This video is age-restricted; some formats may be missing '
-                    f'without authentication. {self._login_hint()}', only_once=True)
-
-            ''' This code is pointless while web_creator is in _DEFAULT_AUTHED_CLIENTS
-            # EU countries require age-verification for accounts to access age-restricted videos
-            # If account is not age-verified, _is_agegated() will be truthy for non-embedded clients
-            embedding_is_disabled = variant == 'web_embedded' and self._is_unplayable(pr)
-            if self.is_authenticated and (self._is_agegated(pr) or embedding_is_disabled):
-                self.to_screen(
-                    f'{video_id}: This video is age-restricted and YouTube is requiring '
-                    'account age-verification; some formats may be missing', only_once=True)
-                # web_creator can work around the age-verification requirement
-                # tv_embedded may(?) still work around age-verification if the video is embeddable
-                append_client('web_creator')
-            '''
 
         prs.extend(deprioritized_prs)
 
