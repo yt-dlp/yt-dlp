@@ -127,8 +127,8 @@ class GloboIE(InfoExtractor):
 
         main_source = video['sources'][0]
 
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            main_source['url'], video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
+        formats, subtitles = self._extract_mpd_formats_and_subtitles(
+            main_source['url'], video_id, 'mp4', fatal=False)
         self._merge_subtitles(traverse_obj(main_source, ('text', ..., {
             'url': ('subtitle', 'srt', 'url', {str_or_none}),
         }, all, {subs_list_to_dict})), target=subtitles)
