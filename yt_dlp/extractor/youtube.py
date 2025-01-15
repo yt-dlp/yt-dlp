@@ -116,6 +116,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
+        'REQUIRE_PO_TOKEN': True,
         'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
@@ -127,6 +128,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
+        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
         'SUPPORTS_COOKIES': True,
     },
@@ -211,8 +213,8 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
-        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_PO_TOKEN': True,
     },
     # This client now requires sign-in for every video
     'ios_music': {
@@ -229,6 +231,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
     },
     # This client now requires sign-in for every video
@@ -246,6 +249,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
     },
     # mweb has 'ultralow' formats
@@ -1423,8 +1427,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
-    _DEFAULT_CLIENTS = ('ios', 'tv')
-    _DEFAULT_AUTHED_CLIENTS = ('web_creator', 'tv')
+    _DEFAULT_CLIENTS = ('tv', 'ios', 'web')
+    _DEFAULT_AUTHED_CLIENTS = ('tv', 'web')
 
     _GEO_BYPASS = False
 
@@ -3960,15 +3964,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not requested_clients:
             raise ExtractorError('No player clients have been requested', expected=True)
 
-        if smuggled_data.get('is_music_url') or self.is_music_url(url):
-            for requested_client in requested_clients:
-                _, base_client, variant = _split_innertube_client(requested_client)
-                music_client = f'{base_client}_music' if base_client != 'mweb' else 'web_music'
-                if variant != 'music' and music_client in INNERTUBE_CLIENTS:
-                    client_info = INNERTUBE_CLIENTS[music_client]
-                    if not client_info['REQUIRE_AUTH'] or (self.is_authenticated and client_info['SUPPORTS_COOKIES']):
-                        requested_clients.append(music_client)
-
         if self.is_authenticated:
             unsupported_clients = [
                 client for client in requested_clients if not INNERTUBE_CLIENTS[client]['SUPPORTS_COOKIES']
@@ -4078,28 +4073,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     deprioritized_prs.append(pr)
                 else:
                     prs.append(pr)
-
-            # web_embedded can work around age-gate and age-verification for some embeddable videos
-            if self._is_agegated(pr) and variant != 'web_embedded':
-                append_client(f'web_embedded.{base_client}')
-            # Unauthenticated users will only get web_embedded client formats if age-gated
-            if self._is_agegated(pr) and not self.is_authenticated:
-                self.to_screen(
-                    f'{video_id}: This video is age-restricted; some formats may be missing '
-                    f'without authentication. {self._login_hint()}', only_once=True)
-
-            ''' This code is pointless while web_creator is in _DEFAULT_AUTHED_CLIENTS
-            # EU countries require age-verification for accounts to access age-restricted videos
-            # If account is not age-verified, _is_agegated() will be truthy for non-embedded clients
-            embedding_is_disabled = variant == 'web_embedded' and self._is_unplayable(pr)
-            if self.is_authenticated and (self._is_agegated(pr) or embedding_is_disabled):
-                self.to_screen(
-                    f'{video_id}: This video is age-restricted and YouTube is requiring '
-                    'account age-verification; some formats may be missing', only_once=True)
-                # web_creator can work around the age-verification requirement
-                # tv_embedded may(?) still work around age-verification if the video is embeddable
-                append_client('web_creator')
-            '''
 
         prs.extend(deprioritized_prs)
 
