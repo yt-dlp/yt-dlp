@@ -731,6 +731,15 @@ class InfoExtractor:
                 self._downloader.write_debug(
                     f'Using fake IP {self._x_forwarded_for_ip} ({country.upper()}) as X-Forwarded-For')
 
+    def _extract_post(self, *args, **kwargs):
+        """
+        Extracts post data (in json format) for the given platform.
+
+        Not all extractors will implement/require this method.
+        The method args and kwargs are up to the extractor to define as per what's needed for the given platform.
+        """
+        raise NotImplementedError
+
     def extract(self, url):
         """Extracts URL information and returns it in list of dicts."""
         try:
