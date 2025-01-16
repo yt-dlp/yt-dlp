@@ -1352,7 +1352,7 @@ class TwitterIE(TwitterBaseIE):
 
         return status
 
-    def _extract_post(self, twid):
+    def _extract_status(self, twid):
         if self._selected_api not in ('graphql', 'legacy', 'syndication'):
             raise ExtractorError(f'{self._selected_api!r} is not a valid API selection', expected=True)
 
@@ -1380,7 +1380,7 @@ class TwitterIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
-        status = self._extract_post(twid)
+        status = self._extract_status(twid)
 
         title = description = traverse_obj(
             status, (('full_text', 'text'), {lambda x: x.replace('\n', ' ')}), get_all=False) or ''
