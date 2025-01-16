@@ -87,7 +87,7 @@ class PiramideTVChannelIE(InfoExtractor):
             f'https://hermes.piramide.tv/channel/list/{channel_name}/date/100000', channel_name)
         for video in traverse_obj(videos, ('videos', lambda _, v: v['id'])):
             yield self.url_result(smuggle_url(
-                f'https://piramide.tv/video/{video['id']}', {'force_noplaylist': True}),
+                f"https://piramide.tv/video/{video['id']}", {'force_noplaylist': True}),
                 **traverse_obj(video, {
                     'id': ('id', {str}),
                     'title': ('title', {str}),
