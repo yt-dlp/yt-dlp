@@ -448,7 +448,7 @@ class TestJSInterpreter(unittest.TestCase):
             (-0xff, 2, '-11111111'),
             (0.1 + 0.2, 16, '0.4cccccccccccd'),
             (1234.1234, 10, '1234.1234'),
-            # (1000000000000000128, 10, "1000000000000000100")
+            # (1000000000000000128, 10, '1000000000000000100')
         ]:
             assert js_number_to_string(test, radix) == expected
 
