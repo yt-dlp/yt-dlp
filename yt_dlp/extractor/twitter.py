@@ -1,6 +1,6 @@
 import functools
 import json
-import random
+import math
 import re
 import urllib.parse
 
@@ -1329,6 +1329,33 @@ class TwitterIE(TwitterBaseIE):
                 'withArticleRichContentState': False,
             },
         }
+    
+    def _generate_token(self, tweet_id: str) -> str:
+        """Generates the syndication token for a tweet ID.
+        
+        Taken from https://github.com/JustAnotherArchivist/snscrape/issues/996#issuecomment-2211358215
+        And Vercel's code: https://github.com/vercel/react-tweet/blob/main/packages/react-tweet/src/api/fetch-tweet.ts#L27
+        """
+
+        # Perform the division and multiplication by π
+        result = (int(tweet_id) / 1e15) * math.pi
+        fractional_part = result % 1
+
+        # Convert to base 36
+        base_36 = ''
+        while result >= 1:
+            base_36 = "0123456789abcdefghijklmnopqrstuvwxyz"[int(result % 36)] + base_36
+            result = math.floor(result / 36)
+
+        # Append fractional part in base 36
+        while fractional_part > 0 and len(base_36) < 11:  # Limit to avoid infinite loop
+            fractional_part *= 36
+            digit = int(fractional_part)
+            base_36 += "0123456789abcdefghijklmnopqrstuvwxyz"[digit]
+            fractional_part -= digit
+        
+        # Remove leading zeros and dots
+        return base_36.replace('0', '').replace('.', '')
 
     def _call_syndication_api(self, twid):
         self.report_warning(
@@ -1337,8 +1364,7 @@ class TwitterIE(TwitterBaseIE):
             'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
             headers={'User-Agent': 'Googlebot'}, query={
                 'id': twid,
-                # TODO: token = ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
-                'token': ''.join(random.choices('123456789abcdefghijklmnopqrstuvwxyz', k=10)),
+                'token': self._generate_token(twid),
             })
         if not status:
             raise ExtractorError('Syndication endpoint returned empty JSON response')
