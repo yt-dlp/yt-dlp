@@ -3782,6 +3782,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
             po_token_client, sep, po_token_context = po_token_meta.partition('.')
+            if po_token_client.lower() != client:
+                continue
+
             if not sep:
                 # TODO(future): deprecate the old format?
                 self.write_debug(
@@ -3790,8 +3793,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     only_once=True)
                 po_token_context = _PoTokenContext.GVS.value
 
-            if po_token_client.lower() == client and po_token_context.lower() == context.value:
-                return po_token
+            if po_token_context.lower() != context.value:
+                continue
+
+            # Clean and validate the PO Token. This will strip invalid characters off
+            # (e.g. additional url params the user may accidentally include)
+            try:
+                return base64.urlsafe_b64encode(base64.urlsafe_b64decode(urllib.parse.unquote(po_token))).decode()
+            except Exception:
+                self.report_warning(
+                    f'Invalid po_token configuration for {client} client: '
+                    f'{po_token_context} PO Token should be a base64url-encoded string.',
+                    only_once=True)
+                continue
 
     def fetch_po_token(
             self,
