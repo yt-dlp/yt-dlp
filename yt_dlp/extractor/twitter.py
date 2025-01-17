@@ -1329,10 +1329,10 @@ class TwitterIE(TwitterBaseIE):
                 'withArticleRichContentState': False,
             },
         }
-    
+
     def _generate_token(self, tweet_id: str) -> str:
         """Generates the syndication token for a tweet ID.
-        
+
         Taken from https://github.com/JustAnotherArchivist/snscrape/issues/996#issuecomment-2211358215
         And Vercel's code: https://github.com/vercel/react-tweet/blob/main/packages/react-tweet/src/api/fetch-tweet.ts#L27
         """
@@ -1344,16 +1344,16 @@ class TwitterIE(TwitterBaseIE):
         # Convert to base 36
         base_36 = ''
         while result >= 1:
-            base_36 = "0123456789abcdefghijklmnopqrstuvwxyz"[int(result % 36)] + base_36
+            base_36 = '0123456789abcdefghijklmnopqrstuvwxyz'[int(result % 36)] + base_36
             result = math.floor(result / 36)
 
         # Append fractional part in base 36
         while fractional_part > 0 and len(base_36) < 11:  # Limit to avoid infinite loop
             fractional_part *= 36
             digit = int(fractional_part)
-            base_36 += "0123456789abcdefghijklmnopqrstuvwxyz"[digit]
+            base_36 += '0123456789abcdefghijklmnopqrstuvwxyz'[digit]
             fractional_part -= digit
-        
+
         # Remove leading zeros and dots
         return base_36.replace('0', '').replace('.', '')
 
