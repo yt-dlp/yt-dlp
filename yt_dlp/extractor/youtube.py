@@ -4324,7 +4324,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 fmt_url = update_url_query(fmt_url, {'pot': po_token})
 
             # Clients that require PO Token return videoplayback URLs that may return 403
-            require_po_token = (not po_token and _PoTokenContext.GVS in self._get_default_ytcfg(client_name).get('PO_TOKEN_REQUIRED_CONTEXTS'))
+            require_po_token = (
+                not po_token
+                and _PoTokenContext.GVS in self._get_default_ytcfg(client_name).get('PO_TOKEN_REQUIRED_CONTEXTS')
+                and itag not in ['18'])  # these formats do not require PO Token
+
             if require_po_token and 'missing_pot' not in self._configuration_arg('formats'):
                 self._report_pot_format_skipped(video_id, client_name, 'https')
                 continue
