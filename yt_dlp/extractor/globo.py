@@ -128,7 +128,7 @@ class GloboIE(InfoExtractor):
         main_source = video['sources'][0]
 
         # 4k streams are exclusively outputted in dash, so we need to filter these out
-        if main_source['url'].endswith("mpd"):
+        if main_source['url'].endswith('mpd'):
             formats, subtitles = self._extract_mpd_formats_and_subtitles(
                 main_source['url'], video_id, 'mp4', fatal=False)
         else:
