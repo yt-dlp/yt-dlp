@@ -410,7 +410,7 @@ class FileDownloader:
         RetryManager.report_retry(
             err, count, retries, info=self.__to_screen,
             warn=lambda msg: self.__to_screen(f'[download] Got error: {msg}'),
-            error=IDENTITY if not fatal else lambda e: self.report_error(f'\r[download] Got error: {e}'),
+            error=IDENTITY if not fatal else lambda e: self.report_error(f'[download] Got error: {e}'),
             sleep_func=self.params.get('retry_sleep_functions', {}).get(is_frag or 'http'),
             suffix=f'fragment{"s" if frag_index is None else f" {frag_index}"}' if is_frag else None)
 
