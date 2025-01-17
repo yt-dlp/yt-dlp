@@ -3882,8 +3882,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self,
             client='web',
             context=_PoTokenContext.GVS,
+            ytcfg=None,
             visitor_data=None,
             data_sync_id=None,
+            session_index=None,
             player_url=None,
             video_id=None,
             **kwargs):
@@ -3894,8 +3896,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         @param client: The client to fetch the PO Token for.
         @param context: The context in which the PO Token is used.
+        @param ytcfg: The ytcfg for the client.
         @param visitor_data: visitor data.
         @param data_sync_id: data sync ID.
+        @param session_index: session index.
         @param player_url: player URL.
         @param video_id: video ID.
         @param kwargs: Additional arguments to pass down. May be more added in the future.
@@ -3911,8 +3915,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return
 
         if context == _PoTokenContext.PLAYER and not video_id:
-            raise ExtractorError(
+            self.report_warning(
                 f'Unable to fetch Player PO Token for {client} client: Missing required Video ID')
+            return
 
         config_po_token = self._get_config_po_token(client, context)
         if config_po_token:
@@ -3934,8 +3939,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return self._fetch_po_token(
             client=client,
             context=context.value,
+            ytcfg=ytcfg,
             visitor_data=visitor_data,
             data_sync_id=data_sync_id,
+            session_index=session_index,
             player_url=player_url,
             video_id=video_id,
             **kwargs,
@@ -4095,6 +4102,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'client': client, 'visitor_data': visitor_data, 'video_id': video_id,
                 'data_sync_id': data_sync_id if self.is_authenticated else None,
                 'player_url': player_url if require_js_player else None,
+                'session_index': self._extract_session_index(master_ytcfg, player_ytcfg),
+                'ytcfg': player_ytcfg,
             }
 
             player_po_token = self.fetch_po_token(
