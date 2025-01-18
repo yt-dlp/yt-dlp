@@ -307,7 +307,6 @@ class PatreonIE(PatreonBaseIE):
                 media_attributes = traverse_obj(include, ('attributes', {dict})) or {}
                 download_url = url_or_none(media_attributes.get('download_url'))
                 ext = mimetype2ext(media_attributes.get('mimetype'))
-                alt_title = media_attributes.get('file_name')
 
                 # if size_bytes is None, this media file is likely unavailable
                 # See: https://github.com/yt-dlp/yt-dlp/issues/4608
@@ -319,7 +318,7 @@ class PatreonIE(PatreonBaseIE):
                         'ext': ext,
                         'filesize': size_bytes,
                         'url': download_url,
-                        'alt_title': alt_title,
+                        'alt_title': traverse_obj(media_attributes, ('file_name', {str})),
                     })
 
             elif include_type == 'user':
