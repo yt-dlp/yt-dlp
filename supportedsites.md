@@ -374,6 +374,7 @@
  - **Dropbox**
  - **Dropout**: [*dropout*](## "netrc machine")
  - **DropoutSeason**
+ - **DrTalks**
  - **DrTuber**
  - **drtv**
  - **drtv:live**
@@ -1086,6 +1087,7 @@
  - **pluralsight**: [*pluralsight*](## "netrc machine")
  - **pluralsight:course**
  - **PlutoTV**: (**Currently broken**)
+ - **PlVideo**: Платформа
  - **PodbayFM**
  - **PodbayFMChannel**
  - **Podchaser**
@@ -1641,8 +1643,6 @@
  - **Vimm:stream**
  - **ViMP**
  - **ViMP:Playlist**
- - **Vine**
- - **vine:user**
  - **Viously**
  - **Viqeo**: (**Currently broken**)
  - **Viu**
