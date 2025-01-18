@@ -782,6 +782,7 @@ from .goplay import GoPlayIE
 from .gopro import GoProIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
+from .gotowebinar import GoTo_WebinarIE
 from .gputechconf import GPUTechConfIE
 from .graspop import GraspopIE
 from .gronkh import (
