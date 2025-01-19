@@ -1896,8 +1896,8 @@ class BiliBiliDynamicIE(InfoExtractor):
             })
         video_url = traverse_obj(post_data, (
             'data', 'item', (None, 'orig'), 'modules', 'module_dynamic',
-                 (('major', ('archive', 'pgc')), ('additional', ('reserve', 'common'))),
-                 'jump_url', {url_or_none}, any, {sanitize_url}))
+            (('major', ('archive', 'pgc')), ('additional', ('reserve', 'common'))),
+            'jump_url', {url_or_none}, any, {sanitize_url}))
         if not video_url:
             self.raise_no_formats('No video found!', expected=True, video_id=post_id)
         return self.url_result(video_url)
