@@ -100,6 +100,14 @@ class SenateISVPIE(SenateBaseIE):
         },
         'expected_warnings': ['Failed to download m3u8 information'],
     }, {
+        'url': 'https://www.senate.gov/isvp/?auto_play=false&comm=help&filename=help090920&poster=https://www.help.senate.gov/assets/images/video-poster.png&stt=950',
+        'info_dict': {
+            'id': 'help090920',
+            'ext': 'mp4',
+            'title': 'ISVP',
+            'thumbnail': 'https://www.help.senate.gov/assets/images/video-poster.png',
+        },
+    }, {
         # From http://www.c-span.org/video/?96791-1
         'url': 'http://www.senate.gov/isvp?type=live&comm=banking&filename=banking012715',
         'only_matching': True,
@@ -109,7 +117,7 @@ class SenateISVPIE(SenateBaseIE):
         url, smuggled_data = unsmuggle_url(url, {})
 
         qs = urllib.parse.parse_qs(self._match_valid_url(url).group('qs'))
-        if not qs.get('filename') or not qs.get('type') or not qs.get('comm'):
+        if not qs.get('filename') or not qs.get('comm'):
             raise ExtractorError('Invalid URL', expected=True)
         filename = qs['filename'][0]
         video_id = remove_end(filename, '.mp4')
