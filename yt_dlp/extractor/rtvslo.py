@@ -178,7 +178,6 @@ class RTVSLOShowIE(InfoExtractor):
             'title': 'Ekipa Bled',
             'description': 'md5:c88471e27a1268c448747a5325319ab7',
             'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/173250997/logo_wide1.jpg',
-
         },
         'playlist_count': 18,
     }]
