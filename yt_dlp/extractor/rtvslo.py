@@ -176,6 +176,9 @@ class RTVSLOShowIE(InfoExtractor):
         'info_dict': {
             'id': '173250997',
             'title': 'Ekipa Bled',
+            'description': 'Slovenska nadaljevanka.\r\n\r\nPo težavah z nadrejenimi je glavni protagonist serije mladi kriminalist Luka (Janko Mandić) kljub odlikovanju za hrabrost premeščen na Bled. Že prvi dan sreča hčer lokalnega veljaka Saro (Mija Skrbinac), kar je zanj usodno tako na osebni kot na poklicni ravni.\r\n\r\nPolicijsko ekipo Bled sestavljata še izkušena in materinska kriminalistka Nives (Barbara Cerar) in pošteni šef Ferdo (Gaber Trseglav). Serija vključuje različne žanrske prijeme in formate, ki delujejo celovito. Kriminalistična ekipa v vsakem delu rešuje po en primer, z reševanjem primerov pa vso sezono osebnostno rastejo in se razvijajo tudi glavni liki.',
+            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/173250997/logo_wide1.jpg',
+
         },
         'playlist_count': 18,
     }]
@@ -187,4 +190,7 @@ class RTVSLOShowIE(InfoExtractor):
         return self.playlist_from_matches(
             re.findall(r'<a [^>]*\bhref="(/arhiv/[^"]+)"', webpage),
             playlist_id, self._html_extract_title(webpage),
-            getter=urljoin('https://365.rtvslo.si'), ie=RTVSLOIE)
+            getter=urljoin('https://365.rtvslo.si'), ie=RTVSLOIE,
+            description=self._og_search_description(webpage),
+            thumbnail=self._og_search_thumbnail(webpage),
+        )
