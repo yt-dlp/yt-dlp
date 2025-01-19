@@ -124,7 +124,7 @@ class WeiboBaseIE(InfoExtractor):
 
 
 class WeiboIE(WeiboBaseIE):
-    _VALID_URL = r'https?://(?:m\.weibo\.cn/status|(?:www\.)?weibo\.com/\d+)/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:m\.weibo\.cn/(?:status|detail)|(?:www\.)?weibo\.com/\d+)/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'url': 'https://weibo.com/7827771738/N4xlMvjhI',
         'info_dict': {
@@ -153,6 +153,25 @@ class WeiboIE(WeiboBaseIE):
             'display_id': 'FBqgOmDxO',
             'title': '柴犬柴犬的秒拍视频',
             'description': 'md5:80f461ab5cdae6bbdb70efbf5a1db24f',
+            'duration': 53,
+            'timestamp': 1514264429,
+            'upload_date': '20171226',
+            'thumbnail': r're:https://.*\.jpg',
+            'uploader': '柴犬柴犬',
+            'uploader_id': '5926682210',
+            'uploader_url': 'https://weibo.com/u/5926682210',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+        },
+    }, {
+        'url': 'https://m.weibo.cn/detail/4189191225395228',
+        'info_dict': {
+            'id': '4189191225395228',
+            'ext': 'mp4',
+            'display_id': 'FBqgOmDxO',
+            'title': '柴犬柴犬的秒拍视频',
+            'description': '午睡当然是要甜甜蜜蜜的啦！[坏笑]     Instagram：shibainu.gaku http://t.cn/RHbmjzW ',
             'duration': 53,
             'timestamp': 1514264429,
             'upload_date': '20171226',
