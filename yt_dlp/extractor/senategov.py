@@ -45,19 +45,20 @@ class SenateBaseIE(InfoExtractor):
         'vetaff': ('76462', 'https://vetaff-f.akamaihd.net', '2036785', 'veteransaffairs'),
     }
 
-    def _extract_formats(self, commitee, filename, video_id):
+    def _extract_formats_and_subtitles(self, commitee, filename, video_id):
         stream_num, stream_domain, stream_id, msl3 = self._COMMITTEES[commitee]
 
         urls_alternatives = [f'https://www-senate-gov-media-srs.akamaized.net/hls/live/{stream_id}/{commitee}/{filename}/master.m3u8',
                              f'https://www-senate-gov-msl3archive.akamaized.net/{msl3}/{filename}_1/master.m3u8',
                              f'{stream_domain}/i/{filename}_1@{stream_num}/master.m3u8',
                              f'{stream_domain}/i/{filename}.mp4/master.m3u8']
-        formats = None
+        formats = []
+        subtitles = {}
         for video_url in urls_alternatives:
-            formats = self._extract_m3u8_formats(video_url, video_id, ext='mp4', fatal=False)
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4', fatal=False)
             if formats:
                 break
-        return formats
+        return formats, subtitles
 
 
 class SenateISVPIE(SenateBaseIE):
@@ -133,10 +134,13 @@ class SenateISVPIE(SenateBaseIE):
 
         committee = qs['comm'][0]
 
+        formats, subtitles = self._extract_formats_and_subtitles(committee, filename, video_id)
+
         return {
             'id': video_id,
             'title': title,
-            'formats': self._extract_formats(committee, filename, video_id),
+            'formats': formats,
+            'subtitles': subtitles,
             'thumbnail': thumbnail,
         }
 
@@ -195,6 +199,8 @@ class SenateGovIE(SenateBaseIE):
         title = self._html_search_regex(
             (*self._og_regexes('title'), r'(?s)<title>([^<]*?)</title>'), webpage, 'video title', fatal=False)
 
+        formats, subtitles = self._extract_formats_and_subtitles(committee, filename, display_id)
+
         return {
             'id': remove_end(filename, '.mp4'),
             'display_id': display_id,
@@ -202,5 +208,6 @@ class SenateGovIE(SenateBaseIE):
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'age_limit': self._rta_search(webpage),
-            'formats': self._extract_formats(committee, filename, display_id),
+            'formats': formats,
+            'subtitles': subtitles,
         }
