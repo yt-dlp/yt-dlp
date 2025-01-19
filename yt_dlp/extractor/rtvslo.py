@@ -176,7 +176,7 @@ class RTVSLOShowIE(InfoExtractor):
         'info_dict': {
             'id': '173250997',
             'title': 'Ekipa Bled',
-            'description': 'Slovenska nadaljevanka.\r\n\r\nPo težavah z nadrejenimi je glavni protagonist serije mladi kriminalist Luka (Janko Mandić) kljub odlikovanju za hrabrost premeščen na Bled. Že prvi dan sreča hčer lokalnega veljaka Saro (Mija Skrbinac), kar je zanj usodno tako na osebni kot na poklicni ravni.\r\n\r\nPolicijsko ekipo Bled sestavljata še izkušena in materinska kriminalistka Nives (Barbara Cerar) in pošteni šef Ferdo (Gaber Trseglav). Serija vključuje različne žanrske prijeme in formate, ki delujejo celovito. Kriminalistična ekipa v vsakem delu rešuje po en primer, z reševanjem primerov pa vso sezono osebnostno rastejo in se razvijajo tudi glavni liki.',
+            'description': 'md5:c88471e27a1268c448747a5325319ab7',
             'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/173250997/logo_wide1.jpg',
 
         },
