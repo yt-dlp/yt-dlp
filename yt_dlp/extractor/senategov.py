@@ -7,8 +7,9 @@ from ..utils import (
     UnsupportedError,
     make_archive_id,
     remove_end,
-    unsmuggle_url,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class SenateISVPIE(InfoExtractor):
@@ -103,8 +104,6 @@ class SenateISVPIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        url, smuggled_data = unsmuggle_url(url, {})
-
         qs = urllib.parse.parse_qs(self._match_valid_url(url).group('qs'))
         if not qs.get('filename') or not qs.get('comm'):
             raise ExtractorError('Invalid URL', expected=True)
@@ -112,14 +111,6 @@ class SenateISVPIE(InfoExtractor):
         video_id = remove_end(filename, '.mp4')
 
         webpage = self._download_webpage(url, video_id)
-
-        if smuggled_data.get('force_title'):
-            title = smuggled_data['force_title']
-        else:
-            title = self._html_extract_title(webpage)
-        poster = qs.get('poster')
-        thumbnail = poster[0] if poster else None
-
         committee = qs['comm'][0]
 
         stream_num, stream_domain, stream_id, msl3 = self._COMMITTEES[committee]
@@ -137,10 +128,10 @@ class SenateISVPIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
+            'title': self._html_extract_title(webpage),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': thumbnail,
+            'thumbnail': traverse_obj(qs, ('poster', 0, {url_or_none})),
             '_old_archive_ids': [make_archive_id('SenateGov', video_id)],
         }
 
