@@ -73,7 +73,7 @@ class SenateISVPIE(InfoExtractor):
         'ag': ('76440', 'https://ag-f.akamaihd.net', '2036803', 'agriculture'),
         'aging': ('76442', 'https://aging-f.akamaihd.net', '2036801', 'aging'),
         'approps': ('76441', 'https://approps-f.akamaihd.net', '2036802', 'appropriations'),
-        'arch': ('', 'https://ussenate-f.akamaihd.net/', '', 'arch'),
+        'arch': ('', 'https://ussenate-f.akamaihd.net', '', 'arch'),
         'armed': ('76445', 'https://armed-f.akamaihd.net', '2036800', 'armedservices'),
         'banking': ('76446', 'https://banking-f.akamaihd.net', '2036799', 'banking'),
         'budget': ('76447', 'https://budget-f.akamaihd.net', '2036798', 'budget'),
@@ -132,13 +132,18 @@ class SenateISVPIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': traverse_obj(qs, ('poster', 0, {url_or_none})),
-            '_old_archive_ids': [make_archive_id('SenateGov', video_id)],
+            '_old_archive_ids': [make_archive_id(SenateGovIE, video_id)],
         }
 
 
 class SenateGovIE(InfoExtractor):
     _IE_NAME = 'senate.gov'
-    _VALID_URL = r'https?:\/\/(?:www\.)?(agriculture|aging|appropriations|armed-services|banking|budget|commerce|energy|epw|finance|foreign|help|intelligence|inaugural|judiciary|rules|sbc|veterans)\.senate\.gov'
+    _SUBDOMAIN_RE = '|'.join(map(re.escape, (
+        'agriculture', 'aging', 'appropriations', 'armed-services', 'banking',
+        'budget', 'commerce', 'energy', 'epw', 'finance', 'foreign', 'help',
+        'intelligence', 'inaugural', 'judiciary', 'rules', 'sbc', 'veterans',
+    )))
+    _VALID_URL = rf'https?://(?:www\.)?(?:{_SUBDOMAIN_RE})\.senate\.gov'
     _TESTS = [{
         'url': 'https://www.help.senate.gov/hearings/vaccines-saving-lives-ensuring-confidence-and-protecting-public-health',
         'info_dict': {
