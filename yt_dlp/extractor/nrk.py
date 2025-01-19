@@ -12,6 +12,7 @@ from ..utils import (
     parse_iso8601,
     str_or_none,
     try_get,
+    update_url_query,
     url_or_none,
     urljoin,
 )
@@ -171,6 +172,8 @@ class NRKIE(NRKBaseIE):
             format_url = url_or_none(asset.get('url'))
             if not format_url:
                 continue
+            # Remove the 'adap' query parameter
+            format_url = update_url_query(format_url, {'adap': []})
             asset_format = (asset.get('format') or '').lower()
             if asset_format == 'hls' or determine_ext(format_url) == 'm3u8':
                 formats.extend(self._extract_nrk_formats(format_url, video_id))
