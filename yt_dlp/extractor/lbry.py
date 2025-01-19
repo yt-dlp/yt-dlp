@@ -310,7 +310,13 @@ class LBRYIE(LBRYBaseIE):
         if stream_type in self._SUPPORTED_STREAM_TYPES:
             claim_id, is_live = result['claim_id'], False
             streaming_url = self._call_api_proxy(
-                'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
+                'get', claim_id, {
+                    'uri': uri,
+                    **traverse_obj(parse_qs(url), {
+                        'signature': ('signature', 0),
+                        'signature_ts': ('signature_ts', 0),
+                    }),
+                }, 'streaming url')['streaming_url']
 
             # GET request to v3 API returns original video/audio file if available
             direct_url = re.sub(r'/api/v\d+/', '/api/v3/', streaming_url)
