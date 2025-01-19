@@ -1882,21 +1882,24 @@ class BiliBiliDynamicIE(InfoExtractor):
             'description': '本期产品信息：\n机器狗\n气味模拟器\nCloudboom Strike LS\n无弦吉他\n蓝牙磁带音箱\n神奇画板',
             'timestamp': 1731232800,
             'tags': list,
+            'chapters': list,
         },
     }]
 
     def _real_extract(self, url):
-        t_id = self._match_id(url)
-        video_url = traverse_obj(self._download_json(
-            'https://api.bilibili.com/x/polymer/web-dynamic/v1/detail', t_id, query={
-                'id': t_id,
-            }, headers={
+        post_id = self._match_id(url)
+        # Without the newer chrome UA, the API will return a error (-352)
+        post_data = self._download_json(
+            'https://api.bilibili.com/x/polymer/web-dynamic/v1/detail', post_id,
+            query={'id': post_id}, headers={
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            }), ('data', 'item', ((), 'orig'), 'modules', 'module_dynamic',
+            })
+        video_url = traverse_obj(post_data, (
+            'data', 'item', (None, 'orig'), 'modules', 'module_dynamic',
                  (('major', ('archive', 'pgc')), ('additional', ('reserve', 'common'))),
-                 'jump_url', any, {sanitize_url}))
+                 'jump_url', {url_or_none}, any, {sanitize_url}))
         if not video_url:
-            self.raise_no_formats('No video found!', expected=True, video_id=t_id)
+            self.raise_no_formats('No video found!', expected=True, video_id=post_id)
         return self.url_result(video_url)
 
 
