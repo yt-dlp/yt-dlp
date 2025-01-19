@@ -4,13 +4,70 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    parse_qs,
+    UnsupportedError,
+    make_archive_id,
     remove_end,
     unsmuggle_url,
 )
 
 
-class SenateBaseIE(InfoExtractor):
+class SenateISVPIE(InfoExtractor):
+    _IE_NAME = 'senate.gov:isvp'
+    _VALID_URL = r'https?://(?:www\.)?senate\.gov/isvp/?\?(?P<qs>.+)'
+    _EMBED_REGEX = [r"<iframe[^>]+src=['\"](?P<url>https?://www\.senate\.gov/isvp/?\?[^'\"]+)['\"]"]
+
+    _TESTS = [{
+        'url': 'http://www.senate.gov/isvp/?comm=judiciary&type=live&stt=&filename=judiciary031715&auto_play=false&wmode=transparent&poster=http%3A%2F%2Fwww.judiciary.senate.gov%2Fthemes%2Fjudiciary%2Fimages%2Fvideo-poster-flash-fit.png',
+        'info_dict': {
+            'id': 'judiciary031715',
+            'ext': 'mp4',
+            'title': 'ISVP',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            '_old_archive_ids': ['senategov judiciary031715'],
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
+        'expected_warnings': ['Failed to download m3u8 information'],
+    }, {
+        'url': 'http://www.senate.gov/isvp/?type=live&comm=commerce&filename=commerce011514.mp4&auto_play=false',
+        'info_dict': {
+            'id': 'commerce011514',
+            'ext': 'mp4',
+            'title': 'Integrated Senate Video Player',
+            '_old_archive_ids': ['senategov commerce011514'],
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
+        'skip': 'This video is not available.',
+    }, {
+        'url': 'http://www.senate.gov/isvp/?type=arch&comm=intel&filename=intel090613&hc_location=ufi',
+        # checksum differs each time
+        'info_dict': {
+            'id': 'intel090613',
+            'ext': 'mp4',
+            'title': 'ISVP',
+            '_old_archive_ids': ['senategov intel090613'],
+        },
+        'expected_warnings': ['Failed to download m3u8 information'],
+    }, {
+        'url': 'https://www.senate.gov/isvp/?auto_play=false&comm=help&filename=help090920&poster=https://www.help.senate.gov/assets/images/video-poster.png&stt=950',
+        'info_dict': {
+            'id': 'help090920',
+            'ext': 'mp4',
+            'title': 'ISVP',
+            'thumbnail': 'https://www.help.senate.gov/assets/images/video-poster.png',
+            '_old_archive_ids': ['senategov help090920'],
+        },
+    }, {
+        # From http://www.c-span.org/video/?96791-1
+        'url': 'http://www.senate.gov/isvp?type=live&comm=banking&filename=banking012715',
+        'only_matching': True,
+    }]
+
     _COMMITTEES = {
         'ag': ('76440', 'https://ag-f.akamaihd.net', '2036803', 'agriculture'),
         'aging': ('76442', 'https://aging-f.akamaihd.net', '2036801', 'aging'),
@@ -45,75 +102,6 @@ class SenateBaseIE(InfoExtractor):
         'vetaff': ('76462', 'https://vetaff-f.akamaihd.net', '2036785', 'veteransaffairs'),
     }
 
-    def _extract_formats_and_subtitles(self, commitee, filename, video_id):
-        stream_num, stream_domain, stream_id, msl3 = self._COMMITTEES[commitee]
-
-        urls_alternatives = [f'https://www-senate-gov-media-srs.akamaized.net/hls/live/{stream_id}/{commitee}/{filename}/master.m3u8',
-                             f'https://www-senate-gov-msl3archive.akamaized.net/{msl3}/{filename}_1/master.m3u8',
-                             f'{stream_domain}/i/{filename}_1@{stream_num}/master.m3u8',
-                             f'{stream_domain}/i/{filename}.mp4/master.m3u8']
-        formats = []
-        subtitles = {}
-        for video_url in urls_alternatives:
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4', fatal=False)
-            if formats:
-                break
-        return formats, subtitles
-
-
-class SenateISVPIE(SenateBaseIE):
-    _IE_NAME = 'senate.gov:isvp'
-    _VALID_URL = r'https?://(?:www\.)?senate\.gov/isvp/?\?(?P<qs>.+)'
-    _EMBED_REGEX = [r"<iframe[^>]+src=['\"](?P<url>https?://www\.senate\.gov/isvp/?\?[^'\"]+)['\"]"]
-
-    _TESTS = [{
-        'url': 'http://www.senate.gov/isvp/?comm=judiciary&type=live&stt=&filename=judiciary031715&auto_play=false&wmode=transparent&poster=http%3A%2F%2Fwww.judiciary.senate.gov%2Fthemes%2Fjudiciary%2Fimages%2Fvideo-poster-flash-fit.png',
-        'info_dict': {
-            'id': 'judiciary031715',
-            'ext': 'mp4',
-            'title': 'ISVP',
-            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-        'expected_warnings': ['Failed to download m3u8 information'],
-    }, {
-        'url': 'http://www.senate.gov/isvp/?type=live&comm=commerce&filename=commerce011514.mp4&auto_play=false',
-        'info_dict': {
-            'id': 'commerce011514',
-            'ext': 'mp4',
-            'title': 'Integrated Senate Video Player',
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-        'skip': 'This video is not available.',
-    }, {
-        'url': 'http://www.senate.gov/isvp/?type=arch&comm=intel&filename=intel090613&hc_location=ufi',
-        # checksum differs each time
-        'info_dict': {
-            'id': 'intel090613',
-            'ext': 'mp4',
-            'title': 'ISVP',
-        },
-        'expected_warnings': ['Failed to download m3u8 information'],
-    }, {
-        'url': 'https://www.senate.gov/isvp/?auto_play=false&comm=help&filename=help090920&poster=https://www.help.senate.gov/assets/images/video-poster.png&stt=950',
-        'info_dict': {
-            'id': 'help090920',
-            'ext': 'mp4',
-            'title': 'ISVP',
-            'thumbnail': 'https://www.help.senate.gov/assets/images/video-poster.png',
-        },
-    }, {
-        # From http://www.c-span.org/video/?96791-1
-        'url': 'http://www.senate.gov/isvp?type=live&comm=banking&filename=banking012715',
-        'only_matching': True,
-    }]
-
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
@@ -134,7 +122,18 @@ class SenateISVPIE(SenateBaseIE):
 
         committee = qs['comm'][0]
 
-        formats, subtitles = self._extract_formats_and_subtitles(committee, filename, video_id)
+        stream_num, stream_domain, stream_id, msl3 = self._COMMITTEES[committee]
+
+        urls_alternatives = [f'https://www-senate-gov-media-srs.akamaized.net/hls/live/{stream_id}/{committee}/{filename}/master.m3u8',
+                             f'https://www-senate-gov-msl3archive.akamaized.net/{msl3}/{filename}_1/master.m3u8',
+                             f'{stream_domain}/i/{filename}_1@{stream_num}/master.m3u8',
+                             f'{stream_domain}/i/{filename}.mp4/master.m3u8']
+        formats = []
+        subtitles = {}
+        for video_url in urls_alternatives:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4', fatal=False)
+            if formats:
+                break
 
         return {
             'id': video_id,
@@ -142,12 +141,13 @@ class SenateISVPIE(SenateBaseIE):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': thumbnail,
+            '_old_archive_ids': [make_archive_id('SenateGov', video_id)],
         }
 
 
-class SenateGovIE(SenateBaseIE):
+class SenateGovIE(InfoExtractor):
     _IE_NAME = 'senate.gov'
-    _VALID_URL = r'https?:\/\/(?:www\.)?(help|appropriations|judiciary|banking|armed-services|finance)\.senate\.gov'
+    _VALID_URL = r'https?:\/\/(?:www\.)?(agriculture|aging|appropriations|armed-services|banking|budget|commerce|energy|epw|finance|foreign|help|intelligence|inaugural|judiciary|rules|sbc|veterans)\.senate\.gov'
     _TESTS = [{
         'url': 'https://www.help.senate.gov/hearings/vaccines-saving-lives-ensuring-confidence-and-protecting-public-health',
         'info_dict': {
@@ -158,6 +158,7 @@ class SenateGovIE(SenateBaseIE):
             'ext': 'mp4',
             'age_limit': 0,
             'thumbnail': 'https://www.help.senate.gov/assets/images/sharelogo.jpg',
+            '_old_archive_ids': ['senategov help090920'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -168,6 +169,8 @@ class SenateGovIE(SenateBaseIE):
             'title': 'Review of the FY2019 Budget Request for the U.S. Army',
             'ext': 'mp4',
             'age_limit': 0,
+            'thumbnail': 'https://www.appropriations.senate.gov/themes/appropriations/images/video-poster-flash-fit.png',
+            '_old_archive_ids': ['senategov appropsA051518'],
         },
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Failed to download m3u8 information'],
@@ -181,33 +184,63 @@ class SenateGovIE(SenateBaseIE):
             'ext': 'mp4',
             'thumbnail': 'https://www.banking.senate.gov/themes/banking/images/sharelogo.jpg',
             'age_limit': 0,
+            '_old_archive_ids': ['senategov banking041521'],
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.agriculture.senate.gov/hearings/hemp-production-and-the-2018-farm-bill',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.aging.senate.gov/hearings/the-older-americans-act-the-local-impact-of-the-law-and-the-upcoming-reauthorization',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.budget.senate.gov/hearings/improving-care-lowering-costs-achieving-health-care-efficiency',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.commerce.senate.gov/2024/12/communications-networks-safety-and-security',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.energy.senate.gov/hearings/2024/2/full-committee-hearing-to-examine',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.epw.senate.gov/public/index.cfm/hearings?ID=F63083EA-2C13-498C-B548-341BED68C209',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.foreign.senate.gov/hearings/american-diplomacy-and-global-leadership-review-of-the-fy25-state-department-budget-request',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.intelligence.senate.gov/hearings/foreign-threats-elections-2024-%E2%80%93-roles-and-responsibilities-us-tech-providers',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.inaugural.senate.gov/52nd-inaugural-ceremonies/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.rules.senate.gov/hearings/02/07/2023/business-meeting',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.sbc.senate.gov/public/index.cfm/hearings?ID=5B13AA6B-8279-45AF-B54B-94156DC7A2AB',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.veterans.senate.gov/2024/5/frontier-health-care-ensuring-veterans-access-no-matter-where-they-live',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         display_id = self._generic_id(url)
         webpage = self._download_webpage(url, display_id)
-        iframe_src = self._search_regex(
-            (r'<iframe class="[^>"]*streaminghearing[^>"]*"\s[^>]*\bsrc="([^>"]+)',
-             r'<iframe title="[^>"]*"\s[^>]*\bsrc="([^">]+)'),
-            webpage, 'hearing URL').replace('&amp;', '&')
-        parse_info = parse_qs(iframe_src)
-        committee = parse_info['comm'][-1]
-        filename = parse_info['filename'][-1]
+        url_info = next(SenateISVPIE.extract_from_webpage(self._downloader, url, webpage), None)
+        if not url_info:
+            raise UnsupportedError(url)
 
         title = self._html_search_regex(
             (*self._og_regexes('title'), r'(?s)<title>([^<]*?)</title>'), webpage, 'video title', fatal=False)
 
-        formats, subtitles = self._extract_formats_and_subtitles(committee, filename, display_id)
-
         return {
-            'id': remove_end(filename, '.mp4'),
+            **url_info,
+            '_type': 'url_transparent',
             'display_id': display_id,
             'title': re.sub(r'\s+', ' ', title.split('|')[0]).strip(),
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'age_limit': self._rta_search(webpage),
-            'formats': formats,
-            'subtitles': subtitles,
         }
