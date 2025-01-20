@@ -217,6 +217,22 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'url': thumbnail,
                 })
 
+            # Thumbnails from Embed API
+            # `width` and `quality` can be customized by adding query string "mw" and "q" respectively.
+            #   Example: "?mw=1080&q=85".
+            # mw: default to original width
+            # q: default to 85
+            # Also: When request with "Accept: image/avif, image/webp", it will serve AVIF or WebP format.
+            thumbnail = video_data.get('thumbnail_url')
+            if thumbnail:
+                # Fetch the highest quality thumbnail
+                thumbnail += '?' if '?' not in thumbnail else '&'
+                thumbnail += 'q=100'
+
+                thumbnails.append({
+                    'url': thumbnail,
+                })
+
         owner = video_data.get('owner') or {}
         video_uploader_url = owner.get('url')
 
@@ -388,7 +404,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/businessofsoftware',
                 'uploader_id': 'businessofsoftware',
                 'duration': 3610,
-                'thumbnail': 'https://i.vimeocdn.com/video/376682406-f34043e7b766af6bef2af81366eacd6724f3fc3173179a11a97a1e26587c9529-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/376682406-f34043e7b766af6bef2af81366eacd6724f3fc3173179a11a97a1e26587c9529-d',
             },
             'params': {
                 'format': 'best[protocol=https]',
@@ -488,7 +504,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user28849593',
                 'uploader_id': 'user28849593',
                 'duration': 118,
-                'thumbnail': 'https://i.vimeocdn.com/video/478636036-c18440305ef3df9decfb6bf207a61fe39d2d17fa462a96f6f2d93d30492b037d-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/478636036-c18440305ef3df9decfb6bf207a61fe39d2d17fa462a96f6f2d93d30492b037d-d',
             },
             'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
@@ -596,7 +612,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_id': 'user18948128',
                 'uploader': 'Jaime Marquínez Ferrándiz',
                 'duration': 10,
-                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d',
             },
             'params': {
                 'format': 'best[protocol=https]',
@@ -764,7 +780,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader': 'Alex Howard',
                 'uploader_id': 'user54729178',
                 'uploader_url': 'https://vimeo.com/user54729178',
-                'thumbnail': r're:https://i\.vimeocdn\.com/video/1520099929-[\da-f]+-d_1280',
+                'thumbnail': r're:https://i\.vimeocdn\.com/video/1520099929-[\da-f]+-d',
                 'duration': 2636,
                 'chapters': [
                     {'start_time': 0, 'end_time': 10, 'title': '<Untitled Chapter 1>'},
@@ -824,7 +840,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_id': 'rajavirdi',
                 'uploader_url': 'https://vimeo.com/rajavirdi',
                 'duration': 309,
-                'thumbnail': r're:https://i\.vimeocdn\.com/video/1716727772-[\da-f]+-d_1280',
+                'thumbnail': r're:https://i\.vimeocdn\.com/video/1716727772-[\da-f]+-d',
             },
             # 'params': {'format': 'source'},
             'expected_warnings': ['Failed to parse XML: not well-formed'],
