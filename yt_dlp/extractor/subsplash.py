@@ -1,11 +1,9 @@
 import functools
-import json
 import math
 
 from .common import InfoExtractor
 from ..utils import (
     InAdvancePagedList,
-    get_element_by_id,
     int_or_none,
     parse_iso8601,
     try_call,
@@ -22,7 +20,9 @@ class SubsplashBaseIE(InfoExtractor):
             token = (
                 try_call(lambda: self._get_cookies(url)['ss-token-guest'].value)
                 or urlh.get_header('x-api-token')
-                or traverse_obj(webpage, ({find_element(id='shoebox-tokens')}, {json.loads}, 'apiToken', {str}))
+                or self._search_json(
+                    r'<script[^>]+\bid="shoebox-tokens"[^>]*>', webpage, 'shoebox tokens',
+                    display_id, default={}).get('apiToken')
                 or self._search_regex(r'\\"tokens\\":{\\"guest\\":\\"([A-Za-z0-9._-]+)\\"', webpage, 'token', default=None))
 
         if not token:
