@@ -28,6 +28,7 @@ from ..utils import (
     try_get,
     unified_timestamp,
     unsmuggle_url,
+    url_or_none,
     urlencode_postdata,
     urlhandle_detect_ext,
     urljoin,
@@ -211,17 +212,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'width': int_or_none(key),
                     'url': thumb,
                 })
-            thumbnail = video_data.get('thumbnail')
-            if thumbnail:
-                thumbnails.append({
-                    'url': thumbnail,
-                })
-
-            thumbnail = video_data.get('thumbnail_url')
-            if thumbnail:
-                thumbnails.append({
-                    'url': thumbnail,
-                })
+            thumbnails.extend(traverse_obj(video_data, (('thumbnail', 'thumbnail_url'), {'url': {url_or_none}})))
 
         owner = video_data.get('owner') or {}
         video_uploader_url = owner.get('url')
