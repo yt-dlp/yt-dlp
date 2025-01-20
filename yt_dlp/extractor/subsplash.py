@@ -109,10 +109,9 @@ class SubsplashIE(SubsplashBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        headers = self._get_headers(url, display_id)
-
         data = self._download_json(
-            'https://core.subsplash.com/media/v1/media-items', display_id, headers=headers,
+            'https://core.subsplash.com/media/v1/media-items',
+            display_id, headers=self._get_headers(url, display_id),
             query={
                 'filter[short_code]': display_id,
                 'include': 'images,audio.audio-outputs,audio.video,video.video-outputs,video.playlists,document,broadcast',
