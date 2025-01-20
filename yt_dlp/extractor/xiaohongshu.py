@@ -47,7 +47,7 @@ class XiaoHongShuIE(InfoExtractor):
             r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', display_id, transform_source=js_to_json)
 
         note_info = traverse_obj(initial_state, ('note', 'noteDetailMap', display_id, 'note'))
-        video_info = traverse_obj(note_info, ('video', 'media', 'stream', ('h264', 'av1', 'h265'), ...))
+        video_info = traverse_obj(note_info, ('video', 'media', 'stream', ..., ...))
 
         formats = []
         for info in video_info:
@@ -66,7 +66,7 @@ class XiaoHongShuIE(InfoExtractor):
                 'duration': ('duration', {float_or_none(scale=1000)}),
             })
 
-            formats.extend(traverse_obj(info, (('mediaUrl', ('backupUrls', ...)), {
+            formats.extend(traverse_obj(info, (('masterUrl', ('backupUrls', ...)), {
                 lambda u: url_or_none(u) and {'url': u, **format_info}})))
 
         if origin_key := traverse_obj(note_info, ('video', 'consumer', 'originVideoKey', {str})):
