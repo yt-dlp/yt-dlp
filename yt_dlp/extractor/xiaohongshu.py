@@ -5,6 +5,7 @@ from ..utils import (
     int_or_none,
     js_to_json,
     url_or_none,
+    urlhandle_detect_ext,
 )
 from ..utils.traversal import traverse_obj
 
@@ -46,7 +47,7 @@ class XiaoHongShuIE(InfoExtractor):
             r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', display_id, transform_source=js_to_json)
 
         note_info = traverse_obj(initial_state, ('note', 'noteDetailMap', display_id, 'note'))
-        video_info = traverse_obj(note_info, ('video', 'media', 'stream', ('h264', 'av1', 'h265'), ...))
+        video_info = traverse_obj(note_info, ('video', 'media', 'stream', ..., ...))
 
         formats = []
         for info in video_info:
@@ -56,17 +57,31 @@ class XiaoHongShuIE(InfoExtractor):
                 'height': ('height', {int_or_none}),
                 'vcodec': ('videoCodec', {str}),
                 'acodec': ('audioCodec', {str}),
-                'abr': ('audioBitrate', {int_or_none}),
-                'vbr': ('videoBitrate', {int_or_none}),
+                'abr': ('audioBitrate', {int_or_none(scale=1000)}),
+                'vbr': ('videoBitrate', {int_or_none(scale=1000)}),
                 'audio_channels': ('audioChannels', {int_or_none}),
-                'tbr': ('avgBitrate', {int_or_none}),
+                'tbr': ('avgBitrate', {int_or_none(scale=1000)}),
                 'format': ('qualityType', {str}),
                 'filesize': ('size', {int_or_none}),
                 'duration': ('duration', {float_or_none(scale=1000)}),
             })
 
-            formats.extend(traverse_obj(info, (('mediaUrl', ('backupUrls', ...)), {
+            formats.extend(traverse_obj(info, (('masterUrl', ('backupUrls', ...)), {
                 lambda u: url_or_none(u) and {'url': u, **format_info}})))
+
+        if origin_key := traverse_obj(note_info, ('video', 'consumer', 'originVideoKey', {str})):
+            # Not using a head request because of false negatives
+            urlh = self._request_webpage(
+                f'https://sns-video-bd.xhscdn.com/{origin_key}', display_id,
+                'Checking original video availability', 'Original video is not available', fatal=False)
+            if urlh:
+                formats.append({
+                    'format_id': 'direct',
+                    'ext': urlhandle_detect_ext(urlh, default='mp4'),
+                    'filesize': int_or_none(urlh.get_header('Content-Length')),
+                    'url': urlh.url,
+                    'quality': 1,
+                })
 
         thumbnails = []
         for image_info in traverse_obj(note_info, ('imageList', ...)):
