@@ -26,6 +26,7 @@ class SubsplashBaseIE(InfoExtractor):
                 or self._search_regex(r'\\"tokens\\":{\\"guest\\":\\"([A-Za-z0-9._-]+)\\"', webpage, 'token', default=None))
 
         if not token:
+            self.report_warning('Unable to extract auth token')
             return None
         return {'Authorization': f'Bearer {token}'}
 
