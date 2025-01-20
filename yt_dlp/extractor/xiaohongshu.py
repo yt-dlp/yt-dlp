@@ -78,7 +78,7 @@ class XiaoHongShuIE(InfoExtractor):
                 formats.append({
                     'format_id': 'direct',
                     'ext': urlhandle_detect_ext(urlh, default='mp4'),
-                    'filesize': int_or_none(urlh.headers.get('Content-Length')),
+                    'filesize': int_or_none(urlh.get_header('Content-Length')),
                     'url': urlh.url,
                     'quality': 1,
                 })
