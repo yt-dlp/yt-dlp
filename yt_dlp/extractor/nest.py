@@ -1,11 +1,11 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, float_or_none, url_or_none
+from ..utils import ExtractorError, float_or_none, update_url_query, url_or_none
 from ..utils.traversal import traverse_obj
 
 
 class NestIE(InfoExtractor):
     _VALID_URL = r'https?://video\.nest\.com/(?:embedded/)?live/(?P<id>\w+)'
-    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
+    _EMBED_REGEX = [rf'<iframe [^>]*\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://video.nest.com/embedded/live/4fvYdSo8AX?autoplay=0',
         'info_dict': {
@@ -48,9 +48,9 @@ class NestIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data = self._download_json(
-            f'https://video.nest.com/api/dropcam/cameras.get_by_public_token?token={video_id}', video_id)
-        item = traverse_obj(data, ('items', 0, {dict}))
+        item = self._download_json(
+            'https://video.nest.com/api/dropcam/cameras.get_by_public_token',
+            video_id, query={'token': video_id})['items'][0]
         uuid = item.get('uuid')
         stream_domain = item.get('live_stream_host')
         if not stream_domain or not uuid:
@@ -65,17 +65,20 @@ class NestIE(InfoExtractor):
                 'alt_title': ('name', {str}),
                 'location': ((('timezone', {lambda x: x.split('/')[1].replace('_', ' ')}), 'where'), {str}, filter, any),
             }),
-            'thumbnail': f'https://{thumb_domain}/get_image?uuid={uuid}&public={video_id}' if thumb_domain else None,
-            'availability': 'public' if item.get('is_public') else None,
+            'thumbnail': update_url_query(
+                f'https://{thumb_domain}/get_image',
+                {'uuid': uuid, 'public': video_id}) if thumb_domain else None,
+            'availability': self._availability(is_private=item.get('is_public') is False),
             'formats': self._extract_m3u8_formats(
-                f'https://{stream_domain}/nexus_aac/{uuid}/playlist.m3u8?public={video_id}', video_id, 'mp4', live=True),
+                f'https://{stream_domain}/nexus_aac/{uuid}/playlist.m3u8',
+                video_id, 'mp4', live=True, query={'public': video_id}),
             'is_live': True,
         }
 
 
 class NestClipIE(InfoExtractor):
     _VALID_URL = r'https?://video\.nest\.com/(?:embedded/)?clip/(?P<id>\w+)'
-    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
+    _EMBED_REGEX = [rf'<iframe [^>]*\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://video.nest.com/clip/f34c9dd237a44eca9a0001af685e3dff',
         'info_dict': {
