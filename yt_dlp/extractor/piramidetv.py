@@ -57,11 +57,11 @@ class PiramideTVIE(InfoExtractor):
     def _entries(self, video_id):
         visited = set()
         while True:
+            visited.add(video_id)
             next_video, info = self._extract_video(video_id)
             yield info
             if not next_video or next_video in visited:
                 break
-            visited.add(next_video)
             video_id = next_video
 
     def _real_extract(self, url):
@@ -87,7 +87,7 @@ class PiramideTVChannelIE(InfoExtractor):
             f'https://hermes.piramide.tv/channel/list/{channel_name}/date/100000', channel_name)
         for video in traverse_obj(videos, ('videos', lambda _, v: v['id'])):
             yield self.url_result(smuggle_url(
-                f"https://piramide.tv/video/{video['id']}", {'force_noplaylist': True}),
+                f'https://piramide.tv/video/{video["id"]}', {'force_noplaylist': True}),
                 **traverse_obj(video, {
                     'id': ('id', {str}),
                     'title': ('title', {str}),
