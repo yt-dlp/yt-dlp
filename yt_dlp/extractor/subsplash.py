@@ -19,13 +19,11 @@ class SubsplashBaseIE(InfoExtractor):
         token = try_call(lambda: self._get_cookies(url)['ss-token-guest'].value)
         if not token:
             webpage, urlh = self._download_webpage_handle(url, display_id)
-            token = try_call(lambda: self._get_cookies(url)['ss-token-guest'].value)
-            if not token:
-                token = urlh.get_header('x-api-token')
-            if not token:
-                token = traverse_obj(get_element_by_id('shoebox-tokens', webpage), ({json.loads}, 'apiToken', {str}))
-            if not token:
-                token = self._search_regex(r'\\"tokens\\":{\\"guest\\":\\"([A-Za-z0-9._-]+)\\"', webpage, 'token', default=None)
+            token = (
+                try_call(lambda: self._get_cookies(url)['ss-token-guest'].value)
+                or urlh.get_header('x-api-token')
+                or traverse_obj(webpage, ({find_element(id='shoebox-tokens')}, {json.loads}, 'apiToken', {str}))
+                or self._search_regex(r'\\"tokens\\":{\\"guest\\":\\"([A-Za-z0-9._-]+)\\"', webpage, 'token', default=None))
 
         if not token:
             return None
@@ -42,7 +40,7 @@ class SubsplashBaseIE(InfoExtractor):
             formats.append({
                 'url': mp4_entry['_links']['related']['href'],
                 'format_id': 'direct',
-                'preference': 1,
+                'quality': 1,
                 **traverse_obj(mp4_entry, {
                     'height': ('height', {int_or_none}),
                     'width': ('width', {int_or_none}),
@@ -66,8 +64,8 @@ class SubsplashBaseIE(InfoExtractor):
 
 class SubsplashIE(SubsplashBaseIE):
     _VALID_URL = [
-        r'https?://(?:www\.)?subsplash\.com/u/[^/]+/media/d/(?P<id>\w+)',
-        r'https?://(?:\w+\.)?subspla.sh/(?P<id>\w+)',
+        r'https?://(?:www\.)?subsplash\.com/u/[^/?#]+/media/d/(?P<id>\w+)',
+        r'https?://(?:\w+\.)?subspla\.sh/(?P<id>\w+)',
     ]
     _TESTS = [{
         'url': 'https://subsplash.com/u/skywatchtv/media/d/5whnx5s-the-grand-delusion-taking-place-right-now',
@@ -123,7 +121,7 @@ class SubsplashIE(SubsplashBaseIE):
 
 class SubsplashPlaylistIE(SubsplashBaseIE):
     IE_NAME = 'subsplash:playlist'
-    _VALID_URL = r'https?://(?:www\.)?subsplash\.com/[^/]+/(?:our-videos|media)/ms/\+(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?subsplash\.com/[^/?#]+/(?:our-videos|media)/ms/\+(?P<id>\w+)'
     _PAGE_SIZE = 15
     _TESTS = [{
         'url': 'https://subsplash.com/skywatchtv/our-videos/ms/+dbyjzp8',
