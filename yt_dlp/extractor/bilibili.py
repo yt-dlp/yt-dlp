@@ -1898,7 +1898,7 @@ class BiliBiliDynamicIE(InfoExtractor):
             'data', 'item', (None, 'orig'), 'modules', 'module_dynamic',
             (('major', ('archive', 'pgc')), ('additional', ('reserve', 'common'))),
             'jump_url', {url_or_none}, any, {sanitize_url}))
-        if not video_url or video_url == url:
+        if not video_url or (self.suitable(video_url) and post_id != self._match_id(video_url)):
             raise ExtractorError('No valid video URL found', expected=True)
         return self.url_result(video_url)
 
