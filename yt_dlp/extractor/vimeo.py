@@ -217,18 +217,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'url': thumbnail,
                 })
 
-            # Thumbnails from Embed API
-            # `width` and `quality` can be customized by adding query string "mw" and "q" respectively.
-            #   Example: "?mw=1080&q=85".
-            # mw: default to original width
-            # q: default to 85
-            # Also: When request with "Accept: image/avif, image/webp", it will serve AVIF or WebP format.
             thumbnail = video_data.get('thumbnail_url')
             if thumbnail:
-                # Fetch the highest quality thumbnail
-                thumbnail += '?' if '?' not in thumbnail else '&'
-                thumbnail += 'q=100'
-
                 thumbnails.append({
                     'url': thumbnail,
                 })
