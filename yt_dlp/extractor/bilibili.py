@@ -1888,7 +1888,7 @@ class BiliBiliDynamicIE(InfoExtractor):
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
-        # Without the newer chrome UA, the API will return a error (-352)
+        # Without the newer chrome UA, the API will return an error (-352)
         post_data = self._download_json(
             'https://api.bilibili.com/x/polymer/web-dynamic/v1/detail', post_id,
             query={'id': post_id}, headers={
