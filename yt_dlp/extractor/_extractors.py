@@ -1541,6 +1541,10 @@ from .pinterest import (
     PinterestCollectionIE,
     PinterestIE,
 )
+from .piramidetv import (
+    PiramideTVChannelIE,
+    PiramideTVIE,
+)
 from .pixivsketch import (
     PixivSketchIE,
     PixivSketchUserIE,
