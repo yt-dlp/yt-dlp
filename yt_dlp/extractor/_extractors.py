@@ -256,6 +256,7 @@ from .bilibili import (
     BilibiliCheeseIE,
     BilibiliCheeseSeasonIE,
     BilibiliCollectionListIE,
+    BiliBiliDynamicIE,
     BilibiliFavoritesListIE,
     BiliBiliIE,
     BiliBiliPlayerIE,
