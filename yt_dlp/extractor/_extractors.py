@@ -1506,6 +1506,7 @@ from .patreon import (
 from .pbs import (
     PBSIE,
     PBSKidsIE,
+    PBSShowIE,
 )
 from .pearvideo import PearVideoIE
 from .peekvids import (

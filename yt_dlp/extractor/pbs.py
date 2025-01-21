@@ -1,11 +1,17 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     US_RATINGS,
     ExtractorError,
+    LazyList,
+    clean_html,
     determine_ext,
+    extract_attributes,
     float_or_none,
+    get_element_html_by_class,
+    get_elements_html_by_class,
     int_or_none,
     js_to_json,
     orderedSet,
@@ -186,7 +192,7 @@ class PBSIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://
         (?:
            # Direct video URL
-           (?:{})/(?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
+           (?:{})/(?!show)(?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
            # Article with embedded player (or direct video)
            (?:www\.)?pbs\.org/(?:[^/]+/){{1,5}}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
            # Player
@@ -197,6 +203,20 @@ class PBSIE(InfoExtractor):
     _GEO_COUNTRIES = ['US']
 
     _TESTS = [
+        {
+            'url': 'https://watch.opb.org/video/cherry-blossoms-at-portlands-waterfront-have-a-story-2e1de0/',
+            'md5': 'af5a85ffecd6371e86f050b4ce5a3636',
+            'info_dict': {
+                'id': 'cherry-blossoms-at-portlands-waterfront-have-a-story-2e1de0',
+                'ext': 'mp4',
+                'title': 'Oregon Experience - Cherry Blossoms at Portland\'s Waterfront Have a Story',
+                'description': 'md5:8d15d264cb6ed954ee08c8c0dcbd43a2',
+                'duration': 167,
+                'upload_date': '20190225',
+                'chapters': [],
+                'thumbnail': r're:^https?://.*\.jpg$',
+            },
+        },
         {
             'url': 'http://www.pbs.org/tpt/constitution-usa-peter-sagal/watch/a-more-perfect-union/',
             'md5': '173dc391afd361fa72eab5d3d918968d',
@@ -680,8 +700,9 @@ class PBSIE(InfoExtractor):
         if alt_title:
             info['title'] = alt_title + ' - ' + re.sub(r'^' + alt_title + r'[\s\-:]+', '', info['title'])
 
-        description = info.get('description') or info.get(
-            'program', {}).get('description') or description
+        upload_date = upload_date or unified_strdate(info.get("air_date"))
+        description = info.get('description') or info.get("long_description") or info.get(
+            "short_description") or info.get('program', {}).get('description') or description
 
         return {
             'id': video_id,
@@ -754,3 +775,138 @@ class PBSKidsIE(InfoExtractor):
                 'upload_date': ('video_obj', 'air_date', {unified_strdate}),
             }),
         }
+
+
+class PBSShowIE(InfoExtractor):
+    _VALID_URL = r'''(?x)https?://
+        (?:www\.)?(?:%s)/show\/(?P<presumptive_id>[^/]+?)(?:\.html)?\/?(?:$|[?#])
+    ''' % '|'.join(list(zip(*PBSIE._STATIONS))[0])
+
+    _TESTS = [
+        # Full Show
+        {
+            'url': 'https://video.ksps.org/show/oregon-experience/',
+            'info_dict': {
+                'id': 'oregon-experience',
+                'title': 'Oregon Experience',
+                'description': 'md5:67b0184af36fcb5cc20df9974633eb90',
+            },
+            'playlist_mincount': 2,
+            'params': {
+                'skip_download': True,
+            },
+        },
+        # Single Special
+        {
+            'url': 'https://video.ksps.org/show/betrayed-survivng-american-concentration-camp',
+            'info_dict': {
+                'id': 'betrayed-survivng-american-concentration-camp',
+                'title': 'Betrayed: Surviving an American Concentration Camp',
+                'description': 'md5:7e78ee497f1359c030d54d68339f31e8',
+            },
+            'playlist_mincount': 1,
+            'params': {
+                'skip_download': True,
+            }
+        },
+        # Non-Season Episodes (uses season 1)
+        {
+            'url': 'https://video.ksps.org/show/a-brief-history-of-the-future/',
+            'info_dict': {
+                'id': 'a-brief-history-of-the-future',
+                'title': 'A Brief History of the Future',
+                'description': 'md5:08297c374c61361ac3f3d297b5157913',
+            },
+            'playlist_mincount': 1,
+            'params': {
+                'skip_download': True,
+            }
+        }
+    ]
+
+    _JSON_SEARCH = r'<script[^>]+id="content-strip-data" type="application/json">'
+    _SHOW_JSON_SEARCH = r'GTMDataLayer\.push\('
+
+    @staticmethod
+    def _make_url(url, playlist_id):
+        return f'https://{urllib.parse.urlparse(url).netloc}/show/{playlist_id}'
+
+    @staticmethod
+    def _extract_episode(popover_html):
+        clean = clean_html(popover_html)
+        maybe_ep = re.search(r"Ep(\d+) ", clean)
+        if maybe_ep is not None:
+            return maybe_ep[1]
+        return None
+
+    def _iterate_entries(self, url, playlist_id, season_indices):
+        base_url = urllib.parse.urlparse(url).netloc
+
+        for season_idx in season_indices:
+            season_id = f'{playlist_id}-season-{season_idx}'
+
+            season_page = self._download_webpage(
+                f'{url}/episodes/season/{season_idx}'
+                if season_idx > 0 else f'{url}/specials',
+                video_id=season_id
+            )
+            episodes = [
+                extract_attributes(elem)
+                for elem in get_elements_html_by_class("video-summary", season_page)
+            ]
+            if not episodes:
+                continue
+
+            episode_indices = [
+                self._extract_episode(elem)
+                for elem in get_elements_html_by_class("popover__meta-data", season_page)
+            ]
+            for i, ep in enumerate(episodes):
+                url_kwargs = {}
+                if len(episode_indices) == len(episodes) and episode_indices[i] is not None:
+                    url_kwargs['episode'] = episode_indices[i]
+
+                yield self.url_result(
+                    url=f'https://{base_url}/video/{ep["data-video-slug"]}',
+                    ie=PBSIE,
+                    video_id=ep["data-cid"],
+                    url_transparent=True,
+                    title=ep["data-title"],
+                    season=season_idx,
+                    **url_kwargs,
+                )
+
+    def _real_extract(self, url):
+        playlist_id = self._match_valid_url(url).group('presumptive_id')
+        url = self._make_url(url=url, playlist_id=playlist_id)
+
+        webpage = self._download_webpage(url, playlist_id)
+        show_data = self._search_json(self._JSON_SEARCH, webpage, 'seasons', playlist_id)
+
+        playlist_description = clean_html(get_element_html_by_class(
+            "show-hero__description--long is-hidden", webpage)
+        )
+        show_metadata = extract_attributes(
+            get_element_html_by_class("show-hero__my-list btn--mylist--placeholder", webpage)
+        )
+
+        playlist_title = show_metadata['data-gtm-label']
+        clean_html(playlist_description[0])
+
+        # iterate seasons in reverse to get newest vids first
+        season_indices = list(sorted(
+            [
+                x['ordinal'] for x in show_data['episodes_data']['seasons']
+                if x.get('ordinal', 0) != 0
+            ],
+            reverse=True
+        ))
+        if not self._configuration_arg('exclude_specials', [None])[0]:
+            season_indices = [0] + season_indices
+
+        return self.playlist_result(
+            LazyList(self._iterate_entries(url, playlist_id, season_indices)),
+            playlist_id=playlist_id,
+            playlist_title=playlist_title,
+            playlist_description=playlist_description,
+        )
