@@ -88,7 +88,7 @@ class BlueskyIE(InfoExtractor):
         },
     }, {
         'url': 'https://bsky.app/profile/de1.pds.tentacle.expert/post/3l3w4tnezek2e',
-        'md5': '1af9c7fda061cf7593bbffca89e43d1c',
+        'md5': 'cc0110ed1f6b0247caac8234cc1e861d',
         'info_dict': {
             'id': '3l3w4tnezek2e',
             'ext': 'mp4',
@@ -133,6 +133,8 @@ class BlueskyIE(InfoExtractor):
             'channel_follower_count': int,
             'categories': ['Entertainment'],
             'tags': [],
+            'chapters': list,
+            'heatmap': 'count:100',
         },
         'add_ie': ['Youtube'],
     }, {
@@ -184,14 +186,14 @@ class BlueskyIE(InfoExtractor):
             },
         },
     }, {
-        'url': 'https://bsky.app/profile/alt.bun.how/post/3l7rdfxhyds2f',
+        'url': 'https://bsky.app/profile/cinny.bun.how/post/3l7rdfxhyds2f',
         'md5': '8775118b235cf9fa6b5ad30f95cda75c',
         'info_dict': {
             'id': '3l7rdfxhyds2f',
             'ext': 'mp4',
             'uploader': 'cinnamon',
-            'uploader_id': 'alt.bun.how',
-            'uploader_url': 'https://bsky.app/profile/alt.bun.how',
+            'uploader_id': 'cinny.bun.how',
+            'uploader_url': 'https://bsky.app/profile/cinny.bun.how',
             'channel_id': 'did:plc:7x6rtuenkuvxq3zsvffp2ide',
             'channel_url': 'https://bsky.app/profile/did:plc:7x6rtuenkuvxq3zsvffp2ide',
             'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
@@ -341,6 +343,7 @@ class BlueskyIE(InfoExtractor):
 
             formats.append({
                 'format_id': 'blob',
+                'quality': 1,
                 'url': update_url_query(
                     self._BLOB_URL_TMPL.format(endpoint), {'did': did, 'cid': video_cid}),
                 **traverse_obj(root, (*embed_path, 'aspectRatio', {
