@@ -88,7 +88,7 @@ class BlueskyIE(InfoExtractor):
         },
     }, {
         'url': 'https://bsky.app/profile/de1.pds.tentacle.expert/post/3l3w4tnezek2e',
-        'md5': '1af9c7fda061cf7593bbffca89e43d1c',
+        'md5': 'cc0110ed1f6b0247caac8234cc1e861d',
         'info_dict': {
             'id': '3l3w4tnezek2e',
             'ext': 'mp4',
@@ -343,6 +343,7 @@ class BlueskyIE(InfoExtractor):
 
             formats.append({
                 'format_id': 'blob',
+                'quality': 1,
                 'url': update_url_query(
                     self._BLOB_URL_TMPL.format(endpoint), {'did': did, 'cid': video_cid}),
                 **traverse_obj(root, (*embed_path, 'aspectRatio', {
