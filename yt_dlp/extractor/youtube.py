@@ -32,7 +32,6 @@ from ..utils import (
     classproperty,
     clean_html,
     datetime_from_str,
-    dict_get,
     filesize_from_tbr,
     filter_dict,
     float_or_none,
@@ -117,6 +116,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
+        'REQUIRE_PO_TOKEN': True,
         'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
@@ -128,6 +128,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
+        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
         'SUPPORTS_COOKIES': True,
     },
@@ -212,8 +213,8 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
-        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_PO_TOKEN': True,
     },
     # This client now requires sign-in for every video
     'ios_music': {
@@ -230,6 +231,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
     },
     # This client now requires sign-in for every video
@@ -247,6 +249,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_PO_TOKEN': True,
         'REQUIRE_AUTH': True,
     },
     # mweb has 'ultralow' formats
@@ -256,11 +259,12 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'MWEB',
                 'clientVersion': '2.20241202.07.00',
-                # mweb does not require PO Token with this UA
+                # mweb previously did not require PO Token with this UA
                 'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
+        'REQUIRE_PO_TOKEN': True,
         'SUPPORTS_COOKIES': True,
     },
     'tv': {
@@ -567,9 +571,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         pref.update({'hl': self._preferred_lang or 'en', 'tz': 'UTC'})
         self._set_cookie('.youtube.com', name='PREF', value=urllib.parse.urlencode(pref))
 
+    def _initialize_cookie_auth(self):
+        yt_sapisid, yt_1psapisid, yt_3psapisid = self._get_sid_cookies()
+        if yt_sapisid or yt_1psapisid or yt_3psapisid:
+            self.write_debug('Found YouTube account cookies')
+
     def _real_initialize(self):
         self._initialize_pref()
         self._initialize_consent()
+        self._initialize_cookie_auth()
         self._check_login_required()
 
     def _perform_login(self, username, password):
@@ -627,32 +637,63 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         client_context.update({'hl': self._preferred_lang or 'en', 'timeZone': 'UTC', 'utcOffsetMinutes': 0})
         return context
 
-    _SAPISID = None
+    @staticmethod
+    def _make_sid_authorization(scheme, sid, origin, additional_parts):
+        timestamp = str(round(time.time()))
 
-    def _generate_sapisidhash_header(self, origin='https://www.youtube.com'):
-        time_now = round(time.time())
-        if self._SAPISID is None:
-            yt_cookies = self._get_cookies('https://www.youtube.com')
-            # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
-            # See: https://github.com/yt-dlp/yt-dlp/issues/393
-            sapisid_cookie = dict_get(
-                yt_cookies, ('__Secure-3PAPISID', 'SAPISID'))
-            if sapisid_cookie and sapisid_cookie.value:
-                self._SAPISID = sapisid_cookie.value
-                self.write_debug('Extracted SAPISID cookie')
-                # SAPISID cookie is required if not already present
-                if not yt_cookies.get('SAPISID'):
-                    self.write_debug('Copying __Secure-3PAPISID cookie to SAPISID cookie')
-                    self._set_cookie(
-                        '.youtube.com', 'SAPISID', self._SAPISID, secure=True, expire_time=time_now + 3600)
-            else:
-                self._SAPISID = False
-        if not self._SAPISID:
+        hash_parts = []
+        if additional_parts:
+            hash_parts.append(':'.join(additional_parts.values()))
+        hash_parts.extend([timestamp, sid, origin])
+        sidhash = hashlib.sha1(' '.join(hash_parts).encode()).hexdigest()
+
+        parts = [timestamp, sidhash]
+        if additional_parts:
+            parts.append(''.join(additional_parts))
+
+        return f'{scheme} {"_".join(parts)}'
+
+    def _get_sid_cookies(self):
+        """
+        Get SAPISID, 1PSAPISID, 3PSAPISID cookie values
+        @returns sapisid, 1psapisid, 3psapisid
+        """
+        yt_cookies = self._get_cookies('https://www.youtube.com')
+        yt_sapisid = try_call(lambda: yt_cookies['SAPISID'].value)
+        yt_3papisid = try_call(lambda: yt_cookies['__Secure-3PAPISID'].value)
+        yt_1papisid = try_call(lambda: yt_cookies['__Secure-1PAPISID'].value)
+
+        # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
+        # YouTube also falls back to __Secure-3PAPISID if SAPISID is missing.
+        # See: https://github.com/yt-dlp/yt-dlp/issues/393
+
+        return yt_sapisid or yt_3papisid, yt_1papisid, yt_3papisid
+
+    def _get_sid_authorization_header(self, origin='https://www.youtube.com', user_session_id=None):
+        """
+        Generate API Session ID Authorization for Innertube requests. Assumes all requests are secure (https).
+        @param origin: Origin URL
+        @param user_session_id: Optional User Session ID
+        @return: Authorization header value
+        """
+
+        authorizations = []
+        additional_parts = {}
+        if user_session_id:
+            additional_parts['u'] = user_session_id
+
+        yt_sapisid, yt_1psapisid, yt_3psapisid = self._get_sid_cookies()
+
+        for scheme, sid in (('SAPISIDHASH', yt_sapisid),
+                            ('SAPISID1PHASH', yt_1psapisid),
+                            ('SAPISID3PHASH', yt_3psapisid)):
+            if sid:
+                authorizations.append(self._make_sid_authorization(scheme, sid, origin, additional_parts))
+
+        if not authorizations:
             return None
-        # SAPISIDHASH algorithm from https://stackoverflow.com/a/32065323
-        sapisidhash = hashlib.sha1(
-            f'{time_now} {self._SAPISID} {origin}'.encode()).hexdigest()
-        return f'SAPISIDHASH {time_now}_{sapisidhash}'
+
+        return ' '.join(authorizations)
 
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
                   note='Downloading API JSON', errnote='Unable to download API page',
@@ -688,26 +729,48 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             if session_index is not None:
                 return session_index
 
-    def _data_sync_id_to_delegated_session_id(self, data_sync_id):
-        if not data_sync_id:
-            return
-        # datasyncid is of the form "channel_syncid||user_syncid" for secondary channel
-        # and just "user_syncid||" for primary channel. We only want the channel_syncid
-        channel_syncid, _, user_syncid = data_sync_id.partition('||')
-        if user_syncid:
-            return channel_syncid
-
-    def _extract_account_syncid(self, *args):
+    @staticmethod
+    def _parse_data_sync_id(data_sync_id):
         """
-        Extract current session ID required to download private playlists of secondary channels
+        Parse data_sync_id into delegated_session_id and user_session_id.
+
+        data_sync_id is of the form "delegated_session_id||user_session_id" for secondary channel
+        and just "user_session_id||" for primary channel.
+
+        @param data_sync_id: data_sync_id string
+        @return: Tuple of (delegated_session_id, user_session_id)
+        """
+        if not data_sync_id:
+            return None, None
+        first, _, second = data_sync_id.partition('||')
+        if second:
+            return first, second
+        return None, first
+
+    def _extract_delegated_session_id(self, *args):
+        """
+        Extract current delegated session ID required to download private playlists of secondary channels
         @params response and/or ytcfg
+        @return: delegated session ID
         """
         # ytcfg includes channel_syncid if on secondary channel
         if delegated_sid := traverse_obj(args, (..., 'DELEGATED_SESSION_ID', {str}, any)):
             return delegated_sid
 
         data_sync_id = self._extract_data_sync_id(*args)
-        return self._data_sync_id_to_delegated_session_id(data_sync_id)
+        return self._parse_data_sync_id(data_sync_id)[0]
+
+    def _extract_user_session_id(self, *args):
+        """
+        Extract current user session ID
+        @params response and/or ytcfg
+        @return: user session ID
+        """
+        if user_sid := traverse_obj(args, (..., 'USER_SESSION_ID', {str}, any)):
+            return user_sid
+
+        data_sync_id = self._extract_data_sync_id(*args)
+        return self._parse_data_sync_id(data_sync_id)[1]
 
     def _extract_data_sync_id(self, *args):
         """
@@ -734,7 +797,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     @functools.cached_property
     def is_authenticated(self):
-        return bool(self._generate_sapisidhash_header())
+        return bool(self._get_sid_authorization_header())
 
     def extract_ytcfg(self, video_id, webpage):
         if not webpage:
@@ -744,25 +807,28 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;', webpage, 'ytcfg',
                 default='{}'), video_id, fatal=False) or {}
 
-    def _generate_cookie_auth_headers(self, *, ytcfg=None, account_syncid=None, session_index=None, origin=None, **kwargs):
+    def _generate_cookie_auth_headers(self, *, ytcfg=None, delegated_session_id=None, user_session_id=None, session_index=None, origin=None, **kwargs):
         headers = {}
-        account_syncid = account_syncid or self._extract_account_syncid(ytcfg)
-        if account_syncid:
-            headers['X-Goog-PageId'] = account_syncid
+        delegated_session_id = delegated_session_id or self._extract_delegated_session_id(ytcfg)
+        if delegated_session_id:
+            headers['X-Goog-PageId'] = delegated_session_id
         if session_index is None:
             session_index = self._extract_session_index(ytcfg)
-        if account_syncid or session_index is not None:
+        if delegated_session_id or session_index is not None:
             headers['X-Goog-AuthUser'] = session_index if session_index is not None else 0
 
-        auth = self._generate_sapisidhash_header(origin)
+        auth = self._get_sid_authorization_header(origin, user_session_id=user_session_id or self._extract_user_session_id(ytcfg))
         if auth is not None:
             headers['Authorization'] = auth
             headers['X-Origin'] = origin
 
+        if traverse_obj(ytcfg, 'LOGGED_IN', expected_type=bool):
+            headers['X-Youtube-Bootstrap-Logged-In'] = 'true'
+
         return headers
 
     def generate_api_headers(
-            self, *, ytcfg=None, account_syncid=None, session_index=None,
+            self, *, ytcfg=None, delegated_session_id=None, user_session_id=None, session_index=None,
             visitor_data=None, api_hostname=None, default_client='web', **kwargs):
 
         origin = 'https://' + (self._select_api_hostname(api_hostname, default_client))
@@ -773,7 +839,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'Origin': origin,
             'X-Goog-Visitor-Id': visitor_data or self._extract_visitor_data(ytcfg),
             'User-Agent': self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT']['client']['userAgent'], default_client=default_client),
-            **self._generate_cookie_auth_headers(ytcfg=ytcfg, account_syncid=account_syncid, session_index=session_index, origin=origin),
+            **self._generate_cookie_auth_headers(
+                ytcfg=ytcfg,
+                delegated_session_id=delegated_session_id,
+                user_session_id=user_session_id,
+                session_index=session_index,
+                origin=origin),
         }
         return filter_dict(headers)
 
@@ -1356,8 +1427,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
-    _DEFAULT_CLIENTS = ('ios', 'mweb')
-    _DEFAULT_AUTHED_CLIENTS = ('web_creator', 'mweb')
+    _DEFAULT_CLIENTS = ('tv', 'ios', 'web')
+    _DEFAULT_AUTHED_CLIENTS = ('tv', 'web')
 
     _GEO_BYPASS = False
 
@@ -3836,9 +3907,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             default_client=client,
             visitor_data=visitor_data,
             session_index=self._extract_session_index(master_ytcfg, player_ytcfg),
-            account_syncid=(
-                self._data_sync_id_to_delegated_session_id(data_sync_id)
-                or self._extract_account_syncid(master_ytcfg, initial_pr, player_ytcfg)
+            delegated_session_id=(
+                self._parse_data_sync_id(data_sync_id)[0]
+                or self._extract_delegated_session_id(master_ytcfg, initial_pr, player_ytcfg)
+            ),
+            user_session_id=(
+                self._parse_data_sync_id(data_sync_id)[1]
+                or self._extract_user_session_id(master_ytcfg, initial_pr, player_ytcfg)
             ),
         )
 
@@ -3888,15 +3963,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requested_clients.remove(excluded_client)
         if not requested_clients:
             raise ExtractorError('No player clients have been requested', expected=True)
-
-        if smuggled_data.get('is_music_url') or self.is_music_url(url):
-            for requested_client in requested_clients:
-                _, base_client, variant = _split_innertube_client(requested_client)
-                music_client = f'{base_client}_music' if base_client != 'mweb' else 'web_music'
-                if variant != 'music' and music_client in INNERTUBE_CLIENTS:
-                    client_info = INNERTUBE_CLIENTS[music_client]
-                    if not client_info['REQUIRE_AUTH'] or (self.is_authenticated and client_info['SUPPORTS_COOKIES']):
-                        requested_clients.append(music_client)
 
         if self.is_authenticated:
             unsupported_clients = [
@@ -4007,28 +4073,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     deprioritized_prs.append(pr)
                 else:
                     prs.append(pr)
-
-            # web_embedded can work around age-gate and age-verification for some embeddable videos
-            if self._is_agegated(pr) and variant != 'web_embedded':
-                append_client(f'web_embedded.{base_client}')
-            # Unauthenticated users will only get web_embedded client formats if age-gated
-            if self._is_agegated(pr) and not self.is_authenticated:
-                self.to_screen(
-                    f'{video_id}: This video is age-restricted; some formats may be missing '
-                    f'without authentication. {self._login_hint()}', only_once=True)
-
-            ''' This code is pointless while web_creator is in _DEFAULT_AUTHED_CLIENTS
-            # EU countries require age-verification for accounts to access age-restricted videos
-            # If account is not age-verified, _is_agegated() will be truthy for non-embedded clients
-            embedding_is_disabled = variant == 'web_embedded' and self._is_unplayable(pr)
-            if self.is_authenticated and (self._is_agegated(pr) or embedding_is_disabled):
-                self.to_screen(
-                    f'{video_id}: This video is age-restricted and YouTube is requiring '
-                    'account age-verification; some formats may be missing', only_once=True)
-                # web_creator can work around the age-verification requirement
-                # tv_embedded may(?) still work around age-verification if the video is embeddable
-                append_client('web_creator')
-            '''
 
         prs.extend(deprioritized_prs)
 
@@ -5350,7 +5394,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if not continuation_list[0]:
             continuation_list[0] = self._extract_continuation(parent_renderer)
 
-    def _entries(self, tab, item_id, ytcfg, account_syncid, visitor_data):
+    def _entries(self, tab, item_id, ytcfg, delegated_session_id, visitor_data):
         continuation_list = [None]
         extract_entries = lambda x: self._extract_entries(x, continuation_list)
         tab_content = try_get(tab, lambda x: x['content'], dict)
@@ -5371,7 +5415,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 break
             seen_continuations.add(continuation_token)
             headers = self.generate_api_headers(
-                ytcfg=ytcfg, account_syncid=account_syncid, visitor_data=visitor_data)
+                ytcfg=ytcfg, delegated_session_id=delegated_session_id, visitor_data=visitor_data)
             response = self._extract_response(
                 item_id=f'{item_id} page {page_num}',
                 query=continuation, headers=headers, ytcfg=ytcfg,
@@ -5441,7 +5485,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         return self.playlist_result(
             self._entries(
                 selected_tab, metadata['id'], ytcfg,
-                self._extract_account_syncid(ytcfg, data),
+                self._extract_delegated_session_id(ytcfg, data),
                 self._extract_visitor_data(data, ytcfg)),
             **metadata)
 
@@ -5593,7 +5637,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             watch_endpoint = try_get(
                 playlist, lambda x: x['contents'][-1]['playlistPanelVideoRenderer']['navigationEndpoint']['watchEndpoint'])
             headers = self.generate_api_headers(
-                ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
+                ytcfg=ytcfg, delegated_session_id=self._extract_delegated_session_id(ytcfg, data),
                 visitor_data=self._extract_visitor_data(response, data, ytcfg))
             query = {
                 'playlistId': playlist_id,
@@ -5691,7 +5735,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if not is_playlist:
             return
         headers = self.generate_api_headers(
-            ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
+            ytcfg=ytcfg, delegated_session_id=self._extract_delegated_session_id(ytcfg, data),
             visitor_data=self._extract_visitor_data(data, ytcfg))
         query = {
             'params': 'wgYCCAA=',
