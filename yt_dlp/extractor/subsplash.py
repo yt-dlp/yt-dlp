@@ -30,12 +30,12 @@ class SubsplashBaseIE(InfoExtractor):
             return None
         return {'Authorization': f'Bearer {token}'}
 
-    def _extract_video(self, data, display_id):
+    def _extract_video(self, data, video_id):
         formats = []
         video_data = traverse_obj(data, ('_embedded', 'video', '_embedded', {dict}))
         m3u8_url = traverse_obj(video_data, ('playlists', 0, '_links', 'related', 'href', {url_or_none}))
         if m3u8_url:
-            formats.extend(self._extract_m3u8_formats(m3u8_url, display_id, 'mp4', m3u8_id='hls', fatal=False))
+            formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
         mp4_entry = traverse_obj(video_data, ('video-outputs', lambda _, v: url_or_none(v['_links']['related']['href']), any))
         if mp4_entry:
             formats.append({
@@ -49,9 +49,9 @@ class SubsplashBaseIE(InfoExtractor):
                 }),
             })
         return {
+            'id': video_id,
             'formats': formats,
             **traverse_obj(data, {
-                'id': ('id', {str}),
                 'title': ('title', {str}),
                 'description': ('summary_text', {str}),
                 'thumbnail': ('_embedded', 'images', 0, '_links', 'related', 'href', {url_or_none}),
@@ -72,7 +72,7 @@ class SubsplashIE(SubsplashBaseIE):
         'url': 'https://subsplash.com/u/skywatchtv/media/d/5whnx5s-the-grand-delusion-taking-place-right-now',
         'md5': 'd468729814e533cec86f1da505dec82d',
         'info_dict': {
-            'id': '33f8d305-68ab-414c-acf2-f2317a0abe21',
+            'id': '5whnx5s',
             'ext': 'mp4',
             'title': 'THE GRAND DELUSION TAKING PLACE RIGHT NOW!',
             'description': 'md5:220a630865c3697b0ec9dcb3a70cbc33',
@@ -89,10 +89,9 @@ class SubsplashIE(SubsplashBaseIE):
         'url': 'https://subsplash.com/u/prophecywatchers/media/d/n4dr8b2-the-transhumanist-plan-for-humanity-billy-crone',
         'md5': '01982d58021af81c969958459bd81f13',
         'info_dict': {
-            'id': 'e16348f1-040e-4596-b922-77b45fa8d253',
+            'id': 'n4dr8b2',
             'ext': 'mp4',
             'title': 'The Transhumanist Plan for Humanity | Billy Crone',
-            'description': None,
             'upload_date': '20240903',
             'duration': 1709,
             'thumbnail': r're:https?://.*\.(?:jpg|png)$',
@@ -108,15 +107,15 @@ class SubsplashIE(SubsplashBaseIE):
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        video_id = self._match_id(url)
         data = self._download_json(
             'https://core.subsplash.com/media/v1/media-items',
-            display_id, headers=self._get_headers(url, display_id),
+            video_id, headers=self._get_headers(url, video_id),
             query={
-                'filter[short_code]': display_id,
+                'filter[short_code]': video_id,
                 'include': 'images,audio.audio-outputs,audio.video,video.video-outputs,video.playlists,document,broadcast',
             })
-        return self._extract_video(traverse_obj(data, ('_embedded', 'media-items', 0)), display_id)
+        return self._extract_video(traverse_obj(data, ('_embedded', 'media-items', 0)), video_id)
 
 
 class SubsplashPlaylistIE(SubsplashBaseIE):
@@ -155,12 +154,12 @@ class SubsplashPlaylistIE(SubsplashBaseIE):
                 'sort': '-position',
             }, note=f'Downloading page {page + 1}')
 
-        entries = traverse_obj(data, ('_embedded', 'media-items', lambda _, v: v['short_code']))
-        for entry in entries:
-            info = self._extract_video(entry, entry.get('id'))
+        for entry in traverse_obj(data, ('_embedded', 'media-items', lambda _, v: v['short_code'])):
+            entry_id = entry['short_code']
+            info = self._extract_video(entry, entry_id)
             yield {
                 **info,
-                'webpage_url': f'https://subspla.sh/{entry["short_code"]}',
+                'webpage_url': f'https://subspla.sh/{entry_id}',
                 'extractor_key': SubsplashIE.ie_key(),
                 'extractor': SubsplashIE.IE_NAME,
             }
