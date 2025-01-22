@@ -858,7 +858,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         }.get(client)
         if not url:
             return {}
-
         webpage = self._download_webpage(
             url, video_id, fatal=False, note=f'Downloading {client.replace("_", " ").strip()} client config',
             headers=traverse_obj(self._get_default_ytcfg(client), {
