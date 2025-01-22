@@ -271,7 +271,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'TVHTML5',
-                'clientVersion': '7.20241201.18.00',
+                'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
+                'clientVersion': '7.20250120.19.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
@@ -853,11 +854,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'web': 'https://www.youtube.com',
             'web_music': 'https://music.youtube.com',
             'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1',
+            'tv': 'https://www.youtube.com/tv',
         }.get(client)
         if not url:
             return {}
+
+        headers = {}
+        user_agent = traverse_obj(
+            self._get_default_ytcfg(client), ('INNERTUBE_CONTEXT', 'client', 'userAgent'), expected_type=str)
+        if user_agent:
+            headers['User-Agent'] = user_agent
         webpage = self._download_webpage(
-            url, video_id, fatal=False, note=f'Downloading {client.replace("_", " ").strip()} client config')
+            url, video_id, fatal=False, headers=headers,
+            note=f'Downloading {client.replace("_", " ").strip()} client config')
         return self.extract_ytcfg(video_id, webpage) or {}
 
     @staticmethod
