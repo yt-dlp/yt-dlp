@@ -215,14 +215,12 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             thumbnails.extend(traverse_obj(video_data, (('thumbnail', 'thumbnail_url'), {'url': {url_or_none}})))
 
         owner = video_data.get('owner') or {}
-        video_uploader_url = owner.get('url')
 
         return {
             'id': str_or_none(video_data.get('id')) or video_id,
             'title': video_title,
             'uploader': owner.get('name'),
-            'uploader_id': video_uploader_url.split('/')[-1] if video_uploader_url else None,
-            'uploader_url': video_uploader_url,
+            'uploader_id': int_or_none(owner.get('id')),
             'thumbnails': thumbnails,
             'duration': int_or_none(video_data.get('duration')),
             'chapters': sorted(traverse_obj(config, (
@@ -362,7 +360,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'description': 'md5:2d3305bad981a06ff79f027f19865021',
                 'timestamp': 1355990239,
                 'upload_date': '20121220',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user7108434',
                 'uploader_id': 'user7108434',
                 'uploader': 'Filippo Valsorda',
                 'duration': 10,
@@ -382,8 +379,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'ext': 'mp4',
                 'title': 'Kathy Sierra: Building the minimum Badass User, Business of Software 2012',
                 'uploader': 'Business of Software',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/businessofsoftware',
-                'uploader_id': 'businessofsoftware',
+                'uploader_id': 14755329,
                 'duration': 3610,
                 'thumbnail': 'https://i.vimeocdn.com/video/376682406-f34043e7b766af6bef2af81366eacd6724f3fc3173179a11a97a1e26587c9529-d',
             },
@@ -404,12 +400,12 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'upload_date': '20130614',
                 'release_timestamp': 1371214555,
                 'release_date': '20130614',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user18948128',
-                'uploader_id': 'user18948128',
+                'uploader_id': 18948128,
                 'uploader': 'Jaime Marquínez Ferrándiz',
                 'duration': 10,
                 'comment_count': int,
                 'like_count': int,
+                'view_count': int,
                 'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d',
             },
             'params': {
@@ -425,9 +421,8 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'id': '75629013',
                 'ext': 'mp4',
                 'title': 'Key & Peele: Terrorist Interrogation',
-                'description': 'md5:6173f270cd0c0119f22817204b3eb86c',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/atencio',
-                'uploader_id': 'atencio',
+                'description': 'md5:6569b203150823d3a50a186ff450b43c',
+                'uploader_id': 359960,
                 'uploader': 'Peter Atencio',
                 'channel_id': 'keypeele',
                 'channel_url': r're:https?://(?:www\.)?vimeo\.com/channels/keypeele',
@@ -454,8 +449,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'upload_date': '20131015',
                 'release_timestamp': 1381860509,
                 'release_date': '20131015',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/staff',
-                'uploader_id': 'staff',
+                'uploader_id': 152184,
                 'uploader': 'Vimeo',
                 'duration': 62,
                 'comment_count': int,
@@ -482,8 +476,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'ext': 'mp4',
                 'title': 'Pier Solar OUYA Official Trailer',
                 'uploader': 'Tulio Gonçalves',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user28849593',
-                'uploader_id': 'user28849593',
+                'uploader_id': 28849593,
                 'duration': 118,
                 'thumbnail': 'https://i.vimeocdn.com/video/478636036-c18440305ef3df9decfb6bf207a61fe39d2d17fa462a96f6f2d93d30492b037d-d',
             },
@@ -492,23 +485,22 @@ class VimeoIE(VimeoBaseInfoExtractor):
         {
             # contains Original format
             'url': 'https://vimeo.com/33951933',
-            # 'md5': '53c688fa95a55bf4b7293d37a89c5c53',
             'info_dict': {
                 'id': '33951933',
                 'ext': 'mp4',
                 'title': 'FOX CLASSICS - Forever Classic ID - A Full Minute',
                 'uploader': 'The DMCI',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/dmci',
-                'uploader_id': 'dmci',
-                'timestamp': 1324343742,
+                'uploader_id': 4719020,
+                'timestamp': 1324361742,
                 'upload_date': '20111220',
-                'description': 'md5:ae23671e82d05415868f7ad1aec21147',
+                'release_date': '20111220',
+                'release_timestamp': 1324361742,
+                'description': 'md5:f37b4ad0f3ded6fa16f38ecde16c3c44',
                 'duration': 60,
                 'comment_count': int,
                 'view_count': int,
                 'thumbnail': 'https://i.vimeocdn.com/video/231174622-dd07f015e9221ff529d451e1cc31c982b5d87bfafa48c4189b1da72824ee289a-d',
                 'like_count': int,
-                'tags': 'count:11',
             },
             # 'params': {'format': 'Original'},
             'expected_warnings': ['Failed to parse XML: not well-formed'],
@@ -516,20 +508,19 @@ class VimeoIE(VimeoBaseInfoExtractor):
         {
             'note': 'Contains source format not accessible in webpage',
             'url': 'https://vimeo.com/393756517',
-            # 'md5': 'c464af248b592190a5ffbb5d33f382b0',
             'info_dict': {
                 'id': '393756517',
-                # 'ext': 'mov',
                 'ext': 'mp4',
-                'timestamp': 1582642091,
-                'uploader_id': 'frameworkla',
+                'timestamp': 1582660091,
+                'uploader_id': 7560583,
                 'title': 'Straight To Hell - Sabrina: Netflix',
                 'uploader': 'Framework Studio',
                 'description': 'md5:f2edc61af3ea7a5592681ddbb683db73',
                 'upload_date': '20200225',
+                'release_date': '20200225',
+                'release_timestamp': 1582660091,
                 'duration': 176,
                 'thumbnail': 'https://i.vimeocdn.com/video/859377297-836494a4ef775e9d4edbace83937d9ad34dc846c688c0c419c0e87f7ab06c4b3-d',
-                'uploader_url': 'https://vimeo.com/frameworkla',
             },
             # 'params': {'format': 'source'},
             'expected_warnings': ['Failed to parse XML: not well-formed'],
@@ -543,7 +534,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'ext': 'mp4',
                 'title': 'Vimeo Tribute: The Shining',
                 'uploader': 'Casey Donahue',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/caseydonahue',
                 'uploader_id': 'caseydonahue',
                 'channel_url': r're:https?://(?:www\.)?vimeo\.com/channels/tributes',
                 'channel_id': 'tributes',
@@ -571,7 +561,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'ext': 'mp4',
                 'title': 'The Reluctant Revolutionary',
                 'uploader': '10Ft Films',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/tenfootfilms',
                 'uploader_id': 'tenfootfilms',
                 'description': 'md5:0fa704e05b04f91f40b7f3ca2e801384',
                 'upload_date': '20130830',
@@ -589,7 +578,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'id': '68375962',
                 'ext': 'mp4',
                 'title': 'youtube-dl password protected test video',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user18948128',
                 'uploader_id': 'user18948128',
                 'uploader': 'Jaime Marquínez Ferrándiz',
                 'duration': 10,
@@ -633,7 +621,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'thumbnail': 'https://i.vimeocdn.com/video/default',
                 'duration': 10,
                 'like_count': int,
-                'uploader_url': 'https://vimeo.com/user20132939',
                 'view_count': int,
                 'comment_count': int,
             },
@@ -665,7 +652,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'comment_count': int,
                 'thumbnail': 'https://i.vimeocdn.com/video/562802436-585eeb13b5020c6ac0f171a2234067938098f84737787df05ff0d767f6d54ee9-d',
                 'like_count': int,
-                'uploader_url': 'https://vimeo.com/aliniamedia',
                 'release_date': '20160329',
             },
             'params': {'skip_download': True},
@@ -684,7 +670,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'upload_date': '20150910',
                 'timestamp': 1441901895,
                 'thumbnail': 'https://i.vimeocdn.com/video/534715882-6ff8e4660cbf2fea68282876d8d44f318825dfe572cc4016e73b3266eac8ae3a-d',
-                'uploader_url': 'https://vimeo.com/fireworkchampions',
                 'tags': 'count:6',
                 'duration': 229,
                 'view_count': int,
@@ -714,7 +699,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'view_count': int,
                 'thumbnail': 'https://i.vimeocdn.com/video/541243181-b593db36a16db2f0096f655da3f5a4dc46b8766d77b0f440df937ecb0c418347-d',
                 'like_count': int,
-                'uploader_url': 'https://vimeo.com/karimhd',
                 'channel_url': 'https://vimeo.com/channels/staffpicks',
                 'tags': 'count:6',
             },
@@ -739,7 +723,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'comment_count': int,
                 'thumbnail': 'https://i.vimeocdn.com/video/1202249320-4ddb2c30398c0dc0ee059172d1bd5ea481ad12f0e0e3ad01d2266f56c744b015-d',
                 'like_count': int,
-                'uploader_url': 'https://vimeo.com/txwestcapital',
                 'release_date': '20210730',
                 'uploader': 'Christopher Inks',
                 'title': 'Thursday, July 29, 2021 BMA Evening Video Update',
@@ -760,7 +743,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'title': 'Dr Arielle Schwartz - Therapeutic yoga for optimum sleep',
                 'uploader': 'Alex Howard',
                 'uploader_id': 'user54729178',
-                'uploader_url': 'https://vimeo.com/user54729178',
                 'thumbnail': r're:https://i\.vimeocdn\.com/video/1520099929-[\da-f]+-d',
                 'duration': 2636,
                 'chapters': [
@@ -795,7 +777,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'description': 'md5:4338302f347a1ff8841b4a3aecaa09f0',
                 'uploader': 'Off the Picture Pictures',
                 'uploader_id': 'offthepicturepictures',
-                'uploader_url': 'https://vimeo.com/offthepicturepictures',
                 'duration': 669,
                 'upload_date': '20151104',
                 'timestamp': 1446607180,
@@ -819,7 +800,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'title': 'Ariana Grande - Honeymoon Avenue (Live from London)',
                 'uploader': 'Raja Virdi',
                 'uploader_id': 'rajavirdi',
-                'uploader_url': 'https://vimeo.com/rajavirdi',
                 'duration': 309,
                 'thumbnail': r're:https://i\.vimeocdn\.com/video/1716727772-[\da-f]+-d',
             },
@@ -1005,30 +985,33 @@ class VimeoIE(VimeoBaseInfoExtractor):
         timestamp = None
         video_description = None
         info_dict = {}
-        config_url = None
 
         channel_id = self._search_regex(
             r'vimeo\.com/channels/([^/]+)', url, 'channel id', default=None)
         if channel_id:
-            config_url = self._html_search_regex(
-                r'\bdata-config-url="([^"]+)"', webpage, 'config URL', default=None)
+            # Extract channel information
             video_description = clean_html(get_element_by_class('description', webpage))
             info_dict.update({
                 'channel_id': channel_id,
                 'channel_url': 'https://vimeo.com/channels/' + channel_id,
             })
-        if not config_url:
-            page_config = self._parse_json(self._search_regex(
-                r'vimeo\.(?:clip|vod_title)_page_config\s*=\s*({.+?});',
-                webpage, 'page config', default='{}'), video_id, fatal=False)
-            if not page_config:
-                return self._extract_from_api(video_id)
-            config_url = page_config['player']['config_url']
-            cc_license = page_config.get('cc_license')
-            clip = page_config.get('clip') or {}
-            timestamp = clip.get('uploaded_on')
-            video_description = clean_html(
-                clip.get('description') or page_config.get('description_html_escaped'))
+            video_info = self._extract_from_api(video_id)
+            video_info.pop('release_date', None)
+            video_info.pop('release_timestamp', None)
+            return merge_dicts(info_dict, video_info)
+
+        page_config = self._parse_json(self._search_regex(
+            r'vimeo\.(?:clip|vod_title)_page_config\s*=\s*({.+?});',
+            webpage, 'page config', default='{}'), video_id, fatal=False)
+        if not page_config:
+            return self._extract_from_api(video_id)
+
+        config_url = page_config['player']['config_url']
+        cc_license = page_config.get('cc_license')
+        clip = page_config.get('clip') or {}
+        timestamp = clip.get('uploaded_on')
+        video_description = clean_html(
+            clip.get('description') or page_config.get('description_html_escaped'))
         config = self._download_json(config_url, video_id)
         video = config.get('video') or {}
         vod = video.get('vod') or {}
@@ -1117,12 +1100,11 @@ class VimeoOndemandIE(VimeoIE):  # XXX: Do not subclass from concrete IE
             'ext': 'mp4',
             'title': 'המעבדה - במאי יותם פלדמן',
             'uploader': 'גם סרטים',
-            'uploader_url': r're:https?://(?:www\.)?vimeo\.com/gumfilms',
             'uploader_id': 'gumfilms',
             'description': 'md5:aeeba3dbd4d04b0fa98a4fdc9c639998',
             'upload_date': '20140906',
             'timestamp': 1410032453,
-            'thumbnail': 'https://i.vimeocdn.com/video/488238335-d7bf151c364cff8d467f1b73784668fe60aae28a54573a35d53a1210ae283bd8-d_1280',
+            'thumbnail': 'https://i.vimeocdn.com/video/488238335-d7bf151c364cff8d467f1b73784668fe60aae28a54573a35d53a1210ae283bd8-d',
             'comment_count': int,
             'license': 'https://creativecommons.org/licenses/by-nc-nd/3.0/',
             'duration': 53,
@@ -1141,7 +1123,6 @@ class VimeoOndemandIE(VimeoIE):  # XXX: Do not subclass from concrete IE
             'ext': 'mp4',
             'title': 'Rävlock, rätt läte på rätt plats',
             'uploader': 'Lindroth & Norin',
-            'uploader_url': r're:https?://(?:www\.)?vimeo\.com/lindrothnorin',
             'uploader_id': 'lindrothnorin',
             'description': 'md5:c3c46a90529612c8279fb6af803fc0df',
             'upload_date': '20150502',
@@ -1149,7 +1130,7 @@ class VimeoOndemandIE(VimeoIE):  # XXX: Do not subclass from concrete IE
             'duration': 121,
             'comment_count': int,
             'view_count': int,
-            'thumbnail': 'https://i.vimeocdn.com/video/517077723-7066ae1d9a79d3eb361334fb5d58ec13c8f04b52f8dd5eadfbd6fb0bcf11f613-d_1280',
+            'thumbnail': 'https://i.vimeocdn.com/video/517077723-7066ae1d9a79d3eb361334fb5d58ec13c8f04b52f8dd5eadfbd6fb0bcf11f613-d',
             'like_count': int,
         },
         'params': {
@@ -1368,9 +1349,8 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'title': 'Rodeo day 1-_2',
             'uploader': 'BROADKAST',
             'uploader_id': 'user170863801',
-            'uploader_url': 'https://vimeo.com/user170863801',
             'duration': 30,
-            'thumbnail': 'https://i.vimeocdn.com/video/1912612821-09a43bd2e75c203d503aed89de7534f28fc4474a48f59c51999716931a246af5-d_1280',
+            'thumbnail': 'https://i.vimeocdn.com/video/1912612821-09a43bd2e75c203d503aed89de7534f28fc4474a48f59c51999716931a246af5-d',
         },
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Failed to parse XML'],
@@ -1385,8 +1365,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'uploader_id': 'user21297594',
             'description': "Comedian Dick Hardwick's five minute demo filmed in front of a live theater audience.\nEdit by Doug Mattocks",
             'duration': 304,
-            'thumbnail': 'https://i.vimeocdn.com/video/450115033-43303819d9ebe24c2630352e18b7056d25197d09b3ae901abdac4c4f1d68de71-d_1280',
-            'uploader_url': 'https://vimeo.com/user21297594',
+            'thumbnail': 'https://i.vimeocdn.com/video/450115033-43303819d9ebe24c2630352e18b7056d25197d09b3ae901abdac4c4f1d68de71-d',
         },
         'skip': '404 Not Found',
     }, {
@@ -1524,7 +1503,6 @@ class VimeoProIE(VimeoBaseInfoExtractor):
         'info_dict': {
             'id': '68093876',
             'ext': 'mp4',
-            'uploader_url': r're:https?://(?:www\.)?vimeo\.com/openstreetmapus',
             'uploader_id': 'openstreetmapus',
             'uploader': 'OpenStreetMap US',
             'title': 'Andy Allan - Putting the Carto into OpenStreetMap Cartography',
@@ -1549,11 +1527,10 @@ class VimeoProIE(VimeoBaseInfoExtractor):
             'id': '764543723',
             'ext': 'mp4',
             'title': 'Mechanische Systeme in Perfektion: Realität erfassen, Innovation treiben',
-            'thumbnail': 'https://i.vimeocdn.com/video/1543784598-a1a750494a485e601110136b9fe11e28c2131942452b3a5d30391cb3800ca8fd-d_1280',
+            'thumbnail': 'https://i.vimeocdn.com/video/1543784598-a1a750494a485e601110136b9fe11e28c2131942452b3a5d30391cb3800ca8fd-d',
             'description': 'md5:2a9d195cd1b0f6f79827107dc88c2420',
             'uploader': 'CADFEM',
             'uploader_id': 'cadfem',
-            'uploader_url': 'https://vimeo.com/cadfem',
             'duration': 12505,
             'chapters': 'count:10',
         },
