@@ -859,14 +859,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if not url:
             return {}
 
-        headers = {}
-        user_agent = traverse_obj(
-            self._get_default_ytcfg(client), ('INNERTUBE_CONTEXT', 'client', 'userAgent'), expected_type=str)
-        if user_agent:
-            headers['User-Agent'] = user_agent
         webpage = self._download_webpage(
-            url, video_id, fatal=False, headers=headers,
-            note=f'Downloading {client.replace("_", " ").strip()} client config')
+            url, video_id, fatal=False, note=f'Downloading {client.replace("_", " ").strip()} client config',
+            headers=traverse_obj(self._get_default_ytcfg(client), {
+                'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
+            }))
         return self.extract_ytcfg(video_id, webpage) or {}
 
     @staticmethod
