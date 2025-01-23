@@ -9,7 +9,7 @@ from ..utils import (
 
 class GoodGameIE(InfoExtractor):
     IE_NAME = 'goodgame:stream'
-    _VALID_URL = r'https?://goodgame\.ru/(?P<id>\w+)'
+    _VALID_URL = r'https?://goodgame\.ru/(?:channel/)?(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://goodgame.ru/Pomi#autoplay',
         'info_dict': {
