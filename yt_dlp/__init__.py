@@ -268,6 +268,7 @@ def validate_options(opts):
     opts.retries = parse_retries('download', opts.retries)
     opts.fragment_retries = parse_retries('fragment', opts.fragment_retries)
     opts.extractor_retries = parse_retries('extractor', opts.extractor_retries)
+    opts.max_extraction_depth = parse_retries('extractor', opts.max_extraction_depth)
     opts.file_access_retries = parse_retries('file access', opts.file_access_retries)
 
     # Retry sleep function
@@ -841,6 +842,7 @@ def parse_options(argv=None):
         'file_access_retries': opts.file_access_retries,
         'fragment_retries': opts.fragment_retries,
         'extractor_retries': opts.extractor_retries,
+        'max_extraction_depth': opts.max_extraction_depth,
         'retry_sleep_functions': opts.retry_sleep,
         'skip_unavailable_fragments': opts.skip_unavailable_fragments,
         'keep_fragments': opts.keep_fragments,

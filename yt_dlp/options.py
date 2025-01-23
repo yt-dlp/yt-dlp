@@ -1884,6 +1884,11 @@ def create_parser():
         dest='extractor_retries', metavar='RETRIES', default=3,
         help='Number of retries for known extractor errors (default is %default), or "infinite"')
     extractor.add_option(
+        '--max-extraction-depth',
+        dest='max_extraction_depth', default=-1,
+        help='Maximum depth when recursing into non-video url chains (default is unlimited)',
+    )
+    extractor.add_option(
         '--allow-dynamic-mpd', '--no-ignore-dynamic-mpd',
         action='store_true', dest='dynamic_mpd', default=True,
         help='Process dynamic DASH manifests (default) (Alias: --no-ignore-dynamic-mpd)')
