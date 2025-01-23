@@ -2,11 +2,11 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    RegexNotFoundError,
     int_or_none,
     join_nonempty,
     js_to_json,
     parse_duration,
-    RegexNotFoundError,
     strftime_or_none,
     traverse_obj,
     unified_strdate,
@@ -292,7 +292,7 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
             try:
                 preset = self._search_json(linkkey + r'\.preset=', webpage, content_id, content_id, contains_pattern=r'\{.+\}', transform_source=js_to_json)
             except RegexNotFoundError:
-                preset = {"id": "999", "name": "unknown format", "encoding": "unknown", "bitrate": "unknown"}
+                preset = {'id': '999', 'name': 'unknown format', 'encoding': 'unknown', 'bitrate': 'unknown'}
             item['formats'].append({
                 'format_id': preset['id'],
                 'url': url,
