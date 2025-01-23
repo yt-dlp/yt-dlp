@@ -6,12 +6,12 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     parse_duration,
+    RegexNotFoundError,
     strftime_or_none,
     traverse_obj,
     unified_strdate,
     urljoin,
 )
-
 
 class RadioFranceIE(InfoExtractor):
     _VALID_URL = r'https?://maison\.radiofrance\.fr/radiovisions/(?P<id>[^?#]+)'
@@ -286,7 +286,12 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
         for linkkey in links:
             url = self._search_regex(linkkey + r'\.url="([^"]+)";', webpage, content_id)
             dur = int(self._search_regex(linkkey + r'\.duration=(\d+);', webpage, content_id))
-            preset = self._search_json(linkkey + r'\.preset=', webpage, content_id, content_id, contains_pattern=r'\{.+\}', transform_source=js_to_json)
+            # Preset describes the audio encoding. Some episodes will be missing a 'preset', simply stating 'null'
+            # In this case, give a generic response
+            try:
+                preset = self._search_json(linkkey + r'\.preset=', webpage, content_id, content_id, contains_pattern=r'\{.+\}', transform_source=js_to_json)
+            except RegexNotFoundError:
+                preset = {"id": "999", "name": "unknown format", "encoding": "unknown", "bitrate": "unknown"}
             item['formats'].append({
                 'format_id': preset['id'],
                 'url': url,
