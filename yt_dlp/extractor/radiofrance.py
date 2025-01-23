@@ -13,6 +13,7 @@ from ..utils import (
     urljoin,
 )
 
+
 class RadioFranceIE(InfoExtractor):
     _VALID_URL = r'https?://maison\.radiofrance\.fr/radiovisions/(?P<id>[^?#]+)'
     IE_NAME = 'radiofrance'
