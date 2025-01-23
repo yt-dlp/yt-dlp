@@ -1,4 +1,3 @@
-import functools
 import re
 
 from .common import InfoExtractor
@@ -72,9 +71,9 @@ class VidyardBaseIE(InfoExtractor):
                 'id': ('facadeUuid', {str}),
                 'display_id': ('videoId', {int}, {str_or_none}),
                 'title': ('name', {str}),
-                'description': ('description', {str}, {unescapeHTML}, {lambda x: x or None}),
+                'description': ('description', {str}, {unescapeHTML}, filter),
                 'duration': ((
-                    ('milliseconds', {functools.partial(float_or_none, scale=1000)}),
+                    ('milliseconds', {float_or_none(scale=1000)}),
                     ('seconds', {int_or_none})), any),
                 'thumbnails': ('thumbnailUrls', ('small', 'normal'), {'url': {url_or_none}}),
                 'tags': ('tags', ..., 'name', {str}),
@@ -422,5 +421,5 @@ class VidyardIE(VidyardBaseIE):
             return self._process_video_json(video_json['chapters'][0], video_id)
 
         return self.playlist_result(
-            [self._process_video_json(chapter, video_id) for chapter in video_json['chapters']],
+            (self._process_video_json(chapter, video_id) for chapter in video_json['chapters']),
             str(video_json['playerUuid']), video_json.get('name'))

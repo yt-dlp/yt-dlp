@@ -66,7 +66,7 @@ class LBRYBaseIE(InfoExtractor):
             'license': ('value', 'license', {str}),
             'timestamp': ('timestamp', {int_or_none}),
             'release_timestamp': ('value', 'release_time', {int_or_none}),
-            'tags': ('value', 'tags', ..., {lambda x: x or None}),
+            'tags': ('value', 'tags', ..., filter),
             'duration': ('value', stream_type, 'duration', {int_or_none}),
             'channel': ('signing_channel', 'value', 'title', {str}),
             'channel_id': ('signing_channel', 'claim_id', {str}),
@@ -136,6 +136,7 @@ class LBRYBaseIE(InfoExtractor):
 
 class LBRYIE(LBRYBaseIE):
     IE_NAME = 'lbry'
+    IE_DESC = 'odysee.com'
     _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + rf'''
         (?:\$/(?:download|embed)/)?
         (?P<id>
@@ -309,7 +310,13 @@ class LBRYIE(LBRYBaseIE):
         if stream_type in self._SUPPORTED_STREAM_TYPES:
             claim_id, is_live = result['claim_id'], False
             streaming_url = self._call_api_proxy(
-                'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
+                'get', claim_id, {
+                    'uri': uri,
+                    **traverse_obj(parse_qs(url), {
+                        'signature': ('signature', 0),
+                        'signature_ts': ('signature_ts', 0),
+                    }),
+                }, 'streaming url')['streaming_url']
 
             # GET request to v3 API returns original video/audio file if available
             direct_url = re.sub(r'/api/v\d+/', '/api/v3/', streaming_url)
@@ -364,6 +371,7 @@ class LBRYIE(LBRYBaseIE):
 
 class LBRYChannelIE(LBRYBaseIE):
     IE_NAME = 'lbry:channel'
+    IE_DESC = 'odysee.com channels'
     _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + rf'(?P<id>@{LBRYBaseIE._OPT_CLAIM_ID})/?(?:[?&]|$)'
     _TESTS = [{
         'url': 'https://lbry.tv/@LBRYFoundation:0',
@@ -391,6 +399,7 @@ class LBRYChannelIE(LBRYBaseIE):
 
 class LBRYPlaylistIE(LBRYBaseIE):
     IE_NAME = 'lbry:playlist'
+    IE_DESC = 'odysee.com playlists'
     _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'\$/(?:play)?list/(?P<id>[0-9a-f-]+)'
     _TESTS = [{
         'url': 'https://odysee.com/$/playlist/ffef782f27486f0ac138bde8777f72ebdd0548c2',
