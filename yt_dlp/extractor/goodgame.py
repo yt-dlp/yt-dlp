@@ -9,16 +9,16 @@ from ..utils import (
 
 class GoodGameIE(InfoExtractor):
     IE_NAME = 'goodgame:stream'
-    _VALID_URL = r'https?://goodgame\.ru/channel/(?P<id>\w+)'
+    _VALID_URL = r'https?://goodgame\.ru/(?P<id>\w+)'
     _TESTS = [{
-        'url': 'https://goodgame.ru/channel/Pomi/#autoplay',
+        'url': 'https://goodgame.ru/Pomi#autoplay',
         'info_dict': {
             'id': 'pomi',
             'ext': 'mp4',
             'title': r're:Reynor vs Special \(1/2,bo3\) Wardi Spring EU \- playoff \(финальный день\) \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
             'channel_id': '1644',
             'channel': 'Pomi',
-            'channel_url': 'https://goodgame.ru/channel/Pomi/',
+            'channel_url': 'https://goodgame.ru/Pomi',
             'description': 'md5:4a87b775ee7b2b57bdccebe285bbe171',
             'thumbnail': r're:^https?://.*\.jpg$',
             'live_status': 'is_live',
