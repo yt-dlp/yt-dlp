@@ -256,6 +256,7 @@ from .bilibili import (
     BilibiliCheeseIE,
     BilibiliCheeseSeasonIE,
     BilibiliCollectionListIE,
+    BiliBiliDynamicIE,
     BilibiliFavoritesListIE,
     BiliBiliIE,
     BiliBiliPlayerIE,
@@ -555,6 +556,7 @@ from .dropout import (
     DropoutIE,
     DropoutSeasonIE,
 )
+from .drtalks import DrTalksIE
 from .drtuber import DrTuberIE
 from .drtv import (
     DRTVIE,
@@ -583,6 +585,10 @@ from .ebay import EbayIE
 from .egghead import (
     EggheadCourseIE,
     EggheadLessonIE,
+)
+from .eggs import (
+    EggsArtistIE,
+    EggsIE,
 )
 from .eighttracks import EightTracksIE
 from .eitb import EitbIE
@@ -1278,6 +1284,10 @@ from .nebula import (
 )
 from .nekohacker import NekoHackerIE
 from .nerdcubed import NerdCubedFeedIE
+from .nest import (
+    NestClipIE,
+    NestIE,
+)
 from .neteasemusic import (
     NetEaseMusicAlbumIE,
     NetEaseMusicDjRadioIE,
@@ -1533,6 +1543,10 @@ from .pinterest import (
     PinterestCollectionIE,
     PinterestIE,
 )
+from .piramidetv import (
+    PiramideTVChannelIE,
+    PiramideTVIE,
+)
 from .pixivsketch import (
     PixivSketchIE,
     PixivSketchUserIE,
@@ -1552,6 +1566,7 @@ from .pluralsight import (
     PluralsightIE,
 )
 from .plutotv import PlutoTVIE
+from .plvideo import PlVideoIE
 from .podbayfm import (
     PodbayFMChannelIE,
     PodbayFMIE,
@@ -2354,10 +2369,6 @@ from .vimeo import (
 from .vimm import (
     VimmIE,
     VimmRecordingIE,
-)
-from .vine import (
-    VineIE,
-    VineUserIE,
 )
 from .viously import ViouslyIE
 from .viqeo import ViqeoIE
