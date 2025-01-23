@@ -1885,7 +1885,7 @@ def create_parser():
         help='Number of retries for known extractor errors (default is %default), or "infinite"')
     extractor.add_option(
         '--max-extraction-depth',
-        dest='max_extraction_depth', default=-1,
+        dest='max_extraction_depth', default='inf',
         help='Maximum depth when recursing into non-video url chains (default is unlimited)',
     )
     extractor.add_option(
