@@ -129,6 +129,8 @@
  - **Bandcamp:album**
  - **Bandcamp:user**
  - **Bandcamp:weekly**
+ - **Bandlab**
+ - **BandlabPlaylist**
  - **BannedVideo**
  - **bbc**: [*bbc*](## "netrc machine") BBC
  - **bbc.co.uk**: [*bbc*](## "netrc machine") BBC iPlayer
@@ -372,6 +374,7 @@
  - **Dropbox**
  - **Dropout**: [*dropout*](## "netrc machine")
  - **DropoutSeason**
+ - **DrTalks**
  - **DrTuber**
  - **drtv**
  - **drtv:live**
@@ -484,6 +487,7 @@
  - **Gab**
  - **GabTV**
  - **Gaia**: [*gaia*](## "netrc machine")
+ - **GameDevTVDashboard**: [*gamedevtv*](## "netrc machine")
  - **GameJolt**
  - **GameJoltCommunity**
  - **GameJoltGame**
@@ -651,6 +655,8 @@
  - **Karaoketv**
  - **Katsomo**: (**Currently broken**)
  - **KelbyOne**: (**Currently broken**)
+ - **Kenh14Playlist**
+ - **Kenh14Video**
  - **Ketnet**
  - **khanacademy**
  - **khanacademy:unit**
@@ -784,10 +790,6 @@
  - **MicrosoftLearnSession**
  - **MicrosoftMedius**
  - **microsoftstream**: Microsoft Stream
- - **mildom**: Record ongoing live by specific user in Mildom
- - **mildom:clip**: Clip in Mildom
- - **mildom:​user:vod**: Download all VODs from specific user in Mildom
- - **mildom:vod**: VOD in Mildom
  - **minds**
  - **minds:channel**
  - **minds:group**
@@ -798,6 +800,7 @@
  - **MiTele**: mitele.es
  - **mixch**
  - **mixch:archive**
+ - **mixch:movie**
  - **mixcloud**
  - **mixcloud:playlist**
  - **mixcloud:user**
@@ -1060,8 +1063,8 @@
  - **PhilharmonieDeParis**: Philharmonie de Paris
  - **phoenix.de**
  - **Photobucket**
+ - **PiaLive**
  - **Piapro**: [*piapro*](## "netrc machine")
- - **PIAULIZAPortal**: ulizaportal.jp - PIA LIVE STREAM
  - **Picarto**
  - **PicartoVod**
  - **Piksel**
@@ -1084,12 +1087,11 @@
  - **pluralsight**: [*pluralsight*](## "netrc machine")
  - **pluralsight:course**
  - **PlutoTV**: (**Currently broken**)
+ - **PlVideo**: Платформа
  - **PodbayFM**
  - **PodbayFMChannel**
  - **Podchaser**
  - **podomatic**: (**Currently broken**)
- - **Pokemon**
- - **PokemonWatch**
  - **PokerGo**: [*pokergo*](## "netrc machine")
  - **PokerGoCollection**: [*pokergo*](## "netrc machine")
  - **PolsatGo**
@@ -1160,6 +1162,7 @@
  - **RadioJavan**: (**Currently broken**)
  - **radiokapital**
  - **radiokapital:show**
+ - **RadioRadicale**
  - **RadioZetPodcast**
  - **radlive**
  - **radlive:channel**
@@ -1367,9 +1370,7 @@
  - **spotify**: Spotify episodes (**Currently broken**)
  - **spotify:show**: Spotify shows (**Currently broken**)
  - **Spreaker**
- - **SpreakerPage**
  - **SpreakerShow**
- - **SpreakerShowPage**
  - **SpringboardPlatform**
  - **Sprout**
  - **SproutVideo**
@@ -1570,6 +1571,8 @@
  - **UFCTV**: [*ufctv*](## "netrc machine")
  - **ukcolumn**: (**Currently broken**)
  - **UKTVPlay**
+ - **UlizaPlayer**
+ - **UlizaPortal**: ulizaportal.jp
  - **umg:de**: Universal Music Deutschland (**Currently broken**)
  - **Unistra**
  - **Unity**: (**Currently broken**)
@@ -1587,8 +1590,6 @@
  - **Varzesh3**: (**Currently broken**)
  - **Vbox7**
  - **Veo**
- - **Veoh**
- - **veoh:user**
  - **Vesti**: Вести.Ru (**Currently broken**)
  - **Vevo**
  - **VevoPlaylist**
@@ -1642,8 +1643,6 @@
  - **Vimm:stream**
  - **ViMP**
  - **ViMP:Playlist**
- - **Vine**
- - **vine:user**
  - **Viously**
  - **Viqeo**: (**Currently broken**)
  - **Viu**
