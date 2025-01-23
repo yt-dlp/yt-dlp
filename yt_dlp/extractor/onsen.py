@@ -1,4 +1,5 @@
 import base64
+import datetime as dt
 import json
 
 from .common import InfoExtractor
@@ -83,14 +84,18 @@ class OnsenIE(InfoExtractor):
 
     def _get_info(self, program, program_id, metadata):
         m3u8 = program['streaming_url']
-        rd = self._search_regex(rf'{program_id}(\d{{6}})', m3u8, 'release_date', default=None)
         display_id = base64.b64encode(str(program['id']).encode()).decode()
+        if ud := self._search_regex(rf'{program_id}0?(\d{{6}})', m3u8, 'upload_date', default=None):
+            try:
+                ud = dt.datetime.strptime(f'20{ud}', '%Y%m%d').strftime('%Y%m%d')
+            except ValueError:
+                ud = None
 
         return {
             'display_id': display_id,
             'formats': self._extract_m3u8_formats(m3u8, program_id, headers=self._HEADERS),
             'http_headers': self._HEADERS,
-            'upload_date': f'20{rd}' if rd else None,
+            'upload_date': ud,
             'webpage_url': f'{self._BASE_URL}program/{program_id}?c={display_id}',
             **metadata,
             **traverse_obj(program, {
