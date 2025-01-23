@@ -204,10 +204,10 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '20.02.3',
+                'clientVersion': '20.03.02',
                 'deviceMake': 'Apple',
                 'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.youtube/20.02.3 (iPhone16,2; U; CPU iOS 18_2_1 like Mac OS X;)',
+                'userAgent': 'com.google.ios.youtube/20.03.02 (iPhone16,2; U; CPU iOS 18_2_1 like Mac OS X;)',
                 'osName': 'iPhone',
                 'osVersion': '18.2.1.22C161',
             },
