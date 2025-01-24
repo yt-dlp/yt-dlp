@@ -3933,7 +3933,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Require GVS WebPO Token if logged in for external fetching
         if player_url and context == _PoTokenContext.GVS and not data_sync_id and self.is_authenticated:
             self.report_warning(
-                f'Unable to fetch PO Token for {client} client: Missing required Data Sync ID for account. '
+                f'Unable to fetch GVS PO Token for {client} client: Missing required Data Sync ID for account. '
                 f'You may need to pass a Data Sync ID with --extractor-args "youtube:data_sync_id=XXX"')
             return
 
