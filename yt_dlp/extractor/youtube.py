@@ -4108,9 +4108,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             gvs_po_token = self.fetch_po_token(
                 context=_PoTokenContext.GVS, **fetch_po_token_args)
 
+            required_pot_contexts = self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
+
             if (
                 not player_po_token
-                and _PoTokenContext.PLAYER in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
+                and _PoTokenContext.PLAYER in required_pot_contexts
             ):
                 # TODO: may need to skip player response request. Unsure yet..
                 self.report_warning(
@@ -4122,7 +4124,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             if (
                 not gvs_po_token
-                and _PoTokenContext.GVS in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
+                and _PoTokenContext.GVS in required_pot_contexts
                 and 'missing_pot' in self._configuration_arg('formats')
             ):
                 # note: warning with help message is provided later during format processing
@@ -4414,7 +4416,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             # Clients that require PO Token return videoplayback URLs that may return 403
             # hls does not currently require PO Token
-            if (not po_token and _PoTokenContext.GVS in self._get_default_ytcfg(client_name)['PO_TOKEN_REQUIRED_CONTEXTS']) and proto != 'hls':
+            if (
+                not po_token
+                and _PoTokenContext.GVS in self._get_default_ytcfg(client_name)['PO_TOKEN_REQUIRED_CONTEXTS']
+                and proto != 'hls'
+            ):
                 if 'missing_pot' not in self._configuration_arg('formats'):
                     self._report_pot_format_skipped(video_id, client_name, proto)
                     return False
