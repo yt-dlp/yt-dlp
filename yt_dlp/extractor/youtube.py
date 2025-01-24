@@ -1,4 +1,5 @@
 import base64
+import binascii
 import calendar
 import collections
 import copy
@@ -3872,7 +3873,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # (e.g. additional url params the user may accidentally include)
             try:
                 return base64.urlsafe_b64encode(base64.urlsafe_b64decode(urllib.parse.unquote(po_token))).decode()
-            except Exception:
+            except (binascii.Error, ValueError):
                 self.report_warning(
                     f'Invalid po_token configuration for {client} client: '
                     f'{po_token_context} PO Token should be a base64url-encoded string.',
