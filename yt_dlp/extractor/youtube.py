@@ -4125,12 +4125,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'For more information, refer to {PO_TOKEN_GUIDE_URL} .', only_once=True)
                 deprioritize_pr = True
 
-            require_gvs_po_token = _PoTokenContext.GVS in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
-            if not gvs_po_token and require_gvs_po_token and 'missing_pot' in self._configuration_arg('formats'):
+            if (
+                not gvs_po_token
+                and _PoTokenContext.GVS in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
+                and 'missing_pot' in self._configuration_arg('formats')
+            ):
                 # note: warning with help message is provided later during format processing
                 self.report_warning(
                     f'No GVS PO Token provided for {client} client, '
-                    f'which may be required for working {client} formats. This client will be deprioritized', only_once=True)
+                    f'which may be required for working {client} formats. This client will be deprioritized',
+                    only_once=True)
                 deprioritize_pr = True
 
             pr = initial_pr if client == 'web' else None
