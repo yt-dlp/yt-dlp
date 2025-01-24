@@ -30,28 +30,30 @@ class GoodGameIE(InfoExtractor):
 
     def _real_extract(self, url):
         channel_name = self._match_id(url)
-        response = self._download_json(f'https://api2.goodgame.ru/v2/streams/{channel_name}', channel_name)
-        player_id = response['channel']['gg_player_src']
+        response = self._download_json(f'https://goodgame.ru/api/4/users/{channel_name}/stream', channel_name)
+        player_id = response['streamkey']
 
         formats, subtitles = [], {}
-        if response.get('status') == 'Live':
+        if response.get('status'):
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 f'https://hls.goodgame.ru/manifest/{player_id}_master.m3u8',
                 channel_name, 'mp4', live=True)
         else:
             self.raise_no_formats('User is offline', expected=True, video_id=channel_name)
 
+        description_page = self._download_webpage(f'https://goodgame.ru/ajax/channel/tabs?id={player_id}', player_id)
+        description = '\n'.join(description_page.splitlines()[21:-47])
         return {
             'id': player_id,
             'formats': formats,
             'subtitles': subtitles,
-            'title': traverse_obj(response, ('channel', 'title')),
+            'title': traverse_obj(response, ('title')),
             'channel': channel_name,
-            'channel_id': str_or_none(traverse_obj(response, ('channel', 'id'))),
+            'channel_id': str_or_none(traverse_obj(response, ('id'))),
             'channel_url': response.get('url'),
-            'description': clean_html(traverse_obj(response, ('channel', 'description'))),
-            'thumbnail': traverse_obj(response, ('channel', 'thumb')),
+            'description': clean_html(description),
+            'thumbnail': traverse_obj(response, ('preview')),
             'is_live': bool(formats),
             'view_count': int_or_none(response.get('viewers')),
-            'age_limit': 18 if traverse_obj(response, ('channel', 'adult')) else None,
+            'age_limit': 18 if traverse_obj(response, ('adult')) else None,
         }
