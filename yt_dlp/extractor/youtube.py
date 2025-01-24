@@ -3850,7 +3850,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for token_str in po_token_strs:
             po_token_meta, sep, po_token = token_str.partition('+')
             if not sep:
-                self.report_warning(f'Invalid po_token configuration format. Expected "CLIENT.CONTEXT+PO_TOKEN", got "{token_str}"', only_once=True)
+                self.report_warning(
+                    f'Invalid po_token configuration format. '
+                    f'Expected "CLIENT.CONTEXT+PO_TOKEN", got "{token_str}"', only_once=True)
                 continue
 
             po_token_client, sep, po_token_context = po_token_meta.partition('.')
@@ -3879,17 +3881,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     only_once=True)
                 continue
 
-    def fetch_po_token(
-            self,
-            client='web',
-            context=_PoTokenContext.GVS,
-            ytcfg=None,
-            visitor_data=None,
-            data_sync_id=None,
-            session_index=None,
-            player_url=None,
-            video_id=None,
-            **kwargs):
+    def fetch_po_token(self, client='web', context=_PoTokenContext.GVS, ytcfg=None, visitor_data=None,
+                       data_sync_id=None, session_index=None, player_url=None, video_id=None, **kwargs):
         """
         Fetch a PO Token for a given client and context. This function will validate required parameters for a given context and client.
 
@@ -4115,8 +4108,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             gvs_po_token = self.fetch_po_token(
                 context=_PoTokenContext.GVS, **fetch_po_token_args)
 
-            require_player_po_token = _PoTokenContext.PLAYER in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
-            if not player_po_token and require_player_po_token:
+            if (
+                not player_po_token
+                and _PoTokenContext.PLAYER in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
+            ):
                 # TODO: may need to skip player response request. Unsure yet..
                 self.report_warning(
                     f'No Player PO Token provided for {client} client, '
