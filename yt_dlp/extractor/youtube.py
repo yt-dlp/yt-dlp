@@ -71,7 +71,6 @@ from ..utils import (
 
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 STREAMING_DATA_INITIAL_PO_TOKEN = '__yt_dlp_po_token'
-STREAMING_DATA_FETCH_PO_TOKEN = '__yt_dlp_fetch_po_token'
 PO_TOKEN_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide'
 
 
@@ -4101,7 +4100,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             data_sync_id = data_sync_id or self._extract_data_sync_id(master_ytcfg, initial_pr, player_ytcfg)
 
             fetch_po_token_args = {
-                'client': client, 'visitor_data': visitor_data, 'video_id': video_id,
+                'client': client,
+                'visitor_data': visitor_data,
+                'video_id': video_id,
                 'data_sync_id': data_sync_id if self.is_authenticated else None,
                 'player_url': player_url if require_js_player else None,
                 'session_index': self._extract_session_index(master_ytcfg, player_ytcfg),
@@ -4111,11 +4112,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_po_token = self.fetch_po_token(
                 context=_PoTokenContext.PLAYER, **fetch_po_token_args)
 
-            gvs_po_token_func = lambda: self.fetch_po_token(
+            gvs_po_token = self.fetch_po_token(
                 context=_PoTokenContext.GVS, **fetch_po_token_args)
-
-            # Fetch an initial PO Token for GVS upfront
-            gvs_po_token = gvs_po_token_func()
 
             require_player_po_token = _PoTokenContext.PLAYER in self._get_default_ytcfg(client).get('PO_TOKEN_REQUIRED_CONTEXTS')
             if not player_po_token and require_player_po_token:
@@ -4156,11 +4154,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Save client name for introspection later
                 sd = traverse_obj(pr, ('streamingData', {dict})) or {}
                 sd[STREAMING_DATA_CLIENT_NAME] = client
-                sd[STREAMING_DATA_FETCH_PO_TOKEN] = gvs_po_token_func
                 sd[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
-                    f[STREAMING_DATA_FETCH_PO_TOKEN] = gvs_po_token_func
                     f[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
                 if deprioritize_pr:
                     deprioritized_prs.append(pr)
