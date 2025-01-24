@@ -71,6 +71,7 @@ from ..utils import (
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 STREAMING_DATA_INITIAL_PO_TOKEN = '__yt_dlp_po_token'
 STREAMING_DATA_FETCH_PO_TOKEN = '__yt_dlp_fetch_po_token'
+PO_TOKEN_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide'
 
 
 class _PoTokenContext(enum.Enum):
@@ -4122,7 +4123,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'No Player PO Token provided for {client} client, '
                     f'which may be required for working {client} formats. This client will be deprioritized'
                     f'You can manually pass a Player PO Token for this client with --extractor-args "youtube:po_token={client}.player+XXX". '
-                    'For more information, refer to  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#po-token-guide .', only_once=True)
+                    f'For more information, refer to {PO_TOKEN_GUIDE_URL} .', only_once=True)
                 deprioritize_pr = True
 
             require_gvs_po_token = _PoTokenContext.GVS in self._get_default_ytcfg(client).get('PO_TOKEN_REQUIRED_CONTEXTS')
@@ -4188,7 +4189,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             f'{video_id}: {client_name} client {proto} formats require a GVS PO Token which was not provided. '
             'They will be skipped as they may yield HTTP Error 403. '
             f'You can manually pass a GVS PO Token for this client with --extractor-args "youtube:po_token={client_name}.gvs+XXX". '
-            'For more information, refer to  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#po-token-guide . '
+            f'For more information, refer to  {PO_TOKEN_GUIDE_URL} . '
             'To enable these broken formats anyway, pass --extractor-args "youtube:formats=missing_pot"')
 
         # Only raise a warning for non-default clients, to not confuse users.
