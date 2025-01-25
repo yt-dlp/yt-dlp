@@ -668,7 +668,7 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
         album_info = traverse_obj(playlist, {
             'album': ('title', {str}),
             'album_artist': ('user', 'username', {str}),
-            'album_type': ('set_type', {str}),
+            'album_type': ('set_type', {lambda x: x or 'playlist'}),
         })
         entries = []
         for track in tracks:
@@ -988,7 +988,7 @@ class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
             'uploader': 'Non-Site Records',
             'uploader_id': '33660914',
             'album_artists': ['Non-Site Records'],
-            'album_type': '',
+            'album_type': 'playlist',
             'album': 'TILT Brass - Bowery Poetry Club, August \'03 [Non-Site SCR 02]',
         },
         'playlist_count': 6,
