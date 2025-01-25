@@ -1,7 +1,6 @@
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    sanitize_url,
     str_or_none,
     traverse_obj,
     url_or_none,
@@ -19,7 +18,7 @@ class GoodGameIE(InfoExtractor):
             'channel_id': '7998',
             'title': r're:шоуматч Happy \(NE\) vs Fortitude \(UD\), потом ладдер и дс \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
             'channel_url': 'https://goodgame.ru/TGW',
-            'thumbnail': 'http://hls.goodgame.ru/previews/7998_240.jpg',
+            'thumbnail': 'https://hls.goodgame.ru/previews/7998_240.jpg',
             'uploader': 'TGW',
             'channel': 'JosephStalin',
             'live_status': 'is_live',
@@ -56,7 +55,7 @@ class GoodGameIE(InfoExtractor):
                 'channel_url': ('link', {url_or_none}),
                 'uploader': ('streamer', 'username', {str}),
                 'uploader_id': ('streamer', 'id', {str_or_none}),
-                'thumbnail': ('preview', {url_or_none}, {sanitize_url}),
+                'thumbnail': ('preview', {url_or_none}, {self._proto_relative_url}),
                 'concurrent_view_count': ('viewers', {int_or_none}),
                 'channel_follower_count': ('followers', {int_or_none}),
                 'age_limit': ('adult', {bool}, {lambda x: 18 if x else None}),
