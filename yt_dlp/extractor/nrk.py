@@ -80,13 +80,17 @@ class NRKIE(NRKBaseIE):
     _TESTS = [{
         # video
         'url': 'http://www.nrk.no/video/PS*150533',
-        'md5': 'f46be075326e23ad0e524edfcb06aeb6',
+        'md5': '2b88a652ad2e275591e61cf550887eec',
         'info_dict': {
             'id': '150533',
             'ext': 'mp4',
             'title': 'Dompap og andre fugler i Piip-Show',
             'description': 'md5:d9261ba34c43b61c812cb6b0269a5c8f',
             'duration': 262,
+            'upload_date': '20140325',
+            'thumbnail': r're:^https?://gfx\.nrk\.no/.*$',
+            'timestamp': 1395751833,
+            'alt_title': 'md5:d9261ba34c43b61c812cb6b0269a5c8f',
         },
     }, {
         # audio
@@ -98,6 +102,10 @@ class NRKIE(NRKBaseIE):
             'title': 'Slik høres internett ut når du er blind',
             'description': 'md5:a621f5cc1bd75c8d5104cb048c6b8568',
             'duration': 20,
+            'timestamp': 1398429565,
+            'alt_title': 'Cathrine Lie Wathne er blind, og bruker hurtigtaster for å navigere seg rundt på ulike nettsider.',
+            'thumbnail': 'https://gfx.nrk.no/urxQMSXF-WnbfjBH5ke2igLGyN27EdJVWZ6FOsEAclhA',
+            'upload_date': '20140425',
         },
     }, {
         'url': 'nrk:ecc1b952-96dc-4a98-81b9-5296dc7a98d9',
@@ -177,6 +185,8 @@ class NRKIE(NRKBaseIE):
             # Remove the 'adap' query parameter. Returns different streams depending on the value.
             # Known values are: small, large, small_h265, large_h265. Removing the parameter returns all available streams.
             format_url = update_url_query(format_url, {'adap': []})
+            # Disable subtitles, they are fetched separately.
+            format_url = update_url_query(format_url, {'s': 0})
             asset_format = (asset.get('format') or '').lower()
             if asset_format == 'hls' or determine_ext(format_url) == 'm3u8':
                 formats.extend(self._extract_nrk_formats(format_url, video_id))
