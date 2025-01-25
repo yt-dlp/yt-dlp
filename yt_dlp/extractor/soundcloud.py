@@ -687,7 +687,7 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
                 'album': ('title', {str}),
                 'album_artist': ('user', 'username', {str}),
                 'album_type': ('set_type', {str}),
-            })),
+            }),
         )
 
 
