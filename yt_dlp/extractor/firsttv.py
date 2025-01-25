@@ -12,7 +12,7 @@ from ..utils import (
 class FirstTVIE(InfoExtractor):
     IE_NAME = '1tv'
     IE_DESC = 'Первый канал'
-    _VALID_URL = r'https?://(?:www\.)?(?:sport)?1tv\.ru/(?:[^/]+/)+(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:sport)?1tv\.ru/(?:[^/?#]+/)+(?P<id>[^/?#]+)'
 
     _TESTS = [{
         # single format
