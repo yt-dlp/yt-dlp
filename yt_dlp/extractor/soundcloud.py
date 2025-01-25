@@ -676,7 +676,16 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
                 if token:
                     url += '?secret_token=' + token
             entries.append(self.url_result(
-                url, SoundcloudIE.ie_key(), track_id))
+                url,
+                SoundcloudIE.ie_key(),
+                track_id,
+                url_transparent=True,
+                **traverse_obj(playlist, {
+                    'album': ('title', {str}),
+                    'album_artist': ('user', 'username', {str}),
+                    'album_type': ('set_type', {str}),
+                })),
+            )
         return self.playlist_result(
             entries, playlist_id,
             playlist.get('title'),
