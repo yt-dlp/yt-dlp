@@ -4030,6 +4030,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             raise ExtractorError('No player clients have been requested', expected=True)
 
         if self.is_authenticated:
+            if (smuggled_data.get('is_music_url') or self.is_music_url(url)) and 'web_music' not in requested_clients:
+                requested_clients.append('web_music')
+
             unsupported_clients = [
                 client for client in requested_clients if not INNERTUBE_CLIENTS[client]['SUPPORTS_COOKIES']
             ]
@@ -4168,6 +4171,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     deprioritized_prs.append(pr)
                 else:
                     prs.append(pr)
+
+            # EU countries require age-verification for accounts to access age-restricted videos
+            # If account is not age-verified, _is_agegated() will be truthy for non-embedded clients
+            if self.is_authenticated and self._is_agegated(pr):
+                self.to_screen(
+                    f'{video_id}: This video is age-restricted and YouTube is requiring '
+                    'account age-verification; some formats may be missing', only_once=True)
+                # tv_embedded can work around the age-verification requirement for embeddable videos
+                # web_creator may work around age-verification for all videos but requires PO token
+                append_client('tv_embedded', 'web_creator')
 
         prs.extend(deprioritized_prs)
 
