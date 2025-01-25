@@ -1301,7 +1301,7 @@ class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
 class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
     _VALID_URL = [
         r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail/?\?sid=(?P<sid>\d+)',
-        r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)/?(\?type=season\b|#|\??$)',
+        r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)',
     ]
     _TESTS = [{
         'url': 'https://space.bilibili.com/2142762/lists/3662502?type=season',
@@ -1323,6 +1323,10 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
         'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
         'only_matching': True,
     }]
+
+    @classmethod
+    def suitable(cls, url):
+        return False if BilibiliSeriesListIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         mid, sid = self._match_valid_url(url).group('mid', 'sid')
@@ -1360,7 +1364,7 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
 class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
     _VALID_URL = [
         r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/seriesdetail/?\?\bsid=(?P<sid>\d+)',
-        r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)/?\?type=series\b',
+        r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)/?\?(?:[^#]+&)?type=series(?:[&#]|$)',
     ]
     _TESTS = [{
         'url': 'https://space.bilibili.com/1958703906/lists/547718?type=series',
