@@ -12,21 +12,22 @@ class GoodGameIE(InfoExtractor):
     IE_NAME = 'goodgame:stream'
     _VALID_URL = r'https?://goodgame\.ru/(?:channel/)?(?P<id>[\w.*-]+)'
     _TESTS = [{
-        'url': 'https://goodgame.ru/Pomi#autoplay',
+        'url': 'https://goodgame.ru/TGW#autoplay',
         'info_dict': {
-            'id': 'pomi',
+            'id': '7998',
             'ext': 'mp4',
-            'title': r're:Reynor vs Special \(1/2,bo3\) Wardi Spring EU \- playoff \(финальный день\) \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
-            'channel_id': '1644',
-            'channel': 'Pomi',
-            'channel_url': 'https://goodgame.ru/Pomi',
-            'description': 'md5:4a87b775ee7b2b57bdccebe285bbe171',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'channel_id': '7998',
+            'title': r're:шоуматч Happy \(NE\) vs Fortitude \(UD\), потом ладдер и дс \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+            'channel_url': 'https://goodgame.ru/TGW',
+            'thumbnail': 'http://hls.goodgame.ru/previews/7998_240.jpg',
+            'uploader': 'TGW',
+            'channel': 'JosephStalin',
             'live_status': 'is_live',
-            'view_count': int,
+            'age_limit': 18,
+            'channel_follower_count': int,
+            'uploader_id': '2899',
         },
         'params': {'skip_download': 'm3u8'},
-        'skip': 'May not be online',
     }]
 
     def _real_extract(self, url):
