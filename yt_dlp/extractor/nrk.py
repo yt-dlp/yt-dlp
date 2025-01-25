@@ -182,13 +182,13 @@ class NRKIE(NRKBaseIE):
             format_url = url_or_none(asset.get('url'))
             if not format_url:
                 continue
-            # Remove the 'adap' query parameter. Returns different streams depending on the value.
-            # Known values are: small, large, small_h265, large_h265. Removing the parameter returns all available streams.
-            format_url = update_url_query(format_url, {'adap': []})
-            # Disable subtitles, they are fetched separately.
-            format_url = update_url_query(format_url, {'s': 0})
             asset_format = (asset.get('format') or '').lower()
             if asset_format == 'hls' or determine_ext(format_url) == 'm3u8':
+                # Remove the 'adap' query parameter. Returns different streams depending on the value.
+                # Known values are: small, large, small_h265, large_h265. Removing the parameter returns all available streams.
+                format_url = update_url_query(format_url, {'adap': []})
+                # Disable subtitles, they are fetched separately.
+                format_url = update_url_query(format_url, {'s': 0})
                 formats.extend(self._extract_nrk_formats(format_url, video_id))
             elif asset_format == 'mp3':
                 formats.append({
@@ -323,6 +323,13 @@ class NRKTVIE(InfoExtractor):
                     'ext': 'vtt',
                 }],
             },
+            'upload_date': '20170627',
+            'timestamp': 1498591822,
+            'thumbnail': 'https://gfx.nrk.no/myRSc4vuFlahB60P3n6swwRTQUZI1LqJZl9B7icZFgzA',
+            'alt_title': 'md5:46923a6e6510eefcce23d5ef2a58f2ce',
+        },
+        'params': {
+            'skip_download': True,
         },
     }, {
         'url': 'https://tv.nrk.no/serie/20-spoersmaal-tv/MUHH48000314/23-05-2014',
@@ -337,6 +344,13 @@ class NRKTVIE(InfoExtractor):
             'series': '20 spørsmål',
             'episode': '23. mai 2014',
             'age_limit': 0,
+            'timestamp': 1584593700,
+            'thumbnail': 'https://gfx.nrk.no/u7uCe79SEfPVGRAGVp2_uAZnNc4mfz_kjXg6Bgek8lMQ',
+            'season_id': '126936',
+            'upload_date': '20200319',
+            'season': 'Season 2014',
+            'season_number': 2014,
+            'episode_number': 3,
         },
     }, {
         'url': 'https://tv.nrk.no/program/mdfp15000514',
