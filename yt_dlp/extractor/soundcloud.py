@@ -393,7 +393,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                     (?:(?:(?:www\.|m\.)?soundcloud\.com/
                             (?!stations/track)
                             (?P<uploader>[\w\d-]+)/
-                            (?!(?:tracks|albums|sets(?:/.+?)?|reposts|likes|spotlight)/?(?:$|[?#]))
+                            (?!(?:tracks|albums|sets(?:/.+?)?|reposts|likes|spotlight|comments)/?(?:$|[?#]))
                             (?P<title>[\w\d-]+)
                             (?:/(?P<token>(?!(?:albums|sets|recommended))[^?]+?))?
                             (?:[?].*)?$)
@@ -776,7 +776,7 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
                             (?:(?:www|m)\.)?soundcloud\.com/
                             (?P<user>[^/]+)
                             (?:/
-                                (?P<rsrc>tracks|albums|sets|reposts|likes|spotlight)
+                                (?P<rsrc>tracks|albums|sets|reposts|likes|spotlight|comments)
                             )?
                             /?(?:[?#].*)?$
                     '''
@@ -830,6 +830,13 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
             'title': 'Grynpyret (Spotlight)',
         },
         'playlist_mincount': 1,
+    }, {
+        'url': 'https://soundcloud.com/one-thousand-and-one/comments',
+        'info_dict': {
+            'id': '992430331',
+            'title': '7x11x13-testing (Comments)',
+        },
+        'playlist_mincount': 1,
     }]
 
     _BASE_URL_MAP = {
@@ -840,6 +847,7 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
         'reposts': 'stream/users/%s/reposts',
         'likes': 'users/%s/likes',
         'spotlight': 'users/%s/spotlight',
+        'comments': 'users/%s/comments',
     }
 
     def _real_extract(self, url):
