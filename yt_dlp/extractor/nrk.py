@@ -37,6 +37,7 @@ class NRKBaseIE(InfoExtractor):
             formats = self._extract_m3u8_formats(
                 re.sub(self._CDN_REPL_REGEX, '://nrk-od-%02d.akamaized.net/no/' % random.randint(0, 99), asset_url),
                 video_id, 'mp4', 'm3u8_native', fatal=False)
+        # print(formats)
         return formats
 
     def _raise_error(self, data):
@@ -55,11 +56,13 @@ class NRKBaseIE(InfoExtractor):
         message = data.get('endUserMessage') or MESSAGES.get(message_type, message_type)
         raise ExtractorError(f'{self.IE_NAME} said: {message}', expected=True)
 
-    def _call_api(self, path, video_id, item=None, note=None, fatal=True, query=None):
+    def _call_api(self, path, video_id, item=None, note=None, fatal=True, query=None, headers=None):
         return self._download_json(
             urljoin('https://psapi.nrk.no/', path),
             video_id, note or f'Downloading {item} JSON',
-            fatal=fatal, query=query)
+            fatal=fatal, query=query,
+            # By default NRK returns an older version of the JSON API with broken streaming URLs. This makes it return a newer version.
+            headers=headers or {'Accept': 'application/vnd.nrk.psapi+json; version=9; player=tv-player; device=player-core'})
 
 
 class NRKIE(NRKBaseIE):
