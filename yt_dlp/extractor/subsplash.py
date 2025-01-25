@@ -65,7 +65,7 @@ class SubsplashBaseIE(InfoExtractor):
 
 class SubsplashIE(SubsplashBaseIE):
     _VALID_URL = [
-        r'https?://(?:www\.)?subsplash\.com/u/[^/?#]+/media/d/(?P<id>\w+)',
+        r'https?://(?:www\.)?subsplash\.com/(?:u/)?[^/?#]+/[^/?#]+/(?:d/|mi/\+)(?P<id>\w+)',
         r'https?://(?:\w+\.)?subspla\.sh/(?P<id>\w+)',
     ]
     _TESTS = [{
@@ -102,6 +102,22 @@ class SubsplashIE(SubsplashBaseIE):
             'modified_timestamp': 1728577804,
         },
     }, {
+       'url': 'https://subsplash.com/laiglesiadelcentro/vid/mi/+ecb6a6b?autoplay=true',
+        'md5': '013c9b1e391dd4b34d8612439445deef',
+        'info_dict': {
+            'id': 'ecb6a6b',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)$',
+            'release_timestamp': 1477095852,
+            'title': 'En el Principio Era el Verbo | EVANGELIO DE JUAN | Ps. Gadiel Ríos',
+            'timestamp': 1425772800,
+            'upload_date': '20150308',
+            'description': 'md5:f368221de93176654989ba66bb564798',
+            'modified_timestamp': 1730258864,
+            'modified_date': '20241030',
+            'release_date': '20161022',
+        },
+    }, {
         'url': 'https://prophecywatchers.subspla.sh/8gps8cx',
         'only_matching': True,
     }]
@@ -128,7 +144,7 @@ class SubsplashPlaylistIE(SubsplashBaseIE):
             'id': 'dbyjzp8',
             'title': 'Five in Ten',
         },
-        'playlist_mincount': 16,
+        'playlist_mincount': 11,
     }, {
         'url': 'https://subsplash.com/prophecywatchers/media/ms/+n42mr48',
         'info_dict': {
