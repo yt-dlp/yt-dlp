@@ -668,7 +668,7 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
         album_info = traverse_obj(playlist, {
             'album': ('title', {str}),
             'album_artist': ('user', 'username', {str}),
-            'album_type': ('set_type', {lambda x: x or 'playlist'}),
+            'album_type': ('set_type', {str}, {lambda x: x or 'playlist'}),
         })
         entries = []
         for track in tracks:
