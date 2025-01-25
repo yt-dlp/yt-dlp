@@ -37,7 +37,6 @@ class NRKBaseIE(InfoExtractor):
             formats = self._extract_m3u8_formats(
                 re.sub(self._CDN_REPL_REGEX, '://nrk-od-%02d.akamaized.net/no/' % random.randint(0, 99), asset_url),
                 video_id, 'mp4', 'm3u8_native', fatal=False)
-        # print(formats)
         return formats
 
     def _raise_error(self, data):
