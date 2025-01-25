@@ -1,9 +1,10 @@
 from .common import InfoExtractor
 from ..utils import (
-    clean_html,
     int_or_none,
+    sanitize_url,
     str_or_none,
     traverse_obj,
+    url_or_none,
 )
 
 
@@ -41,19 +42,21 @@ class GoodGameIE(InfoExtractor):
         else:
             self.raise_no_formats('User is offline', expected=True, video_id=channel_name)
 
-        description_page = self._download_webpage(f'https://goodgame.ru/ajax/channel/tabs?id={player_id}', player_id)
-        description = '\n'.join(description_page.splitlines()[21:-47])
         return {
             'id': player_id,
             'formats': formats,
             'subtitles': subtitles,
-            'title': traverse_obj(response, ('title')),
-            'channel': channel_name,
-            'channel_id': str_or_none(traverse_obj(response, ('id'))),
-            'channel_url': response.get('url'),
-            'description': clean_html(description),
-            'thumbnail': traverse_obj(response, ('preview')),
             'is_live': bool(formats),
-            'view_count': int_or_none(response.get('viewers')),
-            'age_limit': 18 if traverse_obj(response, ('adult')) else None,
+            **traverse_obj(response, {
+                'title': ('title', {str}),
+                'channel': ('channelkey', {str}),
+                'channel_id': ('id', {str_or_none}),
+                'channel_url': ('link', {url_or_none}),
+                'uploader': ('streamer', 'username', {str}),
+                'uploader_id': ('streamer', 'id', {str_or_none}),
+                'thumbnail': ('preview', {url_or_none}, {sanitize_url}),
+                'concurrent_view_count': ('views', {int_or_none}),
+                'channel_follower_count': ('followers', {int_or_none}),
+                'age_limit': ('adult', {bool}, {lambda x: 18 if x else None}),
+            }),
         }
