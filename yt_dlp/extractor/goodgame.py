@@ -28,6 +28,12 @@ class GoodGameIE(InfoExtractor):
             'concurrent_view_count': int,
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://goodgame.ru/Mr.Gray',
+        'only_matching': True,
+    }, {
+        'url': 'https://goodgame.ru/HeDoPa3yMeHue*',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
