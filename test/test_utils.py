@@ -249,16 +249,35 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_path('abc/def...'), 'abc\\def..#')
         self.assertEqual(sanitize_path('abc.../def'), 'abc..#\\def')
         self.assertEqual(sanitize_path('abc.../def...'), 'abc..#\\def..#')
-
-        self.assertEqual(sanitize_path('../abc'), '..\\abc')
-        self.assertEqual(sanitize_path('../../abc'), '..\\..\\abc')
-        self.assertEqual(sanitize_path('./abc'), 'abc')
-        self.assertEqual(sanitize_path('./../abc'), '..\\abc')
-
-        self.assertEqual(sanitize_path('\\abc'), '\\abc')
-        self.assertEqual(sanitize_path('C:abc'), 'C:abc')
-        self.assertEqual(sanitize_path('C:abc\\..\\'), 'C:..')
         self.assertEqual(sanitize_path('C:\\abc:%(title)s.%(ext)s'), 'C:\\abc#%(title)s.%(ext)s')
+
+        # Check with nt._path_normpath if available
+        try:
+            import nt
+
+            nt_path_normpath = getattr(nt, '_path_normpath', None)
+        except Exception:
+            nt_path_normpath = None
+
+        for test, expected in [
+            ('C:\\', 'C:\\'),
+            ('../abc', '..\\abc'),
+            ('../../abc', '..\\..\\abc'),
+            ('./abc', 'abc'),
+            ('./../abc', '..\\abc'),
+            ('\\abc', '\\abc'),
+            ('C:abc', 'C:abc'),
+            ('C:abc\\..\\', 'C:'),
+            ('C:abc\\..\\def\\..\\..\\', 'C:..'),
+            ('C:\\abc\\xyz///..\\def\\', 'C:\\abc\\def'),
+            ('abc/../', '.'),
+            ('./abc/../', '.'),
+        ]:
+            result = sanitize_path(test)
+            assert result == expected, f'{test} was incorrectly resolved'
+            assert result == sanitize_path(result), f'{test} changed after sanitizing again'
+            if nt_path_normpath:
+                assert result == nt_path_normpath(test), f'{test} does not match nt._path_normpath'
 
     def test_sanitize_url(self):
         self.assertEqual(sanitize_url('//foo.bar'), 'http://foo.bar')
