@@ -685,7 +685,8 @@ def _sanitize_path_parts(parts):
         elif part == '..':
             if sanitized_parts and sanitized_parts[-1] != '..':
                 sanitized_parts.pop()
-            sanitized_parts.append('..')
+            else:
+                sanitized_parts.append('..')
             continue
         # Replace invalid segments with `#`
         # - trailing dots and spaces (`asdf...` => `asdf..#`)
@@ -702,7 +703,8 @@ def sanitize_path(s, force=False):
         if not force:
             return s
         root = '/' if s.startswith('/') else ''
-        return root + '/'.join(_sanitize_path_parts(s.split('/')))
+        path = '/'.join(_sanitize_path_parts(s.split('/')))
+        return root + path if root or path else '.'
 
     normed = s.replace('/', '\\')
 
@@ -721,7 +723,8 @@ def sanitize_path(s, force=False):
         root = '\\' if normed[:1] == '\\' else ''
         parts = normed.split('\\')
 
-    return root + '\\'.join(_sanitize_path_parts(parts))
+    path = '\\'.join(_sanitize_path_parts(parts))
+    return root + path if root or path else '.'
 
 
 def sanitize_url(url, *, scheme='http'):
