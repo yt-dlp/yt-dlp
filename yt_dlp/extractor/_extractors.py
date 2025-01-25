@@ -699,11 +699,6 @@ from .frontendmasters import (
     FrontendMastersLessonIE,
 )
 from .fujitv import FujiTVFODPlus7IE
-from .funimation import (
-    FunimationIE,
-    FunimationPageIE,
-    FunimationShowIE,
-)
 from .funk import FunkIE
 from .funker530 import Funker530IE
 from .fuyintv import FuyinTVIE
