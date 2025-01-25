@@ -102,7 +102,7 @@ class SubsplashIE(SubsplashBaseIE):
             'modified_timestamp': 1728577804,
         },
     }, {
-       'url': 'https://subsplash.com/laiglesiadelcentro/vid/mi/+ecb6a6b?autoplay=true',
+        'url': 'https://subsplash.com/laiglesiadelcentro/vid/mi/+ecb6a6b?autoplay=true',
         'md5': '013c9b1e391dd4b34d8612439445deef',
         'info_dict': {
             'id': 'ecb6a6b',
