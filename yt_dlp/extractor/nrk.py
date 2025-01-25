@@ -28,6 +28,12 @@ class NRKBaseIE(InfoExtractor):
         )/'''
 
     def _extract_nrk_formats(self, asset_url, video_id):
+        asset_url = update_url_query(asset_url, {
+            # Remove 'adap' to return all streams (known values are: small, large, small_h265, large_h265)
+            'adap': [],
+            # Disable subtitles since they are fetched separately
+            's': 0,
+        })
         if re.match(r'https?://[^/]+\.akamaihd\.net/i/', asset_url):
             return self._extract_akamai_formats(asset_url, video_id)
         asset_url = re.sub(r'(?:bw_(?:low|high)=\d+|no_audio_only)&?', '', asset_url)
@@ -55,13 +61,14 @@ class NRKBaseIE(InfoExtractor):
         message = data.get('endUserMessage') or MESSAGES.get(message_type, message_type)
         raise ExtractorError(f'{self.IE_NAME} said: {message}', expected=True)
 
-    def _call_api(self, path, video_id, item=None, note=None, fatal=True, query=None, headers=None):
+    def _call_api(self, path, video_id, item=None, note=None, fatal=True, query=None):
         return self._download_json(
             urljoin('https://psapi.nrk.no/', path),
             video_id, note or f'Downloading {item} JSON',
-            fatal=fatal, query=query,
-            # By default NRK returns an older version of the JSON API with broken streaming URLs. This makes it return a newer version.
-            headers=headers or {'Accept': 'application/vnd.nrk.psapi+json; version=9; player=tv-player; device=player-core'})
+            fatal=fatal, query=query, headers={
+                # Needed for working stream URLs, see https://github.com/yt-dlp/yt-dlp/issues/12192
+                'Accept': 'application/vnd.nrk.psapi+json; version=9; player=tv-player; device=player-core',
+            })
 
 
 class NRKIE(NRKBaseIE):
@@ -184,11 +191,6 @@ class NRKIE(NRKBaseIE):
                 continue
             asset_format = (asset.get('format') or '').lower()
             if asset_format == 'hls' or determine_ext(format_url) == 'm3u8':
-                # Remove the 'adap' query parameter. Returns different streams depending on the value.
-                # Known values are: small, large, small_h265, large_h265. Removing the parameter returns all available streams.
-                format_url = update_url_query(format_url, {'adap': []})
-                # Disable subtitles, they are fetched separately.
-                format_url = update_url_query(format_url, {'s': 0})
                 formats.extend(self._extract_nrk_formats(format_url, video_id))
             elif asset_format == 'mp3':
                 formats.append({
