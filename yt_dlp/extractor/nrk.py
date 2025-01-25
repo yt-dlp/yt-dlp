@@ -155,7 +155,7 @@ class NRKIE(NRKBaseIE):
                     return self._call_api(f'playback/{item}/{video_id}', video_id, item, query=query)
                 raise
 
-        # known values for preferredCdn: akamai, iponly, minicdn and telenor
+        # known values for preferredCdn: akamai, globalconnect and telenor
         manifest = call_playback_api('manifest', {'preferredCdn': 'akamai'})
 
         video_id = try_get(manifest, lambda x: x['id'], str) or video_id
@@ -174,7 +174,8 @@ class NRKIE(NRKBaseIE):
             format_url = url_or_none(asset.get('url'))
             if not format_url:
                 continue
-            # Remove the 'adap' query parameter
+            # Remove the 'adap' query parameter. Returns different streams depending on the value.
+            # Known values are: small, large, small_h265, large_h265. Removing the parameter returns all available streams.
             format_url = update_url_query(format_url, {'adap': []})
             asset_format = (asset.get('format') or '').lower()
             if asset_format == 'hls' or determine_ext(format_url) == 'm3u8':
