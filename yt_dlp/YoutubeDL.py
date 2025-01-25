@@ -2121,7 +2121,7 @@ class YoutubeDL:
         m = operator_rex.fullmatch(filter_spec)
         if m:
             try:
-                comparison_value = int(m.group('value'))
+                comparison_value = float(m.group('value'))
             except ValueError:
                 comparison_value = parse_filesize(m.group('value'))
                 if comparison_value is None:
