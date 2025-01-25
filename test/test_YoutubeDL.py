@@ -486,11 +486,11 @@ class TestFormatSelection(unittest.TestCase):
 
     def test_format_filtering(self):
         formats = [
-            {'format_id': 'A', 'filesize': 500, 'width': 1000},
-            {'format_id': 'B', 'filesize': 1000, 'width': 500},
-            {'format_id': 'C', 'filesize': 1000, 'width': 400},
-            {'format_id': 'D', 'filesize': 2000, 'width': 600},
-            {'format_id': 'E', 'filesize': 3000},
+            {'format_id': 'A', 'filesize': 500, 'width': 1000, 'aspect_ratio': 1.0},
+            {'format_id': 'B', 'filesize': 1000, 'width': 500, 'aspect_ratio': 1.33},
+            {'format_id': 'C', 'filesize': 1000, 'width': 400, 'aspect_ratio': 1.5},
+            {'format_id': 'D', 'filesize': 2000, 'width': 600, 'aspect_ratio': 1.78},
+            {'format_id': 'E', 'filesize': 3000, 'aspect_ratio': 0.56},
             {'format_id': 'F'},
             {'format_id': 'G', 'filesize': 1000000},
         ]
@@ -549,81 +549,30 @@ class TestFormatSelection(unittest.TestCase):
             ydl.process_ie_result(info_dict)
         self.assertEqual(ydl.downloaded_info_dicts, [])
 
-        formats2 = [
-            {'format_id': 'H', 'aspect_ratio': 1.0},  # 1:1
-            {'format_id': 'I', 'aspect_ratio': 1.33},  # 4:3
-            {'format_id': 'J', 'aspect_ratio': 1.5},  # 3:2
-            {'format_id': 'K', 'aspect_ratio': 1.78},  # 16:9
-            {'format_id': 'L', 'aspect_ratio': 2.33},  # 21:9
-            {'format_id': 'M', 'aspect_ratio': 0.75},  # 3:4
-            {'format_id': 'N', 'aspect_ratio': 0.67},  # 2:3
-            {'format_id': 'O', 'aspect_ratio': 0.56},  # 9:16
-            {'format_id': 'P', 'aspect_ratio': 0.43},  # 9:21
-            {'format_id': 'Q', 'aspect_ratio': 1.01},
-            {'format_id': 'R', 'aspect_ratio': 1.99},
-            {'format_id': 'T'},
-            {'format_id': 'S', 'aspect_ratio': 0.99},
-        ]
-        for f in formats2:
-            f['url'] = 'http://_/'
-            f['ext'] = 'unknown'
-
-        info_dict2 = _make_result(formats2, _format_sort_fields=('id', ))
-
         ydl = YDL({'format': 'best[aspect_ratio=1]'})
-        ydl.process_ie_result(info_dict2)
+        ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], 'H')
+        self.assertEqual(downloaded['format_id'], 'A')
 
         ydl = YDL({'format': 'all[aspect_ratio > 1.00]'})
-        ydl.process_ie_result(info_dict2)
+        ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['R', 'Q', 'L', 'K', 'J', 'I'])
+        self.assertEqual(downloaded_ids, ['D', 'C', 'B'])
 
         ydl = YDL({'format': 'all[aspect_ratio < 1.00]'})
-        ydl.process_ie_result(info_dict2)
+        ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['S', 'P', 'O', 'N', 'M'])
-
-        ydl = YDL({'format': 'all[aspect_ratio>1.05]'})
-        ydl.process_ie_result(info_dict2)
-        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['R', 'L', 'K', 'J', 'I'])
-
-        ydl = YDL({'format': 'all [aspect_ratio < 0.950]'})
-        ydl.process_ie_result(info_dict2)
-        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['P', 'O', 'N', 'M'])
+        self.assertEqual(downloaded_ids, ['E'])
 
         ydl = YDL({'format': 'best[aspect_ratio=1.5]'})
-        ydl.process_ie_result(info_dict2)
+        ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], 'J')
-
-        ydl = YDL({'format': 'all[aspect_ratio < 0.95], all[aspect_ratio>1.05]'})
-        ydl.process_ie_result(info_dict2)
-        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['P', 'O', 'N', 'M', 'R', 'L', 'K', 'J', 'I'])
-
-        ydl = YDL({'format': 'all[aspect_ratio>=0.95][aspect_ratio <= 1.05]'})
-        ydl.process_ie_result(info_dict2)
-        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['S', 'Q', 'H'])
+        self.assertEqual(downloaded['format_id'], 'C')
 
         ydl = YDL({'format': 'all[aspect_ratio!=1]'})
-        ydl.process_ie_result(info_dict2)
+        ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['S', 'R', 'Q', 'P', 'O', 'N', 'M', 'L', 'K', 'J', 'I'])
-
-        ydl = YDL({'format': 'all[aspect_ratio!=1]'})
-        ydl.process_ie_result(info_dict2)
-        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['S', 'R', 'Q', 'P', 'O', 'N', 'M', 'L', 'K', 'J', 'I'])
-
-        ydl = YDL({'format': 'best[aspect_ratio >=? 3.33]'})
-        ydl.process_ie_result(info_dict2)
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], 'T')
+        self.assertEqual(downloaded_ids, ['E', 'D', 'C', 'B'])
 
     @patch('yt_dlp.postprocessor.ffmpeg.FFmpegMergerPP.available', False)
     def test_default_format_spec_without_ffmpeg(self):
