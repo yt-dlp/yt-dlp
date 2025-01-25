@@ -681,7 +681,7 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
             entries, playlist_id,
             playlist.get('title'),
             playlist.get('description'),
-            **(traverse_obj(playlist, {
+            **traverse_obj(playlist, {
                 'uploader': ('user', 'username', {str}),
                 'uploader_id': ('user', 'id', {str_or_none}),
                 'album': ('title', {str}),
