@@ -361,6 +361,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'uploader_url': user.get('permalink_url'),
             'timestamp': unified_timestamp(info.get('created_at')),
             'title': info.get('title'),
+            'track': info.get('title'),
             'description': info.get('description'),
             'thumbnails': thumbnails,
             'duration': float_or_none(info.get('duration'), 1000),
@@ -372,7 +373,6 @@ class SoundcloudBaseIE(InfoExtractor):
             'repost_count': extract_count('reposts'),
             'genres': traverse_obj(info, ('genre', {str}, filter, all, filter)),
             'artists': traverse_obj(info, ('publisher_metadata', 'artist', {str}, filter, all, filter)),
-            'track': info.get('title'),
             'formats': formats if not extract_flat else None,
         }
 
