@@ -26,6 +26,7 @@ class GoodGameIE(InfoExtractor):
             'age_limit': 18,
             'channel_follower_count': int,
             'uploader_id': '2899',
+            'concurrent_view_count': int,
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -56,7 +57,7 @@ class GoodGameIE(InfoExtractor):
                 'uploader': ('streamer', 'username', {str}),
                 'uploader_id': ('streamer', 'id', {str_or_none}),
                 'thumbnail': ('preview', {url_or_none}, {sanitize_url}),
-                'concurrent_view_count': ('views', {int_or_none}),
+                'concurrent_view_count': ('viewers', {int_or_none}),
                 'channel_follower_count': ('followers', {int_or_none}),
                 'age_limit': ('adult', {bool}, {lambda x: 18 if x else None}),
             }),
