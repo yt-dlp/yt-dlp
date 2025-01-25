@@ -50,7 +50,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'music\.amazon\.(?:\w{2}\.)?\w+',
         r'(?:watch|front)\.njpwworld\.com',
         r'qub\.ca/vrai',
-        r'crunchyroll\.com',
+        r'(?:beta\.)?crunchyroll\.com',
     )
 
     _TESTS = [{
