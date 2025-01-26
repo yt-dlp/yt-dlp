@@ -1,3 +1,5 @@
+import json
+
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -9,6 +11,7 @@ from ..utils import (
 
 
 class DailyWireBaseIE(InfoExtractor):
+    _GRAPHQL_API = 'https://v2server.dailywire.com/app/graphql'
     _JSON_PATH = {
         'episode': ('props', 'pageProps', 'episodeData', 'episode'),
         'videos': ('props', 'pageProps', 'videoData', 'video'),
@@ -23,6 +26,29 @@ class DailyWireBaseIE(InfoExtractor):
 
 class DailyWireIE(DailyWireBaseIE):
     _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?P<sites_type>episode|videos)/(?P<id>[\w-]+)'
+    _GRAPHQL_QUERY = '''
+    query getEpisodeBySlug($slug: String!) {
+      episode(where: {slug: $slug}) {
+        id
+        title
+        slug
+        description
+        image
+        show {
+          id
+          name
+        }
+        segments {
+          audio
+          video
+        }
+        createdBy {
+          firstName
+          lastName
+        }
+      }
+    }
+    '''
     _TESTS = [{
         'url': 'https://www.dailywire.com/episode/1-fauci',
         'info_dict': {
@@ -36,11 +62,24 @@ class DailyWireIE(DailyWireBaseIE):
             'series_id': 'ckzplm0a097fn0826r2vc3j7h',
             'series': 'China: The Enemy Within',
         },
+        # }, {
+        #     'url': 'https://www.dailywire.com/episode/2-biden',
+        #     'info_dict': {
+        #         'id': 'ckzsldx8pqpr50a26qgy90f92',
+        #         'ext': 'mp4',
+        #         'display_id': '2-biden',
+        #         'title': '2. Biden',
+        #         'description': 'md5:23cbc63f41dc3f22d2651013ada70ce5',
+        #         'thumbnail': 'https://daily-wire-production.imgix.net/episodes/ckzsldx8pqpr50a26qgy90f92/ckzsldx8pqpr50a26qgy90f92-1648237379060.jpg',
+        #         'creators': ['Caroline Roberts'],
+        #         'series_id': 'ckzplm0a097fn0826r2vc3j7h',
+        #         'series': 'China: The Enemy Within',
+        #     },
     }, {
         'url': 'https://www.dailywire.com/episode/ep-124-bill-maher',
         'info_dict': {
             'id': 'cl0ngbaalplc80894sfdo9edf',
-            'ext': 'mp3',
+            'ext': 'mp3',  # note: mp3 when anonymous user, mp4 when insider user
             'display_id': 'ep-124-bill-maher',
             'title': 'Ep. 124 - Bill Maher',
             'thumbnail': 'https://daily-wire-production.imgix.net/episodes/cl0ngbaalplc80894sfdo9edf/cl0ngbaalplc80894sfdo9edf-1647065568518.jpg',
@@ -54,8 +93,22 @@ class DailyWireIE(DailyWireBaseIE):
         'only_matching': True,
     }]
 
+    def _query_episode(self, url):
+        sites_type, slug = self._match_valid_url(url).group('sites_type', 'id')
+        result = self._download_json(
+            self._GRAPHQL_API, slug, note='Downloading JSON from GraphQL API',
+            data=json.dumps({'query': self._GRAPHQL_QUERY, 'variables': {'slug': slug}}, separators=(',', ':')).encode(),
+            headers={
+                'Content-Type': 'application/json',
+                'apollographql-client-name': 'DW_WEBSITE',
+                'Origin': 'https://www.dailywire.com',
+                # 'Authorization': 'Bearer ...',
+            })['data']['episode']
+        # self.to_screen(json.dumps(result))
+        return slug, result
+
     def _real_extract(self, url):
-        slug, episode_info = self._get_json(url)
+        slug, episode_info = self._query_episode(url)
         urls = traverse_obj(
             episode_info, (('segments', 'videoUrl'), ..., ('video', 'audio')), expected_type=url_or_none)
 
