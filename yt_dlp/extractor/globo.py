@@ -4,17 +4,20 @@ import uuid
 
 from .common import InfoExtractor
 from ..utils import (
+    determine_ext,
+    filter_dict,
     float_or_none,
     int_or_none,
     orderedSet,
     str_or_none,
     try_get,
+    url_or_none,
 )
 from ..utils.traversal import subs_list_to_dict, traverse_obj
 
 
 class GloboIE(InfoExtractor):
-    _VALID_URL = r'(?:globo:|https?://.+?\.globo\.com/(?:[^/]+/))(?P<id>\d{7,})'
+    _VALID_URL = r'(?:globo:|https?://[^/?#]+?\.globo\.com/(?:[^/?#]+/))(?P<id>\d{7,})'
     _NETRC_MACHINE = 'globo'
     _VIDEO_VIEW = '''
     query getVideoView($videoId: ID!) {
@@ -94,7 +97,7 @@ class GloboIE(InfoExtractor):
             'https://cloud-jarvis.globo.com/graphql', video_id,
             query={
                 'operationName': 'getVideoView',
-                'variables': f'{{"videoId":{video_id}}}',
+                'variables': json.dumps({'videoId': video_id}),
                 'query': self._VIDEO_VIEW,
             }, headers={
                 'content-type': 'application/json',
@@ -108,7 +111,7 @@ class GloboIE(InfoExtractor):
             'https://playback.video.globo.com/v4/video-session', video_id,
             f'Downloading resource info for {video_id}',
             headers={'Content-Type': 'application/json'},
-            data=json.dumps({
+            data=json.dumps(filter_dict({
                 'player_type': 'mirakulo_8k_hdr',
                 'video_id': video_id,
                 'quality': 'max',
@@ -120,7 +123,7 @@ class GloboIE(InfoExtractor):
                 'Authorization': try_get(self._get_cookies('https://globo.com'),
                                          lambda x: f'Bearer {x["GLBID"].value}') or '',
                 'version': 1,
-            }).encode())
+            })).encode())
 
         if traverse_obj(video, ('resource', 'drm_protection_enabled', {bool})):
             self.report_drm(video_id)
@@ -128,15 +131,14 @@ class GloboIE(InfoExtractor):
         main_source = video['sources'][0]
 
         # 4k streams are exclusively outputted in dash, so we need to filter these out
-        if main_source['url'].endswith('mpd'):
-            formats, subtitles = self._extract_mpd_formats_and_subtitles(
-                main_source['url'], video_id, 'mp4', fatal=False)
+        if determine_ext(main_source['url']) == 'mpd':
+            formats, subtitles = self._extract_mpd_formats_and_subtitles(main_source['url'], video_id, mpd_id='dash')
         else:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                main_source['url'], video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False)
+                main_source['url'], video_id, 'mp4', m3u8_id='hls')
         self._merge_subtitles(traverse_obj(main_source, ('text', ..., {
-            'url': ('subtitle', 'srt', 'url', {str_or_none}),
-        }, all, {subs_list_to_dict})), target=subtitles)
+            'url': ('subtitle', 'srt', 'url', {url_or_none}),
+        }, all, {subs_list_to_dict(lang='en')})), target=subtitles)
 
         return {
             'id': video_id,
@@ -154,7 +156,7 @@ class GloboIE(InfoExtractor):
 
 
 class GloboArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://(?!globoplay).+?\.globo\.com/(?:[^/]+/)*(?P<id>[^/.]+)(?:\.html)?'
+    _VALID_URL = r'https?://(?!globoplay).+?\.globo\.com/(?:[^/?#]+/)*(?P<id>[^/?#.]+)(?:\.html)?'
 
     _VIDEOID_REGEXES = [
         r'\bdata-video-id=["\'](\d{7,})["\']',
