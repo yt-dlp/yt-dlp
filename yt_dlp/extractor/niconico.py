@@ -592,9 +592,8 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
     @staticmethod
     def _parse_owner(item):
         return {
-            'uploader': traverse_obj(item, ('owner', 'name'))
-            or traverse_obj(item, ('owner', 'user', 'nickname')),
-            'uploader_id': traverse_obj(item, ('owner', 'id')),
+            'uploader': traverse_obj(item, ('owner', ('name', ('user', 'nickname')), {str}, any)),
+            'uploader_id': traverse_obj(item, ('owner', 'id', {str})),
         }
 
     def _fetch_page(self, list_id, page):
@@ -704,10 +703,10 @@ class NiconicoSeriesIE(NiconicoPlaylistBaseIE):
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        json_data = self._call_api(list_id, 'list', {
+        series = self._call_api(list_id, 'list', {
             'pageSize': 1,
-        })
-        series = json_data['detail']
+        })['detail']
+
         return self.playlist_result(
             self._entries(list_id), list_id,
             series.get('title'), series.get('description'), **self._parse_owner(series))
