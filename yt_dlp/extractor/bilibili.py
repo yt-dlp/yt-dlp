@@ -4,7 +4,9 @@ import hashlib
 import itertools
 import json
 import math
+import random
 import re
+import string
 import time
 import urllib.parse
 import uuid
@@ -1178,28 +1180,26 @@ class BilibiliSpaceBaseIE(BilibiliBaseIE):
 
 
 class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)(?P<video>/video)?/?(?:[?#]|$)'
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)(?P<video>(?:/upload)?/video)?/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/3985676/video',
         'info_dict': {
             'id': '3985676',
         },
         'playlist_mincount': 178,
-        'skip': 'login required',
     }, {
         'url': 'https://space.bilibili.com/313580179/video',
         'info_dict': {
             'id': '313580179',
         },
         'playlist_mincount': 92,
-        'skip': 'login required',
     }]
 
     def _real_extract(self, url):
         playlist_id, is_video_url = self._match_valid_url(url).group('id', 'video')
         if not is_video_url:
             self.to_screen('A channel URL was given. Only the channel\'s videos will be downloaded. '
-                           'To download audios, add a "/audio" to the URL')
+                           'To download audios, add a "/upload/audio" to the URL')
 
         def fetch_page(page_idx):
             query = {
@@ -1212,6 +1212,12 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                 'ps': 30,
                 'tid': 0,
                 'web_location': 1550101,
+                'dm_img_list': '[]',
+                'dm_img_str': base64.b64encode(
+                    ''.join(random.choices(string.printable, k=random.randint(16, 64))).encode())[:-2].decode(),
+                'dm_cover_img_str': base64.b64encode(
+                    ''.join(random.choices(string.printable, k=random.randint(32, 128))).encode())[:-2].decode(),
+                'dm_img_inter': '{"ds":[],"wh":[6093,6631,31],"of":[430,760,380]}',
             }
 
             try:
@@ -1222,14 +1228,14 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError(
-                        'Request is blocked by server (412), please add cookies, wait and try later.', expected=True)
+                        'Request is blocked by server (412), please wait and try later.', expected=True)
                 raise
             status_code = response['code']
             if status_code == -401:
                 raise ExtractorError(
-                    'Request is blocked by server (401), please add cookies, wait and try later.', expected=True)
-            elif status_code == -352 and not self.is_logged_in:
-                self.raise_login_required('Request is rejected, you need to login to access playlist')
+                    'Request is blocked by server (401), please wait and try later.', expected=True)
+            elif status_code == -352:
+                raise ExtractorError('Request is rejected by server (352)', expected=True)
             elif status_code != 0:
                 raise ExtractorError(f'Request failed ({status_code}): {response.get("message") or "Unknown error"}')
             return response['data']
@@ -1251,9 +1257,9 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
 
 
 class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)/audio'
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)/(?:upload/)?audio'
     _TESTS = [{
-        'url': 'https://space.bilibili.com/313580179/audio',
+        'url': 'https://space.bilibili.com/313580179/upload/audio',
         'info_dict': {
             'id': '313580179',
         },
@@ -1276,7 +1282,8 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
             }
 
         def get_entries(page_data):
-            for entry in page_data.get('data', []):
+            # data is None when the playlist is empty
+            for entry in page_data.get('data') or []:
                 yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}', BilibiliAudioIE, entry['id'])
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
