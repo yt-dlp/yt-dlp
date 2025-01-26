@@ -376,7 +376,7 @@ class ZDFIE(ZDFBaseIE):
 
 
 class ZDFChannelIE(ZDFBaseIE):
-    _VALID_URL = r'https?://www\.zdf\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://www\.zdf\.de/(?:[^/?#]+/)*(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.zdf.de/sport/das-aktuelle-sportstudio',
         'info_dict': {
@@ -409,66 +409,41 @@ class ZDFChannelIE(ZDFBaseIE):
     def suitable(cls, url):
         return False if ZDFIE.suitable(url) else super().suitable(url)
 
-    def _og_search_title(self, webpage, fatal=False):
-        title = super()._og_search_title(webpage, fatal=fatal)
-        return re.split(r'\s+[-|]\s+ZDF(?:mediathek)?$', title or '')[0] or None
-
-    def _get_playlist_description(self, page_data):
-        headline = traverse_obj(page_data, ('shortText', 'headline'))
-        text = traverse_obj(page_data, ('shortText', 'text'))
-        if headline is not None and text is not None:
-            return f'{headline}\n\n{text}'
-        return headline or text
-
-    def _convert_thumbnails(self, thumbnails):
-        return traverse_obj(thumbnails, (
-            ..., {
-                'url': ('url', {url_or_none}),
-                'width': ('width', {int_or_none}),
-                'height': ('height', {int_or_none}),
-            }))
-
-    def _teaser_to_url_result(self, teaser):
+    def _extract_entry(self, entry):
         return self.url_result(
-            ie=ZDFIE.ie_key(),
-            **traverse_obj(teaser, {
-                'url': ('sharingUrl', {url_or_none}),
-                'id': ('id'),
-                'title': ('titel'),
-                'thumbnails': ('teaserBild', {self._convert_thumbnails}),
-                'description': ('beschreibung'),
+            entry['sharingUrl'], ZDFIE, **traverse_obj(entry, {
+                'id': ('basename', {str}),
+                'title': ('titel', {str}),
+                'description': ('beschreibung', {str}),
                 'duration': ('length', {float_or_none}),
-                'media_type': (('currentVideoType', 'contentType'), any),
-                'season_number': ('seasonNumber', {int_or_none}),
-                'episode_number': ('episodeNumber', {int_or_none}),
+                # TODO: seasonNumber and episodeNumber can be extracted but need to also be in ZDFIE
             }))
+
+    def _entries(self, data, document_id):
+        for entry in traverse_obj(data, (
+            'cluster', lambda _, v: v['type'] == 'teaser',
+            # If 'brandId' differs, it is a 'You might also like' video. Filter these out
+            'teaser', lambda _, v: v['type'] == 'video' and v['brandId'] == document_id and v['sharingUrl'],
+        )):
+            yield self._extract_entry(entry)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
         webpage = self._download_webpage(url, channel_id)
         document_id = self._search_regex(
             r'docId\s*:\s*(["\'])(?P<doc_id>(?:(?!\1).)+)\1', webpage, 'document id', group='doc_id')
-
         data = self._download_v2_doc(document_id)
 
         main_video = traverse_obj(data, (
-            'cluster', lambda _, cluster: cluster['type'] == 'teaserContent',
-            'teaser', lambda _, teaser: teaser['type'] == 'video', any))
+            'cluster', lambda _, v: v['type'] == 'teaserContent',
+            'teaser', lambda _, v: v['type'] == 'video' and v['basename'] and v['sharingUrl'], any)) or {}
 
-        if not self._yes_playlist(channel_id, main_video and main_video['id']):
-            return self._teaser_to_url_result(main_video)
-
-        playlist_videos = traverse_obj(data, (
-            'cluster', lambda _, cluster: cluster['type'] == 'teaser',
-            # If 'brandId' differs, it is a 'You might also like' video. Filter these out.
-            'teaser', lambda _, teaser: teaser['type'] == 'video' and teaser['brandId'] == document_id))
-
-        thumbnails = traverse_obj(
-            data, ('document', 'image'), ('document', 'teaserBild'), ('stageHeader', 'image'))
+        if not self._yes_playlist(channel_id, main_video.get('basename')):
+            return self._extract_entry(main_video)
 
         return self.playlist_result(
-            (self._teaser_to_url_result(video) for video in playlist_videos),
-            playlist_id=channel_id,
-            playlist_title=self._og_search_title(webpage, fatal=False),
-            description=self._get_playlist_description(data),
-            thumbnails=self._convert_thumbnails(thumbnails))
+            self._entries(data, document_id), channel_id,
+            re.split(r'\s+[-|]\s+ZDF(?:mediathek)?$', self._og_search_title(webpage) or '')[0] or None,
+            join_nonempty(
+                'headline', 'text', delim='\n\n',
+                from_dict=traverse_obj(data, ('shortText', {dict}), default={})) or None)
