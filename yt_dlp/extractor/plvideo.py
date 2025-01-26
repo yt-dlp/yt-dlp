@@ -26,7 +26,7 @@ class PlVideoIE(InfoExtractor):
             'comment_count': int,
             'tags': ['rusia', 'cuba', 'russia', 'miguel díaz-canel'],
             'description': 'md5:a1a395d900d77a86542a91ee0826c115',
-            'released_timestamp': 1715096124,
+            'release_timestamp': 1715096124,
             'channel_is_verified': True,
             'like_count': int,
             'timestamp': 1715095911,
@@ -62,7 +62,7 @@ class PlVideoIE(InfoExtractor):
             'title': 'Белоусов отменил приказы о кадровом резерве на гражданской службе',
             'channel_follower_count': int,
             'view_count': int,
-            'released_timestamp': 1732961458,
+            'release_timestamp': 1732961458,
         },
     }]
 
@@ -119,7 +119,7 @@ class PlVideoIE(InfoExtractor):
                 'channel_is_verified': ('channel', 'verified', {bool}),
                 'tags': ('tags', ..., {str}),
                 'timestamp': ('createdAt', {parse_iso8601}),
-                'released_timestamp': ('publishedAt', {parse_iso8601}),
+                'release_timestamp': ('publishedAt', {parse_iso8601}),
                 'modified_timestamp': ('updatedAt', {parse_iso8601}),
                 'view_count': ('stats', 'viewTotalCount', {int_or_none}),
                 'like_count': ('stats', 'likeCount', {int_or_none}),

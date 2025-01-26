@@ -239,5 +239,11 @@
         "action": "add",
         "when": "52c0ffe40ad6e8404d93296f575007b05b04c686",
         "short": "[priority] **Login with OAuth is no longer supported for YouTube**\nDue to a change made by the site, yt-dlp is no longer able to support OAuth login for YouTube. [Read more](https://github.com/yt-dlp/yt-dlp/issues/11462#issuecomment-2471703090)"
+    },
+    {
+        "action": "change",
+        "when": "76ac023ff02f06e8c003d104f02a03deeddebdcd",
+        "short": "[ie/youtube:tab] Improve shorts title extraction (#11997)",
+        "authors": ["bashonly", "d3d9"]
     }
 ]
