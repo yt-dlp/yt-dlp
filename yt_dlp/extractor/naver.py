@@ -72,8 +72,7 @@ class NaverBaseIE(InfoExtractor):
                     'abr': int_or_none(bitrate.get('audio')),
                     'filesize': int_or_none(stream.get('size')),
                     'protocol': 'm3u8_native' if stream_type == 'HLS' else None,
-                    'extra_param_to_segment_url': ('&'.join('{}={}'.format(*p) for p in query.items())
-                                                   if stream_type == 'HLS' else None),
+                    'extra_param_to_segment_url': urllib.parse.urlencode(query, doseq=True) if stream_type == 'HLS' else None,
                 })
 
         extract_formats(get_list('video'), 'H264')
