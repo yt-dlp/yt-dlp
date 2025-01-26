@@ -186,11 +186,11 @@ class PBSIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://
         (?:
             # Player
-            (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+) |
+            (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/?#]+) |
             # Direct video URL, or article with embedded player
             (?:{})/(?:
-              (?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
-              (?:[^/]+/){{1,5}}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#])
+              (?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/#]|$) |
+              (?:[^/?#]+/){{1,5}}(?P<presumptive_id>[^/?#]+?)(?:\.html)?/?(?:$|[?#])
             )
         )
     '''.format('|'.join(next(zip(*_STATIONS))))
