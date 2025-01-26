@@ -474,7 +474,6 @@ class PBSIE(InfoExtractor):
                     return tabbed_videos, presumptive_id, upload_date, description
 
             MEDIA_ID_REGEXES = [
-                r'\bhttps?://player\.pbs\.org/[\w-]+player/(\d+)',      # move to end to avoid false +ves?
                 r"div\s*:\s*'videoembed'\s*,\s*mediaid\s*:\s*'(\d+)'",  # frontline video embed
                 r'class="coveplayerid">([^<]+)<',                       # coveplayer
                 r'<section[^>]+data-coveid="(\d+)"',                    # coveplayer from http://www.pbs.org/wgbh/frontline/film/real-csi/
@@ -482,6 +481,7 @@ class PBSIE(InfoExtractor):
                 r"(?s)window\.PBS\.playerConfig\s*=\s*{.*?id\s*:\s*'([0-9]+)',",
                 r'<div[^>]+\bdata-cove-id=["\'](\d+)"',  # http://www.pbs.org/wgbh/roadshow/watch/episode/2105-indianapolis-hour-2/
                 r'<iframe[^>]+\bsrc=["\'](?:https?:)?//video\.pbs\.org/widget/partnerplayer/(\d+)',  # https://www.pbs.org/wgbh/masterpiece/episodes/victoria-s2-e1/
+                r'\bhttps?://player\.pbs\.org/[\w-]+player/(\d+)',      # last pattern to avoid false positives
             ]
 
             media_id = self._search_regex(
