@@ -121,7 +121,7 @@ class GloboIE(InfoExtractor):
                 'capabilities': {'low_latency': True},
                 'tz': '-03:00',
                 'Authorization': try_get(self._get_cookies('https://globo.com'),
-                                         lambda x: f'Bearer {x["GLBID"].value}') or '',
+                                         lambda x: f'Bearer {x["GLBID"].value}'),
                 'version': 1,
             })).encode())
 
