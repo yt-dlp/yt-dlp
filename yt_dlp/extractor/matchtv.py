@@ -48,6 +48,15 @@ class MatchTVVideoIE(WebcasterBaseIE):
             'title': '«Золотой дубль Черчесова». Специальный репортаж',
             'thumbnail': r're:^https?://.*\.jpg$',
         },
+    }, {
+        'url': 'https://bl.video.matchtv.ru/quote/start/free_7a87d97313e49cdfa3b960b10da25d0a/q139002/9d09bfff78f766dee404f82c1875be76/4854542998',
+        'md5': '52c1bd5c7fc1329834c37f638280f562',
+        'info_dict': {
+            'id': '7a87d97313e49cdfa3b960b10da25d0a',
+            'ext': 'mp4',
+            'title': 'Ювентус - Верона. Отмененный гол Кина (видео). Чемпионат Италии. Футбол',
+            'thumbnail': r're:^https?://.*\.jpg$',
+        },
     }]
 
 
