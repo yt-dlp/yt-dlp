@@ -90,7 +90,7 @@ class ViuIE(ViuBaseIE):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4')
 
         for key, value in video_data.items():
-            mobj = re.match(r'^subtitle_(?P<lang>[^_]+)_(?P<ext>(vtt|srt))', key)
+            mobj = re.match(r'subtitle_(?P<lang>[^_]+)_(?P<ext>(vtt|srt))', key)
             if not mobj:
                 continue
             subtitles.setdefault(mobj.group('lang'), []).append({
