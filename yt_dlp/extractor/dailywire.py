@@ -1,31 +1,86 @@
 import json
+import time
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
     float_or_none,
     join_nonempty,
+    jwt_decode_hs256,
     traverse_obj,
     url_or_none,
 )
 
 
 class DailyWireBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'dailywire'
     _GRAPHQL_API = 'https://v2server.dailywire.com/app/graphql'
-    _JSON_PATH = {
-        'episode': ('props', 'pageProps', 'episodeData', 'episode'),
-        'videos': ('props', 'pageProps', 'videoData', 'video'),
-        'podcasts': ('props', 'pageProps', 'episode'),
+    _GRAPHQL_QUERY = 'query currentPerson { currentPerson { id } }'
+    _HEADERS = {
+        'Content-Type': 'application/json',
+        'apollographql-client-name': 'DW_WEBSITE',
+        'Origin': 'https://www.dailywire.com',
     }
 
+    def _perform_login(self, username, password):
+        if 'Authorization' in self._HEADERS:
+            return
+        if username != 'access_token':
+            raise ExtractorError(
+                'Login using username and password is not currently supported. '
+                'Use "--username access_token --password <access_token>" to login using an access token. '
+                'To get your access_token: login to the website, go to Developer Tools > Storage tab > Local Storage > https://www.dailywire.com > find the Key named access_token > copy the corresponding Value', expected=True)
+        try:
+            # validate the token
+            jwt = jwt_decode_hs256(password)
+            if time.time() >= jwt['exp']:
+                raise ValueError('jwt expired')
+            self._HEADERS['Authorization'] = f'Bearer {password}'
+            self.report_login()
+        except ValueError as e:
+            self.report_warning(f'Provided authorization token is invalid ({e!s}). Continuing as guest')
+
+
+class DailyWireGraphQLIE(DailyWireBaseIE):
     def _get_json(self, url):
         sites_type, slug = self._match_valid_url(url).group('sites_type', 'id')
-        json_data = self._search_nextjs_data(self._download_webpage(url, slug), slug)
-        return slug, traverse_obj(json_data, self._JSON_PATH[sites_type])
+        result = self._download_json(
+            self._GRAPHQL_API, slug, note='Downloading JSON from GraphQL API', fatal=False,
+            data=json.dumps({'query': self._GRAPHQL_QUERY, 'variables': {'slug': slug}}, separators=(',', ':')).encode(),
+            headers=self._HEADERS)
+        return slug, traverse_obj(result, ('data', ('episode', 'video')))[0]
+
+    def _real_extract(self, url):
+        slug, episode_info = self._get_json(url)
+        urls = traverse_obj(episode_info, [(['segments', ..., ('video', 'audio')], 'videoURL'), {url_or_none}])
+
+        formats, subtitles = [], {}
+        for url in urls:
+            if determine_ext(url) != 'm3u8':
+                formats.append({'url': url})
+                continue
+            format_, subs_ = self._extract_m3u8_formats_and_subtitles(url, slug)
+            formats.extend(format_)
+            self._merge_subtitles(subs_, target=subtitles)
+        return {
+            'id': episode_info['id'],
+            'display_id': slug,
+            'title': traverse_obj(episode_info, 'title', 'name'),
+            'description': episode_info.get('description'),
+            'creator': join_nonempty(('createdBy', 'firstName'), ('createdBy', 'lastName'), from_dict=episode_info, delim=' '),
+            'duration': float_or_none(episode_info.get('duration')),
+            'is_live': episode_info.get('isLive'),
+            'thumbnail': traverse_obj(episode_info, 'thumbnail', 'image', expected_type=url_or_none),
+            'formats': formats,
+            'subtitles': subtitles,
+            'series_id': traverse_obj(episode_info, ('show', 'id')),
+            'series': traverse_obj(episode_info, ('show', 'name')),
+        }
 
 
-class DailyWireIE(DailyWireBaseIE):
-    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?P<sites_type>episode|videos)/(?P<id>[\w-]+)'
+class DailyWireEpisodeIE(DailyWireGraphQLIE):
+    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?P<sites_type>episode)/(?P<id>[\w-]+)'
     _GRAPHQL_QUERY = '''
     query getEpisodeBySlug($slug: String!) {
       episode(where: {slug: $slug}) {
@@ -34,6 +89,7 @@ class DailyWireIE(DailyWireBaseIE):
         slug
         description
         image
+        isLive
         show {
           id
           name
@@ -62,24 +118,24 @@ class DailyWireIE(DailyWireBaseIE):
             'series_id': 'ckzplm0a097fn0826r2vc3j7h',
             'series': 'China: The Enemy Within',
         },
-        # }, {
-        #     'url': 'https://www.dailywire.com/episode/2-biden',
-        #     'info_dict': {
-        #         'id': 'ckzsldx8pqpr50a26qgy90f92',
-        #         'ext': 'mp4',
-        #         'display_id': '2-biden',
-        #         'title': '2. Biden',
-        #         'description': 'md5:23cbc63f41dc3f22d2651013ada70ce5',
-        #         'thumbnail': 'https://daily-wire-production.imgix.net/episodes/ckzsldx8pqpr50a26qgy90f92/ckzsldx8pqpr50a26qgy90f92-1648237379060.jpg',
-        #         'creators': ['Caroline Roberts'],
-        #         'series_id': 'ckzplm0a097fn0826r2vc3j7h',
-        #         'series': 'China: The Enemy Within',
-        #     },
+    }, {
+        'url': 'https://www.dailywire.com/episode/2-biden',
+        'info_dict': {
+            'id': 'ckzsldx8pqpr50a26qgy90f92',
+            'ext': 'mp4',
+            'display_id': '2-biden',
+            'title': '2. Biden',
+            'description': 'md5:23cbc63f41dc3f22d2651013ada70ce5',
+            'thumbnail': 'https://daily-wire-production.imgix.net/episodes/ckzsldx8pqpr50a26qgy90f92/ckzsldx8pqpr50a26qgy90f92-1648237379060.jpg',
+            'creators': ['Caroline Roberts'],
+            'series_id': 'ckzplm0a097fn0826r2vc3j7h',
+            'series': 'China: The Enemy Within',
+        },
     }, {
         'url': 'https://www.dailywire.com/episode/ep-124-bill-maher',
         'info_dict': {
             'id': 'cl0ngbaalplc80894sfdo9edf',
-            'ext': 'mp3',  # note: mp3 when anonymous user, mp4 when insider user
+            'ext': 'mp4',  # note: mp3 when anonymous user, mp4 when insider user (2025-02,)
             'display_id': 'ep-124-bill-maher',
             'title': 'Ep. 124 - Bill Maher',
             'thumbnail': 'https://daily-wire-production.imgix.net/episodes/cl0ngbaalplc80894sfdo9edf/cl0ngbaalplc80894sfdo9edf-1647065568518.jpg',
@@ -88,52 +144,45 @@ class DailyWireIE(DailyWireBaseIE):
             'series_id': 'cjzvep7270hp00786l9hwccob',
             'series': 'The Sunday Special',
         },
+    }]
+
+
+class DailyWireVideoIE(DailyWireGraphQLIE):
+    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?P<sites_type>videos)/(?P<id>[\w-]+)'
+    _GRAPHQL_QUERY = '''
+    query getVideoBySlug($slug: String!) {
+      video(where: {slug: $slug}) {
+        id
+        name
+        slug
+        description
+        image
+        videoURL
+        isLive
+        createdBy {
+          firstName
+          lastName
+        }
+        captions {
+          id
+        }
+      }
+    }
+    '''
+    _TESTS = [{
+        'url': 'https://www.dailywire.com/videos/am-i-racist',
+        'info_dict': {
+            'id': 'cm2owypdr2ku00970z0pl07yj',
+            'ext': 'mp4',
+            'display_id': 'am-i-racist',
+            'thumbnail': 'https://daily-wire-production.imgix.net/videos/cm2owypdr2ku00970z0pl07yj/cm2owypdr2ku00970z0pl07yj-1732043421312.jpg',
+            'description': 'md5:6c38b62c0c006aad8d01675d5a5d12b1',
+            'title': 'Am I Racist?',
+        },
     }, {
         'url': 'https://www.dailywire.com/videos/the-hyperions',
         'only_matching': True,
     }]
-
-    def _query_episode(self, url):
-        sites_type, slug = self._match_valid_url(url).group('sites_type', 'id')
-        result = self._download_json(
-            self._GRAPHQL_API, slug, note='Downloading JSON from GraphQL API',
-            data=json.dumps({'query': self._GRAPHQL_QUERY, 'variables': {'slug': slug}}, separators=(',', ':')).encode(),
-            headers={
-                'Content-Type': 'application/json',
-                'apollographql-client-name': 'DW_WEBSITE',
-                'Origin': 'https://www.dailywire.com',
-                # 'Authorization': 'Bearer ...',
-            })['data']['episode']
-        # self.to_screen(json.dumps(result))
-        return slug, result
-
-    def _real_extract(self, url):
-        slug, episode_info = self._query_episode(url)
-        urls = traverse_obj(
-            episode_info, (('segments', 'videoUrl'), ..., ('video', 'audio')), expected_type=url_or_none)
-
-        formats, subtitles = [], {}
-        for url in urls:
-            if determine_ext(url) != 'm3u8':
-                formats.append({'url': url})
-                continue
-            format_, subs_ = self._extract_m3u8_formats_and_subtitles(url, slug)
-            formats.extend(format_)
-            self._merge_subtitles(subs_, target=subtitles)
-        return {
-            'id': episode_info['id'],
-            'display_id': slug,
-            'title': traverse_obj(episode_info, 'title', 'name'),
-            'description': episode_info.get('description'),
-            'creator': join_nonempty(('createdBy', 'firstName'), ('createdBy', 'lastName'), from_dict=episode_info, delim=' '),
-            'duration': float_or_none(episode_info.get('duration')),
-            'is_live': episode_info.get('isLive'),
-            'thumbnail': traverse_obj(episode_info, 'thumbnail', 'image', expected_type=url_or_none),
-            'formats': formats,
-            'subtitles': subtitles,
-            'series_id': traverse_obj(episode_info, ('show', 'id')),
-            'series': traverse_obj(episode_info, ('show', 'name')),
-        }
 
 
 class DailyWirePodcastIE(DailyWireBaseIE):
@@ -150,6 +199,11 @@ class DailyWirePodcastIE(DailyWireBaseIE):
             'duration': 900.117667,
         },
     }]
+
+    def _get_json(self, url):
+        sites_type, slug = self._match_valid_url(url).group('sites_type', 'id')
+        json_data = self._search_nextjs_data(self._download_webpage(url, slug), slug)
+        return slug, traverse_obj(json_data, ('props', 'pageProps', 'episode'))
 
     def _real_extract(self, url):
         slug, episode_info = self._get_json(url)

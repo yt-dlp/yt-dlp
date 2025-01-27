@@ -471,8 +471,9 @@ from .dailymotion import (
     DailymotionUserIE,
 )
 from .dailywire import (
-    DailyWireIE,
+    DailyWireEpisodeIE,
     DailyWirePodcastIE,
+    DailyWireVideoIE,
 )
 from .damtomo import (
     DamtomoRecordIE,
