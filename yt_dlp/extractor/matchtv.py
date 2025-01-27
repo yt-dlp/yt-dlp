@@ -118,4 +118,19 @@ class MatchTVFeedIE(WebcasterFeedBaseIE):
             'age_limit': 0,
             'timestamp': 1694071818,
         },
+    }, {
+        'url': 'https://matchtv.ru/biathlon/matchtvvideo_NI2100211_translation_Letnij_biatlon_Alfa_Bank_Kubok_Sodruzhestva_Sprint_Muzhchiny',
+        'md5': '590a64c05257644d246f0db9ce294dd7',
+        'info_dict': {
+            'id': '65960e62d0d4f5bac535deab796f94a9',
+            'ext': 'mp4',
+            'title': 'Летний биатлон. Альфа-Банк Кубок Содружества. Спринт. Мужчины',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'upload_date': '20240906',
+            'duration': 7106.0,
+            'timestamp': 1725612645,
+            'uploader': 'МАТЧ ТВ',
+            'age_limit': 0,
+            'description': 'Летний биатлон. Альфа-Банк Кубок Содружества. Спринт. Мужчины',
+        },
     }]
