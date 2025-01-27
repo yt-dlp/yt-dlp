@@ -1866,6 +1866,9 @@ The following extractors use this feature:
 #### sonylivseries
 * `sort_order`: Episode sort order for series extraction - one of `asc` (ascending, oldest first) or `desc` (descending, newest first). Default is `asc`
 
+#### nrk
+* `cdn`: CDN ID to use with the API call for stream URLs - one of  `akamai`, `globalconnect`, `telenor`. Default is `akamai`
+
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
