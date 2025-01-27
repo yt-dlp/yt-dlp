@@ -1,11 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    extract_attributes,
-    join_nonempty,
-    xpath_text,
-)
-from ..utils.traversal import traverse_obj
+from .webcaster import WebcasterBaseIE, WebcasterFeedBaseIE
 
 
 class MatchTVIE(InfoExtractor):
@@ -42,53 +36,15 @@ class MatchTVIE(InfoExtractor):
         }
 
 
-# WebcasterIE
-class MatchTVVideoIE(InfoExtractor):
+class MatchTVVideoIE(WebcasterBaseIE):
     _GEO_COUNTRIES = ['RU']
-    _VALID_URL = r'https?://[.\w-]+/(?:quote|media)/start/free_(?P<id>[^/]+)'
+    _VALID_URL = r'https?://bl\.video\.matchtv\.ru/(?:quote|media)/start/free_(?P<id>[^/]+)'
     _TESTS = []
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
 
-        video = self._download_xml(url, video_id)
-
-        title = xpath_text(video, './/event_name', 'event name', fatal=True)
-
-        formats = []
-        for format_id in (None, 'noise'):
-            track_tag = join_nonempty('track', format_id, delim='_')
-            for track in video.findall(f'.//iphone/{track_tag}'):
-                track_url = track.text
-                if not track_url:
-                    continue
-                if determine_ext(track_url) == 'm3u8':
-                    m3u8_formats = self._extract_m3u8_formats(
-                        track_url, video_id, 'mp4',
-                        entry_protocol='m3u8_native',
-                        m3u8_id=join_nonempty('hls', format_id, delim='-'), fatal=False)
-                    for f in m3u8_formats:
-                        f.update({
-                            'source_preference': 0 if format_id == 'noise' else 1,
-                            'format_note': track.get('title'),
-                        })
-                    formats.extend(m3u8_formats)
-
-        thumbnail = xpath_text(video, './/image', 'thumbnail')
-
-        return {
-            'id': video_id,
-            'title': title,
-            'thumbnail': thumbnail,
-            'formats': formats,
-        }
-
-
-# WebcasterFeedIE
-class MatchTVFeedIE(InfoExtractor):
+class MatchTVFeedIE(WebcasterFeedBaseIE):
     _GEO_COUNTRIES = ['RU']
-    _VALID_URL = r'https?://[.\w-]+/feed/start/free_(?P<id>[^/]+)'
-    _EMBED_REGEX = [r'<(?:object|a|span[^>]+class=["\']webcaster-player["\'])[^>]+data(?:-config)?=(["\']).*?config=(?P<url>https?://(?:(?!\1).)+)\1']
+    _VALID_URL = r'https?://bl\.video\.matchtv\.ru/feed/start/free_(?P<id>[^/]+)'
     _TESTS = []
     _WEBPAGE_TESTS = [{
         'url': 'https://matchtv.ru/football/matchtvvideo_NI1593368_clip_Zolotoj_dubl_Cherchesova_Specialnyj_reportazh',
@@ -115,20 +71,3 @@ class MatchTVFeedIE(InfoExtractor):
             'thumbnail': r're:https?://[\w-]+.video.matchtv.ru/fc/[\w-]+/thumbnails/events/1101266/590556538.jpg',
         },
     }]
-
-    def _extract_from_webpage(self, url, webpage):
-        yield from super()._extract_from_webpage(url, webpage)
-
-        yield from traverse_obj(self._yield_json_ld(webpage, None), (
-            lambda _, v: v['@type'] == 'VideoObject', 'url',
-            {extract_attributes}, 'src', {self.url_result}))
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        feed = self._download_xml(url, video_id)
-
-        video_url = xpath_text(
-            feed, ('video_hd', 'video'), 'video url', fatal=True)
-
-        return self.url_result(video_url)

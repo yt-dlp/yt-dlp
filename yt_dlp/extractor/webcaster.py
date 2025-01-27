@@ -8,23 +8,7 @@ from ..utils import (
 )
 
 
-class WebcasterIE(InfoExtractor):
-    _VALID_URL = r'https?://bl\.webcaster\.pro/(?:quote|media)/start/free_(?P<id>[^/]+)'
-    _TESTS = [{
-        # http://video.khl.ru/quotes/393859
-        'url': 'http://bl.webcaster.pro/quote/start/free_c8cefd240aa593681c8d068cff59f407_hd/q393859/eb173f99dd5f558674dae55f4ba6806d/1480289104?sr%3D105%26fa%3D1%26type_id%3D18',
-        'md5': '0c162f67443f30916ff1c89425dcd4cd',
-        'info_dict': {
-            'id': 'c8cefd240aa593681c8d068cff59f407_hd',
-            'ext': 'mp4',
-            'title': 'Сибирь - Нефтехимик. Лучшие моменты первого периода',
-            'thumbnail': r're:^https?://.*\.jpg$',
-        },
-    }, {
-        'url': 'http://bl.webcaster.pro/media/start/free_6246c7a4453ac4c42b4398f840d13100_hd/2_2991109016/e8d0d82587ef435480118f9f9c41db41/4635726126',
-        'only_matching': True,
-    }]
-
+class WebcasterBaseIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -61,14 +45,25 @@ class WebcasterIE(InfoExtractor):
         }
 
 
-class WebcasterFeedIE(InfoExtractor):
-    _VALID_URL = r'https?://bl\.webcaster\.pro/feed/start/free_(?P<id>[^/]+)'
-    _EMBED_REGEX = [r'<(?:object|a[^>]+class=["\']webcaster-player["\'])[^>]+data(?:-config)?=(["\']).*?config=(?P<url>https?://bl\.webcaster\.pro/feed/start/free_.*?)(?:[?&]|\1)']
-    _TEST = {
-        'url': 'http://bl.webcaster.pro/feed/start/free_c8cefd240aa593681c8d068cff59f407_hd/q393859/eb173f99dd5f558674dae55f4ba6806d/1480289104',
+class WebcasterIE(WebcasterBaseIE):
+    _VALID_URL = r'https?://bl\.webcaster\.pro/(?:quote|media)/start/free_(?P<id>[^/]+)'
+    _TESTS = [{
+        # http://video.khl.ru/quotes/393859
+        'url': 'http://bl.webcaster.pro/quote/start/free_c8cefd240aa593681c8d068cff59f407_hd/q393859/eb173f99dd5f558674dae55f4ba6806d/1480289104?sr%3D105%26fa%3D1%26type_id%3D18',
+        'md5': '0c162f67443f30916ff1c89425dcd4cd',
+        'info_dict': {
+            'id': 'c8cefd240aa593681c8d068cff59f407_hd',
+            'ext': 'mp4',
+            'title': 'Сибирь - Нефтехимик. Лучшие моменты первого периода',
+            'thumbnail': r're:^https?://.*\.jpg$',
+        },
+    }, {
+        'url': 'http://bl.webcaster.pro/media/start/free_6246c7a4453ac4c42b4398f840d13100_hd/2_2991109016/e8d0d82587ef435480118f9f9c41db41/4635726126',
         'only_matching': True,
-    }
+    }]
 
+
+class WebcasterFeedBaseIE(InfoExtractor):
     def _extract_from_webpage(self, url, webpage):
         yield from super()._extract_from_webpage(url, webpage)
 
@@ -89,4 +84,17 @@ class WebcasterFeedIE(InfoExtractor):
         video_url = xpath_text(
             feed, ('video_hd', 'video'), 'video url', fatal=True)
 
-        return self.url_result(video_url, WebcasterIE.ie_key())
+        return self.url_result(video_url)
+
+
+class WebcasterFeedIE(WebcasterFeedBaseIE):
+    _VALID_URL = r'https?://bl\.webcaster\.pro/feed/start/free_(?P<id>[^/]+)'
+    _TEST = {
+        'url': 'http://bl.webcaster.pro/feed/start/free_c8cefd240aa593681c8d068cff59f407_hd/q393859/eb173f99dd5f558674dae55f4ba6806d/1480289104',
+        'only_matching': True,
+    }
+
+
+class WebcasterPlayerEmbedIE(InfoExtractor):
+    _VALID_URL = False
+    _EMBED_REGEX = [r'<(?:object|a|span[^>]+class=["\']webcaster-player["\'])[^>]+data(?:-config)?=(["\']).*?config=(?P<url>https?://(?:(?!\1).)+)\1']

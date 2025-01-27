@@ -2415,6 +2415,7 @@ from .webcamerapl import WebcameraplIE
 from .webcaster import (
     WebcasterFeedIE,
     WebcasterIE,
+    WebcasterPlayerEmbedIE,
 )
 from .webofstories import (
     WebOfStoriesIE,
