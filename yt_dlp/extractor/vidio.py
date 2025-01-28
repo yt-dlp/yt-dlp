@@ -74,8 +74,8 @@ class VidioBaseIE(InfoExtractor):
             'https://www.vidio.com/auth', None, data=b'')['api_key']
         self._ua = self.get_param('http_headers')['User-Agent']
 
-    def _call_api(self, url, video_id, note=None, headers=None):
-        return self._download_json(url, video_id, note=note, headers={
+    def _call_api(self, url, display_id, note=None, headers=None):
+        return self._download_json(url, display_id, note=note, headers={
             'Content-Type': 'application/vnd.api+json',
             'X-API-KEY': self._api_key,
             **(headers or {}),
@@ -305,9 +305,9 @@ class VidioIE(VidioBaseIE):
         },
     }]
 
-    def _get_formats_and_subtitles(self, attrs, video_id):
+    def _get_formats_and_subtitles(self, attrs, video_id, display_id):
         interactions_stream = self._download_json(
-            'https://www.vidio.com/interactions_stream.json', video_id,
+            'https://www.vidio.com/interactions_stream.json', display_id,
             query={'video_id': video_id, 'type': 'videos'}, note='Downloading stream info',
             errnote='Unable to download stream info')
 
@@ -321,7 +321,7 @@ class VidioIE(VidioBaseIE):
 
         for m3u8_url in traverse_obj(
                 [interactions_stream.get('source'), attrs.get('data-vjs-clip-hls-url')], (..., {url_or_none})):
-            fmt, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4', m3u8_id='hls', fatal=False)
+            fmt, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, display_id, ext='mp4', m3u8_id='hls', fatal=False)
             if fmt:
                 formats.extend(fmt)
                 self._merge_subtitles(subs, target=subtitles)
@@ -329,7 +329,7 @@ class VidioIE(VidioBaseIE):
 
         for mpd_url in traverse_obj(
                 [interactions_stream.get('source_dash'), attrs.get('data-vjs-clip-dash-url')], (..., {url_or_none})):
-            fmt, subs = self._extract_mpd_formats_and_subtitles(mpd_url, video_id, mpd_id='dash', fatal=False)
+            fmt, subs = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, mpd_id='dash', fatal=False)
             if fmt:
                 formats.extend(fmt)
                 self._merge_subtitles(subs, target=subtitles)
@@ -342,7 +342,7 @@ class VidioIE(VidioBaseIE):
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).groups()
 
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(url, display_id)
         api_data = self._call_api(f'https://api.vidio.com/videos/{video_id}', display_id, 'Downloading API data')
 
         attrs = extract_attributes(get_element_html_by_id(f'player-data-{video_id}', webpage))
@@ -350,9 +350,9 @@ class VidioIE(VidioBaseIE):
         availability = self._availability(needs_premium=(attrs.get('data-access-type') == 'premium'))
 
         if traverse_obj(attrs, ('data-drm-enabled', {lambda x: x == 'true'})):
-            self.report_drm(video_id)
+            self.report_drm(display_id)
 
-        formats, subtitles = self._get_formats_and_subtitles(attrs, video_id)
+        formats, subtitles = self._get_formats_and_subtitles(attrs, video_id, display_id)
         if not formats:
             if availability == 'premium_only':
                 self.raise_login_required('This video requires subscription', metadata_available=True)
@@ -391,10 +391,10 @@ class VidioIE(VidioBaseIE):
             'timestamp': traverse_obj(attrs, ('data-video-publish-date', {parse_iso8601(delimiter=' ')})),
             'age_limit': (traverse_obj(attrs, ('data-adult', {lambda x: 18 if x == 'true' else 0}))
                           or traverse_obj(attrs, ('data-content-rating-option', {lambda x: remove_end(x, ' or more')}, {str_to_int}))),
-            '__post_extractor': self.extract_comments(video_id),
+            '__post_extractor': self.extract_comments(video_id, display_id),
         }
 
-    def _get_comments(self, video_id):
+    def _get_comments(self, video_id, display_id):
         # TODO: extract replies under comments
 
         def extract_comments(comments_data):
@@ -415,7 +415,7 @@ class VidioIE(VidioBaseIE):
 
         comment_page_url = f'https://api.vidio.com/videos/{video_id}/comments'
         while comment_page_url:
-            comments_data = self._call_api(comment_page_url, video_id, 'Downloading comments')
+            comments_data = self._call_api(comment_page_url, display_id, 'Downloading comments')
             comment_page_url = traverse_obj(comments_data, ('links', 'next', {url_or_none}))
             yield from extract_comments(comments_data)
 
@@ -502,11 +502,11 @@ class VidioLiveIE(VidioBaseIE):
     _WEB_CLIENT_SECRTE = b'dPr0QImQ7bc5o9LMntNba2DOsSbZcjUh'
     _WEB_CLIENT_IV = b'C8RWsrtFsoeyCyPt'
 
-    def _yield_formats(self, url, video_id):
+    def _yield_formats(self, url, video_id, display_id):
         client_id = str(dt.datetime.now().timestamp())[:-3]
         try:
             stream_info = self._call_api(
-                f'https://api.vidio.com/livestreamings/{video_id}/stream?initialize=true', video_id,
+                f'https://api.vidio.com/livestreamings/{video_id}/stream?initialize=true', display_id,
                 headers={
                     'X-API-KEY': base64.b64encode(aes_cbc_encrypt_bytes(
                         self._api_key.encode(),
@@ -527,17 +527,17 @@ class VidioLiveIE(VidioBaseIE):
             raise
 
         if m3u8_url := traverse_obj(stream_info, ('data', 'attributes', 'hls', {url_or_none})):
-            yield from self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
+            yield from self._extract_m3u8_formats(m3u8_url, display_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
         if mpd_url := traverse_obj(stream_info, ('data', 'attributes', 'dash', {url_or_none})):
-            yield from self._extract_mpd_formats(mpd_url, video_id, mpd_id='dash', fatal=False)
+            yield from self._extract_mpd_formats(mpd_url, display_id, mpd_id='dash', fatal=False)
 
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).groups()
 
         attrs = extract_attributes(get_element_html_by_id(
-            f'player-data-{video_id}', self._download_webpage(url, video_id, fatal=False) or ''))
+            f'player-data-{video_id}', self._download_webpage(url, display_id, fatal=False) or ''))
         stream_meta = traverse_obj(self._call_api(
-            f'https://www.vidio.com/api/livestreamings/{video_id}/detail', video_id),
+            f'https://www.vidio.com/api/livestreamings/{video_id}/detail', display_id),
             ('livestreamings', 0, {dict}), default={})
 
         return {
@@ -545,7 +545,7 @@ class VidioLiveIE(VidioBaseIE):
             'display_id': display_id,
             'title': attrs.get('data-video-title'),
             'live_status': 'is_live',
-            'formats': list(self._yield_formats(url, video_id)),
+            'formats': list(self._yield_formats(url, video_id, display_id)),
             'genres': traverse_obj(attrs, ('data-genres', {str_or_none}, filter, {lambda x: x.split(',')}), default=[]),
             'uploader_id': traverse_obj(attrs, ('data-video-user-id', {str_or_none})),
             **traverse_obj(attrs, ('data-video-username', {lambda x: {
