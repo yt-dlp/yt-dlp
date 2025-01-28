@@ -22,7 +22,7 @@ class CWTVIE(InfoExtractor):
             'description': 'City Protective Services officer Kiera Cameron is transported from 2077 to deal with eight of the world\'s deadliest terrorists.',
             'thumbnail': r're:^https?://.*\.jpe?g$',
             'duration': 2632,
-            'timestamp': parse_iso8601('2025-01-15T08:00:00+00:00'),
+            'timestamp': 1736928000,
             'uploader': 'CWTV',
             'chapters': 'count:5',
             'series': 'Continuum',
