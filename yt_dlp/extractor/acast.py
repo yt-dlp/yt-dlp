@@ -113,7 +113,7 @@ class ACastChannelIE(ACastBaseIE):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:www\.)?acast\.com/|
+                            (?:(?:www|shows)\.)?acast\.com/|
                             play\.acast\.com/s/
                         )
                         (?P<id>[^/#?]+)
@@ -128,6 +128,9 @@ class ACastChannelIE(ACastBaseIE):
         'playlist_mincount': 200,
     }, {
         'url': 'http://play.acast.com/s/ft-banking-weekly',
+        'only_matching': True,
+    }, {
+        'url': 'https://shows.acast.com/sparpodcast',
         'only_matching': True,
     }]
 
