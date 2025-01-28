@@ -59,7 +59,7 @@ class ACastIE(ACastBaseIE):
             'timestamp': 1477346700,
             'upload_date': '20161024',
             'duration': 2766,
-            'creator': 'Third Ear Studio',
+            'creators': ['Third Ear Studio'],
             'series': 'Spår',
             'episode': '2. Raggarmordet - Röster ur det förflutna',
             'thumbnail': 'https://assets.pippa.io/shows/616ebe1886d7b1398620b943/616ebe33c7e6e70013cae7da.jpg',
