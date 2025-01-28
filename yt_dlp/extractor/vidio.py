@@ -484,6 +484,7 @@ class VidioLiveIE(VidioBaseIE):
             'upload_date': '20160421',
             'tags': [],
             'genres': [],
+            'age_limit': 13,
         },
     }, {
         # Premier-exclusive livestream
