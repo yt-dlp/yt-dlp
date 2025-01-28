@@ -46,7 +46,7 @@ class ACastIE(ACastBaseIE):
                             (?:(?:embed|www|shows)\.)?acast\.com/|
                             play\.acast\.com/s/
                         )
-                        (?P<channel>[^/]+)/(?:episodes/)?(?P<id>[^/#?"]+)
+                        (?P<channel>[^/?#]+)/(?:episodes/)?(?P<id>[^/#?"]+)
                     )'''
     _EMBED_REGEX = [rf'(?x)<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
