@@ -51,7 +51,7 @@ class VidioBaseIE(InfoExtractor):
             'authenticity_token': self._html_search_meta('csrf-token', login_page, fatal=True),
         })
         login_post, login_post_urlh = self._download_webpage_handle(
-            self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(login_form), expected_status=[302, 401])
+            self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(login_form), expected_status=401)
 
         if login_post_urlh.status == 401:
             if get_element_by_class('onboarding-content-register-popup__title', login_post):
