@@ -95,7 +95,7 @@ class CWTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._download_json(
-            f'https://images.cwtv.com/feed/app-2/video-meta/apiversion_22/device_web/guid_{video_id}', video_id)
+            f'https://images.cwtv.com/feed/app-2/video-meta/apiversion_22/device_android/guid_{video_id}', video_id)
         if traverse_obj(data, 'result') != 'ok':
             raise ExtractorError(traverse_obj(data, (('error_msg', 'msg'), {str}, any)), expected=True)
         video_data = data['video']
