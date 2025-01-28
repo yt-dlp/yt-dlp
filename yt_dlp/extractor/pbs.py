@@ -61,7 +61,7 @@ class PBSIE(InfoExtractor):
         (r'video\.wyomingpbs\.org', 'Wyoming PBS (KCWC)'),  # http://www.wyomingpbs.org
         (r'video\.cpt12\.org', 'Colorado Public Television / KBDI 12 (KBDI)'),  # http://www.cpt12.org/
         (r'video\.kbyueleven\.org', 'KBYU-TV (KBYU)'),  # http://www.kbyutv.org/
-        (r'video\.thirteen\.org', 'Thirteen/WNET New York (WNET)'),  # http://www.thirteen.org
+        (r'(?:video\.|www\.)thirteen\.org', 'Thirteen/WNET New York (WNET)'),  # http://www.thirteen.org
         (r'video\.wgbh\.org', 'WGBH/Channel 2 (WGBH)'),  # http://wgbh.org
         (r'video\.wgby\.org', 'WGBY (WGBY)'),  # http://www.wgby.org
         (r'watch\.njtvonline\.org', 'NJTV Public Media NJ (WNJT)'),  # http://www.njtvonline.org/
@@ -178,7 +178,6 @@ class PBSIE(InfoExtractor):
         (r'video\.wtjx\.org', 'WTJX Channel 12 (WTJX)'),  # http://www.wtjx.org/
         (r'video\.ideastations\.org', 'WCVE PBS (WCVE)'),  # http://ideastations.org/
         (r'video\.kbtc\.org', 'KBTC Public Television (KBTC)'),  # http://kbtc.org
-        (r'(?:www\.)?thirteen\.org', 'Thirteen (WNET'),  # https://www.thirteen.org
     )
 
     IE_NAME = 'pbs'
