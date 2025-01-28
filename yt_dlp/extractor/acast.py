@@ -50,7 +50,7 @@ class ACastIE(ACastBaseIE):
                     )'''
     _EMBED_REGEX = [rf'(?x)<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
-        'url': 'https://www.acast.com/sparpodcast/2.raggarmordet-rosterurdetforflutna',
+        'url': 'https://shows.acast.com/sparpodcast/episodes/2.raggarmordet-rosterurdetforflutna',
         'info_dict': {
             'id': '2a92b283-1a75-4ad8-8396-499c641de0d9',
             'ext': 'mp3',
@@ -73,6 +73,9 @@ class ACastIE(ACastBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://play.acast.com/s/rattegangspodden/s04e09styckmordetihelenelund-del2-2',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.acast.com/sparpodcast/2.raggarmordet-rosterurdetforflutna',
         'only_matching': True,
     }, {
         'url': 'https://play.acast.com/s/sparpodcast/2a92b283-1a75-4ad8-8396-499c641de0d9',
