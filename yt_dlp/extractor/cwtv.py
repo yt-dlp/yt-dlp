@@ -8,6 +8,7 @@ from ..utils import (
     str_or_none,
     update_url_query,
 )
+from ..utils.traversal import traverse_obj
 
 
 class CWTVIE(InfoExtractor):
@@ -95,8 +96,8 @@ class CWTVIE(InfoExtractor):
         video_id = self._match_id(url)
         data = self._download_json(
             f'https://images.cwtv.com/feed/app-2/video-meta/apiversion_22/device_web/guid_{video_id}', video_id)
-        if data.get('result') != 'ok':
-            raise ExtractorError(data['msg'], expected=True)
+        if traverse_obj(data, 'result') != 'ok':
+            raise ExtractorError(traverse_obj(data, (('error_msg', 'msg'), {str}, any)), expected=True)
         video_data = data['video']
         title = video_data['title']
         mpx_url = update_url_query(
