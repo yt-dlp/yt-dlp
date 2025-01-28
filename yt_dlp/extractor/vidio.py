@@ -1,6 +1,12 @@
+import base64
+import datetime as dt
+import hashlib
+import hmac
 import json
 
 from .common import InfoExtractor
+from ..aes import aes_cbc_encrypt_bytes
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -22,6 +28,7 @@ from ..utils.traversal import traverse_obj
 
 
 class VidioBaseIE(InfoExtractor):
+    _GEO_COUNTRIES = ['ID']
     _LOGIN_URL = 'https://www.vidio.com/users/login'
     _NETRC_MACHINE = 'vidio'
 
@@ -67,15 +74,15 @@ class VidioBaseIE(InfoExtractor):
             'https://www.vidio.com/auth', None, data=b'')['api_key']
         self._ua = self.get_param('http_headers')['User-Agent']
 
-    def _call_api(self, url, video_id, note=None):
+    def _call_api(self, url, video_id, note=None, headers=None):
         return self._download_json(url, video_id, note=note, headers={
             'Content-Type': 'application/vnd.api+json',
             'X-API-KEY': self._api_key,
+            **(headers or {}),
         })
 
 
 class VidioIE(VidioBaseIE):
-    _GEO_COUNTRIES = ['ID']
     _VALID_URL = r'https?://(?:www\.)?vidio\.com/(?:watch|embed)/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
     _EMBED_REGEX = [rf'(?x)<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
@@ -477,29 +484,11 @@ class VidioLiveIE(VidioBaseIE):
             'upload_date': '20160421',
             'tags': [],
             'genres': [],
-            'age_limit': 13,
         },
     }, {
+        # Premier-exclusive livestream
         'url': 'https://vidio.com/live/733-trans-tv',
-        'info_dict': {
-            'id': '733',
-            'ext': 'mp4',
-            'title': r're:TRANS TV \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-            'display_id': 'trans-tv',
-            'uploader': 'transtv',
-            'uploader_id': '551300',
-            'uploader_url': 'https://www.vidio.com/@transtv',
-            'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
-            'live_status': 'is_live',
-            'description': r're:^Trans TV adalah stasiun televisi swasta Indonesia.+',
-            'like_count': int,
-            'dislike_count': int,
-            'timestamp': 1461355080,
-            'upload_date': '20160422',
-            'tags': [],
-            'genres': [],
-            'age_limit': 13,
-        },
+        'only_matching': True,
     }, {
         # Premier-exclusive livestream
         'url': 'https://www.vidio.com/live/6362-tvn',
@@ -510,55 +499,59 @@ class VidioLiveIE(VidioBaseIE):
         'only_matching': True,
     }]
 
+    _WEB_CLIENT_SECRTE = b'dPr0QImQ7bc5o9LMntNba2DOsSbZcjUh'
+    _WEB_CLIENT_IV = b'C8RWsrtFsoeyCyPt'
+
+    def _yield_formats(self, url, video_id):
+        client_id = str(dt.datetime.now().timestamp())[:-3]
+        try:
+            stream_info = self._call_api(
+                f'https://api.vidio.com/livestreamings/{video_id}/stream?initialize=true', video_id,
+                headers={
+                    'X-API-KEY': base64.b64encode(aes_cbc_encrypt_bytes(
+                        self._api_key.encode(),
+                        self._WEB_CLIENT_SECRTE,
+                        self._WEB_CLIENT_IV,
+                    )),
+                    'X-API-Platform': 'web-desktop',
+                    'X-Client': client_id,
+                    'X-Request-From': url,
+                    'X-Secure-Level': 2,
+                    'X-Signature': hmac.new(f'V1d10D3v:{client_id}'.encode(), client_id.encode(), hashlib.sha256).hexdigest(),
+                },
+            )
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                self.raise_login_required('This show requires subscription', metadata_available=True)
+                return []
+            raise
+
+        if m3u8_url := traverse_obj(stream_info, ('data', 'attributes', 'hls', {url_or_none})):
+            yield from self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
+        if mpd_url := traverse_obj(stream_info, ('data', 'attributes', 'dash', {url_or_none})):
+            yield from self._extract_mpd_formats(mpd_url, video_id, mpd_id='dash', fatal=False)
+
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).groups()
 
-        webpage = self._download_webpage(url, video_id)
+        attrs = extract_attributes(get_element_html_by_id(
+            f'player-data-{video_id}', self._download_webpage(url, video_id, fatal=False) or ''))
         stream_meta = traverse_obj(self._call_api(
             f'https://www.vidio.com/api/livestreamings/{video_id}/detail', video_id),
             ('livestreamings', 0, {dict}), default={})
-        tokenized_playlist_urls = self._download_json(
-            f'https://www.vidio.com/live/{video_id}/tokens', video_id,
-            query={'type': 'dash'}, note='Downloading tokenized playlist',
-            errnote='Unable to download tokenized playlist', data=b'')
-        interactions_stream = self._download_json(
-            'https://www.vidio.com/interactions_stream.json', video_id,
-            query={'video_id': video_id, 'type': 'videos'}, note='Downloading stream info',
-            errnote='Unable to download stream info')
-
-        attrs = extract_attributes(get_element_html_by_id(f'player-data-{video_id}', webpage))
-
-        if traverse_obj(attrs, ('data-drm-enabled', {lambda x: x == 'true'})):
-            self.report_drm(video_id)
-        if traverse_obj(attrs, ('data-geoblock', {lambda x: x == 'true'})):
-            self.raise_geo_restricted(
-                'This show isn\'t available in your country', countries=['ID'], metadata_available=True)
-
-        formats = []
-
-        for m3u8_url in traverse_obj([
-                tokenized_playlist_urls.get('hls_url'),
-                interactions_stream.get('source')], (..., {url_or_none})):
-            formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', m3u8_id='hls'))
-
-        for mpd_url in traverse_obj([
-                tokenized_playlist_urls.get('dash_url'),
-                interactions_stream.get('source_dash')], (..., {url_or_none})):
-            formats.extend(self._extract_mpd_formats(mpd_url, video_id, mpd_id='dash'))
-
-        uploader = attrs.get('data-video-username')
-        uploader_url = f'https://www.vidio.com/@{uploader}'
 
         return {
             'id': video_id,
             'display_id': display_id,
             'title': attrs.get('data-video-title'),
             'live_status': 'is_live',
-            'formats': formats,
+            'formats': list(self._yield_formats(url, video_id)),
             'genres': traverse_obj(attrs, ('data-genres', {str_or_none}, filter, {lambda x: x.split(',')}), default=[]),
-            'uploader': uploader,
             'uploader_id': traverse_obj(attrs, ('data-video-user-id', {str_or_none})),
-            'uploader_url': uploader_url,
+            **traverse_obj(attrs, ('data-video-username', {lambda x: {
+                'uploader': x,
+                'uploader_url': f'https://www.vidio.com/@{x}',
+            }}), default={}),
             'thumbnail': traverse_obj(attrs, ('data-video-image-url', {url_or_none})),
             'description': traverse_obj(attrs, ('data-video-description', {str})),
             'availability': self._availability(needs_premium=(attrs.get('data-access-type') == 'premium')),
