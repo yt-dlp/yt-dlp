@@ -47,7 +47,7 @@ class PBSIE(InfoExtractor):
         (r'video\.kpbs\.org', 'KPBS San Diego (KPBS)'),  # http://www.kpbs.org/
         (r'video\.kqed\.org', 'KQED (KQED)'),  # http://www.kqed.org
         (r'vids\.kvie\.org', 'KVIE Public Television (KVIE)'),  # http://www.kvie.org
-        (r'video\.pbssocal\.org', 'PBS SoCal/KOCE (KOCE)'),  # http://www.pbssocal.org/
+        (r'(?:video\.|www\.)pbssocal\.org', 'PBS SoCal/KOCE (KOCE)'),  # http://www.pbssocal.org/
         (r'video\.valleypbs\.org', 'ValleyPBS (KVPT)'),  # http://www.valleypbs.org/
         (r'video\.cptv\.org', 'CONNECTICUT PUBLIC TELEVISION (WEDH)'),  # http://cptv.org
         (r'watch\.knpb\.org', 'KNPB Channel 5 (KNPB)'),  # http://www.knpb.org/
@@ -185,12 +185,13 @@ class PBSIE(InfoExtractor):
 
     _VALID_URL = r'''(?x)https?://
         (?:
-           # Direct video URL
-           (?:{})/(?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
-           # Article with embedded player (or direct video)
-           (?:www\.)?pbs\.org/(?:[^/]+/){{1,5}}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
-           # Player
-           (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)
+            # Player
+            (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/?#]+) |
+            # Direct video URL, or article with embedded player
+            (?:{})/(?:
+              (?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/#]|$) |
+              (?:[^/?#]+/){{1,5}}(?P<presumptive_id>[^/?#]+?)(?:\.html)?/?(?:$|[?#])
+            )
         )
     '''.format('|'.join(next(zip(*_STATIONS))))
 
@@ -404,6 +405,19 @@ class PBSIE(InfoExtractor):
             'expected_warnings': ['HTTP Error 403: Forbidden'],
         },
         {
+            'url': 'https://www.pbssocal.org/shows/newshour/clip/capehart-johnson-1715984001',
+            'info_dict': {
+                'id': '3091549094',
+                'ext': 'mp4',
+                'title': 'PBS NewsHour - Capehart and Johnson on the unusual Biden-Trump debate plans',
+                'description': 'Capehart and Johnson on how the Biden-Trump debates could shape the campaign season',
+                'display_id': 'capehart-johnson-1715984001',
+                'duration': 593,
+                'thumbnail': 'https://image.pbs.org/video-assets/mF3oSVn-asset-mezzanine-16x9-QeXjXPy.jpg',
+                'chapters': [],
+            },
+        },
+        {
             'url': 'http://player.pbs.org/widget/partnerplayer/2365297708/?start=0&end=0&chapterbar=false&endscreen=false&topbar=true',
             'only_matching': True,
         },
@@ -467,6 +481,7 @@ class PBSIE(InfoExtractor):
                 r"(?s)window\.PBS\.playerConfig\s*=\s*{.*?id\s*:\s*'([0-9]+)',",
                 r'<div[^>]+\bdata-cove-id=["\'](\d+)"',  # http://www.pbs.org/wgbh/roadshow/watch/episode/2105-indianapolis-hour-2/
                 r'<iframe[^>]+\bsrc=["\'](?:https?:)?//video\.pbs\.org/widget/partnerplayer/(\d+)',  # https://www.pbs.org/wgbh/masterpiece/episodes/victoria-s2-e1/
+                r'\bhttps?://player\.pbs\.org/[\w-]+player/(\d+)',      # last pattern to avoid false positives
             ]
 
             media_id = self._search_regex(

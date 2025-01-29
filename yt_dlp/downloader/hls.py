@@ -119,12 +119,12 @@ class HlsFD(FragmentFD):
             self.to_screen(f'[{self.FD_NAME}] Fragment downloads will be delegated to {real_downloader.get_basename()}')
 
         def is_ad_fragment_start(s):
-            return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s
-                    or s.startswith('#UPLYNK-SEGMENT') and s.endswith(',ad'))
+            return ((s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s)
+                    or (s.startswith('#UPLYNK-SEGMENT') and s.endswith(',ad')))
 
         def is_ad_fragment_end(s):
-            return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=master' in s
-                    or s.startswith('#UPLYNK-SEGMENT') and s.endswith(',segment'))
+            return ((s.startswith('#ANVATO-SEGMENT-INFO') and 'type=master' in s)
+                    or (s.startswith('#UPLYNK-SEGMENT') and s.endswith(',segment')))
 
         fragments = []
 
