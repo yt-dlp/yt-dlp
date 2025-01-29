@@ -184,20 +184,71 @@ class ESPNIE(OnceIE):
 
 
 class ESPNArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:espn\.go|(?:www\.)?espn)\.com/(?:[^/]+/)*(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:espn\.go|(?:www\.)?espn)\.com(?:/[^/]+)*(?:[?/]gameId[/=]|/id/)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.espn.com/college-football/game/_/gameId/401520427',
         'info_dict': {
             'id': '401520427',
             'title': 'Alabama 27-24 Auburn (Nov 25, 2023) Final Score - ESPN',
             'description': 'Game summary of the Alabama Crimson Tide vs. Auburn Tigers NCAAF game, final score 27-24, from November 25, 2023 on ESPN.',
+        },
+        'playlist_count': 0,
+    }, {
+        'url': 'https://www.espn.com/college-football/game/_/gameId/401015019/charlotte-mtsu',
+        'info_dict': {
+            'id': '401015019',
+            'title': 'Middle Tennessee 21-13 Charlotte (Oct 20, 2018) Final Score - ESPN',
+            'description': 'Game summary of the Middle Tennessee Blue Raiders vs. Charlotte 49ers NCAAF game, final score 21-13, from October 20, 2018 on ESPN.',
             'entries': [{
-                'id': '38979520',
+                'id': '25035207',
             }, {
-                'id': '38981707',
+                'id': '25035930',
+            }, {
+                'id': '25035232',
+            }, {
+                'id': '25034741',
+            }],
+        },
+        'playlist_count': 4,
+    }, {
+        'url': 'https://www.espn.com/college-football/game/_/gameId/401015037/charlotte-marshall',
+        'info_dict': {
+            'id': '401015037',
+            'title': 'Marshall 30-13 Charlotte (Nov 10, 2018) Final Score - ESPN',
+            'description': 'Game summary of the Marshall Thundering Herd vs. Charlotte 49ers NCAAF game, final score 30-13, from November 10, 2018 on ESPN.',
+            'entries': [{
+                'id': '25236419',
+            }, {
+                'id': '25235710',
             }],
         },
         'playlist_count': 2,
+    }, {
+        'url': 'https://www.espn.com/college-football/game/_/gameId/401015044',
+        'info_dict': {
+            'id': '401015044',
+            'title': 'Florida International 42-35 Charlotte (Nov 17, 2018) Final Score - ESPN',
+            'description': 'Game summary of the Florida International Panthers vs. Charlotte 49ers NCAAF game, final score 42-35, from November 17, 2018 on ESPN.',
+            'entries': [{
+                'id': '25304950',
+            }, {
+                'id': '25304741',
+            }, {
+                'id': '25304716',
+            }],
+        },
+        'playlist_count': 3,
+    }, {
+        'url': 'https://www.espn.com/nba/recap?gameId=400793781',
+        'info_dict': {
+            'id': '400793781',
+            'title': 'Wizards 104-98 Hawks (May 3, 2015) Game Recap - ESPN',
+            'description': 'Expert recap and game analysis of the Washington Wizards vs. Atlanta Hawks NBA game from May 3, 2015 on ESPN.',
+            'entries': [{
+                'id': '12812586',
+            }],
+        },
+        'playlist_count': 1,
     }, {
         'url': 'http://espn.go.com/nba/recap?gameId=400793786',
         'only_matching': True,
