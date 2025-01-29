@@ -363,7 +363,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             video_id = traverse_obj(nextjs_data, (
                 ..., ..., ..., 'children',
                 lambda _, v: v['video']['url'] == urllib.parse.urlparse(url).path,
-                'video', 'siId', {str}, any))
+                'video', ('playerReplayId', 'siId'), {str}, any))
 
         if not video_id:
             raise ExtractorError('Unable to extract video ID')
