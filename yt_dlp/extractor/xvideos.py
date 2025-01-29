@@ -11,7 +11,6 @@ from ..utils import (
     get_element_by_class,
     get_element_by_id,
     int_or_none,
-    js_to_json,
     parse_duration,
     remove_end,
     str_or_none,
@@ -258,7 +257,7 @@ class XVideosUserIE(InfoExtractor):
             'description': 'md5:ad6654037aee13535b0d15a020eb82d0',
             'thumbnails': 'count:2',
         },
-        'playlist_mincount': 9,
+        'playlist_mincount': 8,
     }, {
         # channel; "Most commented"
         'url': 'https://www.xvideos.com/amateur-channels/queanfuckingcucking#_tabVideos,comments',
@@ -324,8 +323,7 @@ class XVideosUserIE(InfoExtractor):
         page_base_url = f'https://www.xvideos.com/{page_path}/videos/{sort_order}'
 
         user_info = traverse_obj(self._search_json(
-            r'<script>.*?window\.xv\.conf\s*=', webpage, 'xv.conf',
-            display_id, transform_source=js_to_json, fatal=False), ('data', 'user'))
+            r'<script>.*?window\.xv\.conf\s*=', webpage, 'xv.conf', display_id, fatal=False), ('data', 'user'))
         user_id = traverse_obj(user_info, ('id_user', {str_or_none})) or display_id
 
         return self.playlist_result(
