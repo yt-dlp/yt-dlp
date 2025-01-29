@@ -88,7 +88,8 @@ class GoPlayIE(InfoExtractor):
             re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
             (..., {js_to_json}, {json.loads}, ..., {self._find_json}, ...))
         meta = traverse_obj(nextjs_data, (
-            ..., lambda _, v: v['meta']['path'] == urllib.parse.urlparse(url).path, 'meta', any))
+            ..., ..., 'children', ..., ..., 'children',
+            lambda _, v: v['video']['path'] == urllib.parse.urlparse(url).path, 'video', any))
 
         video_id = meta['uuid']
         info_dict = traverse_obj(meta, {
