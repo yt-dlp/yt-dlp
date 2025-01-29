@@ -129,6 +129,8 @@
  - **Bandcamp:album**
  - **Bandcamp:user**
  - **Bandcamp:weekly**
+ - **Bandlab**
+ - **BandlabPlaylist**
  - **BannedVideo**
  - **bbc**: [*bbc*](## "netrc machine") BBC
  - **bbc.co.uk**: [*bbc*](## "netrc machine") BBC iPlayer
@@ -169,6 +171,7 @@
  - **BilibiliCheese**
  - **BilibiliCheeseSeason**
  - **BilibiliCollectionList**
+ - **BiliBiliDynamic**
  - **BilibiliFavoritesList**
  - **BiliBiliPlayer**
  - **BilibiliPlaylist**
@@ -301,10 +304,6 @@
  - **CrowdBunker**
  - **CrowdBunkerChannel**
  - **Crtvg**
- - **crunchyroll**: [*crunchyroll*](## "netrc machine")
- - **crunchyroll:artist**: [*crunchyroll*](## "netrc machine")
- - **crunchyroll:music**: [*crunchyroll*](## "netrc machine")
- - **crunchyroll:playlist**: [*crunchyroll*](## "netrc machine")
  - **CSpan**: C-SPAN
  - **CSpanCongress**
  - **CtsNews**: 華視新聞
@@ -372,6 +371,7 @@
  - **Dropbox**
  - **Dropout**: [*dropout*](## "netrc machine")
  - **DropoutSeason**
+ - **DrTalks**
  - **DrTuber**
  - **drtv**
  - **drtv:live**
@@ -390,6 +390,8 @@
  - **Ebay**
  - **egghead:course**: egghead.io course
  - **egghead:lesson**: egghead.io lesson
+ - **eggs:artist**
+ - **eggs:single**
  - **EinsUndEinsTV**: [*1und1tv*](## "netrc machine")
  - **EinsUndEinsTVLive**: [*1und1tv*](## "netrc machine")
  - **EinsUndEinsTVRecordings**: [*1und1tv*](## "netrc machine")
@@ -474,9 +476,6 @@
  - **FrontendMastersCourse**: [*frontendmasters*](## "netrc machine")
  - **FrontendMastersLesson**: [*frontendmasters*](## "netrc machine")
  - **FujiTVFODPlus7**
- - **Funimation**: [*funimation*](## "netrc machine")
- - **funimation:page**: [*funimation*](## "netrc machine")
- - **funimation:show**: [*funimation*](## "netrc machine")
  - **Funk**
  - **Funker530**
  - **Fux**
@@ -484,6 +483,7 @@
  - **Gab**
  - **GabTV**
  - **Gaia**: [*gaia*](## "netrc machine")
+ - **GameDevTVDashboard**: [*gamedevtv*](## "netrc machine")
  - **GameJolt**
  - **GameJoltCommunity**
  - **GameJoltGame**
@@ -651,6 +651,8 @@
  - **Karaoketv**
  - **Katsomo**: (**Currently broken**)
  - **KelbyOne**: (**Currently broken**)
+ - **Kenh14Playlist**
+ - **Kenh14Video**
  - **Ketnet**
  - **khanacademy**
  - **khanacademy:unit**
@@ -784,10 +786,6 @@
  - **MicrosoftLearnSession**
  - **MicrosoftMedius**
  - **microsoftstream**: Microsoft Stream
- - **mildom**: Record ongoing live by specific user in Mildom
- - **mildom:clip**: Clip in Mildom
- - **mildom:​user:vod**: Download all VODs from specific user in Mildom
- - **mildom:vod**: VOD in Mildom
  - **minds**
  - **minds:channel**
  - **minds:group**
@@ -798,6 +796,7 @@
  - **MiTele**: mitele.es
  - **mixch**
  - **mixch:archive**
+ - **mixch:movie**
  - **mixcloud**
  - **mixcloud:playlist**
  - **mixcloud:user**
@@ -889,6 +888,8 @@
  - **nebula:video**: [*watchnebula*](## "netrc machine")
  - **NekoHacker**
  - **NerdCubedFeed**
+ - **Nest**
+ - **NestClip**
  - **netease:album**: 网易云音乐 - 专辑
  - **netease:djradio**: 网易云音乐 - 电台
  - **netease:mv**: 网易云音乐 - MV
@@ -1060,14 +1061,16 @@
  - **PhilharmonieDeParis**: Philharmonie de Paris
  - **phoenix.de**
  - **Photobucket**
+ - **PiaLive**
  - **Piapro**: [*piapro*](## "netrc machine")
- - **PIAULIZAPortal**: ulizaportal.jp - PIA LIVE STREAM
  - **Picarto**
  - **PicartoVod**
  - **Piksel**
  - **Pinkbike**
  - **Pinterest**
  - **PinterestCollection**
+ - **PiramideTV**
+ - **PiramideTVChannel**
  - **pixiv:sketch**
  - **pixiv:​sketch:user**
  - **Pladform**
@@ -1084,12 +1087,11 @@
  - **pluralsight**: [*pluralsight*](## "netrc machine")
  - **pluralsight:course**
  - **PlutoTV**: (**Currently broken**)
+ - **PlVideo**: Платформа
  - **PodbayFM**
  - **PodbayFMChannel**
  - **Podchaser**
  - **podomatic**: (**Currently broken**)
- - **Pokemon**
- - **PokemonWatch**
  - **PokerGo**: [*pokergo*](## "netrc machine")
  - **PokerGoCollection**: [*pokergo*](## "netrc machine")
  - **PolsatGo**
@@ -1160,6 +1162,7 @@
  - **RadioJavan**: (**Currently broken**)
  - **radiokapital**
  - **radiokapital:show**
+ - **RadioRadicale**
  - **RadioZetPodcast**
  - **radlive**
  - **radlive:channel**
@@ -1367,9 +1370,7 @@
  - **spotify**: Spotify episodes (**Currently broken**)
  - **spotify:show**: Spotify shows (**Currently broken**)
  - **Spreaker**
- - **SpreakerPage**
  - **SpreakerShow**
- - **SpreakerShowPage**
  - **SpringboardPlatform**
  - **Sprout**
  - **SproutVideo**
@@ -1395,6 +1396,8 @@
  - **StretchInternet**
  - **Stripchat**
  - **stv:player**
+ - **Subsplash**
+ - **subsplash:playlist**
  - **Substack**
  - **SunPorno**
  - **sverigesradio:episode**
@@ -1570,6 +1573,8 @@
  - **UFCTV**: [*ufctv*](## "netrc machine")
  - **ukcolumn**: (**Currently broken**)
  - **UKTVPlay**
+ - **UlizaPlayer**
+ - **UlizaPortal**: ulizaportal.jp
  - **umg:de**: Universal Music Deutschland (**Currently broken**)
  - **Unistra**
  - **Unity**: (**Currently broken**)
@@ -1587,8 +1592,6 @@
  - **Varzesh3**: (**Currently broken**)
  - **Vbox7**
  - **Veo**
- - **Veoh**
- - **veoh:user**
  - **Vesti**: Вести.Ru (**Currently broken**)
  - **Vevo**
  - **VevoPlaylist**
@@ -1642,8 +1645,6 @@
  - **Vimm:stream**
  - **ViMP**
  - **ViMP:Playlist**
- - **Vine**
- - **vine:user**
  - **Viously**
  - **Viqeo**: (**Currently broken**)
  - **Viu**

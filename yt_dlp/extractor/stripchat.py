@@ -28,24 +28,21 @@ class StripchatIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id, headers=self.geo_verification_headers())
+        data = self._search_json(
+            r'<script\b[^>]*>\s*window\.__PRELOADED_STATE__\s*=',
+            webpage, 'data', video_id, transform_source=lowercase_escape)
 
-        data = self._parse_json(
-            self._search_regex(
-                r'<script\b[^>]*>\s*window\.__PRELOADED_STATE__\s*=(?P<value>.*?)<\/script>',
-                webpage, 'data', default='{}', group='value'),
-            video_id, transform_source=lowercase_escape, fatal=False)
-        if not data:
-            raise ExtractorError('Unable to find configuration for stream.')
-
-        if traverse_obj(data, ('viewCam', 'show'), expected_type=dict):
-            raise ExtractorError('Model is in private show', expected=True)
-        elif not traverse_obj(data, ('viewCam', 'model', 'isLive'), expected_type=bool):
+        if traverse_obj(data, ('viewCam', 'show', {dict})):
+            raise ExtractorError('Model is in a private show', expected=True)
+        if not traverse_obj(data, ('viewCam', 'model', 'isLive', {bool})):
             raise UserNotLive(video_id=video_id)
 
-        model_id = traverse_obj(data, ('viewCam', 'model', 'id'), expected_type=int)
+        model_id = data['viewCam']['model']['id']
 
         formats = []
-        for host in traverse_obj(data, ('config', 'data', (
+        # HLS hosts are currently found in .configV3.static.features.hlsFallback.fallbackDomains[]
+        # The rest of the path is for backwards compatibility and to guard against A/B testing
+        for host in traverse_obj(data, ((('config', 'data'), ('configV3', 'static')), (
                 (('features', 'featuresV2'), 'hlsFallback', 'fallbackDomains', ...), 'hlsStreamHost'))):
             formats = self._extract_m3u8_formats(
                 f'https://edge-hls.{host}/hls/{model_id}/master/{model_id}_auto.m3u8',
@@ -53,7 +50,7 @@ class StripchatIE(InfoExtractor):
             if formats:
                 break
         if not formats:
-            self.raise_no_formats('No active streams found', expected=True)
+            self.raise_no_formats('Unable to extract stream host', video_id=video_id)
 
         return {
             'id': video_id,
