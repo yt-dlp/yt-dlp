@@ -123,8 +123,8 @@ class YoutubeLiveChatFD(FragmentFD):
                         data,
                         lambda x: x['continuationContents']['liveChatContinuation'], dict) or {}
 
-                    func = (info_dict['protocol'] == 'youtube_live_chat' and parse_actions_live
-                            or frag_index == 1 and try_refresh_replay_beginning
+                    func = ((info_dict['protocol'] == 'youtube_live_chat' and parse_actions_live)
+                            or (frag_index == 1 and try_refresh_replay_beginning)
                             or parse_actions_replay)
                     return (True, *func(live_chat_continuation))
                 except HTTPError as err:
