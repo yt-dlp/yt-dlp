@@ -35,6 +35,7 @@ class NovaEmbedIE(InfoExtractor):
         'expected_warnings': ['DRM protected', 'Requested format is not available'],
     }, {
         'url': 'https://media.cms.nova.cz/embed/KybpWYvcgOa',
+        'md5': '5a14c5c09fd83bcc7391ccda93c5e4de',
         'info_dict': {
             'id': 'KybpWYvcgOa',
             'ext': 'mp4',
@@ -42,9 +43,9 @@ class NovaEmbedIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 114,
         },
-        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://mediatn.cms.nova.cz/embed/EU5ELEsmOHt?autoplay=1',
+        'md5': '9054402fa411c4faa944242dd6f71eb4',
         'info_dict': {
             'id': 'EU5ELEsmOHt',
             'ext': 'mp4',
@@ -52,7 +53,6 @@ class NovaEmbedIE(InfoExtractor):
             'thumbnail': r're:^https?://cloudia\.cms\.nova\.cz/.+',
             'duration': 1780,
         },
-        'params': {'skip_download': 'm3u8'},
     }]
     _WEBPAGE_TESTS = [{
         'url': 'http://www.markiza.sk/soubiz/zahranicny/1923705_oteckovia-maju-svoj-den-ti-slavni-nie-su-o-nic-menej-rozkosni',
@@ -215,7 +215,9 @@ class NovaEmbedIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, video_id)
+        webpage, urlh = self._download_webpage_handle(url, video_id, expected_status=403)
+        if urlh.status == 403:
+            self.raise_geo_restricted()
         if 'player_not_logged_in' in webpage:
             self.raise_login_required()
 
