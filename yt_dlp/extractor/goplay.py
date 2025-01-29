@@ -12,7 +12,6 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    js_to_json,
     remove_end,
     traverse_obj,
 )
@@ -76,6 +75,7 @@ class GoPlayIE(InfoExtractor):
         if not self._id_token:
             raise self.raise_login_required(method='password')
 
+    # XXX: For parsing next.js v15+ data; see also yt_dlp.extractor.francetv
     def _find_json(self, s):
         return self._search_json(
             r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=None)
@@ -86,9 +86,10 @@ class GoPlayIE(InfoExtractor):
 
         nextjs_data = traverse_obj(
             re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
-            (..., {js_to_json}, {json.loads}, ..., {self._find_json}, ...))
+            (..., {json.loads}, ..., {self._find_json}, ...))
         meta = traverse_obj(nextjs_data, (
-            ..., lambda _, v: v['meta']['path'] == urllib.parse.urlparse(url).path, 'meta', any))
+            ..., ..., 'children', ..., ..., 'children',
+            lambda _, v: v['video']['path'] == urllib.parse.urlparse(url).path, 'video', any))
 
         video_id = meta['uuid']
         info_dict = traverse_obj(meta, {
