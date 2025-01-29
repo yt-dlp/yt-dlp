@@ -2,6 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
     join_nonempty,
     xpath_text,
@@ -14,7 +15,12 @@ class WebcasterBaseIE(InfoExtractor):
 
         video = self._download_xml(url, video_id)
 
-        title = xpath_text(video, './/event_name', 'event name', fatal=True)
+        title = xpath_text(video, './/event_name', 'event name')
+        if not title:
+            msg = 'Invalid video'
+            if error_note := xpath_text(video, './/message'):
+                msg = f'{msg}: {error_note}'
+            raise ExtractorError(msg, expected=True)
 
         formats = []
         for format_id in (None, 'noise'):
@@ -77,7 +83,10 @@ class WebcasterIE(WebcasterBaseIE):
     }, {
         # http://video.khl.ru/quotes/393859
         'url': 'http://bl.webcaster.pro/quote/start/free_c8cefd240aa593681c8d068cff59f407_hd/q393859/eb173f99dd5f558674dae55f4ba6806d/1480289104?sr%3D105%26fa%3D1%26type_id%3D18',
-        'only_matching': True,
+        'expected_exception': 'ExtractorError',
+    }, {
+        'url': 'https://bl.webcaster.pro/media/start/api_free_903d301687b0455c53088ac0ab14223a_hd/5_2406026867/77d98a80c1083db7c4a4224a17606731/4740107522?locale=en',
+        'expected_exception': 'ExtractorError',
     }]
 
 
