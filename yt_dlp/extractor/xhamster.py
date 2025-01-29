@@ -20,7 +20,7 @@ from ..utils import (
 
 
 class XHamsterIE(InfoExtractor):
-    _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.com|xhday\.com|xhvid\.com)'
+    _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.(?:com|desi)|xhday\.com|xhvid\.com)'
     _VALID_URL = rf'''(?x)
                     https?://
                         (?:[^/?#]+\.)?{_DOMAINS}/
@@ -31,7 +31,7 @@ class XHamsterIE(InfoExtractor):
                     '''
     _TESTS = [{
         'url': 'https://xhamster.com/videos/femaleagent-shy-beauty-takes-the-bait-1509445',
-        'md5': '34e1ab926db5dc2750fed9e1f34304bb',
+        'md5': 'e009ea6b849b129e3bebaeb9cf0dee51',
         'info_dict': {
             'id': '1509445',
             'display_id': 'femaleagent-shy-beauty-takes-the-bait',
@@ -43,6 +43,11 @@ class XHamsterIE(InfoExtractor):
             'uploader_id': 'ruseful2011',
             'duration': 893,
             'age_limit': 18,
+            'thumbnail': 'https://thumb-nss.xhcdn.com/a/u3Vr5F2vvcU3yK59_jJqVA/001/509/445/1280x720.8.jpg',
+            'uploader_url': 'https://xhamster.com/users/ruseful2011',
+            'description': '',
+            'view_count': int,
+            'comment_count': int,
         },
     }, {
         'url': 'https://xhamster.com/videos/britney-spears-sexy-booty-2221348?hd=',
@@ -56,6 +61,10 @@ class XHamsterIE(InfoExtractor):
             'uploader': 'jojo747400',
             'duration': 200,
             'age_limit': 18,
+            'description': '',
+            'view_count': int,
+            'thumbnail': 'https://thumb-nss.xhcdn.com/a/kk5nio_iR-h4Z3frfVtoDw/002/221/348/1280x720.4.jpg',
+            'comment_count': int,
         },
         'params': {
             'skip_download': True,
@@ -73,6 +82,11 @@ class XHamsterIE(InfoExtractor):
             'uploader_id': 'parejafree',
             'duration': 72,
             'age_limit': 18,
+            'comment_count': int,
+            'uploader_url': 'https://xhamster.com/users/parejafree',
+            'description': '',
+            'view_count': int,
+            'thumbnail': 'https://thumb-nss.xhcdn.com/a/xc8MSwVKcsQeRRiTT-saMQ/005/667/973/1280x720.2.jpg',
         },
         'params': {
             'skip_download': True,
@@ -121,6 +135,9 @@ class XHamsterIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://xhvid.com/videos/lk-mm-xhc6wn6',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster20.desi/videos/my-verification-video-scottishmistress23-11937369',
         'only_matching': True,
     }]
 
@@ -267,7 +284,7 @@ class XHamsterIE(InfoExtractor):
                     video, lambda x: x['rating']['likes'], int)),
                 'dislike_count': int_or_none(try_get(
                     video, lambda x: x['rating']['dislikes'], int)),
-                'comment_count': int_or_none(video.get('views')),
+                'comment_count': int_or_none(video.get('comments')),
                 'age_limit': age_limit if age_limit is not None else 18,
                 'categories': categories,
                 'formats': formats,
