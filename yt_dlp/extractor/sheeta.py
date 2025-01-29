@@ -25,6 +25,327 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
+class AuthManager:
+    _AUTH_INFO = {}
+
+    def __init__(self, ie: 'SheetaEmbedIE'):
+        self._ie = ie
+        self._auth_info = {}
+
+    @property
+    def _auth_info(self):
+        if not self._AUTH_INFO.get(self._ie._DOMAIN):
+            self._AUTH_INFO[self._ie._DOMAIN] = {}
+        return self._AUTH_INFO.get(self._ie._DOMAIN)
+
+    @_auth_info.setter
+    def _auth_info(self, value):
+        if not self._AUTH_INFO.get(self._ie._DOMAIN):
+            self._AUTH_INFO[self._ie._DOMAIN] = {}
+        self._AUTH_INFO[self._ie._DOMAIN].update(value)
+
+    def _get_authed_info(self, query_path, item_id, dict_path, expected_code_msg, **query_kwargs):
+        try:
+            res = self._ie._call_api(query_path, item_id, **query_kwargs)
+            return traverse_obj(res, dict_path)
+        except ExtractorError as e:
+            if not isinstance(e.cause, HTTPError) or e.cause.status not in expected_code_msg:
+                raise e
+            self._ie.raise_login_required(
+                expected_code_msg[e.cause.status], metadata_available=True,
+                method=self._auth_info.get('login_method'))
+            return None
+
+    def _get_auth_token(self):
+        if not self._auth_info.get('auth_token'):
+            try:
+                self._login()
+                return self._auth_info.get('auth_token')
+            except Exception as e:
+                raise ExtractorError('Unable to login due to unknown reasons') from e
+
+        if self._auth_info.get('auth_token'):
+            try:
+                self._refresh_token()
+                return self._auth_info.get('auth_token')
+            except Exception as e:
+                raise ExtractorError('Unable to refresh token due to unknown reasons') from e
+
+        return None
+
+    def _refresh_token(self):
+        if not (refresh_func := self._auth_info.get('refresh_func')):
+            return False
+
+        res = self._ie._download_json(
+            **refresh_func(self._auth_info), expected_status=(400, 403, 404),
+            note='Refreshing token', errnote='Unable to refresh token')
+        if error := traverse_obj(
+                res, ('error', 'message', {lambda x: base64.b64decode(x).decode()}), ('error', 'message')):
+            self._ie.report_warning(f'Unable to refresh token: {error!r}')
+        elif token := traverse_obj(res, ('data', 'access_token', {str})):
+            # niconico
+            self._auth_info = {'auth_token': f'Bearer {token}'}
+            return True
+        elif token := traverse_obj(res, ('access_token', {str})):
+            # auth0
+            self._auth_info = {'auth_token': f'Bearer {token}'}
+            if refresh_token := traverse_obj(res, ('refresh_token', {str})):
+                self._auth_info = {'refresh_token': refresh_token}
+                self._ie.cache.store(
+                    self._ie._NETRC_MACHINE, self._auth_info['cache_key'], {self._auth_info['cache_name']: refresh_token})
+                return True
+            self._ie.report_warning('Unable to find new refresh_token')
+        else:
+            self._ie.report_warning('Unable to refresh token')
+
+        return False
+
+    def _login(self):
+        social_login_providers = traverse_obj(self._ie._call_api(
+            f'fanclub_groups/{self._ie._FANCLUB_GROUP_ID}/login', None),
+            ('data', 'fanclub_group', 'fanclub_social_login_providers', ..., {dict})) or []
+        self._ie.write_debug(f'social_login_providers = {social_login_providers!r}')
+
+        for provider in social_login_providers:
+            provider_name = traverse_obj(provider, ('social_login_provider', 'provider_name', {str}))
+            if provider_name == 'ニコニコ':
+                redirect_url = update_url_query(provider['url'], {
+                    'client_id': 'FCS{:05d}'.format(provider['id']),
+                    'redirect_uri': f'https://{self._ie._DOMAIN}/login',
+                })
+                refresh_url = f'{self._ie._API_BASE_URL}/fanclub_groups/{self._ie._FANCLUB_GROUP_ID}/auth/refresh'
+                return self._niconico_sns_login(redirect_url, refresh_url)
+            else:
+                raise ExtractorError(f'Unsupported social login provider: {provider_name}')
+
+        return self._auth0_login()
+
+    def _niconico_sns_login(self, redirect_url, refresh_url):
+        self._auth_info = {'login_method': 'any'}
+        mail_tel, password = self._ie._get_login_info()
+        if not mail_tel:
+            return
+
+        cache_key = hashlib.sha1(f'{self._ie._DOMAIN}:{mail_tel}:{password}'.encode()).hexdigest()
+        self._auth_info = {'cache_key': cache_key}
+        cache_name = 'niconico_sns'
+
+        if cached_cookies := traverse_obj(self._ie.cache.load(
+                self._ie._NETRC_MACHINE, cache_key), (cache_name, {dict})):
+            for name, value in cached_cookies.items():
+                self._ie._set_cookie(get_domain(redirect_url), name, value)
+
+        if not (auth_token := self._niconico_get_token_by_cookies(redirect_url)):
+            if cached_cookies:
+                self._ie.cache.store(self._ie._NETRC_MACHINE, cache_key, None)
+
+            self._niconico_login(mail_tel, password)
+
+            if not (auth_token := self._niconico_get_token_by_cookies(redirect_url)):
+                self._ie.report_warning('Unable to get token after login, please check if '
+                                        'niconico channel plus is authorized to use your niconico account')
+                return
+
+        self._auth_info = {
+            'refresh_func': lambda data: {
+                'url_or_request': data['refresh_url'],
+                'video_id': None,
+                'headers': {'Authorization': data['auth_token']},
+                'data': b'',
+            },
+            'refresh_url': refresh_url,
+            'auth_token': auth_token,
+        }
+
+        cookies = dict(traverse_obj(self._ie.cookiejar.get_cookies_for_url(
+            redirect_url), (..., {lambda item: (item.name, item.value)})))
+        self._ie.cache.store(self._ie._NETRC_MACHINE, cache_key, {cache_name: cookies})
+
+    def _niconico_get_token_by_cookies(self, redirect_url):
+        urlh = self._ie._request_webpage(
+            redirect_url, None, note='Getting niconico auth status',
+            expected_status=404, errnote='Unable to get niconico auth status')
+        if not urlh.url.startswith(f'https://{self._DOMAIN}/login'):
+            return None
+
+        if not (sns_login_code := traverse_obj(parse_qs(urlh.url), ('code', 0))):
+            self._ie.report_warning('Unable to get sns login code')
+            return None
+
+        token = traverse_obj(self._ie._call_api(
+            f'fanclub_groups/{self._ie._FANCLUB_GROUP_ID}/sns_login', None, fatal=False,
+            note='Fetching sns login info', errnote='Unable to fetch sns login info',
+            data=json.dumps({
+                'key_cloak_user': {
+                    'code': sns_login_code,
+                    'redirect_uri': f'https://{self._ie._DOMAIN}/login',
+                },
+                'fanclub_site': {'id': int(self._ie._FANCLUB_SITE_ID_AUTH)},
+            }).encode(), headers={
+                'Content-Type': 'application/json',
+                'fc_use_device': 'null',
+                'Referer': f'https://{self._ie._DOMAIN}',
+            }), ('data', 'access_token', {str}))
+        if token:
+            return f'Bearer {token}'
+
+        self._ie.report_warning('Unable to get token from sns login info')
+        return None
+
+    def _niconico_login(self, mail_tel, password):
+        login_form_strs = {
+            'mail_tel': mail_tel,
+            'password': password,
+        }
+        page, urlh = self._ie._download_webpage_handle(
+            'https://account.nicovideo.jp/login/redirector', None,
+            note='Logging into niconico', errnote='Unable to log into niconico',
+            data=urlencode_postdata(login_form_strs),
+            headers={
+                'Referer': 'https://account.nicovideo.jp/login',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            })
+        if urlh.url.startswith('https://account.nicovideo.jp/login'):
+            self._ie.report_warning('Unable to log in: bad username or password')
+            return False
+        elif urlh.url.startswith('https://account.nicovideo.jp/mfa'):
+            post_url = self._ie._search_regex(
+                r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page, 'mfa post url', group='url')
+            page, urlh = self._ie._download_webpage_handle(
+                urljoin('https://account.nicovideo.jp/', post_url), None,
+                note='Performing MFA', errnote='Unable to complete MFA',
+                data=urlencode_postdata({
+                    'otp': self._ie._get_tfa_info('6 digits code'),
+                }), headers={
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                })
+            if urlh.url.startswith('https://account.nicovideo.jp/mfa') or 'formError' in page:
+                err_msg = self._ie._html_search_regex(
+                    r'formError\b[^>]*>(.*?)</div>', page, 'form_error',
+                    default='There\'s an error but the message can\'t be parsed.',
+                    flags=re.DOTALL)
+                self._ie.report_warning(f'Unable to log in: MFA challenge failed, "{err_msg}"')
+                return False
+        return True
+
+    def _auth0_login(self):
+        self._auth_info = {'login_method': 'password'}
+        username, password = self._ie._get_login_info()
+        if not username:
+            return
+
+        cache_key = hashlib.sha1(f'{self._ie._DOMAIN}:{username}:{password}'.encode()).hexdigest()
+        cache_name = 'refresh'
+        self._auth_info = {
+            'cache_key': cache_key,
+            'cache_name': cache_name,
+        }
+
+        login_info = self._ie._call_api(f'fanclub_sites/{self._ie._FANCLUB_SITE_ID_AUTH}/login', None)['data']['fanclub_site']
+        self._ie.write_debug(f'login_info = {login_info}')
+        auth0_web_client_id = login_info['auth0_web_client_id']
+        auth0_domain = login_info['fanclub_group']['auth0_domain']
+
+        token_url = f'https://{auth0_domain}/oauth/token'
+        redirect_url = f'https://{self._ie._DOMAIN}/login/login-redirect'
+
+        auth0_client = base64.b64encode(json.dumps({
+            'name': 'auth0-spa-js',
+            'version': '2.0.6',
+        }).encode()).decode()
+
+        self._auth_info = {'refresh_func': lambda data: {
+            'url_or_request': token_url,
+            'video_id': None,
+            'headers': {'Auth0-Client': auth0_client},
+            'data': urlencode_postdata({
+                'client_id': auth0_web_client_id,
+                'grant_type': 'refresh_token',
+                'refresh_token': data['refresh_token'],
+                'redirect_uri': redirect_url,
+            }),
+        }}
+
+        def random_str():
+            return ''.join(random.choices(string.digits + string.ascii_letters, k=43))
+
+        state = base64.b64encode(random_str().encode())
+        nonce = base64.b64encode(random_str().encode())
+        code_verifier = random_str().encode()
+        code_challenge = base64.b64encode(
+            hashlib.sha256(code_verifier).digest()).decode().translate(self._ie._AUTH0_BASE64_TRANS)
+
+        authorize_url = update_url_query(f'https://{auth0_domain}/authorize', {
+            'client_id': auth0_web_client_id,
+            'scope': 'openid profile email offline_access',
+            'redirect_uri': redirect_url,
+            'audience': f'api.{self._ie._DOMAIN}',
+            'prompt': 'login',
+            'response_type': 'code',
+            'response_mode': 'query',
+            'state': state,
+            'nonce': nonce,
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256',
+            'auth0Client': auth0_client,
+        })
+
+        if cached_refresh_token := traverse_obj(self._ie.cache.load(
+                self._ie._NETRC_MACHINE, cache_key), (cache_name, {str})):
+            self._auth_info = {'refresh_token': cached_refresh_token}
+            if self._refresh_token():
+                self._ie.write_debug('cached tokens updated')
+                return
+            self._ie.cache.store(self._ie._NETRC_MACHINE, cache_key, None)
+
+        login_form = self._ie._hidden_inputs(self._ie._download_webpage(
+            authorize_url, None, note='Getting login form', errnote='Unable to get login form'))
+        state_obtained = login_form['state']
+        login_url = f'https://{auth0_domain}/u/login?state={state_obtained}'
+
+        login_form.update({
+            'username': username,
+            'password': password,
+            'action': 'default',
+        })
+
+        urlh = self._ie._request_webpage(
+            login_url, None, note='Logging in', errnote='Unable to log in',
+            data=urlencode_postdata(login_form), expected_status=(400, 404))
+        if urlh.status == 400:
+            self._ie.report_warning('Unable to log in: bad username or password')
+            return
+        if not (urlh.status == 404 and urlh.url.startswith(redirect_url)):
+            self._ie.report_warning('Unable to log in: Unknown login status')
+            return
+
+        code = parse_qs(urlh.url)['code'][0]
+
+        token_json = self._ie._download_json(
+            token_url, None, headers={'Auth0-Client': auth0_client},
+            note='Getting auth0 tokens', errnote='Unable to get auth0 tokens',
+            data=urlencode_postdata({
+                'client_id': auth0_web_client_id,
+                'code_verifier': code_verifier,
+                'grant_type': 'authorization_code',
+                'code': code,
+                'redirect_uri': redirect_url,
+            }))
+
+        access_token = token_json['access_token']
+        refresh_token = token_json['refresh_token']
+
+        auth_token = f'Bearer {access_token}'
+
+        self._auth_info = {
+            'auth_token': auth_token,
+            'refresh_token': refresh_token,
+        }
+
+        self._ie.cache.store(self._NETRC_MACHINE, cache_key, {cache_name: refresh_token})
+
+
 class SheetaEmbedIE(InfoExtractor):
     _NETRC_MACHINE = 'sheeta'
     IE_NAME = 'sheeta'
@@ -177,7 +498,6 @@ class SheetaEmbedIE(InfoExtractor):
     _FANCLUB_GROUP_ID = None
     _FANCLUB_SITE_ID_AUTH = None
     _FANCLUB_SITE_ID_INFO = None
-    _AUTH_INFO = {}
 
     _AUTH0_BASE64_TRANS = str.maketrans({
         '+': '-',
@@ -186,8 +506,18 @@ class SheetaEmbedIE(InfoExtractor):
     })
     _LIST_PAGE_SIZE = 12
 
+    auth_manager: AuthManager = None
+
+    # @classmethod
+    # def suitable(cls, url):
+    #     return (
+    #         not any(ie.suitable(url) for ie in (ArteTVIE, ArteTVPlaylistIE))
+    #         and super().suitable(url))
+
     def _extract_from_url(self, url):
         parsed_url = urllib.parse.urlparse(url)
+        if not self.auth_manager:
+            self.auth_manager = AuthManager(self)
         if '/videos' in parsed_url.path:
             return self._extract_video_list_page(url)
         elif '/lives' in parsed_url.path:
@@ -228,18 +558,6 @@ class SheetaEmbedIE(InfoExtractor):
             self._FANCLUB_SITE_ID_INFO = self._find_fanclub_site_id(channel_id)
         else:
             self._FANCLUB_SITE_ID_INFO = self._FANCLUB_SITE_ID_AUTH
-
-    @property
-    def _auth_info(self):
-        if not self._AUTH_INFO.get(self._DOMAIN):
-            self._AUTH_INFO[self._DOMAIN] = {}
-        return self._AUTH_INFO.get(self._DOMAIN)
-
-    @_auth_info.setter
-    def _auth_info(self, value):
-        if not self._AUTH_INFO.get(self._DOMAIN):
-            self._AUTH_INFO[self._DOMAIN] = {}
-        self._AUTH_INFO[self._DOMAIN].update(value)
 
     @property
     def _channel_base_info(self):
@@ -385,24 +703,12 @@ class SheetaEmbedIE(InfoExtractor):
         self.write_debug(f'{content_code}: video_type={video_type}, live_status={live_status}')
         return live_status
 
-    def _get_authed_info(self, query_path, item_id, dict_path, expected_code_msg, **query_kwargs):
-        try:
-            res = self._call_api(query_path, item_id, **query_kwargs)
-            return traverse_obj(res, dict_path)
-        except ExtractorError as e:
-            if not isinstance(e.cause, HTTPError) or e.cause.status not in expected_code_msg:
-                raise e
-            self.raise_login_required(
-                expected_code_msg[e.cause.status], metadata_available=True,
-                method=self._auth_info.get('login_method'))
-            return None
-
     def _get_formats(self, data_json, live_status, content_code):
         headers = filter_dict({
             'Content-Type': 'application/json',
             'fc_use_device': 'null',
             'origin': f'https://{self._DOMAIN}',
-            'Authorization': self._get_auth_token(),
+            'Authorization': self.auth_manager._get_auth_token(),
         })
 
         formats = []
@@ -411,7 +717,7 @@ class SheetaEmbedIE(InfoExtractor):
             if data_json.get('type') == 'live' and live_status == 'was_live':
                 payload = {'broadcast_type': 'dvr'}
 
-            session_id = self._get_authed_info(
+            session_id = self.auth_manager._get_authed_info(
                 f'video_pages/{content_code}/session_ids', f'{content_code}/session',
                 ('data', 'session_id', {str}), {
                     401: 'Members-only content',
@@ -424,7 +730,7 @@ class SheetaEmbedIE(InfoExtractor):
                 m3u8_url = data_json['video_stream']['authenticated_url'].format(session_id=session_id)
                 formats = self._extract_m3u8_formats(m3u8_url, content_code)
         elif data_json.get('audio'):
-            m3u8_url = self._get_authed_info(
+            m3u8_url = self.auth_manager._get_authed_info(
                 f'video_pages/{content_code}/content_access', f'{content_code}/content_access',
                 ('data', 'resource', {url_or_none}), {
                     403: 'Login required',
@@ -445,7 +751,7 @@ class SheetaEmbedIE(InfoExtractor):
                     else:
                         msg += 'This audio may be completely blank'
                     self.raise_login_required(
-                        msg, metadata_available=True, method=self._auth_info.get('login_method'))
+                        msg, metadata_available=True, method=self.auth_manager._auth_info.get('login_method'))
 
                 formats = [{
                     'url': m3u8_url,
@@ -461,295 +767,6 @@ class SheetaEmbedIE(InfoExtractor):
 
         return formats
 
-    def _get_auth_token(self):
-        if not self._auth_info.get('auth_token'):
-            try:
-                self._login()
-                return self._auth_info.get('auth_token')
-            except Exception as e:
-                raise ExtractorError('Unable to login due to unknown reasons') from e
-
-        if self._auth_info.get('auth_token'):
-            try:
-                self._refresh_token()
-                return self._auth_info.get('auth_token')
-            except Exception as e:
-                raise ExtractorError('Unable to refresh token due to unknown reasons') from e
-
-        return None
-
-    def _refresh_token(self):
-        if not (refresh_func := self._auth_info.get('refresh_func')):
-            return False
-
-        res = self._download_json(
-            **refresh_func(self._auth_info), expected_status=(400, 403, 404),
-            note='Refreshing token', errnote='Unable to refresh token')
-        if error := traverse_obj(
-                res, ('error', 'message', {lambda x: base64.b64decode(x).decode()}), ('error', 'message')):
-            self.report_warning(f'Unable to refresh token: {error!r}')
-        elif token := traverse_obj(res, ('data', 'access_token', {str})):
-            # niconico
-            self._auth_info = {'auth_token': f'Bearer {token}'}
-            return True
-        elif token := traverse_obj(res, ('access_token', {str})):
-            # auth0
-            self._auth_info = {'auth_token': f'Bearer {token}'}
-            if refresh_token := traverse_obj(res, ('refresh_token', {str})):
-                self._auth_info = {'refresh_token': refresh_token}
-                self.cache.store(
-                    self._NETRC_MACHINE, self._auth_info['cache_key'], {self._auth_info['cache_name']: refresh_token})
-                return True
-            self.report_warning('Unable to find new refresh_token')
-        else:
-            self.report_warning('Unable to refresh token')
-
-        return False
-
-    def _login(self):
-        social_login_providers = traverse_obj(self._call_api(
-            f'fanclub_groups/{self._FANCLUB_GROUP_ID}/login', None),
-            ('data', 'fanclub_group', 'fanclub_social_login_providers', ..., {dict})) or []
-        self.write_debug(f'social_login_providers = {social_login_providers!r}')
-
-        for provider in social_login_providers:
-            provider_name = traverse_obj(provider, ('social_login_provider', 'provider_name', {str}))
-            if provider_name == 'ニコニコ':
-                redirect_url = update_url_query(provider['url'], {
-                    'client_id': 'FCS{:05d}'.format(provider['id']),
-                    'redirect_uri': f'https://{self._DOMAIN}/login',
-                })
-                refresh_url = f'{self._API_BASE_URL}/fanclub_groups/{self._FANCLUB_GROUP_ID}/auth/refresh'
-                return self._niconico_sns_login(redirect_url, refresh_url)
-            else:
-                raise ExtractorError(f'Unsupported social login provider: {provider_name}')
-
-        return self._auth0_login()
-
-    def _niconico_sns_login(self, redirect_url, refresh_url):
-        self._auth_info = {'login_method': 'any'}
-        mail_tel, password = self._get_login_info()
-        if not mail_tel:
-            return
-
-        cache_key = hashlib.sha1(f'{self._DOMAIN}:{mail_tel}:{password}'.encode()).hexdigest()
-        self._auth_info = {'cache_key': cache_key}
-        cache_name = 'niconico_sns'
-
-        if cached_cookies := traverse_obj(self.cache.load(
-                self._NETRC_MACHINE, cache_key), (cache_name, {dict})):
-            for name, value in cached_cookies.items():
-                self._set_cookie(get_domain(redirect_url), name, value)
-
-        if not (auth_token := self._niconico_get_token_by_cookies(redirect_url)):
-            if cached_cookies:
-                self.cache.store(self._NETRC_MACHINE, cache_key, None)
-
-            self._niconico_login(mail_tel, password)
-
-            if not (auth_token := self._niconico_get_token_by_cookies(redirect_url)):
-                self.report_warning('Unable to get token after login, please check if '
-                                    'niconico channel plus is authorized to use your niconico account')
-                return
-
-        self._auth_info = {
-            'refresh_func': lambda data: {
-                'url_or_request': data['refresh_url'],
-                'video_id': None,
-                'headers': {'Authorization': data['auth_token']},
-                'data': b'',
-            },
-            'refresh_url': refresh_url,
-            'auth_token': auth_token,
-        }
-
-        cookies = dict(traverse_obj(self.cookiejar.get_cookies_for_url(
-            redirect_url), (..., {lambda item: (item.name, item.value)})))
-        self.cache.store(self._NETRC_MACHINE, cache_key, {cache_name: cookies})
-
-    def _niconico_get_token_by_cookies(self, redirect_url):
-        urlh = self._request_webpage(
-            redirect_url, None, note='Getting niconico auth status',
-            expected_status=404, errnote='Unable to get niconico auth status')
-        if not urlh.url.startswith(f'https://{self._DOMAIN}/login'):
-            return None
-
-        if not (sns_login_code := traverse_obj(parse_qs(urlh.url), ('code', 0))):
-            self.report_warning('Unable to get sns login code')
-            return None
-
-        token = traverse_obj(self._call_api(
-            f'fanclub_groups/{self._FANCLUB_GROUP_ID}/sns_login', None, fatal=False,
-            note='Fetching sns login info', errnote='Unable to fetch sns login info',
-            data=json.dumps({
-                'key_cloak_user': {
-                    'code': sns_login_code,
-                    'redirect_uri': f'https://{self._DOMAIN}/login',
-                },
-                'fanclub_site': {'id': int(self._FANCLUB_SITE_ID_AUTH)},
-            }).encode(), headers={
-                'Content-Type': 'application/json',
-                'fc_use_device': 'null',
-                'Referer': f'https://{self._DOMAIN}',
-            }), ('data', 'access_token', {str}))
-        if token:
-            return f'Bearer {token}'
-
-        self.report_warning('Unable to get token from sns login info')
-        return None
-
-    def _niconico_login(self, mail_tel, password):
-        login_form_strs = {
-            'mail_tel': mail_tel,
-            'password': password,
-        }
-        page, urlh = self._download_webpage_handle(
-            'https://account.nicovideo.jp/login/redirector', None,
-            note='Logging into niconico', errnote='Unable to log into niconico',
-            data=urlencode_postdata(login_form_strs),
-            headers={
-                'Referer': 'https://account.nicovideo.jp/login',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            })
-        if urlh.url.startswith('https://account.nicovideo.jp/login'):
-            self.report_warning('Unable to log in: bad username or password')
-            return False
-        elif urlh.url.startswith('https://account.nicovideo.jp/mfa'):
-            post_url = self._search_regex(
-                r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page, 'mfa post url', group='url')
-            page, urlh = self._download_webpage_handle(
-                urljoin('https://account.nicovideo.jp/', post_url), None,
-                note='Performing MFA', errnote='Unable to complete MFA',
-                data=urlencode_postdata({
-                    'otp': self._get_tfa_info('6 digits code'),
-                }), headers={
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                })
-            if urlh.url.startswith('https://account.nicovideo.jp/mfa') or 'formError' in page:
-                err_msg = self._html_search_regex(
-                    r'formError\b[^>]*>(.*?)</div>', page, 'form_error',
-                    default='There\'s an error but the message can\'t be parsed.',
-                    flags=re.DOTALL)
-                self.report_warning(f'Unable to log in: MFA challenge failed, "{err_msg}"')
-                return False
-        return True
-
-    def _auth0_login(self):
-        self._auth_info = {'login_method': 'password'}
-        username, password = self._get_login_info()
-        if not username:
-            return
-
-        cache_key = hashlib.sha1(f'{self._DOMAIN}:{username}:{password}'.encode()).hexdigest()
-        cache_name = 'refresh'
-        self._auth_info = {
-            'cache_key': cache_key,
-            'cache_name': cache_name,
-        }
-
-        login_info = self._call_api(f'fanclub_sites/{self._FANCLUB_SITE_ID_AUTH}/login', None)['data']['fanclub_site']
-        self.write_debug(f'login_info = {login_info}')
-        auth0_web_client_id = login_info['auth0_web_client_id']
-        auth0_domain = login_info['fanclub_group']['auth0_domain']
-
-        token_url = f'https://{auth0_domain}/oauth/token'
-        redirect_url = f'https://{self._DOMAIN}/login/login-redirect'
-
-        auth0_client = base64.b64encode(json.dumps({
-            'name': 'auth0-spa-js',
-            'version': '2.0.6',
-        }).encode()).decode()
-
-        self._auth_info = {'refresh_func': lambda data: {
-            'url_or_request': token_url,
-            'video_id': None,
-            'headers': {'Auth0-Client': auth0_client},
-            'data': urlencode_postdata({
-                'client_id': auth0_web_client_id,
-                'grant_type': 'refresh_token',
-                'refresh_token': data['refresh_token'],
-                'redirect_uri': redirect_url,
-            }),
-        }}
-
-        def random_str():
-            return ''.join(random.choices(string.digits + string.ascii_letters, k=43))
-
-        state = base64.b64encode(random_str().encode())
-        nonce = base64.b64encode(random_str().encode())
-        code_verifier = random_str().encode()
-        code_challenge = base64.b64encode(
-            hashlib.sha256(code_verifier).digest()).decode().translate(self._AUTH0_BASE64_TRANS)
-
-        authorize_url = update_url_query(f'https://{auth0_domain}/authorize', {
-            'client_id': auth0_web_client_id,
-            'scope': 'openid profile email offline_access',
-            'redirect_uri': redirect_url,
-            'audience': f'api.{self._DOMAIN}',
-            'prompt': 'login',
-            'response_type': 'code',
-            'response_mode': 'query',
-            'state': state,
-            'nonce': nonce,
-            'code_challenge': code_challenge,
-            'code_challenge_method': 'S256',
-            'auth0Client': auth0_client,
-        })
-
-        if cached_refresh_token := traverse_obj(self.cache.load(
-                self._NETRC_MACHINE, cache_key), (cache_name, {str})):
-            self._auth_info = {'refresh_token': cached_refresh_token}
-            if self._refresh_token():
-                self.write_debug('cached tokens updated')
-                return
-            self.cache.store(self._NETRC_MACHINE, cache_key, None)
-
-        login_form = self._hidden_inputs(self._download_webpage(
-            authorize_url, None, note='Getting login form', errnote='Unable to get login form'))
-        state_obtained = login_form['state']
-        login_url = f'https://{auth0_domain}/u/login?state={state_obtained}'
-
-        login_form.update({
-            'username': username,
-            'password': password,
-            'action': 'default',
-        })
-
-        urlh = self._request_webpage(
-            login_url, None, note='Logging in', errnote='Unable to log in',
-            data=urlencode_postdata(login_form), expected_status=(400, 404))
-        if urlh.status == 400:
-            self.report_warning('Unable to log in: bad username or password')
-            return
-        if not (urlh.status == 404 and urlh.url.startswith(redirect_url)):
-            self.report_warning('Unable to log in: Unknown login status')
-            return
-
-        code = parse_qs(urlh.url)['code'][0]
-
-        token_json = self._download_json(
-            token_url, None, headers={'Auth0-Client': auth0_client},
-            note='Getting auth0 tokens', errnote='Unable to get auth0 tokens',
-            data=urlencode_postdata({
-                'client_id': auth0_web_client_id,
-                'code_verifier': code_verifier,
-                'grant_type': 'authorization_code',
-                'code': code,
-                'redirect_uri': redirect_url,
-            }))
-
-        access_token = token_json['access_token']
-        refresh_token = token_json['refresh_token']
-
-        auth_token = f'Bearer {access_token}'
-
-        self._auth_info = {
-            'auth_token': auth_token,
-            'refresh_token': refresh_token,
-        }
-
-        self.cache.store(self._NETRC_MACHINE, cache_key, {cache_name: refresh_token})
-
     def _fetch_paged_channel_video_list(self, path, query, channel, item_id, page):
         response = self._call_api(
             path, item_id, query={
@@ -764,7 +781,7 @@ class SheetaEmbedIE(InfoExtractor):
         for content_code in traverse_obj(
                 response, ('data', 'video_pages', 'list', ..., 'content_code', {str})):
             yield self.url_result('/'.join(filter(
-                None, [f'https://{self._DOMAIN}', channel, 'video', content_code])), SheetaEmbedIE)
+                None, [f'https://{self._DOMAIN}', channel, 'video', content_code])))
 
     def _extract_video_list_page(self, url):
         """
