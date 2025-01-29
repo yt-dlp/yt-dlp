@@ -82,7 +82,7 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                 'title': 'Londres cachée par un épais smog',
                 'description': 'Un important voile de smog recouvre Londres depuis mercredi, provoqué par la pollution et du sable du Sahara.',
                 'upload_date': '20140403',
-                'timestamp': 1396537322,
+                'timestamp': 1396491300,
                 'thumbnail': r're:^https?://.*\.image',
                 'webpage_url': 'srgssr:rts:video:5745356',
             },
