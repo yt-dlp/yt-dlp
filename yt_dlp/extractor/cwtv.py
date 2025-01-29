@@ -6,18 +6,44 @@ from ..utils import (
     parse_iso8601,
     smuggle_url,
     str_or_none,
+    update_url_query,
 )
+from ..utils.traversal import traverse_obj
 
 
 class CWTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?cw(?:tv(?:pr)?|seed)\.com/(?:shows/)?(?:[^/]+/)+[^?]*\?.*\b(?:play|watch)=(?P<id>[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})'
     _TESTS = [{
+        'url': 'https://www.cwtv.com/shows/continuum/a-stitch-in-time/?play=9149a1e1-4cb2-46d7-81b2-47d35bbd332b',
+        'info_dict': {
+            'id': '9149a1e1-4cb2-46d7-81b2-47d35bbd332b',
+            'ext': 'mp4',
+            'title': 'A Stitch in Time',
+            'description': r're:(?s)City Protective Services officer Kiera Cameron is transported from 2077.+',
+            'thumbnail': r're:https?://.+\.jpe?g',
+            'duration': 2632,
+            'timestamp': 1736928000,
+            'uploader': 'CWTV',
+            'chapters': 'count:5',
+            'series': 'Continuum',
+            'season_number': 1,
+            'episode_number': 1,
+            'age_limit': 14,
+            'upload_date': '20250115',
+            'season': 'Season 1',
+            'episode': 'Episode 1',
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
+    }, {
         'url': 'http://cwtv.com/shows/arrow/legends-of-yesterday/?play=6b15e985-9345-4f60-baf8-56e96be57c63',
         'info_dict': {
             'id': '6b15e985-9345-4f60-baf8-56e96be57c63',
             'ext': 'mp4',
             'title': 'Legends of Yesterday',
-            'description': 'Oliver and Barry Allen take Kendra Saunders and Carter Hall to a remote location to keep them hidden from Vandal Savage while they figure out how to defeat him.',
+            'description': r're:(?s)Oliver and Barry Allen take Kendra Saunders and Carter Hall to a remote.+',
             'duration': 2665,
             'series': 'Arrow',
             'season_number': 4,
@@ -46,7 +72,7 @@ class CWTVIE(InfoExtractor):
             'timestamp': 1444107300,
             'age_limit': 14,
             'uploader': 'CWTV',
-            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'thumbnail': r're:https?://.+\.jpe?g',
             'chapters': 'count:4',
             'episode': 'Episode 20',
             'season': 'Season 11',
@@ -69,13 +95,14 @@ class CWTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._download_json(
-            'http://images.cwtv.com/feed/mobileapp/video-meta/apiversion_8/guid_' + video_id,
-            video_id)
-        if data.get('result') != 'ok':
-            raise ExtractorError(data['msg'], expected=True)
+            f'https://images.cwtv.com/feed/app-2/video-meta/apiversion_22/device_android/guid_{video_id}', video_id)
+        if traverse_obj(data, 'result') != 'ok':
+            raise ExtractorError(traverse_obj(data, (('error_msg', 'msg'), {str}, any)), expected=True)
         video_data = data['video']
         title = video_data['title']
-        mpx_url = video_data.get('mpx_url') or f'http://link.theplatform.com/s/cwtv/media/guid/2703454149/{video_id}?formats=M3U'
+        mpx_url = update_url_query(
+            video_data.get('mpx_url') or f'https://link.theplatform.com/s/cwtv/media/guid/2703454149/{video_id}',
+            {'formats': 'M3U+none'})
 
         season = str_or_none(video_data.get('season'))
         episode = str_or_none(video_data.get('episode'))

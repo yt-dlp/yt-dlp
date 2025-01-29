@@ -11,11 +11,9 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     ass_subtitles_timecode,
-    bytes_to_intlist,
     bytes_to_long,
     float_or_none,
     int_or_none,
-    intlist_to_bytes,
     join_nonempty,
     long_to_bytes,
     parse_iso8601,
@@ -198,16 +196,16 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
         links_url = try_get(options, lambda x: x['video']['url']) or (video_base_url + 'link')
         self._K = ''.join(random.choices('0123456789abcdef', k=16))
-        message = bytes_to_intlist(json.dumps({
+        message = list(json.dumps({
             'k': self._K,
             't': token,
-        }))
+        }).encode())
 
         # Sometimes authentication fails for no good reason, retry with
         # a different random padding
         links_data = None
         for _ in range(3):
-            padded_message = intlist_to_bytes(pkcs1pad(message, 128))
+            padded_message = bytes(pkcs1pad(message, 128))
             n, e = self._RSA_KEY
             encrypted_message = long_to_bytes(pow(bytes_to_long(padded_message), e, n))
             authorization = base64.b64encode(encrypted_message).decode()
@@ -234,7 +232,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
                 error = self._parse_json(e.cause.response.read(), video_id)
                 message = error.get('message')
-                if e.cause.code == 403 and error.get('code') == 'player-bad-geolocation-country':
+                if e.cause.status == 403 and error.get('code') == 'player-bad-geolocation-country':
                     self.raise_geo_restricted(msg=message)
                 raise ExtractorError(message)
         else:
