@@ -172,8 +172,8 @@ class CWTVMovieIE(InfoExtractor):
         video_id = (
             traverse_obj(parse_qs(app_url), ('video_id', 0, {lambda x: re.fullmatch(self._UUID_RE, x)}, 0))
             or self._search_regex([
-                rf'CWTV\.Site\.curPlayingGUID\s*=\s*["\']({self._UUID_RE})["\']',
-                rf'CWTV\.Site\.viewInAppURL\s*=\s*["\']/shows/[^/?#"\']+/watch-in-app/\?play=({self._UUID_RE})',
+                rf'CWTV\.Site\.curPlayingGUID\s*=\s*["\']({self._UUID_RE})',
+                rf'CWTV\.Site\.viewInAppURL\s*=\s*["\']/shows/[\w-]+/watch-in-app/\?play=({self._UUID_RE})',
             ], webpage, 'video ID'))
 
         return self.url_result(
