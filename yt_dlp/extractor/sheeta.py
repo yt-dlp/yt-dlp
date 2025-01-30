@@ -27,8 +27,8 @@ from ..utils.traversal import traverse_obj
 
 
 class AuthType(enum.Enum):
-    AUTH0 = 'auth0'
-    NICONICO = 'niconico'
+    OAUTH_AUTH0 = 'auth0'
+    SOCIAL_NICONICO = 'niconico'
 
 
 class AuthManager:
@@ -39,7 +39,7 @@ class AuthManager:
         '=': None,
     })
 
-    def __init__(self, ie: 'SheetaEmbedIE'):
+    def __init__(self, ie):
         self._ie = ie
         self._auth_info = {}
 
@@ -55,7 +55,7 @@ class AuthManager:
             self._AUTH_INFO_CACHE[self._ie._DOMAIN] = {}
         self._AUTH_INFO_CACHE[self._ie._DOMAIN].update(value)
 
-    def _get_authed_info(self, query_path, item_id, dict_path, expected_code_msg, **query_kwargs):
+    def get_authed_info(self, query_path, item_id, dict_path, expected_code_msg, **query_kwargs):
         try:
             res = self._ie._call_api(query_path, item_id, **query_kwargs)
             return traverse_obj(res, dict_path)
@@ -67,7 +67,7 @@ class AuthManager:
                 method=self._auth_info.get('login_method'))
             return None
 
-    def _get_auth_token(self):
+    def get_auth_token(self):
         if not self._auth_info.get('auth_token'):
             try:
                 self._login()
@@ -88,7 +88,7 @@ class AuthManager:
         if not (refresh_func_params := self._auth_info.get('refresh_func_params')):
             return False
 
-        if self._auth_info.get('auth_type') == AuthType.AUTH0:
+        if self._auth_info.get('auth_type') == AuthType.OAUTH_AUTH0:
             refresh_func_params['data'] = urlencode_postdata({
                 **refresh_func_params['data'],
                 'refresh_token': self._auth_info.get('refresh_token'),
@@ -139,7 +139,7 @@ class AuthManager:
         return self._auth0_login()
 
     def _niconico_sns_login(self, redirect_url, refresh_url):
-        self._auth_info = {'login_method': 'any', 'auth_type': AuthType.NICONICO}
+        self._auth_info = {'login_method': 'any', 'auth_type': AuthType.SOCIAL_NICONICO}
         mail_tel, password = self._ie._get_login_info()
         if not mail_tel:
             return
@@ -515,7 +515,7 @@ class SheetaEmbedIE(InfoExtractor):
 
     _LIST_PAGE_SIZE = 12
 
-    auth_manager: AuthManager = None
+    auth_manager = None
 
     def _extract_from_url(self, url):
         parsed_url = urllib.parse.urlparse(url)
@@ -711,7 +711,7 @@ class SheetaEmbedIE(InfoExtractor):
             'Content-Type': 'application/json',
             'fc_use_device': 'null',
             'origin': f'https://{self._DOMAIN}',
-            'Authorization': self.auth_manager._get_auth_token(),
+            'Authorization': self.auth_manager.get_auth_token(),
         })
 
         formats = []
@@ -720,7 +720,7 @@ class SheetaEmbedIE(InfoExtractor):
             if data_json.get('type') == 'live' and live_status == 'was_live':
                 payload = {'broadcast_type': 'dvr'}
 
-            session_id = self.auth_manager._get_authed_info(
+            session_id = self.auth_manager.get_authed_info(
                 f'video_pages/{content_code}/session_ids', f'{content_code}/session',
                 ('data', 'session_id', {str}), {
                     401: 'Members-only content',
@@ -733,7 +733,7 @@ class SheetaEmbedIE(InfoExtractor):
                 m3u8_url = data_json['video_stream']['authenticated_url'].format(session_id=session_id)
                 formats = self._extract_m3u8_formats(m3u8_url, content_code)
         elif data_json.get('audio'):
-            m3u8_url = self.auth_manager._get_authed_info(
+            m3u8_url = self.auth_manager.get_authed_info(
                 f'video_pages/{content_code}/content_access', f'{content_code}/content_access',
                 ('data', 'resource', {url_or_none}), {
                     403: 'Login required',
