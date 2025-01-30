@@ -132,7 +132,7 @@ class AuthManager:
         if not mail_tel:
             return
 
-        cache_key = hashlib.sha1(f'{self._ie._DOMAIN}:{mail_tel}:{password}'.encode()).hexdigest()
+        cache_key = f'{self._ie._DOMAIN}:{mail_tel}'
         self._auth_info = {'cache_key': cache_key}
         cache_name = 'niconico_sns'
 
@@ -240,19 +240,17 @@ class AuthManager:
         if not username:
             return
 
-        cache_key = hashlib.sha1(f'{self._ie._DOMAIN}:{username}:{password}'.encode()).hexdigest()
+        cache_key = f'{self._ie._DOMAIN}:{username}'
         cache_name = 'refresh'
         self._auth_info = {
             'cache_key': cache_key,
             'cache_name': cache_name,
         }
 
-        login_info = traverse_obj(
-            self._ie._call_api(f'fanclub_sites/{self._ie._FANCLUB_SITE_ID_AUTH}/login', None),
-            ('data', 'fanclub_site'))
+        login_info = self._ie._call_api(f'fanclub_sites/{self._ie._FANCLUB_SITE_ID_AUTH}/login', None)['data']['fanclub_site']
         self._ie.write_debug(f'login_info = {login_info}')
-        auth0_web_client_id = login_info.get('auth0_web_client_id')
-        auth0_domain = traverse_obj(login_info, ('fanclub_group', 'auth0_domain'))
+        auth0_web_client_id = login_info['auth0_web_client_id']
+        auth0_domain = login_info['fanclub_group']['auth0_domain']
 
         token_url = f'https://{auth0_domain}/oauth/token'
         redirect_url = f'https://{self._ie._DOMAIN}/login/login-redirect'
@@ -327,7 +325,7 @@ class AuthManager:
             self._ie.report_warning('Unable to log in: Unknown login status')
             return
 
-        code = traverse_obj(parse_qs(urlh.url), ('code', 0))
+        code = parse_qs(urlh.url)['code'][0]
 
         token_json = self._ie._download_json(
             token_url, None, headers={'Auth0-Client': auth0_client},
@@ -340,8 +338,8 @@ class AuthManager:
                 'redirect_uri': redirect_url,
             }))
 
-        access_token = token_json.get('access_token')
-        refresh_token = token_json.get('refresh_token')
+        access_token = token_json['access_token']
+        refresh_token = token_json['refresh_token']
 
         auth_token = f'Bearer {access_token}'
 
