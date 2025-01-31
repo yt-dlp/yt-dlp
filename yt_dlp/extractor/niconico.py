@@ -371,11 +371,11 @@ class NiconicoIE(InfoExtractor):
             'acodec': 'aac',
             'vcodec': 'h264',
             **traverse_obj(audio_quality, ('metadata', {
-                'abr': ('bitrate', {functools.partial(float_or_none, scale=1000)}),
+                'abr': ('bitrate', {float_or_none(scale=1000)}),
                 'asr': ('samplingRate', {int_or_none}),
             })),
             **traverse_obj(video_quality, ('metadata', {
-                'vbr': ('bitrate', {functools.partial(float_or_none, scale=1000)}),
+                'vbr': ('bitrate', {float_or_none(scale=1000)}),
                 'height': ('resolution', 'height', {int_or_none}),
                 'width': ('resolution', 'width', {int_or_none}),
             })),
@@ -428,7 +428,7 @@ class NiconicoIE(InfoExtractor):
                 **audio_fmt,
                 **traverse_obj(audios, (lambda _, v: audio_fmt['format_id'].startswith(v['id']), {
                     'format_id': ('id', {str}),
-                    'abr': ('bitRate', {functools.partial(float_or_none, scale=1000)}),
+                    'abr': ('bitRate', {float_or_none(scale=1000)}),
                     'asr': ('samplingRate', {int_or_none}),
                 }), get_all=False),
                 'acodec': 'aac',
@@ -592,8 +592,8 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
     @staticmethod
     def _parse_owner(item):
         return {
-            'uploader': traverse_obj(item, ('owner', 'name')),
-            'uploader_id': traverse_obj(item, ('owner', 'id')),
+            'uploader': traverse_obj(item, ('owner', ('name', ('user', 'nickname')), {str}, any)),
+            'uploader_id': traverse_obj(item, ('owner', 'id', {str})),
         }
 
     def _fetch_page(self, list_id, page):
@@ -666,7 +666,7 @@ class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
             mylist.get('name'), mylist.get('description'), **self._parse_owner(mylist))
 
 
-class NiconicoSeriesIE(InfoExtractor):
+class NiconicoSeriesIE(NiconicoPlaylistBaseIE):
     IE_NAME = 'niconico:series'
     _VALID_URL = r'https?://(?:(?:www\.|sp\.)?nicovideo\.jp(?:/user/\d+)?|nico\.ms)/series/(?P<id>\d+)'
 
@@ -675,6 +675,9 @@ class NiconicoSeriesIE(InfoExtractor):
         'info_dict': {
             'id': '110226',
             'title': 'ご立派ァ！のシリーズ',
+            'description': '楽しそうな外人の吹き替えをさせたら終身名誉ホモガキの右に出る人はいませんね…',
+            'uploader': 'アルファるふぁ',
+            'uploader_id': '44113208',
         },
         'playlist_mincount': 10,
     }, {
@@ -682,6 +685,9 @@ class NiconicoSeriesIE(InfoExtractor):
         'info_dict': {
             'id': '12312',
             'title': 'バトルスピリッツ　お勧めカード紹介(調整中)',
+            'description': '',
+            'uploader': '野鳥',
+            'uploader_id': '2275360',
         },
         'playlist_mincount': 103,
     }, {
@@ -689,19 +695,21 @@ class NiconicoSeriesIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _call_api(self, list_id, resource, query):
+        return self._download_json(
+            f'https://nvapi.nicovideo.jp/v2/series/{list_id}', list_id,
+            f'Downloading {resource}', query=query,
+            headers=self._API_HEADERS)['data']
+
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        webpage = self._download_webpage(url, list_id)
+        series = self._call_api(list_id, 'list', {
+            'pageSize': 1,
+        })['detail']
 
-        title = self._search_regex(
-            (r'<title>「(.+)（全',
-             r'<div class="TwitterShareButton"\s+data-text="(.+)\s+https:'),
-            webpage, 'title', fatal=False)
-        if title:
-            title = unescapeHTML(title)
-        json_data = next(self._yield_json_ld(webpage, None, fatal=False))
-        return self.playlist_from_matches(
-            traverse_obj(json_data, ('itemListElement', ..., 'url')), list_id, title, ie=NiconicoIE)
+        return self.playlist_result(
+            self._entries(list_id), list_id,
+            series.get('title'), series.get('description'), **self._parse_owner(series))
 
 
 class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
@@ -869,7 +877,7 @@ class NicovideoTagURLIE(NicovideoSearchBaseIE):
 
 
 class NiconicoUserIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/user/(?P<id>\d+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/user/(?P<id>\d+)(?:/video)?/?(?:$|[#?])'
     _TEST = {
         'url': 'https://www.nicovideo.jp/user/419948',
         'info_dict': {
@@ -877,7 +885,7 @@ class NiconicoUserIE(InfoExtractor):
         },
         'playlist_mincount': 101,
     }
-    _API_URL = 'https://nvapi.nicovideo.jp/v1/users/%s/videos?sortKey=registeredAt&sortOrder=desc&pageSize=%s&page=%s'
+    _API_URL = 'https://nvapi.nicovideo.jp/v2/users/%s/videos?sortKey=registeredAt&sortOrder=desc&pageSize=%s&page=%s'
     _PAGE_SIZE = 100
 
     _API_HEADERS = {
@@ -897,12 +905,13 @@ class NiconicoUserIE(InfoExtractor):
                 total_count = int_or_none(json_parsed['data'].get('totalCount'))
             for entry in json_parsed['data']['items']:
                 count += 1
-                yield self.url_result('https://www.nicovideo.jp/watch/{}'.format(entry['id']))
+                yield self.url_result(
+                    f'https://www.nicovideo.jp/watch/{entry["essential"]["id"]}', ie=NiconicoIE)
             page_num += 1
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        return self.playlist_result(self._entries(list_id), list_id, ie=NiconicoIE.ie_key())
+        return self.playlist_result(self._entries(list_id), list_id)
 
 
 class NiconicoLiveIE(InfoExtractor):
