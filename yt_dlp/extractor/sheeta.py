@@ -95,7 +95,7 @@ class AuthManager:
             })
 
         res = self._ie._download_json(
-            **refresh_func_params, expected_status=(400, 403, 404),
+            **refresh_func_params, video_id=None, expected_status=(400, 403, 404),
             note='Refreshing token', errnote='Unable to refresh token')
         if error := traverse_obj(
                 res, ('error', 'message', {lambda x: base64.b64decode(x).decode()}), ('error', 'message')):
@@ -167,7 +167,6 @@ class AuthManager:
         self._auth_info = {
             'refresh_func_params': {
                 'url_or_request': refresh_url,
-                'video_id': None,
                 'headers': {'Authorization': auth_token},
                 'data': b'',
             },
@@ -271,15 +270,17 @@ class AuthManager:
             'version': '2.0.6',
         }).encode()).decode()
 
-        self._auth_info = {'refresh_func_params': {
-            'url_or_request': token_url,
-            'video_id': None,
-            'headers': {'Auth0-Client': auth0_client},
-            'data': {
-                'client_id': auth0_web_client_id,
-                'grant_type': 'refresh_token',
-                'redirect_uri': redirect_url,
-            }}}
+        self._auth_info = {
+            'refresh_func_params': {
+                'url_or_request': token_url,
+                'headers': {'Auth0-Client': auth0_client},
+                'data': {
+                    'client_id': auth0_web_client_id,
+                    'grant_type': 'refresh_token',
+                    'redirect_uri': redirect_url,
+                },
+            },
+        }
 
         def random_str():
             return ''.join(random.choices(string.digits + string.ascii_letters, k=43))
