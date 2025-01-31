@@ -16,10 +16,10 @@ from ..utils import (
     parse_iso8601,
     smuggle_url,
     str_or_none,
-    traverse_obj,
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj, value
 
 
 class PatreonBaseIE(InfoExtractor):
@@ -63,6 +63,7 @@ class PatreonIE(PatreonBaseIE):
         'info_dict': {
             'id': '743933',
             'ext': 'mp3',
+            'alt_title': 'cd166.mp3',
             'title': 'Episode 166: David Smalley of Dogma Debate',
             'description': 'md5:34d207dd29aa90e24f1b3f58841b81c7',
             'uploader': 'Cognitive Dissonance Podcast',
@@ -252,6 +253,27 @@ class PatreonIE(PatreonBaseIE):
             'thumbnail': r're:^https?://.+',
         },
         'skip': 'Patron-only content',
+    }, {
+        # Contains a comment reply in the 'included' section
+        'url': 'https://www.patreon.com/posts/114721679',
+        'info_dict': {
+            'id': '114721679',
+            'ext': 'mp4',
+            'upload_date': '20241025',
+            'uploader': 'Japanalysis',
+            'like_count': int,
+            'thumbnail': r're:^https?://.+',
+            'comment_count': int,
+            'title': 'Karasawa Part 2',
+            'description': 'Part 2 of this video https://www.youtube.com/watch?v=Azms2-VTASk',
+            'uploader_url': 'https://www.patreon.com/japanalysis',
+            'uploader_id': '80504268',
+            'channel_url': 'https://www.patreon.com/japanalysis',
+            'channel_follower_count': int,
+            'timestamp': 1729897015,
+            'channel_id': '9346307',
+        },
+        'params': {'getcomments': True},
     }]
     _RETURN_TYPE = 'video'
 
@@ -259,7 +281,7 @@ class PatreonIE(PatreonBaseIE):
         video_id = self._match_id(url)
         post = self._call_api(
             f'posts/{video_id}', video_id, query={
-                'fields[media]': 'download_url,mimetype,size_bytes',
+                'fields[media]': 'download_url,mimetype,size_bytes,file_name',
                 'fields[post]': 'comment_count,content,embed,image,like_count,post_file,published_at,title,current_user_can_view',
                 'fields[user]': 'full_name,url',
                 'fields[post_tag]': 'value',
@@ -296,6 +318,7 @@ class PatreonIE(PatreonBaseIE):
                         'ext': ext,
                         'filesize': size_bytes,
                         'url': download_url,
+                        'alt_title': traverse_obj(media_attributes, ('file_name', {str})),
                     })
 
             elif include_type == 'user':
@@ -404,26 +427,24 @@ class PatreonIE(PatreonBaseIE):
                 f'posts/{post_id}/comments', post_id, query=params, note=f'Downloading comments page {page}')
 
             cursor = None
-            for comment in traverse_obj(response, (('data', ('included', lambda _, v: v['type'] == 'comment')), ...)):
+            for comment in traverse_obj(response, (('data', 'included'), lambda _, v: v['type'] == 'comment' and v['id'])):
                 count += 1
-                comment_id = comment.get('id')
-                attributes = comment.get('attributes') or {}
-                if comment_id is None:
-                    continue
                 author_id = traverse_obj(comment, ('relationships', 'commenter', 'data', 'id'))
-                author_info = traverse_obj(
-                    response, ('included', lambda _, v: v['id'] == author_id and v['type'] == 'user', 'attributes'),
-                    get_all=False, expected_type=dict, default={})
 
                 yield {
-                    'id': comment_id,
-                    'text': attributes.get('body'),
-                    'timestamp': parse_iso8601(attributes.get('created')),
-                    'parent': traverse_obj(comment, ('relationships', 'parent', 'data', 'id'), default='root'),
-                    'author_is_uploader': attributes.get('is_by_creator'),
+                    **traverse_obj(comment, {
+                        'id': ('id', {str_or_none}),
+                        'text': ('attributes', 'body', {str}),
+                        'timestamp': ('attributes', 'created', {parse_iso8601}),
+                        'parent': ('relationships', 'parent', 'data', ('id', {value('root')}), {str}, any),
+                        'author_is_uploader': ('attributes', 'is_by_creator', {bool}),
+                    }),
+                    **traverse_obj(response, (
+                        'included', lambda _, v: v['id'] == author_id and v['type'] == 'user', 'attributes', {
+                            'author': ('full_name', {str}),
+                            'author_thumbnail': ('image_url', {url_or_none}),
+                        }), get_all=False),
                     'author_id': author_id,
-                    'author': author_info.get('full_name'),
-                    'author_thumbnail': author_info.get('image_url'),
                 }
 
             if count < traverse_obj(response, ('meta', 'count')):
@@ -438,7 +459,7 @@ class PatreonCampaignIE(PatreonBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?patreon\.com/(?:
             (?:m|api/campaigns)/(?P<campaign_id>\d+)|
-            (?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
+            (?:c/)?(?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
         )(?:/posts)?/?(?:$|[?#])'''
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
@@ -490,6 +511,26 @@ class PatreonCampaignIE(PatreonBaseIE):
             'thumbnail': r're:^https?://.*$',
         },
         'playlist_mincount': 201,
+    }, {
+        'url': 'https://www.patreon.com/c/OgSog',
+        'info_dict': {
+            'id': '8504388',
+            'title': 'OGSoG',
+            'description': r're:(?s)Hello and welcome to our Patreon page. We are Mari, Lasercorn, .+',
+            'channel': 'OGSoG',
+            'channel_id': '8504388',
+            'channel_url': 'https://www.patreon.com/OgSog',
+            'uploader_url': 'https://www.patreon.com/OgSog',
+            'uploader_id': '72323575',
+            'uploader': 'David Moss',
+            'thumbnail': r're:https?://.+/.+',
+            'channel_follower_count': int,
+            'age_limit': 0,
+        },
+        'playlist_mincount': 331,
+    }, {
+        'url': 'https://www.patreon.com/c/OgSog/posts',
+        'only_matching': True,
     }, {
         'url': 'https://www.patreon.com/dissonancepod/posts',
         'only_matching': True,

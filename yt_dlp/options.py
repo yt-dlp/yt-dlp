@@ -419,7 +419,9 @@ def create_parser():
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
-        help='Do not extract the videos of a playlist, only list them')
+        help=(
+            'Do not extract a playlist\'s URL result entries; '
+            'some entry metadata may be missing and downloading may be bypassed'))
     general.add_option(
         '--no-flat-playlist',
         action='store_false', dest='extract_flat',
@@ -1368,12 +1370,12 @@ def create_parser():
         help='Allow Unicode characters, "&" and spaces in filenames (default)')
     filesystem.add_option(
         '--windows-filenames',
-        action='store_true', dest='windowsfilenames', default=False,
+        action='store_true', dest='windowsfilenames', default=None,
         help='Force filenames to be Windows-compatible')
     filesystem.add_option(
         '--no-windows-filenames',
         action='store_false', dest='windowsfilenames',
-        help='Make filenames Windows-compatible only if using Windows (default)')
+        help='Sanitize filenames only minimally')
     filesystem.add_option(
         '--trim-filenames', '--trim-file-names', metavar='LENGTH',
         dest='trim_file_name', default=0, type=int,
