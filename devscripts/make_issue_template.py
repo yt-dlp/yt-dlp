@@ -50,13 +50,11 @@ VERBOSE_TMPL = '''
 '''.strip()
 
 NO_SKIP = '''
-  - type: checkboxes
+  - type: markdown
     attributes:
-      label: DO NOT REMOVE OR SKIP THE ISSUE TEMPLATE
-      description: Fill all fields even if you think it is irrelevant for the issue
-      options:
-        - label: I understand that I will be **blocked** if I *intentionally* remove or skip any mandatory\\* field
-          required: true
+      value: |
+        > [!IMPORTANT]
+        > Not providing the required information will result in your issue being closed and ignored.
 '''.strip()
 
 
