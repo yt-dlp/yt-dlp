@@ -4,6 +4,7 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    filesize_from_tbr,
     float_or_none,
     int_or_none,
     parse_qs,
