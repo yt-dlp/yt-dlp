@@ -2521,6 +2521,7 @@ class GenericIE(InfoExtractor):
                     doc,
                     mpd_base_url=full_response.url.rpartition('/')[0],
                     mpd_url=url)
+                info_dict['is_live'] = doc.get('type') == 'dynamic'
                 self._extra_manifest_info(info_dict, url)
                 self.report_detected('DASH manifest')
                 return info_dict
