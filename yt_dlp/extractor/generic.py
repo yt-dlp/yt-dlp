@@ -293,6 +293,21 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1378272859.0,
             },
         },
+        # MPD live from https://livesim2.dashif.org/livesim2/ato_10/testpic_2s/Manifest.mpd
+        {
+            'url': 'https://livesim2.dashif.org/livesim2/ato_10/testpic_2s/Manifest.mpd',
+            'info_dict': {
+                'id': 'Manifest',
+                'ext': 'mp4',
+                'title': r're:Manifest .*$',
+                'formats': 'mincount:2',
+                'timestamp': None,
+                'live_status': 'is_live',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
         # m3u8 served with Content-Type: audio/x-mpegURL; charset=utf-8
         {
             'url': 'http://once.unicornmedia.com/now/master/playlist/bb0b18ba-64f5-4b1b-a29f-0ac252f06b68/77a785f3-5188-4806-b788-0893a61634ed/93677179-2d99-4ef4-9e17-fe70d49abfbf/content.m3u8',
