@@ -387,13 +387,17 @@ class RedditIE(InfoExtractor):
             formats.extend(dash_fmts)
             self._merge_subtitles(dash_subs, target=subtitles)
 
+            duration = int_or_none(reddit_video.get('duration'))
+            for fmt in formats:
+                fmt['filesize_approx'] = filesize_from_tbr(fmt.get('tbr'), duration)
+
             return {
                 **info,
                 'id': video_id,
                 'display_id': display_id,
                 'formats': formats,
                 'subtitles': subtitles or self.extract_subtitles(video_id),
-                'duration': int_or_none(reddit_video.get('duration')),
+                'duration': duration,
             }
 
         if parsed_url.netloc == 'v.redd.it':
