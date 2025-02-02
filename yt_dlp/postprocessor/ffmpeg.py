@@ -8,8 +8,6 @@ import re
 import subprocess
 import time
 
-from yt_dlp.utils._utils import strftime_or_none
-
 from .common import PostProcessor
 from ..compat import imghdr
 from ..utils import (
@@ -30,6 +28,7 @@ from ..utils import (
     prepend_extension,
     replace_extension,
     shell_quote,
+    strftime_or_none,
     traverse_obj,
     variadic,
     write_json_file,
@@ -753,7 +752,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         # https://kodi.wiki/view/Video_file_tagging
 
         add('title', ('track', 'title'))
-        add('date', ('release_date', 'upload_date'), lambda date: strftime_or_none(date, '%Y-%m-%d'))
+        add('date', ('release_date', 'upload_date'), convert=strftime_or_none(date_format='%Y-%m-%d'))
         add(('description', 'synopsis'), 'description')
         add(('purl', 'comment'), 'webpage_url')
         add('track', 'track_number')
