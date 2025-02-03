@@ -1,4 +1,5 @@
 import collections
+import os
 import random
 import urllib.parse
 import urllib.request
@@ -162,3 +163,18 @@ def normalize_url(url):
         query=escape_rfc3986(url_parsed.query),
         fragment=escape_rfc3986(url_parsed.fragment),
     ).geturl()
+
+def get_env_proxies():
+    valid_schemes = {'http', 'https', 'socks5', 'socks5h', 'socks4'}
+    proxy_vars = ['http_proxy', 'https_proxy', 'socks_proxy']
+    proxies = {}
+
+    for var in proxy_vars:
+        proxy_url = os.getenv(var) or os.getenv(var.upper())
+        if proxy_url:
+            parsed = urllib.parse.urlparse(proxy_url)
+
+            if parsed.scheme in valid_schemes and parsed.netloc:
+                proxies[var] = proxy_url
+
+    return proxies

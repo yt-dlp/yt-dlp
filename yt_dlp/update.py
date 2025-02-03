@@ -13,8 +13,10 @@ import sys
 from dataclasses import dataclass
 from zipimport import zipimporter
 
+
 from .networking import Request
 from .networking.exceptions import HTTPError, network_exceptions
+from .utils.networking import get_env_proxies
 from .utils import (
     NO_DEFAULT,
     Popen,
@@ -266,14 +268,16 @@ class Updater:
 
         path = 'latest/download' if tag == 'latest' else f'download/{tag}'
         url = f'https://github.com/{self.requested_repo}/releases/{path}/{name}'
-        self.ydl.write_debug(f'Downloading {name} from {url}')
-        return self.ydl.urlopen(url).read()
+        env_proxies = get_env_proxies()
+        self.ydl.write_debug(f'Downloading {name} from [{url}]' + ' using proxies set in the env' if env_proxies else '')
+        return self.ydl.urlopen(Request(url, proxies=env_proxies)).read()
 
     def _call_api(self, tag):
         tag = f'tags/{tag}' if tag != 'latest' else tag
         url = f'{API_BASE_URL}/{self.requested_repo}/releases/{tag}'
-        self.ydl.write_debug(f'Fetching release info: {url}')
-        return json.loads(self.ydl.urlopen(Request(url, headers={
+        env_proxies = get_env_proxies()
+        self.ydl.write_debug(f'Fetching release info [{url}]' + ' using proxies set in the env' if env_proxies else '')
+        return json.loads(self.ydl.urlopen(Request(url, proxies=env_proxies, headers={
             'Accept': 'application/vnd.github+json',
             'User-Agent': 'yt-dlp',
             'X-GitHub-Api-Version': '2022-11-28',
