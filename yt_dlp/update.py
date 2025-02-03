@@ -13,7 +13,6 @@ import sys
 from dataclasses import dataclass
 from zipimport import zipimporter
 
-
 from .networking import Request
 from .networking.exceptions import HTTPError, network_exceptions
 from .utils.networking import get_env_proxies
