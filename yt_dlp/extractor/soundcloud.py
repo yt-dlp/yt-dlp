@@ -393,7 +393,7 @@ class SoundcloudIE(SoundcloudBaseIE):
     _VALID_URL = r'''(?x)^(?:https?://)?
                     (?:(?:(?:www\.|m\.)?soundcloud\.com/
                             (?!stations/track)
-                            (?P<uploader>[\w\d-]+)/
+                            (?!you)(?P<uploader>[\w\d-]+)/
                             (?!(?:tracks|albums|sets(?:/.+?)?|reposts|likes|spotlight|comments)/?(?:$|[?#]))
                             (?P<title>[\w\d-]+)
                             (?:/(?P<token>(?!(?:albums|sets|recommended))[^?]+?))?
@@ -743,15 +743,15 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
 
 
 class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
-    def _extract_playlist(self, base_url, playlist_id, playlist_title):
+    def _extract_playlist(self, base_url, playlist_id, playlist_title, entry_filter=None):
         return {
             '_type': 'playlist',
             'id': playlist_id,
             'title': playlist_title,
-            'entries': self._entries(base_url, playlist_id),
+            'entries': self._entries(base_url, playlist_id, entry_filter),
         }
 
-    def _entries(self, url, playlist_id):
+    def _entries(self, url, playlist_id, entry_filter):
         # Per the SoundCloud documentation, the maximum limit for a linked partitioning query is 200.
         # https://developers.soundcloud.com/blog/offset-pagination-deprecated
         query = {
@@ -780,14 +780,17 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
                     if not isinstance(cand, dict):
                         continue
                     permalink_url = url_or_none(cand.get('permalink_url'))
-                    if permalink_url:
+                    if permalink_url and (not entry_filter or entry_filter(cand)):
                         return self.url_result(
                             permalink_url,
                             SoundcloudIE.ie_key() if SoundcloudIE.suitable(permalink_url) else None,
                             str_or_none(cand.get('id')), cand.get('title'))
+                return None
 
             for e in response['collection'] or []:
-                yield resolve_entry(e, e.get('track'), e.get('playlist'))
+                entry = resolve_entry(e, e.get('track'), e.get('playlist'), e.get('system_playlist'))
+                if entry is not None:
+                    yield entry
 
             url = response.get('next_href')
             if not url:
@@ -799,7 +802,7 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
     _VALID_URL = r'''(?x)
                         https?://
                             (?:(?:www|m)\.)?soundcloud\.com/
-                            (?P<user>[^/]+)
+                            (?!you)(?P<user>[^/]+)
                             (?:/
                                 (?P<rsrc>tracks|albums|sets|reposts|likes|spotlight|comments)
                             )?
@@ -889,6 +892,112 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
             self._API_V2_BASE + self._BASE_URL_MAP[resource] % user['id'],
             str_or_none(user.get('id')),
             '{} ({})'.format(user['username'], resource.capitalize()))
+
+
+class SoundcloudUserYouIE(SoundcloudPagedPlaylistBaseIE):
+    _VALID_URL = r'''(?x)
+                        https?://
+                            (?:(?:www|m)\.)?soundcloud\.com/
+                            you
+                            (?:/
+                                (?P<rsrc>albums|sets|likes|stations|history|comments)
+                            )?
+                            /?(?:[?#].*)?$
+                    '''
+    IE_NAME = 'soundcloud:user:you'
+    _TESTS = [{
+        'url': 'https://soundcloud.com/you',
+        'info_dict': {
+            'title': 'You (All)',
+            'id': str,
+        },
+        'playlist_mincount': 1,
+        'skip': 'requires authentication',
+    }, {
+        'url': 'https://soundcloud.com/you/likes',
+        'info_dict': {
+            'title': 'You (Likes)',
+            'id': str,
+        },
+        'playlist_mincount': 1,
+        'skip': 'requires authentication',
+    }, {
+        'url': 'https://soundcloud.com/you/sets',
+        'info_dict': {
+            'title': 'You (Sets)',
+            'id': str,
+        },
+        'playlist_mincount': 1,
+        'skip': 'requires authentication',
+    }, {
+        'url': 'https://soundcloud.com/you/albums',
+        'info_dict': {
+            'title': 'You (Albums)',
+            'id': str,
+        },
+        'playlist_mincount': 1,
+        'skip': 'requires authentication',
+    }, {
+        'url': 'https://soundcloud.com/you/stations',
+        'info_dict': {
+            'title': 'You (Stations)',
+            'id': str,
+        },
+        'playlist_mincount': 1,
+        'skip': 'requires authentication',
+    }, {
+        'url': 'https://soundcloud.com/you/history',
+        'info_dict': {
+            'title': 'You (History)',
+            'id': str,
+        },
+        'playlist_mincount': 1,
+        'skip': 'requires authentication',
+    }, {
+        'url': 'https://soundcloud.com/you/comments',
+        'info_dict': {
+            'title': 'You (Comments)',
+            'id': str,
+        },
+        'playlist_mincount': 1,
+        'skip': 'requires authentication',
+    }]
+
+    _BASE_URL_MAP = {
+        'all': 'stream/users/{}',
+        'albums': 'me/library/all',
+        'sets': 'me/library/all',
+        'likes': 'users/{}/track_likes',
+        'stations': 'me/library/stations',
+        'history': 'me/play-history/tracks',
+        'comments': 'users/{}/comments',
+    }
+
+    def _real_extract(self, url):
+        # not sure best way to check missing oauth
+        if not self._HEADERS.get('Authorization'):
+            self.raise_login_required('Must be logged in to download soundcloud.com/you links')
+
+        mobj = self._match_valid_url(url)
+
+        user = self._call_api(
+            self._API_V2_BASE + 'me',
+            'me', 'Downloading user info', headers=self._HEADERS)
+
+        resource = mobj.group('rsrc') or 'all'
+
+        # soundcloud does filtering on the frontend so we must filter ourselves
+        entry_filter = None
+        if resource == 'albums':
+            entry_filter = lambda playlist: playlist.get('set_type', '') != ''
+        elif resource == 'sets':
+            entry_filter = lambda playlist: playlist.get('set_type') == ''
+
+        return self._extract_playlist(
+            (self._API_V2_BASE + self._BASE_URL_MAP[resource]).format(user['id']),
+            str_or_none(user.get('id')),
+            f'You ({resource.capitalize()})',
+            entry_filter)
 
 
 class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
