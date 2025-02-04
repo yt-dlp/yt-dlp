@@ -536,7 +536,7 @@ class FacebookIE(InfoExtractor):
 
         info_json_ld = self._search_json_ld(webpage, video_id, default={})
         info_json_ld['title'] = (re.sub(r'\s*\|\s*Facebook$', '', title or info_json_ld.get('title') or page_title or '')
-                                    or (description or '').replace('\n', ' ') or f'Facebook video #{video_id}')
+                                 or (description or '').replace('\n', ' ') or f'Facebook video #{video_id}')
         return merge_dicts(info_json_ld, info_dict)
 
     def _extract_from_url(self, url, video_id):
