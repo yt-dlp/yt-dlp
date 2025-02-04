@@ -100,9 +100,9 @@ class TVWIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError):
                 self.write_debug(e.cause)
-                response = self._parse_json(e.cause.response.read().decode(), video_id)['errors']
-                if response['hasError'] is True:
-                    raise ExtractorError('{} said: {}'.format(self.IE_NAME, response['error']), expected=True)
+                response = self._parse_json(e.cause.response.read().decode(), video_id).get('errors')
+                if response.get('hasError') is True:
+                    raise ExtractorError('{} said: {}'.format(self.IE_NAME, response.get('error')), expected=True)
             raise
 
         stream_url = traverse_obj(response, ('streamingURIs', 'main'))
