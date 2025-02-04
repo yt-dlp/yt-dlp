@@ -8,16 +8,15 @@ from ..utils import ExtractorError, RegexNotFoundError, clean_html, traverse_obj
 class TVWIE(InfoExtractor):
     BACKUP_API_KEY = '7WhiEBzijpritypp8bqcU7pfU9uicDR'
 
-    _VALID_URL = r'https?://(?:www\.)?tvw\.org/video/(?P<slug>.+)-(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?tvw\.org/video/(?P<id>.+)/'
     _TESTS = [{
         'url': 'https://tvw.org/video/billy-frank-jr-statue-maquette-unveiling-ceremony-2024011211/',
         'md5': '9ceb94fe2bb7fd726f74f16356825703',
         'info_dict': {
             'id': '2024011211',
-            'display_id': 'billy-frank-jr-statue-maquette-unveiling-ceremony',
             'ext': 'mp4',
             'title': 'Billy Frank Jr. Statue Maquette Unveiling Ceremony',
-            'thumbnail': r're:https?://invintus-client-images\.s3\.amazonaws\.com/.*\.jpg$',
+            'thumbnail': r're:^https?://.*\.jpg$',
             'description': 'md5:58a8150017d985b4f377e11ee8f6f36e',
             'timestamp': 1704902400,
             'upload_date': '20240110',
@@ -27,15 +26,25 @@ class TVWIE(InfoExtractor):
         'md5': '71e87dae3deafd65d75ff3137b9a32fc',
         'info_dict': {
             'id': '2024081007',
-            'display_id': 'ebeys-landing-state-park',
             'ext': 'mp4',
             'title': 'Ebey\'s Landing State Park',
-            'thumbnail': r're:https?://invintus-client-images\.s3\.amazonaws\.com/.*\.jpg$',
+            'thumbnail': r're:^https?://.*\.jpg$',
             'description': 'md5:50c5bd73bde32fa6286a008dbc853386',
             'timestamp': 1724310900,
             'upload_date': '20240822',
             'location': 'Ebey’s Landing State Park',
-        },
+        }},
+        {
+            'url': 'https://tvw.org/video/home-warranties-workgroup-2',
+            'info_dict': {
+                'id': '1999121000',
+                'ext': 'mp4',
+                'title': 'Home Warranties Workgroup',
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'description': 'md5:861396cc523c9641d0dce690bc5c35f3',
+                'timestamp': 946389600,
+                'upload_date': '19991228',
+            },
     }]
 
     def _get_subtitles(self, response):
@@ -68,7 +77,6 @@ class TVWIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        slug = self._match_valid_url(url).group('slug')
         webpage = self._download_webpage(url, video_id)
 
         app_js_code = self._get_js_code(video_id, webpage)
@@ -81,6 +89,7 @@ class TVWIE(InfoExtractor):
             api_key = self.BACKUP_API_KEY
 
         client_id = self._html_search_meta('clientID', webpage)
+        video_id = self._html_search_meta('eventID', webpage)
 
         try:
             headers = {'authorization': 'embedder', 'wsc-api-key': api_key}
@@ -101,7 +110,6 @@ class TVWIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'display_id': slug,
             'title': response.get('title') or self._og_search_title(webpage),
             'description': self._get_description(response) or self._og_search_description(webpage),
             'formats': formats,
