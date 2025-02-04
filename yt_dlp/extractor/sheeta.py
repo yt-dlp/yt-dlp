@@ -181,7 +181,7 @@ class AuthManager:
         urlh = self._ie._request_webpage(
             redirect_url, None, note='Getting niconico auth status',
             expected_status=404, errnote='Unable to get niconico auth status')
-        if not urlh.url.startswith(f'https://{self._DOMAIN}/login'):
+        if not urlh.url.startswith(f'https://{self._ie._DOMAIN}/login'):
             return None
 
         if not (sns_login_code := traverse_obj(parse_qs(urlh.url), ('code', 0))):
@@ -245,7 +245,7 @@ class AuthManager:
         return True
 
     def _auth0_login(self):
-        self._auth_info = {'login_method': 'password', 'auth_type': AuthType.AUTH0}
+        self._auth_info = {'login_method': 'password', 'auth_type': AuthType.OAUTH_AUTH0}
         username, password = self._ie._get_login_info()
         if not username:
             return
@@ -358,7 +358,7 @@ class AuthManager:
             'refresh_token': refresh_token,
         }
 
-        self._ie.cache.store(self._NETRC_MACHINE, cache_key, {cache_name: refresh_token})
+        self._ie.cache.store(self._ie._NETRC_MACHINE, cache_key, {cache_name: refresh_token})
 
 
 class SheetaEmbedIE(InfoExtractor):
