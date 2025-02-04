@@ -8,7 +8,7 @@ from ..utils import ExtractorError, RegexNotFoundError, clean_html, traverse_obj
 class TVWIE(InfoExtractor):
     BACKUP_API_KEY = '7WhiEBzijpritypp8bqcU7pfU9uicDR'
 
-    _VALID_URL = r'https?://(?:www\.)?tvw\.org/video/(?P<id>.+)/'
+    _VALID_URL = r'https?://(?:www\.)?tvw\.org/video/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://tvw.org/video/billy-frank-jr-statue-maquette-unveiling-ceremony-2024011211/',
         'md5': '9ceb94fe2bb7fd726f74f16356825703',
