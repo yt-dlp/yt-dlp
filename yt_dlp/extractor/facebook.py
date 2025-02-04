@@ -477,7 +477,7 @@ class FacebookIE(InfoExtractor):
         except network_exceptions as err:
             self.report_warning(f'unable to log in: {err}')
             return
-        
+
     def _extract_metadata(self, webpage, video_id):
         post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
             r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
