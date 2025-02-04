@@ -58,7 +58,7 @@ class TVWIE(InfoExtractor):
 
     def _get_js_code(self, video_id, webpage):
         app_js_url = self._html_search_regex(
-            r'<script[^>]+src=[\"\'](?P<app_js>.+?)[\"\'][^>]* id=\"invintus-app-js\">[^>]*</script>',
+            r'<script[^>]+src=[\"\'](?P<app_js>.+?)[\"\'][^>]+id=\"invintus-app-js\"',
             webpage, 'app_js')
         return self._download_webpage(app_js_url, video_id, 'Downloading app.js API key')
 
