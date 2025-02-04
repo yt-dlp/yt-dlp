@@ -10,6 +10,7 @@ from ..utils.traversal import traverse_obj
 
 PODCAST_API = 'https://api-prod.ilpost.it/podcast/v1/podcast/%s?hits=20'
 
+
 class IlPostIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ilpost\.it/podcasts/(?:.*?)/(?P<id>[^/?#]+)'
     _TESTS = [{
@@ -59,6 +60,7 @@ class IlPostIE(InfoExtractor):
                 'availability': ('access_level', {lambda v: 'public' if v else 'subscriber_only'}),
             }),
         }
+
 
 class IlPostPodcastIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ilpost\.it/podcasts/(?P<id>[^/?#]+)'
