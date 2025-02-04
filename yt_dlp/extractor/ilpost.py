@@ -5,7 +5,6 @@ from ..utils import (
     float_or_none,
     int_or_none,
     url_or_none,
-    urlencode_postdata,
 )
 from ..utils.traversal import traverse_obj
 
@@ -24,6 +23,7 @@ class IlPostIE(InfoExtractor):
             'url': 'https://www.ilpost.it/wp-content/uploads/2023/12/28/1703781217-l-invasione-pt1-v6.mp3',
             'timestamp': 1703835014,
             'upload_date': '20231229',
+            'description': '<p>Circa tre miliardi di persone, oggi, parlano lingue che hanno un’unica antenata: dall’italiano all’inglese, passando per il farsi e l’islandese, queste lingue discendono tutte da una lingua arrivata in Europa circa cinquemila anni fa, insieme a un gruppo di persone ben preciso.<br />\nCon la loro lingua queste persone si portarono dietro anche alcuni oggetti, miti e leggende, e una certa visione della società, lasciando tracce indelebili ancora oggi.</p>\n<p>Per approfondire gli argomenti trattati nel podcast abbiamo raccolto in <a href="https://www.ilpost.it/2024/01/05/invasione-testi/?homepagePosition=3">questa pagina</a> le cose da leggere e da guardare dopo aver ascoltato le puntate.</p>\n',
             'duration': 2495.0,
             'availability': 'public',
             'series_id': '235598',
@@ -85,8 +85,8 @@ class IlPostPodcastIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_valid_url(url).group('id')
-        data = self._download_json(PODCAST_API % id, id)
+        display_id = self._match_valid_url(url).group('id')
+        data = self._download_json(PODCAST_API % display_id, display_id)
 
         entries = [{
             '_type': 'url',
@@ -100,8 +100,8 @@ class IlPostPodcastIE(InfoExtractor):
 
         return {
             '_type': 'playlist',
-            'id': id,
-            'display_id': id,
+            'id': display_id,
+            'display_id': display_id,
             'title': traverse_obj(data, ('data', 0, 'parent', 'title')),
             'series': traverse_obj(data, ('data', 0, 'parent', 'title')),
             'entries': entries,
