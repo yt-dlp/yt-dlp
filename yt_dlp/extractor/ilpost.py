@@ -63,7 +63,7 @@ class IlPostIE(InfoExtractor):
 
 
 class IlPostPodcastIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ilpost\.it/podcasts/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?ilpost\.it/podcasts/(?P<id>[\-a-zA-Z0-9]+)'
     _TESTS = [{
         'url': 'https://www.ilpost.it/podcasts/morning/',
         'info_dict': {
