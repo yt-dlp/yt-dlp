@@ -148,7 +148,7 @@ class TVerIE(InfoExtractor):
         onair_label = str_or_none(episode_content.get('broadcastDateLabel'))
 
         if mobj := re.search(r'(\d+)月(\d+)日', onair_label):
-            year = dt.datetime.now().year
+            year = dt.datetime.now(dt.timezone(dt.timedelta(hours=9))).year
             month, day = map(int, mobj.groups())
             release_year = year
             release_date = dt.datetime(year, month, day).strftime('%Y%m%d')
