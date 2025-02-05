@@ -128,12 +128,6 @@ class SoftWhiteUnderbellyIE(InfoExtractor):
             "title": title,
             "description": self._html_search_meta("description", webpage, fatal=False),
             "thumbnail": thumbnail.split("?")[0] if thumbnail else None,  # Ignore crop/downscale
-            "series": clean_html(get_element_by_class("series-title", watch_info)),
-            "episode_number": episode_number,
-            "episode": title if episode_number else None,
-            "season_number": int_or_none(
-                self._search_regex(r"Season (\d+),", season_episode or "", "season", default=None)
-            ),
             "release_date": unified_strdate(
                 self._search_regex(
                     r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
