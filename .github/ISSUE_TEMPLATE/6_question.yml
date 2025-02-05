@@ -1,5 +1,5 @@
 name: Ask question
-description: Ask yt-dlp related question
+description: Ask a question about using yt-dlp
 labels: [question]
 body:
   - type: markdown

@@ -1,5 +1,5 @@
 name: Site feature request
-description: Request a new functionality for a supported site
+description: Request new functionality for a site supported by yt-dlp
 labels: [triage, site-enhancement]
 body:
   - type: markdown
