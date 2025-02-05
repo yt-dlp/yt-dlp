@@ -137,5 +137,4 @@ class SoftWhiteUnderbellyIE(InfoExtractor):
                 )
             ),
         }
-        print(info)
         return info
