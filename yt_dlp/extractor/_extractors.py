@@ -1893,11 +1893,11 @@ from .slutload import SlutloadIE
 from .smotrim import SmotrimIE
 from .snapchat import SnapchatSpotlightIE
 from .snotr import SnotrIE
+from .softwhiteunderbelly import SoftWhiteUnderbellyIE
 from .sohu import (
     SohuIE,
     SohuVIE,
 )
-from .softwhiteunderbelly import SoftWhiteUnderbellyIE
 from .sonyliv import (
     SonyLIVIE,
     SonyLIVSeriesIE,
