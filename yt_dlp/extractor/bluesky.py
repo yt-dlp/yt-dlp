@@ -286,16 +286,18 @@ class BlueskyIE(InfoExtractor):
             services, ('service', lambda _, x: x['type'] == 'AtprotoPersonalDataServer',
                        'serviceEndpoint', {url_or_none}, any)) or 'https://bsky.social'
 
-    def _real_extract(self, url):
-        handle, video_id = self._match_valid_url(url).group('handle', 'id')
-
-        post = self._download_json(
+    def _extract_post(self, handle, post_id):
+        return self._download_json(
             'https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread',
-            video_id, query={
-                'uri': f'at://{handle}/app.bsky.feed.post/{video_id}',
+            post_id, query={
+                'uri': f'at://{handle}/app.bsky.feed.post/{post_id}',
                 'depth': 0,
                 'parentHeight': 0,
             })['thread']['post']
+
+    def _real_extract(self, url):
+        handle, video_id = self._match_valid_url(url).group('handle', 'id')
+        post = self._extract_post(handle, video_id)
 
         entries = []
         # app.bsky.embed.video.view/app.bsky.embed.external.view

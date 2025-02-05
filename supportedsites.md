@@ -171,6 +171,7 @@
  - **BilibiliCheese**
  - **BilibiliCheeseSeason**
  - **BilibiliCollectionList**
+ - **BiliBiliDynamic**
  - **BilibiliFavoritesList**
  - **BiliBiliPlayer**
  - **BilibiliPlaylist**
@@ -303,10 +304,6 @@
  - **CrowdBunker**
  - **CrowdBunkerChannel**
  - **Crtvg**
- - **crunchyroll**: [*crunchyroll*](## "netrc machine")
- - **crunchyroll:artist**: [*crunchyroll*](## "netrc machine")
- - **crunchyroll:music**: [*crunchyroll*](## "netrc machine")
- - **crunchyroll:playlist**: [*crunchyroll*](## "netrc machine")
  - **CSpan**: C-SPAN
  - **CSpanCongress**
  - **CtsNews**: 華視新聞
@@ -393,6 +390,8 @@
  - **Ebay**
  - **egghead:course**: egghead.io course
  - **egghead:lesson**: egghead.io lesson
+ - **eggs:artist**
+ - **eggs:single**
  - **EinsUndEinsTV**: [*1und1tv*](## "netrc machine")
  - **EinsUndEinsTVLive**: [*1und1tv*](## "netrc machine")
  - **EinsUndEinsTVRecordings**: [*1und1tv*](## "netrc machine")
@@ -477,9 +476,6 @@
  - **FrontendMastersCourse**: [*frontendmasters*](## "netrc machine")
  - **FrontendMastersLesson**: [*frontendmasters*](## "netrc machine")
  - **FujiTVFODPlus7**
- - **Funimation**: [*funimation*](## "netrc machine")
- - **funimation:page**: [*funimation*](## "netrc machine")
- - **funimation:show**: [*funimation*](## "netrc machine")
  - **Funk**
  - **Funker530**
  - **Fux**
@@ -892,6 +888,8 @@
  - **nebula:video**: [*watchnebula*](## "netrc machine")
  - **NekoHacker**
  - **NerdCubedFeed**
+ - **Nest**
+ - **NestClip**
  - **netease:album**: 网易云音乐 - 专辑
  - **netease:djradio**: 网易云音乐 - 电台
  - **netease:mv**: 网易云音乐 - MV
@@ -1071,6 +1069,8 @@
  - **Pinkbike**
  - **Pinterest**
  - **PinterestCollection**
+ - **PiramideTV**
+ - **PiramideTVChannel**
  - **pixiv:sketch**
  - **pixiv:​sketch:user**
  - **Pladform**
@@ -1396,6 +1396,8 @@
  - **StretchInternet**
  - **Stripchat**
  - **stv:player**
+ - **Subsplash**
+ - **subsplash:playlist**
  - **Substack**
  - **SunPorno**
  - **sverigesradio:episode**

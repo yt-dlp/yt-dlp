@@ -4,7 +4,9 @@ import hashlib
 import itertools
 import json
 import math
+import random
 import re
+import string
 import time
 import urllib.parse
 import uuid
@@ -32,7 +34,6 @@ from ..utils import (
     parse_qs,
     parse_resolution,
     qualities,
-    sanitize_url,
     smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
@@ -1178,28 +1179,26 @@ class BilibiliSpaceBaseIE(BilibiliBaseIE):
 
 
 class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)(?P<video>/video)?/?(?:[?#]|$)'
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)(?P<video>(?:/upload)?/video)?/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/3985676/video',
         'info_dict': {
             'id': '3985676',
         },
         'playlist_mincount': 178,
-        'skip': 'login required',
     }, {
         'url': 'https://space.bilibili.com/313580179/video',
         'info_dict': {
             'id': '313580179',
         },
         'playlist_mincount': 92,
-        'skip': 'login required',
     }]
 
     def _real_extract(self, url):
         playlist_id, is_video_url = self._match_valid_url(url).group('id', 'video')
         if not is_video_url:
             self.to_screen('A channel URL was given. Only the channel\'s videos will be downloaded. '
-                           'To download audios, add a "/audio" to the URL')
+                           'To download audios, add a "/upload/audio" to the URL')
 
         def fetch_page(page_idx):
             query = {
@@ -1212,6 +1211,12 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                 'ps': 30,
                 'tid': 0,
                 'web_location': 1550101,
+                'dm_img_list': '[]',
+                'dm_img_str': base64.b64encode(
+                    ''.join(random.choices(string.printable, k=random.randint(16, 64))).encode())[:-2].decode(),
+                'dm_cover_img_str': base64.b64encode(
+                    ''.join(random.choices(string.printable, k=random.randint(32, 128))).encode())[:-2].decode(),
+                'dm_img_inter': '{"ds":[],"wh":[6093,6631,31],"of":[430,760,380]}',
             }
 
             try:
@@ -1222,14 +1227,14 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError(
-                        'Request is blocked by server (412), please add cookies, wait and try later.', expected=True)
+                        'Request is blocked by server (412), please wait and try later.', expected=True)
                 raise
             status_code = response['code']
             if status_code == -401:
                 raise ExtractorError(
-                    'Request is blocked by server (401), please add cookies, wait and try later.', expected=True)
-            elif status_code == -352 and not self.is_logged_in:
-                self.raise_login_required('Request is rejected, you need to login to access playlist')
+                    'Request is blocked by server (401), please wait and try later.', expected=True)
+            elif status_code == -352:
+                raise ExtractorError('Request is rejected by server (352)', expected=True)
             elif status_code != 0:
                 raise ExtractorError(f'Request failed ({status_code}): {response.get("message") or "Unknown error"}')
             return response['data']
@@ -1251,9 +1256,9 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
 
 
 class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)/audio'
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)/(?:upload/)?audio'
     _TESTS = [{
-        'url': 'https://space.bilibili.com/313580179/audio',
+        'url': 'https://space.bilibili.com/313580179/upload/audio',
         'info_dict': {
             'id': '313580179',
         },
@@ -1276,7 +1281,8 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
             }
 
         def get_entries(page_data):
-            for entry in page_data.get('data', []):
+            # data is None when the playlist is empty
+            for entry in page_data.get('data') or []:
                 yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}', BilibiliAudioIE, entry['id'])
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
@@ -1300,21 +1306,34 @@ class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
 
 
 class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail/?\?sid=(?P<sid>\d+)'
+    _VALID_URL = [
+        r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail/?\?sid=(?P<sid>\d+)',
+        r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)',
+    ]
     _TESTS = [{
-        'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
+        'url': 'https://space.bilibili.com/2142762/lists/3662502?type=season',
         'info_dict': {
-            'id': '2142762_57445',
-            'title': '【完结】《底特律 变人》全结局流程解说',
-            'description': '',
+            'id': '2142762_3662502',
+            'title': '合集·《黑神话悟空》流程解说',
+            'description': '黑神话悟空 相关节目',
             'uploader': '老戴在此',
             'uploader_id': '2142762',
             'timestamp': int,
             'upload_date': str,
-            'thumbnail': 'https://archive.biliimg.com/bfs/archive/e0e543ae35ad3df863ea7dea526bc32e70f4c091.jpg',
+            'thumbnail': 'https://archive.biliimg.com/bfs/archive/22302e17dc849dd4533606d71bc89df162c3a9bf.jpg',
         },
-        'playlist_mincount': 31,
+        'playlist_mincount': 62,
+    }, {
+        'url': 'https://space.bilibili.com/2142762/lists/3662502',
+        'only_matching': True,
+    }, {
+        'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
+        'only_matching': True,
     }]
+
+    @classmethod
+    def suitable(cls, url):
+        return False if BilibiliSeriesListIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         mid, sid = self._match_valid_url(url).group('mid', 'sid')
@@ -1322,8 +1341,8 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
 
         def fetch_page(page_idx):
             return self._download_json(
-                'https://api.bilibili.com/x/polymer/space/seasons_archives_list',
-                playlist_id, note=f'Downloading page {page_idx}',
+                'https://api.bilibili.com/x/polymer/web-space/seasons_archives_list',
+                playlist_id, note=f'Downloading page {page_idx}', headers={'Referer': url},
                 query={'mid': mid, 'season_id': sid, 'page_num': page_idx + 1, 'page_size': 30})['data']
 
         def get_metadata(page_data):
@@ -1350,9 +1369,12 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
 
 
 class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/seriesdetail/?\?\bsid=(?P<sid>\d+)'
+    _VALID_URL = [
+        r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/seriesdetail/?\?\bsid=(?P<sid>\d+)',
+        r'https?://space\.bilibili\.com/(?P<mid>\d+)/lists/(?P<sid>\d+)/?\?(?:[^#]+&)?type=series(?:[&#]|$)',
+    ]
     _TESTS = [{
-        'url': 'https://space.bilibili.com/1958703906/channel/seriesdetail?sid=547718&ctype=0',
+        'url': 'https://space.bilibili.com/1958703906/lists/547718?type=series',
         'info_dict': {
             'id': '1958703906_547718',
             'title': '直播回放',
@@ -1365,6 +1387,9 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
             'modified_date': str,
         },
         'playlist_mincount': 513,
+    }, {
+        'url': 'https://space.bilibili.com/1958703906/channel/seriesdetail?sid=547718&ctype=0',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -1383,7 +1408,7 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
         def fetch_page(page_idx):
             return self._download_json(
                 'https://api.bilibili.com/x/series/archives',
-                playlist_id, note=f'Downloading page {page_idx}',
+                playlist_id, note=f'Downloading page {page_idx}', headers={'Referer': url},
                 query={'mid': mid, 'series_id': sid, 'pn': page_idx + 1, 'ps': 30})['data']
 
         def get_metadata(page_data):
@@ -1897,7 +1922,7 @@ class BiliBiliDynamicIE(InfoExtractor):
         video_url = traverse_obj(post_data, (
             'data', 'item', (None, 'orig'), 'modules', 'module_dynamic',
             (('major', ('archive', 'pgc')), ('additional', ('reserve', 'common'))),
-            'jump_url', {url_or_none}, any, {sanitize_url}))
+            'jump_url', {url_or_none}, any, {self._proto_relative_url}))
         if not video_url or (self.suitable(video_url) and post_id == self._match_id(video_url)):
             raise ExtractorError('No valid video URL found', expected=True)
         return self.url_result(video_url)
