@@ -1,11 +1,12 @@
 <!--
     **IMPORTANT**: PRs without the template will be CLOSED
     
-    Due to the high number of pull requests, it may take some time before your code will be reviewed.
-    It is recommended for new contributors to stick to smaller pull requests, to familiarize themselves with the codebase.
-    Large PRs take longer to be reviewed and merged.
+    Due to the high volume of pull requests, it may be a while before your PR is reviewed.
+    Please try to keep your pull request focused on a single bugfix or new feature.
+    Pull requests with a vast scope and/or very large diff will take much longer to review.
+    It is recommended for new contributors to stick to smaller pull requests, so you can receive much more immediate feedback as you familiarize yourself with the codebase.
 
-    Please avoid force-pushing once a review has started, as it makes reviewing more difficult.
+    PLEASE AVOID FORCE-PUSHING once a review has started, as it makes reviewing more difficult.
 -->
 
 ### Description of your *pull request* and other information
