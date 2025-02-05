@@ -30,11 +30,11 @@ Fixes #
 - [ ] At least skimmed through [contributing guidelines](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#developer-instructions) including [yt-dlp coding conventions](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#yt-dlp-coding-conventions)
 - [ ] [Searched](https://github.com/yt-dlp/yt-dlp/search?q=is%3Apr&type=Issues) the bugtracker for similar pull requests
 
-### In order to be accepted and merged into yt-dlp each piece of code must be in public domain or released under [Unlicense](http://unlicense.org/). Check all of the following options that apply:
+### In order to be accepted and merged into yt-dlp each piece of code must be in public domain or released under [Unlicense](http://unlicense.org/). Check those that apply and remove the others:
 - [ ] I am the original author of the code in this PR, and I am willing to release it under [Unlicense](http://unlicense.org/)
 - [ ] I am not the original author of the code in this PR, but it is in the public domain or released under [Unlicense](http://unlicense.org/) (provide reliable evidence)
 
-### What is the purpose of your *pull request*?
+### What is the purpose of your *pull request*? Check those that apply and remove the others:
 - [ ] Fix or improvement to an extractor (Make sure to add/update tests)
 - [ ] New extractor ([Piracy websites will not be accepted](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-website-primarily-used-for-piracy))
 - [ ] Core bug fix/improvement
