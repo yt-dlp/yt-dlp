@@ -147,7 +147,8 @@ class VMwareSearchIE(SearchInfoExtractor):
                 total_count = traverse_obj(
                     search_results, ('info', 'videos', 'total_result_count', {int}), default=0)
                 for video in traverse_obj(search_results, ('records', 'videos', lambda _, v: v['external_id'])):
-                    yield self.url_result(self._LIBRARY_MAP[account][1] % video['external_id'],
+                    yield self.url_result(
+                        self._LIBRARY_MAP[account][1] % video['external_id'],
                         **traverse_obj(video, {
                             'id': ('external_id', {str}),
                             'title': ('name', {str}),
