@@ -22,7 +22,6 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
-from ..globals import plugin_ies_overrides as _plugin_overrides
 from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
@@ -31,6 +30,7 @@ from ..compat import (
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..downloader.hls import HlsFD
+from ..globals import plugin_ies_overrides as _plugin_overrides
 from ..networking import HEADRequest, Request
 from ..networking.exceptions import (
     HTTPError,
