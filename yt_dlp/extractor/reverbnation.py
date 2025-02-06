@@ -6,7 +6,7 @@ from ..utils import (
 
 
 class ReverbNationIE(InfoExtractor):
-    _VALID_URL = r'^https?://(?:www\.)?reverbnation\.com/.*?/song/(?P<id>\d+).*?$'
+    _VALID_URL = r'https?://(?:www\.)?reverbnation\.com/.*?/song/(?P<id>\d+).*?$'
     _TESTS = [{
         'url': 'http://www.reverbnation.com/alkilados/song/16965047-mona-lisa',
         'md5': 'c0aaf339bcee189495fdf5a8c8ba8645',
