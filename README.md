@@ -338,9 +338,6 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --plugin-dirs PATH              Path to an additional directory to search
                                     for plugins. This option can be used
                                     multiple times to add multiple directories.
-                                    Add "no-external" to disable searching
-                                    default external plugin directories (outside
-                                    of python environment)
     --no-plugins                    Do not load plugins
     --flat-playlist                 Do not extract a playlist's URL result
                                     entries; some entry metadata may be missing
