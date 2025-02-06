@@ -22,7 +22,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
-from .._globals import plugin_overrides as _plugin_overrides
+from ..globals import plugin_ies_overrides as _plugin_overrides
 from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,

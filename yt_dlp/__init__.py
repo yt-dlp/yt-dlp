@@ -19,11 +19,9 @@ from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .networking.impersonate import ImpersonateTarget
-from ._globals import IN_CLI as _IN_CLI
+from .globals import IN_CLI as _IN_CLI, plugin_dirs
 from .options import parseOpts
 from .plugins import load_all_plugins as _load_all_plugins
-from .plugins import disable_plugins as _disable_plugins
-from .plugins import set_plugin_dirs as _set_plugin_dirs
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
@@ -991,7 +989,10 @@ def _real_main(argv=None):
         FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
 
     # load all plugins into the global lookup
-    _set_plugin_dirs(*set(opts.plugin_dirs))
+    print(opts.plugin_dirs)
+    plugin_dirs.value = list(set(opts.plugin_dirs))
+    if plugin_dirs.value:
+        _load_all_plugins()
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir

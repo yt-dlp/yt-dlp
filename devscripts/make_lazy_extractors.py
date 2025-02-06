@@ -12,7 +12,7 @@ from inspect import getsource
 from devscripts.utils import get_filename_args, read_file, write_file
 from yt_dlp.extractor import import_extractors
 from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
-from yt_dlp._globals import extractors
+from yt_dlp.globals import extractors
 
 NO_ATTR = object()
 STATIC_CLASS_PROPERTIES = [

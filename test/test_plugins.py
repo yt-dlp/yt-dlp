@@ -23,7 +23,7 @@ from yt_dlp.plugins import (
     get_plugin_spec,
 )
 
-from yt_dlp._globals import (
+from yt_dlp.globals import (
     extractors,
     postprocessors,
     plugin_dirs,

@@ -1,5 +1,5 @@
-from .._globals import extractors as _extractors_context
-from .._globals import plugin_ies as _plugin_ies_context
+from ..globals import extractors as _extractors_context
+from ..globals import plugin_ies as _plugin_ies_context
 from ..compat.compat_utils import passthrough_module
 from ..plugins import PluginSpec, register_plugin_spec
 

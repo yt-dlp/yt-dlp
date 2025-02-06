@@ -413,6 +413,7 @@ def create_parser():
         metavar='PATH',
         dest='plugin_dirs',
         action='append',
+        default=['default'],
         help=(
             'Path to an additional directory to search for plugins. '
             'This option can be used multiple times to add multiple directories. '))

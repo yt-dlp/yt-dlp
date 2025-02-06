@@ -6,7 +6,7 @@ import sys
 import unittest
 from unittest.mock import patch
 
-from yt_dlp._globals import all_plugins_loaded
+from yt_dlp.globals import all_plugins_loaded
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

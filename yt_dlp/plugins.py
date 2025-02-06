@@ -15,7 +15,7 @@ import functools
 from pathlib import Path
 from zipfile import ZipFile
 
-from ._globals import (
+from .globals import (
     plugin_dirs,
     all_plugins_loaded,
     plugin_specs,
@@ -37,19 +37,18 @@ COMPAT_PACKAGE_NAME = 'ytdlp_plugins'
 _BASE_PACKAGE_PATH = Path(__file__).parent
 
 
-# Public APIs
-# Anything else is NOT public and no backwards compatibility is guaranteed
+# Please Note: Due to necessary changes and the complex nature involved,
+# no backwards compatibility is guaranteed for the plugin system API.
+# However, we will still try our best.
+
 __all__ = [
     'COMPAT_PACKAGE_NAME',
     'PACKAGE_NAME',
-    'add_plugin_dirs',
     'directories',
     'disable_plugins',
-    'get_plugin_spec',
     'load_all_plugins',
     'load_plugins',
     'register_plugin_spec',
-    'set_plugin_dirs',
 ]
 
 
@@ -262,20 +261,6 @@ def register_plugin_spec(plugin_spec: PluginSpec):
     if plugin_spec.module_name not in plugin_specs.value:
         plugin_specs.value[plugin_spec.module_name] = plugin_spec
         sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.{plugin_spec.module_name}'))
-
-
-def add_plugin_dirs(*paths):
-    """Add external plugin dirs to the existing ones"""
-    plugin_dirs.value.extend(paths)
-
-
-def set_plugin_dirs(*paths):
-    """Set external plugin dirs, overriding the default ones"""
-    plugin_dirs.value = list(paths)
-
-
-def get_plugin_spec(module_name):
-    return plugin_specs.value.get(module_name)
 
 
 def disable_plugins():

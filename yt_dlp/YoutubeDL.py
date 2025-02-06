@@ -33,11 +33,11 @@ from .downloader.rtmp import rtmpdump_version
 from .extractor import gen_extractor_classes, get_info_extractor, import_extractors
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
-from ._globals import (
+from .globals import (
     IN_CLI,
     LAZY_EXTRACTORS,
     plugin_ies,
-    plugin_overrides,
+    plugin_ies_overrides,
     plugin_pps,
     all_plugins_loaded,
     plugin_dirs,
@@ -4090,7 +4090,7 @@ class YoutubeDL:
                 for name, klass in plugins.value.items()]
             if plugin_type == 'Extractor':
                 display_list.extend(f'{plugins[-1].IE_NAME.partition("+")[2]} ({parent.__name__})'
-                                    for parent, plugins in plugin_overrides.value.items())
+                                    for parent, plugins in plugin_ies_overrides.value.items())
             if not display_list:
                 continue
             write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')

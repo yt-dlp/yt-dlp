@@ -51,7 +51,7 @@ from ..compat import (
     compat_HTMLParseError,
 )
 from ..dependencies import xattr
-from .._globals import IN_CLI as _IN_CLI
+from ..globals import IN_CLI as _IN_CLI
 
 __name__ = __name__.rsplit('.', 1)[0]  # noqa: A001: Pretend to be the parent module
 
