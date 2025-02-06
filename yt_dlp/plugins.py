@@ -19,7 +19,6 @@ from ._globals import (
     plugin_dirs,
     all_plugins_loaded,
     plugin_specs,
-    plugins_enabled,
     Indirect,
 )
 
@@ -82,7 +81,7 @@ def dirs_in_zip(archive):
     return ()
 
 
-def external_plugin_paths():
+def default_plugin_paths():
     def _get_package_paths(*root_paths, containing_folder):
         for config_dir in orderedSet(map(Path, root_paths), lazy=True):
             # We need to filter the base path added when running __main__.py directly
@@ -141,7 +140,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
     def search_locations(self, fullname):
 
         candidate_locations = itertools.chain.from_iterable(
-            external_plugin_paths() if candidate == 'external' else candidate_plugin_paths(candidate)
+            default_plugin_paths() if candidate == 'default' else candidate_plugin_paths(candidate)
             for candidate in plugin_dirs.value
         )
 
@@ -158,7 +157,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
                 write_string(f'Permission error while accessing modules in "{e.filename}"\n')
 
     def find_spec(self, fullname, path=None, target=None):
-        if not plugins_enabled.value:
+        if not plugin_dirs.value:
             return None
 
         if fullname not in self.packages:
@@ -206,7 +205,7 @@ def get_regular_classes(module, module_name, suffix):
 def load_plugins(plugin_spec: PluginSpec):
     name, suffix = plugin_spec.module_name, plugin_spec.suffix
     regular_classes = {}
-    if os.environ.get('YTDLP_NO_PLUGINS') or plugins_enabled.value is False:
+    if os.environ.get('YTDLP_NO_PLUGINS') or len(plugin_dirs.value) == 0:
         return regular_classes
 
     for finder, module_name, _ in iter_modules(name):
@@ -233,7 +232,7 @@ def load_plugins(plugin_spec: PluginSpec):
     # Compat: old plugin system using __init__.py
     # Note: plugins imported this way do not show up in directories()
     # nor are considered part of the yt_dlp_plugins namespace package
-    if 'external' in plugin_dirs.value:
+    if 'default' in plugin_dirs.value:
         with contextlib.suppress(FileNotFoundError):
             spec = importlib.util.spec_from_file_location(
                 name,
@@ -287,4 +286,4 @@ def disable_plugins():
         # note: we can't detect all cases when plugins are loaded (e.g. if spec isn't registered)
         raise YoutubeDLError('Plugins have already been loaded. Cannot disable plugins after loading plugins.')
 
-    plugins_enabled.value = False
+    plugin_dirs.value = []

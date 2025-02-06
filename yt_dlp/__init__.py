@@ -430,11 +430,9 @@ def validate_options(opts):
     }
 
     # Other options
-    opts.plugin_dirs = opts.plugin_dirs or []
-    if 'no-external' not in opts.plugin_dirs:
-        opts.plugin_dirs.append('external')
-    else:
-        opts.plugin_dirs.remove('no-external')
+    opts.plugin_dirs = opts.plugin_dirs
+    if opts.plugin_dirs is None:
+        opts.plugin_dirs = ['default']
 
     if opts.playlist_items is not None:
         try:
@@ -992,11 +990,6 @@ def _real_main(argv=None):
 
     # load all plugins into the global lookup
     _set_plugin_dirs(*opts.plugin_dirs)
-
-    if not opts.plugins_enabled:
-        _disable_plugins()
-    else:
-        _load_all_plugins()
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir

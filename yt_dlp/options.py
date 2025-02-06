@@ -415,13 +415,12 @@ def create_parser():
         action='append',
         help=(
             'Path to an additional directory to search for plugins. '
-            'This option can be used multiple times to add multiple directories. '
-            'Add "no-external" to disable searching default external plugin directories (outside of python environment)'))
+            'This option can be used multiple times to add multiple directories. '))
     general.add_option(
         '--no-plugins',
-        dest='plugins_enabled',
-        action='store_false',
-        default=True,
+        dest='plugin_dirs',
+        action='store_const',
+        const=[],
         help='Do not load plugins')
     general.add_option(
         '--flat-playlist',

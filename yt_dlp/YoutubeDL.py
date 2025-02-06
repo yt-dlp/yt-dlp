@@ -40,7 +40,7 @@ from ._globals import (
     plugin_overrides,
     plugin_pps,
     all_plugins_loaded,
-    plugins_enabled,
+    plugin_dirs,
 )
 from .minicurses import format_text
 from .networking import HEADRequest, Request, RequestDirector
@@ -4070,9 +4070,6 @@ class YoutubeDL:
 
         write_debug(f'Proxy map: {self.proxies}')
         write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
-        if os.environ.get('YTDLP_NO_PLUGINS'):
-            write_debug('Plugins are forcibly disabled')
-            return
 
         for plugin_type, plugins in (('Extractor', plugin_ies), ('Post-Processor', plugin_pps)):
             display_list = [
@@ -4085,12 +4082,12 @@ class YoutubeDL:
                 continue
             write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')
 
-        if not plugins_enabled.value:
+        if not plugin_dirs.value:
             write_debug('Plugins are disabled')
-
-        plugin_dirs = plugin_directories()
-        if plugin_dirs and plugins_enabled.value:
-            write_debug(f'Plugin directories: {plugin_dirs}')
+        else:
+            loaded_plugin_directories = plugin_directories()
+            if loaded_plugin_directories:
+                write_debug(f'Plugin directories: {loaded_plugin_directories}')
 
     @functools.cached_property
     def proxies(self):

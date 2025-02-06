@@ -55,7 +55,7 @@ POSTPROCESSOR_PLUGIN_SPEC = PluginSpec(
 def reset_plugins():
     plugin_ies.value = {}
     plugin_pps.value = {}
-    plugin_dirs.value = ['external']
+    plugin_dirs.value = ['default']
     plugin_specs.value = {}
     all_plugins_loaded.value = False
     plugins_enabled.value = True
@@ -211,7 +211,7 @@ class TestPlugins(unittest.TestCase):
         set_plugin_dirs(custom_plugin_dir)
 
         self.assertEqual(plugin_dirs.value, [custom_plugin_dir])
-        self.assertNotIn('external', plugin_dirs.value)
+        self.assertNotIn('default', plugin_dirs.value)
         load_plugins(EXTRACTOR_PLUGIN_SPEC)
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.package', sys.modules.keys())
@@ -225,9 +225,9 @@ class TestPlugins(unittest.TestCase):
     def test_add_plugin_dirs(self):
         custom_plugin_dir = str(TEST_DATA_DIR / 'plugin_packages')
 
-        self.assertEqual(plugin_dirs.value, ['external'])
+        self.assertEqual(plugin_dirs.value, ['default'])
         add_plugin_dirs(custom_plugin_dir)
-        self.assertEqual(plugin_dirs.value, ['external', custom_plugin_dir])
+        self.assertEqual(plugin_dirs.value, ['default', custom_plugin_dir])
 
         load_plugins(EXTRACTOR_PLUGIN_SPEC)
 
