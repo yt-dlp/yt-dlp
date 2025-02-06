@@ -17,10 +17,7 @@ from yt_dlp.plugins import (
     load_plugins,
     load_all_plugins,
     register_plugin_spec,
-    set_plugin_dirs,
     disable_plugins,
-    add_plugin_dirs,
-    get_plugin_spec,
 )
 
 from yt_dlp.globals import (
@@ -31,7 +28,6 @@ from yt_dlp.globals import (
     plugin_pps,
     all_plugins_loaded,
     plugin_specs,
-    plugins_enabled,
 )
 
 from yt_dlp.utils import YoutubeDLError
@@ -58,7 +54,6 @@ def reset_plugins():
     plugin_dirs.value = ['default']
     plugin_specs.value = {}
     all_plugins_loaded.value = False
-    plugins_enabled.value = True
     # Clearing override plugins is probably difficult
     for module_name in tuple(sys.modules):
         for plugin_type in ('extractor', 'postprocessor'):
@@ -205,28 +200,35 @@ class TestPlugins(unittest.TestCase):
         self.assertIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
         self.assertIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
 
+    def test_no_plugin_dirs(self):
+        register_plugin_spec(EXTRACTOR_PLUGIN_SPEC)
+        register_plugin_spec(POSTPROCESSOR_PLUGIN_SPEC)
+
+        plugin_dirs.value = []
+        load_all_plugins()
+
+        self.assertNotIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
+        self.assertNotIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
+
     def test_set_plugin_dirs(self):
-
         custom_plugin_dir = str(TEST_DATA_DIR / 'plugin_packages')
-        set_plugin_dirs(custom_plugin_dir)
+        plugin_dirs.value = [custom_plugin_dir]
 
-        self.assertEqual(plugin_dirs.value, [custom_plugin_dir])
-        self.assertNotIn('default', plugin_dirs.value)
         load_plugins(EXTRACTOR_PLUGIN_SPEC)
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.package', sys.modules.keys())
         self.assertIn('PackagePluginIE', plugin_ies.value)
 
     def test_invalid_plugin_dir(self):
-        set_plugin_dirs('invalid_dir')
+        plugin_dirs.value = ['invalid_dir']
         with self.assertRaises(ValueError):
             load_plugins(EXTRACTOR_PLUGIN_SPEC)
 
-    def test_add_plugin_dirs(self):
+    def test_append_plugin_dirs(self):
         custom_plugin_dir = str(TEST_DATA_DIR / 'plugin_packages')
 
         self.assertEqual(plugin_dirs.value, ['default'])
-        add_plugin_dirs(custom_plugin_dir)
+        plugin_dirs.value.append(custom_plugin_dir)
         self.assertEqual(plugin_dirs.value, ['default', custom_plugin_dir])
 
         load_plugins(EXTRACTOR_PLUGIN_SPEC)
@@ -254,8 +256,6 @@ class TestPlugins(unittest.TestCase):
         with self.assertRaises(YoutubeDLError):
             disable_plugins()
 
-        self.assertTrue(plugins_enabled.value)
-
         ies = load_plugins(EXTRACTOR_PLUGIN_SPEC)
         self.assertIn('NormalPluginIE', ies)
 
@@ -263,9 +263,9 @@ class TestPlugins(unittest.TestCase):
         register_plugin_spec(EXTRACTOR_PLUGIN_SPEC)
         register_plugin_spec(POSTPROCESSOR_PLUGIN_SPEC)
 
-        self.assertEqual(get_plugin_spec('extractor'), EXTRACTOR_PLUGIN_SPEC)
-        self.assertEqual(get_plugin_spec('postprocessor'), POSTPROCESSOR_PLUGIN_SPEC)
-        self.assertIsNone(get_plugin_spec('invalid'))
+        self.assertEqual(plugin_specs.value.get('extractor'), EXTRACTOR_PLUGIN_SPEC)
+        self.assertEqual(plugin_specs.value.get('postprocessor'), POSTPROCESSOR_PLUGIN_SPEC)
+        self.assertIsNone(plugin_specs.value.get('invalid'))
 
 
 if __name__ == '__main__':

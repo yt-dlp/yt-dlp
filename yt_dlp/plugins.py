@@ -104,11 +104,7 @@ def default_plugin_paths():
         containing_folder='yt-dlp-plugins',
     )
 
-    yield from internal_plugin_paths()
-
-
-def internal_plugin_paths():
-    # Always try load from PYTHONPATH folders
+    # Always try load from PYTHONPATH directories
     yield from (path for path in map(Path, sys.path) if path != _BASE_PACKAGE_PATH)
 
 
@@ -136,7 +132,6 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         )
 
     def search_locations(self, fullname):
-
         candidate_locations = itertools.chain.from_iterable(
             default_plugin_paths() if candidate == 'default' else candidate_plugin_paths(candidate)
             for candidate in plugin_dirs.value
