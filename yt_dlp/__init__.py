@@ -991,7 +991,7 @@ def _real_main(argv=None):
         FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
 
     # load all plugins into the global lookup
-    _set_plugin_dirs(*opts.plugin_dirs)
+    _set_plugin_dirs(*set(opts.plugin_dirs))
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir

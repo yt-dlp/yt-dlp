@@ -40,16 +40,16 @@ _BASE_PACKAGE_PATH = Path(__file__).parent
 # Public APIs
 # Anything else is NOT public and no backwards compatibility is guaranteed
 __all__ = [
-    'directories',
-    'load_plugins',
-    'load_all_plugins',
-    'register_plugin_spec',
+    'COMPAT_PACKAGE_NAME',
+    'PACKAGE_NAME',
     'add_plugin_dirs',
-    'set_plugin_dirs',
+    'directories',
     'disable_plugins',
     'get_plugin_spec',
-    'PACKAGE_NAME',
-    'COMPAT_PACKAGE_NAME',
+    'load_all_plugins',
+    'load_plugins',
+    'register_plugin_spec',
+    'set_plugin_dirs',
 ]
 
 
@@ -118,7 +118,6 @@ def candidate_plugin_paths(candidate):
     if not candidate_path.is_dir():
         raise ValueError(f'Invalid plugin directory: {candidate_path}')
     yield from candidate_path.iterdir()
-    yield from internal_plugin_paths()
 
 
 class PluginFinder(importlib.abc.MetaPathFinder):
@@ -157,15 +156,13 @@ class PluginFinder(importlib.abc.MetaPathFinder):
                 write_string(f'Permission error while accessing modules in "{e.filename}"\n')
 
     def find_spec(self, fullname, path=None, target=None):
-        if not plugin_dirs.value:
-            return None
-
         if fullname not in self.packages:
             return None
 
         search_locations = list(map(str, self.search_locations(fullname)))
         if not search_locations:
-            return None
+            # Prevent using built-in meta finders for searching plugins.
+            raise ModuleNotFoundError(fullname)
 
         spec = importlib.machinery.ModuleSpec(fullname, PluginLoader(), is_package=True)
         spec.submodule_search_locations = search_locations
@@ -179,8 +176,11 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
 
 def directories():
-    spec = importlib.util.find_spec(PACKAGE_NAME)
-    return list(spec.submodule_search_locations) if spec else []
+    with contextlib.suppress(ModuleNotFoundError):
+        spec = importlib.util.find_spec(PACKAGE_NAME)
+        if spec:
+            return list(spec.submodule_search_locations)
+    return []
 
 
 def iter_modules(subpackage):
