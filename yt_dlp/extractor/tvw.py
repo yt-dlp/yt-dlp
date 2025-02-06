@@ -117,4 +117,5 @@ class TVWIE(InfoExtractor):
             'subtitles': self.extract_subtitles(response),
             'timestamp': unified_timestamp(response.get('startDateTime')),
             'location': response.get('locationName'),
+            'is_live': response.get('eventStatus') == 'live',
         }
