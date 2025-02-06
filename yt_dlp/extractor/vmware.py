@@ -1,6 +1,12 @@
 import itertools
 
 from .common import InfoExtractor, SearchInfoExtractor
+from ..utils import (
+    float_or_none,
+    join_nonempty,
+    traverse_obj,
+    url_or_none,
+)
 
 
 class VMwareIE(InfoExtractor):
@@ -97,19 +103,19 @@ class VMwareSearchIE(SearchInfoExtractor):
     IE_NAME = 'VMware:search'
     _SEARCH_KEY = 'vmwaresearch'
     _TESTS = [{
-        'url': 'vmwaresearch10:*',
+        'url': 'vmwaresearch5:firewall',
         'info_dict': {
-            'id': '*',
-            'title': '*',
+            'id': 'firewall',
+            'title': 'firewall',
         },
-        'playlist_count': 10,
+        'playlist_count': 5,
     }, {
         'url': 'vmwaresearchall:uptime',
         'info_dict': {
             'id': 'uptime',
             'title': 'uptime',
         },
-        'playlist_mincount': 5,
+        'playlist_mincount': 2,
     }]
     _LIBRARY_MAP = {
         'explore': ('VMware Explore Video Library', 'https://www.vmware.com/explore/video-library/video/%s'),
@@ -117,27 +123,41 @@ class VMwareSearchIE(SearchInfoExtractor):
     }
 
     def _search_results(self, query):
-        def search_query(query, offset, limit, account):
+        def search_query(query, page_no, records_per_page, account):
             # search api:
-            # https://www.vmware.com/api/nocache/tools/brightcove/search?q=%2B{query}%20%2Byear:2023:2024%20%20-vod_on_demand_publish:%22False%22%2Bcomplete:%22true%22%2Bstate:%22ACTIVE%22&limit=12&offset=0&sort=-updated_at&account=explore
+            # https://api.swiftype.com/api/v1/public/engines/search.json?engine_key=J3yan3XpFywGvRxQMcEr&document_types[]=videos&&filters[videos][locale]=en-us&filters[videos][vod_on_demand_publish][]=!False&filters[videos][complete]=true&filters[videos][state]=ACTIVE&facets[videos][]=products&facets[videos][]=sessiontype&facets[videos][]=audience&facets[videos][]=track&facets[videos][]=level&filters[videos][year][]=!&filters[videos][account]=explore&q[]=ransomware&q[]=uptime&page=1&per_page=12&sort_field[videos]=updated_date&sort_direction[videos]=desc
             return self._download_json(
-                'https://www.vmware.com/api/nocache/tools/brightcove/search', query,
-                note=f'Searching videos in {self._LIBRARY_MAP[account][0]}', query={
-                    'q': f'+{query} -vod_on_demand_publish:"False"+complete:"true"+state:"ACTIVE"',
-                    'limit': limit,
-                    'offset': offset,
-                    'sort': 'updated_at',   # chronological ascending order. For descending order: '-updated_at'
-                    'account': account,
+                'https://api.swiftype.com/api/v1/public/engines/search.json', query,
+                note=f'Page {page_no}: Searching for videos in {self._LIBRARY_MAP[account][0]}', query={
+                    'engine_key': 'J3yan3XpFywGvRxQMcEr',
+                    'document_types[]': 'videos',
+                    'filters[videos][state]': 'ACTIVE',
+                    'filters[videos][account]': account,
+                    'q[]': query,
+                    'page': page_no,
+                    'per_page': records_per_page,
+                    'sort_field[videos]': 'video_id',
+                    'sort_direction[videos]': 'asc',    # 'desc' for descending order
                 })
 
         for account in ['explore', 'vmware']:
-            limit, total_count = 100, None      # limit: maximum 100
-            for i in itertools.count():
-                search_results = search_query(query, i * limit, limit, account)
-                total_count = search_results.get('count', 0)
-                for video in search_results.get('videos', []):
-                    if video_id := video.get('id'):
-                        yield self.url_result(self._LIBRARY_MAP[account][1] % video_id)
-                if (i + 1) * limit >= total_count:
+            records_per_page, total_count = 100, None   # records_per_page: maximum 100
+            for i in itertools.count(start=1, step=1):
+                search_results = search_query(query, i, records_per_page, account)
+                total_count = traverse_obj(
+                    search_results, ('info', 'videos', 'total_result_count', {int}), default=0)
+                for video in traverse_obj(search_results, ('records', 'videos', lambda _, v: v['external_id'])):
+                    yield self.url_result(self._LIBRARY_MAP[account][1] % video['external_id'],
+                        **traverse_obj(video, {
+                            'id': ('external_id', {str}),
+                            'title': ('name', {str}),
+                            'description': ({lambda v: join_nonempty('description', 'long_description',
+                                                                     from_dict=video, delim='\n')}),
+                            'thumbnail': (('images', 'thumbnail'), {url_or_none}),
+                            'tags': ('tags'),
+                            'uploader_id': ('account_id'),
+                            'duration': ('duration', {lambda v: float_or_none(v, 1000)}),
+                        }, get_all=False))
+                if i * records_per_page >= total_count:
                     self.to_screen(f'{query}: {total_count} video(s) found')
                     break
