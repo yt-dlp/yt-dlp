@@ -1,32 +1,48 @@
-import base64
-import hashlib
 import json
-import random
 import re
+import uuid
 
 from .common import InfoExtractor
-from ..networking import HEADRequest
 from ..utils import (
-    ExtractorError,
+    determine_ext,
+    filter_dict,
     float_or_none,
+    int_or_none,
     orderedSet,
     str_or_none,
     try_get,
+    url_or_none,
 )
+from ..utils.traversal import subs_list_to_dict, traverse_obj
 
 
 class GloboIE(InfoExtractor):
-    _VALID_URL = r'(?:globo:|https?://.+?\.globo\.com/(?:[^/]+/)*(?:v/(?:[^/]+/)?|videos/))(?P<id>\d{7,})'
+    _VALID_URL = r'(?:globo:|https?://[^/?#]+?\.globo\.com/(?:[^/?#]+/))(?P<id>\d{7,})'
     _NETRC_MACHINE = 'globo'
+    _VIDEO_VIEW = '''
+    query getVideoView($videoId: ID!) {
+        video(id: $videoId) {
+            duration
+            description
+            relatedEpisodeNumber
+            relatedSeasonNumber
+            headline
+            title {
+                originProgramId
+                headline
+            }
+        }
+    }
+    '''
     _TESTS = [{
-        'url': 'http://g1.globo.com/carros/autoesporte/videos/t/exclusivos-do-g1/v/mercedes-benz-gla-passa-por-teste-de-colisao-na-europa/3607726/',
+        'url': 'https://globoplay.globo.com/v/3607726/',
         'info_dict': {
             'id': '3607726',
             'ext': 'mp4',
             'title': 'Mercedes-Benz GLA passa por teste de colisão na Europa',
             'duration': 103.204,
-            'uploader': 'G1',
-            'uploader_id': '2015',
+            'uploader': 'G1 ao vivo',
+            'uploader_id': '4209',
         },
         'params': {
             'skip_download': True,
@@ -38,39 +54,36 @@ class GloboIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Acidentes de trânsito estão entre as maiores causas de queda de energia em SP',
             'duration': 137.973,
-            'uploader': 'Rede Globo',
-            'uploader_id': '196',
+            'uploader': 'Bom Dia Brasil',
+            'uploader_id': '810',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        'url': 'http://canalbrasil.globo.com/programas/sangue-latino/videos/3928201.html',
-        'only_matching': True,
-    }, {
-        'url': 'http://globosatplay.globo.com/globonews/v/4472924/',
-        'only_matching': True,
-    }, {
-        'url': 'http://globotv.globo.com/t/programa/v/clipe-sexo-e-as-negas-adeus/3836166/',
-        'only_matching': True,
-    }, {
-        'url': 'http://globotv.globo.com/canal-brasil/sangue-latino/t/todos-os-videos/v/ator-e-diretor-argentino-ricado-darin-fala-sobre-utopias-e-suas-perdas/3928201/',
-        'only_matching': True,
-    }, {
-        'url': 'http://canaloff.globo.com/programas/desejar-profundo/videos/4518560.html',
-        'only_matching': True,
-    }, {
         'url': 'globo:3607726',
         'only_matching': True,
-    }, {
-        'url': 'https://globoplay.globo.com/v/10248083/',
+    },
+        {
+        'url': 'globo:8013907',  # needs subscription to globoplay
         'info_dict': {
-            'id': '10248083',
+            'id': '8013907',
             'ext': 'mp4',
-            'title': 'Melhores momentos: Equador 1 x 1 Brasil pelas Eliminatórias da Copa do Mundo 2022',
-            'duration': 530.964,
-            'uploader': 'SporTV',
-            'uploader_id': '698',
+            'title': 'Capítulo de 14⧸08⧸1989',
+            'episode_number': 1,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    },
+        {
+        'url': 'globo:12824146',
+        'info_dict': {
+            'id': '12824146',
+            'ext': 'mp4',
+            'title': 'Acordo de damas',
+            'episode_number': 1,
+            'season_number': 2,
         },
         'params': {
             'skip_download': True,
@@ -80,98 +93,70 @@ class GloboIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        self._request_webpage(
-            HEADRequest('https://globo-ab.globo.com/v2/selected-alternatives?experiments=player-isolated-experiment-02&skipImpressions=true'),
-            video_id, 'Getting cookies')
-
-        video = self._download_json(
-            f'http://api.globovideos.com/videos/{video_id}/playlist',
-            video_id)['videos'][0]
-        if not self.get_param('allow_unplayable_formats') and video.get('encrypted') is True:
-            self.report_drm(video_id)
-
-        title = video['title']
+        info = self._download_json(
+            'https://cloud-jarvis.globo.com/graphql', video_id,
+            query={
+                'operationName': 'getVideoView',
+                'variables': json.dumps({'videoId': video_id}),
+                'query': self._VIDEO_VIEW,
+            }, headers={
+                'content-type': 'application/json',
+                'x-platform-id': 'web',
+                'x-device-id': 'desktop',
+                'x-client-version': '2024.12-5',
+            })['data']['video']
 
         formats = []
-        security = self._download_json(
-            'https://playback.video.globo.com/v2/video-session', video_id, f'Downloading security hash for {video_id}',
-            headers={'content-type': 'application/json'}, data=json.dumps({
-                'player_type': 'desktop',
+        video = self._download_json(
+            'https://playback.video.globo.com/v4/video-session', video_id,
+            f'Downloading resource info for {video_id}',
+            headers={'Content-Type': 'application/json'},
+            data=json.dumps(filter_dict({
+                'player_type': 'mirakulo_8k_hdr',
                 'video_id': video_id,
                 'quality': 'max',
                 'content_protection': 'widevine',
-                'vsid': '581b986b-4c40-71f0-5a58-803e579d5fa2',
-                'tz': '-3.0:00',
-            }).encode())
+                'vsid': f'{uuid.uuid4()}',
+                'consumption': 'streaming',
+                'capabilities': {'low_latency': True},
+                'tz': '-03:00',
+                'Authorization': try_get(self._get_cookies('https://globo.com'),
+                                         lambda x: f'Bearer {x["GLBID"].value}'),
+                'version': 1,
+            })).encode())
 
-        self._request_webpage(HEADRequest(security['sources'][0]['url_template']), video_id, 'Getting locksession cookie')
+        if traverse_obj(video, ('resource', 'drm_protection_enabled', {bool})):
+            self.report_drm(video_id)
 
-        security_hash = security['sources'][0]['token']
-        if not security_hash:
-            message = security.get('message')
-            if message:
-                raise ExtractorError(
-                    f'{self.IE_NAME} returned error: {message}', expected=True)
+        main_source = video['sources'][0]
 
-        hash_code = security_hash[:2]
-        padding = '%010d' % random.randint(1, 10000000000)
-        if hash_code in ('04', '14'):
-            received_time = security_hash[3:13]
-            received_md5 = security_hash[24:]
-            hash_prefix = security_hash[:23]
-        elif hash_code in ('02', '12', '03', '13'):
-            received_time = security_hash[2:12]
-            received_md5 = security_hash[22:]
-            padding += '1'
-            hash_prefix = '05' + security_hash[:22]
-
-        padded_sign_time = str(int(received_time) + 86400) + padding
-        md5_data = (received_md5 + padded_sign_time + '0xAC10FD').encode()
-        signed_md5 = base64.urlsafe_b64encode(hashlib.md5(md5_data).digest()).decode().strip('=')
-        signed_hash = hash_prefix + padded_sign_time + signed_md5
-        source = security['sources'][0]['url_parts']
-        resource_url = source['scheme'] + '://' + source['domain'] + source['path']
-        signed_url = '{}?h={}&k=html5&a={}'.format(resource_url, signed_hash, 'F' if video.get('subscriber_only') else 'A')
-
-        fmts, subtitles = self._extract_m3u8_formats_and_subtitles(
-            signed_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
-        formats.extend(fmts)
-
-        for resource in video['resources']:
-            if resource.get('type') == 'subtitle':
-                subtitles.setdefault(resource.get('language') or 'por', []).append({
-                    'url': resource.get('url'),
-                })
-        subs = try_get(security, lambda x: x['source']['subtitles'], expected_type=dict) or {}
-        for sub_lang, sub_url in subs.items():
-            if sub_url:
-                subtitles.setdefault(sub_lang or 'por', []).append({
-                    'url': sub_url,
-                })
-        subs = try_get(security, lambda x: x['source']['subtitles_webvtt'], expected_type=dict) or {}
-        for sub_lang, sub_url in subs.items():
-            if sub_url:
-                subtitles.setdefault(sub_lang or 'por', []).append({
-                    'url': sub_url,
-                })
-
-        duration = float_or_none(video.get('duration'), 1000)
-        uploader = video.get('channel')
-        uploader_id = str_or_none(video.get('channel_id'))
+        # 4k streams are exclusively outputted in dash, so we need to filter these out
+        if determine_ext(main_source['url']) == 'mpd':
+            formats, subtitles = self._extract_mpd_formats_and_subtitles(main_source['url'], video_id, mpd_id='dash')
+        else:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                main_source['url'], video_id, 'mp4', m3u8_id='hls')
+        self._merge_subtitles(traverse_obj(main_source, ('text', ..., {
+            'url': ('subtitle', 'srt', 'url', {url_or_none}),
+        }, all, {subs_list_to_dict(lang='en')})), target=subtitles)
 
         return {
             'id': video_id,
-            'title': title,
-            'duration': duration,
-            'uploader': uploader,
-            'uploader_id': uploader_id,
+            **traverse_obj(info, {
+                'title': ('headline', {str}),
+                'duration': ('duration', {float_or_none(scale=1000)}),
+                'uploader': ('title', 'headline', {str}),
+                'uploader_id': ('title', 'originProgramId', {str_or_none}),
+                'episode_number': ('relatedEpisodeNumber', {int_or_none}),
+                'season_number': ('relatedSeasonNumber', {int_or_none}),
+            }),
             'formats': formats,
             'subtitles': subtitles,
         }
 
 
 class GloboArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://.+?\.globo\.com/(?:[^/]+/)*(?P<id>[^/.]+)(?:\.html)?'
+    _VALID_URL = r'https?://(?!globoplay).+?\.globo\.com/(?:[^/?#]+/)*(?P<id>[^/?#.]+)(?:\.html)?'
 
     _VIDEOID_REGEXES = [
         r'\bdata-video-id=["\'](\d{7,})["\']',
