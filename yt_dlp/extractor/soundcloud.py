@@ -210,6 +210,7 @@ class SoundcloudBaseIE(InfoExtractor):
 
         format_urls = set()
         formats = []
+        has_drm = False
         query = {'client_id': self._CLIENT_ID}
         if secret_token:
             query['secret_token'] = secret_token
@@ -245,6 +246,7 @@ class SoundcloudBaseIE(InfoExtractor):
                         'url': format_url,
                         'quality': 10,
                         'format_note': 'Original',
+                        'vcodec': 'none',
                     })
 
         def invalid_url(url):
@@ -259,6 +261,9 @@ class SoundcloudBaseIE(InfoExtractor):
             preset_base = preset.partition('_')[0]
 
             protocol = traverse_obj(t, ('format', 'protocol', {str})) or 'http'
+            if protocol.startswith(('ctr-', 'cbc-')):
+                has_drm = True
+                continue
             if protocol == 'progressive':
                 protocol = 'http'
             if protocol != 'hls' and '/hls' in format_url:
@@ -315,8 +320,11 @@ class SoundcloudBaseIE(InfoExtractor):
                 'preference': -10 if is_preview else None,
             })
 
-        if not formats and info.get('policy') == 'BLOCK':
-            self.raise_geo_restricted(metadata_available=True)
+        if not formats:
+            if has_drm:
+                self.report_drm(track_id)
+            if info.get('policy') == 'BLOCK':
+                self.raise_geo_restricted(metadata_available=True)
 
         user = info.get('user') or {}
 
@@ -353,6 +361,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'uploader_url': user.get('permalink_url'),
             'timestamp': unified_timestamp(info.get('created_at')),
             'title': info.get('title'),
+            'track': info.get('title'),
             'description': info.get('description'),
             'thumbnails': thumbnails,
             'duration': float_or_none(info.get('duration'), 1000),
@@ -385,7 +394,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                     (?:(?:(?:www\.|m\.)?soundcloud\.com/
                             (?!stations/track)
                             (?P<uploader>[\w\d-]+)/
-                            (?!(?:tracks|albums|sets(?:/.+?)?|reposts|likes|spotlight)/?(?:$|[?#]))
+                            (?!(?:tracks|albums|sets(?:/.+?)?|reposts|likes|spotlight|comments)/?(?:$|[?#]))
                             (?P<title>[\w\d-]+)
                             (?:/(?P<token>(?!(?:albums|sets|recommended))[^?]+?))?
                             (?:[?].*)?$)
@@ -402,6 +411,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'id': '62986583',
                 'ext': 'opus',
                 'title': 'Lostin Powers - She so Heavy (SneakPreview) Adrian Ackers Blueprint 1',
+                'track': 'Lostin Powers - She so Heavy (SneakPreview) Adrian Ackers Blueprint 1',
                 'description': 'No Downloads untill we record the finished version this weekend, i was too pumped n i had to post it , earl is prolly gonna b hella p.o\'d',
                 'uploader': 'E.T. ExTerrestrial Music',
                 'uploader_id': '1571244',
@@ -424,6 +434,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'id': '47127627',
                 'ext': 'opus',
                 'title': 'Goldrushed',
+                'track': 'Goldrushed',
                 'description': 'From Stockholm Sweden\r\nPovel / Magnus / Filip / David\r\nwww.theroyalconcept.com',
                 'uploader': 'The Royal Concept',
                 'uploader_id': '9615865',
@@ -449,6 +460,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'id': '123998367',
                 'ext': 'mp3',
                 'title': 'Youtube - Dl Test Video \'\' Ä↭',
+                'track': 'Youtube - Dl Test Video \'\' Ä↭',
                 'description': 'test chars:  "\'/\\ä↭',
                 'uploader': 'jaimeMF',
                 'uploader_id': '69767071',
@@ -473,6 +485,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'id': '123998367',
                 'ext': 'mp3',
                 'title': 'Youtube - Dl Test Video \'\' Ä↭',
+                'track': 'Youtube - Dl Test Video \'\' Ä↭',
                 'description': 'test chars:  "\'/\\ä↭',
                 'uploader': 'jaimeMF',
                 'uploader_id': '69767071',
@@ -497,6 +510,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'id': '343609555',
                 'ext': 'wav',
                 'title': 'The Following',
+                'track': 'The Following',
                 'description': '',
                 'uploader': '80M',
                 'uploader_id': '312384765',
@@ -522,6 +536,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'id': '340344461',
                 'ext': 'wav',
                 'title': 'Uplifting Only 238 [No Talking] (incl. Alex Feed Guestmix) (Aug 31, 2017) [wav]',
+                'track': 'Uplifting Only 238 [No Talking] (incl. Alex Feed Guestmix) (Aug 31, 2017) [wav]',
                 'description': 'md5:fa20ee0fca76a3d6df8c7e57f3715366',
                 'uploader': 'Ori Uplift Music',
                 'uploader_id': '12563093',
@@ -547,6 +562,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'id': '309699954',
                 'ext': 'mp3',
                 'title': 'Sideways (Prod. Mad Real)',
+                'track': 'Sideways (Prod. Mad Real)',
                 'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
                 'uploader': 'garyvee',
                 'uploader_id': '2366352',
@@ -573,6 +589,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'id': '583011102',
                 'ext': 'opus',
                 'title': 'Mezzo Valzer',
+                'track': 'Mezzo Valzer',
                 'description': 'md5:f4d5f39d52e0ccc2b4f665326428901a',
                 'uploader': 'Giovanni Sarani',
                 'uploader_id': '3352531',
@@ -648,6 +665,11 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
                     'playlistId': playlist_id,
                     'playlistSecretToken': token,
                 }, headers=self._HEADERS)
+        album_info = traverse_obj(playlist, {
+            'album': ('title', {str}),
+            'album_artist': ('user', 'username', {str}),
+            'album_type': ('set_type', {str}, {lambda x: x or 'playlist'}),
+        })
         entries = []
         for track in tracks:
             track_id = str_or_none(track.get('id'))
@@ -659,11 +681,17 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
                 if token:
                     url += '?secret_token=' + token
             entries.append(self.url_result(
-                url, SoundcloudIE.ie_key(), track_id))
+                url, SoundcloudIE.ie_key(), track_id, url_transparent=True, **album_info))
         return self.playlist_result(
             entries, playlist_id,
             playlist.get('title'),
-            playlist.get('description'))
+            playlist.get('description'),
+            **album_info,
+            **traverse_obj(playlist, {
+                'uploader': ('user', 'username', {str}),
+                'uploader_id': ('user', 'id', {str_or_none}),
+            }),
+        )
 
 
 class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
@@ -675,6 +703,11 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
             'id': '2284613',
             'title': 'The Royal Concept EP',
             'description': 'md5:71d07087c7a449e8941a70a29e34671e',
+            'uploader': 'The Royal Concept',
+            'uploader_id': '9615865',
+            'album': 'The Royal Concept EP',
+            'album_artists': ['The Royal Concept'],
+            'album_type': 'ep',
         },
         'playlist_mincount': 5,
     }, {
@@ -768,7 +801,7 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
                             (?:(?:www|m)\.)?soundcloud\.com/
                             (?P<user>[^/]+)
                             (?:/
-                                (?P<rsrc>tracks|albums|sets|reposts|likes|spotlight)
+                                (?P<rsrc>tracks|albums|sets|reposts|likes|spotlight|comments)
                             )?
                             /?(?:[?#].*)?$
                     '''
@@ -822,6 +855,13 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
             'title': 'Grynpyret (Spotlight)',
         },
         'playlist_mincount': 1,
+    }, {
+        'url': 'https://soundcloud.com/one-thousand-and-one/comments',
+        'info_dict': {
+            'id': '992430331',
+            'title': '7x11x13-testing (Comments)',
+        },
+        'playlist_mincount': 1,
     }]
 
     _BASE_URL_MAP = {
@@ -832,6 +872,7 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
         'reposts': 'stream/users/%s/reposts',
         'likes': 'users/%s/likes',
         'spotlight': 'users/%s/spotlight',
+        'comments': 'users/%s/comments',
     }
 
     def _real_extract(self, url):
@@ -952,6 +993,11 @@ class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
             'id': '4110309',
             'title': 'TILT Brass - Bowery Poetry Club, August \'03 [Non-Site SCR 02]',
             'description': 're:.*?TILT Brass - Bowery Poetry Club',
+            'uploader': 'Non-Site Records',
+            'uploader_id': '33660914',
+            'album_artists': ['Non-Site Records'],
+            'album_type': 'playlist',
+            'album': 'TILT Brass - Bowery Poetry Club, August \'03 [Non-Site SCR 02]',
         },
         'playlist_count': 6,
     }]

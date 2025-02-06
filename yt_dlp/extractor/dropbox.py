@@ -82,7 +82,7 @@ class DropboxIE(InfoExtractor):
                 has_anonymous_download = self._search_regex(
                     r'(anonymous:\tanonymous)', part, 'anonymous', default=False)
             transcode_url = self._search_regex(
-                r'\n.(https://[^\x03\x08\x12\n]+\.m3u8)', part, 'transcode url', default=None)
+                r'\n.?(https://[^\x03\x08\x12\n]+\.m3u8)', part, 'transcode url', default=None)
             if not transcode_url:
                 continue
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(transcode_url, video_id, 'mp4')

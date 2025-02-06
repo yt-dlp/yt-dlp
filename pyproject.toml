@@ -76,7 +76,7 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.8.0",
+    "ruff~=0.9.0",
 ]
 test = [
     "pytest~=8.1",
@@ -195,6 +195,7 @@ ignore = [
     "B023",    # function-uses-loop-variable (false positives)
     "B028",    # no-explicit-stacklevel
     "B904",    # raise-without-from-inside-except
+    "A005",    # stdlib-module-shadowing
     "C401",    # unnecessary-generator-set
     "C402",    # unnecessary-generator-dict
     "PIE790",  # unnecessary-placeholder

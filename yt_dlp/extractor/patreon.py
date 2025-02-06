@@ -63,6 +63,7 @@ class PatreonIE(PatreonBaseIE):
         'info_dict': {
             'id': '743933',
             'ext': 'mp3',
+            'alt_title': 'cd166.mp3',
             'title': 'Episode 166: David Smalley of Dogma Debate',
             'description': 'md5:34d207dd29aa90e24f1b3f58841b81c7',
             'uploader': 'Cognitive Dissonance Podcast',
@@ -280,7 +281,7 @@ class PatreonIE(PatreonBaseIE):
         video_id = self._match_id(url)
         post = self._call_api(
             f'posts/{video_id}', video_id, query={
-                'fields[media]': 'download_url,mimetype,size_bytes',
+                'fields[media]': 'download_url,mimetype,size_bytes,file_name',
                 'fields[post]': 'comment_count,content,embed,image,like_count,post_file,published_at,title,current_user_can_view',
                 'fields[user]': 'full_name,url',
                 'fields[post_tag]': 'value',
@@ -317,6 +318,7 @@ class PatreonIE(PatreonBaseIE):
                         'ext': ext,
                         'filesize': size_bytes,
                         'url': download_url,
+                        'alt_title': traverse_obj(media_attributes, ('file_name', {str})),
                     })
 
             elif include_type == 'user':
@@ -457,7 +459,7 @@ class PatreonCampaignIE(PatreonBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?patreon\.com/(?:
             (?:m|api/campaigns)/(?P<campaign_id>\d+)|
-            (?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
+            (?:c/)?(?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
         )(?:/posts)?/?(?:$|[?#])'''
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
@@ -509,6 +511,26 @@ class PatreonCampaignIE(PatreonBaseIE):
             'thumbnail': r're:^https?://.*$',
         },
         'playlist_mincount': 201,
+    }, {
+        'url': 'https://www.patreon.com/c/OgSog',
+        'info_dict': {
+            'id': '8504388',
+            'title': 'OGSoG',
+            'description': r're:(?s)Hello and welcome to our Patreon page. We are Mari, Lasercorn, .+',
+            'channel': 'OGSoG',
+            'channel_id': '8504388',
+            'channel_url': 'https://www.patreon.com/OgSog',
+            'uploader_url': 'https://www.patreon.com/OgSog',
+            'uploader_id': '72323575',
+            'uploader': 'David Moss',
+            'thumbnail': r're:https?://.+/.+',
+            'channel_follower_count': int,
+            'age_limit': 0,
+        },
+        'playlist_mincount': 331,
+    }, {
+        'url': 'https://www.patreon.com/c/OgSog/posts',
+        'only_matching': True,
     }, {
         'url': 'https://www.patreon.com/dissonancepod/posts',
         'only_matching': True,
