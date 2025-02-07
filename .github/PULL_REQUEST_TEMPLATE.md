@@ -6,7 +6,7 @@
     Pull requests with a vast scope and/or very large diff will take much longer to review.
     It is recommended for new contributors to stick to smaller pull requests, so you can receive much more immediate feedback as you familiarize yourself with the codebase.
 
-    PLEASE AVOID FORCE-PUSHING once a review has started, as it makes reviewing more difficult.
+    PLEASE AVOID FORCE-PUSHING after opening a PR, as it makes reviewing more difficult.
 -->
 
 ### Description of your *pull request* and other information
