@@ -422,7 +422,7 @@ def create_parser():
         dest='plugin_dirs',
         action='store_const',
         const=[],
-        help='Do not load plugins')
+        help='Disable plugin loading')
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
