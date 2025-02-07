@@ -252,7 +252,7 @@ def expect_info_dict(self, got_dict, expected_dict):
 
     test_info_dict = sanitize_got_info_dict(got_dict)
 
-    missing_keys = set(test_info_dict.keys()) - set(expected_dict.keys())
+    missing_keys = sorted(set(test_info_dict.keys()) - set(expected_dict.keys()))
     if missing_keys:
         def _repr(v):
             if isinstance(v, str):
@@ -273,7 +273,7 @@ def expect_info_dict(self, got_dict, expected_dict):
         write_string(info_dict_str.replace('\n', '\n        '), out=sys.stderr)
         self.assertFalse(
             missing_keys,
-            'Missing keys in test definition: {}'.format(', '.join(sorted(missing_keys))))
+            'Missing keys in test definition: {}'.format(', '.join(missing_keys)))
 
 
 def assertRegexpMatches(self, text, regexp, msg=None):
