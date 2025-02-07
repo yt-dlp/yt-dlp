@@ -1,5 +1,6 @@
 import base64
-import enum
+import copy
+import datetime as dt
 import functools
 import hashlib
 import json
@@ -13,8 +14,10 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
+    extract_attributes,
     filter_dict,
-    get_domain,
+    get_element_html_by_attribute,
+    get_element_html_by_id,
     int_or_none,
     parse_qs,
     unified_timestamp,
@@ -26,13 +29,7 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-class AuthType(enum.Enum):
-    OAUTH_AUTH0 = 'auth0'
-    SOCIAL_NICONICO = 'niconico'
-
-
-class AuthManager:
-    _AUTH_INFO_CACHE = {}
+class SheetaAuth0Client:
     _AUTH0_BASE64_TRANS = str.maketrans({
         '+': '-',
         '/': '_',
@@ -40,196 +37,124 @@ class AuthManager:
     })
 
     def __init__(self, ie):
+        self._section = 'sheeta'
+        self._mem_cache = {}
+        self._context = {}
         self._ie = ie
-        self._auth_info = {}
+
+    def _load(self, domain, username):
+        if data := traverse_obj(self._mem_cache, (domain, username), default={}):
+            return data
+
+        if data := traverse_obj(self._ie.cache.load(self._section, domain), username, default={}):
+            if domain not in self._mem_cache:
+                self._mem_cache[domain] = {}
+            self._mem_cache[domain][username] = data
+
+        return data
+
+    def _store(self, domain, username, data):
+        if not self._mem_cache.get(domain, {}):
+            self._mem_cache[domain] = {}
+        self._mem_cache[domain][username] = data
+
+        self._ie.cache.store(self._section, domain, self._mem_cache[domain])
 
     @property
     def _auth_info(self):
-        if not self._AUTH_INFO_CACHE.get(self._ie._DOMAIN):
-            self._AUTH_INFO_CACHE[self._ie._DOMAIN] = {}
-        return self._AUTH_INFO_CACHE.get(self._ie._DOMAIN)
+        if not self._context or not self._context['username']:
+            return {}
+        return self._load(self._context['domain'], self._context['username'])
 
     @_auth_info.setter
     def _auth_info(self, value):
-        if not self._AUTH_INFO_CACHE.get(self._ie._DOMAIN):
-            self._AUTH_INFO_CACHE[self._ie._DOMAIN] = {}
-        self._AUTH_INFO_CACHE[self._ie._DOMAIN].update(value)
-
-    def get_authed_info(self, query_path, item_id, dict_path, expected_code_msg, **query_kwargs):
-        try:
-            res = self._ie._call_api(query_path, item_id, **query_kwargs)
-            return traverse_obj(res, dict_path)
-        except ExtractorError as e:
-            if not isinstance(e.cause, HTTPError) or e.cause.status not in expected_code_msg:
-                raise e
-            self._ie.raise_login_required(
-                expected_code_msg[e.cause.status], metadata_available=True,
-                method=self._auth_info.get('login_method'))
-            return None
-
-    def get_auth_token(self):
-        if not self._auth_info.get('auth_token'):
-            try:
-                self._login()
-                return self._auth_info.get('auth_token')
-            except Exception as e:
-                raise ExtractorError('Unable to login due to unknown reasons') from e
-
-        if self._auth_info.get('auth_token'):
-            try:
-                self._refresh_token()
-                return self._auth_info.get('auth_token')
-            except Exception as e:
-                raise ExtractorError('Unable to refresh token due to unknown reasons') from e
-
-        return None
-
-    def _refresh_token(self):
-        if not (refresh_func_params := self._auth_info.get('refresh_func_params')):
-            return False
-
-        if self._auth_info.get('auth_type') == AuthType.OAUTH_AUTH0:
-            refresh_func_params['data'] = urlencode_postdata({
-                **refresh_func_params['data'],
-                'refresh_token': self._auth_info.get('refresh_token'),
-            })
-
-        res = self._ie._download_json(
-            **refresh_func_params, video_id=None, expected_status=(400, 403, 404),
-            note='Refreshing token', errnote='Unable to refresh token')
-        if error := traverse_obj(
-                res, ('error', 'message', {lambda x: base64.b64decode(x).decode()}), ('error', 'message')):
-            self._ie.report_warning(f'Unable to refresh token: {error!r}')
-        elif token := traverse_obj(res, ('data', 'access_token', {str})):
-            # niconico
-            self._auth_info = {'auth_token': f'Bearer {token}'}
-            return True
-        elif token := traverse_obj(res, ('access_token', {str})):
-            # auth0
-            self._auth_info = {'auth_token': f'Bearer {token}'}
-            if refresh_token := traverse_obj(res, ('refresh_token', {str})):
-                self._auth_info = {'refresh_token': refresh_token}
-                self._ie.cache.store(
-                    self._ie._NETRC_MACHINE, self._auth_info['cache_key'], {self._auth_info['cache_name']: refresh_token})
-                return True
-            self._ie.report_warning('Unable to find new refresh_token')
-        else:
-            self._ie.report_warning('Unable to refresh token')
-
-        return False
-
-    def _login(self):
-        social_login_providers = traverse_obj(self._ie._call_api(
-            f'fanclub_groups/{self._ie._FANCLUB_GROUP_ID}/login', None),
-            ('data', 'fanclub_group', 'fanclub_social_login_providers', ..., {dict})) or []
-        self._ie.write_debug(f'social_login_providers = {social_login_providers!r}')
-
-        for provider in social_login_providers:
-            provider_name = traverse_obj(provider, ('social_login_provider', 'provider_name', {str}))
-            if provider_name == 'ニコニコ':
-                redirect_url = update_url_query(provider['url'], {
-                    'client_id': 'FCS{:05d}'.format(provider['id']),
-                    'redirect_uri': f'https://{self._ie._DOMAIN}/login',
-                })
-                refresh_url = f'{self._ie._API_BASE_URL}/fanclub_groups/{self._ie._FANCLUB_GROUP_ID}/auth/refresh'
-                return self._niconico_sns_login(redirect_url, refresh_url)
-            else:
-                raise ExtractorError(f'Unsupported social login provider: {provider_name}')
-
-        return self._auth0_login()
-
-    def _niconico_sns_login(self, redirect_url, refresh_url):
-        self._auth_info = {'login_method': 'any', 'auth_type': AuthType.SOCIAL_NICONICO}
-        mail_tel, password = self._ie._get_login_info()
-        if not mail_tel:
+        if not self._context or not self._context['username']:
             return
 
-        cache_key = f'{self._ie._DOMAIN}:{mail_tel}'
-        self._auth_info = {'cache_key': cache_key}
-        cache_name = 'niconico_sns'
+        domain, username = self._context['domain'], self._context['username']
 
-        if cached_cookies := traverse_obj(self._ie.cache.load(
-                self._ie._NETRC_MACHINE, cache_key), (cache_name, {dict})):
-            for name, value in cached_cookies.items():
-                self._ie._set_cookie(get_domain(redirect_url), name, value)
+        data = self._load(domain, username)
+        self._store(domain, username, {**data, **value})
 
-        if not (auth_token := self._niconico_get_token_by_cookies(redirect_url)):
-            if cached_cookies:
-                self._ie.cache.store(self._ie._NETRC_MACHINE, cache_key, None)
+    def get_token(self):
+        if not (username := self._login_info[0]):
+            return
+        self._context = {'username': username, 'domain': self._ie._DOMAIN}
 
-            self._niconico_login(mail_tel, password)
+        try:
+            if self._refresh_token():
+                # always refresh if possible
+                return self._auth_info['auth_token']
+            if auth_token := self._auth_info.get('auth_token'):
+                # unable to refresh, check the cache
+                return auth_token
+        except Exception as e:
+            self._ie.report_warning(f'Unable to refresh token: {e}')
 
-            if not (auth_token := self._niconico_get_token_by_cookies(redirect_url)):
-                self._ie.report_warning('Unable to get token after login, please check if '
-                                        'niconico channel plus is authorized to use your niconico account')
-                return
+        try:
+            self._login()
+            return self._auth_info['auth_token']
+        except Exception as e:
+            self._ie.report_warning(f'Unable to get token: {e}')
 
-        self._auth_info = {
-            'refresh_func_params': {
-                'url_or_request': refresh_url,
-                'headers': {'Authorization': auth_token},
-                'data': b'',
-            },
-            'auth_token': auth_token,
-        }
-
-        cookies = dict(traverse_obj(self._ie.cookiejar.get_cookies_for_url(
-            redirect_url), (..., {lambda item: (item.name, item.value)})))
-        self._ie.cache.store(self._ie._NETRC_MACHINE, cache_key, {cache_name: cookies})
-
-    def _niconico_get_token_by_cookies(self, redirect_url):
-        urlh = self._ie._request_webpage(
-            redirect_url, None, note='Getting niconico auth status',
-            expected_status=404, errnote='Unable to get niconico auth status')
-        if not urlh.url.startswith(f'https://{self._ie._DOMAIN}/login'):
-            return None
-
-        if not (sns_login_code := traverse_obj(parse_qs(urlh.url), ('code', 0))):
-            self._ie.report_warning('Unable to get sns login code')
-            return None
-
-        token = traverse_obj(self._ie._call_api(
-            f'fanclub_groups/{self._ie._FANCLUB_GROUP_ID}/sns_login', None, fatal=False,
-            note='Fetching sns login info', errnote='Unable to fetch sns login info',
-            data=json.dumps({
-                'key_cloak_user': {
-                    'code': sns_login_code,
-                    'redirect_uri': f'https://{self._ie._DOMAIN}/login',
-                },
-                'fanclub_site': {'id': int(self._ie._FANCLUB_SITE_ID_AUTH)},
-            }).encode(), headers={
-                'Content-Type': 'application/json',
-                'fc_use_device': 'null',
-                'Referer': f'https://{self._ie._DOMAIN}',
-            }), ('data', 'access_token', {str}))
-        if token:
-            return f'Bearer {token}'
-
-        self._ie.report_warning('Unable to get token from sns login info')
         return None
 
-    def _niconico_login(self, mail_tel, password):
-        login_form_strs = {
-            'mail_tel': mail_tel,
+    def clear_token(self):
+        self._auth_info = {'auth_token': ''}
+
+    def _refresh_token(self):
+        if not (refresh_params := copy.deepcopy(self._auth_info.get('refresh_params'))):
+            return False
+
+        refresh_params['data'] = urlencode_postdata(filter_dict({
+            **refresh_params['data'],
+            'refresh_token': self._auth_info.get('refresh_token'),
+        }))
+
+        res = self._ie._download_json(
+            **refresh_params, video_id=None, expected_status=(400, 403, 404),
+            note='Refreshing token', errnote='Unable to refresh token')
+        if token := res.get('access_token'):
+            self._auth_info = {'auth_token': f'Bearer {token}'}
+            if refresh_token := res.get('refresh_token'):
+                self._auth_info = {'refresh_token': refresh_token}
+                return True
+            self._ie.report_warning('Unable to find new refresh_token')
+            return False
+
+        raise ExtractorError(f'Unable to refresh token: {res!r}')
+
+    @property
+    def _login_info(self):
+        return self._ie._get_login_info(netrc_machine=self._ie._DOMAIN)
+
+    def _auth0_niconico_login(self, username, password, login_url):
+        page = self._ie._download_webpage(
+            login_url, None, data=urlencode_postdata({'connection': 'niconico'}),
+            note='Fetching niconico login page', errnote='Unable to fetch niconico login page')
+        niconico_login_url = urljoin(
+            'https://account.nicovideo.jp/', extract_attributes(get_element_html_by_id('login_form', page, tag='form'))['action'])
+
+        login_form = {
+            'auth_id': dt.datetime.now(),
+            'mail_tel': username,
             'password': password,
         }
         page, urlh = self._ie._download_webpage_handle(
-            'https://account.nicovideo.jp/login/redirector', None,
-            note='Logging into niconico', errnote='Unable to log into niconico',
-            data=urlencode_postdata(login_form_strs),
-            headers={
+            niconico_login_url, None, note='Logging into niconico', errnote='Unable to log into niconico',
+            data=urlencode_postdata(login_form), expected_status=404, headers={
                 'Referer': 'https://account.nicovideo.jp/login',
                 'Content-Type': 'application/x-www-form-urlencoded',
             })
         if urlh.url.startswith('https://account.nicovideo.jp/login'):
-            self._ie.report_warning('Unable to log in: bad username or password')
-            return False
-        elif urlh.url.startswith('https://account.nicovideo.jp/mfa'):
-            post_url = self._ie._search_regex(
-                r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page, 'mfa post url', group='url')
+            raise ExtractorError('Unable to log in: bad username or password', expected=True)
+
+        if urlh.url.startswith('https://account.nicovideo.jp/mfa'):
+            post_url = extract_attributes(
+                get_element_html_by_attribute('method', 'POST', page, tag='form'))['action']
             page, urlh = self._ie._download_webpage_handle(
                 urljoin('https://account.nicovideo.jp/', post_url), None,
-                note='Performing MFA', errnote='Unable to complete MFA',
+                note='Performing MFA', errnote='Unable to complete MFA', expected_status=404,
                 data=urlencode_postdata({
                     'otp': self._ie._get_tfa_info('6 digits code'),
                 }), headers={
@@ -240,47 +165,40 @@ class AuthManager:
                     r'formError\b[^>]*>(.*?)</div>', page, 'form_error',
                     default='There\'s an error but the message can\'t be parsed.',
                     flags=re.DOTALL)
-                self._ie.report_warning(f'Unable to log in: MFA challenge failed, "{err_msg}"')
-                return False
-        return True
+                raise ExtractorError(f'Unable to log in: MFA challenge failed, "{err_msg}"', expected=True)
 
-    def _auth0_login(self):
-        self._auth_info = {'login_method': 'password', 'auth_type': AuthType.OAUTH_AUTH0}
-        username, password = self._ie._get_login_info()
-        if not username:
-            return
+        return parse_qs(urlh.url)['code'][0]
 
-        cache_key = f'{self._ie._DOMAIN}:{username}'
-        cache_name = 'refresh'
-        self._auth_info = {
-            'cache_key': cache_key,
-            'cache_name': cache_name,
+    def _auth0_normal_login(self, username, password, login_url, redirect_url):
+        login_form = {
+            'username': username,
+            'password': password,
+            'action': 'default',
         }
 
+        urlh = self._ie._request_webpage(
+            login_url, None, note='Logging into auth0', errnote='Unable to log into auth0',
+            data=urlencode_postdata(login_form), expected_status=(400, 404))
+        if urlh.status == 400:
+            raise ExtractorError('Unable to log in: bad username or password', expected=True)
+        if not (urlh.status == 404 and urlh.url.startswith(redirect_url)):
+            raise ExtractorError('Unable to log in: unknown login status')
+
+        return parse_qs(urlh.url)['code'][0]
+
+    def _login(self):
         login_info = self._ie._call_api(f'fanclub_sites/{self._ie._FANCLUB_SITE_ID_AUTH}/login', None)['data']['fanclub_site']
         self._ie.write_debug(f'login_info = {login_info}')
         auth0_web_client_id = login_info['auth0_web_client_id']
         auth0_domain = login_info['fanclub_group']['auth0_domain']
 
         token_url = f'https://{auth0_domain}/oauth/token'
-        redirect_url = f'https://{self._ie._DOMAIN}/login/login-redirect'
+        redirect_uri = f'https://{self._ie._DOMAIN}/login/login-redirect'
 
         auth0_client = base64.b64encode(json.dumps({
             'name': 'auth0-spa-js',
             'version': '2.0.6',
         }).encode()).decode()
-
-        self._auth_info = {
-            'refresh_func_params': {
-                'url_or_request': token_url,
-                'headers': {'Auth0-Client': auth0_client},
-                'data': {
-                    'client_id': auth0_web_client_id,
-                    'grant_type': 'refresh_token',
-                    'redirect_uri': redirect_url,
-                },
-            },
-        }
 
         def random_str():
             return ''.join(random.choices(string.digits + string.ascii_letters, k=43))
@@ -294,7 +212,7 @@ class AuthManager:
         authorize_url = update_url_query(f'https://{auth0_domain}/authorize', {
             'client_id': auth0_web_client_id,
             'scope': 'openid profile email offline_access',
-            'redirect_uri': redirect_url,
+            'redirect_uri': redirect_uri,
             'audience': f'api.{self._ie._DOMAIN}',
             'prompt': 'login',
             'response_type': 'code',
@@ -305,37 +223,14 @@ class AuthManager:
             'code_challenge_method': 'S256',
             'auth0Client': auth0_client,
         })
+        login_url = f'https://{auth0_domain}/u/login?state=%s' % parse_qs(self._ie._request_webpage(
+            authorize_url, None, note='Getting state value', errnote='Unable to get state value').url)['state'][0]
 
-        if cached_refresh_token := traverse_obj(self._ie.cache.load(
-                self._ie._NETRC_MACHINE, cache_key), (cache_name, {str})):
-            self._auth_info = {'refresh_token': cached_refresh_token}
-            if self._refresh_token():
-                self._ie.write_debug('cached tokens updated')
-                return
-            self._ie.cache.store(self._ie._NETRC_MACHINE, cache_key, None)
-
-        login_form = self._ie._hidden_inputs(self._ie._download_webpage(
-            authorize_url, None, note='Getting login form', errnote='Unable to get login form'))
-        state_obtained = login_form['state']
-        login_url = f'https://{auth0_domain}/u/login?state={state_obtained}'
-
-        login_form.update({
-            'username': username,
-            'password': password,
-            'action': 'default',
-        })
-
-        urlh = self._ie._request_webpage(
-            login_url, None, note='Logging in', errnote='Unable to log in',
-            data=urlencode_postdata(login_form), expected_status=(400, 404))
-        if urlh.status == 400:
-            self._ie.report_warning('Unable to log in: bad username or password')
-            return
-        if not (urlh.status == 404 and urlh.url.startswith(redirect_url)):
-            self._ie.report_warning('Unable to log in: Unknown login status')
-            return
-
-        code = parse_qs(urlh.url)['code'][0]
+        username, password = self._login_info
+        if username.startswith('niconico:'):
+            code = self._auth0_niconico_login(username.removeprefix('niconico:'), password, login_url)
+        else:
+            code = self._auth0_normal_login(username, password, login_url, redirect_uri)
 
         token_json = self._ie._download_json(
             token_url, None, headers={'Auth0-Client': auth0_client},
@@ -345,28 +240,219 @@ class AuthManager:
                 'code_verifier': code_verifier,
                 'grant_type': 'authorization_code',
                 'code': code,
-                'redirect_uri': redirect_url,
+                'redirect_uri': redirect_uri,
             }))
 
-        access_token = token_json['access_token']
-        refresh_token = token_json['refresh_token']
-
-        auth_token = f'Bearer {access_token}'
-
-        self._auth_info = {
-            'auth_token': auth_token,
-            'refresh_token': refresh_token,
-        }
-
-        self._ie.cache.store(self._ie._NETRC_MACHINE, cache_key, {cache_name: refresh_token})
+        self._auth_info = {'auth_token': f'Bearer {token_json["access_token"]}'}
+        if refresh_token := token_json.get('refresh_token'):
+            self._auth_info = {
+                'refresh_token': refresh_token,
+                'refresh_params': {
+                    'url_or_request': token_url,
+                    'headers': {'Auth0-Client': auth0_client},
+                    'data': {
+                        'client_id': auth0_web_client_id,
+                        'redirect_uri': redirect_uri,
+                        'grant_type': 'refresh_token',
+                    },
+                },
+            }
 
 
 class SheetaEmbedIE(InfoExtractor):
-    _NETRC_MACHINE = 'sheeta'
     IE_NAME = 'sheeta'
     IE_DESC = 'fan club system developed by DWANGO (ドワンゴ)'
     _VALID_URL = False
     _WEBPAGE_TESTS = [{
+        'url': 'https://nicochannel.jp/kaorin/video/sm89Hd4SEduy8WTsb4KxAhBL',
+        'info_dict': {
+            'id': 'sm89Hd4SEduy8WTsb4KxAhBL',
+            'title': '前田佳織里の世界攻略計画 #2',
+            'ext': 'mp4',
+            'channel': '前田佳織里の世界攻略計画',
+            'channel_id': 'nicochannel.jp/kaorin',
+            'channel_url': 'https://nicochannel.jp/kaorin',
+            'age_limit': 0,
+            'live_status': 'not_live',
+            'thumbnail': str,
+            'description': 'md5:02573495c8be849c0cb88df6f1b85f8b',
+            'timestamp': 1644546015,
+            'duration': 4093,
+            'comment_count': int,
+            'view_count': int,
+            'tags': ['前田攻略', '前田佳織里', '前田佳織里の世界攻略計画'],
+            'upload_date': '20220211',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # age limited video; test purpose channel.
+        'url': 'https://nicochannel.jp/testman/video/smJPZg3nwAxP8UECPsHDiCGM',
+        'info_dict': {
+            'id': 'smJPZg3nwAxP8UECPsHDiCGM',
+            'title': 'DW_itaba_LSM検証_1080p60fps_9000Kbpsで打ち上げたときの挙動確認（パススルーあり）',
+            'ext': 'mp4',
+            'channel': '本番チャンネルプラステストマン',
+            'channel_id': 'nicochannel.jp/testman',
+            'channel_url': 'https://nicochannel.jp/testman',
+            'age_limit': 18,
+            'live_status': 'was_live',
+            'thumbnail': str,
+            'description': 'TEST',
+            'timestamp': 1701329428,
+            'duration': 229,
+            'comment_count': int,
+            'view_count': int,
+            'tags': ['検証用'],
+            'upload_date': '20231130',
+            'release_timestamp': 1701328800,
+            'release_date': '20231130',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # query: None
+        'url': 'https://nicochannel.jp/testman/videos',
+        'info_dict': {
+            'id': 'nicochannel.jp/testman/videos',
+            'title': '本番チャンネルプラステストマン-videos',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 18,
+    }, {
+        # query: None
+        'url': 'https://nicochannel.jp/testtarou/videos',
+        'info_dict': {
+            'id': 'nicochannel.jp/testtarou/videos',
+            'title': 'チャンネルプラステスト太郎-videos',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 2,
+    }, {
+        # query: None
+        'url': 'https://nicochannel.jp/testjirou/videos',
+        'info_dict': {
+            'id': 'nicochannel.jp/testjirou/videos',
+            'title': 'チャンネルプラステスト"二郎21-videos',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 12,
+    }, {
+        # query: tag
+        'url': 'https://nicochannel.jp/testman/videos?tag=%E6%A4%9C%E8%A8%BC%E7%94%A8',
+        'info_dict': {
+            'id': 'nicochannel.jp/testman/videos',
+            'title': '本番チャンネルプラステストマン-videos',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 6,
+    }, {
+        # query: vodType
+        'url': 'https://nicochannel.jp/testman/videos?vodType=1',
+        'info_dict': {
+            'id': 'nicochannel.jp/testman/videos',
+            'title': '本番チャンネルプラステストマン-videos',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 18,
+    }, {
+        # query: sort
+        'url': 'https://nicochannel.jp/testman/videos?sort=-released_at',
+        'info_dict': {
+            'id': 'nicochannel.jp/testman/videos',
+            'title': '本番チャンネルプラステストマン-videos',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 18,
+    }, {
+        # query: tag, vodType
+        'url': 'https://nicochannel.jp/testman/videos?tag=%E6%A4%9C%E8%A8%BC%E7%94%A8&vodType=1',
+        'info_dict': {
+            'id': 'nicochannel.jp/testman/videos',
+            'title': '本番チャンネルプラステストマン-videos',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 6,
+    }, {
+        # query: tag, sort
+        'url': 'https://nicochannel.jp/testman/videos?tag=%E6%A4%9C%E8%A8%BC%E7%94%A8&sort=-released_at',
+        'info_dict': {
+            'id': 'nicochannel.jp/testman/videos',
+            'title': '本番チャンネルプラステストマン-videos',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 6,
+    }, {
+        # query: vodType, sort
+        'url': 'https://nicochannel.jp/testman/videos?vodType=1&sort=-released_at',
+        'info_dict': {
+            'id': 'nicochannel.jp/testman/videos',
+            'title': '本番チャンネルプラステストマン-videos',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 18,
+    }, {
+        # query: tag, vodType, sort
+        'url': 'https://nicochannel.jp/testman/videos?tag=%E6%A4%9C%E8%A8%BC%E7%94%A8&vodType=1&sort=-released_at',
+        'info_dict': {
+            'id': 'nicochannel.jp/testman/videos',
+            'title': '本番チャンネルプラステストマン-videos',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 6,
+    }, {
+        'url': 'https://nicochannel.jp/testman/lives',
+        'info_dict': {
+            'id': 'nicochannel.jp/testman/lives',
+            'title': '本番チャンネルプラステストマン-lives',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 18,
+    }, {
+        'url': 'https://nicochannel.jp/testtarou/lives',
+        'info_dict': {
+            'id': 'nicochannel.jp/testtarou/lives',
+            'title': 'チャンネルプラステスト太郎-lives',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 2,
+    }, {
+        'url': 'https://nicochannel.jp/testjirou/lives',
+        'info_dict': {
+            'id': 'nicochannel.jp/testjirou/lives',
+            'title': 'チャンネルプラステスト"二郎21-lives',
+            'age_limit': 0,
+            'timestamp': 1737957232,
+            'upload_date': '20250127',
+        },
+        'playlist_mincount': 6,
+    }, {
         'url': 'https://qlover.jp/doku/video/smy4caVHR6trSddiG9uCDiy4',
         'info_dict': {
             'id': 'smy4caVHR6trSddiG9uCDiy4',
@@ -436,14 +522,14 @@ class SheetaEmbedIE(InfoExtractor):
         },
         'params': {'skip_download': True},
     }, {
-        'url': 'https://11audee.jp/audio/smx3ebEZFRnHeaGzUzgi5A98',
+        'url': 'https://audee-membership.jp/aisaka-yuuka/audio/smx3ebEZFRnHeaGzUzgi5A98',
         'info_dict': {
             'id': 'smx3ebEZFRnHeaGzUzgi5A98',
             'title': '#相坂湯 第38回 ロコムジカちゃんの歌唱についてモノ申す！？ ある意味レアな？鼻声坂くん！',
             'ext': 'm4a',
             'channel': '相坂優歌 湯上がり何飲む？',
-            'channel_id': '11audee.jp',
-            'channel_url': 'https://11audee.jp',
+            'channel_id': 'audee-membership.jp/aisaka-yuuka',
+            'channel_url': 'https://audee-membership.jp/aisaka-yuuka',
             'age_limit': 0,
             'live_status': 'not_live',
             'thumbnail': str,
@@ -462,8 +548,8 @@ class SheetaEmbedIE(InfoExtractor):
             'id': 'hololive-fc.com/videos',
             'title': '旧ホロライブ公式ファンクラブ-videos',
             'age_limit': 0,
-            'timestamp': 1715652389,
-            'upload_date': '20240514',
+            'timestamp': 1737957238,
+            'upload_date': '20250127',
         },
         'playlist_mincount': 12,
     }, {
@@ -472,18 +558,18 @@ class SheetaEmbedIE(InfoExtractor):
             'id': 'tokinosora-fc.com/videos',
             'title': 'ときのそらオフィシャルファンクラブ-videos',
             'age_limit': 0,
-            'timestamp': 1715652399,
-            'upload_date': '20240514',
+            'timestamp': 1737957234,
+            'upload_date': '20250127',
         },
         'playlist_mincount': 18,
     }, {
-        'url': 'https://01audee.jp/videos?tag=RADIO&vodType=1&sort=display_date',
+        'url': 'https://audee-membership.jp/okuma-wakana/videos?tag=RADIO&vodType=1&sort=display_date',
         'info_dict': {
-            'id': '01audee.jp/videos',
+            'id': 'audee-membership.jp/okuma-wakana/videos',
             'title': '大熊和奏 朝のささやき-videos',
             'age_limit': 0,
-            'timestamp': 1715652369,
-            'upload_date': '20240514',
+            'timestamp': 1737957233,
+            'upload_date': '20250127',
         },
         'playlist_mincount': 6,
     }, {
@@ -492,18 +578,18 @@ class SheetaEmbedIE(InfoExtractor):
             'id': 'qlover.jp/bokuao/lives',
             'title': '僕が見たかった青空の 「青天のヘキレキ！」-lives',
             'age_limit': 0,
-            'timestamp': 1715652429,
-            'upload_date': '20240514',
+            'timestamp': 1737957231,
+            'upload_date': '20250127',
         },
         'playlist_mincount': 1,
     }, {
-        'url': 'https://06audee.jp/lives',
+        'url': 'https://audee-membership.jp/tanaka-chiemi/lives',
         'info_dict': {
-            'id': '06audee.jp/lives',
+            'id': 'audee-membership.jp/tanaka-chiemi/lives',
             'title': '田中ちえ美のたなかのカナタ！-lives',
             'age_limit': 0,
-            'timestamp': 1715652369,
-            'upload_date': '20240514',
+            'timestamp': 1737957233,
+            'upload_date': '20250127',
         },
         'playlist_mincount': 5,
     }]
@@ -515,13 +601,15 @@ class SheetaEmbedIE(InfoExtractor):
     _FANCLUB_SITE_ID_INFO = None
 
     _LIST_PAGE_SIZE = 12
+    _LOGIN_METHOD = 'password'
 
-    auth_manager = None
+    _auth0_client = None
 
     def _extract_from_url(self, url):
+        if not self._auth0_client:
+            self._auth0_client = SheetaAuth0Client(self)
+
         parsed_url = urllib.parse.urlparse(url)
-        if not self.auth_manager:
-            self.auth_manager = AuthManager(self)
         if '/videos' in parsed_url.path:
             return self._extract_video_list_page(url)
         elif '/lives' in parsed_url.path:
@@ -536,6 +624,31 @@ class SheetaEmbedIE(InfoExtractor):
 
     def _call_api(self, path, item_id, *args, **kwargs):
         return self._download_json(f'{self._API_BASE_URL}/{path}', item_id, *args, **kwargs)
+
+    def _call_api_authed(self, path, item_id, **kwargs):
+        expected_code_msg = {
+            401: 'Invalid token',
+            403: 'Login required',
+            404: 'Members-only content',
+            408: 'Outdated token',
+        }
+        headers = filter_dict({
+            'Content-Type': 'application/json',
+            'fc_use_device': 'null',
+            'origin': f'https://{self._DOMAIN}',
+            'Authorization': self._auth0_client.get_token(),
+        })
+
+        try:
+            return self._call_api(path, item_id, headers=headers, **kwargs)
+        except ExtractorError as e:
+            if not isinstance(e.cause, HTTPError) or e.cause.status not in expected_code_msg:
+                raise e
+            self.raise_login_required('%s (%d)' % (
+                expected_code_msg[e.cause.status], e.cause.status), metadata_available=True, method=self._LOGIN_METHOD)
+            if e.cause.status == 401:
+                self._auth0_client.clear_token()
+            return None
 
     def _find_fanclub_site_id(self, channel_id):
         fanclub_list_json = self._call_api(
@@ -606,7 +719,6 @@ class SheetaEmbedIE(InfoExtractor):
         )['data']['video_page']
 
         live_status = self._get_live_status(data_json, content_code)
-        formats = self._get_formats(data_json, live_status, content_code)
         release_timestamp_str = data_json.get('live_scheduled_start_at')
 
         if live_status == 'is_upcoming':
@@ -618,7 +730,7 @@ class SheetaEmbedIE(InfoExtractor):
 
         return {
             'id': content_code,
-            'formats': formats,
+            'formats': list(self._yield_formats(data_json, live_status, content_code)),
             'live_status': live_status,
             'release_timestamp': unified_timestamp(release_timestamp_str),
             **self._extract_channel_info(channel_id),
@@ -707,41 +819,26 @@ class SheetaEmbedIE(InfoExtractor):
         self.write_debug(f'{content_code}: video_type={video_type}, live_status={live_status}')
         return live_status
 
-    def _get_formats(self, data_json, live_status, content_code):
-        headers = filter_dict({
-            'Content-Type': 'application/json',
-            'fc_use_device': 'null',
-            'origin': f'https://{self._DOMAIN}',
-            'Authorization': self.auth_manager.get_auth_token(),
-        })
-
-        formats = []
+    def _yield_formats(self, data_json, live_status, content_code):
         if data_json.get('video'):
             payload = {}
             if data_json.get('type') == 'live' and live_status == 'was_live':
                 payload = {'broadcast_type': 'dvr'}
 
-            session_id = self.auth_manager.get_authed_info(
+            session_id = traverse_obj(self._call_api_authed(
                 f'video_pages/{content_code}/session_ids', f'{content_code}/session',
-                ('data', 'session_id', {str}), {
-                    401: 'Members-only content',
-                    403: 'Login required',
-                    408: 'Outdated token',
-                }, data=json.dumps(payload).encode(), headers=headers,
-                note='Getting session id', errnote='Unable to get session id')
+                data=json.dumps(payload).encode(), note='Getting session id', errnote='Unable to get session id'),
+                ('data', 'session_id', {str}))
 
             if session_id:
                 m3u8_url = data_json['video_stream']['authenticated_url'].format(session_id=session_id)
-                formats = self._extract_m3u8_formats(m3u8_url, content_code)
-        elif data_json.get('audio'):
-            m3u8_url = self.auth_manager.get_authed_info(
+                yield from self._extract_m3u8_formats(m3u8_url, content_code)
+
+        if data_json.get('audio'):
+            m3u8_url = traverse_obj(self._call_api_authed(
                 f'video_pages/{content_code}/content_access', f'{content_code}/content_access',
-                ('data', 'resource', {url_or_none}), {
-                    403: 'Login required',
-                    404: 'Members-only content',
-                    408: 'Outdated token',
-                }, headers=headers, note='Getting content resource',
-                errnote='Unable to get content resource')
+                note='Getting content resource', errnote='Unable to get content resource'),
+                ('data', 'resource', {url_or_none}))
 
             if m3u8_url:
                 audio_type = traverse_obj(data_json, (
@@ -755,21 +852,16 @@ class SheetaEmbedIE(InfoExtractor):
                     else:
                         msg += 'This audio may be completely blank'
                     self.raise_login_required(
-                        msg, metadata_available=True, method=self.auth_manager._auth_info.get('login_method'))
+                        msg, metadata_available=True, method=self._LOGIN_METHOD)
 
-                formats = [{
+                yield {
                     'url': m3u8_url,
-                    'format_id': 'audio',
+                    'format_id': audio_type,
                     'protocol': 'm3u8_native',
                     'ext': 'm4a',
                     'vcodec': 'none',
                     'acodec': 'aac',
-                    'format_note': audio_type,
-                }]
-        else:
-            raise ExtractorError('Unknown media type', video_id=content_code)
-
-        return formats
+                }
 
     def _fetch_paged_channel_video_list(self, path, query, channel, item_id, page):
         response = self._call_api(

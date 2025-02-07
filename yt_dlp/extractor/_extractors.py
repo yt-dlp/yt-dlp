@@ -1352,11 +1352,6 @@ from .niconico import (
     NicovideoSearchURLIE,
     NicovideoTagURLIE,
 )
-from .niconicochannelplus import (
-    NiconicoChannelPlusChannelLivesIE,
-    NiconicoChannelPlusChannelVideosIE,
-    NiconicoChannelPlusIE,
-)
 from .ninaprotocol import NinaProtocolIE
 from .ninecninemedia import (
     CPTwentyFourIE,

@@ -1812,7 +1812,7 @@ The following extractors use this feature:
 * `vcodec`: vcodec to ignore - one or more of `h264`, `h265`, `dvh265`
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
-#### niconicochannelplus
+#### sheeta
 * `max_comments`: Maximum number of comments to extract - default is `120`
 
 #### tiktok
