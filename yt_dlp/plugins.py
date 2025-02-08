@@ -104,7 +104,7 @@ def default_plugin_paths():
         containing_folder='yt-dlp-plugins',
     )
 
-    # Always try load from PYTHONPATH directories
+    # Load from PYTHONPATH directories
     yield from (path for path in map(Path, sys.path) if path != _BASE_PACKAGE_PATH)
 
 
