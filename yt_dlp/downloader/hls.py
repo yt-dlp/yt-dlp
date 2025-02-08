@@ -207,7 +207,7 @@ class HlsFD(FragmentFD):
 
                     # If the byte_range is truthy, reset it after appending a fragment that uses it
                     if byte_range:
-                        byte_range_offset = byte_range.get('end', 0)
+                        byte_range_offset = byte_range['end']
                         byte_range = {}
 
                 elif line.startswith('#EXT-X-MAP'):
