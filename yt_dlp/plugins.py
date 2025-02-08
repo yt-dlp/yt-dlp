@@ -44,8 +44,8 @@ _BASE_PACKAGE_PATH = Path(__file__).parent
 __all__ = [
     'COMPAT_PACKAGE_NAME',
     'PACKAGE_NAME',
+    'clear_plugins',
     'directories',
-    'disable_plugins',
     'load_all_plugins',
     'load_plugins',
     'register_plugin_spec',
@@ -258,12 +258,12 @@ def register_plugin_spec(plugin_spec: PluginSpec):
         sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.{plugin_spec.module_name}'))
 
 
-def disable_plugins():
+def clear_plugins():
     if (
         all_plugins_loaded.value
         or any(len(plugin_spec.plugin_destination.value) != 0 for plugin_spec in plugin_specs.value.values())
     ):
         # note: we can't detect all cases when plugins are loaded (e.g. if spec isn't registered)
-        raise YoutubeDLError('Plugins have already been loaded. Cannot disable plugins after loading plugins.')
+        raise YoutubeDLError('Plugins have already been loaded. Cannot clear plugins after loading plugins.')
 
     plugin_dirs.value = []

@@ -4095,12 +4095,15 @@ class YoutubeDL:
                 continue
             write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')
 
+        plugin_dirs_msg = 'none'
         if not plugin_dirs.value:
-            write_debug('Plugins are disabled')
+            plugin_dirs_msg = 'none (disabled)'
         else:
-            loaded_plugin_directories = plugin_directories()
-            if loaded_plugin_directories:
-                write_debug(f'Plugin directories: {loaded_plugin_directories}')
+            found_plugin_directories = plugin_directories()
+            if found_plugin_directories:
+                plugin_dirs_msg = ', '.join(found_plugin_directories)
+
+        write_debug(f'Plugin directories: {plugin_dirs_msg}')
 
     @functools.cached_property
     def proxies(self):

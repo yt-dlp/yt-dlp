@@ -416,13 +416,14 @@ def create_parser():
         default=['default'],
         help=(
             'Path to an additional directory to search for plugins. '
-            'This option can be used multiple times to add multiple directories'))
+            'This option can be used multiple times to add multiple directories. '
+            'Use "default" to search the default plugin directories (default)'))
     general.add_option(
-        '--no-plugins',
+        '--no-plugin-dirs',
         dest='plugin_dirs',
         action='store_const',
         const=[],
-        help='Disable plugin loading')
+        help='Clear plugin directories to search, including defaults and those provided by previous --plugin-dirs')
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
