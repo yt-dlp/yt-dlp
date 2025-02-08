@@ -1,14 +1,12 @@
 name: Feature request
-description: Request a new functionality unrelated to any particular site or extractor
+description: Request a new feature unrelated to any particular site or extractor
 labels: [triage, enhancement]
 body:
-  - type: checkboxes
+  - type: markdown
     attributes:
-      label: DO NOT REMOVE OR SKIP THE ISSUE TEMPLATE
-      description: Fill all fields even if you think it is irrelevant for the issue
-      options:
-        - label: I understand that I will be **blocked** if I *intentionally* remove or skip any mandatory\* field
-          required: true
+      value: |
+        > [!IMPORTANT]
+        > Not providing the required (*) information will result in your issue being closed and ignored.
   - type: checkboxes
     id: checklist
     attributes:
@@ -22,9 +20,7 @@ body:
           required: true
         - label: I've verified that I have **updated yt-dlp to nightly or master** ([update instructions](https://github.com/yt-dlp/yt-dlp#update-channels))
           required: true
-        - label: I've searched [known issues](https://github.com/yt-dlp/yt-dlp/issues/3766) and the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues **including closed ones**. DO NOT post duplicates
-          required: true
-        - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
+        - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=is%3Aissue%20-label%3Aspam%20%20) for similar requests **including closed ones**. DO NOT post duplicates
           required: true
   - type: textarea
     id: description
@@ -38,6 +34,8 @@ body:
     id: verbose
     attributes:
       label: Provide verbose output that clearly demonstrates the problem
+      description: |
+        This is mandatory unless absolutely impossible to provide. If you are unable to provide the output, please explain why.
       options:
         - label: Run **your** yt-dlp command with **-vU** flag added (`yt-dlp -vU <your command line>`)
         - label: "If using API, add `'verbose': True` to `YoutubeDL` params instead"
@@ -65,11 +63,3 @@ body:
         [youtube] Extracting URL: https://www.youtube.com/watch?v=BaW_jenozKc
         <more lines>
       render: shell
-  - type: markdown
-    attributes:
-      value: |
-        > [!CAUTION]
-        > ### GitHub is experiencing a high volume of malicious spam comments.
-        > ### If you receive any replies asking you download a file, do NOT follow the download links!
-        >
-        > Note that this issue may be temporarily locked as an anti-spam measure after it is opened.

@@ -11,11 +11,13 @@ import re
 
 from devscripts.utils import get_filename_args, read_file, write_file
 
-VERBOSE_TMPL = '''
+VERBOSE = '''
   - type: checkboxes
     id: verbose
     attributes:
       label: Provide verbose output that clearly demonstrates the problem
+      description: |
+        This is mandatory unless absolutely impossible to provide. If you are unable to provide the output, please explain why.
       options:
         - label: Run **your** yt-dlp command with **-vU** flag added (`yt-dlp -vU <your command line>`)
           required: true
@@ -47,31 +49,23 @@ VERBOSE_TMPL = '''
       render: shell
     validations:
       required: true
-  - type: markdown
-    attributes:
-      value: |
-        > [!CAUTION]
-        > ### GitHub is experiencing a high volume of malicious spam comments.
-        > ### If you receive any replies asking you download a file, do NOT follow the download links!
-        >
-        > Note that this issue may be temporarily locked as an anti-spam measure after it is opened.
 '''.strip()
 
 NO_SKIP = '''
-  - type: checkboxes
+  - type: markdown
     attributes:
-      label: DO NOT REMOVE OR SKIP THE ISSUE TEMPLATE
-      description: Fill all fields even if you think it is irrelevant for the issue
-      options:
-        - label: I understand that I will be **blocked** if I *intentionally* remove or skip any mandatory\\* field
-          required: true
+      value: |
+        > [!IMPORTANT]
+        > Not providing the required (*) information will result in your issue being closed and ignored.
 '''.strip()
 
 
 def main():
-    fields = {'no_skip': NO_SKIP}
-    fields['verbose'] = VERBOSE_TMPL % fields
-    fields['verbose_optional'] = re.sub(r'(\n\s+validations:)?\n\s+required: true', '', fields['verbose'])
+    fields = {
+        'no_skip': NO_SKIP,
+        'verbose': VERBOSE,
+        'verbose_optional': re.sub(r'(\n\s+validations:)?\n\s+required: true', '', VERBOSE),
+    }
 
     infile, outfile = get_filename_args(has_infile=True)
     write_file(outfile, read_file(infile) % fields)
