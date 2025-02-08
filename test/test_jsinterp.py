@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import math
 
-from yt_dlp.jsinterp import JS_Undefined, JSInterpreter
+from yt_dlp.jsinterp import JS_Undefined, JSInterpreter, js_number_to_string
 
 
 class NaN:
@@ -430,6 +430,27 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f(){return "012345678".slice(1, -1)}', '1234567')
         self._test('function f(){return "012345678".slice(-1, 1)}', '')
         self._test('function f(){return "012345678".slice(-3, -1)}', '67')
+
+    def test_js_number_to_string(self):
+        for test, radix, expected in [
+            (0, None, '0'),
+            (-0, None, '0'),
+            (0.0, None, '0'),
+            (-0.0, None, '0'),
+            (math.nan, None, 'NaN'),
+            (-math.nan, None, 'NaN'),
+            (math.inf, None, 'Infinity'),
+            (-math.inf, None, '-Infinity'),
+            (10 ** 21.5, 8, '526665530627250154000000'),
+            (6, 2, '110'),
+            (254, 16, 'fe'),
+            (-10, 2, '-1010'),
+            (-0xff, 2, '-11111111'),
+            (0.1 + 0.2, 16, '0.4cccccccccccd'),
+            (1234.1234, 10, '1234.1234'),
+            # (1000000000000000128, 10, '1000000000000000100')
+        ]:
+            assert js_number_to_string(test, radix) == expected
 
 
 if __name__ == '__main__':
