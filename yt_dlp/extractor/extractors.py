@@ -10,7 +10,7 @@ if not os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
         from .lazy_extractors import _CLASS_LOOKUP
         LAZY_EXTRACTORS.value = True
     except ImportError:
-        LAZY_EXTRACTORS = False
+        LAZY_EXTRACTORS.value = False
 
 if not _CLASS_LOOKUP:
     from . import _extractors
