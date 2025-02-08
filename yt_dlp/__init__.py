@@ -19,7 +19,7 @@ from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .networking.impersonate import ImpersonateTarget
-from .globals import IN_CLI as _IN_CLI, plugin_dirs
+from .globals import IN_CLI, plugin_dirs
 from .options import parseOpts
 from .plugins import load_all_plugins as _load_all_plugins
 from .postprocessor import (
@@ -1092,7 +1092,7 @@ def _real_main(argv=None):
 
 
 def main(argv=None):
-    _IN_CLI.value = True
+    IN_CLI.value = True
     try:
         _exit(*variadic(_real_main(argv)))
     except (CookieLoadError, DownloadError):
