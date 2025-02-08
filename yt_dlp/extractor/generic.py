@@ -293,19 +293,17 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1378272859.0,
             },
         },
-        # MPD live from https://livesim2.dashif.org/livesim2/ato_10/testpic_2s/Manifest.mpd
+        # Live DASH MPD
         {
             'url': 'https://livesim2.dashif.org/livesim2/ato_10/testpic_2s/Manifest.mpd',
             'info_dict': {
                 'id': 'Manifest',
                 'ext': 'mp4',
-                'title': r're:Manifest .*$',
-                'formats': 'mincount:2',
-                'timestamp': None,
+                'title': r're:Manifest \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
                 'live_status': 'is_live',
             },
             'params': {
-                'skip_download': True,
+                'skip_download': 'livestream',
             },
         },
         # m3u8 served with Content-Type: audio/x-mpegURL; charset=utf-8
