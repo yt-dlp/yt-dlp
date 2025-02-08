@@ -68,7 +68,7 @@ class RedBullTVIE(InfoExtractor):
                 headers={'Authorization': token},
             )
         except ExtractorError as e:
-            self.to_screen(f'Downloading video information failed, {e.cause.response.read().decode()}')
+            self.report_warning(f'Downloading video information failed, {e.cause.response.read().decode()}')
 
         title = (video.get('title') or 'title').strip()
 
