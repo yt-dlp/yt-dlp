@@ -293,6 +293,19 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1378272859.0,
             },
         },
+        # Live DASH MPD
+        {
+            'url': 'https://livesim2.dashif.org/livesim2/ato_10/testpic_2s/Manifest.mpd',
+            'info_dict': {
+                'id': 'Manifest',
+                'ext': 'mp4',
+                'title': r're:Manifest \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+                'live_status': 'is_live',
+            },
+            'params': {
+                'skip_download': 'livestream',
+            },
+        },
         # m3u8 served with Content-Type: audio/x-mpegURL; charset=utf-8
         {
             'url': 'http://once.unicornmedia.com/now/master/playlist/bb0b18ba-64f5-4b1b-a29f-0ac252f06b68/77a785f3-5188-4806-b788-0893a61634ed/93677179-2d99-4ef4-9e17-fe70d49abfbf/content.m3u8',
@@ -2436,10 +2449,9 @@ class GenericIE(InfoExtractor):
             subtitles = {}
             if format_id.endswith('mpegurl') or ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
-            elif format_id.endswith(('mpd', 'dash+xml')) or ext == 'mpd':
-                formats, subtitles = self._extract_mpd_formats_and_subtitles(url, video_id, headers=headers)
             elif format_id == 'f4m' or ext == 'f4m':
                 formats = self._extract_f4m_formats(url, video_id, headers=headers)
+            # Don't check for DASH/mpd here, do it later w/ first_bytes. Same number of requests either way
             else:
                 formats = [{
                     'format_id': format_id,
@@ -2521,6 +2533,7 @@ class GenericIE(InfoExtractor):
                     doc,
                     mpd_base_url=full_response.url.rpartition('/')[0],
                     mpd_url=url)
+                info_dict['live_status'] = 'is_live' if doc.get('type') == 'dynamic' else None
                 self._extra_manifest_info(info_dict, url)
                 self.report_detected('DASH manifest')
                 return info_dict
