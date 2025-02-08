@@ -416,7 +416,7 @@ def create_parser():
         default=['default'],
         help=(
             'Path to an additional directory to search for plugins. '
-            'This option can be used multiple times to add multiple directories. '))
+            'This option can be used multiple times to add multiple directories'))
     general.add_option(
         '--no-plugins',
         dest='plugin_dirs',
