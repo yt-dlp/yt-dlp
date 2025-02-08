@@ -120,7 +120,7 @@ def js_number_to_string(val: float, radix: int = 10):
     delta = max(math.nextafter(.0, math.inf), math.ulp(val) / 2)
 
     if fraction >= delta:
-        result.append(-2)
+        result.append(-2)  # `.`
     while fraction >= delta:
         delta *= radix
         fraction, digit = math.modf(fraction * radix)
@@ -145,7 +145,7 @@ def js_number_to_string(val: float, radix: int = 10):
         result.appendleft(digit)
 
     if sign:
-        result.appendleft(-1)
+        result.appendleft(-1)  # `-`
 
     return bytes(ALPHABET[digit] for digit in result).decode('ascii')
 
