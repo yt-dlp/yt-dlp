@@ -125,7 +125,7 @@ def js_number_to_string(val: float, radix: int = 10):
         delta *= radix
         fraction, digit = math.modf(fraction * radix)
         result.append(int(digit))
-        # rounding cringe
+        # if we need to round, propagate potential carry through fractional part
         needs_rounding = fraction > 0.5 or (fraction == 0.5 and int(digit) & 1)
         if needs_rounding and fraction + delta > 1:
             for index in reversed(range(1, len(result))):
@@ -136,7 +136,6 @@ def js_number_to_string(val: float, radix: int = 10):
 
             else:
                 integer += 1
-                break
             break
 
     integer, digit = divmod(int(integer), radix)
