@@ -199,7 +199,7 @@ def get_regular_classes(module, module_name, suffix):
 def load_plugins(plugin_spec: PluginSpec):
     name, suffix = plugin_spec.module_name, plugin_spec.suffix
     regular_classes = {}
-    if os.environ.get('YTDLP_NO_PLUGINS') or len(plugin_dirs.value) == 0:
+    if os.environ.get('YTDLP_NO_PLUGINS') or not plugin_dirs.value:
         return regular_classes
 
     for finder, module_name, _ in iter_modules(name):
