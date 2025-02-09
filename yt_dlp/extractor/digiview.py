@@ -1,9 +1,8 @@
 import urllib.parse
 
-from yt_dlp.utils import int_or_none
-
 from .youtube import YoutubeIE
 from ..networking import Request
+from ..utils import int_or_none
 
 
 class DigiviewIE(YoutubeIE):
