@@ -370,15 +370,15 @@ class ZDFIE(ZDFBaseIE):
     def _extract_regular(self, url, player, video_id):
         player_url = player['content']
 
-        for query in ({'profile': 'player-3'}, None):
-            try:
-                content = self._call_api(
-                    update_url_query(player_url, query),
-                    video_id, 'content', player['apiToken'], url)
-            except ExtractorError as e:
-                if query is None:
-                    raise
-                self.report_warning(f'{video_id}: {e.orig_msg}; retrying with v2 profile')
+        try:
+            content = self._call_api(
+                update_url_query(player_url, {'profile': 'player-3'}),
+                video_id, 'content', player['apiToken'], url)
+        except ExtractorError as e:
+            self.report_warning(f'{video_id}: {e.orig_msg}; retrying with v2 profile')
+            content = self._call_api(
+                player_url,
+                video_id, 'content', player['apiToken'], url)
 
         return self._extract_entry(player_url, player, content, video_id)
 
