@@ -21,6 +21,13 @@ class DigiviewIE(YoutubeIE):
                 'title': 'Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film',
             },
         },
+        {
+            # changed title
+            'url': 'https://ladigitale.dev/digiview/#/v/67a8ea5644d7a',
+            'info_dict': {
+                'title': 'Big Buck Bunny (with title changed)',
+            },
+        },
     ]
 
     def _real_extract(self, url):
