@@ -202,7 +202,8 @@ class FFmpegPostProcessor(PostProcessor):
 
     @property
     def available(self):
-        return self.basename is not None
+        return self._ffmpeg_location.get() or self.basename is not None
+
 
     @property
     def executable(self):
