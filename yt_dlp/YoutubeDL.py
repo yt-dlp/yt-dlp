@@ -5,6 +5,7 @@ import datetime as dt
 import errno
 import fileinput
 import functools
+import hashlib
 import http.cookiejar
 import io
 import itertools
@@ -4425,3 +4426,20 @@ class YoutubeDL:
             if ret and not write_all:
                 break
         return ret
+
+    def _request_dump_filename(self, url, video_id, data=None):
+        if data is not None:
+            data = hashlib.md5(data).hexdigest()
+        basen = join_nonempty(video_id, data, url, delim='_')
+        trim_length = self.params.get('trim_file_name') or 240
+        if len(basen) > trim_length:
+            h = '___' + hashlib.md5(basen.encode()).hexdigest()
+            basen = basen[:trim_length - len(h)] + h
+        filename = sanitize_filename(f'{basen}.dump', restricted=True)
+        # Working around MAX_PATH limitation on Windows (see
+        # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
+        if os.name == 'nt':
+            absfilepath = os.path.abspath(filename)
+            if len(absfilepath) > 259:
+                filename = fR'\\?\{absfilepath}'
+        return filename
