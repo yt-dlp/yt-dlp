@@ -72,11 +72,15 @@ class HlsFD(FragmentFD):
 
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
-        self.to_screen(f'[{self.FD_NAME}] Downloading m3u8 manifest')
 
-        urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
-        man_url = urlh.url
-        s = urlh.read().decode('utf-8', 'ignore')
+        s = info_dict.get('manifest_data')
+        if s:
+            self.to_screen(f'[{self.FD_NAME}] Loading cached m3u8 manifest')
+        else:
+            self.to_screen(f'[{self.FD_NAME}] Downloading m3u8 manifest')
+            urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
+            man_url = urlh.url
+            s = urlh.read().decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
         if can_download:
