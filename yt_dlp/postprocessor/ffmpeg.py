@@ -347,7 +347,7 @@ class FFmpegPostProcessor(PostProcessor):
                 args += ['-movflags', '+faststart']
                 if number == 1:
                     keys.append('')
-            args += self._configuration_args(self.basename, keys)
+            args = self._configuration_args(self.basename, keys) + args
             if name == 'i':
                 args.append('-i')
             return (
