@@ -369,15 +369,19 @@ class ZDFIE(ZDFBaseIE):
         })
 
     def _extract_regular(self, url, player, video_id):
-        player_content_v2 = player['content']
-        player_content_v3 = update_url_query(player_content_v2, {'profile': 'player-3'})
+        player_url = player['content']
 
-        content = try_call(
-            lambda: self._call_api(player_content_v3, video_id, 'content', player['apiToken'], url),
-            lambda: self._call_api(player_content_v2, video_id, 'content', player['apiToken'], url),
-        )
+        for query in ({'profile': 'player-3'}, None):
+            try:
+                content = self._call_api(
+                    update_url_query(player_url, query),
+                    video_id, 'content', player['apiToken'], url)
+            except ExtractorError as e:
+                if query is None:
+                    raise
+                self.report_warning(f'{video_id}: {e.orig_msg}; retrying with v2 profile')
 
-        return self._extract_entry(player_content_v2, player, content, video_id)
+        return self._extract_entry(player_url, player, content, video_id)
 
     def _extract_mobile(self, video_id):
         video = self._download_v2_doc(video_id)
