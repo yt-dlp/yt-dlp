@@ -2,9 +2,8 @@ import urllib.parse
 
 from yt_dlp.utils import int_or_none
 
-from ..networking import Request
-
 from .youtube import YoutubeIE
+from ..networking import Request
 
 
 class DigiviewIE(YoutubeIE):
