@@ -1,3 +1,4 @@
+import json
 import re
 import urllib.parse
 
@@ -5,6 +6,7 @@ from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from ..networking import HEADRequest
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     filter_dict,
@@ -29,6 +31,7 @@ class FranceTVBaseInfoExtractor(InfoExtractor):
 
 
 class FranceTVIE(InfoExtractor):
+    IE_NAME = 'francetv'
     _VALID_URL = r'francetv:(?P<id>[^@#]+)'
     _GEO_COUNTRIES = ['FR']
     _GEO_BYPASS = False
@@ -248,18 +251,19 @@ class FranceTVIE(InfoExtractor):
 
 
 class FranceTVSiteIE(FranceTVBaseInfoExtractor):
+    IE_NAME = 'francetv:site'
     _VALID_URL = r'https?://(?:(?:www\.)?france\.tv|mobile\.france\.tv)/(?:[^/]+/)*(?P<id>[^/]+)\.html'
 
     _TESTS = [{
         'url': 'https://www.france.tv/france-2/13h15-le-dimanche/140921-les-mysteres-de-jesus.html',
         'info_dict': {
-            'id': 'c5bda21d-2c6f-4470-8849-3d8327adb2ba',
+            'id': 'ec217ecc-0733-48cf-ac06-af1347b849d1',  # old: c5bda21d-2c6f-4470-8849-3d8327adb2ba'
             'ext': 'mp4',
             'title': '13h15, le dimanche... - Les mystères de Jésus',
-            'timestamp': 1514118300,
-            'duration': 2880,
+            'timestamp': 1502623500,
+            'duration': 2580,
             'thumbnail': r're:^https?://.*\.jpg$',
-            'upload_date': '20171224',
+            'upload_date': '20170813',
         },
         'params': {
             'skip_download': True,
@@ -282,6 +286,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 1441,
         },
+        'skip': 'No longer available',
     }, {
         # geo-restricted livestream (workflow == 'token-akamai')
         'url': 'https://www.france.tv/france-4/direct.html',
@@ -336,19 +341,32 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
         'only_matching': True,
     }]
 
+    # XXX: For parsing next.js v15+ data; see also yt_dlp.extractor.goplay
+    def _find_json(self, s):
+        return self._search_json(
+            r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=None)
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
-
         webpage = self._download_webpage(url, display_id)
 
-        video_id = self._search_regex(
-            r'(?:data-main-video\s*=|videoId["\']?\s*[:=])\s*(["\'])(?P<id>(?:(?!\1).)+)\1',
-            webpage, 'video id', default=None, group='id')
+        nextjs_data = traverse_obj(
+            re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
+            (..., {json.loads}, ..., {self._find_json}, ..., 'children', ..., ..., 'children', ..., ..., 'children'))
+
+        if traverse_obj(nextjs_data, (..., ..., 'children', ..., 'isLive', {bool}, any)):
+            # For livestreams we need the id of the stream instead of the currently airing episode id
+            video_id = traverse_obj(nextjs_data, (
+                ..., ..., 'children', ..., 'children', ..., 'children', ..., 'children', ..., ...,
+                'children', ..., ..., 'children', ..., ..., 'children', ..., 'options', 'id', {str}, any))
+        else:
+            video_id = traverse_obj(nextjs_data, (
+                ..., ..., ..., 'children',
+                lambda _, v: v['video']['url'] == urllib.parse.urlparse(url).path,
+                'video', ('playerReplayId', 'siId'), {str}, any))
 
         if not video_id:
-            video_id = self._html_search_regex(
-                r'(?:href=|player\.setVideo\(\s*)"http://videos?\.francetv\.fr/video/([^@"]+@[^"]+)"',
-                webpage, 'video ID')
+            raise ExtractorError('Unable to extract video ID')
 
         return self._make_url_result(video_id, url=url)
 
