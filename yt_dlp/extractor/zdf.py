@@ -357,13 +357,13 @@ class ZDFIE(ZDFBaseIE):
             'chapters': chapters or None,
             'episode': title,
             **traverse_obj(content, ('programmeItem', 0, 'http://zdf.de/rels/target', {
-                'series_id': ('http://zdf.de/rels/cmdm/series', 'seriesUuid'),
-                'series': ('http://zdf.de/rels/cmdm/series', 'seriesTitle'),
-                'season': ('http://zdf.de/rels/cmdm/season', 'seasonTitle'),
-                'season_number': ('http://zdf.de/rels/cmdm/season', 'seasonNumber'),
-                'season_id': ('http://zdf.de/rels/cmdm/season', 'seasonUuid'),
-                'episode_number': 'episodeNumber',
-                'episode_id': 'contentId',
+                'series_id': ('http://zdf.de/rels/cmdm/series', 'seriesUuid', {str}),
+                'series': ('http://zdf.de/rels/cmdm/series', 'seriesTitle', {str}),
+                'season': ('http://zdf.de/rels/cmdm/season', 'seasonTitle', {str}),
+                'season_number': ('http://zdf.de/rels/cmdm/season', 'seasonNumber', {int_or_none}),
+                'season_id': ('http://zdf.de/rels/cmdm/season', 'seasonUuid', {str}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'episode_id': ('contentId', {str}),
             })),
         })
 
