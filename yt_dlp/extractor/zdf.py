@@ -12,7 +12,6 @@ from ..utils import (
     parse_codecs,
     qualities,
     traverse_obj,
-    try_call,
     try_get,
     unified_timestamp,
     update_url_query,
