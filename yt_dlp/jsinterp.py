@@ -25,7 +25,7 @@ def _js_bit_op(op):
         with contextlib.suppress(TypeError):
             if math.isnan(x):  # NB: NaN cannot be checked by membership
                 return 0
-        return x
+        return int(float(x))
 
     def wrapped(a, b):
         return op(zeroise(a), zeroise(b)) & 0xffffffff
