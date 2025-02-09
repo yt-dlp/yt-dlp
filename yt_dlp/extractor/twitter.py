@@ -6,6 +6,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
+from ..jsinterp import js_number_to_string
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -1330,32 +1331,10 @@ class TwitterIE(TwitterBaseIE):
             },
         }
 
-    def _generate_token(self, tweet_id: str) -> str:
-        """Generates the syndication token for a tweet ID.
-
-        Taken from https://github.com/JustAnotherArchivist/snscrape/issues/996#issuecomment-2211358215
-        And Vercel's code: https://github.com/vercel/react-tweet/blob/main/packages/react-tweet/src/api/fetch-tweet.ts#L27
-        """
-
-        # Perform the division and multiplication by π
-        result = (int(tweet_id) / 1e15) * math.pi
-        fractional_part = result % 1
-
-        # Convert to base 36
-        base_36 = ''
-        while result >= 1:
-            base_36 = '0123456789abcdefghijklmnopqrstuvwxyz'[int(result % 36)] + base_36
-            result = math.floor(result / 36)
-
-        # Append fractional part in base 36
-        while fractional_part > 0 and len(base_36) < 11:  # Limit to avoid infinite loop
-            fractional_part *= 36
-            digit = int(fractional_part)
-            base_36 += '0123456789abcdefghijklmnopqrstuvwxyz'[digit]
-            fractional_part -= digit
-
-        # Remove leading zeros and dots
-        return base_36.replace('0', '').replace('.', '')
+    def _generate_token(self, twid):
+        # ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
+        translation = str.maketrans(dict.fromkeys('0.'))
+        return js_number_to_string((int(twid) / 1e15) * math.PI, 36).translate(translation)
 
     def _call_syndication_api(self, twid):
         self.report_warning(
