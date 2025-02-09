@@ -1331,7 +1331,7 @@ class TwitterIE(TwitterBaseIE):
             },
         }
 
-    def _generate_token(self, twid):
+    def _generate_syndication_token(self, twid):
         # ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
         translation = str.maketrans(dict.fromkeys('0.'))
         return js_number_to_string((int(twid) / 1e15) * math.PI, 36).translate(translation)
@@ -1343,7 +1343,7 @@ class TwitterIE(TwitterBaseIE):
             'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
             headers={'User-Agent': 'Googlebot'}, query={
                 'id': twid,
-                'token': self._generate_token(twid),
+                'token': self._generate_syndication_token(twid),
             })
         if not status:
             raise ExtractorError('Syndication endpoint returned empty JSON response')
