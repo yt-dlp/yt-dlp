@@ -377,8 +377,7 @@ class ZDFIE(ZDFBaseIE):
         except ExtractorError as e:
             self.report_warning(f'{video_id}: {e.orig_msg}; retrying with v2 profile')
             content = self._call_api(
-                player_url,
-                video_id, 'content', player['apiToken'], url)
+                player_url, video_id, 'content', player['apiToken'], url)
 
         return self._extract_entry(player_url, player, content, video_id)
 
