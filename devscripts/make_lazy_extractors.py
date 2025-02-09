@@ -75,7 +75,7 @@ def build_ies(ies, bases, attr_base):
         if ie in ies:
             names.append(ie.__name__)
 
-    class_lookup_contents = ', '.join(f"'{name}': {name}" for name in names)
+    class_lookup_contents = ', '.join(f'{name!r}: {name}' for name in names)
     yield f'\n_CLASS_LOOKUP = {{ {class_lookup_contents} }}'
 
 
