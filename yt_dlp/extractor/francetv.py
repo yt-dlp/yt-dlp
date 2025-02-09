@@ -358,7 +358,8 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             # For livestreams we need the id of the stream instead of the currently airing episode id
             video_id = traverse_obj(nextjs_data, (
                 ..., ..., 'children', ..., 'children', ..., 'children', ..., 'children', ..., ...,
-                'children', ..., ..., 'children', ..., ..., 'children', ..., 'options', 'id', {str}, any))
+                'children', ..., ..., 'children', ..., ..., 'children', (..., (..., ...)),
+                'options', 'id', {str}, any))
         else:
             video_id = traverse_obj(nextjs_data, (
                 ..., ..., ..., 'children',
