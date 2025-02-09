@@ -187,12 +187,20 @@ class ZDFIE(ZDFBaseIE):
         'info_dict': {
             'id': '151025_magie_farben2_tex',
             'ext': 'mp4',
+            'duration': 2615.0,
             'title': 'Die Magie der Farben (2/2)',
             'description': 'md5:a89da10c928c6235401066b60a6d5c1a',
-            'duration': 2615,
             'timestamp': 1465021200,
-            'upload_date': '20160604',
             'thumbnail': 'https://www.zdf.de/assets/mauve-im-labor-100~768x432?cb=1464909117806',
+            'upload_date': '20160604',
+            'episode': 'Die Magie der Farben (2/2)',
+            'episode_id': 'POS_954f4170-36a5-4a41-a6cf-78f1f3b1f127',
+            'season': 'Staffel 1',
+            'series': 'Die Magie der Farben',
+            'season_number': 1,
+            'series_id': 'a39900dd-cdbd-4a6a-a413-44e8c6ae18bc',
+            'season_id': '5a92e619-8a0f-4410-a3d5-19c76fbebb37',
+            'episode_number': 2,
         },
     }, {
         'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
@@ -200,12 +208,13 @@ class ZDFIE(ZDFBaseIE):
         'info_dict': {
             'ext': 'mp4',
             'id': 'video_funk_1770473',
-            'duration': 1278,
-            'description': 'Die Neue an der Schule verdreht Ismail den Kopf.',
+            'duration': 1278.0,
             'title': 'Alles ist verzaubert',
+            'description': 'Die Neue an der Schule verdreht Ismail den Kopf.',
             'timestamp': 1635520560,
-            'upload_date': '20211029',
             'thumbnail': 'https://www.zdf.de/assets/teaser-funk-alles-ist-verzaubert-102~1920x1080?cb=1663848412907',
+            'upload_date': '20211029',
+            'episode': 'Alles ist verzaubert',
         },
     }, {
         # Same as https://www.phoenix.de/sendungen/dokumentationen/gesten-der-maechtigen-i-a-89468.html?ref=suche
@@ -248,22 +257,52 @@ class ZDFIE(ZDFBaseIE):
             'title': 'Das Geld anderer Leute',
             'description': 'md5:cb6f660850dc5eb7d1ab776ea094959d',
             'duration': 2581.0,
-            'timestamp': 1675160100,
-            'upload_date': '20230131',
+            'timestamp': 1728983700,
+            'upload_date': '20241015',
             'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/e2d7e55a-09f0-424e-ac73-6cac4dd65f35?layout=2400x1350',
+            'series': 'SOKO Stuttgart',
+            'series_id': 'f862ce9a-6dd1-4388-a698-22b36ac4c9e9',
+            'season': 'Staffel 11',
+            'season_number': 11,
+            'season_id': 'ae1b4990-6d87-4970-a571-caccf1ba2879',
+            'episode': 'Das Geld anderer Leute',
+            'episode_number': 10,
+            'episode_id': 'POS_7f367934-f2f0-45cb-9081-736781ff2d23',
         },
     }, {
         'url': 'https://www.zdf.de/dokumentation/terra-x/unser-gruener-planet-wuesten-doku-100.html',
         'info_dict': {
-            'id': '220605_dk_gruener_planet_wuesten_tex',
+            'id': '220525_green_planet_makingof_1_tropen_tex',
             'ext': 'mp4',
-            'title': 'Unser grüner Planet - Wüsten',
-            'description': 'md5:4fc647b6f9c3796eea66f4a0baea2862',
-            'duration': 2613.0,
-            'timestamp': 1654450200,
-            'upload_date': '20220605',
-            'format_note': 'uhd, main',
-            'thumbnail': 'https://www.zdf.de/assets/saguaro-kakteen-102~3840x2160?cb=1655910690796',
+            'title': 'Making-of Unser grüner Planet - Tropen',
+            'description': 'md5:d7c6949dc7c75c73c4ad51c785fb0b79',
+            'duration': 435.0,
+            'timestamp': 1653811200,
+            'upload_date': '20220529',
+            'format_note': 'hd, main',
+            'thumbnail': 'https://www.zdf.de/assets/unser-gruener-planet-making-of-1-tropen-100~3840x2160?cb=1653493335577',
+            'episode': 'Making-of Unser grüner Planet - Tropen',
+        },
+        'skip': 'No longer available: "Leider kein Video verfügbar"',
+    }, {
+        'url': 'https://www.zdf.de/serien/northern-lights/begegnung-auf-der-bruecke-100.html',
+        'info_dict': {
+            'id': '240319_2310_sendung_not',
+            'ext': 'mp4',
+            'title': 'Begegnung auf der Brücke',
+            'description': 'md5:e53a555da87447f7f1207f10353f8e45',
+            'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/c5ff1d1f-f5c8-4468-86ac-1b2f1dbecc76?layout=2400x1350',
+            'upload_date': '20250203',
+            'duration': 3083.0,
+            'timestamp': 1738546500,
+            'series_id': '1d7a1879-01ee-4468-8237-c6b4ecd633c7',
+            'series': 'Northern Lights',
+            'season': 'Staffel 1',
+            'season_number': 1,
+            'season_id': '22ac26a2-4ea2-4055-ac0b-98b755cdf718',
+            'episode': 'Begegnung auf der Brücke',
+            'episode_number': 1,
+            'episode_id': 'POS_71049438-024b-471f-b472-4fe2e490d1fb',
         },
     }]
 
@@ -316,12 +355,31 @@ class ZDFIE(ZDFBaseIE):
             'timestamp': unified_timestamp(content.get('editorialDate')),
             'thumbnails': thumbnails,
             'chapters': chapters or None,
+            'episode': title,
+            **traverse_obj(content, ('programmeItem', 0, 'http://zdf.de/rels/target', {
+                'series_id': ('http://zdf.de/rels/cmdm/series', 'seriesUuid', {str}),
+                'series': ('http://zdf.de/rels/cmdm/series', 'seriesTitle', {str}),
+                'season': ('http://zdf.de/rels/cmdm/season', 'seasonTitle', {str}),
+                'season_number': ('http://zdf.de/rels/cmdm/season', 'seasonNumber', {int_or_none}),
+                'season_id': ('http://zdf.de/rels/cmdm/season', 'seasonUuid', {str}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'episode_id': ('contentId', {str}),
+            })),
         })
 
     def _extract_regular(self, url, player, video_id):
-        content = self._call_api(
-            player['content'], video_id, 'content', player['apiToken'], url)
-        return self._extract_entry(player['content'], player, content, video_id)
+        player_url = player['content']
+
+        try:
+            content = self._call_api(
+                update_url_query(player_url, {'profile': 'player-3'}),
+                video_id, 'content', player['apiToken'], url)
+        except ExtractorError as e:
+            self.report_warning(f'{video_id}: {e.orig_msg}; retrying with v2 profile')
+            content = self._call_api(
+                player_url, video_id, 'content', player['apiToken'], url)
+
+        return self._extract_entry(player_url, player, content, video_id)
 
     def _extract_mobile(self, video_id):
         video = self._download_v2_doc(video_id)
