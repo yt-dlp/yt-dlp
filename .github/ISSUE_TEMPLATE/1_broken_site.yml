@@ -2,13 +2,11 @@ name: Broken site support
 description: Report issue with yt-dlp on a supported site
 labels: [triage, site-bug]
 body:
-  - type: checkboxes
+  - type: markdown
     attributes:
-      label: DO NOT REMOVE OR SKIP THE ISSUE TEMPLATE
-      description: Fill all fields even if you think it is irrelevant for the issue
-      options:
-        - label: I understand that I will be **blocked** if I *intentionally* remove or skip any mandatory\* field
-          required: true
+      value: |
+        > [!IMPORTANT]
+        > Not providing the required (*) information will result in your issue being closed and ignored.
   - type: checkboxes
     id: checklist
     attributes:
@@ -24,9 +22,7 @@ body:
           required: true
         - label: I've checked that all URLs and arguments with special characters are [properly quoted or escaped](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#video-url-contains-an-ampersand--and-im-getting-some-strange-output-1-2839-or-v-is-not-recognized-as-an-internal-or-external-command)
           required: true
-        - label: I've searched [known issues](https://github.com/yt-dlp/yt-dlp/issues/3766) and the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues **including closed ones**. DO NOT post duplicates
-          required: true
-        - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
+        - label: I've searched [known issues](https://github.com/yt-dlp/yt-dlp/issues/3766), [the FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ), and the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=is%3Aissue%20-label%3Aspam%20%20) for similar issues **including closed ones**. DO NOT post duplicates
           required: true
         - label: I've read about [sharing account credentials](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#are-you-willing-to-share-account-details-if-needed) and I'm willing to share it if required
   - type: input
@@ -47,6 +43,8 @@ body:
     id: verbose
     attributes:
       label: Provide verbose output that clearly demonstrates the problem
+      description: |
+        This is mandatory unless absolutely impossible to provide. If you are unable to provide the output, please explain why.
       options:
         - label: Run **your** yt-dlp command with **-vU** flag added (`yt-dlp -vU <your command line>`)
           required: true
@@ -78,11 +76,3 @@ body:
       render: shell
     validations:
       required: true
-  - type: markdown
-    attributes:
-      value: |
-        > [!CAUTION]
-        > ### GitHub is experiencing a high volume of malicious spam comments.
-        > ### If you receive any replies asking you download a file, do NOT follow the download links!
-        >
-        > Note that this issue may be temporarily locked as an anti-spam measure after it is opened.
