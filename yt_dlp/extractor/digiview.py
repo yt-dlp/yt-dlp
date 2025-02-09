@@ -1,8 +1,5 @@
-import urllib.parse
-
 from .youtube import YoutubeIE
-from ..networking import Request
-from ..utils import int_or_none
+from ..utils import int_or_none, urlencode_postdata
 
 
 class DigiviewIE(YoutubeIE):
@@ -29,13 +26,8 @@ class DigiviewIE(YoutubeIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage_data = self._download_json(
-            Request(
-                'https://ladigitale.dev/digiview/inc/recuperer_video.php',
-                data=urllib.parse.urlencode({'id': video_id}).encode(),
-                method='POST',
-            ),
-            video_id,
-        )
+            'https://ladigitale.dev/digiview/inc/recuperer_video.php', video_id,
+            data=urlencode_postdata({'id': video_id}))
 
         youtube_ie = YoutubeIE()
         youtube_ie.set_downloader(self._downloader)
