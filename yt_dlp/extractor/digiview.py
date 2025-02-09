@@ -3,8 +3,6 @@ from ..utils import clean_html, int_or_none, traverse_obj, url_or_none, urlencod
 
 
 class DigiviewIE(YoutubeIE):
-    IE_DESC = 'Digiview'
-    IE_NAME = 'digiview'
     _VALID_URL = r'https?://(?:www\.)?ladigitale\.dev/digiview/#/v/(?P<id>[0-9a-f]+)'
     _TESTS = [
         {
