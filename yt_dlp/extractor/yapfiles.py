@@ -10,7 +10,7 @@ from ..utils import (
 class YapFilesIE(InfoExtractor):
     _WORKING = False
     _YAPFILES_URL = r'//(?:(?:www|api)\.)?yapfiles\.ru/get_player/*\?.*?\bv=(?P<id>\w+)'
-    _VALID_URL = r'https?:%s' % _YAPFILES_URL
+    _VALID_URL = rf'https?:{_YAPFILES_URL}'
     _EMBED_REGEX = [rf'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?{_YAPFILES_URL}.*?)\1']
     _TESTS = [{
         # with hd
@@ -42,7 +42,7 @@ class YapFilesIE(InfoExtractor):
                 'player url', default=None, group='url')
 
         if not player_url:
-            player_url = 'http://api.yapfiles.ru/load/%s/' % video_id
+            player_url = f'http://api.yapfiles.ru/load/{video_id}/'
             query = {
                 'md5': 'ded5f369be61b8ae5f88e2eeb2f3caff',
                 'type': 'json',
@@ -58,7 +58,7 @@ class YapFilesIE(InfoExtractor):
 
         if title == 'Ролик удален' or 'deleted.jpg' in (thumbnail or ''):
             raise ExtractorError(
-                'Video %s has been removed' % video_id, expected=True)
+                f'Video {video_id} has been removed', expected=True)
 
         playlist = self._download_json(
             playlist_url, video_id)['player']['main']

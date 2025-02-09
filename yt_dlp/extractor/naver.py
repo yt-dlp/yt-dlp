@@ -36,7 +36,7 @@ class NaverBaseIE(InfoExtractor):
             type_ = 'automatic_captions' if caption.get('type') == 'auto' else 'subtitles'
             lang = caption.get('locale') or join_nonempty('language', 'country', from_dict=caption) or 'und'
             if caption.get('type') == 'fan':
-                lang += '_fan%d' % next(i for i in itertools.count(1) if f'{lang}_fan{i}' not in ret[type_])
+                lang += '_fan{}'.format(next(i for i in itertools.count(1) if f'{lang}_fan{i}' not in ret[type_]))
             ret[type_].setdefault(lang, []).extend({
                 'url': sub_url,
                 'name': join_nonempty('label', 'fanName', from_dict=caption, delim=' - '),
@@ -63,7 +63,7 @@ class NaverBaseIE(InfoExtractor):
                 encoding_option = stream.get('encodingOption', {})
                 bitrate = stream.get('bitrate', {})
                 formats.append({
-                    'format_id': '%s_%s' % (stream.get('type') or stream_type, dict_get(encoding_option, ('name', 'id'))),
+                    'format_id': '{}_{}'.format(stream.get('type') or stream_type, dict_get(encoding_option, ('name', 'id'))),
                     'url': stream_url,
                     'ext': 'mp4',
                     'width': int_or_none(encoding_option.get('width')),
@@ -72,6 +72,7 @@ class NaverBaseIE(InfoExtractor):
                     'abr': int_or_none(bitrate.get('audio')),
                     'filesize': int_or_none(stream.get('size')),
                     'protocol': 'm3u8_native' if stream_type == 'HLS' else None,
+                    'extra_param_to_segment_url': urllib.parse.urlencode(query, doseq=True) if stream_type == 'HLS' else None,
                 })
 
         extract_formats(get_list('video'), 'H264')
@@ -169,6 +170,26 @@ class NaverIE(NaverBaseIE):
             'thumbnail': r're:^https?://.*\.jpg',
         },
     }, {
+        'url': 'https://tv.naver.com/v/67838091',
+        'md5': '126ea384ab033bca59672c12cca7a6be',
+        'info_dict': {
+            'id': '67838091',
+            'ext': 'mp4',
+            'title': '[라인W 날씨] 내일 아침 서울 체감 -19도…호남·충남 대설',
+            'description': 'md5:fe026e25634c85845698aed4b59db5a7',
+            'timestamp': 1736347853,
+            'upload_date': '20250108',
+            'uploader': 'KBS뉴스',
+            'uploader_id': 'kbsnews',
+            'uploader_url': 'https://tv.naver.com/kbsnews',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'duration': 69,
+            'thumbnail': r're:^https?://.*\.jpg',
+        },
+        'params': {'format': 'HLS_144P'},
+    }, {
         'url': 'http://tvcast.naver.com/v/81652',
         'only_matching': True,
     }]
@@ -261,7 +282,7 @@ class NaverLiveIE(NaverBaseIE):
                 'thumbnail': ('thumbnailImageUrl', {url_or_none}),
                 'start_time': (('startTime', 'startDateTime', 'startYmdt'), {parse_iso8601}),
             }), get_all=False),
-            'is_live': True
+            'is_live': True,
         }
 
 
@@ -286,7 +307,7 @@ class NaverNowIE(NaverBaseIE):
         },
         'params': {
             'noplaylist': True,
-        }
+        },
     }, {
         'url': 'https://now.naver.com/s/now.4759?shareHightlight=26601461#highlight=',
         'md5': '9f6118e398aa0f22b2152f554ea7851b',
@@ -311,7 +332,7 @@ class NaverNowIE(NaverBaseIE):
             'id': '4759',
             'title': '아이키의 떰즈업',
         },
-        'playlist_mincount': 101
+        'playlist_mincount': 101,
     }, {
         'url': 'https://now.naver.com/s/now.4759?shareReplayId=26331132#replay',
         'info_dict': {
@@ -348,7 +369,7 @@ class NaverNowIE(NaverBaseIE):
             show_vod_info = self._download_json(
                 f'{self._API_URL}/vod-shows/now.{show_id}', show_id,
                 query={'page': page, 'page_size': page_size},
-                note=f'Downloading JSON vod list for show {show_id} - page {page}'
+                note=f'Downloading JSON vod list for show {show_id} - page {page}',
             )['response']['result']
             for v in show_vod_info.get('vod_list') or []:
                 yield self._extract_replay(show_id, v['id'])

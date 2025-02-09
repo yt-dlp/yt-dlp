@@ -1,5 +1,3 @@
-import functools
-
 from .common import InfoExtractor
 from ..utils import (
     UserNotLive,
@@ -36,7 +34,7 @@ class CHZZKLiveIE(InfoExtractor):
     def _real_extract(self, url):
         channel_id = self._match_id(url)
         live_detail = self._download_json(
-            f'https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail', channel_id,
+            f'https://api.chzzk.naver.com/service/v3/channels/{channel_id}/live-detail', channel_id,
             note='Downloading channel info', errnote='Unable to download channel info')['content']
 
         if live_detail.get('status') == 'CLOSE':
@@ -77,7 +75,7 @@ class CHZZKLiveIE(InfoExtractor):
             'thumbnails': thumbnails,
             **traverse_obj(live_detail, {
                 'title': ('liveTitle', {str}),
-                'timestamp': ('openDate', {functools.partial(parse_iso8601, delimiter=' ')}),
+                'timestamp': ('openDate', {parse_iso8601(delimiter=' ')}),
                 'concurrent_view_count': ('concurrentUserCount', {int_or_none}),
                 'view_count': ('accumulateCount', {int_or_none}),
                 'channel': ('channel', 'channelName', {str}),
@@ -106,30 +104,77 @@ class CHZZKVideoIE(InfoExtractor):
             'upload_date': '20231219',
             'view_count': int,
         },
+        'skip': 'Replay video is expired',
+    }, {
+        # Manually uploaded video
+        'url': 'https://chzzk.naver.com/video/1980',
+        'info_dict': {
+            'id': '1980',
+            'ext': 'mp4',
+            'title': '※시청주의※한번보면 잊기 힘든 영상',
+            'channel': '라디유radiyu',
+            'channel_id': '68f895c59a1043bc5019b5e08c83a5c5',
+            'channel_is_verified': False,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 95,
+            'timestamp': 1703102631.722,
+            'upload_date': '20231220',
+            'view_count': int,
+        },
+    }, {
+        # Partner channel replay video
+        'url': 'https://chzzk.naver.com/video/2458',
+        'info_dict': {
+            'id': '2458',
+            'ext': 'mp4',
+            'title': '첫 방송',
+            'channel': '강지',
+            'channel_id': 'b5ed5db484d04faf4d150aedd362f34b',
+            'channel_is_verified': True,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 4433,
+            'timestamp': 1703307460.214,
+            'upload_date': '20231223',
+            'view_count': int,
+        },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_meta = self._download_json(
-            f'https://api.chzzk.naver.com/service/v2/videos/{video_id}', video_id,
+            f'https://api.chzzk.naver.com/service/v3/videos/{video_id}', video_id,
             note='Downloading video info', errnote='Unable to download video info')['content']
-        formats, subtitles = self._extract_mpd_formats_and_subtitles(
-            f'https://apis.naver.com/neonplayer/vodplay/v1/playback/{video_meta["videoId"]}', video_id,
-            query={
-                'key': video_meta['inKey'],
-                'env': 'real',
-                'lc': 'en_US',
-                'cpl': 'en_US',
-            }, note='Downloading video playback', errnote='Unable to download video playback')
+
+        live_status = 'was_live' if video_meta.get('liveOpenDate') else 'not_live'
+        video_status = video_meta.get('vodStatus')
+        if video_status == 'UPLOAD':
+            playback = self._parse_json(video_meta['liveRewindPlaybackJson'], video_id)
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                playback['media'][0]['path'], video_id, 'mp4', m3u8_id='hls')
+        elif video_status == 'ABR_HLS':
+            formats, subtitles = self._extract_mpd_formats_and_subtitles(
+                f'https://apis.naver.com/neonplayer/vodplay/v1/playback/{video_meta["videoId"]}',
+                video_id, query={
+                    'key': video_meta['inKey'],
+                    'env': 'real',
+                    'lc': 'en_US',
+                    'cpl': 'en_US',
+                })
+        else:
+            self.raise_no_formats(
+                f'Unknown video status detected: "{video_status}"', expected=True, video_id=video_id)
+            formats, subtitles = [], {}
+            live_status = 'post_live' if live_status == 'was_live' else None
 
         return {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
+            'live_status': live_status,
             **traverse_obj(video_meta, {
                 'title': ('videoTitle', {str}),
                 'thumbnail': ('thumbnailImageUrl', {url_or_none}),
-                'timestamp': ('publishDateAt', {functools.partial(float_or_none, scale=1000)}),
+                'timestamp': ('publishDateAt', {float_or_none(scale=1000)}),
                 'view_count': ('readCount', {int_or_none}),
                 'duration': ('duration', {int_or_none}),
                 'channel': ('channel', 'channelName', {str}),

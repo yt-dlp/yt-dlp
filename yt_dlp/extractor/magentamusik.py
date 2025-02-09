@@ -19,7 +19,7 @@ class MagentaMusikIE(InfoExtractor):
             'categories': ['Musikkonzert'],
             'release_year': 2023,
             'location': 'Deutschland',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -57,6 +57,6 @@ class MagentaMusikIE(InfoExtractor):
                 'duration': ('runtimeInSeconds', {int_or_none}),
                 'location': ('countriesOfProduction', {list}, {lambda x: join_nonempty(*x, delim=', ')}),
                 'release_year': ('yearOfProduction', {int_or_none}),
-                'categories': ('mainGenre', {str}, {lambda x: x and [x]}),
+                'categories': ('mainGenre', {str}, all, filter),
             })),
         }

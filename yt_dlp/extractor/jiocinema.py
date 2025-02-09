@@ -157,11 +157,11 @@ class JioCinemaBaseIE(InfoExtractor):
                     'info': {
                         'platform': {'name': 'iPhone OS' if is_iphone else 'Android'},
                         'androidId': self._DEVICE_ID,
-                        'type': 'iOS' if is_iphone else 'Android'
-                    }
+                        'type': 'iOS' if is_iphone else 'Android',
+                    },
                 },
                 **initial_data,
-                'otp': self._get_tfa_info('the one-time password sent to your phone')
+                'otp': self._get_tfa_info('the one-time password sent to your phone'),
             }, 'Submitting OTP')
             if traverse_obj(response, 'code') == 1043:
                 raise ExtractorError('Wrong OTP', expected=True)
@@ -276,12 +276,12 @@ class JioCinemaIE(JioCinemaBaseIE):
                         'aesSupport': 'yes',
                         'fairPlayDrmSupport': 'none',
                         'playreadyDrmSupport': 'none',
-                        'widevineDRMSupport': 'none'
+                        'widevineDRMSupport': 'none',
                     },
                     'frameRateCapability': [{
                         'frameRateSupport': '30fps',
-                        'videoQuality': '1440p'
-                    }]
+                        'videoQuality': '1440p',
+                    }],
                 },
                 'continueWatchingRequired': False,
                 'dolby': False,
@@ -293,7 +293,7 @@ class JioCinemaIE(JioCinemaBaseIE):
                 'multiAudioRequired': True,
                 'osVersion': '10',
                 'parentalPinValid': True,
-                'x-apisignatures': self._API_SIGNATURES
+                'x-apisignatures': self._API_SIGNATURES,
             })
 
         status_code = traverse_obj(playback, ('code', {int}))
@@ -326,11 +326,11 @@ class JioCinemaIE(JioCinemaBaseIE):
                 # fallback metadata
                 'title': ('name', {str}),
                 'description': ('fullSynopsis', {str}),
-                'series': ('show', 'name', {str}, {lambda x: x or None}),
+                'series': ('show', 'name', {str}, filter),
                 'season': ('tournamentName', {str}, {lambda x: x if x != 'Season 0' else None}),
-                'season_number': ('episode', 'season', {int_or_none}, {lambda x: x or None}),
+                'season_number': ('episode', 'season', {int_or_none}, filter),
                 'episode': ('fullTitle', {str}),
-                'episode_number': ('episode', 'episodeNo', {int_or_none}, {lambda x: x or None}),
+                'episode_number': ('episode', 'episodeNo', {int_or_none}, filter),
                 'age_limit': ('ageNemonic', {parse_age_limit}),
                 'duration': ('totalDuration', {float_or_none}),
                 'thumbnail': ('images', {url_or_none}),
@@ -338,10 +338,10 @@ class JioCinemaIE(JioCinemaBaseIE):
             **traverse_obj(metadata, ('result', 0, {
                 'title': ('fullTitle', {str}),
                 'description': ('fullSynopsis', {str}),
-                'series': ('showName', {str}, {lambda x: x or None}),
-                'season': ('seasonName', {str}, {lambda x: x or None}),
+                'series': ('showName', {str}, filter),
+                'season': ('seasonName', {str}, filter),
                 'season_number': ('season', {int_or_none}),
-                'season_id': ('seasonId', {str}, {lambda x: x or None}),
+                'season_id': ('seasonId', {str}, filter),
                 'episode': ('fullTitle', {str}),
                 'episode_number': ('episode', {int_or_none}),
                 'timestamp': ('uploadTime', {int_or_none}),
@@ -364,20 +364,25 @@ class JioCinemaSeriesIE(JioCinemaBaseIE):
             'title': 'naagin',
         },
         'playlist_mincount': 120,
+    }, {
+        'url': 'https://www.jiocinema.com/tv-shows/mtv-splitsvilla-x5/3499820',
+        'info_dict': {
+            'id': '3499820',
+            'title': 'mtv-splitsvilla-x5',
+        },
+        'playlist_mincount': 310,
     }]
 
     def _entries(self, series_id):
-        seasons = self._download_json(
-            f'{self._METADATA_API_BASE}/voot/v1/voot-web/content/generic/season-by-show', series_id,
-            'Downloading series metadata JSON', query={
-                'sort': 'season:asc',
-                'id': series_id,
-                'responseType': 'common',
-            })
+        seasons = traverse_obj(self._download_json(
+            f'{self._METADATA_API_BASE}/voot/v1/voot-web/view/show/{series_id}', series_id,
+            'Downloading series metadata JSON', query={'responseType': 'common'}), (
+            'trays', lambda _, v: v['trayId'] == 'season-by-show-multifilter',
+            'trayTabs', lambda _, v: v['id']))
 
-        for season_num, season in enumerate(traverse_obj(seasons, ('result', lambda _, v: v['id'])), 1):
+        for season_num, season in enumerate(seasons, start=1):
             season_id = season['id']
-            label = season.get('season') or season_num
+            label = season.get('label') or season_num
             for page_num in itertools.count(1):
                 episodes = traverse_obj(self._download_json(
                     f'{self._METADATA_API_BASE}/voot/v1/voot-web/content/generic/series-wise-episode',

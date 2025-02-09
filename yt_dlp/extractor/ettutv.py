@@ -56,5 +56,5 @@ class EttuTvIE(InfoExtractor):
                 'thumbnail': ('image', {url_or_none}),
                 'timestamp': ('date', {unified_timestamp}),
                 'is_live': ('isLivestream', {bool_or_none}),
-            })
+            }),
         }

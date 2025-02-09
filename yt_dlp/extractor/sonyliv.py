@@ -73,7 +73,7 @@ class SonyLIVIE(InfoExtractor):
             if c == 'x':
                 t[i] = str(n)
             elif c == 'y':
-                t[i] = '{:x}'.format(3 & n | 8)
+                t[i] = f'{3 & n | 8:x}'
         return ''.join(t) + '-' + str(int(time.time() * 1000))
 
     def _perform_login(self, username, password):
@@ -121,7 +121,7 @@ class SonyLIVIE(InfoExtractor):
     def _call_api(self, version, path, video_id):
         try:
             return self._download_json(
-                'https://apiv2.sonyliv.com/AGL/%s/A/ENG/WEB/%s' % (version, path),
+                f'https://apiv2.sonyliv.com/AGL/{version}/A/ENG/WEB/{path}',
                 video_id, headers=self._HEADERS)['resultObj']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 406 and self._parse_json(
@@ -146,7 +146,7 @@ class SonyLIVIE(InfoExtractor):
             self.report_drm(video_id)
         dash_url = content['videoURL']
         headers = {
-            'x-playback-session-id': '%s-%d' % (uuid.uuid4().hex, time.time() * 1000)
+            'x-playback-session-id': '%s-%d' % (uuid.uuid4().hex, time.time() * 1000),
         }
         formats = self._extract_mpd_formats(
             dash_url, video_id, mpd_id='dash', headers=headers, fatal=False)
@@ -199,8 +199,9 @@ class SonyLIVSeriesIE(InfoExtractor):
         },
     }]
     _API_BASE = 'https://apiv2.sonyliv.com/AGL'
+    _SORT_ORDERS = ('asc', 'desc')
 
-    def _entries(self, show_id):
+    def _entries(self, show_id, sort_order):
         headers = {
             'Accept': 'application/json, text/plain, */*',
             'Referer': 'https://www.sonyliv.com',
@@ -215,6 +216,9 @@ class SonyLIVSeriesIE(InfoExtractor):
                 'from': '0',
                 'to': '49',
             }), ('resultObj', 'containers', 0, 'containers', lambda _, v: int_or_none(v['id'])))
+
+        if sort_order == 'desc':
+            seasons = reversed(seasons)
         for season in seasons:
             season_id = str(season['id'])
             note = traverse_obj(season, ('metadata', 'title', {str})) or 'season'
@@ -226,7 +230,7 @@ class SonyLIVSeriesIE(InfoExtractor):
                         'from': str(cursor),
                         'to': str(cursor + 99),
                         'orderBy': 'episodeNumber',
-                        'sortOrder': 'asc',
+                        'sortOrder': sort_order,
                     }), ('resultObj', 'containers', 0, 'containers', lambda _, v: int_or_none(v['id'])))
                 if not episodes:
                     break
@@ -237,4 +241,10 @@ class SonyLIVSeriesIE(InfoExtractor):
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        return self.playlist_result(self._entries(show_id), playlist_id=show_id)
+
+        sort_order = self._configuration_arg('sort_order', [self._SORT_ORDERS[0]])[0]
+        if sort_order not in self._SORT_ORDERS:
+            raise ValueError(
+                f'Invalid sort order "{sort_order}". Allowed values are: {", ".join(self._SORT_ORDERS)}')
+
+        return self.playlist_result(self._entries(show_id, sort_order), playlist_id=show_id)

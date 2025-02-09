@@ -49,6 +49,8 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'amazon\.(?:\w{2}\.)?\w+/gp/video',
         r'music\.amazon\.(?:\w{2}\.)?\w+',
         r'(?:watch|front)\.njpwworld\.com',
+        r'qub\.ca/vrai',
+        r'(?:beta\.)?crunchyroll\.com',
     )
 
     _TESTS = [{
@@ -148,6 +150,15 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://front.njpwworld.com/p/s_series_00563_16_bs',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.qub.ca/vrai/l-effet-bocuse-d-or/saison-1/l-effet-bocuse-d-or-saison-1-bande-annonce-1098225063',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.crunchyroll.com/watch/GY2P1Q98Y/to-the-future',
+        'only_matching': True,
+    }, {
+        'url': 'https://beta.crunchyroll.com/pt-br/watch/G8WUN8VKP/the-ruler-of-conspiracy',
         'only_matching': True,
     }]
 
