@@ -11,6 +11,7 @@ from ..utils import (
 
 
 class RadioJavanIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/videos/video/(?P<id>[^/]+)/?'
     _TEST = {
         'url': 'http://www.radiojavan.com/videos/video/chaartaar-ashoobam',
@@ -24,7 +25,7 @@ class RadioJavanIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
-        }
+        },
     }
 
     def _real_extract(self, url):

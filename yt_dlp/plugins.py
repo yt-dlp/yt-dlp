@@ -1,10 +1,12 @@
 import contextlib
+import functools
 import importlib
 import importlib.abc
 import importlib.machinery
 import importlib.util
 import inspect
 import itertools
+import os
 import pkgutil
 import sys
 import traceback
@@ -12,8 +14,8 @@ import zipimport
 from pathlib import Path
 from zipfile import ZipFile
 
-from .compat import functools  # isort: split
 from .utils import (
+    Config,
     get_executable_path,
     get_system_config_dirs,
     get_user_config_dirs,
@@ -83,14 +85,23 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         with contextlib.suppress(ValueError):  # Added when running __main__.py directly
             candidate_locations.remove(Path(__file__).parent)
 
+        # TODO(coletdjnz): remove when plugin globals system is implemented
+        if Config._plugin_dirs:
+            candidate_locations.extend(_get_package_paths(
+                *Config._plugin_dirs,
+                containing_folder=''))
+
         parts = Path(*fullname.split('.'))
         for path in orderedSet(candidate_locations, lazy=True):
             candidate = path / parts
-            if candidate.is_dir():
-                yield candidate
-            elif path.suffix in ('.zip', '.egg', '.whl') and path.is_file():
-                if parts in dirs_in_zip(path):
+            try:
+                if candidate.is_dir():
                     yield candidate
+                elif path.suffix in ('.zip', '.egg', '.whl') and path.is_file():
+                    if parts in dirs_in_zip(path):
+                        yield candidate
+            except PermissionError as e:
+                write_string(f'Permission error while accessing modules in "{e.filename}"\n')
 
     def find_spec(self, fullname, path=None, target=None):
         if fullname not in self.packages:
@@ -134,6 +145,8 @@ def load_module(module, module_name, suffix):
 
 def load_plugins(name, suffix):
     classes = {}
+    if os.environ.get('YTDLP_NO_PLUGINS'):
+        return classes
 
     for finder, module_name, _ in iter_modules(name):
         if any(x.startswith('_') for x in module_name.split('.')):
@@ -170,4 +183,4 @@ def load_plugins(name, suffix):
 
 sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'))
 
-__all__ = ['directories', 'load_plugins', 'PACKAGE_NAME', 'COMPAT_PACKAGE_NAME']
+__all__ = ['COMPAT_PACKAGE_NAME', 'PACKAGE_NAME', 'directories', 'load_plugins']

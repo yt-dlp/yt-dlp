@@ -37,14 +37,18 @@ Bugs and suggestions should be reported at: [yt-dlp/yt-dlp/issues](https://githu
 **Please include the full output of yt-dlp when run with `-vU`**, i.e. **add** `-vU` flag to **your command line**, copy the **whole** output and post it in the issue body wrapped in \`\`\` for better formatting. It should look similar to this:
 ```
 $ yt-dlp -vU <your command line>
-[debug] Command-line config: ['-v', 'demo.com']
-[debug] Encodings: locale UTF-8, fs utf-8, out utf-8, pref UTF-8
-[debug] yt-dlp version 2021.09.25 (zip)
-[debug] Python version 3.8.10 (CPython 64bit) - Linux-5.4.0-74-generic-x86_64-with-glibc2.29
-[debug] exe versions: ffmpeg 4.2.4, ffprobe 4.2.4
+[debug] Command-line config: ['-vU', 'https://www.example.com/']
+[debug] Encodings: locale cp65001, fs utf-8, pref cp65001, out utf-8, error utf-8, screen utf-8
+[debug] yt-dlp version nightly@... from yt-dlp/yt-dlp-nightly-builds [1a176d874] (win_exe)
+[debug] Python 3.10.11 (CPython AMD64 64bit) - Windows-10-10.0.20348-SP0 (OpenSSL 1.1.1t  7 Feb 2023)
+[debug] exe versions: ffmpeg 7.0.2 (setts), ffprobe 7.0.2
+[debug] Optional libraries: Cryptodome-3.21.0, brotli-1.1.0, certifi-2024.08.30, curl_cffi-0.5.10, mutagen-1.47.0, requests-2.32.3, sqlite3-3.40.1, urllib3-2.2.3, websockets-13.1
 [debug] Proxy map: {}
-Current Build Hash 25cc412d1d3c0725a1f2f5b7e4682f6fb40e6d15f7024e96f7afd572e9919535
-yt-dlp is up to date (2021.09.25)
+[debug] Request Handlers: urllib, requests, websockets, curl_cffi
+[debug] Loaded 1838 extractors
+[debug] Fetching release info: https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest
+Latest version: nightly@... from yt-dlp/yt-dlp-nightly-builds
+yt-dlp is up to date (nightly@... from yt-dlp/yt-dlp-nightly-builds)
 ...
 ```
 **Do not post screenshots of verbose logs; only plain text is acceptable.**
@@ -79,7 +83,7 @@ Before reporting any issue, type `yt-dlp -U`. This should report that you're up-
 
 ###  Is the issue already documented?
 
-Make sure that someone has not already opened the issue you're trying to open. Search at the top of the window or browse the [GitHub Issues](https://github.com/yt-dlp/yt-dlp/search?type=Issues) of this repository. If there is an issue, subcribe to it to be notified when there is any progress. Unless you have something useful to add to the converation, please refrain from commenting.
+Make sure that someone has not already opened the issue you're trying to open. Search at the top of the window or browse the [GitHub Issues](https://github.com/yt-dlp/yt-dlp/search?type=Issues) of this repository. If there is an issue, subscribe to it to be notified when there is any progress. Unless you have something useful to add to the conversation, please refrain from commenting.
 
 Additionally, it is also helpful to see if the issue has already been documented in the [youtube-dl issue tracker](https://github.com/ytdl-org/youtube-dl/issues). If similar issues have already been reported in youtube-dl (but not in our issue tracker), links to them can be included in your issue report here.
 
@@ -127,34 +131,66 @@ While these steps won't necessarily ensure that no misuse of the account takes p
 
 ### Is the website primarily used for piracy?
 
-We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in fakes. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management). 
+We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in fakes. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management).
 
 
 
 
 # DEVELOPER INSTRUCTIONS
 
-Most users do not need to build yt-dlp and can [download the builds](https://github.com/yt-dlp/yt-dlp/releases) or get them via [the other installation methods](README.md#installation).
+Most users do not need to build yt-dlp and can [download the builds](https://github.com/yt-dlp/yt-dlp/releases), get them via [the other installation methods](README.md#installation) or directly run it using `python -m yt_dlp`.
 
-To run yt-dlp as a developer, you don't need to build anything either. Simply execute
+`yt-dlp` uses [`hatch`](<https://hatch.pypa.io>) as a project management tool.
+You can easily install it using [`pipx`](<https://pipx.pypa.io>) via `pipx install hatch`, or else via `pip` or your package manager of choice. Make sure you are using at least version `1.10.0`, otherwise some functionality might not work as expected.
 
-    python -m yt_dlp
+If you plan on contributing to `yt-dlp`, best practice is to start by running the following command:
 
-To run the test, simply invoke your favorite test runner, or execute a test file directly; any of the following work:
+```shell
+$ hatch run setup
+```
 
-    python -m unittest discover
-    python test/test_download.py
-    nosetests
-    pytest
+The above command will install a `pre-commit` hook so that required checks/fixes (linting, formatting) will run automatically before each commit. If any code needs to be linted or formatted, then the commit will be blocked and the necessary changes will be made; you should review all edits and re-commit the fixed version.
+
+After this you can use `hatch shell` to enable a virtual environment that has `yt-dlp` and its development dependencies installed.
+
+In addition, the following script commands can be used to run simple tasks such as linting or testing (without having to run `hatch shell` first):
+* `hatch fmt`: Automatically fix linter violations and apply required code formatting changes
+    * See `hatch fmt --help` for more info
+* `hatch test`: Run extractor or core tests
+    * See `hatch test --help` for more info
 
 See item 6 of [new extractor tutorial](#adding-support-for-a-new-site) for how to run extractor specific test cases.
+
+While it is strongly recommended to use `hatch` for yt-dlp development, if you are unable to do so, alternatively you can manually create a virtual environment and use the following commands:
+
+```shell
+# To only install development dependencies:
+$ python -m devscripts.install_deps --include dev
+
+# Or, for an editable install plus dev dependencies:
+$ python -m pip install -e ".[default,dev]"
+
+# To setup the pre-commit hook:
+$ pre-commit install
+
+# To be used in place of `hatch test`:
+$ python -m devscripts.run_tests
+
+# To be used in place of `hatch fmt`:
+$ ruff check --fix .
+$ autopep8 --in-place .
+
+# To only check code instead of applying fixes:
+$ ruff check .
+$ autopep8 --diff .
+```
 
 If you want to create a build of yt-dlp yourself, you can follow the instructions [here](README.md#compile).
 
 
 ## Adding new feature or making overarching changes
 
-Before you start writing code for implementing a new feature, open an issue explaining your feature request and atleast one use case. This allows the maintainers to decide whether such a feature is desired for the project in the first place, and will provide an avenue to discuss some implementation details. If you open a pull request for a new feature without discussing with us first, do not be surprised when we ask for large changes to the code, or even reject it outright.
+Before you start writing code for implementing a new feature, open an issue explaining your feature request and at least one use case. This allows the maintainers to decide whether such a feature is desired for the project in the first place, and will provide an avenue to discuss some implementation details. If you open a pull request for a new feature without discussing with us first, do not be surprised when we ask for large changes to the code, or even reject it outright.
 
 The same applies for changes to the documentation, code style, or overarching changes to the architecture
 
@@ -168,41 +204,51 @@ After you have ensured this site is distributing its content legally, you can fo
 1. [Fork this repository](https://github.com/yt-dlp/yt-dlp/fork)
 1. Check out the source code with:
 
-        git clone git@github.com:YOUR_GITHUB_USERNAME/yt-dlp.git
+    ```shell
+    $ git clone git@github.com:YOUR_GITHUB_USERNAME/yt-dlp.git
+    ```
 
 1. Start a new git branch with
 
-        cd yt-dlp
-        git checkout -b yourextractor
+    ```shell
+    $ cd yt-dlp
+    $ git checkout -b yourextractor
+    ```
 
 1. Start with this simple template and save it to `yt_dlp/extractor/yourextractor.py`:
 
     ```python
     from .common import InfoExtractor
-    
-    
+
+
     class YourExtractorIE(InfoExtractor):
         _VALID_URL = r'https?://(?:www\.)?yourextractor\.com/watch/(?P<id>[0-9]+)'
         _TESTS = [{
             'url': 'https://yourextractor.com/watch/42',
             'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
             'info_dict': {
+                # For videos, only the 'id' and 'ext' fields are required to RUN the test:
                 'id': '42',
                 'ext': 'mp4',
-                'title': 'Video title goes here',
-                'thumbnail': r're:^https?://.*\.jpg$',
-                # TODO more properties, either as:
-                # * A value
-                # * MD5 checksum; start the string with md5:
-                # * A regular expression; start the string with re:
-                # * Any Python type, e.g. int or float
+                # Then if the test run fails, it will output the missing/incorrect fields.
+                # Properties can be added as:
+                # * A value, e.g.
+                #     'title': 'Video title goes here',
+                # * MD5 checksum; start the string with 'md5:', e.g.
+                #     'description': 'md5:098f6bcd4621d373cade4e832627b4f6',
+                # * A regular expression; start the string with 're:', e.g.
+                #     'thumbnail': r're:https?://.*\.jpg$',
+                # * A count of elements in a list; start the string with 'count:', e.g.
+                #     'tags': 'count:10',
+                # * Any Python type, e.g.
+                #     'view_count': int,
             }
         }]
 
         def _real_extract(self, url):
             video_id = self._match_id(url)
             webpage = self._download_webpage(url, video_id)
-    
+
             # TODO more code goes here, for example ...
             title = self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title')
 
@@ -214,27 +260,33 @@ After you have ensured this site is distributing its content legally, you can fo
                 # TODO more properties (see yt_dlp/extractor/common.py)
             }
     ```
-1. Add an import in [`yt_dlp/extractor/_extractors.py`](yt_dlp/extractor/_extractors.py). Note that the class name must end with `IE`.
-1. Run `python test/test_download.py TestDownload.test_YourExtractor` (note that `YourExtractor` doesn't end with `IE`). This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, the tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in. You can also run all the tests in one go with `TestDownload.test_YourExtractor_all`
-1. Make sure you have atleast one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the particular test is disabled from running.
+1. Add an import in [`yt_dlp/extractor/_extractors.py`](yt_dlp/extractor/_extractors.py). Note that the class name must end with `IE`. Also note that when adding a parenthesized import group, the last import in the group must have a trailing comma in order for this formatting to be respected by our code formatter.
+1. Run `hatch test YourExtractor`. This *may fail* at first, but you can continually re-run it until you're done. Upon failure, it will output the missing fields and/or correct values which you can copy. If you decide to add more than one test, the tests will then be named `YourExtractor`, `YourExtractor_1`, `YourExtractor_2`, etc. Note that tests with an `only_matching` key in the test's dict are not included in the count. You can also run all the tests in one go with `YourExtractor_all`
+1. Make sure you have at least one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the particular test is disabled from running.
 1. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L119-L440). Add tests and code for as many as you want.
-1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
+1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions), passes [ruff](https://docs.astral.sh/ruff/tutorial/#getting-started) code checks and is properly formatted:
 
-        $ flake8 yt_dlp/extractor/yourextractor.py
+    ```shell
+    $ hatch fmt --check
+    ```
 
-1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.8 and above. Backward compatibility is not required for even older versions of Python.
+    You can use `hatch fmt` to automatically fix problems. Rules that the linter/formatter enforces should not be disabled with `# noqa` unless a maintainer requests it. The only exception allowed is for old/printf-style string formatting in GraphQL query templates (use `# noqa: UP031`).
+
+1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython >=3.9 and PyPy >=3.10. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
-        $ git add yt_dlp/extractor/_extractors.py
-        $ git add yt_dlp/extractor/yourextractor.py
-        $ git commit -m '[yourextractor] Add extractor'
-        $ git push origin yourextractor
+    ```shell
+    $ git add yt_dlp/extractor/_extractors.py
+    $ git add yt_dlp/extractor/yourextractor.py
+    $ git commit -m '[yourextractor] Add extractor'
+    $ git push origin yourextractor
+    ```
 
 1. Finally, [create a pull request](https://help.github.com/articles/creating-a-pull-request). We'll then review and merge it.
 
 In any case, thank you very much for your contributions!
 
-**Tip:** To test extractors that require login information, create a file `test/local_parameters.json` and add `"usenetrc": true` or your username and password in it:
+**Tip:** To test extractors that require login information, create a file `test/local_parameters.json` and add `"usenetrc": true` or your `username`&`password` or `cookiefile`/`cookiesfrombrowser` in it:
 ```json
 {
     "username": "your user name",
@@ -254,14 +306,13 @@ Extractors are very fragile by nature since they depend on the layout of the sou
 For extraction to work yt-dlp relies on metadata your extractor extracts and provides to yt-dlp expressed by an [information dictionary](yt_dlp/extractor/common.py#L119-L440) or simply *info dict*. Only the following meta fields in the *info dict* are considered mandatory for a successful extraction process by yt-dlp:
 
  - `id` (media identifier)
- - `title` (media title)
  - `url` (media download URL) or `formats`
 
-The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While all extractors must return a `title`, they must also allow it's extraction to be non-fatal.
+The aforementioned metadata fields are the critical data without which extraction does not make any sense. If any of them fail to be extracted, then the extractor is considered broken. All other metadata extraction should be completely non-fatal.
 
 For pornographic sites, appropriate `age_limit` must also be returned.
 
-The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - e.g. when the video is a live stream that has not started yet.
+The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract useful information with `--ignore-no-formats-error` - e.g. when the video is a live stream that has not started yet.
 
 [Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 
@@ -272,7 +323,7 @@ Say you have some source dictionary `meta` that you've fetched as JSON with HTTP
 ```python
 meta = self._download_json(url, video_id)
 ```
-    
+
 Assume at this point `meta`'s layout is:
 
 ```python
@@ -702,7 +753,7 @@ Use `url_or_none` for safe URL processing.
 
 Use `traverse_obj` and `try_call` (superseeds `dict_get` and `try_get`) for safe metadata extraction from parsed JSON.
 
-Use `unified_strdate` for uniform `upload_date` or any `YYYYMMDD` meta field extraction, `unified_timestamp` for uniform `timestamp` extraction, `parse_filesize` for `filesize` extraction, `parse_count` for count meta fields extraction, `parse_resolution`, `parse_duration` for `duration` extraction, `parse_age_limit` for `age_limit` extraction. 
+Use `unified_strdate` for uniform `upload_date` or any `YYYYMMDD` meta field extraction, `unified_timestamp` for uniform `timestamp` extraction, `parse_filesize` for `filesize` extraction, `parse_count` for count meta fields extraction, `parse_resolution`, `parse_duration` for `duration` extraction, `parse_age_limit` for `age_limit` extraction.
 
 Explore [`yt_dlp/utils/`](yt_dlp/utils/) for more useful convenience functions.
 

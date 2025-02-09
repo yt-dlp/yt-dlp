@@ -4,10 +4,10 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     dict_get,
-    ExtractorError,
     int_or_none,
     js_to_json,
     str_or_none,
@@ -21,7 +21,7 @@ from ..utils import (
 class TVPIE(InfoExtractor):
     IE_NAME = 'tvp'
     IE_DESC = 'Telewizja Polska'
-    _VALID_URL = r'https?://(?:[^/]+\.)?(?:tvp(?:parlament)?\.(?:pl|info)|tvpworld\.com|swipeto\.pl)/(?:(?!\d+/)[^/]+/)*(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?(?:tvp(?:parlament)?\.(?:pl|info)|tvpworld\.com|swipeto\.pl)/(?:(?!\d+/)[^/]+/)*(?P<id>\d+)(?:[/?#]|$)'
 
     _TESTS = [{
         # TVPlayer 2 in js wrapper
@@ -98,7 +98,7 @@ class TVPIE(InfoExtractor):
         'playlist_mincount': 1800,
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         # ABC-specific video embeding
         # moved to https://bajkowakraina.tvp.pl/wideo/50981130,teleranek,51027049,zubr,51116450
@@ -221,7 +221,7 @@ class TVPIE(InfoExtractor):
         if website_data.get('items_total_count') > website_data.get('items_per_page'):
             for page in itertools.count(2):
                 page_website_data = self._parse_vue_website_data(
-                    self._download_webpage(url, page_id, note='Downloading page #%d' % page,
+                    self._download_webpage(url, page_id, note=f'Downloading page #{page}',
                                            query={'page': page}),
                     page_id)
                 if not page_website_data.get('videos') and not page_website_data.get('items'):
@@ -290,7 +290,7 @@ class TVPStreamIE(InfoExtractor):
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-        channel_url = self._proto_relative_url('//stream.tvp.pl/?channel_id=%s' % channel_id or 'default')
+        channel_url = self._proto_relative_url(f'//stream.tvp.pl/?channel_id={channel_id}' or 'default')
         webpage = self._download_webpage(channel_url, channel_id or 'default', 'Downloading channel webpage')
         channels = self._search_json(
             r'window\.__channels\s*=', webpage, 'channel list', channel_id,
@@ -300,7 +300,7 @@ class TVPStreamIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'id': channel_id or channel['id'],
-            'url': 'tvp:%s' % audition['video_id'],
+            'url': 'tvp:{}'.format(audition['video_id']),
             'title': audition.get('title'),
             'alt_title': channel.get('title'),
             'is_live': True,
@@ -379,8 +379,7 @@ class TVPEmbedIE(InfoExtractor):
         ))
 
         webpage = self._download_webpage(
-            ('https://www.tvp.pl/sess/TVPlayer2/api.php?id=%s'
-             + '&@method=getTvpConfig&@callback=%s') % (video_id, callback), video_id)
+            f'https://www.tvp.pl/sess/TVPlayer2/api.php?id={video_id}&@method=getTvpConfig&@callback={callback}', video_id)
 
         # stripping JSONP padding
         datastr = webpage[15 + len(callback):-3]
@@ -470,7 +469,7 @@ class TVPEmbedIE(InfoExtractor):
         # vod.tvp.pl
         if info.get('vortalName') == 'vod':
             info_dict.update({
-                'title': '%s, %s' % (info.get('title'), info.get('subtitle')),
+                'title': '{}, {}'.format(info.get('title'), info.get('subtitle')),
                 'series': info.get('title'),
                 'season': info.get('season'),
                 'episode_number': info.get('episode'),
@@ -514,7 +513,7 @@ class TVPVODBaseIE(InfoExtractor):
 
 class TVPVODVideoIE(TVPVODBaseIE):
     IE_NAME = 'tvp:vod'
-    _VALID_URL = r'https?://vod\.tvp\.pl/[a-z\d-]+,\d+/[a-z\d-]+(?<!-odcinki)(?:-odcinki,\d+/odcinek-\d+,S\d+E\d+)?,(?P<id>\d+)(?:\?[^#]+)?(?:#.+)?$'
+    _VALID_URL = r'https?://vod\.tvp\.pl/(?P<category>[a-z\d-]+,\d+)/[a-z\d-]+(?<!-odcinki)(?:-odcinki,\d+/odcinek-\d+,S\d+E\d+)?,(?P<id>\d+)/?(?:[?#]|$)'
 
     _TESTS = [{
         'url': 'https://vod.tvp.pl/dla-dzieci,24/laboratorium-alchemika-odcinki,309338/odcinek-24,S01E24,311357',
@@ -560,12 +559,23 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'thumbnail': 're:https?://.+',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://vod.tvp.pl/live,1/tvp-world,399731',
+        'info_dict': {
+            'id': '399731',
+            'ext': 'mp4',
+            'title': r're:TVP WORLD \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'live_status': 'is_live',
+            'thumbnail': 're:https?://.+',
+        },
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        category, video_id = self._match_valid_url(url).group('category', 'id')
 
-        info_dict = self._parse_video(self._call_api(f'vods/{video_id}', video_id), with_url=False)
+        is_live = category == 'live,1'
+        entity = 'lives' if is_live else 'vods'
+        info_dict = self._parse_video(self._call_api(f'{entity}/{video_id}', video_id), with_url=False)
 
         playlist = self._call_api(f'{video_id}/videos/playlist', video_id, query={'videoType': 'MOVIE'})
 
@@ -581,6 +591,8 @@ class TVPVODVideoIE(TVPVODBaseIE):
                 'url': sub['url'],
                 'ext': 'ttml',
             })
+
+        info_dict['is_live'] = is_live
 
         return info_dict
 

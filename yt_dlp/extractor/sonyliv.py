@@ -1,4 +1,5 @@
-import datetime
+import datetime as dt
+import itertools
 import json
 import math
 import random
@@ -12,8 +13,8 @@ from ..utils import (
     int_or_none,
     jwt_decode_hs256,
     try_call,
-    try_get,
 )
+from ..utils.traversal import traverse_obj
 
 
 class SonyLIVIE(InfoExtractor):
@@ -72,7 +73,7 @@ class SonyLIVIE(InfoExtractor):
             if c == 'x':
                 t[i] = str(n)
             elif c == 'y':
-                t[i] = '{:x}'.format(3 & n | 8)
+                t[i] = f'{3 & n | 8:x}'
         return ''.join(t) + '-' + str(int(time.time() * 1000))
 
     def _perform_login(self, username, password):
@@ -93,7 +94,7 @@ class SonyLIVIE(InfoExtractor):
                 'mobileNumber': username,
                 'channelPartnerID': 'MSMIND',
                 'country': 'IN',
-                'timestamp': datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%MZ'),
+                'timestamp': dt.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%MZ'),
                 'otpSize': 6,
                 'loginType': 'REGISTERORSIGNIN',
                 'isMobileMandatory': True,
@@ -110,7 +111,7 @@ class SonyLIVIE(InfoExtractor):
                 'otp': self._get_tfa_info('OTP'),
                 'dmaId': 'IN',
                 'ageConfirmation': True,
-                'timestamp': datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%MZ'),
+                'timestamp': dt.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%MZ'),
                 'isMobileMandatory': True,
             }).encode())
         if otp_verify_json['resultCode'] == 'KO':
@@ -120,7 +121,7 @@ class SonyLIVIE(InfoExtractor):
     def _call_api(self, version, path, video_id):
         try:
             return self._download_json(
-                'https://apiv2.sonyliv.com/AGL/%s/A/ENG/WEB/%s' % (version, path),
+                f'https://apiv2.sonyliv.com/AGL/{version}/A/ENG/WEB/{path}',
                 video_id, headers=self._HEADERS)['resultObj']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 406 and self._parse_json(
@@ -145,7 +146,7 @@ class SonyLIVIE(InfoExtractor):
             self.report_drm(video_id)
         dash_url = content['videoURL']
         headers = {
-            'x-playback-session-id': '%s-%d' % (uuid.uuid4().hex, time.time() * 1000)
+            'x-playback-session-id': '%s-%d' % (uuid.uuid4().hex, time.time() * 1000),
         }
         formats = self._extract_mpd_formats(
             dash_url, video_id, mpd_id='dash', headers=headers, fatal=False)
@@ -183,38 +184,67 @@ class SonyLIVIE(InfoExtractor):
 
 
 class SonyLIVSeriesIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?sonyliv\.com/shows/[^/?#&]+-(?P<id>\d{10})$'
+    _VALID_URL = r'https?://(?:www\.)?sonyliv\.com/shows/[^/?#&]+-(?P<id>\d{10})/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://www.sonyliv.com/shows/adaalat-1700000091',
-        'playlist_mincount': 456,
+        'playlist_mincount': 452,
         'info_dict': {
             'id': '1700000091',
         },
+    }, {
+        'url': 'https://www.sonyliv.com/shows/beyhadh-1700000007/',
+        'playlist_mincount': 358,
+        'info_dict': {
+            'id': '1700000007',
+        },
     }]
-    _API_SHOW_URL = "https://apiv2.sonyliv.com/AGL/1.9/R/ENG/WEB/IN/DL/DETAIL/{}?kids_safe=false&from=0&to=49"
-    _API_EPISODES_URL = "https://apiv2.sonyliv.com/AGL/1.4/R/ENG/WEB/IN/CONTENT/DETAIL/BUNDLE/{}?from=0&to=1000&orderBy=episodeNumber&sortOrder=asc"
-    _API_SECURITY_URL = 'https://apiv2.sonyliv.com/AGL/1.4/A/ENG/WEB/ALL/GETTOKEN'
+    _API_BASE = 'https://apiv2.sonyliv.com/AGL'
+    _SORT_ORDERS = ('asc', 'desc')
 
-    def _entries(self, show_id):
+    def _entries(self, show_id, sort_order):
         headers = {
             'Accept': 'application/json, text/plain, */*',
             'Referer': 'https://www.sonyliv.com',
         }
         headers['security_token'] = self._download_json(
-            self._API_SECURITY_URL, video_id=show_id, headers=headers,
-            note='Downloading security token')['resultObj']
-        seasons = try_get(
-            self._download_json(self._API_SHOW_URL.format(show_id), video_id=show_id, headers=headers),
-            lambda x: x['resultObj']['containers'][0]['containers'], list)
-        for season in seasons or []:
-            season_id = season['id']
-            episodes = try_get(
-                self._download_json(self._API_EPISODES_URL.format(season_id), video_id=season_id, headers=headers),
-                lambda x: x['resultObj']['containers'][0]['containers'], list)
-            for episode in episodes or []:
-                video_id = episode.get('id')
-                yield self.url_result('sonyliv:%s' % video_id, ie=SonyLIVIE.ie_key(), video_id=video_id)
+            f'{self._API_BASE}/1.4/A/ENG/WEB/ALL/GETTOKEN', show_id,
+            'Downloading security token', headers=headers)['resultObj']
+        seasons = traverse_obj(self._download_json(
+            f'{self._API_BASE}/1.9/R/ENG/WEB/IN/DL/DETAIL/{show_id}', show_id,
+            'Downloading series JSON', headers=headers, query={
+                'kids_safe': 'false',
+                'from': '0',
+                'to': '49',
+            }), ('resultObj', 'containers', 0, 'containers', lambda _, v: int_or_none(v['id'])))
+
+        if sort_order == 'desc':
+            seasons = reversed(seasons)
+        for season in seasons:
+            season_id = str(season['id'])
+            note = traverse_obj(season, ('metadata', 'title', {str})) or 'season'
+            cursor = 0
+            for page_num in itertools.count(1):
+                episodes = traverse_obj(self._download_json(
+                    f'{self._API_BASE}/1.4/R/ENG/WEB/IN/CONTENT/DETAIL/BUNDLE/{season_id}',
+                    season_id, f'Downloading {note} page {page_num} JSON', headers=headers, query={
+                        'from': str(cursor),
+                        'to': str(cursor + 99),
+                        'orderBy': 'episodeNumber',
+                        'sortOrder': sort_order,
+                    }), ('resultObj', 'containers', 0, 'containers', lambda _, v: int_or_none(v['id'])))
+                if not episodes:
+                    break
+                for episode in episodes:
+                    video_id = str(episode['id'])
+                    yield self.url_result(f'sonyliv:{video_id}', SonyLIVIE, video_id)
+                cursor += 100
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        return self.playlist_result(self._entries(show_id), playlist_id=show_id)
+
+        sort_order = self._configuration_arg('sort_order', [self._SORT_ORDERS[0]])[0]
+        if sort_order not in self._SORT_ORDERS:
+            raise ValueError(
+                f'Invalid sort order "{sort_order}". Allowed values are: {", ".join(self._SORT_ORDERS)}')
+
+        return self.playlist_result(self._entries(show_id, sort_order), playlist_id=show_id)

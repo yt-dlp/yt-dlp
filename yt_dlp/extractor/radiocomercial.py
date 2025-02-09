@@ -14,7 +14,7 @@ from ..utils import (
     try_call,
     unified_strdate,
     update_url,
-    urljoin
+    urljoin,
 )
 from ..utils.traversal import traverse_obj
 
@@ -30,8 +30,9 @@ class RadioComercialIE(InfoExtractor):
             'title': 'Taylor Swift entranhando-se que nem uma espada no ventre dos fãs.',
             'release_date': '20231025',
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
-            'season': 6
-        }
+            'season': 'Season 6',
+            'season_number': 6,
+        },
     }, {
         'url': 'https://radiocomercial.pt/podcasts/convenca-me-num-minuto/t3/convenca-me-num-minuto-que-os-lobisomens-existem',
         'md5': '47e96c273aef96a8eb160cd6cf46d782',
@@ -41,8 +42,9 @@ class RadioComercialIE(InfoExtractor):
             'title': 'Convença-me num minuto que os lobisomens existem',
             'release_date': '20231026',
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
-            'season': 3
-        }
+            'season': 'Season 3',
+            'season_number': 3,
+        },
     }, {
         'url': 'https://radiocomercial.pt/podcasts/inacreditavel-by-ines-castel-branco/t2/o-desastre-de-aviao',
         'md5': '69be64255420fec23b7259955d771e54',
@@ -53,7 +55,8 @@ class RadioComercialIE(InfoExtractor):
             'description': 'md5:8a82beeb372641614772baab7246245f',
             'release_date': '20231101',
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
-            'season': 2
+            'season': 'Season 2',
+            'season_number': 2,
         },
         'params': {
             # inconsistant md5
@@ -68,8 +71,9 @@ class RadioComercialIE(InfoExtractor):
             'title': 'T.N.T 29 de outubro',
             'release_date': '20231029',
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
-            'season': 2023
-        }
+            'season': 'Season 2023',
+            'season_number': 2023,
+        },
     }]
 
     def _real_extract(self, url):
@@ -82,7 +86,7 @@ class RadioComercialIE(InfoExtractor):
             'release_date': unified_strdate(get_element_by_class(
                 'date', get_element_html_by_class('descriptions', webpage) or '')),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'season': int_or_none(season),
+            'season_number': int_or_none(season),
             'url': extract_attributes(get_element_html_by_class('audiofile', webpage) or '').get('href'),
         }
 
@@ -95,28 +99,28 @@ class RadioComercialPlaylistIE(InfoExtractor):
             'id': 'convenca-me-num-minuto_t3',
             'title': 'Convença-me num Minuto - Temporada 3',
         },
-        'playlist_mincount': 32
+        'playlist_mincount': 32,
     }, {
         'url': 'https://radiocomercial.pt/podcasts/o-homem-que-mordeu-o-cao',
         'info_dict': {
             'id': 'o-homem-que-mordeu-o-cao',
             'title': 'O Homem Que Mordeu o Cão',
         },
-        'playlist_mincount': 19
+        'playlist_mincount': 19,
     }, {
         'url': 'https://radiocomercial.pt/podcasts/as-minhas-coisas-favoritas',
         'info_dict': {
             'id': 'as-minhas-coisas-favoritas',
             'title': 'As Minhas Coisas Favoritas',
         },
-        'playlist_mincount': 131
+        'playlist_mincount': 131,
     }, {
         'url': 'https://radiocomercial.pt/podcasts/tnt-todos-no-top/t2023',
         'info_dict': {
             'id': 'tnt-todos-no-top_t2023',
             'title': 'TNT - Todos No Top - Temporada 2023',
         },
-        'playlist_mincount': 39
+        'playlist_mincount': 39,
     }]
 
     def _entries(self, url, playlist_id):

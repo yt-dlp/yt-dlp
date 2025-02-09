@@ -18,7 +18,14 @@ jobs:
       - name: Check for new commits
         id: check_for_new_commits
         run: |
-          relevant_files=("yt_dlp/*.py" ':!yt_dlp/version.py' "setup.py" "pyinst.py")
+          relevant_files=(
+            "yt_dlp/*.py"
+            ':!yt_dlp/version.py'
+            "bundle/*.py"
+            "pyproject.toml"
+            "Makefile"
+            ".github/workflows/build.yml"
+          )
           echo "commit=$(git log --format=%H -1 --since="24 hours ago" -- "${relevant_files[@]}")" | tee "$GITHUB_OUTPUT"
 
   release:
@@ -30,6 +37,24 @@ jobs:
       source: nightly
     permissions:
       contents: write
-      packages: write
+      packages: write  # For package cache
+      actions: write  # For cleaning up cache
       id-token: write  # mandatory for trusted publishing
     secrets: inherit
+
+  publish_pypi:
+    needs: [release]
+    if: vars.NIGHTLY_PYPI_PROJECT != ''
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # mandatory for trusted publishing
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          name: build-pypi
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true

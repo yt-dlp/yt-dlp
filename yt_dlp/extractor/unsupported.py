@@ -23,7 +23,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
 
     Add to this list only if:
     * You are reasonably certain that the site uses DRM for ALL their videos
-    * Multiple users have asked about this site on github/reddit/discord
+    * Multiple users have asked about this site on github/discord
     """
 
     URLS = (
@@ -49,6 +49,8 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'amazon\.(?:\w{2}\.)?\w+/gp/video',
         r'music\.amazon\.(?:\w{2}\.)?\w+',
         r'(?:watch|front)\.njpwworld\.com',
+        r'qub\.ca/vrai',
+        r'(?:beta\.)?crunchyroll\.com',
     )
 
     _TESTS = [{
@@ -149,6 +151,15 @@ class KnownDRMIE(UnsupportedInfoExtractor):
     }, {
         'url': 'https://front.njpwworld.com/p/s_series_00563_16_bs',
         'only_matching': True,
+    }, {
+        'url': 'https://www.qub.ca/vrai/l-effet-bocuse-d-or/saison-1/l-effet-bocuse-d-or-saison-1-bande-annonce-1098225063',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.crunchyroll.com/watch/GY2P1Q98Y/to-the-future',
+        'only_matching': True,
+    }, {
+        'url': 'https://beta.crunchyroll.com/pt-br/watch/G8WUN8VKP/the-ruler-of-conspiracy',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -173,6 +184,20 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'filemoon\.sx',
         r'hentai\.animestigma\.com',
         r'thisav\.com',
+        r'gounlimited\.to',
+        r'highstream\.tv',
+        r'uqload\.com',
+        r'vedbam\.xyz',
+        r'vadbam\.net'
+        r'vidlo\.us',
+        r'wolfstream\.tv',
+        r'xvideosharing\.com',
+        r'(?:\w+\.)?viidshar\.com',
+        r'sxyprn\.com',
+        r'jable\.tv',
+        r'91porn\.com',
+        r'einthusan\.(?:tv|com|ca)',
+        r'yourupload\.com',
     )
 
     _TESTS = [{

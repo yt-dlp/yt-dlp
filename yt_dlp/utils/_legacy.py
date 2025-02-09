@@ -10,14 +10,14 @@ import urllib.request
 import zlib
 
 from ._utils import Popen, decode_base_n, preferredencoding
-from .networking import escape_rfc3986  # noqa: F401
-from .networking import normalize_url as escape_url  # noqa: F401
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
 from ..networking._helper import make_ssl_context
 from ..networking._urllib import HTTPHandler
 
 # isort: split
+from .networking import escape_rfc3986  # noqa: F401
+from .networking import normalize_url as escape_url
 from .networking import random_user_agent, std_headers  # noqa: F401
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
 from ..networking._urllib import PUTRequest  # noqa: F401
@@ -90,7 +90,7 @@ class WebSocketsWrapper:
         for task in to_cancel:
             task.cancel()
 
-        # XXX: "loop" is removed in python 3.10+
+        # XXX: "loop" is removed in Python 3.10+
         loop.run_until_complete(
             asyncio.gather(*to_cancel, loop=loop, return_exceptions=True))
 
@@ -167,7 +167,7 @@ def decode_png(png_data):
         chunks.append({
             'type': chunk_type,
             'length': length,
-            'data': chunk_data
+            'data': chunk_data,
         })
 
     ihdr = chunks[0]['data']
@@ -195,15 +195,15 @@ def decode_png(png_data):
         return pixels[y][x]
 
     for y in range(height):
-        basePos = y * (1 + stride)
-        filter_type = decompressed_data[basePos]
+        base_pos = y * (1 + stride)
+        filter_type = decompressed_data[base_pos]
 
         current_row = []
 
         pixels.append(current_row)
 
         for x in range(stride):
-            color = decompressed_data[1 + basePos + x]
+            color = decompressed_data[1 + base_pos + x]
             basex = y * stride + x
             left = 0
             up = 0
@@ -313,3 +313,30 @@ def make_HTTPS_handler(params, **kwargs):
 
 def process_communicate_or_kill(p, *args, **kwargs):
     return Popen.communicate_or_kill(p, *args, **kwargs)
+
+
+def encodeFilename(s, for_subprocess=False):
+    assert isinstance(s, str)
+    return s
+
+
+def decodeFilename(b, for_subprocess=False):
+    return b
+
+
+def decodeArgument(b):
+    return b
+
+
+def decodeOption(optval):
+    if optval is None:
+        return optval
+    if isinstance(optval, bytes):
+        optval = optval.decode(preferredencoding())
+
+    assert isinstance(optval, str)
+    return optval
+
+
+def error_to_compat_str(err):
+    return str(err)

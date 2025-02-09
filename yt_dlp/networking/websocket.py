@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 
-from .common import Response, RequestHandler
+from .common import RequestHandler, Response
 
 
 class WebSocketResponse(Response):

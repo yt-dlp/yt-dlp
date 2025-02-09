@@ -17,6 +17,7 @@ from ..utils import (
     get_element_html_by_id,
     int_or_none,
     join_nonempty,
+    parse_qs,
     parse_resolution,
     str_or_none,
     str_to_int,
@@ -27,8 +28,8 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
     urljoin,
-    traverse_obj,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class VKBaseIE(InfoExtractor):
@@ -91,17 +92,17 @@ class VKBaseIE(InfoExtractor):
 class VKIE(VKBaseIE):
     IE_NAME = 'vk'
     IE_DESC = 'VK'
-    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://vk\.com/video_ext\.php.+?)\1']
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://vk(?:(?:video)?\.ru|\.com)/video_ext\.php.+?)\1']
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
                             (?:
-                                (?:(?:m|new)\.)?vk\.com/video_|
+                                (?:(?:m|new)\.)?vk(?:(?:video)?\.ru|\.com)/video_|
                                 (?:www\.)?daxab\.com/
                             )
                             ext\.php\?(?P<embed_query>.*?\boid=(?P<oid>-?\d+).*?\bid=(?P<id>\d+).*)|
                             (?:
-                                (?:(?:m|new)\.)?vk\.com/(?:.+?\?.*?z=)?(?:video|clip)|
+                                (?:(?:m|new)\.)?vk(?:(?:video)?\.ru|\.com)/(?:.+?\?.*?z=)?(?:video|clip)|
                                 (?:www\.)?daxab\.com/embed/
                             )
                             (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
@@ -110,7 +111,7 @@ class VKIE(VKBaseIE):
 
     _TESTS = [
         {
-            'url': 'http://vk.com/videos-77521?z=video-77521_162222515%2Fclub77521',
+            'url': 'https://vk.com/videos-77521?z=video-77521_162222515%2Fclub77521',
             'info_dict': {
                 'id': '-77521_162222515',
                 'ext': 'mp4',
@@ -127,7 +128,7 @@ class VKIE(VKBaseIE):
             'params': {'skip_download': 'm3u8'},
         },
         {
-            'url': 'http://vk.com/video205387401_165548505',
+            'url': 'https://vk.com/video205387401_165548505',
             'info_dict': {
                 'id': '205387401_165548505',
                 'ext': 'mp4',
@@ -140,7 +141,7 @@ class VKIE(VKBaseIE):
                 'comment_count': int,
                 'like_count': int,
                 'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
-            }
+            },
         },
         {
             'note': 'Embedded video',
@@ -182,10 +183,10 @@ class VKIE(VKBaseIE):
                 'ext': 'mp4',
                 'title': "DSWD Awards 'Children's Joy Foundation, Inc.' Certificate of Registration and License to Operate",
                 'description': 'md5:bf9c26cfa4acdfb146362682edd3827a',
-                'duration': 178,
+                'duration': 179,
                 'upload_date': '20130117',
                 'uploader': "Children's Joy Foundation Inc.",
-                'uploader_id': 'thecjf',
+                'uploader_id': '@CJFIofficial',
                 'view_count': int,
                 'channel_id': 'UCgzCNQ11TmR9V97ECnhi3gw',
                 'availability': 'public',
@@ -193,7 +194,7 @@ class VKIE(VKBaseIE):
                 'live_status': 'not_live',
                 'playable_in_embed': True,
                 'channel': 'Children\'s Joy Foundation Inc.',
-                'uploader_url': 'http://www.youtube.com/user/thecjf',
+                'uploader_url': 'https://www.youtube.com/@CJFIofficial',
                 'thumbnail': r're:https?://.+\.jpg$',
                 'tags': 'count:27',
                 'start_time': 0.0,
@@ -201,6 +202,7 @@ class VKIE(VKBaseIE):
                 'channel_url': 'https://www.youtube.com/channel/UCgzCNQ11TmR9V97ECnhi3gw',
                 'channel_follower_count': int,
                 'age_limit': 0,
+                'timestamp': 1358394935,
             },
         },
         {
@@ -220,8 +222,9 @@ class VKIE(VKBaseIE):
                 'like_count': int,
                 'view_count': int,
                 'thumbnail': r're:https?://.+x1080$',
-                'tags': list
+                'tags': list,
             },
+            'skip': 'This video has been deleted and is no longer available.',
         },
         {
             'url': 'https://vk.com/clips-74006511?z=clip-74006511_456247211',
@@ -235,13 +238,13 @@ class VKIE(VKBaseIE):
                 'timestamp': 1664995597,
                 'title': 'Clip by @madempress',
                 'upload_date': '20221005',
-                'uploader': 'Шальная императрица',
+                'uploader': 'Шальная Императрица',
                 'uploader_id': '-74006511',
             },
         },
         {
             # video key is extra_data not url\d+
-            'url': 'http://vk.com/video-110305615_171782105',
+            'url': 'https://vk.com/video-110305615_171782105',
             'md5': 'e13fcda136f99764872e739d13fac1d1',
             'info_dict': {
                 'id': '-110305615_171782105',
@@ -273,6 +276,7 @@ class VKIE(VKBaseIE):
             'params': {
                 'skip_download': True,
             },
+            'skip': 'No formats found',
         },
         {
             # live stream, hls and rtmp links, most likely already finished live
@@ -312,7 +316,16 @@ class VKIE(VKBaseIE):
         {
             'url': 'https://vk.com/clip30014565_456240946',
             'only_matching': True,
-        }]
+        },
+        {
+            'url': 'https://vkvideo.ru/video-127553155_456242961',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://vk.ru/video-220754053_456242564',
+            'only_matching': True,
+        },
+    ]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -335,10 +348,10 @@ class VKIE(VKBaseIE):
             mv_data = opts.get('mvData') or {}
             player = opts.get('player') or {}
         else:
-            video_id = '%s_%s' % (mobj.group('oid'), mobj.group('id'))
+            video_id = '{}_{}'.format(mobj.group('oid'), mobj.group('id'))
 
             info_page = self._download_webpage(
-                'http://vk.com/video_ext.php?' + mobj.group('embed_query'), video_id)
+                'https://vk.com/video_ext.php?' + mobj.group('embed_query'), video_id)
 
             error_message = self._html_search_regex(
                 [r'(?s)<!><div[^>]+class="video_layer_message"[^>]*>(.+?)</div>',
@@ -432,7 +445,7 @@ class VKIE(VKBaseIE):
             if m_opts_url:
                 opts_url = m_opts_url.group(1)
                 if opts_url.startswith('//'):
-                    opts_url = 'http:' + opts_url
+                    opts_url = 'https:' + opts_url
                 return self.url_result(opts_url)
 
         data = player['params'][0]
@@ -451,6 +464,7 @@ class VKIE(VKBaseIE):
             info_page, 'view count', default=None))
 
         formats = []
+        subtitles = {}
         for format_id, format_url in data.items():
             format_url = url_or_none(format_url)
             if not format_url or not format_url.startswith(('http', '//', 'rtmp')):
@@ -462,12 +476,21 @@ class VKIE(VKBaseIE):
                 formats.append({
                     'format_id': format_id,
                     'url': format_url,
+                    'ext': 'mp4',
+                    'source_preference': 1,
                     'height': height,
                 })
-            elif format_id == 'hls':
-                formats.extend(self._extract_m3u8_formats(
+            elif format_id.startswith('hls') and format_id != 'hls_live_playback':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     format_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id=format_id, fatal=False, live=is_live))
+                    m3u8_id=format_id, fatal=False, live=is_live)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            elif format_id.startswith('dash') and format_id not in ('dash_live_playback', 'dash_uni'):
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    format_url, video_id, mpd_id=format_id, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             elif format_id == 'rtmp':
                 formats.append({
                     'format_id': format_id,
@@ -475,7 +498,6 @@ class VKIE(VKBaseIE):
                     'ext': 'flv',
                 })
 
-        subtitles = {}
         for sub in data.get('subs') or {}:
             subtitles.setdefault(sub.get('lang', 'en'), []).append({
                 'ext': sub.get('title', '.srt').split('.')[-1],
@@ -496,14 +518,18 @@ class VKIE(VKBaseIE):
             'comment_count': int_or_none(mv_data.get('commcount')),
             'is_live': is_live,
             'subtitles': subtitles,
+            '_format_sort_fields': ('res', 'source'),
         }
 
 
 class VKUserVideosIE(VKBaseIE):
     IE_NAME = 'vk:uservideos'
     IE_DESC = "VK - User's Videos"
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/video/(?:playlist/)?(?P<id>[^?$#/&]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
-    _TEMPLATE_URL = 'https://vk.com/videos'
+    _BASE_URL_RE = r'https?://(?:(?:m|new)\.)?vk(?:video\.ru|\.com/video)'
+    _VALID_URL = [
+        rf'{_BASE_URL_RE}/playlist/(?P<id>-?\d+_\d+)',
+        rf'{_BASE_URL_RE}/(?P<id>@[^/?#]+)(?:/all)?/?(?!\?.*\bz=video)(?:[?#]|$)',
+    ]
     _TESTS = [{
         'url': 'https://vk.com/video/@mobidevices',
         'info_dict': {
@@ -517,12 +543,20 @@ class VKUserVideosIE(VKBaseIE):
         },
         'playlist_mincount': 182,
     }, {
-        'url': 'https://vk.com/video/playlist/-174476437_2',
+        'url': 'https://vkvideo.ru/playlist/-204353299_426',
         'info_dict': {
-            'id': '-174476437_playlist_2',
-            'title': 'Анонсы'
+            'id': '-204353299_playlist_426',
         },
-        'playlist_mincount': 108,
+        'playlist_mincount': 33,
+    }, {
+        'url': 'https://vk.com/video/@gorkyfilmstudio/all',
+        'only_matching': True,
+    }, {
+        'url': 'https://vkvideo.ru/@mobidevices',
+        'only_matching': True,
+    }, {
+        'url': 'https://vk.com/video/playlist/-174476437_2',
+        'only_matching': True,
     }]
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
 
@@ -542,7 +576,7 @@ class VKUserVideosIE(VKBaseIE):
                 v = self._VIDEO._make(video[:2])
                 video_id = '%d_%d' % (v.owner_id, v.id)
                 yield self.url_result(
-                    'http://vk.com/video' + video_id, VKIE.ie_key(), video_id)
+                    'https://vk.com/video' + video_id, VKIE.ie_key(), video_id)
             if count >= total:
                 break
             video_list_json = self._download_payload('al_video', page_id, {
@@ -551,26 +585,28 @@ class VKUserVideosIE(VKBaseIE):
                 'oid': page_id,
                 'section': section,
             })[0][section]
-            count += video_list_json['count']
+            new_count = video_list_json['count']
+            if not new_count:
+                self.to_screen(f'{page_id}: Skipping {total - count} unavailable videos')
+                break
+            count += new_count
             video_list = video_list_json['list']
 
     def _real_extract(self, url):
-        u_id, section = self._match_valid_url(url).groups()
+        u_id = self._match_id(url)
         webpage = self._download_webpage(url, u_id)
 
         if u_id.startswith('@'):
-            page_id = self._search_regex(r'data-owner-id\s?=\s?"([^"]+)"', webpage, 'page_id')
-        elif '_' in u_id:
-            page_id, section = u_id.split('_', 1)
-            section = f'playlist_{section}'
+            page_id = traverse_obj(
+                self._search_json(r'\bvar newCur\s*=', webpage, 'cursor data', u_id),
+                ('oid', {int}, {str_or_none}, {require('page id')}))
+            section = traverse_obj(parse_qs(url), ('section', 0)) or 'all'
         else:
-            raise ExtractorError('Invalid URL', expected=True)
-
-        if not section:
-            section = 'all'
+            page_id, _, section = u_id.partition('_')
+            section = f'playlist_{section}'
 
         playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
-        return self.playlist_result(self._entries(page_id, section), '%s_%s' % (page_id, section), playlist_title)
+        return self.playlist_result(self._entries(page_id, section), f'{page_id}_{section}', playlist_title)
 
 
 class VKWallPostIE(VKBaseIE):
@@ -707,6 +743,7 @@ class VKWallPostIE(VKBaseIE):
 
 
 class VKPlayBaseIE(InfoExtractor):
+    _BASE_URL_RE = r'https?://(?:vkplay\.live|live\.vk(?:play|video)\.ru)/'
     _RESOLUTIONS = {
         'tiny': '256x144',
         'lowest': '426x240',
@@ -765,7 +802,7 @@ class VKPlayBaseIE(InfoExtractor):
 
 
 class VKPlayIE(VKPlayBaseIE):
-    _VALID_URL = r'https?://vkplay\.live/(?P<username>[^/#?]+)/record/(?P<id>[a-f0-9-]+)'
+    _VALID_URL = rf'{VKPlayBaseIE._BASE_URL_RE}(?P<username>[^/#?]+)/record/(?P<id>[\da-f-]+)'
     _TESTS = [{
         'url': 'https://vkplay.live/zitsmann/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da',
         'info_dict': {
@@ -776,13 +813,19 @@ class VKPlayIE(VKPlayBaseIE):
             'uploader_id': '13159830',
             'release_timestamp': 1683461378,
             'release_date': '20230507',
-            'thumbnail': r're:https://images.vkplay.live/public_video_stream/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da/preview\?change_time=\d+',
+            'thumbnail': r're:https://[^/]+/public_video_stream/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da/preview',
             'duration': 10608,
             'view_count': int,
             'like_count': int,
             'categories': ['Atomic Heart'],
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://live.vkplay.ru/lebwa/record/33a4e4ce-e3ef-49db-bb14-f006cc6fabc9/records',
+        'only_matching': True,
+    }, {
+        'url': 'https://live.vkvideo.ru/lebwa/record/33a4e4ce-e3ef-49db-bb14-f006cc6fabc9/records',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -802,7 +845,7 @@ class VKPlayIE(VKPlayBaseIE):
 
 
 class VKPlayLiveIE(VKPlayBaseIE):
-    _VALID_URL = r'https?://vkplay\.live/(?P<id>[^/#?]+)/?(?:[#?]|$)'
+    _VALID_URL = rf'{VKPlayBaseIE._BASE_URL_RE}(?P<id>[^/#?]+)/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://vkplay.live/bayda',
         'info_dict': {
@@ -810,10 +853,10 @@ class VKPlayLiveIE(VKPlayBaseIE):
             'ext': 'mp4',
             'title': r're:эскапизм крута .*',
             'uploader': 'Bayda',
-            'uploader_id': 12279401,
+            'uploader_id': '12279401',
             'release_timestamp': 1687209962,
             'release_date': '20230619',
-            'thumbnail': r're:https://images.vkplay.live/public_video_stream/12279401/preview\?change_time=\d+',
+            'thumbnail': r're:https://[^/]+/public_video_stream/12279401/preview',
             'view_count': int,
             'concurrent_view_count': int,
             'like_count': int,
@@ -822,6 +865,12 @@ class VKPlayLiveIE(VKPlayBaseIE):
         },
         'skip': 'livestream',
         'params': {'skip_download': True},
+    }, {
+        'url': 'https://live.vkplay.ru/lebwa',
+        'only_matching': True,
+    }, {
+        'url': 'https://live.vkvideo.ru/panterka',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

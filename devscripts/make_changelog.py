@@ -40,20 +40,6 @@ class CommitGroup(enum.Enum):
         return {
             name: group
             for group, names in {
-                cls.CORE: {
-                    'aes',
-                    'cache',
-                    'compat_utils',
-                    'compat',
-                    'cookies',
-                    'dependencies',
-                    'formats',
-                    'jsinterp',
-                    'outtmpl',
-                    'plugins',
-                    'update',
-                    'utils',
-                },
                 cls.MISC: {
                     'build',
                     'ci',
@@ -85,14 +71,13 @@ class CommitGroup(enum.Enum):
     def get(cls, value: str) -> tuple[CommitGroup | None, str | None]:
         group, _, subgroup = (group.strip().lower() for group in value.partition('/'))
 
-        result = cls.group_lookup().get(group)
-        if not result:
-            if subgroup:
-                return None, value
-            subgroup = group
-            result = cls.subgroup_lookup().get(subgroup)
+        if result := cls.group_lookup().get(group):
+            return result, subgroup or None
 
-        return result, subgroup or None
+        if subgroup:
+            return None, value
+
+        return cls.subgroup_lookup().get(group), group or None
 
 
 @dataclass
@@ -150,8 +135,7 @@ class Changelog:
                 first = False
                 yield '\n<details><summary><h3>Changelog</h3></summary>\n'
 
-            group = groups[item]
-            if group:
+            if group := groups[item]:
                 yield self.format_module(item.value, group)
 
         if self._collapsible:
@@ -237,10 +221,10 @@ class Changelog:
 
         return message if not sep else f'{message}{sep}{rest}'
 
-    def _format_message_link(self, message, hash):
-        assert message or hash, 'Improperly defined commit message or override'
-        message = message if message else hash[:HASH_LENGTH]
-        return f'[{message}]({self.repo_url}/commit/{hash})' if hash else message
+    def _format_message_link(self, message, commit_hash):
+        assert message or commit_hash, 'Improperly defined commit message or override'
+        message = message if message else commit_hash[:HASH_LENGTH]
+        return f'[{message}]({self.repo_url}/commit/{commit_hash})' if commit_hash else message
 
     def _format_issues(self, issues):
         return ', '.join(f'[#{issue}]({self.repo_url}/issues/{issue})' for issue in issues)
@@ -267,7 +251,7 @@ class CommitRange:
         ''', re.VERBOSE | re.DOTALL)
     EXTRACTOR_INDICATOR_RE = re.compile(r'(?:Fix|Add)\s+Extractors?', re.IGNORECASE)
     REVERT_RE = re.compile(r'(?:\[[^\]]+\]\s+)?(?i:Revert)\s+([\da-f]{40})')
-    FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Revert)\s+([\da-f]{40})')
+    FIXES_RE = re.compile(r'(?i:(?:bug\s*)?fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Improve)\s+([\da-f]{40})')
     UPSTREAM_MERGE_RE = re.compile(r'Update to ytdl-commit-([\da-f]+)')
 
     def __init__(self, start, end, default_author=None):
@@ -301,11 +285,16 @@ class CommitRange:
             short = next(lines)
             skip = short.startswith('Release ') or short == '[version] update'
 
+            fix_commitish = None
+            if match := self.FIXES_RE.search(short):
+                fix_commitish = match.group(1)
+
             authors = [default_author] if default_author else []
             for line in iter(lambda: next(lines), self.COMMIT_SEPARATOR):
-                match = self.AUTHOR_INDICATOR_RE.match(line)
-                if match:
+                if match := self.AUTHOR_INDICATOR_RE.match(line):
                     authors = sorted(map(str.strip, line[match.end():].split(',')), key=str.casefold)
+                if not fix_commitish and (match := self.FIXES_RE.fullmatch(line)):
+                    fix_commitish = match.group(1)
 
             commit = Commit(commit_hash, short, authors)
             if skip and (self._start or not i):
@@ -315,21 +304,17 @@ class CommitRange:
                 logger.debug(f'Reached Release commit, breaking: {commit}')
                 break
 
-            revert_match = self.REVERT_RE.fullmatch(commit.short)
-            if revert_match:
-                reverts[revert_match.group(1)] = commit
+            if match := self.REVERT_RE.fullmatch(commit.short):
+                reverts[match.group(1)] = commit
                 continue
 
-            fix_match = self.FIXES_RE.search(commit.short)
-            if fix_match:
-                commitish = fix_match.group(1)
-                fixes[commitish].append(commit)
+            if fix_commitish:
+                fixes[fix_commitish].append(commit)
 
             commits[commit.hash] = commit
 
         for commitish, revert_commit in reverts.items():
-            reverted = commits.pop(commitish, None)
-            if reverted:
+            if reverted := commits.pop(commitish, None):
                 logger.debug(f'{commitish} fully reverted {reverted}')
             else:
                 commits[revert_commit.hash] = revert_commit
@@ -370,7 +355,7 @@ class CommitRange:
                 logger.info(f'CHANGE {self._commits[commit.hash]} -> {commit}')
                 self._commits[commit.hash] = commit
 
-        self._commits = {key: value for key, value in reversed(self._commits.items())}
+        self._commits = dict(reversed(self._commits.items()))
 
     def groups(self):
         group_dict = defaultdict(list)
@@ -404,9 +389,9 @@ class CommitRange:
             if not group:
                 if self.EXTRACTOR_INDICATOR_RE.search(commit.short):
                     group = CommitGroup.EXTRACTOR
+                    logger.error(f'Assuming [ie] group for {commit.short!r}')
                 else:
-                    group = CommitGroup.POSTPROCESSOR
-                logger.warning(f'Failed to map {commit.short!r}, selected {group.name.lower()}')
+                    group = CommitGroup.CORE
 
             commit_info = CommitInfo(
                 details, sub_details, message.strip(),
@@ -459,7 +444,31 @@ def get_new_contributors(contributors_path, commits):
     return sorted(new_contributors, key=str.casefold)
 
 
-if __name__ == '__main__':
+def create_changelog(args):
+    logging.basicConfig(
+        datefmt='%Y-%m-%d %H-%M-%S', format='{asctime} | {levelname:<8} | {message}',
+        level=logging.WARNING - 10 * args.verbosity, style='{', stream=sys.stderr)
+
+    commits = CommitRange(None, args.commitish, args.default_author)
+
+    if not args.no_override:
+        if args.override_path.exists():
+            overrides = json.loads(read_file(args.override_path))
+            commits.apply_overrides(overrides)
+        else:
+            logger.warning(f'File {args.override_path.as_posix()} does not exist')
+
+    logger.info(f'Loaded {len(commits)} commits')
+
+    if new_contributors := get_new_contributors(args.contributors_path, commits):
+        if args.contributors:
+            write_file(args.contributors_path, '\n'.join(new_contributors) + '\n', mode='a')
+        logger.info(f'New contributors: {", ".join(new_contributors)}')
+
+    return Changelog(commits.groups(), args.repo, args.collapsible)
+
+
+def create_parser():
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -491,27 +500,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--collapsible', action='store_true',
         help='make changelog collapsible (default: %(default)s)')
-    args = parser.parse_args()
 
-    logging.basicConfig(
-        datefmt='%Y-%m-%d %H-%M-%S', format='{asctime} | {levelname:<8} | {message}',
-        level=logging.WARNING - 10 * args.verbosity, style='{', stream=sys.stderr)
+    return parser
 
-    commits = CommitRange(None, args.commitish, args.default_author)
 
-    if not args.no_override:
-        if args.override_path.exists():
-            overrides = json.loads(read_file(args.override_path))
-            commits.apply_overrides(overrides)
-        else:
-            logger.warning(f'File {args.override_path.as_posix()} does not exist')
-
-    logger.info(f'Loaded {len(commits)} commits')
-
-    new_contributors = get_new_contributors(args.contributors_path, commits)
-    if new_contributors:
-        if args.contributors:
-            write_file(args.contributors_path, '\n'.join(new_contributors) + '\n', mode='a')
-        logger.info(f'New contributors: {", ".join(new_contributors)}')
-
-    print(Changelog(commits.groups(), args.repo, args.collapsible))
+if __name__ == '__main__':
+    print(create_changelog(create_parser().parse_args()))
