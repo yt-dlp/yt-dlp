@@ -1,8 +1,9 @@
+from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import clean_html, int_or_none, traverse_obj, url_or_none, urlencode_postdata
 
 
-class DigiviewIE(YoutubeIE):
+class DigiviewIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ladigitale\.dev/digiview/#/v/(?P<id>[0-9a-f]+)'
     _TESTS = [
         {
