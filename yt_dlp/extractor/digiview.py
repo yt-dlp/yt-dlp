@@ -40,7 +40,7 @@ class DigiviewIE(YoutubeIE):
                 'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
                 'uploader_id': '@PhilippHagemeister',
                 'heatmap': 'count:100',
-            }
+            },
         },
         {
             # cut video
@@ -71,7 +71,7 @@ class DigiviewIE(YoutubeIE):
                 'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
                 'uploader_id': '@PhilippHagemeister',
                 'heatmap': 'count:100',
-            }
+            },
         },
     ]
 
@@ -106,7 +106,7 @@ class DigiviewIE(YoutubeIE):
 
         if ffmpeg_args and self._downloader:
             # cut the video if specified in the Digiview webpage
-            ppargs = self._downloader.params.get("postprocessor_args")
-            ppargs.setdefault("merger", []).extend(ffmpeg_args)
+            ppargs = self._downloader.params.get('postprocessor_args')
+            ppargs.setdefault('merger', []).extend(ffmpeg_args)
 
         return info
