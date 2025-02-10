@@ -1,11 +1,12 @@
 import functools
 import json
-import random
+import math
 import re
 import urllib.parse
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
+from ..jsinterp import js_number_to_string
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -1330,6 +1331,11 @@ class TwitterIE(TwitterBaseIE):
             },
         }
 
+    def _generate_syndication_token(self, twid):
+        # ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
+        translation = str.maketrans(dict.fromkeys('0.'))
+        return js_number_to_string((int(twid) / 1e15) * math.PI, 36).translate(translation)
+
     def _call_syndication_api(self, twid):
         self.report_warning(
             'Not all metadata or media is available via syndication endpoint', twid, only_once=True)
@@ -1337,8 +1343,7 @@ class TwitterIE(TwitterBaseIE):
             'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
             headers={'User-Agent': 'Googlebot'}, query={
                 'id': twid,
-                # TODO: token = ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
-                'token': ''.join(random.choices('123456789abcdefghijklmnopqrstuvwxyz', k=10)),
+                'token': self._generate_syndication_token(twid),
             })
         if not status:
             raise ExtractorError('Syndication endpoint returned empty JSON response')
