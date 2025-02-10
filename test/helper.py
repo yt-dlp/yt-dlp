@@ -267,11 +267,11 @@ def expect_info_dict(self, got_dict, expected_dict):
     test_info_dict = sanitize_got_info_dict(got_dict)
 
     # Check for invalid/misspelled field names being returned by the extractor
-    invalid_keys = sorted(set(test_info_dict.keys()) - set(ALLOWED_KEYS_SORT_ORDER))
+    invalid_keys = sorted(test_info_dict.keys() - ALLOWED_KEYS_SORT_ORDER)
     self.assertFalse(invalid_keys, f'Invalid fields returned by the extractor: {", ".join(invalid_keys)}')
 
     missing_keys = sorted(
-        set(test_info_dict.keys()) - set(expected_dict.keys()),
+        test_info_dict.keys() - expected_dict.keys(),
         key=lambda x: ALLOWED_KEYS_SORT_ORDER.index(x))
     if missing_keys:
         def _repr(v):
@@ -293,7 +293,7 @@ def expect_info_dict(self, got_dict, expected_dict):
         write_string(info_dict_str.replace('\n', '\n        '), out=sys.stderr)
         self.assertFalse(
             missing_keys,
-            'Missing keys in test definition: {}'.format(', '.join(missing_keys)))
+            'Missing keys in test definition: {}'.format(', '.join(sorted(missing_keys))))
 
 
 def assertRegexpMatches(self, text, regexp, msg=None):
