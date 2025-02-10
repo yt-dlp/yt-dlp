@@ -116,11 +116,9 @@ class DigiviewIE(InfoExtractor):
             data=urlencode_postdata({'id': video_id}))
 
         clip_id = video_data['videoId']
-        return {
-            '_type': 'url_transparent',
-            'url': f'https://www.youtube.com/watch?v={clip_id}',
-            'ie_key': YoutubeIE.ie_key(),
-            'id': video_id,
+        return self.url_result(
+            f'https://www.youtube.com/watch?v={clip_id}',
+            YoutubeIE, video_id, url_transparent=True,
             **traverse_obj(video_data, {
                 'section_start': ('debut', {int_or_none}),
                 'section_end': ('fin', {int_or_none}),
@@ -129,4 +127,4 @@ class DigiviewIE(InfoExtractor):
                 'thumbnail': ('vignette', {url_or_none}),
                 'view_count': ('vues', {int_or_none}),
             }),
-        }
+        )
