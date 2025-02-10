@@ -204,7 +204,7 @@ class InfoExtractor:
                     * hls_media_playlist_data
                                  The M3U8 media playlist data as a string.
                                  Only use when the data must be modified during extraction and
-                                 the HLS downloader should bypass downloading the URL.
+                                 the native HLS downloader should bypass downloading the URL.
                                  Does not apply if ffmpeg is used as downloader
                     * is_from_start  Is a live format that can be downloaded
                                 from the start. Boolean
