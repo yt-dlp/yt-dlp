@@ -668,6 +668,24 @@ class FacebookIE(InfoExtractor):
             # Formats larger than ~500MB will return error 403 unless chunk size is regulated
             f.setdefault('downloader_options', {})['http_chunk_size'] = 250 << 20
 
+    def _extract_from_jsmods_instances(self, js_data):
+        if js_data:
+            return self._extract_video_data(try_get(
+                js_data, lambda x: x['jsmods']['instances'], list) or [])
+
+    def _yield_all_relay_data(self, _filter, video_id, webpage):
+        for relay_data in re.findall(rf'data-sjs>({{.*?{_filter}.*?}})</script>', webpage):
+            yield self._parse_json(relay_data, video_id, fatal=False) or {}
+
+    def _extract_relay_prefetched_data(self, _filter, video_id, webpage, target_keys=None):
+        path = 'data'
+        if target_keys is not None:
+            path = lambda k, v: k == 'data' and any(target in v for target in variadic(target_keys))
+        return traverse_obj(self, self._yield_all_relay_data(_filter, video_id, webpage), (
+            ..., 'require', (None, (..., ..., ..., '__bbox', 'require')),
+            lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v),
+            ..., ..., '__bbox', 'result', path, {dict}), get_all=False) or {}
+
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
@@ -681,34 +699,18 @@ class FacebookIE(InfoExtractor):
         if server_js_data:
             video_data = self._extract_video_data(server_js_data.get('instances', []))
 
-        def extract_from_jsmods_instances(js_data):
-            if js_data:
-                return self._extract_video_data(try_get(
-                    js_data, lambda x: x['jsmods']['instances'], list) or [])
-
-        def yield_all_relay_data(_filter):
-            for relay_data in re.findall(rf'data-sjs>({{.*?{_filter}.*?}})</script>', webpage):
-                yield self._parse_json(relay_data, video_id, fatal=False) or {}
-
-        def extract_relay_prefetched_data(_filter, target_keys=None):
-            path = 'data'
-            if target_keys is not None:
-                path = lambda k, v: k == 'data' and any(target in v for target in variadic(target_keys))
-            return traverse_obj(yield_all_relay_data(_filter), (
-                ..., 'require', (None, (..., ..., ..., '__bbox', 'require')),
-                lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v),
-                ..., ..., '__bbox', 'result', path, {dict}), get_all=False) or {}
-
         if not video_data:
             server_js_data = self._parse_json(self._search_regex([
                 r'bigPipe\.onPageletArrive\(({.+?})\)\s*;\s*}\s*\)\s*,\s*["\']onPageletArrive\s+' + self._SUPPORTED_PAGLETS_REGEX,
                 rf'bigPipe\.onPageletArrive\(({{.*?id\s*:\s*"{self._SUPPORTED_PAGLETS_REGEX}".*?}})\);',
             ], webpage, 'js data', default='{}'), video_id, js_to_json, False)
-            video_data = extract_from_jsmods_instances(server_js_data)
+            video_data = self._extract_from_jsmods_instances(server_js_data)
 
         if not video_data:
-            data = extract_relay_prefetched_data(
+            data = self._extract_relay_prefetched_data(
                 r'"(?:dash_manifest|playable_url(?:_quality_hd)?)',
+                video_id,
+                webpage,
                 target_keys=('video', 'event', 'nodes', 'node', 'mediaset'))
             if data:
                 entries = []
@@ -779,13 +781,13 @@ class FacebookIE(InfoExtractor):
                 }),
             }
 
-            prefetched_data = extract_relay_prefetched_data(r'"login_data"\s*:\s*{')
+            prefetched_data = self._extract_relay_prefetched_data(r'"login_data"\s*:\s*{', video_id, webpage)
             if prefetched_data:
                 lsd = try_get(prefetched_data, lambda x: x['login_data']['lsd'], dict)
                 if lsd:
                     post_data[lsd['name']] = lsd['value']
 
-            relay_data = next(filter(None, yield_all_relay_data(r'\[\s*"RelayAPIConfigDefaults"\s*,')), {})
+            relay_data = next(filter(None, self._yield_all_relay_data(r'\[\s*"RelayAPIConfigDefaults"\s*,', video_id, webpage)), {})
 
             for define in (relay_data.get('define') or []):
                 if define[0] == 'RelayAPIConfigDefaults':
@@ -833,7 +835,7 @@ class FacebookIE(InfoExtractor):
                     r'for\s+\(\s*;\s*;\s*\)\s*;(.+)', tahoe_data,
                     'tahoe js data', default='{}'),
                 video_id, fatal=False)
-            video_data = extract_from_jsmods_instances(tahoe_js_data)
+            video_data = self._extract_from_jsmods_instances(tahoe_js_data)
 
         if not video_data:
             raise ExtractorError('Cannot parse data')
