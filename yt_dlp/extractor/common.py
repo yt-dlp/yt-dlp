@@ -151,8 +151,8 @@ class InfoExtractor:
                                    for HDS - URL of the F4M manifest,
                                    for DASH - URL of the MPD manifest,
                                    for MSS - URL of the ISM manifest.
-                    * manifest_data
-                                The media playlist m3u8 data as a string,
+                    * hls_media_playlist_data
+                                The M3U8 media playlist data as a string,
                                 only if needed due to the data fetched from the
                                 manifest URL needing to be modified by the extractor.
                                 Only applicable to the native HLS downloader

@@ -73,9 +73,9 @@ class HlsFD(FragmentFD):
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
 
-        s = info_dict.get('manifest_data')
+        s = info_dict.get('hls_media_playlist_data')
         if s:
-            self.to_screen(f'[{self.FD_NAME}] Loading cached m3u8 manifest')
+            self.to_screen(f'[{self.FD_NAME}] Using m3u8 manifest from extracted info')
         else:
             self.to_screen(f'[{self.FD_NAME}] Downloading m3u8 manifest')
             urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
