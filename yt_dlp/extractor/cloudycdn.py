@@ -11,7 +11,7 @@ from ..utils.traversal import traverse_obj
 
 
 class CloudyCDNIE(InfoExtractor):
-    _VALID_URL = r'(?:https?:)?//embed\.(cloudycdn\.services|backscreen\.com)/(?P<site_id>[^/?#]+)/media/(?P<id>[\w-]+)'
+    _VALID_URL = r'(?:https?:)?//embed\.(?:cloudycdn\.services|backscreen\.com)/(?P<site_id>[^/?#]+)/media/(?P<id>[\w-]+)'
     _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://embed.cloudycdn.services/ltv/media/46k_d23-6000-105?',
