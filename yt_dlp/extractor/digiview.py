@@ -79,7 +79,7 @@ class DigiviewIE(InfoExtractor):
         'info_dict': {
             'id': '67a8ea5644d7a',
             'ext': 'mp4',
-            'title': 'Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film',
+            'title': 'Big Buck Bunny (with title changed)',
             'thumbnail': 'https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg',
             'upload_date': '20141110',
             'playable_in_embed': True,
