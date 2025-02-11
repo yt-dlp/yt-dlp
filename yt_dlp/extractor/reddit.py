@@ -245,6 +245,15 @@ class RedditIE(InfoExtractor):
         elif not traverse_obj(login, ('json', 'data', 'cookie', {str})):
             raise ExtractorError('Unable to login, no cookie was returned')
 
+    def _real_initialize(self):
+        # Set cookie to opt-in to age-restricted subreddits
+        self._set_cookie('reddit.com', 'over18', '1')
+        # Set cookie to opt-in to "gated" subreddits
+        options = traverse_obj(self._get_cookies('https://www.reddit.com/'), (
+            '_options', {lambda x: x.value}, {urllib.parse.unquote}, {json.loads}, {dict})) or {}
+        options['pref_gated_sr_optin'] = True
+        self._set_cookie('reddit.com', '_options', urllib.parse.quote(json.dumps(options)))
+
     def _get_subtitles(self, video_id):
         # Fallback if there were no subtitles provided by DASH or HLS manifests
         caption_url = f'https://v.redd.it/{video_id}/wh_ben_en.vtt'
