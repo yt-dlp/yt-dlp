@@ -412,7 +412,10 @@ def create_parser():
         '--plugin-dirs',
         metavar='PATH',
         dest='plugin_dirs',
-        action='append',
+        action='callback',
+        callback=_list_from_options_callback,
+        type='str',
+        callback_kwargs={'delim': None},
         default=['default'],
         help=(
             'Path to an additional directory to search for plugins. '
