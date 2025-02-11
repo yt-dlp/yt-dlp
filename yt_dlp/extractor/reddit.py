@@ -199,6 +199,25 @@ class RedditIE(InfoExtractor):
             'writesubtitles': True,
         },
     }, {
+        # "gated" subreddit post
+        'url': 'https://old.reddit.com/r/ketamine/comments/degtjo/when_the_k_hits/',
+        'info_dict': {
+            'id': 'gqsbxts133r31',
+            'ext': 'mp4',
+            'display_id': 'degtjo',
+            'title': 'When the K hits',
+            'uploader': '[deleted]',
+            'channel_id': 'ketamine',
+            'comment_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
+            'duration': 34,
+            'thumbnail': r're:https?://.+/.+\.(?:jpg|png)',
+            'timestamp': 1570438713.0,
+            'upload_date': '20191007',
+        },
+    }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
         'only_matching': True,
     }, {
