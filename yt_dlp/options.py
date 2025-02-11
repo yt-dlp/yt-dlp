@@ -423,9 +423,7 @@ def create_parser():
             'Use "default" to search the default plugin directories (default)'))
     general.add_option(
         '--no-plugin-dirs',
-        dest='plugin_dirs',
-        action='store_const',
-        const=[],
+        dest='plugin_dirs', action='store_const', const=[],
         help='Clear plugin directories to search, including defaults and those provided by previous --plugin-dirs')
     general.add_option(
         '--flat-playlist',
