@@ -16,10 +16,10 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from .globals import (
+    Indirect,
     plugin_dirs,
     all_plugins_loaded,
     plugin_specs,
-    Indirect,
 )
 
 from .utils import (
