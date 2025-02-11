@@ -383,7 +383,10 @@ select = [
     "E704",
     "W391",
     "W504",
-]
+    ]
+    exclude = [
+        "yt_dlp/extractor/lazy_extractors.py"
+    ]
 
 [tool.pytest.ini_options]
 addopts = "-ra -v --strict-markers"
