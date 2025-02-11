@@ -23,13 +23,13 @@ from .globals import (
 )
 
 from .utils import (
+    YoutubeDLError,
     get_executable_path,
     get_system_config_dirs,
     get_user_config_dirs,
     merge_dicts,
     orderedSet,
     write_string,
-    YoutubeDLError,
 )
 
 PACKAGE_NAME = 'yt_dlp_plugins'
