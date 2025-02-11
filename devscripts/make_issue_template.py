@@ -56,7 +56,7 @@ NO_SKIP = '''
     attributes:
       value: |
         > [!IMPORTANT]
-        > Not providing the required (*) information will result in your issue being closed and ignored.
+        > Not providing the required (*) information or removing the template will result in your issue being closed and ignored.
 '''.strip()
 
 
