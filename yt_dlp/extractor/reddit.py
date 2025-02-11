@@ -199,6 +199,25 @@ class RedditIE(InfoExtractor):
             'writesubtitles': True,
         },
     }, {
+        # "gated" subreddit post
+        'url': 'https://old.reddit.com/r/ketamine/comments/degtjo/when_the_k_hits/',
+        'info_dict': {
+            'id': 'gqsbxts133r31',
+            'ext': 'mp4',
+            'display_id': 'degtjo',
+            'title': 'When the K hits',
+            'uploader': '[deleted]',
+            'channel_id': 'ketamine',
+            'comment_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
+            'duration': 34,
+            'thumbnail': r're:https?://.+/.+\.(?:jpg|png)',
+            'timestamp': 1570438713.0,
+            'upload_date': '20191007',
+        },
+    }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
         'only_matching': True,
     }, {
@@ -244,6 +263,15 @@ class RedditIE(InfoExtractor):
             raise ExtractorError(f'Unable to login, Reddit API says {errors}', expected=True)
         elif not traverse_obj(login, ('json', 'data', 'cookie', {str})):
             raise ExtractorError('Unable to login, no cookie was returned')
+
+    def _real_initialize(self):
+        # Set cookie to opt-in to age-restricted subreddits
+        self._set_cookie('reddit.com', 'over18', '1')
+        # Set cookie to opt-in to "gated" subreddits
+        options = traverse_obj(self._get_cookies('https://www.reddit.com/'), (
+            '_options', 'value', {urllib.parse.unquote}, {json.loads}, {dict})) or {}
+        options['pref_gated_sr_optin'] = True
+        self._set_cookie('reddit.com', '_options', urllib.parse.quote(json.dumps(options)))
 
     def _get_subtitles(self, video_id):
         # Fallback if there were no subtitles provided by DASH or HLS manifests
