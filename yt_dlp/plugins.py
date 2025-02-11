@@ -12,7 +12,6 @@ import pkgutil
 import sys
 import traceback
 import zipimport
-import functools
 from pathlib import Path
 from zipfile import ZipFile
 
