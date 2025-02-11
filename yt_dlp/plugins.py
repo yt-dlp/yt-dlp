@@ -44,12 +44,12 @@ _BASE_PACKAGE_PATH = Path(__file__).parent
 __all__ = [
     'COMPAT_PACKAGE_NAME',
     'PACKAGE_NAME',
+    'PluginSpec',
     'clear_plugins',
     'directories',
     'load_all_plugins',
     'load_plugins',
     'register_plugin_spec',
-    'PluginSpec',
 ]
 
 
@@ -128,9 +128,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         self.packages = set(
             itertools.chain.from_iterable(
                 itertools.accumulate(name.split('.'), lambda a, b: '.'.join((a, b)))
-                for name in packages
-            ),
-        )
+                for name in packages))
 
     def search_locations(self, fullname):
         candidate_locations = itertools.chain.from_iterable(
