@@ -261,7 +261,7 @@ def register_plugin_spec(plugin_spec: PluginSpec):
 def clear_plugins():
     if (
         all_plugins_loaded.value
-        or any(len(plugin_spec.plugin_destination.value) != 0 for plugin_spec in plugin_specs.value.values())
+        or any(plugin_spec.plugin_destination.value for plugin_spec in plugin_specs.value.values())
     ):
         # note: we can't detect all cases when plugins are loaded (e.g. if spec isn't registered)
         raise YoutubeDLError('Plugins have already been loaded. Cannot clear plugins after loading plugins.')
