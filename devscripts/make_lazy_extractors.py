@@ -75,8 +75,7 @@ def build_ies(ies, bases, attr_base):
         if ie in ies:
             names.append(ie.__name__)
 
-    class_lookup_contents = ', '.join(f'{name!r}: {name}' for name in names)
-    yield f'\n_CLASS_LOOKUP = {{ {class_lookup_contents} }}'
+    yield '\n_CLASS_LOOKUP = {%s}' % ', '.join(f'{name!r}: {name}' for name in names)
 
 
 def sort_ies(ies, ignored_bases):
