@@ -27,8 +27,9 @@ from ..utils import (
 
 class WeverseBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'weverse'
-    _ACCOUNT_API_BASE = 'https://accountapi.weverse.io/web/api/v2'
+    _ACCOUNT_API_BASE = 'https://accountapi.weverse.io/web/api'
     _API_HEADERS = {
+        'Accept': 'application/json',
         'Referer': 'https://weverse.io/',
         'WEV-device-Id': str(uuid.uuid4()),
     }
@@ -39,23 +40,24 @@ class WeverseBaseIE(InfoExtractor):
 
         headers = {
             'x-acc-app-secret': '5419526f1c624b38b10787e5c10b2a7a',
-            'x-acc-app-version': '2.2.6',
+            'x-acc-app-version': '3.3.6',
             'x-acc-language': 'en',
             'x-acc-service-id': 'weverse',
             'x-acc-trace-id': str(uuid.uuid4()),
             'x-clog-user-device-id': str(uuid.uuid4()),
         }
-        check_username = self._download_json(
-            f'{self._ACCOUNT_API_BASE}/signup/email/status', None,
-            note='Checking username', query={'email': username}, headers=headers)
-        if not check_username.get('hasPassword'):
+        valid_username = traverse_obj(self._download_json(
+            f'{self._ACCOUNT_API_BASE}/v2/signup/email/status', None, note='Checking username',
+            query={'email': username}, headers=headers, expected_status=(400, 404)), 'hasPassword')
+        if not valid_username:
             raise ExtractorError('Invalid username provided', expected=True)
 
         headers['content-type'] = 'application/json'
         try:
             auth = self._download_json(
-                f'{self._ACCOUNT_API_BASE}/auth/token/by-credentials', None, data=json.dumps({
+                f'{self._ACCOUNT_API_BASE}/v3/auth/token/by-credentials', None, data=json.dumps({
                     'email': username,
+                    'otpSessionId': 'BY_PASS',
                     'password': password,
                 }, separators=(',', ':')).encode(), headers=headers, note='Logging in')
         except ExtractorError as e:
@@ -70,18 +72,18 @@ class WeverseBaseIE(InfoExtractor):
             return
 
         token = try_call(lambda: self._get_cookies('https://weverse.io/')['we2_access_token'].value)
-        if not token:
-            self.raise_login_required()
-
-        WeverseBaseIE._API_HEADERS['Authorization'] = f'Bearer {token}'
+        if token:
+            WeverseBaseIE._API_HEADERS['Authorization'] = f'Bearer {token}'
 
     def _call_api(self, ep, video_id, data=None, note='Downloading API JSON'):
         # Ref: https://ssl.pstatic.net/static/wevweb/2_3_2_11101725/public/static/js/2488.a09b41ff.chunk.js
         # From https://ssl.pstatic.net/static/wevweb/2_3_2_11101725/public/static/js/main.e206f7c1.js:
         key = b'1b9cb6378d959b45714bec49971ade22e6e24e42'
         api_path = update_url_query(ep, {
+            # 'gcc': 'US',
             'appId': 'be4d79eb8fc7bd008ee82c8ec4ff6fd4',
             'language': 'en',
+            'os': 'WEB',
             'platform': 'WEB',
             'wpf': 'pc',
         })
@@ -101,11 +103,14 @@ class WeverseBaseIE(InfoExtractor):
                 self.raise_login_required(
                     'Session token has expired. Log in again or refresh cookies in browser')
             elif isinstance(e.cause, HTTPError) and e.cause.status == 403:
-                raise ExtractorError('Your account does not have access to this content', expected=True)
+                if 'Authorization' in self._API_HEADERS:
+                    raise ExtractorError('Your account does not have access to this content', expected=True)
+                self.raise_login_required()
             raise
 
     def _call_post_api(self, video_id):
-        return self._call_api(f'/post/v1.0/post-{video_id}?fieldSet=postV1', video_id)
+        path = '' if 'Authorization' in self._API_HEADERS else '/preview'
+        return self._call_api(f'/post/v1.0/post-{video_id}{path}?fieldSet=postV1', video_id)
 
     def _get_community_id(self, channel):
         return str(self._call_api(
@@ -151,11 +156,11 @@ class WeverseBaseIE(InfoExtractor):
             'description': ((('extension', 'mediaInfo', 'body'), 'body'), {str}),
             'uploader': ('author', 'profileName', {str}),
             'uploader_id': ('author', 'memberId', {str}),
-            'creator': ('community', 'communityName', {str}),
+            'creators': ('community', 'communityName', {str}, all),
             'channel_id': (('community', 'author'), 'communityId', {str_or_none}),
             'duration': ('extension', 'video', 'playTime', {float_or_none}),
-            'timestamp': ('publishedAt', {lambda x: int_or_none(x, 1000)}),
-            'release_timestamp': ('extension', 'video', 'onAirStartAt', {lambda x: int_or_none(x, 1000)}),
+            'timestamp': ('publishedAt', {int_or_none(scale=1000)}),
+            'release_timestamp': ('extension', 'video', 'onAirStartAt', {int_or_none(scale=1000)}),
             'thumbnail': ('extension', (('mediaInfo', 'thumbnail', 'url'), ('video', 'thumb')), {url_or_none}),
             'view_count': ('extension', 'video', 'playCount', {int_or_none}),
             'like_count': ('extension', 'video', 'likeCount', {int_or_none}),
@@ -181,7 +186,7 @@ class WeverseBaseIE(InfoExtractor):
 
 
 class WeverseIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/live/(?P<id>[\d-]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<artist>[^/?#]+)/live/(?P<id>[\d-]+)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/live/0-107323480',
         'md5': '1fa849f00181eef9100d3c8254c47979',
@@ -195,7 +200,7 @@ class WeverseIE(WeverseBaseIE):
             'channel': 'billlie',
             'channel_id': '72',
             'channel_url': 'https://weverse.io/billlie',
-            'creator': 'Billlie',
+            'creators': ['Billlie'],
             'timestamp': 1666262062,
             'upload_date': '20221020',
             'release_timestamp': 1666262058,
@@ -221,7 +226,7 @@ class WeverseIE(WeverseBaseIE):
             'channel': 'lesserafim',
             'channel_id': '47',
             'channel_url': 'https://weverse.io/lesserafim',
-            'creator': 'LE SSERAFIM',
+            'creators': ['LE SSERAFIM'],
             'timestamp': 1659353400,
             'upload_date': '20220801',
             'release_timestamp': 1659353400,
@@ -285,7 +290,7 @@ class WeverseIE(WeverseBaseIE):
 
         elif live_status == 'is_live':
             video_info = self._call_api(
-                f'/video/v1.0/lives/{api_video_id}/playInfo?preview.format=json&preview.version=v2',
+                f'/video/v1.2/lives/{api_video_id}/playInfo?preview.format=json&preview.version=v2',
                 video_id, note='Downloading live JSON')
             playback = self._parse_json(video_info['lipPlayback'], video_id)
             m3u8_url = traverse_obj(playback, (
@@ -301,7 +306,7 @@ class WeverseIE(WeverseBaseIE):
         else:
             infra_video_id = post['extension']['video']['infraVideoId']
             in_key = self._call_api(
-                f'/video/v1.0/vod/{api_video_id}/inKey?preview=false', video_id,
+                f'/video/v1.1/vod/{api_video_id}/inKey?preview=false', video_id,
                 data=b'{}', note='Downloading VOD API key')['inKey']
 
             video_info = self._download_json(
@@ -343,10 +348,9 @@ class WeverseIE(WeverseBaseIE):
 
 
 class WeverseMediaIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/media/(?P<id>[\d-]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<artist>[^/?#]+)/media/(?P<id>[\d-]+)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/media/4-116372884',
-        'md5': '8efc9cfd61b2f25209eb1a5326314d28',
         'info_dict': {
             'id': 'e-C9wLSQs6o',
             'ext': 'mp4',
@@ -357,8 +361,9 @@ class WeverseMediaIE(WeverseBaseIE):
             'channel_url': 'https://www.youtube.com/channel/UCyc9sUCxELTDK9vELO5Fzeg',
             'uploader': 'Billlie',
             'uploader_id': '@Billlie',
-            'uploader_url': 'http://www.youtube.com/@Billlie',
+            'uploader_url': 'https://www.youtube.com/@Billlie',
             'upload_date': '20230403',
+            'timestamp': 1680533992,
             'duration': 211,
             'age_limit': 0,
             'playable_in_embed': True,
@@ -371,6 +376,8 @@ class WeverseMediaIE(WeverseBaseIE):
             'thumbnail': 'https://i.ytimg.com/vi/e-C9wLSQs6o/maxresdefault.jpg',
             'categories': ['Entertainment'],
             'tags': 'count:7',
+            'channel_is_verified': True,
+            'heatmap': 'count:100',
         },
     }, {
         'url': 'https://weverse.io/billlie/media/3-102914520',
@@ -385,7 +392,7 @@ class WeverseMediaIE(WeverseBaseIE):
             'channel': 'billlie',
             'channel_id': '72',
             'channel_url': 'https://weverse.io/billlie',
-            'creator': 'Billlie',
+            'creators': ['Billlie'],
             'timestamp': 1662174000,
             'upload_date': '20220903',
             'release_timestamp': 1662174000,
@@ -419,7 +426,7 @@ class WeverseMediaIE(WeverseBaseIE):
 
 
 class WeverseMomentIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/moment/(?P<uid>[\da-f]+)/post/(?P<id>[\d-]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<artist>[^/?#]+)/moment/(?P<uid>[\da-f]+)/post/(?P<id>[\d-]+)'
     _TESTS = [{
         'url': 'https://weverse.io/secretnumber/moment/66a07e164b56a696ee71c99315ffe27b/post/1-117229444',
         'md5': '87733ac19a54081b7dfc2442036d282b',
@@ -431,7 +438,7 @@ class WeverseMomentIE(WeverseBaseIE):
             'uploader_id': '66a07e164b56a696ee71c99315ffe27b',
             'channel': 'secretnumber',
             'channel_id': '56',
-            'creator': 'SECRET NUMBER',
+            'creators': ['SECRET NUMBER'],
             'duration': 10,
             'upload_date': '20230405',
             'timestamp': 1680653968,
@@ -440,7 +447,6 @@ class WeverseMomentIE(WeverseBaseIE):
             'comment_count': int,
             'availability': 'needs_auth',
         },
-        'skip': 'Moment has expired',
     }]
 
     def _real_extract(self, url):
@@ -463,7 +469,7 @@ class WeverseMomentIE(WeverseBaseIE):
                 'creator': (('community', 'author'), 'communityName', {str}),
                 'channel_id': (('community', 'author'), 'communityId', {str_or_none}),
                 'duration': ('extension', 'moment', 'video', 'uploadInfo', 'playTime', {float_or_none}),
-                'timestamp': ('publishedAt', {lambda x: int_or_none(x, 1000)}),
+                'timestamp': ('publishedAt', {int_or_none(scale=1000)}),
                 'thumbnail': ('extension', 'moment', 'video', 'uploadInfo', 'imageUrl', {url_or_none}),
                 'like_count': ('emotionCount', {int_or_none}),
                 'comment_count': ('commentCount', {int_or_none}),
@@ -515,7 +521,7 @@ class WeverseTabBaseIE(WeverseBaseIE):
 
 
 class WeverseLiveTabIE(WeverseTabBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/live/?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<id>[^/?#]+)/live/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/live/',
         'playlist_mincount': 55,
@@ -533,7 +539,7 @@ class WeverseLiveTabIE(WeverseTabBaseIE):
 
 
 class WeverseMediaTabIE(WeverseTabBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/media(?:/|/all|/new)?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<id>[^/?#]+)/media(?:/|/all|/new)?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/media/',
         'playlist_mincount': 231,
@@ -557,7 +563,7 @@ class WeverseMediaTabIE(WeverseTabBaseIE):
 
 
 class WeverseLiveIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<id>[^/?#]+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://weverse.io/purplekiss',
         'info_dict': {
@@ -570,12 +576,37 @@ class WeverseLiveIE(WeverseBaseIE):
             'channel': 'purplekiss',
             'channel_id': '35',
             'channel_url': 'https://weverse.io/purplekiss',
-            'creator': 'PURPLE KISS',
+            'creators': ['PURPLE KISS'],
             'timestamp': 1680780892,
             'upload_date': '20230406',
             'release_timestamp': 1680780883,
             'release_date': '20230406',
             'thumbnail': 'https://weverse-live.pstatic.net/v1.0/live/62044/thumb',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'availability': 'needs_auth',
+            'live_status': 'is_live',
+        },
+        'skip': 'Livestream has ended',
+    }, {
+        'url': 'https://weverse.io/lesserafim',
+        'info_dict': {
+            'id': '4-181521628',
+            'ext': 'mp4',
+            'title': r're:심심해서요',
+            'description': '',
+            'uploader': '채채🤎',
+            'uploader_id': 'd49b8b06f3cc1d92d655b25ab27ac2e7',
+            'channel': 'lesserafim',
+            'channel_id': '47',
+            'creators': ['LE SSERAFIM'],
+            'channel_url': 'https://weverse.io/lesserafim',
+            'timestamp': 1728570273,
+            'upload_date': '20241010',
+            'release_timestamp': 1728570264,
+            'release_date': '20241010',
+            'thumbnail': r're:https://phinf\.wevpstatic\.net/.+\.png',
             'view_count': int,
             'like_count': int,
             'comment_count': int,

@@ -32,7 +32,7 @@ class BellMediaIE(InfoExtractor):
             'description': 'md5:810f7f8c6a83ad5b48677c3f8e5bb2c3',
             'upload_date': '20180525',
             'timestamp': 1527288600,
-            'season_id': 73997,
+            'season_id': '73997',
             'season': '2018',
             'thumbnail': 'http://images2.9c9media.com/image_asset/2018_5_25_baf30cbd-b28d-4a18-9903-4bb8713b00f5_PNG_956x536.jpg',
             'tags': [],
@@ -86,6 +86,6 @@ class BellMediaIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'id': video_id,
-            'url': '9c9media:%s_web:%s' % (self._DOMAINS.get(domain, domain), video_id),
+            'url': f'9c9media:{self._DOMAINS.get(domain, domain)}_web:{video_id}',
             'ie_key': 'NineCNineMedia',
         }

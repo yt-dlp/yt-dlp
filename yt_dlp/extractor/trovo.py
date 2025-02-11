@@ -63,7 +63,7 @@ class TrovoIE(TrovoBaseIE):
             'title': '💥IGRAMO IGRICE UPADAJTE💥2500/5000 2022-06-28 22:01',
             'live_status': 'is_live',
         },
-        'skip': 'May not be live'
+        'skip': 'May not be live',
     }]
 
     def _real_extract(self, url):
@@ -77,7 +77,7 @@ class TrovoIE(TrovoBaseIE):
             },
         })
         if live_info.get('isLive') == 0:
-            raise ExtractorError('%s is offline' % username, expected=True)
+            raise ExtractorError(f'{username} is offline', expected=True)
         program_info = live_info['programInfo']
         program_id = program_info['id']
         title = program_info['title']

@@ -9,7 +9,6 @@ from ..utils import (
     RetryManager,
     _configuration_args,
     deprecation_warning,
-    encodeFilename,
 )
 
 
@@ -65,7 +64,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
 
     def to_screen(self, text, prefix=True, *args, **kwargs):
         if self._downloader:
-            tag = '[%s] ' % self.PP_NAME if prefix else ''
+            tag = f'[{self.PP_NAME}] ' if prefix else ''
             return self._downloader.to_screen(f'{tag}{text}', *args, **kwargs)
 
     def report_warning(self, text, *args, **kwargs):
@@ -127,7 +126,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
                 if allowed[format_type]:
                     return func(self, info)
                 else:
-                    self.to_screen('Skipping %s' % format_type)
+                    self.to_screen(f'Skipping {format_type}')
                     return [], info
             return wrapper
         return decorator
@@ -151,7 +150,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
 
     def try_utime(self, path, atime, mtime, errnote='Cannot update utime of file'):
         try:
-            os.utime(encodeFilename(path), (atime, mtime))
+            os.utime(path, (atime, mtime))
         except Exception:
             self.report_warning(errnote)
 
@@ -174,7 +173,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         self._progress_hooks.append(ph)
 
     def report_progress(self, s):
-        s['_default_template'] = '%(postprocessor)s %(status)s' % s
+        s['_default_template'] = '%(postprocessor)s %(status)s' % s  # noqa: UP031
         if not self._downloader:
             return
 
