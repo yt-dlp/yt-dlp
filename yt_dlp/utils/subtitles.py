@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from dataclasses import dataclass
 
@@ -14,7 +16,7 @@ class Metadata:
 class Subtitle:
     text: str
     start: Seconds
-    end: Seconds = None
+    end: Seconds | None = None
 
 
 def parse_lrc(text):

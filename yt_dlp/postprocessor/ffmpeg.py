@@ -597,7 +597,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        filename, ext = info['filepath'], info['ext']
+        ext = info['ext']
         if ext not in self.SUPPORTED_EXTS:
             self.to_screen(f'Subtitles can only be embedded in {", ".join(self.SUPPORTED_EXTS)} files')
             return [], info
@@ -606,6 +606,8 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         if not subtitles:
             self.to_screen('There aren\'t any subtitles to embed')
             return [], info
+
+        filename = info['filepath']
 
         # Disabled temporarily. There needs to be a way to override this
         # in case of duration actually mismatching in extractor
@@ -677,9 +679,9 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         self.to_screen(f'Embedding lyrics in "{filename}"')
         if len(subtitles) > 1:
             self.report_warning(
-                f'Your media player may be unable to display multiple subtitles in {ext}')
+                f'Your media player may be unable to display multiple subtitles in {ext}', only_once=True)
 
-        for lang, sub in subtitles.items():
+        for sub in subtitles.values():
             if not sub.get('data'):
                 with open(sub['filepath'], encoding='utf-8') as f:
                     sub['data'] = f.read()
