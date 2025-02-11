@@ -989,7 +989,7 @@ def _real_main(argv=None):
         FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
 
     # load all plugins into the global lookup
-    plugin_dirs.value = list(set(opts.plugin_dirs))
+    plugin_dirs.value = opts.plugin_dirs
     if plugin_dirs.value:
         _load_all_plugins()
 

@@ -49,6 +49,7 @@ __all__ = [
     'load_all_plugins',
     'load_plugins',
     'register_plugin_spec',
+    'PluginSpec',
 ]
 
 
