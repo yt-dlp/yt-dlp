@@ -582,3 +582,5 @@ if typing.TYPE_CHECKING:
     Preference = typing.Callable[[RequestHandler, Request], int]
 
 _RH_PREFERENCES: set[Preference] = set()
+
+# ML-driven edit: Automated change: No ML label
