@@ -291,3 +291,52 @@ class BlackboardCollaborateUltraSingleCourseIE(InfoExtractor):
             'modified_timestamp': parse_iso8601(course_info.get('modifiedDate')),
             'channel_id': course_id,
         }), ie=BlackboardClassCollaborateIE.ie_key(), video_id=None)
+
+
+class BlackboardCollaborateUltraAllCoursesIE(InfoExtractor):
+    _VALID_URL = r'https://(?P<host>[\w\.]+)/ultra/institution-page'
+
+    _TESTS = [  # All Require a login
+        {
+            'url': 'https://umb.umassonline.net/ultra/institution-page',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://online.uwl.ac.uk/ultra/institution-page',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://lms.mu.edu.sa/ultra/institution-page',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://nestor.rug.nl/ultra/institution-page',
+            'only_matching': True,
+        },
+    ]
+
+    def _real_extract(self, url):
+        host = self._match_valid_url(url)['host']
+        endpoint = f'https://{host}/learn/api/v1/users/me/memberships?fields=course&includeCount=true'
+        number_of_courses, courses_found, user_id, entries = 1, 0, None, []
+
+        # Number of results per page seems to depend on the host and while it can be changed by '&limit=', each host seems to have a different upperbound, so a loop might be better
+        while number_of_courses > courses_found:
+            current_page = self._download_json(f'{endpoint}&offset={courses_found}', user_id,
+                                               'Finding courses')
+            number_of_courses = traverse_obj(current_page, ('paging', 'count'))
+            user_id = traverse_obj(current_page, ('results', '0', 'userId'))
+            courses_found += len(current_page['results'])
+
+            for current_course in traverse_obj(current_page, ('results', ..., 'course')):
+                if current_course['isAvailable']:
+                    entries.append({
+                        'id': current_course.get('id'),
+                        'title': current_course.get('displayName'),
+                        'alt_title': current_course.get('displayId'),
+                        '_type': 'url',
+                        'url': current_course.get('externalAccessUrl') or f"{host}/{current_course.get('homePageUrl')}",
+                        'ie_key': BlackboardCollaborateUltraSingleCourseIE.ie_key(),
+                    })
+
+        return self.playlist_result(entries)
