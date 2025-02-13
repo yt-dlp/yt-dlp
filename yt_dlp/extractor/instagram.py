@@ -28,7 +28,8 @@ _ENCODING_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345678
 
 def _pk_to_id(media_id):
     """Source: https://stackoverflow.com/questions/24437823/getting-instagram-post-url-from-media-id"""
-    return encode_base_n(int(media_id.split('_')[0]), table=_ENCODING_CHARS)
+    pk = int(str(media_id).split('_')[0])
+    return encode_base_n(pk, table=_ENCODING_CHARS)
 
 
 def _id_to_pk(shortcode):
