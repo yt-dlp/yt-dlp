@@ -30,9 +30,55 @@ class BlackboardCollaborateIE(InfoExtractor):
                 'id': '0a633b6a88824deb8c918f470b22b256',
                 'title': 'HESI A2 Information Session - Thursday, May 6, 2021 - recording_1',
                 'ext': 'mp4',
-                'duration': 1896000,
-                'timestamp': 1620331399,
+                'duration': 1896,
+                'timestamp': 1620333295,
                 'upload_date': '20210506',
+                'subtitles': {
+                    'live_chat': 'mincount:1',
+                },
+            },
+        },
+        {
+            'url': 'https://eu.bbcollab.com/collab/ui/session/playback/load/4bde2dee104f40289a10f8e554270600',
+            'md5': '108db6a8f83dcb0c2a07793649581865',
+            'info_dict': {
+                'id': '4bde2dee104f40289a10f8e554270600',
+                'title': 'Meeting - Azerbaycanca erize formasi',
+                'ext': 'mp4',
+                'duration': 880,
+                'timestamp': 1671176868,
+                'upload_date': '20221216',
+            },
+        },
+        {
+            'url': 'https://eu.bbcollab.com/recording/f83be390ecff46c0bf7dccb9dddcf5f6',
+            'md5': 'e3b0b88ddf7847eae4b4c0e2d40b83a5',
+            'info_dict': {
+                'id': 'f83be390ecff46c0bf7dccb9dddcf5f6',
+                'title': 'Keynote lecture by Laura Carvalho - recording_1',
+                'ext': 'mp4',
+                'duration': 5506,
+                'timestamp': 1662721705,
+                'upload_date': '20220909',
+                'subtitles': {
+                    'live_chat': 'mincount:1',
+                },
+            },
+        },
+        {
+            'url': 'https://eu.bbcollab.com/recording/c3e1e7c9e83d4cd9981c93c74888d496',
+            'md5': 'fdb2d8c43d66fbc0b0b74ef5e604eb1f',
+            'info_dict': {
+                'id': 'c3e1e7c9e83d4cd9981c93c74888d496',
+                'title': 'International Ally User Group - recording_18',
+                'ext': 'mp4',
+                'duration': 3479,
+                'timestamp': 1721919621,
+                'upload_date': '20240725',
+                'subtitles': {
+                    'en': 'mincount:1',
+                    'live_chat': 'mincount:1',
+                },
             },
         },
         {
