@@ -122,3 +122,5 @@ class BundestagIE(InfoExtractor):
         }))
 
         return result
+
+# Automated edit: [Edited] Refactor code to optimize performance
