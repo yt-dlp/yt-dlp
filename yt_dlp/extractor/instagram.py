@@ -43,13 +43,16 @@ class InstagramBaseIE(InfoExtractor):
 
     _API_BASE_URL = 'https://i.instagram.com/api/v1'
     _LOGIN_URL = 'https://www.instagram.com/accounts/login'
-    _API_HEADERS = {
-        'X-IG-App-ID': '936619743392459',
-        'X-ASBD-ID': '198387',
-        'X-IG-WWW-Claim': '0',
-        'Origin': 'https://www.instagram.com',
-        'Accept': '*/*',
-    }
+
+    @property
+    def _api_headers(self):
+        return {
+            'X-IG-App-ID': self._configuration_arg('app_id', ['936619743392459'], ie_key=InstagramIE)[0],
+            'X-ASBD-ID': '198387',
+            'X-IG-WWW-Claim': '0',
+            'Origin': 'https://www.instagram.com',
+            'Accept': '*/*',
+        }
 
     def _perform_login(self, username, password):
         if self._IS_LOGGED_IN:
@@ -63,7 +66,7 @@ class InstagramBaseIE(InfoExtractor):
 
         login = self._download_json(
             f'{self._LOGIN_URL}/ajax/', None, note='Logging in', headers={
-                **self._API_HEADERS,
+                **self._api_headers,
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRFToken': shared_data['config']['csrf_token'],
                 'X-Instagram-AJAX': shared_data['rollout_hash'],
@@ -210,7 +213,7 @@ class InstagramBaseIE(InfoExtractor):
     def _get_comments(self, video_id):
         comments_info = self._download_json(
             f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/comments/?can_support_threading=true&permalink_enabled=false', video_id,
-            fatal=False, errnote='Comments extraction failed', note='Downloading comments info', headers=self._API_HEADERS) or {}
+            fatal=False, errnote='Comments extraction failed', note='Downloading comments info', headers=self._api_headers) or {}
 
         comment_data = traverse_obj(comments_info, ('edge_media_to_parent_comment', 'edges'), 'comments')
         for comment_dict in comment_data or []:
@@ -403,14 +406,14 @@ class InstagramIE(InstagramBaseIE):
             info = traverse_obj(self._download_json(
                 f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
                 fatal=False, errnote='Video info extraction failed',
-                note='Downloading video info', headers=self._API_HEADERS), ('items', 0))
+                note='Downloading video info', headers=self._api_headers), ('items', 0))
             if info:
                 media.update(info)
                 return self._extract_product(media)
 
         api_check = self._download_json(
             f'{self._API_BASE_URL}/web/get_ruling_for_content/?content_type=MEDIA&target_id={_id_to_pk(video_id)}',
-            video_id, headers=self._API_HEADERS, fatal=False, note='Setting up session', errnote=False) or {}
+            video_id, headers=self._api_headers, fatal=False, note='Setting up session', errnote=False) or {}
         csrf_token = self._get_cookies('https://www.instagram.com').get('csrftoken')
 
         if not csrf_token:
@@ -430,7 +433,7 @@ class InstagramIE(InstagramBaseIE):
         general_info = self._download_json(
             'https://www.instagram.com/graphql/query/', video_id, fatal=False, errnote=False,
             headers={
-                **self._API_HEADERS,
+                **self._api_headers,
                 'X-CSRFToken': csrf_token or '',
                 'X-Requested-With': 'XMLHttpRequest',
                 'Referer': url,
@@ -716,7 +719,7 @@ class InstagramStoryIE(InstagramBaseIE):
 
         videos = traverse_obj(self._download_json(
             f'{self._API_BASE_URL}/feed/reels_media/?reel_ids={story_info_url}',
-            story_id, errnote=False, fatal=False, headers=self._API_HEADERS), 'reels')
+            story_id, errnote=False, fatal=False, headers=self._api_headers), 'reels')
         if not videos:
             self.raise_login_required('You need to log in to access this content')
 
