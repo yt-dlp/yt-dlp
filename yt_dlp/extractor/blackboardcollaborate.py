@@ -8,7 +8,11 @@ from ..utils import (
     mimetype2ext,
     parse_iso8601,
     parse_qs,
+    smuggle_url,
+    str_or_none,
+    unsmuggle_url,
     url_or_none,
+    urlencode_postdata,
 )
 from ..utils.traversal import traverse_obj
 
@@ -177,3 +181,94 @@ class BlackboardCollaborateLaunchIE(InfoExtractor):
         if self.suitable(redirect_url):
             raise UnsupportedError(redirect_url)
         return self.url_result(redirect_url, BlackboardCollaborateIE, video_id)
+
+
+class BlackboardClassCollaborateIE(InfoExtractor):
+    _VALID_URL = r'https?://(?P<region>[a-z]+)-lti\.bbcollab\.com/collab/ui/scheduler/lti\?token=[\w%\.\-=]+'
+
+    _TESTS = [
+        {
+            'url': 'https://eu-lti.bbcollab.com/collab/ui/scheduler/lti?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYkNvbGxhYkFwaSIsInJvbGUiOjksImxhdW5jaFBhcmFtRGRiS2V5IjoiODcyYzEzYzctNWY1Yy00ODI1LWE2ZTktZDY1MzJlYjFhODFjIiwiaXNzIjoiYmJDb2xsYWJBcGkiLCJjb250ZXh0IjoiODUxYTE0OGMzZDFjNDE5MWEyZmE1NzljY2ZiMzY1YjAiLCJsYXVuY2hQYXJhbUtleSI6IjNiOTIxZmFhNTNlODRhNGY5OGE2ZDY2MDk1YjQ4Njc2IiwiZXhwIjoxNzQwNTAwNjA2LCJ0eXBlIjoyLCJpYXQiOjE3NDA0MTQyMDYsInVzZXIiOiI3M2ZkZTY4NDk4MTA0ODZhYWRmMWY5MDNkZTRmNmZmZiIsImNvbnN1bWVyIjoiNjMzNmZjZWQxYmI1NGQwYWI0M2Y2MmI4OGRiNzBiZTMifQ==.At95iQ_tarijE_v4WGvpaMBsTyZ3ariAgkfsyrYJ1Eg',
+            'only_matching': True,
+        },
+    ]
+
+    def _call_api(self, region, video_id='', api_call='', token=None, note='Downloading JSON metadata', fatal=True):
+        if video_id == '':
+            channel_id = jwt_decode_hs256(token)['context']
+
+        return self._download_json(f'https://{region}.bbcollab.com/collab/api/csa/recordings/{video_id + api_call}',
+                                   video_id or channel_id, note=note,
+                                   headers={'Authorization': f'Bearer {token}'} if token else '', fatal=fatal)
+
+    def _parse_availability(self, public_link_allowed):
+        if public_link_allowed:
+            return 'public'
+        else:
+            return 'needs_auth'
+
+    def _real_extract(self, url):
+        url, data = unsmuggle_url(url, {})
+        region = self._match_valid_url(url)['region']
+        token = parse_qs(url).get('token')
+
+        playlist_info = self._call_api(region, token=token, note='Downloading playlist information')
+        entries = traverse_obj(playlist_info, ('results', ..., {
+            'id': ('id', {str_or_none}),
+            'view_count': ('playbackCount', {int_or_none}),
+            'duration': ('duration', {int_or_none(scale=1000)}),
+            'availability': ('publicLinkAllowed', {self._parse_availability}),
+        }))
+
+        for i in entries:
+            i['_type'] = 'url'
+            i['url'] = self._call_api(region, i['id'], '/url', token)['url']
+            i['ie_key'] = BlackboardCollaborateLaunchIE.ie_key()
+
+        return self.playlist_result(
+            entries,
+            playlist_count=playlist_info['size'],
+            title=data.get('title'),
+            alt_title=data.get('alt_title'),
+            description=data.get('description'),
+            modified_timestamp=data.get('modified_timestamp'),
+            channel_id=data.get('channel_id'))
+
+
+class BlackboardCollaborateUltraSingleCourseIE(InfoExtractor):
+    # Support format of either host/webapps/collab-ultra/tool/collabultra?course_id=course_id or
+    #                          host/webapps/collab-ultra/tool/collabultra/lti/launch?course_id=course_id
+    #                          host/webapps/blackboard/execute/courseMain?course_id=course_id
+    #                          host/ultra/courses/course_id/cl/outline
+    _VALID_URL = r'''(?x)
+                        https://(?P<host>[\w\.]+)/(?:
+                         (?:webapps/
+                                (?:collab-ultra/tool/collabultra(?:/lti/launch)?
+                                |blackboard/execute/courseMain)
+                                    \?[\w\d_=&]*course_id=(?P<course_id>[\d_]+))
+                        |(?:ultra/courses/(?P<course_id2>[\d_]+)/cl/outline))'''
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        course_id = mobj.group('course_id') or mobj.group('course_id2')
+        host = mobj.group('host')
+
+        course_data = self._download_webpage(
+            f'https://{host}/webapps/collab-ultra/tool/collabultra/lti/launch?course_id={course_id}', course_id, 'Downloading course data')
+
+        attrs = self._hidden_inputs(course_data)
+        endpoint = self._html_search_regex(r'<form[^>]+action="([^"]+)"', course_data, 'form_action')
+
+        redirect_url = self._request_webpage(endpoint, course_id, 'Getting authentication token',
+                                             data=urlencode_postdata(attrs)).url
+
+        course_info = self._download_json(f'https://{host}/learn/api/v1/courses/{course_id}',
+                                          course_id, 'Downloading extra metadata', fatal=False)
+
+        return self.url_result(smuggle_url(redirect_url, {
+            'title': course_info.get('displayName'),
+            'alt_title': course_info.get('displayId'),  # Could also use courseId
+            'description': course_info.get('description'),
+            'modified_timestamp': parse_iso8601(course_info.get('modifiedDate')),
+            'channel_id': course_id,
+        }), ie=BlackboardClassCollaborateIE.ie_key(), video_id=None)
