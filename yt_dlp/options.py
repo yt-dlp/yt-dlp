@@ -398,7 +398,7 @@ def create_parser():
             '(Alias: --no-config)'))
     general.add_option(
         '--no-config-locations',
-        action='store_const', dest='config_locations', const=[],
+        action='store_const', dest='config_locations', const=None,
         help=(
             'Do not load any custom configuration files (default). When given inside a '
             'configuration file, ignore all previous --config-locations defined in the current file'))
