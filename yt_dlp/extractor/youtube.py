@@ -857,6 +857,18 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         }
         return filter_dict(headers)
 
+    def _download_webpage_with_retries(self, *args, retry_fatal=False, retry_on_status=None, **kwargs):
+        for retry in self.RetryManager(fatal=retry_fatal):
+            try:
+                return self._download_webpage(*args, **kwargs)
+            except ExtractorError as e:
+                if isinstance(e.cause, network_exceptions):
+                    if not isinstance(e.cause, HTTPError) or e.cause.status not in (retry_on_status or (403, 429)):
+                        retry.error = e
+                        continue
+                self._error_or_warning(e, fatal=retry_fatal)
+                break
+
     def _download_ytcfg(self, client, video_id):
         url = {
             'web': 'https://www.youtube.com',
@@ -866,21 +878,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         }.get(client)
         if not url:
             return {}
-        webpage = None
-        for retry in self.RetryManager(fatal=False):
-            try:
-                webpage = self._download_webpage(
-                    url, video_id, note=f'Downloading {client.replace("_", " ").strip()} client config',
-                    headers=traverse_obj(self._get_default_ytcfg(client), {
-                        'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
-                    }))
-            except ExtractorError as e:
-                if isinstance(e.cause, network_exceptions):
-                    if not isinstance(e.cause, HTTPError) or e.cause.status not in (403, 429):
-                        retry.error = e
-                        continue
-                self._error_or_warning(e, fatal=False)
-                break
+        webpage = self._download_webpage_with_retries(
+            url, video_id, note=f'Downloading {client.replace("_", " ").strip()} client config',
+            headers=traverse_obj(self._get_default_ytcfg(client), {
+                'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
+            }))
         return self.extract_ytcfg(video_id, webpage) or {}
 
     @staticmethod
@@ -3148,19 +3150,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return urljoin('https://www.youtube.com', player_url)
 
     def _download_player_url(self, video_id, fatal=False):
-        iframe_webpage = None
-        for retry in self.RetryManager(fatal=fatal):
-            try:
-                iframe_webpage = self._download_webpage(
-                    'https://www.youtube.com/iframe_api',
-                    note='Downloading iframe API JS', video_id=video_id)
-            except ExtractorError as e:
-                if isinstance(e.cause, network_exceptions):
-                    if not isinstance(e.cause, HTTPError) or e.cause.status not in (403, 429):
-                        retry.error = e
-                        continue
-                self._error_or_warning(e, fatal=fatal)
-                break
+        iframe_webpage = self._download_webpage_with_retries(
+            'https://www.youtube.com/iframe_api',
+            note='Downloading iframe API JS',
+            video_id=video_id, retry_fatal=fatal)
+
         if iframe_webpage:
             player_version = self._search_regex(
                 r'player\\?/([0-9a-fA-F]{8})\\?/', iframe_webpage, 'player version', fatal=fatal)
@@ -4576,17 +4570,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pp = self._configuration_arg('player_params', [None], casesense=True)[0]
             if pp:
                 query['pp'] = pp
-            webpage = None
-            for retry in self.RetryManager(fatal=False):
-                try:
-                    webpage = self._download_webpage(webpage_url, video_id, query=query)
-                except ExtractorError as e:
-                    if isinstance(e.cause, network_exceptions):
-                        if not isinstance(e.cause, HTTPError) or e.cause.status not in (403, 429):
-                            retry.error = e
-                            continue
-                    self._error_or_warning(e, fatal=False)
-                    break
+            webpage = self._download_webpage_with_retries(webpage_url, video_id, query=query)
 
         master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
 
