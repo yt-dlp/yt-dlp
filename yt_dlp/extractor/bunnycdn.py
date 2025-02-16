@@ -17,7 +17,7 @@ from ..utils import (
 from ..utils.traversal import find_element, traverse_obj
 
 
-class BunnyCDNIE(InfoExtractor):
+class BunnyCdnIE(InfoExtractor):
     _VALID_URL = r'https?://(?:iframe\.mediadelivery\.net|video\.bunnycdn\.com)/(?:embed|play)/(?P<library_id>\d+)/(?P<id>[\da-f-]+)'
     _EMBED_REGEX = [rf'<iframe[^>]+src=[\'"](?P<url>{_VALID_URL}[^\'"]*)[\'"]']
     _TESTS = [{

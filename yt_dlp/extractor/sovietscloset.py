@@ -1,4 +1,4 @@
-from .bunnycdn import BunnyCDNIE
+from .bunnycdn import BunnyCdnIE
 from .common import InfoExtractor
 from ..utils import make_archive_id, try_get, unified_timestamp
 
@@ -108,7 +108,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
         stream = self.parse_nuxt_jsonp(f'{static_assets_base}/video/{video_id}/payload.js', video_id, 'video')['stream']
 
         return self.url_result(
-            f'https://iframe.mediadelivery.net/embed/5105/{stream["bunnyId"]}', ie=BunnyCDNIE, url_transparent=True,
+            f'https://iframe.mediadelivery.net/embed/5105/{stream["bunnyId"]}', ie=BunnyCdnIE, url_transparent=True,
             **self.video_meta(
                 video_id=video_id, game_name=stream['game']['name'],
                 category_name=try_get(stream, lambda x: x['subcategory']['name'], str),
