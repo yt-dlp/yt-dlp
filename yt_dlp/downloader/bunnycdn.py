@@ -16,9 +16,10 @@ class BunnyCdnFD(FileDownloader):
         fd = HlsFD(self.ydl, self.params)
 
         success = download_complete = False
-        timer = [None]
         ping_lock = threading.Lock()
-        current_time = [0]
+
+        timer = None
+        current_time = 0
 
         ping_url = info_dict['_bunnycdn_ping_data']['url']
         headers = info_dict['_bunnycdn_ping_data']['headers']
@@ -28,7 +29,8 @@ class BunnyCdnFD(FileDownloader):
         ping_interval = 2
 
         def send_ping():
-            time = current_time[0] + round(random.random(), 6)
+            nonlocal timer, current_time
+            time = current_time + round(random.random(), 6)
             # Hard coded resolution as it doesn't seem to matter
             res = 1080
             paused = 'false'
@@ -46,9 +48,9 @@ class BunnyCdnFD(FileDownloader):
 
             with ping_lock:
                 if not download_complete:
-                    current_time[0] += ping_interval
-                    timer[0] = threading.Timer(ping_interval, send_ping)
-                    timer[0].start()
+                    current_time += ping_interval
+                    timer = threading.Timer(ping_interval, send_ping)
+                    timer.start()
 
         # Start ping loop
         self.to_screen(f'[{self.FD_NAME}] Starting pings with {ping_interval} second interval...')
@@ -57,8 +59,8 @@ class BunnyCdnFD(FileDownloader):
             success = fd.real_download(filename, info_dict)
         finally:
             with ping_lock:
-                if timer[0]:
-                    timer[0].cancel()
+                if timer:
+                    timer.cancel()
                 download_complete = True
 
         return success
