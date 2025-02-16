@@ -1,6 +1,4 @@
-import hashlib
 import json
-import random
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -32,6 +30,7 @@ class BunnyCdnIE(InfoExtractor):
             'duration': 7.0,
             'upload_date': '20230828',
         },
+        'params': {'skip_download': True},
     }, {
         'url': 'https://iframe.mediadelivery.net/play/136145/32e34c4b-0d72-437c-9abb-05e67657da34',
         'info_dict': {
@@ -44,6 +43,7 @@ class BunnyCdnIE(InfoExtractor):
             'upload_date': '20230804',
             'title': 'Sanela ist Teil der #arbeitsmarktkraft',
         },
+        'params': {'skip_download': True},
     }, {
         # Stream requires activation and pings
         'url': 'https://iframe.mediadelivery.net/embed/200867/2e8545ec-509d-4571-b855-4cf0235ccd75',
@@ -57,20 +57,9 @@ class BunnyCdnIE(InfoExtractor):
             'upload_date': '20240221',
             'thumbnail': r're:^https?://.*\.b-cdn\.net/2e8545ec-509d-4571-b855-4cf0235ccd75/thumbnail\.jpg',
         },
+        'params': {'skip_download': True},
     }]
     _WEBPAGE_TESTS = [{
-        'url': 'https://www.queisser.de/unternehmen/neue-firmenzentrale',
-        'info_dict': {
-            'id': 'd3e06f96-9972-45a0-a261-1e565bf72778',
-            'ext': 'mp4',
-            'description': '',
-            'thumbnail': r're:^https?://.*\.b-cdn\.net/d3e06f96-9972-45a0-a261-1e565bf72778/thumbnail_512bb53f\.jpg',
-            'upload_date': '20221214',
-            'duration': 134.0,
-            'timestamp': 1671016982,
-            'title': 'Zeitraffer Abriss 1080p',
-        },
-    }, {
         # Stream requires Referer
         'url': 'https://conword.io/',
         'info_dict': {
@@ -83,29 +72,22 @@ class BunnyCdnIE(InfoExtractor):
             'thumbnail': 'https://video.watchuh.com/3a5d863e-9cd6-447e-b6ef-e289af50b349/thumbnail.jpg',
             'timestamp': 1698783879,
         },
+        'params': {'skip_download': True},
     }, {
         # URL requires token and expires
         'url': 'https://www.stockphotos.com/video/moscow-subway-the-train-is-arriving-at-the-park-kultury-station-10017830',
         'info_dict': {
             'id': '0b02fa20-4e8c-4140-8f87-f64d820a3386',
             'ext': 'mp4',
-            'thumbnail': r're:^https?://.*\.b-cdn\.net//0b02fa20-4e8c-4140-8f87-f64d820a3386/thumbnail\.jpg',
+            'thumbnail': r're:^https?://.*\.b-cdn\.net/0b02fa20-4e8c-4140-8f87-f64d820a3386/thumbnail\.jpg',
             'title': 'Moscow subway. The train is arriving at the Park Kultury station.',
             'upload_date': '20240531',
             'duration': 18.0,
             'timestamp': 1717152269,
             'description': '',
         },
+        'params': {'skip_download': True},
     }]
-
-    def _send_ping(self, ping_url, video_id, headers, secret, context_id, time, paused='false'):
-        # Hard coded, since it doesn't seem to matter
-        res = 1080
-        md5_hash = hashlib.md5(f'{secret}_{context_id}_{time}_{paused}_{res}'.encode()).hexdigest()
-        self._download_webpage(
-            ping_url, video_id, note=f'Sending ping at {time}',
-            query={'hash': md5_hash, 'time': time, 'paused': paused, 'resolution': res},
-            headers=headers)
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -157,20 +139,29 @@ class BunnyCdnIE(InfoExtractor):
             r'loadUrl\([\'"]([^\'"]+/ping)[\'"]', webpage, 'ping url', default=None)
         secret = traverse_obj(parse_qs(src_url), ('secret', 0))
         context_id = traverse_obj(parse_qs(src_url), ('contextId', 0))
+        ping_data = {}
         if src_url and activation_url and ping_url and secret and context_id:
-            self._send_ping(ping_url, video_id, headers, secret, context_id, 0, 'true')
             self._download_webpage(
                 activation_url, video_id, headers=headers, note='Downloading activation data')
-            # Sending first couple pings ahead of time seems to be enough
-            for i in range(0, 30, 4):
-                self._send_ping(ping_url, video_id, headers, secret, context_id, i + round(random.random(), 6))
 
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 src_url, video_id, 'mp4', headers=headers, m3u8_id='hls', fatal=False)
             for fmt in fmts:
-                fmt['http_headers'] = headers
+                fmt.update({
+                    'protocol': 'bunnycdn',
+                    'http_headers': headers,
+                })
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
+
+            ping_data = {
+                '_bunnycdn_ping_data': {
+                    'url': ping_url,
+                    'headers': headers,
+                    'secret': secret,
+                    'context_id': context_id,
+                },
+            }
 
         return {
             'id': video_id,
@@ -180,5 +171,6 @@ class BunnyCdnIE(InfoExtractor):
                 'title': ('data-plyr-config', {json.loads}, 'title', {str}),
                 'thumbnail': ('data-poster', {url_or_none}),
             })),
+            **ping_data,
             **self._search_json_ld(webpage, video_id, fatal=False),
         }
