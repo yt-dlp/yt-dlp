@@ -261,9 +261,11 @@ def validate_options(opts):
         elif value in ('inf', 'infinite'):
             return float('inf')
         try:
-            return int(value)
+            int_value = int(value)
         except (TypeError, ValueError):
             validate(False, f'{name} retry count', value)
+        validate_positive(f'{name} retry count', int_value)
+        return int_value
 
     opts.retries = parse_retries('download', opts.retries)
     opts.fragment_retries = parse_retries('fragment', opts.fragment_retries)
@@ -1062,7 +1064,7 @@ def _real_main(argv=None):
                 # If we only have a single process attached, then the executable was double clicked
                 # When using `pyinstaller` with `--onefile`, two processes get attached
                 is_onefile = hasattr(sys, '_MEIPASS') and os.path.basename(sys._MEIPASS).startswith('_MEI')
-                if attached_processes == 1 or is_onefile and attached_processes == 2:
+                if attached_processes == 1 or (is_onefile and attached_processes == 2):
                     print(parser._generate_error_message(
                         'Do not double-click the executable, instead call it from a command line.\n'
                         'Please read the README for further information on how to use yt-dlp: '
@@ -1109,9 +1111,9 @@ def main(argv=None):
 from .extractor import gen_extractors, list_extractors
 
 __all__ = [
-    'main',
     'YoutubeDL',
-    'parse_options',
     'gen_extractors',
     'list_extractors',
+    'main',
+    'parse_options',
 ]
