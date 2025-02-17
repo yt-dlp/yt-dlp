@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import math
 
-from yt_dlp.jsinterp import JS_Undefined, JSInterpreter
+from yt_dlp.jsinterp import JS_Undefined, JSInterpreter, js_number_to_string
 
 
 class NaN:
@@ -93,6 +93,16 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f(){return 0 ?? 42;}', 0)
         self._test('function f(){return "life, the universe and everything" < 42;}', False)
         self._test('function f(){return 0  - 7 * - 6;}', 42)
+        self._test('function f(){return true << "5";}', 32)
+        self._test('function f(){return true << true;}', 2)
+        self._test('function f(){return "19" & "21.9";}', 17)
+        self._test('function f(){return "19" & false;}', 0)
+        self._test('function f(){return "11.0" >> "2.1";}', 2)
+        self._test('function f(){return 5 ^ 9;}', 12)
+        self._test('function f(){return 0.0 << NaN}', 0)
+        self._test('function f(){return null << undefined}', 0)
+        # TODO: Does not work due to number too large
+        # self._test('function f(){return 21 << 4294967297}', 42)
 
     def test_array_access(self):
         self._test('function f(){var x = [1,2,3]; x[0] = 4; x[0] = 5; x[2.0] = 7; return x;}', [5, 2, 7])
@@ -430,6 +440,27 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f(){return "012345678".slice(1, -1)}', '1234567')
         self._test('function f(){return "012345678".slice(-1, 1)}', '')
         self._test('function f(){return "012345678".slice(-3, -1)}', '67')
+
+    def test_js_number_to_string(self):
+        for test, radix, expected in [
+            (0, None, '0'),
+            (-0, None, '0'),
+            (0.0, None, '0'),
+            (-0.0, None, '0'),
+            (math.nan, None, 'NaN'),
+            (-math.nan, None, 'NaN'),
+            (math.inf, None, 'Infinity'),
+            (-math.inf, None, '-Infinity'),
+            (10 ** 21.5, 8, '526665530627250154000000'),
+            (6, 2, '110'),
+            (254, 16, 'fe'),
+            (-10, 2, '-1010'),
+            (-0xff, 2, '-11111111'),
+            (0.1 + 0.2, 16, '0.4cccccccccccd'),
+            (1234.1234, 10, '1234.1234'),
+            # (1000000000000000128, 10, '1000000000000000100')
+        ]:
+            assert js_number_to_string(test, radix) == expected
 
 
 if __name__ == '__main__':
