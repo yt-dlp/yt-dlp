@@ -5,6 +5,7 @@ import threading
 from .common import FileDownloader
 from . import HlsFD
 from ..networking import Request
+from ..networking.exceptions import network_exceptions
 
 
 class BunnyCdnFD(FileDownloader):
@@ -42,8 +43,8 @@ class BunnyCdnFD(FileDownloader):
 
             try:
                 self.ydl.urlopen(request).read()
-            except Exception:
-                self.to_screen(f'[{self.FD_NAME}] Ping failed')
+            except network_exceptions as e:
+                self.to_screen(f'[{self.FD_NAME}] Ping failed: {e}')
 
             with ping_lock:
                 if not download_complete:
