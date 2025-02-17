@@ -133,4 +133,19 @@ class MatchTVFeedIE(WebcasterFeedBaseIE):
             'age_limit': 0,
             'description': 'Летний биатлон. Альфа-Банк Кубок Содружества. Спринт. Мужчины',
         },
+    }, {
+        'url': 'https://matchtv.ru/alpine-skiing/matchtvvideo_NI2164704_translation_Chempionat_mira_Gigantskij_slalom_Zhenshhiny_1_ja_popytka',
+        'md5': '8e8c38efb5ed17f20efea027d8101b64',
+        'info_dict': {
+            'id': 'f53e8b14b4f872957123d409a9b2c7ef',
+            'ext': 'mp4',
+            'title': 'Чемпионат мира. Гигантский слалом. Женщины. 1-я попытка',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 7098.0,
+            'age_limit': 0,
+            'upload_date': '20250213',
+            'description': 'Чемпионат мира. Гигантский слалом. Женщины. 1-я попытка',
+            'uploader': 'МАТЧ ТВ',
+            'timestamp': 1739435713,
+        },
     }]
