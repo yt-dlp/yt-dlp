@@ -104,7 +104,9 @@ class BunnyCdnIE(InfoExtractor):
             query=traverse_obj(parse_qs(url), {'token': 'token', 'expires': 'expires'}))
 
         if html_title := self._html_extract_title(webpage, default=None) == '403':
-            raise ExtractorError('This video is inaccessible. Setting a Referer header might be required to access the video', expected=True)
+            raise ExtractorError(
+                'This video is inaccessible. Setting a Referer header '
+                'might be required to access the video', expected=True)
         elif html_title == '404':
             raise ExtractorError('This video does not exist', expected=True)
 
@@ -127,7 +129,7 @@ class BunnyCdnIE(InfoExtractor):
                     'quality': 1,
                     'http_headers': headers,
                     'ext': urlhandle_detect_ext(urlh, default='mp4'),
-                    'filesize': int_or_none(urlh.headers.get('Content-Length')),
+                    'filesize': int_or_none(urlh.get_header('Content-Length')),
                 })
 
         # MediaCage Streams require activation and pings

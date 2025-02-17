@@ -38,8 +38,7 @@ class BunnyCdnFD(FileDownloader):
 
             request = Request(
                 f'{ping_url}?hash={md5_hash}&time={time}&paused={paused}&resolution={res}',
-                headers=headers,
-            )
+                headers=headers)
 
             try:
                 self.ydl.urlopen(request).read()
