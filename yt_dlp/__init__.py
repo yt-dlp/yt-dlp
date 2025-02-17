@@ -429,7 +429,7 @@ def validate_options(opts):
     }
 
     # Other options
-    validate_regex('trim filenames', opts.trim_file_name, r'(?:\d+[bc]?|notrim)')
+    validate_regex('trim filenames', opts.trim_file_name, r'(?:\d+[bc]?|none)')
 
     if opts.playlist_items is not None:
         try:

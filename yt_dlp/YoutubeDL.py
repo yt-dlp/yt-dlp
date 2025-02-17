@@ -1439,9 +1439,9 @@ class YoutubeDL:
         filename = outtmpl % info_dict
 
         def parse_trim_file_name(trim_file_name):
-            if trim_file_name is None or trim_file_name == 'notrim':
+            if trim_file_name is None or trim_file_name == 'none':
                 return 0, None
-            mobj = re.match(r'(?:(?P<length>\d+)(?P<mode>b|c)?|notrim)', trim_file_name)
+            mobj = re.match(r'(?:(?P<length>\d+)(?P<mode>b|c)?|none)', trim_file_name)
             return int(mobj.group('length')), mobj.group('mode') or 'c'
 
         max_file_name, mode = parse_trim_file_name(self.params.get('trim_file_name'))

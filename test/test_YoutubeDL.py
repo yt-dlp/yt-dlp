@@ -715,7 +715,7 @@ class TestYoutubeDL(unittest.TestCase):
     def test_prepare_outtmpl_and_filename(self):
         def test(tmpl, expected, *, info=None, **params):
             if 'trim_file_name' not in params:
-                params['trim_file_name'] = 'notrim'  # disable trimming
+                params['trim_file_name'] = 'none'  # disable trimming
             params['outtmpl'] = tmpl
             ydl = FakeYDL(params)
             ydl._num_downloads = 1
