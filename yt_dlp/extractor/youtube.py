@@ -3137,7 +3137,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return
         # TODO: Add proper support for the 'tce' variant players
         # See https://github.com/yt-dlp/yt-dlp/issues/12398
-        player_url = player_url.replace('/player_ias_tce.vflset/', '/player_ias.vflset/')
+        if '/player_ias_tce.vflset/' in player_url:
+            self.write_debug(f'Modifying tce player URL: {player_url}')
+            player_url = player_url.replace('/player_ias_tce.vflset/', '/player_ias.vflset/')
         return urljoin('https://www.youtube.com', player_url)
 
     def _download_player_url(self, video_id, fatal=False):
