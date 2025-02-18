@@ -467,9 +467,9 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
                 {extract_attributes}, 'id'))
             or self._search_regex(
                 (r'player\.load[^;]+src:\s*["\']([^"\']+)',
-                r'id-video=([^@]+@[^"]+)',
-                r'<a[^>]+href="(?:https?:)?//videos\.francetv\.fr/video/([^@]+@[^"]+)"',
-                r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
+                 r'id-video=([^@]+@[^"]+)',
+                 r'<a[^>]+href="(?:https?:)?//videos\.francetv\.fr/video/([^@]+@[^"]+)"',
+                 r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
                 webpage, 'video id')
         )
 
