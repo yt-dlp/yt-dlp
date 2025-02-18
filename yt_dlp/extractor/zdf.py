@@ -469,7 +469,8 @@ class ZDFChannelIE(ZDFBaseIE):
                 'title': ('titel', {str}),
                 'description': ('beschreibung', {str}),
                 'duration': ('length', {float_or_none}),
-                # TODO: seasonNumber and episodeNumber can be extracted but need to also be in ZDFIE
+                'season_number': ('seasonNumber', {int_or_none}),
+                'episode_number': ('episodeNumber', {int_or_none}),
             }))
 
     def _entries(self, data, document_id):
