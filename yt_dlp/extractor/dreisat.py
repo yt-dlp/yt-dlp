@@ -1,7 +1,7 @@
-from .zdf import ZDFIE
+from .zdf import ZDFBaseIE
 
 
-class DreiSatIE(ZDFIE):  # XXX: Do not subclass from concrete IE
+class DreiSatIE(ZDFBaseIE):
     IE_NAME = '3sat'
     _VALID_URL = r'https?://(?:www\.)?3sat\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)\.html'
     _TESTS = [{
@@ -39,3 +39,14 @@ class DreiSatIE(ZDFIE):  # XXX: Do not subclass from concrete IE
         'url': 'https://www.3sat.de/wissen/nano/nano-21-mai-2019-102.html',
         'only_matching': True,
     }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, video_id, fatal=False)
+        if webpage:
+            player = self._extract_player(webpage, url, fatal=False)
+            if player:
+                return self._extract_regular(url, player, video_id)
+
+        return self._extract_mobile(video_id)
