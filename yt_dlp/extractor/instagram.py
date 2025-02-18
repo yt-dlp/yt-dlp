@@ -724,7 +724,7 @@ class InstagramStoryIE(InstagramBaseIE):
         if not story_title:
             story_title = f'Story by {username}'
 
-        highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (user_id, 'items'))
+        highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (user_id, 'items', lambda _, v: v['pk'] == story_id))
         info_data = []
         for highlight in highlights:
             highlight_data = self._extract_product(highlight)
