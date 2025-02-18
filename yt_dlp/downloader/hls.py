@@ -9,7 +9,6 @@ from .fragment import FragmentFD
 from .. import webvtt
 from ..dependencies import Cryptodome
 from ..utils import (
-    _request_dump_filename,
     bug_reports_message,
     parse_m3u8_attributes,
     remove_start,
@@ -17,6 +16,7 @@ from ..utils import (
     update_url_query,
     urljoin,
 )
+from ..utils._utils import _request_dump_filename
 
 
 class HlsFD(FragmentFD):

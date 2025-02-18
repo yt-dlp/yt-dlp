@@ -51,7 +51,6 @@ from ..utils import (
     RegexNotFoundError,
     RetryManager,
     UnsupportedError,
-    _request_dump_filename,
     age_restricted,
     base_url,
     bug_reports_message,
@@ -99,6 +98,7 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
+from ..utils._utils import _request_dump_filename
 
 
 class InfoExtractor:
