@@ -51,6 +51,7 @@ from ..utils import (
     RegexNotFoundError,
     RetryManager,
     UnsupportedError,
+    _request_dump_filename,
     age_restricted,
     base_url,
     bug_reports_message,
@@ -1048,7 +1049,9 @@ class InfoExtractor:
         if self.get_param('write_pages'):
             if isinstance(url_or_request, Request):
                 data = self._create_request(url_or_request, data).data
-            filename = self._downloader._request_dump_filename(urlh.url, video_id, data)
+            filename = _request_dump_filename(
+                urlh.url, video_id, data,
+                trim_length=self.get_param('trim_file_name'))
             self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
@@ -1109,8 +1112,9 @@ class InfoExtractor:
                              impersonate=None, require_impersonation=False):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
-                filename = self._downloader._request_dump_filename(
-                    url_or_request.url, video_id, url_or_request.data)
+                filename = _request_dump_filename(
+                    url_or_request.url, video_id, url_or_request.data,
+                    trim_length=self.get_param('trim_file_name'))
                 self.to_screen(f'Loading request from {filename}')
                 try:
                     with open(filename, 'rb') as dumpf:

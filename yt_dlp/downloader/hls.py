@@ -9,6 +9,7 @@ from .fragment import FragmentFD
 from .. import webvtt
 from ..dependencies import Cryptodome
 from ..utils import (
+    _request_dump_filename,
     bug_reports_message,
     parse_m3u8_attributes,
     remove_start,
@@ -82,7 +83,9 @@ class HlsFD(FragmentFD):
             man_url = urlh.url
             s_bytes = urlh.read()
             if self.params.get('write_pages'):
-                dump_filename = self.ydl._request_dump_filename(man_url, info_dict['id'], None)
+                dump_filename = _request_dump_filename(
+                    man_url, info_dict['id'], None,
+                    trim_length=self.params.get('trim_file_name'))
                 self.to_screen(f'[{self.FD_NAME}] Saving request to {dump_filename}')
                 with open(dump_filename, 'wb') as outf:
                     outf.write(s_bytes)
