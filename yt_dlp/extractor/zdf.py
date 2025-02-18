@@ -198,17 +198,12 @@ class ZDFBaseIE(InfoExtractor):
             })),
         })
 
-    def _extract_regular(self, url, player, video_id):
+    def _extract_regular(self, url, player, video_id, query=None):
         player_url = player['content']
 
-        try:
-            content = self._call_api(
-                update_url_query(player_url, {'profile': 'player-3'}),
-                video_id, 'content', player['apiToken'], url)
-        except ExtractorError as e:
-            self.report_warning(f'{video_id}: {e.orig_msg}; retrying with v2 profile')
-            content = self._call_api(
-                player_url, video_id, 'content', player['apiToken'], url)
+        content = self._call_api(
+            update_url_query(player_url, query),
+            video_id, 'content', player['apiToken'], url)
 
         return self._extract_entry(player_url, player, content, video_id)
 
@@ -428,7 +423,7 @@ class ZDFIE(ZDFBaseIE):
         if webpage:
             player = self._extract_player(webpage, url, fatal=False)
             if player:
-                return self._extract_regular(url, player, video_id)
+                return self._extract_regular(url, player, video_id, query={'profile': 'player-3'})
 
         return self._extract_mobile(video_id)
 
