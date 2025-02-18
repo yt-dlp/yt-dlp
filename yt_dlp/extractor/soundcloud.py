@@ -53,6 +53,7 @@ class SoundcloudBaseIE(InfoExtractor):
     _HEADERS = {}
 
     _IMAGE_REPL_RE = r'-([0-9a-z]+)\.jpg'
+    _TAGS_RE = re.compile(r'"([^"]+)"|([^ ]+)')
 
     _ARTWORK_MAP = {
         'mini': 16,
@@ -372,6 +373,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'comment_count': extract_count('comment'),
             'repost_count': extract_count('reposts'),
             'genres': traverse_obj(info, ('genre', {str}, filter, all, filter)),
+            'tags': traverse_obj(info, ('tag_list', {self._TAGS_RE.findall}, ..., ..., filter)),
             'artists': traverse_obj(info, ('publisher_metadata', 'artist', {str}, filter, all, filter)),
             'formats': formats if not extract_flat else None,
         }
