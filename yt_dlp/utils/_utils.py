@@ -5661,7 +5661,7 @@ class _YDLLogger:
             self._ydl.to_stderr(message)
 
 
-def _request_dump_filename(self, url, video_id, data=None, trim_length=None):
+def _request_dump_filename(url, video_id, data=None, trim_length=None):
     if data is not None:
         data = hashlib.md5(data).hexdigest()
     basen = join_nonempty(video_id, data, url, delim='_')
