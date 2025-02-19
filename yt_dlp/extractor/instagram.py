@@ -39,7 +39,7 @@ def _id_to_pk(shortcode):
 
 
 class InstagramBaseIE(InfoExtractor):
-    # _NETRC_MACHINE = 'instagram'  # Login is broken, disabling until it is fixed
+    # _NETRC_MACHINE = 'instagram'
     _IS_LOGGED_IN = False
 
     _API_BASE_URL = 'https://i.instagram.com/api/v1'
@@ -52,7 +52,7 @@ class InstagramBaseIE(InfoExtractor):
         'Accept': '*/*',
     }
 
-    def _perform_login(self, username, password):
+    def _dont_perform_login(self, username, password):  # Login is broken, disabling until it is fixed
         if self._IS_LOGGED_IN:
             return
 
