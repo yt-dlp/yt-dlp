@@ -25,6 +25,7 @@ from test.helper import (
 
 import yt_dlp.YoutubeDL  # isort: split
 from yt_dlp.extractor import get_info_extractor
+from yt_dlp.jsinterp.common import filter_jsi_feature, filter_jsi_include
 from yt_dlp.networking.exceptions import HTTPError, TransportError
 from yt_dlp.utils import (
     DownloadError,
@@ -82,6 +83,26 @@ class TestDownload(unittest.TestCase):
 # Dynamically generate tests
 
 def generator(test_case, tname):
+    def generate_sub_case(jsi_key):
+        sub_case = {k: v for k, v in test_case.items() if not k.startswith('jsi_matrix')}
+        sub_case['params'] = {**test_case.get('params', {}), 'jsi_preference': [jsi_key]}
+        return generator(sub_case, f'{tname}_{jsi_key}')
+
+    # setting `jsi_matrix` to True, `jsi_matrix_features` to list, or
+    #   setting `jsi_matrix_only_include` or `jsi_matrix_exclude` to non-empty
+    #   to trigger matrix behavior
+    if isinstance(test_case.get('jsi_matrix_features'), list) or any(test_case.get(key) for key in [
+        'jsi_matrix', 'jsi_matrix_only_include', 'jsi_matrix_exclude',
+    ]):
+        jsi_keys = filter_jsi_feature(test_case.get('jsi_matrix_features', []), filter_jsi_include(
+            test_case.get('jsi_matrix_only_include', None), test_case.get('jsi_matrix_exclude', None)))
+
+        def run_sub_cases(self):
+            for i, jsi_key in enumerate(jsi_keys):
+                print(f'Running case {tname} using JSI: {jsi_key} ({i + 1}/{len(jsi_keys)})')
+                generate_sub_case(jsi_key)(self)
+        return run_sub_cases
+
     def test_template(self):
         if self.COMPLETED_TESTS.get(tname):
             return

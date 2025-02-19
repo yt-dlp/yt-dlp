@@ -31,6 +31,17 @@ def get_jsi_keys(jsi_or_keys: typing.Iterable[str | type[JSI] | JSI]) -> list[st
     return [jok if isinstance(jok, str) else jok.JSI_KEY for jok in jsi_or_keys]
 
 
+def filter_jsi_include(only_include: typing.Iterable[str] | None, exclude: typing.Iterable[str] | None):
+    keys = get_jsi_keys(only_include) if only_include else _JSI_HANDLERS.keys()
+    return [key for key in keys if key not in (exclude or [])]
+
+
+def filter_jsi_feature(features: typing.Iterable[str], keys=None):
+    keys = keys if keys is not None else _JSI_HANDLERS.keys()
+    return [key for key in keys if key in _JSI_HANDLERS
+            and _JSI_HANDLERS[key]._SUPPORTED_FEATURES.issuperset(features)]
+
+
 def order_to_pref(jsi_order: typing.Iterable[str | type[JSI] | JSI], multiplier: int) -> JSIPreference:
     jsi_order = reversed(get_jsi_keys(jsi_order))
     pref_score = {jsi_cls: (i + 1) * multiplier for i, jsi_cls in enumerate(jsi_order)}
@@ -112,10 +123,9 @@ class JSIWrapper:
             self.report_warning(f'`{invalid_key}` is not a valid JSI, ignoring preference setting')
             user_prefs.remove(invalid_key)
 
-        jsi_keys = [key for key in get_jsi_keys(only_include or _JSI_HANDLERS) if key not in get_jsi_keys(exclude)]
+        jsi_keys = filter_jsi_include(only_include, exclude)
         self.write_debug(f'Allowed JSI keys: {jsi_keys}')
-        handler_classes = [_JSI_HANDLERS[key] for key in jsi_keys
-                           if _JSI_HANDLERS[key]._SUPPORTED_FEATURES.issuperset(self._features)]
+        handler_classes = [_JSI_HANDLERS[key] for key in filter_jsi_feature(self._features, jsi_keys)]
         self.write_debug(f'Select JSI for features={self._features}: {get_jsi_keys(handler_classes)}, '
                          f'included: {get_jsi_keys(only_include) or "all"}, excluded: {get_jsi_keys(exclude)}')
         if not handler_classes:
@@ -159,37 +169,24 @@ class JSIWrapper:
 
         unavailable: list[str] = []
         exceptions: list[tuple[JSI, Exception]] = []
-        test_results: list[tuple[JSI, typing.Any]] = []
 
         for handler in handlers:
             if not handler.is_available():
                 if self._is_test:
-                    raise Exception(f'{handler.JSI_NAME} is not available for testing, '
-                                    f'add "{handler.JSI_KEY}" in `exclude` if it should not be used')
+                    raise ExtractorError(f'{handler.JSI_NAME} is not available for testing, '
+                                         f'add "{handler.JSI_KEY}" in `exclude` if it should not be used')
                 self.write_debug(f'{handler.JSI_KEY} is not available')
                 unavailable.append(handler.JSI_NAME)
                 continue
             try:
                 self.write_debug(f'Dispatching `{method_name}` task to {handler.JSI_NAME}')
-                result = getattr(handler, method_name)(*args, **kwargs)
-                if self._is_test:
-                    test_results.append((handler, result))
-                else:
-                    return result
-            except Exception as e:
+                return getattr(handler, method_name)(*args, **kwargs)
+            except ExtractorError as e:
                 if handler.JSI_KEY not in self._fallback_jsi:
                     raise
                 else:
                     exceptions.append((handler, e))
                     self.write_debug(f'{handler.JSI_NAME} encountered error, fallback to next handler: {e}')
-
-        if self._is_test and test_results:
-            ref_handler, ref_result = test_results[0]
-            for handler, result in test_results[1:]:
-                if result != ref_result:
-                    self.report_warning(
-                        f'Different JSI results produced from {ref_handler.JSI_NAME} and {handler.JSI_NAME}')
-            return ref_result
 
         if not exceptions:
             msg = f'No available JSI installed, please install one of: {", ".join(unavailable)}'

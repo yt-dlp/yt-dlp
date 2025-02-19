@@ -398,6 +398,27 @@ class IqIE(InfoExtractor):
     IE_DESC = 'International version of iQiyi'
     _VALID_URL = r'https?://(?:www\.)?iq\.com/play/(?:[\w%-]*-)?(?P<id>\w+)'
     _TESTS = [{
+        'url': 'https://www.iq.com/play/sangmin-dinneaw-episode-1-xmk7546rfw',
+        'md5': '63fcb4b7d4863472fe0a9be75d9e9d60',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'xmk7546rfw',
+            'title': '尚岷与丁尼奥 第1集',
+            'description': 'md5:e8fe4a8da25f4b8c86bc5506b1c3faaa',
+            'duration': 3092,
+            'timestamp': 1735520401,
+            'upload_date': '20241230',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'series': 'Sangmin Dinneaw',
+            'age_limit': 18,
+            'average_rating': float,
+            'categories': [],
+            'cast': ['Sangmin Choi', 'Ratana  Aiamsaart'],
+        },
+        'expected_warnings': ['format is restricted'],
+        'jsi_matrix_features': ['dom'],
+    }, {
         'url': 'https://www.iq.com/play/one-piece-episode-1000-1ma1i6ferf4',
         'md5': '2d7caf6eeca8a32b407094b33b757d39',
         'info_dict': {
@@ -418,6 +439,7 @@ class IqIE(InfoExtractor):
             'format': '500',
         },
         'expected_warnings': ['format is restricted'],
+        'skip': 'geo-restricted',
     }, {
         # VIP-restricted video
         'url': 'https://www.iq.com/play/mermaid-in-the-fog-2021-gbdpx13bs4',
