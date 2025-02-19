@@ -167,7 +167,6 @@ class DenoJSDomJSI(DenoJSI):
                 onchange: null,
                 orientation: {{angle: 0, type: 'landscape-primary', onchange: null}},
                 pixelDepth: 24,
-                width: 1920,
             }}
             Object.defineProperty(document.body, 'clientWidth', {{value: 1903}});
             Object.defineProperty(document.body, 'clientHeight', {{value: 2000}});

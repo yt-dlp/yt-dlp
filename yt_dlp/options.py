@@ -1138,6 +1138,13 @@ def create_parser():
         '--sleep-subtitles', metavar='SECONDS',
         dest='sleep_interval_subtitles', default=0, type=int,
         help='Number of seconds to sleep before each subtitle download')
+    workarounds.add_option(
+        '--jsi-preference',
+        metavar='JSI', dest='jsi_preference', default=[], type='str', action='callback',
+        callback=_list_from_options_callback,
+        help=(
+            'Preferred JS interpreters to use during extraction. Can be given as comma-separated values.')
+    )
 
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')
     verbosity.add_option(
