@@ -485,7 +485,6 @@ class InstagramIE(InstagramBaseIE):
                     f'{bug_reports_message(before=",")}', expected=True)
             media.update(xdt_shortcode_media)
 
-
         username = traverse_obj(media, ('owner', 'username')) or self._search_regex(
             r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'username', fatal=False)
 
