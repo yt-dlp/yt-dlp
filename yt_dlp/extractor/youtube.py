@@ -3135,6 +3135,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             get_all=False, expected_type=str)
         if not player_url:
             return
+        # TODO: Add proper support for the 'tce' variant players
+        # See https://github.com/yt-dlp/yt-dlp/issues/12398
+        if '/player_ias_tce.vflset/' in player_url:
+            self.write_debug(f'Modifying tce player URL: {player_url}')
+            player_url = player_url.replace('/player_ias_tce.vflset/', '/player_ias.vflset/')
         return urljoin('https://www.youtube.com', player_url)
 
     def _download_player_url(self, video_id, fatal=False):
@@ -3369,7 +3374,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
-        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2024.07.09')
+        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.02.19')
         jscode = func_code or self._load_player(video_id, player_url)
         jsi = JSInterpreter(jscode)
 
