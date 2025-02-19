@@ -14,17 +14,18 @@ from ..utils import (
     js_to_json,
     mimetype2ext,
     orderedSet,
+    parse_age_limit,
     parse_iso8601,
     replace_extension,
     smuggle_url,
     strip_or_none,
-    traverse_obj,
     try_get,
+    unified_timestamp,
     update_url,
-    update_url_query,
     url_basename,
     url_or_none,
 )
+from ..utils.traversal import require, traverse_obj, trim_str
 
 
 class CBCIE(InfoExtractor):
@@ -519,7 +520,7 @@ class CBCPlayerPlaylistIE(InfoExtractor):
 
 class CBCGemIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca'
-    _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>[0-9a-z-]+/s[0-9]+[a-z][0-9]+)'
+    _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>[0-9a-z-]+/s(?P<season>[0-9]+)[a-z][0-9]+)'
     _TESTS = [{
         # This is a normal, public, TV show video
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06e01',
@@ -530,7 +531,7 @@ class CBCGemIE(InfoExtractor):
             'description': 'md5:929868d20021c924020641769eb3e7f1',
             'thumbnail': r're:https://images\.radio-canada\.ca/[^#?]+/cbc_schitts_creek_season_06e01_thumbnail_v01\.jpg',
             'duration': 1324,
-            'categories': ['comedy'],
+            'genres': ['Comédie et humour'],
             'series': 'Schitt\'s Creek',
             'season': 'Season 6',
             'season_number': 6,
@@ -538,9 +539,10 @@ class CBCGemIE(InfoExtractor):
             'episode_number': 1,
             'episode_id': 'schitts-creek/s06e01',
             'upload_date': '20210618',
-            'timestamp': 1623988800,
+            'timestamp': 1623974400,
             'release_date': '20200107',
-            'release_timestamp': 1578427200,
+            'release_timestamp': 1578355200,
+            'age_limit': 14,
         },
         'params': {'format': 'bv'},
     }, {
@@ -558,12 +560,13 @@ class CBCGemIE(InfoExtractor):
             'episode_number': 1,
             'episode': 'The Cup Runneth Over',
             'episode_id': 'schitts-creek/s01e01',
-            'duration': 1309,
-            'categories': ['comedy'],
+            'duration': 1308,
+            'genres': ['Comédie et humour'],
             'upload_date': '20210617',
-            'timestamp': 1623902400,
-            'release_date': '20151124',
-            'release_timestamp': 1448323200,
+            'timestamp': 1623888000,
+            'release_date': '20151123',
+            'release_timestamp': 1448236800,
+            'age_limit': 14,
         },
         'params': {'format': 'bv'},
     }, {
@@ -635,10 +638,14 @@ class CBCGemIE(InfoExtractor):
         self._claims_token = self.cache.load(self._NETRC_MACHINE, 'claims_token')
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, season_number = self._match_valid_url(url).group('id', 'season')
         video_info = self._download_json(
-            f'https://services.radio-canada.ca/ott/catalog/v2/gem/show/{video_id}?device=web',
-            video_id)
+            f'https://services.radio-canada.ca/ott/catalog/v2/gem/show/{video_id}',
+            video_id, query={'device': 'web'})
+        item_info = traverse_obj(video_info, (
+            'content', ..., 'lineups', ..., 'items',
+            lambda _, v: v['url'] == video_id, any, {require('item info')}))
+        media_id = item_info['idMedia']
 
         email, password = self._get_login_info()
         if email and password:
@@ -647,14 +654,19 @@ class CBCGemIE(InfoExtractor):
         else:
             headers = {}
 
-        media_id = traverse_obj(video_info, (
-            'content', ..., 'lineups', ..., 'items',
-            lambda _, v: v['url'] == video_id, 'idMedia', any))
-        m3u8_info_url = update_url_query(
-            'https://services.radio-canada.ca/media/validation/v2/?appCode=gem&connectionType=hd&deviceType=ipad&multibitrate=true&output=json&tech=hls&manifestVersion=2&manifestType=desktop', {
+        m3u8_info = self._download_json(
+            'https://services.radio-canada.ca/media/validation/v2/',
+            video_id, headers=headers, query={
+                'appCode': 'gem',
+                'connectionType': 'hd',
+                'deviceType': 'ipad',
+                'multibitrate': 'true',
+                'output': 'json',
+                'tech': 'hls',
+                'manifestVersion': '2',
+                'manifestType': 'desktop',
                 'idMedia': media_id,
-        })
-        m3u8_info = self._download_json(m3u8_info_url, video_id, headers=headers)
+            })
 
         if m3u8_info.get('errorCode') == 1:
             self.raise_geo_restricted(countries=['CA'])
@@ -679,23 +691,34 @@ class CBCGemIE(InfoExtractor):
                 if 'descriptive' in fmt['format_id'].lower():
                     fmt['preference'] = -2
 
+        episode_number = None
+        title = traverse_obj(item_info, ('title', {str}))
+        if title and (mobj := re.match(r'(?P<episode>\d+)\. (?P<title>.+)', title)):
+            episode_number = int_or_none(mobj.group('episode'))
+            title = mobj.group('title')
+
         return {
+            'season_number': int_or_none(season_number),
+            'episode_number': episode_number,
+            **traverse_obj(video_info, {
+                'series': ('title', {str}),
+                'season_number': ('structuredMetadata', 'partofSeason', 'seasonNumber', {int_or_none}),
+                'genres': ('structuredMetadata', 'genre', ..., {str}),
+            }),
+            **traverse_obj(item_info, {
+                'description': ('description', {str}),
+                'thumbnail': ('images', 'card', 'url', {url_or_none}, {update_url(query=None)}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'duration': ('metadata', 'duration', {int_or_none}),
+                'release_timestamp': ('metadata', 'airDate', {unified_timestamp}),
+                'timestamp': ('metadata', 'availabilityDate', {unified_timestamp}),
+                'age_limit': ('metadata', 'rating', {trim_str(start='C')}, {parse_age_limit}),
+            }),
             'id': video_id,
             'episode_id': video_id,
+            'episode': title,
+            'title': title,
             'formats': formats,
-            **traverse_obj(video_info, {
-                'title': ('title', {str}),
-                'episode': ('title', {str}),
-                'description': ('description', {str}),
-                'thumbnail': ('image', {url_or_none}),
-                'series': ('series', {str}),
-                'season_number': ('season', {int_or_none}),
-                'episode_number': ('episode', {int_or_none}),
-                'duration': ('duration', {int_or_none}),
-                'categories': ('category', {str}, all),
-                'release_timestamp': ('airDate', {int_or_none(scale=1000)}),
-                'timestamp': ('availableDate', {int_or_none(scale=1000)}),
-            }),
         }
 
 
