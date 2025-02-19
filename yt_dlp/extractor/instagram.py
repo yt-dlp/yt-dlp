@@ -477,7 +477,9 @@ class InstagramIE(InstagramBaseIE):
                     raise ExtractorError(error, expected=True)
                 elif len(video_id) > 28:
                     # It's a private post (video_id == shortcode + 28 extra characters)
-                    self.raise_login_required()
+                    # Only raise after getting empty response; sometimes "long"-shortcode posts are public
+                    self.raise_login_required(
+                        'This content is only available for registered users who follow this account')
                 raise ExtractorError(
                     'Instagram sent an empty media response. Check if this post is accessible in your '
                     f'browser without being logged-in. If it is not, then u{self._login_hint()[1:]}. '
