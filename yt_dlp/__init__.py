@@ -295,18 +295,20 @@ def validate_options(opts):
             raise ValueError(f'invalid {key} retry sleep expression {expr!r}')
 
     # Bytes
-    def validate_bytes(name, value):
+    def validate_bytes(name, value, strict_positive=False):
         if value is None:
             return None
         numeric_limit = parse_bytes(value)
-        validate(numeric_limit is not None, 'rate limit', value)
+        validate(numeric_limit is not None, name, value)
+        if strict_positive:
+            validate_positive(name, numeric_limit, True)
         return numeric_limit
 
-    opts.ratelimit = validate_bytes('rate limit', opts.ratelimit)
+    opts.ratelimit = validate_bytes('rate limit', opts.ratelimit, True)
     opts.throttledratelimit = validate_bytes('throttled rate limit', opts.throttledratelimit)
     opts.min_filesize = validate_bytes('min filesize', opts.min_filesize)
     opts.max_filesize = validate_bytes('max filesize', opts.max_filesize)
-    opts.buffersize = validate_bytes('buffer size', opts.buffersize)
+    opts.buffersize = validate_bytes('buffer size', opts.buffersize, True)
     opts.http_chunk_size = validate_bytes('http chunk size', opts.http_chunk_size)
 
     # Output templates
