@@ -479,8 +479,9 @@ class InstagramIE(InstagramBaseIE):
                     # It's a private post (video_id == shortcode + 28 extra characters)
                     self.raise_login_required()
                 raise ExtractorError(
-                    'Instagram sent empty media response; check if this post is '
-                    'accessible in your browser without being logged-in. If it is'
+                    'Instagram sent an empty media response. Check if this post is accessible in your '
+                    f'browser without being logged-in. If it is not, then u{self._login_hint()[1:]}. '
+                    'Otherwise, if the post is accessible in browser without being logged-in'
                     f'{bug_reports_message(before=",")}', expected=True)
             media.update(xdt_shortcode_media)
 
