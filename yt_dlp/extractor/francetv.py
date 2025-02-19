@@ -9,6 +9,7 @@ from ..utils import (
     ExtractorError,
     clean_html,
     determine_ext,
+    extract_attributes,
     filter_dict,
     format_field,
     int_or_none,
@@ -18,7 +19,7 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import find_element, traverse_obj
 
 
 class FranceTVBaseInfoExtractor(InfoExtractor):
@@ -460,11 +461,16 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
                 self.url_result(dailymotion_url, DailymotionIE.ie_key())
                 for dailymotion_url in dailymotion_urls])
 
-        video_id = self._search_regex(
-            (r'player\.load[^;]+src:\s*["\']([^"\']+)',
-             r'id-video=([^@]+@[^"]+)',
-             r'<a[^>]+href="(?:https?:)?//videos\.francetv\.fr/video/([^@]+@[^"]+)"',
-             r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
-            webpage, 'video id')
+        video_id = (
+            traverse_obj(webpage, (
+                {find_element(tag='button', attr='data-cy', value='francetv-player-wrapper', html=True)},
+                {extract_attributes}, 'id'))
+            or self._search_regex(
+                (r'player\.load[^;]+src:\s*["\']([^"\']+)',
+                 r'id-video=([^@]+@[^"]+)',
+                 r'<a[^>]+href="(?:https?:)?//videos\.francetv\.fr/video/([^@]+@[^"]+)"',
+                 r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
+                webpage, 'video id')
+        )
 
         return self._make_url_result(video_id, url=url)
