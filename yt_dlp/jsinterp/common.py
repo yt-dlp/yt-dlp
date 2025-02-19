@@ -118,7 +118,7 @@ class JSIWrapper:
 
         self._handler_dict = {cls.JSI_KEY: cls(
             self._downloader, url=self._url, timeout=timeout, features=self._features,
-            user_agent=user_agent, **jsi_params.get(cls.JSI_KEY, {})
+            user_agent=user_agent, **jsi_params.get(cls.JSI_KEY, {}),
         ) for cls in handler_classes}
         self.preferences: set[JSIPreference] = {order_to_pref(preferred_order, 100)} | _JSI_PREFERENCES
         self._fallback_jsi = get_jsi_keys(handler_classes) if fallback_jsi == 'all' else get_jsi_keys(fallback_jsi)

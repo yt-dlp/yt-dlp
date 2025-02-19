@@ -201,6 +201,11 @@ class InfoExtractor:
                                             fragment_base_url
                                  * "duration" (optional, int or float)
                                  * "filesize" (optional, int)
+                    * hls_media_playlist_data
+                                 The M3U8 media playlist data as a string.
+                                 Only use if the data must be modified during extraction and
+                                 the native HLS downloader should bypass requesting the URL.
+                                 Does not apply if ffmpeg is used as external downloader
                     * is_from_start  Is a live format that can be downloaded
                                 from the start. Boolean
                     * preference Order number of this format. If this field is

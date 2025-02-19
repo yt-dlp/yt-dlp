@@ -1,11 +1,12 @@
 import functools
 import json
-import random
+import math
 import re
 import urllib.parse
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
+from ..jsinterp.native import js_number_to_string
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -410,26 +411,6 @@ class TwitterCardIE(InfoExtractor):
             'add_ie': ['Youtube'],
         },
         {
-            'url': 'https://twitter.com/i/cards/tfw/v1/665289828897005568',
-            'info_dict': {
-                'id': 'iBb2x00UVlv',
-                'ext': 'mp4',
-                'upload_date': '20151113',
-                'uploader_id': '1189339351084113920',
-                'uploader': 'ArsenalTerje',
-                'title': 'Vine by ArsenalTerje',
-                'timestamp': 1447451307,
-                'alt_title': 'Vine by ArsenalTerje',
-                'comment_count': int,
-                'like_count': int,
-                'thumbnail': r're:^https?://[^?#]+\.jpg',
-                'view_count': int,
-                'repost_count': int,
-            },
-            'add_ie': ['Vine'],
-            'params': {'skip_download': 'm3u8'},
-        },
-        {
             'url': 'https://twitter.com/i/videos/tweet/705235433198714880',
             'md5': '884812a2adc8aaf6fe52b15ccbfa3b88',
             'info_dict': {
@@ -567,25 +548,6 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 0,
             '_old_archive_ids': ['twitter 700207533655363584'],
         },
-    }, {
-        'url': 'https://twitter.com/Filmdrunk/status/713801302971588609',
-        'md5': '89a15ed345d13b86e9a5a5e051fa308a',
-        'info_dict': {
-            'id': 'MIOxnrUteUd',
-            'ext': 'mp4',
-            'title': 'Dr.Pepperの飲み方 #japanese #バカ #ドクペ #電動ガン',
-            'uploader': 'TAKUMA',
-            'uploader_id': '1004126642786242560',
-            'timestamp': 1402826626,
-            'upload_date': '20140615',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'alt_title': 'Vine by TAKUMA',
-            'comment_count': int,
-            'repost_count': int,
-            'like_count': int,
-            'view_count': int,
-        },
-        'add_ie': ['Vine'],
     }, {
         'url': 'https://twitter.com/captainamerica/status/719944021058060289',
         'info_dict': {
@@ -1369,6 +1331,11 @@ class TwitterIE(TwitterBaseIE):
             },
         }
 
+    def _generate_syndication_token(self, twid):
+        # ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
+        translation = str.maketrans(dict.fromkeys('0.'))
+        return js_number_to_string((int(twid) / 1e15) * math.PI, 36).translate(translation)
+
     def _call_syndication_api(self, twid):
         self.report_warning(
             'Not all metadata or media is available via syndication endpoint', twid, only_once=True)
@@ -1376,8 +1343,7 @@ class TwitterIE(TwitterBaseIE):
             'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
             headers={'User-Agent': 'Googlebot'}, query={
                 'id': twid,
-                # TODO: token = ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
-                'token': ''.join(random.choices('123456789abcdefghijklmnopqrstuvwxyz', k=10)),
+                'token': self._generate_syndication_token(twid),
             })
         if not status:
             raise ExtractorError('Syndication endpoint returned empty JSON response')

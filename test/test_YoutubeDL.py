@@ -486,11 +486,11 @@ class TestFormatSelection(unittest.TestCase):
 
     def test_format_filtering(self):
         formats = [
-            {'format_id': 'A', 'filesize': 500, 'width': 1000},
-            {'format_id': 'B', 'filesize': 1000, 'width': 500},
-            {'format_id': 'C', 'filesize': 1000, 'width': 400},
-            {'format_id': 'D', 'filesize': 2000, 'width': 600},
-            {'format_id': 'E', 'filesize': 3000},
+            {'format_id': 'A', 'filesize': 500, 'width': 1000, 'aspect_ratio': 1.0},
+            {'format_id': 'B', 'filesize': 1000, 'width': 500, 'aspect_ratio': 1.33},
+            {'format_id': 'C', 'filesize': 1000, 'width': 400, 'aspect_ratio': 1.5},
+            {'format_id': 'D', 'filesize': 2000, 'width': 600, 'aspect_ratio': 1.78},
+            {'format_id': 'E', 'filesize': 3000, 'aspect_ratio': 0.56},
             {'format_id': 'F'},
             {'format_id': 'G', 'filesize': 1000000},
         ]
@@ -548,6 +548,31 @@ class TestFormatSelection(unittest.TestCase):
         with contextlib.suppress(ExtractorError):
             ydl.process_ie_result(info_dict)
         self.assertEqual(ydl.downloaded_info_dicts, [])
+
+        ydl = YDL({'format': 'best[aspect_ratio=1]'})
+        ydl.process_ie_result(info_dict)
+        downloaded = ydl.downloaded_info_dicts[0]
+        self.assertEqual(downloaded['format_id'], 'A')
+
+        ydl = YDL({'format': 'all[aspect_ratio > 1.00]'})
+        ydl.process_ie_result(info_dict)
+        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
+        self.assertEqual(downloaded_ids, ['D', 'C', 'B'])
+
+        ydl = YDL({'format': 'all[aspect_ratio < 1.00]'})
+        ydl.process_ie_result(info_dict)
+        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
+        self.assertEqual(downloaded_ids, ['E'])
+
+        ydl = YDL({'format': 'best[aspect_ratio=1.5]'})
+        ydl.process_ie_result(info_dict)
+        downloaded = ydl.downloaded_info_dicts[0]
+        self.assertEqual(downloaded['format_id'], 'C')
+
+        ydl = YDL({'format': 'all[aspect_ratio!=1]'})
+        ydl.process_ie_result(info_dict)
+        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
+        self.assertEqual(downloaded_ids, ['E', 'D', 'C', 'B'])
 
     @patch('yt_dlp.postprocessor.ffmpeg.FFmpegMergerPP.available', False)
     def test_default_format_spec_without_ffmpeg(self):

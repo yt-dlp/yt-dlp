@@ -283,7 +283,10 @@ class YoutubeDL:
     lazy_playlist:     Process playlist entries as they are received.
     matchtitle:        Download only matching titles.
     rejecttitle:       Reject downloads for matching titles.
-    logger:            Log messages to a logging.Logger instance.
+    logger:            A class having a `debug`, `warning` and `error` function where
+                       each has a single string parameter, the message to be logged.
+                       For compatibility reasons, both debug and info messages are passed to `debug`.
+                       A debug message will have a prefix of `[debug] ` to discern it from info messages.
     logtostderr:       Print everything to stderr instead of stdout.
     consoletitle:      Display progress in the console window's titlebar.
     writedescription:  Write the video description to a .description file
@@ -595,7 +598,7 @@ class YoutubeDL:
         # NB: Keep in sync with the docstring of extractor/common.py
         'url', 'manifest_url', 'manifest_stream_number', 'ext', 'format', 'format_id', 'format_note',
         'width', 'height', 'aspect_ratio', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
-        'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
+        'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns', 'hls_media_playlist_data',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start', 'is_dash_periods', 'request_data',
         'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'extra_param_to_key_url',
@@ -1323,7 +1326,7 @@ class YoutubeDL:
         elif (sys.platform != 'win32' and not self.params.get('restrictfilenames')
                 and self.params.get('windowsfilenames') is False):
             def sanitize(key, value):
-                return value.replace('/', '\u29F8').replace('\0', '')
+                return str(value).replace('/', '\u29F8').replace('\0', '')
         else:
             def sanitize(key, value):
                 return filename_sanitizer(key, value, restricted=self.params.get('restrictfilenames'))
@@ -2118,7 +2121,7 @@ class YoutubeDL:
         m = operator_rex.fullmatch(filter_spec)
         if m:
             try:
-                comparison_value = int(m.group('value'))
+                comparison_value = float(m.group('value'))
             except ValueError:
                 comparison_value = parse_filesize(m.group('value'))
                 if comparison_value is None:
