@@ -39,7 +39,7 @@ def _id_to_pk(shortcode):
 
 
 class InstagramBaseIE(InfoExtractor):
-    _NETRC_MACHINE = 'instagram'
+    # _NETRC_MACHINE = 'instagram'  # Login is broken, disabling until it is fixed
     _IS_LOGGED_IN = False
 
     _API_BASE_URL = 'https://i.instagram.com/api/v1'
