@@ -2,7 +2,6 @@ import base64
 import collections
 import functools
 import getpass
-import hashlib
 import http.client
 import http.cookiejar
 import http.cookies
@@ -78,7 +77,6 @@ from ..utils import (
     parse_iso8601,
     parse_m3u8_attributes,
     parse_resolution,
-    sanitize_filename,
     sanitize_url,
     smuggle_url,
     str_or_none,
@@ -100,6 +98,7 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
+from ..utils._utils import _request_dump_filename
 
 
 class InfoExtractor:
@@ -1022,23 +1021,6 @@ class InfoExtractor:
                 'Visit http://blocklist.rkn.gov.ru/ for a block reason.',
                 expected=True)
 
-    def _request_dump_filename(self, url, video_id, data=None):
-        if data is not None:
-            data = hashlib.md5(data).hexdigest()
-        basen = join_nonempty(video_id, data, url, delim='_')
-        trim_length = self.get_param('trim_file_name') or 240
-        if len(basen) > trim_length:
-            h = '___' + hashlib.md5(basen.encode()).hexdigest()
-            basen = basen[:trim_length - len(h)] + h
-        filename = sanitize_filename(f'{basen}.dump', restricted=True)
-        # Working around MAX_PATH limitation on Windows (see
-        # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
-        if os.name == 'nt':
-            absfilepath = os.path.abspath(filename)
-            if len(absfilepath) > 259:
-                filename = fR'\\?\{absfilepath}'
-        return filename
-
     def __decode_webpage(self, webpage_bytes, encoding, headers):
         if not encoding:
             encoding = self._guess_encoding_from_content(headers.get('Content-Type', ''), webpage_bytes)
@@ -1067,7 +1049,9 @@ class InfoExtractor:
         if self.get_param('write_pages'):
             if isinstance(url_or_request, Request):
                 data = self._create_request(url_or_request, data).data
-            filename = self._request_dump_filename(urlh.url, video_id, data)
+            filename = _request_dump_filename(
+                urlh.url, video_id, data,
+                trim_length=self.get_param('trim_file_name'))
             self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
@@ -1128,7 +1112,9 @@ class InfoExtractor:
                              impersonate=None, require_impersonation=False):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
-                filename = self._request_dump_filename(url_or_request.url, video_id, url_or_request.data)
+                filename = _request_dump_filename(
+                    url_or_request.url, video_id, url_or_request.data,
+                    trim_length=self.get_param('trim_file_name'))
                 self.to_screen(f'Loading request from {filename}')
                 try:
                     with open(filename, 'rb') as dumpf:
