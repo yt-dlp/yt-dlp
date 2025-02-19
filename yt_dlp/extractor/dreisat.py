@@ -18,9 +18,6 @@ class DreiSatIE(ZDFBaseIE):
             'timestamp': 1738593000,
             'upload_date': '20250203',
         },
-        'params': {
-            'skip_download': True,
-        },
     }, {
         # Same as https://www.zdf.de/dokumentation/ab-18/10-wochen-sommer-102.html
         'url': 'https://www.3sat.de/film/ab-18/10-wochen-sommer-108.html',
