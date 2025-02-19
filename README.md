@@ -790,6 +790,9 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     be used along with --min-sleep-interval
     --sleep-subtitles SECONDS       Number of seconds to sleep before each
                                     subtitle download
+    --jsi-preference                Preferred JS interpreters to use during
+                                    extraction. Can be given as comma-separated
+                                    values
 
 ## Video Format Options:
     -f, --format FORMAT             Video format code, see "FORMAT SELECTION"
