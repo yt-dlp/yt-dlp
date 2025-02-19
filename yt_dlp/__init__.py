@@ -941,6 +941,7 @@ def parse_options(argv=None):
         'sleep_interval': opts.sleep_interval,
         'max_sleep_interval': opts.max_sleep_interval,
         'sleep_interval_subtitles': opts.sleep_interval_subtitles,
+        'jsi_preference': opts.jsi_preference,
         'external_downloader': opts.external_downloader,
         'download_ranges': opts.download_ranges,
         'force_keyframes_at_cuts': opts.force_keyframes_at_cuts,

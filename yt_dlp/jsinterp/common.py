@@ -107,6 +107,11 @@ class JSIWrapper:
         if unsupported_features := self._features - _ALL_FEATURES:
             raise ExtractorError(f'Unsupported features: {unsupported_features}, allowed features: {_ALL_FEATURES}')
 
+        user_prefs = self._downloader.params.get('jsi_preference', [])
+        for invalid_key in [jsi_key for jsi_key in user_prefs if jsi_key not in _JSI_HANDLERS]:
+            self.report_warning(f'`{invalid_key}` is not a valid JSI, ignoring preference setting')
+            user_prefs.remove(invalid_key)
+
         jsi_keys = [key for key in get_jsi_keys(only_include or _JSI_HANDLERS) if key not in get_jsi_keys(exclude)]
         self.write_debug(f'Allowed JSI keys: {jsi_keys}')
         handler_classes = [_JSI_HANDLERS[key] for key in jsi_keys
@@ -120,7 +125,10 @@ class JSIWrapper:
             self._downloader, url=self._url, timeout=timeout, features=self._features,
             user_agent=user_agent, **jsi_params.get(cls.JSI_KEY, {}),
         ) for cls in handler_classes}
-        self.preferences: set[JSIPreference] = {order_to_pref(preferred_order, 100)} | _JSI_PREFERENCES
+
+        self.preferences: set[JSIPreference] = {
+            order_to_pref(user_prefs, 10000), order_to_pref(preferred_order, 100)} | _JSI_PREFERENCES
+
         self._fallback_jsi = get_jsi_keys(handler_classes) if fallback_jsi == 'all' else get_jsi_keys(fallback_jsi)
         self._is_test = self._downloader.params.get('test', False)
 
