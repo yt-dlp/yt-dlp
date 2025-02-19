@@ -8,6 +8,7 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     decode_base_n,
     encode_base_n,
     filter_dict,
@@ -474,7 +475,13 @@ class InstagramIE(InstagramBaseIE):
                     self.raise_login_required(error)
                 elif error:
                     raise ExtractorError(error, expected=True)
-                raise ExtractorError('Instagram sent empty media response')
+                elif len(video_id) > 28:
+                    # It's a private post (video_id == shortcode + 28 extra characters)
+                    self.raise_login_required()
+                raise ExtractorError(
+                    'Instagram sent empty media response; check if this post is '
+                    'accessible in your browser without being logged-in. If it is'
+                    f'{bug_reports_message(before=",")}', expected=True)
             media.update(xdt_shortcode_media)
 
 
