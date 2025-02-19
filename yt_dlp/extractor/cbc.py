@@ -21,6 +21,7 @@ from ..utils import (
     traverse_obj,
     try_get,
     update_url,
+    update_url_query,
     url_basename,
     url_or_none,
 )
@@ -636,8 +637,8 @@ class CBCGemIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_info = self._download_json(
-            f'https://services.radio-canada.ca/ott/cbc-api/v2/assets/{video_id}',
-            video_id, expected_status=426)
+            f'https://services.radio-canada.ca/ott/catalog/v2/gem/show/{video_id}?device=web',
+            video_id)
 
         email, password = self._get_login_info()
         if email and password:
@@ -645,7 +646,15 @@ class CBCGemIE(InfoExtractor):
             headers = {'x-claims-token': claims_token}
         else:
             headers = {}
-        m3u8_info = self._download_json(video_info['playSession']['url'], video_id, headers=headers)
+
+        media_id = traverse_obj(video_info, (
+            'content', ..., 'lineups', ..., 'items',
+            lambda _, v: v['url'] == video_id, 'idMedia', any))
+        m3u8_info_url = update_url_query(
+            'https://services.radio-canada.ca/media/validation/v2/?appCode=gem&connectionType=hd&deviceType=ipad&multibitrate=true&output=json&tech=hls&manifestVersion=2&manifestType=desktop', {
+                'idMedia': media_id,
+        })
+        m3u8_info = self._download_json(m3u8_info_url, video_id, headers=headers)
 
         if m3u8_info.get('errorCode') == 1:
             self.raise_geo_restricted(countries=['CA'])
