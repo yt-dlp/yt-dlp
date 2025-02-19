@@ -504,8 +504,7 @@ class InstagramIE(InstagramBaseIE):
                 return self.playlist_result(
                     self._extract_nodes(nodes, True), video_id,
                     format_field(username, None, 'Post by %s'), description)
-
-            video_url = self._og_search_video_url(webpage, secure=False)
+            raise ExtractorError('There is no video in this post', expected=True)
 
         formats = [{
             'url': video_url,
