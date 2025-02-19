@@ -15,6 +15,7 @@ from ..utils import (
     format_field,
     get_element_by_attribute,
     int_or_none,
+    join_nonempty,
     lowercase_escape,
     str_or_none,
     str_to_int,
@@ -437,7 +438,6 @@ class InstagramIE(InstagramBaseIE):
                 'doc_id': '8845758582119845',
                 'variables': json.dumps(variables, separators=(',', ':')),
             })
-        media.update(traverse_obj(general_info, ('data', 'xdt_shortcode_media')) or {})
 
         if not general_info:
             self.report_warning('General metadata extraction failed (some metadata might be missing).', video_id)
@@ -465,6 +465,18 @@ class InstagramIE(InstagramBaseIE):
 
                 media.update(traverse_obj(
                     additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {})
+
+        else:
+            xdt_shortcode_media = traverse_obj(general_info, ('data', 'xdt_shortcode_media', {dict})) or {}
+            if not xdt_shortcode_media:
+                error = join_nonempty('title', 'description', delim=': ', from_dict=api_check)
+                if 'Restricted Video' in error:
+                    self.raise_login_required(error)
+                elif error:
+                    raise ExtractorError(error, expected=True)
+                raise ExtractorError('Instagram sent empty media response')
+            media.update(xdt_shortcode_media)
+
 
         username = traverse_obj(media, ('owner', 'username')) or self._search_regex(
             r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'username', fatal=False)
