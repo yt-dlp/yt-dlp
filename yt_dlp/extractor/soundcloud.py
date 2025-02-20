@@ -53,6 +53,7 @@ class SoundcloudBaseIE(InfoExtractor):
     _HEADERS = {}
 
     _IMAGE_REPL_RE = r'-([0-9a-z]+)\.jpg'
+    _TAGS_RE = re.compile(r'"([^"]+)"|([^ ]+)')
 
     _ARTWORK_MAP = {
         'mini': 16,
@@ -372,6 +373,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'comment_count': extract_count('comment'),
             'repost_count': extract_count('reposts'),
             'genres': traverse_obj(info, ('genre', {str}, filter, all, filter)),
+            'tags': traverse_obj(info, ('tag_list', {self._TAGS_RE.findall}, ..., ..., filter)),
             'artists': traverse_obj(info, ('publisher_metadata', 'artist', {str}, filter, all, filter)),
             'formats': formats if not extract_flat else None,
         }
@@ -425,6 +427,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'thumbnail': 'https://i1.sndcdn.com/artworks-000031955188-rwb18x-original.jpg',
                 'uploader_url': 'https://soundcloud.com/ethmusic',
+                'tags': 'count:14',
             },
         },
         # geo-restricted
@@ -440,7 +443,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_id': '9615865',
                 'timestamp': 1337635207,
                 'upload_date': '20120521',
-                'duration': 227.155,
+                'duration': 227.103,
                 'license': 'all-rights-reserved',
                 'view_count': int,
                 'like_count': int,
@@ -450,6 +453,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'thumbnail': 'https://i1.sndcdn.com/artworks-v8bFHhXm7Au6-0-original.jpg',
                 'genres': ['Alternative'],
                 'artists': ['The Royal Concept'],
+                'tags': [],
             },
         },
         # private link
@@ -475,6 +479,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/jaimemf',
                 'thumbnail': 'https://a1.sndcdn.com/images/default_avatar_large.png',
                 'genres': ['youtubedl'],
+                'tags': [],
             },
         },
         # private link (alt format)
@@ -500,15 +505,16 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/jaimemf',
                 'thumbnail': 'https://a1.sndcdn.com/images/default_avatar_large.png',
                 'genres': ['youtubedl'],
+                'tags': [],
             },
         },
         # downloadable song
         {
             'url': 'https://soundcloud.com/the80m/the-following',
-            'md5': '9ffcddb08c87d74fb5808a3c183a1d04',
+            'md5': 'ecb87d7705d5f53e6c02a63760573c75',  # wav: '9ffcddb08c87d74fb5808a3c183a1d04'
             'info_dict': {
                 'id': '343609555',
-                'ext': 'wav',
+                'ext': 'opus',  # wav original available with auth
                 'title': 'The Following',
                 'track': 'The Following',
                 'description': '',
@@ -526,15 +532,18 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'view_count': int,
                 'genres': ['Dance & EDM'],
                 'artists': ['80M'],
+                'tags': ['80M', 'EDM', 'Dance', 'Music'],
             },
+            'expected_warnings': ['Original download format is only available for registered users'],
         },
         # private link, downloadable format
+        # tags with spaces (e.g. "Uplifting Trance", "Ori Uplift")
         {
             'url': 'https://soundcloud.com/oriuplift/uponly-238-no-talking-wav/s-AyZUd',
-            'md5': '64a60b16e617d41d0bef032b7f55441e',
+            'md5': '2e1530d0e9986a833a67cb34fc90ece0',  # wav: '64a60b16e617d41d0bef032b7f55441e'
             'info_dict': {
                 'id': '340344461',
-                'ext': 'wav',
+                'ext': 'opus',  # wav original available with auth
                 'title': 'Uplifting Only 238 [No Talking] (incl. Alex Feed Guestmix) (Aug 31, 2017) [wav]',
                 'track': 'Uplifting Only 238 [No Talking] (incl. Alex Feed Guestmix) (Aug 31, 2017) [wav]',
                 'description': 'md5:fa20ee0fca76a3d6df8c7e57f3715366',
@@ -552,7 +561,9 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/oriuplift',
                 'genres': ['Trance'],
                 'artists': ['Ori Uplift'],
+                'tags': ['Orchestral', 'Emotional', 'Uplifting Trance', 'Trance', 'Ori Uplift', 'UpOnly'],
             },
+            'expected_warnings': ['Original download format is only available for registered users'],
         },
         # no album art, use avatar pic for thumbnail
         {
@@ -577,6 +588,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'uploader_url': 'https://soundcloud.com/garyvee',
                 'artists': ['MadReal'],
+                'tags': [],
             },
             'params': {
                 'skip_download': True,
@@ -604,6 +616,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'genres': ['Piano'],
                 'uploader_url': 'https://soundcloud.com/giovannisarani',
+                'tags': 'count:10',
             },
         },
         {
