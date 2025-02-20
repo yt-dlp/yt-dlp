@@ -2,7 +2,6 @@ import hashlib
 import itertools
 import json
 import re
-import time
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
@@ -22,7 +21,6 @@ from ..utils import (
     str_to_int,
     traverse_obj,
     url_or_none,
-    urlencode_postdata,
 )
 
 _ENCODING_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
