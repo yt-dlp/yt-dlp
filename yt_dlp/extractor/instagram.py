@@ -39,11 +39,7 @@ def _id_to_pk(shortcode):
 
 
 class InstagramBaseIE(InfoExtractor):
-    # _NETRC_MACHINE = 'instagram'
-    _IS_LOGGED_IN = False
-
     _API_BASE_URL = 'https://i.instagram.com/api/v1'
-    _LOGIN_URL = 'https://www.instagram.com/accounts/login'
     _API_HEADERS = {
         'X-IG-App-ID': '936619743392459',
         'X-ASBD-ID': '198387',
@@ -51,42 +47,6 @@ class InstagramBaseIE(InfoExtractor):
         'Origin': 'https://www.instagram.com',
         'Accept': '*/*',
     }
-
-    def _dont_perform_login(self, username, password):  # Login is broken, disabling until it is fixed
-        if self._IS_LOGGED_IN:
-            return
-
-        login_webpage = self._download_webpage(
-            self._LOGIN_URL, None, note='Downloading login webpage', errnote='Failed to download login webpage')
-
-        shared_data = self._parse_json(self._search_regex(
-            r'window\._sharedData\s*=\s*({.+?});', login_webpage, 'shared data', default='{}'), None)
-
-        login = self._download_json(
-            f'{self._LOGIN_URL}/ajax/', None, note='Logging in', headers={
-                **self._API_HEADERS,
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': shared_data['config']['csrf_token'],
-                'X-Instagram-AJAX': shared_data['rollout_hash'],
-                'Referer': 'https://www.instagram.com/',
-            }, data=urlencode_postdata({
-                'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
-                'username': username,
-                'queryParams': '{}',
-                'optIntoOneTap': 'false',
-                'stopDeletionNonce': '',
-                'trustedDeviceRecords': '{}',
-            }))
-
-        if not login.get('authenticated'):
-            if login.get('message'):
-                raise ExtractorError(f'Unable to login: {login["message"]}')
-            elif login.get('user'):
-                raise ExtractorError('Unable to login: Sorry, your password was incorrect. Please double-check your password.', expected=True)
-            elif login.get('user') is False:
-                raise ExtractorError('Unable to login: The username you entered doesn\'t belong to an account. Please check your username and try again.', expected=True)
-            raise ExtractorError('Unable to login')
-        InstagramBaseIE._IS_LOGGED_IN = True
 
     def _get_count(self, media, kind, *keys):
         return traverse_obj(
