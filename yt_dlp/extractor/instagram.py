@@ -40,6 +40,7 @@ def _id_to_pk(shortcode):
 
 class InstagramBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://i.instagram.com/api/v1'
+    _LOGIN_URL = 'https://www.instagram.com/accounts/login'
     _API_HEADERS = {
         'X-IG-App-ID': '936619743392459',
         'X-ASBD-ID': '198387',
