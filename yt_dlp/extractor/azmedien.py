@@ -1,9 +1,6 @@
 from .common import InfoExtractor
 from .kaltura import KalturaIE
-from ..utils import (
-    ExtractorError,
-    traverse_obj,
-)
+from ..utils.traversal import require, traverse_obj
 
 
 class AZMedienIE(InfoExtractor):
