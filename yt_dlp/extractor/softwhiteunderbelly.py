@@ -55,7 +55,7 @@ class SoftWhiteUnderbellyIE(InfoExtractor):
     ]
 
     def _perform_login(self, username, password):
-        signin_page = self._download_webpage(self._LOGIN_URL, video_id=None, note='Getting authenticity token')
+        signin_page = self._download_webpage(self._LOGIN_URL, None, 'Fetching authenticity token')
 
         self._download_webpage(
             self._LOGIN_URL, None, 'Logging in',
