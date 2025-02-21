@@ -89,6 +89,6 @@ class SoftWhiteUnderbellyIE(InfoExtractor):
             'id': embed_id,
             'display_id': display_id,
             'title': clean_html(get_element_by_class('video-title', watch_info)),
-            'description': self._html_search_meta('description', webpage, fatal=False),
+            'description': self._html_search_meta('description', webpage, default=None),
             'thumbnail': update_url(self._og_search_thumbnail(webpage) or '', query=None) or None,
         }
