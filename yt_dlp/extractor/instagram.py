@@ -709,6 +709,8 @@ class InstagramStoryIE(InstagramBaseIE):
 
     def _real_extract(self, url):
         username, story_id = self._match_valid_url(url).group('user', 'id')
+        if username == 'highlights' and not story_id:  # story id is only mandatory for highlights
+            raise ExtractorError('Missing highlight id')
         display_id = story_id or username
         story_info = self._download_webpage(url, display_id)
         user_info = self._search_json(r'"user":', story_info, 'user info', display_id, fatal=False)
@@ -718,8 +720,6 @@ class InstagramStoryIE(InstagramBaseIE):
         user_id = traverse_obj(user_info, 'pk', 'id', expected_type=str)
         if username == 'highlights':
             story_info_url = f'highlight:{story_id}'
-            if not story_id:  # story id is only mandatory for highlights
-                raise ExtractorError('Missing highlight id')
         else:
             if not user_id:  # user id is only mandatory for non-highlights
                 raise ExtractorError('Unable to extract user id')
@@ -739,7 +739,7 @@ class InstagramStoryIE(InstagramBaseIE):
         highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (user_id, 'items'))
         info_data = []
         for highlight in highlights:
-            highlight['title'] = story_title
+            # highlight['title'] = story_title
             highlight_data = self._extract_product(highlight)
             if highlight_data.get('formats'):
                 info_data.append({
