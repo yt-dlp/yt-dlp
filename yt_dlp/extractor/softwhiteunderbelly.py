@@ -1,5 +1,3 @@
-
-from yt_dlp.utils._utils import update_url
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
 from ..utils import (
@@ -7,6 +5,7 @@ from ..utils import (
     clean_html,
     get_element_by_class,
     get_element_by_id,
+    update_url,
     urlencode_postdata,
 )
 
