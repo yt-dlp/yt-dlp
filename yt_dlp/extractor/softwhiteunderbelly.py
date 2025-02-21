@@ -63,8 +63,7 @@ class SoftWhiteUnderbellyIE(InfoExtractor):
                 'email': username,
                 'password': password,
                 'authenticity_token': self._html_search_regex(
-                    r'name=["\']authenticity_token["\'] value=["\'](.+?)["\']', signin_page, 'authenticity_token',
-                ),
+                    r'name=["\']authenticity_token["\']\s+value=["\']([^"\']+)', signin_page, 'authenticity_token'),
                 'utf8': True,
             }),
         )
