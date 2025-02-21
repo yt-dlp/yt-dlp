@@ -58,9 +58,7 @@ class SoftWhiteUnderbellyIE(InfoExtractor):
         signin_page = self._download_webpage(self._LOGIN_URL, video_id=None, note='Getting authenticity token')
 
         self._download_webpage(
-            self._LOGIN_URL,
-            video_id=None,
-            note='Logging in',
+            self._LOGIN_URL, None, 'Logging in',
             data=urlencode_postdata({
                 'email': username,
                 'password': password,
