@@ -187,7 +187,7 @@ class WeiboIE(WeiboBaseIE):
         'url': 'https://weibo.com/0/4224132150961381',
         'note': 'no playback_list example',
         'only_matching': True,
-        }, {
+    }, {
         'url': 'https://m.weibo.cn/detail/5122647953771225',
         'info_dict': {
             'id': '5122647953771225',
