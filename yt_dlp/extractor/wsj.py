@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
@@ -103,9 +101,6 @@ class WSJIE(InfoExtractor):
 
 class WSJArticleIE(InfoExtractor):
     _VALID_URL = r'(?i)https?://(?:www\.)?wsj\.com/(?:articles|opinion)/(?P<id>[^/?#&]+)'
-    _WEBPAGE_RE = (
-        re.compile(r'(?:id=["\']video|video-|iframe\.html\?guid=|data-src=["\'])([a-fA-F0-9-]{36})'),
-    )
 
     # WSJ started using CloudFront's bot-wall, so this works iff there's a hydrated cookiejar
     _TESTS = [{
@@ -131,5 +126,7 @@ class WSJArticleIE(InfoExtractor):
     def _real_extract(self, url):
         article_id = self._match_id(url)
         webpage = self._download_webpage(url, article_id, impersonate=True)
-        video_id = self._search_regex(self._WEBPAGE_RE, webpage, 'video id')
+        video_id = self._search_regex(
+            r'(?:id=["\']video|video-|iframe\.html\?guid=|data-src=["\'])([a-fA-F0-9-]{36})',
+            webpage, 'video id')
         return self.url_result(f'wsj:{video_id}', WSJIE.ie_key(), video_id)
