@@ -57,8 +57,7 @@ class AZMedienIE(InfoExtractor):
         if not entry_id:
             webpage = self._download_webpage(url, display_id)
             data = self._search_json(
-                r'window\.__APOLLO_STATE__\s*=', webpage, 'video data',
-                display_id)
+                r'window\.__APOLLO_STATE__\s*=', webpage, 'video data', display_id)
             entry_id = traverse_obj(data, (
                 lambda _, v: v.get('__typename') == 'KalturaData',
                 'kalturaId',
