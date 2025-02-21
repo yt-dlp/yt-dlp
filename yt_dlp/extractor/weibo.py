@@ -187,6 +187,21 @@ class WeiboIE(WeiboBaseIE):
         'url': 'https://weibo.com/0/4224132150961381',
         'note': 'no playback_list example',
         'only_matching': True,
+        }, {
+        'url': 'https://m.weibo.cn/detail/5122647953771225',
+        'info_dict': {
+            'id': '5122647953771225',
+            'ext': 'mp4',
+            'display_id': '1034:5122647705714717',
+            'title': '阿呆与瓜的微博视频',
+            'duration': 164,
+            'timestamp': 1736817857,
+            'upload_date': '20250114',
+            'thumbnail': r're:https://.*\.jpg',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+        },
     }]
 
     def _real_extract(self, url):
