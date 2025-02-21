@@ -71,6 +71,7 @@ class GloboIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Capítulo de 14⧸08⧸1989',
             'episode_number': 1,
+            'subtitles': 'count:1',
         },
         'params': {
             'skip_download': True,
