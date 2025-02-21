@@ -165,7 +165,7 @@ from .utils import (
     write_json_file,
     write_string,
 )
-from .utils._utils import _UnsafeExtensionError, _YDLLogger
+from .utils._utils import _UnsafeExtensionError, _YDLLogger, _ProgressState
 from .utils.networking import (
     HTTPHeaderDict,
     clean_headers,
@@ -606,7 +606,7 @@ class YoutubeDL:
         # NB: Keep in sync with the docstring of extractor/common.py
         'url', 'manifest_url', 'manifest_stream_number', 'ext', 'format', 'format_id', 'format_note',
         'width', 'height', 'aspect_ratio', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
-        'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
+        'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns', 'hls_media_playlist_data',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start', 'is_dash_periods', 'request_data',
         'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'extra_param_to_key_url',
@@ -654,19 +654,18 @@ class YoutubeDL:
         if not all_plugins_loaded.value:
             load_all_plugins()
 
+        try:
+            windows_enable_vt_mode()
+        except Exception as e:
+            self.write_debug(f'Failed to enable VT mode: {e}')
+
         stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
         self._out_files = Namespace(
             out=stdout,
             error=sys.stderr,
             screen=sys.stderr if self.params.get('quiet') else stdout,
-            console=None if os.name == 'nt' else next(
-                filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None),
+            console=next(filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None),
         )
-
-        try:
-            windows_enable_vt_mode()
-        except Exception as e:
-            self.write_debug(f'Failed to enable VT mode: {e}')
 
         if self.params.get('no_color'):
             if self.params.get('color') is not None:
@@ -968,21 +967,22 @@ class YoutubeDL:
             self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.error, only_once=only_once)
 
     def _send_console_code(self, code):
-        if os.name == 'nt' or not self._out_files.console:
-            return
+        if not supports_terminal_sequences(self._out_files.console):
+            return False
         self._write_string(code, self._out_files.console)
+        return True
 
-    def to_console_title(self, message):
-        if not self.params.get('consoletitle', False):
+    def to_console_title(self, message=None, progress_state=None, percent=None):
+        if not self.params.get('consoletitle'):
             return
-        message = remove_terminal_sequences(message)
-        if os.name == 'nt':
-            if ctypes.windll.kernel32.GetConsoleWindow():
-                # c_wchar_p() might not be necessary if `message` is
-                # already of type unicode()
-                ctypes.windll.kernel32.SetConsoleTitleW(ctypes.c_wchar_p(message))
-        else:
-            self._send_console_code(f'\033]0;{message}\007')
+
+        if message:
+            success = self._send_console_code(f'\033]0;{remove_terminal_sequences(message)}\007')
+            if not success and os.name == 'nt' and ctypes.windll.kernel32.GetConsoleWindow():
+                ctypes.windll.kernel32.SetConsoleTitleW(message)
+
+        if isinstance(progress_state, _ProgressState):
+            self._send_console_code(progress_state.get_ansi_escape(percent))
 
     def save_console_title(self):
         if not self.params.get('consoletitle') or self.params.get('simulate'):
@@ -996,6 +996,7 @@ class YoutubeDL:
 
     def __enter__(self):
         self.save_console_title()
+        self.to_console_title(progress_state=_ProgressState.INDETERMINATE)
         return self
 
     def save_cookies(self):
@@ -1004,6 +1005,7 @@ class YoutubeDL:
 
     def __exit__(self, *args):
         self.restore_console_title()
+        self.to_console_title(progress_state=_ProgressState.HIDDEN)
         self.close()
 
     def close(self):
