@@ -77,7 +77,9 @@ class SoftWhiteUnderbellyIE(InfoExtractor):
                 raise ExtractorError('This account is not subscribed to this content', expected=True)
             self.raise_login_required()
 
-        embed_url = self._html_search_regex(r'embed_url:\s*["\'](.+?)["\']', webpage, 'embed url')
+        embed_url, embed_id = self._html_search_regex(
+            r'embed_url:\s*["\'](?P<url>https?://embed\.vhx\.tv/videos/(?P<id>\d+)[^"\']*)',
+            webpage, 'embed url', group=('url', 'id'))
         watch_info = get_element_by_id('watch-info', webpage) or ''
 
         return {
