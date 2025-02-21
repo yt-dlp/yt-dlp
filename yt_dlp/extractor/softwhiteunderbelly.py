@@ -3,11 +3,10 @@ from .vimeo import VHXEmbedIE
 from ..utils import (
     ExtractorError,
     clean_html,
-    get_element_by_class,
-    get_element_by_id,
     update_url,
     urlencode_postdata,
 )
+from ..utils.traversal import find_element, traverse_obj
 
 
 class SoftWhiteUnderbellyIE(InfoExtractor):
@@ -80,7 +79,6 @@ class SoftWhiteUnderbellyIE(InfoExtractor):
         embed_url, embed_id = self._html_search_regex(
             r'embed_url:\s*["\'](?P<url>https?://embed\.vhx\.tv/videos/(?P<id>\d+)[^"\']*)',
             webpage, 'embed url', group=('url', 'id'))
-        watch_info = get_element_by_id('watch-info', webpage) or ''
 
         return {
             '_type': 'url_transparent',
@@ -88,7 +86,7 @@ class SoftWhiteUnderbellyIE(InfoExtractor):
             'url': VHXEmbedIE._smuggle_referrer(embed_url, 'https://www.softwhiteunderbelly.com'),
             'id': embed_id,
             'display_id': display_id,
-            'title': clean_html(get_element_by_class('video-title', watch_info)),
+            'title': traverse_obj(webpage, ({find_element(id='watch-info')}, {find_element(cls='video-title')}, {clean_html})),
             'description': self._html_search_meta('description', webpage, default=None),
             'thumbnail': update_url(self._og_search_thumbnail(webpage) or '', query=None) or None,
         }
