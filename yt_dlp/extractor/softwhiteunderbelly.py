@@ -86,7 +86,7 @@ class SoftWhiteUnderbellyIE(InfoExtractor):
             '_type': 'url_transparent',
             'ie_key': VHXEmbedIE.ie_key(),
             'url': VHXEmbedIE._smuggle_referrer(embed_url, 'https://www.softwhiteunderbelly.com'),
-            'id': self._search_regex(r'embed\.vhx\.tv/videos/(.+?)\?', embed_url, 'id'),
+            'id': embed_id,
             'display_id': display_id,
             'title': clean_html(get_element_by_class('video-title', watch_info)),
             'description': self._html_search_meta('description', webpage, fatal=False),
