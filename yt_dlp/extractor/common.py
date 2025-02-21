@@ -2792,8 +2792,9 @@ class InfoExtractor:
                 'start_number': 1,
                 'timescale': 1,
             })
-            for adaptation_set in period.findall(_add_ns('AdaptationSet')):
+            for adaptation_idx, adaptation_set in enumerate(period.findall(_add_ns('AdaptationSet'))):
                 adaption_set_ms_info = extract_multisegment_info(adaptation_set, period_ms_info)
+                adaptation_set_label = try_call(lambda: adaptation_set.find(_add_ns('Label')).text)
                 for representation in adaptation_set.findall(_add_ns('Representation')):
                     representation_attrib = adaptation_set.attrib.copy()
                     representation_attrib.update(representation.attrib)
@@ -2857,7 +2858,10 @@ class InfoExtractor:
                             'asr': int_or_none(representation_attrib.get('audioSamplingRate')),
                             'fps': int_or_none(representation_attrib.get('frameRate')),
                             'language': lang if lang not in ('mul', 'und', 'zxx', 'mis') else None,
-                            'format_note': f'DASH {content_type}',
+                            # AdaptationSet ID/index must be included to prevent improper merging as periods
+                            'format_note': join_nonempty(
+                                f'DASH {content_type}', adaptation_set_label,
+                                f'set {adaptation_set.get("id", adaptation_idx)}', delim=', '),
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
                             **codecs,
