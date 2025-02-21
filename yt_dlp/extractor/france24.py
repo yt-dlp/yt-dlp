@@ -128,10 +128,11 @@ class France24IE(InfoExtractor):
         'url': 'https://www.france24.com',
         'only_matching': True,
     }]
+    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; rv:135.0) Gecko/20100101 Firefox/135.0'
 
     def _real_extract(self, url):
         display_id = self._match_id(url).strip('/')
-        webpage = self._download_webpage(url, None, 'Downloading video page', headers={'User-Agent': 'curl/8.12.1'})
+        webpage = self._download_webpage(url, None, 'Downloading video page', headers={'User-Agent': self._USER_AGENT})
         entries = []
         for player in re.findall(r'<(?:youtube|video)-player\b[^>]*>', webpage):
             attrs = extract_attributes(player)
