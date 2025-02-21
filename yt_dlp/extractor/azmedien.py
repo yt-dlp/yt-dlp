@@ -17,7 +17,7 @@ class AZMedienIE(InfoExtractor):
                             telem1\.ch|
                             tvo-online\.ch
                         )/
-                        [^/]+/
+                        [^/?#]+/
                         (?P<id>
                             [^/]+-\d+
                         )
