@@ -201,6 +201,16 @@ class WeiboIE(WeiboBaseIE):
 
     def _entries(self, mix_media_info):
         for media_info in traverse_obj(mix_media_info, lambda _, v: v['type'] != 'pic'):
+            video_info = {
+                **traverse_obj(media_info, {
+                    'id': ('data', 'object_id'),
+                    'page_info': {'media_info': ('data', 'media_info')},
+                }),
+            }
+
+            # fix filename too long
+            del video_info['page_info']['media_info']['kol_title']
+
             yield self._parse_video_info(video_info)
 
 
