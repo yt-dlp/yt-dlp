@@ -69,8 +69,12 @@ class GloboIE(InfoExtractor):
         'info_dict': {
             'id': '8013907',
             'ext': 'mp4',
-            'title': 'Capítulo de 14⧸08⧸1989',
+            'title': 'Capítulo de 14/08/1989',
+            'episode': 'Episode 1',
             'episode_number': 1,
+            'uploader': 'Tieta',
+            'uploader_id': '11895',
+            'duration': 2858.389,
             'subtitles': 'count:1',
         },
         'params': {
@@ -83,7 +87,12 @@ class GloboIE(InfoExtractor):
             'id': '12824146',
             'ext': 'mp4',
             'title': 'Acordo de damas',
+            'episode': 'Episode 1',
             'episode_number': 1,
+            'uploader': 'Rensga Hits!',
+            'uploader_id': '20481',
+            'duration': 1953.994,
+            'season': 'Season 2',
             'season_number': 2,
         },
         'params': {
