@@ -193,28 +193,14 @@ class WeiboIE(WeiboBaseIE):
         video_id = self._match_id(url)
 
         meta = self._weibo_download_json(f'https://weibo.com/ajax/statuses/show?id={video_id}', video_id)
-        mix_media_info = traverse_obj(meta, ('mix_media_info', 'items'))
+        mix_media_info = traverse_obj(meta, ('mix_media_info', 'items', ...))
         if not mix_media_info:
             return self._parse_video_info(meta)
 
-        playlist_title = traverse_obj(mix_media_info, (0, 'data', 'content1'))
-        return self.playlist_result(self._entries(mix_media_info), playlist_title=playlist_title)
+        return self.playlist_result(self._entries(mix_media_info), video_id)
 
     def _entries(self, mix_media_info):
-        for media_info in mix_media_info:
-            if media_info.get('type') == 'pic':
-                continue
-
-            video_info = {
-                **traverse_obj(media_info, {
-                    'id': ('data', 'object_id'),
-                    'page_info': {'media_info': ('data', 'media_info')},
-                }),
-            }
-
-            # fix filename too long
-            del video_info['page_info']['media_info']['kol_title']
-
+        for media_info in traverse_obj(mix_media_info, lambda _, v: v['type'] != 'pic'):
             yield self._parse_video_info(video_info)
 
 
