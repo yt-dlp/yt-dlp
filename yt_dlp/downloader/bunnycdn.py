@@ -9,7 +9,11 @@ from ..networking.exceptions import network_exceptions
 
 
 class BunnyCdnFD(FileDownloader):
-    """Downloads from BunnyCDN with required pings"""
+    """
+    Downloads from BunnyCDN with required pings
+    Note, this is not a part of public API, and will be removed without notice.
+    DO NOT USE
+    """
 
     def real_download(self, filename, info_dict):
         self.to_screen(f'[{self.FD_NAME}] Downloading from BunnyCDN')
