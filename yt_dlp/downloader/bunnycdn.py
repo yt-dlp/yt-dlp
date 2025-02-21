@@ -29,7 +29,6 @@ class BunnyCdnFD(FileDownloader):
         finally:
             stop_event.set()
 
-
     def ping_thread(self, stop_event, url, headers, secret, context_id):
         # Site sends ping every 4 seconds, but this throttles the download. Pinging every 2 seconds seems to work.
         ping_interval = 2
