@@ -708,9 +708,10 @@ class InstagramStoryIE(InstagramBaseIE):
     }]
 
     def _real_extract(self, url):
-        username, story_id = self._match_valid_url(url).groups()
-        story_info = self._download_webpage(url, story_id or username)
-        user_info = self._search_json(r'"user":', story_info, 'user info', story_id or username, fatal=False)
+        username, story_id = self._match_valid_url(url).group('user', 'id')
+        display_id = story_id or username
+        story_info = self._download_webpage(url, display_id)
+        user_info = self._search_json(r'"user":', story_info, 'user info', display_id, fatal=False)
         if not user_info:
             self.raise_login_required('This content is unreachable')
 
@@ -726,7 +727,7 @@ class InstagramStoryIE(InstagramBaseIE):
 
         videos = traverse_obj(self._download_json(
             f'{self._API_BASE_URL}/feed/reels_media/?reel_ids={story_info_url}',
-            story_id or username, errnote=False, fatal=False, headers=self._API_HEADERS), 'reels')
+            display_id, errnote=False, fatal=False, headers=self._API_HEADERS), 'reels')
         if not videos:
             self.raise_login_required('You need to log in to access this content')
 
@@ -746,7 +747,7 @@ class InstagramStoryIE(InstagramBaseIE):
                     'uploader_id': user_id,
                     **filter_dict(highlight_data),
                 })
-        if username != 'highlights' and story_id and not self._yes_playlist(story_title, story_id):
+        if username != 'highlights' and story_id and not self._yes_playlist(username, story_id):
             return traverse_obj(info_data, (lambda _, v: v['id'] == _pk_to_id(story_id), any))
 
         return self.playlist_result(info_data, playlist_id=story_id, playlist_title=story_title)
