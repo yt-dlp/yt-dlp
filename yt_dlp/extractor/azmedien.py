@@ -59,11 +59,7 @@ class AZMedienIE(InfoExtractor):
             data = self._search_json(
                 r'window\.__APOLLO_STATE__\s*=', webpage, 'video data', display_id)
             entry_id = traverse_obj(data, (
-                lambda _, v: v.get('__typename') == 'KalturaData',
-                'kalturaId',
-            ), get_all=False)
-            if not entry_id:
-                raise ExtractorError('Could not extract kaltura id')
+                lambda _, v: v['__typename'] == 'KalturaData', 'kalturaId', any, {require('kaltura id')}))
 
         return self.url_result(
             f'kaltura:{self._PARTNER_ID}:{entry_id}',
