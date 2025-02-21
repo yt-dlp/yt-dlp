@@ -19,7 +19,7 @@ class AZMedienIE(InfoExtractor):
                         )/
                         [^/?#]+/
                         (?P<id>
-                            [^/]+-\d+
+                            [^/?#]+-\d+
                         )
                         (?:
                             \#video=
