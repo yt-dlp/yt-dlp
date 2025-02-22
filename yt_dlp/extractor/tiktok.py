@@ -249,6 +249,19 @@ class TikTokBaseIE(InfoExtractor):
         elif fatal:
             raise ExtractorError('Unable to extract webpage video data')
 
+        if not video_data.get('video'):
+            msg = None
+            if traverse_obj(video_data, ('isContentClassified', {bool})):
+                msg = 'This post may not be comfortable for some audiences. Log in for access'
+            elif traverse_obj(video_data, (
+                ('secret', 'forFriend', 'privateItem'), {bool}, {lambda x: x is True or None}, any),
+            ):
+                msg = 'You do not have permission to view this post. Log into an account that has access'
+            if msg and fatal:
+                self.raise_login_required(msg)
+            elif msg:
+                self.report_warning(msg, video_id=video_id)
+
         return video_data, status
 
     def _get_subtitles(self, aweme_detail, aweme_id, user_name):
