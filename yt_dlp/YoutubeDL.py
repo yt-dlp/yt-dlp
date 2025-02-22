@@ -30,9 +30,18 @@ from .compat import urllib_req_to_req
 from .cookies import CookieLoadError, LenientSimpleCookie, load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
-from .extractor import gen_extractor_classes, get_info_extractor
+from .extractor import gen_extractor_classes, get_info_extractor, import_extractors
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
+from .globals import (
+    IN_CLI,
+    LAZY_EXTRACTORS,
+    plugin_ies,
+    plugin_ies_overrides,
+    plugin_pps,
+    all_plugins_loaded,
+    plugin_dirs,
+)
 from .minicurses import format_text
 from .networking import HEADRequest, Request, RequestDirector
 from .networking.common import _REQUEST_HANDLERS, _RH_PREFERENCES
@@ -44,8 +53,7 @@ from .networking.exceptions import (
     network_exceptions,
 )
 from .networking.impersonate import ImpersonateRequestHandler
-from .plugins import directories as plugin_directories
-from .postprocessor import _PLUGIN_CLASSES as plugin_pps
+from .plugins import directories as plugin_directories, load_all_plugins
 from .postprocessor import (
     EmbedThumbnailPP,
     FFmpegFixupDuplicateMoovPP,
@@ -641,6 +649,10 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
         self.__header_cookies = []
+
+        # compat for API: load plugins if they have not already
+        if not all_plugins_loaded.value:
+            load_all_plugins()
 
         try:
             windows_enable_vt_mode()
@@ -3995,15 +4007,6 @@ class YoutubeDL:
         if not self.params.get('verbose'):
             return
 
-        from . import _IN_CLI  # Must be delayed import
-
-        # These imports can be slow. So import them only as needed
-        from .extractor.extractors import _LAZY_LOADER
-        from .extractor.extractors import (
-            _PLUGIN_CLASSES as plugin_ies,
-            _PLUGIN_OVERRIDES as plugin_ie_overrides,
-        )
-
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', f'missing ({type(stream).__name__})'))
             additional_info = []
@@ -4042,17 +4045,18 @@ class YoutubeDL:
             _make_label(ORIGIN, CHANNEL.partition('@')[2] or __version__, __version__),
             f'[{RELEASE_GIT_HEAD[:9]}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
-            '' if _IN_CLI else 'API' if klass == YoutubeDL else f'API:{self.__module__}.{klass.__qualname__}',
+            '' if IN_CLI.value else 'API' if klass == YoutubeDL else f'API:{self.__module__}.{klass.__qualname__}',
             delim=' '))
 
-        if not _IN_CLI:
+        if not IN_CLI.value:
             write_debug(f'params: {self.params}')
 
-        if not _LAZY_LOADER:
-            if os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
-                write_debug('Lazy loading extractors is forcibly disabled')
-            else:
-                write_debug('Lazy loading extractors is disabled')
+        import_extractors()
+        lazy_extractors = LAZY_EXTRACTORS.value
+        if lazy_extractors is None:
+            write_debug('Lazy loading extractors is disabled')
+        elif not lazy_extractors:
+            write_debug('Lazy loading extractors is forcibly disabled')
         if self.params['compat_opts']:
             write_debug('Compatibility options: {}'.format(', '.join(self.params['compat_opts'])))
 
@@ -4081,24 +4085,27 @@ class YoutubeDL:
 
         write_debug(f'Proxy map: {self.proxies}')
         write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
-        if os.environ.get('YTDLP_NO_PLUGINS'):
-            write_debug('Plugins are forcibly disabled')
-            return
 
-        for plugin_type, plugins in {'Extractor': plugin_ies, 'Post-Processor': plugin_pps}.items():
-            display_list = ['{}{}'.format(
-                klass.__name__, '' if klass.__name__ == name else f' as {name}')
-                for name, klass in plugins.items()]
+        for plugin_type, plugins in (('Extractor', plugin_ies), ('Post-Processor', plugin_pps)):
+            display_list = [
+                klass.__name__ if klass.__name__ == name else f'{klass.__name__} as {name}'
+                for name, klass in plugins.value.items()]
             if plugin_type == 'Extractor':
                 display_list.extend(f'{plugins[-1].IE_NAME.partition("+")[2]} ({parent.__name__})'
-                                    for parent, plugins in plugin_ie_overrides.items())
+                                    for parent, plugins in plugin_ies_overrides.value.items())
             if not display_list:
                 continue
             write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')
 
-        plugin_dirs = plugin_directories()
-        if plugin_dirs:
-            write_debug(f'Plugin directories: {plugin_dirs}')
+        plugin_dirs_msg = 'none'
+        if not plugin_dirs.value:
+            plugin_dirs_msg = 'none (disabled)'
+        else:
+            found_plugin_directories = plugin_directories()
+            if found_plugin_directories:
+                plugin_dirs_msg = ', '.join(found_plugin_directories)
+
+        write_debug(f'Plugin directories: {plugin_dirs_msg}')
 
     @functools.cached_property
     def proxies(self):

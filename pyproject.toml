@@ -384,6 +384,7 @@ select = [
     "W391",
     "W504",
 ]
+exclude = "*/extractor/lazy_extractors.py,*venv*,*/test/testdata/sigs/player-*.js,.idea,.vscode"
 
 [tool.pytest.ini_options]
 addopts = "-ra -v --strict-markers"
