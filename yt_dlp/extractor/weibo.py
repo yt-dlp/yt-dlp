@@ -202,6 +202,7 @@ class WeiboIE(WeiboBaseIE):
             'like_count': int,
             'repost_count': int,
         },
+        'playlist_count': 1,
     }]
 
     def _real_extract(self, url):
