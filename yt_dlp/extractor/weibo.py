@@ -107,7 +107,7 @@ class WeiboBaseIE(InfoExtractor):
             **traverse_obj(video_info, {
                 'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
-                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {str}, filter),
+                'title': ('page_info', 'media_info', ('video_title', 'name', 'kol_title'), {str}, filter),
                 'description': ('text_raw', {str}),
                 'duration': ('page_info', 'media_info', 'duration', {int_or_none}),
                 'timestamp': ('page_info', 'media_info', 'video_publish_time', {int_or_none}),
@@ -216,7 +216,10 @@ class WeiboIE(WeiboBaseIE):
 
     def _entries(self, mix_media_info):
         for media_info in traverse_obj(mix_media_info, lambda _, v: v['type'] != 'pic'):
-            yield self._parse_video_info(video_info)
+            yield self._parse_video_info(traverse_obj(media_info, {
+                'id': ('data', 'object_id'),
+                'page_info': {'media_info': ('data', 'media_info', {dict})},
+            }))
 
 
 class WeiboVideoIE(WeiboBaseIE):
