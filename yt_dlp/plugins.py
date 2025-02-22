@@ -168,8 +168,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
 def directories():
     with contextlib.suppress(ModuleNotFoundError):
-        spec = importlib.util.find_spec(PACKAGE_NAME)
-        if spec:
+        if spec := importlib.util.find_spec(PACKAGE_NAME):
             return list(spec.submodule_search_locations)
     return []
 
