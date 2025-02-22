@@ -1,4 +1,7 @@
+import base64
+import hashlib
 import json
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
@@ -142,39 +145,73 @@ class PlaySuisseIE(InfoExtractor):
             id
             url
         }'''
-    _LOGIN_BASE_URL = 'https://login.srgssr.ch/srgssrlogin.onmicrosoft.com'
-    _LOGIN_PATH = 'B2C_1A__SignInV2'
+    _CLIENT_ID = '1e33f1bf-8bf3-45e4-bbd9-c9ad934b5fca'
+    _LOGIN_BASE = 'https://account.srgssr.ch'
     _ID_TOKEN = None
 
     def _perform_login(self, username, password):
-        login_page = self._download_webpage(
-            'https://www.playsuisse.ch/api/sso/login', None, note='Downloading login page',
-            query={'x': 'x', 'locale': 'de', 'redirectUrl': 'https://www.playsuisse.ch/'})
-        settings = self._search_json(r'var\s+SETTINGS\s*=', login_page, 'settings', None)
+        code_verifier = uuid.uuid4().hex + uuid.uuid4().hex + uuid.uuid4().hex
+        code_challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
 
-        csrf_token = settings['csrf']
-        query = {'tx': settings['transId'], 'p': self._LOGIN_PATH}
+        request_id = parse_qs(self._request_webpage(
+            f'{self._LOGIN_BASE}/authz-srv/authz', None, 'Requesting session ID', query={
+                'client_id': self._CLIENT_ID,
+                'redirect_uri': 'https://www.playsuisse.ch/auth',
+                'scope': 'email profile openid offline_access',
+                'response_type': 'code',
+                'code_challenge': code_challenge,
+                'code_challenge_method': 'S256',
+                'view_type': 'login',
+            }).url)['requestId'][0]
 
-        status = traverse_obj(self._download_json(
-            f'{self._LOGIN_BASE_URL}/{self._LOGIN_PATH}/SelfAsserted', None, 'Logging in',
-            query=query, headers={'X-CSRF-TOKEN': csrf_token}, data=urlencode_postdata({
-                'request_type': 'RESPONSE',
-                'signInName': username,
-                'password': password,
-            }), expected_status=400), ('status', {int_or_none}))
-        if status == 400:
-            raise ExtractorError('Invalid username or password', expected=True)
+        try:
+            exchange_id = self._download_json(
+                f'{self._LOGIN_BASE}/verification-srv/v2/authenticate/initiate/password', None,
+                'Submitting username', headers={'content-type': 'application/json'}, data=json.dumps({
+                    'usage_type': 'INITIAL_AUTHENTICATION',
+                    'request_id': request_id,
+                    'medium_id': 'PASSWORD',
+                    'type': 'password',
+                    'identifier': username,
+                }).encode())['data']['exchange_id']['exchange_id']
+        except ExtractorError:
+            raise ExtractorError('Invalid username', expected=True)
 
-        urlh = self._request_webpage(
-            f'{self._LOGIN_BASE_URL}/{self._LOGIN_PATH}/api/CombinedSigninAndSignup/confirmed',
-            None, 'Downloading ID token', query={
-                'rememberMe': 'false',
-                'csrf_token': csrf_token,
-                **query,
-                'diags': '',
-            })
+        try:
+            login_data = self._download_json(
+                f'{self._LOGIN_BASE}/verification-srv/v2/authenticate/authenticate/password', None,
+                'Submitting password', headers={'content-type': 'application/json'}, data=json.dumps({
+                    'requestId': request_id,
+                    'exchange_id': exchange_id,
+                    'type': 'password',
+                    'password': password,
+                }).encode())['data']
+        except ExtractorError:
+            raise ExtractorError('Invalid password', expected=True)
 
-        self._ID_TOKEN = traverse_obj(parse_qs(urlh.url), ('id_token', 0))
+        authorization_code = parse_qs(self._request_webpage(
+            f'{self._LOGIN_BASE}/login-srv/verification/login', None, 'Logging in',
+            data=urlencode_postdata({
+                'requestId': request_id,
+                'exchange_id': login_data['exchange_id']['exchange_id'],
+                'verificationType': 'password',
+                'sub': login_data['sub'],
+                'status_id': login_data['status_id'],
+                'rememberMe': True,
+                'lat': '',
+                'lon': '',
+            })).url)['code'][0]
+
+        self._ID_TOKEN = self._download_json(
+            f'{self._LOGIN_BASE}/proxy/token', None, 'Downloading token', data=b'', query={
+                'client_id': self._CLIENT_ID,
+                'redirect_uri': 'https://www.playsuisse.ch/auth',
+                'code': authorization_code,
+                'code_verifier': code_verifier,
+                'grant_type': 'authorization_code',
+            })['id_token']
+
         if not self._ID_TOKEN:
             raise ExtractorError('Login failed')
 
