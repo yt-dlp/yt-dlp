@@ -101,8 +101,6 @@ class WSJIE(InfoExtractor):
 
 class WSJArticleIE(InfoExtractor):
     _VALID_URL = r'(?i)https?://(?:www\.)?wsj\.com/(?:articles|opinion)/(?P<id>[^/?#&]+)'
-
-    # WSJ started using CloudFront's bot-wall, so this works iff there's a hydrated cookiejar
     _TESTS = [{
         'url': 'https://www.wsj.com/articles/dont-like-china-no-pandas-for-you-1490366939?',
         'info_dict': {
