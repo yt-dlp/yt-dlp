@@ -217,10 +217,14 @@ class WeiboIE(WeiboBaseIE):
 
     def _entries(self, mix_media_info):
         for media_info in traverse_obj(mix_media_info, lambda _, v: v['type'] != 'pic'):
-            yield self._parse_video_info(traverse_obj(media_info, {
-                'id': ('data', 'object_id'),
-                'page_info': {'media_info': ('data', 'media_info', {dict})},
-            }))
+            video_info = {
+                **traverse_obj(media_info, {
+                    'id': ('data', 'object_id'),
+                    'page_info': {'media_info': ('data', 'media_info')},
+                }),
+            }
+
+            yield self._parse_video_info(video_info)
 
 
 class WeiboVideoIE(WeiboBaseIE):
