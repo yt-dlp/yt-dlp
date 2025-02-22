@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     orderedSet,
     parse_duration,
@@ -10,6 +9,7 @@ from ..utils import (
 
 
 class MarkizaIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?videoarchiv\.markiza\.sk/(?:video/(?:[^/]+/)*|embed/)(?P<id>\d+)(?:[_/]|$)'
     _TESTS = [{
         'url': 'http://videoarchiv.markiza.sk/video/oteckovia/84723_oteckovia-109',
@@ -59,15 +59,16 @@ class MarkizaIE(InfoExtractor):
             info.update({
                 'id': video_id,
                 'title': try_get(
-                    data, lambda x: x['details']['name'], compat_str),
+                    data, lambda x: x['details']['name'], str),
             })
         else:
             info['duration'] = parse_duration(
-                try_get(data, lambda x: x['details']['duration'], compat_str))
+                try_get(data, lambda x: x['details']['duration'], str))
         return info
 
 
 class MarkizaPageIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?(?:(?:[^/]+\.)?markiza|tvnoviny)\.sk/(?:[^/]+/)*(?P<id>\d+)_'
     _TESTS = [{
         'url': 'http://www.markiza.sk/soubiz/zahranicny/1923705_oteckovia-maju-svoj-den-ti-slavni-nie-su-o-nic-menej-rozkosni',
@@ -102,7 +103,7 @@ class MarkizaPageIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if MarkizaIE.suitable(url) else super(MarkizaPageIE, cls).suitable(url)
+        return False if MarkizaIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -114,7 +115,7 @@ class MarkizaPageIE(InfoExtractor):
             url, playlist_id, expected_status=500)
 
         entries = [
-            self.url_result('http://videoarchiv.markiza.sk/video/%s' % video_id)
+            self.url_result(f'http://videoarchiv.markiza.sk/video/{video_id}')
             for video_id in orderedSet(re.findall(
                 r'(?:initPlayer_|data-entity=["\']|id=["\']player_)(\d+)',
                 webpage))]

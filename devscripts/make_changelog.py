@@ -31,58 +31,53 @@ class CommitGroup(enum.Enum):
     EXTRACTOR = 'Extractor'
     DOWNLOADER = 'Downloader'
     POSTPROCESSOR = 'Postprocessor'
+    NETWORKING = 'Networking'
     MISC = 'Misc.'
 
     @classmethod
-    @property
-    def ignorable_prefixes(cls):
-        return ('core', 'downloader', 'extractor', 'misc', 'postprocessor', 'upstream')
-
-    @classmethod
     @lru_cache
-    def commit_lookup(cls):
+    def subgroup_lookup(cls):
         return {
             name: group
             for group, names in {
-                cls.PRIORITY: {'priority'},
-                cls.CORE: {
-                    'aes',
-                    'cache',
-                    'compat_utils',
-                    'compat',
-                    'cookies',
-                    'core',
-                    'dependencies',
-                    'formats',
-                    'jsinterp',
-                    'networking',
-                    'outtmpl',
-                    'plugins',
-                    'update',
-                    'upstream',
-                    'utils',
-                },
                 cls.MISC: {
                     'build',
+                    'ci',
                     'cleanup',
                     'devscripts',
                     'docs',
-                    'misc',
                     'test',
                 },
-                cls.EXTRACTOR: {'extractor', 'ie'},
-                cls.DOWNLOADER: {'downloader', 'fd'},
-                cls.POSTPROCESSOR: {'postprocessor', 'pp'},
+                cls.NETWORKING: {
+                    'rh',
+                },
             }.items()
             for name in names
         }
 
     @classmethod
-    def get(cls, value):
-        result = cls.commit_lookup().get(value)
-        if result:
-            logger.debug(f'Mapped {value!r} => {result.name}')
+    @lru_cache
+    def group_lookup(cls):
+        result = {
+            'fd': cls.DOWNLOADER,
+            'ie': cls.EXTRACTOR,
+            'pp': cls.POSTPROCESSOR,
+            'upstream': cls.CORE,
+        }
+        result.update({item.name.lower(): item for item in iter(cls)})
         return result
+
+    @classmethod
+    def get(cls, value: str) -> tuple[CommitGroup | None, str | None]:
+        group, _, subgroup = (group.strip().lower() for group in value.partition('/'))
+
+        if result := cls.group_lookup().get(group):
+            return result, subgroup or None
+
+        if subgroup:
+            return None, value
+
+        return cls.subgroup_lookup().get(group), group or None
 
 
 @dataclass
@@ -140,8 +135,7 @@ class Changelog:
                 first = False
                 yield '\n<details><summary><h3>Changelog</h3></summary>\n'
 
-            group = groups[item]
-            if group:
+            if group := groups[item]:
                 yield self.format_module(item.value, group)
 
         if self._collapsible:
@@ -198,19 +192,23 @@ class Changelog:
         for commit_infos in cleanup_misc_items.values():
             sorted_items.append(CommitInfo(
                 'cleanup', ('Miscellaneous',), ', '.join(
-                    self._format_message_link(None, info.commit.hash).strip()
+                    self._format_message_link(None, info.commit.hash)
                     for info in sorted(commit_infos, key=lambda item: item.commit.hash or '')),
                 [], Commit(None, '', commit_infos[0].commit.authors), []))
 
         return sorted_items
 
-    def format_single_change(self, info):
-        message = self._format_message_link(info.message, info.commit.hash)
+    def format_single_change(self, info: CommitInfo):
+        message, sep, rest = info.message.partition('\n')
+        if '[' not in message:
+            # If the message doesn't already contain markdown links, try to add a link to the commit
+            message = self._format_message_link(message, info.commit.hash)
+
         if info.issues:
-            message = message.replace('\n', f' ({self._format_issues(info.issues)})\n', 1)
+            message = f'{message} ({self._format_issues(info.issues)})'
 
         if info.commit.authors:
-            message = message.replace('\n', f' by {self._format_authors(info.commit.authors)}\n', 1)
+            message = f'{message} by {self._format_authors(info.commit.authors)}'
 
         if info.fixes:
             fix_message = ', '.join(f'{self._format_message_link(None, fix.hash)}' for fix in info.fixes)
@@ -219,16 +217,14 @@ class Changelog:
             if authors != info.commit.authors:
                 fix_message = f'{fix_message} by {self._format_authors(authors)}'
 
-            message = message.replace('\n', f' (With fixes in {fix_message})\n', 1)
+            message = f'{message} (With fixes in {fix_message})'
 
-        return message[:-1]
+        return message if not sep else f'{message}{sep}{rest}'
 
-    def _format_message_link(self, message, hash):
-        assert message or hash, 'Improperly defined commit message or override'
-        message = message if message else hash[:HASH_LENGTH]
-        if not hash:
-            return f'{message}\n'
-        return f'[{message}\n'.replace('\n', f']({self.repo_url}/commit/{hash})\n', 1)
+    def _format_message_link(self, message, commit_hash):
+        assert message or commit_hash, 'Improperly defined commit message or override'
+        message = message if message else commit_hash[:HASH_LENGTH]
+        return f'[{message}]({self.repo_url}/commit/{commit_hash})' if commit_hash else message
 
     def _format_issues(self, issues):
         return ', '.join(f'[#{issue}]({self.repo_url}/issues/{issue})' for issue in issues)
@@ -249,13 +245,13 @@ class CommitRange:
     AUTHOR_INDICATOR_RE = re.compile(r'Authored by:? ', re.IGNORECASE)
     MESSAGE_RE = re.compile(r'''
         (?:\[(?P<prefix>[^\]]+)\]\ )?
-        (?:(?P<sub_details>`?[^:`]+`?): )?
+        (?:(?P<sub_details>`?[\w.-]+`?): )?
         (?P<message>.+?)
         (?:\ \((?P<issues>\#\d+(?:,\ \#\d+)*)\))?
         ''', re.VERBOSE | re.DOTALL)
     EXTRACTOR_INDICATOR_RE = re.compile(r'(?:Fix|Add)\s+Extractors?', re.IGNORECASE)
     REVERT_RE = re.compile(r'(?:\[[^\]]+\]\s+)?(?i:Revert)\s+([\da-f]{40})')
-    FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Revert)\s+([\da-f]{40})')
+    FIXES_RE = re.compile(r'(?i:(?:bug\s*)?fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Improve)\s+([\da-f]{40})')
     UPSTREAM_MERGE_RE = re.compile(r'Update to ytdl-commit-([\da-f]+)')
 
     def __init__(self, start, end, default_author=None):
@@ -289,11 +285,16 @@ class CommitRange:
             short = next(lines)
             skip = short.startswith('Release ') or short == '[version] update'
 
+            fix_commitish = None
+            if match := self.FIXES_RE.search(short):
+                fix_commitish = match.group(1)
+
             authors = [default_author] if default_author else []
             for line in iter(lambda: next(lines), self.COMMIT_SEPARATOR):
-                match = self.AUTHOR_INDICATOR_RE.match(line)
-                if match:
+                if match := self.AUTHOR_INDICATOR_RE.match(line):
                     authors = sorted(map(str.strip, line[match.end():].split(',')), key=str.casefold)
+                if not fix_commitish and (match := self.FIXES_RE.fullmatch(line)):
+                    fix_commitish = match.group(1)
 
             commit = Commit(commit_hash, short, authors)
             if skip and (self._start or not i):
@@ -303,22 +304,18 @@ class CommitRange:
                 logger.debug(f'Reached Release commit, breaking: {commit}')
                 break
 
-            revert_match = self.REVERT_RE.fullmatch(commit.short)
-            if revert_match:
-                reverts[revert_match.group(1)] = commit
+            if match := self.REVERT_RE.fullmatch(commit.short):
+                reverts[match.group(1)] = commit
                 continue
 
-            fix_match = self.FIXES_RE.search(commit.short)
-            if fix_match:
-                commitish = fix_match.group(1)
-                fixes[commitish].append(commit)
+            if fix_commitish:
+                fixes[fix_commitish].append(commit)
 
             commits[commit.hash] = commit
 
         for commitish, revert_commit in reverts.items():
-            reverted = commits.pop(commitish, None)
-            if reverted:
-                logger.debug(f'{commit} fully reverted {reverted}')
+            if reverted := commits.pop(commitish, None):
+                logger.debug(f'{commitish} fully reverted {reverted}')
             else:
                 commits[revert_commit.hash] = revert_commit
 
@@ -337,7 +334,7 @@ class CommitRange:
         for override in overrides:
             when = override.get('when')
             if when and when not in self and when != self._start:
-                logger.debug(f'Ignored {when!r}, not in commits {self._start!r}')
+                logger.debug(f'Ignored {when!r} override')
                 continue
 
             override_hash = override.get('hash') or when
@@ -358,14 +355,14 @@ class CommitRange:
                 logger.info(f'CHANGE {self._commits[commit.hash]} -> {commit}')
                 self._commits[commit.hash] = commit
 
-        self._commits = {key: value for key, value in reversed(self._commits.items())}
+        self._commits = dict(reversed(self._commits.items()))
 
     def groups(self):
         group_dict = defaultdict(list)
         for commit in self:
             upstream_re = self.UPSTREAM_MERGE_RE.search(commit.short)
             if upstream_re:
-                commit.short = f'[core/upstream] Merged with youtube-dl {upstream_re.group(1)}'
+                commit.short = f'[upstream] Merged with youtube-dl {upstream_re.group(1)}'
 
             match = self.MESSAGE_RE.fullmatch(commit.short)
             if not match:
@@ -392,9 +389,9 @@ class CommitRange:
             if not group:
                 if self.EXTRACTOR_INDICATOR_RE.search(commit.short):
                     group = CommitGroup.EXTRACTOR
+                    logger.error(f'Assuming [ie] group for {commit.short!r}')
                 else:
-                    group = CommitGroup.POSTPROCESSOR
-                logger.warning(f'Failed to map {commit.short!r}, selected {group.name.lower()}')
+                    group = CommitGroup.CORE
 
             commit_info = CommitInfo(
                 details, sub_details, message.strip(),
@@ -410,25 +407,20 @@ class CommitRange:
         if not prefix:
             return CommitGroup.CORE, None, ()
 
-        prefix, _, details = prefix.partition('/')
-        prefix = prefix.strip()
-        details = details.strip()
+        prefix, *sub_details = prefix.split(':')
 
-        group = CommitGroup.get(prefix.lower())
-        if group is CommitGroup.PRIORITY:
-            prefix, _, details = details.partition('/')
+        group, details = CommitGroup.get(prefix)
+        if group is CommitGroup.PRIORITY and details:
+            details = details.partition('/')[2].strip()
 
-        if not details and prefix and prefix not in CommitGroup.ignorable_prefixes:
-            logger.debug(f'Replaced details with {prefix!r}')
-            details = prefix or None
+        if details and '/' in details:
+            logger.error(f'Prefix is overnested, using first part: {prefix}')
+            details = details.partition('/')[0].strip()
 
         if details == 'common':
             details = None
-
-        if details:
-            details, *sub_details = details.split(':')
-        else:
-            sub_details = []
+        elif group is CommitGroup.NETWORKING and details == 'rh':
+            details = 'Request Handler'
 
         return group, details, sub_details
 
@@ -452,7 +444,31 @@ def get_new_contributors(contributors_path, commits):
     return sorted(new_contributors, key=str.casefold)
 
 
-if __name__ == '__main__':
+def create_changelog(args):
+    logging.basicConfig(
+        datefmt='%Y-%m-%d %H-%M-%S', format='{asctime} | {levelname:<8} | {message}',
+        level=logging.WARNING - 10 * args.verbosity, style='{', stream=sys.stderr)
+
+    commits = CommitRange(None, args.commitish, args.default_author)
+
+    if not args.no_override:
+        if args.override_path.exists():
+            overrides = json.loads(read_file(args.override_path))
+            commits.apply_overrides(overrides)
+        else:
+            logger.warning(f'File {args.override_path.as_posix()} does not exist')
+
+    logger.info(f'Loaded {len(commits)} commits')
+
+    if new_contributors := get_new_contributors(args.contributors_path, commits):
+        if args.contributors:
+            write_file(args.contributors_path, '\n'.join(new_contributors) + '\n', mode='a')
+        logger.info(f'New contributors: {", ".join(new_contributors)}')
+
+    return Changelog(commits.groups(), args.repo, args.collapsible)
+
+
+def create_parser():
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -484,27 +500,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--collapsible', action='store_true',
         help='make changelog collapsible (default: %(default)s)')
-    args = parser.parse_args()
 
-    logging.basicConfig(
-        datefmt='%Y-%m-%d %H-%M-%S', format='{asctime} | {levelname:<8} | {message}',
-        level=logging.WARNING - 10 * args.verbosity, style='{', stream=sys.stderr)
+    return parser
 
-    commits = CommitRange(None, args.commitish, args.default_author)
 
-    if not args.no_override:
-        if args.override_path.exists():
-            overrides = json.loads(read_file(args.override_path))
-            commits.apply_overrides(overrides)
-        else:
-            logger.warning(f'File {args.override_path.as_posix()} does not exist')
-
-    logger.info(f'Loaded {len(commits)} commits')
-
-    new_contributors = get_new_contributors(args.contributors_path, commits)
-    if new_contributors:
-        if args.contributors:
-            write_file(args.contributors_path, '\n'.join(new_contributors) + '\n', mode='a')
-        logger.info(f'New contributors: {", ".join(new_contributors)}')
-
-    print(Changelog(commits.groups(), args.repo, args.collapsible))
+if __name__ == '__main__':
+    print(create_changelog(create_parser().parse_args()))

@@ -1,7 +1,8 @@
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
     float_or_none,
+    int_or_none,
+    join_nonempty,
     unified_strdate,
 )
 
@@ -76,7 +77,7 @@ class WSJIE(InfoExtractor):
             tbr = int_or_none(v.get('bitrate'))
             formats.append({
                 'url': mp4_url,
-                'format_id': 'http' + ('-%d' % tbr if tbr else ''),
+                'format_id': join_nonempty('http', tbr),
                 'tbr': tbr,
                 'width': int_or_none(v.get('width')),
                 'height': int_or_none(v.get('height')),
@@ -108,7 +109,7 @@ class WSJArticleIE(InfoExtractor):
             'upload_date': '20170221',
             'uploader_id': 'ralcaraz',
             'title': 'Bao Bao the Panda Leaves for China',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -117,4 +118,4 @@ class WSJArticleIE(InfoExtractor):
         video_id = self._search_regex(
             r'(?:id=["\']video|video-|iframe\.html\?guid=|data-src=["\'])([a-fA-F0-9-]{36})',
             webpage, 'video id')
-        return self.url_result('wsj:%s' % video_id, WSJIE.ie_key(), video_id)
+        return self.url_result(f'wsj:{video_id}', WSJIE.ie_key(), video_id)

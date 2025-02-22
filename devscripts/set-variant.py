@@ -30,7 +30,7 @@ def property_setter(name, value):
 opts = parse_options()
 transform = compose_functions(
     property_setter('VARIANT', opts.variant),
-    property_setter('UPDATE_HINT', opts.update_message)
+    property_setter('UPDATE_HINT', opts.update_message),
 )
 
 write_file(VERSION_FILE, transform(read_file(VERSION_FILE)))

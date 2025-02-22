@@ -16,6 +16,7 @@ from ..utils import (
     update_url_query,
     urljoin,
 )
+from ..utils._utils import _request_dump_filename
 
 
 class HlsFD(FragmentFD):
@@ -72,11 +73,23 @@ class HlsFD(FragmentFD):
 
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
-        self.to_screen('[%s] Downloading m3u8 manifest' % self.FD_NAME)
 
-        urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
-        man_url = urlh.url
-        s = urlh.read().decode('utf-8', 'ignore')
+        s = info_dict.get('hls_media_playlist_data')
+        if s:
+            self.to_screen(f'[{self.FD_NAME}] Using m3u8 manifest from extracted info')
+        else:
+            self.to_screen(f'[{self.FD_NAME}] Downloading m3u8 manifest')
+            urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
+            man_url = urlh.url
+            s_bytes = urlh.read()
+            if self.params.get('write_pages'):
+                dump_filename = _request_dump_filename(
+                    man_url, info_dict['id'], None,
+                    trim_length=self.params.get('trim_file_name'))
+                self.to_screen(f'[{self.FD_NAME}] Saving request to {dump_filename}')
+                with open(dump_filename, 'wb') as outf:
+                    outf.write(s_bytes)
+            s = s_bytes.decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
         if can_download:
@@ -119,12 +132,12 @@ class HlsFD(FragmentFD):
             self.to_screen(f'[{self.FD_NAME}] Fragment downloads will be delegated to {real_downloader.get_basename()}')
 
         def is_ad_fragment_start(s):
-            return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s
-                    or s.startswith('#UPLYNK-SEGMENT') and s.endswith(',ad'))
+            return ((s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s)
+                    or (s.startswith('#UPLYNK-SEGMENT') and s.endswith(',ad')))
 
         def is_ad_fragment_end(s):
-            return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=master' in s
-                    or s.startswith('#UPLYNK-SEGMENT') and s.endswith(',segment'))
+            return ((s.startswith('#ANVATO-SEGMENT-INFO') and 'type=master' in s)
+                    or (s.startswith('#UPLYNK-SEGMENT') and s.endswith(',segment')))
 
         fragments = []
 
@@ -160,10 +173,12 @@ class HlsFD(FragmentFD):
         extra_state = ctx.setdefault('extra_state', {})
 
         format_index = info_dict.get('format_index')
-        extra_query = None
-        extra_param_to_segment_url = info_dict.get('extra_param_to_segment_url')
-        if extra_param_to_segment_url:
-            extra_query = urllib.parse.parse_qs(extra_param_to_segment_url)
+        extra_segment_query = None
+        if extra_param_to_segment_url := info_dict.get('extra_param_to_segment_url'):
+            extra_segment_query = urllib.parse.parse_qs(extra_param_to_segment_url)
+        extra_key_query = None
+        if extra_param_to_key_url := info_dict.get('extra_param_to_key_url'):
+            extra_key_query = urllib.parse.parse_qs(extra_param_to_key_url)
         i = 0
         media_sequence = 0
         decrypt_info = {'METHOD': 'NONE'}
@@ -175,6 +190,7 @@ class HlsFD(FragmentFD):
         if external_aes_iv:
             external_aes_iv = binascii.unhexlify(remove_start(external_aes_iv, '0x').zfill(32))
         byte_range = {}
+        byte_range_offset = 0
         discontinuity_count = 0
         frag_index = 0
         ad_frag_next = False
@@ -190,8 +206,8 @@ class HlsFD(FragmentFD):
                     if frag_index <= ctx['fragment_index']:
                         continue
                     frag_url = urljoin(man_url, line)
-                    if extra_query:
-                        frag_url = update_url_query(frag_url, extra_query)
+                    if extra_segment_query:
+                        frag_url = update_url_query(frag_url, extra_segment_query)
 
                     fragments.append({
                         'frag_index': frag_index,
@@ -201,6 +217,11 @@ class HlsFD(FragmentFD):
                         'media_sequence': media_sequence,
                     })
                     media_sequence += 1
+
+                    # If the byte_range is truthy, reset it after appending a fragment that uses it
+                    if byte_range:
+                        byte_range_offset = byte_range['end']
+                        byte_range = {}
 
                 elif line.startswith('#EXT-X-MAP'):
                     if format_index and discontinuity_count != format_index:
@@ -212,13 +233,15 @@ class HlsFD(FragmentFD):
                     frag_index += 1
                     map_info = parse_m3u8_attributes(line[11:])
                     frag_url = urljoin(man_url, map_info.get('URI'))
-                    if extra_query:
-                        frag_url = update_url_query(frag_url, extra_query)
+                    if extra_segment_query:
+                        frag_url = update_url_query(frag_url, extra_segment_query)
+
+                    map_byte_range = {}
 
                     if map_info.get('BYTERANGE'):
                         splitted_byte_range = map_info.get('BYTERANGE').split('@')
-                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
-                        byte_range = {
+                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else 0
+                        map_byte_range = {
                             'start': sub_range_start,
                             'end': sub_range_start + int(splitted_byte_range[0]),
                         }
@@ -227,8 +250,8 @@ class HlsFD(FragmentFD):
                         'frag_index': frag_index,
                         'url': frag_url,
                         'decrypt_info': decrypt_info,
-                        'byte_range': byte_range,
-                        'media_sequence': media_sequence
+                        'byte_range': map_byte_range,
+                        'media_sequence': media_sequence,
                     })
                     media_sequence += 1
 
@@ -244,8 +267,10 @@ class HlsFD(FragmentFD):
                             decrypt_info['KEY'] = external_aes_key
                         else:
                             decrypt_info['URI'] = urljoin(man_url, decrypt_info['URI'])
-                            if extra_query:
-                                decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
+                            if extra_key_query or extra_segment_query:
+                                # Fall back to extra_segment_query to key for backwards compat
+                                decrypt_info['URI'] = update_url_query(
+                                    decrypt_info['URI'], extra_key_query or extra_segment_query)
                             if decrypt_url != decrypt_info['URI']:
                                 decrypt_info['KEY'] = None
 
@@ -253,7 +278,7 @@ class HlsFD(FragmentFD):
                     media_sequence = int(line[22:])
                 elif line.startswith('#EXT-X-BYTERANGE'):
                     splitted_byte_range = line[17:].split('@')
-                    sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
+                    sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range_offset
                     byte_range = {
                         'start': sub_range_start,
                         'end': sub_range_start + int(splitted_byte_range[0]),
@@ -350,9 +375,8 @@ class HlsFD(FragmentFD):
                             # XXX: this should probably be silent as well
                             # or verify that all segments contain the same data
                             self.report_warning(bug_reports_message(
-                                'Discarding a %s block found in the middle of the stream; '
-                                'if the subtitles display incorrectly,'
-                                % (type(block).__name__)))
+                                f'Discarding a {type(block).__name__} block found in the middle of the stream; '
+                                'if the subtitles display incorrectly,'))
                             continue
                     block.write_into(output)
 
@@ -369,7 +393,10 @@ class HlsFD(FragmentFD):
 
                 return output.getvalue().encode()
 
-            self.download_and_append_fragments(
-                ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
+            if len(fragments) == 1:
+                self.download_and_append_fragments(ctx, fragments, info_dict)
+            else:
+                self.download_and_append_fragments(
+                    ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
         else:
             return self.download_and_append_fragments(ctx, fragments, info_dict)

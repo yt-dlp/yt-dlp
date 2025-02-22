@@ -9,7 +9,6 @@ from ..utils import (
     check_executable,
     cli_option,
     encodeArgument,
-    encodeFilename,
     prepend_extension,
     shell_quote,
     str_or_none,
@@ -35,7 +34,7 @@ class SponSkrubPP(PostProcessor):
 
         if not ignoreerror and self.path is None:
             if path:
-                raise PostProcessingError('sponskrub not found in "%s"' % path)
+                raise PostProcessingError(f'sponskrub not found in "{path}"')
             else:
                 raise PostProcessingError('sponskrub not found. Please install or provide the path using --sponskrub-path')
 
@@ -52,7 +51,7 @@ class SponSkrubPP(PostProcessor):
             return [], information
 
         filename = information['filepath']
-        if not os.path.exists(encodeFilename(filename)):  # no download
+        if not os.path.exists(filename):  # no download
             return [], information
 
         if information['extractor_key'].lower() != 'youtube':
@@ -71,8 +70,8 @@ class SponSkrubPP(PostProcessor):
                 self.report_warning('If sponskrub is run multiple times, unintended parts of the video could be cut out.')
 
         temp_filename = prepend_extension(filename, self._temp_ext)
-        if os.path.exists(encodeFilename(temp_filename)):
-            os.remove(encodeFilename(temp_filename))
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)
 
         cmd = [self.path]
         if not self.cutout:
@@ -83,7 +82,7 @@ class SponSkrubPP(PostProcessor):
         cmd += ['--', information['id'], filename, temp_filename]
         cmd = [encodeArgument(i) for i in cmd]
 
-        self.write_debug('sponskrub command line: %s' % shell_quote(cmd))
+        self.write_debug(f'sponskrub command line: {shell_quote(cmd)}')
         stdout, _, returncode = Popen.run(cmd, text=True, stdout=None if self.get_param('verbose') else subprocess.PIPE)
 
         if not returncode:

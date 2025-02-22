@@ -3,8 +3,11 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
+    filter_dict,
+    parse_qs,
     remove_end,
     traverse_obj,
+    update_url_query,
     urljoin,
 )
 
@@ -14,7 +17,7 @@ class MediaStreamBaseIE(InfoExtractor):
     _BASE_URL_RE = r'https?://mdstrm\.com/(?:embed|live-stream)'
 
     def _extract_mediastream_urls(self, webpage):
-        yield from traverse_obj(list(self._yield_json_ld(webpage, None)), (
+        yield from traverse_obj(list(self._yield_json_ld(webpage, None, default={})), (
             lambda _, v: v['@type'] == 'VideoObject', ('embedUrl', 'contentUrl'),
             {lambda x: x if re.match(rf'{self._BASE_URL_RE}/\w+', x) else None}))
 
@@ -106,15 +109,30 @@ class MediaStreamIE(MediaStreamBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        if 'Debido a tu ubicación no puedes ver el contenido' in webpage:
-            self.raise_geo_restricted()
+        for message in [
+            'Debido a tu ubicación no puedes ver el contenido',
+            'You are not allowed to watch this video: Geo Fencing Restriction',
+            'Este contenido no está disponible en tu zona geográfica.',
+            'El contenido sólo está disponible dentro de',
+        ]:
+            if message in webpage:
+                self.raise_geo_restricted()
 
         player_config = self._search_json(r'window\.MDSTRM\.OPTIONS\s*=', webpage, 'metadata', video_id)
 
         formats, subtitles = [], {}
         for video_format in player_config['src']:
             if video_format == 'hls':
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(player_config['src'][video_format], video_id)
+                params = {
+                    'at': 'web-app',
+                    'access_token': traverse_obj(parse_qs(url), ('access_token', 0)),
+                }
+                for name, key in (('MDSTRMUID', 'uid'), ('MDSTRMSID', 'sid'), ('MDSTRMPID', 'pid'), ('VERSION', 'av')):
+                    params[key] = self._search_regex(
+                        rf'window\.{name}\s*=\s*["\']([^"\']+)["\'];', webpage, key, default=None)
+
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    update_url_query(player_config['src'][video_format], filter_dict(params)), video_id)
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             elif video_format == 'mpd':

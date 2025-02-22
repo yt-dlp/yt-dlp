@@ -67,7 +67,7 @@ class HTTPHeaderDict(collections.UserDict, dict):
     def __setitem__(self, key, value):
         if isinstance(value, bytes):
             value = value.decode('latin-1')
-        super().__setitem__(key.title(), str(value))
+        super().__setitem__(key.title(), str(value).strip())
 
     def __getitem__(self, key):
         return super().__getitem__(key.title())
@@ -112,7 +112,7 @@ def clean_proxies(proxies: dict, headers: HTTPHeaderDict):
 
             replace_scheme = {
                 'socks5': 'socks5h',  # compat: socks5 was treated as socks5h
-                'socks': 'socks4'  # compat: non-standard
+                'socks': 'socks4',  # compat: non-standard
             }
             if proxy_scheme in replace_scheme:
                 proxies[proxy_key] = urllib.parse.urlunparse(
@@ -123,6 +123,7 @@ def clean_headers(headers: HTTPHeaderDict):
     if 'Youtubedl-No-Compression' in headers:  # compat
         del headers['Youtubedl-No-Compression']
         headers['Accept-Encoding'] = 'identity'
+    headers.pop('Ytdl-socks-proxy', None)
 
 
 def remove_dot_segments(path):
@@ -159,5 +160,5 @@ def normalize_url(url):
         path=escape_rfc3986(remove_dot_segments(url_parsed.path)),
         params=escape_rfc3986(url_parsed.params),
         query=escape_rfc3986(url_parsed.query),
-        fragment=escape_rfc3986(url_parsed.fragment)
+        fragment=escape_rfc3986(url_parsed.fragment),
     ).geturl()

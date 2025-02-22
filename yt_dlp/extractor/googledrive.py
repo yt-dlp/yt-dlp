@@ -1,9 +1,11 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_parse_qs
+from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     determine_ext,
     extract_attributes,
     get_element_by_class,
@@ -19,9 +21,9 @@ class GoogleDriveIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                         https?://
                             (?:
-                                (?:docs|drive)\.google\.com/
+                                (?:docs|drive|drive\.usercontent)\.google\.com/
                                 (?:
-                                    (?:uc|open)\?.*?id=|
+                                    (?:uc|open|download)\?.*?id=|
                                     file/d/
                                 )|
                                 video\.google\.com/get_player\?.*?docid=
@@ -37,7 +39,18 @@ class GoogleDriveIE(InfoExtractor):
             'title': 'Big Buck Bunny.mp4',
             'duration': 45,
             'thumbnail': 'https://drive.google.com/thumbnail?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
-        }
+        },
+    }, {
+        # has itag 50 which is not in YoutubeIE._formats (royalty Free music from 1922)
+        'url': 'https://drive.google.com/uc?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
+        'md5': '322db8d63dd19788c04050a4bba67073',
+        'info_dict': {
+            'id': '1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
+            'ext': 'mp3',
+            'title': 'My Buddy - Henry Burr - Gus Kahn - Walter Donaldson.mp3',
+            'duration': 184,
+            'thumbnail': 'https://drive.google.com/thumbnail?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
+        },
     }, {
         # video can't be watched anonymously due to view count limit reached,
         # but can be downloaded (see https://github.com/ytdl-org/youtube-dl/issues/14046)
@@ -53,24 +66,13 @@ class GoogleDriveIE(InfoExtractor):
     }, {
         'url': 'https://drive.google.com/uc?id=0B2fjwgkl1A_CX083Tkowdmt6d28',
         'only_matching': True,
+    }, {
+        'url': 'https://drive.usercontent.google.com/download?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
+        'only_matching': True,
     }]
     _FORMATS_EXT = {
-        '5': 'flv',
-        '6': 'flv',
-        '13': '3gp',
-        '17': '3gp',
-        '18': 'mp4',
-        '22': 'mp4',
-        '34': 'flv',
-        '35': 'flv',
-        '36': '3gp',
-        '37': 'mp4',
-        '38': 'mp4',
-        '43': 'webm',
-        '44': 'webm',
-        '45': 'webm',
-        '46': 'webm',
-        '59': 'mp4',
+        **{k: v['ext'] for k, v in YoutubeIE._formats.items() if v.get('ext')},
+        '50': 'm4a',
     }
     _BASE_URL_CAPTIONS = 'https://drive.google.com/timedtext'
     _CAPTIONS_ENTRY_TAG = {
@@ -86,7 +88,7 @@ class GoogleDriveIE(InfoExtractor):
             r'<iframe[^>]+src="https?://(?:video\.google\.com/get_player\?.*?docid=|(?:docs|drive)\.google\.com/file/d/)(?P<id>[a-zA-Z0-9_-]{28,})',
             webpage)
         if mobj:
-            yield 'https://drive.google.com/file/d/%s' % mobj.group('id')
+            yield 'https://drive.google.com/file/d/{}'.format(mobj.group('id'))
 
     def _download_subtitles_xml(self, video_id, subtitles_id, hl):
         if self._captions_xml:
@@ -164,7 +166,7 @@ class GoogleDriveIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = compat_parse_qs(self._download_webpage(
+        video_info = urllib.parse.parse_qs(self._download_webpage(
             'https://drive.google.com/get_video_info',
             video_id, 'Downloading video webpage', query={'docid': video_id}))
 
@@ -191,10 +193,13 @@ class GoogleDriveIE(InfoExtractor):
                 if len(fmt_stream_split) < 2:
                     continue
                 format_id, format_url = fmt_stream_split[:2]
+                ext = self._FORMATS_EXT.get(format_id)
+                if not ext:
+                    self.report_warning(f'Unknown format {format_id}{bug_reports_message()}')
                 f = {
                     'url': lowercase_escape(format_url),
                     'format_id': format_id,
-                    'ext': self._FORMATS_EXT[format_id],
+                    'ext': ext,
                 }
                 resolution = resolutions.get(format_id)
                 if resolution:
@@ -205,15 +210,16 @@ class GoogleDriveIE(InfoExtractor):
                 formats.append(f)
 
         source_url = update_url_query(
-            'https://drive.google.com/uc', {
+            'https://drive.usercontent.google.com/download', {
                 'id': video_id,
                 'export': 'download',
+                'confirm': 't',
             })
 
         def request_source_file(source_url, kind, data=None):
             return self._request_webpage(
-                source_url, video_id, note='Requesting %s file' % kind,
-                errnote='Unable to request %s file' % kind, fatal=False, data=data)
+                source_url, video_id, note=f'Requesting {kind} file',
+                errnote=f'Unable to request {kind} file', fatal=False, data=data)
         urlh = request_source_file(source_url, 'source')
         if urlh:
             def add_source_format(urlh):
@@ -264,7 +270,7 @@ class GoogleDriveIE(InfoExtractor):
         if ttsurl:
             # the video Id for subtitles will be the last value in the ttsurl
             # query string
-            subtitles_id = ttsurl.encode('utf-8').decode(
+            subtitles_id = ttsurl.encode().decode(
                 'unicode_escape').split('=')[-1]
 
         self.cookiejar.clear(domain='.google.com', path='/', name='NID')
@@ -288,7 +294,7 @@ class GoogleDriveFolderIE(InfoExtractor):
         'url': 'https://drive.google.com/drive/folders/1dQ4sx0-__Nvg65rxTSgQrl7VyW_FZ9QI',
         'info_dict': {
             'id': '1dQ4sx0-__Nvg65rxTSgQrl7VyW_FZ9QI',
-            'title': 'Forrest'
+            'title': 'Forrest',
         },
         'playlist_count': 3,
     }]
@@ -306,13 +312,13 @@ GET %s
     def _call_api(self, folder_id, key, data, **kwargs):
         response = self._download_webpage(
             'https://clients6.google.com/batch/drive/v2beta',
-            folder_id, data=data.encode('utf-8'),
+            folder_id, data=data.encode(),
             headers={
                 'Content-Type': 'text/plain;charset=UTF-8;',
                 'Origin': 'https://drive.google.com',
             }, query={
                 '$ct': f'multipart/mixed; boundary="{self._BOUNDARY}"',
-                'key': key
+                'key': key,
             }, **kwargs)
         return self._search_json('', response, 'api response', folder_id, **kwargs) or {}
 

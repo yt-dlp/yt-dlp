@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     float_or_none,
     try_get,
@@ -44,7 +43,7 @@ class AliExpressLiveIE(InfoExtractor):
             'title': title,
             'thumbnail': data.get('coverUrl'),
             'uploader': try_get(
-                data, lambda x: x['followBar']['name'], compat_str),
+                data, lambda x: x['followBar']['name'], str),
             'timestamp': float_or_none(data.get('startTimeLong'), scale=1000),
             'formats': formats,
         }

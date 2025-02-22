@@ -12,7 +12,7 @@ class S4CIE(InfoExtractor):
             'title': 'Y Swn',
             'description': 'md5:f7681a30e4955b250b3224aa9fe70cf0',
             'duration': 5340,
-            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Y_Swn_2023S4C_099_ii.jpg'
+            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Y_Swn_2023S4C_099_ii.jpg',
         },
     }, {
         'url': 'https://www.s4c.cymru/clic/programme/856636948',
@@ -22,7 +22,7 @@ class S4CIE(InfoExtractor):
             'title': 'Am Dro',
             'duration': 2880,
             'description': 'md5:100d8686fc9a632a0cb2db52a3433ffe',
-            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Am_Dro_2022-23S4C_P6_4005.jpg'
+            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Am_Dro_2022-23S4C_P6_4005.jpg',
         },
     }]
 
@@ -78,7 +78,6 @@ class S4CSeriesIE(InfoExtractor):
         'info_dict': {
             'id': '864982911',
             'title': 'Iaith ar Daith',
-            'description': 'md5:e878ebf660dce89bd2ef521d7ce06397'
         },
     }, {
         'url': 'https://www.s4c.cymru/clic/series/866852587',
@@ -86,7 +85,6 @@ class S4CSeriesIE(InfoExtractor):
         'info_dict': {
             'id': '866852587',
             'title': 'FFIT Cymru',
-            'description': 'md5:abcb3c129cb68dbb6cd304fd33b07e96'
         },
     }]
 
@@ -96,7 +94,7 @@ class S4CSeriesIE(InfoExtractor):
             'https://www.s4c.cymru/df/series_details', series_id, query={
                 'lang': 'e',
                 'series_id': series_id,
-                'show_prog_in_series': 'Y'
+                'show_prog_in_series': 'Y',
             }, note='Downloading series details JSON')
 
         return self.playlist_result(

@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import unified_strdate
+from ..utils import int_or_none
 
 
 class HarpodeonIE(InfoExtractor):
@@ -14,8 +14,8 @@ class HarpodeonIE(InfoExtractor):
             'title': 'The Smoking Out of Bella Butts',
             'description': 'md5:47e16bdb41fc8a79c83ab83af11c8b77',
             'creator': 'Vitagraph Company of America',
-            'release_date': '19150101'
-        }
+            'release_year': 1915,
+        },
     }, {
         'url': 'https://www.harpodeon.com/preview/The_Smoking_Out_of_Bella_Butts/268068288',
         'md5': '6dfea5412845f690c7331be703f884db',
@@ -25,8 +25,8 @@ class HarpodeonIE(InfoExtractor):
             'title': 'The Smoking Out of Bella Butts',
             'description': 'md5:47e16bdb41fc8a79c83ab83af11c8b77',
             'creator': 'Vitagraph Company of America',
-            'release_date': '19150101'
-        }
+            'release_year': 1915,
+        },
     }, {
         'url': 'https://www.harpodeon.com/preview/Behind_the_Screen/421838710',
         'md5': '7979df9ca04637282cb7d172ab3a9c3b',
@@ -36,8 +36,8 @@ class HarpodeonIE(InfoExtractor):
             'title': 'Behind the Screen',
             'description': 'md5:008972a3dc51fba3965ee517d2ba9155',
             'creator': 'Lone Star Corporation',
-            'release_date': '19160101'
-        }
+            'release_year': 1916,
+        },
     }]
 
     def _real_extract(self, url):
@@ -66,5 +66,5 @@ class HarpodeonIE(InfoExtractor):
             'http_headers': {'Referer': url},
             'description': self._html_search_meta('description', webpage, fatal=False),
             'creator': creator,
-            'release_date': unified_strdate(f'{release_year}0101')
+            'release_year': int_or_none(release_year),
         }

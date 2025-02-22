@@ -5,11 +5,11 @@ import time
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    dict_get,
     ExtractorError,
+    dict_get,
     strip_or_none,
     traverse_obj,
-    try_get
+    try_get,
 )
 
 
@@ -28,7 +28,7 @@ class RCTIPlusBaseIE(InfoExtractor):
 
 
 class RCTIPlusIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/(?:programs/\d+?/.*?/)?(?P<type>episode|clip|extra|live-event|missed-event)/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https?://www\.rctiplus\.com/(?:programs/\d+?/.*?/)?(?P<type>episode|clip|extra|live-event|missed-event)/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/programs/1259/kiko-untuk-lola/episode/22124/untuk-lola',
         'md5': '56ed45affad45fa18d5592a1bc199997',
@@ -154,34 +154,34 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             is_upcoming = try_get(video_json, lambda x: x['current_date'] < x['start_date'])
         if is_upcoming:
             self.raise_no_formats(
-                'This event will start at %s.' % video_json['live_label'] if video_json.get('live_label') else 'This event has not started yet.', expected=True)
+                'This event will start at {}.'.format(video_json['live_label']) if video_json.get('live_label') else 'This event has not started yet.', expected=True)
         if 'akamaized' in video_url:
             # For some videos hosted on Akamai's CDN (possibly AES-encrypted ones?), a session needs to at least be made via Conviva's API
             conviva_json_data = {
                 **self._CONVIVA_JSON_TEMPLATE,
                 'url': video_url,
-                'sst': int(time.time())
+                'sst': int(time.time()),
             }
             conviva_json_res = self._download_json(
                 'https://ff84ae928c3b33064b76dec08f12500465e59a6f.cws.conviva.com/0/wsg', display_id,
                 'Creating Conviva session', 'Failed to create Conviva session',
-                fatal=False, data=json.dumps(conviva_json_data).encode('utf-8'))
+                fatal=False, data=json.dumps(conviva_json_data).encode())
             if conviva_json_res and conviva_json_res.get('err') != 'ok':
-                self.report_warning('Conviva said: %s' % str(conviva_json_res.get('err')))
+                self.report_warning('Conviva said: {}'.format(str(conviva_json_res.get('err'))))
 
         video_meta, meta_paths = self._call_api(
-            'https://api.rctiplus.com/api/v1/%s/%s' % (video_type, video_id), display_id, 'Downloading video metadata')
+            f'https://api.rctiplus.com/api/v1/{video_type}/{video_id}', display_id, 'Downloading video metadata')
 
         thumbnails, image_path = [], meta_paths.get('image_path', 'https://rstatic.akamaized.net/media/')
         if video_meta.get('portrait_image'):
             thumbnails.append({
                 'id': 'portrait_image',
-                'url': '%s%d%s' % (image_path, 2000, video_meta['portrait_image'])  # 2000px seems to be the highest resolution that can be given
+                'url': '{}{}{}'.format(image_path, 2000, video_meta['portrait_image']),  # 2000px seems to be the highest resolution that can be given
             })
         if video_meta.get('landscape_image'):
             thumbnails.append({
                 'id': 'landscape_image',
-                'url': '%s%d%s' % (image_path, 2000, video_meta['landscape_image'])
+                'url': '{}{}{}'.format(image_path, 2000, video_meta['landscape_image']),
             })
         try:
             formats = self._extract_m3u8_formats(video_url, display_id, 'mp4', headers={'Referer': 'https://www.rctiplus.com/'})
@@ -218,7 +218,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
 
 
 class RCTIPlusSeriesIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/programs/(?P<id>\d+)/(?P<display_id>[^/?#&]+)(?:/(?P<type>episodes|extras|clips))?'
+    _VALID_URL = r'https?://www\.rctiplus\.com/programs/(?P<id>\d+)/(?P<display_id>[^/?#&]+)(?:/(?P<type>episodes|extras|clips))?'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/programs/829/putri-untuk-pangeran',
         'playlist_mincount': 1019,
@@ -229,7 +229,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'age_limit': 2,
             'cast': ['Verrel Bramasta', 'Ranty Maria', 'Riza Syah', 'Ivan Fadilla', 'Nicole Parham', 'Dll', 'Aviv Elham'],
             'display_id': 'putri-untuk-pangeran',
-            'tag': 'count:18',
+            'tags': 'count:18',
         },
     }, {  # No episodes
         'url': 'https://www.rctiplus.com/programs/615/inews-pagi',
@@ -239,9 +239,9 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'title': 'iNews Pagi',
             'description': 'md5:f18ee3d4643cfb41c358e5a9b693ee04',
             'age_limit': 2,
-            'tag': 'count:11',
+            'tags': 'count:11',
             'display_id': 'inews-pagi',
-        }
+        },
     }]
     _AGE_RATINGS = {  # Based off https://id.wikipedia.org/wiki/Sistem_rating_konten_televisi with additional ratings
         'S-SU': 2,
@@ -255,13 +255,13 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if RCTIPlusIE.suitable(url) else super(RCTIPlusSeriesIE, cls).suitable(url)
+        return False if RCTIPlusIE.suitable(url) else super().suitable(url)
 
     def _entries(self, url, display_id=None, note='Downloading entries JSON', metadata={}):
         total_pages = 0
         try:
             total_pages = self._call_api(
-                '%s&length=20&page=0' % url,
+                f'{url}&length=20&page=0',
                 display_id, note)[1]['pagination']['total_page']
         except ExtractorError as e:
             if 'not found' in str(e):
@@ -272,8 +272,8 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
 
         for page_num in range(1, total_pages + 1):
             episode_list = self._call_api(
-                '%s&length=20&page=%s' % (url, page_num),
-                display_id, '%s page %s' % (note, page_num))[0] or []
+                f'{url}&length=20&page={page_num}',
+                display_id, f'{note} page {page_num}')[0] or []
 
             for video_json in episode_list:
                 yield {
@@ -288,7 +288,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                     'duration': video_json.get('duration'),
                     'season_number': video_json.get('season'),
                     'episode_number': video_json.get('episode'),
-                    **metadata
+                    **metadata,
                 }
 
     def _series_entries(self, series_id, display_id=None, video_type=None, metadata={}):
@@ -327,8 +327,8 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'age_limit': try_get(series_meta, lambda x: self._AGE_RATINGS[x['age_restriction'][0]['code']]),
             'cast': traverse_obj(series_meta, (('starring', 'creator', 'writer'), ..., 'name'),
                                  expected_type=lambda x: strip_or_none(x) or None),
-            'tag': traverse_obj(series_meta, ('tag', ..., 'name'),
-                                expected_type=lambda x: strip_or_none(x) or None),
+            'tags': traverse_obj(series_meta, ('tag', ..., 'name'),
+                                 expected_type=lambda x: strip_or_none(x) or None),
         }
         return self.playlist_result(
             self._series_entries(series_id, display_id, video_type, metadata), series_id,
@@ -336,7 +336,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
 
 
 class RCTIPlusTVIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/((tv/(?P<tvname>\w+))|(?P<eventname>live-event|missed-event))'
+    _VALID_URL = r'https?://www\.rctiplus\.com/((tv/(?P<tvname>\w+))|(?P<eventname>live-event|missed-event))'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/tv/rcti',
         'info_dict': {
@@ -348,7 +348,7 @@ class RCTIPlusTVIE(RCTIPlusBaseIE):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         # Returned video will always change
         'url': 'https://www.rctiplus.com/live-event',
@@ -361,7 +361,7 @@ class RCTIPlusTVIE(RCTIPlusBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if RCTIPlusIE.suitable(url) else super(RCTIPlusTVIE, cls).suitable(url)
+        return False if RCTIPlusIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         match = self._match_valid_url(url).groupdict()

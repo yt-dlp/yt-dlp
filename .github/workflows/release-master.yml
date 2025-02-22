@@ -1,0 +1,47 @@
+name: Release (master)
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "yt_dlp/**.py"
+      - "!yt_dlp/version.py"
+      - "bundle/*.py"
+      - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/build.yml"
+concurrency:
+  group: release-master
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: vars.BUILD_MASTER != ''
+    uses: ./.github/workflows/release.yml
+    with:
+      prerelease: true
+      source: master
+    permissions:
+      contents: write
+      packages: write  # For package cache
+      actions: write  # For cleaning up cache
+      id-token: write  # mandatory for trusted publishing
+    secrets: inherit
+
+  publish_pypi:
+    needs: [release]
+    if: vars.MASTER_PYPI_PROJECT != ''
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # mandatory for trusted publishing
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          name: build-pypi
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true

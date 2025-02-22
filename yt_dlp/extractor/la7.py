@@ -93,7 +93,7 @@ class LA7IE(InfoExtractor):
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'formats': formats,
-            'upload_date': unified_strdate(self._search_regex(r'datetime="(.+?)"', webpage, 'upload_date', fatal=False))
+            'upload_date': unified_strdate(self._search_regex(r'datetime="(.+?)"', webpage, 'upload_date', fatal=False)),
         }
 
 
@@ -208,9 +208,9 @@ class LA7PodcastIE(LA7PodcastEpisodeIE):  # XXX: Do not subclass from concrete I
         'url': 'https://www.la7.it/propagandalive/podcast',
         'info_dict': {
             'id': 'propagandalive',
-            'title': "Propaganda Live",
+            'title': 'Propaganda Live',
         },
-        'playlist_count_min': 10,
+        'playlist_mincount': 10,
     }]
 
     def _real_extract(self, url):

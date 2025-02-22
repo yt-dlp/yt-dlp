@@ -15,7 +15,7 @@ def get_package_info(module):
         name=getattr(module, '_yt_dlp__identifier', module.__name__),
         version=str(next(filter(None, (
             getattr(module, attr, None)
-            for attr in ('__version__', 'version_string', 'version')
+            for attr in ('_yt_dlp__version', '__version__', 'version_string', 'version')
         )), None)))
 
 
@@ -57,7 +57,7 @@ def passthrough_module(parent, child, allowed_attributes=(..., ), *, callback=la
         callback(attr)
         return ret
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def from_child(attr):
         nonlocal child
         if attr not in allowed_attributes:

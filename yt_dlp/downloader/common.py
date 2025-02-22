@@ -4,6 +4,7 @@ import functools
 import os
 import random
 import re
+import threading
 import time
 
 from ..minicurses import (
@@ -19,9 +20,7 @@ from ..utils import (
     Namespace,
     RetryManager,
     classproperty,
-    decodeArgument,
     deprecation_warning,
-    encodeFilename,
     format_bytes,
     join_nonempty,
     parse_bytes,
@@ -32,6 +31,7 @@ from ..utils import (
     timetuple_from_msec,
     try_call,
 )
+from ..utils._utils import _ProgressState
 
 
 class FileDownloader:
@@ -63,6 +63,7 @@ class FileDownloader:
     min_filesize:       Skip files smaller than this size
     max_filesize:       Skip files larger than this size
     xattr_set_filesize: Set ytdl.filesize user xattribute with expected size.
+    progress_delta:     The minimum time between progress output, in seconds
     external_downloader_args:  A dictionary of downloader keys (in lower case)
                         and a list of additional command-line arguments for the
                         executable. Use 'default' as the name for arguments to be
@@ -88,6 +89,9 @@ class FileDownloader:
         self.params = params
         self._prepare_multiline_status()
         self.add_progress_hook(self.report_progress)
+        if self.params.get('progress_delta'):
+            self._progress_delta_lock = threading.Lock()
+            self._progress_delta_time = time.monotonic()
 
     def _set_ydl(self, ydl):
         self.ydl = ydl
@@ -214,7 +218,7 @@ class FileDownloader:
     def temp_name(self, filename):
         """Returns a temporary filename for the given filename."""
         if self.params.get('nopart', False) or filename == '-' or \
-                (os.path.exists(encodeFilename(filename)) and not os.path.isfile(encodeFilename(filename))):
+                (os.path.exists(filename) and not os.path.isfile(filename)):
             return filename
         return filename + '.part'
 
@@ -268,7 +272,7 @@ class FileDownloader:
         """Try to set the last-modified time of the given file."""
         if last_modified_hdr is None:
             return
-        if not os.path.isfile(encodeFilename(filename)):
+        if not os.path.isfile(filename):
             return
         timestr = last_modified_hdr
         if timestr is None:
@@ -330,7 +334,7 @@ class FileDownloader:
             progress_dict), s.get('progress_idx') or 0)
         self.to_console_title(self.ydl.evaluate_outtmpl(
             progress_template.get('download-title') or 'yt-dlp %(progress._default_template)s',
-            progress_dict))
+            progress_dict), _ProgressState.from_dict(s), s.get('_percent'))
 
     def _format_progress(self, *args, **kwargs):
         return self.ydl._format_text(
@@ -354,6 +358,7 @@ class FileDownloader:
                 '_speed_str': self.format_speed(speed).strip(),
                 '_total_bytes_str': _format_bytes('total_bytes'),
                 '_elapsed_str': self.format_seconds(s.get('elapsed')),
+                '_percent': 100.0,
                 '_percent_str': self.format_percent(100),
             })
             self._report_progress_status(s, join_nonempty(
@@ -366,13 +371,21 @@ class FileDownloader:
         if s['status'] != 'downloading':
             return
 
+        if update_delta := self.params.get('progress_delta'):
+            with self._progress_delta_lock:
+                if time.monotonic() < self._progress_delta_time:
+                    return
+                self._progress_delta_time += update_delta
+
+        progress = try_call(
+            lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
+            lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
+            lambda: s['downloaded_bytes'] == 0 and 0)
         s.update({
             '_eta_str': self.format_eta(s.get('eta')).strip(),
             '_speed_str': self.format_speed(s.get('speed')),
-            '_percent_str': self.format_percent(try_call(
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
-                lambda: s['downloaded_bytes'] == 0 and 0)),
+            '_percent': progress,
+            '_percent_str': self.format_percent(progress),
             '_total_bytes_str': _format_bytes('total_bytes'),
             '_total_bytes_estimate_str': _format_bytes('total_bytes_estimate'),
             '_downloaded_bytes_str': _format_bytes('downloaded_bytes'),
@@ -393,7 +406,7 @@ class FileDownloader:
 
     def report_resuming_byte(self, resume_len):
         """Report attempt to resume at given byte."""
-        self.to_screen('[download] Resuming download at byte %s' % resume_len)
+        self.to_screen(f'[download] Resuming download at byte {resume_len}')
 
     def report_retry(self, err, count, retries, frag_index=NO_DEFAULT, fatal=True):
         """Report retry"""
@@ -421,13 +434,13 @@ class FileDownloader:
         """
         nooverwrites_and_exists = (
             not self.params.get('overwrites', True)
-            and os.path.exists(encodeFilename(filename))
+            and os.path.exists(filename)
         )
 
         if not hasattr(filename, 'write'):
             continuedl_and_exists = (
                 self.params.get('continuedl', True)
-                and os.path.isfile(encodeFilename(filename))
+                and os.path.isfile(filename)
                 and not self.params.get('nopart', False)
             )
 
@@ -437,7 +450,7 @@ class FileDownloader:
                 self._hook_progress({
                     'filename': filename,
                     'status': 'finished',
-                    'total_bytes': os.path.getsize(encodeFilename(filename)),
+                    'total_bytes': os.path.getsize(filename),
                 }, info_dict)
                 self._finish_multiline_status()
                 return True, False
@@ -478,9 +491,7 @@ class FileDownloader:
         if not self.params.get('verbose', False):
             return
 
-        str_args = [decodeArgument(a) for a in args]
-
         if exe is None:
-            exe = os.path.basename(str_args[0])
+            exe = os.path.basename(args[0])
 
-        self.write_debug(f'{exe} command line: {shell_quote(str_args)}')
+        self.write_debug(f'{exe} command line: {shell_quote(args)}')

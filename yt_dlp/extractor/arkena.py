@@ -64,7 +64,7 @@ class ArkenaIE(InfoExtractor):
                 raise ExtractorError('Invalid URL', expected=True)
 
         media = self._download_json(
-            'https://video.qbrick.com/api/v1/public/accounts/%s/medias/%s' % (account_id, video_id),
+            f'https://video.qbrick.com/api/v1/public/accounts/{account_id}/medias/{video_id}',
             video_id, query={
                 # https://video.qbrick.com/docs/api/examples/library-api.html
                 'fields': 'asset/resources/*/renditions/*(height,id,language,links/*(href,mimeType),type,size,videos/*(audios/*(codec,sampleRate),bitrate,codec,duration,height,width),width),created,metadata/*(title,description),tags',
@@ -131,8 +131,8 @@ class ArkenaIE(InfoExtractor):
                             formats.extend(self._extract_f4m_formats(
                                 href, video_id, f4m_id='hds', fatal=False))
                         elif mime_type == 'application/dash+xml':
-                            formats.extend(self._extract_f4m_formats(
-                                href, video_id, f4m_id='hds', fatal=False))
+                            formats.extend(self._extract_mpd_formats(
+                                href, video_id, mpd_id='dash', fatal=False))
                         elif mime_type == 'application/vnd.ms-sstr+xml':
                             formats.extend(self._extract_ism_formats(
                                 href, video_id, ism_id='mss', fatal=False))
