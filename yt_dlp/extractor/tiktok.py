@@ -910,6 +910,8 @@ class TikTokIE(TikTokBaseIE):
             return self._parse_aweme_video_web(video_data, url, video_id)
         elif status == 10216:
             raise ExtractorError('This video is private', expected=True)
+        elif status == 10204:
+            raise ExtractorError('This post is unavailable in your region', expected=True)
         raise ExtractorError(f'Video not available, status code {status}', video_id=video_id)
 
 
