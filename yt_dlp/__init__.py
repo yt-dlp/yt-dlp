@@ -19,7 +19,9 @@ from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .networking.impersonate import ImpersonateTarget
+from .globals import IN_CLI, plugin_dirs
 from .options import parseOpts
+from .plugins import load_all_plugins as _load_all_plugins
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
@@ -33,7 +35,6 @@ from .postprocessor import (
 )
 from .update import Updater
 from .utils import (
-    Config,
     NO_DEFAULT,
     POSTPROCESS_WHEN,
     DateRange,
@@ -65,8 +66,6 @@ from .utils import (
 from .utils.networking import std_headers
 from .utils._utils import _UnsafeExtensionError
 from .YoutubeDL import YoutubeDL
-
-_IN_CLI = False
 
 
 def _exit(status=0, *args):
@@ -433,6 +432,10 @@ def validate_options(opts):
     }
 
     # Other options
+    opts.plugin_dirs = opts.plugin_dirs
+    if opts.plugin_dirs is None:
+        opts.plugin_dirs = ['default']
+
     if opts.playlist_items is not None:
         try:
             tuple(PlaylistEntries.parse_playlist_items(opts.playlist_items))
@@ -973,11 +976,6 @@ def _real_main(argv=None):
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
 
-    # HACK: Set the plugin dirs early on
-    # TODO(coletdjnz): remove when plugin globals system is implemented
-    if opts.plugin_dirs is not None:
-        Config._plugin_dirs = list(map(expand_path, opts.plugin_dirs))
-
     # Dump user agent
     if opts.dump_user_agent:
         ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
@@ -991,6 +989,11 @@ def _real_main(argv=None):
     # See https://github.com/yt-dlp/yt-dlp/issues/2191
     if opts.ffmpeg_location:
         FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
+
+    # load all plugins into the global lookup
+    plugin_dirs.value = opts.plugin_dirs
+    if plugin_dirs.value:
+        _load_all_plugins()
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir
@@ -1091,8 +1094,7 @@ def _real_main(argv=None):
 
 
 def main(argv=None):
-    global _IN_CLI
-    _IN_CLI = True
+    IN_CLI.value = True
     try:
         _exit(*variadic(_real_main(argv)))
     except (CookieLoadError, DownloadError):
