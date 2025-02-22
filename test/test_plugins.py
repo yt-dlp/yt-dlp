@@ -17,7 +17,6 @@ from yt_dlp.plugins import (
     load_plugins,
     load_all_plugins,
     register_plugin_spec,
-    clear_plugins,
 )
 
 from yt_dlp.globals import (
@@ -29,8 +28,6 @@ from yt_dlp.globals import (
     all_plugins_loaded,
     plugin_specs,
 )
-
-from yt_dlp.utils import YoutubeDLError
 
 
 EXTRACTOR_PLUGIN_SPEC = PluginSpec(
@@ -235,29 +232,6 @@ class TestPlugins(unittest.TestCase):
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.package', sys.modules.keys())
         self.assertIn('PackagePluginIE', plugin_ies.value)
-
-    def test_clear_plugins(self):
-        clear_plugins()
-        ies = load_plugins(EXTRACTOR_PLUGIN_SPEC)
-        self.assertEqual(ies, {})
-        self.assertNotIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
-        self.assertNotIn('NormalPluginIE', plugin_ies.value)
-
-        pps = load_plugins(POSTPROCESSOR_PLUGIN_SPEC)
-        self.assertEqual(pps, {})
-        self.assertNotIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
-        self.assertNotIn('NormalPluginPP', plugin_pps.value)
-
-    def test_clear_plugins_already_loaded(self):
-        register_plugin_spec(EXTRACTOR_PLUGIN_SPEC)
-        register_plugin_spec(POSTPROCESSOR_PLUGIN_SPEC)
-        load_all_plugins()
-
-        with self.assertRaises(YoutubeDLError):
-            clear_plugins()
-
-        ies = load_plugins(EXTRACTOR_PLUGIN_SPEC)
-        self.assertIn('NormalPluginIE', ies)
 
     def test_get_plugin_spec(self):
         register_plugin_spec(EXTRACTOR_PLUGIN_SPEC)

@@ -23,7 +23,6 @@ from .globals import (
 )
 
 from .utils import (
-    YoutubeDLError,
     get_executable_path,
     get_system_config_dirs,
     get_user_config_dirs,
@@ -45,7 +44,6 @@ __all__ = [
     'COMPAT_PACKAGE_NAME',
     'PACKAGE_NAME',
     'PluginSpec',
-    'clear_plugins',
     'directories',
     'load_all_plugins',
     'load_plugins',
@@ -255,14 +253,3 @@ def register_plugin_spec(plugin_spec: PluginSpec):
     if plugin_spec.module_name not in plugin_specs.value:
         plugin_specs.value[plugin_spec.module_name] = plugin_spec
         sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.{plugin_spec.module_name}'))
-
-
-def clear_plugins():
-    if (
-        all_plugins_loaded.value
-        or any(plugin_spec.plugin_destination.value for plugin_spec in plugin_specs.value.values())
-    ):
-        # note: we can't detect all cases when plugins are loaded (e.g. if spec isn't registered)
-        raise YoutubeDLError('Plugins have already been loaded. Cannot clear plugins after loading plugins.')
-
-    plugin_dirs.value = []
