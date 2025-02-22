@@ -220,7 +220,7 @@ class WeiboIE(WeiboBaseIE):
             video_info = {
                 **traverse_obj(media_info, {
                     'id': ('data', 'object_id'),
-                    'page_info': {'media_info': ('data', 'media_info')},
+                    'page_info': {'media_info': ('data', 'media_info', {dict})},
                 }),
             }
 
