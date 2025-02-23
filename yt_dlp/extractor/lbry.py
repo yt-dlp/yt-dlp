@@ -337,10 +337,13 @@ class LBRYIE(LBRYBaseIE):
                     'vcodec': 'none' if stream_type == 'audio' else None,
                 })
 
+            final_url = None
             # HEAD request returns redirect response to m3u8 URL if available
-            final_url = self._request_webpage(
+            urlh = self._request_webpage(
                 HEADRequest(streaming_url), display_id, headers=headers,
-                note='Downloading streaming redirect url info').url
+                note='Downloading streaming redirect url info', fatal=False)
+            if urlh:
+                final_url = urlh.url
 
         elif result.get('value_type') == 'stream' and stream_type not in self._UNSUPPORTED_STREAM_TYPES:
             claim_id, is_live = result['signing_channel']['claim_id'], True
