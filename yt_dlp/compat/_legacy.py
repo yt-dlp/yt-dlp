@@ -37,7 +37,7 @@ from ..dependencies import websockets as compat_websockets  # noqa: F401
 from ..dependencies.Cryptodome import AES as compat_pycrypto_AES  # noqa: F401
 from ..networking.exceptions import HTTPError as compat_HTTPError
 
-passthrough_module(__name__, '...utils', ('WINDOWS_VT_MODE', 'windows_enable_vt_mode'))
+passthrough_module(__name__, '...utils', ('windows_enable_vt_mode',))
 
 
 # compat_ctypes_WINFUNCTYPE = ctypes.WINFUNCTYPE
