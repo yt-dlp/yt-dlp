@@ -52,7 +52,7 @@ class SoundcloudBaseIE(InfoExtractor):
     _API_VERIFY_AUTH_TOKEN = 'https://api-auth.soundcloud.com/connect/session%s'
     _HEADERS = {}
 
-    _IMAGE_REPL_RE = r'-([0-9a-z]+)\.jpg'
+    _IMAGE_REPL_RE = r'-[0-9a-z]+\.(?P<ext>jpg|png)'
     _TAGS_RE = re.compile(r'"([^"]+)"|([^ ]+)')
 
     _ARTWORK_MAP = {
@@ -332,12 +332,14 @@ class SoundcloudBaseIE(InfoExtractor):
         thumbnails = []
         artwork_url = info.get('artwork_url')
         thumbnail = artwork_url or user.get('avatar_url')
-        if isinstance(thumbnail, str):
-            if re.search(self._IMAGE_REPL_RE, thumbnail):
+        if url_or_none(thumbnail):
+            if mobj := re.search(self._IMAGE_REPL_RE, thumbnail):
                 for image_id, size in self._ARTWORK_MAP.items():
+                    # Soundcloud serves JPEG regardless of URL's ext *except* for "original" thumb
+                    ext = mobj.group('ext') if image_id == 'original' else 'jpg'
                     i = {
                         'id': image_id,
-                        'url': re.sub(self._IMAGE_REPL_RE, f'-{image_id}.jpg', thumbnail),
+                        'url': re.sub(self._IMAGE_REPL_RE, f'-{image_id}.{ext}', thumbnail),
                     }
                     if image_id == 'tiny' and not artwork_url:
                         size = 18
@@ -618,6 +620,44 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/giovannisarani',
                 'tags': 'count:10',
             },
+        },
+        # .png "original" artwork, 160kbps m4a HLS format
+        {
+            'url': 'https://soundcloud.com/skorxh/audio-dealer',
+            'info_dict': {
+                'id': '2011421339',
+                'ext': 'm4a',
+                'title': 'audio dealer',
+                'description': '',
+                'uploader': '$KORCH',
+                'uploader_id': '150292288',
+                'uploader_url': 'https://soundcloud.com/skorxh',
+                'comment_count': int,
+                'view_count': int,
+                'like_count': int,
+                'repost_count': int,
+                'duration': 213.469,
+                'tags': [],
+                'artists': ['$KORXH'],
+                'track': 'audio dealer',
+                'timestamp': 1737143201,
+                'upload_date': '20250117',
+                'license': 'all-rights-reserved',
+                'thumbnail': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-original.png',
+                'thumbnails': [
+                    {'id': 'mini', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-mini.jpg'},
+                    {'id': 'tiny', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-tiny.jpg'},
+                    {'id': 'small', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-small.jpg'},
+                    {'id': 'badge', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-badge.jpg'},
+                    {'id': 't67x67', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-t67x67.jpg'},
+                    {'id': 'large', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-large.jpg'},
+                    {'id': 't300x300', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-t300x300.jpg'},
+                    {'id': 'crop', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-crop.jpg'},
+                    {'id': 't500x500', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-t500x500.jpg'},
+                    {'id': 'original', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-original.png'},
+                ],
+            },
+            'params': {'skip_download': 'm3u8', 'format': 'hls_aac_160k'},
         },
         {
             # AAC HQ format available (account with active subscription needed)
