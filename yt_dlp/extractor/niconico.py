@@ -30,7 +30,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urlencode_postdata,
-    urljoin,
+    urljoin, url_basename,
 )
 
 
@@ -441,27 +441,13 @@ class NiconicoIE(InfoExtractor):
         video_fmts = sorted((fmt for fmt in dms_fmts if fmt['vcodec'] != 'none'), key=lambda f: f['tbr'])
         self._remove_duplicate_formats(video_fmts)
 
-        def find_dms_format(search_target, target_fmt_id):
-            for item in search_target:
-                if item.get('id', {str}) == target_fmt_id:
-                    return item
-            return None
-
         # Calculate the true vbr/tbr by subtracting the lowest abr
         min_abr = min(traverse_obj(audios, (..., 'bitRate', {float_or_none})), default=0) / 1000
         for video_fmt in video_fmts:
             video_fmt['tbr'] -= min_abr
-
-            video_fmt_id = self._search_regex(r'https://delivery.domand.nicovideo.jp/hlsbid/[a-z0-9]+/playlists/media/([a-z0-9\-]+).m3u8', video_fmt['url'], 'video format id', fatal=False)
-            if video_fmt_id:
-                dms_video_fmt = find_dms_format(videos, video_fmt_id)
-                if dms_video_fmt:
-                    video_fmt['format_id'] = video_fmt_id
-                    video_fmt['quality'] = dms_video_fmt.get('qualityLevel', {int})
-                    yield video_fmt
-                    continue
-
-            video_fmt['format_id'] = f'video-{video_fmt["tbr"]:.0f}'
+            video_fmt['id'] = url_basename(video_fmt['url']).rpartition('.')[0]
+            video_fmt['quality'] = traverse_obj(videos, (
+                lambda _, v: v['id'] == video_fmt['id'], 'qualityLevel', {int_or_none}, any)) or -1
             yield video_fmt
 
     def _real_extract(self, url):
