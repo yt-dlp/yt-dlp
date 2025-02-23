@@ -33,10 +33,8 @@ def _pk_to_id(media_id):
 
 
 def _id_to_pk(shortcode):
-    """Convert a shortcode to a numeric value"""
-    if len(shortcode) > 28:
-        shortcode = shortcode[:-28]
-    return decode_base_n(shortcode, table=_ENCODING_CHARS)
+    """Covert a shortcode to a numeric value"""
+    return decode_base_n(shortcode[:11], table=_ENCODING_CHARS)
 
 
 class InstagramBaseIE(InfoExtractor):
