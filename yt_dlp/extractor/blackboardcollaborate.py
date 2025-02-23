@@ -160,3 +160,22 @@ class BlackboardCollaborateIE(InfoExtractor):
             'subtitles': subtitles,
             'title': title,
         }
+
+
+class BlackboardCollaborateLaunchIE(InfoExtractor):
+    _VALID_URL = r'https?://[a-z]+(?:-lti)?\.bbcollab\.com/launch/(?P<token>[\w\.\-]+)'
+
+    _TESTS = [
+        {
+            'url': 'https://au.bbcollab.com/launch/eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJiYkNvbGxhYkFwaSIsInN1YiI6ImJiQ29sbGFiQXBpIiwiZXhwIjoxNzQwNDE2NDgzLCJpYXQiOjE3NDA0MTYxODMsInJlc291cmNlQWNjZXNzVGlja2V0Ijp7InJlc291cmNlSWQiOiI3MzI4YzRjZTNmM2U0ZTcwYmY3MTY3N2RkZTgzMzk2NSIsImNvbnN1bWVySWQiOiJhM2Q3NGM0Y2QyZGU0MGJmODFkMjFlODNlMmEzNzM5MCIsInR5cGUiOiJSRUNPUkRJTkciLCJyZXN0cmljdGlvbiI6eyJ0eXBlIjoiVElNRSIsImV4cGlyYXRpb25Ib3VycyI6MCwiZXhwaXJhdGlvbk1pbnV0ZXMiOjUsIm1heFJlcXVlc3RzIjotMX0sImRpc3Bvc2l0aW9uIjoiTEFVTkNIIiwibGF1bmNoVHlwZSI6bnVsbCwibGF1bmNoQ29tcG9uZW50IjpudWxsLCJsYXVuY2hQYXJhbUtleSI6bnVsbH19.xuELw4EafEwUMoYcCHidGn4Tw9O1QCbYHzYGJUl0kKk',
+            'only_matching': True,
+        },
+    ]
+
+    def _real_extract(self, url):
+        token = self._match_valid_url(url)['token']
+        video_id = traverse_obj(json.loads(base64.b64decode(token.split('.')[1] + '===')), ('resourceAccessTicket', 'resourceId'))
+
+        redirect_url = self._request_webpage(url, video_id=video_id).url
+        return self.url_result(redirect_url,
+                               ie=BlackboardCollaborateIE.ie_key(), video_id=video_id)
