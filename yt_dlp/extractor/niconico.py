@@ -445,9 +445,9 @@ class NiconicoIE(InfoExtractor):
         min_abr = min(traverse_obj(audios, (..., 'bitRate', {float_or_none})), default=0) / 1000
         for video_fmt in video_fmts:
             video_fmt['tbr'] -= min_abr
-            video_fmt['id'] = url_basename(video_fmt['url']).rpartition('.')[0]
+            video_fmt['format_id'] = url_basename(video_fmt['url']).rpartition('.')[0]
             video_fmt['quality'] = traverse_obj(videos, (
-                lambda _, v: v['id'] == video_fmt['id'], 'qualityLevel', {int_or_none}, any)) or -1
+                lambda _, v: v['id'] == video_fmt['format_id'], 'qualityLevel', {int_or_none}, any)) or -1
             yield video_fmt
 
     def _real_extract(self, url):
