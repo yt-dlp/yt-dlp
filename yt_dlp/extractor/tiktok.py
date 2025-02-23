@@ -249,12 +249,11 @@ class TikTokBaseIE(InfoExtractor):
         elif fatal:
             raise ExtractorError('Unable to extract webpage video data')
 
-        if not traverse_obj(video_data, ('video', {dict})):
-            if traverse_obj(video_data, ('isContentClassified', {bool})):
-                msg = 'This post may not be comfortable for some audiences. Log in for access'
-                if fatal:
-                    self.raise_login_required(msg)
-                self.report_warning(msg, video_id=video_id)
+        if not traverse_obj(video_data, ('video', {dict})) and traverse_obj(video_data, ('isContentClassified', {bool})):
+            msg = 'This post may not be comfortable for some audiences. Log in for access'
+            if fatal:
+                self.raise_login_required(msg)
+            self.report_warning(msg, video_id=video_id)
 
         return video_data, status
 
