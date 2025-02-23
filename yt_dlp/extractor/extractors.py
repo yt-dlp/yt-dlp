@@ -5,12 +5,14 @@ from ..globals import LAZY_EXTRACTORS
 from ..globals import extractors as _extractors_context
 
 _CLASS_LOOKUP = None
-if not os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
+if os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
+    LAZY_EXTRACTORS.value = False
+else:
     try:
         from .lazy_extractors import _CLASS_LOOKUP
         LAZY_EXTRACTORS.value = True
     except ImportError:
-        LAZY_EXTRACTORS.value = False
+        LAZY_EXTRACTORS.value = None
 
 if not _CLASS_LOOKUP:
     from . import _extractors
