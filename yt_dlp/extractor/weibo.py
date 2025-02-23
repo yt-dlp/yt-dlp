@@ -103,7 +103,6 @@ class WeiboBaseIE(InfoExtractor):
             'extractor': WeiboIE.IE_NAME,
             'formats': self._extract_formats(video_info),
             'http_headers': {'Referer': 'https://weibo.com/'},
-            '_old_archive_ids': [make_archive_id('WeiboMobile', video_id)],
             **traverse_obj(video_info, {
                 'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
@@ -171,7 +170,7 @@ class WeiboIE(WeiboBaseIE):
             'ext': 'mp4',
             'display_id': 'FBqgOmDxO',
             'title': '柴犬柴犬的秒拍视频',
-            'description': '午睡当然是要甜甜蜜蜜的啦！[坏笑]     Instagram：shibainu.gaku http://t.cn/RHbmjzW ',
+            'description': 'md5:80f461ab5cdae6bbdb70efbf5a1db24f',
             'duration': 53,
             'timestamp': 1514264429,
             'upload_date': '20171226',
@@ -188,21 +187,11 @@ class WeiboIE(WeiboBaseIE):
         'note': 'no playback_list example',
         'only_matching': True,
     }, {
-        'url': 'https://m.weibo.cn/detail/5122647953771225',
+        'url': 'https://m.weibo.cn/detail/5120561132606436',
         'info_dict': {
-            'id': '5122647953771225',
-            'ext': 'mp4',
-            'display_id': '1034:5122647705714717',
-            'title': '阿呆与瓜的微博视频',
-            'duration': 164,
-            'timestamp': 1736817857,
-            'upload_date': '20250114',
-            'thumbnail': r're:https://.*\.jpg',
-            'view_count': int,
-            'like_count': int,
-            'repost_count': int,
+            'id': '5120561132606436',
         },
-        'playlist_count': 1,
+        'playlist_count': 9,
     }]
 
     def _real_extract(self, url):
