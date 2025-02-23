@@ -2,12 +2,12 @@ import hashlib
 import itertools
 import json
 import re
-import time
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     decode_base_n,
     encode_base_n,
     filter_dict,
@@ -15,12 +15,12 @@ from ..utils import (
     format_field,
     get_element_by_attribute,
     int_or_none,
+    join_nonempty,
     lowercase_escape,
     str_or_none,
     str_to_int,
     traverse_obj,
     url_or_none,
-    urlencode_postdata,
 )
 
 _ENCODING_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
@@ -40,9 +40,6 @@ def _id_to_pk(shortcode):
 
 
 class InstagramBaseIE(InfoExtractor):
-    _NETRC_MACHINE = 'instagram'
-    _IS_LOGGED_IN = False
-
     _API_BASE_URL = 'https://i.instagram.com/api/v1'
     _LOGIN_URL = 'https://www.instagram.com/accounts/login'
 
@@ -55,42 +52,6 @@ class InstagramBaseIE(InfoExtractor):
             'Origin': 'https://www.instagram.com',
             'Accept': '*/*',
         }
-
-    def _perform_login(self, username, password):
-        if self._IS_LOGGED_IN:
-            return
-
-        login_webpage = self._download_webpage(
-            self._LOGIN_URL, None, note='Downloading login webpage', errnote='Failed to download login webpage')
-
-        shared_data = self._parse_json(self._search_regex(
-            r'window\._sharedData\s*=\s*({.+?});', login_webpage, 'shared data', default='{}'), None)
-
-        login = self._download_json(
-            f'{self._LOGIN_URL}/ajax/', None, note='Logging in', headers={
-                **self._api_headers,
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': shared_data['config']['csrf_token'],
-                'X-Instagram-AJAX': shared_data['rollout_hash'],
-                'Referer': 'https://www.instagram.com/',
-            }, data=urlencode_postdata({
-                'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
-                'username': username,
-                'queryParams': '{}',
-                'optIntoOneTap': 'false',
-                'stopDeletionNonce': '',
-                'trustedDeviceRecords': '{}',
-            }))
-
-        if not login.get('authenticated'):
-            if login.get('message'):
-                raise ExtractorError(f'Unable to login: {login["message"]}')
-            elif login.get('user'):
-                raise ExtractorError('Unable to login: Sorry, your password was incorrect. Please double-check your password.', expected=True)
-            elif login.get('user') is False:
-                raise ExtractorError('Unable to login: The username you entered doesn\'t belong to an account. Please check your username and try again.', expected=True)
-            raise ExtractorError('Unable to login')
-        InstagramBaseIE._IS_LOGGED_IN = True
 
     def _get_count(self, media, kind, *keys):
         return traverse_obj(
@@ -443,7 +404,6 @@ class InstagramIE(InstagramBaseIE):
                 'doc_id': '8845758582119845',
                 'variables': json.dumps(variables, separators=(',', ':')),
             })
-        media.update(traverse_obj(general_info, ('data', 'xdt_shortcode_media')) or {})
 
         if not general_info:
             self.report_warning('General metadata extraction failed (some metadata might be missing).', video_id)
@@ -472,6 +432,26 @@ class InstagramIE(InstagramBaseIE):
                 media.update(traverse_obj(
                     additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {})
 
+        else:
+            xdt_shortcode_media = traverse_obj(general_info, ('data', 'xdt_shortcode_media', {dict})) or {}
+            if not xdt_shortcode_media:
+                error = join_nonempty('title', 'description', delim=': ', from_dict=api_check)
+                if 'Restricted Video' in error:
+                    self.raise_login_required(error)
+                elif error:
+                    raise ExtractorError(error, expected=True)
+                elif len(video_id) > 28:
+                    # It's a private post (video_id == shortcode + 28 extra characters)
+                    # Only raise after getting empty response; sometimes "long"-shortcode posts are public
+                    self.raise_login_required(
+                        'This content is only available for registered users who follow this account')
+                raise ExtractorError(
+                    'Instagram sent an empty media response. Check if this post is accessible in your '
+                    f'browser without being logged-in. If it is not, then u{self._login_hint()[1:]}. '
+                    'Otherwise, if the post is accessible in browser without being logged-in'
+                    f'{bug_reports_message(before=",")}', expected=True)
+            media.update(xdt_shortcode_media)
+
         username = traverse_obj(media, ('owner', 'username')) or self._search_regex(
             r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'username', fatal=False)
 
@@ -491,8 +471,7 @@ class InstagramIE(InstagramBaseIE):
                 return self.playlist_result(
                     self._extract_nodes(nodes, True), video_id,
                     format_field(username, None, 'Post by %s'), description)
-
-            video_url = self._og_search_video_url(webpage, secure=False)
+            raise ExtractorError('There is no video in this post', expected=True)
 
         formats = [{
             'url': video_url,
