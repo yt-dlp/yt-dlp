@@ -1190,6 +1190,59 @@ class DiscoveryPlusItalyIE(DiscoveryPlusBaseIE):
         })
 
 
+class DiscoveryPlusShowIE(DiscoveryPlusShowBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/show/(?P<show_name>[^/]+)?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://www.discoveryplus.com/show/the-planets-and-beyond-us',
+        'playlist_mincount': 1,
+        'info_dict': {
+            'id': 'the-planets-and-beyond-us',
+        },
+    }, {
+        'url': 'https://www.discoveryplus.com/show/mythbusters',
+        'info_dict': {
+            'id': 'mythbusters',
+        },
+    }]
+
+    _BASE_API = 'https://us1-prod-direct.discoveryplus.com/'
+    _PRODUCT = 'dplus_us'
+    _DOMAIN = 'https://www.discoveryplus.com/'
+    _X_CLIENT = 'WEB:UNKNOWN:dplus_us:2.64.0'
+    _REALM = 'go'
+    _SHOW_STR = 'show'
+    _INDEX = 7
+    _VIDEO_IE = DiscoveryPlusIE
+
+    def _entries(self, show_name):
+        headers = {
+            'x-disco-client': self._X_CLIENT,
+            'x-disco-params': f'realm={self._REALM},siteLookupKey={self._PRODUCT},features=ar',
+            'referer': self._DOMAIN,
+            'Authentication': self._get_auth(self._BASE_API, None, self._REALM),
+        }
+        show_json = self._download_json(
+            f'{self._BASE_API}cms/routes/{self._SHOW_STR}/{show_name}?include=default',
+            video_id=show_name, headers=headers)['included'][self._INDEX]['attributes']['component']
+        show_id = show_json['mandatoryParams'].split('&')[0].split('=')[-1]
+
+        total_pages, page_num = 1, 0
+        series_url = self._BASE_API + 'content/videos?sort=seasonNumber,episodeNumber&filter[show.id]={}&page[size]=100&page[number]={}'
+        while page_num < total_pages:
+            series_json = self._download_json(
+                series_url.format(show_id, str(page_num + 1)), show_name, headers=headers,
+                note='Downloading JSON metadata{}'.format(f' page {page_num}' if page_num else ''))
+            if page_num == 0:
+                total_pages = try_get(series_json, lambda x: x['meta']['totalPages'], int) or 1
+
+            for episode in series_json['data']:
+                video_path = episode['attributes']['path']
+                yield self.url_result(
+                    f'{self._DOMAIN}video/{video_path}',
+                    ie=self._VIDEO_IE.ie_key(), video_id=episode.get('id') or video_path)
+            page_num += 1
+
+
 class DiscoveryPlusItalyShowIE(DiscoveryPlusShowBaseIE):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.it/programmi/(?P<show_name>[^/]+)/?(?:[?#]|$)'
     _TESTS = [{
