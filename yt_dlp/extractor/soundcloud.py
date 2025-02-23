@@ -52,7 +52,7 @@ class SoundcloudBaseIE(InfoExtractor):
     _API_VERIFY_AUTH_TOKEN = 'https://api-auth.soundcloud.com/connect/session%s'
     _HEADERS = {}
 
-    _IMAGE_REPL_RE = r'-([0-9a-z]+)\.jpg'
+    _IMAGE_REPL_RE = r'-[0-9a-z]+\.(?P<ext>jpg|png)'
     _TAGS_RE = re.compile(r'"([^"]+)"|([^ ]+)')
 
     _ARTWORK_MAP = {
@@ -332,12 +332,14 @@ class SoundcloudBaseIE(InfoExtractor):
         thumbnails = []
         artwork_url = info.get('artwork_url')
         thumbnail = artwork_url or user.get('avatar_url')
-        if isinstance(thumbnail, str):
-            if re.search(self._IMAGE_REPL_RE, thumbnail):
+        if url_or_none(thumbnail):
+            if mobj := re.search(self._IMAGE_REPL_RE, thumbnail):
                 for image_id, size in self._ARTWORK_MAP.items():
+                    # Soundcloud serves JPEG regardless of URL's ext *except* for "original" thumb
+                    ext = mobj.group('ext') if image_id == 'original' else 'jpg'
                     i = {
                         'id': image_id,
-                        'url': re.sub(self._IMAGE_REPL_RE, f'-{image_id}.jpg', thumbnail),
+                        'url': re.sub(self._IMAGE_REPL_RE, f'-{image_id}.{ext}', thumbnail),
                     }
                     if image_id == 'tiny' and not artwork_url:
                         size = 18
