@@ -13,11 +13,13 @@ from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     clean_html,
+    determine_ext,
     float_or_none,
     int_or_none,
     join_nonempty,
     parse_duration,
     parse_iso8601,
+    parse_qs,
     parse_resolution,
     qualities,
     remove_start,
@@ -1033,6 +1035,7 @@ class NiconicoLiveIE(InfoExtractor):
                 thumbnails.append({
                     'id': f'{name}_{width}x{height}',
                     'url': img_url,
+                    'ext': traverse_obj(parse_qs(img_url), ('image', 0, {determine_ext(default_ext='jpg')})),
                     **res,
                 })
 

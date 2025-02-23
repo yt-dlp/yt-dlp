@@ -16,6 +16,7 @@ from ..utils import (
     update_url_query,
     urljoin,
 )
+from ..utils._utils import _request_dump_filename
 
 
 class HlsFD(FragmentFD):
@@ -80,7 +81,15 @@ class HlsFD(FragmentFD):
             self.to_screen(f'[{self.FD_NAME}] Downloading m3u8 manifest')
             urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
             man_url = urlh.url
-            s = urlh.read().decode('utf-8', 'ignore')
+            s_bytes = urlh.read()
+            if self.params.get('write_pages'):
+                dump_filename = _request_dump_filename(
+                    man_url, info_dict['id'], None,
+                    trim_length=self.params.get('trim_file_name'))
+                self.to_screen(f'[{self.FD_NAME}] Saving request to {dump_filename}')
+                with open(dump_filename, 'wb') as outf:
+                    outf.write(s_bytes)
+            s = s_bytes.decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
         if can_download:

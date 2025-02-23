@@ -337,10 +337,11 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --plugin-dirs PATH              Path to an additional directory to search
                                     for plugins. This option can be used
                                     multiple times to add multiple directories.
-                                    Note that this currently only works for
-                                    extractor plugins; postprocessor plugins can
-                                    only be loaded from the default plugin
-                                    directories
+                                    Use "default" to search the default plugin
+                                    directories (default)
+    --no-plugin-dirs                Clear plugin directories to search,
+                                    including defaults and those provided by
+                                    previous --plugin-dirs
     --flat-playlist                 Do not extract a playlist's URL result
                                     entries; some entry metadata may be missing
                                     and downloading may be bypassed
@@ -1525,7 +1526,7 @@ The available fields are:
  - `hasvid`: Gives priority to formats that have a video stream
  - `hasaud`: Gives priority to formats that have an audio stream
  - `ie_pref`: The format preference
- - `lang`: The language preference
+ - `lang`: The language preference as determined by the extractor (e.g. original language preferred over audio description)
  - `quality`: The quality of the format
  - `source`: The preference of the source
  - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `mms`/`rtsp` > `f4f`/`f4m`)

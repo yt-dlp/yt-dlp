@@ -137,6 +137,116 @@ class ZDFBaseIE(InfoExtractor):
                 group='json'),
             video_id)
 
+    def _extract_entry(self, url, player, content, video_id):
+        title = content.get('title') or content['teaserHeadline']
+
+        t = content['mainVideoContent']['http://zdf.de/rels/target']
+        ptmd_path = traverse_obj(t, (
+            (('streams', 'default'), None),
+            ('http://zdf.de/rels/streams/ptmd', 'http://zdf.de/rels/streams/ptmd-template'),
+        ), get_all=False)
+        if not ptmd_path:
+            raise ExtractorError('Could not extract ptmd_path')
+
+        info = self._extract_ptmd(
+            urljoin(url, ptmd_path.replace('{playerId}', 'android_native_5')), video_id, player['apiToken'], url)
+
+        thumbnails = []
+        layouts = try_get(
+            content, lambda x: x['teaserImageRef']['layouts'], dict)
+        if layouts:
+            for layout_key, layout_url in layouts.items():
+                layout_url = url_or_none(layout_url)
+                if not layout_url:
+                    continue
+                thumbnail = {
+                    'url': layout_url,
+                    'format_id': layout_key,
+                }
+                mobj = re.search(r'(?P<width>\d+)x(?P<height>\d+)', layout_key)
+                if mobj:
+                    thumbnail.update({
+                        'width': int(mobj.group('width')),
+                        'height': int(mobj.group('height')),
+                    })
+                thumbnails.append(thumbnail)
+
+        chapter_marks = t.get('streamAnchorTag') or []
+        chapter_marks.append({'anchorOffset': int_or_none(t.get('duration'))})
+        chapters = [{
+            'start_time': chap.get('anchorOffset'),
+            'end_time': next_chap.get('anchorOffset'),
+            'title': chap.get('anchorLabel'),
+        } for chap, next_chap in zip(chapter_marks, chapter_marks[1:])]
+
+        return merge_dicts(info, {
+            'title': title,
+            'description': content.get('leadParagraph') or content.get('teasertext'),
+            'duration': int_or_none(t.get('duration')),
+            'timestamp': unified_timestamp(content.get('editorialDate')),
+            'thumbnails': thumbnails,
+            'chapters': chapters or None,
+            'episode': title,
+            **traverse_obj(content, ('programmeItem', 0, 'http://zdf.de/rels/target', {
+                'series_id': ('http://zdf.de/rels/cmdm/series', 'seriesUuid', {str}),
+                'series': ('http://zdf.de/rels/cmdm/series', 'seriesTitle', {str}),
+                'season': ('http://zdf.de/rels/cmdm/season', 'seasonTitle', {str}),
+                'season_number': ('http://zdf.de/rels/cmdm/season', 'seasonNumber', {int_or_none}),
+                'season_id': ('http://zdf.de/rels/cmdm/season', 'seasonUuid', {str}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'episode_id': ('contentId', {str}),
+            })),
+        })
+
+    def _extract_regular(self, url, player, video_id, query=None):
+        player_url = player['content']
+
+        content = self._call_api(
+            update_url_query(player_url, query),
+            video_id, 'content', player['apiToken'], url)
+
+        return self._extract_entry(player_url, player, content, video_id)
+
+    def _extract_mobile(self, video_id):
+        video = self._download_v2_doc(video_id)
+
+        formats = []
+        formitaeten = try_get(video, lambda x: x['document']['formitaeten'], list)
+        document = formitaeten and video['document']
+        if formitaeten:
+            title = document['titel']
+            content_id = document['basename']
+
+            format_urls = set()
+            for f in formitaeten or []:
+                self._extract_format(content_id, formats, format_urls, f)
+
+        thumbnails = []
+        teaser_bild = document.get('teaserBild')
+        if isinstance(teaser_bild, dict):
+            for thumbnail_key, thumbnail in teaser_bild.items():
+                thumbnail_url = try_get(
+                    thumbnail, lambda x: x['url'], str)
+                if thumbnail_url:
+                    thumbnails.append({
+                        'url': thumbnail_url,
+                        'id': thumbnail_key,
+                        'width': int_or_none(thumbnail.get('width')),
+                        'height': int_or_none(thumbnail.get('height')),
+                    })
+
+        return {
+            'id': content_id,
+            'title': title,
+            'description': document.get('beschreibung'),
+            'duration': int_or_none(document.get('length')),
+            'timestamp': unified_timestamp(document.get('date')) or unified_timestamp(
+                try_get(video, lambda x: x['meta']['editorialDate'], str)),
+            'thumbnails': thumbnails,
+            'subtitles': self._extract_subtitles(document),
+            'formats': formats,
+        }
+
 
 class ZDFIE(ZDFBaseIE):
     _VALID_URL = r'https?://www\.zdf\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)\.html'
@@ -306,121 +416,6 @@ class ZDFIE(ZDFBaseIE):
         },
     }]
 
-    def _extract_entry(self, url, player, content, video_id):
-        title = content.get('title') or content['teaserHeadline']
-
-        t = content['mainVideoContent']['http://zdf.de/rels/target']
-        ptmd_path = traverse_obj(t, (
-            (('streams', 'default'), None),
-            ('http://zdf.de/rels/streams/ptmd', 'http://zdf.de/rels/streams/ptmd-template'),
-        ), get_all=False)
-        if not ptmd_path:
-            raise ExtractorError('Could not extract ptmd_path')
-
-        info = self._extract_ptmd(
-            urljoin(url, ptmd_path.replace('{playerId}', 'android_native_5')), video_id, player['apiToken'], url)
-
-        thumbnails = []
-        layouts = try_get(
-            content, lambda x: x['teaserImageRef']['layouts'], dict)
-        if layouts:
-            for layout_key, layout_url in layouts.items():
-                layout_url = url_or_none(layout_url)
-                if not layout_url:
-                    continue
-                thumbnail = {
-                    'url': layout_url,
-                    'format_id': layout_key,
-                }
-                mobj = re.search(r'(?P<width>\d+)x(?P<height>\d+)', layout_key)
-                if mobj:
-                    thumbnail.update({
-                        'width': int(mobj.group('width')),
-                        'height': int(mobj.group('height')),
-                    })
-                thumbnails.append(thumbnail)
-
-        chapter_marks = t.get('streamAnchorTag') or []
-        chapter_marks.append({'anchorOffset': int_or_none(t.get('duration'))})
-        chapters = [{
-            'start_time': chap.get('anchorOffset'),
-            'end_time': next_chap.get('anchorOffset'),
-            'title': chap.get('anchorLabel'),
-        } for chap, next_chap in zip(chapter_marks, chapter_marks[1:])]
-
-        return merge_dicts(info, {
-            'title': title,
-            'description': content.get('leadParagraph') or content.get('teasertext'),
-            'duration': int_or_none(t.get('duration')),
-            'timestamp': unified_timestamp(content.get('editorialDate')),
-            'thumbnails': thumbnails,
-            'chapters': chapters or None,
-            'episode': title,
-            **traverse_obj(content, ('programmeItem', 0, 'http://zdf.de/rels/target', {
-                'series_id': ('http://zdf.de/rels/cmdm/series', 'seriesUuid', {str}),
-                'series': ('http://zdf.de/rels/cmdm/series', 'seriesTitle', {str}),
-                'season': ('http://zdf.de/rels/cmdm/season', 'seasonTitle', {str}),
-                'season_number': ('http://zdf.de/rels/cmdm/season', 'seasonNumber', {int_or_none}),
-                'season_id': ('http://zdf.de/rels/cmdm/season', 'seasonUuid', {str}),
-                'episode_number': ('episodeNumber', {int_or_none}),
-                'episode_id': ('contentId', {str}),
-            })),
-        })
-
-    def _extract_regular(self, url, player, video_id):
-        player_url = player['content']
-
-        try:
-            content = self._call_api(
-                update_url_query(player_url, {'profile': 'player-3'}),
-                video_id, 'content', player['apiToken'], url)
-        except ExtractorError as e:
-            self.report_warning(f'{video_id}: {e.orig_msg}; retrying with v2 profile')
-            content = self._call_api(
-                player_url, video_id, 'content', player['apiToken'], url)
-
-        return self._extract_entry(player_url, player, content, video_id)
-
-    def _extract_mobile(self, video_id):
-        video = self._download_v2_doc(video_id)
-
-        formats = []
-        formitaeten = try_get(video, lambda x: x['document']['formitaeten'], list)
-        document = formitaeten and video['document']
-        if formitaeten:
-            title = document['titel']
-            content_id = document['basename']
-
-            format_urls = set()
-            for f in formitaeten or []:
-                self._extract_format(content_id, formats, format_urls, f)
-
-        thumbnails = []
-        teaser_bild = document.get('teaserBild')
-        if isinstance(teaser_bild, dict):
-            for thumbnail_key, thumbnail in teaser_bild.items():
-                thumbnail_url = try_get(
-                    thumbnail, lambda x: x['url'], str)
-                if thumbnail_url:
-                    thumbnails.append({
-                        'url': thumbnail_url,
-                        'id': thumbnail_key,
-                        'width': int_or_none(thumbnail.get('width')),
-                        'height': int_or_none(thumbnail.get('height')),
-                    })
-
-        return {
-            'id': content_id,
-            'title': title,
-            'description': document.get('beschreibung'),
-            'duration': int_or_none(document.get('length')),
-            'timestamp': unified_timestamp(document.get('date')) or unified_timestamp(
-                try_get(video, lambda x: x['meta']['editorialDate'], str)),
-            'thumbnails': thumbnails,
-            'subtitles': self._extract_subtitles(document),
-            'formats': formats,
-        }
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -428,7 +423,7 @@ class ZDFIE(ZDFBaseIE):
         if webpage:
             player = self._extract_player(webpage, url, fatal=False)
             if player:
-                return self._extract_regular(url, player, video_id)
+                return self._extract_regular(url, player, video_id, query={'profile': 'player-3'})
 
         return self._extract_mobile(video_id)
 
@@ -474,7 +469,8 @@ class ZDFChannelIE(ZDFBaseIE):
                 'title': ('titel', {str}),
                 'description': ('beschreibung', {str}),
                 'duration': ('length', {float_or_none}),
-                # TODO: seasonNumber and episodeNumber can be extracted but need to also be in ZDFIE
+                'season_number': ('seasonNumber', {int_or_none}),
+                'episode_number': ('episodeNumber', {int_or_none}),
             }))
 
     def _entries(self, data, document_id):
