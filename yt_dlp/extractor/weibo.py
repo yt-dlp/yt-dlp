@@ -97,7 +97,8 @@ class WeiboBaseIE(InfoExtractor):
                     })
         return formats
 
-    def _parse_video_info(self, video_info, video_id=None):
+    def _parse_video_info(self, video_info):
+        video_id = traverse_obj(video_info, (('id', 'id_str', 'mid'), {str_or_none}, any))
         return {
             'id': video_id,
             'extractor_key': WeiboIE.ie_key(),
@@ -106,7 +107,6 @@ class WeiboBaseIE(InfoExtractor):
             'http_headers': {'Referer': 'https://weibo.com/'},
             '_old_archive_ids': [make_archive_id('WeiboMobile', video_id)],
             **traverse_obj(video_info, {
-                'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
                 'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'),
                           {lambda x: x.replace('\n', ' ')}, {truncate_string(left=50)}, filter),
@@ -132,7 +132,7 @@ class WeiboIE(WeiboBaseIE):
         'url': 'https://weibo.com/7827771738/N4xlMvjhI',
         'info_dict': {
             'id': '4910815147462302',
-            '_old_archive_ids': ['weibomobile None'],
+            '_old_archive_ids': ['weibomobile 4910815147462302'],
             'ext': 'mp4',
             'display_id': 'N4xlMvjhI',
             'title': '【睡前消息暑假版第一期：拉泰国一把  对中国有好处】',
@@ -154,7 +154,7 @@ class WeiboIE(WeiboBaseIE):
         'url': 'https://m.weibo.cn/status/4189191225395228',
         'info_dict': {
             'id': '4189191225395228',
-            '_old_archive_ids': ['weibomobile None'],
+            '_old_archive_ids': ['weibomobile 4189191225395228'],
             'ext': 'mp4',
             'display_id': 'FBqgOmDxO',
             'title': '柴犬柴犬的秒拍视频',
