@@ -2406,7 +2406,7 @@ class GenericIE(InfoExtractor):
             full_response = self._request_webpage(url, video_id, headers=filter_dict({
                 'Accept-Encoding': 'identity',
                 'Referer': smuggled_data.get('referer'),
-            }), impersonate=impersonate)
+            }), expected_status=404, impersonate=impersonate)
         except ExtractorError as e:
             if not (isinstance(e.cause, HTTPError) and e.cause.status == 403
                     and e.cause.response.get_header('cf-mitigated') == 'challenge'
