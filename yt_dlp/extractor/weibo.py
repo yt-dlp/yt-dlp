@@ -6,7 +6,6 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    make_archive_id,
     mimetype2ext,
     parse_resolution,
     str_or_none,
