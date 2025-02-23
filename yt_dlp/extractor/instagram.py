@@ -740,8 +740,7 @@ class InstagramStoryIE(InstagramBaseIE):
         highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (user_id, 'items'))
         info_data = []
         for highlight in highlights:
-            highlight.setdefault('user', {})
-            highlight['user'].update(user_info)
+            highlight.setdefault('user', {}).update(user_info)
             highlight_data = self._extract_product(highlight)
             if highlight_data.get('formats'):
                 info_data.append({
