@@ -12,50 +12,45 @@ from ..utils.traversal import find_element, traverse_obj
 class SoftWhiteUnderbellyIE(InfoExtractor):
     _LOGIN_URL = 'https://www.softwhiteunderbelly.com/login'
     _NETRC_MACHINE = 'softwhiteunderbelly'
-
     _VALID_URL = r'https?://(?:www\.)?softwhiteunderbelly\.com/videos/(?P<id>[\w-]+)'
-    _TESTS = [
-        {
-            'url': 'https://www.softwhiteunderbelly.com/videos/kenneth-final1',
-            'note': 'A single Soft White Underbelly Episode',
-            'md5': '8e79f29ec1f1bda6da2e0b998fcbebb8',
-            'info_dict': {
-                'id': '3201266',
-                'ext': 'mp4',
-                'display_id': 'kenneth-final1',
-                'title': 'Appalachian Man interview-Kenneth',
-                'description': 'Soft White Underbelly interview and portrait of Kenneth, an Appalachian man in Clay County, Kentucky.',
-                'thumbnail': 'https://vhx.imgix.net/softwhiteunderbelly/assets/249f6db0-2b39-49a4-979b-f8dad4681825.jpg',
-                'uploader_url': 'https://vimeo.com/user80538407',
-                'uploader': 'OTT Videos',
-                'uploader_id': 'user80538407',
-                'duration': 512,
-            },
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
+    _TESTS = [{
+        'url': 'https://www.softwhiteunderbelly.com/videos/kenneth-final1',
+        'note': 'A single Soft White Underbelly Episode',
+        'md5': '8e79f29ec1f1bda6da2e0b998fcbebb8',
+        'info_dict': {
+            'id': '3201266',
+            'ext': 'mp4',
+            'display_id': 'kenneth-final1',
+            'title': 'Appalachian Man interview-Kenneth',
+            'description': 'Soft White Underbelly interview and portrait of Kenneth, an Appalachian man in Clay County, Kentucky.',
+            'thumbnail': 'https://vhx.imgix.net/softwhiteunderbelly/assets/249f6db0-2b39-49a4-979b-f8dad4681825.jpg',
+            'uploader_url': 'https://vimeo.com/user80538407',
+            'uploader': 'OTT Videos',
+            'uploader_id': 'user80538407',
+            'duration': 512,
         },
-        {
-            'url': 'https://www.softwhiteunderbelly.com/videos/tj-2-final-2160p',
-            'note': 'A single Soft White Underbelly Episode',
-            'md5': '286bd8851b4824c62afb369e6f307036',
-            'info_dict': {
-                'id': '3506029',
-                'ext': 'mp4',
-                'display_id': 'tj-2-final-2160p',
-                'title': 'Fentanyl Addict interview-TJ (follow up)',
-                'description': 'Soft White Underbelly follow up interview and portrait of TJ, a fentanyl addict on Skid Row.',
-                'thumbnail': 'https://vhx.imgix.net/softwhiteunderbelly/assets/c883d531-5da0-4faf-a2e2-8eba97e5adfc.jpg',
-                'duration': 817,
-                'uploader': 'OTT Videos',
-                'uploader_url': 'https://vimeo.com/user80538407',
-                'uploader_id': 'user80538407',
-            },
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        'url': 'https://www.softwhiteunderbelly.com/videos/tj-2-final-2160p',
+        'note': 'A single Soft White Underbelly Episode',
+        'md5': '286bd8851b4824c62afb369e6f307036',
+        'info_dict': {
+            'id': '3506029',
+            'ext': 'mp4',
+            'display_id': 'tj-2-final-2160p',
+            'title': 'Fentanyl Addict interview-TJ (follow up)',
+            'description': 'Soft White Underbelly follow up interview and portrait of TJ, a fentanyl addict on Skid Row.',
+            'thumbnail': 'https://vhx.imgix.net/softwhiteunderbelly/assets/c883d531-5da0-4faf-a2e2-8eba97e5adfc.jpg',
+            'duration': 817,
+            'uploader': 'OTT Videos',
+            'uploader_url': 'https://vimeo.com/user80538407',
+            'uploader_id': 'user80538407',
         },
-    ]
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }]
 
     def _perform_login(self, username, password):
         signin_page = self._download_webpage(self._LOGIN_URL, None, 'Fetching authenticity token')
-
         self._download_webpage(
             self._LOGIN_URL, None, 'Logging in',
             data=urlencode_postdata({
