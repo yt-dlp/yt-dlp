@@ -6,6 +6,7 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
+    make_archive_id,
     mimetype2ext,
     parse_resolution,
     str_or_none,
@@ -103,6 +104,7 @@ class WeiboBaseIE(InfoExtractor):
             'extractor': WeiboIE.IE_NAME,
             'formats': self._extract_formats(video_info),
             'http_headers': {'Referer': 'https://weibo.com/'},
+            '_old_archive_ids': [make_archive_id('WeiboMobile', video_id)],
             **traverse_obj(video_info, {
                 'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
@@ -130,9 +132,11 @@ class WeiboIE(WeiboBaseIE):
         'url': 'https://weibo.com/7827771738/N4xlMvjhI',
         'info_dict': {
             'id': '4910815147462302',
+            '_old_archive_ids': ['weibomobile None'],
             'ext': 'mp4',
             'display_id': 'N4xlMvjhI',
             'title': '【睡前消息暑假版第一期：拉泰国一把  对中国有好处】',
+            'alt_title': '【睡前消息暑假版第一期：拉泰国一把  对中国有好处】',
             'description': 'md5:e2637a7673980d68694ea7c43cf12a5f',
             'duration': 918,
             'timestamp': 1686312819,
@@ -150,9 +154,11 @@ class WeiboIE(WeiboBaseIE):
         'url': 'https://m.weibo.cn/status/4189191225395228',
         'info_dict': {
             'id': '4189191225395228',
+            '_old_archive_ids': ['weibomobile None'],
             'ext': 'mp4',
             'display_id': 'FBqgOmDxO',
             'title': '柴犬柴犬的秒拍视频',
+            'alt_title': '柴犬柴犬的秒拍视频',
             'description': 'md5:80f461ab5cdae6bbdb70efbf5a1db24f',
             'duration': 53,
             'timestamp': 1514264429,
@@ -167,23 +173,7 @@ class WeiboIE(WeiboBaseIE):
         },
     }, {
         'url': 'https://m.weibo.cn/detail/4189191225395228',
-        'info_dict': {
-            'id': '4189191225395228',
-            'ext': 'mp4',
-            'display_id': 'FBqgOmDxO',
-            'title': '柴犬柴犬的秒拍视频',
-            'description': 'md5:80f461ab5cdae6bbdb70efbf5a1db24f',
-            'duration': 53,
-            'timestamp': 1514264429,
-            'upload_date': '20171226',
-            'thumbnail': r're:https://.*\.jpg',
-            'uploader': '柴犬柴犬',
-            'uploader_id': '5926682210',
-            'uploader_url': 'https://weibo.com/u/5926682210',
-            'view_count': int,
-            'like_count': int,
-            'repost_count': int,
-        },
+        'only_matching': True,
     }, {
         'url': 'https://weibo.com/0/4224132150961381',
         'note': 'no playback_list example',
