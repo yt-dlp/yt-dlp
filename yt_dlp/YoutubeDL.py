@@ -1475,12 +1475,41 @@ class YoutubeDL:
             self.report_error('Error in output template: ' + str(err) + ' (encoding: ' + repr(preferredencoding()) + ')')
             return None
 
+    def validate_destination_filename(self, filename):
+        """Check if the destination filename is valid in the OS. In particular
+it checks if the length does not exceed the OS limit. However currently
+any error is simply raised, independent of the cause.
+
+Without this, download would fail only after the entire file is downloaded."""
+        cwd = os.getcwd()
+        with tempfile.TemporaryDirectory() as d:
+            os.chdir(d)
+            try:
+                with open(filename, 'w') as f:
+                    f.close()
+            except OSError as e:
+                if (os.name == 'nt' and e.errno == 206) or (e.errno == errno.ENAMETOOLONG):
+                    # The first condition is for windows,
+                    # and the second for unix-ish systems.
+
+                    # An improvement idea:
+                    # by default, retry (exec yt-dlp itself) by
+                    # -o "%(id)s.%(ext)s" --write-info-json,
+                    # but respect the directory from --output of the original call.
+                    self.to_screen('''[Notice] The file name to be saved is too long, exceeding the OS limit.
+[Notice] Consider options --trim-filenames or -o (--output).''')
+
+                    raise
+            finally:
+                os.chdir(cwd)
+
     def prepare_filename(self, info_dict, dir_type='', *, outtmpl=None, warn=False):
         """Generate the output filename"""
         if outtmpl:
             assert not dir_type, 'outtmpl and dir_type are mutually exclusive'
             dir_type = None
         filename = self._prepare_filename(info_dict, tmpl_type=dir_type, outtmpl=outtmpl)
+        self.validate_destination_filename(filename)
         if not filename and dir_type not in ('', 'temp'):
             return ''
 
