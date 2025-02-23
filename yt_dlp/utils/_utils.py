@@ -8,6 +8,7 @@ import contextlib
 import datetime as dt
 import email.header
 import email.utils
+import enum
 import errno
 import functools
 import hashlib
@@ -51,6 +52,7 @@ from ..compat import (
     compat_HTMLParseError,
 )
 from ..dependencies import xattr
+from ..globals import IN_CLI
 
 __name__ = __name__.rsplit('.', 1)[0]  # noqa: A001: Pretend to be the parent module
 
@@ -1486,8 +1488,7 @@ def write_string(s, out=None, encoding=None):
 
 # TODO: Use global logger
 def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
-    from .. import _IN_CLI
-    if _IN_CLI:
+    if IN_CLI.value:
         if msg in deprecation_warning._cache:
             return
         deprecation_warning._cache.add(msg)
@@ -4890,10 +4891,6 @@ class Config:
     filename = None
     __initialized = False
 
-    # Internal only, do not use! Hack to enable --plugin-dirs
-    # TODO(coletdjnz): remove when plugin globals system is implemented
-    _plugin_dirs = None
-
     def __init__(self, parser, label=None):
         self.parser, self.label = parser, label
         self._loaded_paths, self.configs = set(), []
@@ -5677,3 +5674,32 @@ class _YDLLogger:
     def stderr(self, message):
         if self._ydl:
             self._ydl.to_stderr(message)
+
+
+class _ProgressState(enum.Enum):
+    """
+    Represents a state for a progress bar.
+
+    See: https://conemu.github.io/en/AnsiEscapeCodes.html#ConEmu_specific_OSC
+    """
+
+    HIDDEN = 0
+    INDETERMINATE = 3
+    VISIBLE = 1
+    WARNING = 4
+    ERROR = 2
+
+    @classmethod
+    def from_dict(cls, s, /):
+        if s['status'] == 'finished':
+            return cls.INDETERMINATE
+
+        # Not currently used
+        if s['status'] == 'error':
+            return cls.ERROR
+
+        return cls.INDETERMINATE if s.get('_percent') is None else cls.VISIBLE
+
+    def get_ansi_escape(self, /, percent=None):
+        percent = 0 if percent is None else int(percent)
+        return f'\033]9;4;{self.value};{percent}\007'
