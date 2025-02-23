@@ -14,7 +14,7 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
     urljoin,
-    truncate_string
+    truncate_string,
 )
 
 
