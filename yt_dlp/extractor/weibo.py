@@ -11,10 +11,10 @@ from ..utils import (
     str_or_none,
     strip_jsonp,
     traverse_obj,
+    truncate_string,
     url_or_none,
     urlencode_postdata,
     urljoin,
-    truncate_string,
 )
 
 
