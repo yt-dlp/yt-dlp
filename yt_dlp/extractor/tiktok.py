@@ -249,17 +249,11 @@ class TikTokBaseIE(InfoExtractor):
         elif fatal:
             raise ExtractorError('Unable to extract webpage video data')
 
-        if not video_data.get('video'):
-            msg = None
+        if not traverse_obj(video_data, ('video', {dict})):
             if traverse_obj(video_data, ('isContentClassified', {bool})):
                 msg = 'This post may not be comfortable for some audiences. Log in for access'
-            elif traverse_obj(video_data, (
-                ('secret', 'forFriend', 'privateItem'), {bool}, {lambda x: x is True or None}, any),
-            ):
-                msg = 'You do not have permission to view this post. Log into an account that has access'
-            if msg and fatal:
-                self.raise_login_required(msg)
-            elif msg:
+                if fatal:
+                    self.raise_login_required(msg)
                 self.report_warning(msg, video_id=video_id)
 
         return video_data, status
@@ -908,10 +902,12 @@ class TikTokIE(TikTokBaseIE):
 
         if video_data and status == 0:
             return self._parse_aweme_video_web(video_data, url, video_id)
-        elif status == 10216:
-            raise ExtractorError('This video is private', expected=True)
+        elif status in (10216, 10222):
+            # 10216: private post; 10222: private account
+            self.raise_login_required(
+                'You do not have permission to view this post. Log into an account that has access')
         elif status == 10204:
-            raise ExtractorError('This post is unavailable in your region', expected=True)
+            raise ExtractorError('Your IP address is blocked from accessing this post', expected=True)
         raise ExtractorError(f'Video not available, status code {status}', video_id=video_id)
 
 
