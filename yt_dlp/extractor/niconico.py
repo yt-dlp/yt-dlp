@@ -28,9 +28,10 @@ from ..utils import (
     try_get,
     unescapeHTML,
     update_url_query,
+    url_basename,
     url_or_none,
     urlencode_postdata,
-    urljoin, url_basename,
+    urljoin,
 )
 
 
@@ -440,7 +441,6 @@ class NiconicoIE(InfoExtractor):
         # Sort before removing dupes to keep the format dicts with the lowest tbr
         video_fmts = sorted((fmt for fmt in dms_fmts if fmt['vcodec'] != 'none'), key=lambda f: f['tbr'])
         self._remove_duplicate_formats(video_fmts)
-
         # Calculate the true vbr/tbr by subtracting the lowest abr
         min_abr = min(traverse_obj(audios, (..., 'bitRate', {float_or_none})), default=0) / 1000
         for video_fmt in video_fmts:
