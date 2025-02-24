@@ -274,7 +274,7 @@ class PlaySuisseIE(InfoExtractor):
             'creators': media_data.get('directors'),
             'cast': media_data.get('mainCast'),
             'location': media_data.get('productionCountries'),
-            'release_year': int_or_none(media_data.get('year')[:4]) if media_data.get('year') else None ,
+            'release_year': int_or_none(media_data.get('year')[:4]) if media_data.get('year') else None,
             'thumbnails': thumbnails,
             'duration': int_or_none(media_data.get('duration')),
             'formats': formats,
