@@ -7,6 +7,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    str_or_none,
     parse_qs,
     traverse_obj,
     update_url_query,
@@ -120,6 +121,16 @@ class PlaySuisseIE(InfoExtractor):
             id
             name
             description
+            descriptionLong
+            year
+            contentTypes
+            countries
+            composers
+            directors
+            writers
+            mainCast
+            productionCompanies
+            productionCountries
             duration
             episodeNumber
             seasonNumber
@@ -259,7 +270,12 @@ class PlaySuisseIE(InfoExtractor):
         return {
             'id': media_data['id'],
             'title': media_data.get('name'),
-            'description': media_data.get('description'),
+            'description': media_data.get('descriptionLong') or media_data.get('description'),
+            'genres': media_data.get('contentTypes'),
+            'creators': media_data.get('directors'),
+            'cast': media_data.get('mainCast'),
+            'location': media_data.get('productionCountries'),
+            'release_year': int_or_none(media_data.get('year')[:4]) if media_data.get('year') else None ,
             'thumbnails': thumbnails,
             'duration': int_or_none(media_data.get('duration')),
             'formats': formats,
