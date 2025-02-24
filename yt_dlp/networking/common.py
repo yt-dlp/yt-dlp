@@ -267,7 +267,16 @@ class RequestHandler(abc.ABC):
         return self.cookiejar if cookiejar is None else cookiejar
 
     def _get_proxies(self, request):
-        return (request.proxies or self.proxies).copy()
+        if request.proxies:
+            return request.proxies.copy()
+
+        proxies = dict()
+        for proxy_key, proxy_url in self.proxies.items():
+            # Proxy url can be a callable
+            if isinstance(proxy_url, typing.Callable):
+                proxy_url = proxy_url()
+            proxies[proxy_key] = proxy_url
+        return proxies
 
     def _check_url_scheme(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
@@ -300,6 +309,8 @@ class RequestHandler(abc.ABC):
                 # Skip proxy scheme checks
                 continue
 
+            if isinstance(proxy_url, typing.Callable):
+                proxy_url = proxy_url()
             try:
                 if urllib.request._parse_proxy(proxy_url)[0] is None:
                     # Scheme-less proxies are not supported
