@@ -214,11 +214,11 @@ class PlaySuisseIE(InfoExtractor):
 
         if not self._ID_TOKEN:
             raise ExtractorError('Login failed')
-    
+
     def _real_extract(self, url):
         if not self._ID_TOKEN:
             self.raise_login_required(method='password')
-    
+
         media_id = self._match_id(url)
         query = parse_qs(url)
         locale_param = (query.get('locale') or ['de'])[0].lower()
@@ -231,7 +231,7 @@ class PlaySuisseIE(InfoExtractor):
                 'entries': map(self._extract_single, media_data['episodes']),
             })
         return info
-    
+
     def _get_media_data(self, media_id, locale):
         response = self._download_json(
             'https://www.playsuisse.ch/api/graphql',
