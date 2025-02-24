@@ -214,27 +214,16 @@ class PlaySuisseIE(InfoExtractor):
 
         if not self._ID_TOKEN:
             raise ExtractorError('Login failed')
-
-    def _get_media_data(self, media_id):
-        # NOTE In the web app, the "locale" header is used to switch between languages,
-        # However this doesn't seem to take effect when passing the header here.
-        response = self._download_json(
-            'https://www.playsuisse.ch/api/graphql',
-            media_id, data=json.dumps({
-                'operationName': 'AssetWatch',
-                'query': self._GRAPHQL_QUERY,
-                'variables': {'assetId': media_id},
-            }).encode(),
-            headers={'Content-Type': 'application/json', 'locale': 'de'})
-
-        return response['data']['assetV2']
-
+    
     def _real_extract(self, url):
         if not self._ID_TOKEN:
             self.raise_login_required(method='password')
-
+    
         media_id = self._match_id(url)
-        media_data = self._get_media_data(media_id)
+        query = parse_qs(url)
+        locale_param = (query.get('locale') or ['de'])[0].lower()
+        locale = locale_param if locale_param in {'fr', 'en', 'it', 'de', 'rm'} else 'de'
+        media_data = self._get_media_data(media_id, locale)
         info = self._extract_single(media_data)
         if media_data.get('episodes'):
             info.update({
@@ -242,6 +231,17 @@ class PlaySuisseIE(InfoExtractor):
                 'entries': map(self._extract_single, media_data['episodes']),
             })
         return info
+    
+    def _get_media_data(self, media_id, locale):
+        response = self._download_json(
+            'https://www.playsuisse.ch/api/graphql',
+            media_id, data=json.dumps({
+                'operationName': 'AssetWatch',
+                'query': self._GRAPHQL_QUERY,
+                'variables': {'assetId': media_id},
+            }).encode(),
+            headers={'Content-Type': 'application/json', 'locale': locale})
+        return response['data']['assetV2']
 
     def _extract_single(self, media_data):
         thumbnails = traverse_obj(media_data, lambda k, _: k.startswith('thumbnail'))
