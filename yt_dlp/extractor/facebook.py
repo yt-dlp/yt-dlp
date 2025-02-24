@@ -70,7 +70,6 @@ class FacebookIE(InfoExtractor):
     IE_NAME = 'facebook'
 
     _VIDEO_PAGE_TEMPLATE = 'https://www.facebook.com/video/video.php?v=%s'
-    _VIDEO_PAGE_TAHOE_TEMPLATE = 'https://www.facebook.com/video/tahoe/async/%s/?chain=true&isvideo=true&payloadtype=primary'
 
     _TESTS = [{
         'url': 'https://www.facebook.com/radiokicksfm/videos/3676516585958356/',
@@ -238,7 +237,7 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '1569199726448814',
             'ext': 'mp4',
-            'title': 'Pence MUST GO!',
+            'title': 'Trump/Musk & Vance MUST GO!',
             'description': 'Vickie Gentry shared a memory.',
             'timestamp': 1511548260,
             'upload_date': '20171124',
@@ -413,6 +412,13 @@ class FacebookIE(InfoExtractor):
     }, {
         'url': 'https://www.facebook.com/groups/1513990329015294/posts/d41d8cd9/2013209885760000/?app=fbl',
         'only_matching': True,
+    }, {
+        'url': 'https://www.facebook.com/WatchESLOne/videos/297860117405429/',
+        'info_dict': {
+            'id': '297860117405429',
+        },
+        'playlist_count': 1,
+        'skip': 'URL that previously required tahoe player, but currently not working. More info: https://github.com/ytdl-org/youtube-dl/issues/15441',
     }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
@@ -673,15 +679,15 @@ class FacebookIE(InfoExtractor):
             return self._extract_video_data(try_get(
                 js_data, lambda x: x['jsmods']['instances'], list) or [])
 
-    def _yield_all_relay_data(self, _filter, video_id, webpage):
+    def _yield_all_relay_data(self, _filter, webpage):
         for relay_data in re.findall(rf'data-sjs>({{.*?{_filter}.*?}})</script>', webpage):
-            yield self._parse_json(relay_data, video_id, fatal=False) or {}
+            yield self._parse_json(relay_data, None, fatal=False) or {}
 
-    def _extract_relay_prefetched_data(self, _filter, video_id, webpage, target_keys=None):
+    def _extract_relay_prefetched_data(self, _filter, webpage, target_keys=None):
         path = 'data'
         if target_keys is not None:
             path = lambda k, v: k == 'data' and any(target in v for target in variadic(target_keys))
-        return traverse_obj(self, self._yield_all_relay_data(_filter, video_id, webpage), (
+        return traverse_obj(self._yield_all_relay_data(_filter, webpage), (
             ..., 'require', (None, (..., ..., ..., '__bbox', 'require')),
             lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v),
             ..., ..., '__bbox', 'result', path, {dict}), get_all=False) or {}
@@ -709,7 +715,6 @@ class FacebookIE(InfoExtractor):
         if not video_data:
             data = self._extract_relay_prefetched_data(
                 r'"(?:dash_manifest|playable_url(?:_quality_hd)?)',
-                video_id,
                 webpage,
                 target_keys=('video', 'event', 'nodes', 'node', 'mediaset'))
             if data:
@@ -781,13 +786,13 @@ class FacebookIE(InfoExtractor):
                 }),
             }
 
-            prefetched_data = self._extract_relay_prefetched_data(r'"login_data"\s*:\s*{', video_id, webpage)
+            prefetched_data = self._extract_relay_prefetched_data(r'"login_data"\s*:\s*{', webpage)
             if prefetched_data:
                 lsd = try_get(prefetched_data, lambda x: x['login_data']['lsd'], dict)
                 if lsd:
                     post_data[lsd['name']] = lsd['value']
 
-            relay_data = next(filter(None, self._yield_all_relay_data(r'\[\s*"RelayAPIConfigDefaults"\s*,', video_id, webpage)), {})
+            relay_data = next(filter(None, self._yield_all_relay_data(r'\[\s*"RelayAPIConfigDefaults"\s*,', webpage)), {})
 
             for define in (relay_data.get('define') or []):
                 if define[0] == 'RelayAPIConfigDefaults':
@@ -809,33 +814,6 @@ class FacebookIE(InfoExtractor):
                     self.ie_key(), v_id, video.get('name')))
 
             return self.playlist_result(entries, video_id)
-
-        if not video_data:
-            # Video info not in first request, do a secondary request using
-            # tahoe player specific URL
-            tahoe_data = self._download_webpage(
-                self._VIDEO_PAGE_TAHOE_TEMPLATE % video_id, video_id,
-                data=urlencode_postdata({
-                    '__a': 1,
-                    '__pc': self._search_regex(
-                        r'pkg_cohort["\']\s*:\s*["\'](.+?)["\']', webpage,
-                        'pkg cohort', default='PHASED:DEFAULT'),
-                    '__rev': self._search_regex(
-                        r'client_revision["\']\s*:\s*(\d+),', webpage,
-                        'client revision', default='3944515'),
-                    'fb_dtsg': self._search_regex(
-                        r'"DTSGInitialData"\s*,\s*\[\]\s*,\s*{\s*"token"\s*:\s*"([^"]+)"',
-                        webpage, 'dtsg token', default=''),
-                }),
-                headers={
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                })
-            tahoe_js_data = self._parse_json(
-                self._search_regex(
-                    r'for\s+\(\s*;\s*;\s*\)\s*;(.+)', tahoe_data,
-                    'tahoe js data', default='{}'),
-                video_id, fatal=False)
-            video_data = self._extract_from_jsmods_instances(tahoe_js_data)
 
         if not video_data:
             raise ExtractorError('Cannot parse data')
