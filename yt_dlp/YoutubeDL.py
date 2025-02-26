@@ -3918,7 +3918,7 @@ class YoutubeDL:
                 self._format_out(format_field(f, 'format_id'), self.Styles.ID),
                 format_field(f, 'ext'),
                 format_field(f, func=self.format_resolution, ignore=('audio only', 'images')),
-                format_field(f, 'fps', '\t%d', func=round),
+                format_field(f, 'fps', '\t%s'),
                 format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
                 format_field(f, 'audio_channels', '\t%s'),
                 delim, (
