@@ -4314,7 +4314,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self.report_warning(
                         f'Some {client_name} client formats have been skipped as they are missing a url. '
                         f'{"Your account" if self.is_authenticated else "The current session"} may have '
-                        f'the Server Stitched Ad Placement (SSAP) experiment which may be interfering with yt-dlp. '
+                        f'the SSAP (server-side ads) experiment which may be interfering with yt-dlp. '
                         f'Please see  https://github.com/yt-dlp/yt-dlp/issues/XXXXX  for more details.',
                         only_once=True)
                     continue
