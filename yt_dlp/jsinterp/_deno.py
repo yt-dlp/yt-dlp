@@ -10,7 +10,6 @@ import urllib.parse
 from ..utils import (
     ExtractorError,
     Popen,
-    classproperty,
     int_or_none,
     shell_quote,
     unified_timestamp,
@@ -56,18 +55,6 @@ class DenoJSI(ExternalJSI):
         with TempFileWrapper(f'{self._init_script};\n{self._override_navigator_js}\n{jscode}', suffix='.js') as js_file:
             cmd = [self.exe, 'run', *self._flags, *location_args, js_file.name]
             return self._run_deno(cmd)
-
-
-@register_jsi
-class DenoJITlessJSI(DenoJSI):
-    _SUPPORTED_FEATURES = {'location'}
-    _BASE_PREFERENCE = 6
-    _EXE_NAME = DenoJSI._EXE_NAME
-    _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check', '--v8-flags=--jitless,--noexpose-wasm']
-
-    @classproperty
-    def exe_version(cls):
-        return DenoJSI.exe_version
 
 
 @register_jsi

@@ -212,7 +212,7 @@ The following provide support for impersonating browser requests. This may be re
 ### Misc
 
 * [**pycryptodomex**](https://github.com/Legrandin/pycryptodome)\* - For decrypting AES-128 HLS streams and various other data. Licensed under [BSD-2-Clause](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
-* [**phantomjs**](https://github.com/ariya/phantomjs) - Used in extractors where javascript needs to be run. Licensed under [BSD-3-Clause](https://github.com/ariya/phantomjs/blob/master/LICENSE.BSD)
+* [**phantomjs**](https://github.com/ariya/phantomjs), [**deno**](https://github.com/denoland/deno/) - Used in extractors where javascript needs to be run. Licensed under [BSD-3-Clause](https://github.com/ariya/phantomjs/blob/master/LICENSE.BSD) and [MIT](https://github.com/xattr/xattr/blob/master/LICENSE.txt) respectively
 * [**secretstorage**](https://github.com/mitya57/secretstorage)\* - For `--cookies-from-browser` to access the **Gnome** keyring while decrypting cookies of **Chromium**-based browsers on **Linux**. Licensed under [BSD-3-Clause](https://github.com/mitya57/secretstorage/blob/master/LICENSE)
 * Any external downloader that you want to use with `--downloader`
 
@@ -790,7 +790,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     be used along with --min-sleep-interval
     --sleep-subtitles SECONDS       Number of seconds to sleep before each
                                     subtitle download
-    --jsi-preference                Preferred JS interpreters to use during
+    --jsi-preference JSI            Preferred JS interpreters to use during
                                     extraction. Can be given as comma-separated
                                     values
 

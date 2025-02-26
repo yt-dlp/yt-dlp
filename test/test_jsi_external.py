@@ -21,7 +21,7 @@ from yt_dlp.utils import (
 )
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.jsinterp.common import ExternalJSI, _ALL_FEATURES
-from yt_dlp.jsinterp._deno import DenoJSI, DenoJITlessJSI, DenoJSDomJSI
+from yt_dlp.jsinterp._deno import DenoJSI, DenoJSDomJSI
 from yt_dlp.jsinterp._phantomjs import PhantomJSJSI
 from yt_dlp.jsinterp._helper import prepare_wasm_jsmodule
 
@@ -204,10 +204,6 @@ class Base:
 
 class TestDeno(Base.TestExternalJSI):
     _JSI_CLASS = DenoJSI
-
-
-class TestDenoJITless(Base.TestExternalJSI):
-    _JSI_CLASS = DenoJITlessJSI
 
 
 class TestDenoDom(Base.TestExternalJSI):

@@ -437,6 +437,8 @@ class YoutubeDL:
                        Actual sleep time will be a random float from range
                        [sleep_interval; max_sleep_interval].
     sleep_interval_subtitles: Number of seconds to sleep before each subtitle download
+    jsi_preference:    Preferred JS interpreters to use during extraction. Can be
+                       given as comma-separated values.
     listformats:       Print an overview of available video formats and exit.
     list_thumbnails:   Print a table of all thumbnails and exit.
     match_filter:      A function that gets called for every video with the signature
