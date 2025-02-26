@@ -4315,7 +4315,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         f'Some {client_name} client formats have been skipped as they are missing a url. '
                         f'{"Your account" if self.is_authenticated else "The current session"} may have '
                         f'the SSAP (server-side ads) experiment which may be interfering with yt-dlp. '
-                        f'Please see  https://github.com/yt-dlp/yt-dlp/issues/XXXXX  for more details.',
+                        f'Please see  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details.',
                         only_once=True)
                     continue
                 try:
