@@ -67,7 +67,7 @@ class RPlayBaseIE(InfoExtractor):
             'Butter': self.get_butter_token(),
         }
 
-    def _login_hint(self, **kwargs):
+    def _login_hint(self, *args, **kwargs):
         return (f'Use --username and --password, --netrc-cmd, --netrc ({self._NETRC_MACHINE}) '
                 'or --extractor-args "rplaylive:jwt_token=xxx" to provide account credentials')
 
@@ -291,17 +291,17 @@ class RPlayLiveIE(RPlayBaseIE):
     _TESTS = [{
         'url': 'https://rplay.live/c/chachamaru/live',
         'info_dict': {
-            'id': '667e4cd99aa7f739a2c91852',
+            'id': '667e511a6f7cead36a00e7b1',
             'ext': 'mp4',
-            'title': r're:【ASMR】ん～っやば//スキスキ耐久.*',
-            'description': 'md5:7f88ac0a7a3d5d0b926a0baecd1d40e1',
-            'timestamp': 1721739947,
-            'upload_date': '20240723',
+            'title': r're:【ASMR】やばっ*',
+            'description': 'md5:de9d0f8e8b80ee93678bebad5b43254e',
+            'timestamp': 1740578497,
+            'upload_date': '20250226',
             'live_status': 'is_live',
             'thumbnail': 'https://pb.rplay.live/liveChannelThumbnails/667e4cd99aa7f739a2c91852',
             'uploader': '愛犬茶々丸',
             'uploader_id': '667e4cd99aa7f739a2c91852',
-            'tags': 'count:9',
+            'tags': list,
         },
         'skip': 'live',
     }, {
@@ -314,20 +314,25 @@ class RPlayLiveIE(RPlayBaseIE):
 
         user_info = self._download_json('https://api.rplay-cdn.com/account/getuser', user_id, query={
             'customUrl' if short == 'c' else 'userOid': user_id})
-        if user_info.get('isLive') is False:
-            raise UserNotLive
         user_id = user_info['_id']
 
-        live_info = self._download_json('https://api.rplay-cdn.com/live/play', user_id, query={'creatorOid': user_id})
+        live_info = self._download_json('https://api.rplay-cdn.com/live/play', user_id, query={
+            'creatorOid': user_id, **self.requestor_query}, headers=self.jwt_header)
 
         stream_state = live_info['streamState']
-        if stream_state == 'youtube':
+        if stream_state == 'offline':
+            raise UserNotLive
+        elif stream_state == 'youtube':
             return self.url_result(f'https://www.youtube.com/watch?v={live_info["liveStreamId"]}')
         elif stream_state == 'twitch':
             return self.url_result(f'https://www.twitch.tv/{live_info["twitchLogin"]}')
         elif stream_state == 'live':
             if not self.user_id and not live_info.get('allowAnonymous'):
                 self.raise_login_required(method='password')
+            if not live_info.get('accessible'):
+                if traverse_obj(live_info, ('tierHashes', lambda _, v: v == 'free', any)):
+                    raise ExtractorError('The livestream requires a free subscription to access', expected=True)
+                raise ExtractorError('You do not have access to the livestream', expected=True)
             key2 = traverse_obj(self._download_json(
                 'https://api.rplay-cdn.com/live/key2', user_id, 'getting live key',
                 headers=self.jwt_header, query=self.requestor_query), ('authKey', {str})) if self.user_id else ''
@@ -338,7 +343,7 @@ class RPlayLiveIE(RPlayBaseIE):
                 query={'creatorOid': user_id, 'key2': key2}, headers={'Referer': 'https://rplay.live'})
 
             return {
-                'id': user_id,
+                'id': live_info.get('oid') or user_id,
                 'formats': formats,
                 'is_live': True,
                 'http_headers': {'Referer': 'https://rplay.live'},
@@ -353,7 +358,5 @@ class RPlayLiveIE(RPlayBaseIE):
                     'age_limit': ('isAdultContent', {lambda x: 18 if x else None}),
                 }),
             }
-        elif stream_state == 'offline':
-            raise UserNotLive
         else:
             raise ExtractorError(f'Unknow streamState: {stream_state}')
