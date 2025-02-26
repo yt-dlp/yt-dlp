@@ -94,7 +94,7 @@ class RPlayBaseIE(InfoExtractor):
 
     def _login_by_token(self, jwt_token, raw_token_hint=False):
         user_info = self._download_json(
-            'https://api.rplay.live/account/login', 'login', note='performing login', errnote='login failed',
+            'https://api.rplay-cdn.com/account/login', 'login', note='performing login', errnote='login failed',
             data=f'{{"token":"{jwt_token}","loginType":null,"checkAdmin":null}}'.encode(),
             headers={'Content-Type': 'application/json', 'Authorization': 'null'}, fatal=False)
 
@@ -153,6 +153,25 @@ class RPlayVideoIE(RPlayBaseIE):
             'age_limit': 18,
             'live_status': 'was_live',
         },
+    }, {
+        'url': 'https://rplay.live/play/664f6dbe8ff72ac8bb0aecfc',
+        'info_dict': {
+            'id': '664f6dbe8ff72ac8bb0aecfc',
+            'ext': 'mp4',
+            'title': 'md5:b47c5094854a84e3318f8b0bd70fdee8',
+            'description': 'md5:edc7641e1bbb195e788a9695883f6ab9',
+            'timestamp': 1716481470,
+            'upload_date': '20240523',
+            'release_timestamp': 1716485243,
+            'release_date': '20240523',
+            'duration': 7273.433333,
+            'thumbnail': 'https://pb.rplay.live/thumbnail/664f6dbe8ff72ac8bb0aecfc',
+            'uploader': 'ミス・ネフェルー',
+            'uploader_id': '6640ce9db293d7d82bf76cfd',
+            'tags': 'count:3',
+            'age_limit': 18,
+        },
+        'skip': 'subscribe required',
     }]
 
     def _real_extract(self, url):
@@ -161,7 +180,7 @@ class RPlayVideoIE(RPlayBaseIE):
         playlist_id = traverse_obj(parse_qs(url), ('playlist', ..., any))
         if playlist_id and self._yes_playlist(playlist_id, video_id):
             playlist_info = self._download_json(
-                'https://api.rplay.live/content/playlist', playlist_id,
+                'https://api.rplay-cdn.com/content/playlist', playlist_id,
                 query={'playlistOid': playlist_id, **self.requestor_query},
                 headers=self.jwt_header, fatal=False)
             if playlist_info:
@@ -171,7 +190,7 @@ class RPlayVideoIE(RPlayBaseIE):
             else:
                 self.report_warning('Failed to get playlist, downloading video only')
 
-        video_info = self._download_json('https://api.rplay.live/content', video_id, query={
+        video_info = self._download_json('https://api.rplay-cdn.com/content', video_id, query={
             'contentOid': video_id,
             'status': 'published',
             'withComments': True,
@@ -239,7 +258,7 @@ class RPlayUserIE(InfoExtractor):
         'url': 'https://rplay.live/c/furachi',
         'info_dict': {
             'id': '65e07e60850f4527aab74757',
-            'title': '逢瀬ふらち OuseFurachi',
+            'title': '桜彗ふらち OuseFurachi',
         },
         'playlist_mincount': 94,
     }]
@@ -247,10 +266,10 @@ class RPlayUserIE(InfoExtractor):
     def _real_extract(self, url):
         user_id, short = self._match_valid_url(url).group('id', 'short')
 
-        user_info = self._download_json('https://api.rplay.live/account/getuser', user_id, query={
+        user_info = self._download_json('https://api.rplay-cdn.com/account/getuser', user_id, query={
             'customUrl' if short == 'c' else 'userOid': user_id, 'options': '{"includeContentMetadata":true}'})
         replays = self._download_json(
-            'https://api.rplay.live/live/replays', user_id, query={'creatorOid': user_info.get('_id')})
+            'https://api.rplay-cdn.com/live/replays', user_id, query={'creatorOid': user_info.get('_id')})
 
         def _entries():
             def _entry_ids():
@@ -293,13 +312,13 @@ class RPlayLiveIE(RPlayBaseIE):
     def _real_extract(self, url):
         user_id, short = self._match_valid_url(url).group('id', 'short')
 
-        user_info = self._download_json('https://api.rplay.live/account/getuser', user_id, query={
+        user_info = self._download_json('https://api.rplay-cdn.com/account/getuser', user_id, query={
             'customUrl' if short == 'c' else 'userOid': user_id})
         if user_info.get('isLive') is False:
             raise UserNotLive
         user_id = user_info['_id']
 
-        live_info = self._download_json('https://api.rplay.live/live/play', user_id, query={'creatorOid': user_id})
+        live_info = self._download_json('https://api.rplay-cdn.com/live/play', user_id, query={'creatorOid': user_id})
 
         stream_state = live_info['streamState']
         if stream_state == 'youtube':
@@ -310,12 +329,12 @@ class RPlayLiveIE(RPlayBaseIE):
             if not self.user_id and not live_info.get('allowAnonymous'):
                 self.raise_login_required(method='password')
             key2 = traverse_obj(self._download_json(
-                'https://api.rplay.live/live/key2', user_id, 'getting live key',
+                'https://api.rplay-cdn.com/live/key2', user_id, 'getting live key',
                 headers=self.jwt_header, query=self.requestor_query), ('authKey', {str})) if self.user_id else ''
             if key2 is None:
                 raise ExtractorError('Failed to get playlist key')
             formats = self._extract_m3u8_formats(
-                'https://api.rplay.live/live/stream/playlist.m3u8', user_id,
+                'https://api.rplay-cdn.com/live/stream/playlist.m3u8', user_id,
                 query={'creatorOid': user_id, 'key2': key2}, headers={'Referer': 'https://rplay.live'})
 
             return {
