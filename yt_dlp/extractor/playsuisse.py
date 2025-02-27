@@ -232,7 +232,7 @@ class PlaySuisseIE(InfoExtractor):
         media_id = self._match_id(url)
         query = parse_qs(url)
         locale_param = (query.get('locale') or ['de'])[0].lower()
-        locale = locale_param if locale_param in {'fr', 'en', 'it', 'de', 'rm'} else 'de'
+        locale = locale_param if locale_param in {'de', 'fr', 'it', 'rm'} else 'de'
         media_data = self._get_media_data(media_id, locale)
         info = self._extract_single(media_data)
         if media_data.get('episodes'):
