@@ -2841,12 +2841,15 @@ class InfoExtractor:
                     url_el = representation.find(_add_ns('BaseURL'))
                     filesize = int_or_none(url_el.attrib.get('{http://youtube.com/yt/2012/10/10}contentLength') if url_el is not None else None)
                     bandwidth = int_or_none(representation_attrib.get('bandwidth'))
+                    fps = representation_attrib.get('frameRate')
                     if representation_id is not None:
                         format_id = representation_id
                     else:
                         format_id = content_type
                     if mpd_id:
                         format_id = mpd_id + '-' + format_id
+                    if fps and (m := re.match(r'^(\d+)/(\d+)$', fps)):
+                        fps = int(m.group(1)) / int(m.group(2))
                     if content_type in ('video', 'audio'):
                         f = {
                             'format_id': format_id,
@@ -2856,7 +2859,7 @@ class InfoExtractor:
                             'height': int_or_none(representation_attrib.get('height')),
                             'tbr': float_or_none(bandwidth, 1000),
                             'asr': int_or_none(representation_attrib.get('audioSamplingRate')),
-                            'fps': int_or_none(representation_attrib.get('frameRate')),
+                            'fps': float_or_none(fps),
                             'language': lang if lang not in ('mul', 'und', 'zxx', 'mis') else None,
                             'format_note': f'DASH {content_type}',
                             'filesize': filesize,
