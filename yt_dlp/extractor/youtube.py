@@ -4266,6 +4266,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             } for range_start in range(0, f['filesize'], CHUNK_SIZE))
 
         for fmt in streaming_formats:
+            client_name = fmt[STREAMING_DATA_CLIENT_NAME]
             if fmt.get('targetDurationSec'):
                 continue
 
@@ -4310,6 +4311,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
                 encrypted_sig = try_get(sc, lambda x: x['s'][0])
                 if not all((sc, fmt_url, player_url, encrypted_sig)):
+                    self.report_warning(
+                        f'Some {client_name} client formats have been skipped as they are missing a url. '
+                        f'{"Your account" if self.is_authenticated else "The current session"} may have '
+                        f'the SSAP (server-side ads) experiment which may be interfering with yt-dlp. '
+                        f'Please see  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details.',
+                        only_once=True)
                     continue
                 try:
                     fmt_url += '&{}={}'.format(
@@ -4356,7 +4363,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.report_warning(
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
-            client_name = fmt[STREAMING_DATA_CLIENT_NAME]
             po_token = fmt.get(STREAMING_DATA_INITIAL_PO_TOKEN)
 
             if po_token:
