@@ -286,7 +286,7 @@ class VRTIE(VRTBaseIE):
         }
 
 
-class VRTMAXIE(VRTMAXBaseIE):
+class VrtNUIE(VRTMAXBaseIE):
     IE_DESC = 'VRT MAX'
     _NETRC_MACHINE = 'vrtmax'
     _TESTS = [{

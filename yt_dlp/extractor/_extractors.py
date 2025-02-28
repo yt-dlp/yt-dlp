@@ -2397,10 +2397,10 @@ from .voxmedia import (
 )
 from .vrt import (
     VRTIE,
-    VRTMAXIE,
     DagelijkseKostIE,
     KetnetIE,
     Radio1BeIE,
+    VrtNUIE,
 )
 from .vtm import VTMIE
 from .vtv import (
