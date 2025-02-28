@@ -335,6 +335,7 @@ from .canal1 import Canal1IE
 from .canalalpha import CanalAlphaIE
 from .canalc2 import Canalc2IE
 from .canalplus import CanalplusIE
+from .canalsurmas import CanalsurmasExtractorIE
 from .caracoltv import CaracolTvPlayIE
 from .cartoonnetwork import CartoonNetworkIE
 from .cbc import (
