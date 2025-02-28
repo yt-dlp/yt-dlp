@@ -38,7 +38,7 @@ from .exceptions import (
     SSLError,
     TransportError,
 )
-from ..dependencies import brotli
+from ..dependencies import brotli, zstandard
 from ..socks import ProxyError as SocksProxyError
 from ..utils import update_url_query
 from ..utils.networking import normalize_url
@@ -49,6 +49,10 @@ CONTENT_DECODE_ERRORS = [zlib.error, OSError]
 if brotli:
     SUPPORTED_ENCODINGS.append('br')
     CONTENT_DECODE_ERRORS.append(brotli.error)
+
+if zstandard:
+    SUPPORTED_ENCODINGS.append('zstd')
+    CONTENT_DECODE_ERRORS.append(zstandard.ZstdError)
 
 
 def _create_http_connection(http_class, source_address, *args, **kwargs):
@@ -119,6 +123,12 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
         return brotli.decompress(data)
 
     @staticmethod
+    def zstd(data):
+        if not data:
+            return data
+        return zstandard.ZstdDecompressor().decompress(data)
+
+    @staticmethod
     def gz(data):
         # There may be junk added the end of the file
         # We ignore it by only ever decoding a single gzip payload
@@ -158,6 +168,8 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
                 decoded_response = self.deflate(decoded_response or resp.read())
             elif encoding == 'br' and brotli:
                 decoded_response = self.brotli(decoded_response or resp.read())
+            elif encoding == 'zstd' and zstandard:
+                decoded_response = self.zstd(decoded_response or resp.read())
 
         if decoded_response is not None:
             resp = urllib.request.addinfourl(io.BytesIO(decoded_response), old_resp.headers, old_resp.url, old_resp.code)
