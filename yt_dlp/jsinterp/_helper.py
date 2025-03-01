@@ -100,7 +100,7 @@ def extract_script_tags(html: str) -> tuple[str, list[str]]:
     script_indicies = []
     inline_scripts = []
 
-    for match_start in re.finditer(r'<script[^>]*>', html, re.DOTALL):
+    for match_start in re.finditer(r'<script[^>]*>', html, re.DOTALL | re.IGNORECASE):
         end = html.find('</script>', match_start.end())
         if end > match_start.end():
             script_indicies.append((match_start.start(), end + len('</script>')))
