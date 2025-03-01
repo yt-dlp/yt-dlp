@@ -1,29 +1,32 @@
-import base64
 import functools
-import json
 import re
 import time
 import urllib.parse
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
     js_to_json,
+    jwt_decode_hs256,
     mimetype2ext,
     orderedSet,
+    parse_age_limit,
     parse_iso8601,
     replace_extension,
     smuggle_url,
     strip_or_none,
-    traverse_obj,
     try_get,
+    unified_timestamp,
     update_url,
     url_basename,
     url_or_none,
+    urlencode_postdata,
 )
+from ..utils.traversal import require, traverse_obj, trim_str
 
 
 class CBCIE(InfoExtractor):
@@ -516,9 +519,43 @@ class CBCPlayerPlaylistIE(InfoExtractor):
         return self.playlist_result(entries(), playlist_id)
 
 
-class CBCGemIE(InfoExtractor):
+class CBCGemBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'cbcgem'
+    _GEO_COUNTRIES = ['CA']
+
+    def _call_show_api(self, item_id, display_id=None):
+        return self._download_json(
+            f'https://services.radio-canada.ca/ott/catalog/v2/gem/show/{item_id}',
+            display_id or item_id, query={'device': 'web'})
+
+    def _extract_item_info(self, item_info):
+        episode_number = None
+        title = traverse_obj(item_info, ('title', {str}))
+        if title and (mobj := re.match(r'(?P<episode>\d+)\. (?P<title>.+)', title)):
+            episode_number = int_or_none(mobj.group('episode'))
+            title = mobj.group('title')
+
+        return {
+            'episode_number': episode_number,
+            **traverse_obj(item_info, {
+                'id': ('url', {str}),
+                'episode_id': ('url', {str}),
+                'description': ('description', {str}),
+                'thumbnail': ('images', 'card', 'url', {url_or_none}, {update_url(query=None)}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'duration': ('metadata', 'duration', {int_or_none}),
+                'release_timestamp': ('metadata', 'airDate', {unified_timestamp}),
+                'timestamp': ('metadata', 'availabilityDate', {unified_timestamp}),
+                'age_limit': ('metadata', 'rating', {trim_str(start='C')}, {parse_age_limit}),
+            }),
+            'episode': title,
+            'title': title,
+        }
+
+
+class CBCGemIE(CBCGemBaseIE):
     IE_NAME = 'gem.cbc.ca'
-    _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>[0-9a-z-]+/s[0-9]+[a-z][0-9]+)'
+    _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>[0-9a-z-]+/s(?P<season>[0-9]+)[a-z][0-9]+)'
     _TESTS = [{
         # This is a normal, public, TV show video
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06e01',
@@ -529,7 +566,7 @@ class CBCGemIE(InfoExtractor):
             'description': 'md5:929868d20021c924020641769eb3e7f1',
             'thumbnail': r're:https://images\.radio-canada\.ca/[^#?]+/cbc_schitts_creek_season_06e01_thumbnail_v01\.jpg',
             'duration': 1324,
-            'categories': ['comedy'],
+            'genres': ['Comédie et humour'],
             'series': 'Schitt\'s Creek',
             'season': 'Season 6',
             'season_number': 6,
@@ -537,9 +574,10 @@ class CBCGemIE(InfoExtractor):
             'episode_number': 1,
             'episode_id': 'schitts-creek/s06e01',
             'upload_date': '20210618',
-            'timestamp': 1623988800,
+            'timestamp': 1623974400,
             'release_date': '20200107',
-            'release_timestamp': 1578427200,
+            'release_timestamp': 1578355200,
+            'age_limit': 14,
         },
         'params': {'format': 'bv'},
     }, {
@@ -557,12 +595,13 @@ class CBCGemIE(InfoExtractor):
             'episode_number': 1,
             'episode': 'The Cup Runneth Over',
             'episode_id': 'schitts-creek/s01e01',
-            'duration': 1309,
-            'categories': ['comedy'],
+            'duration': 1308,
+            'genres': ['Comédie et humour'],
             'upload_date': '20210617',
-            'timestamp': 1623902400,
-            'release_date': '20151124',
-            'release_timestamp': 1448323200,
+            'timestamp': 1623888000,
+            'release_date': '20151123',
+            'release_timestamp': 1448236800,
+            'age_limit': 14,
         },
         'params': {'format': 'bv'},
     }, {
@@ -570,82 +609,107 @@ class CBCGemIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _GEO_COUNTRIES = ['CA']
-    _TOKEN_API_KEY = '3f4beddd-2061-49b0-ae80-6f1f2ed65b37'
-    _NETRC_MACHINE = 'cbcgem'
+    _CLIENT_ID = 'fc05b0ee-3865-4400-a3cc-3da82c330c23'
+    _refresh_token = None
+    _access_token = None
     _claims_token = None
 
-    def _new_claims_token(self, email, password):
-        data = json.dumps({
-            'email': email,
-            'password': password,
-        }).encode()
-        headers = {'content-type': 'application/json'}
-        query = {'apikey': self._TOKEN_API_KEY}
-        resp = self._download_json('https://api.loginradius.com/identity/v2/auth/login',
-                                   None, data=data, headers=headers, query=query)
-        access_token = resp['access_token']
+    @functools.cached_property
+    def _ropc_settings(self):
+        return self._download_json(
+            'https://services.radio-canada.ca/ott/catalog/v1/gem/settings', None,
+            'Downloading site settings', query={'device': 'web'})['identityManagement']['ropc']
 
-        query = {
-            'access_token': access_token,
-            'apikey': self._TOKEN_API_KEY,
-            'jwtapp': 'jwt',
-        }
-        resp = self._download_json('https://cloud-api.loginradius.com/sso/jwt/api/token',
-                                   None, headers=headers, query=query)
-        sig = resp['signature']
+    def _is_jwt_expired(self, token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 300
 
-        data = json.dumps({'jwt': sig}).encode()
-        headers = {'content-type': 'application/json', 'ott-device-type': 'web'}
-        resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/token',
-                                   None, data=data, headers=headers, expected_status=426)
-        cbc_access_token = resp['accessToken']
+    def _call_oauth_api(self, oauth_data, note='Refreshing access token'):
+        response = self._download_json(
+            self._ropc_settings['url'], None, note, data=urlencode_postdata({
+                'client_id': self._CLIENT_ID,
+                **oauth_data,
+                'scope': self._ropc_settings['scopes'],
+            }))
+        self._refresh_token = response['refresh_token']
+        self._access_token = response['access_token']
+        self.cache.store(self._NETRC_MACHINE, 'token_data', [self._refresh_token, self._access_token])
 
-        headers = {'content-type': 'application/json', 'ott-device-type': 'web', 'ott-access-token': cbc_access_token}
-        resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/profile',
-                                   None, headers=headers, expected_status=426)
-        return resp['claimsToken']
+    def _perform_login(self, username, password):
+        if not self._refresh_token:
+            self._refresh_token, self._access_token = self.cache.load(
+                self._NETRC_MACHINE, 'token_data', default=[None, None])
 
-    def _get_claims_token_expiry(self):
-        # Token is a JWT
-        # JWT is decoded here and 'exp' field is extracted
-        # It is a Unix timestamp for when the token expires
-        b64_data = self._claims_token.split('.')[1]
-        data = base64.urlsafe_b64decode(b64_data + '==')
-        return json.loads(data)['exp']
+        if self._refresh_token and self._access_token:
+            self.write_debug('Using cached refresh token')
+            if not self._claims_token:
+                self._claims_token = self.cache.load(self._NETRC_MACHINE, 'claims_token')
+            return
 
-    def claims_token_expired(self):
-        exp = self._get_claims_token_expiry()
-        # It will expire in less than 10 seconds, or has already expired
-        return exp - time.time() < 10
+        try:
+            self._call_oauth_api({
+                'grant_type': 'password',
+                'username': username,
+                'password': password,
+            }, note='Logging in')
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
+                raise ExtractorError('Invalid username and/or password', expected=True)
+            raise
 
-    def claims_token_valid(self):
-        return self._claims_token is not None and not self.claims_token_expired()
+    def _fetch_access_token(self):
+        if self._is_jwt_expired(self._access_token):
+            try:
+                self._call_oauth_api({
+                    'grant_type': 'refresh_token',
+                    'refresh_token': self._refresh_token,
+                })
+            except ExtractorError:
+                self._refresh_token, self._access_token = None, None
+                self.cache.store(self._NETRC_MACHINE, 'token_data', [None, None])
+                self.report_warning('Refresh token has been invalidated; retrying with credentials')
+                self._perform_login(*self._get_login_info())
 
-    def _get_claims_token(self, email, password):
-        if not self.claims_token_valid():
-            self._claims_token = self._new_claims_token(email, password)
+        return self._access_token
+
+    def _fetch_claims_token(self):
+        if not self._get_login_info()[0]:
+            return None
+
+        if not self._claims_token or self._is_jwt_expired(self._claims_token):
+            self._claims_token = self._download_json(
+                'https://services.radio-canada.ca/ott/subscription/v2/gem/Subscriber/profile',
+                None, 'Downloading claims token', query={'device': 'web'},
+                headers={'Authorization': f'Bearer {self._fetch_access_token()}'})['claimsToken']
             self.cache.store(self._NETRC_MACHINE, 'claims_token', self._claims_token)
+        else:
+            self.write_debug('Using cached claims token')
+
         return self._claims_token
 
-    def _real_initialize(self):
-        if self.claims_token_valid():
-            return
-        self._claims_token = self.cache.load(self._NETRC_MACHINE, 'claims_token')
-
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        video_info = self._download_json(
-            f'https://services.radio-canada.ca/ott/cbc-api/v2/assets/{video_id}',
-            video_id, expected_status=426)
+        video_id, season_number = self._match_valid_url(url).group('id', 'season')
+        video_info = self._call_show_api(video_id)
+        item_info = traverse_obj(video_info, (
+            'content', ..., 'lineups', ..., 'items',
+            lambda _, v: v['url'] == video_id, any, {require('item info')}))
 
-        email, password = self._get_login_info()
-        if email and password:
-            claims_token = self._get_claims_token(email, password)
-            headers = {'x-claims-token': claims_token}
-        else:
-            headers = {}
-        m3u8_info = self._download_json(video_info['playSession']['url'], video_id, headers=headers)
+        headers = {}
+        if claims_token := self._fetch_claims_token():
+            headers['x-claims-token'] = claims_token
+
+        m3u8_info = self._download_json(
+            'https://services.radio-canada.ca/media/validation/v2/',
+            video_id, headers=headers, query={
+                'appCode': 'gem',
+                'connectionType': 'hd',
+                'deviceType': 'ipad',
+                'multibitrate': 'true',
+                'output': 'json',
+                'tech': 'hls',
+                'manifestVersion': '2',
+                'manifestType': 'desktop',
+                'idMedia': item_info['idMedia'],
+            })
 
         if m3u8_info.get('errorCode') == 1:
             self.raise_geo_restricted(countries=['CA'])
@@ -671,26 +735,20 @@ class CBCGemIE(InfoExtractor):
                     fmt['preference'] = -2
 
         return {
+            'season_number': int_or_none(season_number),
+            **traverse_obj(video_info, {
+                'series': ('title', {str}),
+                'season_number': ('structuredMetadata', 'partofSeason', 'seasonNumber', {int_or_none}),
+                'genres': ('structuredMetadata', 'genre', ..., {str}),
+            }),
+            **self._extract_item_info(item_info),
             'id': video_id,
             'episode_id': video_id,
             'formats': formats,
-            **traverse_obj(video_info, {
-                'title': ('title', {str}),
-                'episode': ('title', {str}),
-                'description': ('description', {str}),
-                'thumbnail': ('image', {url_or_none}),
-                'series': ('series', {str}),
-                'season_number': ('season', {int_or_none}),
-                'episode_number': ('episode', {int_or_none}),
-                'duration': ('duration', {int_or_none}),
-                'categories': ('category', {str}, all),
-                'release_timestamp': ('airDate', {int_or_none(scale=1000)}),
-                'timestamp': ('availableDate', {int_or_none(scale=1000)}),
-            }),
         }
 
 
-class CBCGemPlaylistIE(InfoExtractor):
+class CBCGemPlaylistIE(CBCGemBaseIE):
     IE_NAME = 'gem.cbc.ca:playlist'
     _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>(?P<show>[0-9a-z-]+)/s(?P<season>[0-9]+))/?(?:[?#]|$)'
     _TESTS = [{
@@ -700,70 +758,35 @@ class CBCGemPlaylistIE(InfoExtractor):
         'info_dict': {
             'id': 'schitts-creek/s06',
             'title': 'Season 6',
-            'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
             'series': 'Schitt\'s Creek',
             'season_number': 6,
             'season': 'Season 6',
-            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/season/perso/cbc_schitts_creek_season_06_carousel_v03.jpg?impolicy=ott&im=Resize=(_Size_)&quality=75',
         },
     }, {
         'url': 'https://gem.cbc.ca/schitts-creek/s06',
         'only_matching': True,
     }]
-    _API_BASE = 'https://services.radio-canada.ca/ott/cbc-api/v2/shows/'
+
+    def _entries(self, season_info):
+        for episode in traverse_obj(season_info, ('items', lambda _, v: v['url'])):
+            yield self.url_result(
+                f'https://gem.cbc.ca/media/{episode["url"]}', CBCGemIE,
+                **self._extract_item_info(episode))
 
     def _real_extract(self, url):
-        match = self._match_valid_url(url)
-        season_id = match.group('id')
-        show = match.group('show')
-        show_info = self._download_json(self._API_BASE + show, season_id, expected_status=426)
-        season = int(match.group('season'))
+        season_id, show, season = self._match_valid_url(url).group('id', 'show', 'season')
+        show_info = self._call_show_api(show, display_id=season_id)
+        season_info = traverse_obj(show_info, (
+            'content', ..., 'lineups',
+            lambda _, v: v['seasonNumber'] == int(season), any, {require('season info')}))
 
-        season_info = next((s for s in show_info['seasons'] if s.get('season') == season), None)
-
-        if season_info is None:
-            raise ExtractorError(f'Couldn\'t find season {season} of {show}')
-
-        episodes = []
-        for episode in season_info['assets']:
-            episodes.append({
-                '_type': 'url_transparent',
-                'ie_key': 'CBCGem',
-                'url': 'https://gem.cbc.ca/media/' + episode['id'],
-                'id': episode['id'],
-                'title': episode.get('title'),
-                'description': episode.get('description'),
-                'thumbnail': episode.get('image'),
-                'series': episode.get('series'),
-                'season_number': episode.get('season'),
-                'season': season_info['title'],
-                'season_id': season_info.get('id'),
-                'episode_number': episode.get('episode'),
-                'episode': episode.get('title'),
-                'episode_id': episode['id'],
-                'duration': episode.get('duration'),
-                'categories': [episode.get('category')],
-            })
-
-        thumbnail = None
-        tn_uri = season_info.get('image')
-        # the-national was observed to use a "data:image/png;base64"
-        # URI for their 'image' value. The image was 1x1, and is
-        # probably just a placeholder, so it is ignored.
-        if tn_uri is not None and not tn_uri.startswith('data:'):
-            thumbnail = tn_uri
-
-        return {
-            '_type': 'playlist',
-            'entries': episodes,
-            'id': season_id,
-            'title': season_info['title'],
-            'description': season_info.get('description'),
-            'thumbnail': thumbnail,
-            'series': show_info.get('title'),
-            'season_number': season_info.get('season'),
-            'season': season_info['title'],
-        }
+        return self.playlist_result(
+            self._entries(season_info), season_id,
+            **traverse_obj(season_info, {
+                'title': ('title', {str}),
+                'season': ('title', {str}),
+                'season_number': ('seasonNumber', {int_or_none}),
+            }), series=traverse_obj(show_info, ('title', {str})))
 
 
 class CBCGemLiveIE(InfoExtractor):

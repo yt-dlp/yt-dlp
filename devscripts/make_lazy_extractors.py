@@ -10,6 +10,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from inspect import getsource
 
 from devscripts.utils import get_filename_args, read_file, write_file
+from yt_dlp.extractor import import_extractors
+from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
+from yt_dlp.globals import extractors
 
 NO_ATTR = object()
 STATIC_CLASS_PROPERTIES = [
@@ -38,8 +41,7 @@ def main():
 
     lazy_extractors_filename = get_filename_args(default_outfile='yt_dlp/extractor/lazy_extractors.py')
 
-    from yt_dlp.extractor.extractors import _ALL_CLASSES
-    from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
+    import_extractors()
 
     DummyInfoExtractor = type('InfoExtractor', (InfoExtractor,), {'IE_NAME': NO_ATTR})
     module_src = '\n'.join((
@@ -47,7 +49,7 @@ def main():
         '    _module = None',
         *extra_ie_code(DummyInfoExtractor),
         '\nclass LazyLoadSearchExtractor(LazyLoadExtractor):\n    pass\n',
-        *build_ies(_ALL_CLASSES, (InfoExtractor, SearchInfoExtractor), DummyInfoExtractor),
+        *build_ies(list(extractors.value.values()), (InfoExtractor, SearchInfoExtractor), DummyInfoExtractor),
     ))
 
     write_file(lazy_extractors_filename, f'{module_src}\n')
@@ -73,7 +75,7 @@ def build_ies(ies, bases, attr_base):
         if ie in ies:
             names.append(ie.__name__)
 
-    yield f'\n_ALL_CLASSES = [{", ".join(names)}]'
+    yield '\n_CLASS_LOOKUP = {%s}' % ', '.join(f'{name!r}: {name}' for name in names)
 
 
 def sort_ies(ies, ignored_bases):
