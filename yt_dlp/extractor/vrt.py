@@ -1,25 +1,28 @@
 import json
 import time
 import urllib.parse
-import urllib.request
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     clean_html,
     extract_attributes,
     float_or_none,
     get_element_by_class,
     get_element_html_by_class,
     int_or_none,
+    jwt_decode_hs256,
     jwt_encode_hs256,
     make_archive_id,
     merge_dicts,
     parse_age_limit,
+    parse_duration,
     parse_iso8601,
     str_or_none,
     strip_or_none,
     traverse_obj,
-    unified_strdate,
+    try_call,
     url_or_none,
 )
 
@@ -35,11 +38,11 @@ class VRTBaseIE(InfoExtractor):
         'device': 'undefined (undefined)',
         'os': {
             'name': 'Windows',
-            'version': 'x86_64',
+            'version': '10',
         },
         'player': {
             'name': 'VRT web player',
-            'version': '2.7.4-prod-2023-04-19T06:05:45',
+            'version': '5.1.1-prod-2025-02-14T08:44:16"',
         },
     }
     # From https://player.vrt.be/vrtnws/js/main.js & https://player.vrt.be/ketnet/js/main.8cdb11341bcb79e4cd44.js
@@ -93,7 +96,7 @@ class VRTBaseIE(InfoExtractor):
                 **self.geo_verification_headers(),
                 'Content-Type': 'application/json',
             }, data=json.dumps({
-                'identityToken': id_token or {},
+                'identityToken': id_token or '',
                 'playerInfo': jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
                     'kid': self._JWT_KEY_ID,
                 }).decode(),
@@ -105,118 +108,6 @@ class VRTBaseIE(InfoExtractor):
                 'vrtPlayerToken': player_token,
                 'client': client,
             }, expected_status=400)
-
-
-class VRTMAXBaseIE(InfoExtractor):
-    _GEO_BYPASS = False
-
-    def _call_api(self, video_id, client='null', id_token=None, version='v2'):
-        vrt_player_token = self._download_json(
-            f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/tokens',
-            None,
-            'Downloading player token',
-            'Failed to download player token',
-            headers={
-                'Content-Type': 'application/json',
-            },
-            data=json.dumps({
-                'identityToken': id_token or self._get_identity_token_from_cookie(),
-            }).encode(),
-        )['vrtPlayerToken']
-
-        return self._download_json(
-            f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/videos/{video_id}',
-            video_id,
-            'Downloading API JSON',
-            'Failed to download API JSON',
-            query={
-                'client': client,
-                'vrtPlayerToken': vrt_player_token,
-            },
-        )
-
-    def _extract_formats_and_subtitles(self, data, video_id):
-        # probably needs an extra check against `drmExpired`
-        if traverse_obj(data, 'drm'):
-            self.report_drm(video_id)
-
-        formats, subtitles = [], {}
-        for target in traverse_obj(
-            data, ('targetUrls', lambda _, v: url_or_none(v['url']) and v['type']),
-        ):
-            format_type = target['type'].upper()
-            format_url = target['url']
-            if format_type in ('HLS', 'HLS_AES'):
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    format_url, video_id, 'mp4', m3u8_id=format_type, fatal=False,
-                )
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
-            elif format_type == 'HDS':
-                formats.extend(
-                    self._extract_f4m_formats(
-                        format_url, video_id, f4m_id=format_type, fatal=False,
-                    ),
-                )
-            elif format_type == 'MPEG_DASH':
-                fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    format_url, video_id, mpd_id=format_type, fatal=False,
-                )
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
-            elif format_type == 'HSS':
-                fmts, subs = self._extract_ism_formats_and_subtitles(
-                    format_url, video_id, ism_id='mss', fatal=False,
-                )
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
-            else:
-                formats.append({
-                    'format_id': format_type,
-                    'url': format_url,
-                })
-
-        for sub in traverse_obj(
-            data, ('subtitleUrls', lambda _, v: v['url'] and v['type'] == 'CLOSED'),
-        ):
-            subtitles.setdefault('nl', []).append({'url': sub['url']})
-
-        return formats, subtitles
-
-    def _get_authorization_token_from_cookie(self):
-        return self._get_token_from_cookie('vrtnu-site_profile_at')
-
-    def _get_identity_token_from_cookie(self):
-        return self._get_token_from_cookie('vrtnu-site_profile_vt')
-
-    def _get_token_from_cookie(self, cookie_name):
-        return self._get_cookies('https://www.vrt.be').get(cookie_name).value
-
-    def _perform_login(self, username, password):
-        self._request_webpage(
-            'https://www.vrt.be/vrtnu/sso/login',
-            None,
-            note='Getting session cookies',
-            errnote='Failed to get session cookies',
-        )
-
-        self._download_json(
-            'https://login.vrt.be/perform_login',
-            None,
-            data=json.dumps({
-                'loginID': username,
-                'password': password,
-                'clientId': 'vrtnu-site',
-            }).encode(),
-            headers={
-                'Content-Type': 'application/json',
-                'Oidcxsrf': self._get_cookies('https://login.vrt.be')
-                .get('OIDCXSRF')
-                .value,
-            },
-            note='Logging in',
-            errnote='Login failed',
-        )
 
 
 class VRTIE(VRTBaseIE):
@@ -286,153 +177,223 @@ class VRTIE(VRTBaseIE):
         }
 
 
-class VrtNUIE(VRTMAXBaseIE):
+class VrtNUIE(VRTBaseIE):
     IE_DESC = 'VRT MAX'
-    _NETRC_MACHINE = 'vrtmax'
+    _VALID_URL = r'https?://(?:www\.)?vrt\.be/(?:vrtnu|vrtmax)/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
     _TESTS = [{
-        'url': 'https://www.vrt.be/vrtmax/a-z/pano/trailer/pano-trailer-najaar-2023/',
+        'url': 'https://www.vrt.be/vrtmax/a-z/ket---doc/trailer/ket---doc-trailer-s6/',
         'info_dict': {
-            'channel': 'vrtnws',
-            'description': 'md5:2e716da5a62687ecda1f40abfd742f81',
-            'duration': 37.16,
-            'episode_id': '3226122918145',
+            'id': 'pbs-pub-c8a78645-5d3e-468a-89ec-6f3ed5534bd5$vid-242ddfe9-18f5-4e16-ab45-09b122a19251',
             'ext': 'mp4',
-            'id': 'pbs-pub-5260ad6d-372c-46d3-a542-0e781fd5831a$vid-75fdb750-82f5-4157-8ea9-4485f303f20b',
-            'release_date': '20231106',
-            'release_timestamp': 1699246800,
+            'display_id': 'ket---doc-trailer-s6',
+            'title': 'Reeks 6 volledig vanaf 3 maart',
+            'description': 'Neem een kijkje in de bijzondere wereld van deze Ketnetters.',
+            'channel': 'VRT',
+            'duration': 30.0,
+            'thumbnail': 'https://images.vrt.be/orig/2025/02/21/63f07122-5bbd-4ca1-b42e-8565c6cd95df.jpg',
+            'series': 'Ket & Doc',
             'season': 'Trailer',
-            'season_id': '/vrtnu/a-z/pano/trailer/#tvseason',
-            'season_number': 2023,
-            'series': 'Pano',
-            'thumbnail': 'https://images.vrt.be/orig/2023/11/03/f570eb9b-7a4e-11ee-91d7-02b7b76bf47f.jpg',
-            'timestamp': 1699246800,
-            'title': 'Pano - Nieuwe afleveringen vanaf 15 november - Trailer | VRT MAX',
-            'upload_date': '20231106',
+            'season_id': '1739450401467',
+            'episode': 'Reeks 6 volledig vanaf 3 maart',
+            'episode_id': '1739450401467',
+            'timestamp': 1740373200,
+            'upload_date': '20250224',
+            '_old_archive_ids': ['canvas pbs-pub-c8a78645-5d3e-468a-89ec-6f3ed5534bd5$vid-242ddfe9-18f5-4e16-ab45-09b122a19251'],
         },
     }, {
-        'url': 'https://www.vrt.be/vrtnu/a-z/factcheckers/trailer/factcheckers-trailer-s4/',
+        'url': 'https://www.vrt.be/vrtnu/a-z/taboe/3/taboe-s3a4/',
         'info_dict': {
-            'channel': 'een',
-            'description': 'md5:e7924e23d6879fe0af1ebe240d1c92ca',
-            'duration': 33.08,
-            'episode': '0',
-            'episode_id': '3179360900145',
-            'episode_number': 0,
+            'id': 'pbs-pub-f50faa3a-1778-46b6-9117-4ba85f197703$vid-547507fe-1c8b-4394-b361-21e627cbd0fd',
             'ext': 'mp4',
-            'id': 'pbs-pub-aa9397e9-ec2b-45f9-9148-7ce71b690b45$vid-04c67438-4866-4f5c-8978-51d173c0074b',
-            'release_timestamp': 1699160400,
-            'release_date': '20231105',
-            'season': 'Trailer',
-            'season_id': '/vrtnu/a-z/factcheckers/trailer/#tvseason',
-            'season_number': 2023,
-            'series': 'Factcheckers',
-            'timestamp': 1699160400,
-            'title': 'Factcheckers - Nieuwe afleveringen vanaf 15 november - Trailer | VRT MAX',
-            'thumbnail': 'https://images.vrt.be/orig/2023/11/07/37d244f0-7d8a-11ee-91d7-02b7b76bf47f.jpg',
-            'upload_date': '20231105',
+            'display_id': 'taboe-s3a4',
+            'title': 'Mensen met het syndroom van Gilles de la Tourette',
+            'description': 'md5:bf61345a95eca9393a95de4a7a54b5c6',
+            'channel': 'VRT',
+            'duration': 2882.02,
+            'thumbnail': 'https://images.vrt.be/orig/2025/02/19/8198496c-d1ae-4bca-9a48-761cf3ea3ff2.jpg',
+            'series': 'Taboe',
+            'season': '3',
+            'season_number': 3,
+            'season_id': '1739055911734',
+            'episode': 'Mensen met het syndroom van Gilles de la Tourette',
+            'episode_number': 4,
+            'episode_id': '1739055911734',
+            'timestamp': 1740286800,
+            'upload_date': '20250223',
+            '_old_archive_ids': ['canvas pbs-pub-f50faa3a-1778-46b6-9117-4ba85f197703$vid-547507fe-1c8b-4394-b361-21e627cbd0fd'],
         },
     }]
-    _VALID_URL = r'https?://(?:www\.)?vrt\.be/(vrtmax|vrtnu)/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
+    _NETRC_MACHINE = 'vrtnu'
 
     _VIDEO_PAGE_QUERY = '''
-    query VideoPage($pageId: ID!) {
-        page(id: $pageId) {
-            ... on EpisodePage {
-                id
-                title
-                seo {
-                    ... on SeoProperties {
-                        __typename
-                        description
-                        title
-                    }
-                    __typename
-                }
-                ldjson
-                episode {
-                    ageRaw
-                    episodeNumberRaw
-                    program {
-                        title
-                        __typename
-                    }
-                    name
-                    onTimeRaw
-                    watchAction {
-                        streamId
-                        __typename
-                    }
-                    __typename
-                }
-                __typename
-            }
-            __typename
+query VideoPage($pageId: ID!) {
+  page(id: $pageId) {
+    ... on EpisodePage {
+      ldjson
+      episode {
+        id
+        title
+        onTimeRaw
+        ageRaw
+        description
+        durationRaw
+        name
+        episodeNumberRaw
+        season {
+          id
+          titleRaw
         }
+        program {
+          title
+        }
+      }
+      player {
+        image {
+          templateUrl
+        }
+        modes {
+          streamId
+        }
+      }
     }
-    '''
+  }
+}
+'''
+
+    def _get_video_token_cookie(self):
+        return try_call(lambda: self._get_cookies('https://www.vrt.be')['vrtnu-site_profile_vt'].value)
+
+    def _get_refresh_token_cookie(self):
+        return try_call(lambda: self._get_cookies('https://www.vrt.be/vrtmax/sso')['vrtnu-site_profile_rt'].value)
+
+    def _is_jwt_expired(self, token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 300
+
+    def _fetch_refresh_token(self):
+        refresh_token = self._get_refresh_token_cookie()
+        if refresh_token and not self._is_jwt_expired(refresh_token):
+            return refresh_token
+
+        if not self._get_login_info()[0]:
+            return
+
+        refresh_token = self.cache.load(self._NETRC_MACHINE, 'refresh_token', default=None)
+        if refresh_token and not self._is_jwt_expired(refresh_token):
+            self.write_debug('Restored refresh token from cache')
+            self._set_cookie('.www.vrt.be', 'vrtnu-site_profile_rt', refresh_token, path='/vrtmax/sso')
+            return refresh_token
+
+    def _fetch_video_token(self):
+        video_token = self._get_video_token_cookie()
+        if video_token and not self._is_jwt_expired(video_token):
+            return video_token
+
+        if self._get_login_info()[0]:
+            video_token = self.cache.load(self._NETRC_MACHINE, 'video_token', default=None)
+            if video_token and not self._is_jwt_expired(video_token):
+                self.write_debug('Restored video token from cache')
+                self._set_cookie('.www.vrt.be', 'vrtnu-site_profile_vt', video_token)
+                return video_token
+
+        refresh_token = self._fetch_refresh_token()
+        if not refresh_token:
+            return None
+
+        self._download_webpage(
+            'https://www.vrt.be/vrtmax/sso/login', None,
+            'Refreshing video token', query={'scope': 'openid,mid'})
+
+        video_token = self._get_video_token_cookie()
+        if not video_token:
+            self.cache.store(self._NETRC_MACHINE, 'refresh_token', None)
+            self.report_warning('Refreshing of video token failed')
+            return None
+        if self._get_login_info()[0]:
+            self.cache.store(self._NETRC_MACHINE, 'video_token', video_token)
+        return video_token
+
+    def _perform_login(self, username, password):
+        if self._fetch_refresh_token():
+            self.write_debug('Refresh token already present, skipping login')
+            return
+
+        self._request_webpage(
+            'https://www.vrt.be/vrtmax/sso/login', None,
+            note='Getting session cookies', errnote='Failed to get session cookies')
+
+        login_data = self._download_json(
+            'https://login.vrt.be/perform_login', None, data=json.dumps({
+                'loginID': username,
+                'password': password,
+                'clientId': 'vrtnu-site',
+            }).encode(), headers={
+                'Content-Type': 'application/json',
+                'Oidcxsrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
+            }, note='Logging in', errnote='Login failed', expected_status=403)
+        if login_data.get('errorCode'):
+            raise ExtractorError(
+                f'Login failed: {login_data.get("errorMessage")}', expected=True)
+
+        self._download_webpage(
+            login_data['redirectUrl'], None, note='Getting access token', errnote='Failed to get access token')
+
+        self.cache.store(self._NETRC_MACHINE, 'video_token', self._get_video_token_cookie())
+        self.cache.store(self._NETRC_MACHINE, 'refresh_token', self._get_refresh_token_cookie())
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        parsed_url = urllib.parse.urlparse(url)
-
-        self._request_webpage(
-            'https://www.vrt.be/vrtnu/sso/login',
-            None,
-            note='Getting tokens',
-            errnote='Failed to get tokens',
-        )
 
         metadata = self._download_json(
-            'https://www.vrt.be/vrtnu-api/graphql/v1',
-            display_id,
-            'Downloading asset JSON',
-            'Unable to download asset JSON',
-            headers={
-                'Authorization': f'Bearer {self._get_authorization_token_from_cookie()}',
-                'Content-Type': 'application/json',
-                'x-vrt-client-name': 'WEB',
-            },
+            'https://www.vrt.be/vrtnu-api/graphql/public/v1',
+            display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
             data=json.dumps({
                 'operationName': 'VideoPage',
                 'query': self._VIDEO_PAGE_QUERY,
-                'variables': {
-                    'pageId': f'{parsed_url.path.rstrip("/")}.model.json',
-                },
-            }).encode(),
-        )['data']['page']
+                'variables': {'pageId': urllib.parse.urlparse(url).path},
+            }).encode(), headers={
+                'content-type': 'application/json',
+                'x-vrt-client-name': 'WEB',
+                'x-vrt-client-version': '1.5.9',
+                'x-vrt-zone': 'default',
+            })['data']['page']
 
-        video_id = metadata['episode']['watchAction']['streamId']
-        ld_json = self._parse_json(traverse_obj(metadata, ('ldjson', 1)) or '', video_id, fatal=False) or {}
+        video_id = metadata['player']['modes'][0]['streamId']
 
-        streaming_info = self._call_api(video_id, client='vrtnu-web@PROD')
+        video_token = self._fetch_video_token()
+
+        try:
+            streaming_info = self._call_api(video_id, 'vrtnu-web@PROD', id_token=video_token)
+        except ExtractorError as e:
+            if not video_token and isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                self.raise_login_required()
+            raise
+
         formats, subtitles = self._extract_formats_and_subtitles(streaming_info, video_id)
 
         return {
-            **traverse_obj(ld_json, {
-                'episode': ('episodeNumber', {int_or_none}),
-                'episode_id': ('@id', {str_or_none}),
-                'episode_number': ('episodeNumber', {int_or_none}),
-                'season': ('partOfSeason', 'name'),
-                'season_id': ('partOfSeason', '@id', {str_or_none}),
-                'series': ('partOfSeries', 'name'),
-            }),
-            **traverse_obj(metadata, {
-                'age_limit': ('episode', 'ageRaw', {parse_age_limit}),
-                'channel': ('episode', 'brand'),
-                'description': ('seo', 'description', {str_or_none}),
-                'display_id': ('episode', 'name', {parse_age_limit}),
-                'release_date': ('episode', 'onTimeRaw', {unified_strdate}),
-                'release_timestamp': ('episode', 'onTimeRaw', {parse_iso8601}),
-                'season_number': ('episode', 'onTimeRaw', {lambda x: x[:4]}, {int_or_none}),
-                'timestamp': ('episode', 'onTimeRaw', {parse_iso8601}),
-                'title': ('seo', 'title', {str_or_none}),
-                'upload_date': ('episode', 'onTimeRaw', {unified_strdate}),
-            }),
-            'duration': float_or_none(streaming_info.get('duration'), 1000),
-            'formats': formats,
+            **self._json_ld(traverse_obj(metadata, ('ldjson', ..., {json.loads})), video_id, fatal=False),
+            **traverse_obj(metadata, ('episode', {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'timestamp': ('onTimeRaw', {parse_iso8601}),
+                'duration': ('durationRaw', {parse_duration}),
+                'series': ('program', 'title', {str}),
+                'season': ('season', 'titleRaw', {str}),
+                'season_number': ('season', 'titleRaw', {int_or_none}),
+                'season_id': ('id', {str_or_none}),
+                'episode': ('title', {str}),
+                'episode_number': ('episodeNumberRaw', {int_or_none}),
+                'episode_id': ('id', {str_or_none}),
+                'age_limit': ('ageRaw', {parse_age_limit}),
+            })),
             'id': video_id,
-            'subtitles': subtitles,
+            'display_id': display_id,
+            'channel': 'VRT',
+            'formats': formats,
+            'duration': float_or_none(streaming_info.get('duration'), 1000),
             'thumbnail': url_or_none(streaming_info.get('posterImageUrl')),
+            'subtitles': subtitles,
+            '_old_archive_ids': [make_archive_id('Canvas', video_id)],
         }
 
 
