@@ -2,6 +2,7 @@
 from .native import JSInterpreter
 from .common import _JSI_PREFERENCES, _JSI_HANDLERS, JSIWrapper
 from ._phantomjs import PhantomJSwrapper
+from . import _deno  # ensure jsi registration
 
 
 __all__ = [

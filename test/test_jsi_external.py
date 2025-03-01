@@ -20,6 +20,8 @@ from yt_dlp.utils import (
     variadic,
 )
 from yt_dlp.cookies import YoutubeDLCookieJar
+from yt_dlp.jsinterp import _JSI_HANDLERS
+assert set(_JSI_HANDLERS) == {'Deno', 'DenoJSDom', 'PhantomJS'}
 from yt_dlp.jsinterp.common import ExternalJSI, _ALL_FEATURES
 from yt_dlp.jsinterp._deno import DenoJSI, DenoJSDomJSI
 from yt_dlp.jsinterp._phantomjs import PhantomJSJSI

@@ -31,6 +31,18 @@ def get_jsi_keys(jsi_or_keys: typing.Iterable[str | type[JSI] | JSI]) -> list[st
     return [jok if isinstance(jok, str) else jok.JSI_KEY for jok in jsi_or_keys]
 
 
+def filter_jsi_keys(features=None, only_include=None, exclude=None):
+    keys = list(_JSI_HANDLERS)
+    if features:
+        keys = [key for key in keys if key in _JSI_HANDLERS
+                and _JSI_HANDLERS[key]._SUPPORTED_FEATURES.issuperset(features)]
+    if only_include:
+        keys = [key for key in keys if key in get_jsi_keys(only_include)]
+    if exclude:
+        keys = [key for key in keys if key not in get_jsi_keys(exclude)]
+    return keys
+
+
 def filter_jsi_include(only_include: typing.Iterable[str] | None, exclude: typing.Iterable[str] | None):
     keys = get_jsi_keys(only_include) if only_include else _JSI_HANDLERS.keys()
     return [key for key in keys if key not in (exclude or [])]
@@ -123,9 +135,7 @@ class JSIWrapper:
             self.report_warning(f'`{invalid_key}` is not a valid JSI, ignoring preference setting')
             user_prefs.remove(invalid_key)
 
-        jsi_keys = filter_jsi_include(only_include, exclude)
-        self.write_debug(f'Allowed JSI keys: {jsi_keys}')
-        handler_classes = [_JSI_HANDLERS[key] for key in filter_jsi_feature(self._features, jsi_keys)]
+        handler_classes = [_JSI_HANDLERS[key] for key in filter_jsi_keys(self._features, only_include, exclude)]
         self.write_debug(f'Select JSI for features={self._features}: {get_jsi_keys(handler_classes)}, '
                          f'included: {get_jsi_keys(only_include) or "all"}, excluded: {get_jsi_keys(exclude)}')
         if not handler_classes:
@@ -208,12 +218,8 @@ class JSIWrapper:
         @param html: html to load as document, requires `dom` feature
         @param cookiejar: cookiejar to read and set cookies, requires `cookies` feature, pass `InfoExtractor.cookiejar` if you want to read and write cookies
         """
-        kwargs = filter_dict({
-            'note': note,
-            'html': html,
-            'cookiejar': cookiejar,
-        })
-        return self._dispatch_request('execute', jscode, video_id, **kwargs)
+        return self._dispatch_request('execute', jscode, video_id, **filter_dict({
+            'note': note, 'html': html, 'cookiejar': cookiejar}))
 
 
 class JSI(abc.ABC):
