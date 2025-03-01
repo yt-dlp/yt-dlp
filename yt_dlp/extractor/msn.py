@@ -152,14 +152,13 @@ class MSNIE(InfoExtractor):
     def _extract_embedded_urls(self, webpage, video_id):
         """Extract URLs of embedded videos (e.g., YouTube, Dailymotion) from the webpage."""
         embed_urls = []
-        # Look for common iframe patterns
-        for iframe in self._html_search_regex(
-            r'<iframe[^>]+src=["\'](.*?)["\']', webpage, 'iframe', default=[], multiple=True
-        ):
-            embed_url = url_or_none(iframe)
-            if embed_url and any(host in embed_url for host in ('youtube.com', 'dailymotion.com', 'nbcsports.com')):
-                embed_urls.append(embed_url)
-        return embed_urls
+        # Use re.findall to extract all iframe src attributes
+    iframe_matches = re.findall(r'<iframe[^>]+src=["\'](.*?)["\']', webpage)
+    for iframe_src in iframe_matches:
+        embed_url = url_or_none(iframe_src)
+        if embed_url and any(host in embed_url for host in ('youtube.com', 'dailymotion.com', 'nbcsports.com')):
+            embed_urls.append(embed_url)
+    return embed_urls
 
 
 # Optional: Add to yt-dlp's extractor list if this is a standalone file
