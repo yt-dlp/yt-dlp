@@ -47,7 +47,7 @@ class PBSIE(InfoExtractor):
         (r'video\.kpbs\.org', 'KPBS San Diego (KPBS)'),  # http://www.kpbs.org/
         (r'video\.kqed\.org', 'KQED (KQED)'),  # http://www.kqed.org
         (r'vids\.kvie\.org', 'KVIE Public Television (KVIE)'),  # http://www.kvie.org
-        (r'video\.pbssocal\.org', 'PBS SoCal/KOCE (KOCE)'),  # http://www.pbssocal.org/
+        (r'(?:video\.|www\.)pbssocal\.org', 'PBS SoCal/KOCE (KOCE)'),  # http://www.pbssocal.org/
         (r'video\.valleypbs\.org', 'ValleyPBS (KVPT)'),  # http://www.valleypbs.org/
         (r'video\.cptv\.org', 'CONNECTICUT PUBLIC TELEVISION (WEDH)'),  # http://cptv.org
         (r'watch\.knpb\.org', 'KNPB Channel 5 (KNPB)'),  # http://www.knpb.org/
@@ -61,7 +61,7 @@ class PBSIE(InfoExtractor):
         (r'video\.wyomingpbs\.org', 'Wyoming PBS (KCWC)'),  # http://www.wyomingpbs.org
         (r'video\.cpt12\.org', 'Colorado Public Television / KBDI 12 (KBDI)'),  # http://www.cpt12.org/
         (r'video\.kbyueleven\.org', 'KBYU-TV (KBYU)'),  # http://www.kbyutv.org/
-        (r'video\.thirteen\.org', 'Thirteen/WNET New York (WNET)'),  # http://www.thirteen.org
+        (r'(?:video\.|www\.)thirteen\.org', 'Thirteen/WNET New York (WNET)'),  # http://www.thirteen.org
         (r'video\.wgbh\.org', 'WGBH/Channel 2 (WGBH)'),  # http://wgbh.org
         (r'video\.wgby\.org', 'WGBY (WGBY)'),  # http://www.wgby.org
         (r'watch\.njtvonline\.org', 'NJTV Public Media NJ (WNJT)'),  # http://www.njtvonline.org/
@@ -185,12 +185,13 @@ class PBSIE(InfoExtractor):
 
     _VALID_URL = r'''(?x)https?://
         (?:
-           # Direct video URL
-           (?:{})/(?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
-           # Article with embedded player (or direct video)
-           (?:www\.)?pbs\.org/(?:[^/]+/){{1,5}}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
-           # Player
-           (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)
+            # Player
+            (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/?#]+) |
+            # Direct video URL, or article with embedded player
+            (?:{})/(?:
+              (?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/#]|$) |
+              (?:[^/?#]+/){{1,5}}(?P<presumptive_id>[^/?#]+?)(?:\.html)?/?(?:$|[?#])
+            )
         )
     '''.format('|'.join(next(zip(*_STATIONS))))
 
@@ -207,16 +208,40 @@ class PBSIE(InfoExtractor):
                 'description': 'md5:31b664af3c65fd07fa460d306b837d00',
                 'duration': 3190,
             },
+            'skip': 'dead URL',
+        },
+        {
+            'url': 'https://www.thirteen.org/programs/the-woodwrights-shop/carving-away-with-mary-may-tioglz/',
+            'info_dict': {
+                'id': '3004803331',
+                'ext': 'mp4',
+                'title': "The Woodwright's Shop - Carving Away with Mary May",
+                'description': 'md5:7cbaaaa8b9bcc78bd8f0e31911644e28',
+                'duration': 1606,
+                'display_id': 'carving-away-with-mary-may-tioglz',
+                'chapters': [],
+                'thumbnail': 'https://image.pbs.org/video-assets/NcnTxNl-asset-mezzanine-16x9-K0Keoyv.jpg',
+            },
         },
         {
             'url': 'http://www.pbs.org/wgbh/pages/frontline/losing-iraq/',
-            'md5': '6f722cb3c3982186d34b0f13374499c7',
+            'md5': '372b12b670070de39438b946474df92f',
             'info_dict': {
                 'id': '2365297690',
                 'ext': 'mp4',
                 'title': 'FRONTLINE - Losing Iraq',
                 'description': 'md5:5979a4d069b157f622d02bff62fbe654',
                 'duration': 5050,
+                'chapters': [
+                    {'start_time': 0.0, 'end_time': 1234.0, 'title': 'After Saddam, Chaos'},
+                    {'start_time': 1233.0, 'end_time': 1719.0, 'title': 'The Insurgency Takes Root'},
+                    {'start_time': 1718.0, 'end_time': 2461.0, 'title': 'A Light Footprint'},
+                    {'start_time': 2460.0, 'end_time': 3589.0, 'title': 'The Surge '},
+                    {'start_time': 3588.0, 'end_time': 4355.0, 'title': 'The Withdrawal '},
+                    {'start_time': 4354.0, 'end_time': 5051.0, 'title': 'ISIS on the March '},
+                ],
+                'display_id': 'losing-iraq',
+                'thumbnail': 'https://image.pbs.org/video-assets/pbs/frontline/138098/images/mezzanine_401.jpg',
             },
         },
         {
@@ -404,6 +429,19 @@ class PBSIE(InfoExtractor):
             'expected_warnings': ['HTTP Error 403: Forbidden'],
         },
         {
+            'url': 'https://www.pbssocal.org/shows/newshour/clip/capehart-johnson-1715984001',
+            'info_dict': {
+                'id': '3091549094',
+                'ext': 'mp4',
+                'title': 'PBS NewsHour - Capehart and Johnson on the unusual Biden-Trump debate plans',
+                'description': 'Capehart and Johnson on how the Biden-Trump debates could shape the campaign season',
+                'display_id': 'capehart-johnson-1715984001',
+                'duration': 593,
+                'thumbnail': 'https://image.pbs.org/video-assets/mF3oSVn-asset-mezzanine-16x9-QeXjXPy.jpg',
+                'chapters': [],
+            },
+        },
+        {
             'url': 'http://player.pbs.org/widget/partnerplayer/2365297708/?start=0&end=0&chapterbar=false&endscreen=false&topbar=true',
             'only_matching': True,
         },
@@ -463,10 +501,12 @@ class PBSIE(InfoExtractor):
                 r"div\s*:\s*'videoembed'\s*,\s*mediaid\s*:\s*'(\d+)'",  # frontline video embed
                 r'class="coveplayerid">([^<]+)<',                       # coveplayer
                 r'<section[^>]+data-coveid="(\d+)"',                    # coveplayer from http://www.pbs.org/wgbh/frontline/film/real-csi/
+                r'\sclass="passportcoveplayer"[^>]*\sdata-media="(\d+)',  # https://www.thirteen.org/programs/the-woodwrights-shop/who-wrote-the-book-of-sloyd-fggvvq/
                 r'<input type="hidden" id="pbs_video_id_[0-9]+" value="([0-9]+)"/>',  # jwplayer
                 r"(?s)window\.PBS\.playerConfig\s*=\s*{.*?id\s*:\s*'([0-9]+)',",
                 r'<div[^>]+\bdata-cove-id=["\'](\d+)"',  # http://www.pbs.org/wgbh/roadshow/watch/episode/2105-indianapolis-hour-2/
                 r'<iframe[^>]+\bsrc=["\'](?:https?:)?//video\.pbs\.org/widget/partnerplayer/(\d+)',  # https://www.pbs.org/wgbh/masterpiece/episodes/victoria-s2-e1/
+                r'\bhttps?://player\.pbs\.org/[\w-]+player/(\d+)',      # last pattern to avoid false positives
             ]
 
             media_id = self._search_regex(
