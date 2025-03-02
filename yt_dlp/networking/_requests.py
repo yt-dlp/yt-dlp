@@ -296,6 +296,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         extensions.pop('cookiejar', None)
         extensions.pop('timeout', None)
         extensions.pop('legacy_ssl', None)
+        extensions.pop('keep_header_casing', None)
 
     def _create_instance(self, cookiejar, legacy_ssl_support=None):
         session = RequestsSession()
@@ -312,11 +313,12 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         session.trust_env = False  # no need, we already load proxies from env
         return session
 
-    def _send(self, request):
-
-        headers = self._merge_headers(request.headers)
+    def _prepare_headers(self, _, headers):
         add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
 
+    def _send(self, request):
+
+        headers = self._get_headers(request)
         max_redirects_exceeded = False
 
         session = self._get_instance(
