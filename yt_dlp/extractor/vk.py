@@ -545,7 +545,7 @@ class VKIE(VKBaseIE):
                 'duration': ('duration', {int_or_none}),
                 'chapters': ('time_codes', lambda _, v: isinstance(v.get('time'), int), {
                     'title': ('text', {str}),
-                    'start_time': ('time', {int}),
+                    'start_time': 'time',
                 }),
             }),
             'timestamp': timestamp,
