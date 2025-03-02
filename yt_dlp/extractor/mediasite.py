@@ -6,6 +6,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     float_or_none,
+    join_nonempty,
     mimetype2ext,
     smuggle_url,
     str_or_none,
@@ -87,6 +88,20 @@ class MediasiteIE(InfoExtractor):
             },
         },
         {
+            'url': 'https://events7.mediasite.com/Mediasite/Play/a7812390a2d44739ae857527e05776091d',
+            'info_dict': {
+                'id': 'a7812390a2d44739ae857527e05776091d',
+                'ext': 'mp4',
+                'title': 'Practical Prevention, Detection and Responses to the New Threat Landscape',
+                'description': r're:^The bad guys aren’t standing still, and neither is Okta',
+                'thumbnail': r're:^https://events7\.mediasite\.com/Mediasite/FileServer/Presentation/a7812390a2d44739ae857527e05776091d/16e2f205-41a7-4ea5-a031-5c6152afc7bf\.jpg',
+                'cast': ['Franklin Rosado', 'Alex Bovee'],
+                'duration': 2415.487,
+                'timestamp': 1472567400,
+                'upload_date': '20160830',
+            },
+        },
+        {
             'url': 'https://collegerama.tudelft.nl/Mediasite/Showcase/livebroadcast/Presentation/ada7020854f743c49fbb45c9ec7dbb351d',
             'only_matching': True,
         },
@@ -117,9 +132,9 @@ class MediasiteIE(InfoExtractor):
 
     def __extract_slides(self, *, stream_id, snum, stream, duration, images):
         slide_base_url = stream['SlideBaseUrl']
-
+        playback_ticket = stream.get('SlidePlaybackTicketId')
         fname_template = stream['SlideImageFileNameTemplate']
-        if fname_template != 'slide_{0:D4}.jpg':
+        if fname_template != 'slide_{0:D4}.jpg' and fname_template != 'slide_%s_{0:D4}.jpg' % stream_id:
             self.report_warning('Unusual slide file name template; report a bug if slide downloading fails')
         fname_template = re.sub(r'\{0:D([0-9]+)\}', r'{0:0\1}', fname_template)
 
@@ -145,7 +160,8 @@ class MediasiteIE(InfoExtractor):
                 expected_type=(int, float))
 
             fragments.append({
-                'path': fname_template.format(slide.get('Number', i + 1)),
+                'path': join_nonempty(fname_template.format(slide.get('Number', i + 1)),
+                                      playback_ticket, delim='?playbackTicket='),
                 'duration': (next_time - slide['Time']) / 1000,
             })
 
@@ -191,13 +207,13 @@ class MediasiteIE(InfoExtractor):
             }).encode())['d']
 
         presentation = player_options['Presentation']
-        title = presentation['Title']
-
         if presentation is None:
             raise ExtractorError(
                 'Mediasite says: {}'.format(player_options['PlayerPresentationStatusMessage']),
                 expected=True)
 
+        title = (presentation.get('Title')
+                 or self._html_extract_title(webpage, 'title', fatal=False))
         thumbnails = []
         formats = []
         for snum, stream in enumerate(presentation['Streams']):
@@ -233,7 +249,7 @@ class MediasiteIE(InfoExtractor):
                         fatal=False))
                 elif ext in ('m3u', 'm3u8'):
                     stream_formats.extend(self._extract_m3u8_formats(
-                        video_url, resource_id,
+                        video_url, resource_id, media_type.lower(),
                         m3u8_id=f'{stream_id}-{snum}.{unum}',
                         fatal=False))
                 else:
@@ -243,8 +259,9 @@ class MediasiteIE(InfoExtractor):
                         'ext': ext,
                     })
 
-            images = traverse_obj(player_options, ('PlayerLayoutOptions', 'Images', {dict}))
-            if stream.get('HasSlideContent') and images:
+            images = traverse_obj(
+                player_options, ('PlayerLayoutOptions', 'Images', {dict}), default={})
+            if stream.get('HasSlideContent'):
                 stream_formats.append(self.__extract_slides(
                     stream_id=stream_id,
                     snum=snum,
@@ -266,6 +283,15 @@ class MediasiteIE(InfoExtractor):
                     'preference': -1 if stream_type != 0 else 0,
                 })
             formats.extend(stream_formats)
+
+        for i, cast_url in enumerate(('PodcastUrl', 'VodcastUrl')):
+            if url_or_none(presentation.get(cast_url)):
+                formats.append({
+                    'format_id': cast_url.lower().replace('url', ''),
+                    'url': presentation.get(cast_url).split('?attachmentName=')[0],
+                    'vcodec': None if i else 'none',
+                    'preference': None if i else -2,
+                })
 
         # XXX: Presentation['Presenters']
         # XXX: Presentation['Transcript']
