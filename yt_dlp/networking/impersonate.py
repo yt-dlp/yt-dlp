@@ -131,8 +131,8 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
 
     def _get_impersonate_headers(self, request: Request) -> dict[str, str]:
         """
-        Get headers for external impersonation  use.
-        Subclasses may define a _prepare_headers method to modify headers after merge but before building.
+        Get headers for external impersonation use.
+        Subclasses may define a _prepare_impersonate_headers method to modify headers after merge but before building.
         """
         headers = self._merge_headers(request.headers)
         if self._get_request_target(request) is not None:
