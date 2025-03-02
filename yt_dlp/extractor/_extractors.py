@@ -2395,6 +2395,10 @@ from .voxmedia import (
     VoxMediaIE,
     VoxMediaVolumeIE,
 )
+from .vrsquare import (
+    VRSQUAREIE,
+    VRSQUAREPlaylistIE,
+)
 from .vrt import (
     VRTIE,
     DagelijkseKostIE,
