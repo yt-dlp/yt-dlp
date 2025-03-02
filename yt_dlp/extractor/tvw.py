@@ -1,14 +1,11 @@
 import json
 
 from .common import InfoExtractor
-from ..networking.exceptions import HTTPError
-from ..utils import ExtractorError, RegexNotFoundError, clean_html, traverse_obj, unified_timestamp
+from ..utils import ExtractorError, clean_html, traverse_obj, unified_timestamp, url_or_none
 
 
-class TVWIE(InfoExtractor):
-    BACKUP_API_KEY = '7WhiEBzijpritypp8bqcU7pfU9uicDR'
-
-    _VALID_URL = r'https?://(?:www\.)?tvw\.org/video/(?P<id>[^/]+)'
+class TvwIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?tvw\.org/video/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://tvw.org/video/billy-frank-jr-statue-maquette-unveiling-ceremony-2024011211/',
         'md5': '9ceb94fe2bb7fd726f74f16356825703',
@@ -33,45 +30,32 @@ class TVWIE(InfoExtractor):
             'timestamp': 1724310900,
             'upload_date': '20240822',
             'location': 'Ebey’s Landing State Park',
-        }},
-        {
-            'url': 'https://tvw.org/video/home-warranties-workgroup-2',
-            'info_dict': {
-                'id': '1999121000',
-                'ext': 'mp4',
-                'title': 'Home Warranties Workgroup',
-                'thumbnail': r're:^https?://.*\.jpg$',
-                'description': 'md5:861396cc523c9641d0dce690bc5c35f3',
-                'timestamp': 946389600,
-                'upload_date': '19991228',
-            },
-    }]
+        }}, {
+        'url': 'https://tvw.org/video/home-warranties-workgroup-2',
+        'md5': 'f678789bf94d07da89809f213cf37150',
+        'info_dict': {
+            'id': '1999121000',
+            'ext': 'mp4',
+            'title': 'Home Warranties Workgroup',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'description': 'md5:861396cc523c9641d0dce690bc5c35f3',
+            'timestamp': 946389600,
+            'upload_date': '19991228',
+        }}]
 
-    def _get_subtitles(self, response):
-        return {'en': [{'ext': 'vtt', 'url': response.get('captionPath')}]}
-
-    def _get_thumbnail(self, response):
-        return [{'url': response.get('videoThumbnail')}]
-
-    def _get_description(self, response):
-        return clean_html(response.get('description'))
-
-    def _get_js_code(self, video_id, webpage):
-        app_js_url = self._html_search_regex(
-            r'<script[^>]+src=[\"\'](?P<app_js>.+?)[\"\'][^>]+id=\"invintus-app-js\"',
-            webpage, 'app_js')
-        return self._download_webpage(app_js_url, video_id, 'Downloading app.js API key')
-
-    def _extract_formats(self, response, video_id, stream_url):
-        extract_formats = lambda url, video_id: self._extract_m3u8_formats(url, video_id, 'mp4')
+    def _extract_formats(self, response, video_id):
+        extract_formats = lambda url, video_id: self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
+        stream_urls = traverse_obj(response, 'streamingURIs', {
+            'main': ('main', {url_or_none}),
+            'backup': ('backup', {url_or_none}),
+        })
 
         try:
-            return extract_formats(stream_url, video_id)
+            return extract_formats(stream_urls.get('main'), video_id)
         except ExtractorError:
             self.report_warning('Failed to parse the m3u8 stream. Falling back to the backup stream if it exists.')
             try:
-                stream_url = traverse_obj(response, ('streamingURIs', 'backup'))
-                return extract_formats(stream_url, video_id)
+                return extract_formats(stream_urls.get('backup'), video_id)
             except ExtractorError:
                 raise
 
@@ -79,43 +63,34 @@ class TVWIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        app_js_code = self._get_js_code(video_id, webpage)
+        client_id = self._html_search_meta('clientID', webpage, fatal=True)
+        video_id = self._html_search_meta('eventID', webpage, fatal=True)
 
-        try:
-            api_key = self._search_regex(r'embedderAuth[\s]*:[\s]*{[^}]+vendorKey:\"(?P<token>\w+?)\"}',
-                                         app_js_code, 'token')
-        except RegexNotFoundError:
-            self.report_warning('Failed to extract the API key. Falling back to a hardcoded key.')
-            api_key = self.BACKUP_API_KEY
+        video_data = self._download_json('https://api.v3.invintus.com/v2/Event/getDetailed', video_id,
+                                         headers={
+                                             'authorization': 'embedder',
+                                             'wsc-api-key': '7WhiEBzijpritypp8bqcU7pfU9uicDR',
+                                         },
+                                         data=json.dumps({
+                                             'clientID': client_id,
+                                             'eventID': video_id,
+                                             'showStreams': True,
+                                         }).encode()).get('data')
 
-        client_id = self._html_search_meta('clientID', webpage)
-        video_id = self._html_search_meta('eventID', webpage)
-
-        try:
-            headers = {'authorization': 'embedder', 'wsc-api-key': api_key}
-            data = json.dumps({'clientID': client_id, 'eventID': video_id,
-                               'showStreams': True}).encode('utf8')
-            response = self._download_json('https://api.v3.invintus.com/v2/Event/getDetailed',
-                                           video_id, headers=headers, data=data).get('data')
-        except ExtractorError as e:
-            if isinstance(e.cause, HTTPError):
-                self.write_debug(e.cause)
-                response = self._parse_json(e.cause.response.read().decode(), video_id).get('errors')
-                if response.get('hasError') is True:
-                    raise ExtractorError('{} said: {}'.format(self.IE_NAME, response.get('error')), expected=True)
-            raise
-
-        stream_url = traverse_obj(response, ('streamingURIs', 'main'))
-        formats = self._extract_formats(response, video_id, stream_url)
+        formats, subtitles = self._extract_formats(video_data, video_id)
 
         return {
             'id': video_id,
-            'title': response.get('title') or self._og_search_title(webpage),
-            'description': self._get_description(response) or self._og_search_description(webpage),
             'formats': formats,
-            'thumbnail': response.get('videoThumbnail'),
-            'subtitles': self.extract_subtitles(response),
-            'timestamp': unified_timestamp(response.get('startDateTime')),
-            'location': response.get('locationName'),
-            'is_live': response.get('eventStatus') == 'live',
+            **traverse_obj(video_data, {
+                'title': ('title', {lambda x: x or self._og_search_title(webpage)}),
+                'description': ('description', {lambda x: clean_html(x) or self._og_search_description(webpage)}),
+                'subtitles': ('captionPath', {
+                    lambda x: self._merge_subtitles({'en': [{'ext': 'vtt', 'url': x}]}, target=subtitles),
+                }),
+                'thumbnail': ('videoThumbnail', {url_or_none}),
+                'timestamp': ('startDateTime', {unified_timestamp}),
+                'location': ('locationName', {str}),
+                'is_live': ('eventStatus', {lambda x: x == 'live'}),
+            }),
         }
