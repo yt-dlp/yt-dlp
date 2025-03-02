@@ -435,7 +435,7 @@ def validate_options(opts):
     opts.plugin_dirs = opts.plugin_dirs
     if opts.plugin_dirs is None:
         opts.plugin_dirs = ['default']
-        
+
     validate_regex('trim filenames', opts.trim_file_name, r'(?:\d+[bc]?|none)')
 
     if opts.playlist_items is not None:
