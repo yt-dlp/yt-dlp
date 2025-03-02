@@ -75,6 +75,8 @@ class MSNIE(InfoExtractor):
             json_data = self._download_json(
                 json_url, page_id, note='Downloading video metadata', errnote='Unable to fetch video metadata'
             )
+            # Optional debug: Uncomment to inspect JSON response
+            # self._downloader.to_screen(f"JSON data: {json_data}")
         except ExtractorError as e:
             self.report_warning(f'JSON metadata fetch failed: {str(e)}. Falling back to webpage parsing.')
             json_data = {}
@@ -153,12 +155,14 @@ class MSNIE(InfoExtractor):
         """Extract URLs of embedded videos (e.g., YouTube, Dailymotion) from the webpage."""
         embed_urls = []
         # Use re.findall to extract all iframe src attributes
-    iframe_matches = re.findall(r'<iframe[^>]+src=["\'](.*?)["\']', webpage)
-    for iframe_src in iframe_matches:
-        embed_url = url_or_none(iframe_src)
-        if embed_url and any(host in embed_url for host in ('youtube.com', 'dailymotion.com', 'nbcsports.com')):
-            embed_urls.append(embed_url)
-    return embed_urls
+        iframe_matches = re.findall(r'<iframe[^>]+src=["\'](.*?)["\']', webpage)
+        for iframe_src in iframe_matches:
+            embed_url = url_or_none(iframe_src)
+            if embed_url and any(host in embed_url for host in ('youtube.com', 'dailymotion.com', 'nbcsports.com')):
+                embed_urls.append(embed_url)
+        # Optional debug: Uncomment to inspect found URLs
+        # self._downloader.to_screen(f"Found embedded URLs: {embed_urls}")
+        return embed_urls
 
 
 # Optional: Add to yt-dlp's extractor list if this is a standalone file
