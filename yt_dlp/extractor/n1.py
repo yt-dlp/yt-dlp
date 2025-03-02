@@ -76,7 +76,7 @@ class N1InfoIIE(InfoExtractor):
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
-    },
+        },
     }, {
         'url': 'https://rs.n1info.com/vesti/djilas-los-plan-za-metro-nece-resiti-nijedan-saobracajni-problem/',
         'info_dict': {
