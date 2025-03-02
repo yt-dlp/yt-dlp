@@ -243,13 +243,13 @@ class Urllib3LoggingHandler(logging.Handler):
     def emit(self, record):
         try:
             msg = self.format(record)
+        except Exception:
+            self.handleError(record)
+        else:
             if record.levelno >= logging.ERROR:
                 self._logger.error(msg)
             else:
                 self._logger.stdout(msg)
-
-        except Exception:
-            self.handleError(record)
 
 
 @register_rh

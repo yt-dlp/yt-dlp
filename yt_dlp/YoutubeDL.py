@@ -4193,15 +4193,15 @@ class YoutubeDL:
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
                 if (
                     'unsupported proxy type: "https"' in ue.msg.lower()
-                    and 'requests' not in self._request_director.handlers
-                    and 'curl_cffi' not in self._request_director.handlers
+                    and 'Requests' not in self._request_director.handlers
+                    and 'CurlCFFI' not in self._request_director.handlers
                 ):
                     raise RequestError(
                         'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests, curl_cffi')
 
                 elif (
                     re.match(r'unsupported url scheme: "wss?"', ue.msg.lower())
-                    and 'websockets' not in self._request_director.handlers
+                    and 'Websockets' not in self._request_director.handlers
                 ):
                     raise RequestError(
                         'This request requires WebSocket support. '

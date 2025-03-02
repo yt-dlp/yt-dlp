@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import contextlib
 import functools
 import os
@@ -9,8 +10,9 @@ import sys
 import typing
 import urllib.parse
 import urllib.request
+from http.client import HTTPConnection, HTTPResponse
 
-from .exceptions import RequestError
+from .exceptions import ProxyError, RequestError
 from ..dependencies import certifi
 from ..socks import ProxyType, sockssocket
 from ..utils import format_field, traverse_obj
@@ -285,3 +287,65 @@ def create_connection(
         # Explicitly break __traceback__ reference cycle
         # https://bugs.python.org/issue36820
         err = None
+
+
+class NoCloseHTTPResponse(HTTPResponse):
+    def begin(self):
+        super().begin()
+        # Revert the default behavior of closing the connection after reading the response
+        if not self._check_close() and not self.chunked and self.length is None:
+            self.will_close = False
+
+
+def create_http_connect_connection(
+    proxy_host,
+    proxy_port,
+    connect_host,
+    connect_port,
+    timeout=None,
+    ssl_context=None,
+    source_address=None,
+    username=None,
+    password=None,
+    debug=False,
+):
+
+    proxy_headers = dict()
+
+    if username is not None or password is not None:
+        proxy_headers['Proxy-Authorization'] = 'Basic ' + base64.b64encode(
+            f'{username or ""}:{password or ""}'.encode()).decode('utf-8')
+
+    conn = HTTPConnection(proxy_host, port=proxy_port, timeout=timeout)
+    conn.set_debuglevel(int(debug))
+
+    conn.response_class = NoCloseHTTPResponse
+
+    if hasattr(conn, '_create_connection'):
+        conn._create_connection = create_connection
+
+    if source_address is not None:
+        conn.source_address = (source_address, 0)
+
+    try:
+        conn.connect()
+        if ssl_context:
+            conn.sock = ssl_context.wrap_socket(conn.sock, server_hostname=proxy_host)
+        conn.request(
+            method='CONNECT',
+            url=f'{connect_host}:{connect_port}',
+            headers=proxy_headers)
+        response = conn.getresponse()
+    except OSError as e:
+        conn.close()
+        raise ProxyError('Unable to connect to proxy', cause=e) from e
+
+    if response.status == 200:
+        sock = conn.sock
+        conn.sock = None
+        response.fp = None
+        return sock
+    else:
+        conn.close()
+        response.close()
+        raise ProxyError(f'Got HTTP Error {response.status} with CONNECT: {response.reason}')

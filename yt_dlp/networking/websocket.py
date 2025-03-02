@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import abc
+import urllib.parse
 
-from .common import RequestHandler, Response
+from .common import RequestHandler, Response, register_preference
 
 
 class WebSocketResponse(Response):
@@ -21,3 +22,10 @@ class WebSocketResponse(Response):
 
 class WebSocketRequestHandler(RequestHandler, abc.ABC):
     pass
+
+
+@register_preference(WebSocketRequestHandler)
+def websocket_preference(_, request):
+    if urllib.parse.urlparse(request.url).scheme in ('ws', 'wss'):
+        return 200
+    return 0

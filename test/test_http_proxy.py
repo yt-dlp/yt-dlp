@@ -8,9 +8,10 @@ import random
 import ssl
 import threading
 from http.server import BaseHTTPRequestHandler
-from socketserver import ThreadingTCPServer
+from socketserver import BaseRequestHandler, ThreadingTCPServer
 
 import pytest
+import platform
 
 from test.helper import http_server_port, verify_address_availability
 from test.test_networking import TEST_DIR
@@ -45,6 +46,11 @@ class HTTPProxyAuthMixin:
             auth_username, auth_password = base64.b64decode(auth).decode().split(':', 1)
         except Exception:
             return self.proxy_auth_error()
+
+        if auth_username == 'http_error':
+            self.send_response(404)
+            self.end_headers()
+            return False
 
         if auth_username != (username or '') or auth_password != (password or ''):
             return self.proxy_auth_error()
@@ -119,6 +125,16 @@ if urllib3:
 
         def shutdown(self, *args, **kwargs):
             self.socket.shutdown(*args, **kwargs)
+
+        def _wrap_ssl_read(self, *args, **kwargs):
+            res = super()._wrap_ssl_read(*args, **kwargs)
+            if res == 0:
+                # Websockets does not treat 0 as an EOF, rather only b''
+                return b''
+            return res
+
+        def getsockname(self):
+            return self.socket.getsockname()
 else:
     SSLTransport = None
 
@@ -128,7 +144,40 @@ class HTTPSProxyHandler(HTTPProxyHandler):
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.load_cert_chain(certfn, None)
-        if isinstance(request, ssl.SSLSocket):
+        if SSLTransport:
+            request = SSLTransport(request, ssl_context=sslctx, server_side=True)
+        else:
+            request = sslctx.wrap_socket(request, server_side=True)
+        super().__init__(request, *args, **kwargs)
+
+
+class WebSocketProxyHandler(BaseRequestHandler):
+    def __init__(self, *args, proxy_info=None, **kwargs):
+        self.proxy_info = proxy_info
+        super().__init__(*args, **kwargs)
+
+    def handle(self):
+        import websockets.sync.server
+        self.request.settimeout(None)
+        protocol = websockets.ServerProtocol()
+        connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=10)
+        try:
+            connection.handshake(timeout=5.0)
+            for message in connection:
+                if message == 'proxy_info':
+                    connection.send(json.dumps(self.proxy_info))
+        except Exception as e:
+            print(f'Error in websocket proxy: {e}')
+        finally:
+            connection.close(code=1001)
+
+
+class WebSocketSecureProxyHandler(WebSocketProxyHandler):
+    def __init__(self, request, *args, **kwargs):
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.load_cert_chain(certfn, None)
+        if isinstance(request, ssl.SSLSocket) and SSLTransport:
             request = SSLTransport(request, ssl_context=sslctx, server_side=True)
         else:
             request = sslctx.wrap_socket(request, server_side=True)
@@ -197,7 +246,7 @@ def proxy_server(proxy_server_class, request_handler, bind_ip=None, **proxy_serv
     finally:
         server.shutdown()
         server.server_close()
-        server_thread.join(2.0)
+        server_thread.join()
 
 
 class HTTPProxyTestContext(abc.ABC):
@@ -234,9 +283,30 @@ class HTTPProxyHTTPSTestContext(HTTPProxyTestContext):
         return json.loads(handler.send(request).read().decode())
 
 
+class HTTPProxyWebSocketTestContext(HTTPProxyTestContext):
+    REQUEST_HANDLER_CLASS = WebSocketProxyHandler
+    REQUEST_PROTO = 'ws'
+
+    def proxy_info_request(self, handler, target_domain=None, target_port=None, **req_kwargs):
+        request = Request(f'{self.REQUEST_PROTO}://{target_domain or "127.0.0.1"}:{target_port or "40000"}', **req_kwargs)
+        handler.validate(request)
+        ws = handler.send(request)
+        ws.send('proxy_info')
+        proxy_info = ws.recv()
+        ws.close()
+        return json.loads(proxy_info)
+
+
+class HTTPProxyWebSocketSecureTestContext(HTTPProxyWebSocketTestContext):
+    REQUEST_HANDLER_CLASS = WebSocketSecureProxyHandler
+    REQUEST_PROTO = 'wss'
+
+
 CTX_MAP = {
     'http': HTTPProxyHTTPTestContext,
     'https': HTTPProxyHTTPSTestContext,
+    'ws': HTTPProxyWebSocketTestContext,
+    'wss': HTTPProxyWebSocketSecureTestContext,
 }
 
 
@@ -270,6 +340,14 @@ class TestHTTPProxy:
                 with pytest.raises(HTTPError) as exc_info:
                     ctx.proxy_info_request(rh)
                 assert exc_info.value.response.status == 407
+                exc_info.value.response.close()
+
+    def test_http_error(self, handler, ctx):
+        with ctx.http_server(HTTPProxyHandler, username='http_error', password='test') as server_address:
+            with handler(proxies={ctx.REQUEST_PROTO: f'http://http_error:test@{server_address}'}) as rh:
+                with pytest.raises(HTTPError) as exc_info:
+                    ctx.proxy_info_request(rh)
+                assert exc_info.value.response.status == 404
                 exc_info.value.response.close()
 
     def test_http_source_address(self, handler, ctx):
@@ -314,7 +392,13 @@ class TestHTTPProxy:
     'handler,ctx', [
         ('Requests', 'https'),
         ('CurlCFFI', 'https'),
+        ('Websockets', 'ws'),
+        ('Websockets', 'wss'),
     ], indirect=True)
+@pytest.mark.skip_handler_if(
+    'Websockets', lambda request:
+        platform.python_implementation() == 'PyPy',
+    'Tests are flaky with PyPy, unknown reason')
 class TestHTTPConnectProxy:
     def test_http_connect_no_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler) as server_address:
@@ -338,6 +422,16 @@ class TestHTTPConnectProxy:
     def test_http_connect_bad_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler, username='test', password='test') as server_address:
             with handler(verify=False, proxies={ctx.REQUEST_PROTO: f'http://test:bad@{server_address}'}) as rh:
+                with pytest.raises(ProxyError):
+                    ctx.proxy_info_request(rh)
+
+    @pytest.mark.skip_handler(
+        'Requests',
+        'bug in urllib3 causes unclosed socket: https://github.com/urllib3/urllib3/issues/3374',
+    )
+    def test_http_connect_http_error(self, handler, ctx):
+        with ctx.http_server(HTTPConnectProxyHandler, username='http_error', password='test') as server_address:
+            with handler(verify=False, proxies={ctx.REQUEST_PROTO: f'http://http_error:test@{server_address}'}) as rh:
                 with pytest.raises(ProxyError):
                     ctx.proxy_info_request(rh)
 
