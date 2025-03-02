@@ -720,7 +720,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     rh, Request(
                         f'http://127.0.0.1:{self.http_port}/headers', proxies={'all': 'http://10.255.255.255'})).close()
 
-    @pytest.mark.skip_handler('Urllib', 'urllib handler does not support keep_header_casing')
+    @pytest.mark.skip_handlers_if(lambda _, handler: handler not in ['Urllib', 'CurlCFFI'], 'handler does not support keep_header_casing')
     def test_keep_header_casing(self, handler):
         with handler() as rh:
             res = validate_and_send(
