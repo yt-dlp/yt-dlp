@@ -543,7 +543,7 @@ class VKIE(VKBaseIE):
                 'uploader': ('md_author', {str}),
                 'uploader_id': (('author_id', 'authorId'), {str_or_none}, any),
                 'duration': ('duration', {int_or_none}),
-                'chapters': ('time_codes', lambda _, v: isinstance(v.get('time'), int), {
+                'chapters': ('time_codes', lambda _, v: isinstance(v['time'], int), {
                     'title': ('text', {str}),
                     'start_time': 'time',
                 }),
