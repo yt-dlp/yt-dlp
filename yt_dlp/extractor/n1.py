@@ -4,7 +4,9 @@ from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
     unified_timestamp,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class N1InfoAssetIE(InfoExtractor):
@@ -180,7 +182,7 @@ class N1InfoIIE(InfoExtractor):
                     'url': video_data.get('data-url'),
                     'id': video_data.get('id'),
                     'title': title,
-                    'thumbnail': video_data.get('data-thumbnail') or video_data.get('data-default_thumbnail'),
+                    'thumbnail': traverse_obj(video_data, (('data-thumbnail', 'data-default_thumbnail'), {url_or_none}, any)),
                     'timestamp': timestamp,
                     'ie_key': 'N1InfoAsset',
                 })
