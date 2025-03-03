@@ -225,6 +225,17 @@ class PlaySuisseIE(InfoExtractor):
         if not self._ID_TOKEN:
             raise ExtractorError('Login failed')
 
+    def _get_media_data(self, media_id, locale):
+        response = self._download_json(
+            'https://www.playsuisse.ch/api/graphql',
+            media_id, data=json.dumps({
+                'operationName': 'AssetWatch',
+                'query': self._GRAPHQL_QUERY,
+                'variables': {'assetId': media_id},
+            }).encode(),
+            headers={'Content-Type': 'application/json', 'locale': locale})
+        return response['data']['assetV2']
+    
     def _real_extract(self, url):
         if not self._ID_TOKEN:
             self.raise_login_required(method='password')
@@ -241,17 +252,6 @@ class PlaySuisseIE(InfoExtractor):
                 'entries': map(self._extract_single, media_data['episodes']),
             })
         return info
-
-    def _get_media_data(self, media_id, locale):
-        response = self._download_json(
-            'https://www.playsuisse.ch/api/graphql',
-            media_id, data=json.dumps({
-                'operationName': 'AssetWatch',
-                'query': self._GRAPHQL_QUERY,
-                'variables': {'assetId': media_id},
-            }).encode(),
-            headers={'Content-Type': 'application/json', 'locale': locale})
-        return response['data']['assetV2']
 
     def _extract_single(self, media_data):
         thumbnails = traverse_obj(media_data, lambda k, _: k.startswith('thumbnail'))
