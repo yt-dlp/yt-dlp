@@ -1,7 +1,7 @@
 import base64
 import json
 import re
-import urllib
+import urllib.parse
 
 from .common import InfoExtractor, Request
 from ..utils import (
@@ -74,7 +74,7 @@ class RTPIE(InfoExtractor):
         if self._AUTH_TOKEN:
             return self._AUTH_TOKEN
         self._AUTH_TOKEN = traverse_obj(self._download_json(Request(
-            url='https://rtpplayapi.rtp.pt/play/api/2/token-manager',
+            'https://rtpplayapi.rtp.pt/play/api/2/token-manager',
             headers={
                 'Accept': '*/*',
                 'rtp-play-auth': 'RTPPLAY_MOBILE_IOS',
