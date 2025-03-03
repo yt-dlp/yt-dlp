@@ -80,9 +80,9 @@ class MiTeleIE(TelecincoBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        pre_player = self._parse_json(self._search_regex(
-            r'window\.\$REACTBASE_STATE\.prePlayer_mtweb\s*=\s*({.+})',
-            webpage, 'Pre Player'), display_id)['prePlayer']
+        pre_player = self._search_json(
+            r'window\.\$REACTBASE_STATE\.prePlayer_mtweb\s*=',
+            webpage, 'Pre Player', display_id)['prePlayer']
         title = pre_player['title']
         video_info = self._parse_content(pre_player['video'], url)
         content = pre_player.get('content') or {}

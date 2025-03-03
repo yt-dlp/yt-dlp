@@ -232,7 +232,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
                 error = self._parse_json(e.cause.response.read(), video_id)
                 message = error.get('message')
-                if e.cause.code == 403 and error.get('code') == 'player-bad-geolocation-country':
+                if e.cause.status == 403 and error.get('code') == 'player-bad-geolocation-country':
                     self.raise_geo_restricted(msg=message)
                 raise ExtractorError(message)
         else:
