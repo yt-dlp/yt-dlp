@@ -48,9 +48,9 @@ class MagellanTVIE(InfoExtractor):
         data = traverse_obj(context, ((('video', 'detail'), ('series', 'currentEpisode')), {dict}, any))
 
         formats, subtitles = [], {}
-        for url in set(traverse_obj(data, ((('manifests', ..., 'hls'), 'jwp_video_url'), {url_or_none}))):
+        for m3u8_url in set(traverse_obj(data, ((('manifests', ..., 'hls'), 'jwp_video_url'), {url_or_none}))):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+                m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
         if not formats and (error := traverse_obj(context, ('errorDetailPage', 'errorMessage', {str}))):
