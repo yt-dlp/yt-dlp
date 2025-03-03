@@ -103,8 +103,8 @@ class TvwIE(InfoExtractor):
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            'title': remove_end(self._og_search_title(webpage), ' - TVW'),
-            'description': self._og_search_description(webpage),
+            'title': remove_end(self._og_search_title(webpage, default=None), ' - TVW'),
+            'description': self._og_search_description(webpage, default=None),
             **traverse_obj(video_data, {
                 'title': ('title', {str}),
                 'description': ('description', {clean_html}),
