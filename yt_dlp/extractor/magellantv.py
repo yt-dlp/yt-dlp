@@ -44,16 +44,19 @@ class MagellanTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        data = traverse_obj(self._search_nextjs_data(webpage, video_id), (
-            'props', 'pageProps', 'reactContext',
-            (('video', 'detail'), ('series', 'currentEpisode')), {dict}), get_all=False)
-        formats = []
-        subtitles = {}
+        context = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['reactContext']
+        data = traverse_obj(context, ((('video', 'detail'), ('series', 'currentEpisode')), {dict}, any))
+
+        formats, subtitles = [], {}
         for url in set(traverse_obj(data, ((('manifests', ..., 'hls'), 'jwp_video_url'), {url_or_none}))):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 url, video_id, 'mp4', m3u8_id='hls', fatal=False)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
+        if not formats and (error := traverse_obj(context, ('errorDetailPage', 'errorMessage', {str}))):
+            if 'available in your country' in error:
+                self.raise_geo_restricted(msg=error)
+            self.raise_no_formats(f'{self.IE_NAME} said: {error}', expected=True)
 
         return {
             'id': video_id,
