@@ -6,10 +6,8 @@ from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
-    filter_dict,
     parse_duration,
     parse_qs,
-    try_get,
 )
 from ..utils.traversal import (
     find_element,
@@ -18,7 +16,7 @@ from ..utils.traversal import (
 )
 
 
-class VRSQUAREIE(InfoExtractor):
+class VrSquareIE(InfoExtractor):
     IE_NAME = 'vrsquare'
     IE_DESC = 'VR SQUARE'
 
@@ -65,23 +63,18 @@ class VRSQUAREIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _real_initialize(self):
-        VRSQUAREIE._HEADERS = {
-            'cookie': try_get(self._get_cookies(self._BASE_URL), lambda x: f'uh={x["uh"].value}') or '',
-        }
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         status = self._download_json(
             f'{self._BASE_URL}/webApi/contentsStatus/{video_id}',
-            video_id, 'Checking contents status', headers=self._HEADERS)
-        if isinstance(status, dict):
+            video_id, 'Checking contents status', fatal=False)
+        if traverse_obj(status, 'result_code') == '40407':
             self.raise_login_required('Unable to access this video')
 
         try:
-            webApi = self._download_json(
-                f'{self._BASE_URL}/webApi/play/url/{video_id}', video_id, headers=self._HEADERS)
+            web_api = self._download_json(
+                f'{self._BASE_URL}/webApi/play/url/{video_id}', video_id)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 500:
                 raise ExtractorError('VR SQUARE app-only videos are not supported', expected=True)
@@ -90,7 +83,7 @@ class VRSQUAREIE(InfoExtractor):
             'id': video_id,
             'title': self._html_search_meta(['og:title', 'twitter:title'], webpage),
             'description': self._html_search_meta('description', webpage),
-            'formats': self._extract_m3u8_formats(traverse_obj(webApi, (
+            'formats': self._extract_m3u8_formats(traverse_obj(web_api, (
                 'urls', ..., 'url', any)), video_id, 'mp4', fatal=False),
             'thumbnail': self._html_search_meta('og:image', webpage),
             **traverse_obj(webpage, {
@@ -100,32 +93,52 @@ class VRSQUAREIE(InfoExtractor):
         }
 
 
-class VRSQUAREPlaylistIE(VRSQUAREIE):
-    IE_NAME = 'vrsquare:playlist'
+class VrSquarePlaylistBaseIE(VrSquareIE):
+    def _fetch_vids(self, source, keys=()):
+        return [self.url_result(
+            f'{self._BASE_URL}/contents/{x.removeprefix("/contents/")}', VrSquareIE)
+            for x in traverse_obj(source, (
+                *keys, {find_elements(cls='video', html=True)},
+                ..., {extract_attributes}, 'data-url'))
+        ]
 
-    _VALID_URL = r'https?://livr\.jp/(?P<type>category|channel|headline|web-search)/?(?P<id>(?!top\b)[\w-]+)?'
+
+class VrSquareChannelIE(VrSquarePlaylistBaseIE):
+    IE_NAME = 'vrsquare:channel'
+
+    _VALID_URL = r'https?://livr\.jp/channel/(?P<id>\w+)'
     _TESTS = [{
-        'url': 'https://livr.jp/category/C133936275',
-        'info_dict': {
-            'id': 'C133936275',
-            'title': 'そこ曲がったら、櫻坂？VR',
-        },
-        'playlist_mincount': 308,
-    }, {
         'url': 'https://livr.jp/channel/H372648599',
         'info_dict': {
             'id': 'H372648599',
             'title': 'AKB48＋チャンネル',
         },
-        'playlist_mincount': 499,
-    }, {
-        'url': 'https://livr.jp/headline/A296449604',
-        'info_dict': {
-            'id': 'A296449604',
-            'title': 'AKB48 アフターVR',
-        },
-        'playlist_mincount': 22,
-    }, {
+        'playlist_mincount': 502,
+    }]
+
+    def _entries(self, playlist_id):
+        for page in itertools.count(1):
+            ajax = self._download_json(
+                f'{self._BASE_URL}/ajax/channel/{playlist_id}',
+                playlist_id, query={'p': page},
+            )
+            yield from self._fetch_vids(ajax, ('contents_render_list', ...))
+            if not ajax['hasNext']:
+                break
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
+
+        return self.playlist_result(
+            self._entries(playlist_id), playlist_id, self._html_search_meta('og:title', webpage))
+
+
+class VrSquareSearchIE(VrSquarePlaylistBaseIE):
+    IE_NAME = 'vrsquare:search'
+
+    _VALID_URL = r'https?://livr\.jp/web-search'
+    _TESTS = [{
         'url': 'https://livr.jp/web-search?w=%23%E5%B0%8F%E6%A0%97%E6%9C%89%E4%BB%A5',
         'info_dict': {
             'id': '#小栗有以',
@@ -134,38 +147,45 @@ class VRSQUAREPlaylistIE(VRSQUAREIE):
         'playlist_mincount': 70,
     }]
 
-    def _fetch_vids(self, source, keys=()):
-        return [self.url_result(
-            f'{self._BASE_URL}/contents/{x.removeprefix("/contents/")}', VRSQUAREIE)
-            for x in traverse_obj(source, (
-                *keys, {find_elements(cls='video', html=True)},
-                ..., {extract_attributes}, 'data-url'))
-        ]
-
-    def _entries(self, webpage, playlist_type, playlist_id, query):
-        if playlist_type in ('category', 'headline'):
-            yield from self._fetch_vids(webpage)
-        else:
-            endpoint = {
-                'channel': f'channel/{playlist_id}',
-                'web-search': 'web-search',
-            }[playlist_type]
-            for page in itertools.count(1):
-                ajax = self._download_json(
-                    f'{self._BASE_URL}/ajax/{endpoint}', playlist_id,
-                    query=filter_dict({'p': page, 'w': query}),
-                )
-                yield from self._fetch_vids(ajax, ('contents_render_list', ...))
-                if not any(ajax.get(k) for k in ('has_next', 'hasNext')):
-                    break
+    def _entries(self, query):
+        for page in itertools.count(1):
+            ajax = self._download_json(
+                f'{self._BASE_URL}/ajax/web-search',
+                query, query={'p': page, 'w': query},
+            )
+            yield from self._fetch_vids(ajax, ('contents_render_list', ...))
+            if not ajax['has_next']:
+                break
 
     def _real_extract(self, url):
-        playlist_type, playlist_id = self._match_valid_url(url).groups()
         query = parse_qs(url).get('w', [None])[0]
-        if not playlist_id:
-            playlist_id = query
+
+        return self.playlist_result(self._entries(query), query, query)
+
+
+class VrSquareSectionIE(VrSquarePlaylistBaseIE):
+    IE_NAME = 'vrsquare:section'
+
+    _VALID_URL = r'https?://livr\.jp/(?:category|headline)/(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://livr.jp/category/C133936275',
+        'info_dict': {
+            'id': 'C133936275',
+            'title': 'そこ曲がったら、櫻坂？VR',
+        },
+        'playlist_mincount': 308,
+    }, {
+        'url': 'https://livr.jp/headline/A296449604',
+        'info_dict': {
+            'id': 'A296449604',
+            'title': 'AKB48 アフターVR',
+        },
+        'playlist_mincount': 22,
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
         webpage = self._download_webpage(url, playlist_id)
-        playlist_title = query or self._html_search_meta('og:title', webpage)
 
         return self.playlist_result(
-            self._entries(webpage, playlist_type, playlist_id, query), playlist_id, playlist_title)
+            self._fetch_vids(webpage), playlist_id, self._html_search_meta('og:title', webpage))

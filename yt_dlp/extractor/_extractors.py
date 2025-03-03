@@ -2396,8 +2396,10 @@ from .voxmedia import (
     VoxMediaVolumeIE,
 )
 from .vrsquare import (
-    VRSQUAREIE,
-    VRSQUAREPlaylistIE,
+    VrSquareChannelIE,
+    VrSquareIE,
+    VrSquareSearchIE,
+    VrSquareSectionIE,
 )
 from .vrt import (
     VRTIE,
