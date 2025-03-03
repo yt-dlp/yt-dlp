@@ -3,8 +3,12 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
+    int_or_none,
     mimetype2ext,
     parse_iso8601,
+    parse_qs,
+    str_or_none,
+    url_or_none,
 )
 from ..utils.traversal import traverse_obj
 
@@ -99,62 +103,50 @@ class BlackboardCollaborateIE(InfoExtractor):
         },
     ]
 
+    def _call_api(self, region, video_id, api_call='', token=None, note='Downloading JSON metadata', fatal=False):
+        return self._download_json(f'https://{region}.bbcollab.com/collab/api/csa/recordings/{video_id}/{api_call}',
+                                   video_id, note=note,
+                                   headers={'Authorization': f'Bearer {token}'} if token else '', fatal=fatal)
+
     def _real_extract(self, url):
-        # Prepare for requests
         mobj = self._match_valid_url(url)
         region = mobj.group('region')
         video_id = mobj.group('id')
-        token = mobj.group('token')
+        token = mobj.group('token') or parse_qs(url).get('authToken')
 
-        headers = {'Authorization': f'Bearer {token}'}
-        base_url = f'https://{region}.bbcollab.com/collab/api/csa/recordings/{video_id}'
-
-        # Try request the way the player handles it when behind a login
-        if video_info := self._download_json(f'{base_url}/data/secure', video_id, 'Trying auth token',
-                                             headers=headers, fatal=False):
-            video_extra = self._download_json(f'{base_url}', video_id, 'Retrieving extra attributes',
-                                              headers=headers, fatal=False)
-
-        # Blackboard will allow redownloading from the same IP without authentication for a while, so if previous method fails, try this
+        if video_info := self._call_api(region, video_id, 'data/secure', token, 'Trying auth token'):
+            video_extra = self._call_api(region, video_id, token=token, note='Retrieving extra attributes')
         else:
-            video_info = self._download_json(f'{base_url}/data', video_id, 'Trying fallback')
-            video_extra = 0
+            video_info = self._call_api(region, video_id, 'data', note='Trying fallback', fatal=True)
+            video_extra = {}
 
-        # Get metadata
-        duration = video_info.get('duration') / 1000
+        duration = int_or_none(video_info.get('duration'), 1000)
         title = video_info.get('name')
         upload_date = video_info.get('created')
 
-        # Get streams
-        stream_formats = []
-        streams = video_info.get('extStreams')  # Can also use video_info.get('streams') but I don't know its structure
+        formats = traverse_obj(video_info, ('extStreams', ..., {
+            'url': ('streamUrl', {url_or_none}),
+            'container': ('contentType', {mimetype2ext}),
+            'aspect_ratio': ('aspectRatio'),
+        }))
 
-        for current_stream in streams:
-            stream_formats.append({
-                'url': current_stream['streamUrl'],
-                'container': mimetype2ext(current_stream.get('contentType')),
-                'filesize': video_extra.get('storageSize', None),
-                'aspect_ratio': video_info.get('aspectRatio', ''),
-            })
+        for cur_format in formats:
+            cur_format['filesize'] = int_or_none(video_extra.get('storageSize'))
 
-        # Get subtitles
         subtitles = {}
-        subs = video_info.get('subtitles')
-        for current_subs in subs:
+        for current_subs in video_info.get('subtitles'):
             lang_code = current_subs.get('lang')
             subtitles.setdefault(lang_code, []).append({
-                'name': current_subs.get('label'),
-                'url': current_subs['url'],
+                'name': str_or_none(current_subs.get('label')),
+                'url': url_or_none(current_subs['url']),
             })
 
-        # Get chat
-        chats = video_info.get('chats')
-        for current_chat in chats:
-            subtitles.setdefault('live_chat', []).append({'url': current_chat['url']})
+        for current_chat in video_info.get('chats'):
+            subtitles.setdefault('live_chat', []).append({'url': url_or_none(current_chat['url'])})
 
         return {
             'duration': duration,
-            'formats': stream_formats,
+            'formats': formats,
             'id': video_id,
             'timestamp': parse_iso8601(upload_date),
             'subtitles': subtitles,
@@ -163,7 +155,7 @@ class BlackboardCollaborateIE(InfoExtractor):
 
 
 class BlackboardCollaborateLaunchIE(InfoExtractor):
-    _VALID_URL = r'https?://[a-z]+(?:-lti)?\.bbcollab\.com/launch/(?P<token>[\w\.\-]+)'
+    _VALID_URL = r'https?://[a-z]+\.bbcollab\.com/launch/(?P<token>[\w\.\-]+)'
 
     _TESTS = [
         {
