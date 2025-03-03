@@ -81,7 +81,8 @@ class RTPIE(InfoExtractor):
                 'rtp-play-auth-hash': 'fac9c328b2f27e26e03d7f8942d66c05b3e59371e16c2a079f5c83cc801bd3ee',
                 'rtp-play-auth-timestamp': '2145973229682',
                 'User-Agent': self._USER_AGENT,
-            }), None, note='Fetching guest auth token', errnote='Could not fetch guest auth token',
+            }, extensions={'keep_header_casing': True}), None,
+            note='Fetching guest auth token', errnote='Could not fetch guest auth token',
             fatal=False), ('token', 'token', {str}))
         return self._AUTH_TOKEN
 
