@@ -3573,6 +3573,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'author_thumbnail': ('author', 'avatarThumbnailUrl', {url_or_none}),
                 'author_is_uploader': ('author', 'isCreator', {bool}),
                 'author_is_verified': ('author', 'isVerified', {bool}),
+                'author_is_member': ('author', 'sponsorBadgeA11y', {str}),
+                'author_member_badge': ('author', 'sponsorBadgeUrl', {url_or_none}),
                 'author_url': ('author', 'channelCommand', 'innertubeCommand', (
                     ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url'),
                 ), {urljoin('https://www.youtube.com')}),
