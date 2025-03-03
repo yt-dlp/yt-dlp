@@ -235,7 +235,7 @@ class PlaySuisseIE(InfoExtractor):
             }).encode(),
             headers={'Content-Type': 'application/json', 'locale': locale})
         return response['data']['assetV2']
-    
+
     def _real_extract(self, url):
         if not self._ID_TOKEN:
             self.raise_login_required(method='password')
