@@ -12,7 +12,6 @@ from ..utils import (
     parse_iso8601,
     url_or_none,
 )
-from ..utils.networking import CaseSensitiveDict
 from ..utils.traversal import traverse_obj
 
 
@@ -76,13 +75,13 @@ class RTPIE(InfoExtractor):
             return self._AUTH_TOKEN
         self._AUTH_TOKEN = traverse_obj(self._download_json(Request(
             url='https://rtpplayapi.rtp.pt/play/api/2/token-manager',
-            headers=CaseSensitiveDict({
+            headers={
                 'Accept': '*/*',
                 'rtp-play-auth': 'RTPPLAY_MOBILE_IOS',
                 'rtp-play-auth-hash': 'fac9c328b2f27e26e03d7f8942d66c05b3e59371e16c2a079f5c83cc801bd3ee',
                 'rtp-play-auth-timestamp': '2145973229682',
                 'User-Agent': self._USER_AGENT,
-            })), None, note='Fetching guest auth token', errnote='Could not fetch guest auth token',
+            }), None, note='Fetching guest auth token', errnote='Could not fetch guest auth token',
             fatal=False), ('token', 'token', {str}))
         return self._AUTH_TOKEN
 
