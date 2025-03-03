@@ -96,7 +96,7 @@ class TvwIE(InfoExtractor):
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
         if caption_url := traverse_obj(video_data, ('captionPath', {url_or_none})):
-            self._merge_subtitles({'en': [{'en': 'vtt', 'url': caption_url}]}, target=subtitles)
+            subtitles.setdefault('en', []).append({'url': caption_url, 'ext': 'vtt'})
 
         return {
             'id': video_id,
