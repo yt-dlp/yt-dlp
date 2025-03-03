@@ -123,12 +123,8 @@ class PlaySuisseIE(InfoExtractor):
             descriptionLong
             year
             contentTypes
-            countries
-            composers
             directors
-            writers
             mainCast
-            productionCompanies
             productionCountries
             duration
             episodeNumber
