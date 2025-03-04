@@ -370,6 +370,15 @@ query VideoPage($pageId: ID!) {
 
         formats, subtitles = self._extract_formats_and_subtitles(streaming_info, video_id)
 
+        code = traverse_obj(streaming_info, ('code', {str}))
+        if not formats and code:
+            if code in ('CONTENT_AVAILABLE_ONLY_FOR_BE_RESIDENTS', 'CONTENT_AVAILABLE_ONLY_IN_BE', 'CONTENT_UNAVAILABLE_VIA_PROXY'):
+                self.raise_geo_restricted()
+            elif code in ('CONTENT_AVAILABLE_ONLY_FOR_BE_RESIDENTS_AND_EXPATS', 'CONTENT_IS_AGE_RESTRICTED', 'CONTENT_REQUIRES_AUTHENTICATION'):
+                self.raise_login_required()
+            else:
+                raise ExtractorError(f'Unable to extract formats: {code}')
+
         return {
             **self._json_ld(traverse_obj(metadata, ('ldjson', ..., {json.loads})), video_id, fatal=False),
             **traverse_obj(metadata, ('episode', {
