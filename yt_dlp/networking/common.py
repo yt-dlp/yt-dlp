@@ -206,6 +206,7 @@ class RequestHandler(abc.ABC):
     - `cookiejar`: Cookiejar to use for this request.
     - `timeout`: socket timeout to use for this request.
     - `legacy_ssl`: Enable legacy SSL options for this request. See legacy_ssl_support.
+    - `keep_header_casing`: Keep the casing of headers when sending the request.
     To enable these, add extensions.pop('<extension>', None) to _check_extensions
 
     Apart from the url protocol, proxies dict may contain the following keys:
@@ -258,6 +259,23 @@ class RequestHandler(abc.ABC):
 
     def _merge_headers(self, request_headers):
         return HTTPHeaderDict(self.headers, request_headers)
+
+    def _prepare_headers(self, request: Request, headers: HTTPHeaderDict) -> None:  # noqa: B027
+        """Additional operations to prepare headers before building. To be extended by subclasses.
+        @param request: Request object
+        @param headers: Merged headers to prepare
+        """
+
+    def _get_headers(self, request: Request) -> dict[str, str]:
+        """
+        Get headers for external use.
+        Subclasses may define a _prepare_headers method to modify headers after merge but before building.
+        """
+        headers = self._merge_headers(request.headers)
+        self._prepare_headers(request, headers)
+        if request.extensions.get('keep_header_casing'):
+            return headers.sensitive()
+        return dict(headers)
 
     def _calculate_timeout(self, request):
         return float(request.extensions.get('timeout') or self.timeout)
@@ -317,6 +335,7 @@ class RequestHandler(abc.ABC):
         assert isinstance(extensions.get('cookiejar'), (YoutubeDLCookieJar, NoneType))
         assert isinstance(extensions.get('timeout'), (float, int, NoneType))
         assert isinstance(extensions.get('legacy_ssl'), (bool, NoneType))
+        assert isinstance(extensions.get('keep_header_casing'), (bool, NoneType))
 
     def _validate(self, request):
         self._check_url_scheme(request)

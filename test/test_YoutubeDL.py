@@ -6,6 +6,8 @@ import sys
 import unittest
 from unittest.mock import patch
 
+from yt_dlp.globals import all_plugins_loaded
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -1426,6 +1428,12 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertIsNone(check_for_cookie_header(result), msg='http_headers cookies for wrong domain')
         self.assertFalse(result.get('cookies'), msg='Cookies set in cookies field for wrong domain')
         self.assertFalse(ydl.cookiejar.get_cookie_header(fmt['url']), msg='Cookies set in cookiejar for wrong domain')
+
+    def test_load_plugins_compat(self):
+        # Should try to reload plugins if they haven't already been loaded
+        all_plugins_loaded.value = False
+        FakeYDL().close()
+        assert all_plugins_loaded.value
 
 
 if __name__ == '__main__':
