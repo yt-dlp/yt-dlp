@@ -720,6 +720,15 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     rh, Request(
                         f'http://127.0.0.1:{self.http_port}/headers', proxies={'all': 'http://10.255.255.255'})).close()
 
+    @pytest.mark.skip_handlers_if(lambda _, handler: handler not in ['Urllib', 'CurlCFFI'], 'handler does not support keep_header_casing')
+    def test_keep_header_casing(self, handler):
+        with handler() as rh:
+            res = validate_and_send(
+                rh, Request(
+                    f'http://127.0.0.1:{self.http_port}/headers', headers={'X-test-heaDer': 'test'}, extensions={'keep_header_casing': True})).read().decode()
+
+            assert 'X-test-heaDer: test' in res
+
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
 class TestClientCertificate:
@@ -1289,6 +1298,7 @@ class TestRequestHandlerValidation:
             ({'legacy_ssl': False}, False),
             ({'legacy_ssl': True}, False),
             ({'legacy_ssl': 'notabool'}, AssertionError),
+            ({'keep_header_casing': True}, UnsupportedRequest),
         ]),
         ('Requests', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
@@ -1299,6 +1309,9 @@ class TestRequestHandlerValidation:
             ({'legacy_ssl': False}, False),
             ({'legacy_ssl': True}, False),
             ({'legacy_ssl': 'notabool'}, AssertionError),
+            ({'keep_header_casing': False}, False),
+            ({'keep_header_casing': True}, False),
+            ({'keep_header_casing': 'notabool'}, AssertionError),
         ]),
         ('CurlCFFI', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
