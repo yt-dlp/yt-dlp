@@ -28,6 +28,7 @@ from ..utils import (
     prepend_extension,
     replace_extension,
     shell_quote,
+    strftime_or_none,
     traverse_obj,
     variadic,
     write_json_file,
@@ -736,12 +737,12 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         meta_prefix = 'meta'
         metadata = collections.defaultdict(dict)
 
-        def add(meta_list, info_list=None):
+        def add(meta_list, info_list=None, convert=str):
             value = next((
                 info[key] for key in [f'{meta_prefix}_', *variadic(info_list or meta_list)]
                 if info.get(key) is not None), None)
             if value not in ('', None):
-                value = ', '.join(map(str, variadic(value)))
+                value = ', '.join(map(convert, variadic(value)))
                 value = value.replace('\0', '')  # nul character cannot be passed in command line
                 metadata['common'].update({meta_f: value for meta_f in variadic(meta_list)})
 
@@ -751,7 +752,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         # https://kodi.wiki/view/Video_file_tagging
 
         add('title', ('track', 'title'))
-        add('date', 'upload_date')
+        add('date', ('release_date', 'upload_date'), convert=strftime_or_none(date_format='%Y-%m-%d'))
         add(('description', 'synopsis'), 'description')
         add(('purl', 'comment'), 'webpage_url')
         add('track', 'track_number')
