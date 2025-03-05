@@ -277,4 +277,3 @@ class PlaySuisseIE(InfoExtractor):
             'episode': traverse_obj(media_data, 'name') if traverse_obj(media_data, 'episodeNumber') else None,
             'episode_number': int_or_none(traverse_obj(media_data, 'episodeNumber')),
         }
-
