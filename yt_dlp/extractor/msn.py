@@ -10,7 +10,6 @@ from ..utils import (
     url_or_none,
 )
 
-
 class MSNIE(InfoExtractor):
     _WORKING = True
     _VALID_URL = r'https?://(?:(?:www|preview)\.)?msn\.com/(?:[^/]+/)+(?P<display_id>[^/]+)/[a-z]{2}-(?P<id>[\da-zA-Z]+)'
@@ -63,7 +62,7 @@ class MSNIE(InfoExtractor):
         'info_dict': {
             'id': 'AA1A6v68',
             'display_id': 'gene-hackman-s-unseen-legacy-a-humble-artist-a-community-man-a-hollywood-icon',
-            'title': "Gene Hackman’s unseen legacy: a humble artist, a community man, a Hollywood icon",
+            'title': 'Gene Hackman’s unseen legacy: a humble artist, a community man, a Hollywood icon',
             'ext': 'mp4',
         },
     }, {
