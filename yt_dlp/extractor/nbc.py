@@ -736,7 +736,7 @@ class NBCStationsIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         nbc_data = self._search_json(
-            r'<script>\s*var\s+nbc\s*=', webpage, 'NBC JSON data', video_id)
+            r'(?:<script>\s*var\s+nbc\s*=|Object\.assign\(nbc,)', webpage, 'NBC JSON data', video_id)
         pdk_acct = nbc_data.get('pdkAcct') or 'Yh1nAC'
         fw_ssid = traverse_obj(nbc_data, ('video', 'fwSSID'))
 
