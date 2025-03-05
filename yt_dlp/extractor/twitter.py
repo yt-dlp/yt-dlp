@@ -1334,7 +1334,7 @@ class TwitterIE(TwitterBaseIE):
     def _generate_syndication_token(self, twid):
         # ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
         translation = str.maketrans(dict.fromkeys('0.'))
-        return js_number_to_string((int(twid) / 1e15) * math.PI, 36).translate(translation)
+        return js_number_to_string((int(twid) / 1e15) * math.pi, 36).translate(translation)
 
     def _call_syndication_api(self, twid):
         self.report_warning(
