@@ -187,7 +187,7 @@ class VrtNUIE(VRTBaseIE):
     _TESTS = [{
         'url': 'https://www.vrt.be/vrtmax/a-z/ket---doc/trailer/ket---doc-trailer-s6/',
         'info_dict': {
-            'channel': 'VRT',
+            'channel': 'ketnet',
             'description': 'Neem een kijkje in de bijzondere wereld van deze Ketnetters.',
             'display_id': 'ket---doc-trailer-s6',
             'duration': 30.0,
@@ -207,7 +207,7 @@ class VrtNUIE(VRTBaseIE):
     }, {
         'url': 'https://www.vrt.be/vrtnu/a-z/taboe/3/taboe-s3a4/',
         'info_dict': {
-            'channel': 'VRT',
+            'channel': 'een',
             'description': 'md5:bf61345a95eca9393a95de4a7a54b5c6',
             'display_id': 'taboe-s3a4',
             'duration': 2882.02,
@@ -383,6 +383,7 @@ class VrtNUIE(VRTBaseIE):
             **self._json_ld(traverse_obj(metadata, ('ldjson', ..., {json.loads})), video_id, fatal=False),
             **traverse_obj(metadata, ('episode', {
                 'age_limit': ('ageRaw', {parse_age_limit}),
+                'channel': ('brand', {str}),
                 'description': ('description', {str}),
                 'duration': ('durationRaw', {parse_duration}),
                 'episode': ('title', {str}),
@@ -395,7 +396,6 @@ class VrtNUIE(VRTBaseIE):
                 'timestamp': ('onTimeRaw', {parse_iso8601}),
                 'title': ('title', {str}),
             })),
-            'channel': 'VRT',
             'display_id': display_id,
             'duration': float_or_none(streaming_info.get('duration'), 1000),
             'formats': formats,
