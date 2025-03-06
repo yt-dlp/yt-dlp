@@ -1,7 +1,6 @@
 import base64
 import binascii
 import json
-import time
 import uuid
 
 from .common import InfoExtractor
@@ -9,7 +8,6 @@ from ..dependencies import Cryptodome
 from ..utils import (
     ExtractorError,
     int_or_none,
-    jwt_decode_hs256,
     traverse_obj,
     try_call,
     url_basename,
@@ -25,7 +23,6 @@ class WrestleUniverseBaseIE(InfoExtractor):
     _API_HOST = 'api.wrestle-universe.com'
     _API_PATH = None
     _REAL_TOKEN = None
-    _TOKEN_EXPIRY = None
     _REFRESH_TOKEN = None
     _DEVICE_ID = None
     _LOGIN_QUERY = {'key': 'AIzaSyCaRPBsDQYVDUWWBXjsTrHESi2r_F3RAdA'}
@@ -40,13 +37,13 @@ class WrestleUniverseBaseIE(InfoExtractor):
 
     @property
     def _TOKEN(self):
-        if not self._REAL_TOKEN or not self._TOKEN_EXPIRY:
+        if not self._REAL_TOKEN:
             token = try_call(lambda: self._get_cookies('https://www.wrestle-universe.com/')['token'].value)
             if not token and not self._REFRESH_TOKEN:
                 self.raise_login_required()
             self._TOKEN = token
 
-        if not self._REAL_TOKEN or self._TOKEN_EXPIRY <= int(time.time()):
+        if not self._REAL_TOKEN or self._is_jwt_token_expired(self._REAL_TOKEN):
             if not self._REFRESH_TOKEN:
                 raise ExtractorError(
                     'Expired token. Refresh your cookies in browser and try again', expected=True)
@@ -57,11 +54,6 @@ class WrestleUniverseBaseIE(InfoExtractor):
     @_TOKEN.setter
     def _TOKEN(self, value):
         self._REAL_TOKEN = value
-
-        expiry = traverse_obj(value, ({jwt_decode_hs256}, 'exp', {int_or_none}))
-        if not expiry:
-            raise ExtractorError('There was a problem with the auth token')
-        self._TOKEN_EXPIRY = expiry
 
     def _perform_login(self, username, password):
         login = self._download_json(

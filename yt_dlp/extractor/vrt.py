@@ -13,7 +13,6 @@ from ..utils import (
     get_element_by_class,
     get_element_html_by_class,
     int_or_none,
-    jwt_decode_hs256,
     jwt_encode_hs256,
     make_archive_id,
     merge_dicts,
@@ -315,10 +314,6 @@ class VrtNUIE(VRTBaseIE):
     def _get_vrt_cookie(self, cookie_name):
         # Refresh token cookie is scoped to /vrtmax/sso, others are scoped to /
         return try_call(lambda: self._get_cookies('https://www.vrt.be/vrtmax/sso')[cookie_name].value)
-
-    @staticmethod
-    def _is_jwt_token_expired(token):
-        return jwt_decode_hs256(token)['exp'] - time.time() < 300
 
     def _perform_login(self, username, password):
         refresh_token = self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME)

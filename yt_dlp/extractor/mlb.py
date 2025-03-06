@@ -1,6 +1,5 @@
 import json
 import re
-import time
 import uuid
 
 from .common import InfoExtractor
@@ -10,7 +9,6 @@ from ..utils import (
     determine_ext,
     int_or_none,
     join_nonempty,
-    jwt_decode_hs256,
     parse_duration,
     parse_iso8601,
     try_get,
@@ -350,11 +348,10 @@ mutation initPlaybackSession(
     _device_id = None
     _session_id = None
     _access_token = None
-    _token_expiry = 0
 
     @property
     def _api_headers(self):
-        if (self._token_expiry - 120) <= time.time():
+        if self._is_jwt_token_expired(self._access_token):
             self.write_debug('Access token has expired; re-logging in')
             self._perform_login(*self._get_login_info())
         return {'Authorization': f'Bearer {self._access_token}'}
@@ -392,7 +389,6 @@ mutation initPlaybackSession(
                 raise ExtractorError('Invalid username or password', expected=True)
             raise
 
-        self._token_expiry = traverse_obj(self._access_token, ({jwt_decode_hs256}, 'exp', {int})) or 0
         self._set_device_id(username)
 
         self._session_id = self._call_api({

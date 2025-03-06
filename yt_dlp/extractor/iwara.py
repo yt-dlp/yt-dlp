@@ -1,7 +1,6 @@
 import functools
 import hashlib
 import json
-import time
 import urllib.parse
 
 from .common import InfoExtractor
@@ -9,11 +8,9 @@ from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     int_or_none,
-    jwt_decode_hs256,
     mimetype2ext,
     qualities,
     traverse_obj,
-    try_call,
     unified_timestamp,
 )
 
@@ -25,7 +22,7 @@ class IwaraBaseIE(InfoExtractor):
 
     def _is_token_expired(self, token, token_type):
         # User token TTL == ~3 weeks, Media token TTL == ~1 hour
-        if (try_call(lambda: jwt_decode_hs256(token)['exp']) or 0) <= int(time.time() - 120):
+        if self._is_jwt_token_expired(token):
             self.to_screen(f'{token_type} token has expired')
             return True
 

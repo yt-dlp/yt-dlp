@@ -11,7 +11,6 @@ from ..utils import (
     float_or_none,
     int_or_none,
     js_to_json,
-    jwt_decode_hs256,
     mimetype2ext,
     orderedSet,
     parse_age_limit,
@@ -620,9 +619,6 @@ class CBCGemIE(CBCGemBaseIE):
             'https://services.radio-canada.ca/ott/catalog/v1/gem/settings', None,
             'Downloading site settings', query={'device': 'web'})['identityManagement']['ropc']
 
-    def _is_jwt_expired(self, token):
-        return jwt_decode_hs256(token)['exp'] - time.time() < 300
-
     def _call_oauth_api(self, oauth_data, note='Refreshing access token'):
         response = self._download_json(
             self._ropc_settings['url'], None, note, data=urlencode_postdata({
@@ -657,7 +653,7 @@ class CBCGemIE(CBCGemBaseIE):
             raise
 
     def _fetch_access_token(self):
-        if self._is_jwt_expired(self._access_token):
+        if self._is_jwt_token_expired(self._access_token):
             try:
                 self._call_oauth_api({
                     'grant_type': 'refresh_token',
@@ -675,7 +671,7 @@ class CBCGemIE(CBCGemBaseIE):
         if not self._get_login_info()[0]:
             return None
 
-        if not self._claims_token or self._is_jwt_expired(self._claims_token):
+        if not self._claims_token or self._is_jwt_token_expired(self._claims_token):
             self._claims_token = self._download_json(
                 'https://services.radio-canada.ca/ott/subscription/v2/gem/Subscriber/profile',
                 None, 'Downloading claims token', query={'device': 'web'},
