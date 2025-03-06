@@ -182,14 +182,14 @@ class VrtNUIE(VRTBaseIE):
     _TESTS = [{
         'url': 'https://www.vrt.be/vrtmax/a-z/ket---doc/trailer/ket---doc-trailer-s6/',
         'info_dict': {
+            'id': 'pbs-pub-c8a78645-5d3e-468a-89ec-6f3ed5534bd5$vid-242ddfe9-18f5-4e16-ab45-09b122a19251',
+            'ext': 'mp4',
             'channel': 'ketnet',
             'description': 'Neem een kijkje in de bijzondere wereld van deze Ketnetters.',
             'display_id': 'ket---doc-trailer-s6',
             'duration': 30.0,
             'episode': 'Reeks 6 volledig vanaf 3 maart',
             'episode_id': '1739450401467',
-            'ext': 'mp4',
-            'id': 'pbs-pub-c8a78645-5d3e-468a-89ec-6f3ed5534bd5$vid-242ddfe9-18f5-4e16-ab45-09b122a19251',
             'season': 'Trailer',
             'season_id': '1739450401467',
             'series': 'Ket & Doc',
@@ -202,15 +202,15 @@ class VrtNUIE(VRTBaseIE):
     }, {
         'url': 'https://www.vrt.be/vrtnu/a-z/taboe/3/taboe-s3a4/',
         'info_dict': {
+            'id': 'pbs-pub-f50faa3a-1778-46b6-9117-4ba85f197703$vid-547507fe-1c8b-4394-b361-21e627cbd0fd',
+            'ext': 'mp4',
             'channel': 'een',
             'description': 'md5:bf61345a95eca9393a95de4a7a54b5c6',
             'display_id': 'taboe-s3a4',
             'duration': 2882.02,
-            'ext': 'mp4',
             'episode': 'Mensen met het syndroom van Gilles de la Tourette',
             'episode_id': '1739055911734',
             'episode_number': 4,
-            'id': 'pbs-pub-f50faa3a-1778-46b6-9117-4ba85f197703$vid-547507fe-1c8b-4394-b361-21e627cbd0fd',
             'season': '3',
             'season_id': '1739055911734',
             'season_number': 3,
@@ -374,7 +374,6 @@ class VrtNUIE(VRTBaseIE):
                 raise ExtractorError(f'Unable to extract formats: {code}')
 
         return {
-            'id': video_id,
             **self._json_ld(traverse_obj(metadata, ('ldjson', ..., {json.loads})), video_id, fatal=False),
             **traverse_obj(metadata, ('episode', {
                 'age_limit': ('ageRaw', {parse_age_limit}),
@@ -394,6 +393,7 @@ class VrtNUIE(VRTBaseIE):
             'display_id': display_id,
             'duration': float_or_none(streaming_info.get('duration'), 1000),
             'formats': formats,
+            'id': video_id,
             'subtitles': subtitles,
             'thumbnail': url_or_none(streaming_info.get('posterImageUrl')),
             '_old_archive_ids': [make_archive_id('Canvas', video_id)],
