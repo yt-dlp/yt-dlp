@@ -92,34 +92,22 @@ class VRTBaseIE(InfoExtractor):
         player_info = {'exp': (round(time.time(), 3) + 900), **self._PLAYER_INFO}
         vrt_player_token = self._download_json(
             f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/tokens',
-            video_id,
-            'Downloading player token',
-            'Failed to download player token',
-            headers={
+            video_id, 'Downloading player token', 'Failed to download player token', headers={
                 **self.geo_verification_headers(),
                 'Content-Type': 'application/json',
-            },
-            data=json.dumps({
+            }, data=json.dumps({
                 'identityToken': id_token or '',
-                'playerInfo': jwt_encode_hs256(
-                    player_info,
-                    self._JWT_SIGNING_KEY,
-                    headers={'kid': self._JWT_KEY_ID},
-                ).decode(),
-            }, separators=(',', ':')).encode(),
-        )['vrtPlayerToken']
+                'playerInfo': jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
+                    'kid': self._JWT_KEY_ID,
+                }).decode(),
+            }, separators=(',', ':')).encode())['vrtPlayerToken']
 
         return self._download_json(
             f'https://media-services-public.vrt.be/media-aggregator/{version}/media-items/{video_id}',
-            video_id,
-            'Downloading API JSON',
-            'Failed to download API JSON',
-            query={
+            video_id, 'Downloading API JSON', 'Failed to download API JSON', query={
                 'client': client,
                 'vrtPlayerToken': vrt_player_token,
-            },
-            expected_status=400,
-        )
+            }, expected_status=400)
 
 
 class VRTIE(VRTBaseIE):
@@ -307,11 +295,8 @@ class VrtNUIE(VRTBaseIE):
             return None
 
         self._download_webpage(
-            'https://www.vrt.be/vrtmax/sso/login',
-            None,
-            'Refreshing video token',
-            query={'scope': 'openid,mid'},
-        )
+            'https://www.vrt.be/vrtmax/sso/login', None,
+            'Refreshing video token', query={'scope': 'openid,mid'})
 
         video_token = self._get_video_token_from_cookie()
         if not video_token:
@@ -334,37 +319,22 @@ class VrtNUIE(VRTBaseIE):
             return
 
         self._request_webpage(
-            'https://www.vrt.be/vrtmax/sso/login',
-            None,
-            note='Getting session cookies',
-            errnote='Failed to get session cookies',
-        )
+            'https://www.vrt.be/vrtmax/sso/login', None,
+            note='Getting session cookies', errnote='Failed to get session cookies')
 
         login_data = self._download_json(
-            'https://login.vrt.be/perform_login',
-            None,
-            data=json.dumps({
+            'https://login.vrt.be/perform_login', None, data=json.dumps({
                 'clientId': 'vrtnu-site',
                 'loginID': username,
                 'password': password,
-            }).encode(),
-            headers={
+            }).encode(), headers={
                 'Content-Type': 'application/json',
                 'Oidcxsrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
-            },
-            note='Logging in',
-            errnote='Login failed',
-            expected_status=403,
-        )
+            }, note='Logging in', errnote='Login failed', expected_status=403)
         if login_data.get('errorCode'):
             raise ExtractorError(f'Login failed: {login_data.get("errorMessage")}', expected=True)
 
-        self._download_webpage(
-            login_data['redirectUrl'],
-            None,
-            note='Getting access token',
-            errnote='Failed to get access token',
-        )
+        self._download_webpage(login_data['redirectUrl'], None, note='Getting access token', errnote='Failed to get access token')
 
         self.cache.store(self._NETRC_MACHINE, 'video_token', self._get_video_token_from_cookie())
         self.cache.store(self._NETRC_MACHINE, 'refresh_token', self._get_refresh_token_from_cookie())
@@ -374,23 +344,18 @@ class VrtNUIE(VRTBaseIE):
 
         metadata = self._download_json(
             'https://www.vrt.be/vrtnu-api/graphql/public/v1',
-            display_id,
-            'Downloading asset JSON',
-            'Unable to download asset JSON',
+            display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
             data=json.dumps({
                 'operationName': 'VideoPage',
                 'query': self._VIDEO_PAGE_QUERY,
-                'variables': {
-                    'pageId': urllib.parse.urlparse(url).path,
-                },
+                'variables': {'pageId': urllib.parse.urlparse(url).path},
             }).encode(),
             headers={
                 'content-type': 'application/json',
                 'x-vrt-client-name': 'WEB',
                 'x-vrt-client-version': '1.5.9',
                 'x-vrt-zone': 'default',
-            },
-        )['data']['page']
+            })['data']['page']
 
         video_id = metadata['player']['modes'][0]['streamId']
         video_token = self._fetch_video_token()
@@ -414,11 +379,8 @@ class VrtNUIE(VRTBaseIE):
                 raise ExtractorError(f'Unable to extract formats: {code}')
 
         return {
-            **self._json_ld(
-                traverse_obj(metadata, ('ldjson', ..., {json.loads})),
-                video_id,
-                fatal=False,
-            ),
+            'id': video_id,
+            **self._json_ld(traverse_obj(metadata, ('ldjson', ..., {json.loads})), video_id, fatal=False),
             **traverse_obj(metadata, ('episode', {
                 'age_limit': ('ageRaw', {parse_age_limit}),
                 'description': ('description', {str}),
@@ -437,7 +399,6 @@ class VrtNUIE(VRTBaseIE):
             'display_id': display_id,
             'duration': float_or_none(streaming_info.get('duration'), 1000),
             'formats': formats,
-            'id': video_id,
             'subtitles': subtitles,
             'thumbnail': url_or_none(streaming_info.get('posterImageUrl')),
             '_old_archive_ids': [make_archive_id('Canvas', video_id)],
