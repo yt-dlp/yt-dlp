@@ -237,7 +237,10 @@ class PlaySuisseIE(InfoExtractor):
             self.raise_login_required(method='password')
 
         media_id = self._match_id(url)
-        media_data = self._get_media_data(media_id, traverse_obj(parse_qs(url), ('locale', '0'), default='de'))
+        query = parse_qs(url)
+        locale_param = (query.get('locale') or ['de'])[0].lower()
+        locale = locale_param if locale_param in {'de', 'fr', 'it', 'rm'} else 'de'
+        media_data = self._get_media_data(media_id, locale)
         info = self._extract_single(media_data)
         if media_data.get('episodes'):
             info.update({
@@ -267,7 +270,7 @@ class PlaySuisseIE(InfoExtractor):
             'creators': traverse_obj(media_data, 'directors'),
             'cast': traverse_obj(media_data, 'mainCast'),
             'location': traverse_obj(media_data, 'productionCountries'),
-            'release_year': int_or_none(traverse_obj(media_data, 'year', lambda x: x[:4])),
+            'release_year': int_or_none(traverse_obj(media_data, 'year', lambda _, x: x[:4])),
             'thumbnails': thumbnails,
             'duration': int_or_none(traverse_obj(media_data, 'duration')),
             'formats': formats,
