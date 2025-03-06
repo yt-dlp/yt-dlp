@@ -12,7 +12,6 @@ from ..utils import (
     get_element_by_class,
     get_element_html_by_class,
     int_or_none,
-    jwt_decode_hs256,
     jwt_encode_hs256,
     make_archive_id,
     merge_dicts,
@@ -177,10 +176,6 @@ class VRTIE(VRTBaseIE):
         }
 
 
-def jwt_is_expired(token):
-    return jwt_decode_hs256(token)['exp'] - time.time() < 300
-
-
 class VrtNUIE(VRTBaseIE):
     IE_DESC = 'VRT MAX'
     _VALID_URL = r'https?://(?:www\.)?vrt\.be/(?:vrtnu|vrtmax)/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
@@ -266,26 +261,26 @@ class VrtNUIE(VRTBaseIE):
 
     def _fetch_refresh_token(self):
         refresh_token = self._get_refresh_token_from_cookie()
-        if refresh_token and not jwt_is_expired(refresh_token):
+        if refresh_token and not self._is_jwt_token_expired(refresh_token):
             return refresh_token
 
         if not self._get_login_info()[0]:
             return
 
         refresh_token = self.cache.load(self._NETRC_MACHINE, 'refresh_token', default=None)
-        if refresh_token and not jwt_is_expired(refresh_token):
+        if refresh_token and not self._is_jwt_token_expired(refresh_token):
             self.write_debug('Restored refresh token from cache')
             self._set_cookie('.www.vrt.be', 'vrtnu-site_profile_rt', refresh_token, path='/vrtmax/sso')
             return refresh_token
 
     def _fetch_video_token(self):
         video_token = self._get_video_token_from_cookie()
-        if video_token and not jwt_is_expired(video_token):
+        if video_token and not self._is_jwt_token_expired(video_token):
             return video_token
 
         if self._get_login_info()[0]:
             video_token = self.cache.load(self._NETRC_MACHINE, 'video_token', default=None)
-            if video_token and not jwt_is_expired(video_token):
+            if video_token and not self._is_jwt_token_expired(video_token):
                 self.write_debug('Restored video token from cache')
                 self._set_cookie('.www.vrt.be', 'vrtnu-site_profile_vt', video_token)
                 return video_token
