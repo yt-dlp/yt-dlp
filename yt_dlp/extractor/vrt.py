@@ -343,7 +343,7 @@ class VrtNUIE(VRTBaseIE):
         display_id = self._match_id(url)
 
         metadata = self._download_json(
-            'https://www.vrt.be/vrtnu-api/graphql/public/v1',
+            f'https://www.vrt.be/vrtnu-api/graphql{'' if self._fetch_refresh_token() else '/public'}/v1',
             display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
             data=json.dumps({
                 'operationName': 'VideoPage',
