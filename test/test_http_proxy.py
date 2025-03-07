@@ -331,10 +331,6 @@ class TestHTTPConnectProxy:
                 assert proxy_info['proxy'] == server_address
                 assert 'Proxy-Authorization' in proxy_info['headers']
 
-    @pytest.mark.skip_handler(
-        'Requests',
-        'bug in urllib3 causes unclosed socket: https://github.com/urllib3/urllib3/issues/3374',
-    )
     def test_http_connect_bad_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler, username='test', password='test') as server_address:
             with handler(verify=False, proxies={ctx.REQUEST_PROTO: f'http://test:bad@{server_address}'}) as rh:
