@@ -1,4 +1,5 @@
 # flake8: noqa: F401
+from ._base import YoutubeBaseInfoExtractor
 from ._clip import YoutubeClipIE
 from ._mistakes import YoutubeTruncatedIDIE, YoutubeTruncatedURLIE
 from ._notifications import YoutubeNotificationsIE
@@ -17,4 +18,4 @@ from ._redirect import (
 )
 from ._search import YoutubeMusicSearchURLIE, YoutubeSearchDateIE, YoutubeSearchIE, YoutubeSearchURLIE
 from ._tab import YoutubePlaylistIE, YoutubeTabBaseInfoExtractor, YoutubeTabIE
-from ._video import YoutubeBaseInfoExtractor, YoutubeIE
+from ._video import YoutubeIE
