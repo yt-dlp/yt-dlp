@@ -21,8 +21,7 @@ import traceback
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from .openload import PhantomJSwrapper
-from ..jsinterp import JSInterpreter
+from ..jsinterp import JSInterpreter, PhantomJSwrapper
 from ..networking.exceptions import HTTPError, network_exceptions
 from ..utils import (
     NO_DEFAULT,
