@@ -2331,7 +2331,7 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
     def suitable(cls, url):
         if YoutubeTabIE.suitable(url):
             return False
-        from ...utils import parse_qs
+        from yt_dlp.utils import parse_qs
         qs = parse_qs(url)
         if qs.get('v', [None])[0]:
             return False
