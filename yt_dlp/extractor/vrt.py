@@ -272,6 +272,10 @@ class VrtNUIE(VRTBaseIE):
                 self._set_cookie('.www.vrt.be', 'vrtnu-site_profile_at', access_token)
                 return access_token
 
+        refresh_token = self._fetch_refresh_token()
+        if not refresh_token:
+            return None
+
         self._download_json(
             'https://www.vrt.be/vrtmax/sso/refresh', None,
             note='Refreshing access token', errnote='Failed to refresh access token')
