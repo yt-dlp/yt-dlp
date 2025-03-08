@@ -1072,16 +1072,17 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
     SUPPORTED_EXTS = MEDIA_EXTENSIONS.thumbnails
     FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
 
-    def __init__(self, downloader=None, format=None):
+    def __init__(self, downloader=None, format=None, force_convert_thumbnails=False):
         super().__init__(downloader)
         self.mapping = format
+        self._force_convert_thumbnails = force_convert_thumbnails
 
     @classmethod
     def is_webp(cls, path):
         deprecation_warning(f'{cls.__module__}.{cls.__name__}.is_webp is deprecated')
         return imghdr.what(path) == 'webp'
 
-    def fixup_webp(self, info, idx=-1):
+    def fixup_thumbnail(self, info, idx=-1):
         thumbnail_filename = info['thumbnails'][idx]['filepath']
         _, thumbnail_ext = os.path.splitext(thumbnail_filename)
         if thumbnail_ext:
@@ -1092,6 +1093,13 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
                 info['thumbnails'][idx]['filepath'] = webp_filename
                 info['__files_to_move'][webp_filename] = replace_extension(
                     info['__files_to_move'].pop(thumbnail_filename), 'webp')
+            elif thumbnail_ext.lower() != '.png' and imghdr.what(thumbnail_filename) == 'png':
+                self.to_screen('Correcting thumbnail "%s" extension to png' % thumbnail_filename)
+                webp_filename = replace_extension(thumbnail_filename, 'png')
+                os.replace(thumbnail_filename, webp_filename)
+                info['thumbnails'][idx]['filepath'] = webp_filename
+                info['__files_to_move'][webp_filename] = replace_extension(
+                    info['__files_to_move'].pop(thumbnail_filename), 'png')
 
     @staticmethod
     def _options(target_ext):
@@ -1118,17 +1126,23 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
             if not original_thumbnail:
                 continue
             has_thumbnail = True
-            self.fixup_webp(info, idx)
+            self.fixup_thumbnail(info, idx)
             original_thumbnail = thumbnail_dict['filepath']  # Path can change during fixup
             thumbnail_ext = os.path.splitext(original_thumbnail)[1][1:].lower()
             if thumbnail_ext == 'jpeg':
                 thumbnail_ext = 'jpg'
             target_ext, _skip_msg = resolve_mapping(thumbnail_ext, self.mapping)
+            is_forced_converting = False
             if _skip_msg:
-                self.to_screen(f'Not converting thumbnail "{original_thumbnail}"; {_skip_msg}')
-                continue
+                if self._force_convert_thumbnails and target_ext == thumbnail_ext:
+                    self.to_screen(f'Force converting thumbnail "{original_thumbnail}" despite of: {_skip_msg}')
+                    is_forced_converting = True
+                else:
+                    self.to_screen(f'Not converting thumbnail "{original_thumbnail}"; {_skip_msg}')
+                    continue
             thumbnail_dict['filepath'] = self.convert_thumbnail(original_thumbnail, target_ext)
-            files_to_delete.append(original_thumbnail)
+            if is_forced_converting == False:
+                files_to_delete.append(original_thumbnail)
             info['__files_to_move'][thumbnail_dict['filepath']] = replace_extension(
                 info['__files_to_move'][original_thumbnail], target_ext)
 
