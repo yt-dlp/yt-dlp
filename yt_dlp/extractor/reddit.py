@@ -432,6 +432,23 @@ class RedditIE(InfoExtractor):
                 'display_id': video_id,
             }
 
+        # Hosted on reddit as an image (most likely gif)
+        if parsed_url.netloc == 'i.redd.it':
+            formats = [{
+                'url': video_url,
+                'acodec': 'none',
+                'ext': video_url.rsplit('.', 1)[-1],
+                'format_id': video_url.rsplit('.', 1)[-1],
+                # Must GET only accepting raw file content
+                'http_headers': {'Accept': 'video/*,image/*'},
+            }]
+            return {
+                **info,
+                'id': parsed_url.path.split('/')[1],
+                'display_id': video_id,
+                'formats': formats,
+            }
+
         # Not hosted on reddit, must continue extraction
         return {
             **info,
