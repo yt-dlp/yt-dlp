@@ -18,20 +18,21 @@ class PuhuTVIE(InfoExtractor):
     IE_NAME = 'puhutv'
     _TESTS = [{
         # film
-        'url': 'https://puhutv.com/sut-kardesler-izle',
-        'md5': 'a347470371d56e1585d1b2c8dab01c96',
+        'url': 'https://puhutv.com/bi-kucuk-eylul-meselesi-izle',
+        'md5': '4de98170ccb84c05779b1f046b3c86f8',
         'info_dict': {
-            'id': '5085',
-            'display_id': 'sut-kardesler',
+            'id': '11909',
+            'display_id': 'bi-kucuk-eylul-meselesi',
             'ext': 'mp4',
-            'title': 'Süt Kardeşler',
-            'description': 'md5:ca09da25b7e57cbb5a9280d6e48d17aa',
+            'title': 'Bi Küçük Eylül Meselesi',
+            'description': "Geçirdiği kazadan sonra son bir ayını hatırlamayan Eylül, bu süre içinde Bozcaada'da olduğunu öğrenir ve gerçeklerin peşine düşmek için Bozcaada'ya gider ve onu tanıyan Tekin adlı çizerle yakınlaşır.",
             'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 4832.44,
-            'creator': 'Arzu Film',
-            'timestamp': 1561062602,
+            'duration': 6176.96,
+            'creator': 'Ay Yapım',
+            'creators': ['Ay Yapım'],
+            'timestamp': 1561062749,
             'upload_date': '20190620',
-            'release_year': 1976,
+            'release_year': 2014,
             'view_count': int,
             'tags': list,
         },
@@ -191,27 +192,29 @@ class PuhuTVSerieIE(InfoExtractor):
             if not season_id:
                 continue
             page = 1
+            per = 100
             has_more = True
             while has_more is True:
                 season = self._download_json(
-                    f'https://galadriel.puhutv.com/seasons/{season_id}',
-                    season_id, f'Downloading page {page}', query={
+                    f'https://appservice.puhutv.com/api/seasons/{season_id}/episodes?v=2',
+                    season_id, f'Downloading episode {(page - 1) * per}-{page * per} metadata', query={
                         'page': page,
-                        'per': 40,
-                    })
-                episodes = season.get('episodes')
-                if isinstance(episodes, list):
-                    for ep in episodes:
-                        slug_path = str_or_none(ep.get('slugPath'))
-                        if not slug_path:
-                            continue
-                        video_id = str_or_none(int_or_none(ep.get('id')))
-                        yield self.url_result(
-                            f'https://puhutv.com/{slug_path}',
-                            ie=PuhuTVIE.ie_key(), video_id=video_id,
-                            video_title=ep.get('name') or ep.get('eventLabel'))
+                        'per': per,
+                    })['data']
+
+                episodes = season['episodes']
+                for episode in episodes:
+                    video_id = episode['id']
+                    video_title = episode['name']
+                    slug = episode.get('slug') or episode['assets'][0]['slug']
+                    if not slug:
+                        continue
+
+                    yield self.url_result(f'https://puhutv.com/{slug}',
+                                          ie=PuhuTVIE.ie_key(), video_id=video_id,
+                                          video_title=video_title)
                 page += 1
-                has_more = season.get('hasMore')
+                has_more = season['has_more']
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
