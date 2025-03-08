@@ -103,7 +103,7 @@ class VRTBaseIE(InfoExtractor):
             }, separators=(',', ':')).encode())['vrtPlayerToken']
 
         return self._download_json(
-            f'https://media-services-public.vrt.be/media-aggregator/{version}/media-items/{video_id}',
+            f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/videos/{video_id}',
             video_id, 'Downloading API JSON', 'Failed to download API JSON', query={
                 'client': client,
                 'vrtPlayerToken': vrt_player_token,
