@@ -1,3 +1,6 @@
+import datetime as dt
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -144,6 +147,18 @@ class TVerIE(InfoExtractor):
         provider = str_or_none(episode_content.get('productionProviderName'))
         onair_label = str_or_none(episode_content.get('broadcastDateLabel'))
 
+        if mobj := re.search(r'(\d+)月(\d+)日', onair_label):
+            year = dt.datetime.now(dt.timezone(dt.timedelta(hours=9))).year
+            month, day = map(int, mobj.groups())
+            release_year = year
+            release_date = dt.datetime(year, month, day).strftime('%Y%m%d')
+        elif mobj := re.search(r'(\d{4})年放送', onair_label):
+            release_year = int(mobj.group(1))
+            release_date = None
+        else:
+            release_year = None
+            release_date = None
+
         thumbnails = [
             {
                 'id': quality,
@@ -174,4 +189,6 @@ class TVerIE(InfoExtractor):
             'url': smuggle_url(
                 self.BRIGHTCOVE_URL_TEMPLATE % (p_id, r_id), {'geo_countries': ['JP']}),
             'ie_key': 'BrightcoveNew',
+            'release_year': release_year,
+            'release_date': release_date,
         }
