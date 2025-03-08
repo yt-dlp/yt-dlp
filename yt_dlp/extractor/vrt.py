@@ -289,9 +289,9 @@ class VrtNUIE(VRTBaseIE):
         if not refresh_token:
             return None
 
-        self._download_webpage(
-            'https://www.vrt.be/vrtmax/sso/login', None,
-            'Refreshing video token', query={'scope': 'openid,mid'})
+        self._download_json(
+            'https://www.vrt.be/vrtmax/sso/refresh', None,
+            note='Refreshing video token', errnote='Failed to refresh video token')
 
         video_token = self._get_video_token_from_cookie()
         if not video_token:
