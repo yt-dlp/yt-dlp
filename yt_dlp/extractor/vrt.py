@@ -225,6 +225,9 @@ class VrtNUIE(VRTBaseIE):
     }]
     _NETRC_MACHINE = 'vrtnu'
 
+    _ACCESS_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_at'
+    _REFRESH_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_rt'
+    _VIDEO_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_vt'
     _VIDEO_PAGE_QUERY = '''
     query VideoPage($pageId: ID!) {
         page(id: $pageId) {
@@ -269,7 +272,7 @@ class VrtNUIE(VRTBaseIE):
             access_token = self.cache.load(self._NETRC_MACHINE, 'access_token', default=None)
             if access_token and not self._is_jwt_token_expired(access_token):
                 self.write_debug('Restored access token from cache')
-                self._set_cookie('.www.vrt.be', 'vrtnu-site_profile_at', access_token)
+                self._set_cookie('.www.vrt.be', self._ACCESS_TOKEN_COOKIE_NAME, access_token)
                 return access_token
 
         refresh_token = self._fetch_refresh_token()
@@ -300,7 +303,7 @@ class VrtNUIE(VRTBaseIE):
         refresh_token = self.cache.load(self._NETRC_MACHINE, 'refresh_token', default=None)
         if refresh_token and not self._is_jwt_token_expired(refresh_token):
             self.write_debug('Restored refresh token from cache')
-            self._set_cookie('.www.vrt.be', 'vrtnu-site_profile_rt', refresh_token, path='/vrtmax/sso')
+            self._set_cookie('.www.vrt.be', self._REFRESH_TOKEN_COOKIE_NAME, refresh_token, path='/vrtmax/sso')
             return refresh_token
 
     def _fetch_video_token(self):
@@ -312,7 +315,7 @@ class VrtNUIE(VRTBaseIE):
             video_token = self.cache.load(self._NETRC_MACHINE, 'video_token', default=None)
             if video_token and not self._is_jwt_token_expired(video_token):
                 self.write_debug('Restored video token from cache')
-                self._set_cookie('.www.vrt.be', 'vrtnu-site_profile_vt', video_token)
+                self._set_cookie('.www.vrt.be', self._VIDEO_TOKEN_COOKIE_NAME, video_token)
                 return video_token
 
         refresh_token = self._fetch_refresh_token()
@@ -333,13 +336,13 @@ class VrtNUIE(VRTBaseIE):
         return video_token
 
     def _get_access_token_from_cookie(self):
-        return try_call(lambda: self._get_cookies('https://www.vrt.be')['vrtnu-site_profile_at'].value)
+        return try_call(lambda: self._get_cookies('https://www.vrt.be')[self._ACCESS_TOKEN_COOKIE_NAME].value)
 
     def _get_refresh_token_from_cookie(self):
-        return try_call(lambda: self._get_cookies('https://www.vrt.be/vrtmax/sso')['vrtnu-site_profile_rt'].value)
+        return try_call(lambda: self._get_cookies('https://www.vrt.be/vrtmax/sso')[self._REFRESH_TOKEN_COOKIE_NAME].value)
 
     def _get_video_token_from_cookie(self):
-        return try_call(lambda: self._get_cookies('https://www.vrt.be')['vrtnu-site_profile_vt'].value)
+        return try_call(lambda: self._get_cookies('https://www.vrt.be')[self._VIDEO_TOKEN_COOKIE_NAME].value)
 
     @staticmethod
     def _is_jwt_token_expired(token):
