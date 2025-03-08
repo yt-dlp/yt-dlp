@@ -331,11 +331,11 @@ class VrtNUIE(VRTBaseIE):
     def _get_access_token_from_cookie(self):
         return try_call(lambda: self._get_cookies('https://www.vrt.be')['vrtnu-site_profile_at'].value)
 
-    def _get_video_token_from_cookie(self):
-        return try_call(lambda: self._get_cookies('https://www.vrt.be')['vrtnu-site_profile_vt'].value)
-
     def _get_refresh_token_from_cookie(self):
         return try_call(lambda: self._get_cookies('https://www.vrt.be/vrtmax/sso')['vrtnu-site_profile_rt'].value)
+
+    def _get_video_token_from_cookie(self):
+        return try_call(lambda: self._get_cookies('https://www.vrt.be')['vrtnu-site_profile_vt'].value)
 
     @staticmethod
     def _is_jwt_token_expired(token):
@@ -365,8 +365,8 @@ class VrtNUIE(VRTBaseIE):
         self._download_webpage(login_data['redirectUrl'], None, note='Getting access token', errnote='Failed to get access token')
 
         self.cache.store(self._NETRC_MACHINE, 'access_token', self._get_access_token_from_cookie())
-        self.cache.store(self._NETRC_MACHINE, 'video_token', self._get_video_token_from_cookie())
         self.cache.store(self._NETRC_MACHINE, 'refresh_token', self._get_refresh_token_from_cookie())
+        self.cache.store(self._NETRC_MACHINE, 'video_token', self._get_video_token_from_cookie())
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
