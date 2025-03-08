@@ -69,7 +69,6 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     js_to_json,
-    jwt_decode_hs256,
     mimetype2ext,
     netrc_from_content,
     orderedSet,
@@ -994,10 +993,6 @@ class InfoExtractor:
                 encoding = 'utf-8'
 
         return encoding
-
-    @staticmethod
-    def _is_jwt_token_expired(token):
-        return jwt_decode_hs256(token)['exp'] - time.time() < 300
 
     def __check_blocked(self, content):
         first_block = content[:512]
