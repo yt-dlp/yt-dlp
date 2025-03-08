@@ -113,6 +113,7 @@ class ESPNIE(OnceIE):
 
         format_urls = set()
         formats = []
+        subtitles = {}
 
         def traverse_source(source, base_source_id=None):
             for src_id, src_item in source.items():
@@ -140,9 +141,11 @@ class ESPNIE(OnceIE):
                 formats.extend(self._extract_f4m_formats(
                     source_url, video_id, f4m_id=source_id, fatal=False))
             elif ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
+                m3u8_frmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
                     source_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id=source_id, fatal=False))
+                    m3u8_id=source_id, fatal=False)
+                formats.extend(m3u8_frmts)
+                self._merge_subtitles(m3u8_subs, target=subtitles)
             else:
                 f = {
                     'url': source_url,
@@ -176,12 +179,77 @@ class ESPNIE(OnceIE):
             'timestamp': timestamp,
             'duration': duration,
             'formats': formats,
+            'subtitles': subtitles,
         }
 
 
 class ESPNArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:espn\.go|(?:www\.)?espn)\.com/(?:[^/]+/)*(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:espn\.go|(?:www\.)?espn)\.com(?:/[^/]+)*(?:[?/]gameId[/=]|/id/)(?P<id>\d+)'
     _TESTS = [{
+        'url': 'https://www.espn.com/college-football/game/_/gameId/401520427',
+        'info_dict': {
+            'id': '401520427',
+            'title': 'Alabama 27-24 Auburn (Nov 25, 2023) Final Score - ESPN',
+            'description': 'Game summary of the Alabama Crimson Tide vs. Auburn Tigers NCAAF game, final score 27-24, from November 25, 2023 on ESPN.',
+        },
+        'playlist_count': 0,
+    }, {
+        'url': 'https://www.espn.com/college-football/game/_/gameId/401015019/charlotte-mtsu',
+        'info_dict': {
+            'id': '401015019',
+            'title': 'Middle Tennessee 21-13 Charlotte (Oct 20, 2018) Final Score - ESPN',
+            'description': 'Game summary of the Middle Tennessee Blue Raiders vs. Charlotte 49ers NCAAF game, final score 21-13, from October 20, 2018 on ESPN.',
+            'entries': [{
+                'id': '25035207',
+            }, {
+                'id': '25035930',
+            }, {
+                'id': '25035232',
+            }, {
+                'id': '25034741',
+            }],
+        },
+        'playlist_count': 4,
+    }, {
+        'url': 'https://www.espn.com/college-football/game/_/gameId/401015037/charlotte-marshall',
+        'info_dict': {
+            'id': '401015037',
+            'title': 'Marshall 30-13 Charlotte (Nov 10, 2018) Final Score - ESPN',
+            'description': 'Game summary of the Marshall Thundering Herd vs. Charlotte 49ers NCAAF game, final score 30-13, from November 10, 2018 on ESPN.',
+            'entries': [{
+                'id': '25236419',
+            }, {
+                'id': '25235710',
+            }],
+        },
+        'playlist_count': 2,
+    }, {
+        'url': 'https://www.espn.com/college-football/game/_/gameId/401015044',
+        'info_dict': {
+            'id': '401015044',
+            'title': 'Florida International 42-35 Charlotte (Nov 17, 2018) Final Score - ESPN',
+            'description': 'Game summary of the Florida International Panthers vs. Charlotte 49ers NCAAF game, final score 42-35, from November 17, 2018 on ESPN.',
+            'entries': [{
+                'id': '25304950',
+            }, {
+                'id': '25304741',
+            }, {
+                'id': '25304716',
+            }],
+        },
+        'playlist_count': 3,
+    }, {
+        'url': 'https://www.espn.com/nba/recap?gameId=400793781',
+        'info_dict': {
+            'id': '400793781',
+            'title': 'Wizards 104-98 Hawks (May 3, 2015) Game Recap - ESPN',
+            'description': 'Expert recap and game analysis of the Washington Wizards vs. Atlanta Hawks NBA game from May 3, 2015 on ESPN.',
+            'entries': [{
+                'id': '12812586',
+            }],
+        },
+        'playlist_count': 1,
+    }, {
         'url': 'http://espn.go.com/nba/recap?gameId=400793786',
         'only_matching': True,
     }, {
@@ -200,16 +268,13 @@ class ESPNArticleIE(InfoExtractor):
         return False if (ESPNIE.suitable(url) or WatchESPNIE.suitable(url)) else super().suitable(url)
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
 
-        webpage = self._download_webpage(url, video_id)
-
-        video_id = self._search_regex(
-            r'class=(["\']).*?video-play-button.*?\1[^>]+data-id=["\'](?P<id>\d+)',
-            webpage, 'video id', group='id')
-
-        return self.url_result(
-            f'http://espn.go.com/video/clip?id={video_id}', ESPNIE.ie_key())
+        return self.playlist_result(traverse_obj(re.finditer(
+            r'class=(["\']).*?Media.*?\1[^>]+data-videoid=["\'](?P<id>\d+)', webpage), (..., 'id', {
+                lambda x: self.url_result(f'http://espn.go.com/video/clip?id={x}', ESPNIE.ie_key(), x),
+            })), playlist_id, self._html_extract_title(webpage), self._html_search_meta('description', webpage))
 
 
 class FiveThirtyEightIE(InfoExtractor):
