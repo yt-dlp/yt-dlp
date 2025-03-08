@@ -1996,6 +1996,7 @@ from .subsplash import (
     SubsplashPlaylistIE,
 )
 from .substack import SubstackIE
+from .suno import SunoIE, SunoPlaylistIE
 from .sunporno import SunPornoIE
 from .sverigesradio import (
     SverigesRadioEpisodeIE,
