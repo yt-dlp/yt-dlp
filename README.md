@@ -1866,6 +1866,9 @@ The following extractors use this feature:
 #### sonylivseries
 * `sort_order`: Episode sort order for series extraction - one of `asc` (ascending, oldest first) or `desc` (descending, newest first). Default is `asc`
 
+#### bahamut
+* `device_id`: (optional) Device ID got from `https://ani.gamer.com.tw/ajax/getdeviceid.php` (bound to cookies and `User-Agent` HTTP header). The extractor will automatically fetch one if it is not present. E.g. `"bahamut:device_id=1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab"`
+
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
