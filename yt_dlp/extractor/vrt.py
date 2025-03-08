@@ -336,9 +336,10 @@ class VrtNUIE(VRTBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
+        refresh_token = self._fetch_refresh_token()
 
         metadata = self._download_json(
-            f'https://www.vrt.be/vrtnu-api/graphql{"" if self._fetch_refresh_token() else "/public"}/v1',
+            f'https://www.vrt.be/vrtnu-api/graphql{"" if refresh_token else "/public"}/v1',
             display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
             data=json.dumps({
                 'operationName': 'VideoPage',
@@ -346,7 +347,8 @@ class VrtNUIE(VRTBaseIE):
                 'variables': {'pageId': urllib.parse.urlparse(url).path},
             }).encode(),
             headers={
-                'content-type': 'application/json',
+                'Authorization': f'Bearer {refresh_token}' if refresh_token else None,
+                'Content-Type': 'application/json',
                 'x-vrt-client-name': 'WEB',
                 'x-vrt-client-version': '1.5.9',
                 'x-vrt-zone': 'default',
