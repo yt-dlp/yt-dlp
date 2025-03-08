@@ -260,6 +260,31 @@ class VrtNUIE(VRTBaseIE):
     }
     '''
 
+    def _fetch_access_token(self):
+        access_token = self._get_access_token_from_cookie()
+        if access_token and not self._is_jwt_token_expired(access_token):
+            return access_token
+
+        if self._get_login_info()[0]:
+            access_token = self.cache.load(self._NETRC_MACHINE, 'access_token', default=None)
+            if access_token and not self._is_jwt_token_expired(access_token):
+                self.write_debug('Restored access token from cache')
+                self._set_cookie('.www.vrt.be', 'vrtnu-site_profile_at', access_token)
+                return access_token
+
+        self._download_json(
+            'https://www.vrt.be/vrtmax/sso/refresh', None,
+            note='Refreshing access token', errnote='Failed to refresh access token')
+
+        access_token = self._get_access_token_from_cookie()
+        if not access_token:
+            self.cache.store(self._NETRC_MACHINE, 'refresh_token', None)
+            self.report_warning('Refreshing of access token failed')
+            return None
+        if self._get_login_info()[0]:
+            self.cache.store(self._NETRC_MACHINE, 'access_token', access_token)
+        return access_token
+
     def _fetch_refresh_token(self):
         refresh_token = self._get_refresh_token_from_cookie()
         if refresh_token and not self._is_jwt_token_expired(refresh_token):
@@ -303,6 +328,9 @@ class VrtNUIE(VRTBaseIE):
             self.cache.store(self._NETRC_MACHINE, 'video_token', video_token)
         return video_token
 
+    def _get_access_token_from_cookie(self):
+        return try_call(lambda: self._get_cookies('https://www.vrt.be')['vrtnu-site_profile_at'].value)
+
     def _get_video_token_from_cookie(self):
         return try_call(lambda: self._get_cookies('https://www.vrt.be')['vrtnu-site_profile_vt'].value)
 
@@ -336,15 +364,16 @@ class VrtNUIE(VRTBaseIE):
 
         self._download_webpage(login_data['redirectUrl'], None, note='Getting access token', errnote='Failed to get access token')
 
+        self.cache.store(self._NETRC_MACHINE, 'access_token', self._get_access_token_from_cookie())
         self.cache.store(self._NETRC_MACHINE, 'video_token', self._get_video_token_from_cookie())
         self.cache.store(self._NETRC_MACHINE, 'refresh_token', self._get_refresh_token_from_cookie())
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        refresh_token = self._fetch_refresh_token()
+        access_token = self._fetch_access_token()
 
         metadata = self._download_json(
-            f'https://www.vrt.be/vrtnu-api/graphql{"" if refresh_token else "/public"}/v1',
+            f'https://www.vrt.be/vrtnu-api/graphql{"" if access_token else "/public"}/v1',
             display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
             data=json.dumps({
                 'operationName': 'VideoPage',
@@ -352,7 +381,7 @@ class VrtNUIE(VRTBaseIE):
                 'variables': {'pageId': urllib.parse.urlparse(url).path},
             }).encode(),
             headers={
-                'Authorization': f'Bearer {refresh_token}' if refresh_token else None,
+                'Authorization': f'Bearer {access_token}' if access_token else None,
                 'Content-Type': 'application/json',
                 'x-vrt-client-name': 'WEB',
                 'x-vrt-client-version': '1.5.9',
