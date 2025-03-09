@@ -19,3 +19,32 @@ from ._redirect import (
 from ._search import YoutubeMusicSearchURLIE, YoutubeSearchDateIE, YoutubeSearchIE, YoutubeSearchURLIE
 from ._tab import YoutubePlaylistIE, YoutubeTabBaseInfoExtractor, YoutubeTabIE
 from ._video import YoutubeIE
+
+# Hack to allow plugin overrides work
+for _cls in [
+    YoutubeBaseInfoExtractor,
+    YoutubeClipIE,
+    YoutubeTruncatedIDIE,
+    YoutubeTruncatedURLIE,
+    YoutubeNotificationsIE,
+    YoutubeConsentRedirectIE,
+    YoutubeFavouritesIE,
+    YoutubeFeedsInfoExtractor,
+    YoutubeHistoryIE,
+    YoutubeLivestreamEmbedIE,
+    YoutubeRecommendedIE,
+    YoutubeShortsAudioPivotIE,
+    YoutubeSubscriptionsIE,
+    YoutubeWatchLaterIE,
+    YoutubeYtBeIE,
+    YoutubeYtUserIE,
+    YoutubeMusicSearchURLIE,
+    YoutubeSearchDateIE,
+    YoutubeSearchIE,
+    YoutubeSearchURLIE,
+    YoutubePlaylistIE,
+    YoutubeTabBaseInfoExtractor,
+    YoutubeTabIE,
+    YoutubeIE,
+]:
+    _cls.__module__ = 'yt_dlp.extractor.youtube'
