@@ -1,0 +1,5 @@
+#!/bin/sh
+# This script is a helper for the Hatch test coverage command
+# It's called by `hatch test --cover`
+
+coverage combine "$@"
