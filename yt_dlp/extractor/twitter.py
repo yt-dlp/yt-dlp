@@ -367,7 +367,7 @@ class TwitterCardIE(InfoExtractor):
             'info_dict': {
                 'id': '623160978427936768',
                 'ext': 'mp4',
-                'title': 'NASA - Fly over Pluto\'s icy Norgay Mountains and Sputn...',
+                'title': "NASA - Fly over Pluto's icy Norgay Mountains and Sputnik Plain in this @NASA...",
                 'description': "Fly over Pluto's icy Norgay Mountains and Sputnik Plain in this @NASANewHorizons #PlutoFlyby video. https://t.co/BJYgOjSeGA",
                 'uploader': 'NASA',
                 'uploader_id': 'NASA',
@@ -562,7 +562,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '717462543795523584',
             'display_id': '719944021058060289',
             'ext': 'mp4',
-            'title': 'Captain America - @King0fNerd Are you sure you made the right cho...',
+            'title': 'Captain America - @King0fNerd Are you sure you made the right choice? Find out in theat...',
             'description': '@King0fNerd Are you sure you made the right choice? Find out in theaters. https://t.co/GpgYi9xMJI',
             'channel_id': '701615052',
             'uploader_id': 'CaptainAmerica',
@@ -599,7 +599,7 @@ class TwitterIE(TwitterBaseIE):
         'info_dict': {
             'id': '852077943283097602',
             'ext': 'mp4',
-            'title': 'عالم الأخبار - كلمة تاريخية بجلسة الجناسي التاريخية.. النائب خ...',
+            'title': 'عالم الأخبار - كلمة تاريخية بجلسة الجناسي التاريخية.. النائب خالد مؤنس العتيبي للمعا...',
             'description': 'كلمة تاريخية بجلسة الجناسي التاريخية.. النائب خالد مؤنس العتيبي للمعارضين : اتقوا الله .. الظلم ظلمات يوم القيامة   https://t.co/xg6OhpyKfN',
             'channel_id': '2526757026',
             'uploader': 'عالم الأخبار',
@@ -623,7 +623,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '910030238373089285',
             'display_id': '910031516746514432',
             'ext': 'mp4',
-            'title': 'Préfet de Guadeloupe - [Direct] #Maria Le centre se trouve actuellemen...',
+            'title': 'Préfet de Guadeloupe - [Direct] #Maria Le centre se trouve actuellement au sud de Basse-Terr...',
             'thumbnail': r're:^https?://.*\.jpg',
             'description': '[Direct] #Maria Le centre se trouve actuellement au sud de Basse-Terre. Restez confinés. Réfugiez-vous dans la pièce la + sûre. https://t.co/mwx01Rs4lo',
             'channel_id': '2319432498',
@@ -715,7 +715,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '1349774757969989634',
             'display_id': '1349794411333394432',
             'ext': 'mp4',
-            'title': 'Brooklyn Nets - WATCH: Sean Marks\' full media session after our...',
+            'title': "Brooklyn Nets - WATCH: Sean Marks' full media session after our acquisition of 8-time...",
             'thumbnail': r're:^https?://.*\.jpg',
             'description': 'md5:71ead15ec44cee55071547d6447c6a3e',
             'channel_id': '18552281',
@@ -741,7 +741,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '1577855447914409984',
             'display_id': '1577855540407197696',
             'ext': 'mp4',
-            'title': 'md5:466a3a8b049b5f5a13164ce915484b51',
+            'title': 'Oshtru - gm ✨️ now I can post image and video. nice update.',
             'description': 'md5:b9c3699335447391d11753ab21c70a74',
             'upload_date': '20221006',
             'channel_id': '143077138',
@@ -785,7 +785,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '1575559336759263233',
             'display_id': '1575560063510810624',
             'ext': 'mp4',
-            'title': 'Max Olson - Absolutely heartbreaking footage captured by ou...',
+            'title': 'Max Olson - Absolutely heartbreaking footage captured by our surge probe of catas...',
             'thumbnail': r're:^https?://.*\.jpg',
             'description': 'md5:95aea692fda36a12081b9629b02daa92',
             'channel_id': '1094109584',
@@ -909,7 +909,7 @@ class TwitterIE(TwitterBaseIE):
         'playlist_mincount': 2,
         'info_dict': {
             'id': '1600649710662213632',
-            'title': 'Jocelyn Laidlaw - How Kirstie Alley\'s tragic death inspired me to...',
+            'title': "Jocelyn Laidlaw - How Kirstie Alley's tragic death inspired me to share more about my c...",
             'timestamp': 1670459604.0,
             'description': 'md5:591c19ce66fadc2359725d5cd0d1052c',
             'comment_count': int,
@@ -929,7 +929,7 @@ class TwitterIE(TwitterBaseIE):
         'info_dict': {
             'id': '1600649511827013632',
             'ext': 'mp4',
-            'title': "Jocelyn Laidlaw - How Kirstie Alley's tragic death inspired me to... #1",
+            'title': "Jocelyn Laidlaw - How Kirstie Alley's tragic death inspired me to share more about my c... #1",
             'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1670459604.0,
             'channel_id': '80082014',
@@ -1051,7 +1051,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '1694928337846538240',
             'ext': 'mp4',
             'display_id': '1695424220702888009',
-            'title': 'Benny Johnson - Donald Trump driving through the urban, poor ne...',
+            'title': 'Benny Johnson - Donald Trump driving through the urban, poor neighborhoods of Atlanta...',
             'description': 'md5:004f2d37fd58737724ec75bc7e679938',
             'channel_id': '15212187',
             'uploader': 'Benny Johnson',
@@ -1075,7 +1075,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '1694928337846538240',
             'ext': 'mp4',
             'display_id': '1695424220702888009',
-            'title': 'Benny Johnson - Donald Trump driving through the urban, poor ne...',
+            'title': 'Benny Johnson - Donald Trump driving through the urban, poor neighborhoods of Atlanta...',
             'description': 'md5:004f2d37fd58737724ec75bc7e679938',
             'channel_id': '15212187',
             'uploader': 'Benny Johnson',
@@ -1139,7 +1139,7 @@ class TwitterIE(TwitterBaseIE):
         'info_dict': {
             'id': '1724883339285544960',
             'ext': 'mp4',
-            'title': 'Robert F. Kennedy Jr - A beautifully crafted short film by Mikki Willi...',
+            'title': 'Robert F. Kennedy Jr - A beautifully crafted short film by Mikki Willis about my independent...'
             'description': 'md5:9dc14f5b0f1311fc7caf591ae253a164',
             'display_id': '1724884212803834154',
             'channel_id': '337808606',
@@ -1400,7 +1400,7 @@ class TwitterIE(TwitterBaseIE):
         title = description = traverse_obj(
             status, (('full_text', 'text'), {lambda x: x.replace('\n', ' ')}), get_all=False) or ''
         # strip  'https -_t.co_BJYgOjSeGA' junk from filenames
-        title = truncate_string(re.sub(r'\s+(https?://[^ ]+)', '', title), 50)
+        title = truncate_string(re.sub(r'\s+(https?://[^ ]+)', '', title), left=72)
         user = status.get('user') or {}
         uploader = user.get('name')
         if uploader:
