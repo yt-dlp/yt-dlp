@@ -97,6 +97,7 @@ class RedditIE(InfoExtractor):
             'id': 'wzqkxp',
             'title': '[Finale] Kamen Rider Revice Episode 50 "Family to the End, Until the ...',
             'alt_title': '[Finale] Kamen Rider Revice Episode 50 "Family to the End, Until the Day We Meet Again" Discussion',
+            'description': 'md5:5b7deb328062b164b15704c5fd67c335',
             'uploader': 'TheTwelveYearOld',
             'channel_id': 'KamenRider',
             'comment_count': int,
@@ -353,6 +354,7 @@ class RedditIE(InfoExtractor):
             **traverse_obj(data, {
                 'title': ('title', {truncate_string(left=72)}),
                 'alt_title': ('title', {str}),
+                'description': ('selftext', {str}, filter),
                 'timestamp': ('created_utc', {float_or_none}),
                 'uploader': ('author', {str}),
                 'channel_id': ('subreddit', {str}),
