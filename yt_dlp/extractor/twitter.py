@@ -1139,7 +1139,7 @@ class TwitterIE(TwitterBaseIE):
         'info_dict': {
             'id': '1724883339285544960',
             'ext': 'mp4',
-            'title': 'Robert F. Kennedy Jr - A beautifully crafted short film by Mikki Willis about my independent...'
+            'title': 'Robert F. Kennedy Jr - A beautifully crafted short film by Mikki Willis about my independent...',
             'description': 'md5:9dc14f5b0f1311fc7caf591ae253a164',
             'display_id': '1724884212803834154',
             'channel_id': '337808606',
