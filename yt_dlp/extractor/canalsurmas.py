@@ -47,29 +47,18 @@ class CanalsurmasIE(InfoExtractor):
                 'optional_fields': 'media_url',
             })
 
-        if type(content_resources_linked_to_video) is not list:
-            raise ExtractorError('Failed to retrieve proper information about content resources linked to the specified video.')
-
         formats = []
-
-        for content_resource_linked_to_video in content_resources_linked_to_video:
-            is_initial: bool | None = traverse_obj(
-                content_resource_linked_to_video,
-                ('is_initial'),
-            )
-
-            if is_initial:
-                media_url: str | None = traverse_obj(
-                    content_resource_linked_to_video,
-                    ('media_url'),
-                )
-
-                if type(media_url) is str:
-                    # Example URL of a M3U8 file for a specific quality (i.e. 480p): https://cdn.rtva.interactvty.com/archivo_ott/el_gran_queo/0000051496/0000051496_480p/0000051496_480p.m3u8
-                    formats = self._extract_m3u8_formats(
-                        media_url,
-                        video_id,
-                    )
+        subtitles = {}
+        for stream_url in traverse_obj(stream_info, ('results', ..., 'media_url', {url_or_none})):
+            if determine_ext(stream_url) == 'm3u8':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    stream_url, video_id, m3u8_id='hls', fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            else:
+                formats.append({
+                    'url': stream_url,
+                })
 
         return {
             'id': video_id,
