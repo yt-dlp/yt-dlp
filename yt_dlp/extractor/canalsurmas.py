@@ -34,15 +34,11 @@ class CanalsurmasIE(InfoExtractor):
             }).encode())['access']
 
         video_info = self._download_json(
-            url_or_request=f'https://api-rtva.interactvty.com/api/2.0/contents/content/{video_id}/',
-            video_id=video_id,
-            headers={
-                'Authorization': f'jwtok {access_token}',
-            },
+            f'https://api-rtva.interactvty.com/api/2.0/contents/content/{video_id}/', video_id,
+            headers={'Authorization': f'jwtok {access_token}'},
             query={
                 'optional_fields': 'description,main_category,image,duration,genre,created_at,publish_date,tags',
-            },
-        )
+            })
 
         content_resources_linked_to_video: list | None = traverse_obj(
             self._download_json(
