@@ -2192,7 +2192,7 @@ from .tv5unis import (
     TV5UnisIE,
     TV5UnisVideoIE,
 )
-from .tv8 import TV8StreamingIE
+from .tv8 import TV8PlaylistIE, TV8StreamingIE
 from .tv24ua import TV24UAVideoIE
 from .tva import TVAIE
 from .tvanouvelles import (
