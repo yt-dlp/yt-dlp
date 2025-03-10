@@ -7,20 +7,19 @@ from ..utils import ExtractorError, traverse_obj
 class CanalsurmasIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?canalsurmas\.es/videos/(?P<id>\d+)'
 
-    _TESTS = [
-        {
-            'url': 'https://www.canalsurmas.es/videos/44006-el-gran-queo-1-lora-del-rio-sevilla-20072014',
-            'md5': '861f86fdc1221175e15523047d0087ef',
-            'info_dict': {
-                'id': '44006',
-                'ext': 'mp4',
-                'title': 'Lora del Río (Sevilla)  ',
-                'description': 'md5:3d9ee40a9b1b26ed8259e6b71ed27b8b',
-                'thumbnail': 'https://cdn2.rtva.interactvty.com/content_cards/00f3e8f67b0a4f3b90a4a14618a48b0d.jpg',
-                'tags': [],
-            },
+    _TESTS = [{
+        'url': 'https://www.canalsurmas.es/videos/44006-el-gran-queo-1-lora-del-rio-sevilla-20072014',
+        'md5': '861f86fdc1221175e15523047d0087ef',
+        'info_dict': {
+            'id': '44006',
+            'ext': 'mp4',
+            'title': 'Lora del Río (Sevilla)',
+            'description': 'md5:3d9ee40a9b1b26ed8259e6b71ed27b8b',
+            'thumbnail': 'https://cdn2.rtva.interactvty.com/content_cards/00f3e8f67b0a4f3b90a4a14618a48b0d.jpg',
+            'timestamp': 1648123182,
+            'upload_date': '20220324',
         },
-    ]
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
