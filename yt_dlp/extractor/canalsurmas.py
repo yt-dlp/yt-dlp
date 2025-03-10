@@ -25,25 +25,13 @@ class CanalsurmasIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        access_token: str | None = traverse_obj(
-            self._download_json(
-                url_or_request='https://api-rtva.interactvty.com/jwt/token/',
-                headers={
-                    'Content-Type': 'application/json',
-                },
-                data=json.dumps(
-                    {
-                        'username': 'canalsur_demo',
-                        'password': 'dsUBXUcI',
-                    },
-                ).encode(),
-                video_id=video_id,
-            ),
-            ('access'),
-        )
-
-        if access_token is None:
-            raise ExtractorError('Failed to retrieve a required access token.')
+        access_token = self._download_json(
+            'https://api-rtva.interactvty.com/jwt/token/', video_id,
+            headers={'Content-Type': 'application/json'},
+            data=json.dumps({
+                'username': 'canalsur_demo',
+                'password': 'dsUBXUcI',
+            }).encode())['access']
 
         video_info = self._download_json(
             url_or_request=f'https://api-rtva.interactvty.com/api/2.0/contents/content/{video_id}/',
