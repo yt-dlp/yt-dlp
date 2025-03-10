@@ -37,7 +37,7 @@ class TV8StreamingIE(InfoExtractor):
 class TV8PlaylistIE(InfoExtractor):
     IE_NAME = 'TV8Playlist'
     IE_DESC = 'TV8 Playlist'
-    _VALID_URL = r'https?://(?:www\.)?tv8\.it/(?P<category>[^/]+)/(?P<id>[^/#?]+)'
+    _VALID_URL = r'https?://(?:www\.)?tv8\.it/(?!video)(?P<category>[^/]+)/(?P<id>[^/#?]+)'
     _TESTS = [{
         'url': 'https://tv8.it/intrattenimento/tv8-gialappas-night',
         'playlist_mincount': 32,
