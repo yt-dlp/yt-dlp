@@ -1,7 +1,8 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, traverse_obj
+from ..utils import determine_ext, parse_iso8601, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class CanalsurmasIE(InfoExtractor):
