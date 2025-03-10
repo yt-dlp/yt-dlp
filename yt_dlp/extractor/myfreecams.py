@@ -41,10 +41,7 @@ class MyFreeCamsIE(InfoExtractor):
             }, fatal=False, impersonate=False) or {}
 
     def _websocket_data(self, username, chat_servers):
-        try_to_connect = 0
-        xchat = None
-        host = None
-        while try_to_connect < 5:
+        for try_to_connect in range(5):
             try:
                 xchat = str(random.choice(chat_servers))
                 host = f'wss://{xchat}.myfreecams.com/fcsl'
@@ -53,11 +50,10 @@ class MyFreeCamsIE(InfoExtractor):
                 ws.send('1 0 0 20071025 0 1/guest:guest\n\0')
                 self.write_debug(f'Websocket server {xchat} connected')
                 self.write_debug(f'Websocket URL: {host}')
-                try_to_connect = 5
+                break
             except websockets.exceptions.WebSocketException:
-                try_to_connect += 1
-                self.report_warning(f'Failed to connect to WS server: {xchat} - try {try_to_connect}')
-                if try_to_connect == 5:
+                self.report_warning(f'Failed to connect to WS server: {xchat} - try {try_to_connect + 1}')
+                if try_to_connect == 4:
                     error = f'Failed to connect to WS server: {host}'
                     raise ExtractorError(error)
 
