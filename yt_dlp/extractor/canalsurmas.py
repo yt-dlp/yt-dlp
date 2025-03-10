@@ -40,19 +40,12 @@ class CanalsurmasIE(InfoExtractor):
                 'optional_fields': 'description,main_category,image,duration,genre,created_at,publish_date,tags',
             })
 
-        content_resources_linked_to_video: list | None = traverse_obj(
-            self._download_json(
-                url_or_request=f'https://api-rtva.interactvty.com/api/2.0/contents/content_resources/{video_id}/',
-                video_id=video_id,
-                headers={
-                    'Authorization': f'jwtok {access_token}',
-                },
-                query={
-                    'optional_fields': 'is_initial,media_url',
-                },
-            ),
-            ('results'),
-        )
+        stream_info = self._download_json(
+            f'https://api-rtva.interactvty.com/api/2.0/contents/content_resources/{video_id}/', video_id,
+            headers={'Authorization': f'jwtok {access_token}'},
+            query={
+                'optional_fields': 'media_url',
+            })
 
         if type(content_resources_linked_to_video) is not list:
             raise ExtractorError('Failed to retrieve proper information about content resources linked to the specified video.')
