@@ -62,21 +62,13 @@ class CanalsurmasIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': traverse_obj(
-                video_info,
-                ('name'),
-            ),
-            'description': traverse_obj(
-                video_info,
-                ('description'),
-            ),
             'formats': formats,
-            'thumbnail': traverse_obj(
-                video_info,
-                ('image'),
-            ),
-            'tags': traverse_obj(
-                video_info,
-                ('tags'),
-            ),
+            'subtitles': subtitles,
+            **traverse_obj(video_info, {
+                'title': ('name', {str.strip}),
+                'description': ('description', {str}),
+                'thumbnail': ('image', {url_or_none}),
+                'tags': ('tags', ..., {str}),
+                'timestamp': ('created_at', {parse_iso8601}),
+            }),
         }
