@@ -1,7 +1,6 @@
 from .common import InfoExtractor
 from .skyit import TV8ItIE
-from ..utils import clean_html, url_or_none, urljoin
-from .common import InfoExtractor
+from ..utils import clean_html, traverse_obj, url_or_none, urljoin
 
 
 class TV8StreamingIE(InfoExtractor):
@@ -48,7 +47,8 @@ class TV8PlaylistIE(InfoExtractor):
         'info_dict': {
             'id': 'tv8-gialappas-night',
             'title': 'Tv8 Gialappa\'s Night',
-            'description': 'Tv8 Gialappa\'s Night vi aspetta tutti i mercoledì di UEFA Champions League, in diretta su Tv8. La Gialappa\'s Band si divertirà a commentare con ironia e sarcasmo quello che succede nel mondo del calcio.',
+            'description': 'md5:c876039d487d9cf40229b768872718ed',
+            'thumbnail': 'https://static.sky.it/editorialimages/47b87cd71c2a4b71c4acbb8be04ae65dd71ce7ff/tv8/assets/entertainment/tv8-gialappa\'s-night/Gialappa\'sNight%20sito.jpg?auto=webp&im=Resize,width=1040,height=1040',
         },
     }, {
         'url': 'https://tv8.it/sport/uefa-europa-league',
@@ -56,7 +56,8 @@ class TV8PlaylistIE(InfoExtractor):
         'info_dict': {
             'id': 'uefa-europa-league',
             'title': 'UEFA Europa League',
-            'description': 'Su Tv8 torna il grande calcio europeo con la UEFA Europa League 2024-2025. La competizione è ufficialmente partita lo scorso 11 luglio con il primo turno di qualificazione e proseguirà fino al 21 maggio 2025, data in cui si disputerà la finale all\'Estadio de San Mamés di Bilbao. Per questa edizione ci saranno delle novità, la fase a gironi infatti è stata sostituita da un\'unica fase a campionato con 36 squadre. Ogni club affronterà 8 squadre diverse. Le prime otto classificate staccheranno direttamente il biglietto per gli ottavi di finale, le squadre che si piazzeranno tra la nona e la ventiquattresima posizione invece accederanno alla fase a elimazione diretta solamente tramite gli spareggi.',
+            'description': 'md5:9ab1832b7a8b1705b1f590e13a36bc6a',
+            'thumbnail': 'https://static.sky.it/editorialimages/ecb73aebea8008b2d42b8f393adedf8d6b28bba9/tv8/assets/sport/europa-league/1040x467_europaleague.png?auto=webp&im=Resize,width=1040,height=1040',
         },
     }]
 
@@ -64,13 +65,18 @@ class TV8PlaylistIE(InfoExtractor):
         playlist_id = self._match_id(url)
         webpage = self._download_webpage(url, playlist_id)
         data = self._search_nextjs_data(webpage, playlist_id)['props']['pageProps']['data']
+        entries = [self.url_result(
+            urljoin('https://tv8.it', card['href']), ie=TV8ItIE,
+            **traverse_obj(card, {
+                'description': ('extraData', 'videoDesc', {str}),
+                'id': ('extraData', 'asset_id', {str}),
+                'thumbnail': ('image', 'src', {url_or_none}),
+                'title': ('title', 'typography', 'text', {str}),
+            }))
+            for card in traverse_obj(data, ('lastContent', 'cards', lambda _, v: v['href']))]
 
-        return self.playlist_result([{
-            '_type': 'url_transparent',
-            'ie_key': 'TV8It',
-            'url': f"https://tv8.it{c['href']}",
-            'title': traverse_obj(c, ('title', 'typography', 'text')),
-            'thumbnail': traverse_obj(c, ('image', 'src')),
-            'description': traverse_obj(c, ('extraData', 'videoDesc')),
-            'id': str_or_none(traverse_obj(c, ('extraData', 'asset_id'))),
-        } for c in data['lastContent']['cards']], video_id, traverse_obj(data, ('card', 'desktop', 'title', 'text')), re.sub(r'<.*?>', '', traverse_obj(data, ('card', 'desktop', 'description', 'html'))).strip())
+        return self.playlist_result(entries, playlist_id, **traverse_obj(data, ('card', 'desktop', {
+            'description': ('description', 'html', {clean_html}),
+            'thumbnail': ('image', 'src', {url_or_none}),
+            'title': ('title', 'text', {str}),
+        })))
