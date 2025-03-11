@@ -12,6 +12,7 @@ import json
 import locale
 import operator
 import os
+import pathlib
 import random
 import re
 import shutil
@@ -1481,27 +1482,39 @@ it checks if the length does not exceed the OS limit. However currently
 any error is simply raised, independent of the cause.
 
 Without this, download would fail only after the entire file is downloaded."""
-        cwd = os.getcwd()
-        with tempfile.TemporaryDirectory() as d:
-            os.chdir(d)
-            try:
-                with open(filename, 'w') as f:
-                    f.close()
-            except OSError as e:
-                if (os.name == 'nt' and e.errno == 206) or (e.errno == errno.ENAMETOOLONG):
-                    # The first condition is for windows,
-                    # and the second for unix-ish systems.
+        # An improvement idea:
+        # by default, retry (exec yt-dlp itself) by
+        # -o "%(id)s.%(ext)s" --write-info-json,
+        # but respect the directory from --output of the original call.
 
-                    # An improvement idea:
-                    # by default, retry (exec yt-dlp itself) by
-                    # -o "%(id)s.%(ext)s" --write-info-json,
-                    # but respect the directory from --output of the original call.
+        with tempfile.TemporaryDirectory() as d:
+            try:
+                # To make sure it's confined under tmpdir
+                tmpfn = '.' + os.sep + os.path.splitdrive(filename)[1]
+
+                parentDirStr = os.sep + '..' + os.sep
+                # This may contain '../' so remove them.
+                while parentDirStr in tmpfn:
+                    tmpfn = tmpfn.replace(parentDirStr, os.sep)
+                tmpfn = os.path.join(d, tmpfn)
+                pathlib.Path(os.path.dirname(tmpfn)).mkdir(parents=True, exist_ok=True)
+                open(tmpfn, 'w').close()
+            except OSError as e:
+                if (os.name == 'nt' and e.errno == 206) or (os.name != 'nt' and e.errno == errno.ENAMETOOLONG):
+                    # For Win, 206 means filename length exceeds MAX_PATH.
+
+                    e.filename = filename
                     self.to_screen('''[Notice] The file name to be saved is too long, exceeding the OS limit.
 [Notice] Consider options --trim-filenames or -o (--output).''')
 
-                    raise
-            finally:
-                os.chdir(cwd)
+                elif os.name == 'nt' and e.errno == 22:
+                    # Even when MAX_PATH is disabled, 255 chars is the limit, resulting in 22.
+                    # https://github.com/python/cpython/issues/126929#issuecomment-2483684861
+                    e.filename = filename
+                    self.to_screen(f'''[Notice] Attempt to create file {filename} resulted in Errno 22.
+This is often caused e.g. by too long filename or forbidden characters.''')
+
+                raise
 
     def prepare_filename(self, info_dict, dir_type='', *, outtmpl=None, warn=False):
         """Generate the output filename"""
