@@ -1,7 +1,6 @@
-import re
-
-from yt_dlp.utils import str_or_none, traverse_obj
-
+from .common import InfoExtractor
+from .skyit import TV8ItIE
+from ..utils import clean_html, url_or_none, urljoin
 from .common import InfoExtractor
 
 
@@ -22,22 +21,27 @@ class TV8StreamingIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        streaming = self._download_json('https://tv8.it/api/getStreaming', 'tv8', 'Downloading streaming data')
-        livestream = self._download_json('https://apid.sky.it/vdp/v1/getLivestream?id=7', 'tv8', 'Downloading manifest json info')
+        video_id = 'tv8'
+        streaming = self._download_json(
+            'https://tv8.it/api/getStreaming', video_id, 'Downloading streaming data', fatal=False)
+        livestream = self._download_json(
+            'https://apid.sky.it/vdp/v1/getLivestream?id=7', video_id, 'Downloading manifest json info')
 
         return {
-            'id': 'tv8',
-            'title': traverse_obj(streaming, ('info', 'title', 'text')),
-            'description': traverse_obj(streaming, ('info', 'description', 'html')),
+            'id': video_id,
             'is_live': True,
-            'formats': self._extract_m3u8_formats(livestream['streaming_url'], 'tv8'),
+            'formats': self._extract_m3u8_formats(livestream['streaming_url'], video_id),
+            **traverse_obj(streaming, ('info', {
+                'title': ('title', 'text', {str}),
+                'description': ('description', 'html', {clean_html}),
+            })),
         }
 
 
 class TV8PlaylistIE(InfoExtractor):
     IE_NAME = 'TV8Playlist'
     IE_DESC = 'TV8 Playlist'
-    _VALID_URL = r'https?://(?:www\.)?tv8\.it/(?!video)(?P<category>[^/]+)/(?P<id>[^/#?]+)'
+    _VALID_URL = r'https?://(?:www\.)?tv8\.it/(?!video)[^/#?]+/(?P<id>[^/#?]+)'
     _TESTS = [{
         'url': 'https://tv8.it/intrattenimento/tv8-gialappas-night',
         'playlist_mincount': 32,
@@ -57,8 +61,9 @@ class TV8PlaylistIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id, category = self._match_valid_url(url).group('id', 'category')
-        data = self._search_nextjs_data(self._download_webpage(f'https://tv8.it/{category}/{video_id}', video_id), video_id)['props']['pageProps']['data']
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
+        data = self._search_nextjs_data(webpage, playlist_id)['props']['pageProps']['data']
 
         return self.playlist_result([{
             '_type': 'url_transparent',
