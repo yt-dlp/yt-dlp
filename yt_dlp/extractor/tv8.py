@@ -1,10 +1,10 @@
 from .common import InfoExtractor
 from .skyit import TV8ItIE
-from ..utils import clean_html, traverse_obj, url_or_none, urljoin
+from ..utils import clean_html, url_or_none, urljoin
+from ..utils.traversal import traverse_obj
 
 
 class TV8StreamingIE(InfoExtractor):
-    IE_NAME = 'TV8Streaming'
     IE_DESC = 'TV8 Live'
     _VALID_URL = r'https?://(?:www\.)?tv8\.it/streaming'
     _TESTS = [{
@@ -38,7 +38,6 @@ class TV8StreamingIE(InfoExtractor):
 
 
 class TV8PlaylistIE(InfoExtractor):
-    IE_NAME = 'TV8Playlist'
     IE_DESC = 'TV8 Playlist'
     _VALID_URL = r'https?://(?:www\.)?tv8\.it/(?!video)[^/#?]+/(?P<id>[^/#?]+)'
     _TESTS = [{
@@ -48,7 +47,7 @@ class TV8PlaylistIE(InfoExtractor):
             'id': 'tv8-gialappas-night',
             'title': 'Tv8 Gialappa\'s Night',
             'description': 'md5:c876039d487d9cf40229b768872718ed',
-            'thumbnail': 'https://static.sky.it/editorialimages/47b87cd71c2a4b71c4acbb8be04ae65dd71ce7ff/tv8/assets/entertainment/tv8-gialappa\'s-night/Gialappa\'sNight%20sito.jpg?auto=webp&im=Resize,width=1040,height=1040',
+            'thumbnail': r're:^https://static\.sky\.it/.+\.(png|jpe?g|webp)',
         },
     }, {
         'url': 'https://tv8.it/sport/uefa-europa-league',
@@ -57,7 +56,7 @@ class TV8PlaylistIE(InfoExtractor):
             'id': 'uefa-europa-league',
             'title': 'UEFA Europa League',
             'description': 'md5:9ab1832b7a8b1705b1f590e13a36bc6a',
-            'thumbnail': 'https://static.sky.it/editorialimages/ecb73aebea8008b2d42b8f393adedf8d6b28bba9/tv8/assets/sport/europa-league/1040x467_europaleague.png?auto=webp&im=Resize,width=1040,height=1040',
+            'thumbnail': r're:^https://static\.sky\.it/.+\.(png|jpe?g|webp)',
         },
     }]
 
