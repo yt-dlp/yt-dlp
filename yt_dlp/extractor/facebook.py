@@ -32,6 +32,7 @@ from ..utils import (
 
 
 class FacebookIE(InfoExtractor):
+    _MAX_TITLE_LENGTH = 20  # Maximum title length for the video
     _VALID_URL = r'''(?x)
                 (?:
                     https?://
@@ -541,6 +542,9 @@ class FacebookIE(InfoExtractor):
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
             info_json_ld['title'] = (re.sub(r'\s*\|\s*Facebook$', '', title or info_json_ld.get('title') or page_title or '')
                                      or (description or '').replace('\n', ' ') or f'Facebook video #{video_id}')
+            if len(info_json_ld.get('title')) > FacebookIE._MAX_TITLE_LENGTH:
+                self.report_warning(f'Truncating title to {FacebookIE._MAX_TITLE_LENGTH} characters')
+                info_json_ld['title'] = info_json_ld.get('title')[: FacebookIE._MAX_TITLE_LENGTH - 3] + '...'
             return merge_dicts(info_json_ld, info_dict)
 
         video_data = None
