@@ -18,18 +18,21 @@ class TV8StreamingIE(InfoExtractor):
             'live_status': 'is_live',
         },
     }]
+    _GEO_COUNTRIES = ['IT']
 
     def _real_extract(self, url):
         video_id = 'tv8'
-        streaming = self._download_json(
-            'https://tv8.it/api/getStreaming', video_id, 'Downloading streaming data', fatal=False)
         livestream = self._download_json(
             'https://apid.sky.it/vdp/v1/getLivestream?id=7', video_id, 'Downloading manifest json info')
+        if (not livestream['streaming_url']):
+            self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+        streaming = self._download_json(
+            'https://tv8.it/api/getStreaming', video_id, 'Downloading streaming data', fatal=False)
 
         return {
             'id': video_id,
             'is_live': True,
-            'formats': self._extract_m3u8_formats(livestream['streaming_url'], video_id),
+            'formats': self._extract_m3u8_formats(livestream['streaming_url'], video_id, fatal=False),
             **traverse_obj(streaming, ('info', {
                 'title': ('title', 'text', {str}),
                 'description': ('description', 'html', {clean_html}),
