@@ -95,12 +95,12 @@ class PlutoTVIE(PlutoTVBase):
             'thumbnail': 'http://images.pluto.tv/episodes/62fb6e32946347001bf008ca/poster.jpg?fm=png&q=100',
             'season_number': 2,
             'series_id': '62f5fb1b51b268001a993666',
-            'title': 'Serie 2, Episodio 5',
+            'title': 'L\'ascesa dei Cyber-uomini (parte 1)',
             'duration': 3120.0,
             'season': 'Season 2',
             'series': 'Doctor Who',
             'description': 'md5:66965714ba60b02996bd1b551475f6fa',
-            'episode': 'Serie 2, Episodio 5',
+            'episode': 'L\'ascesa dei Cyber-uomini (parte 1)',
         },
     }]
 
@@ -176,7 +176,6 @@ class PlutoTVIE(PlutoTVBase):
             PlutoTVIE,
             episode_id,
             ep.get('name'),
-            url_transparent=True,
             **self._get_video_info(ep, series, season.get('number')),
         )
 
@@ -196,7 +195,9 @@ class PlutoTVIE(PlutoTVBase):
         series = video_json['VOD'][0]
 
         if episode_id:
-            episode = video_json['VOD'][1]
+            episode = traverse_obj(video_json, ('VOD', 1))
+            if not episode:
+                raise ExtractorError('Failed to find episode')
             return {**self._get_video_info(episode, series, season_number), **self._extract_formats(self._resolve_data(video_json, episode))}
 
         if season_number:
