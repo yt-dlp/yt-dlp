@@ -94,7 +94,7 @@ def main():
             concurrent.futures.wait([html_future, xml_future])
 
         print(f'\nCoverage reports saved to {cov_dir.as_posix()}')
-        print(f'HTML report: open {cov_dir.as_posix()}/html/index.html')
+        print(f'HTML report: {cov_dir.as_posix()}/html/index.html')
         return result.returncode
     except subprocess.CalledProcessError as e:
         print(f'Error running coverage: {e}')
