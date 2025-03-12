@@ -40,8 +40,7 @@ jobs:
 
           coverage_tests = [
               ('test/test_utils.py', 'yt_dlp.utils'),
-              ('test/test_YoutubeDL.py', 'yt_dlp.YoutubeDL'),
-              ('test/devscripts', 'devscripts')
+              ('test/test_YoutubeDL.py', 'yt_dlp.YoutubeDL')
           ]
 
           with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:

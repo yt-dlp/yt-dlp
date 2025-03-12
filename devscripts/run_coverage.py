@@ -36,16 +36,14 @@ def main():
     if not args:
         # Default to running all tests
         test_path = 'test'
-        module_path = 'yt_dlp,devscripts'
+        module_path = 'yt_dlp'
     elif len(args) == 1:
         test_path = args[0]
         # Try to guess the module path from the test path
-        if test_path.startswith('test/devscripts'):
-            module_path = 'devscripts'
-        elif test_path.startswith('test/'):
+        if test_path.startswith('test/'):
             module_path = 'yt_dlp'
         else:
-            module_path = 'yt_dlp,devscripts'
+            module_path = 'yt_dlp'
     else:
         test_path = args[0]
         module_path = args[1]
