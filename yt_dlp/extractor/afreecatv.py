@@ -68,6 +68,16 @@ class AfreecaTVBaseIE(InfoExtractor):
             'Downloading API JSON', 'Unable to download API JSON')
 
     @staticmethod
+    def _parse_timestamp(ts):
+        try:
+            # SOOP sends timestamps without timezone, but they are in KST.
+            datetime.datetime.strptime(ts, '%Y-%m-%d %H:%M:%S')
+            return unified_timestamp(f'{ts}+0900')
+        except ValueError:
+            # If this isn't the expected format, parse the timestamp as-is.
+            return unified_timestamp(ts)
+
+    @staticmethod
     def _fixup_thumb(thumb_url):
         if not url_or_none(thumb_url):
             return None
@@ -144,15 +154,6 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         'only_matching': True,
     }]
 
-    def _parse_timestamp(self, ts):
-        try:
-            # SOOP sends timestamps without timezone, but they are in KST.
-            datetime.datetime.strptime(ts, '%Y-%m-%d %H:%M:%S')
-            return unified_timestamp(f'{ts}+0900')
-        except ValueError:
-            # If this isn't the expected format, parse the timestamp as-is.
-            return unified_timestamp(ts)
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._call_api(
@@ -197,7 +198,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 'formats': formats,
                 **traverse_obj(file_element, {
                     'duration': ('duration', {int_or_none(scale=1000)}),
-                    'timestamp': ('file_start', {self._parse_timestamp}),  # wrapper for unified_timestamp
+                    'timestamp': ('file_start', {self._parse_timestamp}),
                 }),
             })
 
@@ -380,7 +381,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
             'title': channel_info.get('TITLE') or station_info.get('station_title'),
             'uploader': channel_info.get('BJNICK') or station_info.get('station_name'),
             'uploader_id': broadcaster_id,
-            'timestamp': unified_timestamp(station_info.get('broad_start')),
+            'timestamp': self._parse_timestamp(station_info.get('broad_start')),
             'formats': formats,
             'is_live': True,
             'http_headers': {'Referer': url},
