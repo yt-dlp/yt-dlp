@@ -146,7 +146,8 @@ class TagesschauIE(InfoExtractor):
         if not entries:
             raise UnsupportedError(url)
 
-        if len(entries) > 1:
+        if len(entries) > 1 and self._yes_playlist(
+                webpage_id, entries[0]['id'], playlist_label='all media on', video_label='file'):
             return self.playlist_result(entries, webpage_id, title)
 
         return {
