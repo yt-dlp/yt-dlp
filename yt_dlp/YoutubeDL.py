@@ -1476,7 +1476,7 @@ class YoutubeDL:
             else:
                 return name[:max_file_name]
 
-        filename = os.path.join(*map(trim_filename, Path(filename).parts) or '.')
+        filename = os.path.join(*map(trim_filename, Path(filename).parts or '.'))
         return filename + suffix
 
     @_catch_unsafe_extension_error
