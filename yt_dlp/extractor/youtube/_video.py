@@ -1762,8 +1762,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        from yt_dlp.utils import parse_qs
-
         qs = parse_qs(url)
         if qs.get('list', [None])[0]:
             return False
