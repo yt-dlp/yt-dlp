@@ -3107,7 +3107,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         f'an experiment that applies DRM to all videos on the tv client. '
                         f'See  https://github.com/yt-dlp/yt-dlp/issues/12563  for more details.'
                     )
-                self.report_warning(msg, only_once=True)
+                self.report_warning(msg, video_id, only_once=True)
 
             fmt_url = fmt.get('url')
             if not fmt_url:
@@ -3120,7 +3120,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         f'{"Your account" if self.is_authenticated else "The current session"} may have '
                         f'the SSAP (server-side ads) experiment which interferes with yt-dlp. '
                         f'Please see  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details.',
-                        only_once=True)
+                        video_id, only_once=True)
                     continue
                 try:
                     fmt_url += '&{}={}'.format(
