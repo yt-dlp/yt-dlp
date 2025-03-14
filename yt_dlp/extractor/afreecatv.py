@@ -100,7 +100,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'duration': 10840,
             'thumbnail': r're:https?://videoimg\.sooplive\.co/.kr/.+',
             'upload_date': '20230108',
-            'timestamp': 1673218805,
+            'timestamp': 1673186405,
             'title': '젠지 페이즈',
         },
         'params': {
