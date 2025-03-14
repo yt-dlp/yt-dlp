@@ -1,5 +1,5 @@
+import datetime
 import functools
-from datetime import datetime
 
 from .common import InfoExtractor
 from ..networking import Request
@@ -147,8 +147,8 @@ class AfreecaTVIE(AfreecaTVBaseIE):
     def _parse_timestamp(self, ts):
         try:
             # SOOP sends timestamps without timezone, but they are in KST.
-            datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
-            return unified_timestamp(f"{ts}+0900")
+            datetime.datetime.strptime(ts, '%Y-%m-%d %H:%M:%S')
+            return unified_timestamp(f'{ts}+0900')
         except ValueError:
             # If this isn't the expected format, parse the timestamp as-is.
             return unified_timestamp(ts)
