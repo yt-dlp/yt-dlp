@@ -5,8 +5,9 @@ from ..utils import (
     get_elements_html_by_attribute,
     int_or_none,
     parse_iso8601,
-    try_get,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class TagesschauIE(InfoExtractor):
@@ -108,54 +109,64 @@ class TagesschauIE(InfoExtractor):
     def _real_extract(self, url):
         webpage_id = self._match_id(url)
         webpage = self._download_webpage(url, webpage_id)
-
-        title = self._html_search_regex(
-            r'<span[^>]*class="headline"[^>]*>(.+?)</span>',
-            webpage, 'title', default=None) or self._og_search_title(webpage, fatal=False)
-
-        entries = []
         media_players = get_elements_html_by_attribute(
             'data-v-type', 'MediaPlayer(?:InlinePlay)?', webpage, escape_value=False)
 
+        entries = []
         for player in media_players:
             data = self._parse_json(extract_attributes(player)['data-v'], webpage_id)
-            media_id = data['mc']['pluginData']['trackingSAND@all']['av_content_id']
-            video_formats = try_get(data, lambda x: x['mc']['streams'][0]['media'])
-            if not video_formats:
+            media_id = traverse_obj(data, ('mc', 'pluginData', (
+                ('trackingSAND@all', 'av_content_id'),
+                ('trackingPiano@all', 'avContent', 'av_content_id'),
+                ('trackingAgf@all', 'playerID')), any))
+            if not media_id:
+                self.report_warning('Skipping unrecognized media file')
                 continue
-            formats = []
-            for video_format in video_formats:
-                media_url = video_format.get('url') or ''
-                if media_url.endswith('master.m3u8'):
-                    formats += self._extract_m3u8_formats(media_url, media_id, 'mp4', m3u8_id='hls')
-                elif media_url.endswith('.mp3'):
-                    formats.append({
-                        'url': media_url,
-                        'vcodec': 'none',
-                        'format_note': video_format.get('forcedLabel'),
-                    })
-            if not formats:
-                continue
-            entries.append({
+
+            entry = {
                 'id': media_id,
-                'title': try_get(data, lambda x: x['mc']['meta']['title']),
-                'duration': int_or_none(try_get(data, lambda x: x['mc']['meta']['durationSeconds'])),
-                'formats': formats,
-            })
+                **traverse_obj(data, {
+                    'title': ('mc', (
+                        ('pluginData', 'trackingPiano@all', 'avContent', 'av_content'),
+                        ('meta', 'title')), any),
+                    'duration': ('mc', 'meta', 'durationSeconds', {int_or_none}),
+                    'thumbnail': (
+                        'pc', 'generic', 'imageTemplateConfig', 'size', -1,
+                        'value', {lambda v: (v + '.webp') if v else None}),
+                    'timestamp': (
+                        'mc', 'pluginData', 'trackingPiano@all', 'avContent',
+                        'd:av_publication_date', {parse_iso8601}),
+                }),
+            }
+            input_formats = traverse_obj(data, (
+                'mc', 'streams', 0, 'media', lambda _, v: url_or_none(v.get('url'))), default=[])
+
+            formats = []
+            for input_format in input_formats:
+                file_url = input_format['url']
+                if file_url.endswith('master.m3u8'):
+                    formats = self._extract_m3u8_formats(file_url, media_id, 'mp4', m3u8_id='hls')
+                    break
+                if file_url.endswith('.mp3'):
+                    formats.append(traverse_obj(input_format, {
+                        'url': 'url',
+                        'vcodec': {lambda _: 'none'},
+                        'format_note': ('forcedLabel', {str}),
+                    }))
+            if not formats:
+                self.report_warning(f'Skipping file {media_id} because it has no formats')
+                continue
+            entry['formats'] = formats
+            entries.append(entry)
 
         if not entries:
             raise UnsupportedError(url)
 
         if len(entries) > 1 and self._yes_playlist(
                 webpage_id, entries[0]['id'], playlist_label='all media on', video_label='file'):
+            title = self._html_search_regex(
+                r'<span[^>]*class="headline"[^>]*>(.+?)</span>',
+                webpage, 'title', default=None) or self._og_search_title(webpage, fatal=False)
             return self.playlist_result(entries, webpage_id, title)
 
-        return {
-            'id': entries[0]['id'],
-            'title': title,
-            'thumbnail': self._og_search_thumbnail(webpage),
-            'formats': entries[0]['formats'],
-            'timestamp': parse_iso8601(self._html_search_meta('date', webpage)),
-            'description': self._og_search_description(webpage),
-            'duration': entries[0]['duration'],
-        }
+        return entries[0]
