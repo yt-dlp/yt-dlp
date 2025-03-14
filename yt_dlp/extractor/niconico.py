@@ -13,11 +13,13 @@ from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     clean_html,
+    determine_ext,
     float_or_none,
     int_or_none,
     join_nonempty,
     parse_duration,
     parse_iso8601,
+    parse_qs,
     parse_resolution,
     qualities,
     remove_start,
@@ -26,6 +28,7 @@ from ..utils import (
     try_get,
     unescapeHTML,
     update_url_query,
+    url_basename,
     url_or_none,
     urlencode_postdata,
     urljoin,
@@ -430,6 +433,7 @@ class NiconicoIE(InfoExtractor):
                     'format_id': ('id', {str}),
                     'abr': ('bitRate', {float_or_none(scale=1000)}),
                     'asr': ('samplingRate', {int_or_none}),
+                    'quality': ('qualityLevel', {int_or_none}),
                 }), get_all=False),
                 'acodec': 'aac',
             }
@@ -441,7 +445,9 @@ class NiconicoIE(InfoExtractor):
         min_abr = min(traverse_obj(audios, (..., 'bitRate', {float_or_none})), default=0) / 1000
         for video_fmt in video_fmts:
             video_fmt['tbr'] -= min_abr
-            video_fmt['format_id'] = f'video-{video_fmt["tbr"]:.0f}'
+            video_fmt['format_id'] = url_basename(video_fmt['url']).rpartition('.')[0]
+            video_fmt['quality'] = traverse_obj(videos, (
+                lambda _, v: v['id'] == video_fmt['format_id'], 'qualityLevel', {int_or_none}, any)) or -1
             yield video_fmt
 
     def _real_extract(self, url):
@@ -1033,6 +1039,7 @@ class NiconicoLiveIE(InfoExtractor):
                 thumbnails.append({
                     'id': f'{name}_{width}x{height}',
                     'url': img_url,
+                    'ext': traverse_obj(parse_qs(img_url), ('image', 0, {determine_ext(default_ext='jpg')})),
                     **res,
                 })
 
