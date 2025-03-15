@@ -361,7 +361,7 @@ class VrtNUIE(VRTBaseIE):
                 'query': self._VIDEO_PAGE_QUERY,
                 'variables': {'pageId': urllib.parse.urlparse(url).path},
             }).encode(),
-            headers=filter_dict{
+            headers=filter_dict({
                 'Authorization': f'Bearer {access_token}' if access_token else None,
                 'Content-Type': 'application/json',
                 'x-vrt-client-name': 'WEB',
