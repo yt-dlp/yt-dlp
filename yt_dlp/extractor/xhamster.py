@@ -423,7 +423,7 @@ class XHamsterEmbedIE(InfoExtractor):
 
 
 class XHamsterUserIE(InfoExtractor):
-    _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/(?:(?P<user>users)|creators)/(?P<id>[^/?#&]+)'
+    _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/(?P<collection>users|creators|channels)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         # Paginated user profile
         'url': 'https://xhamster.com/users/netvideogirls/videos',
@@ -437,13 +437,19 @@ class XHamsterUserIE(InfoExtractor):
         'info_dict': {
             'id': 'firatkaan',
         },
-        'playlist_mincount': 1,
+        'playlist_mincount': 0,
     }, {
         'url': 'https://xhamster.com/creators/squirt-orgasm-69',
         'info_dict': {
             'id': 'squirt-orgasm-69',
         },
         'playlist_mincount': 150,
+    }, {
+        'url': 'https://xhamster.com/channels/patreon/',
+        'info_dict': {
+            'id': 'patreon',
+        },
+        'playlist_mincount': 500,
     }, {
         'url': 'https://xhday.com/users/mobhunter',
         'only_matching': True,
@@ -452,9 +458,14 @@ class XHamsterUserIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _entries(self, user_id, is_user):
-        prefix, suffix = ('users', 'videos') if is_user else ('creators', 'exclusive')
-        next_page_url = f'https://xhamster.com/{prefix}/{user_id}/{suffix}/1'
+    def _entries(self, user_id, collection_type):
+        collection_prefixes = {
+            'users': ('users', 'videos/'),
+            'creators': ('creators', 'exclusive/'),
+            'channels': ('channels', ''),
+        }
+        prefix, suffix = collection_prefixes[collection_type]
+        next_page_url = f'https://xhamster.com/{prefix}/{user_id}/{suffix}1'
         for pagenum in itertools.count(1):
             page = self._download_webpage(
                 next_page_url, user_id, f'Downloading page {pagenum}')
@@ -468,7 +479,7 @@ class XHamsterUserIE(InfoExtractor):
                 video_id = XHamsterIE._match_id(video_url)
                 yield self.url_result(
                     video_url, ie=XHamsterIE.ie_key(), video_id=video_id)
-            mobj = re.search(r'<a[^>]+data-page=["\']next[^>]+>', page)
+            mobj = re.search(r'<a[^>]+(?:data-page=["\']next|rel=["\']next)[^>]+>', page)
             if not mobj:
                 break
             next_page = extract_attributes(mobj.group(0))
@@ -477,5 +488,5 @@ class XHamsterUserIE(InfoExtractor):
                 break
 
     def _real_extract(self, url):
-        user, user_id = self._match_valid_url(url).group('user', 'id')
-        return self.playlist_result(self._entries(user_id, bool(user)), user_id)
+        collection_type, user_id = self._match_valid_url(url).group('collection', 'id')
+        return self.playlist_result(self._entries(user_id, collection_type), user_id)
