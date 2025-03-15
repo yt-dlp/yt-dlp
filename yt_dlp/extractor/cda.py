@@ -187,7 +187,7 @@ class CDAIE(InfoExtractor):
         meta = self._download_json(
             f'{self._BASE_API_URL}/video/{video_id}', video_id, headers=self._API_HEADERS)['video']
 
-        uploader = traverse_obj(meta, ('author', 'login'))
+        uploader = traverse_obj(meta, ('author', 'login', {str}))
 
         formats = [{
             'url': quality['file'],
