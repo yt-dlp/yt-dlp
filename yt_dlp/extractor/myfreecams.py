@@ -1,5 +1,5 @@
-from yt_dlp.utils._utils import ExtractorError
 from .common import InfoExtractor
+from yt_dlp.utils._utils import ExtractorError
 
 
 class MyFreeCamsIE(InfoExtractor):
@@ -12,12 +12,12 @@ class MyFreeCamsIE(InfoExtractor):
             'ext': 'mp4',
             'live_status': 'is_live',
             'age_limit': 18,
-            'thumbnail': 're:https://img.mfcimg.com/photos2/121/12172602/avatar.300x300.jpg\\?nc=\\d+'
+            'thumbnail': 're:https://img.mfcimg.com/photos2/121/12172602/avatar.300x300.jpg\\?nc=\\d+',
         },
         'params': {
             'skip_download': True,
         },
-        'skip': 'Model offline'
+        'skip': 'Model offline',
     }, {
         'url': 'https://share.myfreecams.com/BUSTY_EMA',
         'info_dict': {
@@ -26,12 +26,12 @@ class MyFreeCamsIE(InfoExtractor):
             'ext': 'mp4',
             'live_status': 'is_live',
             'age_limit': 18,
-            'thumbnail': 're:https://img.mfcimg.com/photos2/295/29538300/avatar.300x300.jpg\\?nc=\\d+'
+            'thumbnail': 're:https://img.mfcimg.com/photos2/295/29538300/avatar.300x300.jpg\\?nc=\\d+',
         },
         'params': {
             'skip_download': True,
         },
-        'skip': 'Model offline'
+        'skip': 'Model offline',
     }, {
         'url': 'https://www.myfreecams.com/#notbeckyhecky',
         'info_dict': {
@@ -40,33 +40,33 @@ class MyFreeCamsIE(InfoExtractor):
             'ext': 'mp4',
             'is_live': True,
             'age_limit': 18,
-            'thumbnail': 're:https://img.mfcimg.com/photos2/243/24308977/avatar.300x300.jpg\\?nc=\\d+'
+            'thumbnail': 're:https://img.mfcimg.com/photos2/243/24308977/avatar.300x300.jpg\\?nc=\\d+',
         },
         'params': {
             'skip_download': True,
         },
-        'skip': 'Model offline'
+        'skip': 'Model offline',
     }]
 
     def get_required_params(self, webpage):
         sid = self._search_regex(
             [r'data-campreview-sid=["\'](\d+)["\']', r'data-cam-preview-server-id-value=["\'](\d+)["\']'],
-            webpage, 'sid'
+            webpage, 'sid',
         )
 
         mid = self._search_regex(
             [r'data-campreview-mid=["\'](\d+)["\']', r'data-cam-preview-model-id-value=["\'](\d+)["\']'],
-            webpage, 'mid'
+            webpage, 'mid',
         )
 
         webrtc = self._search_regex(
             [r'data-is-webrtc=["\']([^"\']+)["\']', r'data-cam-preview-is-webrtc-value=["\']([^"\']+)["\']'],
-            webpage, 'webrtc', default='false'
+            webpage, 'webrtc', default='false',
         )
 
         snap_url = self._search_regex(
             r'data-cam-preview-snap-url-value=["\']([^"\']+)["\']',
-            webpage, 'snap_url'
+            webpage, 'snap_url',
         )
 
         webrtc = 'true' if 'mfc_a_' in snap_url else 'false'
@@ -74,7 +74,7 @@ class MyFreeCamsIE(InfoExtractor):
         return {
             'sid': sid,
             'mid': str(int(mid) + 100_000_000),
-            'a': 'a_' if webrtc == 'true' else ''
+            'a': 'a_' if webrtc == 'true' else '',
         }
 
     def _real_extract(self, url):
