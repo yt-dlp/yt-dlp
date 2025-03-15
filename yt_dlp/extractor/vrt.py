@@ -180,7 +180,8 @@ class VRTIE(VRTBaseIE):
 
 
 class VrtNUIE(VRTBaseIE):
-    IE_DESC = 'VRT MAX'
+    IE_NAME = 'vrtmax'
+    IE_DESC = 'VRT MAX (formerly VRT NU)'
     _VALID_URL = r'https?://(?:www\.)?vrt\.be/(?:vrtnu|vrtmax)/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.vrt.be/vrtmax/a-z/ket---doc/trailer/ket---doc-trailer-s6/',
