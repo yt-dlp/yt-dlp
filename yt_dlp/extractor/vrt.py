@@ -416,12 +416,12 @@ class VrtNUIE(VRTBaseIE):
                 'timestamp': ('onTimeRaw', {parse_iso8601}),
                 'title': ('title', {str}),
             })),
-            'display_id': display_id,
-            'duration': float_or_none(streaming_info.get('duration'), 1000),
-            'formats': formats,
             'id': video_id,
-            'subtitles': subtitles,
+            'display_id': display_id,
+            'formats': formats,
+            'duration': float_or_none(streaming_info.get('duration'), 1000),
             'thumbnail': url_or_none(streaming_info.get('posterImageUrl')),
+            'subtitles': subtitles,
             '_old_archive_ids': [make_archive_id('Canvas', video_id)],
         }
 
