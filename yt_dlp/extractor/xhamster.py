@@ -423,7 +423,7 @@ class XHamsterEmbedIE(InfoExtractor):
 
 
 class XHamsterUserIE(InfoExtractor):
-    _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/(?P<collection>users|creators|channels)/(?P<id>[^/?#&]+)'
+    _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/(?P<collection>users|creators|channels)/(?P<id>[^/?#&]+)(?P<favorites>/favorites/videos)?'
     _TESTS = [{
         # Paginated user profile
         'url': 'https://xhamster.com/users/netvideogirls/videos',
@@ -451,6 +451,12 @@ class XHamsterUserIE(InfoExtractor):
         },
         'playlist_mincount': 500,
     }, {
+        'url': 'https://xhamster.com/users/cubafidel/favorites/videos',
+        'info_dict': {
+            'id': 'cubafidel',
+        },
+        'playlist_mincount': 220,
+    }, {
         'url': 'https://xhday.com/users/mobhunter',
         'only_matching': True,
     }, {
@@ -463,6 +469,7 @@ class XHamsterUserIE(InfoExtractor):
             'users': ('users', 'videos/'),
             'creators': ('creators', 'exclusive/'),
             'channels': ('channels', ''),
+            'favorites': ('users', 'favorites/videos/'),
         }
         prefix, suffix = collection_prefixes[collection_type]
         next_page_url = f'https://xhamster.com/{prefix}/{user_id}/{suffix}1'
@@ -488,5 +495,6 @@ class XHamsterUserIE(InfoExtractor):
                 break
 
     def _real_extract(self, url):
-        collection_type, user_id = self._match_valid_url(url).group('collection', 'id')
+        collection_type, user_id, favorites = self._match_valid_url(url).group('collection', 'id', 'favorites')
+        collection_type = 'favorites' if bool(favorites) else collection_type
         return self.playlist_result(self._entries(user_id, collection_type), user_id)
