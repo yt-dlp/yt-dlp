@@ -935,6 +935,7 @@ from .jiosaavn import (
 from .joj import JojIE
 from .joqrag import JoqrAgIE
 from .jove import JoveIE
+from .jpfilms import JpFilmsIE
 from .jstream import JStreamIE
 from .jtbc import (
     JTBCIE,
