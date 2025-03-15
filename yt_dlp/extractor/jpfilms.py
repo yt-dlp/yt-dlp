@@ -1,5 +1,5 @@
-from yt_dlp.utils._utils import ExtractorError
 from .common import InfoExtractor
+from yt_dlp.utils._utils import ExtractorError
 
 
 class JpFilmsIE(InfoExtractor):
@@ -11,8 +11,8 @@ class JpFilmsIE(InfoExtractor):
             'id': 'tokyo-trial-8532',
             'ext': 'mp4',
             'title': 'Tokyo Trial',
-            'age_limit': 0
-        }
+            'age_limit': 0,
+        },
     }]
 
     def _real_extract(self, url):
@@ -36,12 +36,12 @@ class JpFilmsIE(InfoExtractor):
                 'episode_slug': episode_slug,
                 'server_id': server,
                 'post_id': post_id,
-                'nonce': nonce
+                'nonce': nonce,
             },
             headers={
                 'Referer': url,
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+                'X-Requested-With': 'XMLHttpRequest',
+            },
         ).get('data')
 
         if not source_data:
@@ -54,5 +54,5 @@ class JpFilmsIE(InfoExtractor):
             'title': video_data.get('post_title')
             or self._html_search_regex(r'<span.*class=[\'"]last[\'"].*>(.+?)</span>', webpage, 'title'),
             'formats': self._extract_m3u8_formats(m3u8_url, url_slug, 'mp4', fatal=True),
-            'age_limit': 18 if video_data.get('is_adult') else 0
+            'age_limit': 18 if video_data.get('is_adult') else 0,
         }
