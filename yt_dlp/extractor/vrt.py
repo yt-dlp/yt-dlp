@@ -303,7 +303,7 @@ class VrtNUIE(VRTBaseIE):
             self.report_warning(f'{msg}. Re-logging in')
             return self._perform_login(*self._get_login_info())
 
-        elif has_credentials:
+        if has_credentials:
             self.cache.store(self._NETRC_MACHINE, 'token_data', (access_token, video_token))
 
         return access_token, video_token
