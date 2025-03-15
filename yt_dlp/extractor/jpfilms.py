@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from yt_dlp.utils._utils import ExtractorError
+from ..utils import ExtractorError
 
 
 class JpFilmsIE(InfoExtractor):
