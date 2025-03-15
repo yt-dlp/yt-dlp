@@ -250,6 +250,7 @@ class VrtNUIE(VRTBaseIE):
                         titleRaw
                     }
                     title
+                    brand
                 }
                 ldjson
                 player {
