@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError
+from ..utils import ExtractorError, UserNotLive
 
 
 class MyFreeCamsIE(InfoExtractor):
@@ -87,7 +87,7 @@ class MyFreeCamsIE(InfoExtractor):
 
         params = self.get_required_params(webpage)
         if not params['sid']:
-            raise ExtractorError('Model offline')
+            raise UserNotLive('Model offline')
 
         return {
             'id': video_id,
