@@ -243,9 +243,8 @@ class TagesschauIE(InfoExtractor):
 
         if len(entries) > 1 and self._yes_playlist(
                 webpage_id, entries[0]['id'], playlist_label='all media on', video_label='file'):
-            title = self._html_search_regex(
-                r'<span[^>]*class="headline"[^>]*>(.+?)</span>',
-                webpage, 'title', default=None) or self._og_search_title(webpage, fatal=False)
+            title = self._html_search_meta(
+                ['og:title', 'title', 'twitter:title'], webpage, 'title', fatal=False)
             return self.playlist_result(entries, webpage_id, title)
 
         return entries[0]
