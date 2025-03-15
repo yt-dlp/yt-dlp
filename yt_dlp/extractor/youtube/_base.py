@@ -43,7 +43,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20241126.01.00',
+                'clientVersion': '2.20250312.04.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
@@ -55,7 +55,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20241126.01.00',
+                'clientVersion': '2.20250312.04.00',
                 'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)',
             },
         },
@@ -67,7 +67,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
-                'clientVersion': '1.20241201.00.00',
+                'clientVersion': '1.20250310.01.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
@@ -78,7 +78,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_REMIX',
-                'clientVersion': '1.20241127.01.00',
+                'clientVersion': '1.20250310.01.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
@@ -90,7 +90,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_CREATOR',
-                'clientVersion': '1.20241203.01.00',
+                'clientVersion': '1.20250312.03.01',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
@@ -102,9 +102,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '19.44.38',
+                'clientVersion': '20.10.38',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/19.44.38 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip',
                 'osName': 'Android',
                 'osVersion': '11',
             },
@@ -113,50 +113,16 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_JS_PLAYER': False,
         'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
     },
-    # This client now requires sign-in for every video
-    'android_music': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'ANDROID_MUSIC',
-                'clientVersion': '7.27.52',
-                'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.music/7.27.52 (Linux; U; Android 11) gzip',
-                'osName': 'Android',
-                'osVersion': '11',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
-        'REQUIRE_JS_PLAYER': False,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
-        'REQUIRE_AUTH': True,
-    },
-    # This client now requires sign-in for every video
-    'android_creator': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'ANDROID_CREATOR',
-                'clientVersion': '24.45.100',
-                'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.creator/24.45.100 (Linux; U; Android 11) gzip',
-                'osName': 'Android',
-                'osVersion': '11',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
-        'REQUIRE_JS_PLAYER': False,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
-        'REQUIRE_AUTH': True,
-    },
     # YouTube Kids videos aren't returned on this client for some reason
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_VR',
-                'clientVersion': '1.60.19',
+                'clientVersion': '1.62.27',
                 'deviceMake': 'Oculus',
                 'deviceModel': 'Quest 3',
                 'androidSdkVersion': 32,
-                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.60.19 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
+                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.62.27 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
                 'osName': 'Android',
                 'osVersion': '12L',
             },
@@ -170,53 +136,17 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '20.03.02',
+                'clientVersion': '20.10.4',
                 'deviceMake': 'Apple',
                 'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.youtube/20.03.02 (iPhone16,2; U; CPU iOS 18_2_1 like Mac OS X;)',
+                'userAgent': 'com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)',
                 'osName': 'iPhone',
-                'osVersion': '18.2.1.22C161',
+                'osVersion': '18.3.2.22D82',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
         'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
         'REQUIRE_JS_PLAYER': False,
-    },
-    # This client now requires sign-in for every video
-    'ios_music': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'IOS_MUSIC',
-                'clientVersion': '7.27.0',
-                'deviceMake': 'Apple',
-                'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.youtubemusic/7.27.0 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)',
-                'osName': 'iPhone',
-                'osVersion': '18.1.0.22B83',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
-        'REQUIRE_JS_PLAYER': False,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
-        'REQUIRE_AUTH': True,
-    },
-    # This client now requires sign-in for every video
-    'ios_creator': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'IOS_CREATOR',
-                'clientVersion': '24.45.100',
-                'deviceMake': 'Apple',
-                'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.ytcreator/24.45.100 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)',
-                'osName': 'iPhone',
-                'osVersion': '18.1.0.22B83',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
-        'REQUIRE_JS_PLAYER': False,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
-        'REQUIRE_AUTH': True,
     },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
@@ -224,7 +154,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'MWEB',
-                'clientVersion': '2.20241202.07.00',
+                'clientVersion': '2.20250311.03.00',
                 # mweb previously did not require PO Token with this UA
                 'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
@@ -237,7 +167,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'TVHTML5',
-                'clientVersion': '7.20250120.19.00',
+                'clientVersion': '7.20250312.16.00',
                 'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
             },
         },
