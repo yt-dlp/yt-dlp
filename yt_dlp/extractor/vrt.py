@@ -297,6 +297,7 @@ class VrtNUIE(VRTBaseIE):
 
         if not access_token or not video_token:
             self.cache.store(self._NETRC_MACHINE, 'refresh_token', None)
+            self.cookiejar.clear('.www.vrt.be', '/vrtmax/sso', self._REFRESH_TOKEN_COOKIE_NAME)
             msg = 'Refreshing of tokens failed'
             if not has_credentials:
                 self.report_warning(msg)
@@ -310,6 +311,7 @@ class VrtNUIE(VRTBaseIE):
         return access_token, video_token
 
     def _get_vrt_cookie(self, cookie_name):
+        # Refresh token cookie is scoped to /vrtmax/sso, others are scoped to /
         return try_call(lambda: self._get_cookies('https://www.vrt.be/vrtmax/sso')[cookie_name].value)
 
     @staticmethod
