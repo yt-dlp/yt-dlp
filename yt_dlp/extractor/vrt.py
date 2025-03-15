@@ -90,7 +90,7 @@ class VRTBaseIE(InfoExtractor):
 
     def _call_api(self, video_id, client='null', id_token=None, version='v2'):
         player_info = {'exp': (round(time.time(), 3) + 900), **self._PLAYER_INFO}
-        vrt_player_token = self._download_json(
+        player_token = self._download_json(
             f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/tokens',
             video_id, 'Downloading player token', 'Failed to download player token', headers={
                 **self.geo_verification_headers(),
@@ -103,10 +103,11 @@ class VRTBaseIE(InfoExtractor):
             }, separators=(',', ':')).encode())['vrtPlayerToken']
 
         return self._download_json(
+            # The URL below redirects to https://media-services-public.vrt.be/media-aggregator/{version}/media-items/{video_id}
             f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/videos/{video_id}',
             video_id, 'Downloading API JSON', 'Failed to download API JSON', query={
+                'vrtPlayerToken': player_token,
                 'client': client,
-                'vrtPlayerToken': vrt_player_token,
             }, expected_status=400)
 
 
@@ -264,6 +265,7 @@ class VrtNUIE(VRTBaseIE):
     '''
 
     def _fetch_tokens(self):
+        has_credentials = self._get_login_info()[0]
         access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
         video_token = self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)
 
@@ -271,7 +273,7 @@ class VrtNUIE(VRTBaseIE):
                 and video_token and not self._is_jwt_token_expired(video_token)):
             return access_token, video_token
 
-        if self._get_login_info()[0]:
+        if has_credentials:
             access_token, video_token = self.cache.load(self._NETRC_MACHINE, 'token_data', default=(None, None))
 
             if (access_token and not self._is_jwt_token_expired(access_token)
@@ -311,7 +313,7 @@ class VrtNUIE(VRTBaseIE):
     def _perform_login(self, username, password):
         refresh_token = self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME)
         if refresh_token and not self._is_jwt_token_expired(refresh_token):
-            self.write_debug('Refresh token already present')
+            self.write_debug('Using refresh token from logged-in cookies; skipping login with credentials')
             return
 
         refresh_token = self.cache.load(self._NETRC_MACHINE, 'refresh_token', default=None)
@@ -331,12 +333,12 @@ class VrtNUIE(VRTBaseIE):
                 'password': password,
             }).encode(), headers={
                 'Content-Type': 'application/json',
-                'Oidcxsrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
+                'Oidcxsrf': self._get_cookies('https://login.vrt.be')['OIDCXSRF'].value,
             }, note='Logging in', errnote='Login failed', expected_status=403)
         if login_data.get('errorCode'):
             raise ExtractorError(f'Login failed: {login_data.get("errorMessage")}', expected=True)
 
-        self._download_webpage(
+        self._request_webpage(
             login_data['redirectUrl'], None,
             note='Getting access token', errnote='Failed to get access token')
 
@@ -358,13 +360,13 @@ class VrtNUIE(VRTBaseIE):
                 'query': self._VIDEO_PAGE_QUERY,
                 'variables': {'pageId': urllib.parse.urlparse(url).path},
             }).encode(),
-            headers={
+            headers=filter_dict{
                 'Authorization': f'Bearer {access_token}' if access_token else None,
                 'Content-Type': 'application/json',
                 'x-vrt-client-name': 'WEB',
                 'x-vrt-client-version': '1.5.9',
                 'x-vrt-zone': 'default',
-            })['data']['page']
+            }))['data']['page']
 
         video_id = metadata['player']['modes'][0]['streamId']
 
@@ -380,11 +382,11 @@ class VrtNUIE(VRTBaseIE):
         code = traverse_obj(streaming_info, ('code', {str}))
         if not formats and code:
             if code in ('CONTENT_AVAILABLE_ONLY_FOR_BE_RESIDENTS', 'CONTENT_AVAILABLE_ONLY_IN_BE', 'CONTENT_UNAVAILABLE_VIA_PROXY'):
-                self.raise_geo_restricted()
+                self.raise_geo_restricted(countries=['BE'])
             elif code in ('CONTENT_AVAILABLE_ONLY_FOR_BE_RESIDENTS_AND_EXPATS', 'CONTENT_IS_AGE_RESTRICTED', 'CONTENT_REQUIRES_AUTHENTICATION'):
                 self.raise_login_required()
             else:
-                raise ExtractorError(f'Unable to extract formats: {code}')
+                self.raise_no_formats(f'Unable to extract formats: {code}')
 
         return {
             **self._json_ld(traverse_obj(metadata, ('ldjson', ..., {json.loads})), video_id, fatal=False),
