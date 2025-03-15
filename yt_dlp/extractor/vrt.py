@@ -400,6 +400,8 @@ class VrtNUIE(VRTBaseIE):
                 self.raise_no_formats(f'Unable to extract formats: {code}')
 
         return {
+            'duration': float_or_none(streaming_info.get('duration'), 1000),
+            'thumbnail': url_or_none(streaming_info.get('posterImageUrl')),
             **self._json_ld(traverse_obj(metadata, ('ldjson', ..., {json.loads})), video_id, fatal=False),
             **traverse_obj(metadata, ('episode', {
                 'title': ('title', {str}),
@@ -419,8 +421,6 @@ class VrtNUIE(VRTBaseIE):
             'id': video_id,
             'display_id': display_id,
             'formats': formats,
-            'duration': float_or_none(streaming_info.get('duration'), 1000),
-            'thumbnail': url_or_none(streaming_info.get('posterImageUrl')),
             'subtitles': subtitles,
             '_old_archive_ids': [make_archive_id('Canvas', video_id)],
         }
