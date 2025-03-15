@@ -17,65 +17,139 @@ class TagesschauIE(InfoExtractor):
     ]
 
     _TESTS = [{
+        # Single video without recommendations
         'url': 'http://www.tagesschau.de/multimedia/video/video-102143.html',
         'md5': 'ccb9359bf8c4795836e43759f3408a93',
         'info_dict': {
-            'id': 'video-102143-1',
+            'id': 'video-102143',
             'ext': 'mp4',
             'title': 'Regierungsumbildung in Athen: Neue Minister in Griechenland vereidigt',
             'duration': 138,
+            'thumbnail': 'https://images.tagesschau.de/image/eb0b0d74-03ac-45ec-9300-0851fd6823d3/AAABj-POS-g/AAABkZLhkrw/16x9-1280/sendungslogo-tagesschau-100.webp',
+            'timestamp': 1437250200,
+            'upload_date': '20150718',
         },
     }, {
+        # Single video embedded
+        'url': 'https://www.tagesschau.de/multimedia/sendung/tagesschau_20_uhr/video-102143~player.html',
+        'md5': 'ccb9359bf8c4795836e43759f3408a93',
+        'info_dict': {
+            'id': 'video-102143',
+            'ext': 'mp4',
+            'title': 'Regierungsumbildung in Athen: Neue Minister in Griechenland vereidigt',
+            'duration': 138,
+            'thumbnail': 'https://images.tagesschau.de/image/eb0b0d74-03ac-45ec-9300-0851fd6823d3/AAABj-POS-g/AAABkZLhkrw/16x9-1280/sendungslogo-tagesschau-100.webp',
+            'timestamp': 1437250200,
+            'upload_date': '20150718',
+        },
+    }, {
+        # Single video with recommendations, `--no-playlist`
         'url': 'http://www.tagesschau.de/multimedia/sendung/ts-5727.html',
         'md5': '5c15e8f3da049e48829ec9786d835536',
         'info_dict': {
-            'id': 'ts-5727-1',
+            'id': 'video-45741',
             'ext': 'mp4',
-            'title': 'Ganze Sendung',
+            'title': 'tagesschau 20:00 Uhr',
             'duration': 932,
+            'thumbnail': 'https://images.tagesschau.de/image/eb0b0d74-03ac-45ec-9300-0851fd6823d3/AAABj-POS-g/AAABkZLhkrw/16x9-1280/sendungslogo-tagesschau-100.webp',
+            'timestamp': 1417723200,
+            'upload_date': '20141204',
         },
+        'params': {'noplaylist': True},
     }, {
-        # exclusive audio
-        'url': 'http://www.tagesschau.de/multimedia/audio/audio-29417.html',
+        # Single audio embedded
+        'url': 'https://www.tagesschau.de/multimedia/audio/audio-157831~player.html',
         'md5': '4bff8f23504df56a0d86ed312d654182',
         'info_dict': {
-            'id': 'audio-29417-1',
+            'id': 'audio-157831',
             'ext': 'mp3',
             'title': 'EU-Gipfel: Im Verbrennerstreit hat Deutschland maximalen Schaden angerichtet',
+            'duration': 200,
+            'thumbnail': 'https://images.tagesschau.de/image/197a5977-3f5f-4c21-8c08-fad6ecb4b493/AAABj864C3w/AAABkZLhkrw/16x9-1280/default-audioplayer-100.webp',
+            'timestamp': 1679687280,
+            'upload_date': '20230324',
         },
     }, {
-        'url': 'http://www.tagesschau.de/inland/bnd-303.html',
-        'md5': 'f049fa1698d7564e9ca4c3325108f034',
+        # Single audio with recommendations, `--no-playlist`
+        'url': 'https://www.tagesschau.de/multimedia/audio/audio-157831.html',
+        'md5': '4bff8f23504df56a0d86ed312d654182',
         'info_dict': {
-            'id': 'bnd-303-1',
-            'ext': 'mp3',
-            'title': 'Das Siegel des Bundesnachrichtendienstes | dpa',
-        },
-    }, {
-        'url': 'http://www.tagesschau.de/inland/afd-parteitag-135.html',
-        'info_dict': {
-            'id': 'afd-parteitag-135',
-            'title': 'AfD',
-        },
-        'playlist_mincount': 15,
-    }, {
-        'url': 'https://www.tagesschau.de/multimedia/audio/audio-29417~player.html',
-        'info_dict': {
-            'id': 'audio-29417-1',
+            'id': 'audio-157831',
             'ext': 'mp3',
             'title': 'EU-Gipfel: Im Verbrennerstreit hat Deutschland maximalen Schaden angerichtet',
+            'duration': 200,
+            'thumbnail': 'https://images.tagesschau.de/image/197a5977-3f5f-4c21-8c08-fad6ecb4b493/AAABj864C3w/AAABkZLhkrw/16x9-1280/default-audioplayer-100.webp',
+            'timestamp': 1679687280,
+            'upload_date': '20230324',
         },
+        'params': {'noplaylist': True},
     }, {
-        'url': 'https://www.tagesschau.de/multimedia/audio/podcast-11km-327.html',
+        # Article with multimedia content, `--no-playlist`
+        'url': 'https://www.tagesschau.de/inland/bundestagswahl/bundestagswahl-ergebnisse-104.html',
+        'md5': 'f72b42f213f632dbbe76551fabebcaef',
         'info_dict': {
-            'id': 'podcast-11km-327',
-            'ext': 'mp3',
-            'title': 'Gewalt in der Kita – Wenn Erzieher:innen schweigen',
-            'upload_date': '20230322',
-            'timestamp': 1679482808,
-            'thumbnail': 'https://www.tagesschau.de/multimedia/audio/podcast-11km-329~_v-original.jpg',
-            'description': 'md5:dad059931fe4b3693e3656e93a249848',
+            'id': 'video-1437570',
+            'ext': 'mp4',
+            'title': 'Union mit Kanzlerkandidat Merz gewinnt Bundestagswahl: Parteienlandschaft im Umbruch',
+            'duration': 181,
+            'thumbnail': 'https://images.tagesschau.de/image/ab8aa6ce-4fd5-4c1e-921d-807b07848a80/AAABlTZ3CAQ/AAABkZLpihI/20x9-1280/union-wahl-siegesfeier-100.webp',
+            'timestamp': 1740401379,
+            'upload_date': '20250224',
         },
+        'params': {'noplaylist': True},
+    }, {
+        # Topic page with multimedia content, `--no-playlist`
+        'url': 'https://www.tagesschau.de/thema/em_2024',
+        'md5': '07be4d381753e8411b527c8f0a36229f',
+        'info_dict': {
+            'id': 'audio-195242',
+            'ext': 'mp3',
+            'title': 'Optimistische Verbraucherstimmung kommt an der Börse nicht an ',
+            'thumbnail': 'https://images.tagesschau.de/image/490fbbe9-1718-4fe0-8f51-538a3182d28e/AAABkOOc5Z0/AAABkZLpihI/20x9-1280/em-2024-fans-100.webp',
+            'timestamp': 1721825201,
+            'upload_date': '20240724',
+        },
+        'params': {'noplaylist': True},
+    }, {
+        # Playlist, single video with recommendations
+        'url': 'http://www.tagesschau.de/multimedia/sendung/ts-5727.html',
+        'info_dict': {
+            'id': 'ts-5727',
+            'title': 'tagesschau',
+        },
+        'playlist_mincount': 8,
+    }, {
+        # Playlist, single audio with recommendations
+        'url': 'https://www.tagesschau.de/multimedia/audio/audio-157831.html',
+        'info_dict': {
+            'id': 'audio-157831',
+            'title': 'EU-Gipfel: Im Verbrennerstreit hat Deutschland maximalen Schaden angerichtet',
+        },
+        'playlist_mincount': 5,
+    }, {
+        # Playlist, article with multimedia content
+        'url': 'https://www.tagesschau.de/inland/bundestagswahl/bundestagswahl-ergebnisse-104.html',
+        'info_dict': {
+            'id': 'bundestagswahl-ergebnisse-104',
+            'title': 'Vorläufiges Ergebnis der Bundestagswahl: Union stärkste Kraft, FDP und BSW draußen',
+        },
+        'playlist_mincount': 20,
+    }, {
+        # Playlist, topic page with multimedia content
+        'url': 'https://www.tagesschau.de/thema/em_2024',
+        'info_dict': {
+            'id': 'em_2024',
+            'title': 'EM 2024',
+        },
+        'playlist_mincount': 10,
+    }, {
+        # Podcast feed
+        'url': 'https://www.tagesschau.de/multimedia/podcast/11km/11km-feed-100.html',
+        'info_dict': {
+            'id': '11km-feed-100',
+            'title': '11KM: der tagesschau-Podcast',
+        },
+        'playlist_mincount': 250,
     }, {
         'url': 'http://www.tagesschau.de/multimedia/sendung/tsg-3771.html',
         'only_matching': True,
@@ -101,8 +175,13 @@ class TagesschauIE(InfoExtractor):
         'url': 'http://www.tagesschau.de/100sekunden/index.html',
         'only_matching': True,
     }, {
-        # playlist article with collapsing sections
         'url': 'http://www.tagesschau.de/wirtschaft/faq-freihandelszone-eu-usa-101.html',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tagesschau.de',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tagesschau.de/',
         'only_matching': True,
     }]
 
