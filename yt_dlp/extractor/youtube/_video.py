@@ -3091,11 +3091,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if language_code and (is_original or (is_default and not original_language)):
                 original_language = language_code
 
+            has_drm = bool(fmt.get('drmFamilies'))
+
             # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
             # (adding `&sq=0` to the URL) and parsing emsg box to determine the
             # number of fragment that would subsequently requested with (`&sq=N`)
-            if fmt.get('type') == 'FORMAT_STREAM_TYPE_OTF':
+            if fmt.get('type') == 'FORMAT_STREAM_TYPE_OTF' and not has_drm:
                 continue
+
+            if has_drm:
+                msg = f'Some {client_name} client https formats have been skipped as they are DRM protected. '
+                if client_name == 'tv':
+                    msg += (
+                        f'{"Your account" if self.is_authenticated else "The current session"} may have '
+                        f'an experiment that applies DRM to all videos on the tv client. '
+                        f'See  https://github.com/yt-dlp/yt-dlp/issues/12563  for more details.'
+                    )
+                self.report_warning(msg, video_id, only_once=True)
 
             fmt_url = fmt.get('url')
             if not fmt_url:
@@ -3104,11 +3116,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 encrypted_sig = try_get(sc, lambda x: x['s'][0])
                 if not all((sc, fmt_url, player_url, encrypted_sig)):
                     self.report_warning(
-                        f'Some {client_name} client formats have been skipped as they are missing a url. '
+                        f'Some {client_name} client https formats have been skipped as they are missing a url. '
                         f'{"Your account" if self.is_authenticated else "The current session"} may have '
-                        f'the SSAP (server-side ads) experiment which may be interfering with yt-dlp. '
+                        f'the SSAP (server-side ads) experiment which interferes with yt-dlp. '
                         f'Please see  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details.',
-                        only_once=True)
+                        video_id, only_once=True)
                     continue
                 try:
                     fmt_url += '&{}={}'.format(
@@ -3190,7 +3202,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'audio_channels': fmt.get('audioChannels'),
                 'height': height,
                 'quality': q(quality) - bool(fmt.get('isDrc')) / 2,
-                'has_drm': bool(fmt.get('drmFamilies')),
+                'has_drm': has_drm,
                 'tbr': tbr,
                 'filesize_approx': filesize_from_tbr(tbr, format_duration),
                 'url': fmt_url,
