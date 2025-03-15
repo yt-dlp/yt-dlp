@@ -298,7 +298,7 @@ class VrtNUIE(VRTBaseIE):
 
         if not access_token or not video_token:
             self.cache.store(self._NETRC_MACHINE, 'refresh_token', None)
-            self.cookiejar.clear('.www.vrt.be', '/vrtmax/sso', self._REFRESH_TOKEN_COOKIE_NAME)
+            self.cookiejar.clear(self._TOKEN_COOKIE_DOMAIN, '/vrtmax/sso', self._REFRESH_TOKEN_COOKIE_NAME)
             msg = 'Refreshing of tokens failed'
             if not has_credentials:
                 self.report_warning(msg)
