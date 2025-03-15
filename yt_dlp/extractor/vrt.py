@@ -8,6 +8,7 @@ from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
+    filter_dict,
     float_or_none,
     get_element_by_class,
     get_element_html_by_class,
