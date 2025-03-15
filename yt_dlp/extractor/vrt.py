@@ -263,94 +263,61 @@ class VrtNUIE(VRTBaseIE):
     }
     '''
 
-    def _fetch_access_token(self):
-        access_token = self._get_access_token_from_cookie()
-        if access_token and not self._is_jwt_token_expired(access_token):
-            return access_token
+    def _fetch_tokens(self):
+        access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
+        video_token = self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)
+
+        if (access_token and not self._is_jwt_token_expired(access_token)
+                and video_token and not self._is_jwt_token_expired(video_token)):
+            return access_token, video_token
 
         if self._get_login_info()[0]:
-            access_token = self.cache.load(self._NETRC_MACHINE, 'access_token', default=None)
-            if access_token and not self._is_jwt_token_expired(access_token):
-                self.write_debug('Restored access token from cache')
-                self._set_cookie('.www.vrt.be', self._ACCESS_TOKEN_COOKIE_NAME, access_token)
-                return access_token
+            access_token, video_token = self.cache.load(self._NETRC_MACHINE, 'token_data', default=(None, None))
 
-        refresh_token = self._fetch_refresh_token()
-        if not refresh_token:
-            return None
+            if (access_token and not self._is_jwt_token_expired(access_token)
+                    and video_token and not self._is_jwt_token_expired(video_token)):
+                self.write_debug('Restored tokens from cache')
+                self._set_cookie('.vrt.be', self._ACCESS_TOKEN_COOKIE_NAME, access_token)
+                self._set_cookie('.vrt.be', self._VIDEO_TOKEN_COOKIE_NAME, video_token)
+                return access_token, video_token
 
-        self._download_json(
+        if not self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME):
+            return None, None
+
+        self._request_webpage(
             'https://www.vrt.be/vrtmax/sso/refresh', None,
-            note='Refreshing access token', errnote='Failed to refresh access token')
+            note='Refreshing tokens', errnote='Failed to refresh tokens', fatal=False)
 
-        access_token = self._get_access_token_from_cookie()
-        if not access_token:
+        access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
+        video_token = self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)
+
+        if not access_token or not video_token:
             self.cache.store(self._NETRC_MACHINE, 'refresh_token', None)
-            self.report_warning('Refreshing of access token failed')
-            return None
-        if self._get_login_info()[0]:
-            self.cache.store(self._NETRC_MACHINE, 'access_token', access_token)
-        return access_token
-
-    def _fetch_refresh_token(self):
-        refresh_token = self._get_refresh_token_from_cookie()
-        if refresh_token and not self._is_jwt_token_expired(refresh_token):
-            return refresh_token
-
-        if not self._get_login_info()[0]:
-            return
-
-        refresh_token = self.cache.load(self._NETRC_MACHINE, 'refresh_token', default=None)
-        if refresh_token and not self._is_jwt_token_expired(refresh_token):
-            self.write_debug('Restored refresh token from cache')
-            self._set_cookie('.www.vrt.be', self._REFRESH_TOKEN_COOKIE_NAME, refresh_token, path='/vrtmax/sso')
-            return refresh_token
-
-    def _fetch_video_token(self):
-        video_token = self._get_video_token_from_cookie()
-        if video_token and not self._is_jwt_token_expired(video_token):
-            return video_token
+            self.report_warning('Refreshing of tokens failed')
+            return None, None
 
         if self._get_login_info()[0]:
-            video_token = self.cache.load(self._NETRC_MACHINE, 'video_token', default=None)
-            if video_token and not self._is_jwt_token_expired(video_token):
-                self.write_debug('Restored video token from cache')
-                self._set_cookie('.www.vrt.be', self._VIDEO_TOKEN_COOKIE_NAME, video_token)
-                return video_token
+            self.cache.store(self._NETRC_MACHINE, 'token_data', (access_token, video_token))
 
-        refresh_token = self._fetch_refresh_token()
-        if not refresh_token:
-            return None
+        return access_token, video_token
 
-        self._download_json(
-            'https://www.vrt.be/vrtmax/sso/refresh', None,
-            note='Refreshing video token', errnote='Failed to refresh video token')
-
-        video_token = self._get_video_token_from_cookie()
-        if not video_token:
-            self.cache.store(self._NETRC_MACHINE, 'refresh_token', None)
-            self.report_warning('Refreshing of video token failed')
-            return None
-        if self._get_login_info()[0]:
-            self.cache.store(self._NETRC_MACHINE, 'video_token', video_token)
-        return video_token
-
-    def _get_access_token_from_cookie(self):
-        return try_call(lambda: self._get_cookies('https://www.vrt.be')[self._ACCESS_TOKEN_COOKIE_NAME].value)
-
-    def _get_refresh_token_from_cookie(self):
-        return try_call(lambda: self._get_cookies('https://www.vrt.be/vrtmax/sso')[self._REFRESH_TOKEN_COOKIE_NAME].value)
-
-    def _get_video_token_from_cookie(self):
-        return try_call(lambda: self._get_cookies('https://www.vrt.be')[self._VIDEO_TOKEN_COOKIE_NAME].value)
+    def _get_vrt_cookie(self, cookie_name):
+        return try_call(lambda: self._get_cookies('https://www.vrt.be/vrtmax/sso')[cookie_name].value)
 
     @staticmethod
     def _is_jwt_token_expired(token):
         return jwt_decode_hs256(token)['exp'] - time.time() < 300
 
     def _perform_login(self, username, password):
-        if self._fetch_refresh_token():
-            self.write_debug('Refresh token already present, skipping login')
+        refresh_token = self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME)
+        if refresh_token and not self._is_jwt_token_expired(refresh_token):
+            self.write_debug('Refresh token already present')
+            return
+
+        refresh_token = self.cache.load(self._NETRC_MACHINE, 'refresh_token', default=None)
+        if refresh_token and not self._is_jwt_token_expired(refresh_token):
+            self.write_debug('Restored refresh token from cache')
+            self._set_cookie('.www.vrt.be', self._REFRESH_TOKEN_COOKIE_NAME, refresh_token, path='/vrtmax/sso')
             return
 
         self._request_webpage(
@@ -369,15 +336,19 @@ class VrtNUIE(VRTBaseIE):
         if login_data.get('errorCode'):
             raise ExtractorError(f'Login failed: {login_data.get("errorMessage")}', expected=True)
 
-        self._download_webpage(login_data['redirectUrl'], None, note='Getting access token', errnote='Failed to get access token')
+        self._download_webpage(
+            login_data['redirectUrl'], None,
+            note='Getting access token', errnote='Failed to get access token')
 
-        self.cache.store(self._NETRC_MACHINE, 'access_token', self._get_access_token_from_cookie())
-        self.cache.store(self._NETRC_MACHINE, 'refresh_token', self._get_refresh_token_from_cookie())
-        self.cache.store(self._NETRC_MACHINE, 'video_token', self._get_video_token_from_cookie())
+        self.cache.store(
+            self._NETRC_MACHINE, 'token_data', (
+                self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME),
+                self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)))
+        self.cache.store(self._NETRC_MACHINE, 'refresh_token', self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME))
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        access_token = self._fetch_access_token()
+        access_token, video_token = self._fetch_tokens()
 
         metadata = self._download_json(
             f'https://www.vrt.be/vrtnu-api/graphql{"" if access_token else "/public"}/v1',
@@ -396,7 +367,6 @@ class VrtNUIE(VRTBaseIE):
             })['data']['page']
 
         video_id = metadata['player']['modes'][0]['streamId']
-        video_token = self._fetch_video_token()
 
         try:
             streaming_info = self._call_api(video_id, 'vrtnu-web@PROD', id_token=video_token)
