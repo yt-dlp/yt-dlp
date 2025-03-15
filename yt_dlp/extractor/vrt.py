@@ -296,10 +296,14 @@ class VrtNUIE(VRTBaseIE):
 
         if not access_token or not video_token:
             self.cache.store(self._NETRC_MACHINE, 'refresh_token', None)
-            self.report_warning('Refreshing of tokens failed')
-            return None, None
+            msg = 'Refreshing of tokens failed'
+            if not has_credentials:
+                self.report_warning(msg)
+                return None, None
+            self.report_warning(f'{msg}. Re-logging in')
+            return self._perform_login(*self._get_login_info())
 
-        if self._get_login_info()[0]:
+        elif has_credentials:
             self.cache.store(self._NETRC_MACHINE, 'token_data', (access_token, video_token))
 
         return access_token, video_token
@@ -343,11 +347,17 @@ class VrtNUIE(VRTBaseIE):
             login_data['redirectUrl'], None,
             note='Getting access token', errnote='Failed to get access token')
 
-        self.cache.store(
-            self._NETRC_MACHINE, 'token_data', (
-                self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME),
-                self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)))
-        self.cache.store(self._NETRC_MACHINE, 'refresh_token', self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME))
+        access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
+        video_token = self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)
+        refresh_token = self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME)
+
+        if not all((access_token, video_token, refresh_token)):
+            raise ExtractorError('Unable to extract token cookie values')
+
+        self.cache.store(self._NETRC_MACHINE, 'token_data', (access_token, video_token))
+        self.cache.store(self._NETRC_MACHINE, 'refresh_token', refresh_token)
+
+        return access_token, video_token
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
