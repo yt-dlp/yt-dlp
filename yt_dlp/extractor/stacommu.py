@@ -20,7 +20,7 @@ class StacommuBaseIE(WrestleUniverseBaseIE):
 
     @WrestleUniverseBaseIE._TOKEN.getter
     def _TOKEN(self):
-        if self._REAL_TOKEN and self._is_jwt_token_expired(self._REAL_TOKEN):
+        if self._REAL_TOKEN and self._jwt_is_expired(self._REAL_TOKEN):
             self._refresh_token()
 
         return self._REAL_TOKEN

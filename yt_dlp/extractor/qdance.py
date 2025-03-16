@@ -114,7 +114,7 @@ class QDanceIE(InfoExtractor):
             self.raise_login_required()
 
     def _get_auth(self):
-        if self._is_jwt_token_expired(self._access_token):
+        if self._jwt_is_expired(self._access_token):
             if not self._refresh_token:
                 raise ExtractorError(
                     'Cannot refresh access token, login with yt-dlp or refresh cookies in browser')

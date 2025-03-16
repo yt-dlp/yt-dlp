@@ -22,7 +22,7 @@ class IwaraBaseIE(InfoExtractor):
 
     def _is_token_expired(self, token, token_type):
         # User token TTL == ~3 weeks, Media token TTL == ~1 hour
-        if self._is_jwt_token_expired(token):
+        if self._jwt_is_expired(token):
             self.to_screen(f'{token_type} token has expired')
             return True
 

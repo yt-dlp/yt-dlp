@@ -653,7 +653,7 @@ class CBCGemIE(CBCGemBaseIE):
             raise
 
     def _fetch_access_token(self):
-        if self._is_jwt_token_expired(self._access_token):
+        if self._jwt_is_expired(self._access_token):
             try:
                 self._call_oauth_api({
                     'grant_type': 'refresh_token',
@@ -671,7 +671,7 @@ class CBCGemIE(CBCGemBaseIE):
         if not self._get_login_info()[0]:
             return None
 
-        if not self._claims_token or self._is_jwt_token_expired(self._claims_token):
+        if not self._claims_token or self._jwt_is_expired(self._claims_token):
             self._claims_token = self._download_json(
                 'https://services.radio-canada.ca/ott/subscription/v2/gem/Subscriber/profile',
                 None, 'Downloading claims token', query={'device': 'web'},

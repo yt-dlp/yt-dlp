@@ -996,7 +996,7 @@ class InfoExtractor:
         return encoding
 
     @staticmethod
-    def _is_jwt_token_expired(token):
+    def _jwt_is_expired(token):
         return jwt_decode_hs256(token)['exp'] - time.time() < 300
 
     def __check_blocked(self, content):

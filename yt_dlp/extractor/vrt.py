@@ -272,15 +272,15 @@ class VrtNUIE(VRTBaseIE):
         access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
         video_token = self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)
 
-        if (access_token and not self._is_jwt_token_expired(access_token)
-                and video_token and not self._is_jwt_token_expired(video_token)):
+        if (access_token and not self._jwt_is_expired(access_token)
+                and video_token and not self._jwt_is_expired(video_token)):
             return access_token, video_token
 
         if has_credentials:
             access_token, video_token = self.cache.load(self._NETRC_MACHINE, 'token_data', default=(None, None))
 
-            if (access_token and not self._is_jwt_token_expired(access_token)
-                    and video_token and not self._is_jwt_token_expired(video_token)):
+            if (access_token and not self._jwt_is_expired(access_token)
+                    and video_token and not self._jwt_is_expired(video_token)):
                 self.write_debug('Restored tokens from cache')
                 self._set_cookie(self._TOKEN_COOKIE_DOMAIN, self._ACCESS_TOKEN_COOKIE_NAME, access_token)
                 self._set_cookie(self._TOKEN_COOKIE_DOMAIN, self._VIDEO_TOKEN_COOKIE_NAME, video_token)
@@ -317,12 +317,12 @@ class VrtNUIE(VRTBaseIE):
 
     def _perform_login(self, username, password):
         refresh_token = self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME)
-        if refresh_token and not self._is_jwt_token_expired(refresh_token):
+        if refresh_token and not self._jwt_is_expired(refresh_token):
             self.write_debug('Using refresh token from logged-in cookies; skipping login with credentials')
             return
 
         refresh_token = self.cache.load(self._NETRC_MACHINE, 'refresh_token', default=None)
-        if refresh_token and not self._is_jwt_token_expired(refresh_token):
+        if refresh_token and not self._jwt_is_expired(refresh_token):
             self.write_debug('Restored refresh token from cache')
             self._set_cookie(self._TOKEN_COOKIE_DOMAIN, self._REFRESH_TOKEN_COOKIE_NAME, refresh_token, path='/vrtmax/sso')
             return

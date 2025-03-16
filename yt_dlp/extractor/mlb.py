@@ -351,7 +351,7 @@ mutation initPlaybackSession(
 
     @property
     def _api_headers(self):
-        if self._is_jwt_token_expired(self._access_token):
+        if self._jwt_is_expired(self._access_token):
             self.write_debug('Access token has expired; re-logging in')
             self._perform_login(*self._get_login_info())
         return {'Authorization': f'Bearer {self._access_token}'}
