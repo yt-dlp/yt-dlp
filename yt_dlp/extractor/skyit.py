@@ -232,6 +232,7 @@ class TV8ItIE(SkyItVideoIE):  # XXX: Do not subclass from concrete IE
 
 
 class TV8ItLiveIE(SkyItBaseIE):
+    IE_NAME = 'tv8.it:live'
     IE_DESC = 'TV8 Live'
     _VALID_URL = r'https?://(?:www\.)?tv8\.it/streaming'
     _TESTS = [{
@@ -249,13 +250,13 @@ class TV8ItLiveIE(SkyItBaseIE):
     def _real_extract(self, url):
         video_id = 'tv8'
         livestream = self._download_json(
-            'https://apid.sky.it/vdp/v1/getLivestream?id=7', video_id, 'Downloading manifest json info')
-        streaming = self._download_json(
-            'https://tv8.it/api/getStreaming', video_id, 'Downloading streaming data', fatal=False)
+            'https://apid.sky.it/vdp/v1/getLivestream', video_id,
+            'Downloading manifest JSON', query={'id': '7'})
+        metadata = self._download_json('https://tv8.it/api/getStreaming', video_id, fatal=False)
 
         return {
             **self._parse_video(livestream, video_id),
-            **traverse_obj(streaming, ('info', {
+            **traverse_obj(metadata, ('info', {
                 'title': ('title', 'text', {str}),
                 'description': ('description', 'html', {clean_html}),
             })),
@@ -263,6 +264,7 @@ class TV8ItLiveIE(SkyItBaseIE):
 
 
 class TV8ItPlaylistIE(InfoExtractor):
+    IE_NAME = 'tv8.it:playlist'
     IE_DESC = 'TV8 Playlist'
     _VALID_URL = r'https?://(?:www\.)?tv8\.it/(?!video)[^/#?]+/(?P<id>[^/#?]+)'
     _TESTS = [{
@@ -272,7 +274,7 @@ class TV8ItPlaylistIE(InfoExtractor):
             'id': 'tv8-gialappas-night',
             'title': 'Tv8 Gialappa\'s Night',
             'description': 'md5:c876039d487d9cf40229b768872718ed',
-            'thumbnail': r're:^https://static\.sky\.it/.+\.(png|jpe?g|webp)',
+            'thumbnail': r're:https://static\.sky\.it/.+\.(png|jpe?g|webp)',
         },
     }, {
         'url': 'https://tv8.it/sport/uefa-europa-league',
@@ -281,7 +283,7 @@ class TV8ItPlaylistIE(InfoExtractor):
             'id': 'uefa-europa-league',
             'title': 'UEFA Europa League',
             'description': 'md5:9ab1832b7a8b1705b1f590e13a36bc6a',
-            'thumbnail': r're:^https://static\.sky\.it/.+\.(png|jpe?g|webp)',
+            'thumbnail': r're:https://static\.sky\.it/.+\.(png|jpe?g|webp)',
         },
     }]
 
