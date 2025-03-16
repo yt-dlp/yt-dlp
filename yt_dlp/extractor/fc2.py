@@ -24,20 +24,22 @@ class FC2IE(InfoExtractor):
             'id': '20121103kUan1KHs',
             'title': 'Boxing again with Puff',
             'ext': 'mp4',
-            'thumbnail': 're:^https?://.+.jpg?(?:\\d+)?',
+            'thumbnail': 're:https?://.+\.jpe?g',
         },
         'file_minsize': 633,
         'params': {
-            'skip_download': True,
+            # Video too small to pass test
+            'skip_download': 'm3u8',
         },
     }, {
+        # Direct video url
         'url': 'https://video.fc2.com/content/20121129xMeT3Czt',
         'md5': '19109bbee429d5b3765986505d44a012',
         'info_dict': {
             'id': '20121129xMeT3Czt',
             'title': 'Rotfux',
             'ext': 'mp4',
-            'thumbnail': 're:^https?://.+.jpg?(?:\\d+)?',
+            'thumbnail': 're:https?://.+\.jpe?g',
             'description': 'Rotfux',
         },
     }, {
