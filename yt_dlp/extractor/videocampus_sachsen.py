@@ -13,9 +13,12 @@ class VideocampusSachsenIE(InfoExtractor):
         'campus.demo.vimp.com',
         'corporate.demo.vimp.com',
         'dancehalldatabase.com',
+        'demo.edu.medvc.eu',
         'drehzahl.tv',
         'educhannel.hs-gesundheit.de',  # Hochschule für Gesundheit NRW
         'emedia.ls.haw-hamburg.de',
+        'etat.kiss.lu',
+        'fabi.test.vimp.com',
         'globale-evolution.net',
         'hohu.tv',
         'htvideos.hightechhigh.org',
@@ -24,12 +27,17 @@ class VideocampusSachsenIE(InfoExtractor):
         'media.fh-swf.de',  # Fachhochschule Südwestfalen
         'media.hs-furtwangen.de',  # Hochschule Furtwangen
         'media.hwr-berlin.de',  # Hochschule für Wirtschaft und Recht Berlin
+        'mediacast.math.tku.edu.tw',
         'mediathek.dkfz.de',
         'mediathek.htw-berlin.de',  # Hochschule für Technik und Wirtschaft Berlin
         'mediathek.polizei-bw.de',
+        'mediathek.rheinmaintv.de',
         'medien.hs-merseburg.de',  # Hochschule Merseburg
+        'medienportal.hs-ansbach.de',  # Hochschule Ansbach
         'mitmedia.manukau.ac.nz',  # Manukau Institute of Technology Auckland (NZ)
         'mportal.europa-uni.de',  # Europa-Universität Viadrina
+        'multimedia.blue',
+        'oraniontest.vimp.com',
         'pacific.demo.vimp.com',
         'slctv.com',
         'streaming.prairiesouth.ca',
@@ -38,16 +46,22 @@ class VideocampusSachsenIE(InfoExtractor):
         'ursula2.genetics.emory.edu',
         'ursulablicklevideoarchiv.com',
         'v.agrarumweltpaedagogik.at',
+        'video-test.hrz.tu-chemnitz.de',
+        'video.biotest.com',
+        'video.desy.de',
         'video.eplay-tv.de',
         'video.fh-dortmund.de',  # Fachhochschule Dortmund
+        'video.hcu-hamburg.de',  # HafenCity Universität Hamburg
+        'video.hs-coburg.de',  # Hochschule Coburg
         'video.hs-nb.de',  # Hochschule Neubrandenburg
         'video.hs-offenburg.de',  # Hochschule Offenburg
         'video.hs-pforzheim.de',  # Hochschule Pforzheim
         'video.hspv.nrw.de',  # Hochschule für Polizei und öffentliche Verwaltung NRW
         'video.irtshdf.fr',
-        'video.pareygo.de',
+        'video.medi.ch',
         'video.tu-dortmund.de',  # Technische Universität Dortmund
         'video.tu-freiberg.de',  # Technische Universität Bergakademie Freiberg
+        'video.viscom.com',
         'videocampus.sachsen.de',  # Video Campus Sachsen (gemeinsame Videoplattform sächsischer Universitäten, Hochschulen und der Berufsakademie Sachsen)
         'videoportal.uni-freiburg.de',  # Albert-Ludwigs-Universität Freiburg
         'videoportal.vm.uni-freiburg.de',  # Albert-Ludwigs-Universität Freiburg
@@ -56,12 +70,16 @@ class VideocampusSachsenIE(InfoExtractor):
         'vimp-bemus.udk-berlin.de',
         'vimp.aekwl.de',
         'vimp.hs-mittweida.de',
+        'vimp.item24.com',
         'vimp.landesfilmdienste.de',
         'vimp.oth-regensburg.de',  # Ostbayerische Technische Hochschule Regensburg
+        'vimp.ph-gmuend.de',  # Pädagogische Hochschule Schwäbisch Gmünd
         'vimp.ph-heidelberg.de',  # Pädagogische Hochschule Heidelberg
-        'vimp.sma-events.com',
+        'vimp.spk-vorpommern.de',
+        'vimp.volksbank-goeppingen.de',
         'vimp.weka-fachmedien.de',
         'vimpdesk.com',
+        'vod.dma.swiss',
         'webtv.univ-montp3.fr',
         'www.b-tu.de/media',  # Brandenburgische Technische Universität Cottbus-Senftenberg
         'www.bergauf.tv',
@@ -77,6 +95,7 @@ class VideocampusSachsenIE(InfoExtractor):
         'www.salzi.tv',
         'www.signtube.co.uk',
         'www.twb-power.com',
+        'www.videos.hfm.saarland.de',
         'www.wenglor-media.com',
         'www2.univ-sba.dz',
     )
