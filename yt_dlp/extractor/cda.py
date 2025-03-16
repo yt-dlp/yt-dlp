@@ -15,7 +15,6 @@ from ..utils import (
     OnDemandPagedList,
     float_or_none,
     int_or_none,
-    jwt_decode_hs256,
     jwt_encode_hs256,
     jwt_is_expired,
     merge_dicts,
@@ -154,8 +153,8 @@ class CDAIE(InfoExtractor):
         self._API_HEADERS['User-Agent'] = f'pl.cda 1.0 (version {app_version}; Android {android_version}; {phone_model})'
 
         cached_bearer = self.cache.load(self._BEARER_CACHE, username) or {}
-        if not jwt_is_expired(cached_bearer, 5, 'valid_until'):
-            self._API_HEADERS['Authorization'] = f'Bearer {jwt_decode_hs256(cached_bearer)["token"]}'
+        if not jwt_is_expired(jwt_encode_hs256(cached_bearer, 'cda.pl'), 5, 'valid_until'):
+            self._API_HEADERS['Authorization'] = f'Bearer {cached_bearer["token"]}'
             return
 
         password_hash = base64.urlsafe_b64encode(hmac.new(
@@ -172,10 +171,10 @@ class CDAIE(InfoExtractor):
                 'login': username,
                 'password': password_hash,
             })
-        self.cache.store(self._BEARER_CACHE, username, jwt_encode_hs256({
+        self.cache.store(self._BEARER_CACHE, username, {
             'token': token_res['access_token'],
             'valid_until': token_res['expires_in'] + dt.datetime.now().timestamp(),
-        }, 'cda.pl'))
+        })
         self._API_HEADERS['Authorization'] = f'Bearer {token_res["access_token"]}'
 
     def _real_extract(self, url):
