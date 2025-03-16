@@ -22,8 +22,23 @@ class FC2IE(InfoExtractor):
         'md5': 'a6ebe8ebe0396518689d963774a54eb7',
         'info_dict': {
             'id': '20121103kUan1KHs',
-            'ext': 'flv',
             'title': 'Boxing again with Puff',
+            'ext': 'mp4',
+            'thumbnail': 're:^https?://.+.jpg?(?:\\d+)?'
+        },
+        'file_minsize': 633,
+        'params': {
+            'skip_download': True
+        },
+    }, {
+        'url': 'https://video.fc2.com/content/20121129xMeT3Czt',
+        'md5': '19109bbee429d5b3765986505d44a012',
+        'info_dict': {
+            'id': '20121129xMeT3Czt',
+            'title': 'Rotfux',
+            'ext': 'mp4',
+            'thumbnail': 're:^https?://.+.jpg?(?:\\d+)?',
+            'description': 'Rotfux',
         },
     }, {
         'url': 'http://video.fc2.com/en/content/20150125cEva0hDn/',
@@ -99,12 +114,18 @@ class FC2IE(InfoExtractor):
             raise ExtractorError('Unable to extract video URL')
         vid_url = urljoin('https://video.fc2.com/', vid_url)
 
+        if vidplaylist.get('type') == '1':
+            formats = self._extract_m3u8_formats(vid_url, video_id, 'mp4',)
+        else:
+            formats = [{
+                'url': vid_url,
+                'ext': 'mp4',
+            }]
+
         return {
             'id': video_id,
             'title': title,
-            'url': vid_url,
-            'ext': 'mp4',
-            'protocol': 'm3u8_native',
+            'formats': formats,
             'description': description,
             'thumbnail': thumbnail,
         }
