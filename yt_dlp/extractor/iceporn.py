@@ -14,8 +14,8 @@ class IcePornIE(InfoExtractor):
             'description': 're:Eva Karera Gets Her Trimmed Cunt Plowed - Pornstar, Milf, Blowjob, Big Boobs Porn Movies - 2296835',
             'thumbnail': 're:https?://g\\d.iceppsn.com/media/videos/tmb/\\d+/preview/\\d+.jpg',
             'ext': 'mp4',
-            'duration': 2178
-        }
+            'duration': 2178,
+        },
     }]
 
     def _real_extract(self, url):
@@ -23,9 +23,9 @@ class IcePornIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
         video_data = self._download_json('https://www.iceporn.com/player_config_json/', video_id, query={
-            'vid': video_id, 'aid': 0, 'domain_id': 0, 'embed': 0, 'ref': 'null', 'check_speed': 0
+            'vid': video_id, 'aid': 0, 'domain_id': 0, 'embed': 0, 'ref': 'null', 'check_speed': 0,
         }, headers={
-            'Accept': 'application/json'
+            'Accept': 'application/json',
         })
 
         formats = []
@@ -33,7 +33,7 @@ class IcePornIE(InfoExtractor):
             if video_url:
                 formats.append({
                     'url': video_url,
-                    'format_id': quality_id
+                    'format_id': quality_id,
                 })
 
         return {
