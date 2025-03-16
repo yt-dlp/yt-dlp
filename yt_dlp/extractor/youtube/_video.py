@@ -1757,7 +1757,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
-        }, { # Youtube RSS feed
+        }, {  # Youtube RSS feed
             'url': 'https://www.youtube.com/feeds/videos.xml?channel_id=UC7_gcs09iThXybpVgjHZ_7g',
             'md5': '7d66034582204a3ac425c71eb6b7b6e0',
             'info_dict': {
