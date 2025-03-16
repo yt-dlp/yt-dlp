@@ -2502,7 +2502,11 @@ from .xnxx import XNXXIE
 from .xstream import XstreamIE
 from .xvideos import (
     XVideosIE,
+    XVideosChannelIE,
+    XVideosPlaylistIE,
     XVideosQuickiesIE,
+    XVideosRelatedIE,
+    XVideosSearchIE,
 )
 from .xxxymovies import XXXYMoviesIE
 from .yahoo import (
