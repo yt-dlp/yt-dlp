@@ -4,7 +4,7 @@ from ..utils.traversal import traverse_obj
 
 
 class MSNIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www|preview)\.)?msn\.com/(?P<locale>[a-z]{2}-[a-z]{2}+)/(?:[^/?#]+/)+(?P<display_id>[^/?#]+)/[a-z]{2}-(?P<id>[\da-zA-Z]+)'
+    _VALID_URL = r'https?://(?:(?:www|preview)\.)?msn\.com/(?P<locale>[a-z]{2}-[a-z]{2})/(?:[^/?#]+/)+(?P<display_id>[^/?#]+)/[a-z]{2}-(?P<id>[\da-zA-Z]+)'
     _TESTS = [{
         'url': 'https://www.msn.com/en-gb/video/news/president-macron-interrupts-trump-over-ukraine-funding/vi-AA1zMcD7',
         'info_dict': {
