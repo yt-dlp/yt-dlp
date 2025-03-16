@@ -1,7 +1,6 @@
 import base64
 import json
 import re
-import time
 import uuid
 
 from .anvato import AnvatoIE
@@ -12,6 +11,7 @@ from ..utils import (
     determine_ext,
     get_element_by_class,
     int_or_none,
+    jwt_is_expired,
     make_archive_id,
     url_or_none,
     urlencode_postdata,
@@ -84,7 +84,6 @@ class NFLBaseIE(InfoExtractor):
     _API_KEY = '3_Qa8TkWpIB8ESCBT8tY2TukbVKgO5F6BJVc7N1oComdwFzI7H2L9NOWdm11i_BY9f'
 
     _TOKEN = None
-    _TOKEN_EXPIRY = 0
 
     def _get_account_info(self):
         cookies = self._get_cookies('https://auth-id.nfl.com/')
@@ -123,7 +122,7 @@ class NFLBaseIE(InfoExtractor):
             raise ExtractorError('Failed to retrieve account info with provided cookies', expected=True)
 
     def _get_auth_token(self):
-        if self._TOKEN and self._TOKEN_EXPIRY > int(time.time() + 30):
+        if self._TOKEN and jwt_is_expired(self._TOKEN, 30, 'expiresIn'):
             return
 
         token = self._download_json(
@@ -133,7 +132,6 @@ class NFLBaseIE(InfoExtractor):
             data=json.dumps({**self._CLIENT_DATA, **self._ACCOUNT_INFO}, separators=(',', ':')).encode())
 
         self._TOKEN = token['accessToken']
-        self._TOKEN_EXPIRY = token['expiresIn']
         self._ACCOUNT_INFO['refreshToken'] = token['refreshToken']
 
     def _extract_video(self, mcp_id, is_live=False):
