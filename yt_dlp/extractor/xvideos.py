@@ -258,7 +258,7 @@ class XVideosPlaylistIE(InfoExtractor):
         return url
 
     def _get_next_page(self, url, num, page):
-        '''URL of num th continuation page of url'''
+        """URL of num th continuation page of url"""
         if page.startswith('{'):
             url, sub = re.subn(r'(/)(\d{1,7})($|[#?/])', r'\g<1>%d\3' % (num, ), url)
             if sub == 0:

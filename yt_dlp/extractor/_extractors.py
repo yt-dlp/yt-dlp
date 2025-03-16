@@ -336,7 +336,6 @@ from .canal1 import Canal1IE
 from .canalalpha import CanalAlphaIE
 from .canalc2 import Canalc2IE
 from .canalplus import CanalplusIE
-from .canalsurmas import CanalsurmasIE
 from .caracoltv import CaracolTvPlayIE
 from .cartoonnetwork import CartoonNetworkIE
 from .cbc import (
@@ -1883,8 +1882,6 @@ from .skyit import (
     SkyItVideoIE,
     SkyItVideoLiveIE,
     TV8ItIE,
-    TV8ItLiveIE,
-    TV8ItPlaylistIE,
 )
 from .skylinewebcams import SkylineWebcamsIE
 from .skynewsarabia import (
@@ -2503,9 +2500,9 @@ from .xinpianchang import XinpianchangIE
 from .xminus import XMinusIE
 from .xnxx import XNXXIE
 from .xstream import XstreamIE
-from .xvideos import (
-    XVideosIE,
+from .xvideos import (    
     XVideosChannelIE,
+    XVideosIE,
     XVideosPlaylistIE,
     XVideosQuickiesIE,
     XVideosRelatedIE,
