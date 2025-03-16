@@ -2282,11 +2282,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Invidious Instances
         # https://github.com/yt-dlp/yt-dlp/issues/195
         # https://github.com/iv-org/invidious/pull/1730
-        mobj = re.search(
+        matches = re.findall(
             r'<link rel="alternate" href="(?P<url>https://www\.youtube\.com/watch\?v=[0-9A-Za-z_-]{11})"',
             webpage)
-        if mobj:
-            yield cls.url_result(mobj.group('url'), cls)
+        if matches:
+            for match_url in matches:
+                yield cls.url_result(match_url, cls)
             raise cls.StopExtraction
 
         yield from super()._extract_from_webpage(url, webpage)
