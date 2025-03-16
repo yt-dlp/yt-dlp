@@ -10,7 +10,7 @@ from ..utils import (
     extract_attributes,
     int_or_none,
     parse_duration,
-    try_get,    
+    try_get,
     url_basename,
     urljoin,
 )
@@ -231,13 +231,14 @@ class XVideosQuickiesIE(InfoExtractor):
 
 class XVideosPlaylistIE(InfoExtractor):
     _VALID_URL = r'''(?x)
+                    ^(?!.*\#quickies)               # Reject if "#quickies" appears anywhere
                     https?://
                         (?:[^/]+\.)?xvideos(?:\d+)?\.com/
                           (?:c(?:/[sm]:[^/]+)*|
                              profiles|
                              favorite)/
                             (?P<id>[^#?/]+)
-                  '''
+                '''
     _TESTS = []
 
     def _extract_videos_from_json_list(self, json_list, path='video'):
@@ -247,7 +248,7 @@ class XVideosPlaylistIE(InfoExtractor):
 
     def _get_playlist_url(self, url, playlist_id):
         """URL of first playlist page"""
-        id_match = re.fullmatch(self._VALID_URL, url).groupdict()
+        id_match = re.match(self._VALID_URL, url).groupdict()
         video_sort = id_match.get('sort')
         if video_sort:
             url, _ = urllib.parse.urldefrag(url)
@@ -257,7 +258,7 @@ class XVideosPlaylistIE(InfoExtractor):
         return url
 
     def _get_next_page(self, url, num, page):
-        '''URL of num'th continuation page of url'''
+        '''URL of num th continuation page of url'''
         if page.startswith('{'):
             url, sub = re.subn(r'(/)(\d{1,7})($|[#?/])', r'\g<1>%d\3' % (num, ), url)
             if sub == 0:
@@ -281,9 +282,9 @@ class XVideosPlaylistIE(InfoExtractor):
             None)
 
     def _real_extract(self, url):
-        id_match = re.fullmatch(self._VALID_URL, url).groupdict()
+        id_match = re.match(self._VALID_URL, url).groupdict()
         playlist_id = id_match['id']
-        if "video" in playlist_id and url.endswith(playlist_id):
+        if 'video' in playlist_id and url.endswith(playlist_id):
             url += '/0'
 
         next_page = self._get_playlist_url(url, playlist_id)
@@ -315,10 +316,10 @@ class XVideosRelatedIE(XVideosPlaylistIE):
     _TESTS = []
 
     def _extract_videos(self, url, playlist_id, num, page):
-        id_match = re.fullmatch(self._VALID_URL, url).groupdict()
+        id_match = re.match(self._VALID_URL, url).groupdict()
         related = id_match.get('related')
         if not related:
-            return super(XVideosRelatedIE, self)._extract_videos(url, playlist_id, num, page)
+            return super()._extract_videos(url, playlist_id, num, page)
 
         if related == 'videos':
             related_json = self._search_regex(
@@ -329,7 +330,7 @@ class XVideosRelatedIE(XVideosPlaylistIE):
         # playlists
         related_json = self._download_json(
             'https://www.xvideos.com/video-playlists/' + playlist_id, playlist_id, fatal=False)
-        
+
         return (
             self._extract_videos_from_json_list(
                 try_get(related_json, lambda x: x['playlists'], list) or [],
@@ -347,6 +348,7 @@ class XVideosChannelIE(XVideosPlaylistIE):
                           )s/
                             (?P<id>[^#?/]+)
                               (?:\#_tab(?P<tab>Videos|Favorites|Playlists|AboutMe)(?:,(?P<sort>[^,]+))?)?
+                    $
                  '''
     _TESTS = [{
         'url': 'https://www.xvideos.com/pornstar-channels/sienna-west',
@@ -363,11 +365,11 @@ class XVideosChannelIE(XVideosPlaylistIE):
     }, {
         'url': 'https://www.xvideos3.com/amateurs/shaiden_rogue5#_tabVideos',
         'playlist_mincount': 5,
-    }, ]
+    }]
 
     def _get_playlist_url(self, url, playlist_id):
         webpage = self._download_webpage(url, playlist_id)
-        id_match = re.fullmatch(self._VALID_URL, url).groupdict()
+        id_match = re.match(self._VALID_URL, url).groupdict()
         tab = (id_match.get('tab') or '').lower()
 
         if not tab:
@@ -399,11 +401,11 @@ class XVideosChannelIE(XVideosPlaylistIE):
         if url.endswith('/'):
             url = url[:-1]
 
-        return '%s/activity/%s' % (url, act, )
+        return '%s/activity/%s' % (url, act)
 
     def _get_next_page(self, url, num, page):
         if page.startswith('{') or '#_tab' in url:
-            return super(XVideosChannelIE, self)._get_next_page(url, num, page)
+            return super()._get_next_page(url, num, page)
 
         act_time = int_or_none(url_basename(url)) or 0
         last_act = int(self._search_regex(
@@ -433,7 +435,7 @@ class XVideosChannelIE(XVideosPlaylistIE):
                 for x in re.finditer(r'''<a\s[^>]*?href\s*=\s*('|")(?P<playlist>/favorite/\d+/[^#?]+?)\1''', page)),
                 None)
 
-        return super(XVideosChannelIE, self)._extract_videos(url, playlist_id, num, page)
+        return super()._extract_videos(url, playlist_id, num, page)
 
 
 class XVideosSearchIE(XVideosPlaylistIE):
@@ -447,13 +449,11 @@ class XVideosSearchIE(XVideosPlaylistIE):
         # but not too many more
         'url': 'http://www.xvideos.com/?k=libya&sort=length',
         'playlist_mincount': 30,
-    }, ]
+    }]
 
     def _get_next_page(self, url, num, page):
         parsed_url = urllib.parse.urlparse(url)
         qs = urllib.parse.parse_qs(parsed_url.query)
         qs['p'] = [num]
-        parsed_url = (
-            list(parsed_url[:4])
-            + [urllib.parse.urlencode(qs, True), None])
+        parsed_url = [*parsed_url[:4], urllib.parse.urlencode(qs, True), None]
         return urllib.parse.urlunparse(parsed_url), False
