@@ -1757,7 +1757,40 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
-        },
+        }, { # Youtube RSS feed
+            'url': 'https://www.youtube.com/feeds/videos.xml?channel_id=UC7_gcs09iThXybpVgjHZ_7g',
+            'md5': '7d66034582204a3ac425c71eb6b7b6e0',
+            'info_dict': {
+                'id': 'cfkU4CD91hk',
+                'ext': 'mp4',
+                'title': 'How Astrophysics Can (LITERALLY) Save the World',
+                'upload_date': '20250313',
+                'description': 'md5:7d66034582204a3ac425c71eb6b7b6e0',
+                'age_limit': 0,
+                'tags': list,
+                'channel_id': 'UC7_gcs09iThXybpVgjHZ_7g',
+                'playable_in_embed': True,
+                'thumbnail': 'https://i.ytimg.com/vi/cfkU4CD91hk/maxresdefault.jpg',
+                'like_count': int,
+                'comment_count': int,
+                'channel': 'PBS Space Time',
+                'live_status': 'not_live',
+                'channel_url': 'https://www.youtube.com/channel/UC7_gcs09iThXybpVgjHZ_7g',
+                'availability': 'public',
+                'duration': 1194,
+                'view_count': int,
+                'categories': ['Education'],
+                'channel_follower_count': int,
+                'uploader': 'PBS Space Time',
+                'uploader_url': 'https://www.youtube.com/@pbsspacetime',
+                'uploader_id': '@pbsspacetime',
+                'timestamp': 1741896682,
+                'channel_is_verified': True,
+            },
+            'params': {
+                'skip_download': True,
+            },
+        }
     ]
 
     @classmethod
