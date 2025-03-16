@@ -4,7 +4,9 @@ from .common import InfoExtractor
 from ..utils import (
     NO_DEFAULT,
     int_or_none,
+    make_archive_id,
     parse_duration,
+    qualities,
     str_to_int,
     strip_or_none,
     url_or_none,
@@ -30,6 +32,7 @@ class DrTuberIE(InfoExtractor):
             'age_limit': 18,
             'duration': 304,
             'description': 'Welcome to this hot porn video named Hot Perky Blonde Naked Golf. DrTuber is the best place for watching xxx movies online!',
+            '_old_archive_ids': ['nuvid 1740434'],
         },
     }, {
         'url': 'https://www.iceporn.com/video/2296835/eva-karera-gets-her-trimmed-cunt-plowed',
@@ -47,6 +50,7 @@ class DrTuberIE(InfoExtractor):
             'dislike_count': int,
             'comment_count': int,
             'categories': ['Big Boobs', 'Blowjob', 'Brunette', 'Doggystyle', 'Hardcore', 'Hd', 'Lingerie', 'Masturbation', 'Milf', 'Pornstar', 'Titjob'],
+            '_old_archive_ids': ['nuvid 2296835'],
         },
     }, {
         'url': 'https://www.nuvid.com/video/6513023/italian-babe',
@@ -64,6 +68,7 @@ class DrTuberIE(InfoExtractor):
             'comment_count': int,
             'thumbnail': r're:https?://.+\.jpg',
             'categories': ['Amateur', 'BBW', 'Brunette', 'Fingering', 'Italian', 'Softcore', 'Solo', 'Webcam'],
+            '_old_archive_ids': ['nuvid 6513023'],
         },
     }, {
         'url': 'https://m.nuvid.com/video/6523263',
@@ -82,6 +87,7 @@ class DrTuberIE(InfoExtractor):
             'thumbnail': r're:https?://.+\.jpg',
             'thumbnails': list,
             'categories': list,
+            '_old_archive_ids': ['nuvid 6523263'],
         },
     }, {
         'url': 'http://m.nuvid.com/video/6415801/',
@@ -99,6 +105,7 @@ class DrTuberIE(InfoExtractor):
             'comment_count': int,
             'thumbnail': r're:https?://.+\.jpg',
             'categories': list,
+            '_old_archive_ids': ['nuvid 6415801'],
         },
     }, {
         'url': 'http://www.drtuber.com/embed/489939',
@@ -132,19 +139,20 @@ class DrTuberIE(InfoExtractor):
                 'Accept': 'application/json',
             })
 
-        qualities = {
-            'lq': '360p',
-            'hq': '720p',
-            '4k': '2160p',
+        QUALITIES = {
+            'lq': 360,
+            'hq': 720,
+            '4k': 2160,
         }
+        quality = qualities(tuple(QUALITIES))
 
         formats = []
         for format_id, video_url in video_data['files'].items():
             if video_url:
                 formats.append({
                     'format_id': format_id,
-                    'quality': qualities.get(format_id) or format_id,
-                    'height': int_or_none(qualities.get(format_id)[:-1]),
+                    'quality': quality(format_id),
+                    'height': QUALITIES.get(format_id),
                     'url': video_url,
                 })
         self._check_formats(formats, video_id)
@@ -152,8 +160,17 @@ class DrTuberIE(InfoExtractor):
         duration = int_or_none(video_data.get('duration')) or parse_duration(
             video_data.get('duration_format'))
 
+        mobile_webpage = self._download_webpage(
+            f'http://m.{domain}.com/video/{video_id}',
+            video_id, 'Downloading mobile video page', fatal=False) or ''
+
+        thumbnails = [
+            {'url': thumb_url} for thumb_url in re.findall(
+                r'<div\s+class\s*=\s*"video-tmb-wrap"\s*>\s*<img\s+src\s*=\s*"([^"]+)"\s*/>', mobile_webpage)
+            if url_or_none(thumb_url)]
+
         title = video_data.get('title') or self._html_search_regex(
-            (r'<div.*class=[\'"]caption[\'"].*?><h2>(.+?)</h2>',
+            (r'<div [^>]*class=[\'"]caption[\'"][^>]*><h2>([^<]+)</h2>',
              r'<h1[^>]+class=["\']title[^>]+>([^<]+)',
              r'<title>([^<]+)\s*@\s+DrTuber',
              r'class="title_watch"[^>]*><(?:p|h\d+)[^>]*>([^<]+)<',
@@ -161,51 +178,32 @@ class DrTuberIE(InfoExtractor):
              r'<title>([^<]+) - \d+'),
             webpage, 'title')
 
-        mobile_webpage = None
         if not title:
-            mobile_webpage = self._download_webpage(
-                f'http://m.{domain}.com/video/{video_id}',
-                video_id, 'Downloading mobile video page', fatal=False) or ''
-
             title = strip_or_none(video_data.get('title') or self._html_search_regex(
                 (r'''<span\s[^>]*?\btitle\s*=\s*(?P<q>"|'|\b)(?P<title>[^"]+)(?P=q)\s*>''',
                     r'''<div\s[^>]*?\bclass\s*=\s*(?P<q>"|'|\b)thumb-holder video(?P=q)>\s*<h5\b[^>]*>(?P<title>[^<]+)</h5''',
                     r'''<span\s[^>]*?\bclass\s*=\s*(?P<q>"|'|\b)title_thumb(?P=q)>(?P<title>[^<]+)</span'''),
                 mobile_webpage, 'title', group='title'))
 
-        thumbnails = []
-        if not mobile_webpage:
-            mobile_webpage = self._download_webpage(
-                f'http://m.{domain}.com/video/{video_id}',
-                video_id, 'Downloading mobile video page', fatal=False) or ''
-
-            thumbnails = [
-                {'url': thumb_url} for thumb_url in re.findall(
-                    r'<div\s+class\s*=\s*"video-tmb-wrap"\s*>\s*<img\s+src\s*=\s*"([^"]+)"\s*/>', mobile_webpage)
-                if url_or_none(thumb_url)]
-
         if url_or_none(video_data.get('poster')):
             thumbnails.append({'url': video_data['poster'], 'preference': 1})
 
         def extract_count(id_, name, default=NO_DEFAULT):
             return str_to_int(self._html_search_regex(
-                rf'<span[^>]+(?:class|id)="{id_}"[^>]*>(?P<{name}>[\d,\.]+)</span>',
-                webpage, f'{name} count', default=default, fatal=False, group=name))
+                rf'<span[^>]+(?:class|id)="{id_}"[^>]*>([\d,\.]+)%?</span>',
+                webpage, f'{name} count', default=default, fatal=False))
 
+        percent_rate = extract_count('?:rate_percent|video_rate_rate', 'vote percent rate', default=None)
         like_count = extract_count('(?:rate_likes|rate_votes|video_rate_votes)', 'like')
         dislike_count = extract_count('(?:rate_dislikes|rate_votes|video_rate_votes)', 'dislike', default=None)
-        comment_count = extract_count('(?:comments_count|comments__counter)', 'comment')
+
+        if percent_rate:
+            like_count = round(percent_rate * like_count / 100)
+            dislike_count = round(100 - percent_rate * dislike_count / 100)
 
         cats_str = self._search_regex(
             r'<div[^>]+class="(?:categories_list|data_categories|video-cat)">(.+?)</div>',
-            webpage, 'categories', fatal=False)
-
-        categories = None
-        if cats_str:
-            for pattern in [r'<a[^>]+title="([^"]+)"', r'<a[^>]+href="/categories/([^"]+)"']:
-                categories = re.findall(pattern, cats_str)
-                if categories:
-                    break
+            webpage, 'categories', fatal=False) or ''
 
         return {
             'id': video_id,
@@ -215,9 +213,11 @@ class DrTuberIE(InfoExtractor):
             'thumbnails': thumbnails,
             'like_count': like_count,
             'dislike_count': dislike_count,
-            'comment_count': comment_count,
-            'categories': categories,
+            'comment_count': extract_count('(?:comments_count|comments__counter)', 'comment'),
+            'categories': (re.findall(r'<a[^>]+title="([^"]+)"', cats_str)
+                           or re.findall(r'<a[^>]+href="/categories/([^"]+)"', cats_str)),
             'age_limit': self._rta_search(webpage),
             'duration': duration,
             'description': self._html_search_meta('description', webpage),
+            '_old_archive_ids': [make_archive_id('Nuvid', video_id)],
         }
