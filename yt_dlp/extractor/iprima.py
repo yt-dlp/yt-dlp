@@ -3,12 +3,12 @@ import time
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
     js_to_json,
-    urlencode_postdata,
-    ExtractorError,
     parse_qs,
-    traverse_obj
+    traverse_obj,
+    urlencode_postdata,
 )
 
 
@@ -25,9 +25,29 @@ class IPrimaIE(InfoExtractor):
             'id': 'p51388',
             'ext': 'mp4',
             'title': 'Partička (92)',
-            'description': 'md5:859d53beae4609e6dd7796413f1b6cac',
-            'upload_date': '20201103',
-            'timestamp': 1604437480,
+            'description': 'md5:57943f6a50d6188288c3a579d2fd5f01',
+            'episode': 'Partička (92)',
+            'season': 'Partička',
+            'series': 'Prima Partička',
+            'episode_number': 92,
+            'thumbnail': 'https://d31b9s05ygj54s.cloudfront.net/prima-plus/image/video-ef6cf9de-c980-4443-92e4-17fe8bccd45c-16x9.jpeg',
+        },
+        'params': {
+            'skip_download': True,  # m3u8 download
+        },
+    }, {
+        'url': 'https://zoom.iprima.cz/porady/krasy-kanarskych-ostrovu/tenerife-v-risi-ohne',
+        'info_dict': {
+            'id': 'p1412199',
+            'ext': 'mp4',
+            'episode_number': 3,
+            'episode': 'Tenerife: V říši ohně',
+            'description': 'md5:4b4a05c574b5eaef130e68d4811c3f2c',
+            'duration': 3111.0,
+            'thumbnail': 'https://d31b9s05ygj54s.cloudfront.net/prima-plus/image/video-f66dd7fb-c1a0-47d1-b3bc-7db328d566c5-16x9-1711636518.jpg/t_16x9_medium_1366_768',
+            'title': 'Tenerife: V říši ohně',
+            'timestamp': 1711825800,
+            'upload_date': '20240330',
         },
         'params': {
             'skip_download': True,  # m3u8 download
@@ -131,6 +151,7 @@ class IPrimaIE(InfoExtractor):
         video_id = self._search_regex((
             r'productId\s*=\s*([\'"])(?P<id>p\d+)\1',
             r'pproduct_id\s*=\s*([\'"])(?P<id>p\d+)\1',
+            r'let\s+videos\s*=\s*([\'"])(?P<id>p\d+)\1',
         ), webpage, 'real id', group='id', default=None)
 
         if not video_id:
@@ -176,7 +197,7 @@ class IPrimaIE(InfoExtractor):
         final_result = self._search_json_ld(webpage, video_id, default={})
         final_result.update({
             'id': video_id,
-            'title': title,
+            'title': final_result.get('title') or title,
             'thumbnail': self._html_search_meta(
                 ['thumbnail', 'og:image', 'twitter:image'],
                 webpage, 'thumbnail', default=None),
@@ -200,8 +221,8 @@ class IPrimaCNNIE(InfoExtractor):
             'title': 'md5:277c6b1ed0577e51b40ddd35602ff43e',
         },
         'params': {
-            'skip_download': 'm3u8'
-        }
+            'skip_download': 'm3u8',
+        },
     }]
 
     def _real_extract(self, url):

@@ -35,6 +35,7 @@ class NTVRuIE(InfoExtractor):
             'duration': 172,
             'view_count': int,
         },
+        'skip': '404 Not Found',
     }, {
         'url': 'http://www.ntv.ru/peredacha/segodnya/m23700/o232416',
         'md5': '82dbd49b38e3af1d00df16acbeab260c',
@@ -78,7 +79,8 @@ class NTVRuIE(InfoExtractor):
     }]
 
     _VIDEO_ID_REGEXES = [
-        r'<meta property="og:url" content="http://www\.ntv\.ru/video/(\d+)',
+        r'<meta property="og:url" content="https?://www\.ntv\.ru/video/(\d+)',
+        r'<meta property="og:video:(?:url|iframe)" content="https?://www\.ntv\.ru/embed/(\d+)',
         r'<video embed=[^>]+><id>(\d+)</id>',
         r'<video restriction[^>]+><key>(\d+)</key>',
     ]
@@ -100,7 +102,7 @@ class NTVRuIE(InfoExtractor):
                 self._VIDEO_ID_REGEXES, webpage, 'video id')
 
         player = self._download_xml(
-            'http://www.ntv.ru/vi%s/' % video_id,
+            f'http://www.ntv.ru/vi{video_id}/',
             video_id, 'Downloading video XML')
 
         title = strip_or_none(unescapeHTML(xpath_text(player, './data/title', 'title', fatal=True)))
@@ -109,7 +111,7 @@ class NTVRuIE(InfoExtractor):
 
         formats = []
         for format_id in ['', 'hi', 'webm']:
-            file_ = xpath_text(video, './%sfile' % format_id)
+            file_ = xpath_text(video, f'./{format_id}file')
             if not file_:
                 continue
             if file_.startswith('//'):
@@ -118,7 +120,7 @@ class NTVRuIE(InfoExtractor):
                 file_ = 'http://media.ntv.ru/vod/' + file_
             formats.append({
                 'url': file_,
-                'filesize': int_or_none(xpath_text(video, './%ssize' % format_id)),
+                'filesize': int_or_none(xpath_text(video, f'./{format_id}size')),
             })
         hls_manifest = xpath_text(video, './playback/hls')
         if hls_manifest:

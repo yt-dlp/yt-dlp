@@ -6,7 +6,7 @@ from ..utils import (
 
 
 class ReverbNationIE(InfoExtractor):
-    _VALID_URL = r'^https?://(?:www\.)?reverbnation\.com/.*?/song/(?P<id>\d+).*?$'
+    _VALID_URL = r'https?://(?:www\.)?reverbnation\.com/.*?/song/(?P<id>\d+).*?$'
     _TESTS = [{
         'url': 'http://www.reverbnation.com/alkilados/song/16965047-mona-lisa',
         'md5': 'c0aaf339bcee189495fdf5a8c8ba8645',
@@ -24,9 +24,9 @@ class ReverbNationIE(InfoExtractor):
         song_id = self._match_id(url)
 
         api_res = self._download_json(
-            'https://api.reverbnation.com/song/%s' % song_id,
+            f'https://api.reverbnation.com/song/{song_id}',
             song_id,
-            note='Downloading information of song %s' % song_id
+            note=f'Downloading information of song {song_id}',
         )
 
         THUMBNAILS = ('thumbnail', 'image')
@@ -36,7 +36,7 @@ class ReverbNationIE(InfoExtractor):
             if api_res.get(thumb_key):
                 thumbnails.append({
                     'url': api_res[thumb_key],
-                    'preference': quality(thumb_key)
+                    'preference': quality(thumb_key),
                 })
 
         return {

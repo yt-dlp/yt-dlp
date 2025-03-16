@@ -1,6 +1,6 @@
+import itertools
 import json
 import random
-import itertools
 import urllib.parse
 
 from .common import InfoExtractor
@@ -12,6 +12,7 @@ from ..utils import (
     str_or_none,
     strip_jsonp,
     traverse_obj,
+    truncate_string,
     url_or_none,
     urlencode_postdata,
     urljoin,
@@ -34,7 +35,7 @@ class WeiboBaseIE(InfoExtractor):
                     'browser': f'Chrome{chrome_ver},0,0,0',
                     'fonts': 'undefined',
                     'screenInfo': '1920*1080*24',
-                    'plugins': ''
+                    'plugins': '',
                 }, separators=(',', ':'))}))['data']
 
         self._download_webpage(
@@ -52,6 +53,7 @@ class WeiboBaseIE(InfoExtractor):
             })
 
     def _weibo_download_json(self, url, video_id, *args, fatal=True, note='Downloading JSON metadata', **kwargs):
+        # XXX: Always fatal; _download_webpage_handle only returns False (not a tuple) on error
         webpage, urlh = self._download_webpage_handle(url, video_id, *args, fatal=fatal, note=note, **kwargs)
         if urllib.parse.urlparse(urlh.url).netloc == 'passport.weibo.com':
             self._update_visitor_cookies(urlh.url, video_id)
@@ -66,7 +68,7 @@ class WeiboBaseIE(InfoExtractor):
                 'format': ('quality_desc', {str}),
                 'format_id': ('label', {str}),
                 'ext': ('mime', {mimetype2ext}),
-                'tbr': ('bitrate', {int_or_none}, {lambda x: x or None}),
+                'tbr': ('bitrate', {int_or_none}, filter),
                 'vcodec': ('video_codecs', {str}),
                 'fps': ('fps', {int_or_none}),
                 'width': ('width', {int_or_none}),
@@ -90,12 +92,13 @@ class WeiboBaseIE(InfoExtractor):
                             'video_details', lambda _, v: v['label'].startswith(format_id), {
                                 'size': ('size', {int_or_none}),
                                 'tbr': ('bitrate', {int_or_none}),
-                            }
+                            },
                         ), get_all=False),
                     })
         return formats
 
-    def _parse_video_info(self, video_info, video_id=None):
+    def _parse_video_info(self, video_info):
+        video_id = traverse_obj(video_info, (('id', 'id_str', 'mid'), {str_or_none}, any))
         return {
             'id': video_id,
             'extractor_key': WeiboIE.ie_key(),
@@ -104,16 +107,17 @@ class WeiboBaseIE(InfoExtractor):
             'http_headers': {'Referer': 'https://weibo.com/'},
             '_old_archive_ids': [make_archive_id('WeiboMobile', video_id)],
             **traverse_obj(video_info, {
-                'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
-                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {str}, {lambda x: x or None}),
+                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'),
+                          {lambda x: x.replace('\n', ' ')}, {truncate_string(left=50)}, filter),
+                'alt_title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {str}, filter),
                 'description': ('text_raw', {str}),
                 'duration': ('page_info', 'media_info', 'duration', {int_or_none}),
                 'timestamp': ('page_info', 'media_info', 'video_publish_time', {int_or_none}),
                 'thumbnail': ('page_info', 'page_pic', {url_or_none}),
                 'uploader': ('user', 'screen_name', {str}),
                 'uploader_id': ('user', ('id', 'id_str'), {str_or_none}),
-                'uploader_url': ('user', 'profile_url', {lambda x: urljoin('https://weibo.com/', x)}),
+                'uploader_url': ('user', 'profile_url', {urljoin('https://weibo.com/')}),
                 'view_count': ('page_info', 'media_info', 'online_users_number', {int_or_none}),
                 'like_count': ('attitudes_count', {int_or_none}),
                 'repost_count': ('reposts_count', {int_or_none}),
@@ -123,14 +127,16 @@ class WeiboBaseIE(InfoExtractor):
 
 
 class WeiboIE(WeiboBaseIE):
-    _VALID_URL = r'https?://(?:m\.weibo\.cn/status|(?:www\.)?weibo\.com/\d+)/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:m\.weibo\.cn/(?:status|detail)|(?:www\.)?weibo\.com/\d+)/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'url': 'https://weibo.com/7827771738/N4xlMvjhI',
         'info_dict': {
             'id': '4910815147462302',
+            '_old_archive_ids': ['weibomobile 4910815147462302'],
             'ext': 'mp4',
             'display_id': 'N4xlMvjhI',
             'title': '【睡前消息暑假版第一期：拉泰国一把  对中国有好处】',
+            'alt_title': '【睡前消息暑假版第一期：拉泰国一把  对中国有好处】',
             'description': 'md5:e2637a7673980d68694ea7c43cf12a5f',
             'duration': 918,
             'timestamp': 1686312819,
@@ -148,9 +154,11 @@ class WeiboIE(WeiboBaseIE):
         'url': 'https://m.weibo.cn/status/4189191225395228',
         'info_dict': {
             'id': '4189191225395228',
+            '_old_archive_ids': ['weibomobile 4189191225395228'],
             'ext': 'mp4',
             'display_id': 'FBqgOmDxO',
             'title': '柴犬柴犬的秒拍视频',
+            'alt_title': '柴犬柴犬的秒拍视频',
             'description': 'md5:80f461ab5cdae6bbdb70efbf5a1db24f',
             'duration': 53,
             'timestamp': 1514264429,
@@ -162,18 +170,38 @@ class WeiboIE(WeiboBaseIE):
             'view_count': int,
             'like_count': int,
             'repost_count': int,
-        }
+        },
+    }, {
+        'url': 'https://m.weibo.cn/detail/4189191225395228',
+        'only_matching': True,
     }, {
         'url': 'https://weibo.com/0/4224132150961381',
         'note': 'no playback_list example',
         'only_matching': True,
+    }, {
+        'url': 'https://m.weibo.cn/detail/5120561132606436',
+        'info_dict': {
+            'id': '5120561132606436',
+        },
+        'playlist_count': 9,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        return self._parse_video_info(self._weibo_download_json(
-            f'https://weibo.com/ajax/statuses/show?id={video_id}', video_id))
+        meta = self._weibo_download_json(f'https://weibo.com/ajax/statuses/show?id={video_id}', video_id)
+        mix_media_info = traverse_obj(meta, ('mix_media_info', 'items', ...))
+        if not mix_media_info:
+            return self._parse_video_info(meta)
+
+        return self.playlist_result(self._entries(mix_media_info), video_id)
+
+    def _entries(self, mix_media_info):
+        for media_info in traverse_obj(mix_media_info, lambda _, v: v['type'] != 'pic'):
+            yield self._parse_video_info(traverse_obj(media_info, {
+                'id': ('data', 'object_id'),
+                'page_info': {'media_info': ('data', 'media_info', {dict})},
+            }))
 
 
 class WeiboVideoIE(WeiboBaseIE):
@@ -185,7 +213,7 @@ class WeiboVideoIE(WeiboBaseIE):
             'ext': 'mp4',
             'display_id': 'LEZDodaiW',
             'title': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了',
-            'description': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了 http://t.cn/A6aerGsM ​​​',
+            'description': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了 http://t.cn/A6aerGsM \u200b\u200b\u200b',
             'duration': 76,
             'timestamp': 1659344278,
             'upload_date': '20220801',
@@ -196,7 +224,7 @@ class WeiboVideoIE(WeiboBaseIE):
             'view_count': int,
             'like_count': int,
             'repost_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):

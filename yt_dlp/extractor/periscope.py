@@ -9,18 +9,18 @@ from ..utils.traversal import traverse_obj
 
 class PeriscopeBaseIE(InfoExtractor):
     _M3U8_HEADERS = {
-        'Referer': 'https://www.periscope.tv/'
+        'Referer': 'https://www.periscope.tv/',
     }
 
     def _call_api(self, method, query, item_id):
         return self._download_json(
-            'https://api.periscope.tv/api/v2/%s' % method,
+            f'https://api.periscope.tv/api/v2/{method}',
             item_id, query=query)
 
     def _parse_broadcast_data(self, broadcast, video_id):
         title = broadcast.get('status') or 'Periscope Broadcast'
         uploader = broadcast.get('user_display_name') or broadcast.get('username')
-        title = '%s - %s' % (uploader, title) if uploader else title
+        title = f'{uploader} - {title}' if uploader else title
         thumbnails = [{
             'url': broadcast[image],
         } for image in ('image_url', 'image_url_medium', 'image_url_small') if broadcast.get(image)]
@@ -35,11 +35,12 @@ class PeriscopeBaseIE(InfoExtractor):
             'uploader_id': broadcast.get('user_id') or broadcast.get('username'),
             'thumbnails': thumbnails,
             'view_count': int_or_none(broadcast.get('total_watched')),
+            'concurrent_view_count': int_or_none(broadcast.get('total_watching')),
             'tags': broadcast.get('tags'),
             'live_status': {
                 'running': 'is_live',
                 'not_started': 'is_upcoming',
-            }.get(traverse_obj(broadcast, ('state', {str.lower}))) or 'was_live'
+            }.get(traverse_obj(broadcast, ('state', {str.lower}))) or 'was_live',
         }
 
     @staticmethod
@@ -164,7 +165,7 @@ class PeriscopeUserIE(PeriscopeBaseIE):
                 webpage, 'data store', default='{}', group='data')),
             user_name)
 
-        user = list(data_store['UserCache']['users'].values())[0]['user']
+        user = next(iter(data_store['UserCache']['users'].values()))['user']
         user_id = user['id']
         session_id = data_store['SessionToken']['public']['broadcastHistory']['token']['session_id']
 
@@ -181,7 +182,7 @@ class PeriscopeUserIE(PeriscopeBaseIE):
 
         entries = [
             self.url_result(
-                'https://www.periscope.tv/%s/%s' % (user_name, broadcast_id))
+                f'https://www.periscope.tv/{user_name}/{broadcast_id}')
             for broadcast_id in broadcast_ids]
 
         return self.playlist_result(entries, user_id, title, description)

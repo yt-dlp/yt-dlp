@@ -14,8 +14,8 @@ from ..utils import (
     traverse_obj,
     unified_timestamp,
     url_basename,
-    urljoin,
     url_or_none,
+    urljoin,
 )
 
 

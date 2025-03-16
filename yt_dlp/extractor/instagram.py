@@ -2,89 +2,56 @@ import hashlib
 import itertools
 import json
 import re
-import time
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     decode_base_n,
     encode_base_n,
+    filter_dict,
     float_or_none,
     format_field,
     get_element_by_attribute,
     int_or_none,
+    join_nonempty,
     lowercase_escape,
     str_or_none,
     str_to_int,
     traverse_obj,
     url_or_none,
-    urlencode_postdata,
 )
 
 _ENCODING_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
 
 
-def _pk_to_id(id):
+def _pk_to_id(media_id):
     """Source: https://stackoverflow.com/questions/24437823/getting-instagram-post-url-from-media-id"""
-    return encode_base_n(int(id.split('_')[0]), table=_ENCODING_CHARS)
+    pk = int(str(media_id).split('_')[0])
+    return encode_base_n(pk, table=_ENCODING_CHARS)
 
 
 def _id_to_pk(shortcode):
-    """Covert a shortcode to a numeric value"""
-    return decode_base_n(shortcode[:11], table=_ENCODING_CHARS)
+    """Convert a shortcode to a numeric value"""
+    if len(shortcode) > 28:
+        shortcode = shortcode[:-28]
+    return decode_base_n(shortcode, table=_ENCODING_CHARS)
 
 
 class InstagramBaseIE(InfoExtractor):
-    _NETRC_MACHINE = 'instagram'
-    _IS_LOGGED_IN = False
-
     _API_BASE_URL = 'https://i.instagram.com/api/v1'
     _LOGIN_URL = 'https://www.instagram.com/accounts/login'
-    _API_HEADERS = {
-        'X-IG-App-ID': '936619743392459',
-        'X-ASBD-ID': '198387',
-        'X-IG-WWW-Claim': '0',
-        'Origin': 'https://www.instagram.com',
-        'Accept': '*/*',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
-    }
 
-    def _perform_login(self, username, password):
-        if self._IS_LOGGED_IN:
-            return
-
-        login_webpage = self._download_webpage(
-            self._LOGIN_URL, None, note='Downloading login webpage', errnote='Failed to download login webpage')
-
-        shared_data = self._parse_json(self._search_regex(
-            r'window\._sharedData\s*=\s*({.+?});', login_webpage, 'shared data', default='{}'), None)
-
-        login = self._download_json(
-            f'{self._LOGIN_URL}/ajax/', None, note='Logging in', headers={
-                **self._API_HEADERS,
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': shared_data['config']['csrf_token'],
-                'X-Instagram-AJAX': shared_data['rollout_hash'],
-                'Referer': 'https://www.instagram.com/',
-            }, data=urlencode_postdata({
-                'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
-                'username': username,
-                'queryParams': '{}',
-                'optIntoOneTap': 'false',
-                'stopDeletionNonce': '',
-                'trustedDeviceRecords': '{}',
-            }))
-
-        if not login.get('authenticated'):
-            if login.get('message'):
-                raise ExtractorError(f'Unable to login: {login["message"]}')
-            elif login.get('user'):
-                raise ExtractorError('Unable to login: Sorry, your password was incorrect. Please double-check your password.', expected=True)
-            elif login.get('user') is False:
-                raise ExtractorError('Unable to login: The username you entered doesn\'t belong to an account. Please check your username and try again.', expected=True)
-            raise ExtractorError('Unable to login')
-        InstagramBaseIE._IS_LOGGED_IN = True
+    @property
+    def _api_headers(self):
+        return {
+            'X-IG-App-ID': self._configuration_arg('app_id', ['936619743392459'], ie_key=InstagramIE)[0],
+            'X-ASBD-ID': '198387',
+            'X-IG-WWW-Claim': '0',
+            'Origin': 'https://www.instagram.com',
+            'Accept': '*/*',
+        }
 
     def _get_count(self, media, kind, *keys):
         return traverse_obj(
@@ -112,7 +79,7 @@ class InstagramBaseIE(InfoExtractor):
                     'height': self._get_dimension('height', node),
                     'http_headers': {
                         'Referer': 'https://www.instagram.com/',
-                    }
+                    },
                 }
             elif not video_id:
                 continue
@@ -147,25 +114,25 @@ class InstagramBaseIE(InfoExtractor):
             return {}
 
         formats = [{
-            'format_id': format.get('id'),
-            'url': format.get('url'),
-            'width': format.get('width'),
-            'height': format.get('height'),
+            'format_id': fmt.get('id'),
+            'url': fmt.get('url'),
+            'width': fmt.get('width'),
+            'height': fmt.get('height'),
             'vcodec': vcodec,
-        } for format in videos_list or []]
+        } for fmt in videos_list or []]
         if dash_manifest_raw:
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash_manifest_raw, media_id), mpd_id='dash'))
 
         thumbnails = [{
             'url': thumbnail.get('url'),
             'width': thumbnail.get('width'),
-            'height': thumbnail.get('height')
+            'height': thumbnail.get('height'),
         } for thumbnail in traverse_obj(product_media, ('image_versions2', 'candidates')) or []]
         return {
             'id': media_id,
             'duration': float_or_none(product_media.get('video_duration')),
             'formats': formats,
-            'thumbnails': thumbnails
+            'thumbnails': thumbnails,
         }
 
     def _extract_product(self, product_info):
@@ -187,7 +154,7 @@ class InstagramBaseIE(InfoExtractor):
             '__post_extractor': self.extract_comments(_pk_to_id(product_info.get('pk'))),
             'http_headers': {
                 'Referer': 'https://www.instagram.com/',
-            }
+            },
         }
         carousel_media = product_info.get('carousel_media')
         if carousel_media:
@@ -203,13 +170,13 @@ class InstagramBaseIE(InfoExtractor):
 
         return {
             **info_dict,
-            **self._extract_product_media(product_info)
+            **self._extract_product_media(product_info),
         }
 
     def _get_comments(self, video_id):
         comments_info = self._download_json(
             f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/comments/?can_support_threading=true&permalink_enabled=false', video_id,
-            fatal=False, errnote='Comments extraction failed', note='Downloading comments info', headers=self._API_HEADERS) or {}
+            fatal=False, errnote='Comments extraction failed', note='Downloading comments info', headers=self._api_headers) or {}
 
         comment_data = traverse_obj(comments_info, ('edge_media_to_parent_comment', 'edges'), 'comments')
         for comment_dict in comment_data or []:
@@ -245,7 +212,7 @@ class InstagramIOSIE(InfoExtractor):
             'comment_count': int,
             'comments': list,
         },
-        'add_ie': ['Instagram']
+        'add_ie': ['Instagram'],
     }]
 
     def _real_extract(self, url):
@@ -254,7 +221,7 @@ class InstagramIOSIE(InfoExtractor):
 
 
 class InstagramIE(InstagramBaseIE):
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?instagram\.com(?:/[^/]+)?/(?:p|tv|reel)/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?instagram\.com(?:/(?!share/)[^/?#]+)?/(?:p|tv|reels?(?!/audio/))/(?P<id>[^/?#&]+))'
     _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?instagram\.com/p/[^/]+/embed.*?)\1']
     _TESTS = [{
         'url': 'https://instagram.com/p/aye83DjauH/?foo=bar#abc',
@@ -378,6 +345,9 @@ class InstagramIE(InstagramBaseIE):
     }, {
         'url': 'https://www.instagram.com/marvelskies.fc/reel/CWqAgUZgCku/',
         'only_matching': True,
+    }, {
+        'url': 'https://www.instagram.com/reels/Cop84x6u7CP/',
+        'only_matching': True,
     }]
 
     @classmethod
@@ -399,14 +369,14 @@ class InstagramIE(InstagramBaseIE):
             info = traverse_obj(self._download_json(
                 f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
                 fatal=False, errnote='Video info extraction failed',
-                note='Downloading video info', headers=self._API_HEADERS), ('items', 0))
+                note='Downloading video info', headers=self._api_headers), ('items', 0))
             if info:
                 media.update(info)
                 return self._extract_product(media)
 
         api_check = self._download_json(
             f'{self._API_BASE_URL}/web/get_ruling_for_content/?content_type=MEDIA&target_id={_id_to_pk(video_id)}',
-            video_id, headers=self._API_HEADERS, fatal=False, note='Setting up session', errnote=False) or {}
+            video_id, headers=self._api_headers, fatal=False, note='Setting up session', errnote=False) or {}
         csrf_token = self._get_cookies('https://www.instagram.com').get('csrftoken')
 
         if not csrf_token:
@@ -426,15 +396,14 @@ class InstagramIE(InstagramBaseIE):
         general_info = self._download_json(
             'https://www.instagram.com/graphql/query/', video_id, fatal=False, errnote=False,
             headers={
-                **self._API_HEADERS,
+                **self._api_headers,
                 'X-CSRFToken': csrf_token or '',
                 'X-Requested-With': 'XMLHttpRequest',
                 'Referer': url,
             }, query={
-                'query_hash': '9f8827793ef34641b2fb195d4d41151c',
+                'doc_id': '8845758582119845',
                 'variables': json.dumps(variables, separators=(',', ':')),
             })
-        media.update(traverse_obj(general_info, ('data', 'shortcode_media')) or {})
 
         if not general_info:
             self.report_warning('General metadata extraction failed (some metadata might be missing).', video_id)
@@ -449,7 +418,7 @@ class InstagramIE(InstagramBaseIE):
             else:
                 self.report_warning('Main webpage is locked behind the login page. Retrying with embed webpage (some metadata might be missing).')
                 webpage = self._download_webpage(
-                    f'{url}/embed/', video_id, note='Downloading embed webpage', fatal=False)
+                    f'{url}/embed/', video_id, note='Downloading embed webpage', fatal=False) or ''
                 additional_data = self._search_json(
                     r'window\.__additionalDataLoaded\s*\(\s*[^,]+,', webpage, 'additional data', video_id, fatal=False)
                 if not additional_data and not media:
@@ -462,6 +431,26 @@ class InstagramIE(InstagramBaseIE):
 
                 media.update(traverse_obj(
                     additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {})
+
+        else:
+            xdt_shortcode_media = traverse_obj(general_info, ('data', 'xdt_shortcode_media', {dict})) or {}
+            if not xdt_shortcode_media:
+                error = join_nonempty('title', 'description', delim=': ', from_dict=api_check)
+                if 'Restricted Video' in error:
+                    self.raise_login_required(error)
+                elif error:
+                    raise ExtractorError(error, expected=True)
+                elif len(video_id) > 28:
+                    # It's a private post (video_id == shortcode + 28 extra characters)
+                    # Only raise after getting empty response; sometimes "long"-shortcode posts are public
+                    self.raise_login_required(
+                        'This content is only available for registered users who follow this account')
+                raise ExtractorError(
+                    'Instagram sent an empty media response. Check if this post is accessible in your '
+                    f'browser without being logged-in. If it is not, then u{self._login_hint()[1:]}. '
+                    'Otherwise, if the post is accessible in browser without being logged-in'
+                    f'{bug_reports_message(before=",")}', expected=True)
+            media.update(xdt_shortcode_media)
 
         username = traverse_obj(media, ('owner', 'username')) or self._search_regex(
             r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'username', fatal=False)
@@ -482,8 +471,7 @@ class InstagramIE(InstagramBaseIE):
                 return self.playlist_result(
                     self._extract_nodes(nodes, True), video_id,
                     format_field(username, None, 'Post by %s'), description)
-
-            video_url = self._og_search_video_url(webpage, secure=False)
+            raise ExtractorError('There is no video in this post', expected=True)
 
         formats = [{
             'url': video_url,
@@ -516,7 +504,7 @@ class InstagramIE(InstagramBaseIE):
         return {
             'id': video_id,
             'formats': formats,
-            'title': media.get('title') or 'Video by %s' % username,
+            'title': media.get('title') or f'Video by {username}',
             'description': description,
             'duration': float_or_none(media.get('video_duration')),
             'timestamp': traverse_obj(media, 'taken_at_timestamp', 'date', expected_type=int_or_none),
@@ -530,7 +518,7 @@ class InstagramIE(InstagramBaseIE):
             'thumbnails': thumbnails,
             'http_headers': {
                 'Referer': 'https://www.instagram.com/',
-            }
+            },
         }
 
 
@@ -563,10 +551,10 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 gis_tmpls = [self._gis_tmpl]
             else:
                 gis_tmpls = [
-                    '%s' % rhx_gis,
+                    f'{rhx_gis}',
                     '',
-                    '%s:%s' % (rhx_gis, csrf_token),
-                    '%s:%s:%s' % (rhx_gis, csrf_token, self.get_param('http_headers')['User-Agent']),
+                    f'{rhx_gis}:{csrf_token}',
+                    '{}:{}:{}'.format(rhx_gis, csrf_token, self.get_param('http_headers')['User-Agent']),
                 ]
 
             # try all of the ways to generate a GIS query, and not only use the
@@ -575,10 +563,10 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 try:
                     json_data = self._download_json(
                         'https://www.instagram.com/graphql/query/', uploader_id,
-                        'Downloading JSON page %d' % page_num, headers={
+                        f'Downloading JSON page {page_num}', headers={
                             'X-Requested-With': 'XMLHttpRequest',
                             'X-Instagram-GIS': hashlib.md5(
-                                ('%s:%s' % (gis_tmpl, variables)).encode('utf-8')).hexdigest(),
+                                (f'{gis_tmpl}:{variables}').encode()).hexdigest(),
                         }, query={
                             'query_hash': self._QUERY_HASH,
                             'variables': variables,
@@ -616,6 +604,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
 
 
 class InstagramUserIE(InstagramPlaylistBaseIE):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/(?P<id>[^/]{2,})/?(?:$|[?#])'
     IE_DESC = 'Instagram user profile'
     IE_NAME = 'instagram:user'
@@ -630,10 +619,10 @@ class InstagramUserIE(InstagramPlaylistBaseIE):
             'extract_flat': True,
             'skip_download': True,
             'playlistend': 5,
-        }
+        },
     }]
 
-    _QUERY_HASH = '42323d64886122307be10013ad2dcc44',
+    _QUERY_HASH = ('42323d64886122307be10013ad2dcc44',)
 
     @staticmethod
     def _parse_timeline_from(data):
@@ -645,7 +634,7 @@ class InstagramUserIE(InstagramPlaylistBaseIE):
         # returns a dictionary of variables to add to the timeline query based
         # on the GraphQL of the original page
         return {
-            'id': data['entry_data']['ProfilePage'][0]['graphql']['user']['id']
+            'id': data['entry_data']['ProfilePage'][0]['graphql']['user']['id'],
         }
 
 
@@ -664,10 +653,10 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
             'extract_flat': True,
             'skip_download': True,
             'playlistend': 50,
-        }
+        },
     }]
 
-    _QUERY_HASH = 'f92f56d47dc7a55b606908374b43a314',
+    _QUERY_HASH = ('f92f56d47dc7a55b606908374b43a314',)
 
     @staticmethod
     def _parse_timeline_from(data):
@@ -680,12 +669,12 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
         # on the GraphQL of the original page
         return {
             'tag_name':
-                data['entry_data']['TagPage'][0]['graphql']['hashtag']['name']
+                data['entry_data']['TagPage'][0]['graphql']['hashtag']['name'],
         }
 
 
 class InstagramStoryIE(InstagramBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?instagram\.com/stories/(?P<user>[^/]+)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?instagram\.com/stories/(?P<user>[^/?#]+)(?:/(?P<id>\d+))?'
     IE_NAME = 'instagram:story'
 
     _TESTS = [{
@@ -694,37 +683,57 @@ class InstagramStoryIE(InstagramBaseIE):
             'id': '18090946048123978',
             'title': 'Rare',
         },
-        'playlist_mincount': 50
+        'playlist_mincount': 50,
+    }, {
+        'url': 'https://www.instagram.com/stories/fruits_zipper/3570766765028588805/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.instagram.com/stories/fruits_zipper',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        username, story_id = self._match_valid_url(url).groups()
-        story_info = self._download_webpage(url, story_id)
-        user_info = self._search_json(r'"user":', story_info, 'user info', story_id, fatal=False)
+        username, story_id = self._match_valid_url(url).group('user', 'id')
+        if username == 'highlights' and not story_id:  # story id is only mandatory for highlights
+            raise ExtractorError('Input URL is missing a highlight ID', expected=True)
+        display_id = story_id or username
+        story_info = self._download_webpage(url, display_id)
+        user_info = self._search_json(r'"user":', story_info, 'user info', display_id, fatal=False)
         if not user_info:
             self.raise_login_required('This content is unreachable')
-        user_id = user_info.get('id')
 
-        story_info_url = user_id if username != 'highlights' else f'highlight:{story_id}'
+        user_id = traverse_obj(user_info, 'pk', 'id', expected_type=str)
+        if username == 'highlights':
+            story_info_url = f'highlight:{story_id}'
+        else:
+            if not user_id:  # user id is only mandatory for non-highlights
+                raise ExtractorError('Unable to extract user id')
+            story_info_url = user_id
+
         videos = traverse_obj(self._download_json(
             f'{self._API_BASE_URL}/feed/reels_media/?reel_ids={story_info_url}',
-            story_id, errnote=False, fatal=False, headers=self._API_HEADERS), 'reels')
+            display_id, errnote=False, fatal=False, headers=self._api_headers), 'reels')
         if not videos:
             self.raise_login_required('You need to log in to access this content')
+        user_info = traverse_obj(videos, (user_id, 'user', {dict})) or {}
 
-        full_name = traverse_obj(videos, (f'highlight:{story_id}', 'user', 'full_name'), (str(user_id), 'user', 'full_name'))
+        full_name = traverse_obj(videos, (f'highlight:{story_id}', 'user', 'full_name'), (user_id, 'user', 'full_name'))
         story_title = traverse_obj(videos, (f'highlight:{story_id}', 'title'))
         if not story_title:
             story_title = f'Story by {username}'
 
-        highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (str(user_id), 'items'))
+        highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (user_id, 'items'))
         info_data = []
         for highlight in highlights:
+            highlight.setdefault('user', {}).update(user_info)
             highlight_data = self._extract_product(highlight)
             if highlight_data.get('formats'):
                 info_data.append({
-                    **highlight_data,
                     'uploader': full_name,
                     'uploader_id': user_id,
+                    **filter_dict(highlight_data),
                 })
+        if username != 'highlights' and story_id and not self._yes_playlist(username, story_id):
+            return traverse_obj(info_data, (lambda _, v: v['id'] == _pk_to_id(story_id), any))
+
         return self.playlist_result(info_data, playlist_id=story_id, playlist_title=story_title)

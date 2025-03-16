@@ -87,13 +87,13 @@ class AmericasTestKitchenIE(InfoExtractor):
             resource_type = 'episodes'
 
         resource = self._download_json(
-            'https://www.americastestkitchen.com/api/v6/%s/%s' % (resource_type, video_id), video_id)
+            f'https://www.americastestkitchen.com/api/v6/{resource_type}/{video_id}', video_id)
         video = resource['video'] if is_episode else resource
         episode = resource if is_episode else resource.get('episode') or {}
 
         return {
             '_type': 'url_transparent',
-            'url': 'https://player.zype.com/embed/%s.js?api_key=jZ9GUhRmxcPvX7M3SlfejB6Hle9jyHTdk2jVxG7wOHPLODgncEKVdPYBhuz9iWXQ' % video['zypeId'],
+            'url': 'https://player.zype.com/embed/{}.js?api_key=jZ9GUhRmxcPvX7M3SlfejB6Hle9jyHTdk2jVxG7wOHPLODgncEKVdPYBhuz9iWXQ'.format(video['zypeId']),
             'ie_key': 'Zype',
             'description': clean_html(video.get('description')),
             'timestamp': unified_timestamp(video.get('publishDate')),
@@ -174,22 +174,22 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
         ]
 
         if season_number:
-            playlist_id = 'season_%d' % season_number
-            playlist_title = 'Season %d' % season_number
+            playlist_id = f'season_{season_number}'
+            playlist_title = f'Season {season_number}'
             facet_filters.append('search_season_list:' + playlist_title)
         else:
             playlist_id = show
             playlist_title = title
 
         season_search = self._download_json(
-            'https://y1fnzxui30-dsn.algolia.net/1/indexes/everest_search_%s_season_desc_production' % slug,
+            f'https://y1fnzxui30-dsn.algolia.net/1/indexes/everest_search_{slug}_season_desc_production',
             playlist_id, headers={
                 'Origin': 'https://www.americastestkitchen.com',
                 'X-Algolia-API-Key': '8d504d0099ed27c1b73708d22871d805',
                 'X-Algolia-Application-Id': 'Y1FNZXUI30',
             }, query={
                 'facetFilters': json.dumps(facet_filters),
-                'attributesToRetrieve': 'description,search_%s_episode_number,search_document_date,search_url,title,search_atk_episode_season' % slug,
+                'attributesToRetrieve': f'description,search_{slug}_episode_number,search_document_date,search_url,title,search_atk_episode_season',
                 'attributesToHighlight': '',
                 'hitsPerPage': 1000,
             })
@@ -207,7 +207,7 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
                     'description': episode.get('description'),
                     'timestamp': unified_timestamp(episode.get('search_document_date')),
                     'season_number': season_number,
-                    'episode_number': int_or_none(episode.get('search_%s_episode_number' % slug)),
+                    'episode_number': int_or_none(episode.get(f'search_{slug}_episode_number')),
                     'ie_key': AmericasTestKitchenIE.ie_key(),
                 }
 
