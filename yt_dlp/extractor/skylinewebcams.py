@@ -15,7 +15,7 @@ class SkylineWebcamsIE(InfoExtractor):
             'view_count': int,
             'timestamp': int,
             'thumbnail': 'https://cdn.skylinewebcams.com/social642.jpg',
-            'upload_date': '20240226'
+            'upload_date': '20240226',
         },
         'params': {
             'skip_download': True,
