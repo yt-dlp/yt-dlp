@@ -24,11 +24,10 @@ class FC2IE(InfoExtractor):
             'id': '20121103kUan1KHs',
             'title': 'Boxing again with Puff',
             'ext': 'mp4',
-            'thumbnail': 're:https?://.+\\.jpe?g',
+            'thumbnail': r're:https?://.+\.jpe?g',
         },
         'file_minsize': 633,
         'params': {
-            # Video too small to pass test
             'skip_download': 'm3u8',
         },
     }, {
@@ -39,7 +38,7 @@ class FC2IE(InfoExtractor):
             'id': '20121129xMeT3Czt',
             'title': 'Rotfux',
             'ext': 'mp4',
-            'thumbnail': 're:https?://.+\\.jpe?g',
+            'thumbnail': r're:https?://.+\.jpe?g',
             'description': 'Rotfux',
         },
     }, {
