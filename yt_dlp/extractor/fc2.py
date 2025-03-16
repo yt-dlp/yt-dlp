@@ -26,7 +26,6 @@ class FC2IE(InfoExtractor):
             'ext': 'mp4',
             'thumbnail': r're:https?://.+\.jpe?g',
         },
-        'file_minsize': 633,
         'params': {
             'skip_download': 'm3u8',
         },
