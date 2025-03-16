@@ -5,8 +5,8 @@ from ..utils import (
     NO_DEFAULT,
     int_or_none,
     parse_duration,
-    strip_or_none,
     str_to_int,
+    strip_or_none,
     url_or_none,
 )
 
@@ -29,7 +29,7 @@ class DrTuberIE(InfoExtractor):
             'thumbnail': r're:https?://.*\.jpg$',
             'age_limit': 18,
             'duration': 304,
-            'description': 'Welcome to this hot porn video named Hot Perky Blonde Naked Golf. DrTuber is the best place for watching xxx movies online!'
+            'description': 'Welcome to this hot porn video named Hot Perky Blonde Naked Golf. DrTuber is the best place for watching xxx movies online!',
         },
     }, {
         'url': 'https://www.iceporn.com/video/2296835/eva-karera-gets-her-trimmed-cunt-plowed',
