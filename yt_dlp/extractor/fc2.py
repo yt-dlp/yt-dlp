@@ -24,11 +24,11 @@ class FC2IE(InfoExtractor):
             'id': '20121103kUan1KHs',
             'title': 'Boxing again with Puff',
             'ext': 'mp4',
-            'thumbnail': 're:^https?://.+.jpg?(?:\\d+)?'
+            'thumbnail': 're:^https?://.+.jpg?(?:\\d+)?',
         },
         'file_minsize': 633,
         'params': {
-            'skip_download': True
+            'skip_download': True,
         },
     }, {
         'url': 'https://video.fc2.com/content/20121129xMeT3Czt',
@@ -115,7 +115,7 @@ class FC2IE(InfoExtractor):
         vid_url = urljoin('https://video.fc2.com/', vid_url)
 
         if vidplaylist.get('type') == '1':
-            formats = self._extract_m3u8_formats(vid_url, video_id, 'mp4',)
+            formats = self._extract_m3u8_formats(vid_url, video_id, 'mp4')
         else:
             formats = [{
                 'url': vid_url,
