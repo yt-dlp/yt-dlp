@@ -1,5 +1,12 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, clean_html, determine_ext, int_or_none, parse_iso8601, url_or_none
+from ..utils import (
+    ExtractorError,
+    clean_html,
+    determine_ext,
+    int_or_none,
+    parse_iso8601,
+    url_or_none,
+)
 from ..utils.traversal import traverse_obj
 
 
@@ -152,7 +159,7 @@ class MSNIE(InfoExtractor):
             'uploader_id': ('provider', 'id', {str}),
         })
 
-        page_type = traverse_obj(json_data, ('type', {str}))
+        page_type = json_data['type']
         source_url = traverse_obj(json_data, ('sourceHref', {url_or_none}))
         if page_type == 'video':
             if traverse_obj(json_data, ('thirdPartyVideoPlayer', 'enabled')) and source_url:
@@ -160,16 +167,16 @@ class MSNIE(InfoExtractor):
             formats = []
             subtitles = {}
             for file in traverse_obj(json_data, ('videoMetadata', 'externalVideoFiles', lambda _, v: url_or_none(v['url']))):
-                url = file['url']
-                ext = determine_ext(url)
+                file_url = file['url']
+                ext = determine_ext(file_url)
                 if ext == 'm3u8':
                     fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                        url, page_id, 'mp4', m3u8_id='hls', fatal=False)
+                        file_url, page_id, 'mp4', m3u8_id='hls', fatal=False)
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
                 elif ext == 'mpd':
                     fmts, subs = self._extract_mpd_formats_and_subtitles(
-                        url, page_id, mpd_id='dash', fatal=False)
+                        file_url, page_id, mpd_id='dash', fatal=False)
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
                 else:
@@ -177,15 +184,16 @@ class MSNIE(InfoExtractor):
                         traverse_obj(file, {
                             'url': 'url',
                             'format_id': ('format', {str}),
-                            'filesize': ('fileSize', {int}),
-                            'height': ('height', {int}),
-                            'width': ('width', {int}),
+                            'filesize': ('fileSize', {int_or_none}),
+                            'height': ('height', {int_or_none}),
+                            'width': ('width', {int_or_none}),
                         }))
             for caption in traverse_obj(json_data, ('videoMetadata', 'closedCaptions', lambda _, v: url_or_none(v['href']))):
                 lang = caption.get('locale') or 'en-us'
                 subtitles.setdefault(lang, []).append({
                     'url': caption['href'],
-                    'ext': 'ttml'})
+                    'ext': 'ttml',
+                })
 
             return {
                 'id': page_id,
@@ -204,5 +212,5 @@ class MSNIE(InfoExtractor):
                 entries.append(self.url_result(embed_url))
 
             return self.playlist_result(entries, page_id, **common_metadata)
-        else:
-            raise ExtractorError('Unsupported URL type')
+
+        raise ExtractorError(f'Unsupported page type: {page_type}')
