@@ -1,158 +1,208 @@
-import os
-import re
-
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    determine_ext,
-    int_or_none,
-    traverse_obj,
-    url_or_none,
-)
+from ..utils import ExtractorError, clean_html, determine_ext, int_or_none, parse_iso8601, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class MSNIE(InfoExtractor):
-    _WORKING = True
-    _VALID_URL = r'https?://(?:(?:www|preview)\.)?msn\.com/(?:[^/]+/)+(?P<display_id>[^/]+)/[a-z]{2}-(?P<id>[\da-zA-Z]+)'
+    _VALID_URL = r'https?://(?:(?:www|preview)\.)?msn\.com/(?P<locale>[a-z]{2}-[a-z]{2}+)/(?:[^/?#]+/)+(?P<display_id>[^/?#]+)/[a-z]{2}-(?P<id>[\da-zA-Z]+)'
     _TESTS = [{
-        # Single video with detailed metadata (fictional URL for demonstration)
-        'url': 'https://www.msn.com/en-in/money/video/7-ways-to-get-rid-of-chest-congestion/vi-BBPxU6d',
-        'info_dict': {
-            'id': 'BBPxU6d',
-            'display_id': '7-ways-to-get-rid-of-chest-congestion',
-            'title': 'Seven ways to get rid of chest congestion',
-            'description': '7 Ways to Get Rid of Chest Congestion',
-            'uploader': 'Health',
-            'ext': 'mp4',
-            'duration': 88,
-        },
-    }, {
         'url': 'https://www.msn.com/en-gb/video/news/president-macron-interrupts-trump-over-ukraine-funding/vi-AA1zMcD7',
         'info_dict': {
             'id': 'AA1zMcD7',
+            'ext': 'mp4',
             'display_id': 'president-macron-interrupts-trump-over-ukraine-funding',
             'title': 'President Macron interrupts Trump over Ukraine funding',
-            'ext': 'mp4',
+            'description': 'md5:5fd3857ac25849e7a56cb25fbe1a2a8b',
+            'uploader': 'k! News UK',
+            'uploader_id': 'BB1hz5Rj',
+            'duration': 59,
+            'thumbnail': 'https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA1zMagX.img',
+            'tags': 'count:14',
+            'timestamp': 1740510914,
+            'upload_date': '20250225',
+            'release_timestamp': 1740513600,
+            'release_date': '20250225',
+            'modified_timestamp': 1741413241,
+            'modified_date': '20250308',
         },
     }, {
         'url': 'https://www.msn.com/en-gb/video/watch/films-success-saved-adam-pearsons-acting-career/vi-AA1znZGE?ocid=hpmsn',
         'info_dict': {
             'id': 'AA1znZGE',
+            'ext': 'mp4',
             'display_id': 'films-success-saved-adam-pearsons-acting-career',
             'title': "Films' success saved Adam Pearson's acting career",
-            'ext': 'mp4',
-        },
-    }, {
-        'url': 'https://www.msn.com/en-gb/video/entertainment/5-easiest-vegetables-to-grow-at-home/vi-BB1khyxn?ocid=hpmsn',
-        'info_dict': {
-            'id': 'BB1khyxn',
-            'display_id': '5-easiest-vegetables-to-grow-at-home',
-            'title': '5 Easiest Vegetables to Grow at Home',
-            'ext': 'mp4',
+            'description': 'md5:98c05f7bd9ab4f9c423400f62f2d3da5',
+            'uploader': 'Sky News',
+            'uploader_id': 'AA2eki',
+            'duration': 52,
+            'thumbnail': 'https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA1zo7nU.img',
+            'timestamp': 1739993965,
+            'upload_date': '20250219',
+            'release_timestamp': 1739977753,
+            'release_date': '20250219',
+            'modified_timestamp': 1742076259,
+            'modified_date': '20250315',
         },
     }, {
         'url': 'https://www.msn.com/en-us/entertainment/news/rock-frontman-replacements-you-might-not-know-happened/vi-AA1yLVcD',
         'info_dict': {
             'id': 'AA1yLVcD',
+            'ext': 'mp4',
             'display_id': 'rock-frontman-replacements-you-might-not-know-happened',
             'title': 'Rock Frontman Replacements You Might Not Know Happened',
-            'ext': 'mp4',
+            'description': 'md5:451a125496ff0c9f6816055bb1808da9',
+            'uploader': 'Grunge (Video)',
+            'uploader_id': 'BB1oveoV',
+            'duration': 596,
+            'thumbnail': 'https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA1yM4OJ.img',
+            'timestamp': 1739223456,
+            'upload_date': '20250210',
+            'release_timestamp': 1739219731,
+            'release_date': '20250210',
+            'modified_timestamp': 1741427272,
+            'modified_date': '20250308',
         },
     }, {
-        'url': 'https://www.msn.com/en-us/video/peopleandplaces/gene-hackman-s-unseen-legacy-a-humble-artist-a-community-man-a-hollywood-icon/vi-AA1A6v68',
+        # Dailymotion Embed
+        'url': 'https://www.msn.com/de-de/nachrichten/other/the-first-descendant-gameplay-trailer-zu-serena-der-neuen-gefl%C3%BCgelten-nachfahrin/vi-AA1B1d06',
         'info_dict': {
-            'id': 'AA1A6v68',
-            'display_id': 'gene-hackman-s-unseen-legacy-a-humble-artist-a-community-man-a-hollywood-icon',
-            'title': 'Gene Hackman’s unseen legacy: a humble artist, a community man, a Hollywood icon',
+            'id': 'x9g6oli',
             'ext': 'mp4',
+            'title': 'The First Descendant: Gameplay-Trailer zu Serena, der neuen geflügelten Nachfahrin',
+            'description': '',
+            'uploader': 'MeinMMO',
+            'uploader_id': 'x2mvqi4',
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 60,
+            'thumbnail': 'https://s1.dmcdn.net/v/Y3fO61drj56vPB9SS/x1080',
+            'tags': ['MeinMMO', 'The First Descendant'],
+            'timestamp': 1742124877,
+            'upload_date': '20250316',
         },
     }, {
-        # Placeholder for playlist test case (replace with actual URL)
-        'url': 'https://www.msn.com/en-gb/news/world/top-5-political-moments/ar-AA1abcde',
+        # Youtube Embed
+        'url': 'https://www.msn.com/en-gb/video/webcontent/web-content/vi-AA1ybFaJ',
         'info_dict': {
-            'id': 'AA1abcde',
+            'id': 'kQSChWu95nE',
+            'ext': 'mp4',
+            'title': '7 Daily Habits to Nurture Your Personal Growth',
+            'description': 'md5:6f233c68341b74dee30c8c121924e827',
+            'uploader': 'TopThink',
+            'uploader_id': '@TopThink',
+            'uploader_url': 'https://www.youtube.com/@TopThink',
+            'channel': 'TopThink',
+            'channel_id': 'UCMlGmHokrQRp-RaNO7aq4Uw',
+            'channel_url': 'https://www.youtube.com/channel/UCMlGmHokrQRp-RaNO7aq4Uw',
+            'channel_is_verified': True,
+            'channel_follower_count': int,
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 705,
+            'thumbnail': 'https://i.ytimg.com/vi/kQSChWu95nE/maxresdefault.jpg',
+            'categories': ['Howto & Style'],
+            'tags': ['topthink', 'top think', 'personal growth'],
+            'timestamp': 1722711620,
+            'upload_date': '20240803',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
         },
-        'playlist_mincount': 3,
+    }, {
+        # Article with social embed
+        'url': 'https://www.msn.com/en-in/news/techandscience/watch-earth-sets-and-rises-behind-moon-in-breathtaking-blue-ghost-video/ar-AA1zKoAc',
+        'info_dict': {
+            'id': 'AA1zKoAc',
+            'title': 'Watch: Earth sets and rises behind Moon in breathtaking Blue Ghost video',
+            'description': 'md5:0ad51cfa77e42e7f0c46cf98a619dbbf',
+            'uploader': 'India Today',
+            'uploader_id': 'AAyFWG',
+            'tags': 'count:11',
+            'timestamp': 1740485034,
+            'upload_date': '20250225',
+            'release_timestamp': 1740484875,
+            'release_date': '20250225',
+            'modified_timestamp': 1740488561,
+            'modified_date': '20250225',
+        },
+        'playlist_count': 1,
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        display_id = mobj.group('display_id')
-        page_id = mobj.group('id')
+        locale, display_id, page_id = self._match_valid_url(url).group('locale', 'display_id', 'id')
 
-        webpage = self._download_webpage(url, page_id, note='Downloading webpage')
-        locale = mobj.group(0).split('/')[3]  # Extract locale (e.g., 'en-gb')
-        json_url = f'https://assets.msn.com/content/view/v2/Detail/{locale}/{page_id}'
-        json_data = self._download_json(json_url, page_id, note='Downloading JSON metadata', fatal=False) or {}
+        json_data = self._download_json(
+            f'https://assets.msn.com/content/view/v2/Detail/{locale}/{page_id}', page_id,
+            note='Downloading JSON metadata')
 
-        if page_id.startswith('vi-'):
-            # Single video extraction
-            video_id = page_id[3:]  # Remove 'vi-' prefix
-            video_metadata = traverse_obj(json_data, 'videoMetadata', default={})
-            video_files = traverse_obj(video_metadata, 'externalVideoFiles', default=[])
+        common_metadata = traverse_obj(json_data, {
+            'title': ('title', {str}),
+            'description': (('abstract', ('body', {clean_html})), {str}, filter, any),
+            'timestamp': ('createdDateTime', {parse_iso8601}),
+            'release_timestamp': ('publishedDateTime', {parse_iso8601}),
+            'modified_timestamp': ('updatedDateTime', {parse_iso8601}),
+            'thumbnail': ('thumbnail', 'image', 'url', {url_or_none}),
+            'duration': ('videoMetadata', 'playTime', {int_or_none}),
+            'tags': ('keywords', ..., {str}),
+            'uploader': ('provider', 'name', {str}),
+            'uploader_id': ('provider', 'id', {str}),
+        })
 
+        page_type = traverse_obj(json_data, ('type', {str}))
+        source_url = traverse_obj(json_data, ('sourceHref', {url_or_none}))
+        if page_type == 'video':
+            if traverse_obj(json_data, ('thirdPartyVideoPlayer', 'enabled')) and source_url:
+                return self.url_result(source_url)
             formats = []
-            for v in video_files:
-                if v.get('contentType') != 'video/mp4':
-                    continue
-                video_url = url_or_none(v.get('url'))
-                if not video_url:
-                    continue
-                format_id = v.get('format', 'mp4')
-                ext = determine_ext(video_url, default_ext='mp4')
-                format_dict = {'format_id': format_id, 'url': video_url, 'ext': ext}
-                filename = os.path.basename(video_url)
-                if '_' in filename and filename.endswith('.mp4'):
-                    bitrate_str = filename.split('_')[-1].replace('.mp4', '')
-                    if bitrate := int_or_none(bitrate_str):
-                        format_dict['bitrate'] = bitrate * 1000
-                formats.append(format_dict)
-
-            if not formats:
-                raise ExtractorError('No video formats found', expected=True)
-
-            title = traverse_obj(json_data, 'title') or self._html_search_meta('title', webpage)
-            description = traverse_obj(json_data, 'description') or self._html_search_meta('description', webpage)
-            duration = int_or_none(traverse_obj(video_metadata, 'duration'))
-            uploader = traverse_obj(video_metadata, 'uploader') or self._html_search_meta('author', webpage)
-            uploader_id = traverse_obj(video_metadata, 'uploaderId')
+            subtitles = {}
+            for file in traverse_obj(json_data, ('videoMetadata', 'externalVideoFiles', lambda _, v: url_or_none(v['url']))):
+                url = file['url']
+                ext = determine_ext(url)
+                if ext == 'm3u8':
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                        url, page_id, 'mp4', m3u8_id='hls', fatal=False)
+                    formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
+                elif ext == 'mpd':
+                    fmts, subs = self._extract_mpd_formats_and_subtitles(
+                        url, page_id, mpd_id='dash', fatal=False)
+                    formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
+                else:
+                    formats.append(
+                        traverse_obj(file, {
+                            'url': 'url',
+                            'format_id': ('format', {str}),
+                            'filesize': ('fileSize', {int}),
+                            'height': ('height', {int}),
+                            'width': ('width', {int}),
+                        }))
+            for caption in traverse_obj(json_data, ('videoMetadata', 'closedCaptions', lambda _, v: url_or_none(v['href']))):
+                lang = caption.get('locale') or 'en-us'
+                subtitles.setdefault(lang, []).append({
+                    'url': caption['href'],
+                    'ext': 'ttml'})
 
             return {
-                'id': video_id,
+                'id': page_id,
                 'display_id': display_id,
-                'title': title,
-                'description': description,
-                'duration': duration,
-                'uploader': uploader,
-                'uploader_id': uploader_id,
                 'formats': formats,
+                'subtitles': subtitles,
+                **common_metadata,
             }
+        elif page_type == 'webcontent':
+            if not source_url:
+                raise ExtractorError('Could not find source URL')
+            return self.url_result(source_url)
+        elif page_type == 'article':
+            entries = []
+            for embed_url in traverse_obj(json_data, ('socialEmbeds', ..., 'postUrl', {url_or_none})):
+                entries.append(self.url_result(embed_url))
 
-        elif page_id.startswith('ar-'):
-            # Placeholder playlist extraction logic (for future use)
-            playlist_id = page_id[3:]  # Remove 'ar-' prefix
-            embed_urls = self._extract_embedded_urls(json_data, webpage, playlist_id)
-            if embed_urls:
-                entries = [self.url_result(url) for url in embed_urls]
-                return self.playlist_result(entries, playlist_id)
-            else:
-                self._downloader.report_warning('No embedded videos found in article')
-
+            return self.playlist_result(entries, page_id, **common_metadata)
         else:
-            raise ExtractorError('Unknown URL type')
-
-    def _extract_embedded_urls(self, json_data, webpage, video_id):
-        """Extract embedded video URLs from JSON or webpage for playlists (placeholder)."""
-        embed_urls = []
-        # Placeholder: Check JSON for embedded video URLs (adjust key as needed)
-        source_href = traverse_obj(json_data, ('videoMetadata', 'sourceHref'))
-        if source_href and (embed_url := url_or_none(source_href)):
-            embed_urls.append(embed_url)
-        # Fallback to iframe parsing
-        if not embed_urls:
-            iframe_matches = re.findall(r'<iframe[^>]+src=["\'](.*?)["\']', webpage)
-            for iframe_src in iframe_matches:
-                if embed_url := url_or_none(iframe_src):
-                    if any(host in embed_url for host in ('youtube.com', 'dailymotion.com', 'msn.com')):
-                        embed_urls.append(embed_url)
-        return embed_urls
+            raise ExtractorError('Unsupported URL type')
