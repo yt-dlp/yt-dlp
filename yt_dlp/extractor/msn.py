@@ -143,8 +143,7 @@ class MSNIE(InfoExtractor):
         locale, display_id, page_id = self._match_valid_url(url).group('locale', 'display_id', 'id')
 
         json_data = self._download_json(
-            f'https://assets.msn.com/content/view/v2/Detail/{locale}/{page_id}', page_id,
-            note='Downloading JSON metadata')
+            f'https://assets.msn.com/content/view/v2/Detail/{locale}/{page_id}', page_id)
 
         common_metadata = traverse_obj(json_data, {
             'title': ('title', {str}),
