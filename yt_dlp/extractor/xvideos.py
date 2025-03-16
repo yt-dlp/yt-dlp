@@ -441,7 +441,7 @@ class XVideosChannelIE(XVideosPlaylistIE):
 class XVideosSearchIE(XVideosPlaylistIE):
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:[^/]+\.)?xvideos\d+\.com/
+                        (?:[^/]+\.)?xvideos(?:\d+)?\.com/
                           \?k=(?P<id>[^#?/&]+)
                  '''
     _TESTS = [{
