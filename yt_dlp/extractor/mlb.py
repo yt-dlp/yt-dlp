@@ -9,6 +9,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     join_nonempty,
+    jwt_is_expired,
     parse_duration,
     parse_iso8601,
     try_get,
@@ -351,7 +352,7 @@ mutation initPlaybackSession(
 
     @property
     def _api_headers(self):
-        if self._jwt_is_expired(self._access_token, 120):
+        if jwt_is_expired(self._access_token, 120):
             self.write_debug('Access token has expired; re-logging in')
             self._perform_login(*self._get_login_info())
         return {'Authorization': f'Bearer {self._access_token}'}

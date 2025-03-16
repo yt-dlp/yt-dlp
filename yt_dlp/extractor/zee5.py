@@ -6,6 +6,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     jwt_decode_hs256,
+    jwt_is_expired,
     parse_age_limit,
     str_or_none,
     try_call,
@@ -123,7 +124,7 @@ class Zee5IE(InfoExtractor):
         else:
             raise ExtractorError(self._LOGIN_HINT, expected=True)
 
-        if self._jwt_is_expired(self._USER_TOKEN):
+        if jwt_is_expired(self._USER_TOKEN):
             raise ExtractorError('User token has expired', expected=True)
         self._USER_COUNTRY = jwt_decode_hs256(self._USER_TOKEN).get('current_country')
 

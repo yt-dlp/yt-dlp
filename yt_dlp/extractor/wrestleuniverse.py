@@ -8,6 +8,7 @@ from ..dependencies import Cryptodome
 from ..utils import (
     ExtractorError,
     int_or_none,
+    jwt_is_expired,
     traverse_obj,
     try_call,
     url_basename,
@@ -43,7 +44,7 @@ class WrestleUniverseBaseIE(InfoExtractor):
                 self.raise_login_required()
             self._TOKEN = token
 
-        if not self._REAL_TOKEN or self._jwt_is_expired(self._REAL_TOKEN):
+        if not self._REAL_TOKEN or jwt_is_expired(self._REAL_TOKEN):
             if not self._REFRESH_TOKEN:
                 raise ExtractorError(
                     'Expired token. Refresh your cookies in browser and try again', expected=True)

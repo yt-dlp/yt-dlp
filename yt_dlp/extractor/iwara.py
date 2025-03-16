@@ -8,6 +8,7 @@ from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     int_or_none,
+    jwt_is_expired,
     mimetype2ext,
     qualities,
     traverse_obj,
@@ -22,7 +23,7 @@ class IwaraBaseIE(InfoExtractor):
 
     def _is_token_expired(self, token, token_type):
         # User token TTL == ~3 weeks, Media token TTL == ~1 hour
-        if self._jwt_is_expired(token, 120):
+        if jwt_is_expired(token, 120):
             self.to_screen(f'{token_type} token has expired')
             return True
 
