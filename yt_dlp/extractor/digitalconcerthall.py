@@ -86,7 +86,7 @@ class DigitalConcertHallIE(InfoExtractor):
 
     @property
     def _access_token_is_expired(self):
-        return self._jwt_is_expired(self._access_token)
+        return self._jwt_is_expired(self._access_token, 30)
 
     def _set_access_token(self, value):
         self._access_token = value

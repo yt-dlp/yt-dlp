@@ -105,8 +105,11 @@ class JioCinemaBaseIE(InfoExtractor):
                     'os': ('os', {str}),
                 })}, data=data)
 
+    def _is_token_expired(self, token):
+        return self._jwt_is_expired(token, 180)
+
     def _perform_login(self, username, password):
-        if self._ACCESS_TOKEN and not self._jwt_is_expired(self._ACCESS_TOKEN):
+        if self._ACCESS_TOKEN and not self._is_token_expired(self._ACCESS_TOKEN):
             return
 
         UUID_RE = r'[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}'
@@ -181,7 +184,7 @@ class JioCinemaBaseIE(InfoExtractor):
             if JioCinemaBaseIE._REFRESH_TOKEN:
                 self._cache_token('access')
         self.to_screen(f'Logging in as device ID "{JioCinemaBaseIE._DEVICE_ID}"')
-        if self._jwt_is_expired(JioCinemaBaseIE._ACCESS_TOKEN):
+        if self._is_token_expired(JioCinemaBaseIE._ACCESS_TOKEN):
             self._refresh_token()
 
 
@@ -246,9 +249,9 @@ class JioCinemaIE(JioCinemaBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        if not self._ACCESS_TOKEN and self._jwt_is_expired(self._GUEST_TOKEN):
+        if not self._ACCESS_TOKEN and self._is_token_expired(self._GUEST_TOKEN):
             self._fetch_guest_token()
-        elif self._ACCESS_TOKEN and self._jwt_is_expired(self._ACCESS_TOKEN):
+        elif self._ACCESS_TOKEN and self._is_token_expired(self._ACCESS_TOKEN):
             self._refresh_token()
 
         playback = self._call_api(
