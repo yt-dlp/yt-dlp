@@ -458,7 +458,8 @@ class VrtNUIE(VRTBaseIE):
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            '_old_archive_ids': [make_archive_id('Canvas', video_id), make_archive_id('Ketnet', video_id)],
+            '_old_archive_ids': [make_archive_id('Canvas', video_id),
+                                 make_archive_id('Ketnet', video_id)],
         }
 
 
