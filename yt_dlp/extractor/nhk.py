@@ -863,11 +863,12 @@ class NhkRadiruLiveIE(InfoExtractor):
         # radio 1, no area specified
         'url': 'https://www.nhk.or.jp/radio/player/?ch=r1',
         'info_dict': {
-            'id': 'r1-tokyo',
-            'title': 're:^ＮＨＫネットラジオ第1 東京.+$',
+            'id': 'bs-r1-130',
+            'title': 're:^NHKラジオ第1・東京.+$',
             'ext': 'm4a',
-            'thumbnail': 'https://www.nhk.or.jp/common/img/media/r1-200x200.png',
+            'thumbnail': 'https://www.nhk.jp/assets/images/broadcastservice/bs/r1/r1-logo.svg',
             'live_status': 'is_live',
+            '_old_archive_ids': ['r1-tokyo'],
         },
     }, {
         # radio 2, area specified
@@ -875,26 +876,28 @@ class NhkRadiruLiveIE(InfoExtractor):
         'url': 'https://www.nhk.or.jp/radio/player/?ch=r2',
         'params': {'extractor_args': {'nhkradirulive': {'area': ['fukuoka']}}},
         'info_dict': {
-            'id': 'r2-fukuoka',
-            'title': 're:^ＮＨＫネットラジオ第2 福岡.+$',
+            'id': 'bs-r2-400',
+            'title': 're:^NHKラジオ第2.+$',
             'ext': 'm4a',
-            'thumbnail': 'https://www.nhk.or.jp/common/img/media/r2-200x200.png',
+            'thumbnail': 'https://www.nhk.jp/assets/images/broadcastservice/bs/r2/r2-logo.svg',
             'live_status': 'is_live',
+            '_old_archive_ids': ['r2-fukuoka'],
         },
     }, {
         # fm, area specified
         'url': 'https://www.nhk.or.jp/radio/player/?ch=fm',
         'params': {'extractor_args': {'nhkradirulive': {'area': ['sapporo']}}},
         'info_dict': {
-            'id': 'fm-sapporo',
-            'title': 're:^ＮＨＫネットラジオＦＭ 札幌.+$',
+            'id': 'bs-r3-010',
+            'title': 're:^NHK FM・札幌.+$',
             'ext': 'm4a',
-            'thumbnail': 'https://www.nhk.or.jp/common/img/media/fm-200x200.png',
+            'thumbnail': 'https://www.nhk.jp/assets/images/broadcastservice/bs/r3/r3-logo.svg',
             'live_status': 'is_live',
+            '_old_archive_ids': ['fm-sapporo'],
         },
     }]
 
-    _NOA_STATION_IDS = {'r1': 'n1', 'r2': 'n2', 'fm': 'n3'}
+    _NOA_STATION_IDS = {'r1': 'r1', 'r2': 'r2', 'fm': 'r3'}
 
     def _real_extract(self, url):
         station = self._match_id(url)
@@ -911,12 +914,16 @@ class NhkRadiruLiveIE(InfoExtractor):
         noa_info = self._download_json(
             f'https:{config.find(".//url_program_noa").text}'.format(area=data.find('areakey').text),
             station, note=f'Downloading {area} station metadata', fatal=False)
-        present_info = traverse_obj(noa_info, ('nowonair_list', self._NOA_STATION_IDS.get(station), 'present'))
+        broadcast_service = traverse_obj(noa_info, (self._NOA_STATION_IDS.get(station), 'publishedOn'))
+        # alternatively can do like https://api.nhk.jp/r7/t/broadcastservice/bs/r3-130.json (given in the `url` key)
 
         return {
-            'title': ' '.join(traverse_obj(present_info, (('service', 'area'), 'name', {str}))),
-            'id': join_nonempty(station, area),
-            'thumbnails': traverse_obj(present_info, ('service', 'images', ..., {
+            **traverse_obj(broadcast_service, {
+                'title': 'broadcastDisplayName',
+                'id': 'id',
+            }),
+            '_old_archive_ids': [join_nonempty(station, area)],
+            'thumbnails': traverse_obj(broadcast_service, ('logo', ..., {
                 'url': 'url',
                 'width': ('width', {int_or_none}),
                 'height': ('height', {int_or_none}),
