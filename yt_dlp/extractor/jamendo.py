@@ -96,7 +96,8 @@ class JamendoIE(InfoExtractor):
                     continue
                 urls.append(cover_url)
                 urlh = self._request_webpage(
-                    HEADRequest(cover_url), track_id, 'Checking thumbnail extension', errnote=False, fatal=False)
+                    HEADRequest(cover_url), track_id, 'Checking thumbnail extension',
+                    errnote=False, fatal=False)
                 if not urlh:
                     continue
                 size = int_or_none(cover_id.lstrip('size'))
