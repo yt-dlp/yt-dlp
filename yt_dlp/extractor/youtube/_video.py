@@ -1790,7 +1790,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
-        }
+        },
     ]
 
     @classmethod
