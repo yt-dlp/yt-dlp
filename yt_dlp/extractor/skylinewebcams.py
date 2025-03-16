@@ -1,17 +1,21 @@
 from .common import InfoExtractor
+from ..utils import int_or_none, urljoin
 
 
 class SkylineWebcamsIE(InfoExtractor):
-    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?skylinewebcams\.com/[^/]+/webcam/(?:[^/]+/)+(?P<id>[^/]+)\.html'
     _TEST = {
-        'url': 'https://www.skylinewebcams.com/it/webcam/italia/lazio/roma/scalinata-piazza-di-spagna-barcaccia.html',
+        'url': 'https://www.skylinewebcams.com/en/webcam/espana/comunidad-valenciana/alicante/benidorm-playa-levante.html',
         'info_dict': {
-            'id': 'scalinata-piazza-di-spagna-barcaccia',
+            'id': 'benidorm-playa-levante',
             'ext': 'mp4',
-            'title': 're:^Live Webcam Scalinata di Piazza di Spagna - La Barcaccia [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
-            'description': 'Roma, veduta sulla Scalinata di Piazza di Spagna e sulla Barcaccia',
-            'is_live': True,
+            'title': 're:^【LIVE】 Webcam Benidorm - Levante Beach | SkylineWebcams [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'description': 'View over the beach of the summer destination in Costa Blanca.',
+            'live_status': 'is_live',
+            'view_count': int,
+            'timestamp': int,
+            'thumbnail': 'https://cdn.skylinewebcams.com/social642.jpg',
+            'upload_date': '20240226'
         },
         'params': {
             'skip_download': True,
@@ -23,18 +27,19 @@ class SkylineWebcamsIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        stream_url = self._search_regex(
-            r'(?:url|source)\s*:\s*(["\'])(?P<url>(?:https?:)?//.+?\.m3u8.*?)\1', webpage,
-            'stream url', group='url')
-
-        title = self._og_search_title(webpage)
-        description = self._og_search_description(webpage)
+        stream_url = urljoin('https://hd-auth.skylinewebcams.com', self._search_regex(
+            r'(?:url|source)\s*:\s*(["\'])(?P<url>.+?\.m3u8.*?)\1', webpage,
+            'stream url', group='url'))
+        video_data = self._search_json_ld(webpage, video_id)
 
         return {
             'id': video_id,
             'url': stream_url,
             'ext': 'mp4',
-            'title': title,
-            'description': description,
+            'title': video_data.get('title') or self._og_search_title(webpage),
+            'description': video_data.get('description') or self._og_search_description(webpage),
+            'thumbnails': video_data.get('thumbnails'),
+            'timestamp': int_or_none(video_data.get('timestamp')),
+            'view_count': int_or_none(video_data.get('view_count')),
             'is_live': True,
         }
