@@ -229,6 +229,7 @@ class XVideosQuickiesIE(InfoExtractor):
         domain, id_ = self._match_valid_url(url).group('domain', 'id')
         return self.url_result(f'https://{domain}/video{"" if id_.isdecimal() else "."}{id_}/_', XVideosIE, id_)
 
+
 class XVideosPlaylistIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     ^(?!.*\#quickies)               # Reject if "#quickies" appears anywhere
