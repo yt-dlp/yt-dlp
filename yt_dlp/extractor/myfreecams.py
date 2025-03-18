@@ -1,5 +1,11 @@
+import random
+
 from .common import InfoExtractor
-from ..utils import ExtractorError, UserNotLive
+from ..utils import (
+    ExtractorError,
+    UserNotLive,
+    traverse_obj,
+)
 
 
 class MyFreeCamsIE(InfoExtractor):
@@ -51,12 +57,12 @@ class MyFreeCamsIE(InfoExtractor):
     def get_required_params(self, webpage):
         sid = self._search_regex(
             [r'data-campreview-sid=["\'](\d+)["\']', r'data-cam-preview-server-id-value=["\'](\d+)["\']'],
-            webpage, 'sid',
+            webpage, 'sid', fatal=False
         )
 
         mid = self._search_regex(
             [r'data-campreview-mid=["\'](\d+)["\']', r'data-cam-preview-model-id-value=["\'](\d+)["\']'],
-            webpage, 'mid',
+            webpage, 'mid', fatal=False
         )
 
         webrtc = self._search_regex(
@@ -66,10 +72,13 @@ class MyFreeCamsIE(InfoExtractor):
 
         snap_url = self._search_regex(
             r'data-cam-preview-snap-url-value=["\']([^"\']+)["\']',
-            webpage, 'snap_url',
+            webpage, 'snap_url', default=''
         )
 
         webrtc = 'true' if 'mfc_a_' in snap_url else 'false'
+
+        if not sid or not mid:
+            return {}
 
         return {
             'sid': sid,
@@ -77,8 +86,7 @@ class MyFreeCamsIE(InfoExtractor):
             'a': 'a_' if webrtc == 'true' else '',
         }
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
+    def webpage_extraction(self, video_id):
         webpage = self._download_webpage('https://share.myfreecams.com/' + video_id, video_id)
 
         if not self._search_regex(r'https://www.myfreecams.com/php/tracking.php\?[^\'"]*model_id=(\d+)[^\'"]*',
@@ -86,7 +94,7 @@ class MyFreeCamsIE(InfoExtractor):
             raise ExtractorError('Model not found')
 
         params = self.get_required_params(webpage)
-        if not params['sid']:
+        if not params.get('sid'):
             raise UserNotLive('Model offline')
 
         return {
@@ -98,4 +106,71 @@ class MyFreeCamsIE(InfoExtractor):
                 video_id, 'mp4', live=True),
             'age_limit': 18,
             'thumbnail': self._search_regex(r'(https?://img\.mfcimg\.com/photos2?/\d+/\d+/avatar\.\d+x\d+.jpg(?:\?nc=\d+)?)', webpage, 'thumbnail', fatal=False),
+        }
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        user_data = self._download_json(
+            'https://api-edge.myfreecams.com/usernameLookup/' + video_id, video_id)
+
+        if not user_data:
+            self.report_warning('Unable to get user data from api, falling back to webpage extraction')
+            return self.webpage_extraction(video_id)
+
+        user = traverse_obj(user_data, ('result', 'user'))
+        if not user:
+            raise ExtractorError('Model ' + video_id + ' not found')
+        if not user.get('id'):
+            raise ExtractorError('Model ' + video_id + ' id not found')
+        if user.get('access_level') != 4:
+            raise ExtractorError('User ' + video_id + ' is not a model')
+
+        status = user.get('vs')
+        if status is None:
+            raise UserNotLive('Model ' + video_id + ' offline', expected=True)
+
+        user_sessions = user.get('sessions')
+        if not user_sessions or len(user_sessions) < 1:
+            self.report_warning('Unable to get user sessions from api, falling back to webpage extraction')
+            return self.webpage_extraction(video_id)
+
+        session = next((item for item in user_sessions if item.get('server_name')), None)
+        if session is None:
+            self.report_warning('Unable to get valid user session from api, falling back to webpage extraction')
+            return self.webpage_extraction(video_id)
+
+        vs = session.get('vstate')
+        ok_vs = [0, 90]
+        if vs not in ok_vs:
+            if vs == 127:
+                raise UserNotLive('Model ' + video_id + ' is offline', expected=True)
+            elif vs == 12:
+                raise ExtractorError('Model ' + video_id + ' is in a private show', expected=True)
+            elif vs == 13:
+                raise ExtractorError('Model ' + video_id + ' is in a group show', expected=True)
+            elif vs == 2:
+                raise ExtractorError('Model ' + video_id + ' is away', expected=True)
+            else:
+                raise ExtractorError('Unknown status ' + str(vs) + ' for model ' + video_id)
+
+        server_id = session.get('server_name')[5:]
+        phase = session.get('phase')
+        mid = int(user.get('id')) + 100_000_000
+        rand_val = random.random()
+
+        formats = self._extract_m3u8_formats(
+            f'https://edgevideo.myfreecams.com/llhls/NxServer/{server_id}/ngrp:mfc_{phase}{mid}.f4v_cmaf/playlist_sfm4s.m3u8?nc={rand_val}&v=1.97.23',
+            video_id, 'mp4', live=True)
+
+        if not formats or len(formats) < 1:
+            self.report_warning('Unable to stream urls from api, falling back to webpage extraction')
+            return self.webpage_extraction(video_id)
+
+        return {
+            'id': video_id,
+            'title': video_id,
+            'is_live': True,
+            'formats': formats,
+            'age_limit': 18,
+            'thumbnail': user.get('avatar'),
         }
