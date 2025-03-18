@@ -57,12 +57,12 @@ class MyFreeCamsIE(InfoExtractor):
     def get_required_params(self, webpage):
         sid = self._search_regex(
             [r'data-campreview-sid=["\'](\d+)["\']', r'data-cam-preview-server-id-value=["\'](\d+)["\']'],
-            webpage, 'sid', fatal=False
+            webpage, 'sid', fatal=False,
         )
 
         mid = self._search_regex(
             [r'data-campreview-mid=["\'](\d+)["\']', r'data-cam-preview-model-id-value=["\'](\d+)["\']'],
-            webpage, 'mid', fatal=False
+            webpage, 'mid', fatal=False,
         )
 
         webrtc = self._search_regex(
@@ -72,7 +72,7 @@ class MyFreeCamsIE(InfoExtractor):
 
         snap_url = self._search_regex(
             r'data-cam-preview-snap-url-value=["\']([^"\']+)["\']',
-            webpage, 'snap_url', default=''
+            webpage, 'snap_url', default='',
         )
 
         webrtc = 'true' if 'mfc_a_' in snap_url else 'false'
