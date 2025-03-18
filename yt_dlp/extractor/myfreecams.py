@@ -96,12 +96,12 @@ class MyFreeCamsIE(InfoExtractor):
         params = self.get_required_params(webpage)
         if not params.get('sid'):
             raise UserNotLive('Model offline')
-        
+
         formats = self._extract_m3u8_formats(
-                'https://edgevideo.myfreecams.com/llhls/NxServer/' + params['sid'] + '/ngrp:mfc_' + params['a'] + params['mid'] + '.f4v_mobile/playlist.m3u8',
-                video_id, ext='mp4', m3u8_id='llhls', live=True)
+            'https://edgevideo.myfreecams.com/llhls/NxServer/' + params['sid'] + '/ngrp:mfc_' + params['a'] + params['mid'] + '.f4v_mobile/playlist.m3u8',
+            video_id, ext='mp4', m3u8_id='llhls', live=True)
         formats.extend(self._extract_m3u8_formats('https://edgevideo.myfreecams.com/hls/NxServer/' + params['sid'] + '/ngrp:mfc_' + params['a'] + params['mid'] + '.f4v_mobile/playlist.m3u8',
-                        video_id, ext='mp4', m3u8_id='hls', live=True))
+                                                  video_id, ext='mp4', m3u8_id='hls', live=True))
 
         return {
             'id': video_id,
