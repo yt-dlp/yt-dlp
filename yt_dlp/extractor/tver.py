@@ -250,5 +250,3 @@ class TVerIE(InfoExtractor):
         })
 
         return result
-
-
