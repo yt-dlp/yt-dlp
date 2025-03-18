@@ -1,5 +1,6 @@
 import random
 import re
+import socket
 import urllib.parse
 
 from .common import InfoExtractor
@@ -8,7 +9,7 @@ from ..utils import ExtractorError
 
 
 class MyFreeCamsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?myfreecams\.com/#(?P<id>[^/?&#]+)'
+    _VALID_URL = r'https?:\/\/(?:\w+\.)?myfreecams\.com\/(?:(?:models\/|chats\/)?\#?(?P<id>\w+))'
     _TESTS = [{
         'url': 'https://www.myfreecams.com/#Elise_wood',
         'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
@@ -25,6 +26,22 @@ class MyFreeCamsIE(InfoExtractor):
             'skip_download': True,
         },
         'skip': 'Model is currently offline',
+    }, {
+        'url': 'https://m.myfreecams.com/chats/Elise_wood',
+        'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
+        'info_dict': {
+            'id': 'Elise_wood',
+            'ext': 'mp4',
+            'title': r're:.*MyFreeCams.*',
+            'age_limit': 0,
+            'is_live': True,
+            'live_status': str,
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': 'Model is currently offline',
+
     }]
 
     JS_SERVER_URL = 'https://www.myfreecams.com/_js/serverconfig.js'
@@ -51,7 +68,7 @@ class MyFreeCamsIE(InfoExtractor):
                 self.write_debug(f'Websocket server {xchat} connected')
                 self.write_debug(f'Websocket URL: {host}')
                 break
-            except websockets.exceptions.WebSocketException:
+            except (websockets.exceptions.WebSocketException, socket.gaierror):
                 self.report_warning(f'Failed to connect to WS server: {xchat} - try {try_to_connect + 1}')
                 if try_to_connect == 4:
                     error = f'Failed to connect to WS server: {host}'
