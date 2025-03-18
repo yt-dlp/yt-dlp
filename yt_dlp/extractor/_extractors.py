@@ -692,6 +692,7 @@ from .francetv import (
     FranceTVIE,
     FranceTVInfoIE,
     FranceTVSiteIE,
+    FranceTVSiteShowIE,
 )
 from .freesound import FreesoundIE
 from .freespeech import FreespeechIE
