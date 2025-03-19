@@ -1,4 +1,5 @@
 import os
+import sys
 
 from .common import PostProcessor
 from ..utils import (
@@ -35,15 +36,38 @@ class XAttrMetadataPP(PostProcessor):
         # 'user.xdg.comment': 'description',
     }
 
+    PLATFORM_XATTR_MAPPING = {
+        'darwin': {
+            'com.apple.metadata:kMDItemWhereFroms': 'webpage_url',
+        },
+    }
+
+    APPLE_PLIST_TEMPLATE = '''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+\t<string>%s</string>
+</array>
+</plist>'''
+
+    def format_value(self, xattrname, infoname, value):
+        if infoname == 'upload_date':
+            return hyphenate_date(value)
+        if xattrname == 'com.apple.metadata:kMDItemWhereFroms':
+            return self.APPLE_PLIST_TEMPLATE % value
+        return value
+
     def run(self, info):
         mtime = os.stat(info['filepath']).st_mtime
         self.to_screen('Writing metadata to file\'s xattrs')
-        for xattrname, infoname in self.XATTR_MAPPING.items():
+
+        mapping = dict(self.XATTR_MAPPING)
+        mapping.update(self.PLATFORM_XATTR_MAPPING.get(sys.platform, {}))
+        for xattrname, infoname in mapping.items():
             try:
                 value = info.get(infoname)
                 if value:
-                    if infoname == 'upload_date':
-                        value = hyphenate_date(value)
+                    value = self.format_value(xattrname, infoname, value)
                     write_xattr(info['filepath'], xattrname, value.encode())
 
             except XAttrUnavailableError as e:
