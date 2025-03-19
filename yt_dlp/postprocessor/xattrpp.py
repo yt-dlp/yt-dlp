@@ -44,13 +44,6 @@ class XAttrMetadataPP(PostProcessor):
 </array>
 </plist>'''
 
-    def format_value(self, xattrname, infoname, value):
-        if infoname == 'upload_date':
-            return hyphenate_date(value)
-        if xattrname == 'com.apple.metadata:kMDItemWhereFroms':
-            return self.APPLE_PLIST_TEMPLATE % value
-        return value
-
     def run(self, info):
         mtime = os.stat(info['filepath']).st_mtime
         self.to_screen('Writing metadata to file\'s xattrs')
@@ -58,7 +51,10 @@ class XAttrMetadataPP(PostProcessor):
             try:
                 value = info.get(infoname)
                 if value:
-                    value = self.format_value(xattrname, infoname, value)
+                    if infoname == 'upload_date':
+                        value = hyphenate_date(value)
+                    elif xattrname == 'com.apple.metadata:kMDItemWhereFroms':
+                        value = self.APPLE_PLIST_TEMPLATE % value
                     write_xattr(info['filepath'], xattrname, value.encode())
 
             except XAttrUnavailableError as e:
