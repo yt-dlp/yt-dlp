@@ -9,7 +9,7 @@ from ..utils import (
 
 
 class MyFreeCamsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:app|share|www)\.myfreecams\.com(?:/room)?/#?(?P<id>[^/?&#]+)'
+    _VALID_URL = r'https?://(?:app|share|www|m)\.myfreecams\.com(?:/room|/chats)?/#?(?P<id>[^/?&#]+)'
     _TESTS = [{
         'url': 'https://app.myfreecams.com/room/stacy_x3',
         'info_dict': {
@@ -52,6 +52,9 @@ class MyFreeCamsIE(InfoExtractor):
             'skip_download': True,
         },
         'skip': 'Model offline',
+    }, {
+        'url': 'https://m.myfreecams.com/chats/erikasmagic',
+        'only_matching': True,
     }]
 
     def get_required_params(self, webpage):
