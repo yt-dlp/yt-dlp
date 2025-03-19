@@ -4,6 +4,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    float_or_none,
     join_nonempty,
     smuggle_url,
     str_or_none,
@@ -171,6 +172,10 @@ class TVerIE(InfoExtractor):
             'thumbnails': thumbnails,
         }
 
+        ts = traverse_obj(video_info, ('viewStatus', 'startAt', {int}), default=None)
+        if ts:
+            data['timestamp'] = ts
+
         episode_number = traverse_obj(video_info, ('no', {str_or_none}), default=None)
         if episode_number:
             data['episode_number'] = int(episode_number)
@@ -269,5 +274,9 @@ class TVerIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         })
+
+        duration = float_or_none(json_info.get('duration'), 1000)
+        if duration:
+            result['duration'] = duration
 
         return result
