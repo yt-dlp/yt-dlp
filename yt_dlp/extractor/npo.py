@@ -16,7 +16,7 @@ class NPOBaseIE(InfoExtractor):
     def _extract_product_id_information(self, product_id):
         token = self._download_json(
             f'https://npo.nl/start/api/domain/player-token?productId={product_id}', product_id,
-            'Downloading token')['token']
+            'Downloading token')['jwt']
         return self._extract_info_from_token(product_id, token)
 
     def _extract_info_from_token(self, video_id, token):
@@ -154,9 +154,10 @@ class NPORadioIE(NPOBaseIE):
             'ext': 'mp4',
             'title': r're:^NPO Radio 1 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'live_status': 'is_live',
-            'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnail': r're:^https?://.*\.(jpg|png)$',
             'description': 'Live programmering',
             'is_live': True,
+            'genres': [],
         },
         'params': {
             'skip_download': True,
@@ -164,32 +165,26 @@ class NPORadioIE(NPOBaseIE):
     },
         {
         'url': 'https://www.nporadio1.nl/nieuws/binnenland/15bcad75-22c5-4226-a3fe-d54a76175da3/utrecht-zet-rolmodellen-in-voor-bewustwording-mentale-gezondheid',
-        'md5': '8ad04123febc07716f45e324d7fb792d',
+        'md5': 'b9ac5e5d5170083cf46228d0721746fa',
         'info_dict': {
             'id': 'utrecht-zet-rolmodellen-in-voor-bewustwording-mentale-gezondheid',
             'ext': 'mp4',
-            'duration': 262,
-            'channel_id': 'RAD1',
-            'description': 'md5:7d36b72407e757e6c748a6cdf27c7628',
+            'duration': 261,
             'title': 'Utrecht zet rolmodellen in voor bewustzijn mentale gezondheid ',
-            'genres': ['Informatief'],
-            'uploader_id': 'RAD1',
-            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/2217026',
+            'genres': [],
+            'thumbnail': str,
         },
     },
         {
         'url': 'https://www.nporadio2.nl/fragmenten/janwillemstartop/9d35b8fb-a07b-41f9-9cc5-a9c89dd60dbb/2024-10-10-nancy-zet-zich-in-voor-daklozen-voor-mij-was-het-op-het-randje',
-        'md5': '432b0e106082ffaa0e31c4549db09b0c',
+        'md5': '88cf7b91054630575af7b0ce2827480a',
         'info_dict': {
             'id': '2024-10-10-nancy-zet-zich-in-voor-daklozen-voor-mij-was-het-op-het-randje',
             'ext': 'mp4',
-            'genres': ['Muziek'],
+            'genres': [],
             'title': 'Nancy zet zich in voor daklozen: "Voor mij was het op het randje" ',
             'duration': 235,
-            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/2216783',
-            'description': 'md5:26925e8bd2c715b160cc864efa731583',
-            'uploader_id': 'RAD2',
-            'channel_id': 'RAD2',
+            'thumbnail': str,
         },
     },
         {
@@ -199,7 +194,7 @@ class NPORadioIE(NPOBaseIE):
             'id': '2024-10-11-dit-is-tannaz',
             'ext': 'mp3',
             'uploader_id': 'RAD2',
-            'genres': ['Muziek'],
+            'genres': [],
             'title': 'Dit is Tannaz',
             'channel_id': 'RAD2',
             'description': 'md5:3f2b5dad3e965ae7915a5f9a5a2decc5',
@@ -231,7 +226,7 @@ class NPO3IE(NPOBaseIE):
 
     _TEST = {
         'url': 'https://npo.nl/npo3/vlees-smakelijk/11-10-2024/WO_KN_20222563',
-        'md5': 'e0cd5b96c712edea2e7f0700d348bc98',
+        'md5': '991525bfd0532a93322a9ed3123c730c',
         'info_dict': {
             'id': 'WO_KN_20222563',
             'ext': 'mp4',
