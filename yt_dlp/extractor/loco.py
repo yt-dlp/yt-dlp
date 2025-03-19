@@ -25,6 +25,8 @@ class LocoIE(InfoExtractor):
             'timestamp': int,
             'modified_timestamp': int,
             'live_status': 'is_live',
+            'upload_date': str,
+            'modified_date': str,
         },
         'params': {
             'skip_download': 'Livestream',
@@ -48,8 +50,10 @@ class LocoIE(InfoExtractor):
             'thumbnail': 'https://static.ivory.getloconow.com/default_thumb/59b5970b-23c1-4518-9e96-17ce341299fe.jpg',
             'tags': ['Gameplay'],
             'series': 'GTA 5',
-            'timestamp': 1740612872041,
-            'modified_timestamp': 1740613037111,
+            'timestamp': 1740612872,
+            'modified_timestamp': 1740613037,
+            'upload_date': '20250226',
+            'modified_date': '20250226',
         },
     }]
 
