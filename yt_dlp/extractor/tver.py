@@ -211,7 +211,7 @@ class TVerIE(InfoExtractor):
         if not project_id:
             raise ExtractorError('Failed to extract project ID for streaks.jp stream info')
 
-        if not ref_id.isdigit() and not ref_id.startswith('ref:'):
+        if not ref_id.startswith('ref:'):
             ref_id = f'ref:{ref_id}'
 
         url = self.STREAKS_URL_TEMPLATE % (project_id, ref_id, 'aa')
