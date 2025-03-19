@@ -1,5 +1,4 @@
 import os
-import sys
 
 from .common import PostProcessor
 from ..utils import (
@@ -30,16 +29,11 @@ class XAttrMetadataPP(PostProcessor):
         'user.dublincore.date': 'upload_date',
         'user.dublincore.contributor': 'uploader',
         'user.dublincore.format': 'format',
+        'com.apple.metadata:kMDItemWhereFroms': 'webpage_url',
         # We do this last because it may get us close to the xattr limits
         # (e.g., 4kB on ext4), and we don't want to have the other ones fail
         'user.dublincore.description': 'description',
         # 'user.xdg.comment': 'description',
-    }
-
-    PLATFORM_XATTR_MAPPING = {
-        'darwin': {
-            'com.apple.metadata:kMDItemWhereFroms': 'webpage_url',
-        },
     }
 
     APPLE_PLIST_TEMPLATE = '''<?xml version="1.0" encoding="UTF-8"?>
@@ -60,10 +54,7 @@ class XAttrMetadataPP(PostProcessor):
     def run(self, info):
         mtime = os.stat(info['filepath']).st_mtime
         self.to_screen('Writing metadata to file\'s xattrs')
-
-        mapping = dict(self.XATTR_MAPPING)
-        mapping.update(self.PLATFORM_XATTR_MAPPING.get(sys.platform, {}))
-        for xattrname, infoname in mapping.items():
+        for xattrname, infoname in self.XATTR_MAPPING.items():
             try:
                 value = info.get(infoname)
                 if value:
