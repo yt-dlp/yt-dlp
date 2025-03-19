@@ -1,5 +1,6 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj
+from ..utils import int_or_none
+from ..utils.traversal import require, traverse_obj
 
 
 class LocoIE(InfoExtractor):
@@ -53,16 +54,15 @@ class LocoIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_type, video_id = self._match_valid_url(url).groups()
+        video_type, video_id = self._match_valid_url(url).group('type', 'id')
         webpage = self._download_webpage(url, video_id)
-        stream = traverse_obj(self._search_nextjs_data(webpage, video_id), ('props', 'pageProps', ('liveStreamData', 'stream')))[0]
-        formats = self._extract_m3u8_formats(traverse_obj(stream, ('conf', 'hls')), video_id)
+        stream = traverse_obj(self._search_nextjs_data(webpage, video_id), ('props', 'pageProps', ('liveStreamData', 'stream'), {dict}, any, {require('stream info')}))
 
         return {
-            'formats': formats,
+            'formats': self._extract_m3u8_formats(traverse_obj(stream, ('conf', 'hls')), video_id),
             'id': video_id,
             'is_live': video_type == 'streamers',
-            **traverse_obj(stream, ({
+            **traverse_obj(stream, {
                 'title': ('title', {str}),
                 'series': ('game_name', {str}),
                 'uploader_id': ('user_uid', {str}),
@@ -72,11 +72,11 @@ class LocoIE(InfoExtractor):
                 'view_count': ('total_views', {int}),
                 'thumbnail': ('thumbnail_url_small', {str}),
                 'like_count': ('likes', {int}),
-                'tags': ('tags', {list}),
-                'timestamp': ('started_at', {int}),
-                'modified_timestamp': ('updated_at', {int}),
+                'tags': ('tags', ..., {str}),
+                'timestamp': ('started_at', {int_or_none(scale=1000)}),
+                'modified_timestamp': ('updated_at', {int_or_none(scale=1000)}),
                 'comment_count': ('comments_count', {int}),
                 'channel_follower_count': ('followers_count', {int}),
                 'duration': ('duration', {int}),
-            })),
+            }),
         }
