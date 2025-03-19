@@ -1,3 +1,6 @@
+import datetime
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -167,6 +170,24 @@ class TVerIE(InfoExtractor):
             'description': str_or_none(video_info.get('description')),
             'thumbnails': thumbnails,
         }
+
+        episode_number = traverse_obj(video_info, ('no', {str_or_none}), default=None)
+        if episode_number:
+            data['episode_number'] = int(episode_number)
+
+        onair_label = str_or_none(episode_content.get('broadcastDateLabel'))
+        if onair_label:
+            match = re.search(
+                pattern=r'(?:(?P<year>\d{4})年)|(?:(?P<month>\d{1,2})\D(?P<day>\d{1,2})\D)',
+                string=onair_label,
+            )
+
+            if match:
+                air_date = match.groupdict()
+                if air_date.get('day') and air_date.get('month'):
+                    data['release_date'] = (
+                        f"{datetime.datetime.now().year}{air_date['month'].zfill(2)}{air_date['day'].zfill(2)}"
+                    )
 
         backend = self._configuration_arg('backend', ['streaks'])[0]
 
