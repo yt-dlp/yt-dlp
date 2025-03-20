@@ -8,10 +8,10 @@ class SpeedRunIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?speedrun\.com/[^/?#]+/runs/(?P<id>[^?/#]+)'
 
     _TESTS = [{
-        'url':'https://www.speedrun.com/smg1/runs/yvnjr9om',
+        'url': 'https://www.speedrun.com/smg1/runs/yvnjr9om',
         'only_matching': True,
     }, {
-        'url':'https://www.speedrun.com/pm64/runs/y96x462y',
+        'url': 'https://www.speedrun.com/pm64/runs/y96x462y',
         'only_matching': True,
     }]
 
