@@ -109,7 +109,7 @@ class StreaksBaseIE(InfoExtractor):
 
 class StreaksIE(StreaksBaseIE):
     IE_NAME = 'streaks'
-    IE_DESC = 'Streaks'
+    IE_DESC = 'STREAKS'
 
     _VALID_URL = [
         r'https?://players\.streaks\.jp/(?P<project_id>[\w-]+)/(?P<uploader_id>\w+)/index\.html\?m=(?P<media_id>(?:ref:)?[\w-]+)',
