@@ -21,4 +21,3 @@ class SpeedRunIE(InfoExtractor):
             r'<iframe [^>]*class="[^"]*block[^"]+" [^>]*src="([^"]+)', webpage, 'embed url')
 
         return self.url_result(embed_url)
-
