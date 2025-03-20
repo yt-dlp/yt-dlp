@@ -339,7 +339,7 @@ class TVerIE(InfoExtractor):
         sources = traverse_obj(json_info, ('sources'), default=[])
 
         formats = []
-        subtitles = []
+        subtitles = {}
 
         for item in sources:
             m3u8_url = traverse_obj(item, ('src'), default=None)
@@ -361,7 +361,7 @@ class TVerIE(InfoExtractor):
                 formats.extend(item_formats)
 
             if len(item_subtitles) > 0:
-                subtitles.extend(item_subtitles)
+                subtitles.update(item_subtitles)
 
         if len(formats) < 1:
             raise ExtractorError('Failed to extract any m3u8 streams from streaks.jp video info')
