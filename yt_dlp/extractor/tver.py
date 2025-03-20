@@ -1,5 +1,4 @@
 import datetime
-import json
 import re
 
 from yt_dlp.extractor.common import InfoExtractor
@@ -189,8 +188,6 @@ class TVerIE(InfoExtractor):
         )
         episode_content = traverse_obj(episode_info, ('result', 'episode', 'content')) or {}
 
-        self.write_debug(json.dumps(episode_info, indent=2, ensure_ascii=False))
-
         version = traverse_obj(episode_content, ('version', {str_or_none}), default='5')
 
         video_info = self._download_json(
@@ -256,8 +253,6 @@ class TVerIE(InfoExtractor):
             data = self._brightcove_backend(data, video_info)
         else:
             data = self._streaks_backend(data, video_info, video_id)
-
-        self.write_debug(json.dumps(data, indent=2, ensure_ascii=False))
 
         return data
 
@@ -340,8 +335,6 @@ class TVerIE(InfoExtractor):
                 **self.geo_verification_headers(),
             },
         )
-
-        self.write_debug(json.dumps(json_info, indent=2, ensure_ascii=False))
 
         sources = traverse_obj(json_info, ('sources'), default=[])
 
