@@ -1,15 +1,15 @@
 import json
 import re
 
-from yt_dlp.utils._utils import ExtractorError
-from yt_dlp.utils.traversal import traverse_obj
-
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
+    extract_attributes,
     int_or_none,
     orderedSet,
 )
+from ..utils.traversal import find_element, traverse_obj
 
 
 class NPOBaseIE(InfoExtractor):
@@ -35,6 +35,8 @@ class NPOBaseIE(InfoExtractor):
                 headers={'Authorization': token},
                 fatal=False,
             )
+            if not profile:
+                continue
             metadata = profile.get('metadata')
             if metadata is not None:
                 duration = metadata.get('duration')
@@ -300,23 +302,28 @@ class ZappIE(NPOBaseIE):
     _VALID_URL = r'https?://(?:www\.)?zapp\.nl/programmas/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
 
     _TEST = {
-        'url': 'https://www.zapp.nl/programmas/zappsport/gemist/POMS_AT_811523',
-        'md5': 'faf6811abea03ba8a52298c97bd0146b',
+        'url': 'https://www.zapp.nl/programmas/zappsport/gemist/POMS_AT_876597',
+        'md5': '7daa619e7c01ea7f6abd528eaf1af4c4',
         'info_dict': {
-            'id': 'POMS_AT_811523',
+            'id': 'POMS_AT_876597',
             'ext': 'mp4',
+            'title': 'Bommetje! - clip 1',
+            'duration': 13.0,
+            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/615088',
             'genres': [],
-            'uploader_id': 'NED3',
-            'description': 'Kindersportprogramma waarin alle takken van sport voorbijkomen.',
-            'channel_id': 'NED3',
-            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/586056',
-            'duration': 900.0,
-            'title': 'Running Team 2015 - aflevering 1',
         },
     }
 
     def _real_extract(self, url):
-        return self._extract_product_id_information(self._match_id(url))
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        payload = traverse_obj(webpage, (
+            {find_element(attr='data-react-class', value='Player', html=True)},
+            {extract_attributes}, 'data-react-props', {json.loads}))['player_token_payload']
+        token = self._download_json(
+            'https://www.zapp.nl/api/v5/player_tokens', video_id, 'Downloading token',
+            data=json.dumps({'payload': payload}).encode(), headers={'content-type': 'application/json'})['token']
+        return self._extract_info_from_token(video_id, token)
 
 
 class NPOPlaylistBaseIE(NPOBaseIE):
