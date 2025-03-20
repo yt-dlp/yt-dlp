@@ -340,17 +340,14 @@ class XVideosRelatedIE(XVideosPlaylistIE):
 
 
 class XVideosChannelIE(XVideosPlaylistIE):
-    _VALID_URL = r'''(?x)
-                    https?://
-                        (?:[^/]+\.)?xvideos(?:\d+)?\.com/
-                          (?:
-                             (?:amateur-|pornstar-|model-)?channel|profile|
-                             pornstar|model|amateur
-                          )s/
+    _VALID_URL =  r'''(?x)
+                        https?://
+                            (?:[^/]+\.)?xvideos(?:\d+)?\.com/
+                            (?:(?:(?:amateur-|pornstar-|model-)?channel|profile|pornstar|model|amateur)s/)?
                             (?P<id>[^#?/]+)
-                              (?:\#_tab(?P<tab>Videos|Favorites|Playlists|AboutMe)(?:,(?P<sort>[^,]+))?)?
-                    $
-                 '''
+                            (?:\#_tab(?P<tab>Videos|Favorites|Playlists|AboutMe)(?:,(?P<sort>[^,]+))?)?
+                        $
+                    '''
     _TESTS = [{
         'url': 'https://www.xvideos.com/pornstar-channels/sienna-west',
         'playlist_mincount': 5,
@@ -365,6 +362,12 @@ class XVideosChannelIE(XVideosPlaylistIE):
         'playlist_mincount': 5,
     }, {
         'url': 'https://www.xvideos3.com/amateurs/shaiden_rogue5#_tabVideos',
+        'playlist_mincount': 5,
+    }, {
+        'url': 'https://www.xvideos3.com/natalia--starr#_tabVideos',
+        'playlist_mincount': 5,
+    }, {
+        'url': 'https://www.xvideos3.com/porn_force#_tabVideos',
         'playlist_mincount': 5,
     }]
 
