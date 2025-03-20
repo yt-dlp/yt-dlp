@@ -23,7 +23,6 @@ from ..utils import (
     cli_valueless_option,
     determine_ext,
     encodeArgument,
-    encodeFilename,
     find_available_port,
     remove_end,
     traverse_obj,
@@ -67,7 +66,7 @@ class ExternalFD(FragmentFD):
                 'elapsed': time.time() - started,
             }
             if filename != '-':
-                fsize = os.path.getsize(encodeFilename(tmpfilename))
+                fsize = os.path.getsize(tmpfilename)
                 self.try_rename(tmpfilename, filename)
                 status.update({
                     'downloaded_bytes': fsize,
@@ -184,9 +183,9 @@ class ExternalFD(FragmentFD):
             dest.write(decrypt_fragment(fragment, src.read()))
             src.close()
             if not self.params.get('keep_fragments', False):
-                self.try_remove(encodeFilename(fragment_filename))
+                self.try_remove(fragment_filename)
         dest.close()
-        self.try_remove(encodeFilename(f'{tmpfilename}.frag.urls'))
+        self.try_remove(f'{tmpfilename}.frag.urls')
         return 0
 
     def _call_process(self, cmd, info_dict):
@@ -458,8 +457,6 @@ class FFmpegFD(ExternalFD):
 
     @classmethod
     def available(cls, path=None):
-        # TODO: Fix path for ffmpeg
-        # Fixme: This may be wrong when --ffmpeg-location is used
         return FFmpegPostProcessor().available
 
     def on_process_started(self, proc, stdin):
@@ -620,7 +617,7 @@ class FFmpegFD(ExternalFD):
         args += self._configuration_args(('_o1', '_o', ''))
 
         args = [encodeArgument(opt) for opt in args]
-        args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
+        args.append(ffpp._ffmpeg_filename_argument(tmpfilename))
         self._debug_cmd(args)
 
         piped = any(fmt['url'] in ('-', 'pipe:') for fmt in selected_formats)

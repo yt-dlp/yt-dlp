@@ -3,24 +3,25 @@
 # Allow direct execution
 import os
 import sys
-import unittest
-import warnings
-import datetime as dt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 import contextlib
+import datetime as dt
 import io
 import itertools
 import json
+import pickle
 import subprocess
+import unittest
+import unittest.mock
+import warnings
 import xml.etree.ElementTree
 
 from yt_dlp.compat import (
     compat_etree_fromstring,
     compat_HTMLParseError,
-    compat_os_name,
 )
 from yt_dlp.utils import (
     Config,
@@ -48,7 +49,6 @@ from yt_dlp.utils import (
     dfxp2srt,
     encode_base_n,
     encode_compat_str,
-    encodeFilename,
     expand_path,
     extract_attributes,
     extract_basic_auth,
@@ -68,7 +68,6 @@ from yt_dlp.utils import (
     get_elements_html_by_class,
     get_elements_text_and_html_by_attribute,
     int_or_none,
-    intlist_to_bytes,
     iri_to_uri,
     is_html,
     js_to_json,
@@ -221,9 +220,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_filename('N0Y__7-UOdI', is_id=True), 'N0Y__7-UOdI')
 
     def test_sanitize_path(self):
-        if sys.platform != 'win32':
-            return
+        with unittest.mock.patch('sys.platform', 'win32'):
+            self._test_sanitize_path()
 
+    def _test_sanitize_path(self):
         self.assertEqual(sanitize_path('abc'), 'abc')
         self.assertEqual(sanitize_path('abc/def'), 'abc\\def')
         self.assertEqual(sanitize_path('abc\\def'), 'abc\\def')
@@ -250,11 +250,35 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_path('abc/def...'), 'abc\\def..#')
         self.assertEqual(sanitize_path('abc.../def'), 'abc..#\\def')
         self.assertEqual(sanitize_path('abc.../def...'), 'abc..#\\def..#')
+        self.assertEqual(sanitize_path('C:\\abc:%(title)s.%(ext)s'), 'C:\\abc#%(title)s.%(ext)s')
 
-        self.assertEqual(sanitize_path('../abc'), '..\\abc')
-        self.assertEqual(sanitize_path('../../abc'), '..\\..\\abc')
-        self.assertEqual(sanitize_path('./abc'), 'abc')
-        self.assertEqual(sanitize_path('./../abc'), '..\\abc')
+        # Check with nt._path_normpath if available
+        try:
+            import nt
+
+            nt_path_normpath = getattr(nt, '_path_normpath', None)
+        except Exception:
+            nt_path_normpath = None
+
+        for test, expected in [
+            ('C:\\', 'C:\\'),
+            ('../abc', '..\\abc'),
+            ('../../abc', '..\\..\\abc'),
+            ('./abc', 'abc'),
+            ('./../abc', '..\\abc'),
+            ('\\abc', '\\abc'),
+            ('C:abc', 'C:abc'),
+            ('C:abc\\..\\', 'C:'),
+            ('C:abc\\..\\def\\..\\..\\', 'C:..'),
+            ('C:\\abc\\xyz///..\\def\\', 'C:\\abc\\def'),
+            ('abc/../', '.'),
+            ('./abc/../', '.'),
+        ]:
+            result = sanitize_path(test)
+            assert result == expected, f'{test} was incorrectly resolved'
+            assert result == sanitize_path(result), f'{test} changed after sanitizing again'
+            if nt_path_normpath:
+                assert result == nt_path_normpath(test), f'{test} does not match nt._path_normpath'
 
     def test_sanitize_url(self):
         self.assertEqual(sanitize_url('//foo.bar'), 'http://foo.bar')
@@ -337,11 +361,13 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(remove_start(None, 'A - '), None)
         self.assertEqual(remove_start('A - B', 'A - '), 'B')
         self.assertEqual(remove_start('B - A', 'A - '), 'B - A')
+        self.assertEqual(remove_start('non-empty', ''), 'non-empty')
 
     def test_remove_end(self):
         self.assertEqual(remove_end(None, ' - B'), None)
         self.assertEqual(remove_end('A - B', ' - B'), 'A')
         self.assertEqual(remove_end('B - A', ' - B'), 'B - A')
+        self.assertEqual(remove_end('non-empty', ''), 'non-empty')
 
     def test_remove_quotes(self):
         self.assertEqual(remove_quotes(None), None)
@@ -557,10 +583,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(res_data, {'a': 'b', 'c': 'd'})
 
     def test_shell_quote(self):
-        args = ['ffmpeg', '-i', encodeFilename('ñ€ß\'.mp4')]
+        args = ['ffmpeg', '-i', 'ñ€ß\'.mp4']
         self.assertEqual(
             shell_quote(args),
-            """ffmpeg -i 'ñ€ß'"'"'.mp4'""" if compat_os_name != 'nt' else '''ffmpeg -i "ñ€ß'.mp4"''')
+            """ffmpeg -i 'ñ€ß'"'"'.mp4'""" if os.name != 'nt' else '''ffmpeg -i "ñ€ß'.mp4"''')
 
     def test_float_or_none(self):
         self.assertEqual(float_or_none('42.42'), 42.42)
@@ -1300,15 +1326,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(clean_html('a:\n   "b"'), 'a: "b"')
         self.assertEqual(clean_html('a<br>\xa0b'), 'a\nb')
 
-    def test_intlist_to_bytes(self):
-        self.assertEqual(
-            intlist_to_bytes([0, 1, 127, 128, 255]),
-            b'\x00\x01\x7f\x80\xff')
-
     def test_args_to_str(self):
         self.assertEqual(
             args_to_str(['foo', 'ba/r', '-baz', '2 be', '']),
-            'foo ba/r -baz \'2 be\' \'\'' if compat_os_name != 'nt' else 'foo ba/r -baz "2 be" ""',
+            'foo ba/r -baz \'2 be\' \'\'' if os.name != 'nt' else 'foo ba/r -baz "2 be" ""',
         )
 
     def test_parse_filesize(self):
@@ -2067,21 +2088,26 @@ Line 1
         headers = HTTPHeaderDict()
         headers['ytdl-test'] = b'0'
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '0')])
+        self.assertEqual(list(headers.sensitive().items()), [('ytdl-test', '0')])
         headers['ytdl-test'] = 1
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
+        self.assertEqual(list(headers.sensitive().items()), [('ytdl-test', '1')])
         headers['Ytdl-test'] = '2'
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '2')])
+        self.assertEqual(list(headers.sensitive().items()), [('Ytdl-test', '2')])
         self.assertTrue('ytDl-Test' in headers)
         self.assertEqual(str(headers), str(dict(headers)))
         self.assertEqual(repr(headers), str(dict(headers)))
 
         headers.update({'X-dlp': 'data'})
         self.assertEqual(set(headers.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data')})
+        self.assertEqual(set(headers.sensitive().items()), {('Ytdl-test', '2'), ('X-dlp', 'data')})
         self.assertEqual(dict(headers), {'Ytdl-Test': '2', 'X-Dlp': 'data'})
         self.assertEqual(len(headers), 2)
         self.assertEqual(headers.copy(), headers)
-        headers2 = HTTPHeaderDict({'X-dlp': 'data3'}, **headers, **{'X-dlp': 'data2'})
+        headers2 = HTTPHeaderDict({'X-dlp': 'data3'}, headers, **{'X-dlP': 'data2'})
         self.assertEqual(set(headers2.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data2')})
+        self.assertEqual(set(headers2.sensitive().items()), {('Ytdl-test', '2'), ('X-dlP', 'data2')})
         self.assertEqual(len(headers2), 2)
         headers2.clear()
         self.assertEqual(len(headers2), 0)
@@ -2089,16 +2115,23 @@ Line 1
         # ensure we prefer latter headers
         headers3 = HTTPHeaderDict({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
         self.assertEqual(set(headers3.items()), {('Ytdl-Test', '2')})
+        self.assertEqual(set(headers3.sensitive().items()), {('Ytdl-test', '2')})
         del headers3['ytdl-tesT']
         self.assertEqual(dict(headers3), {})
 
         headers4 = HTTPHeaderDict({'ytdl-test': 'data;'})
         self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})
+        self.assertEqual(set(headers4.sensitive().items()), {('ytdl-test', 'data;')})
 
         # common mistake: strip whitespace from values
         # https://github.com/yt-dlp/yt-dlp/issues/8729
         headers5 = HTTPHeaderDict({'ytdl-test': ' data; '})
         self.assertEqual(set(headers5.items()), {('Ytdl-Test', 'data;')})
+        self.assertEqual(set(headers5.sensitive().items()), {('ytdl-test', 'data;')})
+
+        # test if picklable
+        headers6 = HTTPHeaderDict(a=1, b=2)
+        self.assertEqual(pickle.loads(pickle.dumps(headers6)), headers6)
 
     def test_extract_basic_auth(self):
         assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)
@@ -2108,7 +2141,7 @@ Line 1
         assert extract_basic_auth('http://user:@foo.bar') == ('http://foo.bar', 'Basic dXNlcjo=')
         assert extract_basic_auth('http://user:pass@foo.bar') == ('http://foo.bar', 'Basic dXNlcjpwYXNz')
 
-    @unittest.skipUnless(compat_os_name == 'nt', 'Only relevant on Windows')
+    @unittest.skipUnless(os.name == 'nt', 'Only relevant on Windows')
     def test_windows_escaping(self):
         tests = [
             'test"&',
@@ -2141,6 +2174,12 @@ Line 1
             args = [sys.executable, '-c', 'import sys; print(end=sys.argv[1])', argument, 'end']
             assert run_shell(args) == expected
             assert run_shell(shell_quote(args, shell=True)) == expected
+
+    def test_partial_application(self):
+        assert callable(int_or_none(scale=10)), 'missing positional parameter should apply partially'
+        assert int_or_none(10, scale=0.1) == 100, 'positionally passed argument should call function'
+        assert int_or_none(v=10) == 10, 'keyword passed positional should call function'
+        assert int_or_none(scale=0.1)(10) == 100, 'call after partial application should call the function'
 
 
 if __name__ == '__main__':

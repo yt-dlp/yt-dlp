@@ -8,7 +8,9 @@ import contextlib
 import datetime as dt
 import email.header
 import email.utils
+import enum
 import errno
+import functools
 import hashlib
 import hmac
 import html.entities
@@ -44,19 +46,15 @@ import xml.etree.ElementTree
 
 from . import traversal
 
-from ..compat import functools  # isort: split
 from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
     compat_HTMLParseError,
-    compat_os_name,
 )
 from ..dependencies import xattr
+from ..globals import IN_CLI
 
 __name__ = __name__.rsplit('.', 1)[0]  # noqa: A001: Pretend to be the parent module
-
-# This is not clearly defined otherwise
-compiled_regex_type = type(re.compile(''))
 
 
 class NO_DEFAULT:
@@ -210,6 +208,23 @@ def write_json_file(obj, fn):
         with contextlib.suppress(OSError):
             os.remove(tf.name)
         raise
+
+
+def partial_application(func):
+    sig = inspect.signature(func)
+    required_args = [
+        param.name for param in sig.parameters.values()
+        if param.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        if param.default is inspect.Parameter.empty
+    ]
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        if set(required_args[len(args):]).difference(kwargs):
+            return functools.partial(func, *args, **kwargs)
+        return func(*args, **kwargs)
+
+    return wrapped
 
 
 def find_xpath_attr(node, xpath, key, val=None):
@@ -664,31 +679,54 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
     return result
 
 
+def _sanitize_path_parts(parts):
+    sanitized_parts = []
+    for part in parts:
+        if not part or part == '.':
+            continue
+        elif part == '..':
+            if sanitized_parts and sanitized_parts[-1] != '..':
+                sanitized_parts.pop()
+            else:
+                sanitized_parts.append('..')
+            continue
+        # Replace invalid segments with `#`
+        # - trailing dots and spaces (`asdf...` => `asdf..#`)
+        # - invalid chars (`<>` => `##`)
+        sanitized_part = re.sub(r'[/<>:"\|\\?\*]|[\s.]$', '#', part)
+        sanitized_parts.append(sanitized_part)
+
+    return sanitized_parts
+
+
 def sanitize_path(s, force=False):
     """Sanitizes and normalizes path on Windows"""
-    # XXX: this handles drive relative paths (c:sth) incorrectly
-    if sys.platform == 'win32':
-        force = False
-        drive_or_unc, _ = os.path.splitdrive(s)
-    elif force:
-        drive_or_unc = ''
-    else:
-        return s
+    if sys.platform != 'win32':
+        if not force:
+            return s
+        root = '/' if s.startswith('/') else ''
+        path = '/'.join(_sanitize_path_parts(s.split('/')))
+        return root + path if root or path else '.'
 
-    norm_path = os.path.normpath(remove_start(s, drive_or_unc)).split(os.path.sep)
-    if drive_or_unc:
-        norm_path.pop(0)
-    sanitized_path = [
-        path_part if path_part in ['.', '..'] else re.sub(r'(?:[/<>:"\|\\?\*]|[\s.]$)', '#', path_part)
-        for path_part in norm_path]
-    if drive_or_unc:
-        sanitized_path.insert(0, drive_or_unc + os.path.sep)
-    elif force and s and s[0] == os.path.sep:
-        sanitized_path.insert(0, os.path.sep)
-    # TODO: Fix behavioral differences <3.12
-    # The workaround using `normpath` only superficially passes tests
-    # Ref: https://github.com/python/cpython/pull/100351
-    return os.path.normpath(os.path.join(*sanitized_path))
+    normed = s.replace('/', '\\')
+
+    if normed.startswith('\\\\'):
+        # UNC path (`\\SERVER\SHARE`) or device path (`\\.`, `\\?`)
+        parts = normed.split('\\')
+        root = '\\'.join(parts[:4]) + '\\'
+        parts = parts[4:]
+    elif normed[1:2] == ':':
+        # absolute path or drive relative path
+        offset = 3 if normed[2:3] == '\\' else 2
+        root = normed[:offset]
+        parts = normed[offset:].split('\\')
+    else:
+        # relative/drive root relative path
+        root = '\\' if normed[:1] == '\\' else ''
+        parts = normed.split('\\')
+
+    path = '\\'.join(_sanitize_path_parts(parts))
+    return root + path if root or path else '.'
 
 
 def sanitize_url(url, *, scheme='http'):
@@ -804,14 +842,18 @@ class Popen(subprocess.Popen):
         _startupinfo = None
 
     @staticmethod
-    def _fix_pyinstaller_ld_path(env):
-        """Restore LD_LIBRARY_PATH when using PyInstaller
-            Ref: https://github.com/pyinstaller/pyinstaller/blob/develop/doc/runtime-information.rst#ld_library_path--libpath-considerations
-                 https://github.com/yt-dlp/yt-dlp/issues/4573
-        """
+    def _fix_pyinstaller_issues(env):
         if not hasattr(sys, '_MEIPASS'):
             return
 
+        # Force spawning independent subprocesses for exes bundled with PyInstaller>=6.10
+        # Ref: https://pyinstaller.org/en/v6.10.0/CHANGES.html#incompatible-changes
+        #      https://github.com/yt-dlp/yt-dlp/issues/11259
+        env['PYINSTALLER_RESET_ENVIRONMENT'] = '1'
+
+        # Restore LD_LIBRARY_PATH when using PyInstaller
+        # Ref: https://pyinstaller.org/en/v6.10.0/runtime-information.html#ld-library-path-libpath-considerations
+        #      https://github.com/yt-dlp/yt-dlp/issues/4573
         def _fix(key):
             orig = env.get(f'{key}_ORIG')
             if orig is None:
@@ -825,7 +867,7 @@ class Popen(subprocess.Popen):
     def __init__(self, args, *remaining, env=None, text=False, shell=False, **kwargs):
         if env is None:
             env = os.environ.copy()
-        self._fix_pyinstaller_ld_path(env)
+        self._fix_pyinstaller_issues(env)
 
         self.__text_mode = kwargs.get('encoding') or kwargs.get('errors') or text or kwargs.get('universal_newlines')
         if text is True:
@@ -833,7 +875,7 @@ class Popen(subprocess.Popen):
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
 
-        if shell and compat_os_name == 'nt' and kwargs.get('executable') is None:
+        if shell and os.name == 'nt' and kwargs.get('executable') is None:
             if not isinstance(args, str):
                 args = shell_quote(args, shell=True)
             shell = False
@@ -1168,6 +1210,7 @@ def extract_timezone(date_str, default=None):
     return timezone, date_str
 
 
+@partial_application
 def parse_iso8601(date_str, delimiter='T', timezone=None):
     """ Return a UNIX timestamp from the given date """
 
@@ -1245,6 +1288,7 @@ def unified_timestamp(date_str, day_first=True):
         return calendar.timegm(timetuple) + pm_delta * 3600 - timezone.total_seconds()
 
 
+@partial_application
 def determine_ext(url, default_ext='unknown_video'):
     if url is None or '.' not in url:
         return default_ext
@@ -1414,7 +1458,7 @@ def system_identifier():
 @functools.cache
 def get_windows_version():
     """ Get Windows version. returns () if it's not running on Windows """
-    if compat_os_name == 'nt':
+    if os.name == 'nt':
         return version_tuple(platform.win32_ver()[1])
     else:
         return ()
@@ -1427,7 +1471,7 @@ def write_string(s, out=None, encoding=None):
     if not out:
         return
 
-    if compat_os_name == 'nt' and supports_terminal_sequences(out):
+    if os.name == 'nt' and supports_terminal_sequences(out):
         s = re.sub(r'([\r\n]+)', r' \1', s)
 
     enc, buffer = None, out
@@ -1444,8 +1488,7 @@ def write_string(s, out=None, encoding=None):
 
 # TODO: Use global logger
 def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
-    from .. import _IN_CLI
-    if _IN_CLI:
+    if IN_CLI.value:
         if msg in deprecation_warning._cache:
             return
         deprecation_warning._cache.add(msg)
@@ -1458,21 +1501,6 @@ def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
 
 
 deprecation_warning._cache = set()
-
-
-def bytes_to_intlist(bs):
-    if not bs:
-        return []
-    if isinstance(bs[0], int):  # Python 3
-        return list(bs)
-    else:
-        return [ord(c) for c in bs]
-
-
-def intlist_to_bytes(xs):
-    if not xs:
-        return b''
-    return struct.pack('%dB' % len(xs), *xs)
 
 
 class LockingUnsupportedError(OSError):
@@ -1658,7 +1686,7 @@ _CMD_QUOTE_TRANS = str.maketrans({
 def shell_quote(args, *, shell=False):
     args = list(variadic(args))
 
-    if compat_os_name != 'nt':
+    if os.name != 'nt':
         return shlex.join(args)
 
     trans = _CMD_QUOTE_TRANS if shell else _WINDOWS_QUOTE_TRANS
@@ -1920,7 +1948,7 @@ def remove_start(s, start):
 
 
 def remove_end(s, end):
-    return s[:-len(end)] if s is not None and s.endswith(end) else s
+    return s[:-len(end)] if s is not None and end and s.endswith(end) else s
 
 
 def remove_quotes(s):
@@ -1949,6 +1977,7 @@ def base_url(url):
     return re.match(r'https?://[^?#]+/', url).group()
 
 
+@partial_application
 def urljoin(base, path):
     if isinstance(path, bytes):
         path = path.decode()
@@ -1964,11 +1993,15 @@ def urljoin(base, path):
     return urllib.parse.urljoin(base, path)
 
 
-def int_or_none(v, scale=1, default=None, get_attr=None, invscale=1):
+@partial_application
+def int_or_none(v, scale=1, default=None, get_attr=None, invscale=1, base=None):
     if get_attr and v is not None:
         v = getattr(v, get_attr, None)
+    if invscale == 1 and scale < 1:
+        invscale = int(1 / scale)
+        scale = 1
     try:
-        return int(v) * invscale // scale
+        return (int(v) if base is None else int(v, base=base)) * invscale // scale
     except (ValueError, TypeError, OverflowError):
         return default
 
@@ -1986,9 +2019,13 @@ def str_to_int(int_str):
         return int_or_none(int_str)
 
 
+@partial_application
 def float_or_none(v, scale=1, invscale=1, default=None):
     if v is None:
         return default
+    if invscale == 1 and scale < 1:
+        invscale = int(1 / scale)
+        scale = 1
     try:
         return float(v) * invscale / scale
     except (ValueError, TypeError):
@@ -2536,6 +2573,7 @@ def urlencode_postdata(*args, **kargs):
     return urllib.parse.urlencode(*args, **kargs).encode('ascii')
 
 
+@partial_application
 def update_url(url, *, query_update=None, **kwargs):
     """Replace URL components specified by kwargs
        @param url           str or parse url tuple
@@ -2556,6 +2594,7 @@ def update_url(url, *, query_update=None, **kwargs):
     return urllib.parse.urlunparse(url._replace(**kwargs))
 
 
+@partial_application
 def update_url_query(url, query):
     return update_url(url, query_update=query)
 
@@ -2648,8 +2687,8 @@ def merge_dicts(*dicts):
     merged = {}
     for a_dict in dicts:
         for k, v in a_dict.items():
-            if (v is not None and k not in merged
-                    or isinstance(v, str) and merged[k] == ''):
+            if ((v is not None and k not in merged)
+                    or (isinstance(v, str) and merged[k] == '')):
                 merged[k] = v
     return merged
 
@@ -2877,6 +2916,7 @@ def error_to_str(err):
     return f'{type(err).__name__}: {err}'
 
 
+@partial_application
 def mimetype2ext(mt, default=NO_DEFAULT):
     if not isinstance(mt, str):
         if default is not NO_DEFAULT:
@@ -4461,7 +4501,7 @@ def urshift(val, n):
 def write_xattr(path, key, value):
     # Windows: Write xattrs to NTFS Alternate Data Streams:
     # http://en.wikipedia.org/wiki/NTFS#Alternate_data_streams_.28ADS.29
-    if compat_os_name == 'nt':
+    if os.name == 'nt':
         assert ':' not in key
         assert os.path.exists(path)
 
@@ -4617,6 +4657,7 @@ def to_high_limit_path(path):
     return path
 
 
+@partial_application
 def format_field(obj, field=None, template='%s', ignore=NO_DEFAULT, default='', func=IDENTITY):
     val = traversal.traverse_obj(obj, *variadic(field))
     if not val if ignore is NO_DEFAULT else val in variadic(ignore):
@@ -4722,12 +4763,12 @@ def jwt_decode_hs256(jwt):
     return json.loads(base64.urlsafe_b64decode(f'{payload_b64}==='))
 
 
-WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
+WINDOWS_VT_MODE = False if os.name == 'nt' else None
 
 
 @functools.cache
 def supports_terminal_sequences(stream):
-    if compat_os_name == 'nt':
+    if os.name == 'nt':
         if not WINDOWS_VT_MODE:
             return False
     elif not os.getenv('TERM'):
@@ -4821,7 +4862,7 @@ def parse_http_range(range):
 
 def read_stdin(what):
     if what:
-        eof = 'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'
+        eof = 'Ctrl+Z' if os.name == 'nt' else 'Ctrl+D'
         write_string(f'Reading {what} from STDIN - EOF ({eof}) to end:\n')
     return sys.stdin
 
@@ -5081,6 +5122,7 @@ class _UnsafeExtensionError(Exception):
         'rm',
         'swf',
         'ts',
+        'vid',
         'vob',
         'vp9',
 
@@ -5113,7 +5155,9 @@ class _UnsafeExtensionError(Exception):
         'heic',
         'ico',
         'image',
+        'jfif',
         'jng',
+        'jpe',
         'jpeg',
         'jxl',
         'svg',
@@ -5226,11 +5270,13 @@ class RetryManager:
             time.sleep(delay)
 
 
+@partial_application
 def make_archive_id(ie, video_id):
     ie_key = ie if isinstance(ie, str) else ie.ie_key()
     return f'{ie_key.lower()} {video_id}'
 
 
+@partial_application
 def truncate_string(s, left, right=0):
     assert left > 3 and right >= 0
     if s is None or len(s) <= left + right:
@@ -5273,15 +5319,18 @@ class FormatSorter:
     regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
     default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
-               'res', 'fps', 'hdr:12', 'vcodec:vp9.2', 'channels', 'acodec',
+               'res', 'fps', 'hdr:12', 'vcodec', 'channels', 'acodec',
                'size', 'br', 'asr', 'proto', 'ext', 'hasaud', 'source', 'id')  # These must not be aliases
+    _prefer_vp9_sort = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
+                        'res', 'fps', 'hdr:12', 'vcodec:vp9.2', 'channels', 'acodec',
+                        'size', 'br', 'asr', 'proto', 'ext', 'hasaud', 'source', 'id')
     ytdl_default = ('hasaud', 'lang', 'quality', 'tbr', 'filesize', 'vbr',
                     'height', 'width', 'proto', 'vext', 'abr', 'aext',
                     'fps', 'fs_approx', 'source', 'id')
 
     settings = {
         'vcodec': {'type': 'ordered', 'regex': True,
-                   'order': ['av0?1', 'vp0?9.0?2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
+                   'order': ['av0?1', r'vp0?9\.0?2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
         'acodec': {'type': 'ordered', 'regex': True,
                    'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'ac-?4', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
         'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
@@ -5527,14 +5576,15 @@ class FormatSorter:
             value = get_value(field)
         return self._calculate_field_preference_from_value(format_, field, type_, value)
 
-    def calculate_preference(self, format):
+    @staticmethod
+    def _fill_sorting_fields(format):
         # Determine missing protocol
         if not format.get('protocol'):
             format['protocol'] = determine_protocol(format)
 
         # Determine missing ext
         if not format.get('ext') and 'url' in format:
-            format['ext'] = determine_ext(format['url'])
+            format['ext'] = determine_ext(format['url']).lower()
         if format.get('vcodec') == 'none':
             format['audio_ext'] = format['ext'] if format.get('acodec') != 'none' else 'none'
             format['video_ext'] = 'none'
@@ -5562,6 +5612,8 @@ class FormatSorter:
         if not format.get('tbr'):
             format['tbr'] = try_call(lambda: format['vbr'] + format['abr']) or None
 
+    def calculate_preference(self, format):
+        self._fill_sorting_fields(format)
         return tuple(self._calculate_field_preference(format, field) for field in self._order)
 
 
@@ -5574,6 +5626,24 @@ def filesize_from_tbr(tbr, duration):
     if tbr is None or duration is None:
         return None
     return int(duration * tbr * (1000 / 8))
+
+
+def _request_dump_filename(url, video_id, data=None, trim_length=None):
+    if data is not None:
+        data = hashlib.md5(data).hexdigest()
+    basen = join_nonempty(video_id, data, url, delim='_')
+    trim_length = trim_length or 240
+    if len(basen) > trim_length:
+        h = '___' + hashlib.md5(basen.encode()).hexdigest()
+        basen = basen[:trim_length - len(h)] + h
+    filename = sanitize_filename(f'{basen}.dump', restricted=True)
+    # Working around MAX_PATH limitation on Windows (see
+    # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
+    if os.name == 'nt':
+        absfilepath = os.path.abspath(filename)
+        if len(absfilepath) > 259:
+            filename = fR'\\?\{absfilepath}'
+    return filename
 
 
 # XXX: Temporary
@@ -5604,3 +5674,32 @@ class _YDLLogger:
     def stderr(self, message):
         if self._ydl:
             self._ydl.to_stderr(message)
+
+
+class _ProgressState(enum.Enum):
+    """
+    Represents a state for a progress bar.
+
+    See: https://conemu.github.io/en/AnsiEscapeCodes.html#ConEmu_specific_OSC
+    """
+
+    HIDDEN = 0
+    INDETERMINATE = 3
+    VISIBLE = 1
+    WARNING = 4
+    ERROR = 2
+
+    @classmethod
+    def from_dict(cls, s, /):
+        if s['status'] == 'finished':
+            return cls.INDETERMINATE
+
+        # Not currently used
+        if s['status'] == 'error':
+            return cls.ERROR
+
+        return cls.INDETERMINATE if s.get('_percent') is None else cls.VISIBLE
+
+    def get_ansi_escape(self, /, percent=None):
+        percent = 0 if percent is None else int(percent)
+        return f'\033]9;4;{self.value};{percent}\007'
