@@ -1,19 +1,22 @@
 from .common import InfoExtractor
 
-# Speedrun.com has the ability to host twitch embeds as well which is why this script was needed.
+# Speedrun.com has the ability to host twitch embeds as well which is why this
+# script was needed, otherwise there would've been no use for it.
+# However the Youtube embed scraper is prone to flase positives hence
+# this script's existance.
 
 class SpeedRunIE(InfoExtractor):
-    IE_NAME = "speedrun"
+    IE_NAME = 'speedrun'
     _VALID_URL = r'https?://(?:www\.)?speedrun\.com/[^/?#]+/runs/(?P<id>[^?/#]+)'
-    
+
     _TESTS = [{
-        "url":"https://www.speedrun.com/smg1/runs/yvnjr9om",
-        'only_matching': True
+        'url':'https://www.speedrun.com/smg1/runs/yvnjr9om',
+        'only_matching': True,
     }, {
-        "url":"https://www.speedrun.com/pm64/runs/y96x462y",
-        'only_matching': True
+        'url':'https://www.speedrun.com/pm64/runs/y96x462y',
+        'only_matching': True,
     }]
-        
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
