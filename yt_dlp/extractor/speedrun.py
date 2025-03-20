@@ -3,6 +3,7 @@ from .common import InfoExtractor
 # Speedrun.com has the ability to host twitch embeds as well which is why this
 # script was needed.
 
+
 class SpeedRunIE(InfoExtractor):
     IE_NAME = 'speedrun'
     _VALID_URL = r'https?://(?:www\.)?speedrun\.com/[^/?#]+/runs/(?P<id>[^?/#]+)'
