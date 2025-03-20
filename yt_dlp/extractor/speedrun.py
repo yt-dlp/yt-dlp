@@ -1,9 +1,7 @@
 from .common import InfoExtractor
 
 # Speedrun.com has the ability to host twitch embeds as well which is why this
-# script was needed, otherwise there would've been no use for it.
-# However the Youtube embed scraper is prone to flase positives hence
-# this script's existance.
+# script was needed.
 
 class SpeedRunIE(InfoExtractor):
     IE_NAME = 'speedrun'
