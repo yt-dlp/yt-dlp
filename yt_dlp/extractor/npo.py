@@ -114,6 +114,34 @@ class NPOStartIE(NPOBaseIE):
             'series_id': '6727dcdf-4bd2-477c-bf96-1ead69fad6c9',
             'upload_date': '20130225',
         },
+    }, {
+        'url': 'https://npo.nl/start/serie/elixer/seizoen-1/elixer/afspelen',
+        'md5': 'b9ac5e5d5170083cf46228d0721746fa',
+        'info_dict': {
+            'id': 'VPWON_1352108',
+            'ext': 'mp4',
+            'title': 'Familie Rombauts',
+            'description': 'md5:201f971871dec2ccc959fdd0574e945e',
+            'uploader_id': 'NED1',
+            'channel_id': 'NED1',
+            'duration': 2981,
+            'thumbnail': 'https://assets-start.npo.nl/resources/2025/03/04/b64255a3-c149-4bdf-bdd4-a5d5ef519486.jpg',
+            'genres': ['Serie', 'Drama'],
+            'series': 'Elixer',
+            'series_id': '417b5b26-e1e4-4db6-b8d8-113d453f3e99',
+            'season_id': '91e955de-8c2c-42bf-ade8-5674b59e3150',
+            'episode': 'Familie Rombauts',
+            'timestamp': 1741203300,
+            'upload_date': '20250305',
+            'release_timestamp': 1741203300,
+            'release_date': '20250305',
+            'season': 'Season 1',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'params': {
+            'skip_download': 'DRM protected',
+        },
     }]
 
     def _real_extract(self, url):
@@ -128,20 +156,20 @@ class NPOStartIE(NPOBaseIE):
                 'url': image.get('url'),
             })
             break
-
-        data['title'] = metadata.get('title') or data.get('title')
-        data['episode'] = metadata.get('title') or data.get('title')
-        data['episode_number'] = int_or_none(metadata.get('programKey'))
-        data['duration'] = int_or_none(metadata.get('durationInSeconds'), default=data.get('duration'))
-        data['description'] = traverse_obj(metadata, ('synopsis', 'long')) or traverse_obj(metadata, ('synopsis', 'short')) or traverse_obj(metadata, ('synopsis', 'brief')) or data.get('description')
         data['thumbnails'] = thumbnails
-        data['genres'] = metadata.get('genres') or data.get('genres')
-        data['series'] = traverse_obj(metadata, ('series', 'title'))
-        data['series_id'] = traverse_obj(metadata, ('series', 'guid'))
-        data['season_number'] = int_or_none(traverse_obj(metadata, ('season', 'seasonKey')))
-        data['season_id'] = traverse_obj(metadata, ('season', 'guid'))
-        data['release_timestamp'] = int_or_none(metadata.get('firstBroadcastDate'))
-        data['timestamp'] = int_or_none(metadata.get('publishedDateTime'))
+        data.update(traverse_obj(metadata, {
+            'title': ('title', {str}),
+            'episode': ('title', {str}),
+            'episode_number': ('programKey', {int_or_none}),
+            'duration': ('durationInSeconds', {int_or_none}),
+            'description': ('synopsis', ('long', 'short', 'brief'), {str}, any),
+            'series': ('series', 'title', {str}),
+            'series_id': ('series', 'guid', {str}),
+            'season_number': ('season', 'seasonKey', {int_or_none}),
+            'season_id': ('season', 'guid', {str}),
+            'release_timestamp': ('firstBroadcastDate', {int_or_none}),
+            'timestamp': ('publishedDateTime', {int_or_none}),
+        }))
         return data
 
 
