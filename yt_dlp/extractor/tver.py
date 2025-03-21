@@ -1,8 +1,8 @@
 import datetime
 import re
 
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import (
+from .common import InfoExtractor
+from ..utils import (
     ExtractorError,
     float_or_none,
     join_nonempty,
@@ -257,6 +257,19 @@ class TVerIE(InfoExtractor):
         return data
 
     def _format_broadcast_date(self, onair_label):
+        """
+        Extracts the broadcast date from the onair label
+
+        Truth to be said, we cannot be sure or guarantee that the broadcast date is correct
+        as TVer doesn't really have consistent date format for the broadcast date.
+        At best we can only assume the following:
+        - If there is only year, this mean the broadcast is old.
+        - If there is only month and day, this mean the broadcast is recent within the current year or the previous year.
+
+        :param onair_label: The onair label string
+        :return: A dictionary containing the formatted broadcast date or an empty dictionary if the date is not found
+
+        """
         if not onair_label:
             return {}
 
@@ -276,8 +289,21 @@ class TVerIE(InfoExtractor):
             data['release_year'] = int(broadcast_date['year'])
 
         if broadcast_date.get('day') and broadcast_date.get('month'):
+            if 'release_year' in data:
+                year = data['release_year']
+            else:
+                year = datetime.datetime.now().year
+                dt = datetime.datetime.strptime(
+                    f"{year}-{broadcast_date['month']}-{broadcast_date['day']}",
+                    '%Y-%m-%d',
+                )
+                # if the date in the future, it means the broadcast date is in the previous year
+                # ref: https://github.com/yt-dlp/yt-dlp/pull/12282#issuecomment-2678132806
+                if dt > datetime.datetime.now():
+                    year -= 1
+
             data['release_date'] = int(
-                f"{datetime.datetime.now().year}{broadcast_date['month'].zfill(2)}{broadcast_date['day'].zfill(2)}",
+                f"{year}{broadcast_date['month'].zfill(2)}{broadcast_date['day'].zfill(2)}",
             )
 
         return data
