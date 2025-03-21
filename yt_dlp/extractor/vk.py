@@ -769,6 +769,7 @@ class VKMusicIE(VKBaseIE):
                 'duration': 230,
                 'uploader': 'Skillet',
                 'artist': 'Skillet',
+                'artists': ['Skillet'],
                 'track': 'Feel Invincible',
             },
             'params': {
@@ -807,7 +808,7 @@ class VKMusicIE(VKBaseIE):
             return {
                 'id': track_id,
                 'title': join_nonempty(artist, title, delim=' - '),
-                'thumbnails': [thumbnail],
+                # 'thumbnails': [thumbnail],
                 'duration': int_or_none(meta[5]),
                 'uploader': artist,  # XXX: we don't have an uploader in player meta
                 'artist': artist,
@@ -857,7 +858,7 @@ class VKMusicIE(VKBaseIE):
                     join_nonempty(artist, title, delim=' - '),
                     track=title, artist=artist, uploader=artist,
                     duration=int_or_none(ent[5]),
-                    thumbnails=[meta[14]]
+                    # thumbnails=[meta[14]]
                 ))
 
             artist = meta.get('authorName')
