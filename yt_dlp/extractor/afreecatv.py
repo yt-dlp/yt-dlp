@@ -1,3 +1,4 @@
+import datetime as dt
 import functools
 
 from .common import InfoExtractor
@@ -10,7 +11,7 @@ from ..utils import (
     filter_dict,
     int_or_none,
     orderedSet,
-    unified_timestamp,
+    parse_iso8601,
     url_or_none,
     urlencode_postdata,
     urljoin,
@@ -87,9 +88,9 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'uploader_id': 'rlantnghks',
             'uploader': '페이즈으',
             'duration': 10840,
-            'thumbnail': r're:https?://videoimg\.sooplive\.co/.kr/.+',
+            'thumbnail': r're:https?://videoimg\.(?:sooplive\.co\.kr|afreecatv\.com)/.+',
             'upload_date': '20230108',
-            'timestamp': 1673218805,
+            'timestamp': 1673186405,
             'title': '젠지 페이즈',
         },
         'params': {
@@ -102,7 +103,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'id': '20170411_BE689A0E_190960999_1_2_h',
             'ext': 'mp4',
             'title': '혼자사는여자집',
-            'thumbnail': r're:https?://(?:video|st)img\.sooplive\.co\.kr/.+',
+            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|afreecatv\.com)/.+',
             'uploader': '♥이슬이',
             'uploader_id': 'dasl8121',
             'upload_date': '20170411',
@@ -119,7 +120,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'id': '20180327_27901457_202289533_1',
             'ext': 'mp4',
             'title': '[생]빨개요♥ (part 1)',
-            'thumbnail': r're:https?://(?:video|st)img\.sooplive\.co\.kr/.+',
+            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|afreecatv\.com)/.+',
             'uploader': '[SA]서아',
             'uploader_id': 'bjdyrksu',
             'upload_date': '20180327',
@@ -187,7 +188,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 'formats': formats,
                 **traverse_obj(file_element, {
                     'duration': ('duration', {int_or_none(scale=1000)}),
-                    'timestamp': ('file_start', {unified_timestamp}),
+                    'timestamp': ('file_start', {parse_iso8601(delimiter=' ', timezone=dt.timedelta(hours=9))}),
                 }),
             })
 
@@ -370,7 +371,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
             'title': channel_info.get('TITLE') or station_info.get('station_title'),
             'uploader': channel_info.get('BJNICK') or station_info.get('station_name'),
             'uploader_id': broadcaster_id,
-            'timestamp': unified_timestamp(station_info.get('broad_start')),
+            'timestamp': parse_iso8601(station_info.get('broad_start'), delimiter=' ', timezone=dt.timedelta(hours=9)),
             'formats': formats,
             'is_live': True,
             'http_headers': {'Referer': url},
