@@ -1735,6 +1735,7 @@ from .rokfin import (
     RokfinSearchIE,
     RokfinStackIE,
 )
+from .roku import RokuChannelIE
 from .roosterteeth import (
     RoosterTeethIE,
     RoosterTeethSeriesIE,
