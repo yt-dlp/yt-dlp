@@ -3247,7 +3247,7 @@ def _match_one(filter_part, dct, incomplete):
             op = lambda attr, value: not unnegated_op(attr, value)
         else:
             op = unnegated_op
-        comparison_value = m['quotedstrval'] or m['strval'] or m['intval']
+        comparison_value = m['quotedstrval'] or m['strval']
         if m['quote']:
             comparison_value = comparison_value.replace(r'\{}'.format(m['quote']), m['quote'])
         actual_value = dct.get(m['key'])

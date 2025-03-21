@@ -2935,8 +2935,7 @@ class InfoExtractor:
                             segment_duration = None
                             if 'total_number' not in representation_ms_info and 'segment_duration' in representation_ms_info:
                                 segment_duration = float_or_none(representation_ms_info['segment_duration'], representation_ms_info['timescale'])
-                                representation_ms_info['total_number'] = int(math.ceil(
-                                    float_or_none(period_duration, segment_duration, default=0)))
+                                representation_ms_info['total_number'] = math.ceil(float_or_none(period_duration, segment_duration, default=0))
                             representation_ms_info['fragments'] = [{
                                 media_location_key: media_template % {
                                     'Number': segment_number,
