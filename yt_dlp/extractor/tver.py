@@ -302,9 +302,11 @@ class TVerIE(InfoExtractor):
                 if dt > datetime.datetime.now():
                     year -= 1
 
-            data['release_date'] = int(
-                f"{year}{broadcast_date['month'].zfill(2)}{broadcast_date['day'].zfill(2)}",
-            )
+            data['release_timestamp'] = datetime.datetime(
+                year=year,
+                month=int(broadcast_date['month']),
+                day=int(broadcast_date['day']),
+            ).timestamp()
 
         return data
 
