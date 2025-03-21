@@ -2403,7 +2403,6 @@ from .voxmedia import (
 from .vrt import (
     VRTIE,
     DagelijkseKostIE,
-    KetnetIE,
     Radio1BeIE,
     VrtNUIE,
 )

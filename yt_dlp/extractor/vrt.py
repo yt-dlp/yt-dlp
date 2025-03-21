@@ -201,7 +201,35 @@ class VrtNUIE(VRTBaseIE):
             'timestamp': 1740373200,
             'title': 'Reeks 6 volledig vanaf 3 maart',
             'upload_date': '20250224',
-            '_old_archive_ids': ['canvas pbs-pub-c8a78645-5d3e-468a-89ec-6f3ed5534bd5$vid-242ddfe9-18f5-4e16-ab45-09b122a19251'],
+            '_old_archive_ids': [
+                'canvas pbs-pub-c8a78645-5d3e-468a-89ec-6f3ed5534bd5$vid-242ddfe9-18f5-4e16-ab45-09b122a19251',
+                'ketnet pbs-pub-c8a78645-5d3e-468a-89ec-6f3ed5534bd5$vid-242ddfe9-18f5-4e16-ab45-09b122a19251',
+            ],
+        },
+    }, {
+        'url': 'https://www.vrt.be/vrtmax/a-z/meisjes/6/meisjes-s6a5/',
+        'info_dict': {
+            'id': 'pbs-pub-97b541ab-e05c-43b9-9a40-445702ef7189$vid-5e306921-a9aa-4fa9-9f39-5b82c8f1028e',
+            'ext': 'mp4',
+            'channel': 'ketnet',
+            'description': 'md5:713793f15cbf677f66200b36b7b1ec5a',
+            'display_id': 'meisjes-s6a5',
+            'duration': 1336.02,
+            'episode': 'Week 5',
+            'episode_id': '1684157692901',
+            'episode_number': 5,
+            'season': '6',
+            'season_id': '1684157692901',
+            'season_number': 6,
+            'series': 'Meisjes',
+            'thumbnail': 'https://images.vrt.be/orig/2023/05/14/bf526ae0-f1d9-11ed-91d7-02b7b76bf47f.jpg',
+            'timestamp': 1685251800,
+            'title': 'Week 5',
+            'upload_date': '20230528',
+            '_old_archive_ids': [
+                'canvas pbs-pub-97b541ab-e05c-43b9-9a40-445702ef7189$vid-5e306921-a9aa-4fa9-9f39-5b82c8f1028e',
+                'ketnet pbs-pub-97b541ab-e05c-43b9-9a40-445702ef7189$vid-5e306921-a9aa-4fa9-9f39-5b82c8f1028e',
+            ],
         },
     }, {
         'url': 'https://www.vrt.be/vrtnu/a-z/taboe/3/taboe-s3a4/',
@@ -223,7 +251,10 @@ class VrtNUIE(VRTBaseIE):
             'timestamp': 1740286800,
             'title': 'Mensen met het syndroom van Gilles de la Tourette',
             'upload_date': '20250223',
-            '_old_archive_ids': ['canvas pbs-pub-f50faa3a-1778-46b6-9117-4ba85f197703$vid-547507fe-1c8b-4394-b361-21e627cbd0fd'],
+            '_old_archive_ids': [
+                'canvas pbs-pub-f50faa3a-1778-46b6-9117-4ba85f197703$vid-547507fe-1c8b-4394-b361-21e627cbd0fd',
+                'ketnet pbs-pub-f50faa3a-1778-46b6-9117-4ba85f197703$vid-547507fe-1c8b-4394-b361-21e627cbd0fd',
+            ],
         },
     }]
     _NETRC_MACHINE = 'vrtnu'
@@ -427,66 +458,8 @@ class VrtNUIE(VRTBaseIE):
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            '_old_archive_ids': [make_archive_id('Canvas', video_id)],
-        }
-
-
-class KetnetIE(VRTBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?ketnet\.be/(?P<id>(?:[^/]+/)*[^/?#&]+)'
-    _TESTS = [{
-        'url': 'https://www.ketnet.be/kijken/m/meisjes/6/meisjes-s6a5',
-        'info_dict': {
-            'id': 'pbs-pub-39f8351c-a0a0-43e6-8394-205d597d6162$vid-5e306921-a9aa-4fa9-9f39-5b82c8f1028e',
-            'ext': 'mp4',
-            'title': 'Meisjes',
-            'episode': 'Reeks 6: Week 5',
-            'season': 'Reeks 6',
-            'series': 'Meisjes',
-            'timestamp': 1685251800,
-            'upload_date': '20230528',
-        },
-        'params': {'skip_download': 'm3u8'},
-    }]
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-
-        video = self._download_json(
-            'https://senior-bff.ketnet.be/graphql', display_id, query={
-                'query': '''{
-  video(id: "content/ketnet/nl/%s.model.json") {
-    description
-    episodeNr
-    imageUrl
-    mediaReference
-    programTitle
-    publicationDate
-    seasonTitle
-    subtitleVideodetail
-    titleVideodetail
-  }
-}''' % display_id,  # noqa: UP031
-            })['data']['video']
-
-        video_id = urllib.parse.unquote(video['mediaReference'])
-        data = self._call_api(video_id, 'ketnet@PROD', version='v1')
-        formats, subtitles = self._extract_formats_and_subtitles(data, video_id)
-
-        return {
-            'id': video_id,
-            'formats': formats,
-            'subtitles': subtitles,
-            '_old_archive_ids': [make_archive_id('Canvas', video_id)],
-            **traverse_obj(video, {
-                'title': ('titleVideodetail', {str}),
-                'description': ('description', {str}),
-                'thumbnail': ('thumbnail', {url_or_none}),
-                'timestamp': ('publicationDate', {parse_iso8601}),
-                'series': ('programTitle', {str}),
-                'season': ('seasonTitle', {str}),
-                'episode': ('subtitleVideodetail', {str}),
-                'episode_number': ('episodeNr', {int_or_none}),
-            }),
+            '_old_archive_ids': [make_archive_id('Canvas', video_id),
+                                 make_archive_id('Ketnet', video_id)],
         }
 
 
