@@ -224,6 +224,7 @@ The only reliable way to check if a site is supported is to try it.
  - **bt:vestlendingen**: Bergens Tidende - Vestlendingen
  - **Bundesliga**
  - **Bundestag**
+ - **BunnyCdn**
  - **BusinessInsider**
  - **BuzzFeed**
  - **BYUtv**: (**Currently broken**)
@@ -242,6 +243,7 @@ The only reliable way to check if a site is supported is to try it.
  - **CanalAlpha**
  - **canalc2.tv**
  - **Canalplus**: mycanal.fr and piwiplus.fr
+ - **Canalsurmas**
  - **CaracolTvPlay**: [*caracoltv-play*](## "netrc machine")
  - **CartoonNetwork**
  - **cbc.ca**
@@ -609,10 +611,10 @@ The only reliable way to check if a site is supported is to try it.
  - **Inc**
  - **IndavideoEmbed**
  - **InfoQ**
- - **Instagram**: [*instagram*](## "netrc machine")
- - **instagram:story**: [*instagram*](## "netrc machine")
- - **instagram:tag**: [*instagram*](## "netrc machine") Instagram hashtag search URLs
- - **instagram:user**: [*instagram*](## "netrc machine") Instagram user profile (**Currently broken**)
+ - **Instagram**
+ - **instagram:story**
+ - **instagram:tag**: Instagram hashtag search URLs
+ - **instagram:user**: Instagram user profile (**Currently broken**)
  - **InstagramIOS**: IOS instagram:// URL
  - **Internazionale**
  - **InternetVideoArchive**
@@ -661,7 +663,6 @@ The only reliable way to check if a site is supported is to try it.
  - **KelbyOne**: (**Currently broken**)
  - **Kenh14Playlist**
  - **Kenh14Video**
- - **Ketnet**
  - **khanacademy**
  - **khanacademy:unit**
  - **kick:clips**
@@ -733,6 +734,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Livestreamfails**
  - **Lnk**
  - **loc**: Library of Congress
+ - **Loco**
  - **loom**
  - **loom:folder**
  - **LoveHomePorn**
@@ -831,7 +833,7 @@ The only reliable way to check if a site is supported is to try it.
  - **MoviewPlay**
  - **Moviezine**
  - **MovingImage**
- - **MSN**: (**Currently broken**)
+ - **MSN**
  - **mtg**: MTG services
  - **mtv**
  - **mtv.de**: (**Currently broken**)
@@ -1342,6 +1344,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Smotrim**
  - **SnapchatSpotlight**
  - **Snotr**
+ - **SoftWhiteUnderbelly**: [*softwhiteunderbelly*](## "netrc machine")
  - **Sohu**
  - **SohuV**
  - **SonyLIV**: [*sonyliv*](## "netrc machine")
@@ -1536,6 +1539,8 @@ The only reliable way to check if a site is supported is to try it.
  - **tv5unis**
  - **tv5unis:video**
  - **tv8.it**
+ - **tv8.it:live**: TV8 Live
+ - **tv8.it:playlist**: TV8 Playlist
  - **TVANouvelles**
  - **TVANouvellesArticle**
  - **tvaplus**: TVA+
@@ -1556,6 +1561,7 @@ The only reliable way to check if a site is supported is to try it.
  - **tvp:​vod:series**
  - **TVPlayer**
  - **TVPlayHome**
+ - **Tvw**
  - **Tweakers**
  - **TwitCasting**
  - **TwitCastingLive**
@@ -1677,7 +1683,7 @@ The only reliable way to check if a site is supported is to try it.
  - **vqq:series**
  - **vqq:video**
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
- - **VrtNU**: [*vrtnu*](## "netrc machine") VRT MAX
+ - **vrtmax**: [*vrtnu*](## "netrc machine") VRT MAX (formerly VRT NU)
  - **VTM**: (**Currently broken**)
  - **VTV**
  - **VTVGo**
