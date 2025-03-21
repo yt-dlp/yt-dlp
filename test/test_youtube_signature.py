@@ -205,6 +205,30 @@ _NSIG_TESTS = [
         'https://www.youtube.com/s/player/9c6dfc4a/player_ias.vflset/en_US/base.js',
         'jbu7ylIosQHyJyJV', 'uwI0ESiynAmhNg',
     ),
+    (
+        'https://www.youtube.com/s/player/e7567ecf/player_ias_tce.vflset/en_US/base.js',
+        'Sy4aDGc0VpYRR9ew_', '5UPOT1VhoZxNLQ',
+    ),
+    (
+        'https://www.youtube.com/s/player/d50f54ef/player_ias_tce.vflset/en_US/base.js',
+        'Ha7507LzRmH3Utygtj', 'XFTb2HoeOE5MHg',
+    ),
+    (
+        'https://www.youtube.com/s/player/074a8365/player_ias_tce.vflset/en_US/base.js',
+        'Ha7507LzRmH3Utygtj', 'ufTsrE0IVYrkl8v',
+    ),
+    (
+        'https://www.youtube.com/s/player/643afba4/player_ias.vflset/en_US/base.js',
+        'N5uAlLqm0eg1GyHO', 'dCBQOejdq5s-ww',
+    ),
+    (
+        'https://www.youtube.com/s/player/69f581a5/tv-player-ias.vflset/tv-player-ias.js',
+        '-qIP447rVlTTwaZjY', 'KNcGOksBAvwqQg',
+    ),
+    (
+        'https://www.youtube.com/s/player/643afba4/tv-player-ias.vflset/tv-player-ias.js',
+        'ir9-V6cdbCiyKxhr', '2PL7ZDYAALMfmA',
+    ),
 ]
 
 
@@ -250,7 +274,7 @@ def t_factory(name, sig_func, url_pattern):
     def make_tfunc(url, sig_input, expected_sig):
         m = url_pattern.match(url)
         assert m, f'{url!r} should follow URL format'
-        test_id = m.group('id')
+        test_id = m.group('id').replace('/', '_')
 
         def test_func(self):
             basename = f'player-{name}-{test_id}.js'
@@ -279,7 +303,7 @@ def n_sig(jscode, sig_input):
     ie = YoutubeIE(FakeYDL())
     funcname = ie._extract_n_function_name(jscode)
     jsi = JSInterpreter(jscode)
-    func = jsi.extract_function_from_code(*ie._fixup_n_function_code(*jsi.extract_function_code(funcname)))
+    func = jsi.extract_function_from_code(*ie._fixup_n_function_code(*jsi.extract_function_code(funcname), jscode))
     return func([sig_input])
 
 
@@ -289,7 +313,7 @@ for test_spec in _SIG_TESTS:
     make_sig_test(*test_spec)
 
 make_nsig_test = t_factory(
-    'nsig', n_sig, re.compile(r'.+/player/(?P<id>[a-zA-Z0-9_-]+)/.+.js$'))
+    'nsig', n_sig, re.compile(r'.+/player/(?P<id>.+)\.js$'))
 for test_spec in _NSIG_TESTS:
     make_nsig_test(*test_spec)
 
