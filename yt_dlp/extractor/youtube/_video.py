@@ -2174,13 +2174,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_player_js_global_var(self, jscode):
         """Returns tuple of strings: variable assignment code, variable name, variable value code"""
-        return self._search_regex(r'''(?x)
-            \'use\s+strict\';\s*
-            (?P<code>
-                var\s+(?P<name>[a-zA-Z0-9_$]+)\s*=\s*
-                (?P<value>"(?:[^"\\]|\\.)+"\.split\("."\))
-            )[;,]''',
-            jscode, 'global variable', group=('code', 'name', 'value'), default=(None, None, None))
+        return self._search_regex(
+            r'''(?x)
+                \'use\s+strict\';\s*
+                (?P<code>
+                    var\s+(?P<name>[a-zA-Z0-9_$]+)\s*=\s*
+                    (?P<value>"(?:[^"\\]|\\.)+"\.split\("."\))
+                )[;,]
+            ''', jscode, 'global variable', group=('code', 'name', 'value'), default=(None, None, None))
 
     def _fixup_n_function_code(self, argnames, code, full_code):
         global_var, varname, _ = self._extract_player_js_global_var(full_code)
