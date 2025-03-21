@@ -2064,7 +2064,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             jscode, 'Initial JS player signature function name', group='sig')
 
         jsi = JSInterpreter(jscode)
-        initial_function = jsi.extract_function(funcname)
+        global_var_map = {}
+        if global_var_name := self._extract_player_js_global_var(jscode, 'name'):
+            global_var_map[global_var_name] = jsi.interpret_expression(
+                self._extract_player_js_global_var(jscode, 'value'), {}, allow_recursion=100)
+        initial_function = jsi.extract_function_with_global_stack(funcname, global_var_map)
         return lambda s: initial_function([s])
 
     def _cached(self, func, *cache_id):
@@ -2168,13 +2172,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])\s*[,;]', jscode,
             f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
 
+    def _extract_player_js_global_var(self, jscode, group='code'):
+        return self._search_regex(r'''(?x)
+            \'use\s+strict\';\s*
+            (?P<code>
+                var\s+(?P<name>[a-zA-Z0-9_$]+)\s*=\s*
+                (?P<value>"(?:[^"\\]|\\.)+"\.split\("."\))
+            )[;,]''', jscode, f'global variable {group}', group=group, default=None)
+
     def _fixup_n_function_code(self, argnames, code, full_code):
-        global_var = self._search_regex(
-            r'\'use strict\';(var\s+[a-zA-Z0-9_$]+\s*=\s*"(?:[^"\\]|\\.)+"\.split\("."\))[;,]', full_code, 'global variable', default='')
-        if global_var:
+        varname = None
+        if global_var := self._extract_player_js_global_var(full_code):
+            varname = self._extract_player_js_global_var(full_code, group='name')
+            self.write_debug(f'Prepending n function code with global array variable "{varname}"')
             code = global_var + ', ' + code
+        else:
+            self.write_debug('No global array variable found in player JS')
         return argnames, re.sub(
-            rf';\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(?:(["\'])undefined\1|[a-zA-Z0-9_$]+\[\d+\])\s*\)\s*return\s+{argnames[0]};',
+            rf';\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(?:(["\'])undefined\1|{varname}\[\d+\])\s*\)\s*return\s+{argnames[0]};',
             ';', code)
 
     def _extract_n_function_code(self, video_id, player_url):
