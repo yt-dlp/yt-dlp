@@ -301,7 +301,7 @@ class JSInterpreter:
         OP_CHARS = '+-*/%&|^=<>!,;{}:['
         if not expr:
             return
-        counters = {k: 0 for k in _MATCHING_PARENS.values()}
+        counters = dict.fromkeys(_MATCHING_PARENS.values(), 0)
         start, splits, pos, delim_len = 0, 0, 0, len(delim) - 1
         in_quote, escaping, after_op, in_regex_char_group = None, False, True, False
         for idx, char in enumerate(expr):
