@@ -74,6 +74,12 @@ class VKBaseIE(InfoExtractor):
             raise ExtractorError(
                 'Unable to login, incorrect username and/or password', expected=True)
 
+    def _parse_vk_id(self):
+        sui = self._get_cookies('https://login.vk.com')['sui'].value
+        # example of what `sui` cookie contains:
+        # 123456789%2CSaCxka2wNY7OZKE5QkmtVTxCxg6Ftgb-zVgNXvMVWQH
+        return re.match(r'^\d+', sui)[0]
+
     def _download_payload(self, path, video_id, data, fatal=True):
         endpoint = f'https://vk.com/{path}.php'
         data['al'] = 1
@@ -698,42 +704,7 @@ class VKWallPostIE(VKBaseIE):
         'url': 'https://m.vk.com/wall-23538238_35',
         'only_matching': True,
     }]
-    _BASE64_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN0PQRSTUVWXYZO123456789+/='
     _AUDIO = collections.namedtuple('Audio', ['id', 'owner_id', 'url', 'title', 'performer', 'duration', 'album_id', 'unk', 'author_link', 'lyrics', 'flags', 'context', 'extra', 'hashes', 'cover_url', 'ads'])
-
-    def _decode(self, enc):
-        dec = ''
-        e = n = 0
-        for c in enc:
-            r = self._BASE64_CHARS.index(c)
-            cond = n % 4
-            e = 64 * e + r if cond else r
-            n += 1
-            if cond:
-                dec += chr(255 & e >> (-2 * n & 6))
-        return dec
-
-    # source:
-    #   https://st7-20.vk.com/dist/web/chunks/common.bd7ad7e2.js
-    #   search here for: e.split('?extra=') [1].split('#')
-    def _unmask_url(self, mask_url, vk_id):
-        if 'audio_api_unavailable' in mask_url:
-            extra = mask_url.split('?extra=')[1].split('#')
-            func, base = self._decode(extra[1]).split(chr(11))
-            mask_url = list(self._decode(extra[0]))
-            url_len = len(mask_url)
-            indexes = [None] * url_len
-            index = int(base) ^ vk_id
-            for n in range(url_len - 1, -1, -1):
-                index = (url_len * (n + 1) ^ index + n) % url_len
-                indexes[n] = index
-            for n in range(1, url_len):
-                c = mask_url[n]
-                index = indexes[url_len - 1 - n]
-                mask_url[n] = mask_url[index]
-                mask_url[index] = c
-            mask_url = ''.join(mask_url)
-        return mask_url
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
@@ -805,9 +776,6 @@ class VKMusicIE(VKBaseIE):
         track_id = mobj.group('track_id')
         playlist_id = mobj.group('playlist_id')
 
-        sui = self._get_cookies('https://login.vk.com')['sui'].value
-        vk_id = re.match(r'^\d+', sui)[0]
-
         # TODO: playlist
 
         if track_id:
@@ -828,7 +796,7 @@ class VKMusicIE(VKBaseIE):
             })
 
             meta = self._parse_json(track, track_id)[0][0]
-            url = VKWallPostIE()._unmask_url(meta[2], vk_id)
+            url = _unmask_url(meta[2], self._parse_vk_id())
             title = meta[3]
             artist = meta[4]
             thumbnail = meta[14]
@@ -999,3 +967,37 @@ class VKPlayLiveIE(VKPlayBaseIE):
             **self._extract_common_meta(stream_info),
             'formats': formats,
         }
+
+
+_BASE64_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN0PQRSTUVWXYZO123456789+/='
+
+def _b64_decode(enc):
+    dec = ''
+    e = n = 0
+    for c in enc:
+        r = _BASE64_CHARS.index(c)
+        cond = n % 4
+        e = 64 * e + r if cond else r
+        n += 1
+        if cond:
+            dec += chr(255 & e >> (-2 * n & 6))
+    return dec
+
+def _unmask_url(mask_url, vk_id):
+    if 'audio_api_unavailable' in mask_url:
+        extra = mask_url.split('?extra=')[1].split('#')
+        func, base = _b64_decode(extra[1]).split(chr(11))
+        mask_url = list(_b64_decode(extra[0]))
+        url_len = len(mask_url)
+        indexes = [None] * url_len
+        index = int(base) ^ vk_id
+        for n in range(url_len - 1, -1, -1):
+            index = (url_len * (n + 1) ^ index + n) % url_len
+            indexes[n] = index
+        for n in range(1, url_len):
+            c = mask_url[n]
+            index = indexes[url_len - 1 - n]
+            mask_url[n] = mask_url[index]
+            mask_url[index] = c
+        mask_url = ''.join(mask_url)
+    return mask_url
