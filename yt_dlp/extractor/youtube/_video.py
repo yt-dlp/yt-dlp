@@ -2204,7 +2204,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         func_name = self._extract_n_function_name(jscode, player_url=player_url)
 
-        # XXX: Workaround for the `typeof` gotcha
+        # XXX: Workaround for the global array variable and lack of `typeof` implementation
         func_code = self._fixup_n_function_code(*jsi.extract_function_code(func_name), jscode)
 
         self.cache.store('youtube-nsig', player_id, func_code)
