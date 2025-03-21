@@ -788,12 +788,11 @@ class VKMusicIE(VKBaseIE):
             del data_audio
             del webpage
 
-            track = self._download_payload('al_audio', track_id, {
+            meta = self._download_payload('al_audio', track_id, {
                 'act': 'reload_audios',
                 'audio_ids': f'{track_id}_{one_more_id}'
-            })
+            })[0][0]
 
-            meta = self._parse_json(track, track_id)[0][0]
             url = _unmask_url(meta[2], self._parse_vk_id())
             title = meta[3]
             artist = meta[4]
