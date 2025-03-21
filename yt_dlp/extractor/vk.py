@@ -74,10 +74,17 @@ class VKBaseIE(InfoExtractor):
                 'Unable to login, incorrect username and/or password', expected=True)
 
     def _parse_vk_id(self):
-        sui = self._get_cookies('https://login.vk.com')['sui'].value
+        sui = self._get_cookies('https://login.vk.com').get('sui')
+        if not sui:
+            return 0
+
         # example of what `sui` cookie contains:
         # 123456789%2CSaCxka2wNY7OZKE5QkmtVTxCxg6Ftgb-zVgNXvMVWQH
-        return re.match(r'^\d+', sui)[0]
+        mobj = re.match(r'^\d+', sui.value)
+        if not mobj:
+            return 0
+
+        return int(mobj[1])
 
     def _download_payload(self, path, video_id, data, fatal=True):
         endpoint = f'https://vk.com/{path}.php'
@@ -821,7 +828,7 @@ class VKMusicIE(VKBaseIE):
                 'access_hash': '',  # TODO: unnecessary, but it's better to parse from url if access_hash is present
                 'claim': '0',
                 'context': '',
-                'from_id': self._parse_vk_id(),  # TODO: or '0'
+                'from_id': self._parse_vk_id(),
                 'is_loading_all': '1',
                 'is_preload': '0',
                 'offset': '0',
