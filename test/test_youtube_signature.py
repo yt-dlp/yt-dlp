@@ -311,6 +311,7 @@ def n_sig(jscode, sig_input):
     func = jsi.extract_function_from_code(*ie._fixup_n_function_code(*jsi.extract_function_code(funcname), jscode))
     return func([sig_input])
 
+
 make_sig_test = t_factory(
     'signature', signature,
     re.compile(r'''(?x)
