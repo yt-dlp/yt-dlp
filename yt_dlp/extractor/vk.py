@@ -776,8 +776,6 @@ class VKMusicIE(VKBaseIE):
         track_id = mobj.group('track_id')
         playlist_id = mobj.group('playlist_id')
 
-        # TODO: playlist
-
         if track_id:
             webpage = self._download_webpage(url, track_id)
             data_exec = extract_attributes(
@@ -818,6 +816,55 @@ class VKMusicIE(VKBaseIE):
                     'container': 'm4a_dash',
                 }],
             }
+
+        elif playlist_id:
+            playlist = self._download_payload('al_audio', playlist_id, {
+                'act': 'load_section',
+                'access_hash': '',  # TODO: unnecessary, but it's better to parse from url if access_hash is present
+                'claim': '0',
+                'context': '',
+                'from_id': self._parse_vk_id(),  # TODO: or '0'
+                'is_loading_all': '1',
+                'is_preload': '0',
+                'offset': '0',
+                'owner_id': '',
+                'playlist_id': '',
+                'ref': '',
+                'type': 'playlist',
+            })
+
+            meta = self._parse_json(playlist, playlist_id)[0]
+            tracks = meta['list']
+
+            entries = []
+            for ent in tracks:
+                # XXX: repeating code
+                # meta-parsers for track and playlist items should be unified
+
+                title = ent[3]
+                artist = ent[4]
+
+                track_id = f'{ent[1]}_{ent[0]}'
+                audio_url = f'https://vk.com/audio{track_id}'
+
+                entries.append(self.url_result(
+                    audio_url, VKMusicIE, track_id,
+                    join_nonempty(artist, title, delim=' - '),
+                    track=title, artist=artist, uploader=artist,
+                    duration=int_or_none(ent[5]),
+                    thumbnails=[meta[14]]
+                ))
+
+            artist = meta.get('authorName')
+            thumbnail = meta.get('coverUrl')
+            return self.playlist_result(
+                entries, playlist_id,
+                meta.get('title'),  # TODO: maybe also "artist - title"?
+                meta.get('description'),
+                uploader=artist, artist=artist,
+                thumbnails=[thumbnail] if thumbnail else None,
+                # TODO: there are even more useful metadata
+            )
 
 
 class VKPlayBaseIE(InfoExtractor):
