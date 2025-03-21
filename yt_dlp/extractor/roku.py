@@ -14,7 +14,7 @@ class RokuChannelIE(InfoExtractor):
     _TESTS = [{
         # Single episode test (using a details URL with an episode slug)
         'url': 'https://therokuchannel.roku.com/details/a9474f67937c5986aa1ac0747f5bb615/beastmaster-s1-e1-the-legend-continues',
-        'md5': 'md5sum_of_first_10241_bytes',  # Replace with the actual MD5 if available.
+        'md5': 'b8a683e430a79e20295cff9848bea865',
         'info_dict': {
             'id': 'a9474f67937c5986aa1ac0747f5bb615',
             'ext': 'mp4',
