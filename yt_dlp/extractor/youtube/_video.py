@@ -2065,9 +2065,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         jsi = JSInterpreter(jscode)
         global_var_map = {}
-        if global_var_name := self._extract_player_js_global_var(jscode, 'name'):
-            global_var_map[global_var_name] = jsi.interpret_expression(
-                self._extract_player_js_global_var(jscode, 'value'), {}, allow_recursion=100)
+        _, varname, value = self._extract_player_js_global_var(jscode)
+        if varname:
+            global_var_map[varname] = jsi.interpret_expression(value, {}, allow_recursion=100)
         initial_function = jsi.extract_function(funcname, global_var_map)
         return lambda s: initial_function([s])
 
@@ -2172,18 +2172,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])\s*[,;]', jscode,
             f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
 
-    def _extract_player_js_global_var(self, jscode, group='code'):
+    def _extract_player_js_global_var(self, jscode):
+        """Returns tuple of strings: variable assignment code, variable name, variable value code"""
         return self._search_regex(r'''(?x)
             \'use\s+strict\';\s*
             (?P<code>
                 var\s+(?P<name>[a-zA-Z0-9_$]+)\s*=\s*
                 (?P<value>"(?:[^"\\]|\\.)+"\.split\("."\))
-            )[;,]''', jscode, f'global variable {group}', group=group, default=None)
+            )[;,]''',
+            jscode, 'global variable', group=('code', 'name', 'value'), default=(None, None, None))
 
     def _fixup_n_function_code(self, argnames, code, full_code):
-        varname = None
-        if global_var := self._extract_player_js_global_var(full_code):
-            varname = self._extract_player_js_global_var(full_code, group='name')
+        global_var, varname, _ = self._extract_player_js_global_var(full_code)
+        if global_var:
             self.write_debug(f'Prepending n function code with global array variable "{varname}"')
             code = global_var + ', ' + code
         else:
