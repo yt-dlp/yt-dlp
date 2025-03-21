@@ -2068,7 +2068,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if global_var_name := self._extract_player_js_global_var(jscode, 'name'):
             global_var_map[global_var_name] = jsi.interpret_expression(
                 self._extract_player_js_global_var(jscode, 'value'), {}, allow_recursion=100)
-        initial_function = jsi.extract_function_with_global_stack(funcname, global_var_map)
+        initial_function = jsi.extract_function(funcname, global_var_map)
         return lambda s: initial_function([s])
 
     def _cached(self, func, *cache_id):

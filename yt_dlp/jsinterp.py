@@ -890,16 +890,10 @@ class JSInterpreter:
         code, _ = self._separate_at_paren(func_m.group('code'))
         return [x.strip() for x in func_m.group('args').split(',')], code
 
-    def _extract_function(self, funcname, *global_stack):
+    def extract_function(self, funcname, *global_stack):
         return function_with_repr(
             self.extract_function_from_code(*self.extract_function_code(funcname), *global_stack),
             f'F<{funcname}>')
-
-    def extract_function(self, funcname):
-        return self._extract_function(funcname)
-
-    def extract_function_with_global_stack(self, funcname, *global_stack):
-        return self._extract_function(funcname, *global_stack)
 
     def extract_function_from_code(self, argnames, code, *global_stack):
         local_vars = {}

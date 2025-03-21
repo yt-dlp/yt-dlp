@@ -469,7 +469,7 @@ class TestJSInterpreter(unittest.TestCase):
 
     def test_extract_function_with_global_stack(self):
         jsi = JSInterpreter('function c(d) { return d + e + f + g; }')
-        func = jsi.extract_function_with_global_stack('c', {'e': 10}, {'f': 100, 'g': 1000})
+        func = jsi.extract_function('c', {'e': 10}, {'f': 100, 'g': 1000})
         self.assertEqual(func([1]), 1111)
 
 
