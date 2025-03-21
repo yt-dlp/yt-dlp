@@ -13,7 +13,6 @@ from ..utils import (
     ExtractorError,
     UserNotLive,
     clean_html,
-    extract_attributes,
     get_element_by_class,
     get_element_html_by_id,
     int_or_none,
