@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, url_or_none
 from ..utils.traversal import require, traverse_obj
 
 
@@ -60,10 +60,11 @@ class LocoIE(InfoExtractor):
     def _real_extract(self, url):
         video_type, video_id = self._match_valid_url(url).group('type', 'id')
         webpage = self._download_webpage(url, video_id)
-        stream = traverse_obj(self._search_nextjs_data(webpage, video_id), ('props', 'pageProps', ('liveStreamData', 'stream'), {dict}, any, {require('stream info')}))
+        stream = traverse_obj(self._search_nextjs_data(webpage, video_id), (
+            'props', 'pageProps', ('liveStreamData', 'stream'), {dict}, any, {require('stream info')}))
 
         return {
-            'formats': self._extract_m3u8_formats(traverse_obj(stream, ('conf', 'hls')), video_id),
+            'formats': self._extract_m3u8_formats(stream['conf']['hls'], video_id),
             'id': video_id,
             'is_live': video_type == 'streamers',
             **traverse_obj(stream, {
@@ -72,15 +73,15 @@ class LocoIE(InfoExtractor):
                 'uploader_id': ('user_uid', {str}),
                 'channel': ('alias', {str}),
                 'description': ('description', {str}),
-                'concurrent_view_count': ('viewersCurrent', {int}),
-                'view_count': ('total_views', {int}),
-                'thumbnail': ('thumbnail_url_small', {str}),
-                'like_count': ('likes', {int}),
+                'concurrent_view_count': ('viewersCurrent', {int_or_none}),
+                'view_count': ('total_views', {int_or_none}),
+                'thumbnail': ('thumbnail_url_small', {url_or_none}),
+                'like_count': ('likes', {int_or_none}),
                 'tags': ('tags', ..., {str}),
                 'timestamp': ('started_at', {int_or_none(scale=1000)}),
                 'modified_timestamp': ('updated_at', {int_or_none(scale=1000)}),
-                'comment_count': ('comments_count', {int}),
-                'channel_follower_count': ('followers_count', {int}),
-                'duration': ('duration', {int}),
+                'comment_count': ('comments_count', {int_or_none}),
+                'channel_follower_count': ('followers_count', {int_or_none}),
+                'duration': ('duration', {int_or_none}),
             }),
         }
