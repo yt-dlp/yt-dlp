@@ -778,14 +778,14 @@ class VKMusicIE(VKBaseIE):
 
         if track_id:
             webpage = self._download_webpage(url, track_id)
-            data_exec = extract_attributes(
-                get_element_by_class('AudioPlayerBlock__root', webpage),
-            )['data-exec']
 
-            meta = self._parse_json(data_exec, track_id)['AudioPlayerBlock/init']['firstAudio']
+            # copied regex from VKWallPostIE
+            # XXX: common code should be unified, moved to a class
+            data_audio = re.search(r'data-audio="([^"]+)', webpage)[1]
+            meta = self._parse_json(unescapeHTML(data_audio), track_id)
             one_more_id = meta[24]
 
-            del data_exec
+            del data_audio
             del webpage
 
             track = self._download_payload('al_audio', track_id, {
