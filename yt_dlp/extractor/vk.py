@@ -758,7 +758,7 @@ class VKWallPostIE(VKBaseIE):
 
 class VKMusicIE(VKBaseIE):
     IE_NAME = 'vk:music'
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/(?:audio(?P<track_id>-?\d+_\d+)|(?:.*\?z=audio_playlist|music/playlist/)(?P<playlist_id>-?\d+_\d+))'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/(?:audio(?P<track_id>-?\d+_\d+)|(?:.*\?z=audio_playlist|music/[a-z]+/)(?P<playlist_id>-?\d+_\d+)(?:(?:%2F|_)(?P<access_hash>[0-9a-f]+))?)'
     _TESTS = [
         {
             'url': 'https://vk.com/audio-2001746599_34746599',
@@ -782,6 +782,7 @@ class VKMusicIE(VKBaseIE):
         mobj = self._match_valid_url(url)
         track_id = mobj.group('track_id')
         playlist_id = mobj.group('playlist_id')
+        access_hash = mobj.group('access_hash') or ''
 
         if track_id:
             webpage = self._download_webpage(url, track_id)
@@ -826,7 +827,7 @@ class VKMusicIE(VKBaseIE):
         elif playlist_id:
             playlist = self._download_payload('al_audio', playlist_id, {
                 'act': 'load_section',
-                'access_hash': '',  # TODO: unnecessary, but it's better to parse from url if access_hash is present
+                'access_hash': access_hash,
                 'claim': '0',
                 'context': '',
                 'from_id': self._parse_vk_id(),
