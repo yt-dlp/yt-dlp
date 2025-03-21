@@ -386,8 +386,8 @@ class XVideosChannelIE(XVideosPlaylistIE):
                 url, frag = urllib.parse.urldefrag(url)
                 if not url.endswith('/'):
                     url += '/'
-                if not re.search(self._CHANNEL_REGEX + r'$', url):
-                    parsed = urllib.parse.urlparse(url)
+                parsed = urllib.parse.urlparse(url)
+                if not re.search(r'^/' + self._CHANNEL_REGEX, parsed.path):
                     path_parts = parsed.path.lstrip('/').split('/', 1)
                     new_path = '/channels/' + path_parts[0]
                     if len(path_parts) > 1:
