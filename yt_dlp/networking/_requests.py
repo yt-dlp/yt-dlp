@@ -227,10 +227,6 @@ class RequestsSession(requests.sessions.Session):
             del response._real_status_code
         return super().rebuild_auth(prepared_request, response)
 
-    def send(self, request, **kwargs):
-        print(f'Requesting URL: {request.url}')  # Print each URL before sending the request
-        return super().send(request, **kwargs)
-
 
 class Urllib3LoggingFilter(logging.Filter):
 
