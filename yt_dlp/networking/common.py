@@ -61,11 +61,11 @@ class RequestDirector:
     @param verbose: Print debug request information to stdout.
     """
 
-    def __init__(self, url_prefix, logger, verbose=False):
+    def __init__(self, logger, url_prefix=None, verbose=False):
         self.handlers: dict[str, RequestHandler] = {}
         self.preferences: set[Preference] = set()
-        self.url_prefix = url_prefix
         self.logger = logger  # TODO(Grub4k): default logger
+        self.url_prefix = url_prefix
         self.verbose = verbose
 
     def close(self):
