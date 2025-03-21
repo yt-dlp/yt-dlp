@@ -244,8 +244,13 @@ class XVideosPlaylistIE(InfoExtractor):
 
     def _extract_videos_from_json_list(self, json_list, path='video'):
         return (
-            'https://www.xvideos.com/%s%d/%s' % (path, x.get('id'), str(x.get('u')).split('/')[-1])
-            for x in json_list if isinstance(x, dict))
+            (
+                'https://www.xvideos.com/%s.%s/%s' % (path, x.get('eid'), str(x.get('u')).split('/')[-1])
+                if x.get('eid') is not None
+                else 'https://www.xvideos.com/%s%d/%s' % (path, x.get('id'), str(x.get('u')).split('/')[-1])
+            )
+            for x in json_list if isinstance(x, dict)
+        )
 
     def _get_playlist_url(self, url, playlist_id):
         """URL of first playlist page"""
