@@ -374,7 +374,7 @@ class XVideosChannelIE(XVideosPlaylistIE):
         'playlist_mincount': 5,
     }]
 
-    def _get_playlist_url(self, url, playlist_id):        
+    def _get_playlist_url(self, url, playlist_id):
         id_match = re.match(self._VALID_URL, url).groupdict()
         tab = (id_match.get('tab') or '').lower()
 
