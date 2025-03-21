@@ -13,6 +13,7 @@ from ..utils import (
     ExtractorError,
     UserNotLive,
     clean_html,
+    extract_attributes,
     get_element_by_class,
     get_element_html_by_id,
     int_or_none,
@@ -712,6 +713,9 @@ class VKWallPostIE(VKBaseIE):
                 dec += chr(255 & e >> (-2 * n & 6))
         return dec
 
+    # source:
+    #   https://st7-20.vk.com/dist/web/chunks/common.bd7ad7e2.js
+    #   search here for: e.split('?extra=') [1].split('#')
     def _unmask_url(self, mask_url, vk_id):
         if 'audio_api_unavailable' in mask_url:
             extra = mask_url.split('?extra=')[1].split('#')
@@ -773,6 +777,79 @@ class VKWallPostIE(VKBaseIE):
         return self.playlist_result(
             entries, post_id, join_nonempty(uploader, f'Wall post {post_id}', delim=' - '),
             clean_html(get_element_by_class('wall_post_text', webpage)))
+
+
+class VKMusicIE(VKBaseIE):
+    IE_NAME = 'vk:music'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/(?:audio(?P<track_id>-?\d+_\d+)|(?:.*\?z=audio_playlist|music/playlist/)(?P<playlist_id>-?\d+_\d+))'
+    _TESTS = [
+        {
+            'url': 'https://vk.com/audio-2001746599_34746599',
+            'info_dict': {
+                'id': '-2001746599_34746599',
+                'ext': 'm4a',
+                'title': 'Skillet - Feel Invincible',
+                'duration': 230,
+                'uploader': 'Skillet',
+                'artist': 'Skillet',
+                'track': 'Feel Invincible',
+            },
+            'params': {
+                'skip_download': True,
+            }
+        }
+    ]
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        track_id = mobj.group('track_id')
+        playlist_id = mobj.group('playlist_id')
+
+        sui = self._get_cookies('https://login.vk.com')['sui'].value
+        vk_id = re.match(r'^\d+', sui)[0]
+
+        # TODO: playlist
+
+        if track_id:
+            webpage = self._download_webpage(url, track_id)
+            data_exec = extract_attributes(
+                get_element_by_class('AudioPlayerBlock__root', webpage),
+            )['data-exec']
+
+            meta = self._parse_json(data_exec, track_id)['AudioPlayerBlock/init']['firstAudio']
+            one_more_id = meta[24]
+
+            del data_exec
+            del webpage
+
+            track = self._download_payload('al_audio', track_id, {
+                'act': 'reload_audios',
+                'audio_ids': f'{track_id}_{one_more_id}'
+            })
+
+            meta = self._parse_json(track, track_id)[0][0]
+            url = VKWallPostIE()._unmask_url(meta[2], vk_id)
+            title = meta[3]
+            artist = meta[4]
+            thumbnail = meta[14]
+
+            return {
+                'id': track_id,
+                'title': join_nonempty(artist, title, delim=' - '),
+                'thumbnails': [thumbnail],
+                'duration': int_or_none(meta[5]),
+                'uploader': artist,  # XXX: we don't have an uploader in player meta
+                'artist': artist,
+                'track': title,
+                'formats': [{
+                    'url': url,
+                    # XXX: copied from VKWallPostIE._real_extract
+                    'ext': 'm4a',
+                    'vcodec': 'none',
+                    'acodec': 'mp3',
+                    'container': 'm4a_dash',
+                }],
+            }
 
 
 class VKPlayBaseIE(InfoExtractor):
