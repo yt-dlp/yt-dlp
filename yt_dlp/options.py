@@ -527,6 +527,13 @@ def create_parser():
             'Use the specified HTTP/HTTPS/SOCKS proxy. To enable SOCKS proxy, specify a proper scheme, '
             'e.g. socks5://user:pass@127.0.0.1:1080/. Pass in an empty string (--proxy "") for direct connection'))
     network.add_option(
+        '--url-prefix', dest='url_prefix',
+        default=None, metavar='URL',
+        help=(
+            'Prepend the specified URL prefix to every request URL. For example, if you set the URL prefix to `http://127.0.0.1:1080/`, '
+            'a request originally aimed at `https://request.url` will be modified to `http://127.0.0.1:1080/https://request.url`. '
+            'pass in an empty string (i.e., `--url-prefix ""`) to use the original request URLs directly'))
+    network.add_option(
         '--socket-timeout',
         dest='socket_timeout', type=float, default=None, metavar='SECONDS',
         help='Time to wait before giving up, in seconds')

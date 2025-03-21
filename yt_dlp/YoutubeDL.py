@@ -360,6 +360,7 @@ class YoutubeDL:
     enable_file_urls:  Enable file:// URLs. This is disabled by default for security reasons.
     http_headers:      A dictionary of custom headers to be used for all requests
     proxy:             URL of the proxy server to use
+    url_prefix:        Prepend the specified URL prefix to every request URL
     geo_verification_proxy:  URL of the proxy to use for IP address verification
                        on geo-restricted sites.
     socket_timeout:    Time to wait for unresponsive hosts, in seconds
@@ -4231,7 +4232,7 @@ class YoutubeDL:
         clean_headers(headers)
         clean_proxies(proxies, headers)
 
-        director = RequestDirector(logger=logger, verbose=self.params.get('debug_printtraffic'))
+        director = RequestDirector(url_prefix=self.params.get('url_prefix'), logger=logger, verbose=self.params.get('debug_printtraffic'))
         for handler in handlers:
             director.add_handler(handler(
                 logger=logger,
