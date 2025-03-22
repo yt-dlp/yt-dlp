@@ -6,6 +6,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     join_nonempty,
+    qualities,
     smuggle_url,
     str_or_none,
     strip_or_none,
@@ -374,8 +375,6 @@ class TVerIE(InfoExtractor):
             if not m3u8_url:
                 continue
 
-            self.write_debug(f'M3U8 URL: {m3u8_url}')
-
             item_formats, item_subtitles = self._extract_m3u8_formats_and_subtitles(
                 m3u8_url,
                 video_id,
@@ -384,6 +383,23 @@ class TVerIE(InfoExtractor):
                 headers={'origin': 'https://tver.jp/', 'referer': 'https://tver.jp/'},
                 note='Downloading streaks.jp m3u8 information',
             )
+
+            build_qualities = []
+
+            for f in item_formats:
+                # hls-ts_AUDIO-1_1-pro_105ba7d8d0f4452bb452acf09466b2a5
+                if mobj := re.search(r'hls-ts_AUDIO-(.+?)-', f['format_id']):
+                    build_qualities.append(mobj.group(1))
+
+            if len(build_qualities) > 0:
+                # it seems best quality is 0_X. see ref for more info
+                # ref: https://github.com/yt-dlp/yt-dlp/issues/12643#issuecomment-2745263178
+                build_qualities.sort(key=lambda x: int(x.split('_')[0]), reverse=True)
+                quality = qualities(tuple(build_qualities))
+
+                for f in item_formats:
+                    if mobj := re.search(r'hls-ts_AUDIO-(.+?)-', f['format_id']):
+                        f['quality'] = quality(mobj.group(1))
 
             if len(item_formats) > 0:
                 formats.extend(item_formats)
