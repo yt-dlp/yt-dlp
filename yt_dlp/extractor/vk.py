@@ -73,6 +73,19 @@ class VKBaseIE(InfoExtractor):
             raise ExtractorError(
                 'Unable to login, incorrect username and/or password', expected=True)
 
+    def _parse_vk_id(self):
+        sui = self._get_cookies('https://login.vk.com').get('sui')
+        if not sui:
+            return 0
+
+        # example of what `sui` cookie contains:
+        # 123456789%2CSaCxka2wNY7OZKE5QkmtVTxCxg6Ftgb-zVgNXvMVWQH
+        mobj = re.match(r'^\d+', sui.value)
+        if not mobj:
+            return 0
+
+        return int(mobj[1])
+
     def _download_payload(self, path, video_id, data, fatal=True):
         endpoint = f'https://vk.com/{path}.php'
         data['al'] = 1
@@ -697,39 +710,7 @@ class VKWallPostIE(VKBaseIE):
         'url': 'https://m.vk.com/wall-23538238_35',
         'only_matching': True,
     }]
-    _BASE64_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN0PQRSTUVWXYZO123456789+/='
     _AUDIO = collections.namedtuple('Audio', ['id', 'owner_id', 'url', 'title', 'performer', 'duration', 'album_id', 'unk', 'author_link', 'lyrics', 'flags', 'context', 'extra', 'hashes', 'cover_url', 'ads'])
-
-    def _decode(self, enc):
-        dec = ''
-        e = n = 0
-        for c in enc:
-            r = self._BASE64_CHARS.index(c)
-            cond = n % 4
-            e = 64 * e + r if cond else r
-            n += 1
-            if cond:
-                dec += chr(255 & e >> (-2 * n & 6))
-        return dec
-
-    def _unmask_url(self, mask_url, vk_id):
-        if 'audio_api_unavailable' in mask_url:
-            extra = mask_url.split('?extra=')[1].split('#')
-            func, base = self._decode(extra[1]).split(chr(11))
-            mask_url = list(self._decode(extra[0]))
-            url_len = len(mask_url)
-            indexes = [None] * url_len
-            index = int(base) ^ vk_id
-            for n in range(url_len - 1, -1, -1):
-                index = (url_len * (n + 1) ^ index + n) % url_len
-                indexes[n] = index
-            for n in range(1, url_len):
-                c = mask_url[n]
-                index = indexes[url_len - 1 - n]
-                mask_url[n] = mask_url[index]
-                mask_url[index] = c
-            mask_url = ''.join(mask_url)
-        return mask_url
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
@@ -773,6 +754,124 @@ class VKWallPostIE(VKBaseIE):
         return self.playlist_result(
             entries, post_id, join_nonempty(uploader, f'Wall post {post_id}', delim=' - '),
             clean_html(get_element_by_class('wall_post_text', webpage)))
+
+
+class VKMusicIE(VKBaseIE):
+    IE_NAME = 'vk:music'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/(?:audio(?P<track_id>-?\d+_\d+)|(?:.*\?z=audio_playlist|music/[a-z]+/)(?P<playlist_id>-?\d+_\d+)(?:(?:%2F|_)(?P<access_hash>[0-9a-f]+))?)'
+    _TESTS = [
+        {
+            'url': 'https://vk.com/audio-2001746599_34746599',
+            'info_dict': {
+                'id': '-2001746599_34746599',
+                'ext': 'm4a',
+                'title': 'Skillet - Feel Invincible',
+                'duration': 230,
+                'uploader': 'Skillet',
+                'artist': 'Skillet',
+                'artists': ['Skillet'],
+                'track': 'Feel Invincible',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+    ]
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        track_id = mobj.group('track_id')
+        playlist_id = mobj.group('playlist_id')
+        access_hash = mobj.group('access_hash') or ''
+
+        if track_id:
+            webpage = self._download_webpage(url, track_id)
+
+            # copied regex from VKWallPostIE
+            # XXX: common code should be unified, moved to a class
+            data_audio = re.search(r'data-audio="([^"]+)', webpage)[1]
+            meta = self._parse_json(unescapeHTML(data_audio), track_id)
+            one_more_id = meta[24]
+
+            del data_audio
+            del webpage
+
+            meta = self._download_payload('al_audio', track_id, {
+                'act': 'reload_audios',
+                'audio_ids': f'{track_id}_{one_more_id}',
+            })[0][0]
+
+            url = _unmask_url(meta[2], self._parse_vk_id())
+            title = meta[3]
+            artist = meta[4]
+            thumbnail = meta[14]
+
+            return {
+                'id': track_id,
+                'title': join_nonempty(artist, title, delim=' - '),
+                # 'thumbnails': [thumbnail],
+                'duration': int_or_none(meta[5]),
+                'uploader': artist,  # XXX: we don't have an uploader in player meta
+                'artist': artist,
+                'track': title,
+                'formats': [{
+                    'url': url,
+                    # XXX: copied from VKWallPostIE._real_extract
+                    'ext': 'm4a',
+                    'vcodec': 'none',
+                    'acodec': 'mp3',
+                    'container': 'm4a_dash',
+                }],
+            }
+
+        elif playlist_id:
+            playlist = self._download_payload('al_audio', playlist_id, {
+                'act': 'load_section',
+                'access_hash': access_hash,
+                'claim': '0',
+                'context': '',
+                'from_id': self._parse_vk_id(),
+                'is_loading_all': '1',
+                'is_preload': '0',
+                'offset': '0',
+                'owner_id': '',
+                'playlist_id': '',
+                'ref': '',
+                'type': 'playlist',
+            })
+
+            meta = self._parse_json(playlist, playlist_id)[0]
+            tracks = meta['list']
+
+            entries = []
+            for ent in tracks:
+                # XXX: repeating code
+                # meta-parsers for track and playlist items should be unified
+
+                title = ent[3]
+                artist = ent[4]
+
+                track_id = f'{ent[1]}_{ent[0]}'
+                audio_url = f'https://vk.com/audio{track_id}'
+
+                entries.append(self.url_result(
+                    audio_url, VKMusicIE, track_id,
+                    join_nonempty(artist, title, delim=' - '),
+                    track=title, artist=artist, uploader=artist,
+                    duration=int_or_none(ent[5]),
+                    # thumbnails=[meta[14]]
+                ))
+
+            artist = meta.get('authorName')
+            thumbnail = meta.get('coverUrl')
+            return self.playlist_result(
+                entries, playlist_id,
+                meta.get('title'),  # TODO: maybe also "artist - title"?
+                meta.get('description'),
+                uploader=artist, artist=artist,
+                thumbnails=[thumbnail] if thumbnail else None,
+                # TODO: there are even more useful metadata
+            )
 
 
 class VKPlayBaseIE(InfoExtractor):
@@ -922,3 +1021,39 @@ class VKPlayLiveIE(VKPlayBaseIE):
             **self._extract_common_meta(stream_info),
             'formats': formats,
         }
+
+
+_BASE64_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN0PQRSTUVWXYZO123456789+/='
+
+
+def _b64_decode(enc):
+    dec = ''
+    e = n = 0
+    for c in enc:
+        r = _BASE64_CHARS.index(c)
+        cond = n % 4
+        e = 64 * e + r if cond else r
+        n += 1
+        if cond:
+            dec += chr(255 & e >> (-2 * n & 6))
+    return dec
+
+
+def _unmask_url(mask_url, vk_id):
+    if 'audio_api_unavailable' in mask_url:
+        extra = mask_url.split('?extra=')[1].split('#')
+        func, base = _b64_decode(extra[1]).split(chr(11))
+        mask_url = list(_b64_decode(extra[0]))
+        url_len = len(mask_url)
+        indexes = [None] * url_len
+        index = int(base) ^ vk_id
+        for n in range(url_len - 1, -1, -1):
+            index = (url_len * (n + 1) ^ index + n) % url_len
+            indexes[n] = index
+        for n in range(1, url_len):
+            c = mask_url[n]
+            index = indexes[url_len - 1 - n]
+            mask_url[n] = mask_url[index]
+            mask_url[index] = c
+        mask_url = ''.join(mask_url)
+    return mask_url

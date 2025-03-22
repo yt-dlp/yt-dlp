@@ -2383,6 +2383,7 @@ from .viu import (
 )
 from .vk import (
     VKIE,
+    VKMusicIE,
     VKPlayIE,
     VKPlayLiveIE,
     VKUserVideosIE,
