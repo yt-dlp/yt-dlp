@@ -23,7 +23,6 @@ from yt_dlp.extractor import (
     TedTalkIE,
     ThePlatformFeedIE,
     ThePlatformIE,
-    VikiIE,
     VimeoIE,
     WallaIE,
     YoutubeIE,
@@ -329,20 +328,6 @@ class TestRaiPlaySubtitles(BaseTestSubtitles):
         subtitles = self.getSubtitles()
         self.assertEqual(set(subtitles.keys()), {'it'})
         self.assertEqual(md5(subtitles['it']), '4b3264186fbb103508abe5311cfcb9cd')
-
-
-@is_download_test
-@unittest.skip('IE broken - DRM only')
-class TestVikiSubtitles(BaseTestSubtitles):
-    url = 'http://www.viki.com/videos/1060846v-punch-episode-18'
-    IE = VikiIE
-
-    def test_allsubtitles(self):
-        self.DL.params['writesubtitles'] = True
-        self.DL.params['allsubtitles'] = True
-        subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), {'en'})
-        self.assertEqual(md5(subtitles['en']), '53cb083a5914b2d84ef1ab67b880d18a')
 
 
 @is_download_test
