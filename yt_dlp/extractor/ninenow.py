@@ -12,7 +12,7 @@ from ..utils import (
     unified_strdate,
     unified_timestamp,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
 class NineNowIE(InfoExtractor):
@@ -121,7 +121,7 @@ class NineNowIE(InfoExtractor):
             video_type, 'video', (
                 ('brightcoveId', {str}),
                 ('referenceId', {str}, {lambda x: f'ref:{x}' if x else None}),
-            ), any))
+            ), any, {require('brightcove ID')}))
         video_id = traverse_obj(common_data, (
             video_type, 'video', 'id', {int}, {str_or_none})) or brightcove_id
 
