@@ -8,6 +8,8 @@ import re
 import subprocess
 import time
 
+from yt_dlp.utils._utils import date_from_str
+
 from .common import PostProcessor
 from ..compat import imghdr
 from ..utils import (
@@ -32,6 +34,26 @@ from ..utils import (
     variadic,
     write_json_file,
 )
+from ..dependencies import mutagen
+
+if mutagen:
+    import mutagen
+    from mutagen import (
+        FileType,
+        aiff,
+        dsdiff,
+        dsf,
+        flac,
+        id3,
+        mp3,
+        mp4,
+        oggopus,
+        oggspeex,
+        oggtheora,
+        oggvorbis,
+        trueaudio,
+        wave,
+    )
 
 EXT_TO_OUT_FORMATS = {
     'aac': 'adts',
@@ -668,11 +690,51 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
 class FFmpegMetadataPP(FFmpegPostProcessor):
 
-    def __init__(self, downloader, add_metadata=True, add_chapters=True, add_infojson='if_exists'):
+    _MUTAGEN_SUPPORTED_EXTS = ('alac', 'aiff', 'flac', 'mp3', 'm4a', 'ogg', 'opus', 'vorbis', 'wav')
+    _VORBIS_METADATA = {
+        'title': 'title',
+        'artist': 'artist',
+        'genre': 'genre',
+        'album': 'album',
+        'albumartist': 'album_artist',
+        'comment': 'description',
+        'composer': 'composer',
+        'tracknumber': 'track',
+        'WWWAUDIOFILE': 'purl',  # https://getmusicbee.com/forum/index.php?topic=39759.0
+    }
+    _ID3_METADATA = {
+        'TIT2': 'title',
+        'TPE1': 'artist',
+        'COMM': 'description',
+        'TCON': 'genre',
+        'WOAF': 'purl',
+        'TALB': 'album',
+        'TPE2': 'album_artist',
+        'TRCK': 'track',
+        'TCOM': 'composer',
+        'TPOS': 'disc',
+    }
+    _MP4_METADATA = {
+        '\251ART': 'artist',
+        '\251nam': 'title',
+        '\251gen': 'genre',
+        '\251alb': 'album',
+        'aART': 'album_artist',
+        '\251cmt': 'description',
+        '\251wrt': 'composer',
+        'disk': 'disc',
+        'tvsh': 'show',
+        'tvsn': 'season_number',
+        'egid': 'episode_id',
+        'tven': 'episode_sort',
+    }
+
+    def __init__(self, downloader, add_metadata=True, add_chapters=True, add_infojson='if_exists', prefer_mutagen=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._add_metadata = add_metadata
         self._add_chapters = add_chapters
         self._add_infojson = add_infojson
+        self._prefer_mutagen = prefer_mutagen
 
     @staticmethod
     def _options(target_ext):
@@ -681,8 +743,108 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         if audio_only:
             yield from ('-vn', '-acodec', 'copy')
 
+    def _use_mutagen(self, info):
+        if not self._prefer_mutagen:
+            return False
+        if info['ext'] not in self._MUTAGEN_SUPPORTED_EXTS:
+            return False
+        if self._add_chapters and info.get('chapters'):
+            # mutagen can't handle adding chapters to M4A
+            return False
+        if not mutagen:
+            self.report_warning('module mutagen was not found. Please install using `python3 -m pip install mutagen`')
+            return False
+        return True
+
+    if mutagen:
+        @functools.singledispatchmethod
+        def _assemble_metadata(self, file: FileType, meta: dict) -> None:
+            raise FFmpegPostProcessorError(f'Filetype {file.__class__.__name__} is not currently supported')
+
+        @_assemble_metadata.register(oggvorbis.OggVorbis)
+        @_assemble_metadata.register(oggtheora.OggTheora)
+        @_assemble_metadata.register(oggspeex.OggSpeex)
+        @_assemble_metadata.register(oggopus.OggOpus)
+        @_assemble_metadata.register(flac.FLAC)
+        def _(self, file: oggopus.OggOpus, meta: dict) -> None:
+            for file_key, meta_key in self._VORBIS_METADATA.items():
+                if meta.get(meta_key):
+                    file[file_key] = meta[meta_key]
+
+            if meta.get('date'):
+                # Vorbis uses ISO 8601 format YYYY-MM-DD
+                date = date_from_str(meta['date'])
+                file['date'] = date.strftime('%Y-%m-%d')
+
+        @_assemble_metadata.register(trueaudio.TrueAudio)
+        @_assemble_metadata.register(dsf.DSF)
+        @_assemble_metadata.register(dsdiff.DSDIFF)
+        @_assemble_metadata.register(aiff.AIFF)
+        @_assemble_metadata.register(mp3.MP3)
+        @_assemble_metadata.register(wave.WAVE)
+        def _(self, file: wave.WAVE, meta: dict) -> None:
+            for file_key, meta_key in self._ID3_METADATA.items():
+                if meta.get(meta_key):
+                    id3_class = getattr(id3, file_key)
+                    if issubclass(id3_class, id3.UrlFrame):
+                        file[file_key] = id3_class(url=meta[meta_key])
+                    else:
+                        file[file_key] = id3_class(encoding=id3.Encoding.UTF8, text=meta[meta_key])
+
+            if meta.get('date'):
+                # ID3 uses ISO 8601 format YYYY-MM-DD
+                date = date_from_str(meta['date'])
+                file['TDRC'] = id3.TDRC(encoding=id3.Encoding.UTF8, text=date.strftime('%Y-%m-%d'))
+
+        @_assemble_metadata.register(mp4.MP4)
+        def _(self, file: mp4.MP4, meta: dict) -> None:
+            for file_key, meta_key in self._MP4_METADATA.items():
+                if meta.get(meta_key):
+                    file[file_key] = meta[meta_key]
+
+            if meta.get('date'):
+                # no standard but iTunes uses YYYY-MM-DD format
+                date = date_from_str(meta['date'])
+                file['\251day'] = date.strftime('%Y-%m-%d')
+
+            if meta.get('purl'):
+                # https://getmusicbee.com/forum/index.php?topic=39759.0
+                file['----:com.apple.iTunes:WWWAUDIOFILE'] = meta['purl'].encode()
+                file['purl'] = meta['purl']
+
+            if meta.get('track'):
+                file['trkn'] = [(meta['track'], 0)]
+
+    def _run_mutagen(self, info):
+        self.to_screen('Using mutagen to embed metadata')
+        filename = info['filepath']
+        metadata = self._get_metadata_dict(info)['common']
+        if not metadata:
+            self.to_screen('There isn\'t any metadata to add')
+            return [], info
+
+        self.to_screen(f'Adding metadata to "{filename}"')
+        try:
+            f = mutagen.File(filename)
+            if f is None:
+                raise TypeError(f'Mutagen unable to determine type of file: {info["ext"]}')
+            self._assemble_metadata(f, metadata)
+            f.save()
+        except Exception as err:
+            raise FFmpegPostProcessorError(f'Unable to embed metadata; {err}')
+
+        return [], info
+
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
+
+        if self._use_mutagen(info):
+            try:
+                self._run_mutagen(info)
+                return [], info
+            except Exception as err:
+                self.report_warning(f'Unable to embed metadata using mutagen; {err}')
+
         self._fixup_chapters(info)
         filename, metadata_filename = info['filepath'], None
         files_to_delete, options = [], []
@@ -732,7 +894,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             f.write(metadata_file_content)
         yield ('-map_metadata', '1')
 
-    def _get_metadata_opts(self, info):
+    def _get_metadata_dict(self, info):
         meta_prefix = 'meta'
         metadata = collections.defaultdict(dict)
 
@@ -774,6 +936,10 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             mobj = re.fullmatch(meta_regex, key)
             if value is not None and mobj:
                 metadata[mobj.group('i') or 'common'][mobj.group('key')] = value.replace('\0', '')
+        return metadata
+
+    def _get_metadata_opts(self, info):
+        metadata = self._get_metadata_dict(info)
 
         # Write id3v1 metadata also since Windows Explorer can't handle id3v2 tags
         yield ('-write_id3v1', '1')
