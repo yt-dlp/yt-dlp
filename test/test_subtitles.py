@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import FakeYDL, is_download_test, md5
 from yt_dlp.extractor import (
-    NPOIE,
     NRKTVIE,
     PBSIE,
     CeskaTelevizeIE,
@@ -264,20 +263,6 @@ class TestLyndaSubtitles(BaseTestSubtitles):
         subtitles = self.getSubtitles()
         self.assertEqual(set(subtitles.keys()), {'en'})
         self.assertEqual(md5(subtitles['en']), '09bbe67222259bed60deaa26997d73a7')
-
-
-@is_download_test
-@unittest.skip('IE broken')
-class TestNPOSubtitles(BaseTestSubtitles):
-    url = 'http://www.npo.nl/nos-journaal/28-08-2014/POW_00722860'
-    IE = NPOIE
-
-    def test_allsubtitles(self):
-        self.DL.params['writesubtitles'] = True
-        self.DL.params['allsubtitles'] = True
-        subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), {'nl'})
-        self.assertEqual(md5(subtitles['nl']), 'fc6435027572b63fb4ab143abd5ad3f4')
 
 
 @is_download_test
