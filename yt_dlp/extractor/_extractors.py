@@ -839,7 +839,10 @@ from .huya import (
 from .hypem import HypemIE
 from .hypergryph import MonsterSirenHypergryphMusicIE
 from .hytale import HytaleIE
-from .icareus import IcareusIE
+from .icareus import (
+    IcareusIE,
+    IcareusNextIE,
+)
 from .ichinanalive import (
     IchinanaLiveClipIE,
     IchinanaLiveIE,
