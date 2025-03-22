@@ -654,18 +654,20 @@ class YoutubeDL:
         if not all_plugins_loaded.value:
             load_all_plugins()
 
-        try:
-            windows_enable_vt_mode()
-        except Exception as e:
-            self.write_debug(f'Failed to enable VT mode: {e}')
-
         stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
         self._out_files = Namespace(
             out=stdout,
             error=sys.stderr,
             screen=sys.stderr if self.params.get('quiet') else stdout,
-            console=next(filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None),
         )
+
+        try:
+            windows_enable_vt_mode()
+        except Exception as e:
+            self.write_debug(f'Failed to enable VT mode: {e}')
+
+        # hehe "immutable" namespace
+        self._out_files.console = next(filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None)
 
         if self.params.get('no_color'):
             if self.params.get('color') is not None:
