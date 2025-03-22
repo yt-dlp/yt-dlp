@@ -116,9 +116,14 @@ class NineNowIE(InfoExtractor):
 
         if traverse_obj(common_data, (video_type, 'video', 'drm', {bool})):
             self.report_drm(display_id)
-        brightcove_id = try_get(
-            common_data, lambda x: x[video_type]['video']['brightcoveId'], str) or 'ref:{}'.format(common_data[video_type]['video']['referenceId'])
-        video_id = str_or_none(try_get(common_data, lambda x: x['episode']['video']['id'])) or brightcove_id
+
+        brightcove_id = traverse_obj(common_data, (
+            video_type, 'video', (
+                ('brightcoveId', {str}),
+                ('referenceId', {str}, {lambda x: f'ref:{x}' if x else None}),
+            ), any))
+        video_id = traverse_obj(common_data, (
+            video_type, 'video', 'id', {int}, {str_or_none})) or brightcove_id
 
         title = try_get(common_data, lambda x: x[video_type]['name'], str)
         season_number = try_get(common_data, lambda x: x['season']['seasonNumber'], int)
