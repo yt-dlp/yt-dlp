@@ -51,6 +51,7 @@ class StreaksBaseIE(InfoExtractor):
         formats, subtitles = [], {}
         for source in streaks.get('sources', []):
             ext = mimetype2ext(source.get('type'))
+            has_drm = bool(source.get('key_systems'))
             if src := source.get('src'):
                 if ext == 'm3u8':
                     if is_live := live_status == 'is_live' and ssai:
@@ -73,8 +74,10 @@ class StreaksBaseIE(InfoExtractor):
                         src, media_id, mpd_id='dash', fatal=False)
                 else:
                     raise ExtractorError(f'Unsupported type: {ext}')
-            if source.get('key_systems'):
-                for f in fmts:
+            for n, f in enumerate(fmts):
+                if f.get('vcodec') == 'none':
+                    f['quality'] = -n
+                if has_drm:
                     f['has_drm'] = True
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
@@ -100,7 +103,7 @@ class StreaksBaseIE(InfoExtractor):
                 'duration': ('duration', {float_or_none}),
                 'episode_id': ('program_id', {str_or_none}),
                 'tags': ('tags', ..., {str}),
-                'thumbnail': (('poster', 'thumbnail'), 'src', {url_or_none}, any),
+                'thumbnails': (('poster', 'thumbnail'), 'src', {'url': {url_or_none}}),
                 'timestamp': ('updated_at', {parse_iso8601}),
                 'uploader': ('project_id', {str_or_none}),
             }),
@@ -138,7 +141,7 @@ class StreaksIE(StreaksBaseIE):
             'display_id': 'ref:mycoffeetime_250317',
             'duration': 122.99,
             'live_status': 'not_live',
-            'thumbnail': r're:https://.+\.jpg',
+            'thumbnail': r're:https?://.+\.jpg',
             'timestamp': 1741586302,
             'upload_date': '20250310',
             'uploader': 'ktv-web',
@@ -160,18 +163,17 @@ class StreaksIE(StreaksBaseIE):
         },
         'skip': 'DRM Protected',
     }, {
-        'url': 'https://playback.api.streaks.jp/v1/projects/ytv-news/medias/97d7a6da69e746b6aa6757e9298f0c55',
+        'url': 'https://playback.api.streaks.jp/v1/projects/ktv-web/medias/b5411938e1e5435dac71edf829dd4813',
         'info_dict': {
-            'id': '97d7a6da69e746b6aa6757e9298f0c55',
+            'id': 'b5411938e1e5435dac71edf829dd4813',
             'ext': 'mp4',
-            'title': '225be9f3-ea14-4052-9b68-4de29366bfde.mp4',
-            'display_id': '97d7a6da69e746b6aa6757e9298f0c55',
-            'duration': 44.586,
+            'title': 'KANTELE_SYUSEi_0630',
+            'display_id': 'b5411938e1e5435dac71edf829dd4813',
             'live_status': 'not_live',
-            'thumbnail': r're:https://.+\.jpg',
-            'timestamp': 1682407390,
-            'uploader': 'ytv-news',
-            'upload_date': '20230425',
+            'thumbnail': r're:https?://.+\.jpg',
+            'timestamp': 1737522999,
+            'uploader': 'ktv-web',
+            'upload_date': '20250122',
         },
     }, {
         # TVer Olympics: website already down, but api remains accessible
