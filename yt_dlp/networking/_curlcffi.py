@@ -163,7 +163,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             targets.items()
             for version, targets in BROWSER_TARGETS.items()
             if curl_cffi_version >= version
-        ), key=lambda x: (x[1].client, float(x[1].version), x[1].os))).items()
+        ), key=lambda x: (x[1].client == 'chrome', x[1].client, float(x[1].version), x[1].os), reverse=True)).items()
     }
 
     def _create_instance(self, cookiejar=None):
