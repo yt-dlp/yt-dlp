@@ -24,7 +24,7 @@ class BokeCCBaseIE(InfoExtractor):
 
 
 class BokeCCIE(BokeCCBaseIE):
-    _IE_DESC = 'CC视频'
+    IE_DESC = 'CC视频'
     _VALID_URL = r'https?://union\.bokecc\.com/playvideo\.bo\?(?P<query>.*)'
 
     _TESTS = [{
