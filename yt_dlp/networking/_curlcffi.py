@@ -146,7 +146,7 @@ BROWSER_TARGETS: dict[tuple[int, ...], dict[str, ImpersonateTarget]] = {
         'safari18_0_ios': ImpersonateTarget('safari', '18.0', 'ios', '18.0'),
     },
     (0, 10): {
-        'firefox135': ImpersonateTarget('chrome', '135', 'macos', '14'),
+        'firefox135': ImpersonateTarget('firefox', '135', 'macos', '14'),
     },
 }
 
@@ -163,7 +163,16 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             targets.items()
             for version, targets in BROWSER_TARGETS.items()
             if curl_cffi_version >= version
-        ), key=lambda x: (x[1].client == 'chrome', x[1].client, float(x[1].version), x[1].os), reverse=True)).items()
+        ), key=lambda x: (
+            # deprioritize mobile targets since they give very different behavior
+            x[1].os not in ('ios', 'android'),
+            # prioritize edge < firefox < safari < chrome
+            ('edge', 'firefox', 'safari', 'chrome').index(x[1].client),
+            # prioritize newest version
+            float(x[1].version) if x[1].version else 0,
+            # group by os name
+            x[1].os,
+        ), reverse=True)).items()
     }
 
     def _create_instance(self, cookiejar=None):

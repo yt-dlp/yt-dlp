@@ -1039,7 +1039,7 @@ def _real_main(argv=None):
 
             for known_target, known_handler in known_targets:
                 if not any(
-                    known_target in target and handler == known_handler
+                    known_target in target and known_handler.startswith(handler)
                     for target, handler in available_targets
                 ):
                     rows.insert(0, [
