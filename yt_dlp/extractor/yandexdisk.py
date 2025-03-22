@@ -1,12 +1,15 @@
 import json
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
     float_or_none,
     int_or_none,
     join_nonempty,
     mimetype2ext,
+    traverse_obj,
     try_get,
     urljoin,
 )
@@ -62,6 +65,40 @@ class YandexDiskIE(InfoExtractor):
             webpage, 'store'), video_id)
         resource = store['resources'][store['rootResourceId']]
 
+        if store['rootResourceId'] == 'password-protected':
+            data = {
+                'hash': resource['hash'],
+                'password': self.get_param('videopassword', default=''),
+                'sk': traverse_obj(store, ('environment', 'sk'))}
+            json_string = json.dumps(data, separators=(',', ':'))
+            url_encoded_string = urllib.parse.quote(json_string, safe='')
+            data_bytes = url_encoded_string.encode('utf-8')
+            token = (self._download_json(
+                'https://disk.yandex.ru/public/api/check-password',
+                video_id, data=data_bytes, fatal=False,
+                headers={
+                    'Accept': '*/*',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                    'Content-Type': 'text/plain',
+                    'Origin': 'https://disk.yandex.ru',
+                    'Pragma': 'no-cache',
+                    'Referer': url,
+                    'Sec-Fetch-Dest': 'empty',
+                    'Sec-Fetch-Mode': 'cors',
+                    'Sec-Fetch-Site': 'same-origin',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-Retpath-Y': url}) or {}).get('token') or {}
+            if not token:
+                raise ExtractorError('Password incorrect!', expected=True)
+            self._set_cookie('disk.yandex.ru', name='passToken', value=token)
+            webpage = self._download_webpage(url, video_id)
+            store = self._parse_json(self._search_regex(
+                r'<script[^>]+id="store-prefetch"[^>]*>\s*({.+?})\s*</script>',
+                webpage, 'store'), video_id)
+            resource = store['resources'][store['rootResourceId']]
+
+        thumbnail = self._og_search_property('image', webpage)
         title = resource['name']
         meta = resource.get('meta') or {}
 
@@ -132,6 +169,7 @@ class YandexDiskIE(InfoExtractor):
         return {
             'id': video_id,
             'title': title,
+            'thumbnail': thumbnail,
             'duration': float_or_none(video_streams.get('duration'), 1000),
             'uploader': display_name,
             'uploader_id': uid,
