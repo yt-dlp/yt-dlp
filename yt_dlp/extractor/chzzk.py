@@ -147,11 +147,7 @@ class CHZZKVideoIE(InfoExtractor):
 
         live_status = 'was_live' if video_meta.get('liveOpenDate') else 'not_live'
         video_status = video_meta.get('vodStatus')
-        if video_status == 'UPLOAD':
-            playback = self._parse_json(video_meta['liveRewindPlaybackJson'], video_id)
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                playback['media'][0]['path'], video_id, 'mp4', m3u8_id='hls')
-        elif video_status == 'ABR_HLS':
+        if video_status == 'ABR_HLS':
             formats, subtitles = self._extract_mpd_formats_and_subtitles(
                 f'https://apis.naver.com/neonplayer/vodplay/v1/playback/{video_meta["videoId"]}',
                 video_id, query={
@@ -161,10 +157,17 @@ class CHZZKVideoIE(InfoExtractor):
                     'cpl': 'en_US',
                 })
         else:
-            self.raise_no_formats(
-                f'Unknown video status detected: "{video_status}"', expected=True, video_id=video_id)
-            formats, subtitles = [], {}
-            live_status = 'post_live' if live_status == 'was_live' else None
+            fatal = video_status == 'UPLOAD'
+            playback = self._parse_json(video_meta['liveRewindPlaybackJson'], video_id, fatal=fatal)
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                traverse_obj(playback, ('media', 0, 'path')), video_id, 'mp4', m3u8_id='hls', fatal=fatal)
+            if formats and video_status != 'UPLOAD':
+                self.write_debug(f'Video found with status: "{video_status}"')
+            elif not formats:
+                self.raise_no_formats(
+                    f'Unknown video status detected: "{video_status}"', expected=True, video_id=video_id)
+                formats, subtitles = [], {}
+                live_status = 'post_live' if live_status == 'was_live' else None
 
         return {
             'id': video_id,
