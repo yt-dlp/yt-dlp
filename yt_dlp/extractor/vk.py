@@ -774,8 +774,8 @@ class VKMusicIE(VKBaseIE):
             },
             'params': {
                 'skip_download': True,
-            }
-        }
+            },
+        },
     ]
 
     def _real_extract(self, url):
@@ -798,7 +798,7 @@ class VKMusicIE(VKBaseIE):
 
             meta = self._download_payload('al_audio', track_id, {
                 'act': 'reload_audios',
-                'audio_ids': f'{track_id}_{one_more_id}'
+                'audio_ids': f'{track_id}_{one_more_id}',
             })[0][0]
 
             url = _unmask_url(meta[2], self._parse_vk_id())
@@ -1025,6 +1025,7 @@ class VKPlayLiveIE(VKPlayBaseIE):
 
 _BASE64_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN0PQRSTUVWXYZO123456789+/='
 
+
 def _b64_decode(enc):
     dec = ''
     e = n = 0
@@ -1036,6 +1037,7 @@ def _b64_decode(enc):
         if cond:
             dec += chr(255 & e >> (-2 * n & 6))
     return dec
+
 
 def _unmask_url(mask_url, vk_id):
     if 'audio_api_unavailable' in mask_url:
