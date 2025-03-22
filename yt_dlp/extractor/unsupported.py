@@ -161,6 +161,9 @@ class KnownDRMIE(UnsupportedInfoExtractor):
     }, {
         'url': 'https://beta.crunchyroll.com/pt-br/watch/G8WUN8VKP/the-ruler-of-conspiracy',
         'only_matching': True,
+    }, {
+        'url': 'https://www.viki.com/videos/1175236v-choosing-spouse-by-lottery-episode-1',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
