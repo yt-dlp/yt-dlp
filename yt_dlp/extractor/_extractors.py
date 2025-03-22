@@ -1991,6 +1991,7 @@ from .storyfire import (
 )
 from .streamable import StreamableIE
 from .streamcz import StreamCZIE
+from .streamff import StreamffIE
 from .streetvoice import StreetVoiceIE
 from .stretchinternet import StretchInternetIE
 from .stripchat import StripchatIE
