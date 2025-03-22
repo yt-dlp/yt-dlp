@@ -51,6 +51,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'(?:watch|front)\.njpwworld\.com',
         r'qub\.ca/vrai',
         r'(?:beta\.)?crunchyroll\.com',
+        r'viki\.com',
     )
 
     _TESTS = [{
