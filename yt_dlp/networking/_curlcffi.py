@@ -34,7 +34,7 @@ curl_cffi_version = tuple(map(int, re.split(r'[^\d]+', curl_cffi.__version__)[:3
 
 if curl_cffi_version != (0, 5, 10) and not (0, 10) <= curl_cffi_version:
     curl_cffi._yt_dlp__version = f'{curl_cffi.__version__} (unsupported)'
-    raise ImportError('Only curl_cffi versions 0.5.10 and 0.10+ are supported')
+    raise ImportError('Only curl_cffi versions 0.5.10 and 0.10.x are supported')
 
 import curl_cffi.requests
 from curl_cffi.const import CurlECode, CurlOpt
