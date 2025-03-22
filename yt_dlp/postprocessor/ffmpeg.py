@@ -706,7 +706,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             self.to_screen('There isn\'t any metadata to add')
             return [], info
 
-        temp_filename = prepend_extension(filename, 'temp')
+        temp_filename = prepend_extension(filename, 'temp', info['ext'], True)
         self.to_screen(f'Adding metadata to "{filename}"')
         self.run_ffmpeg_multiple_files(
             (filename, metadata_filename), temp_filename,

@@ -3394,7 +3394,8 @@ class YoutubeDL:
                     file = self.existing_file(itertools.chain(*zip(map(converted, filepaths), filepaths)),
                                               default_overwrite=False)
                     if file:
-                        info_dict['ext'] = os.path.splitext(file)[1][1:]
+                        real_ext = os.path.splitext(file)[1][1:]
+                        info_dict['ext'] = real_ext if real_ext else info_dict['ext']
                     return file
 
                 fd, success = None, True
