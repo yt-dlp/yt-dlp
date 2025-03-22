@@ -29,11 +29,11 @@ class XAttrMetadataPP(PostProcessor):
         'user.dublincore.date': 'upload_date',
         'user.dublincore.contributor': 'uploader',
         'user.dublincore.format': 'format',
-        'com.apple.metadata:kMDItemWhereFroms': 'webpage_url',
         # We do this last because it may get us close to the xattr limits
         # (e.g., 4kB on ext4), and we don't want to have the other ones fail
         'user.dublincore.description': 'description',
         # 'user.xdg.comment': 'description',
+        'com.apple.metadata:kMDItemWhereFroms': 'webpage_url',
     }
 
     APPLE_PLIST_TEMPLATE = '''<?xml version="1.0" encoding="UTF-8"?>
