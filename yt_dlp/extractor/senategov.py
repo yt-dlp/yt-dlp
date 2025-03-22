@@ -13,7 +13,7 @@ from ..utils.traversal import traverse_obj
 
 
 class SenateISVPIE(InfoExtractor):
-    _IE_NAME = 'senate.gov:isvp'
+    IE_NAME = 'senate.gov:isvp'
     _VALID_URL = r'https?://(?:www\.)?senate\.gov/isvp/?\?(?P<qs>.+)'
     _EMBED_REGEX = [r"<iframe[^>]+src=['\"](?P<url>https?://www\.senate\.gov/isvp/?\?[^'\"]+)['\"]"]
 
@@ -137,7 +137,7 @@ class SenateISVPIE(InfoExtractor):
 
 
 class SenateGovIE(InfoExtractor):
-    _IE_NAME = 'senate.gov'
+    IE_NAME = 'senate.gov'
     _SUBDOMAIN_RE = '|'.join(map(re.escape, (
         'agriculture', 'aging', 'appropriations', 'armed-services', 'banking',
         'budget', 'commerce', 'energy', 'epw', 'finance', 'foreign', 'help',
