@@ -4152,7 +4152,7 @@ class YoutubeDL:
             (target, rh.RH_NAME)
             for rh in self._request_director.handlers.values()
             if isinstance(rh, ImpersonateRequestHandler)
-            for target in rh.supported_targets
+            for target in reversed(rh.supported_targets)
         ]
 
     def _impersonate_target_available(self, target):
