@@ -78,7 +78,7 @@ class NineNowIE(InfoExtractor):
         return self._search_json(
             r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=None)
 
-    def _old_extract_common_data(self, webpage, display_id):
+    def _old_extract_common_data(self, webpage, display_id, video_type):
         self.write_debug('Falling back to the old method for extracting common data')
 
         page_data = self._parse_json(self._search_regex(
@@ -98,7 +98,7 @@ class NineNowIE(InfoExtractor):
             if not cache:
                 continue
             return {
-                'episode': (cache.get(current_key) or next(iter(cache.values())))[kind],
+                video_type: (cache.get(current_key) or next(iter(cache.values())))[kind],
                 'season': (cache.get(current_key) or next(iter(cache.values()))).get('season', None),
             }
 
@@ -110,7 +110,7 @@ class NineNowIE(InfoExtractor):
             re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
             (..., {json.loads}, ..., {self._find_json},
              lambda _, v: v['payload'][video_type]['slug'] == display_id,
-             'payload', any)) or self._old_extract_common_data(webpage, display_id)
+             'payload', any)) or self._old_extract_common_data(webpage, display_id, video_type)
         if not common_data:
             raise ExtractorError('Unable to extract video data')
 
