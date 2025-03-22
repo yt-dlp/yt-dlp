@@ -31,9 +31,9 @@ if curl_cffi is None:
 
 curl_cffi_version = tuple(map(int, re.split(r'[^\d]+', curl_cffi.__version__)[:3]))
 
-if curl_cffi_version != (0, 5, 10) and not ((0, 7, 0) <= curl_cffi_version < (0, 7, 2)):
+if curl_cffi_version != (0, 5, 10) and not (((0, 7, 0) <= curl_cffi_version < (0, 7, 2)) or curl_cffi_version >= (0, 8, 0)):
     curl_cffi._yt_dlp__version = f'{curl_cffi.__version__} (unsupported)'
-    raise ImportError('Only curl_cffi versions 0.5.10, 0.7.0 and 0.7.1 are supported')
+    raise ImportError('Only curl_cffi versions 0.5.10, 0.7.0 and 0.7.1, >=0.8.0 are supported')
 
 import curl_cffi.requests
 from curl_cffi.const import CurlECode, CurlOpt
@@ -113,6 +113,9 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     _SUPPORTED_PROXY_SCHEMES = ('http', 'https', 'socks4', 'socks4a', 'socks5', 'socks5h')
     _SUPPORTED_IMPERSONATE_TARGET_MAP = {
         **({
+            ImpersonateTarget('chrome', '131'): curl_cffi.requests.BrowserType.chrome131,
+        } if curl_cffi_version >= (0, 8, 0) else {}),
+        **({
             ImpersonateTarget('chrome', '124', 'macos', '14'): curl_cffi.requests.BrowserType.chrome124,
             ImpersonateTarget('chrome', '123', 'macos', '14'): curl_cffi.requests.BrowserType.chrome123,
             ImpersonateTarget('chrome', '120', 'macos', '14'): curl_cffi.requests.BrowserType.chrome120,
@@ -128,11 +131,20 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         ImpersonateTarget('edge', '101', 'windows', '10'): curl_cffi.requests.BrowserType.edge101,
         ImpersonateTarget('edge', '99', 'windows', '10'): curl_cffi.requests.BrowserType.edge99,
         **({
+            ImpersonateTarget('safari', '18.0', 'macos'): curl_cffi.requests.BrowserType.safari18_0,
+        } if curl_cffi_version >= (0, 8, 0) else {}),
+        **({
             ImpersonateTarget('safari', '17.0', 'macos', '14'): curl_cffi.requests.BrowserType.safari17_0,
         } if curl_cffi_version >= (0, 7, 0) else {}),
         ImpersonateTarget('safari', '15.5', 'macos', '12'): curl_cffi.requests.BrowserType.safari15_5,
         ImpersonateTarget('safari', '15.3', 'macos', '11'): curl_cffi.requests.BrowserType.safari15_3,
+        **({
+            ImpersonateTarget('chrome', '131', 'android'): curl_cffi.requests.BrowserType.chrome131_android,
+        } if curl_cffi_version >= (0, 8, 0) else {}),
         ImpersonateTarget('chrome', '99', 'android', '12'): curl_cffi.requests.BrowserType.chrome99_android,
+        **({
+            ImpersonateTarget('safari', '18.0', 'ios', '18.0'): curl_cffi.requests.BrowserType.safari18_0_ios,
+        } if curl_cffi_version >= (0, 8, 0) else {}),
         **({
             ImpersonateTarget('safari', '17.2', 'ios', '17.2'): curl_cffi.requests.BrowserType.safari17_2_ios,
         } if curl_cffi_version >= (0, 7, 0) else {}),
