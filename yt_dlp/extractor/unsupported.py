@@ -52,6 +52,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'qub\.ca/vrai',
         r'(?:beta\.)?crunchyroll\.com',
         r'viki\.com',
+        r'deezer\.com',
     )
 
     _TESTS = [{
@@ -163,6 +164,9 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.viki.com/videos/1175236v-choosing-spouse-by-lottery-episode-1',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.deezer.com/playlist/176747451',
         'only_matching': True,
     }]
 
