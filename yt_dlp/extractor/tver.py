@@ -84,7 +84,6 @@ class TVerIE(InfoExtractor):
     }]
 
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
-
     _HEADERS = {
         'x-tver-platform-type': 'web',
         'Origin': 'https://tver.jp',
