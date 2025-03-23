@@ -18,7 +18,7 @@ from ..utils.traversal import require, traverse_obj, value
 
 class NineNowIE(InfoExtractor):
     IE_NAME = '9now.com.au'
-    _VALID_URL = r'https?://(?:www\.)?9now\.com\.au/(?:[^/]+/){2}(?P<id>(?P<type>clip|episode)-[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?9now\.com\.au/(?:[^/?#]+/){2}(?P<id>(?P<type>clip|episode)-[^/?#]+)'
     _GEO_BYPASS = False
     _TESTS = [{
         # clip
