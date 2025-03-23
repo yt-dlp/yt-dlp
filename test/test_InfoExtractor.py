@@ -646,16 +646,17 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'protocol': 'm3u8_native',
                     'audio_ext': 'mp4',
                 }, {
-                    'format_id': 'aud2-English',
-                    'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a2/prog_index.m3u8',
+                    'format_id': 'aud3-English',
+                    'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a3/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
                     'language': 'en',
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                     'audio_ext': 'mp4',
                 }, {
-                    'format_id': 'aud3-English',
-                    'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a3/prog_index.m3u8',
+                    # Sorted as best audio because it is grouped with the highest bitrate video track
+                    'format_id': 'aud2-English',
+                    'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a2/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
                     'language': 'en',
                     'ext': 'mp4',
