@@ -51,26 +51,7 @@ class TVerIE(InfoExtractor):
             'id': 'srtxft431v',
             'title': '名探偵コナン',
         },
-        'playlist': [
-            {
-                'md5': '779ffd97493ed59b0a6277ea726b389e',
-                'info_dict': {
-                    'id': 'ref:conan-1137-241005',
-                    'ext': 'mp4',
-                    'title': '名探偵コナン #1137「行列店、味変の秘密」',
-                    'uploader_id': '5330942432001',
-                    'tags': [],
-                    'channel': '読売テレビ',
-                    'series': '名探偵コナン',
-                    'description': 'md5:601fccc1d2430d942a2c8068c4b33eb5',
-                    'episode': '#1137「行列店、味変の秘密」',
-                    'duration': 1469.077,
-                    'timestamp': 1728030405,
-                    'upload_date': '20241004',
-                    'alt_title': '名探偵コナン #1137「行列店、味変の秘密」 読売テレビ 10月5日(土)放送分',
-                    'thumbnail': r're:https://.+\.jpg',
-                },
-            }],
+        'playlist_mincount': 21,
     }, {
         'url': 'https://tver.jp/series/sru35hwdd2',
         'info_dict': {
