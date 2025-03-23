@@ -1762,7 +1762,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        from ...utils import parse_qs
+        from grrr.utils import parse_qs
 
         qs = parse_qs(url)
         if qs.get('list', [None])[0]:
