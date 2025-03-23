@@ -2320,7 +2320,7 @@ class InfoExtractor:
         audio_preference_func = qualities(audio_groups_by_quality)
 
         def quality_note(audio_group_id):
-            if not audio_groups_by_quality or len(audio_groups_by_quality) == 1:
+            if len(audio_groups_by_quality) <= 1:
                 return None
             if audio_groups_by_quality[-1] == audio_group_id:
                 return 'High quality'
