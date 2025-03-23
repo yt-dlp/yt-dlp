@@ -2193,7 +2193,7 @@ class InfoExtractor:
                     'quality': quality,
                     'has_drm': has_drm,
                     'vcodec': 'none' if is_audio else None,
-                    # Save this to assign quality based on associated video stream
+                    # Save this to assign source_preference based on associated video stream
                     '_audio_group_id': group_id if is_audio and not is_alternate else None,
                 } for idx in _extract_m3u8_playlist_indices(manifest_url))
 
@@ -2317,7 +2317,7 @@ class InfoExtractor:
         audio_groups_by_quality = orderedSet(f['_audio_group_id'] for f in sorted(
             traverse_obj(formats, lambda _, v: v.get('vcodec') != 'none' and v['_audio_group_id']),
             key=lambda x: (x.get('tbr') or 0, x.get('width') or 0)))
-        audio_quality_func = qualities(audio_groups_by_quality)
+        audio_preference_func = qualities(audio_groups_by_quality)
 
         def quality_note(audio_group_id):
             if not audio_groups_by_quality or len(audio_groups_by_quality) == 1:
@@ -2332,7 +2332,8 @@ class InfoExtractor:
             if audio_group_id is None:
                 continue
             if fmt.get('vcodec') == 'none':
-                fmt['quality'] = audio_quality_func(audio_group_id)
+                # Use source_preference since quality and preference are set by params
+                fmt['source_preference'] = audio_preference_func(audio_group_id)
                 fmt['format_note'] = join_nonempty(
                     quality_note(audio_group_id), fmt.get('format_note'), delim=', ')
 
