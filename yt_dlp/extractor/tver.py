@@ -112,10 +112,7 @@ class TVerIE(InfoExtractor):
     def _yield_episode_ids_for_series(self, series_id):
         seasons_info = self._download_json(
             f'https://service-api.tver.jp/api/v1/callSeriesSeasons/{series_id}',
-            series_id,
-            'Downloading seasons info',
-            headers=self._HEADERS,
-        )
+            series_id, 'Downloading seasons info', headers=self._HEADERS)
         for season_id in traverse_obj(
                 seasons_info, ('result', 'contents', lambda _, v: v['type'] == 'season', 'content', 'id', {str})):
             episodes_info = self._call_platform_api(
