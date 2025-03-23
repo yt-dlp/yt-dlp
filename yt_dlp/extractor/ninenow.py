@@ -4,7 +4,6 @@ import re
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     float_or_none,
     int_or_none,
     parse_resolution,
@@ -112,9 +111,8 @@ class NineNowIE(InfoExtractor):
         common_data = traverse_obj(
             re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
             (..., {json.loads}, ..., {self._find_json},
-             lambda _, v: v['payload'][video_type]['slug'] == display_id, 'payload', any))
-        if not common_data:
-            raise ExtractorError('Unable to extract video data')
+             lambda _, v: v['payload'][video_type]['slug'] == display_id,
+             'payload', any, {require('video data')}))
 
         if traverse_obj(common_data, (video_type, 'video', 'drm', {bool})):
             self.report_drm(display_id)
