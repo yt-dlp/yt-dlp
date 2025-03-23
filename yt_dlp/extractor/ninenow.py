@@ -8,7 +8,6 @@ from ..utils import (
     float_or_none,
     int_or_none,
     parse_resolution,
-    smuggle_url,
     str_or_none,
     unified_strdate,
     unified_timestamp,
@@ -20,7 +19,7 @@ from ..utils.traversal import require, traverse_obj, value
 class NineNowIE(InfoExtractor):
     IE_NAME = '9now.com.au'
     _VALID_URL = r'https?://(?:www\.)?9now\.com\.au/(?:[^/]+/){2}(?P<id>(?P<type>clip|episode)-[^/?#]+)'
-    _GEO_COUNTRIES = ['AU']
+    _GEO_BYPASS = False
     _TESTS = [{
         # clip
         'url': 'https://www.9now.com.au/today/season-2025/clip-cm8hw9h5z00080hquqa5hszq7',
@@ -40,7 +39,7 @@ class NineNowIE(InfoExtractor):
             'thumbnail': r're:https?://.+/1920x0/.+\.jpg',
         },
         'params': {
-            'skip_download': True,
+            'skip_download': 'HLS/DASH fragments and mp4 URLs are geo-restricted; only available in AU',
         },
     }, {
         # episode
@@ -71,10 +70,10 @@ class NineNowIE(InfoExtractor):
             'release_date': '20210421',
         },
         'params': {
-            'skip_download': True,
+            'skip_download': 'HLS/DASH fragments and mp4 URLs are geo-restricted; only available in AU',
         },
     }]
-    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/4460760524001/default_default/index.html?videoId=%s'
+    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/4460760524001/default_default/index.html?videoId={}'
 
     # XXX: For parsing next.js v15+ data; see also yt_dlp.extractor.francetv and yt_dlp.extractor.goplay
     def _find_json(self, s):
@@ -128,9 +127,7 @@ class NineNowIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'ie_key': BrightcoveNewIE.ie_key(),
-            'url': smuggle_url(
-                self.BRIGHTCOVE_URL_TEMPLATE % brightcove_id,
-                {'geo_countries': self._GEO_COUNTRIES}),
+            'url': self.BRIGHTCOVE_URL_TEMPLATE.format(brightcove_id),
             **traverse_obj(common_data, {
                 'id': (video_type, 'video', 'id', {int}, ({str_or_none}, {value(brightcove_id)}), any),
                 'title': (video_type, 'name', {str}),
