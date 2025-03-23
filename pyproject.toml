@@ -55,8 +55,7 @@ default = [
     "websockets>=13.0",
 ]
 curl-cffi = [
-    "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
-    "curl-cffi>=0.5.10,!=0.6.*,<0.7.2; os_name!='nt' and implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.11; implementation_name=='cpython'",
 ]
 secretstorage = [
     "cffi",
@@ -76,7 +75,7 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.9.0",
+    "ruff~=0.11.0",
 ]
 test = [
     "pytest~=8.1",
@@ -387,7 +386,11 @@ select = [
 exclude = "*/extractor/lazy_extractors.py,*venv*,*/test/testdata/sigs/player-*.js,.idea,.vscode"
 
 [tool.pytest.ini_options]
-addopts = "-ra -v --strict-markers"
+addopts = [
+    "-ra",  # summary: all except passed
+    "--verbose",
+    "--strict-markers",
+]
 markers = [
     "download",
 ]
