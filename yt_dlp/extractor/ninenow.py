@@ -6,10 +6,9 @@ from .common import InfoExtractor
 from ..utils import (
     float_or_none,
     int_or_none,
+    parse_iso8601,
     parse_resolution,
     str_or_none,
-    unified_strdate,
-    unified_timestamp,
     url_or_none,
 )
 from ..utils.traversal import require, traverse_obj, value
@@ -29,12 +28,13 @@ class NineNowIE(InfoExtractor):
             'description': 'The Today host\'s skills are put to the test with the latest simulation tech.',
             'uploader_id': '4460760524001',
             'duration': 197.376,
-            'tags': ['clip', 'flights', 'technology', 'karl stefanovic'],
+            'tags': ['flights', 'technology', 'Karl Stefanovic'],
             'season': 'Season 2025',
             'season_number': 2025,
             'series': 'TODAY',
             'timestamp': 1742507988,
             'upload_date': '20250320',
+            'release_timestamp': 1742507983,
             'release_date': '20250320',
             'thumbnail': r're:https?://.+/1920x0/.+\.jpg',
         },
@@ -68,6 +68,7 @@ class NineNowIE(InfoExtractor):
             'series': 'Lego Masters',
             'season': 'Season 3',
             'episode': 'Episode 3',
+            'release_timestamp': 1619002200,
             'release_date': '20210421',
         },
         'params': {
@@ -91,6 +92,7 @@ class NineNowIE(InfoExtractor):
             'series': 'Married at First Sight',
             'timestamp': 1737973800,
             'upload_date': '20250127',
+            'release_timestamp': 1737973800,
             'release_date': '20250127',
         },
         'params': {
@@ -135,7 +137,7 @@ class NineNowIE(InfoExtractor):
                 'series': ('tvSeries', 'name', {str}),
                 'season_number': ('season', 'seasonNumber', {int_or_none}),
                 'episode_number': ('episode', 'episodeNumber', {int_or_none}),
-                'timestamp': ('episode', 'airDate', {unified_timestamp}),
+                'timestamp': ('episode', 'airDate', {parse_iso8601}),
                 'release_timestamp': (video_type, 'availability', {parse_iso8601}),
                 'thumbnails': (video_type, 'image', 'sizes', {dict.items}, lambda _, v: url_or_none(v[1]), {
                     'id': 0,
