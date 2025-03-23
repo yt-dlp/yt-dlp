@@ -675,7 +675,7 @@ class NhkRadiruIE(InfoExtractor):
     def _format_actlist(self, act_list):
         role_groups = {}
         for act in act_list:
-            role = act['role']
+            role = act.get('role')
             if role not in role_groups:
                 role_groups[role] = []
             role_groups[role].append(act)
@@ -683,7 +683,7 @@ class NhkRadiruIE(InfoExtractor):
         formatted_roles = []
         for role, acts in role_groups.items():
             for i, act in enumerate(acts):
-                res = f'【{role}】' if i == 0 else ''
+                res = f'【{role}】' if i == 0 and role is not None else ''
                 if title := act.get('title'):
                     res += f'{title}…'
                 res += act.get('name')
