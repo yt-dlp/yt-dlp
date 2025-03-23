@@ -769,7 +769,7 @@ class NhkRadiruIE(InfoExtractor):
         if thumbs is None or len(thumbs) == 0:
             return []
         for size, thumb in thumbs:
-            if size == 'copyright':
+            if size == 'copyright' or not isinstance(thumb, dict):
                 continue
             thumbnails.append({**thumb,
                                'preference': preference,
