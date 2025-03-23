@@ -252,7 +252,7 @@ class TVerIE(InfoExtractor):
         day, month = (int_or_none(broadcast_date_info.get(key)) for key in ('day', 'month'))
         if day and month:
             year = data.get('release_year') or dt.datetime.now().year
-            dt_ = dt.datetime.strptime(f'{year}-{month}-{year}', '%Y-%m-%d')
+            dt_ = dt.datetime.strptime(f'{year}-{month}-{day}', '%Y-%m-%d')
             # If the date is in the future, it means the broadcast date is in the previous year
             # Ref: https://github.com/yt-dlp/yt-dlp/pull/12282#issuecomment-2678132806
             if dt_ > dt.datetime.now():
