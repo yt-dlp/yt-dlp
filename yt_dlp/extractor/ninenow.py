@@ -80,30 +80,6 @@ class NineNowIE(InfoExtractor):
         return self._search_json(
             r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=None)
 
-    def _old_extract_common_data(self, webpage, display_id, video_type):
-        self.write_debug('Falling back to the old method for extracting common data')
-
-        page_data = self._parse_json(self._search_regex(
-            r'window\.__data\s*=\s*({.*?});', webpage,
-            'page data', default='{}'), display_id, fatal=False)
-        if not page_data:
-            page_data = self._parse_json(self._parse_json(self._search_regex(
-                r'window\.__data\s*=\s*JSON\.parse\s*\(\s*(".+?")\s*\)\s*;',
-                webpage, 'page data'), display_id), display_id)
-
-        for kind in ('episode', 'clip'):
-            current_key = page_data.get(kind, {}).get(
-                f'current{kind.capitalize()}Key')
-            if not current_key:
-                continue
-            cache = page_data.get(kind, {}).get(f'{kind}Cache', {})
-            if not cache:
-                continue
-            return {
-                video_type: (cache.get(current_key) or next(iter(cache.values())))[kind],
-                'season': (cache.get(current_key) or next(iter(cache.values()))).get('season', None),
-            }
-
     def _real_extract(self, url):
         display_id, video_type = self._match_valid_url(url).group('id', 'type')
         webpage = self._download_webpage(url, display_id)
@@ -111,8 +87,7 @@ class NineNowIE(InfoExtractor):
         common_data = traverse_obj(
             re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
             (..., {json.loads}, ..., {self._find_json},
-             lambda _, v: v['payload'][video_type]['slug'] == display_id,
-             'payload', any)) or self._old_extract_common_data(webpage, display_id, video_type)
+             lambda _, v: v['payload'][video_type]['slug'] == display_id, 'payload', any))
         if not common_data:
             raise ExtractorError('Unable to extract video data')
 
