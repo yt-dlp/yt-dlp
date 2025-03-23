@@ -2329,13 +2329,12 @@ class InfoExtractor:
 
         for fmt in traverse_obj(formats, lambda _, v: '_audio_group_id' in v):
             audio_group_id = fmt.pop('_audio_group_id')
-            if audio_group_id is None:
+            if audio_group_id is None or fmt.get('vcodec') != 'none':
                 continue
-            if fmt.get('vcodec') == 'none':
-                # Use source_preference since quality and preference are set by params
-                fmt['source_preference'] = audio_preference_func(audio_group_id)
-                fmt['format_note'] = join_nonempty(
-                    quality_note(audio_group_id), fmt.get('format_note'), delim=', ')
+            # Use source_preference since quality and preference are set by params
+            fmt['source_preference'] = audio_preference_func(audio_group_id)
+            fmt['format_note'] = join_nonempty(
+                quality_note(audio_group_id), fmt.get('format_note'), delim=', ')
 
         return formats, subtitles
 
