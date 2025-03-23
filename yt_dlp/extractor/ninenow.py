@@ -72,6 +72,28 @@ class NineNowIE(InfoExtractor):
         'params': {
             'skip_download': 'HLS/DASH fragments and mp4 URLs are geo-restricted; only available in AU',
         },
+    }, {
+        'url': 'https://www.9now.com.au/married-at-first-sight/season-12/episode-1',
+        'info_dict': {
+            'id': '6367798770112',
+            'ext': 'mp4',
+            'title': 'Episode 1',
+            'description': r're:The cultural sensation of Married At First Sight returns with our first weddings! .{90}$',
+            'uploader_id': '4460760524001',
+            'duration': 5415.079,
+            'thumbnail': r're:https?://.+/1920x0/.+\.png',
+            'tags': ['episode'],
+            'season': 'Season 12',
+            'season_number': 12,
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'timestamp': 1737973800,
+            'upload_date': '20250127',
+            'release_date': '20250127',
+        },
+        'params': {
+            'skip_download': 'HLS/DASH fragments and mp4 URLs are geo-restricted; only available in AU',
+        },
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/4460760524001/default_default/index.html?videoId={}'
 
