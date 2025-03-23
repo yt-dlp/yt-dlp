@@ -2314,7 +2314,7 @@ class InfoExtractor:
 
                 last_stream_inf = {}
 
-        audio_groups_by_quality = orderedSet(x['_audio_group_id'] for x in sorted(
+        audio_groups_by_quality = orderedSet(f['_audio_group_id'] for f in sorted(
             traverse_obj(formats, lambda _, v: v.get('vcodec') != 'none' and v['_audio_group_id']),
             key=lambda x: (x.get('tbr') or 0, x.get('width') or 0)))
         audio_quality_func = qualities(audio_groups_by_quality)
