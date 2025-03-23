@@ -646,6 +646,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                     'audio_ext': 'mp4',
+                    'source_preference': 0,
                 }, {
                     # 192kbps (bitrate not provided in m3u8)
                     'format_id': 'aud3-English',
@@ -655,6 +656,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                     'audio_ext': 'mp4',
+                    'source_preference': 1,
                 }, {
                     # 384kbps (bitrate not provided in m3u8); sorted as best because it's grouped with the highest bitrate video track
                     'format_id': 'aud2-English',
@@ -664,6 +666,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                     'audio_ext': 'mp4',
+                    'source_preference': 2,
                 }, {
                     'format_id': '530',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/prog_index.m3u8',
