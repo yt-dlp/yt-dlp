@@ -131,11 +131,12 @@ class NineNowIE(InfoExtractor):
                 'title': (video_type, 'name', {str}),
                 'description': (video_type, 'description', {str}),
                 'duration': (video_type, 'video', 'duration', {float_or_none(scale=1000)}),
+                'tags': (video_type, 'tags', ..., 'name', {str}, all, filter),
                 'series': ('tvSeries', 'name', {str}),
                 'season_number': ('season', 'seasonNumber', {int_or_none}),
                 'episode_number': ('episode', 'episodeNumber', {int_or_none}),
                 'timestamp': ('episode', 'airDate', {unified_timestamp}),
-                'release_date': (video_type, 'availability', {unified_strdate}),
+                'release_timestamp': (video_type, 'availability', {parse_iso8601}),
                 'thumbnails': (video_type, 'image', 'sizes', {dict.items}, lambda _, v: url_or_none(v[1]), {
                     'id': 0,
                     'url': 1,
