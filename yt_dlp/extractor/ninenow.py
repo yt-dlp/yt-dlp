@@ -1,18 +1,20 @@
 import json
 import re
 
+from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    parse_resolution,
     smuggle_url,
     str_or_none,
-    try_get,
     unified_strdate,
     unified_timestamp,
+    url_or_none,
 )
-from ..utils.traversal import require, traverse_obj
+from ..utils.traversal import require, traverse_obj, value
 
 
 class NineNowIE(InfoExtractor):
@@ -35,6 +37,7 @@ class NineNowIE(InfoExtractor):
             'timestamp': 1742507988,
             'upload_date': '20250320',
             'release_date': '20250320',
+            'thumbnail': r're:https?://.+/1920x0/.+\.jpg',
         },
         'params': {
             'skip_download': True,
@@ -61,7 +64,7 @@ class NineNowIE(InfoExtractor):
             'timestamp': 1619002200,
             'upload_date': '20210421',
             'duration': 3574.085,
-            'thumbnail': r're:https?://.+/.+\.jpg',
+            'thumbnail': r're:https?://.+/1920x0/.+\.jpg',
             'tags': ['episode'],
             'season': 'Season 3',
             'episode': 'Episode 3',
@@ -116,40 +119,31 @@ class NineNowIE(InfoExtractor):
 
         if traverse_obj(common_data, (video_type, 'video', 'drm', {bool})):
             self.report_drm(display_id)
-
         brightcove_id = traverse_obj(common_data, (
             video_type, 'video', (
                 ('brightcoveId', {str}),
                 ('referenceId', {str}, {lambda x: f'ref:{x}' if x else None}),
             ), any, {require('brightcove ID')}))
-        video_id = traverse_obj(common_data, (
-            video_type, 'video', 'id', {int}, {str_or_none})) or brightcove_id
-
-        title = try_get(common_data, lambda x: x[video_type]['name'], str)
-        season_number = try_get(common_data, lambda x: x['season']['seasonNumber'], int)
-        episode_number = try_get(common_data, lambda x: x['episode']['episodeNumber'], int)
-        timestamp = unified_timestamp(try_get(common_data, lambda x: x['episode']['airDate'], str))
-        release_date = unified_strdate(try_get(common_data, lambda x: x[video_type]['availability'], str))
-        thumbnails_data = try_get(common_data, lambda x: x['episode']['image']['sizes'], dict) or {}
-        thumbnails = [{
-            'id': thumbnail_id,
-            'url': thumbnail_url,
-            'width': int_or_none(thumbnail_id[1:]),
-        } for thumbnail_id, thumbnail_url in thumbnails_data.items()]
 
         return {
             '_type': 'url_transparent',
+            'ie_key': BrightcoveNewIE.ie_key(),
             'url': smuggle_url(
                 self.BRIGHTCOVE_URL_TEMPLATE % brightcove_id,
                 {'geo_countries': self._GEO_COUNTRIES}),
-            'id': video_id,
-            'title': title,
-            'description': try_get(common_data, lambda x: x[video_type]['description'], str),
-            'duration': float_or_none(try_get(common_data, lambda x: x[video_type]['video']['duration'], float), 1000),
-            'thumbnails': thumbnails,
-            'ie_key': 'BrightcoveNew',
-            'season_number': season_number,
-            'episode_number': episode_number,
-            'timestamp': timestamp,
-            'release_date': release_date,
+            **traverse_obj(common_data, {
+                'id': (video_type, 'video', 'id', {int}, ({str_or_none}, {value(brightcove_id)}), any),
+                'title': (video_type, 'name', {str}),
+                'description': (video_type, 'description', {str}),
+                'duration': (video_type, 'video', 'duration', {float_or_none(scale=1000)}),
+                'season_number': ('season', 'seasonNumber', {int_or_none}),
+                'episode_number': ('episode', 'episodeNumber', {int_or_none}),
+                'timestamp': ('episode', 'airDate', {unified_timestamp}),
+                'release_date': (video_type, 'availability', {unified_strdate}),
+                'thumbnails': (video_type, 'image', 'sizes', {dict.items}, lambda _, v: url_or_none(v[1]), {
+                    'id': 0,
+                    'url': 1,
+                    'width': (1, {parse_resolution}, 'width'),
+                }),
+            }),
         }
