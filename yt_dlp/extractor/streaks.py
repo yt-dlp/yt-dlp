@@ -31,8 +31,7 @@ class StreaksBaseIE(InfoExtractor):
                     'Origin': 'https://players.streaks.jp',
                     **self.geo_verification_headers(),
                     **(headers or {}),
-                },
-            )
+                })
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status in {403, 404}:
                 error = self._parse_json(e.cause.response.read().decode(), media_id, fatal=False)
@@ -68,11 +67,12 @@ class StreaksBaseIE(InfoExtractor):
             if ext != 'm3u8':
                 self.report_warning(f'Unsupported stream type: {ext}')
                 continue
+
             if is_live and ssai:
                 session_params = traverse_obj(self._download_json(
                     self._API_URL_TEMPLATE.format('ssai', project_id, streaks_id, '/ssai/session'),
                     media_id, 'Downloading session parameters',
-                    headers={'Content-Type': 'application/json'},
+                    headers={'Content-Type': 'application/json', 'Accept': 'application/json'},
                     data=json.dumps({'id': source['id']}).encode(),
                 ), (0, 'query', {urllib.parse.parse_qs}))
                 src_url = update_url_query(src_url, session_params)
@@ -207,5 +207,4 @@ class StreaksIE(StreaksBaseIE):
         return self._extract_from_streaks_api(
             project_id, media_id, headers=filter_dict({
                 'X-Streaks-Api-Key': smuggled_data.get('api_key'),
-            }),
-        )
+            }))
