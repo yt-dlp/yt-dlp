@@ -201,8 +201,15 @@ class TVerIE(StreaksBaseIE):
         if brightcove_id and not brightcove_id.isdecimal():
             brightcove_id = f'ref:{brightcove_id}'
 
-        # Deprecated Brightcove extraction accessible only by extractor-arg; errors are expected
-        if backend == 'brightcove':
+        streaks_id = traverse_obj(video_info, ('streaks', 'videoRefID', {str}))
+        if streaks_id and not streaks_id.startswith('ref:'):
+            streaks_id = f'ref:{streaks_id}'
+
+        # Deprecated Brightcove extraction reachable w/extractor-arg or fallback; errors are expected
+        if backend == 'brightcove' or not streaks_id:
+            if backend != 'brightcove':
+                self.report_warning(
+                    'No STREAKS ID found; falling back to Brightcove extraction', video_id=video_id)
             if not brightcove_id:
                 raise ExtractorError('Unable to extract brightcove reference ID', expected=True)
             account_id = traverse_obj(video_info, (
@@ -216,12 +223,8 @@ class TVerIE(StreaksBaseIE):
                 'ie_key': 'BrightcoveNew',
             }
 
-        ref_id = video_info['streaks']['videoRefID']
-        if not ref_id.startswith('ref:'):
-            ref_id = f'ref:{ref_id}'
-
         return {
-            **self._extract_from_streaks_api(video_info['streaks']['projectID'], ref_id, {
+            **self._extract_from_streaks_api(video_info['streaks']['projectID'], streaks_id, {
                 'Origin': 'https://tver.jp',
                 'Referer': 'https://tver.jp/',
             }),
