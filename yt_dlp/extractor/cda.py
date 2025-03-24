@@ -121,10 +121,7 @@ class CDAIE(InfoExtractor):
             }, **kwargs)
 
     def _perform_login(self, username, password):
-        app_version = random.choice((
-            '1.2.88 build 15306',
-            '1.2.174 build 18469',
-        ))
+        app_version = '1.2.255 build 21541'
         android_version = random.randrange(8, 14)
         phone_model = random.choice((
             # x-kom.pl top selling Android smartphones, as of 2022-12-26
@@ -190,7 +187,7 @@ class CDAIE(InfoExtractor):
         meta = self._download_json(
             f'{self._BASE_API_URL}/video/{video_id}', video_id, headers=self._API_HEADERS)['video']
 
-        uploader = traverse_obj(meta, 'author', 'login')
+        uploader = traverse_obj(meta, ('author', 'login', {str}))
 
         formats = [{
             'url': quality['file'],
