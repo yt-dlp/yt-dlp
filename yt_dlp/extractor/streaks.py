@@ -214,6 +214,16 @@ class StreaksIE(StreaksBaseIE):
             'modified_date': '20250213',
             'live_status': 'not_live',
         },
+    }, {
+        'url': 'https://wowshop.jp/Page/special/cooking_goods/?bid=wowshop&srsltid=AfmBOor_phUNoPEE_UCPiGGSCMrJE5T2US397smvsbrSdLqUxwON0el4',
+        'playlist_mincount': 2,
+        'info_dict': {
+            'id': '?bid=wowshop&srsltid=AfmBOor_phUNoPEE_UCPiGGSCMrJE5T2US397smvsbrSdLqUxwON0el4',
+            'title': 'ワンランク上の料理道具でとびきりの“おいしい”を食卓へ｜wowshop',
+            'description': 'md5:914b5cb8624fc69274c7fb7b2342958f',
+            'age_limit': 0,
+            'thumbnail': 'https://wowshop.jp/Page/special/cooking_goods/images/ogp.jpg',
+        },
     }]
 
     def _real_extract(self, url):
