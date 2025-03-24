@@ -3,6 +3,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     join_nonempty,
+    make_archive_id,
     smuggle_url,
     str_or_none,
     strip_or_none,
@@ -16,6 +17,7 @@ class TVerIE(StreaksBaseIE):
     _GEO_COUNTRIES = ['JP']
     _GEO_BYPASS = False
     _TESTS = [{
+        # via Streaks backend
         'url': 'https://tver.jp/episodes/epc1hdugbk',
         'info_dict': {
             'id': 'epc1hdugbk',
@@ -38,7 +40,31 @@ class TVerIE(StreaksBaseIE):
             'live_status': 'not_live',
             'release_timestamp': 1651453200,
             'release_date': '20220502',
+            '_old_archive_ids': ['brightcovenew ref:baeebeac-a2a6-4dbf-9eb3-c40d59b40068'],
         },
+    }, {
+        # via Brightcove backend (deprecated)
+        'url': 'https://tver.jp/episodes/epc1hdugbk',
+        'info_dict': {
+            'id': 'ref:baeebeac-a2a6-4dbf-9eb3-c40d59b40068',
+            'ext': 'mp4',
+            'title': '神回だけ見せます！ #2 壮烈！車大騎馬戦（木曜スペシャル）',
+            'alt_title': '神回だけ見せます！ #2 壮烈！車大騎馬戦（木曜スペシャル） 日テレ',
+            'description': 'md5:2726f742d5e3886edeaf72fb6d740fef',
+            'uploader_id': '4394098882001',
+            'channel': '日テレ',
+            'duration': 1158.101,
+            'thumbnail': 'https://statics.tver.jp/images/content/thumbnail/episode/xlarge/epc1hdugbk.jpg?v=16',
+            'tags': [],
+            'series': '神回だけ見せます！',
+            'episode': '#2 壮烈！車大騎馬戦（木曜スペシャル）',
+            'episode_number': 2,
+            'timestamp': 1651388531,
+            'upload_date': '20220501',
+            'release_timestamp': 1651453200,
+            'release_date': '20220502',
+        },
+        'params': {'extractor_args': {'tver': {'backend': ['brightcove']}}},
     }, {
         'url': 'https://tver.jp/corner/f0103888',
         'only_matching': True,
@@ -171,18 +197,21 @@ class TVerIE(StreaksBaseIE):
             }),
         }
 
-        if backend == 'brightcove':
-            p_id = video_info['video']['accountID']
-            r_id = traverse_obj(video_info, (
-                'video', ('videoRefID', 'videoID'), {str}, any, {require('reference ID')}))
-            if not r_id.isdecimal():
-                r_id = f'ref:{r_id}'
+        brightcove_id = traverse_obj(video_info, ('video', ('videoRefID', 'videoID'), {str}, any))
+        if brightcove_id and not brightcove_id.isdecimal():
+            brightcove_id = f'ref:{brightcove_id}'
 
+        # Deprecated Brightcove extraction accessible only by extractor-arg; errors are expected
+        if backend == 'brightcove':
+            if not brightcove_id:
+                raise ExtractorError('Unable to extract brightcove reference ID', expected=True)
+            account_id = traverse_obj(video_info, (
+                'video', 'accountID', {str}, {require('brightcove account ID', expected=True)}))
             return {
                 **metadata,
                 '_type': 'url_transparent',
                 'url': smuggle_url(
-                    self.BRIGHTCOVE_URL_TEMPLATE % (p_id, r_id),
+                    self.BRIGHTCOVE_URL_TEMPLATE % (account_id, brightcove_id),
                     {'geo_countries': ['JP']}),
                 'ie_key': 'BrightcoveNew',
             }
@@ -198,4 +227,5 @@ class TVerIE(StreaksBaseIE):
             }),
             **metadata,
             'id': video_id,
+            '_old_archive_ids': [make_archive_id('BrightcoveNew', brightcove_id)] if brightcove_id else None,
         }
