@@ -31,7 +31,7 @@ class VrSquareIE(InfoExtractor):
             'description': 'md5:523726dc835aa8014dfe1e2b38d36cd1',
             'duration': 1515.0,
             'tags': list,
-            'thumbnail': 're:^https?://media.livr.jp/vod/img/.*$',
+            'thumbnail': r're:https?://media\.livr\.jp/vod/img/.+\.jpg',
         },
     }, {
         'url': 'https://livr.jp/contents/P589523973',
@@ -42,7 +42,7 @@ class VrSquareIE(InfoExtractor):
             'description': 'md5:a042f517b2cbb4ed6746707afec4d306',
             'duration': 1084.0,
             'tags': list,
-            'thumbnail': 're:^https?://media.livr.jp/vod/img/.*$',
+            'thumbnail': r're:https?://media\.livr\.jp/vod/img/.+\.jpg',
         },
         'skip': 'Paid video',
     }, {
@@ -54,7 +54,7 @@ class VrSquareIE(InfoExtractor):
             'description': 'md5:2110bdcf947f28bd7d06ec420e51b619',
             'duration': 8559.0,
             'tags': list,
-            'thumbnail': 're:^https?://media.livr.jp/vod/img/.*$',
+            'thumbnail': r're:https?://media\.livr\.jp/vod/img/.+\.jpg',
         },
         'skip': 'Premium channel subscribers only',
     }, {
