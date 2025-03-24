@@ -140,7 +140,7 @@ class VrSquareChannelIE(VrSquarePlaylistBaseIE):
 class VrSquareSearchIE(VrSquarePlaylistBaseIE):
     IE_NAME = 'vrsquare:search'
 
-    _VALID_URL = r'https?://livr\.jp/web-search'
+    _VALID_URL = r'https?://livr\.jp/web-search/?\?(?:[^#]+&)?w=[^#]+'
     _TESTS = [{
         'url': 'https://livr.jp/web-search?w=%23%E5%B0%8F%E6%A0%97%E6%9C%89%E4%BB%A5',
         'info_dict': {
