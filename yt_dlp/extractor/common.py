@@ -2319,21 +2319,19 @@ class InfoExtractor:
             traverse_obj(formats, lambda _, v: v.get('vcodec') != 'none' and v['_audio_group_id']),
             key=lambda x: (x.get('tbr') or 0, x.get('width') or 0)))
         audio_preference_func = qualities(audio_groups_by_quality)
-
-        def quality_note(audio_group_id):
-            return {
-                audio_groups_by_quality[0]: 'low',
-                audio_groups_by_quality[-1]: 'high',
-            }.get(audio_group_id) if len(audio_groups_by_quality) > 1 else None
+        audio_quality_map = {
+            audio_groups_by_quality[0]: 'low',
+            audio_groups_by_quality[-1]: 'high',
+        } if len(audio_groups_by_quality) > 1 else {}
 
         for fmt in traverse_obj(formats, lambda _, v: '_audio_group_id' in v):
             audio_group_id = fmt.pop('_audio_group_id')
-            if audio_group_id is None or fmt.get('vcodec') != 'none':
+            if not audio_quality_map or audio_group_id is None or fmt.get('vcodec') != 'none':
                 continue
             # Use source_preference since quality and preference are set by params
             fmt['source_preference'] = audio_preference_func(audio_group_id)
             fmt['format_note'] = join_nonempty(
-                fmt.get('format_note'), quality_note(audio_group_id), delim=', ')
+                fmt.get('format_note'), audio_quality_map.get(audio_group_id), delim=', ')
 
         return formats, subtitles
 
