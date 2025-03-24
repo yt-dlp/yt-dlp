@@ -30,7 +30,7 @@ class VrSquareIE(InfoExtractor):
             'title': 'そこ曲がったら、櫻坂？ ７年間お疲れ様！菅井友香の卒業を祝う会！前半 2022年11月6日放送分',
             'description': 'md5:523726dc835aa8014dfe1e2b38d36cd1',
             'duration': 1515.0,
-            'tags': list,
+            'tags': 'count:2',
             'thumbnail': r're:https?://media\.livr\.jp/vod/img/.+\.jpg',
         },
     }, {
