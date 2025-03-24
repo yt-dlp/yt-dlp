@@ -98,12 +98,12 @@ class VrSquarePlaylistBaseIE(InfoExtractor):
     _BASE_URL = 'https://livr.jp'
 
     def _fetch_vids(self, source, keys=()):
-        return [self.url_result(
-            f'{self._BASE_URL}/contents/{x.removeprefix("/contents/")}', VrSquareIE)
-            for x in traverse_obj(source, (
-                *keys, {find_elements(cls='video', html=True)},
-                ..., {extract_attributes}, 'data-url', {str}, filter))
-        ]
+        for url_path in traverse_obj(source, (
+            *keys, {find_elements(cls='video', html=True)}, ...,
+            {extract_attributes}, 'data-url', {str}, filter),
+        ):
+            yield self.url_result(
+                f'{self._BASE_URL}/contents/{url_path.removeprefix("/contents/")}', VrSquareIE)
 
     def _entries(self, path, display_id, query=None):
         for page in itertools.count(1):
