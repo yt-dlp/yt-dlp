@@ -2323,7 +2323,7 @@ class InfoExtractor:
         def quality_note(audio_group_id):
             return {
                 audio_groups_by_quality[0]: 'low',
-                audio_groups_by_quality[-1]: 'high'
+                audio_groups_by_quality[-1]: 'high',
             }.get(audio_group_id) if len(audio_groups_by_quality) > 1 else None
 
         for fmt in traverse_obj(formats, lambda _, v: '_audio_group_id' in v):
