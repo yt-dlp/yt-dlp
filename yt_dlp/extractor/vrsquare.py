@@ -105,6 +105,16 @@ class VrSquarePlaylistBaseIE(InfoExtractor):
                 ..., {extract_attributes}, 'data-url', {str}, filter))
         ]
 
+    def _entries(self, path, display_id, query=None):
+        for page in itertools.count(1):
+            ajax = self._download_json(
+                f'{self._BASE_URL}{path}', display_id,
+                f'Downloading playlist page {page} JSON',
+                query={'p': page, **(query or {})})
+            yield from self._fetch_vids(ajax, ('contents_render_list', ...))
+            if not traverse_obj(ajax, (('has_next', 'hasNext'), {bool}, any)):
+                break
+
 
 class VrSquareChannelIE(VrSquarePlaylistBaseIE):
     IE_NAME = 'vrsquare:channel'
@@ -119,22 +129,13 @@ class VrSquareChannelIE(VrSquarePlaylistBaseIE):
         'playlist_mincount': 502,
     }]
 
-    def _entries(self, playlist_id):
-        for page in itertools.count(1):
-            ajax = self._download_json(
-                f'{self._BASE_URL}/ajax/channel/{playlist_id}',
-                playlist_id, query={'p': page},
-            )
-            yield from self._fetch_vids(ajax, ('contents_render_list', ...))
-            if not ajax['hasNext']:
-                break
-
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
         webpage = self._download_webpage(url, playlist_id)
 
         return self.playlist_result(
-            self._entries(playlist_id), playlist_id, self._html_search_meta('og:title', webpage))
+            self._entries(f'/ajax/channel/{playlist_id}', playlist_id),
+            playlist_id, self._html_search_meta('og:title', webpage))
 
 
 class VrSquareSearchIE(VrSquarePlaylistBaseIE):
@@ -149,20 +150,11 @@ class VrSquareSearchIE(VrSquarePlaylistBaseIE):
         'playlist_mincount': 60,
     }]
 
-    def _entries(self, query):
-        for page in itertools.count(1):
-            ajax = self._download_json(
-                f'{self._BASE_URL}/ajax/web-search',
-                query, query={'p': page, 'w': query},
-            )
-            yield from self._fetch_vids(ajax, ('contents_render_list', ...))
-            if not ajax['has_next']:
-                break
-
     def _real_extract(self, url):
-        query = parse_qs(url)['w'][0]
+        search_query = parse_qs(url)['w'][0]
 
-        return self.playlist_result(self._entries(query), query)
+        return self.playlist_result(
+            self._entries('/ajax/web-search', search_query, {'w': search_query}), search_query)
 
 
 class VrSquareSectionIE(VrSquarePlaylistBaseIE):
