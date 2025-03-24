@@ -2503,7 +2503,7 @@ from .xinpianchang import XinpianchangIE
 from .xminus import XMinusIE
 from .xnxx import XNXXIE
 from .xstream import XstreamIE
-from .xvideos import (    
+from .xvideos import (
     XVideosChannelIE,
     XVideosIE,
     XVideosPlaylistIE,
