@@ -2179,7 +2179,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 \'use\s+strict\';\s*
                 (?P<code>
                     var\s+(?P<name>[a-zA-Z0-9_$]+)\s*=\s*
-                    (?P<value>"(?:[^"\\]|\\.)+"\.split\("[^"]+"\))
+                    (?P<value>
+                        (?P<q1>["\'])(?:(?!(?P=q1)).)+(?P=q1)
+                        \.split\((?P<q2>["\'])(?:(?!(?P=q1)).)+(?P=q2)\)
+                    )
                 )[;,]
             ''', jscode, 'global variable', group=('code', 'name', 'value'), default=(None, None, None))
 
