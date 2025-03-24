@@ -82,9 +82,6 @@ class StreaksBaseIE(InfoExtractor):
 
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 src_url, media_id, 'mp4', m3u8_id='hls', fatal=False, live=is_live, query=query)
-            for fmt in traverse_obj(fmts, lambda _, v: v['vcodec'] == 'none'):
-                if mobj := re.match(r'hls-[a-z]+_AUDIO-(?P<quality>\d)_\d+-', fmt['format_id']):
-                    fmt['quality'] = audio_quality_func(mobj.group('quality'))
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
