@@ -4,7 +4,6 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     str_or_none,
-    strftime_or_none,
     traverse_obj,
     unified_strdate,
     url_or_none,
@@ -170,7 +169,7 @@ class IchinanaLiveClipIE(InfoExtractor):
 
 class IchinanaLiveVODIE(InfoExtractor):
     IE_NAME = '17live:vod'
-    _VALID_URL = r'https?://(?:www\.)?17\.live/ja/vod/[^/]+/(?P<video_id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?17\.live/ja/vod/[^/?#]+/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://17.live/ja/vod/27323042/2cf84520-e65e-4b22-891e-1d3a00b0f068',
         'md5': '3299b930d7457b069639486998a89580',
@@ -185,7 +184,7 @@ class IchinanaLiveVODIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.(?:jpe?g|png)$',
             'duration': 549,
             'description': 'md5:116f326579700f00eaaf5581aae1192e',
-            'upload_date': '20250304',
+            'timestamp': 1741058645,
         },
     }, {
         'url': 'https://17.live/ja/vod/27323042/0de11bac-9bea-40b8-9eab-0239a7d88079',
@@ -193,18 +192,18 @@ class IchinanaLiveVODIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_valid_url(url).group('video_id')
+        video_id = self._match_id(url)
         json_data = self._download_json(f'https://wap-api.17app.co/api/v1/vods/{video_id}', video_id)
         return traverse_obj(json_data, {
-            'id': ('vodID', {str_or_none}),
-            'title': ('title', {str_or_none}),
+            'id': ('vodID', {str}),
+            'title': ('title', {str}),
             'formats': ('vodURL', {lambda x: self._extract_m3u8_formats(x, video_id)}),
-            'uploader': ('userInfo', 'displayName', {str_or_none}),
-            'uploader_id': ('userInfo', 'userID', {str_or_none}),
+            'uploader': ('userInfo', 'displayName', {str}),
+            'uploader_id': ('userInfo', 'userID', {str}),
             'like_count': ('likeCount', {int_or_none}),
             'view_count': ('viewCount', {int_or_none}),
             'thumbnail': ('imageURL', {url_or_none}),
             'duration': ('duration', {int_or_none}),
-            'description': ('description', {str_or_none}),
-            'upload_date': ('createdAt', {strftime_or_none}),
+            'description': ('description', {str}),
+            'timestamp': ('createdAt', {int_or_none}),
         })
