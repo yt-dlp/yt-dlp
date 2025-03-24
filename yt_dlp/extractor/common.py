@@ -78,6 +78,7 @@ from ..utils import (
     parse_iso8601,
     parse_m3u8_attributes,
     parse_resolution,
+    qualities,
     sanitize_url,
     smuggle_url,
     str_or_none,
@@ -2325,12 +2326,13 @@ class InfoExtractor:
             audio_groups_by_quality[0]: 'low',
             audio_groups_by_quality[-1]: 'high',
         } if len(audio_groups_by_quality) > 1 else None
+        audio_preference = qualities(audio_groups_by_quality)
         for fmt in formats:
             audio_group_id = fmt.pop('_audio_group_id', None)
             if not audio_quality_map or not audio_group_id or fmt.get('vcodec') != 'none':
                 continue
             # Use source_preference since quality and preference are set by params
-            fmt['source_preference'] = audio_groups_by_quality.index(audio_group_id)
+            fmt['source_preference'] = audio_preference(audio_group_id)
             fmt['format_note'] = join_nonempty(
                 fmt.get('format_note'), audio_quality_map.get(audio_group_id), delim=', ')
 
