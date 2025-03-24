@@ -2193,7 +2193,7 @@ class InfoExtractor:
                     'quality': quality,
                     'has_drm': has_drm,
                     'vcodec': 'none' if is_audio else None,
-                    'source_preference': -2 if is_alternate else None,
+                    'source_preference': -2 if is_audio and is_alternate else None,
                     # Save this to assign source_preference based on associated video stream
                     '_audio_group_id': group_id if is_audio and not is_alternate else None,
                 } for idx in _extract_m3u8_playlist_indices(manifest_url))
