@@ -185,6 +185,7 @@ class IchinanaLiveVODIE(InfoExtractor):
             'duration': 549,
             'description': 'md5:116f326579700f00eaaf5581aae1192e',
             'timestamp': 1741058645,
+            'upload_date': '20250304',
         },
     }, {
         'url': 'https://17.live/ja/vod/27323042/0de11bac-9bea-40b8-9eab-0239a7d88079',
