@@ -2321,12 +2321,10 @@ class InfoExtractor:
         audio_preference_func = qualities(audio_groups_by_quality)
 
         def quality_note(audio_group_id):
-            if len(audio_groups_by_quality) <= 1:
-                return None
-            if audio_groups_by_quality[-1] == audio_group_id:
-                return 'high'
-            if audio_groups_by_quality[0] == audio_group_id:
-                return 'low'
+            return {
+                audio_groups_by_quality[0]: 'low',
+                audio_groups_by_quality[-1]: 'high'
+            }.get(audio_group_id) if len(audio_groups_by_quality) > 1 else None
 
         for fmt in traverse_obj(formats, lambda _, v: '_audio_group_id' in v):
             audio_group_id = fmt.pop('_audio_group_id')
