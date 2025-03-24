@@ -2180,7 +2180,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 (?P<code>
                     var\s+(?P<name>[a-zA-Z0-9_$]+)\s*=\s*
                     (?P<value>
-                        (?P<q2>["\'])(?:(?!(?P=q2)).)+(?P=q2)
+                        (?P<q2>["\'])(?:(?!(?P=q2)).|\\.)+(?P=q2)
                         \.split\((?P<q3>["\'])(?:(?!(?P=q3)).)+(?P=q3)\)
                     )
                 )[;,]
