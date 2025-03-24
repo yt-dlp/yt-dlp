@@ -113,8 +113,8 @@ class StreaksBaseIE(InfoExtractor):
 
 class StreaksIE(StreaksBaseIE):
     _VALID_URL = [
-        r'https?://players\.streaks\.jp/(?P<project_id>[\w-]+)/[\da-f]+/index\.html\?(?:[^#]+&)?m=(?P<media_id>(?:ref:)?[\w-]+)',
-        r'https?://playback\.api\.streaks\.jp/v1/projects/(?P<project_id>[\w-]+)/medias/(?P<media_id>(?:ref:)?[\w-]+)',
+        r'https?://players\.streaks\.jp/(?P<project_id>[\w-]+)/[\da-f]+/index\.html\?(?:[^#]+&)?m=(?P<id>(?:ref:)?[\w-]+)',
+        r'https?://playback\.api\.streaks\.jp/v1/projects/(?P<project_id>[\w-]+)/medias/(?P<id>(?:ref:)?[\w-]+)',
     ]
     _EMBED_REGEX = [rf'<iframe[^>]+?src\s*=\s*["\'](?P<url>{_VALID_URL[0]})["\']']
     _TESTS = [{
@@ -202,7 +202,7 @@ class StreaksIE(StreaksBaseIE):
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
-        project_id, media_id = self._match_valid_url(url).groups()
+        project_id, media_id = self._match_valid_url(url).group('project_id', 'id')
 
         return self._extract_from_streaks_api(
             project_id, media_id, headers=filter_dict({
