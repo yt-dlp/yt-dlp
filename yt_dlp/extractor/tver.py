@@ -3,7 +3,7 @@ import json
 import re
 import urllib.parse
 
-from .common import InfoExtractor
+from .streaks import StreaksBaseIE
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -22,7 +22,7 @@ from ..utils import (
 from ..utils.traversal import require, traverse_obj
 
 
-class TVerIE(InfoExtractor):
+class TVerIE(StreaksBaseIE):
     _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?P<type>lp|corner|series|episodes?|feature)/)+(?P<id>[a-zA-Z0-9]+)'
     _GEO_COUNTRIES = ['JP']
     _GEO_BYPASS = False
@@ -250,112 +250,3 @@ class TVerIE(InfoExtractor):
             data['release_timestamp'] = dt.datetime(year=year, month=month, day=day).timestamp()
 
         return data
-
-    # XXX: Remove everything below and subclass TVerIE from StreaksBaseIE when #12679 is merged
-    _API_URL_TEMPLATE = 'https://{}.api.streaks.jp/v1/projects/{}/medias/{}{}'
-
-    def _extract_from_streaks_api(self, project_id, media_id, headers=None, query=None, ssai=False):
-        try:
-            response = self._download_json(
-                self._API_URL_TEMPLATE.format('playback', project_id, media_id, ''),
-                media_id, 'Downloading streaks playback API JSON',
-                headers={
-                    'Accept': 'application/json',
-                    'Origin': 'https://players.streaks.jp',
-                    **self.geo_verification_headers(),
-                    **(headers or {}),
-                })
-        except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status in {403, 404}:
-                error = self._parse_json(e.cause.response.read().decode(), media_id, fatal=False)
-                message = traverse_obj(error, ('message', {str}))
-                code = traverse_obj(error, ('code', {str}))
-                if code == 'REQUEST_FAILED':
-                    self.raise_geo_restricted(message, countries=self._GEO_COUNTRIES)
-                elif code == 'MEDIA_NOT_FOUND':
-                    raise ExtractorError(message, expected=True)
-                elif code or message:
-                    raise ExtractorError(join_nonempty(code, message, delim=': '))
-            raise
-
-        streaks_id = response['id']
-        live_status = {
-            'clip': 'was_live',
-            'file': 'not_live',
-            'linear': 'is_live',
-            'live': 'is_live',
-        }.get(response.get('type'))
-
-        audio_quality_func = qualities(('1', '0'))
-        formats, subtitles = [], {}
-        drm_formats = False
-
-        for source in traverse_obj(response, ('sources', lambda _, v: v['src'])):
-            if source.get('key_systems'):
-                drm_formats = True
-                continue
-
-            src_url = source['src']
-            is_live = live_status == 'is_live'
-            ext = mimetype2ext(source.get('type'))
-
-            if ext == 'm3u8':
-                if is_live and ssai:
-                    session_params = traverse_obj(
-                        self._download_json(
-                            self._API_URL_TEMPLATE.format('ssai', project_id, streaks_id, '/ssai/session'),
-                            media_id, 'Downloading session parameters',
-                            headers={'Content-Type': 'application/json'},  # XXX: geo_verification_headers ?
-                            data=json.dumps({'id': source['id']}).encode()),
-                        (0, 'query', {urllib.parse.parse_qs}))
-                    src_url = update_url_query(src_url, session_params)
-
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    src_url, media_id, 'mp4', m3u8_id='hls',
-                    fatal=False, live=is_live, query=query)
-
-                for fmt in traverse_obj(fmts, lambda _, v: v['vcodec'] == 'none'):
-                    if mobj := re.match(r'hls-[a-z]+_AUDIO-(?P<quality>\d)_\d+-', fmt['format_id']):
-                        fmt['quality'] = audio_quality_func(mobj.group('quality'))
-
-            elif ext == 'mpd':
-                fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    src_url, media_id, mpd_id='dash', fatal=False)
-
-            else:
-                self.report_warning(f'Unsupported stream type: {ext}')
-                continue
-
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
-
-        if not formats and drm_formats:
-            self.report_drm(media_id)
-
-        self._remove_duplicate_formats(formats)
-
-        for subs in traverse_obj(response, (
-            'tracks', lambda _, v: v['kind'] in ('subtitles', 'captions') and url_or_none(v['src']),
-        )):
-            lang = traverse_obj(subs, ('srclang', {str.lower})) or 'ja'
-            subtitles.setdefault(lang, []).append({'url': subs['src']})
-
-        return {
-            'id': streaks_id,
-            'display_id': media_id,
-            'channel_id': project_id,
-            'formats': formats,
-            'subtitles': subtitles,
-            'live_status': live_status,
-            **traverse_obj(response, {
-                'channel_id': ('project_id', {str}),
-                'uploader_id': ('profile', {str}),
-                'title': ('name', {str}),
-                'description': ('description', {str}, filter),
-                'duration': ('duration', {float_or_none}),
-                'tags': ('tags', ..., {str}),
-                'thumbnails': (('poster', 'thumbnail'), 'src', {'url': {url_or_none}}),
-                'timestamp': ('created_at', {parse_iso8601}),
-                'modified_timestamp': ('updated_at', {parse_iso8601}),
-            }),
-        }
