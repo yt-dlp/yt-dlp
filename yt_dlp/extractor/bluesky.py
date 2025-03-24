@@ -53,7 +53,7 @@ class BlueskyIE(InfoExtractor):
             'channel_id': 'did:plc:z72i7hdynmk6r22z27h6tvur',
             'channel_url': 'https://bsky.app/profile/did:plc:z72i7hdynmk6r22z27h6tvur',
             'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
-            'title': 'Bluesky now has video! Update your app to versi...',
+            'title': 'Bluesky now has video! Update your app to version 1.91 or refresh on ...',
             'alt_title': 'Bluesky video feature announcement',
             'description': r're:(?s)Bluesky now has video! .{239}',
             'upload_date': '20240911',
@@ -172,7 +172,7 @@ class BlueskyIE(InfoExtractor):
             'channel_id': 'did:plc:z72i7hdynmk6r22z27h6tvur',
             'channel_url': 'https://bsky.app/profile/did:plc:z72i7hdynmk6r22z27h6tvur',
             'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
-            'title': 'Bluesky now has video! Update your app to versi...',
+            'title': 'Bluesky now has video! Update your app to version 1.91 or refresh on ...',
             'alt_title': 'Bluesky video feature announcement',
             'description': r're:(?s)Bluesky now has video! .{239}',
             'upload_date': '20240911',
@@ -191,7 +191,7 @@ class BlueskyIE(InfoExtractor):
         'info_dict': {
             'id': '3l7rdfxhyds2f',
             'ext': 'mp4',
-            'uploader': 'cinnamon',
+            'uploader': 'cinnamon 🐇 🏳️‍⚧️',
             'uploader_id': 'cinny.bun.how',
             'uploader_url': 'https://bsky.app/profile/cinny.bun.how',
             'channel_id': 'did:plc:7x6rtuenkuvxq3zsvffp2ide',
@@ -255,7 +255,7 @@ class BlueskyIE(InfoExtractor):
             'info_dict': {
                 'id': '3l77u64l7le2e',
                 'ext': 'mp4',
-                'title': 'hearing people on twitter say that bluesky isn\'...',
+                'title': "hearing people on twitter say that bluesky isn't funny yet  so post t...",
                 'like_count': int,
                 'uploader_id': 'thafnine.net',
                 'uploader_url': 'https://bsky.app/profile/thafnine.net',
@@ -387,7 +387,7 @@ class BlueskyIE(InfoExtractor):
                 'age_limit': (
                     'labels', ..., 'val', {lambda x: 18 if x in ('sexual', 'porn', 'graphic-media') else None}, any),
                 'description': (*record_path, 'text', {str}, filter),
-                'title': (*record_path, 'text', {lambda x: x.replace('\n', ' ')}, {truncate_string(left=50)}),
+                'title': (*record_path, 'text', {lambda x: x.replace('\n', ' ')}, {truncate_string(left=72)}),
             }),
         })
         return entries

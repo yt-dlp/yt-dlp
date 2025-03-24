@@ -1596,16 +1596,16 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
 
         webpage = self._download_webpage(url, list_id)
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', list_id)
-        if traverse_obj(initial_state, ('error', 'code', {int_or_none})) != 200:
-            error_code = traverse_obj(initial_state, ('error', 'trueCode', {int_or_none}))
-            error_message = traverse_obj(initial_state, ('error', 'message', {str_or_none}))
+        error = traverse_obj(initial_state, (('error', 'listError'), all, lambda _, v: v['code'], any))
+        if error and error['code'] != 200:
+            error_code = error.get('trueCode')
             if error_code == -400 and list_id == 'watchlater':
                 self.raise_login_required('You need to login to access your watchlater playlist')
             elif error_code == -403:
                 self.raise_login_required('This is a private playlist. You need to login as its owner')
             elif error_code == 11010:
                 raise ExtractorError('Playlist is no longer available', expected=True)
-            raise ExtractorError(f'Could not access playlist: {error_code} {error_message}')
+            raise ExtractorError(f'Could not access playlist: {error_code} {error.get("message")}')
 
         query = {
             'ps': 20,

@@ -4,6 +4,79 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.03.21
+
+#### Core changes
+- [Fix external downloader availability when using `--ffmpeg-location`](https://github.com/yt-dlp/yt-dlp/commit/9f77e04c76e36e1cbbf49bc9eb385fa6ef804b67) ([#12318](https://github.com/yt-dlp/yt-dlp/issues/12318)) by [Kenshin9977](https://github.com/Kenshin9977)
+- [Load plugins on demand](https://github.com/yt-dlp/yt-dlp/commit/4445f37a7a66b248dbd8376c43137e6e441f138e) ([#11305](https://github.com/yt-dlp/yt-dlp/issues/11305)) by [coletdjnz](https://github.com/coletdjnz), [Grub4K](https://github.com/Grub4K), [pukkandan](https://github.com/pukkandan) (With fixes in [c034d65](https://github.com/yt-dlp/yt-dlp/commit/c034d655487be668222ef9476a16f374584e49a7))
+- [Support emitting ConEmu progress codes](https://github.com/yt-dlp/yt-dlp/commit/f7a1f2d8132967a62b0f6d5665c6d2dde2d42c09) ([#10649](https://github.com/yt-dlp/yt-dlp/issues/10649)) by [Grub4K](https://github.com/Grub4K)
+
+#### Extractor changes
+- **azmedien**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/26a502fc727d0e91b2db6bf4a112823bcc672e85) ([#12375](https://github.com/yt-dlp/yt-dlp/issues/12375)) by [goggle](https://github.com/goggle)
+- **bilibiliplaylist**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/f5fb2229e66cf59d5bf16065bc041b42a28354a0) ([#12690](https://github.com/yt-dlp/yt-dlp/issues/12690)) by [bashonly](https://github.com/bashonly)
+- **bunnycdn**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/3a1583ca75fb523cbad0e5e174387ea7b477d175) ([#11586](https://github.com/yt-dlp/yt-dlp/issues/11586)) by [Grub4K](https://github.com/Grub4K), [seproDev](https://github.com/seproDev)
+- **canalsurmas**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/01a8be4c23f186329d85f9c78db34a55f3294ac5) ([#12497](https://github.com/yt-dlp/yt-dlp/issues/12497)) by [Arc8ne](https://github.com/Arc8ne)
+- **cda**: [Fix login support](https://github.com/yt-dlp/yt-dlp/commit/be0d819e1103195043f6743650781f0d4d343f6d) ([#12552](https://github.com/yt-dlp/yt-dlp/issues/12552)) by [rysson](https://github.com/rysson)
+- **cultureunplugged**: [Extend `_VALID_URL`](https://github.com/yt-dlp/yt-dlp/commit/3042afb5fe342d3a00de76704cd7de611acc350e) ([#12486](https://github.com/yt-dlp/yt-dlp/issues/12486)) by [seproDev](https://github.com/seproDev)
+- **dailymotion**: [Improve embed detection](https://github.com/yt-dlp/yt-dlp/commit/ad60137c141efa5023fbc0ac8579eaefe8b3d8cc) ([#12464](https://github.com/yt-dlp/yt-dlp/issues/12464)) by [seproDev](https://github.com/seproDev)
+- **gem.cbc.ca**: [Fix login support](https://github.com/yt-dlp/yt-dlp/commit/eb1417786a3027b1e7290ec37ef6aaece50ebed0) ([#12414](https://github.com/yt-dlp/yt-dlp/issues/12414)) by [bashonly](https://github.com/bashonly)
+- **globo**: [Fix subtitles extraction](https://github.com/yt-dlp/yt-dlp/commit/0e1697232fcbba7551f983fd1ba93bb445cbb08b) ([#12270](https://github.com/yt-dlp/yt-dlp/issues/12270)) by [pedro](https://github.com/pedro)
+- **instagram**
+    - [Add `app_id` extractor-arg](https://github.com/yt-dlp/yt-dlp/commit/a90641c8363fa0c10800b36eb6b01ee22d3a9409) ([#12359](https://github.com/yt-dlp/yt-dlp/issues/12359)) by [chrisellsworth](https://github.com/chrisellsworth)
+    - [Fix extraction of older private posts](https://github.com/yt-dlp/yt-dlp/commit/a59abe0636dc49b22a67246afe35613571b86f05) ([#12451](https://github.com/yt-dlp/yt-dlp/issues/12451)) by [bashonly](https://github.com/bashonly)
+    - [Improve error handling](https://github.com/yt-dlp/yt-dlp/commit/480125560a3b9972d29ae0da850aba8109e6bd41) ([#12410](https://github.com/yt-dlp/yt-dlp/issues/12410)) by [bashonly](https://github.com/bashonly)
+    - story: [Support `--no-playlist`](https://github.com/yt-dlp/yt-dlp/commit/65c3c58c0a67463a150920203cec929045c95a24) ([#12397](https://github.com/yt-dlp/yt-dlp/issues/12397)) by [fireattack](https://github.com/fireattack)
+- **jamendo**: [Fix thumbnail extraction](https://github.com/yt-dlp/yt-dlp/commit/89a68c4857ddbaf937ff22f12648baaf6b5af840) ([#12622](https://github.com/yt-dlp/yt-dlp/issues/12622)) by [bashonly](https://github.com/bashonly), [JChris246](https://github.com/JChris246)
+- **ketnet**: [Remove extractor](https://github.com/yt-dlp/yt-dlp/commit/bbada3ec0779422cde34f1ce3dcf595da463b493) ([#12628](https://github.com/yt-dlp/yt-dlp/issues/12628)) by [MichaelDeBoey](https://github.com/MichaelDeBoey)
+- **lbry**
+    - [Make m3u8 format extraction non-fatal](https://github.com/yt-dlp/yt-dlp/commit/9807181cfbf87bfa732f415c30412bdbd77cbf81) ([#12463](https://github.com/yt-dlp/yt-dlp/issues/12463)) by [bashonly](https://github.com/bashonly)
+    - [Raise appropriate error for non-media files](https://github.com/yt-dlp/yt-dlp/commit/7126b472601814b7fd8c9de02069e8fff1764891) ([#12462](https://github.com/yt-dlp/yt-dlp/issues/12462)) by [bashonly](https://github.com/bashonly)
+- **loco**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/983095485c731240aae27c950cb8c24a50827b56) ([#12667](https://github.com/yt-dlp/yt-dlp/issues/12667)) by [DTrombett](https://github.com/DTrombett)
+- **magellantv**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/172d5fcd778bf2605db7647ebc56b29ed18d24ac) ([#12505](https://github.com/yt-dlp/yt-dlp/issues/12505)) by [seproDev](https://github.com/seproDev)
+- **mitele**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/7223d29569a48a35ad132a508c115973866838d3) ([#12689](https://github.com/yt-dlp/yt-dlp/issues/12689)) by [bashonly](https://github.com/bashonly)
+- **msn**: [Rework extractor](https://github.com/yt-dlp/yt-dlp/commit/4815dac131d42c51e12c1d05232db0bbbf607329) ([#12513](https://github.com/yt-dlp/yt-dlp/issues/12513)) by [seproDev](https://github.com/seproDev), [thedenv](https://github.com/thedenv)
+- **n1**: [Fix extraction of newer articles](https://github.com/yt-dlp/yt-dlp/commit/9d70abe4de401175cbbaaa36017806f16b2df9af) ([#12514](https://github.com/yt-dlp/yt-dlp/issues/12514)) by [u-spec-png](https://github.com/u-spec-png)
+- **nbcstations**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/ebac65aa9e0bf9a97c24d00f7977900d2577364b) ([#12534](https://github.com/yt-dlp/yt-dlp/issues/12534)) by [refack](https://github.com/refack)
+- **niconico**
+    - [Fix format sorting](https://github.com/yt-dlp/yt-dlp/commit/7508e34f203e97389f1d04db92140b13401dd724) ([#12442](https://github.com/yt-dlp/yt-dlp/issues/12442)) by [xpadev-net](https://github.com/xpadev-net)
+    - live: [Fix thumbnail extraction](https://github.com/yt-dlp/yt-dlp/commit/c2e6e1d5f77f3b720a6266f2869eb750d20e5dc1) ([#12419](https://github.com/yt-dlp/yt-dlp/issues/12419)) by [bashonly](https://github.com/bashonly)
+- **openrec**: [Fix `_VALID_URL`](https://github.com/yt-dlp/yt-dlp/commit/17504f253564cfad86244de2b6346d07d2300ca5) ([#12608](https://github.com/yt-dlp/yt-dlp/issues/12608)) by [fireattack](https://github.com/fireattack)
+- **pinterest**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/bd0a66816934de70312eea1e71c59c13b401dc3a) ([#12538](https://github.com/yt-dlp/yt-dlp/issues/12538)) by [mikf](https://github.com/mikf)
+- **playsuisse**: [Fix login support](https://github.com/yt-dlp/yt-dlp/commit/6933f5670cea9c3e2fb16c1caa1eda54d13122c5) ([#12444](https://github.com/yt-dlp/yt-dlp/issues/12444)) by [bashonly](https://github.com/bashonly)
+- **reddit**: [Truncate title](https://github.com/yt-dlp/yt-dlp/commit/d9a53cc1e6fd912daf500ca4f19e9ca88994dbf9) ([#12567](https://github.com/yt-dlp/yt-dlp/issues/12567)) by [seproDev](https://github.com/seproDev)
+- **rtp**: [Rework extractor](https://github.com/yt-dlp/yt-dlp/commit/8eb9c1bf3b9908cca22ef043602aa24fb9f352c6) ([#11638](https://github.com/yt-dlp/yt-dlp/issues/11638)) by [pferreir](https://github.com/pferreir), [red-acid](https://github.com/red-acid), [seproDev](https://github.com/seproDev), [somini](https://github.com/somini), [vallovic](https://github.com/vallovic)
+- **softwhiteunderbelly**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/652827d5a076c9483c36654ad2cf3fe46219baf4) ([#12281](https://github.com/yt-dlp/yt-dlp/issues/12281)) by [benfaerber](https://github.com/benfaerber)
+- **soop**: [Fix timestamp extraction](https://github.com/yt-dlp/yt-dlp/commit/8305df00012ff8138a6ff95279d06b54ac607f63) ([#12609](https://github.com/yt-dlp/yt-dlp/issues/12609)) by [msikma](https://github.com/msikma)
+- **soundcloud**
+    - [Extract tags](https://github.com/yt-dlp/yt-dlp/commit/9deed13d7cce6d3647379e50589c92de89227509) ([#12420](https://github.com/yt-dlp/yt-dlp/issues/12420)) by [bashonly](https://github.com/bashonly)
+    - [Fix thumbnail extraction](https://github.com/yt-dlp/yt-dlp/commit/6deeda5c11f34f613724fa0627879f0d607ba1b4) ([#12447](https://github.com/yt-dlp/yt-dlp/issues/12447)) by [bashonly](https://github.com/bashonly)
+- **tiktok**
+    - [Improve error handling](https://github.com/yt-dlp/yt-dlp/commit/99ea2978757a431eeb2a265b3395ccbe4ce202cf) ([#12445](https://github.com/yt-dlp/yt-dlp/issues/12445)) by [bashonly](https://github.com/bashonly)
+    - [Truncate title](https://github.com/yt-dlp/yt-dlp/commit/83b119dadb0f267f1fb66bf7ed74c097349de79e) ([#12566](https://github.com/yt-dlp/yt-dlp/issues/12566)) by [seproDev](https://github.com/seproDev)
+- **tv8.it**: [Add live and playlist extractors](https://github.com/yt-dlp/yt-dlp/commit/2ee3a0aff9be2be3bea60640d3d8a0febaf0acb6) ([#12569](https://github.com/yt-dlp/yt-dlp/issues/12569)) by [DTrombett](https://github.com/DTrombett)
+- **tvw**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/42b7440963866e31ff84a5b89030d1c596fa2e6e) ([#12271](https://github.com/yt-dlp/yt-dlp/issues/12271)) by [fries1234](https://github.com/fries1234)
+- **twitter**
+    - [Fix syndication token generation](https://github.com/yt-dlp/yt-dlp/commit/b8b47547049f5ebc3dd680fc7de70ed0ca9c0d70) ([#12537](https://github.com/yt-dlp/yt-dlp/issues/12537)) by [bashonly](https://github.com/bashonly)
+    - [Truncate title](https://github.com/yt-dlp/yt-dlp/commit/06f6de78db2eceeabd062ab1a3023e0ff9d4df53) ([#12560](https://github.com/yt-dlp/yt-dlp/issues/12560)) by [seproDev](https://github.com/seproDev)
+- **vk**: [Improve metadata extraction](https://github.com/yt-dlp/yt-dlp/commit/05c8023a27dd37c49163c0498bf98e3e3c1cb4b9) ([#12510](https://github.com/yt-dlp/yt-dlp/issues/12510)) by [seproDev](https://github.com/seproDev)
+- **vrtmax**: [Rework extractor](https://github.com/yt-dlp/yt-dlp/commit/df9ebeec00d658693252978d1ffb885e67aa6ab6) ([#12479](https://github.com/yt-dlp/yt-dlp/issues/12479)) by [bergoid](https://github.com/bergoid), [MichaelDeBoey](https://github.com/MichaelDeBoey), [seproDev](https://github.com/seproDev)
+- **weibo**: [Support playlists](https://github.com/yt-dlp/yt-dlp/commit/0bb39788626002a8a67e925580227952c563c8b9) ([#12284](https://github.com/yt-dlp/yt-dlp/issues/12284)) by [4ft35t](https://github.com/4ft35t)
+- **wsj**: [Support opinion URLs and impersonation](https://github.com/yt-dlp/yt-dlp/commit/7f3006eb0c0659982bb956d71b0bc806bcb0a5f2) ([#12431](https://github.com/yt-dlp/yt-dlp/issues/12431)) by [refack](https://github.com/refack)
+- **youtube**
+    - [Fix nsig and signature extraction for player `643afba4`](https://github.com/yt-dlp/yt-dlp/commit/9b868518a15599f3d7ef5a1c730dda164c30da9b) ([#12684](https://github.com/yt-dlp/yt-dlp/issues/12684)) by [bashonly](https://github.com/bashonly), [seproDev](https://github.com/seproDev)
+    - [Player client maintenance](https://github.com/yt-dlp/yt-dlp/commit/3380febe9984c21c79c3147c1d390a4cf339bc4c) ([#12603](https://github.com/yt-dlp/yt-dlp/issues/12603)) by [seproDev](https://github.com/seproDev)
+    - [Split into package](https://github.com/yt-dlp/yt-dlp/commit/4432a9390c79253ac830702b226d2e558b636725) ([#12557](https://github.com/yt-dlp/yt-dlp/issues/12557)) by [coletdjnz](https://github.com/coletdjnz)
+    - [Warn on DRM formats](https://github.com/yt-dlp/yt-dlp/commit/e67d786c7cc87bd449d22e0ddef08306891c1173) ([#12593](https://github.com/yt-dlp/yt-dlp/issues/12593)) by [coletdjnz](https://github.com/coletdjnz)
+    - [Warn on missing formats due to SSAP](https://github.com/yt-dlp/yt-dlp/commit/79ec2fdff75c8c1bb89b550266849ad4dec48dd3) ([#12483](https://github.com/yt-dlp/yt-dlp/issues/12483)) by [coletdjnz](https://github.com/coletdjnz)
+
+#### Networking changes
+- [Add `keep_header_casing` extension](https://github.com/yt-dlp/yt-dlp/commit/7d18fed8f1983fe6de4ddc810dfb2761ba5744ac) ([#11652](https://github.com/yt-dlp/yt-dlp/issues/11652)) by [coletdjnz](https://github.com/coletdjnz), [Grub4K](https://github.com/Grub4K)
+- [Always add unsupported suffix on version mismatch](https://github.com/yt-dlp/yt-dlp/commit/95f8df2f796d0048119615200758199aedcd7cf4) ([#12626](https://github.com/yt-dlp/yt-dlp/issues/12626)) by [Grub4K](https://github.com/Grub4K)
+
+#### Misc. changes
+- **cleanup**: Miscellaneous: [f36e4b6](https://github.com/yt-dlp/yt-dlp/commit/f36e4b6e65cb8403791aae2f520697115cb88dec) by [dirkf](https://github.com/dirkf), [gamer191](https://github.com/gamer191), [Grub4K](https://github.com/Grub4K), [seproDev](https://github.com/seproDev)
+- **test**: [Show all differences for `expect_value` and `expect_dict`](https://github.com/yt-dlp/yt-dlp/commit/a3e0c7d3b267abdf3933b709704a28d43bb46503) ([#12334](https://github.com/yt-dlp/yt-dlp/issues/12334)) by [Grub4K](https://github.com/Grub4K)
+
 ### 2025.02.19
 
 #### Core changes

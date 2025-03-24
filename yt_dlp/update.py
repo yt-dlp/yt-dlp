@@ -117,7 +117,7 @@ _FILE_SUFFIXES = {
 }
 
 _NON_UPDATEABLE_REASONS = {
-    **{variant: None for variant in _FILE_SUFFIXES},  # Updatable
+    **dict.fromkeys(_FILE_SUFFIXES),  # Updatable
     **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
        for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
     'py2exe': 'py2exe is no longer supported by yt-dlp; This executable cannot be updated',
