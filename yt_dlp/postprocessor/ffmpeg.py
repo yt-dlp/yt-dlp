@@ -202,7 +202,7 @@ class FFmpegPostProcessor(PostProcessor):
 
     @property
     def available(self):
-        return self.basename is not None
+        return bool(self._ffmpeg_location.get()) or self.basename is not None
 
     @property
     def executable(self):
@@ -626,7 +626,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             sub_ext = sub_info['ext']
             if sub_ext == 'json':
                 self.report_warning('JSON subtitles cannot be embedded')
-            elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
+            elif ext != 'webm' or (ext == 'webm' and sub_ext == 'vtt'):
                 sub_langs.append(lang)
                 sub_names.append(sub_info.get('name'))
                 sub_filenames.append(sub_info['filepath'])
@@ -743,7 +743,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             if value not in ('', None):
                 value = ', '.join(map(str, variadic(value)))
                 value = value.replace('\0', '')  # nul character cannot be passed in command line
-                metadata['common'].update({meta_f: value for meta_f in variadic(meta_list)})
+                metadata['common'].update(dict.fromkeys(variadic(meta_list), value))
 
         # Info on media metadata/metadata supported by ffmpeg:
         # https://wiki.multimedia.cx/index.php/FFmpeg_Metadata

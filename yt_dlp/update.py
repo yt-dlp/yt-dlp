@@ -65,9 +65,14 @@ def _get_variant_and_executable_path():
             machine = '_legacy' if version_tuple(platform.mac_ver()[0]) < (10, 15) else ''
         else:
             machine = f'_{platform.machine().lower()}'
+            is_64bits = sys.maxsize > 2**32
             # Ref: https://en.wikipedia.org/wiki/Uname#Examples
             if machine[1:] in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
-                machine = '_x86' if platform.architecture()[0][:2] == '32' else ''
+                machine = '_x86' if not is_64bits else ''
+            # platform.machine() on 32-bit raspbian OS may return 'aarch64', so check "64-bitness"
+            # See: https://github.com/yt-dlp/yt-dlp/issues/11813
+            elif machine[1:] == 'aarch64' and not is_64bits:
+                machine = '_armv7l'
             # sys.executable returns a /tmp/ path for staticx builds (linux_static)
             # Ref: https://staticx.readthedocs.io/en/latest/usage.html#run-time-information
             if static_exe_path := os.getenv('STATICX_PROG_PATH'):
@@ -112,7 +117,7 @@ _FILE_SUFFIXES = {
 }
 
 _NON_UPDATEABLE_REASONS = {
-    **{variant: None for variant in _FILE_SUFFIXES},  # Updatable
+    **dict.fromkeys(_FILE_SUFFIXES),  # Updatable
     **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
        for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
     'py2exe': 'py2exe is no longer supported by yt-dlp; This executable cannot be updated',
@@ -525,11 +530,16 @@ class Updater:
     @functools.cached_property
     def cmd(self):
         """The command-line to run the executable, if known"""
+        argv = None
         # There is no sys.orig_argv in py < 3.10. Also, it can be [] when frozen
         if getattr(sys, 'orig_argv', None):
-            return sys.orig_argv
+            argv = sys.orig_argv
         elif getattr(sys, 'frozen', False):
-            return sys.argv
+            argv = sys.argv
+        # linux_static exe's argv[0] will be /tmp/staticx-NNNN/yt-dlp_linux if we don't fixup here
+        if argv and os.getenv('STATICX_PROG_PATH'):
+            argv = [self.filename, *argv[1:]]
+        return argv
 
     def restart(self):
         """Restart the executable"""

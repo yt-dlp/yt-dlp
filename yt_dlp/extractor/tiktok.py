@@ -26,6 +26,7 @@ from ..utils import (
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
+    truncate_string,
     try_call,
     try_get,
     url_or_none,
@@ -249,6 +250,12 @@ class TikTokBaseIE(InfoExtractor):
         elif fatal:
             raise ExtractorError('Unable to extract webpage video data')
 
+        if not traverse_obj(video_data, ('video', {dict})) and traverse_obj(video_data, ('isContentClassified', {bool})):
+            message = 'This post may not be comfortable for some audiences. Log in for access'
+            if fatal:
+                self.raise_login_required(message)
+            self.report_warning(f'{message}. {self._login_hint()}', video_id=video_id)
+
         return video_data, status
 
     def _get_subtitles(self, aweme_detail, aweme_id, user_name):
@@ -413,15 +420,6 @@ class TikTokBaseIE(InfoExtractor):
             for f in formats:
                 self._set_cookie(urllib.parse.urlparse(f['url']).hostname, 'sid_tt', auth_cookie.value)
 
-        thumbnails = []
-        for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
-                         'origin_cover', 'dynamic_cover'):
-            for cover_url in traverse_obj(video_info, (cover_id, 'url_list', ...)):
-                thumbnails.append({
-                    'id': cover_id,
-                    'url': cover_url,
-                })
-
         stats_info = aweme_detail.get('statistics') or {}
         music_info = aweme_detail.get('music') or {}
         labels = traverse_obj(aweme_detail, ('hybrid_label', ..., 'text'), expected_type=str)
@@ -447,7 +445,7 @@ class TikTokBaseIE(InfoExtractor):
         return {
             'id': aweme_id,
             **traverse_obj(aweme_detail, {
-                'title': ('desc', {str}),
+                'title': ('desc', {truncate_string(left=72)}),
                 'description': ('desc', {str}),
                 'timestamp': ('create_time', {int_or_none}),
             }),
@@ -467,7 +465,17 @@ class TikTokBaseIE(InfoExtractor):
             'formats': formats,
             'subtitles': self.extract_subtitles(
                 aweme_detail, aweme_id, traverse_obj(author_info, 'uploader', 'uploader_id', 'channel_id')),
-            'thumbnails': thumbnails,
+            'thumbnails': [
+                {
+                    'id': cover_id,
+                    'url': cover_url,
+                    'preference': -1 if cover_id in ('cover', 'origin_cover') else -2,
+                }
+                for cover_id in (
+                    'cover', 'ai_dynamic_cover', 'animated_cover',
+                    'ai_dynamic_cover_bak', 'origin_cover', 'dynamic_cover')
+                for cover_url in traverse_obj(video_info, (cover_id, 'url_list', ...))
+            ],
             'duration': (traverse_obj(video_info, (
                 (None, 'download_addr'), 'duration', {int_or_none(scale=1000)}, any))
                 or traverse_obj(music_info, ('duration', {int_or_none}))),
@@ -588,7 +596,7 @@ class TikTokBaseIE(InfoExtractor):
                 'duration': ('duration', {int_or_none}),
             })),
             **traverse_obj(aweme_detail, {
-                'title': ('desc', {str}),
+                'title': ('desc', {truncate_string(left=72)}),
                 'description': ('desc', {str}),
                 # audio-only slideshows have a video duration of 0 and an actual audio duration
                 'duration': ('video', 'duration', {int_or_none}, filter),
@@ -600,11 +608,15 @@ class TikTokBaseIE(InfoExtractor):
                 'repost_count': 'shareCount',
                 'comment_count': 'commentCount',
             }), expected_type=int_or_none),
-            'thumbnails': traverse_obj(aweme_detail, (
-                (None, 'video'), ('thumbnail', 'cover', 'dynamicCover', 'originCover'), {
-                    'url': ({url_or_none}, {self._proto_relative_url}),
-                },
-            )),
+            'thumbnails': [
+                {
+                    'id': cover_id,
+                    'url': self._proto_relative_url(cover_url),
+                    'preference': -2 if cover_id == 'dynamicCover' else -1,
+                }
+                for cover_id in ('thumbnail', 'cover', 'dynamicCover', 'originCover')
+                for cover_url in traverse_obj(aweme_detail, ((None, 'video'), cover_id, {url_or_none}))
+            ],
         }
 
 
@@ -645,7 +657,7 @@ class TikTokIE(TikTokBaseIE):
         'info_dict': {
             'id': '6742501081818877190',
             'ext': 'mp4',
-            'title': 'md5:5e2a23877420bb85ce6521dbee39ba94',
+            'title': 'Tag 1 Friend reverse this Video and look what happens 🤩😱 @skyandtami ...',
             'description': 'md5:5e2a23877420bb85ce6521dbee39ba94',
             'duration': 27,
             'height': 1024,
@@ -849,7 +861,7 @@ class TikTokIE(TikTokBaseIE):
         'info_dict': {
             'id': '7253412088251534594',
             'ext': 'm4a',
-            'title': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #рекомендации ',
+            'title': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #р...',
             'description': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #рекомендации ',
             'uploader': 'hara_yoimiya',
             'uploader_id': '6582536342634676230',
@@ -890,8 +902,12 @@ class TikTokIE(TikTokBaseIE):
 
         if video_data and status == 0:
             return self._parse_aweme_video_web(video_data, url, video_id)
-        elif status == 10216:
-            raise ExtractorError('This video is private', expected=True)
+        elif status in (10216, 10222):
+            # 10216: private post; 10222: private account
+            self.raise_login_required(
+                'You do not have permission to view this post. Log into an account that has access')
+        elif status == 10204:
+            raise ExtractorError('Your IP address is blocked from accessing this post', expected=True)
         raise ExtractorError(f'Video not available, status code {status}', video_id=video_id)
 
 

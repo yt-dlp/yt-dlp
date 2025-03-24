@@ -2,7 +2,6 @@ import base64
 import collections
 import functools
 import getpass
-import hashlib
 import http.client
 import http.cookiejar
 import http.cookies
@@ -30,6 +29,7 @@ from ..compat import (
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..downloader.hls import HlsFD
+from ..globals import plugin_ies_overrides
 from ..networking import HEADRequest, Request
 from ..networking.exceptions import (
     HTTPError,
@@ -78,7 +78,6 @@ from ..utils import (
     parse_iso8601,
     parse_m3u8_attributes,
     parse_resolution,
-    sanitize_filename,
     sanitize_url,
     smuggle_url,
     str_or_none,
@@ -100,6 +99,7 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
+from ..utils._utils import _request_dump_filename
 
 
 class InfoExtractor:
@@ -201,6 +201,11 @@ class InfoExtractor:
                                             fragment_base_url
                                  * "duration" (optional, int or float)
                                  * "filesize" (optional, int)
+                    * hls_media_playlist_data
+                                 The M3U8 media playlist data as a string.
+                                 Only use if the data must be modified during extraction and
+                                 the native HLS downloader should bypass requesting the URL.
+                                 Does not apply if ffmpeg is used as external downloader
                     * is_from_start  Is a live format that can be downloaded
                                 from the start. Boolean
                     * preference Order number of this format. If this field is
@@ -1017,23 +1022,6 @@ class InfoExtractor:
                 'Visit http://blocklist.rkn.gov.ru/ for a block reason.',
                 expected=True)
 
-    def _request_dump_filename(self, url, video_id, data=None):
-        if data is not None:
-            data = hashlib.md5(data).hexdigest()
-        basen = join_nonempty(video_id, data, url, delim='_')
-        trim_length = self.get_param('trim_file_name') or 240
-        if len(basen) > trim_length:
-            h = '___' + hashlib.md5(basen.encode()).hexdigest()
-            basen = basen[:trim_length - len(h)] + h
-        filename = sanitize_filename(f'{basen}.dump', restricted=True)
-        # Working around MAX_PATH limitation on Windows (see
-        # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
-        if os.name == 'nt':
-            absfilepath = os.path.abspath(filename)
-            if len(absfilepath) > 259:
-                filename = fR'\\?\{absfilepath}'
-        return filename
-
     def __decode_webpage(self, webpage_bytes, encoding, headers):
         if not encoding:
             encoding = self._guess_encoding_from_content(headers.get('Content-Type', ''), webpage_bytes)
@@ -1062,7 +1050,9 @@ class InfoExtractor:
         if self.get_param('write_pages'):
             if isinstance(url_or_request, Request):
                 data = self._create_request(url_or_request, data).data
-            filename = self._request_dump_filename(urlh.url, video_id, data)
+            filename = _request_dump_filename(
+                urlh.url, video_id, data,
+                trim_length=self.get_param('trim_file_name'))
             self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
@@ -1123,7 +1113,9 @@ class InfoExtractor:
                              impersonate=None, require_impersonation=False):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
-                filename = self._request_dump_filename(url_or_request.url, video_id, url_or_request.data)
+                filename = _request_dump_filename(
+                    url_or_request.url, video_id, url_or_request.data,
+                    trim_length=self.get_param('trim_file_name'))
                 self.to_screen(f'Loading request from {filename}')
                 try:
                     with open(filename, 'rb') as dumpf:
@@ -1854,12 +1846,26 @@ class InfoExtractor:
 
     @staticmethod
     def _remove_duplicate_formats(formats):
-        format_urls = set()
+        seen_urls = set()
+        seen_fragment_urls = set()
         unique_formats = []
         for f in formats:
-            if f['url'] not in format_urls:
-                format_urls.add(f['url'])
+            fragments = f.get('fragments')
+            if callable(fragments):
                 unique_formats.append(f)
+
+            elif fragments:
+                fragment_urls = frozenset(
+                    fragment.get('url') or urljoin(f['fragment_base_url'], fragment['path'])
+                    for fragment in fragments)
+                if fragment_urls not in seen_fragment_urls:
+                    seen_fragment_urls.add(fragment_urls)
+                    unique_formats.append(f)
+
+            elif f['url'] not in seen_urls:
+                seen_urls.add(f['url'])
+                unique_formats.append(f)
+
         formats[:] = unique_formats
 
     def _is_valid_url(self, url, video_id, item='video', headers={}):
@@ -2929,8 +2935,7 @@ class InfoExtractor:
                             segment_duration = None
                             if 'total_number' not in representation_ms_info and 'segment_duration' in representation_ms_info:
                                 segment_duration = float_or_none(representation_ms_info['segment_duration'], representation_ms_info['timescale'])
-                                representation_ms_info['total_number'] = int(math.ceil(
-                                    float_or_none(period_duration, segment_duration, default=0)))
+                                representation_ms_info['total_number'] = math.ceil(float_or_none(period_duration, segment_duration, default=0))
                             representation_ms_info['fragments'] = [{
                                 media_location_key: media_template % {
                                     'Number': segment_number,
@@ -3789,7 +3794,7 @@ class InfoExtractor:
     def mark_watched(self, *args, **kwargs):
         if not self.get_param('mark_watched', False):
             return
-        if self.supports_login() and self._get_login_info()[0] is not None or self._cookies_passed:
+        if (self.supports_login() and self._get_login_info()[0] is not None) or self._cookies_passed:
             self._mark_watched(*args, **kwargs)
 
     def _mark_watched(self, *args, **kwargs):
@@ -3949,14 +3954,18 @@ class InfoExtractor:
     def __init_subclass__(cls, *, plugin_name=None, **kwargs):
         if plugin_name:
             mro = inspect.getmro(cls)
-            super_class = cls.__wrapped__ = mro[mro.index(cls) + 1]
-            cls.PLUGIN_NAME, cls.ie_key = plugin_name, super_class.ie_key
-            cls.IE_NAME = f'{super_class.IE_NAME}+{plugin_name}'
+            next_mro_class = super_class = mro[mro.index(cls) + 1]
+
             while getattr(super_class, '__wrapped__', None):
                 super_class = super_class.__wrapped__
-            setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
-            _PLUGIN_OVERRIDES[super_class].append(cls)
 
+            if not any(override.PLUGIN_NAME == plugin_name for override in plugin_ies_overrides.value[super_class]):
+                cls.__wrapped__ = next_mro_class
+                cls.PLUGIN_NAME, cls.ie_key = plugin_name, next_mro_class.ie_key
+                cls.IE_NAME = f'{next_mro_class.IE_NAME}+{plugin_name}'
+
+                setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
+                plugin_ies_overrides.value[super_class].append(cls)
         return super().__init_subclass__(**kwargs)
 
 
@@ -4012,6 +4021,3 @@ class UnsupportedURLIE(InfoExtractor):
 
     def _real_extract(self, url):
         raise UnsupportedError(url)
-
-
-_PLUGIN_OVERRIDES = collections.defaultdict(list)

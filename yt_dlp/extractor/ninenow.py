@@ -1,34 +1,46 @@
+import json
+import re
+
+from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     float_or_none,
     int_or_none,
-    smuggle_url,
+    parse_iso8601,
+    parse_resolution,
     str_or_none,
-    try_get,
-    unified_strdate,
-    unified_timestamp,
+    url_or_none,
 )
+from ..utils.traversal import require, traverse_obj, value
 
 
 class NineNowIE(InfoExtractor):
     IE_NAME = '9now.com.au'
-    _VALID_URL = r'https?://(?:www\.)?9now\.com\.au/(?:[^/]+/){2}(?P<id>[^/?#]+)'
-    _GEO_COUNTRIES = ['AU']
+    _VALID_URL = r'https?://(?:www\.)?9now\.com\.au/(?:[^/?#]+/){2}(?P<id>(?P<type>clip|episode)-[^/?#]+)'
+    _GEO_BYPASS = False
     _TESTS = [{
         # clip
-        'url': 'https://www.9now.com.au/afl-footy-show/2016/clip-ciql02091000g0hp5oktrnytc',
-        'md5': '17cf47d63ec9323e562c9957a968b565',
+        'url': 'https://www.9now.com.au/today/season-2025/clip-cm8hw9h5z00080hquqa5hszq7',
         'info_dict': {
-            'id': '16801',
+            'id': '6370295582112',
             'ext': 'mp4',
-            'title': 'St. Kilda\'s Joey Montagna on the potential for a player\'s strike',
-            'description': 'Is a boycott of the NAB Cup "on the table"?',
+            'title': 'Would Karl Stefanovic be able to land a plane?',
+            'description': 'The Today host\'s skills are put to the test with the latest simulation tech.',
             'uploader_id': '4460760524001',
-            'upload_date': '20160713',
-            'timestamp': 1468421266,
+            'duration': 197.376,
+            'tags': ['flights', 'technology', 'Karl Stefanovic'],
+            'season': 'Season 2025',
+            'season_number': 2025,
+            'series': 'TODAY',
+            'timestamp': 1742507988,
+            'upload_date': '20250320',
+            'release_timestamp': 1742507983,
+            'release_date': '20250320',
+            'thumbnail': r're:https?://.+/1920x0/.+\.jpg',
         },
-        'skip': 'Only available in Australia',
+        'params': {
+            'skip_download': 'HLS/DASH fragments and mp4 URLs are geo-restricted; only available in AU',
+        },
     }, {
         # episode
         'url': 'https://www.9now.com.au/afl-footy-show/2016/episode-19',
@@ -41,7 +53,7 @@ class NineNowIE(InfoExtractor):
         # episode of series
         'url': 'https://www.9now.com.au/lego-masters/season-3/episode-3',
         'info_dict': {
-            'id': '6249614030001',
+            'id': '6308830406112',
             'title': 'Episode 3',
             'ext': 'mp4',
             'season_number': 3,
@@ -50,72 +62,87 @@ class NineNowIE(InfoExtractor):
             'uploader_id': '4460760524001',
             'timestamp': 1619002200,
             'upload_date': '20210421',
+            'duration': 3574.085,
+            'thumbnail': r're:https?://.+/1920x0/.+\.jpg',
+            'tags': ['episode'],
+            'series': 'Lego Masters',
+            'season': 'Season 3',
+            'episode': 'Episode 3',
+            'release_timestamp': 1619002200,
+            'release_date': '20210421',
         },
-        'expected_warnings': ['Ignoring subtitle tracks'],
         'params': {
-            'skip_download': True,
+            'skip_download': 'HLS/DASH fragments and mp4 URLs are geo-restricted; only available in AU',
+        },
+    }, {
+        'url': 'https://www.9now.com.au/married-at-first-sight/season-12/episode-1',
+        'info_dict': {
+            'id': '6367798770112',
+            'ext': 'mp4',
+            'title': 'Episode 1',
+            'description': r're:The cultural sensation of Married At First Sight returns with our first weddings! .{90}$',
+            'uploader_id': '4460760524001',
+            'duration': 5415.079,
+            'thumbnail': r're:https?://.+/1920x0/.+\.png',
+            'tags': ['episode'],
+            'season': 'Season 12',
+            'season_number': 12,
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'series': 'Married at First Sight',
+            'timestamp': 1737973800,
+            'upload_date': '20250127',
+            'release_timestamp': 1737973800,
+            'release_date': '20250127',
+        },
+        'params': {
+            'skip_download': 'HLS/DASH fragments and mp4 URLs are geo-restricted; only available in AU',
         },
     }]
-    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/4460760524001/default_default/index.html?videoId=%s'
+    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/4460760524001/default_default/index.html?videoId={}'
+
+    # XXX: For parsing next.js v15+ data; see also yt_dlp.extractor.francetv and yt_dlp.extractor.goplay
+    def _find_json(self, s):
+        return self._search_json(
+            r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=None)
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        display_id, video_type = self._match_valid_url(url).group('id', 'type')
         webpage = self._download_webpage(url, display_id)
-        page_data = self._parse_json(self._search_regex(
-            r'window\.__data\s*=\s*({.*?});', webpage,
-            'page data', default='{}'), display_id, fatal=False)
-        if not page_data:
-            page_data = self._parse_json(self._parse_json(self._search_regex(
-                r'window\.__data\s*=\s*JSON\.parse\s*\(\s*(".+?")\s*\)\s*;',
-                webpage, 'page data'), display_id), display_id)
 
-        for kind in ('episode', 'clip'):
-            current_key = page_data.get(kind, {}).get(
-                f'current{kind.capitalize()}Key')
-            if not current_key:
-                continue
-            cache = page_data.get(kind, {}).get(f'{kind}Cache', {})
-            if not cache:
-                continue
-            common_data = {
-                'episode': (cache.get(current_key) or next(iter(cache.values())))[kind],
-                'season': (cache.get(current_key) or next(iter(cache.values()))).get('season', None),
-            }
-            break
-        else:
-            raise ExtractorError('Unable to find video data')
+        common_data = traverse_obj(
+            re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
+            (..., {json.loads}, ..., {self._find_json},
+             lambda _, v: v['payload'][video_type]['slug'] == display_id,
+             'payload', any, {require('video data')}))
 
-        if not self.get_param('allow_unplayable_formats') and try_get(common_data, lambda x: x['episode']['video']['drm'], bool):
+        if traverse_obj(common_data, (video_type, 'video', 'drm', {bool})):
             self.report_drm(display_id)
-        brightcove_id = try_get(
-            common_data, lambda x: x['episode']['video']['brightcoveId'], str) or 'ref:{}'.format(common_data['episode']['video']['referenceId'])
-        video_id = str_or_none(try_get(common_data, lambda x: x['episode']['video']['id'])) or brightcove_id
-
-        title = try_get(common_data, lambda x: x['episode']['name'], str)
-        season_number = try_get(common_data, lambda x: x['season']['seasonNumber'], int)
-        episode_number = try_get(common_data, lambda x: x['episode']['episodeNumber'], int)
-        timestamp = unified_timestamp(try_get(common_data, lambda x: x['episode']['airDate'], str))
-        release_date = unified_strdate(try_get(common_data, lambda x: x['episode']['availability'], str))
-        thumbnails_data = try_get(common_data, lambda x: x['episode']['image']['sizes'], dict) or {}
-        thumbnails = [{
-            'id': thumbnail_id,
-            'url': thumbnail_url,
-            'width': int_or_none(thumbnail_id[1:]),
-        } for thumbnail_id, thumbnail_url in thumbnails_data.items()]
+        brightcove_id = traverse_obj(common_data, (
+            video_type, 'video', (
+                ('brightcoveId', {str}),
+                ('referenceId', {str}, {lambda x: f'ref:{x}' if x else None}),
+            ), any, {require('brightcove ID')}))
 
         return {
             '_type': 'url_transparent',
-            'url': smuggle_url(
-                self.BRIGHTCOVE_URL_TEMPLATE % brightcove_id,
-                {'geo_countries': self._GEO_COUNTRIES}),
-            'id': video_id,
-            'title': title,
-            'description': try_get(common_data, lambda x: x['episode']['description'], str),
-            'duration': float_or_none(try_get(common_data, lambda x: x['episode']['video']['duration'], float), 1000),
-            'thumbnails': thumbnails,
-            'ie_key': 'BrightcoveNew',
-            'season_number': season_number,
-            'episode_number': episode_number,
-            'timestamp': timestamp,
-            'release_date': release_date,
+            'ie_key': BrightcoveNewIE.ie_key(),
+            'url': self.BRIGHTCOVE_URL_TEMPLATE.format(brightcove_id),
+            **traverse_obj(common_data, {
+                'id': (video_type, 'video', 'id', {int}, ({str_or_none}, {value(brightcove_id)}), any),
+                'title': (video_type, 'name', {str}),
+                'description': (video_type, 'description', {str}),
+                'duration': (video_type, 'video', 'duration', {float_or_none(scale=1000)}),
+                'tags': (video_type, 'tags', ..., 'name', {str}, all, filter),
+                'series': ('tvSeries', 'name', {str}),
+                'season_number': ('season', 'seasonNumber', {int_or_none}),
+                'episode_number': ('episode', 'episodeNumber', {int_or_none}),
+                'timestamp': ('episode', 'airDate', {parse_iso8601}),
+                'release_timestamp': (video_type, 'availability', {parse_iso8601}),
+                'thumbnails': (video_type, 'image', 'sizes', {dict.items}, lambda _, v: url_or_none(v[1]), {
+                    'id': 0,
+                    'url': 1,
+                    'width': (1, {parse_resolution}, 'width'),
+                }),
+            }),
         }

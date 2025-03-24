@@ -83,7 +83,7 @@ def aes_ecb_encrypt(data, key, iv=None):
     @returns {int[]}           encrypted data
     """
     expanded_key = key_expansion(key)
-    block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+    block_count = ceil(len(data) / BLOCK_SIZE_BYTES)
 
     encrypted_data = []
     for i in range(block_count):
@@ -103,7 +103,7 @@ def aes_ecb_decrypt(data, key, iv=None):
     @returns {int[]}           decrypted data
     """
     expanded_key = key_expansion(key)
-    block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+    block_count = ceil(len(data) / BLOCK_SIZE_BYTES)
 
     encrypted_data = []
     for i in range(block_count):
@@ -134,7 +134,7 @@ def aes_ctr_encrypt(data, key, iv):
     @returns {int[]}           encrypted data
     """
     expanded_key = key_expansion(key)
-    block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+    block_count = ceil(len(data) / BLOCK_SIZE_BYTES)
     counter = iter_vector(iv)
 
     encrypted_data = []
@@ -158,7 +158,7 @@ def aes_cbc_decrypt(data, key, iv):
     @returns {int[]}           decrypted data
     """
     expanded_key = key_expansion(key)
-    block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+    block_count = ceil(len(data) / BLOCK_SIZE_BYTES)
 
     decrypted_data = []
     previous_cipher_block = iv
@@ -183,7 +183,7 @@ def aes_cbc_encrypt(data, key, iv, *, padding_mode='pkcs7'):
     @returns {int[]}           encrypted data
     """
     expanded_key = key_expansion(key)
-    block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+    block_count = ceil(len(data) / BLOCK_SIZE_BYTES)
 
     encrypted_data = []
     previous_cipher_block = iv
@@ -534,19 +534,17 @@ def ghash(subkey, data):
 __all__ = [
     'aes_cbc_decrypt',
     'aes_cbc_decrypt_bytes',
-    'aes_ctr_decrypt',
-    'aes_decrypt_text',
-    'aes_decrypt',
-    'aes_ecb_decrypt',
-    'aes_gcm_decrypt_and_verify',
-    'aes_gcm_decrypt_and_verify_bytes',
-
     'aes_cbc_encrypt',
     'aes_cbc_encrypt_bytes',
+    'aes_ctr_decrypt',
     'aes_ctr_encrypt',
+    'aes_decrypt',
+    'aes_decrypt_text',
+    'aes_ecb_decrypt',
     'aes_ecb_encrypt',
     'aes_encrypt',
-
+    'aes_gcm_decrypt_and_verify',
+    'aes_gcm_decrypt_and_verify_bytes',
     'key_expansion',
     'pad_block',
     'pkcs7_padding',

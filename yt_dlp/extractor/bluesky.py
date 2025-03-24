@@ -53,7 +53,7 @@ class BlueskyIE(InfoExtractor):
             'channel_id': 'did:plc:z72i7hdynmk6r22z27h6tvur',
             'channel_url': 'https://bsky.app/profile/did:plc:z72i7hdynmk6r22z27h6tvur',
             'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
-            'title': 'Bluesky now has video! Update your app to versi...',
+            'title': 'Bluesky now has video! Update your app to version 1.91 or refresh on ...',
             'alt_title': 'Bluesky video feature announcement',
             'description': r're:(?s)Bluesky now has video! .{239}',
             'upload_date': '20240911',
@@ -88,7 +88,7 @@ class BlueskyIE(InfoExtractor):
         },
     }, {
         'url': 'https://bsky.app/profile/de1.pds.tentacle.expert/post/3l3w4tnezek2e',
-        'md5': '1af9c7fda061cf7593bbffca89e43d1c',
+        'md5': 'cc0110ed1f6b0247caac8234cc1e861d',
         'info_dict': {
             'id': '3l3w4tnezek2e',
             'ext': 'mp4',
@@ -133,6 +133,8 @@ class BlueskyIE(InfoExtractor):
             'channel_follower_count': int,
             'categories': ['Entertainment'],
             'tags': [],
+            'chapters': list,
+            'heatmap': 'count:100',
         },
         'add_ie': ['Youtube'],
     }, {
@@ -170,7 +172,7 @@ class BlueskyIE(InfoExtractor):
             'channel_id': 'did:plc:z72i7hdynmk6r22z27h6tvur',
             'channel_url': 'https://bsky.app/profile/did:plc:z72i7hdynmk6r22z27h6tvur',
             'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
-            'title': 'Bluesky now has video! Update your app to versi...',
+            'title': 'Bluesky now has video! Update your app to version 1.91 or refresh on ...',
             'alt_title': 'Bluesky video feature announcement',
             'description': r're:(?s)Bluesky now has video! .{239}',
             'upload_date': '20240911',
@@ -184,14 +186,14 @@ class BlueskyIE(InfoExtractor):
             },
         },
     }, {
-        'url': 'https://bsky.app/profile/alt.bun.how/post/3l7rdfxhyds2f',
+        'url': 'https://bsky.app/profile/cinny.bun.how/post/3l7rdfxhyds2f',
         'md5': '8775118b235cf9fa6b5ad30f95cda75c',
         'info_dict': {
             'id': '3l7rdfxhyds2f',
             'ext': 'mp4',
-            'uploader': 'cinnamon',
-            'uploader_id': 'alt.bun.how',
-            'uploader_url': 'https://bsky.app/profile/alt.bun.how',
+            'uploader': 'cinnamon 🐇 🏳️‍⚧️',
+            'uploader_id': 'cinny.bun.how',
+            'uploader_url': 'https://bsky.app/profile/cinny.bun.how',
             'channel_id': 'did:plc:7x6rtuenkuvxq3zsvffp2ide',
             'channel_url': 'https://bsky.app/profile/did:plc:7x6rtuenkuvxq3zsvffp2ide',
             'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
@@ -253,7 +255,7 @@ class BlueskyIE(InfoExtractor):
             'info_dict': {
                 'id': '3l77u64l7le2e',
                 'ext': 'mp4',
-                'title': 'hearing people on twitter say that bluesky isn\'...',
+                'title': "hearing people on twitter say that bluesky isn't funny yet  so post t...",
                 'like_count': int,
                 'uploader_id': 'thafnine.net',
                 'uploader_url': 'https://bsky.app/profile/thafnine.net',
@@ -284,16 +286,18 @@ class BlueskyIE(InfoExtractor):
             services, ('service', lambda _, x: x['type'] == 'AtprotoPersonalDataServer',
                        'serviceEndpoint', {url_or_none}, any)) or 'https://bsky.social'
 
-    def _real_extract(self, url):
-        handle, video_id = self._match_valid_url(url).group('handle', 'id')
-
-        post = self._download_json(
+    def _extract_post(self, handle, post_id):
+        return self._download_json(
             'https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread',
-            video_id, query={
-                'uri': f'at://{handle}/app.bsky.feed.post/{video_id}',
+            post_id, query={
+                'uri': f'at://{handle}/app.bsky.feed.post/{post_id}',
                 'depth': 0,
                 'parentHeight': 0,
             })['thread']['post']
+
+    def _real_extract(self, url):
+        handle, video_id = self._match_valid_url(url).group('handle', 'id')
+        post = self._extract_post(handle, video_id)
 
         entries = []
         # app.bsky.embed.video.view/app.bsky.embed.external.view
@@ -341,6 +345,7 @@ class BlueskyIE(InfoExtractor):
 
             formats.append({
                 'format_id': 'blob',
+                'quality': 1,
                 'url': update_url_query(
                     self._BLOB_URL_TMPL.format(endpoint), {'did': did, 'cid': video_cid}),
                 **traverse_obj(root, (*embed_path, 'aspectRatio', {
@@ -382,7 +387,7 @@ class BlueskyIE(InfoExtractor):
                 'age_limit': (
                     'labels', ..., 'val', {lambda x: 18 if x in ('sexual', 'porn', 'graphic-media') else None}, any),
                 'description': (*record_path, 'text', {str}, filter),
-                'title': (*record_path, 'text', {lambda x: x.replace('\n', ' ')}, {truncate_string(left=50)}),
+                'title': (*record_path, 'text', {lambda x: x.replace('\n', ' ')}, {truncate_string(left=72)}),
             }),
         })
         return entries

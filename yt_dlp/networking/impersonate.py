@@ -5,11 +5,11 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Any
 
-from .common import RequestHandler, register_preference
+from .common import RequestHandler, register_preference, Request
 from .exceptions import UnsupportedRequest
 from ..compat.types import NoneType
 from ..utils import classproperty, join_nonempty
-from ..utils.networking import std_headers
+from ..utils.networking import std_headers, HTTPHeaderDict
 
 
 @dataclass(order=True, frozen=True)
@@ -123,7 +123,17 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
         """Get the requested target for the request"""
         return self._resolve_target(request.extensions.get('impersonate') or self.impersonate)
 
-    def _get_impersonate_headers(self, request):
+    def _prepare_impersonate_headers(self, request: Request, headers: HTTPHeaderDict) -> None:  # noqa: B027
+        """Additional operations to prepare headers before building. To be extended by subclasses.
+        @param request: Request object
+        @param headers: Merged headers to prepare
+        """
+
+    def _get_impersonate_headers(self, request: Request) -> dict[str, str]:
+        """
+        Get headers for external impersonation use.
+        Subclasses may define a _prepare_impersonate_headers method to modify headers after merge but before building.
+        """
         headers = self._merge_headers(request.headers)
         if self._get_request_target(request) is not None:
             # remove all headers present in std_headers
@@ -131,7 +141,11 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
             for k, v in std_headers.items():
                 if headers.get(k) == v:
                     headers.pop(k)
-        return headers
+
+        self._prepare_impersonate_headers(request, headers)
+        if request.extensions.get('keep_header_casing'):
+            return headers.sensitive()
+        return dict(headers)
 
 
 @register_preference(ImpersonateRequestHandler)

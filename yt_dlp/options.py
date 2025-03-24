@@ -398,7 +398,7 @@ def create_parser():
             '(Alias: --no-config)'))
     general.add_option(
         '--no-config-locations',
-        action='store_const', dest='config_locations', const=[],
+        action='store_const', dest='config_locations', const=None,
         help=(
             'Do not load any custom configuration files (default). When given inside a '
             'configuration file, ignore all previous --config-locations defined in the current file'))
@@ -410,12 +410,21 @@ def create_parser():
             '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
         '--plugin-dirs',
-        dest='plugin_dirs', metavar='PATH', action='append',
+        metavar='PATH',
+        dest='plugin_dirs',
+        action='callback',
+        callback=_list_from_options_callback,
+        type='str',
+        callback_kwargs={'delim': None},
+        default=['default'],
         help=(
             'Path to an additional directory to search for plugins. '
             'This option can be used multiple times to add multiple directories. '
-            'Note that this currently only works for extractor plugins; '
-            'postprocessor plugins can only be loaded from the default plugin directories'))
+            'Use "default" to search the default plugin directories (default)'))
+    general.add_option(
+        '--no-plugin-dirs',
+        dest='plugin_dirs', action='store_const', const=[],
+        help='Clear plugin directories to search, including defaults and those provided by previous --plugin-dirs')
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
@@ -1370,12 +1379,12 @@ def create_parser():
         help='Allow Unicode characters, "&" and spaces in filenames (default)')
     filesystem.add_option(
         '--windows-filenames',
-        action='store_true', dest='windowsfilenames', default=False,
+        action='store_true', dest='windowsfilenames', default=None,
         help='Force filenames to be Windows-compatible')
     filesystem.add_option(
         '--no-windows-filenames',
         action='store_false', dest='windowsfilenames',
-        help='Make filenames Windows-compatible only if using Windows (default)')
+        help='Sanitize filenames only minimally')
     filesystem.add_option(
         '--trim-filenames', '--trim-file-names', metavar='LENGTH',
         dest='trim_file_name', default=0, type=int,
