@@ -20,8 +20,8 @@ class VrSquareIE(InfoExtractor):
     IE_NAME = 'vrsquare'
     IE_DESC = 'VR SQUARE'
 
-    _VALID_URL = r'https?://livr\.jp/contents/(?P<id>[\w-]+)'
     _BASE_URL = 'https://livr.jp'
+    _VALID_URL = r'https?://livr\.jp/contents/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://livr.jp/contents/P470896661',
         'info_dict': {
@@ -93,13 +93,15 @@ class VrSquareIE(InfoExtractor):
         }
 
 
-class VrSquarePlaylistBaseIE(VrSquareIE):
+class VrSquarePlaylistBaseIE(InfoExtractor):
+    _BASE_URL = 'https://livr.jp'
+
     def _fetch_vids(self, source, keys=()):
         return [self.url_result(
             f'{self._BASE_URL}/contents/{x.removeprefix("/contents/")}', VrSquareIE)
             for x in traverse_obj(source, (
                 *keys, {find_elements(cls='video', html=True)},
-                ..., {extract_attributes}, 'data-url'))
+                ..., {extract_attributes}, 'data-url', {str}, filter))
         ]
 
 
@@ -158,7 +160,7 @@ class VrSquareSearchIE(VrSquarePlaylistBaseIE):
                 break
 
     def _real_extract(self, url):
-        query = parse_qs(url).get('w', [None])[0]
+        query = parse_qs(url)['w'][0]
 
         return self.playlist_result(self._entries(query), query, query)
 
