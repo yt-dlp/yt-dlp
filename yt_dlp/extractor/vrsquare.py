@@ -109,7 +109,7 @@ class VrSquarePlaylistBaseIE(InfoExtractor):
         for page in itertools.count(1):
             ajax = self._download_json(
                 f'{self._BASE_URL}{path}', display_id,
-                f'Downloading playlist page {page} JSON',
+                f'Downloading playlist JSON page {page}',
                 query={'p': page, **(query or {})})
             yield from self._fetch_vids(ajax, ('contents_render_list', ...))
             if not traverse_obj(ajax, (('has_next', 'hasNext'), {bool}, any)):
