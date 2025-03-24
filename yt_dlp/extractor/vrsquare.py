@@ -163,7 +163,7 @@ class VrSquareSearchIE(VrSquarePlaylistBaseIE):
     def _real_extract(self, url):
         query = parse_qs(url)['w'][0]
 
-        return self.playlist_result(self._entries(query), query, query)
+        return self.playlist_result(self._entries(query), query)
 
 
 class VrSquareSectionIE(VrSquarePlaylistBaseIE):
