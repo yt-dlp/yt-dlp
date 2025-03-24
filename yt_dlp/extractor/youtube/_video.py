@@ -2176,10 +2176,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         """Returns tuple of strings: variable assignment code, variable name, variable value code"""
         return self._search_regex(
             r'''(?x)
-                \'use\s+strict\';\s*
+                (?P<q1>["\'])use\s+strict(?P=q1);\s*
                 (?P<code>
                     var\s+(?P<name>[a-zA-Z0-9_$]+)\s*=\s*
-                    (?P<value>"(?:[^"\\]|\\.)+"\.split\("[^"]+"\))
+                    (?P<value>
+                        (?P<q2>["\'])(?:(?!(?P=q2)).|\\.)+(?P=q2)
+                        \.split\((?P<q3>["\'])(?:(?!(?P=q3)).)+(?P=q3)\)
+                    )
                 )[;,]
             ''', jscode, 'global variable', group=('code', 'name', 'value'), default=(None, None, None))
 
