@@ -1,23 +1,12 @@
-import datetime as dt
-import json
-import re
-import urllib.parse
-
 from .streaks import StreaksBaseIE
-from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    float_or_none,
     int_or_none,
     join_nonempty,
-    mimetype2ext,
-    parse_iso8601,
-    qualities,
     smuggle_url,
     str_or_none,
     strip_or_none,
     update_url_query,
-    url_or_none,
 )
 from ..utils.traversal import require, traverse_obj
 
@@ -176,13 +165,10 @@ class TVerIE(StreaksBaseIE):
             'thumbnails': thumbnails,
             **traverse_obj(video_info, {
                 'description': ('description', {str}),
-                'timestamp': ('viewStatus', 'startAt', {int_or_none}),
+                'release_timestamp': ('viewStatus', 'startAt', {int_or_none}),
                 'episode_number': ('no', {int_or_none}),
             }),
         }
-
-        if onair_label:
-            metadata.update(self._format_broadcast_date(onair_label))
 
         if backend == 'brightcove':
             p_id = video_info['video']['accountID']
@@ -212,41 +198,3 @@ class TVerIE(StreaksBaseIE):
             **metadata,
             'id': video_id,
         }
-
-    def _format_broadcast_date(self, onair_label):
-        """
-        Extracts the broadcast date from the onair label
-
-        Truth to be said, we cannot be sure or guarantee that the broadcast date is correct
-        as TVer doesn't really have consistent date format for the broadcast date.
-        At best we can only assume the following:
-        - If there is only year, this mean the broadcast is old.
-        - If there is only month and day, this mean the broadcast is recent within the current year or the previous year.
-
-        :param onair_label: The onair label string
-        :return: A dictionary containing the formatted broadcast date or an empty dictionary if the date is not found
-
-        """
-        if not onair_label:
-            return {}
-
-        mobj = re.search(
-            r'(?:(?P<year>\d{4})年)|(?:(?P<month>\d{1,2})\D(?P<day>\d{1,2})\D)', onair_label)
-        if not mobj:
-            return {}
-        broadcast_date_info = mobj.groupdict()
-
-        data = {
-            'release_year': int_or_none(broadcast_date_info.get('year')),
-        }
-        day, month = (int_or_none(broadcast_date_info.get(key)) for key in ('day', 'month'))
-        if day and month:
-            year = data.get('release_year') or dt.datetime.now().year
-            dt_ = dt.datetime.strptime(f'{year}-{month}-{day}', '%Y-%m-%d')
-            # If the date is in the future, it means the broadcast date is in the previous year
-            # Ref: https://github.com/yt-dlp/yt-dlp/pull/12282#issuecomment-2678132806
-            if dt_ > dt.datetime.now():
-                year -= 1
-            data['release_timestamp'] = dt.datetime(year=year, month=month, day=day).timestamp()
-
-        return data
