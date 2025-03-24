@@ -78,6 +78,7 @@ class VrSquareIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 500:
                 raise ExtractorError('VR SQUARE app-only videos are not supported', expected=True)
+            raise
 
         return {
             'id': video_id,
