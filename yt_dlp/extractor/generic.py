@@ -16,6 +16,7 @@ from ..utils import (
     MEDIA_EXTENSIONS,
     ExtractorError,
     UnsupportedError,
+    base_url,
     determine_ext,
     determine_protocol,
     dict_get,
@@ -2531,7 +2532,7 @@ class GenericIE(InfoExtractor):
             elif re.match(r'(?i)^(?:{[^}]+})?MPD$', doc.tag):
                 info_dict['formats'], info_dict['subtitles'] = self._parse_mpd_formats_and_subtitles(
                     doc,
-                    mpd_base_url=full_response.url.rpartition('/')[0],
+                    mpd_base_url=base_url(full_response.url),
                     mpd_url=url)
                 info_dict['live_status'] = 'is_live' if doc.get('type') == 'dynamic' else None
                 self._extra_manifest_info(info_dict, url)
