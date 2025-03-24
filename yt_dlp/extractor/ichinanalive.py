@@ -197,6 +197,7 @@ class IchinanaLiveVODIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         json_data = self._download_json(f'https://wap-api.17app.co/api/v1/vods/{video_id}', video_id)
+
         return traverse_obj(json_data, {
             'id': ('vodID', {str}),
             'title': ('title', {str}),
