@@ -1260,6 +1260,7 @@ class TestUtil(unittest.TestCase):
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
+        self.assertEqual(js_to_json('{a: `${e("")}`}'), '{"a": "\\"e\\"(\\"\\")"}')
 
     def test_js_to_json_template_literal(self):
         self.assertEqual(js_to_json('`Hello ${name}`', {'name': '"world"'}), '"Hello world"')
