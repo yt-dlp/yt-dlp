@@ -21,20 +21,20 @@ from ..utils.traversal import traverse_obj
 
 class StreaksBaseIE(InfoExtractor):
     _API_URL_TEMPLATE = 'https://{}.api.streaks.jp/v1/projects/{}/medias/{}{}'
-    _GEO_COUNTRIES = ['JP']
     _GEO_BYPASS = False
+    _GEO_COUNTRIES = ['JP']
 
     def _extract_from_streaks_api(self, project_id, media_id, headers=None, query=None, ssai=False):
         try:
             response = self._download_json(
                 self._API_URL_TEMPLATE.format('playback', project_id, media_id, ''),
-                media_id, 'Downloading streaks playback API JSON',
-                headers={
+                media_id, 'Downloading STREAKS playback API JSON', headers={
                     'Accept': 'application/json',
                     'Origin': 'https://players.streaks.jp',
                     **self.geo_verification_headers(),
                     **(headers or {}),
-                })
+                },
+            )
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status in {403, 404}:
                 error = self._parse_json(e.cause.response.read().decode(), media_id, fatal=False)
@@ -68,44 +68,32 @@ class StreaksBaseIE(InfoExtractor):
             src_url = source['src']
             is_live = live_status == 'is_live'
             ext = mimetype2ext(source.get('type'))
-
-            if ext == 'm3u8':
-                if is_live and ssai:
-                    session_params = traverse_obj(
-                        self._download_json(
-                            self._API_URL_TEMPLATE.format('ssai', project_id, streaks_id, '/ssai/session'),
-                            media_id, 'Downloading session parameters',
-                            headers={'Content-Type': 'application/json'},  # XXX: geo_verification_headers ?
-                            data=json.dumps({'id': source['id']}).encode()),
-                        (0, 'query', {urllib.parse.parse_qs}))
-                    src_url = update_url_query(src_url, session_params)
-
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    src_url, media_id, 'mp4', m3u8_id='hls',
-                    fatal=False, live=is_live, query=query)
-
-                for fmt in traverse_obj(fmts, lambda _, v: v['vcodec'] == 'none'):
-                    if mobj := re.match(r'hls-[a-z]+_AUDIO-(?P<quality>\d)_\d+-', fmt['format_id']):
-                        fmt['quality'] = audio_quality_func(mobj.group('quality'))
-
-            elif ext == 'mpd':
-                fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    src_url, media_id, mpd_id='dash', fatal=False)
-
-            else:
+            if ext != 'm3u8':
                 self.report_warning(f'Unsupported stream type: {ext}')
                 continue
+            if is_live and ssai:
+                session_params = traverse_obj(self._download_json(
+                    self._API_URL_TEMPLATE.format('ssai', project_id, streaks_id, '/ssai/session'),
+                    media_id, 'Downloading session parameters',
+                    headers={'Content-Type': 'application/json'},
+                    data=json.dumps({'id': source['id']}).encode(),
+                ), (0, 'query', {urllib.parse.parse_qs}))
+                src_url = update_url_query(src_url, session_params)
 
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                src_url, media_id, 'mp4', m3u8_id='hls', fatal=False, live=is_live, query=query)
+            for fmt in traverse_obj(fmts, lambda _, v: v['vcodec'] == 'none'):
+                if mobj := re.match(r'hls-[a-z]+_AUDIO-(?P<quality>\d)_\d+-', fmt['format_id']):
+                    fmt['quality'] = audio_quality_func(mobj.group('quality'))
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
         if not formats and drm_formats:
             self.report_drm(media_id)
-
         self._remove_duplicate_formats(formats)
 
         for subs in traverse_obj(response, (
-            'tracks', lambda _, v: v['kind'] in ('subtitles', 'captions') and url_or_none(v['src']),
+            'tracks', lambda _, v: v['kind'] in ('captions', 'subtitles') and url_or_none(v['src']),
         )):
             lang = traverse_obj(subs, ('srclang', {str.lower})) or 'ja'
             subtitles.setdefault(lang, []).append({'url': subs['src']})
@@ -113,20 +101,18 @@ class StreaksBaseIE(InfoExtractor):
         return {
             'id': streaks_id,
             'display_id': media_id,
-            'channel_id': project_id,
             'formats': formats,
-            'subtitles': subtitles,
             'live_status': live_status,
+            'subtitles': subtitles,
+            'uploader_id': project_id,
             **traverse_obj(response, {
-                'channel_id': ('project_id', {str}),
-                'uploader_id': ('profile', {str}),
                 'title': ('name', {str}),
                 'description': ('description', {str}, filter),
                 'duration': ('duration', {float_or_none}),
+                'modified_timestamp': ('updated_at', {parse_iso8601}),
                 'tags': ('tags', ..., {str}),
                 'thumbnails': (('poster', 'thumbnail'), 'src', {'url': {url_or_none}}),
                 'timestamp': ('created_at', {parse_iso8601}),
-                'modified_timestamp': ('updated_at', {parse_iso8601}),
             }),
         }
 
@@ -136,6 +122,7 @@ class StreaksIE(StreaksBaseIE):
         r'https?://players\.streaks\.jp/(?P<project_id>[\w-]+)/[\da-f]+/index\.html\?(?:[^#]+&)?m=(?P<media_id>(?:ref:)?[\w-]+)',
         r'https?://playback\.api\.streaks\.jp/v1/projects/(?P<project_id>[\w-]+)/medias/(?P<media_id>(?:ref:)?[\w-]+)',
     ]
+    _EMBED_REGEX = [rf'<iframe[^>]+?src\s*=\s*["\'](?P<url>{_VALID_URL[0]})["\']']
     _TESTS = [{
         'url': 'https://players.streaks.jp/tipness/08155cd19dc14c12bebefb69b92eafcc/index.html?m=dbdf2df35b4d483ebaeeaeb38c594647',
         'info_dict': {
@@ -145,10 +132,11 @@ class StreaksIE(StreaksBaseIE):
             'display_id': 'dbdf2df35b4d483ebaeeaeb38c594647',
             'duration': 47.533,
             'live_status': 'not_live',
-            'timestamp': 1690356180,
+            'modified_date': '20230726',
+            'modified_timestamp': 1690356180,
+            'timestamp': 1690355996,
             'upload_date': '20230726',
-            'channel_id': 'tipness',
-            'uploader_id': '08155cd19dc14c12bebefb69b92eafcc',
+            'uploader_id': 'tipness',
         },
     }, {
         'url': 'https://players.streaks.jp/ktv-web/0298e8964c164ab384c07ef6e08c444b/index.html?m=ref:mycoffeetime_250317',
@@ -159,11 +147,12 @@ class StreaksIE(StreaksBaseIE):
             'display_id': 'ref:mycoffeetime_250317',
             'duration': 122.99,
             'live_status': 'not_live',
+            'modified_date': '20250310',
+            'modified_timestamp': 1741586302,
             'thumbnail': r're:https?://.+\.jpg',
-            'timestamp': 1741586302,
+            'timestamp': 1741585839,
             'upload_date': '20250310',
-            'channel_id': 'ktv-web',
-            'uploader_id': '0298e8964c164ab384c07ef6e08c444b',
+            'uploader_id': 'ktv-web',
         },
     }, {
         'url': 'https://playback.api.streaks.jp/v1/projects/ktv-web/medias/b5411938e1e5435dac71edf829dd4813',
@@ -173,10 +162,12 @@ class StreaksIE(StreaksBaseIE):
             'title': 'KANTELE_SYUSEi_0630',
             'display_id': 'b5411938e1e5435dac71edf829dd4813',
             'live_status': 'not_live',
+            'modified_date': '20250122',
+            'modified_timestamp': 1737522999,
             'thumbnail': r're:https?://.+\.jpg',
-            'timestamp': 1737522999,
-            'channel_id': 'ktv-web',
-            'upload_date': '20250122',
+            'timestamp': 1735205137,
+            'upload_date': '20241226',
+            'uploader_id': 'ktv-web',
         },
     }, {
         # TVer Olympics: website already down, but api remains accessible
@@ -188,9 +179,11 @@ class StreaksIE(StreaksBaseIE):
             'display_id': 'ref:sp_240806_1748_dvr',
             'duration': 12960.0,
             'live_status': 'was_live',
-            'timestamp': 1722896263,
-            'channel_id': 'tver-olympic',
-            'upload_date': '20240805',
+            'modified_date': '20240805',
+            'modified_timestamp': 1722896263,
+            'timestamp': 1722777618,
+            'upload_date': '20240804',
+            'uploader_id': 'tver-olympic',
         },
     }, {
         # TBS FREE: 24-hour stream
@@ -201,9 +194,11 @@ class StreaksIE(StreaksBaseIE):
             'title': str,
             'display_id': 'ref:simul-02',
             'live_status': 'is_live',
-            'timestamp': 1730339858,
-            'channel_id': 'tbs',
-            'upload_date': '20241031',
+            'modified_date': '20241031',
+            'modified_timestamp': 1730339858,
+            'timestamp': 1705466840,
+            'upload_date': '20240117',
+            'uploader_id': 'tbs',
         },
     }, {
         # DRM protected
@@ -213,13 +208,10 @@ class StreaksIE(StreaksBaseIE):
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
-        project_id, media_id = self._match_valid_url(url).group('project_id', 'media_id')
+        project_id, media_id = self._match_valid_url(url).groups()
 
-        return self._extract_from_streaks_api(project_id, media_id, headers=filter_dict({
-            'X-Streaks-Api-Key': self._configuration_arg(
-                'api_key', [smuggled_data.get('api_key')], casesense=True)[0],
-            **traverse_obj(smuggled_data, {
-                'Origin': 'Origin',
-                'Referer': 'Referer',
-            }, casesense=False),
-        }))
+        return self._extract_from_streaks_api(
+            project_id, media_id, headers=filter_dict({
+                'X-Streaks-Api-Key': smuggled_data.get('api_key'),
+            }),
+        )
