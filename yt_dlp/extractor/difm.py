@@ -17,7 +17,6 @@ clean_url = lambda x: unescapeHTML(sanitize_url(x, scheme='https'))
 def extract_episode(episode):
     return traverse_obj(episode, {
         'id': ('id', {str_or_none}),
-        'ext': 'mp4',
         'timestamp': ('start_at', {unified_strdate}, {int_or_none}),
         'duration': ('tracks', 0, 'length', {int_or_none}),
         'artist': ('tracks', 0, 'display_artist', {str_or_none}),
@@ -30,17 +29,19 @@ def extract_episode(episode):
 
 class DIFMShowEpisodeIE(InfoExtractor):
     IE_NAME = 'difm:showepisode'
-    _VALID_URL = r'https?://www\.di\.fm/shows/(?P<show_name>[\w-]+)/episodes/(?P<episode_id>\d+)'
+    _VALID_URL = r'https?://www\.di\.fm/shows/(?P<show_name>[\w-]+)/episodes/(?P<episode_id>[\w-]+)'
     _TESTS = [
         {
             'url': 'https://www.di.fm/shows/airwaves-progressions-radio/episodes/001',
             'md5': '5725ec4226aed05c58b6460df5e4b4df',
             'info_dict': {
                 'id': '130151',
-                'ext': 'mp4',
                 'title': 'Progressions 001 (04 April 2020)',
                 'duration': 7456,
                 'thumbnail': r're:https?://.*\.jpg',
+                'timestamp': 20200404,
+                'artist': 'Airwave',
+                'filesize': 120584191,
             },
         }, {
             'url': 'https://www.di.fm/shows/the-global-warm-up/episodes/1095',
@@ -51,20 +52,20 @@ class DIFMShowEpisodeIE(InfoExtractor):
     def _real_extract(self, url):
         show_name, episode_id = self._match_valid_url(url).group('show_name', 'episode_id')
         video_id = f'{show_name}-{episode_id}'
-        webpage = self._download_webpage(url, video_id, fatal=False, impersonate=True)
+        webpage = self._download_webpage(url, video_id, fatal=True, impersonate=True)
         json_data = self._search_json('"EpisodeDetail.LayoutEngine",', webpage, 'json_data', video_id)['episode']
         return extract_episode(json_data)
 
 
 class DIFMShowIE(InfoExtractor):
     IE_NAME = 'difm:show'
-    _VALID_URL = r'https?://www\.di\.fm/shows/(?P<show_name>[\w-]+)'
+    _VALID_URL = r'https?://www\.di\.fm/shows/(?P<show_name>[\w-]+)$'
     _TESTS = [{
         'url': 'https://www.di.fm/shows/the-global-warm-up',
         'info_dict': {
             '_type': 'playlist',
             'id': 'the-global-warm-up',
-            'title': 'the-global-warm-up',
+            'title': 'The Global Warm Up with Judge Jules',
         },
         'playlist_mincount': 5,
     }]
@@ -77,7 +78,8 @@ class DIFMShowIE(InfoExtractor):
 
     def _real_extract(self, url):
         show_name = self._match_valid_url(url).group('show_name')
-        webpage = self._download_webpage(url, show_name, fatal=False, impersonate=True)
-        session_key = self._search_json('"user":', webpage, 'json_data', show_name).get('session_key')
+        webpage = self._download_webpage(url, show_name, fatal=True, impersonate=True)
+        show_title = self._html_extract_title(webpage).removesuffix(' - DI.FM')
+        session_key = self._search_regex(r'"session_key"\s*:\s*"(?P<session_key>\w+)"', webpage, 'session_key')
         entries = OnDemandPagedList(functools.partial(self._entries, show_name, session_key), self._PAGE_SIZE)
-        return self.playlist_result(entries, show_name, show_name)
+        return self.playlist_result(entries, show_name, show_title)
