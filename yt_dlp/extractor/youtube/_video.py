@@ -2187,7 +2187,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         global_var, varname, _ = self._extract_player_js_global_var(full_code)
         if global_var:
             self.write_debug(f'Prepending n function code with global array variable "{varname}"')
-            code = global_var + ', ' + code
+            code = global_var + '; ' + code
         else:
             self.write_debug('No global array variable found in player JS')
         return argnames, re.sub(
@@ -2196,7 +2196,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
-        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.03.21')
+        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.03.25')
         jscode = func_code or self._load_player(video_id, player_url)
         jsi = JSInterpreter(jscode)
 
