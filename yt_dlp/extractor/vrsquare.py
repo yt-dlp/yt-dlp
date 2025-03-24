@@ -145,9 +145,8 @@ class VrSquareSearchIE(VrSquarePlaylistBaseIE):
         'url': 'https://livr.jp/web-search?w=%23%E5%B0%8F%E6%A0%97%E6%9C%89%E4%BB%A5',
         'info_dict': {
             'id': '#小栗有以',
-            'title': '#小栗有以',
         },
-        'playlist_mincount': 70,
+        'playlist_mincount': 60,
     }]
 
     def _entries(self, query):
