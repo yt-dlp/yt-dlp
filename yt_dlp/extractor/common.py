@@ -2319,6 +2319,7 @@ class InfoExtractor:
         # Some audio-only formats only have a GROUP-ID without any other quality/bitrate/codec info
         # Each audio GROUP-ID corresponds with one or more video-only formats' AUDIO attribute
         # For sorting purposes, set source_preference based on the quality of the video formats they are grouped with
+        # See https://github.com/yt-dlp/yt-dlp/issues/11178
         audio_groups_by_quality = orderedSet(f['_audio_group_id'] for f in sorted(
             traverse_obj(formats, lambda _, v: v.get('vcodec') != 'none' and v['_audio_group_id']),
             key=lambda x: (x.get('tbr') or 0, x.get('width') or 0)))
