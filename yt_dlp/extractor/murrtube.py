@@ -1,17 +1,20 @@
 import functools
-import re
 
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
+    clean_html,
     extract_attributes,
-    get_element_by_class,
-    get_element_html_by_id,
-    get_elements_html_by_attribute,
     parse_count,
     parse_qs,
-    remove_end,
+    unescapeHTML,
+    url_or_none,
     urlencode_postdata,
+)
+from ..utils.traversal import (
+    find_element,
+    find_elements,
+    traverse_obj,
 )
 
 
@@ -29,7 +32,6 @@ class MurrtubeBaseIE(InfoExtractor):
 
 class MurrtubeIE(MurrtubeBaseIE):
     IE_NAME = 'murrtube'
-    IE_DESC = 'Murrtube'
 
     _VALID_URL = r'https?://murrtube\.net/v(?:ideos)?/(?P<id>[\w-]+)'
     _TESTS = [{
@@ -69,26 +71,30 @@ class MurrtubeIE(MurrtubeBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        m3u8_url = extract_attributes(get_element_html_by_id('video', webpage))['data-url']
-        html = get_elements_html_by_attribute(
-            'href', r'/([\w-]+)', webpage, escape_value=False, tag='a')[2]
+        thumbnail, m3u8_url = traverse_obj(webpage, (
+            {find_element(id='video', html=True)},
+            {extract_attributes}, ('poster', 'data-url'), {url_or_none},
+        ))
 
         return {
-            'id': self._search_regex(r'(\w+)/index\.m3u8', m3u8_url, 'video id'),
-            'title': remove_end(self._html_search_meta(
-                ['og:title', 'twitter:title'], webpage), ' - Murrtube'),
+            'id': self._search_regex(r'(\w+)/index\.m3u8', m3u8_url, 'video_id'),
             'age_limit': 18,
-            'description': self._html_search_meta(
-                ['description', 'og:description', 'twitter:description'], webpage),
             'display_id': display_id,
             'formats': self._extract_m3u8_formats(m3u8_url, display_id, 'mp4'),
-            'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage),
-            'uploader': get_element_by_class('pl-1 is-size-6 has-text-lighter', html),
-            'uploader_id': extract_attributes(html)['href'].lstrip('/'),
+            'thumbnail': thumbnail,
+            **traverse_obj(webpage, ({find_element(id='medium-info', html=True)}, {
+                'title': ({find_element(tag='h1')}, {str}, {unescapeHTML}),
+                'description': ({find_element(cls='is-size-6 has-white-space-pre-wrap has-text-lighter-1')}, {clean_html}, filter),
+                'uploader': ({find_element(cls='pl-1 is-size-6 has-text-lighter')}, {str.strip}),
+                'uploader_id': (
+                    {find_element(tag='a', attr='href', html=True)},
+                    {extract_attributes}, 'href', {lambda x: x.lstrip('/')},
+                ),
+            })),
             **{
                 f'{x}_count': parse_count(self._search_regex(
-                    rf'([\d,]+)\s+<span[^>]*>{x.capitalize()}s</span>', webpage, x, default=None,
-                )) for x in ['comment', 'like', 'view']
+                    rf'([\d,]+)\s+<span[^>]*>{x.capitalize()}s?</span>', webpage, x, default=None,
+                )) for x in ('comment', 'like', 'view')
             },
         }
 
@@ -119,9 +125,13 @@ class MurrtubePlaylistIE(MurrtubeBaseIE):
             f'Downloading page {page}', query={
                 'page': page,
                 'q': query,
-            })
-        for video_id in re.findall(r'<a\s+href="(/v/\w{4})">', webpage):
-            yield self.url_result(self._BASE_URL + video_id, MurrtubeIE)
+            },
+        )
+        for video_id in traverse_obj(webpage, (
+            {find_elements(tag='a', attr='href', value=r'/v/\w{4}', html=True, regex=True)},
+            ..., {extract_attributes}, 'href', {str},
+        )):
+            yield self.url_result(f'{self._BASE_URL}{video_id}', MurrtubeIE)
 
     def _real_extract(self, url):
         slug = self._match_id(url)
