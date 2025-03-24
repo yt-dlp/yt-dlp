@@ -1,5 +1,4 @@
 import json
-import re
 import urllib.parse
 
 from .common import InfoExtractor
@@ -11,7 +10,6 @@ from ..utils import (
     join_nonempty,
     mimetype2ext,
     parse_iso8601,
-    qualities,
     unsmuggle_url,
     update_url_query,
     url_or_none,
@@ -56,7 +54,6 @@ class StreaksBaseIE(InfoExtractor):
             'live': 'is_live',
         }.get(response.get('type'))
 
-        audio_quality_func = qualities(('1', '0'))
         formats, subtitles = [], {}
         drm_formats = False
 
