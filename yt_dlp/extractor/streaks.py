@@ -116,7 +116,7 @@ class StreaksIE(StreaksBaseIE):
         r'https?://players\.streaks\.jp/(?P<project_id>[\w-]+)/[\da-f]+/index\.html\?(?:[^#]+&)?m=(?P<id>(?:ref:)?[\w-]+)',
         r'https?://playback\.api\.streaks\.jp/v1/projects/(?P<project_id>[\w-]+)/medias/(?P<id>(?:ref:)?[\w-]+)',
     ]
-    _EMBED_REGEX = [rf'<iframe [^>]*\bsrc\s*=\s*["\'](?P<url>{_VALID_URL[0]})']
+    _EMBED_REGEX = [rf'<iframe\s+[^>]*\bsrc\s*=\s*["\'](?P<url>{_VALID_URL[0]})']
     _TESTS = [{
         'url': 'https://players.streaks.jp/tipness/08155cd19dc14c12bebefb69b92eafcc/index.html?m=dbdf2df35b4d483ebaeeaeb38c594647',
         'info_dict': {
