@@ -2767,7 +2767,8 @@ def js_to_json(code, vars={}, *, strict=False):
     def template_substitute(match):
         evaluated = js_to_json(match.group(1), vars, strict=strict)
         if evaluated[0] == '"':
-            return json.loads(evaluated)
+            with contextlib.suppress(json.JSONDecodeError):
+                return json.loads(evaluated)
         return evaluated
 
     def fix_kv(m):
