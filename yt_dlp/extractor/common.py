@@ -2324,9 +2324,9 @@ class InfoExtractor:
             if len(audio_groups_by_quality) <= 1:
                 return None
             if audio_groups_by_quality[-1] == audio_group_id:
-                return 'High quality'
+                return 'high'
             if audio_groups_by_quality[0] == audio_group_id:
-                return 'Low quality'
+                return 'low'
 
         for fmt in traverse_obj(formats, lambda _, v: '_audio_group_id' in v):
             audio_group_id = fmt.pop('_audio_group_id')
@@ -2335,7 +2335,7 @@ class InfoExtractor:
             # Use source_preference since quality and preference are set by params
             fmt['source_preference'] = audio_preference_func(audio_group_id)
             fmt['format_note'] = join_nonempty(
-                quality_note(audio_group_id), fmt.get('format_note'), delim=', ')
+                fmt.get('format_note'), quality_note(audio_group_id), delim=', ')
 
         return formats, subtitles
 
