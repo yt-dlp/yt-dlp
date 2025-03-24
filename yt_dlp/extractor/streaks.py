@@ -199,6 +199,22 @@ class StreaksIE(StreaksBaseIE):
         'url': 'https://players.streaks.jp/sp-jbc/a12d7ee0f40c49d6a0a2bff520639677/index.html?m=5f89c62f37ee4a68be8e6e3b1396c7d8',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://event.play.jp/playnext2023/',
+        'info_dict': {
+            'id': '2d975178293140dc8074a7fc536a7604',
+            'ext': 'mp4',
+            'title': 'PLAY NEXTキームービー（本番）',
+            'uploader_id': 'play',
+            'duration': 17.05,
+            'thumbnail': r're:https?://.+\.jpg',
+            'timestamp': 1668387517,
+            'upload_date': '20221114',
+            'modified_timestamp': 1739411523,
+            'modified_date': '20250213',
+            'live_status': 'not_live',
+        },
+    }]
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
