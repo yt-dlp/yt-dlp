@@ -2087,6 +2087,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return ret
         return inner
 
+    def _load_nsig_code_from_cache(self, player_id):
+        cache_id = ('nsig code', player_id)
+
+        if cached_code := self._player_cache.get(cache_id):
+            return cached_code
+
+        cached_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.03.26')
+        if cached_code:
+            self._player_cache[cache_id] = cached_code
+
+        return cached_code
+
+    def _store_nsig_code_to_cache(self, player_id, func_code):
+        cache_id = ('nsig code', player_id)
+        if cache_id not in self._player_cache:
+            self.cache.store('youtube-nsig', player_id, func_code)
+            self._player_cache[cache_id] = func_code
+
     def _decrypt_signature(self, s, video_id, player_url):
         """Turn the encrypted s field into a working signature"""
         extract_sig = self._cached(
@@ -2126,8 +2144,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f'console.log(function({", ".join(args)}) {{ {func_body} }}({s!r}));',
                 video_id=video_id, note='Executing signature code').strip()
 
-        self.cache.store('youtube-nsig', player_id, func_code)
         self.write_debug(f'Decrypted nsig {s} => {ret}')
+        # Only cache nsig func JS code to disk if successful, and only once
+        self._store_nsig_code_to_cache(player_id, func_code)
         return ret
 
     def _extract_n_function_name(self, jscode, player_url=None):
@@ -2200,7 +2219,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
-        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.03.25')
+        func_code = self._load_nsig_code_from_cache(player_id)
         jscode = func_code or self._load_player(video_id, player_url)
         jsi = JSInterpreter(jscode)
 
