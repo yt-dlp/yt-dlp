@@ -6,7 +6,7 @@ from ..utils import OnDemandPagedList, traverse_obj, urlencode_postdata
 
 
 class VideocampusSachsenIE(InfoExtractor):
-    IE_NAME = 'ViMP'
+    IE_NAME = 'VIMP'
     _INSTANCES = (
         'bergauf.tv',
         'campus.demo.vimp.com',
@@ -239,7 +239,7 @@ class VideocampusSachsenIE(InfoExtractor):
 
 
 class ViMPPlaylistIE(InfoExtractor):
-    IE_NAME = 'ViMP:Playlist'
+    IE_NAME = 'VIMP:Playlist'
     _VALID_URL = r'''(?x)(?P<host>https?://(?:{}))/(?:
         (?P<mode1>album)/view/aid/(?P<album_id>[0-9]+)|
         (?P<mode2>category|channel)/(?P<name>[\w-]+)/(?P<channel_id>[0-9]+)|
