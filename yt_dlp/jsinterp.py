@@ -301,7 +301,7 @@ class JSInterpreter:
         OP_CHARS = '+-*/%&|^=<>!,;{}:['
         if not expr:
             return
-        counters = {k: 0 for k in _MATCHING_PARENS.values()}
+        counters = dict.fromkeys(_MATCHING_PARENS.values(), 0)
         start, splits, pos, delim_len = 0, 0, 0, len(delim) - 1
         in_quote, escaping, after_op, in_regex_char_group = None, False, True, False
         for idx, char in enumerate(expr):
@@ -890,9 +890,9 @@ class JSInterpreter:
         code, _ = self._separate_at_paren(func_m.group('code'))
         return [x.strip() for x in func_m.group('args').split(',')], code
 
-    def extract_function(self, funcname):
+    def extract_function(self, funcname, *global_stack):
         return function_with_repr(
-            self.extract_function_from_code(*self.extract_function_code(funcname)),
+            self.extract_function_from_code(*self.extract_function_code(funcname), *global_stack),
             f'F<{funcname}>')
 
     def extract_function_from_code(self, argnames, code, *global_stack):
