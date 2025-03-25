@@ -12,7 +12,7 @@ from ..utils import (
 )
 
 
-class RedGifsBaseInfoExtractor(InfoExtractor):
+class RedGifsBaseIE(InfoExtractor):
     _FORMATS = {
         'gif': 250,
         'sd': 480,
@@ -113,7 +113,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         return page_fetcher(page) if page else OnDemandPagedList(page_fetcher, self._PAGE_SIZE)
 
 
-class RedGifsIE(RedGifsBaseInfoExtractor):
+class RedGifsIE(RedGifsBaseIE):
     _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/(?:watch|ifr)/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
     _TESTS = [{
         'url': 'https://www.redgifs.com/watch/squeakyhelplesswisent',
@@ -172,7 +172,7 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
         return self._parse_gif_data(video_info['gif'])
 
 
-class RedGifsSearchIE(RedGifsBaseInfoExtractor):
+class RedGifsSearchIE(RedGifsBaseIE):
     IE_DESC = 'Redgifs search'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/browse\?(?P<query>[^#]+)'
     _PAGE_SIZE = 80
@@ -226,7 +226,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
             entries, query_str, tags, f'RedGifs search for {tags}, ordered by {order}')
 
 
-class RedGifsUserIE(RedGifsBaseInfoExtractor):
+class RedGifsUserIE(RedGifsBaseIE):
     IE_DESC = 'Redgifs user'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/users/(?P<username>[^/?#]+)(?:\?(?P<query>[^#]+))?'
     _PAGE_SIZE = 80
