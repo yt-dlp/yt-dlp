@@ -5,6 +5,7 @@ import os
 import sys
 import unittest
 from unittest.mock import patch
+from yt_dlp.utils import MaxDownloadsReached
 
 from yt_dlp.globals import all_plugins_loaded
 
@@ -1434,6 +1435,16 @@ class TestYoutubeDL(unittest.TestCase):
         all_plugins_loaded.value = False
         FakeYDL().close()
         assert all_plugins_loaded.value
+
+    def test_max_downloads_reached_not_exceeded(self):
+        ydl = YDL({'max_downloads': 1})
+        info_dict = _make_result([{'format_id': '1', 'ext': 'mp4', 'url': TEST_URL}])
+
+        try:
+            ydl.process_ie_result(info_dict)
+        except MaxDownloadsReached:
+            self.fail('MaxDownloadsReached exception was raised unexpectedly')
+        assert True
 
 
 if __name__ == '__main__':
