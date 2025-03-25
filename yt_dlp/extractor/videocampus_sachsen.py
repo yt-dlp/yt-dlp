@@ -211,7 +211,7 @@ class VideocampusSachsenIE(InfoExtractor):
                 elif source.get('src'):
                     formats.append({'url': source.get('src')})
 
-            thumbnail = f'https://{host}{metadata.get('poster')}'
+            thumbnail = f'https://{host}{metadata.get("poster")}'
             video_id = traverse_obj(metadata, ('videojsVimpOptions', 'Mediakey'))
         else:
             thumbnail = self._html_search_meta(('og:image', 'twitter:image'), webpage, fatal=False)
