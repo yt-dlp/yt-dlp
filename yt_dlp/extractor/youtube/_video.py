@@ -2090,14 +2090,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _load_nsig_code_from_cache(self, player_id):
         cache_id = ('nsig code', player_id)
 
-        if cached_code := self._player_cache.get(cache_id):
-            return cached_code
+        if func_code := self._player_cache.get(cache_id):
+            return func_code
 
-        cached_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.03.26')
-        if cached_code:
-            self._player_cache[cache_id] = cached_code
+        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.03.26')
+        if func_code:
+            self._player_cache[cache_id] = func_code
 
-        return cached_code
+        return func_code
 
     def _store_nsig_code_to_cache(self, player_id, func_code):
         cache_id = ('nsig code', player_id)
