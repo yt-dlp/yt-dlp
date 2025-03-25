@@ -2125,7 +2125,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             ret = jsi.execute(
                 f'console.log(function({", ".join(args)}) {{ {func_body} }}({s!r}));',
                 video_id=video_id, note='Executing signature code').strip()
-
+        self.cache.store('youtube-nsig', player_id, func_code)
         self.write_debug(f'Decrypted nsig {s} => {ret}')
         return ret
 
@@ -2211,7 +2211,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # XXX: Workaround for the global array variable and lack of `typeof` implementation
         func_code = self._fixup_n_function_code(*jsi.extract_function_code(func_name), jscode)
 
-        self.cache.store('youtube-nsig', player_id, func_code)
         return jsi, player_id, func_code
 
     def _extract_n_function_from_code(self, jsi, func_code):
@@ -3076,7 +3075,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 }),
             } for range_start in range(0, f['filesize'], CHUNK_SIZE))
 
-        nsig_failed = False
         for fmt in streaming_formats:
             client_name = fmt[STREAMING_DATA_CLIENT_NAME]
             if fmt.get('targetDurationSec'):
@@ -3155,23 +3153,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             query = parse_qs(fmt_url)
             if query.get('n'):
-                if nsig_failed:
-                    continue
                 try:
                     decrypt_nsig = self._cached(self._decrypt_nsig, 'nsig', query['n'][0])
                     fmt_url = update_url_query(fmt_url, {
                         'n': decrypt_nsig(query['n'][0], video_id, player_url),
                     })
                 except ExtractorError as e:
-                    nsig_failed = True
                     if player_url:
                         self.report_warning(
                             f'nsig extraction failed: Some formats may be missing\n'
                             f'         n = {query["n"][0]} ; player = {player_url}',
                             video_id=video_id, only_once=True)
                         self.write_debug(e, only_once=True)
-                        player_id = self._extract_player_info(player_url)
-                        self.cache.store('youtube-nsig', player_id, None)
                     else:
                         self.report_warning(
                             'Cannot decrypt nsig without player_url: Some formats may be missing',
