@@ -4,6 +4,33 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.03.25
+
+#### Core changes
+- [Fix attribute error on failed VT init](https://github.com/yt-dlp/yt-dlp/commit/b872ffec50fd50f790a5a490e006a369a28a3df3) ([#12696](https://github.com/yt-dlp/yt-dlp/issues/12696)) by [Grub4K](https://github.com/Grub4K)
+- **utils**: `js_to_json`: [Make function less fatal](https://github.com/yt-dlp/yt-dlp/commit/9491b44032b330e05bd5eaa546187005d1e8538e) ([#12715](https://github.com/yt-dlp/yt-dlp/issues/12715)) by [seproDev](https://github.com/seproDev)
+
+#### Extractor changes
+- [Fix sorting of HLS audio formats by `GROUP-ID`](https://github.com/yt-dlp/yt-dlp/commit/86ab79e1a5182092321102adf6ca34195803b878) ([#12714](https://github.com/yt-dlp/yt-dlp/issues/12714)) by [bashonly](https://github.com/bashonly)
+- **17live**: vod: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/3396eb50dcd245b49c0f4aecd6e80ec914095d16) ([#12723](https://github.com/yt-dlp/yt-dlp/issues/12723)) by [subrat-lima](https://github.com/subrat-lima)
+- **9now.com.au**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/9d5e6de2e7a47226d1f72c713ad45c88ba01db68) ([#12702](https://github.com/yt-dlp/yt-dlp/issues/12702)) by [bashonly](https://github.com/bashonly)
+- **chzzk**: video: [Fix extraction](https://github.com/yt-dlp/yt-dlp/commit/e2dfccaf808b406d5bcb7dd04ae9ce420752dd6f) ([#12692](https://github.com/yt-dlp/yt-dlp/issues/12692)) by [bashonly](https://github.com/bashonly), [dirkf](https://github.com/dirkf)
+- **deezer**: [Remove extractors](https://github.com/yt-dlp/yt-dlp/commit/be5af3f9e91747768c2b41157851bfbe14c663f7) ([#12704](https://github.com/yt-dlp/yt-dlp/issues/12704)) by [seproDev](https://github.com/seproDev)
+- **generic**: [Fix MPD base URL parsing](https://github.com/yt-dlp/yt-dlp/commit/5086d4aed6aeb3908c62f49e2d8f74cc0cb05110) ([#12718](https://github.com/yt-dlp/yt-dlp/issues/12718)) by [fireattack](https://github.com/fireattack)
+- **streaks**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/801afeac91f97dc0b58cd39cc7e8c50f619dc4e1) ([#12679](https://github.com/yt-dlp/yt-dlp/issues/12679)) by [doe1080](https://github.com/doe1080)
+- **tver**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/66e0bab814e4a52ef3e12d81123ad992a29df50e) ([#12659](https://github.com/yt-dlp/yt-dlp/issues/12659)) by [arabcoders](https://github.com/arabcoders), [bashonly](https://github.com/bashonly)
+- **viki**: [Remove extractors](https://github.com/yt-dlp/yt-dlp/commit/fe4f14b8369038e7c58f7de546d76de1ce3a91ce) ([#12703](https://github.com/yt-dlp/yt-dlp/issues/12703)) by [seproDev](https://github.com/seproDev)
+- **vrsquare**: [Add extractors](https://github.com/yt-dlp/yt-dlp/commit/b7fbb5a0a16a8e8d3e29c29e26ebed677d0d6ea3) ([#12515](https://github.com/yt-dlp/yt-dlp/issues/12515)) by [doe1080](https://github.com/doe1080)
+- **youtube**
+    - [Fix PhantomJS nsig fallback](https://github.com/yt-dlp/yt-dlp/commit/4054a2b623bd1e277b49d2e9abc3d112a4b1c7be) ([#12728](https://github.com/yt-dlp/yt-dlp/issues/12728)) by [bashonly](https://github.com/bashonly)
+    - [Fix signature and nsig extraction for player `363db69b`](https://github.com/yt-dlp/yt-dlp/commit/b9c979461b244713bf42691a5bc02834e2ba4b2c) ([#12725](https://github.com/yt-dlp/yt-dlp/issues/12725)) by [bashonly](https://github.com/bashonly)
+
+#### Networking changes
+- **Request Handler**: curl_cffi: [Support `curl_cffi` 0.10.x](https://github.com/yt-dlp/yt-dlp/commit/9bf23902ceb948b9685ce1dab575491571720fc6) ([#12670](https://github.com/yt-dlp/yt-dlp/issues/12670)) by [Grub4K](https://github.com/Grub4K)
+
+#### Misc. changes
+- **cleanup**: Miscellaneous: [9dde546](https://github.com/yt-dlp/yt-dlp/commit/9dde546e7ee3e1515d88ee3af08b099351455dc0) by [seproDev](https://github.com/seproDev)
+
 ### 2025.03.21
 
 #### Core changes

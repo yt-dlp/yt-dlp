@@ -7,6 +7,7 @@ The only reliable way to check if a site is supported is to try it.
 
  - **17live**
  - **17live:clip**
+ - **17live:vod**
  - **1News**: 1news.co.nz article videos
  - **1tv**: Первый канал
  - **20min**
@@ -200,7 +201,7 @@ The only reliable way to check if a site is supported is to try it.
  - **blogger.com**
  - **Bloomberg**
  - **Bluesky**
- - **BokeCC**
+ - **BokeCC**: CC视频
  - **BongaCams**
  - **Boosty**
  - **BostonGlobe**
@@ -347,8 +348,6 @@ The only reliable way to check if a site is supported is to try it.
  - **daystar:clip**
  - **DBTV**
  - **DctpTv**
- - **DeezerAlbum**
- - **DeezerPlaylist**
  - **democracynow**
  - **DestinationAmerica**
  - **DetikEmbed**
@@ -829,7 +828,7 @@ The only reliable way to check if a site is supported is to try it.
  - **MotherlessUploader**
  - **Motorsport**: motorsport.com (**Currently broken**)
  - **MovieFap**
- - **Moviepilot**
+ - **moviepilot**: Moviepilot trailer
  - **MoviewPlay**
  - **Moviezine**
  - **MovingImage**
@@ -1307,8 +1306,8 @@ The only reliable way to check if a site is supported is to try it.
  - **sejm**
  - **Sen**
  - **SenalColombiaLive**: (**Currently broken**)
- - **SenateGov**
- - **SenateISVP**
+ - **senate.gov**
+ - **senate.gov:isvp**
  - **SendtoNews**: (**Currently broken**)
  - **Servus**
  - **Sexu**: (**Currently broken**)
@@ -1401,6 +1400,7 @@ The only reliable way to check if a site is supported is to try it.
  - **StoryFire**
  - **StoryFireSeries**
  - **StoryFireUser**
+ - **Streaks**
  - **Streamable**
  - **StreamCZ**
  - **StreetVoice**
@@ -1643,8 +1643,6 @@ The only reliable way to check if a site is supported is to try it.
  - **viewlift**
  - **viewlift:embed**
  - **Viidea**
- - **viki**: [*viki*](## "netrc machine")
- - **viki:channel**: [*viki*](## "netrc machine")
  - **vimeo**: [*vimeo*](## "netrc machine")
  - **vimeo:album**: [*vimeo*](## "netrc machine")
  - **vimeo:channel**: [*vimeo*](## "netrc machine")
@@ -1682,6 +1680,10 @@ The only reliable way to check if a site is supported is to try it.
  - **vpro**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **vqq:series**
  - **vqq:video**
+ - **vrsquare**: VR SQUARE
+ - **vrsquare:channel**
+ - **vrsquare:search**
+ - **vrsquare:section**
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
  - **vrtmax**: [*vrtnu*](## "netrc machine") VRT MAX (formerly VRT NU)
  - **VTM**: (**Currently broken**)
