@@ -3076,6 +3076,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 }),
             } for range_start in range(0, f['filesize'], CHUNK_SIZE))
 
+        nsig_failed = False
         for fmt in streaming_formats:
             client_name = fmt[STREAMING_DATA_CLIENT_NAME]
             if fmt.get('targetDurationSec'):
@@ -3154,19 +3155,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             query = parse_qs(fmt_url)
             if query.get('n'):
+                if nsig_failed:
+                    continue
                 try:
                     decrypt_nsig = self._cached(self._decrypt_nsig, 'nsig', query['n'][0])
                     fmt_url = update_url_query(fmt_url, {
                         'n': decrypt_nsig(query['n'][0], video_id, player_url),
                     })
                 except ExtractorError as e:
+                    nsig_failed = True
                     if player_url:
                         self.report_warning(
                             f'nsig extraction failed: Some formats may be missing\n'
                             f'         n = {query["n"][0]} ; player = {player_url}',
                             video_id=video_id, only_once=True)
                         self.write_debug(e, only_once=True)
-                        player_id = self._extract_player_id(player_url)
+                        player_id = self._extract_player_info(player_url)
                         self.cache.store('youtube-nsig', player_id, None)
                     else:
                         self.report_warning(
