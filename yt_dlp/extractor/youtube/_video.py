@@ -2125,6 +2125,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             ret = jsi.execute(
                 f'console.log(function({", ".join(args)}) {{ {func_body} }}({s!r}));',
                 video_id=video_id, note='Executing signature code').strip()
+
         self.cache.store('youtube-nsig', player_id, func_code)
         self.write_debug(f'Decrypted nsig {s} => {ret}')
         return ret
