@@ -3166,6 +3166,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             f'         n = {query["n"][0]} ; player = {player_url}',
                             video_id=video_id, only_once=True)
                         self.write_debug(e, only_once=True)
+                        player_id = self._extract_player_id(player_url)
+                        self.cache.store('youtube-nsig', player_id, None)
                     else:
                         self.report_warning(
                             'Cannot decrypt nsig without player_url: Some formats may be missing',
