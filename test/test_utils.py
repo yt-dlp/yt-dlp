@@ -3,19 +3,20 @@
 # Allow direct execution
 import os
 import sys
-import unittest
-import unittest.mock
-import warnings
-import datetime as dt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 import contextlib
+import datetime as dt
 import io
 import itertools
 import json
+import pickle
 import subprocess
+import unittest
+import unittest.mock
+import warnings
 import xml.etree.ElementTree
 
 from yt_dlp.compat import (
@@ -218,11 +219,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_filename('_BD_eEpuzXw', is_id=True), '_BD_eEpuzXw')
         self.assertEqual(sanitize_filename('N0Y__7-UOdI', is_id=True), 'N0Y__7-UOdI')
 
+    @unittest.mock.patch('sys.platform', 'win32')
     def test_sanitize_path(self):
-        with unittest.mock.patch('sys.platform', 'win32'):
-            self._test_sanitize_path()
-
-    def _test_sanitize_path(self):
         self.assertEqual(sanitize_path('abc'), 'abc')
         self.assertEqual(sanitize_path('abc/def'), 'abc\\def')
         self.assertEqual(sanitize_path('abc\\def'), 'abc\\def')
@@ -253,10 +251,8 @@ class TestUtil(unittest.TestCase):
 
         # Check with nt._path_normpath if available
         try:
-            import nt
-
-            nt_path_normpath = getattr(nt, '_path_normpath', None)
-        except Exception:
+            from nt import _path_normpath as nt_path_normpath
+        except ImportError:
             nt_path_normpath = None
 
         for test, expected in [
@@ -1264,6 +1260,7 @@ class TestUtil(unittest.TestCase):
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
+        self.assertEqual(js_to_json('{a: `${e("")}`}'), '{"a": "\\"e\\"(\\"\\")"}')
 
     def test_js_to_json_template_literal(self):
         self.assertEqual(js_to_json('`Hello ${name}`', {'name': '"world"'}), '"Hello world"')
@@ -2087,21 +2084,26 @@ Line 1
         headers = HTTPHeaderDict()
         headers['ytdl-test'] = b'0'
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '0')])
+        self.assertEqual(list(headers.sensitive().items()), [('ytdl-test', '0')])
         headers['ytdl-test'] = 1
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
+        self.assertEqual(list(headers.sensitive().items()), [('ytdl-test', '1')])
         headers['Ytdl-test'] = '2'
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '2')])
+        self.assertEqual(list(headers.sensitive().items()), [('Ytdl-test', '2')])
         self.assertTrue('ytDl-Test' in headers)
         self.assertEqual(str(headers), str(dict(headers)))
         self.assertEqual(repr(headers), str(dict(headers)))
 
         headers.update({'X-dlp': 'data'})
         self.assertEqual(set(headers.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data')})
+        self.assertEqual(set(headers.sensitive().items()), {('Ytdl-test', '2'), ('X-dlp', 'data')})
         self.assertEqual(dict(headers), {'Ytdl-Test': '2', 'X-Dlp': 'data'})
         self.assertEqual(len(headers), 2)
         self.assertEqual(headers.copy(), headers)
-        headers2 = HTTPHeaderDict({'X-dlp': 'data3'}, **headers, **{'X-dlp': 'data2'})
+        headers2 = HTTPHeaderDict({'X-dlp': 'data3'}, headers, **{'X-dlP': 'data2'})
         self.assertEqual(set(headers2.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data2')})
+        self.assertEqual(set(headers2.sensitive().items()), {('Ytdl-test', '2'), ('X-dlP', 'data2')})
         self.assertEqual(len(headers2), 2)
         headers2.clear()
         self.assertEqual(len(headers2), 0)
@@ -2109,16 +2111,23 @@ Line 1
         # ensure we prefer latter headers
         headers3 = HTTPHeaderDict({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
         self.assertEqual(set(headers3.items()), {('Ytdl-Test', '2')})
+        self.assertEqual(set(headers3.sensitive().items()), {('Ytdl-test', '2')})
         del headers3['ytdl-tesT']
         self.assertEqual(dict(headers3), {})
 
         headers4 = HTTPHeaderDict({'ytdl-test': 'data;'})
         self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})
+        self.assertEqual(set(headers4.sensitive().items()), {('ytdl-test', 'data;')})
 
         # common mistake: strip whitespace from values
         # https://github.com/yt-dlp/yt-dlp/issues/8729
         headers5 = HTTPHeaderDict({'ytdl-test': ' data; '})
         self.assertEqual(set(headers5.items()), {('Ytdl-Test', 'data;')})
+        self.assertEqual(set(headers5.sensitive().items()), {('ytdl-test', 'data;')})
+
+        # test if picklable
+        headers6 = HTTPHeaderDict(a=1, b=2)
+        self.assertEqual(pickle.loads(pickle.dumps(headers6)), headers6)
 
     def test_extract_basic_auth(self):
         assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)

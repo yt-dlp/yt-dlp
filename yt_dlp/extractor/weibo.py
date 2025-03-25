@@ -109,7 +109,7 @@ class WeiboBaseIE(InfoExtractor):
             **traverse_obj(video_info, {
                 'display_id': ('mblogid', {str_or_none}),
                 'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'),
-                          {lambda x: x.replace('\n', ' ')}, {truncate_string(left=50)}, filter),
+                          {lambda x: x.replace('\n', ' ')}, {truncate_string(left=72)}, filter),
                 'alt_title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {str}, filter),
                 'description': ('text_raw', {str}),
                 'duration': ('page_info', 'media_info', 'duration', {int_or_none}),
@@ -213,6 +213,7 @@ class WeiboVideoIE(WeiboBaseIE):
             'ext': 'mp4',
             'display_id': 'LEZDodaiW',
             'title': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了',
+            'alt_title': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了',
             'description': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了 http://t.cn/A6aerGsM \u200b\u200b\u200b',
             'duration': 76,
             'timestamp': 1659344278,
@@ -224,6 +225,7 @@ class WeiboVideoIE(WeiboBaseIE):
             'view_count': int,
             'like_count': int,
             'repost_count': int,
+            '_old_archive_ids': ['weibomobile 4797700463137878'],
         },
     }]
 

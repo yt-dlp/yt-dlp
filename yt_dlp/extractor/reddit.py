@@ -8,6 +8,7 @@ from ..utils import (
     int_or_none,
     parse_qs,
     traverse_obj,
+    truncate_string,
     try_get,
     unescapeHTML,
     update_url_query,
@@ -26,6 +27,7 @@ class RedditIE(InfoExtractor):
             'ext': 'mp4',
             'display_id': '6rrwyj',
             'title': 'That small heart attack.',
+            'alt_title': 'That small heart attack.',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'thumbnails': 'count:4',
             'timestamp': 1501941939,
@@ -49,7 +51,8 @@ class RedditIE(InfoExtractor):
             'id': 'gyh95hiqc0b11',
             'ext': 'mp4',
             'display_id': '90bu6w',
-            'title': 'Heat index was 110 degrees so we offered him a cold drink. He went for a full body soak instead',
+            'title': 'Heat index was 110 degrees so we offered him a cold drink. He went fo...',
+            'alt_title': 'Heat index was 110 degrees so we offered him a cold drink. He went for a full body soak instead',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'thumbnails': 'count:7',
             'timestamp': 1532051078,
@@ -69,7 +72,8 @@ class RedditIE(InfoExtractor):
             'id': 'zasobba6wp071',
             'ext': 'mp4',
             'display_id': 'nip71r',
-            'title': 'I plan to make more stickers and prints! Check them out on my Etsy! Or get them through my Patreon. Links below.',
+            'title': 'I plan to make more stickers and prints! Check them out on my Etsy! O...',
+            'alt_title': 'I plan to make more stickers and prints! Check them out on my Etsy! Or get them through my Patreon. Links below.',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'thumbnails': 'count:5',
             'timestamp': 1621709093,
@@ -91,7 +95,17 @@ class RedditIE(InfoExtractor):
         'playlist_count': 2,
         'info_dict': {
             'id': 'wzqkxp',
-            'title': 'md5:72d3d19402aa11eff5bd32fc96369b37',
+            'title': '[Finale] Kamen Rider Revice Episode 50 "Family to the End, Until the ...',
+            'alt_title': '[Finale] Kamen Rider Revice Episode 50 "Family to the End, Until the Day We Meet Again" Discussion',
+            'description': 'md5:5b7deb328062b164b15704c5fd67c335',
+            'uploader': 'TheTwelveYearOld',
+            'channel_id': 'KamenRider',
+            'comment_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 0,
+            'timestamp': 1661676059.0,
+            'upload_date': '20220828',
         },
     }, {
         # crossposted reddit-hosted media
@@ -102,6 +116,7 @@ class RedditIE(InfoExtractor):
             'ext': 'mp4',
             'display_id': 'zjjw82',
             'title': 'Cringe',
+            'alt_title': 'Cringe',
             'uploader': 'Otaku-senpai69420',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'upload_date': '20221212',
@@ -122,6 +137,7 @@ class RedditIE(InfoExtractor):
             'ext': 'mp4',
             'display_id': '124pp33',
             'title': 'Harmless prank of some old friends',
+            'alt_title': 'Harmless prank of some old friends',
             'uploader': 'Dudezila',
             'channel_id': 'ContagiousLaughter',
             'duration': 17,
@@ -142,6 +158,7 @@ class RedditIE(InfoExtractor):
             'ext': 'mp4',
             'display_id': '12fujy3',
             'title': 'Based Hasan?',
+            'alt_title': 'Based Hasan?',
             'uploader': 'KingNigelXLII',
             'channel_id': 'GenZedong',
             'duration': 16,
@@ -161,6 +178,7 @@ class RedditIE(InfoExtractor):
             'ext': 'mp4',
             'display_id': '1cl9h0u',
             'title': 'The insurance claim will be interesting',
+            'alt_title': 'The insurance claim will be interesting',
             'uploader': 'darrenpauli',
             'channel_id': 'Unexpected',
             'duration': 53,
@@ -183,6 +201,7 @@ class RedditIE(InfoExtractor):
             'ext': 'mp4',
             'display_id': '1cxwzso',
             'title': 'Tottenham [1] - 0 Newcastle United - James Maddison 31\'',
+            'alt_title': 'Tottenham [1] - 0 Newcastle United - James Maddison 31\'',
             'uploader': 'Woodstovia',
             'channel_id': 'soccer',
             'duration': 30,
@@ -206,6 +225,7 @@ class RedditIE(InfoExtractor):
             'ext': 'mp4',
             'display_id': 'degtjo',
             'title': 'When the K hits',
+            'alt_title': 'When the K hits',
             'uploader': '[deleted]',
             'channel_id': 'ketamine',
             'comment_count': int,
@@ -304,14 +324,6 @@ class RedditIE(InfoExtractor):
         data = data[0]['data']['children'][0]['data']
         video_url = data['url']
 
-        over_18 = data.get('over_18')
-        if over_18 is True:
-            age_limit = 18
-        elif over_18 is False:
-            age_limit = 0
-        else:
-            age_limit = None
-
         thumbnails = []
 
         def add_thumbnail(src):
@@ -337,15 +349,19 @@ class RedditIE(InfoExtractor):
                     add_thumbnail(resolution)
 
         info = {
-            'title': data.get('title'),
             'thumbnails': thumbnails,
-            'timestamp': float_or_none(data.get('created_utc')),
-            'uploader': data.get('author'),
-            'channel_id': data.get('subreddit'),
-            'like_count': int_or_none(data.get('ups')),
-            'dislike_count': int_or_none(data.get('downs')),
-            'comment_count': int_or_none(data.get('num_comments')),
-            'age_limit': age_limit,
+            'age_limit': {True: 18, False: 0}.get(data.get('over_18')),
+            **traverse_obj(data, {
+                'title': ('title', {truncate_string(left=72)}),
+                'alt_title': ('title', {str}),
+                'description': ('selftext', {str}, filter),
+                'timestamp': ('created_utc', {float_or_none}),
+                'uploader': ('author', {str}),
+                'channel_id': ('subreddit', {str}),
+                'like_count': ('ups', {int_or_none}),
+                'dislike_count': ('downs', {int_or_none}),
+                'comment_count': ('num_comments', {int_or_none}),
+            }),
         }
 
         parsed_url = urllib.parse.urlparse(video_url)
@@ -371,7 +387,7 @@ class RedditIE(InfoExtractor):
                         **info,
                     })
             if entries:
-                return self.playlist_result(entries, video_id, info.get('title'))
+                return self.playlist_result(entries, video_id, **info)
             raise ExtractorError('No media found', expected=True)
 
         # Check if media is hosted on reddit:
