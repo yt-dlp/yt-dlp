@@ -14,8 +14,7 @@ class VanilloIE(InfoExtractor):
 
     def _real_initialize(self):
         """
-        Called before extracting each URL. This checks the cookie jar for an access token,
-        or if none is found, attempts a direct login with --username and --password.
+        Called before extracting each URL. This checks the cookie jar for an access token
         """
         # 1) Check if we already have an access token in our cookies
         if not self._access_token:
