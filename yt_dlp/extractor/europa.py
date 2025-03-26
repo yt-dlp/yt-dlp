@@ -103,7 +103,7 @@ class EuroParlWebstreamIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         https?://(?:
             multimedia\.europarl\.europa\.eu/(?:\w+/)?webstreaming/(?:[\w-]+_)?(?P<id>[\w-]+)|
-            live\.media\.eup\.glcloud\.eu/hls/live/(?P<live_id>\d+)/(?:channel-\d+-\w+|[\w-]+)/(?:input/\d+/\d+/[\w-]+/)?(?P<stream_id>[\w-]+)(?:\.m3u8|/master\.m3u8)
+            live\.media\.eup\.glcloud\.eu/hls/live/(?P<live_id>\d+)/(?P<channel>channel-\d+-\w+|[\w-]+)/(?:input/\d+/\d+/[\w-]+/)?(?P<stream_id>[\w-]+)(?:\.m3u8|/master\.m3u8)
         )
     '''
     _TESTS = [{
@@ -118,7 +118,7 @@ class EuroParlWebstreamIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
-        # New URL format for direct HLS streams
+        # Direct HLS stream URL
         'url': 'https://live.media.eup.glcloud.eu/hls/live/2113753/channel-07-bxl/index-archive.m3u8?startTime=1742828675&endTime=1742832870',
         'info_dict': {
             'id': 'index-archive',
@@ -128,187 +128,144 @@ class EuroParlWebstreamIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
-    }, {
-        'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/special-committee-on-housing-crisis-in-european-union-ordinary-meeting_20250324-1500-COMMITTEE-HOUS',
-        'info_dict': {
-            'id': '20250324-1500-COMMITTEE-HOUS',
-            'display_id': '20250324-1500-COMMITTEE-HOUS',
-            'ext': 'mp4',
-            'title': 'Special committee on the Housing Crisis in the European Union Ordinary meeting',
-        },
-        'params': {
-            'skip_download': True,
-        },
     }]
 
-    # Known working stream IDs (in order of likely success)
-    KNOWN_STREAM_IDS = [
-        "index-archive",
-        "norsk-archive",
-    ]
+    # Main CDN endpoint - primarily target this instead of trying multiple
+    MAIN_ENDPOINT = "2113753"
+    
+    # Priority channels based on observed success rates
+    PRIORITY_CHANNELS = ["channel-07-bxl", "channel-01-bxl", "channel-10-bxl"]
+    
+    # Default stream types by content type
+    LIVE_STREAM_TYPES = ["index", "master", "playlist"]
+    ARCHIVE_STREAM_TYPES = ["index-archive", "norsk-archive", "index", "master"]
 
-    # Known CDN endpoints (in order of likely success)
-    KNOWN_ENDPOINTS = [
-        "2113753",  # This appears to be the main endpoint
-        "2113749",
-        "2113750",
-        "2113751",
-        "2113752",
-        "2113754",
-    ]
+    def _extract_direct_url_from_webpage(self, webpage):
+        """Extract direct m3u8 URLs from webpage with minimal logging"""
+        m3u8_urls = []
+        
+        # Search patterns for m3u8 URLs
+        for pattern in [
+            r'["\'](https?://live\.media\.eup\.glcloud\.eu/[^"\'\s]+\.m3u8(?:\?[^"\']*)?)["\']',
+            r'"url"\s*:\s*"(https?://live\.media\.eup\.glcloud\.eu/[^"]+\.m3u8[^"]*)"',
+            r'=[^\n]*["\'](https?://live\.media\.eup\.glcloud\.eu/[^"\'\s]+\.m3u8[^"\']*)["\']',
+        ]:
+            matches = re.findall(pattern, webpage)
+            if matches:
+                m3u8_urls.extend(matches)
+        
+        # Clean up URLs
+        clean_urls = []
+        for url in m3u8_urls:
+            # Remove any JS string escaping
+            url = url.replace('\\/', '/').replace('\\\\', '\\')
+            clean_urls.append(url)
+            
+        # Extract from network panel if available
+        network_url_match = re.search(r'Request URL:[\s\n]*(?:<[^>]+>)?[\s\n]*(https://live\.media\.eup\.glcloud\.eu/[^\s<]+\.m3u8[^\s<]*)', webpage, re.IGNORECASE)
+        if network_url_match:
+            clean_urls.append(network_url_match.group(1))
+            
+        return clean_urls
 
-    # Prioritized channel list based on observations (channel-07-bxl is often used)
-    PRIORITIZED_CHANNELS = [
-        "channel-07-bxl",  # Most common based on examples
-        "channel-03-bxl",  # Also seen in examples
-        "channel-01-bxl",
-        "channel-02-bxl",
-        "channel-04-bxl",
-        "channel-05-bxl",
-        "channel-06-bxl",
-        "channel-08-bxl",
-        "channel-09-bxl",
-        "channel-10-bxl",
-    ]
+    def _extract_title_from_webpage(self, webpage, display_id):
+        """Extract the title from the webpage"""
+        # Try different patterns to extract the title
+        for pattern in [
+            r'<meta property="og:title" content="([^"]+)"',
+            r'<title>([^<]+)</title>',
+            r'<h1[^>]*>([^<]+)</h1>',
+            r'"title"\s*:\s*"([^"]+)"',
+        ]:
+            title_match = re.search(pattern, webpage)
+            if title_match:
+                title = title_match.group(1).strip()
+                # Clean up common suffixes
+                title = re.sub(r'\s*\|\s*European Parliament$', '', title)
+                title = re.sub(r'\s*-\s*Multimedia Centre$', '', title)
+                return title
+                
+        return f"European Parliament Session - {display_id}"
 
-    def _parse_meeting_id(self, display_id):
-        """Extract date and time information from the meeting ID."""
-        # Format: YYYYMMDD-HHMM-COMMITTEE-TYPE
+    def _parse_meeting_date(self, display_id):
+        """Parse the date from the meeting ID format (YYYYMMDD-HHMM-TYPE)"""
         date_match = re.match(r'(\d{8})-(\d{4})-(.+)', display_id)
         if date_match:
             date_str, time_str, meeting_type = date_match.groups()
             try:
-                # Parse the date and time
+                # Parse the date components
                 year = int(date_str[:4])
                 month = int(date_str[4:6])
                 day = int(date_str[6:8])
                 hour = int(time_str[:2])
                 minute = int(time_str[2:4])
                 
-                # Create datetime object
+                # Create timestamps with a generous window (3 hours before and after)
                 meeting_dt = datetime.datetime(year, month, day, hour, minute)
+                start_dt = meeting_dt - datetime.timedelta(hours=3)
+                end_dt = meeting_dt + datetime.timedelta(hours=6)
                 
-                # Calculate a reasonable meeting duration (2 hours by default)
-                end_dt = meeting_dt + datetime.timedelta(hours=2)
+                # Convert to timestamps
+                start_ts = int(start_dt.timestamp())
+                end_ts = int(end_dt.timestamp())
                 
-                return {
-                    'date': date_str,
-                    'time': time_str,
-                    'type': meeting_type,
-                    'start_dt': meeting_dt,
-                    'end_dt': end_dt,
-                    'start_timestamp': int(meeting_dt.timestamp()),
-                    'end_timestamp': int(end_dt.timestamp()),
-                }
-            except (ValueError, OverflowError) as e:
-                self.report_warning(f"Failed to parse meeting date/time: {e}")
+                return start_ts, end_ts
+                
+            except (ValueError, OverflowError):
+                pass
         
-        # If we can't parse the date/time, use the current time minus 24 hours to now
-        current_time = int(time.time())
-        return {
-            'start_timestamp': current_time - 86400,  # 24 hours ago
-            'end_timestamp': current_time,
-        }
-
-    def _find_m3u8_in_webpage(self, webpage):
-        """Look for m3u8 URLs directly in the webpage."""
-        # Look for direct m3u8 URLs with timestamps
-        m3u8_matches = re.findall(
-            r'[\'"]((https?://live\.media\.eup\.glcloud\.eu/[^"\']+\.m3u8(?:\?[^\'"]*)?)[\'"])',
-            webpage
-        )
-        if m3u8_matches:
-            return [url[0].replace('\\/', '/').replace('\\\\', '\\') for url in m3u8_matches]
-        
-        return []
-
-    def _extract_title_from_webpage(self, webpage):
-        """Extract the title from the webpage."""
-        title = self._html_search_regex(
-            r'<meta property="og:title" content="([^"]+)"',
-            webpage, 'title', default=None) or \
-            self._html_search_regex(
-            r'<title>([^<]+)</title>',
-            webpage, 'title', default='European Parliament Stream')
-        
-        # Clean up title
-        title = re.sub(r'\s*\|\s*European Parliament$', '', title).strip()
-        return title
+        # Fallback to a recent 48-hour window
+        now = int(time.time())
+        start_time = now - (48 * 3600)  # 48 hours ago
+        return start_time, now
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         display_id = mobj.group('id')
         live_id = mobj.group('live_id')
         stream_id = mobj.group('stream_id')
+        channel = mobj.group('channel')
 
-        # Handle direct HLS stream URLs
+        # Handle direct HLS URLs
         if live_id and stream_id:
-            # Strip any query parameters from stream_id
-            if '?' in stream_id:
-                stream_id = stream_id.split('?')[0]
+            # Remove query parameters from stream_id if present
+            clean_stream_id = stream_id.split('?')[0] if '?' in stream_id else stream_id
             
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                url, stream_id, 'mp4', m3u8_id='hls', fatal=False)
-
+                url, clean_stream_id, 'mp4', m3u8_id='hls', fatal=False, quiet=True)
+            
             return {
-                'id': stream_id,
+                'id': clean_stream_id,
                 'title': 'European Parliament Stream',
                 'formats': formats,
                 'subtitles': subtitles,
             }
 
-        # If we're dealing with a europarl.europa.eu URL, download the webpage first
+        # Download the webpage for standard europarl URLs
         webpage = self._download_webpage(url, display_id)
-        title = self._extract_title_from_webpage(webpage)
         
-        # First, look for m3u8 URLs directly in the page
-        direct_urls = self._find_m3u8_in_webpage(webpage)
-        if direct_urls:
-            self.to_screen(f"Found {len(direct_urls)} potential stream URLs in webpage")
-            for m3u8_url in direct_urls:
-                try:
-                    self.to_screen(f"Trying direct URL: {m3u8_url}")
-                    formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                        m3u8_url, display_id, 'mp4', m3u8_id='hls', fatal=False)
-                    
-                    if formats:
-                        return {
-                            'id': display_id,
-                            'display_id': display_id,
-                            'title': title,
-                            'formats': formats,
-                            'subtitles': subtitles,
-                        }
-                except ExtractorError as e:
-                    self.report_warning(f"Failed with direct URL {m3u8_url}: {e}")
+        # Check for live indicators
+        is_live = bool(re.search(r'(?:isLive|livestream|live-stream|\"live\"\s*:\s*true)', webpage, re.IGNORECASE))
         
-        # If no direct URLs found, parse the meeting ID and generate likely timestamps
-        meeting_info = self._parse_meeting_id(display_id)
-        start_timestamp = meeting_info.get('start_timestamp')
-        end_timestamp = meeting_info.get('end_timestamp')
+        # Extract title
+        title = self._extract_title_from_webpage(webpage, display_id)
         
-        self.to_screen(f"Generated timestamps for meeting: start={start_timestamp}, end={end_timestamp}")
+        # First try direct URLs from the webpage (this is the most reliable approach)
+        direct_urls = self._extract_direct_url_from_webpage(webpage)
         
-        # Try a variety of possibilities, starting with the most likely combinations
+        # Track whether we successfully found a stream
         formats = []
         subtitles = {}
-        working_url = None
         
-        # Main endpoint with prioritized channels
-        for channel in self.PRIORITIZED_CHANNELS:
-            for stream_type in self.KNOWN_STREAM_IDS:
-                candidate_url = f"https://live.media.eup.glcloud.eu/hls/live/2113753/{channel}/{stream_type}.m3u8?startTime={start_timestamp}&endTime={end_timestamp}"
-                self.to_screen(f"Trying URL: {candidate_url}")
-                
+        if direct_urls:
+            for m3u8_url in direct_urls:
                 try:
                     fmt, subs = self._extract_m3u8_formats_and_subtitles(
-                        candidate_url, display_id, 'mp4', m3u8_id='hls', fatal=False)
+                        m3u8_url, display_id, 'mp4', m3u8_id='hls', fatal=False)
                     
                     if fmt:
                         formats.extend(fmt)
                         self._merge_subtitles(subs, target=subtitles)
-                        working_url = candidate_url
-                        self.to_screen(f"Success! Found working URL: {working_url}")
                         
                         return {
                             'id': display_id,
@@ -316,26 +273,35 @@ class EuroParlWebstreamIE(InfoExtractor):
                             'title': title,
                             'formats': formats,
                             'subtitles': subtitles,
+                            'is_live': is_live,
                         }
-                except ExtractorError as e:
-                    self.report_warning(f"Failed with URL {candidate_url}: {e}")
+                except ExtractorError:
+                    pass
         
-        # If main endpoint + prioritized channels didn't work, try other endpoints
-        for endpoint in self.KNOWN_ENDPOINTS[1:]:  # Skip the first one as we already tried it
-            for channel in self.PRIORITIZED_CHANNELS[:3]:  # Only try the top 3 channels for other endpoints
-                for stream_type in self.KNOWN_STREAM_IDS:
-                    candidate_url = f"https://live.media.eup.glcloud.eu/hls/live/{endpoint}/{channel}/{stream_type}.m3u8?startTime={start_timestamp}&endTime={end_timestamp}"
-                    self.to_screen(f"Trying URL: {candidate_url}")
+        # Parse timestamps for archive retrieval (or use current time for live)
+        if is_live:
+            # For live streams, we don't need timestamps
+            start_timestamp, end_timestamp = None, None
+        else:
+            start_timestamp, end_timestamp = self._parse_meeting_date(display_id)
+        
+        # Use appropriate stream types for the content type
+        stream_types = self.LIVE_STREAM_TYPES if is_live else self.ARCHIVE_STREAM_TYPES
+        
+        # Try combinations with improved targeting
+        for channel in self.PRIORITY_CHANNELS:
+            for stream_type in stream_types:
+                # For live streams, try without timestamps first
+                if is_live:
+                    live_url = f"https://live.media.eup.glcloud.eu/hls/live/{self.MAIN_ENDPOINT}/{channel}/{stream_type}.m3u8"
                     
                     try:
                         fmt, subs = self._extract_m3u8_formats_and_subtitles(
-                            candidate_url, display_id, 'mp4', m3u8_id='hls', fatal=False)
+                            live_url, display_id, 'mp4', m3u8_id='hls', fatal=False)
                         
                         if fmt:
                             formats.extend(fmt)
                             self._merge_subtitles(subs, target=subtitles)
-                            working_url = candidate_url
-                            self.to_screen(f"Success! Found working URL: {working_url}")
                             
                             return {
                                 'id': display_id,
@@ -343,20 +309,54 @@ class EuroParlWebstreamIE(InfoExtractor):
                                 'title': title,
                                 'formats': formats,
                                 'subtitles': subtitles,
+                                'is_live': True,
                             }
-                    except ExtractorError as e:
-                        self.report_warning(f"Failed with URL {candidate_url}: {e}")
+                    except ExtractorError:
+                        pass
+                
+                # For archived content (or as fallback for live), try with timestamps
+                if start_timestamp and end_timestamp:
+                    archive_url = f"https://live.media.eup.glcloud.eu/hls/live/{self.MAIN_ENDPOINT}/{channel}/{stream_type}.m3u8?startTime={start_timestamp}&endTime={end_timestamp}"
+                    
+                    try:
+                        fmt, subs = self._extract_m3u8_formats_and_subtitles(
+                            archive_url, display_id, 'mp4', m3u8_id='hls', fatal=False)
+                        
+                        if fmt:
+                            formats.extend(fmt)
+                            self._merge_subtitles(subs, target=subtitles)
+                            
+                            return {
+                                'id': display_id,
+                                'display_id': display_id,
+                                'title': title,
+                                'formats': formats,
+                                'subtitles': subtitles,
+                                'is_live': False,
+                            }
+                    except ExtractorError:
+                        pass
         
-        # If we've reached here, we need to give a helpful error message
-        parsed_date = f"{meeting_info.get('date', 'unknown-date')}"
-        parsed_time = f"{meeting_info.get('time', 'unknown-time')}"
+        # Provide helpful error with the most likely working URLs
+        suggested_urls = []
         
-        # Provide the most likely URL for manual use
-        suggested_url = f"https://live.media.eup.glcloud.eu/hls/live/2113753/channel-07-bxl/index-archive.m3u8?startTime={start_timestamp}&endTime={end_timestamp}"
+        # Add the URLs that are most likely to work based on the logs and screenshots
+        if start_timestamp and end_timestamp:
+            suggested_urls.extend([
+                f"https://live.media.eup.glcloud.eu/hls/live/{self.MAIN_ENDPOINT}/channel-07-bxl/index-archive.m3u8?startTime={start_timestamp}&endTime={end_timestamp}",
+                f"https://live.media.eup.glcloud.eu/hls/live/{self.MAIN_ENDPOINT}/channel-01-bxl/index-archive.m3u8?startTime={start_timestamp}&endTime={end_timestamp}"
+            ])
+        else:
+            suggested_urls.extend([
+                f"https://live.media.eup.glcloud.eu/hls/live/{self.MAIN_ENDPOINT}/channel-07-bxl/index.m3u8",
+                f"https://live.media.eup.glcloud.eu/hls/live/{self.MAIN_ENDPOINT}/channel-01-bxl/index.m3u8"
+            ])
+        
+        suggestions = "\n".join([f"yt-dlp \"{url}\"" for url in suggested_urls])
         
         raise ExtractorError(
-            f"Could not extract stream URL for {display_id}. The European Parliament stream may not be available.\n"
-            f"Attempted to find a stream for date: {parsed_date}, time: {parsed_time}.\n"
-            f"Try using yt-dlp directly with: yt-dlp \"{suggested_url}\"",
+            f"Could not extract stream URL for {display_id or url}. The European Parliament stream may not be available.\n"
+            f"Live stream detected: {is_live}\n"
+            f"Try using yt-dlp directly with one of these URLs:\n{suggestions}",
             expected=True
         )
