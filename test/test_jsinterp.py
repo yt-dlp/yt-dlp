@@ -403,6 +403,8 @@ class TestJSInterpreter(unittest.TestCase):
         test_result = list('test')
         tests = [
             'function f(a, b){return a.split(b)}',
+            'function f(a, b){return a["split"](b)}',
+            'function f(a, b){let x = ["split"]; return a[x[0]](b)}',
             'function f(a, b){return String.prototype.split.call(a, b)}',
             'function f(a, b){return String.prototype.split.apply(a, [b])}',
         ]
