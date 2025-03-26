@@ -4,6 +4,13 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.03.26
+
+#### Extractor changes
+- **youtube**
+    - [Fix signature and nsig extraction for player `4fcd6e4a`](https://github.com/yt-dlp/yt-dlp/commit/a550dfc904a02843a26369ae50dbb7c0febfb30e) ([#12748](https://github.com/yt-dlp/yt-dlp/issues/12748)) by [seproDev](https://github.com/seproDev)
+    - [Only cache nsig code on successful decoding](https://github.com/yt-dlp/yt-dlp/commit/ecee97b4fa90d51c48f9154c3a6d5a8ffe46cd5c) ([#12750](https://github.com/yt-dlp/yt-dlp/issues/12750)) by [bashonly](https://github.com/bashonly), [seproDev](https://github.com/seproDev)
+
 ### 2025.03.25
 
 #### Core changes
