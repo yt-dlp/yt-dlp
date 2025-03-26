@@ -2215,7 +2215,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         else:
             self.write_debug('No global array variable found in player JS')
         return argnames, re.sub(
-            rf';\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(?:(["\'])undefined\1|{varname}\[\d+\])\s*\)\s*return\s+{argnames[0]};',
+            rf';\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(?:(["\'])undefined\1|{re.escape(varname)}\[\d+\])\s*\)\s*return\s+{re.escape(argnames[0])};',
             ';', code)
 
     def _extract_n_function_code(self, video_id, player_url):
