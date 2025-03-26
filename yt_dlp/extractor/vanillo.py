@@ -10,6 +10,58 @@ from ..utils import ExtractorError, parse_iso8601
 
 
 class VanilloIE(InfoExtractor):
+    _access_token = None
+
+    def _real_initialize(self):
+        """
+        Called before extracting each URL. This checks the cookie jar for an access token,
+        or if none is found, attempts a direct login with --username and --password.
+        """
+        # 1) Check if we already have an access token in our cookies
+        if not self._access_token:
+            self._access_token = self._get_token_from_cookies()
+
+        # If we still have no token, requests remain unauthorized (public only).
+
+    def _get_token_from_cookies(self):
+        """
+        Attempt to read an access_token from cookies (if any).
+        """
+        cookie_names = ('access_token', 'ACCESS_TOKEN')
+        # We rename 'path' to '_path' since it's unused in the loop body
+        for domain, path_dict in self._downloader.cookiejar._cookies.items():
+            if 'vanillo.tv' in domain:
+                for _path, cookie_dict in path_dict.items():
+                    for name, cookie in cookie_dict.items():
+                        if name in cookie_names:
+                            # self.to_screen(f'Found vanillo.tv access_token in cookies: {cookie.value}')
+                            self.to_screen('Found vanillo.tv access_token in cookies')
+                            return cookie.value
+        return None
+
+    def _download_json(self, url_or_request, video_id, note='Downloading JSON', *args, **kwargs):
+        """
+        Overriding calls to _download_json so that our Authorization
+        header is always set if we have an access token.
+        """
+        # We call _download_json_handle, passing 'note' as a positional argument
+        res, urlh = self._download_json_handle(url_or_request, video_id, note, *args, **kwargs)
+        return res
+
+    def _download_json_handle(self, url_or_request, video_id, note, *args, **kwargs):
+        """
+        Overridden to insert Bearer token if present, while
+        still relying on the default logic for everything else.
+        """
+        # Because 'headers' can be in kwargs, we need to merge them
+        # carefully with our Authorization header if we have a token
+        custom_headers = kwargs.setdefault('headers', {})
+        if self._access_token:
+            custom_headers['Authorization'] = f'Bearer {self._access_token}'
+
+        # Call the parent method with 'note' as a positional argument
+        return super()._download_json_handle(url_or_request, video_id, note, *args, **kwargs)
+
     _VALID_URL = r'https?://(?:dev\.|beta\.)?vanillo\.tv/(?:v|embed)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://vanillo.tv/v/iaCi-oTmmGY',
@@ -33,7 +85,7 @@ class VanilloIE(InfoExtractor):
         'url': 'https://vanillo.tv/v/RhSueuQZiKF',
         'info_dict': {
             'id': 'RhSueuQZiKF',
-            'title': 'What\'s New on Vanillo - Fall Update',
+            'title': "What's New on Vanillo - Fall Update",
             'description': '',
             'thumbnail': 'https://images.vanillo.tv/7Qfelvn1-4waFjX3rIc1FkfpB9jOJqqLlvieD5i3mlA/h:300/aHR0cHM6Ly9pbWFnZXMuY2RuLnZhbmlsbG8udHYvdGh1bWJuYWlsL3JsMmR5ajJFcnozMEphSUd0bTZyLmF2aWY',
             'uploader_url': 'Vanillo',
@@ -45,7 +97,12 @@ class VanilloIE(InfoExtractor):
             'dislike_count': 0,
             'average_rating': 4.2,
             'categories': ['film_and_animation'],
-            'tags': ['fall', 'update', 'fall update', 'autumn', 'autumn update', 'vanillo', 'new features', 'new', 'features', 'exciting', 'language', 'switch', 'english', 'descriptive audio', 'descriptive', 'audio', 'qualities', 'higher', 'process', 'processing', 'faster', 'fast', '2x', '4x', 'twice', 'speed', 'speedy', 'quick', 'chapters'],
+            'tags': [
+                'fall', 'update', 'fall update', 'autumn', 'autumn update', 'vanillo', 'new features', 'new',
+                'features', 'exciting', 'language', 'switch', 'english', 'descriptive audio', 'descriptive',
+                'audio', 'qualities', 'higher', 'process', 'processing', 'faster', 'fast', '2x', '4x',
+                'twice', 'speed', 'speedy', 'quick', 'chapters',
+            ],
         },
         'playlist_mincount': 1,
     }]
@@ -55,7 +112,8 @@ class VanilloIE(InfoExtractor):
         replies_url = f'https://api.vanillo.tv/v1/comments/{comment_id}/replies?limit={limit}&reviewing=false'
         try:
             replies_data = self._download_json(
-                replies_url, comment_id, note=f'Downloading replies for comment {comment_id}', fatal=False)
+                replies_url, comment_id, note=f'Downloading replies for comment {comment_id}', fatal=False,
+            )
         except ExtractorError:
             return replies
         if replies_data.get('status') != 'success':
@@ -76,7 +134,10 @@ class VanilloIE(InfoExtractor):
         page_key = None
         # Loop to download all comments using pageKey
         while True:
-            url = f'https://api.vanillo.tv/v1/videos/{video_id}/comments?limit={limit}&reviewing=false&filter=high_to_low_score'
+            url = (
+                f'https://api.vanillo.tv/v1/videos/{video_id}/comments'
+                f'?limit={limit}&reviewing=false&filter=high_to_low_score'
+            )
             if page_key:
                 url += f'&pageKey={page_key}'
             try:
@@ -119,10 +180,15 @@ class VanilloIE(InfoExtractor):
                 http_code = 404
             if http_code == 404:
                 self.raise_login_required(
-                    '404: Could be a Private video. Authorization is required for this URL and can be passed with the --add-header "authorization: Bearer abcxyz" option. '
-                    'The --cookies and --cookies-from-browser option will not work', method=None)
+                    'Video not found or is private. '  # maybe use report_login here?
+                    'Sign in if you have access to this video. Use --cookies or --cookies-from-browser option',
+                    method=None,
+                )
             elif http_code == 403:
-                raise ExtractorError('Your Internet provider is likely blocked. Try another ISP or use VPN', expected=True)
+                raise ExtractorError(
+                    'Your Internet provider is likely blocked. Try again with another ISP or use VPN',
+                    expected=True,
+                )
             raise
 
         if video_info.get('status') != 'success':
@@ -135,7 +201,7 @@ class VanilloIE(InfoExtractor):
         uploader = data.get('uploader', {})
         uploader_url = uploader.get('url')
 
-        # 2) Fix the ISO date to remove leftover data
+        # 2) Fix the ISO8601 date to remove leftover data
         upload_date_raw = data.get('publishedAt')
         upload_date = None
         if upload_date_raw:
@@ -150,7 +216,7 @@ class VanilloIE(InfoExtractor):
 
         duration = data.get('duration')
 
-        # 3) Convert numeric fields
+        # Convert numeric fields safely
         def safe_int(val):
             try:
                 return int(val)
@@ -173,33 +239,24 @@ class VanilloIE(InfoExtractor):
             categories = [categories]
         tags = data.get('tags')
 
-        # 4) Get watch token (required for accessing manifests)
+        # 3) Get watch token (required for accessing manifests)
         watch_token_url = 'https://api.vanillo.tv/v1/watch'
         post_data = json.dumps({'videoId': video_id}).encode('utf-8')
         watch_token_resp = self._download_json(
             watch_token_url, video_id,
             note='Downloading watch token',
             data=post_data,
-            headers={'Content-Type': 'application/json'})
+            headers={'Content-Type': 'application/json'},
+        )
         watch_token = watch_token_resp.get('data', {}).get('watchToken')
         if not watch_token:
             raise ExtractorError('Failed to retrieve watch token', expected=True)
 
-        # 5) Get the HLS & DASH manifest URLs using the watch token
+        # 4) Get the HLS & DASH manifest URLs using the watch token
         manifests_url = f'https://api.vanillo.tv/v1/watch/manifests?watchToken={watch_token}'
         manifests = self._download_json(manifests_url, video_id, note='Downloading manifests')
         hls_url = manifests.get('data', {}).get('media', {}).get('hls')
         # dash_url = manifests.get('data', {}).get('media', {}).get('dash')
-
-        # 6) Extract available formats and subtitles using combined helper methods
-        subtitles = {}
-        formats = []
-        if hls_url:
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                hls_url, video_id, ext='mp4', m3u8_id='hls', fatal=False)
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
-
         # DASH provides comically gigantic files. Disabling.
         # example - 1.7 mb file becomes 15.1 mb, thus short videos for no reason become 100+gb
         # same for audio tracks, thus RAM usage will be high, and merged file will be even bigger.
@@ -211,7 +268,17 @@ class VanilloIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
         '''
 
-        # 7) Download all comments using pagination with pageKey
+        # 5) Extract available formats/subtitles from HLS
+        subtitles = {}
+        formats = []
+        if hls_url:
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                hls_url, video_id, ext='mp4', m3u8_id='hls', fatal=False,
+            )
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+
+        # 6) Download all comments using pagination with pageKey only if --write-comments
         if self._downloader.params.get('getcomments'):
             comments = self._get_comments(video_id, limit=10)
         else:
@@ -251,17 +318,21 @@ class VanilloPlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        # First, download playlist metadata
+        # 1) Download playlist metadata
         playlist_api_url = f'https://api.vanillo.tv/v1/playlists/{playlist_id}'
-        playlist_info = self._download_json(playlist_api_url, playlist_id, note='Downloading playlist metadata', fatal=False)
+        playlist_info = self._download_json(
+            playlist_api_url, playlist_id, note='Downloading playlist metadata', fatal=False,
+        )
         playlist_data = playlist_info.get('data', {}).get('playlist', {})
         playlist_title = playlist_data.get('name') or playlist_id
         playlist_description = playlist_data.get('description')
         video_count = playlist_data.get('videoCount') or 20
 
-        # Then, download the videos using the videoCount as the limit
+        # 2) Download the videos using the videoCount as the limit
         api_url = f'https://api.vanillo.tv/v1/playlists/{playlist_id}/videos?offset=0&limit={video_count}'
-        playlist_data = self._download_json(api_url, playlist_id, note='Downloading playlist videos')
+        playlist_data = self._download_json(
+            api_url, playlist_id, note='Downloading playlist videos',
+        )
         videos = playlist_data.get('data', {}).get('videos', [])
         entries = []
         for video in videos:
@@ -270,6 +341,7 @@ class VanilloPlaylistIE(InfoExtractor):
                 continue
             video_url = f'https://vanillo.tv/v/{vid}'
             entries.append(self.url_result(video_url, VanilloIE.ie_key()))
+
         info = self.playlist_result(entries, playlist_id, playlist_title=playlist_title)
         if playlist_description:
             info['description'] = playlist_description
@@ -293,8 +365,13 @@ class VanilloUserIE(InfoExtractor):
         offset = 0
         while True:
             # Loop to paginate through all user videos
-            api_url = f'https://api.vanillo.tv/v1/profiles/{user_id}/videos?offset={offset}&limit=20&groups=videos.all'
-            user_data = self._download_json(api_url, user_id, note='Downloading user videos', fatal=False)
+            api_url = (
+                f'https://api.vanillo.tv/v1/profiles/{user_id}/videos'
+                f'?offset={offset}&limit=20&groups=videos.all'
+            )
+            user_data = self._download_json(
+                api_url, user_id, note='Downloading user videos', fatal=False,
+            )
             videos = user_data.get('data', {}).get('videos', [])
             if not videos:
                 break
