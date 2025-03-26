@@ -21,9 +21,6 @@ class TestCompat(unittest.TestCase):
         with self.assertWarns(DeprecationWarning):
             _ = compat.compat_basestring
 
-        with self.assertWarns(DeprecationWarning):
-            _ = compat.WINDOWS_VT_MODE
-
         self.assertEqual(urllib.request.getproxies, getproxies)
 
         with self.assertWarns(DeprecationWarning):
