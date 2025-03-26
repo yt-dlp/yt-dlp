@@ -2,31 +2,33 @@ import json
 import time
 import urllib.parse
 
-from .gigya import GigyaBaseIE
+from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
+    filter_dict,
     float_or_none,
     get_element_by_class,
     get_element_html_by_class,
     int_or_none,
-    join_nonempty,
+    jwt_decode_hs256,
     jwt_encode_hs256,
     make_archive_id,
     merge_dicts,
     parse_age_limit,
+    parse_duration,
     parse_iso8601,
     str_or_none,
     strip_or_none,
     traverse_obj,
+    try_call,
     url_or_none,
-    urlencode_postdata,
 )
 
 
-class VRTBaseIE(GigyaBaseIE):
+class VRTBaseIE(InfoExtractor):
     _GEO_BYPASS = False
     _PLAYER_INFO = {
         'platform': 'desktop',
@@ -37,11 +39,11 @@ class VRTBaseIE(GigyaBaseIE):
         'device': 'undefined (undefined)',
         'os': {
             'name': 'Windows',
-            'version': 'x86_64',
+            'version': '10',
         },
         'player': {
             'name': 'VRT web player',
-            'version': '2.7.4-prod-2023-04-19T06:05:45',
+            'version': '5.1.1-prod-2025-02-14T08:44:16"',
         },
     }
     # From https://player.vrt.be/vrtnws/js/main.js & https://player.vrt.be/ketnet/js/main.8cdb11341bcb79e4cd44.js
@@ -90,20 +92,21 @@ class VRTBaseIE(GigyaBaseIE):
     def _call_api(self, video_id, client='null', id_token=None, version='v2'):
         player_info = {'exp': (round(time.time(), 3) + 900), **self._PLAYER_INFO}
         player_token = self._download_json(
-            'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2/tokens',
-            video_id, 'Downloading player token', headers={
+            f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/tokens',
+            video_id, 'Downloading player token', 'Failed to download player token', headers={
                 **self.geo_verification_headers(),
                 'Content-Type': 'application/json',
             }, data=json.dumps({
-                'identityToken': id_token or {},
+                'identityToken': id_token or '',
                 'playerInfo': jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
                     'kid': self._JWT_KEY_ID,
                 }).decode(),
             }, separators=(',', ':')).encode())['vrtPlayerToken']
 
         return self._download_json(
-            f'https://media-services-public.vrt.be/media-aggregator/{version}/media-items/{video_id}',
-            video_id, 'Downloading API JSON', query={
+            # The URL below redirects to https://media-services-public.vrt.be/media-aggregator/{version}/media-items/{video_id}
+            f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/videos/{video_id}',
+            video_id, 'Downloading API JSON', 'Failed to download API JSON', query={
                 'vrtPlayerToken': player_token,
                 'client': client,
             }, expected_status=400)
@@ -177,215 +180,286 @@ class VRTIE(VRTBaseIE):
 
 
 class VrtNUIE(VRTBaseIE):
-    IE_DESC = 'VRT MAX'
-    _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtnu/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
+    IE_NAME = 'vrtmax'
+    IE_DESC = 'VRT MAX (formerly VRT NU)'
+    _VALID_URL = r'https?://(?:www\.)?vrt\.be/(?:vrtnu|vrtmax)/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
     _TESTS = [{
-        # CONTENT_IS_AGE_RESTRICTED
-        'url': 'https://www.vrt.be/vrtnu/a-z/de-ideale-wereld/2023-vj/de-ideale-wereld-d20230116/',
+        'url': 'https://www.vrt.be/vrtmax/a-z/ket---doc/trailer/ket---doc-trailer-s6/',
         'info_dict': {
-            'id': 'pbs-pub-855b00a8-6ce2-4032-ac4f-1fcf3ae78524$vid-d2243aa1-ec46-4e34-a55b-92568459906f',
+            'id': 'pbs-pub-c8a78645-5d3e-468a-89ec-6f3ed5534bd5$vid-242ddfe9-18f5-4e16-ab45-09b122a19251',
             'ext': 'mp4',
-            'title': 'Tom Waes',
-            'description': 'Satirisch actualiteitenmagazine met Ella Leyers. Tom Waes is te gast.',
-            'timestamp': 1673905125,
-            'release_timestamp': 1673905125,
-            'series': 'De ideale wereld',
-            'season_id': '1672830988794',
-            'episode': 'Aflevering 1',
-            'episode_number': 1,
-            'episode_id': '1672830988861',
-            'display_id': 'de-ideale-wereld-d20230116',
-            'channel': 'VRT',
-            'duration': 1939.0,
-            'thumbnail': 'https://images.vrt.be/orig/2023/01/10/1bb39cb3-9115-11ed-b07d-02b7b76bf47f.jpg',
-            'release_date': '20230116',
-            'upload_date': '20230116',
-            'age_limit': 12,
+            'channel': 'ketnet',
+            'description': 'Neem een kijkje in de bijzondere wereld van deze Ketnetters.',
+            'display_id': 'ket---doc-trailer-s6',
+            'duration': 30.0,
+            'episode': 'Reeks 6 volledig vanaf 3 maart',
+            'episode_id': '1739450401467',
+            'season': 'Trailer',
+            'season_id': '1739450401467',
+            'series': 'Ket & Doc',
+            'thumbnail': 'https://images.vrt.be/orig/2025/02/21/63f07122-5bbd-4ca1-b42e-8565c6cd95df.jpg',
+            'timestamp': 1740373200,
+            'title': 'Reeks 6 volledig vanaf 3 maart',
+            'upload_date': '20250224',
+            '_old_archive_ids': [
+                'canvas pbs-pub-c8a78645-5d3e-468a-89ec-6f3ed5534bd5$vid-242ddfe9-18f5-4e16-ab45-09b122a19251',
+                'ketnet pbs-pub-c8a78645-5d3e-468a-89ec-6f3ed5534bd5$vid-242ddfe9-18f5-4e16-ab45-09b122a19251',
+            ],
         },
     }, {
-        'url': 'https://www.vrt.be/vrtnu/a-z/buurman--wat-doet-u-nu-/6/buurman--wat-doet-u-nu--s6-trailer/',
+        'url': 'https://www.vrt.be/vrtmax/a-z/meisjes/6/meisjes-s6a5/',
         'info_dict': {
-            'id': 'pbs-pub-ad4050eb-d9e5-48c2-9ec8-b6c355032361$vid-0465537a-34a8-4617-8352-4d8d983b4eee',
+            'id': 'pbs-pub-97b541ab-e05c-43b9-9a40-445702ef7189$vid-5e306921-a9aa-4fa9-9f39-5b82c8f1028e',
             'ext': 'mp4',
-            'title': 'Trailer seizoen 6 \'Buurman, wat doet u nu?\'',
-            'description': 'md5:197424726c61384b4e5c519f16c0cf02',
-            'timestamp': 1652940000,
-            'release_timestamp': 1652940000,
-            'series': 'Buurman, wat doet u nu?',
-            'season': 'Seizoen 6',
+            'channel': 'ketnet',
+            'description': 'md5:713793f15cbf677f66200b36b7b1ec5a',
+            'display_id': 'meisjes-s6a5',
+            'duration': 1336.02,
+            'episode': 'Week 5',
+            'episode_id': '1684157692901',
+            'episode_number': 5,
+            'season': '6',
+            'season_id': '1684157692901',
             'season_number': 6,
-            'season_id': '1652344200907',
-            'episode': 'Aflevering 0',
-            'episode_number': 0,
-            'episode_id': '1652951873524',
-            'display_id': 'buurman--wat-doet-u-nu--s6-trailer',
-            'channel': 'VRT',
-            'duration': 33.13,
-            'thumbnail': 'https://images.vrt.be/orig/2022/05/23/3c234d21-da83-11ec-b07d-02b7b76bf47f.jpg',
-            'release_date': '20220519',
-            'upload_date': '20220519',
+            'series': 'Meisjes',
+            'thumbnail': 'https://images.vrt.be/orig/2023/05/14/bf526ae0-f1d9-11ed-91d7-02b7b76bf47f.jpg',
+            'timestamp': 1685251800,
+            'title': 'Week 5',
+            'upload_date': '20230528',
+            '_old_archive_ids': [
+                'canvas pbs-pub-97b541ab-e05c-43b9-9a40-445702ef7189$vid-5e306921-a9aa-4fa9-9f39-5b82c8f1028e',
+                'ketnet pbs-pub-97b541ab-e05c-43b9-9a40-445702ef7189$vid-5e306921-a9aa-4fa9-9f39-5b82c8f1028e',
+            ],
         },
-        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.vrt.be/vrtnu/a-z/taboe/3/taboe-s3a4/',
+        'info_dict': {
+            'id': 'pbs-pub-f50faa3a-1778-46b6-9117-4ba85f197703$vid-547507fe-1c8b-4394-b361-21e627cbd0fd',
+            'ext': 'mp4',
+            'channel': 'een',
+            'description': 'md5:bf61345a95eca9393a95de4a7a54b5c6',
+            'display_id': 'taboe-s3a4',
+            'duration': 2882.02,
+            'episode': 'Mensen met het syndroom van Gilles de la Tourette',
+            'episode_id': '1739055911734',
+            'episode_number': 4,
+            'season': '3',
+            'season_id': '1739055911734',
+            'season_number': 3,
+            'series': 'Taboe',
+            'thumbnail': 'https://images.vrt.be/orig/2025/02/19/8198496c-d1ae-4bca-9a48-761cf3ea3ff2.jpg',
+            'timestamp': 1740286800,
+            'title': 'Mensen met het syndroom van Gilles de la Tourette',
+            'upload_date': '20250223',
+            '_old_archive_ids': [
+                'canvas pbs-pub-f50faa3a-1778-46b6-9117-4ba85f197703$vid-547507fe-1c8b-4394-b361-21e627cbd0fd',
+                'ketnet pbs-pub-f50faa3a-1778-46b6-9117-4ba85f197703$vid-547507fe-1c8b-4394-b361-21e627cbd0fd',
+            ],
+        },
     }]
     _NETRC_MACHINE = 'vrtnu'
-    _authenticated = False
+
+    _TOKEN_COOKIE_DOMAIN = '.www.vrt.be'
+    _ACCESS_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_at'
+    _REFRESH_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_rt'
+    _VIDEO_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_vt'
+    _VIDEO_PAGE_QUERY = '''
+    query VideoPage($pageId: ID!) {
+        page(id: $pageId) {
+            ... on EpisodePage {
+                episode {
+                    ageRaw
+                    description
+                    durationRaw
+                    episodeNumberRaw
+                    id
+                    name
+                    onTimeRaw
+                    program {
+                        title
+                    }
+                    season {
+                        id
+                        titleRaw
+                    }
+                    title
+                    brand
+                }
+                ldjson
+                player {
+                    image {
+                        templateUrl
+                    }
+                    modes {
+                        streamId
+                    }
+                }
+            }
+        }
+    }
+    '''
+
+    def _fetch_tokens(self):
+        has_credentials = self._get_login_info()[0]
+        access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
+        video_token = self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)
+
+        if (access_token and not self._is_jwt_token_expired(access_token)
+                and video_token and not self._is_jwt_token_expired(video_token)):
+            return access_token, video_token
+
+        if has_credentials:
+            access_token, video_token = self.cache.load(self._NETRC_MACHINE, 'token_data', default=(None, None))
+
+            if (access_token and not self._is_jwt_token_expired(access_token)
+                    and video_token and not self._is_jwt_token_expired(video_token)):
+                self.write_debug('Restored tokens from cache')
+                self._set_cookie(self._TOKEN_COOKIE_DOMAIN, self._ACCESS_TOKEN_COOKIE_NAME, access_token)
+                self._set_cookie(self._TOKEN_COOKIE_DOMAIN, self._VIDEO_TOKEN_COOKIE_NAME, video_token)
+                return access_token, video_token
+
+        if not self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME):
+            return None, None
+
+        self._request_webpage(
+            'https://www.vrt.be/vrtmax/sso/refresh', None,
+            note='Refreshing tokens', errnote='Failed to refresh tokens', fatal=False)
+
+        access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
+        video_token = self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)
+
+        if not access_token or not video_token:
+            self.cache.store(self._NETRC_MACHINE, 'refresh_token', None)
+            self.cookiejar.clear(self._TOKEN_COOKIE_DOMAIN, '/vrtmax/sso', self._REFRESH_TOKEN_COOKIE_NAME)
+            msg = 'Refreshing of tokens failed'
+            if not has_credentials:
+                self.report_warning(msg)
+                return None, None
+            self.report_warning(f'{msg}. Re-logging in')
+            return self._perform_login(*self._get_login_info())
+
+        if has_credentials:
+            self.cache.store(self._NETRC_MACHINE, 'token_data', (access_token, video_token))
+
+        return access_token, video_token
+
+    def _get_vrt_cookie(self, cookie_name):
+        # Refresh token cookie is scoped to /vrtmax/sso, others are scoped to /
+        return try_call(lambda: self._get_cookies('https://www.vrt.be/vrtmax/sso')[cookie_name].value)
+
+    @staticmethod
+    def _is_jwt_token_expired(token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 300
 
     def _perform_login(self, username, password):
-        auth_info = self._gigya_login({
-            'APIKey': '3_0Z2HujMtiWq_pkAjgnS2Md2E11a1AwZjYiBETtwNE-EoEHDINgtnvcAOpNgmrVGy',
-            'targetEnv': 'jssdk',
-            'loginID': username,
-            'password': password,
-            'authMode': 'cookie',
-        })
+        refresh_token = self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME)
+        if refresh_token and not self._is_jwt_token_expired(refresh_token):
+            self.write_debug('Using refresh token from logged-in cookies; skipping login with credentials')
+            return
 
-        if auth_info.get('errorDetails'):
-            raise ExtractorError(f'Unable to login. VrtNU said: {auth_info["errorDetails"]}', expected=True)
+        refresh_token = self.cache.load(self._NETRC_MACHINE, 'refresh_token', default=None)
+        if refresh_token and not self._is_jwt_token_expired(refresh_token):
+            self.write_debug('Restored refresh token from cache')
+            self._set_cookie(self._TOKEN_COOKIE_DOMAIN, self._REFRESH_TOKEN_COOKIE_NAME, refresh_token, path='/vrtmax/sso')
+            return
 
-        # Sometimes authentication fails for no good reason, retry
-        for retry in self.RetryManager():
-            if retry.attempt > 1:
-                self._sleep(1, None)
-            try:
-                self._request_webpage(
-                    'https://token.vrt.be/vrtnuinitlogin', None, note='Requesting XSRF Token',
-                    errnote='Could not get XSRF Token', query={
-                        'provider': 'site',
-                        'destination': 'https://www.vrt.be/vrtnu/',
-                    })
-                self._request_webpage(
-                    'https://login.vrt.be/perform_login', None,
-                    note='Performing login', errnote='Login failed',
-                    query={'client_id': 'vrtnu-site'}, data=urlencode_postdata({
-                        'UID': auth_info['UID'],
-                        'UIDSignature': auth_info['UIDSignature'],
-                        'signatureTimestamp': auth_info['signatureTimestamp'],
-                        '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
-                    }))
-            except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                    retry.error = e
-                    continue
-                raise
+        self._request_webpage(
+            'https://www.vrt.be/vrtmax/sso/login', None,
+            note='Getting session cookies', errnote='Failed to get session cookies')
 
-        self._authenticated = True
+        login_data = self._download_json(
+            'https://login.vrt.be/perform_login', None, data=json.dumps({
+                'clientId': 'vrtnu-site',
+                'loginID': username,
+                'password': password,
+            }).encode(), headers={
+                'Content-Type': 'application/json',
+                'Oidcxsrf': self._get_cookies('https://login.vrt.be')['OIDCXSRF'].value,
+            }, note='Logging in', errnote='Login failed', expected_status=403)
+        if login_data.get('errorCode'):
+            raise ExtractorError(f'Login failed: {login_data.get("errorMessage")}', expected=True)
+
+        self._request_webpage(
+            login_data['redirectUrl'], None,
+            note='Getting access token', errnote='Failed to get access token')
+
+        access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
+        video_token = self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)
+        refresh_token = self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME)
+
+        if not all((access_token, video_token, refresh_token)):
+            raise ExtractorError('Unable to extract token cookie values')
+
+        self.cache.store(self._NETRC_MACHINE, 'token_data', (access_token, video_token))
+        self.cache.store(self._NETRC_MACHINE, 'refresh_token', refresh_token)
+
+        return access_token, video_token
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        parsed_url = urllib.parse.urlparse(url)
-        details = self._download_json(
-            f'{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path.rstrip("/")}.model.json',
-            display_id, 'Downloading asset JSON', 'Unable to download asset JSON')['details']
+        access_token, video_token = self._fetch_tokens()
 
-        watch_info = traverse_obj(details, (
-            'actions', lambda _, v: v['type'] == 'watch-episode', {dict}), get_all=False) or {}
-        video_id = join_nonempty(
-            'episodePublicationId', 'episodeVideoId', delim='$', from_dict=watch_info)
-        if '$' not in video_id:
-            raise ExtractorError('Unable to extract video ID')
+        metadata = self._download_json(
+            f'https://www.vrt.be/vrtnu-api/graphql{"" if access_token else "/public"}/v1',
+            display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
+            data=json.dumps({
+                'operationName': 'VideoPage',
+                'query': self._VIDEO_PAGE_QUERY,
+                'variables': {'pageId': urllib.parse.urlparse(url).path},
+            }).encode(),
+            headers=filter_dict({
+                'Authorization': f'Bearer {access_token}' if access_token else None,
+                'Content-Type': 'application/json',
+                'x-vrt-client-name': 'WEB',
+                'x-vrt-client-version': '1.5.9',
+                'x-vrt-zone': 'default',
+            }))['data']['page']
 
-        vrtnutoken = self._download_json(
-            'https://token.vrt.be/refreshtoken', video_id, note='Retrieving vrtnutoken',
-            errnote='Token refresh failed')['vrtnutoken'] if self._authenticated else None
+        video_id = metadata['player']['modes'][0]['streamId']
 
-        video_info = self._call_api(video_id, 'vrtnu-web@PROD', vrtnutoken)
+        try:
+            streaming_info = self._call_api(video_id, 'vrtnu-web@PROD', id_token=video_token)
+        except ExtractorError as e:
+            if not video_token and isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                self.raise_login_required()
+            raise
 
-        if 'title' not in video_info:
-            code = video_info.get('code')
-            if code in ('AUTHENTICATION_REQUIRED', 'CONTENT_IS_AGE_RESTRICTED'):
-                self.raise_login_required(code, method='password')
-            elif code in ('INVALID_LOCATION', 'CONTENT_AVAILABLE_ONLY_IN_BE'):
+        formats, subtitles = self._extract_formats_and_subtitles(streaming_info, video_id)
+
+        code = traverse_obj(streaming_info, ('code', {str}))
+        if not formats and code:
+            if code in ('CONTENT_AVAILABLE_ONLY_FOR_BE_RESIDENTS', 'CONTENT_AVAILABLE_ONLY_IN_BE', 'CONTENT_UNAVAILABLE_VIA_PROXY'):
                 self.raise_geo_restricted(countries=['BE'])
-            elif code == 'CONTENT_AVAILABLE_ONLY_FOR_BE_RESIDENTS_AND_EXPATS':
-                if not self._authenticated:
-                    self.raise_login_required(code, method='password')
-                self.raise_geo_restricted(countries=['BE'])
-            raise ExtractorError(code, expected=True)
-
-        formats, subtitles = self._extract_formats_and_subtitles(video_info, video_id)
+            elif code in ('CONTENT_AVAILABLE_ONLY_FOR_BE_RESIDENTS_AND_EXPATS', 'CONTENT_IS_AGE_RESTRICTED', 'CONTENT_REQUIRES_AUTHENTICATION'):
+                self.raise_login_required()
+            else:
+                self.raise_no_formats(f'Unable to extract formats: {code}')
 
         return {
-            **traverse_obj(details, {
-                'title': 'title',
-                'description': ('description', {clean_html}),
-                'timestamp': ('data', 'episode', 'onTime', 'raw', {parse_iso8601}),
-                'release_timestamp': ('data', 'episode', 'onTime', 'raw', {parse_iso8601}),
-                'series': ('data', 'program', 'title'),
-                'season': ('data', 'season', 'title', 'value'),
-                'season_number': ('data', 'season', 'title', 'raw', {int_or_none}),
-                'season_id': ('data', 'season', 'id', {str_or_none}),
-                'episode': ('data', 'episode', 'number', 'value', {str_or_none}),
-                'episode_number': ('data', 'episode', 'number', 'raw', {int_or_none}),
-                'episode_id': ('data', 'episode', 'id', {str_or_none}),
-                'age_limit': ('data', 'episode', 'age', 'raw', {parse_age_limit}),
-            }),
+            'duration': float_or_none(streaming_info.get('duration'), 1000),
+            'thumbnail': url_or_none(streaming_info.get('posterImageUrl')),
+            **self._json_ld(traverse_obj(metadata, ('ldjson', ..., {json.loads})), video_id, fatal=False),
+            **traverse_obj(metadata, ('episode', {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'timestamp': ('onTimeRaw', {parse_iso8601}),
+                'series': ('program', 'title', {str}),
+                'season': ('season', 'titleRaw', {str}),
+                'season_number': ('season', 'titleRaw', {int_or_none}),
+                'season_id': ('id', {str_or_none}),
+                'episode': ('title', {str}),
+                'episode_number': ('episodeNumberRaw', {int_or_none}),
+                'episode_id': ('id', {str_or_none}),
+                'age_limit': ('ageRaw', {parse_age_limit}),
+                'channel': ('brand', {str}),
+                'duration': ('durationRaw', {parse_duration}),
+            })),
             'id': video_id,
             'display_id': display_id,
-            'channel': 'VRT',
-            'formats': formats,
-            'duration': float_or_none(video_info.get('duration'), 1000),
-            'thumbnail': url_or_none(video_info.get('posterImageUrl')),
-            'subtitles': subtitles,
-            '_old_archive_ids': [make_archive_id('Canvas', video_id)],
-        }
-
-
-class KetnetIE(VRTBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?ketnet\.be/(?P<id>(?:[^/]+/)*[^/?#&]+)'
-    _TESTS = [{
-        'url': 'https://www.ketnet.be/kijken/m/meisjes/6/meisjes-s6a5',
-        'info_dict': {
-            'id': 'pbs-pub-39f8351c-a0a0-43e6-8394-205d597d6162$vid-5e306921-a9aa-4fa9-9f39-5b82c8f1028e',
-            'ext': 'mp4',
-            'title': 'Meisjes',
-            'episode': 'Reeks 6: Week 5',
-            'season': 'Reeks 6',
-            'series': 'Meisjes',
-            'timestamp': 1685251800,
-            'upload_date': '20230528',
-        },
-        'params': {'skip_download': 'm3u8'},
-    }]
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-
-        video = self._download_json(
-            'https://senior-bff.ketnet.be/graphql', display_id, query={
-                'query': '''{
-  video(id: "content/ketnet/nl/%s.model.json") {
-    description
-    episodeNr
-    imageUrl
-    mediaReference
-    programTitle
-    publicationDate
-    seasonTitle
-    subtitleVideodetail
-    titleVideodetail
-  }
-}''' % display_id,  # noqa: UP031
-            })['data']['video']
-
-        video_id = urllib.parse.unquote(video['mediaReference'])
-        data = self._call_api(video_id, 'ketnet@PROD', version='v1')
-        formats, subtitles = self._extract_formats_and_subtitles(data, video_id)
-
-        return {
-            'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
-            '_old_archive_ids': [make_archive_id('Canvas', video_id)],
-            **traverse_obj(video, {
-                'title': ('titleVideodetail', {str}),
-                'description': ('description', {str}),
-                'thumbnail': ('thumbnail', {url_or_none}),
-                'timestamp': ('publicationDate', {parse_iso8601}),
-                'series': ('programTitle', {str}),
-                'season': ('seasonTitle', {str}),
-                'episode': ('subtitleVideodetail', {str}),
-                'episode_number': ('episodeNr', {int_or_none}),
-            }),
+            '_old_archive_ids': [make_archive_id('Canvas', video_id),
+                                 make_archive_id('Ketnet', video_id)],
         }
 
 

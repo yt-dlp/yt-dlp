@@ -25,7 +25,8 @@ def parse_args():
 
 
 def run_tests(*tests, pattern=None, ci=False):
-    run_core = 'core' in tests or (not pattern and not tests)
+    # XXX: hatch uses `tests` if no arguments are passed
+    run_core = 'core' in tests or 'tests' in tests or (not pattern and not tests)
     run_download = 'download' in tests
 
     pytest_args = args.pytest_args or os.getenv('HATCH_TEST_ARGS', '')

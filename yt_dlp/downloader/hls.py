@@ -16,6 +16,7 @@ from ..utils import (
     update_url_query,
     urljoin,
 )
+from ..utils._utils import _request_dump_filename
 
 
 class HlsFD(FragmentFD):
@@ -72,11 +73,23 @@ class HlsFD(FragmentFD):
 
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
-        self.to_screen(f'[{self.FD_NAME}] Downloading m3u8 manifest')
 
-        urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
-        man_url = urlh.url
-        s = urlh.read().decode('utf-8', 'ignore')
+        s = info_dict.get('hls_media_playlist_data')
+        if s:
+            self.to_screen(f'[{self.FD_NAME}] Using m3u8 manifest from extracted info')
+        else:
+            self.to_screen(f'[{self.FD_NAME}] Downloading m3u8 manifest')
+            urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
+            man_url = urlh.url
+            s_bytes = urlh.read()
+            if self.params.get('write_pages'):
+                dump_filename = _request_dump_filename(
+                    man_url, info_dict['id'], None,
+                    trim_length=self.params.get('trim_file_name'))
+                self.to_screen(f'[{self.FD_NAME}] Saving request to {dump_filename}')
+                with open(dump_filename, 'wb') as outf:
+                    outf.write(s_bytes)
+            s = s_bytes.decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
         if can_download:
@@ -177,6 +190,7 @@ class HlsFD(FragmentFD):
         if external_aes_iv:
             external_aes_iv = binascii.unhexlify(remove_start(external_aes_iv, '0x').zfill(32))
         byte_range = {}
+        byte_range_offset = 0
         discontinuity_count = 0
         frag_index = 0
         ad_frag_next = False
@@ -204,6 +218,11 @@ class HlsFD(FragmentFD):
                     })
                     media_sequence += 1
 
+                    # If the byte_range is truthy, reset it after appending a fragment that uses it
+                    if byte_range:
+                        byte_range_offset = byte_range['end']
+                        byte_range = {}
+
                 elif line.startswith('#EXT-X-MAP'):
                     if format_index and discontinuity_count != format_index:
                         continue
@@ -217,10 +236,12 @@ class HlsFD(FragmentFD):
                     if extra_segment_query:
                         frag_url = update_url_query(frag_url, extra_segment_query)
 
+                    map_byte_range = {}
+
                     if map_info.get('BYTERANGE'):
                         splitted_byte_range = map_info.get('BYTERANGE').split('@')
-                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
-                        byte_range = {
+                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else 0
+                        map_byte_range = {
                             'start': sub_range_start,
                             'end': sub_range_start + int(splitted_byte_range[0]),
                         }
@@ -229,7 +250,7 @@ class HlsFD(FragmentFD):
                         'frag_index': frag_index,
                         'url': frag_url,
                         'decrypt_info': decrypt_info,
-                        'byte_range': byte_range,
+                        'byte_range': map_byte_range,
                         'media_sequence': media_sequence,
                     })
                     media_sequence += 1
@@ -257,7 +278,7 @@ class HlsFD(FragmentFD):
                     media_sequence = int(line[22:])
                 elif line.startswith('#EXT-X-BYTERANGE'):
                     splitted_byte_range = line[17:].split('@')
-                    sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
+                    sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range_offset
                     byte_range = {
                         'start': sub_range_start,
                         'end': sub_range_start + int(splitted_byte_range[0]),

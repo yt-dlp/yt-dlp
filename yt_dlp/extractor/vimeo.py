@@ -28,6 +28,7 @@ from ..utils import (
     try_get,
     unified_timestamp,
     unsmuggle_url,
+    url_or_none,
     urlencode_postdata,
     urlhandle_detect_ext,
     urljoin,
@@ -211,11 +212,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'width': int_or_none(key),
                     'url': thumb,
                 })
-            thumbnail = video_data.get('thumbnail')
-            if thumbnail:
-                thumbnails.append({
-                    'url': thumbnail,
-                })
+            thumbnails.extend(traverse_obj(video_data, (('thumbnail', 'thumbnail_url'), {'url': {url_or_none}})))
 
         owner = video_data.get('owner') or {}
         video_uploader_url = owner.get('url')
@@ -388,7 +385,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/businessofsoftware',
                 'uploader_id': 'businessofsoftware',
                 'duration': 3610,
-                'thumbnail': 'https://i.vimeocdn.com/video/376682406-f34043e7b766af6bef2af81366eacd6724f3fc3173179a11a97a1e26587c9529-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/376682406-f34043e7b766af6bef2af81366eacd6724f3fc3173179a11a97a1e26587c9529-d',
             },
             'params': {
                 'format': 'best[protocol=https]',
@@ -413,7 +410,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'duration': 10,
                 'comment_count': int,
                 'like_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d',
             },
             'params': {
                 'format': 'best[protocol=https]',
@@ -437,7 +434,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'timestamp': 1380339469,
                 'upload_date': '20130928',
                 'duration': 187,
-                'thumbnail': 'https://i.vimeocdn.com/video/450239872-a05512d9b1e55d707a7c04365c10980f327b06d966351bc403a5d5d65c95e572-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/450239872-a05512d9b1e55d707a7c04365c10980f327b06d966351bc403a5d5d65c95e572-d',
                 'view_count': int,
                 'comment_count': int,
                 'like_count': int,
@@ -463,7 +460,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'duration': 62,
                 'comment_count': int,
                 'like_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/452001751-8216e0571c251a09d7a8387550942d89f7f86f6398f8ed886e639b0dd50d3c90-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/452001751-8216e0571c251a09d7a8387550942d89f7f86f6398f8ed886e639b0dd50d3c90-d',
                 'subtitles': {
                     'de': 'count:3',
                     'en': 'count:3',
@@ -488,7 +485,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user28849593',
                 'uploader_id': 'user28849593',
                 'duration': 118,
-                'thumbnail': 'https://i.vimeocdn.com/video/478636036-c18440305ef3df9decfb6bf207a61fe39d2d17fa462a96f6f2d93d30492b037d-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/478636036-c18440305ef3df9decfb6bf207a61fe39d2d17fa462a96f6f2d93d30492b037d-d',
             },
             'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
@@ -509,7 +506,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'duration': 60,
                 'comment_count': int,
                 'view_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/231174622-dd07f015e9221ff529d451e1cc31c982b5d87bfafa48c4189b1da72824ee289a-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/231174622-dd07f015e9221ff529d451e1cc31c982b5d87bfafa48c4189b1da72824ee289a-d',
                 'like_count': int,
                 'tags': 'count:11',
             },
@@ -531,7 +528,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'description': 'md5:f2edc61af3ea7a5592681ddbb683db73',
                 'upload_date': '20200225',
                 'duration': 176,
-                'thumbnail': 'https://i.vimeocdn.com/video/859377297-836494a4ef775e9d4edbace83937d9ad34dc846c688c0c419c0e87f7ab06c4b3-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/859377297-836494a4ef775e9d4edbace83937d9ad34dc846c688c0c419c0e87f7ab06c4b3-d',
                 'uploader_url': 'https://vimeo.com/frameworkla',
             },
             # 'params': {'format': 'source'},
@@ -556,7 +553,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'duration': 321,
                 'comment_count': int,
                 'view_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/22728298-bfc22146f930de7cf497821c7b0b9f168099201ecca39b00b6bd31fcedfca7a6-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/22728298-bfc22146f930de7cf497821c7b0b9f168099201ecca39b00b6bd31fcedfca7a6-d',
                 'like_count': int,
                 'tags': ['[the shining', 'vimeohq', 'cv', 'vimeo tribute]'],
             },
@@ -596,7 +593,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_id': 'user18948128',
                 'uploader': 'Jaime Marquínez Ferrándiz',
                 'duration': 10,
-                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d',
             },
             'params': {
                 'format': 'best[protocol=https]',
@@ -633,7 +630,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'description': str,  # FIXME: Dynamic SEO spam description
                 'upload_date': '20150209',
                 'timestamp': 1423518307,
-                'thumbnail': 'https://i.vimeocdn.com/video/default_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/default',
                 'duration': 10,
                 'like_count': int,
                 'uploader_url': 'https://vimeo.com/user20132939',
@@ -666,7 +663,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'license': 'by-nc',
                 'duration': 159,
                 'comment_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/562802436-585eeb13b5020c6ac0f171a2234067938098f84737787df05ff0d767f6d54ee9-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/562802436-585eeb13b5020c6ac0f171a2234067938098f84737787df05ff0d767f6d54ee9-d',
                 'like_count': int,
                 'uploader_url': 'https://vimeo.com/aliniamedia',
                 'release_date': '20160329',
@@ -686,7 +683,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader': 'Firework Champions',
                 'upload_date': '20150910',
                 'timestamp': 1441901895,
-                'thumbnail': 'https://i.vimeocdn.com/video/534715882-6ff8e4660cbf2fea68282876d8d44f318825dfe572cc4016e73b3266eac8ae3a-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/534715882-6ff8e4660cbf2fea68282876d8d44f318825dfe572cc4016e73b3266eac8ae3a-d',
                 'uploader_url': 'https://vimeo.com/fireworkchampions',
                 'tags': 'count:6',
                 'duration': 229,
@@ -715,7 +712,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'duration': 336,
                 'comment_count': int,
                 'view_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/541243181-b593db36a16db2f0096f655da3f5a4dc46b8766d77b0f440df937ecb0c418347-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/541243181-b593db36a16db2f0096f655da3f5a4dc46b8766d77b0f440df937ecb0c418347-d',
                 'like_count': int,
                 'uploader_url': 'https://vimeo.com/karimhd',
                 'channel_url': 'https://vimeo.com/channels/staffpicks',
@@ -740,7 +737,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'release_timestamp': 1627621014,
                 'duration': 976,
                 'comment_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/1202249320-4ddb2c30398c0dc0ee059172d1bd5ea481ad12f0e0e3ad01d2266f56c744b015-d_1280',
+                'thumbnail': 'https://i.vimeocdn.com/video/1202249320-4ddb2c30398c0dc0ee059172d1bd5ea481ad12f0e0e3ad01d2266f56c744b015-d',
                 'like_count': int,
                 'uploader_url': 'https://vimeo.com/txwestcapital',
                 'release_date': '20210730',
@@ -764,7 +761,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader': 'Alex Howard',
                 'uploader_id': 'user54729178',
                 'uploader_url': 'https://vimeo.com/user54729178',
-                'thumbnail': r're:https://i\.vimeocdn\.com/video/1520099929-[\da-f]+-d_1280',
+                'thumbnail': r're:https://i\.vimeocdn\.com/video/1520099929-[\da-f]+-d',
                 'duration': 2636,
                 'chapters': [
                     {'start_time': 0, 'end_time': 10, 'title': '<Untitled Chapter 1>'},
@@ -807,7 +804,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'like_count': int,
                 'view_count': int,
                 'comment_count': int,
-                'thumbnail': r're:https://i\.vimeocdn\.com/video/1018638656-[\da-f]+-d_1280',
+                'thumbnail': r're:https://i\.vimeocdn\.com/video/1018638656-[\da-f]+-d',
             },
             # 'params': {'format': 'Original'},
             'expected_warnings': ['Failed to parse XML: not well-formed'],
@@ -824,7 +821,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_id': 'rajavirdi',
                 'uploader_url': 'https://vimeo.com/rajavirdi',
                 'duration': 309,
-                'thumbnail': r're:https://i\.vimeocdn\.com/video/1716727772-[\da-f]+-d_1280',
+                'thumbnail': r're:https://i\.vimeocdn\.com/video/1716727772-[\da-f]+-d',
             },
             # 'params': {'format': 'source'},
             'expected_warnings': ['Failed to parse XML: not well-formed'],

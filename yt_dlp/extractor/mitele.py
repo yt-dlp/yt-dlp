@@ -1,5 +1,7 @@
 from .telecinco import TelecincoBaseIE
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     int_or_none,
     parse_iso8601,
 )
@@ -79,7 +81,17 @@ class MiTeleIE(TelecincoBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+
+        try:  # yt-dlp's default user-agents are too old and blocked by akamai
+            webpage = self._download_webpage(url, display_id, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:136.0) Gecko/20100101 Firefox/136.0',
+            })
+        except ExtractorError as e:
+            if not isinstance(e.cause, HTTPError) or e.cause.status != 403:
+                raise
+            # Retry with impersonation if hardcoded UA is insufficient to bypass akamai
+            webpage = self._download_webpage(url, display_id, impersonate=True)
+
         pre_player = self._search_json(
             r'window\.\$REACTBASE_STATE\.prePlayer_mtweb\s*=',
             webpage, 'Pre Player', display_id)['prePlayer']

@@ -28,6 +28,12 @@ class NRKBaseIE(InfoExtractor):
         )/'''
 
     def _extract_nrk_formats(self, asset_url, video_id):
+        asset_url = update_url_query(asset_url, {
+            # Remove 'adap' to return all streams (known values are: small, large, small_h265, large_h265)
+            'adap': [],
+            # Disable subtitles since they are fetched separately
+            's': 0,
+        })
         if re.match(r'https?://[^/]+\.akamaihd\.net/i/', asset_url):
             return self._extract_akamai_formats(asset_url, video_id)
         asset_url = re.sub(r'(?:bw_(?:low|high)=\d+|no_audio_only)&?', '', asset_url)
@@ -59,7 +65,10 @@ class NRKBaseIE(InfoExtractor):
         return self._download_json(
             urljoin('https://psapi.nrk.no/', path),
             video_id, note or f'Downloading {item} JSON',
-            fatal=fatal, query=query)
+            fatal=fatal, query=query, headers={
+                # Needed for working stream URLs, see https://github.com/yt-dlp/yt-dlp/issues/12192
+                'Accept': 'application/vnd.nrk.psapi+json; version=9; player=tv-player; device=player-core',
+            })
 
 
 class NRKIE(NRKBaseIE):
@@ -78,13 +87,17 @@ class NRKIE(NRKBaseIE):
     _TESTS = [{
         # video
         'url': 'http://www.nrk.no/video/PS*150533',
-        'md5': 'f46be075326e23ad0e524edfcb06aeb6',
+        'md5': '2b88a652ad2e275591e61cf550887eec',
         'info_dict': {
             'id': '150533',
             'ext': 'mp4',
             'title': 'Dompap og andre fugler i Piip-Show',
             'description': 'md5:d9261ba34c43b61c812cb6b0269a5c8f',
             'duration': 262,
+            'upload_date': '20140325',
+            'thumbnail': r're:^https?://gfx\.nrk\.no/.*$',
+            'timestamp': 1395751833,
+            'alt_title': 'md5:d9261ba34c43b61c812cb6b0269a5c8f',
         },
     }, {
         # audio
@@ -96,6 +109,10 @@ class NRKIE(NRKBaseIE):
             'title': 'Slik høres internett ut når du er blind',
             'description': 'md5:a621f5cc1bd75c8d5104cb048c6b8568',
             'duration': 20,
+            'timestamp': 1398429565,
+            'alt_title': 'Cathrine Lie Wathne er blind, og bruker hurtigtaster for å navigere seg rundt på ulike nettsider.',
+            'thumbnail': 'https://gfx.nrk.no/urxQMSXF-WnbfjBH5ke2igLGyN27EdJVWZ6FOsEAclhA',
+            'upload_date': '20140425',
         },
     }, {
         'url': 'nrk:ecc1b952-96dc-4a98-81b9-5296dc7a98d9',
@@ -153,7 +170,7 @@ class NRKIE(NRKBaseIE):
                     return self._call_api(f'playback/{item}/{video_id}', video_id, item, query=query)
                 raise
 
-        # known values for preferredCdn: akamai, iponly, minicdn and telenor
+        # known values for preferredCdn: akamai, globalconnect and telenor
         manifest = call_playback_api('manifest', {'preferredCdn': 'akamai'})
 
         video_id = try_get(manifest, lambda x: x['id'], str) or video_id
@@ -172,8 +189,6 @@ class NRKIE(NRKBaseIE):
             format_url = url_or_none(asset.get('url'))
             if not format_url:
                 continue
-            # Remove the 'adap' query parameter
-            format_url = update_url_query(format_url, {'adap': []})
             asset_format = (asset.get('format') or '').lower()
             if asset_format == 'hls' or determine_ext(format_url) == 'm3u8':
                 formats.extend(self._extract_nrk_formats(format_url, video_id))
@@ -310,6 +325,13 @@ class NRKTVIE(InfoExtractor):
                     'ext': 'vtt',
                 }],
             },
+            'upload_date': '20170627',
+            'timestamp': 1498591822,
+            'thumbnail': 'https://gfx.nrk.no/myRSc4vuFlahB60P3n6swwRTQUZI1LqJZl9B7icZFgzA',
+            'alt_title': 'md5:46923a6e6510eefcce23d5ef2a58f2ce',
+        },
+        'params': {
+            'skip_download': True,
         },
     }, {
         'url': 'https://tv.nrk.no/serie/20-spoersmaal-tv/MUHH48000314/23-05-2014',
@@ -324,6 +346,13 @@ class NRKTVIE(InfoExtractor):
             'series': '20 spørsmål',
             'episode': '23. mai 2014',
             'age_limit': 0,
+            'timestamp': 1584593700,
+            'thumbnail': 'https://gfx.nrk.no/u7uCe79SEfPVGRAGVp2_uAZnNc4mfz_kjXg6Bgek8lMQ',
+            'season_id': '126936',
+            'upload_date': '20200319',
+            'season': 'Season 2014',
+            'season_number': 2014,
+            'episode_number': 3,
         },
     }, {
         'url': 'https://tv.nrk.no/program/mdfp15000514',
