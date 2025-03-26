@@ -5126,6 +5126,7 @@ class _UnsafeExtensionError(Exception):
         'vid',
         'vob',
         'vp9',
+        'panobf1',
 
         # audio
         *MEDIA_EXTENSIONS.audio,
