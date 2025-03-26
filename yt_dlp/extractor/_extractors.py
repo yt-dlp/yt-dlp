@@ -683,6 +683,7 @@ from .foxnews import (
 )
 from .foxsports import FoxSportsIE
 from .fptplay import FptplayIE
+from .france24 import France24IE
 from .franceinter import FranceInterIE
 from .francetv import (
     FranceTVIE,
