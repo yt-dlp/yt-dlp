@@ -9,32 +9,32 @@ class IvooxIE(InfoExtractor):
         r'https?://go\.ivoox\.com/rf/(?P<id>[0-9]+)',
     )
     _TESTS = [
-    {
-        'url': 'https://www.ivoox.com/dex-08x30-rostros-del-mal-los-asesinos-en-audios-mp3_rf_143594959_1.html',
-        'md5': 'f3cc6b8db8995e0c95604deb6a8f0f2f',
-        'info_dict': {
-            # For videos, only the 'id' and 'ext' fields are required to RUN the test:
-            'id': '143594959',
-            'ext': 'mp3',
-            'timestamp': 1742727600,
-            'author': 'Santiago Camacho',
-            'channel': 'DIAS EXTRAÑOS con Santiago Camacho',
-            'title': 'DEx 08x30 Rostros del mal: Los asesinos en serie que aterrorizaron España',
+        {
+            'url': 'https://www.ivoox.com/dex-08x30-rostros-del-mal-los-asesinos-en-audios-mp3_rf_143594959_1.html',
+            'md5': 'f3cc6b8db8995e0c95604deb6a8f0f2f',
+            'info_dict': {
+                # For videos, only the 'id' and 'ext' fields are required to RUN the test:
+                'id': '143594959',
+                'ext': 'mp3',
+                'timestamp': 1742727600,
+                'author': 'Santiago Camacho',
+                'channel': 'DIAS EXTRAÑOS con Santiago Camacho',
+                'title': 'DEx 08x30 Rostros del mal: Los asesinos en serie que aterrorizaron España',
+            },
         },
-    },
-    {
-        'url': 'https://go.ivoox.com/rf/143594959',
-        'md5': 'f3cc6b8db8995e0c95604deb6a8f0f2f',
-        'info_dict': {
-            # For videos, only the 'id' and 'ext' fields are required to RUN the test:
-            'id': '143594959',
-            'ext': 'mp3',
-            'timestamp': 1742727600,
-            'author': 'Santiago Camacho',
-            'channel': 'DIAS EXTRAÑOS con Santiago Camacho',
-            'title': 'DEx 08x30 Rostros del mal: Los asesinos en serie que aterrorizaron España',
+        {
+            'url': 'https://go.ivoox.com/rf/143594959',
+            'md5': 'f3cc6b8db8995e0c95604deb6a8f0f2f',
+            'info_dict': {
+                # For videos, only the 'id' and 'ext' fields are required to RUN the test:
+                'id': '143594959',
+                'ext': 'mp3',
+                'timestamp': 1742727600,
+                'author': 'Santiago Camacho',
+                'channel': 'DIAS EXTRAÑOS con Santiago Camacho',
+                'title': 'DEx 08x30 Rostros del mal: Los asesinos en serie que aterrorizaron España',
+            },
         },
-    },
     ]
 
     def _real_extract(self, url):
@@ -49,7 +49,7 @@ class IvooxIE(InfoExtractor):
         title = self._html_search_regex(r'data-prm-title="(.+?)"', webpage, 'title')
 
         # Extract the download URL
-        headers={
+        headers = {
             'Accept': 'application/json, text/plain, */*',
             'Accept-Encoding': 'identity',
             'Origin': 'https://www.ivoox.com',
