@@ -1995,7 +1995,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             res = self._parse_sig_js(code, player_url)
             test_string = ''.join(map(chr, range(len(example_sig))))
             cache_spec = [ord(c) for c in res(test_string)]
-            self.cache.store('youtube-sigfuncs', func_id, cache_spec)
+            self.cache.store('youtube-sigfuncs', func_id, cache_spec, min_ver='2025.03.27')
 
         return lambda s: ''.join(s[i] for i in cache_spec)
 
@@ -2091,7 +2091,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if func_code := self._player_cache.get(cache_id):
             return func_code
 
-        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.03.26')
+        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.03.27')
         if func_code:
             self._player_cache[cache_id] = func_code
 
