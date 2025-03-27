@@ -357,7 +357,7 @@ def t_factory(name, sig_func, url_pattern):
         test_id = re.sub(r'[/.-]', '_', m.group('id') or m.group('compat_id'))
 
         def test_func(self):
-            basename = f'player-{name}-{test_id}.js'
+            basename = f'player-{test_id}.js'
             fn = os.path.join(self.TESTDATA_DIR, basename)
 
             if not os.path.exists(fn):
