@@ -707,7 +707,7 @@ class JSInterpreter:
                 if obj is NO_DEFAULT:
                     if variable not in self._objects:
                         try:
-                            self._objects[variable] = self.extract_object(variable)
+                            self._objects[variable] = self.extract_object(variable, local_vars)
                         except self.Exception:
                             if not nullish:
                                 raise
@@ -847,7 +847,7 @@ class JSInterpreter:
             raise self.Exception('Cannot return from an expression', expr)
         return ret
 
-    def extract_object(self, objname):
+    def extract_object(self, objname, *global_stack):
         _FUNC_NAME_RE = r'''(?:[a-zA-Z$0-9]+|"[a-zA-Z$0-9]+"|'[a-zA-Z$0-9]+')'''
         obj = {}
         obj_m = re.search(
@@ -869,7 +869,8 @@ class JSInterpreter:
         for f in fields_m:
             argnames = f.group('args').split(',')
             name = remove_quotes(f.group('key'))
-            obj[name] = function_with_repr(self.build_function(argnames, f.group('code')), f'F<{name}>')
+            obj[name] = function_with_repr(
+                self.build_function(argnames, f.group('code'), *global_stack), f'F<{name}>')
 
         return obj
 
