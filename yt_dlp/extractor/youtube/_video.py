@@ -1761,10 +1761,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     ]
 
     _PLAYER_JS_VARIANT_MAP = {
-        'base': '/s/player/{}/player_ias.vflset/en_US/base.js',
+        'main': '/s/player/{}/player_ias.vflset/en_US/base.js',
         'tce': '/s/player/{}/player_ias_tce.vflset/en_US/base.js',
         'tv': '/s/player/{}/tv-player-ias.vflset/tv-player-ias.js',
-        'es6': '/s/player/{}/tv-player-es6.vflset/tv-player-es6.js',
+        'tv_es6': '/s/player/{}/tv-player-es6.vflset/tv-player-es6.js',
         'phone': '/s/player/{}/player-plasma-ias-phone-en_US.vflset/base.js',
         'tablet': '/s/player/{}/player-plasma-ias-tablet-en_US.vflset/base.js',
     }
