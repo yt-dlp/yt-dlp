@@ -2236,7 +2236,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         _, varname, array_code = self._extract_player_js_global_var(jscode, player_url)
         jsi = JSInterpreter(array_code)
         interpret_global_var = self._cached(jsi.interpret_expression, 'js global list', player_url)
-        return varname, interpret_global_var(array_code, {}, allow_recursion=1)
+        return varname, interpret_global_var(array_code, {}, allow_recursion=10)
 
     def _fixup_n_function_code(self, argnames, nsig_code, jscode, player_url):
         varcode, varname, _ = self._extract_player_js_global_var(jscode, player_url)
