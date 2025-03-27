@@ -43,17 +43,6 @@ class PartiIE(InfoExtractor):
         if not data:
             raise Exception('No data!')
 
-        is_live = False
-        viewer_count = 0
-        if 'stream' in data:
-            is_live = data['stream'] is not None
-            if is_live:
-                viewer_count = data['stream']['viewer_count']
-
-        channel = data['channel_info']['channel']
-        auth_token = channel['playback_auth_token']
-        base_url = channel['playback_url']
-
         extracted = traverse_obj(data, {
             'base_url': ('channel_info', 'channel', 'playback_url', {str}),
             'auth_token': ('channel_info', 'channel', 'playback_auth_token', {str}),
