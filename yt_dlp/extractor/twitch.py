@@ -42,10 +42,10 @@ class TwitchBaseIE(InfoExtractor):
         'CollectionSideBar': '27111f1b382effad0b6def325caef1909c733fe6a4fbabf54f8d491ef2cf2f14',
         'FilterableVideoTower_Videos': 'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
         'ClipsCards__User': 'b73ad2bfaecfd30a9e6c28fada15bd97032c83ec77a0440766a56fe0bd632777',
+        'ShareClipRenderStatus': 'f130048a462a0ac86bb54d653c968c514e9ab9ca94db52368c1179e97b0f16eb',
         'ChannelCollectionsContent': '447aec6a0cc1e8d0a8d7732d47eb0762c336a2294fdb009e9c9d854e49d484b9',
         'StreamMetadata': 'a647c2a13599e5991e175155f798ca7f1ecddde73f7f341f39009c14dbf59962',
         'ComscoreStreamingQuery': 'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
-        'VideoAccessToken_Clip': '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11',
         'VideoPreviewOverlay': '3006e77e51b128d838fa4e835723ca4dc9a05c5efd4466c1085215c6e437e65c',
         'VideoMetadata': '49b5b8f268cdeb259d75b58dcb0c1a748e3b575003448a2333dc5cdafd49adad',
         'VideoPlayer_ChapterSelectButtonVideo': '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
@@ -1083,16 +1083,44 @@ class TwitchClipsIE(TwitchBaseIE):
         'url': 'https://clips.twitch.tv/FaintLightGullWholeWheat',
         'md5': '761769e1eafce0ffebfb4089cb3847cd',
         'info_dict': {
-            'id': '42850523',
+            'id': '396245304',
             'display_id': 'FaintLightGullWholeWheat',
             'ext': 'mp4',
             'title': 'EA Play 2016 Live from the Novo Theatre',
+            'duration': 32,
+            'view_count': int,
             'thumbnail': r're:^https?://.*\.jpg',
             'timestamp': 1465767393,
             'upload_date': '20160612',
-            'creator': 'EA',
+            'creators': ['EA'],
+            'channel': 'EA',
+            'channel_id': '25163635',
+            'channel_is_verified': False,
+            'channel_follower_count': int,
             'uploader': 'stereotype_',
             'uploader_id': '43566419',
+        },
+    }, {
+        'url': 'https://www.twitch.tv/xqc/clip/CulturedAmazingKuduDatSheffy-TiZ_-ixAGYR3y2Uy',
+        'md5': 'e90fe616b36e722a8cfa562547c543f0',
+        'info_dict': {
+            'id': '3207364882',
+            'display_id': 'CulturedAmazingKuduDatSheffy-TiZ_-ixAGYR3y2Uy',
+            'ext': 'mp4',
+            'title': 'A day in the life of xQc',
+            'duration': 60,
+            'view_count': int,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'timestamp': 1742869615,
+            'upload_date': '20250325',
+            'creators': ['xQc'],
+            'channel': 'xQc',
+            'channel_id': '71092938',
+            'channel_is_verified': True,
+            'channel_follower_count': int,
+            'uploader': 'okSTFUdude',
+            'uploader_id': '744085721',
+            'categories': ['Just Chatting'],
         },
     }, {
         # multiple formats
@@ -1116,16 +1144,14 @@ class TwitchClipsIE(TwitchBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        slug = self._match_id(url)
 
         clip = self._download_gql(
-            video_id, [{
-                'operationName': 'VideoAccessToken_Clip',
-                'variables': {
-                    'slug': video_id,
-                },
+            slug, [{
+                'operationName': 'ShareClipRenderStatus',
+                'variables': {'slug': slug},
             }],
-            'Downloading clip access token GraphQL')[0]['data']['clip']
+            'Downloading clip GraphQL')[0]['data']['clip']
 
         if not clip:
             raise ExtractorError(
@@ -1135,81 +1161,68 @@ class TwitchClipsIE(TwitchBaseIE):
             'sig': clip['playbackAccessToken']['signature'],
             'token': clip['playbackAccessToken']['value'],
         }
-
-        data = self._download_base_gql(
-            video_id, {
-                'query': '''{
-  clip(slug: "%s") {
-    broadcaster {
-      displayName
-    }
-    createdAt
-    curator {
-      displayName
-      id
-    }
-    durationSeconds
-    id
-    tiny: thumbnailURL(width: 86, height: 45)
-    small: thumbnailURL(width: 260, height: 147)
-    medium: thumbnailURL(width: 480, height: 272)
-    title
-    videoQualities {
-      frameRate
-      quality
-      sourceURL
-    }
-    viewCount
-  }
-}''' % video_id}, 'Downloading clip GraphQL', fatal=False)  # noqa: UP031
-
-        if data:
-            clip = try_get(data, lambda x: x['data']['clip'], dict) or clip
+        asset_default = traverse_obj(clip, ('assets', 0), {})
+        asset_portrait = traverse_obj(clip, ('assets', 1), {})
+        game = traverse_obj(clip, ('game', 'displayName'))
 
         formats = []
-        for option in clip.get('videoQualities', []):
-            if not isinstance(option, dict):
-                continue
-            source = url_or_none(option.get('sourceURL'))
-            if not source:
-                continue
-            formats.append({
-                'url': update_url_query(source, access_query),
-                'format_id': option.get('quality'),
-                'height': int_or_none(option.get('quality')),
-                'fps': int_or_none(option.get('frameRate')),
-            })
+        for quality in traverse_obj(asset_default, ('videoQualities'), default=[]):
+            if source := traverse_obj(quality, ('sourceURL', {url_or_none})):
+                formats.append({
+                    'url': update_url_query(source, access_query),
+                    'format_id': quality.get('quality'),
+                    'height': int_or_none(quality.get('quality')),
+                    'fps': float_or_none(quality.get('frameRate')),
+                    'aspect_ratio': float_or_none(asset_default.get('aspectRatio')),
+                })
+
+        for i, quality in enumerate(traverse_obj(asset_portrait, ('videoQualities'), default=[])):
+            if source := traverse_obj(quality, ('sourceURL', {url_or_none})):
+                formats.append({
+                    'url': update_url_query(source, access_query),
+                    'format_id': 'portrait-' + ('best' if i == 0 else quality.get('quality')),
+                    'height': int_or_none(quality.get('quality')),
+                    'fps': float_or_none(quality.get('frameRate')),
+                    'aspect_ratio': float_or_none(asset_portrait.get('aspectRatio')),
+                    'quality': -1,
+                })
 
         thumbnails = []
-        for thumbnail_id in ('tiny', 'small', 'medium'):
-            thumbnail_url = clip.get(thumbnail_id)
-            if not thumbnail_url:
-                continue
-            thumb = {
-                'id': thumbnail_id,
-                'url': thumbnail_url,
-            }
-            mobj = re.search(r'-(\d+)x(\d+)\.', thumbnail_url)
-            if mobj:
-                thumb.update({
-                    'height': int(mobj.group(2)),
-                    'width': int(mobj.group(1)),
-                })
-            thumbnails.append(thumb)
+        thumb_default = clip.get('thumbnailURL')
+        thumb_asset_default = asset_default.get('thumbnailURL')
+        thumbnails.append({
+            'id': 'default',
+            'url': thumb_asset_default,
+        })
+        if thumb_asset_default != thumb_default:
+            thumbnails.append({
+                'id': 'small',
+                'url': thumb_default,
+            })
+        if thumb_asset_portrait := asset_portrait.get('thumbnailURL'):
+            thumbnails.append({
+                'id': 'portrait',
+                'url': thumb_asset_portrait,
+            })
 
         old_id = self._search_regex(r'%7C(\d+)(?:-\d+)?.mp4', formats[-1]['url'], 'old id', default=None)
 
         return {
-            'id': clip.get('id') or video_id,
+            'id': clip.get('id') or slug,
             '_old_archive_ids': [make_archive_id(self, old_id)] if old_id else None,
-            'display_id': video_id,
+            'display_id': slug,
             'title': clip.get('title'),
             'formats': formats,
-            'duration': int_or_none(clip.get('durationSeconds')),
-            'view_count': int_or_none(clip.get('viewCount')),
-            'timestamp': unified_timestamp(clip.get('createdAt')),
+            'duration': traverse_obj(clip, ('durationSeconds', {int_or_none})),
+            'view_count': traverse_obj(clip, ('viewCount', {int_or_none})),
+            'timestamp': traverse_obj(clip, ('createdAt', {parse_iso8601})),
             'thumbnails': thumbnails,
-            'creator': try_get(clip, lambda x: x['broadcaster']['displayName'], str),
-            'uploader': try_get(clip, lambda x: x['curator']['displayName'], str),
-            'uploader_id': try_get(clip, lambda x: x['curator']['id'], str),
+            'creator': traverse_obj(clip, ('broadcaster', 'displayName')),
+            'channel': traverse_obj(clip, ('broadcaster', 'displayName')),
+            'channel_id': traverse_obj(clip, ('broadcaster', 'id')),
+            'channel_follower_count': traverse_obj(clip, ('broadcaster', 'followers', 'totalCount', {int_or_none})),
+            'channel_is_verified': traverse_obj(clip, ('broadcaster', 'isPartner')),
+            'uploader': traverse_obj(clip, ('curator', 'displayName')),
+            'uploader_id': traverse_obj(clip, ('curator', 'id')),
+            'categories': [game] if game else None,
         }
