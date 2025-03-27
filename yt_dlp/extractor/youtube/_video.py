@@ -1952,7 +1952,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         js_variant = self._configuration_arg('force_js_variant', [''])[0]
         if js_variant not in ('false', ''):
             if js_variant not in self._PLAYER_JS_VARIANT_MAP:
-                raise ExtractorError(f'Invalid JS variant: {js_variant}', expected=True)
+                raise ExtractorError(
+                    f'Invalid JS variant name "{js_variant}" requested by extractor argument', expected=True)
             player_id = self._extract_player_info(player_url)
             self.write_debug(f'Forcing {js_variant} variant for player {player_id}')
             player_url = self._PLAYER_JS_VARIANT_MAP[js_variant].format(player_id)
