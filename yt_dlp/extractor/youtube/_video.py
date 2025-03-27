@@ -2150,6 +2150,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return ret
 
     def _extract_n_function_name(self, jscode, player_url=None):
+        _, varname, global_arr = self._extract_player_js_global_var(jscode)
+        if global_arr:
+            jsi = JSInterpreter(global_arr)
+            global_list = jsi.interpret_expression(global_arr, {}, allow_recursion=100)
+            debug_str = traverse_obj(global_list, (lambda _, v: v.endswith('_w8_'), any))
+            if debug_str and (funcname := self._search_regex(
+                    r'''(?xs)
+                        [;\n](?P<funcname>[a-zA-Z0-9_$]+)\s*=\s*function\s*\([a-zA-Z0-9_$]+\)\s*\{
+                        (?:(?!\};\s*[a-zA-Z0-9_$]+\s*=\s*function).)+
+                        \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
+                        \{\s*return\s+%s\[%i\][^}]+\}\s*return\s+[^};]+\};
+                    ''' % (re.escape(varname), global_list.index(debug_str)),
+                    jscode, 'n function name', group='funcname', default=None)):
+                return funcname
+
         # Examples (with placeholders nfunc, narray, idx):
         # *  .get("n"))&&(b=nfunc(b)
         # *  .get("n"))&&(b=narray[idx](b)
@@ -2179,7 +2194,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not funcname:
             self.report_warning(join_nonempty(
                 'Falling back to generic n function search',
-                player_url and f'         player = {player_url}', delim='\n'))
+                player_url and f'         player = {player_url}', delim='\n'), only_once=True)
             return self._search_regex(
                 r'''(?xs)
                 ;\s*(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
