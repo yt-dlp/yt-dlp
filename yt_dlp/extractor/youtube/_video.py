@@ -2229,6 +2229,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             code = global_var + '; ' + code
         else:
             self.write_debug('No global array variable found in player JS')
+            varname = 'dlp_wins'
         return argnames, re.sub(
             rf';\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(?:(["\'])undefined\1|{re.escape(varname)}\[\d+\])\s*\)\s*return\s+{re.escape(argnames[0])};',
             ';', code)
