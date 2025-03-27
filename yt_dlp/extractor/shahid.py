@@ -1,6 +1,7 @@
 import json
 import math
 import re
+import os
 
 from .aws import AWSIE
 from ..networking.exceptions import HTTPError
@@ -16,8 +17,10 @@ from ..utils import (
 
 
 class ShahidBaseIE(AWSIE):
-    _AWS_PROXY_HOST = 'api2.shahid.net'
-    _AWS_API_KEY = '2RRtuMHx95aNI1Kvtn2rChEuwsCogUd4samGPjLh'
+    
+
+    'access_key': os.getenv("AWS_ACCESS_KEY"),
+    'secret_key': os.getenv("AWS_SECRET_KEY"),
     _VALID_URL_BASE = r'https?://shahid\.mbc\.net/[a-z]{2}/'
 
     def _handle_error(self, e):
