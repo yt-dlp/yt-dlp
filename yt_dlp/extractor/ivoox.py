@@ -2,6 +2,7 @@ import datetime
 
 from .common import InfoExtractor
 
+
 class IvooxIE(InfoExtractor):
     _VALID_URL = (
         r'https?://(?:www\.)?ivoox\.com/.*_rf_(?P<id>[0-9]+)_1\.html',
