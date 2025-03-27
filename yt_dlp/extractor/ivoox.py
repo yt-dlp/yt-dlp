@@ -1,11 +1,11 @@
+import datetime
+
 from .common import InfoExtractor
-from datetime import datetime
-import json
 
 class IvooxIE(InfoExtractor):
     _VALID_URL = (
         r'https?://(?:www\.)?ivoox\.com/.*_rf_(?P<id>[0-9]+)_1\.html',
-        r'https?://go\.ivoox\.com/rf/(?P<id>[0-9]+)'
+        r'https?://go\.ivoox\.com/rf/(?P<id>[0-9]+)',
     )
     _TESTS = [
     {
@@ -19,7 +19,7 @@ class IvooxIE(InfoExtractor):
             'author': 'Santiago Camacho',
             'channel': 'DIAS EXTRAÑOS con Santiago Camacho',
             'title': 'DEx 08x30 Rostros del mal: Los asesinos en serie que aterrorizaron España',
-        }
+        },
     },
     {
         'url': 'https://go.ivoox.com/rf/143594959',
@@ -32,7 +32,7 @@ class IvooxIE(InfoExtractor):
             'author': 'Santiago Camacho',
             'channel': 'DIAS EXTRAÑOS con Santiago Camacho',
             'title': 'DEx 08x30 Rostros del mal: Los asesinos en serie que aterrorizaron España',
-        }
+        },
     },
     ]
 
@@ -41,8 +41,8 @@ class IvooxIE(InfoExtractor):
         webpage = self._download_webpage(url, media_id)
 
         # Extract the podcast info
-        date = datetime.fromisoformat(self._html_search_regex(r'data-prm-pubdate="(.+?)"', webpage, 'title'))
-        timestamp = int(datetime.timestamp(date))
+        date = datetime.datetime.fromisoformat(self._html_search_regex(r'data-prm-pubdate="(.+?)"', webpage, 'title'))
+        timestamp = int(datetime.datetime.timestamp(date))
         author = self._html_search_regex(r'data-prm-author="(.+?)"', webpage, 'title')
         podcast = self._html_search_regex(r'data-prm-podname="(.+?)"', webpage, 'title')
         title = self._html_search_regex(r'data-prm-title="(.+?)"', webpage, 'title')
@@ -53,7 +53,7 @@ class IvooxIE(InfoExtractor):
             'Accept-Encoding': 'identity',
             'Origin': 'https://www.ivoox.com',
             'Referer': 'https://www.ivoox.com/',
-            'Priority': 'u=1, i'
+            'Priority': 'u=1, i',
         }
         metadata_url = f'https://vcore-web.ivoox.com/v1/public/audios/{media_id}/download-url'
         download_json = self._download_json(metadata_url, media_id, headers=headers)
@@ -66,8 +66,8 @@ class IvooxIE(InfoExtractor):
                 'url': url,
                 'ext': 'mp3',
                 'format_id': 'mp3_default',
-                'http_headers': headers
-            }
+                'http_headers': headers,
+            },
         ]
 
         return {
