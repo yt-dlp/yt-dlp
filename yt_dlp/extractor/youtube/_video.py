@@ -34,6 +34,7 @@ from ...utils import (
     clean_html,
     datetime_from_str,
     filesize_from_tbr,
+    filter_dict,
     float_or_none,
     format_field,
     get_first,
@@ -1991,7 +1992,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not cache_spec:
             code = self._load_player(video_id, player_url)
         if code:
-            res = self._parse_sig_js(code)
+            res = self._parse_sig_js(code, player_url)
             test_string = ''.join(map(chr, range(len(example_sig))))
             cache_spec = [ord(c) for c in res(test_string)]
             self.cache.store('youtube-sigfuncs', func_id, cache_spec)
@@ -2039,7 +2040,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f'    return {expr_code}\n')
         self.to_screen('Extracted signature function:\n' + code)
 
-    def _parse_sig_js(self, jscode):
+    def _parse_sig_js(self, jscode, player_url):
         # Examples where `sig` is funcname:
         # sig=function(a){a=a.split(""); ... ;return a.join("")};
         # ;c&&(c=sig(decodeURIComponent(c)),a.set(b,encodeURIComponent(c)));return a};
@@ -2063,12 +2064,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
              r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\('),
             jscode, 'Initial JS player signature function name', group='sig')
 
+        varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
         jsi = JSInterpreter(jscode)
-        global_var_map = {}
-        _, varname, value = self._extract_player_js_global_var(jscode)
-        if varname:
-            global_var_map[varname] = jsi.interpret_expression(value, {}, allow_recursion=100)
-        initial_function = jsi.extract_function(funcname, global_var_map)
+        initial_function = jsi.extract_function(funcname, filter_dict({varname: global_list}))
         return lambda s: initial_function([s])
 
     def _cached(self, func, *cache_id):
@@ -2150,20 +2148,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return ret
 
     def _extract_n_function_name(self, jscode, player_url=None):
-        _, varname, global_arr = self._extract_player_js_global_var(jscode)
-        if global_arr:
-            jsi = JSInterpreter(global_arr)
-            global_list = jsi.interpret_expression(global_arr, {}, allow_recursion=100)
-            debug_str = traverse_obj(global_list, (lambda _, v: v.endswith('_w8_'), any))
-            if debug_str and (funcname := self._search_regex(
-                    r'''(?xs)
-                        [;\n](?P<funcname>[a-zA-Z0-9_$]+)\s*=\s*function\s*\([a-zA-Z0-9_$]+\)\s*\{
-                        (?:(?!\};\s*[a-zA-Z0-9_$]+\s*=\s*function).)+
-                        \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
-                        \{\s*return\s+%s\[%i\][^}]+\}\s*return\s+[^};]+\};
-                    ''' % (re.escape(varname), global_list.index(debug_str)),
-                    jscode, 'n function name', group='funcname', default=None)):
-                return funcname
+        varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
+        if debug_str := traverse_obj(global_list, (lambda _, v: v.endswith('_w8_'), any)):
+            return self._search_regex(
+                r'''(?xs)
+                    [;\n](?:
+                        (?P<f>function\s+)|
+                        (?:var\s+)?
+                    )(?P<funcname>[a-zA-Z0-9_$]+)\s*(?(f)|=\s*function\s*)
+                    \((?P<argname>[a-zA-Z0-9_$]+)\)\s*\{
+                    (?:(?!\}[;\n]).)+
+                    \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
+                    \{\s*return\s+%s\[%d\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
+                ''' % (re.escape(varname), global_list.index(debug_str)),
+                jscode, 'nsig function name', group='funcname')
 
         # Examples (with placeholders nfunc, narray, idx):
         # *  .get("n"))&&(b=nfunc(b)
@@ -2207,9 +2205,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])\s*[,;]', jscode,
             f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
 
-    def _extract_player_js_global_var(self, jscode):
+    def _extract_player_js_global_var(self, jscode, player_url):
         """Returns tuple of strings: variable assignment code, variable name, variable value code"""
-        return self._search_regex(
+        extract_global_var = self._cached(self._search_regex, 'js global array', player_url)
+        varcode, varname, varvalue = extract_global_var(
             r'''(?x)
                 (?P<q1>["\'])use\s+strict(?P=q1);\s*
                 (?P<code>
@@ -2221,18 +2220,41 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     )
                 )[;,]
             ''', jscode, 'global variable', group=('code', 'name', 'value'), default=(None, None, None))
+        if not varcode:
+            self.write_debug(join_nonempty(
+                'No global array variable found in player JS',
+                player_url and f'        player = {player_url}', delim='\n'), only_once=True)
+        return varcode, varname, varvalue
 
-    def _fixup_n_function_code(self, argnames, code, full_code):
-        global_var, varname, _ = self._extract_player_js_global_var(full_code)
-        if global_var:
-            self.write_debug(f'Prepending n function code with global array variable "{varname}"')
-            code = global_var + '; ' + code
+    def _interpret_player_js_global_var(self, jscode, player_url):
+        """Returns tuple of: variable name string, variable value list"""
+        _, varname, array_code = self._extract_player_js_global_var(jscode, player_url)
+        jsi = JSInterpreter(array_code)
+        interpret_global_var = self._cached(jsi.interpret_expression, 'js global list', player_url)
+        return varname, interpret_global_var(array_code, {}, allow_recursion=1)
+
+    def _fixup_n_function_code(self, argnames, nsig_code, jscode, player_url):
+        varcode, varname, _ = self._extract_player_js_global_var(jscode, player_url)
+        if varcode and varname:
+            nsig_code = varcode + '; ' + nsig_code
+            _, global_list = self._interpret_player_js_global_var(jscode, player_url)
         else:
-            self.write_debug('No global array variable found in player JS')
             varname = 'dlp_wins'
-        return argnames, re.sub(
-            rf';\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(?:(["\'])undefined\1|{re.escape(varname)}\[\d+\])\s*\)\s*return\s+{re.escape(argnames[0])};',
-            ';', code)
+            global_list = []
+
+        undefined_idx = global_list.index('undefined') if 'undefined' in global_list else r'\d+'
+        fixed_code = re.sub(
+            rf'''(?x)
+                ;\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(?:
+                    (["\'])undefined\1|
+                    {re.escape(varname)}\[{undefined_idx}\]
+                )\s*\)\s*return\s+{re.escape(argnames[0])};
+            ''', ';', nsig_code)
+        if fixed_code == nsig_code:
+            self.write_debug(join_nonempty(
+                'No typeof statement found in nsig function code',
+                player_url and f'        player = {player_url}', delim='\n'), only_once=True)
+        return argnames, fixed_code
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
@@ -2246,7 +2268,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         func_name = self._extract_n_function_name(jscode, player_url=player_url)
 
         # XXX: Workaround for the global array variable and lack of `typeof` implementation
-        func_code = self._fixup_n_function_code(*jsi.extract_function_code(func_name), jscode)
+        func_code = self._fixup_n_function_code(*jsi.extract_function_code(func_name), jscode, player_url)
 
         return jsi, player_id, func_code
 

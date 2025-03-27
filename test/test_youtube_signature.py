@@ -327,26 +327,26 @@ def t_factory(name, sig_func, url_pattern):
                 urllib.request.urlretrieve(url, fn)
             with open(fn, encoding='utf-8') as testf:
                 jscode = testf.read()
-            self.assertEqual(sig_func(jscode, sig_input), expected_sig)
+            self.assertEqual(sig_func(jscode, sig_input, url), expected_sig)
 
         test_func.__name__ = f'test_{name}_js_{test_id}'
         setattr(TestSignature, test_func.__name__, test_func)
     return make_tfunc
 
 
-def signature(jscode, sig_input):
-    func = YoutubeIE(FakeYDL())._parse_sig_js(jscode)
+def signature(jscode, sig_input, player_url):
+    func = YoutubeIE(FakeYDL())._parse_sig_js(jscode, player_url)
     src_sig = (
         str(string.printable[:sig_input])
         if isinstance(sig_input, int) else sig_input)
     return func(src_sig)
 
 
-def n_sig(jscode, sig_input):
+def n_sig(jscode, sig_input, player_url):
     ie = YoutubeIE(FakeYDL())
-    funcname = ie._extract_n_function_name(jscode)
+    funcname = ie._extract_n_function_name(jscode, player_url=player_url)
     jsi = JSInterpreter(jscode)
-    func = jsi.extract_function_from_code(*ie._fixup_n_function_code(*jsi.extract_function_code(funcname), jscode))
+    func = jsi.extract_function_from_code(*ie._fixup_n_function_code(*jsi.extract_function_code(funcname), jscode, player_url))
     return func([sig_input])
 
 
