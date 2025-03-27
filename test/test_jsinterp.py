@@ -118,6 +118,7 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f(){var x = 20; x = 30 + 1; return x;}', 31)
         self._test('function f(){var x = 20; x += 30 + 1; return x;}', 51)
         self._test('function f(){var x = 20; x -= 30 + 1; return x;}', -11)
+        self._test('function f(){var x = 2; var y = ["a", "b"]; y[x%y["length"]]="z"; return y}', ["z", "b"])
 
     @unittest.skip('Not implemented')
     def test_comments(self):

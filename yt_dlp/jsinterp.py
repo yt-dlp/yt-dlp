@@ -188,6 +188,7 @@ _COMP_OPERATORS = {'===', '!==', '==', '!=', '<=', '>=', '<', '>'}
 _NAME_RE = r'[a-zA-Z_$][\w$]*'
 _MATCHING_PARENS = dict(zip(*zip('()', '{}', '[]')))
 _QUOTES = '\'"/'
+_NESTED_BRACKETS = r'[^[\]]+(?:\[[^[\]]+(?:\[[^\]]+\])?\])?'
 
 
 class JS_Undefined:
@@ -606,7 +607,7 @@ class JSInterpreter:
 
         m = re.match(fr'''(?x)
             (?P<assign>
-                (?P<out>{_NAME_RE})(?:\[(?P<index>[^\]]+?)\])?\s*
+                (?P<out>{_NAME_RE})(?:\[(?P<index>{_NESTED_BRACKETS})\])?\s*
                 (?P<op>{"|".join(map(re.escape, set(_OPERATORS) - _COMP_OPERATORS))})?
                 =(?!=)(?P<expr>.*)$
             )|(?P<return>
@@ -614,11 +615,8 @@ class JSInterpreter:
             )|(?P<attribute>
                 (?P<var>{_NAME_RE})(?:
                     (?P<nullish>\?)?\.(?P<member>[^(]+)|
-                    \[(?P<member2>[^[\]]+
-                        (?:\[[^[\]]+
-                            (?:\[[^\]]+\])?\]
-                        )?)
-                    \])\s*
+                    \[(?P<member2>{_NESTED_BRACKETS})\]
+                )\s*
             )|(?P<indexing>
                 (?P<in>{_NAME_RE})\[(?P<idx>.+)\]$
             )|(?P<function>
