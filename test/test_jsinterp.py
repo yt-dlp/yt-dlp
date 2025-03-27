@@ -443,6 +443,9 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f(){return "012345678".slice(-1, 1)}', '')
         self._test('function f(){return "012345678".slice(-3, -1)}', '67')
 
+    def test_splice(self):
+        self._test('function f(){var T = ["0", "1", "2"]; T["splice"](2, 1, "0")[0]; return T }', ['0', '1', '0'])
+
     def test_js_number_to_string(self):
         for test, radix, expected in [
             (0, None, '0'),

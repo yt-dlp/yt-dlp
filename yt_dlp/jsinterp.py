@@ -611,10 +611,16 @@ class JSInterpreter:
                 =(?!=)(?P<expr>.*)$
             )|(?P<return>
                 (?!if|return|true|false|null|undefined|NaN)(?P<name>{_NAME_RE})$
+            )|(?P<attribute>
+                (?P<var>{_NAME_RE})(?:
+                    (?P<nullish>\?)?\.(?P<member>[^(]+)|
+                    \[(?P<member2>[^[\]]+
+                        (?:\[[^[\]]+
+                            (?:\[[^\]]+\])?\]
+                        )?)
+                    \])\s*
             )|(?P<indexing>
                 (?P<in>{_NAME_RE})\[(?P<idx>.+)\]$
-            )|(?P<attribute>
-                (?P<var>{_NAME_RE})(?:(?P<nullish>\?)?\.(?P<member>[^(]+)|\[(?P<member2>[^\[\]]+(?:\[[^\[\]]+(?:\[[^\]]+\])?\])?)\])\s*
             )|(?P<function>
                 (?P<fname>{_NAME_RE})\((?P<args>.*)\)$
             )''', expr)
