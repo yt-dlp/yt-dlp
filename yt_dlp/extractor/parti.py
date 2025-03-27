@@ -2,11 +2,11 @@ import datetime
 
 from yt_dlp.utils._utils import UserNotLive
 
+from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     traverse_obj,
 )
-from .common import InfoExtractor
 
 
 class PartiBaseIE(InfoExtractor):
@@ -52,7 +52,7 @@ class PartiVideoIE(PartiBaseIE):
             'url': ('livestream_recording', {str}),
             'title': ('event_title', {str}),
             'upload_date': ('event_start_ts', {lambda ts: datetime.date.fromtimestamp(ts).strftime('%Y%m%d')}),
-            })
+        })
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -108,7 +108,7 @@ class PartiLivestreamIE(PartiBaseIE):
             'auth_token': ('channel_info', 'channel', 'playback_auth_token', {str}),
             'viewer_count': ('channel_info', 'stream', 'viewer_count', {int_or_none}),
             'is_live': ('channel_info', 'stream', {lambda x: x is not None}),
-            })
+        })
 
         base_url = extracted['base_url']
         auth_token = extracted['auth_token']
