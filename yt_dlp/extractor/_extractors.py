@@ -1492,6 +1492,7 @@ from .paramountplus import (
 )
 from .parler import ParlerIE
 from .parlview import ParlviewIE
+from .parti import PartiIE
 from .patreon import (
     PatreonCampaignIE,
     PatreonIE,
