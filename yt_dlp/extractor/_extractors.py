@@ -1501,6 +1501,7 @@ from .pbs import (
     PBSKidsIE,
 )
 from .pearvideo import PearVideoIE
+from .peatix import PeatixIE
 from .peekvids import (
     PeekVidsIE,
     PlayVidsIE,
