@@ -219,11 +219,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_filename('_BD_eEpuzXw', is_id=True), '_BD_eEpuzXw')
         self.assertEqual(sanitize_filename('N0Y__7-UOdI', is_id=True), 'N0Y__7-UOdI')
 
+    @unittest.mock.patch('sys.platform', 'win32')
     def test_sanitize_path(self):
-        with unittest.mock.patch('sys.platform', 'win32'):
-            self._test_sanitize_path()
-
-    def _test_sanitize_path(self):
         self.assertEqual(sanitize_path('abc'), 'abc')
         self.assertEqual(sanitize_path('abc/def'), 'abc\\def')
         self.assertEqual(sanitize_path('abc\\def'), 'abc\\def')
@@ -254,10 +251,8 @@ class TestUtil(unittest.TestCase):
 
         # Check with nt._path_normpath if available
         try:
-            import nt
-
-            nt_path_normpath = getattr(nt, '_path_normpath', None)
-        except Exception:
+            from nt import _path_normpath as nt_path_normpath
+        except ImportError:
             nt_path_normpath = None
 
         for test, expected in [
@@ -1265,6 +1260,7 @@ class TestUtil(unittest.TestCase):
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
+        self.assertEqual(js_to_json('{a: `${e("")}`}'), '{"a": "\\"e\\"(\\"\\")"}')
 
     def test_js_to_json_template_literal(self):
         self.assertEqual(js_to_json('`Hello ${name}`', {'name': '"world"'}), '"Hello world"')
