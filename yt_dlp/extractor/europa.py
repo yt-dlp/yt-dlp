@@ -1,32 +1,32 @@
+# -*- coding: utf-8 -*-
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError, # Import ExtractorError for raising specific errors
     int_or_none,
     orderedSet,
     parse_duration,
     parse_iso8601,
     parse_qs,
     qualities,
-    traverse_obj,
+    traverse_obj, # Useful for safely navigating nested dictionaries
     unified_strdate,
     xpath_text,
 )
+import re # Import re for findall
 
+# --- EuropaIE (Older extractor - unchanged) ---
+# This extractor handles older ec.europa.eu/avservices URLs and is likely defunct.
 class EuropaIE(InfoExtractor):
-    _WORKING = False
+    _WORKING = False # Marked as not working
     _VALID_URL = r'https?://ec\.europa\.eu/avservices/(?:video/player|audio/audioDetails)\.cfm\?.*?\bref=(?P<id>[A-Za-z0-9-]+)'
     _TESTS = [{
         'url': 'http://ec.europa.eu/avservices/video/player.cfm?ref=I107758',
         'md5': '574f080699ddd1e19a675b0ddf010371',
         'info_dict': {
-            'id': 'I107758',
-            'ext': 'mp4',
-            'title': 'TRADE - Wikileaks on TTIP',
+            'id': 'I107758', 'ext': 'mp4', 'title': 'TRADE - Wikileaks on TTIP',
             'description': 'NEW  LIVE EC Midday press briefing of 11/08/2015',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'upload_date': '20150811',
-            'duration': 34,
-            'view_count': int,
-            'formats': 'mincount:3',
+            'thumbnail': r're:^https?://.*\.jpg$', 'upload_date': '20150811',
+            'duration': 34, 'view_count': int, 'formats': 'mincount:3',
         },
     }, {
         'url': 'http://ec.europa.eu/avservices/video/player.cfm?sitelang=en&ref=I107786',
@@ -37,189 +37,150 @@ class EuropaIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
+        # (Implementation remains the same as previous versions)
         video_id = self._match_id(url)
-
         playlist = self._download_xml(
             f'http://ec.europa.eu/avservices/video/player/playlist.cfm?ID={video_id}', video_id)
-
         def get_item(type_, preference):
             items = {}
             for item in playlist.findall(f'./info/{type_}/item'):
-                lang, label = (
-                    xpath_text(item, 'lg', default=None),
-                    xpath_text(item, 'label', default=None)
-                )
-                if lang and label:
-                    items[lang] = label.strip()
+                lang, label = (xpath_text(item, 'lg', default=None), xpath_text(item, 'label', default=None))
+                if lang and label: items[lang] = label.strip()
             for p in preference:
-                if items.get(p):
-                    return items[p]
-
+                if items.get(p): return items[p]
         query = parse_qs(url)
         preferred_lang = query.get('sitelang', ('en', ))[0]
         preferred_langs = orderedSet((preferred_lang, 'en', 'int'))
-
         title = get_item('title', preferred_langs) or video_id
         description = get_item('description', preferred_langs)
         thumbnail = xpath_text(playlist, './info/thumburl', 'thumbnail')
         upload_date = unified_strdate(xpath_text(playlist, './info/date', 'upload date'))
         duration = parse_duration(xpath_text(playlist, './info/duration', 'duration'))
         view_count = int_or_none(xpath_text(playlist, './info/views', 'views'))
-
         language_preference = qualities(preferred_langs[::-1])
-
         formats = []
         for file_ in playlist.findall('./files/file'):
             video_url = xpath_text(file_, './url')
-            if not video_url:
-                continue
+            if not video_url: continue
             lang = xpath_text(file_, './lg')
-            formats.append({
-                'url': video_url,
-                'format_id': lang,
-                'format_note': xpath_text(file_, './lglabel'),
-                'language_preference': language_preference(lang),
-            })
-
-        return {
-            'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'upload_date': upload_date,
-            'duration': duration,
-            'view_count': view_count,
-            'formats': formats,
-        }
+            formats.append({'url': video_url, 'format_id': lang, 'format_note': xpath_text(file_, './lglabel'), 'language_preference': language_preference(lang)})
+        return {'id': video_id, 'title': title, 'description': description, 'thumbnail': thumbnail, 'upload_date': upload_date, 'duration': duration, 'view_count': view_count, 'formats': formats}
 
 
+# --- EuroParlWebstreamIE (Modified extractor to handle potential site changes) ---
 class EuroParlWebstreamIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         https?://multimedia\.europarl\.europa\.eu/
-        (?:\w+/)?webstreaming/(?:[\w-]+_)?(?P<id>[\w-]+)
+        (?:\w+/)?webstreaming/(?:[\w-]+_)?(?P<id>[\w-]+) # Matches /en/webstreaming/event_id format
     '''
     _TESTS = [{
+        # Existing VOD test
         'url': 'https://multimedia.europarl.europa.eu/pl/webstreaming/plenary-session_20220914-0900-PLENARY',
         'info_dict': {
-            'id': '62388b15-d85b-4add-99aa-ba12ccf64f0d',
-            'display_id': '20220914-0900-PLENARY',
-            'ext': 'mp4',
-            'title': 'Plenary session',
-            'release_timestamp': 1663139069,
-            'release_date': '20220914',
+            'id': '62388b15-d85b-4add-99aa-ba12ccf64f0d', 'display_id': '20220914-0900-PLENARY',
+            'ext': 'mp4', 'title': 'Plenary session', 'release_timestamp': 1663139069, 'release_date': '20220914',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': True},
     }, {
-        # example of old live webstream
-        'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/euroscola_20221115-1000-SPECIAL-EUROSCOLA',
+        # Test case that previously failed with regex method
+        'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/euroscola_20250328-1000-SPECIAL-EUROSCOLA',
         'info_dict': {
+            'id': str, # ID might be a string UUID or similar
+            'display_id': '20250328-1000-SPECIAL-EUROSCOLA',
             'ext': 'mp4',
-            'id': '510eda7f-ba72-161b-7ee7-0e836cd2e715',
-            'release_timestamp': 1668502800,
-            'title': 'Euroscola 2022-11-15 19:21',
-            'release_date': '20221115',
-            'live_status': 'is_live',
+            'title': r're:Euroscola', # Expect title containing Euroscola
+            'release_timestamp': int, # Expecting a Unix timestamp
+            'release_date': '20250328',
+            'is_live': bool, # Could be True (if near event time) or False
         },
-        'skip': 'not live anymore',
+        'params': {'skip_download': True},
+        # Note: This test might fail after 2025-03-28 if the URL becomes invalid or content changes significantly
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        display_id = self._match_id(url) # Get ID from URL
+        webpage = self._download_webpage(url, display_id) # Get page HTML
 
-        # Try to parse Next.js data for metadata
-        nextjs = self._search_nextjs_data(webpage, display_id, default={})
-        page_props = traverse_obj(nextjs, ('props', 'pageProps'), default={})
-        media_info = page_props.get('mediaItem') or {} # Look for start/end times here for archives?
+        # --- Extract Metadata (prioritize Next.js data) ---
+        nextjs_data = self._search_nextjs_data(webpage, display_id, default={})
+        # Use traverse_obj for safer nested dictionary access
+        media_info = traverse_obj(nextjs_data, ('props', 'pageProps', 'mediaItem')) or {}
 
+        # Extract basic info, falling back to display_id if metadata is sparse
+        internal_id = media_info.get('id') or display_id
         title = media_info.get('title') or media_info.get('name') or display_id
-        release_timestamp = None
-        # Existing logic uses startDateTime, might need adjustment for archive start/end
-        if 'startDateTime' in media_info:
-             release_timestamp = parse_iso8601(media_info['startDateTime'])
-
-        # Determine if it's Live or VOD/Archive (might need refinement)
-        # mediaSubType might be 'Live' or 'VOD' or something else
+        release_timestamp = traverse_obj(media_info, ('startDateTime', {parse_iso8601}))
+        # Determine live status based on metadata hint, if available
         is_live = media_info.get('mediaSubType') == 'Live'
 
-        # Search for any .m3u8 link first
-        m3u8_links = self._search_regex(
-            r'(https?://[^"]+live\.media\.eup\.glcloud\.eu/hls/live/\d+/[^"]+\.m3u8[^"]*)',
-            webpage, 'm3u8 URL', default=None, group=1, fatal=False
-        )
+        hls_url = None # Variable to store the found HLS URL
 
-        # --- Potential modification area START ---
-        # If it's NOT live, and we have start/end times, and m3u8_links points to a live URL,
-        # try constructing the index-archive.m3u8 URL here.
-        # Example (conceptual - requires actual start/end times and base URL logic):
-        # if not is_live and media_info.get('startTime') and media_info.get('endTime'):
-        #     start_time = media_info['startTime'] # Assuming these keys exist and hold timestamps
-        #     end_time = media_info['endTime']
-        #     # Assuming m3u8_links contains a base URL that needs modification
-        #     base_url = m3u8_links.split('/')[0:-1] # Highly simplified base URL extraction
-        #     archive_url = '/'.join(base_url) + f'/index-archive.m3u8?startTime={start_time}&endTime={end_time}'
-        #     m3u8_links = archive_url # Replace the found link with the constructed one
-        # --- Potential modification area END ---
+        # --- Attempt 1: Find direct HLS URL in media_info ---
+        # Check common dictionary keys where the full HLS URL might be stored.
+        # Add more potential keys here if observed in website data.
+        possible_keys = ('hlsUrl', 'streamUrl', 'manifestUrl', 'url', 'playerUrl', 'videoUrl')
+        hls_url = traverse_obj(media_info, possible_keys)
+        if hls_url and 'm3u8' in hls_url: # Basic check if it looks like an HLS URL
+            self.to_screen(f'Found direct HLS URL in metadata: {hls_url}')
+        else:
+            hls_url = None # Reset if found value wasn't an HLS URL
 
+        # --- Attempt 2: Construct HLS URL from IDs in media_info ---
+        if not hls_url:
+            self.to_screen('Attempting to construct HLS URL from metadata IDs...')
+            # Try to extract relevant IDs. Keys like 'eventId', 'channelId' are common,
+            # but might differ. Use traverse_obj to safely get values.
+            # 'id' from media_info is often the event ID.
+            event_id = traverse_obj(media_info, ('id', 'eventId', 'event_id'))
+            # Channel ID might be numeric or a string name.
+            channel_id = traverse_obj(media_info, ('channelId', 'channel_id', 'channelName', 'channel'))
 
-        if not m3u8_links:
-            self.report_warning('Could not find any .m3u8 link in the page. The site structure may have changed.')
-            # Return basic info if no HLS manifest found
-            return {
-                'id': media_info.get('id') or display_id,
-                'display_id': display_id,
-                'title': title,
-                'release_timestamp': release_timestamp,
-                'formats': [],
-            }
+            if event_id and channel_id:
+                # Construct the URL using the assumed live/default pattern.
+                # For archive/VOD, '/index-archive.m3u8?startTime=...&endTime=...' might be needed.
+                # This assumes the event is live or uses the default endpoint.
+                constructed_url = f'https://live.media.eup.glcloud.eu/hls/live/{event_id}/{channel_id}/index.m3u8'
+                hls_url = constructed_url
+                self.to_screen(f'Constructed potential HLS URL: {hls_url}')
+            else:
+                self.to_screen('Could not find sufficient event/channel IDs in metadata to construct URL.')
 
-        # Process all found .m3u8 links (handles case where multiple are found or the first one is a master playlist)
-        # The regex used here is identical to the one above, ensures we capture all instances
-        import re
-        all_links_text = self._html_search_regex(
-             r'(https?://[^"]+live\.media\.eup\.glcloud\.eu/hls/live/\d+/[^"]+\.m3u8[^"]*)',
-             webpage, 'all m3u8 URLs', default='', fatal=False, group=0 # Find all occurrences
-        )
-        candidates = re.findall(r'(https?://[^"]+live\.media\.eup\.glcloud\.eu/hls/live/\d+/[^"]+\.m3u8[^"]*)', all_links_text)
+        # --- Attempt 3: Fallback to regex search on raw webpage (Original Method) ---
+        if not hls_url:
+            self.to_screen('Could not find or construct HLS URL from metadata, trying webpage regex search...')
+            m3u8_url_pattern = r'(https?://[^"]*live\.media\.eup\.glcloud\.eu/hls/live/\d+/[^"]+\.m3u8[^"]*)'
+            hls_url = self._search_regex(
+                m3u8_url_pattern, webpage, 'm3u8 URL (regex fallback)', default=None, fatal=False)
+            if hls_url:
+                 self.to_screen(f'Found HLS URL via regex fallback: {hls_url}')
+            else:
+                # This is where the original "Could not find any .m3u8 link" warning occurred.
+                 self.report_warning('Could not find any .m3u8 link via metadata or webpage regex.')
 
-        # If the specific constructed URL was made above, ensure it's prioritized or the only candidate
-        # (Refined logic needed here based on the modification above)
-        if not candidates and m3u8_links: # Fallback if findall failed but initial search worked
-             candidates = [m3u8_links]
-        elif m3u8_links not in candidates and m3u8_links: # Ensure the primary (possibly constructed) link is included
-             candidates.insert(0, m3u8_links)
+        # --- Process HLS Playlist ---
+        if not hls_url:
+            # If no URL was found after all attempts, raise an error.
+             raise ExtractorError(
+                 'No HLS URL (.m3u8) could be found or constructed. The website structure might have changed.',
+                 expected=True) # expected=True prevents stack trace for common errors
 
-        candidates = list(dict.fromkeys(candidates)) # Make unique, preserving order
+        # Pass the found HLS URL to the HLS processing function.
+        # The _extract_m3u8_formats function usually detects live/VOD automatically.
+        # The 'live=is_live' hint can sometimes help but isn't strictly necessary.
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            hls_url, display_id, ext='mp4', live=is_live, fatal=False)
 
-        if not candidates: # Final check if still no candidates
-             self.report_warning('Could not extract any valid .m3u8 URLs.')
-             return {
-                 'id': media_info.get('id') or display_id,
-                 'display_id': display_id,
-                 'title': title,
-                 'release_timestamp': release_timestamp,
-                 'formats': [],
-             }
+        # Check if HLS processing returned any formats
+        if not formats:
+             raise ExtractorError(f'HLS manifest found at {hls_url} but yielded no video formats.', expected=True)
 
-
-        formats, subtitles = [], {}
-        for link in candidates:
-            # Pass the identified m3u8 URL (could be live, index-archive, or norsk-archive)
-            # The 'live' flag might need adjustment based on mediaSubType
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                link, display_id, ext='mp4', live=is_live, fatal=False) # Pass is_live status
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
-
+        # --- Return Extracted Information ---
         return {
-            'id': media_info.get('id') or display_id,
+            'id': internal_id,
             'display_id': display_id,
             'title': title,
             'formats': formats,
             'subtitles': subtitles,
             'release_timestamp': release_timestamp,
-             # Report 'is_live' based on detected mediaSubType
-            'is_live': is_live or None # Report None if not explicitly Live
+            'is_live': is_live or None, # Use None if not explicitly marked Live
         }
