@@ -804,7 +804,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     @classmethod
     def _extract_continuation_ep_data(cls, continuation_ep: dict):
         continuation_commands = traverse_obj(
-            continuation_ep, ('commandExecutorCommand', 'commands'), expected_type=list, default=[])
+            continuation_ep, ('commandExecutorCommand', 'commands', ..., {dict}))
         continuation_commands.append(continuation_ep)
         for command in continuation_commands:
             continuation = traverse_obj(command, ('continuationCommand', 'token', {str}))
