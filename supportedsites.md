@@ -633,6 +633,7 @@ The only reliable way to check if a site is supported is to try it.
  - **ivi**: ivi.ru
  - **ivi:compilation**: ivi.ru compilations
  - **ivideon**: Ivideon TV
+ - **iVoox**
  - **IVXPlayer**
  - **iwara**: [*iwara*](## "netrc machine")
  - **iwara:playlist**: [*iwara*](## "netrc machine")
