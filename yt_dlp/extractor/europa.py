@@ -1,95 +1,97 @@
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
-    orderedSet,
-    parse_duration,
     parse_iso8601,
-    parse_qs,
-    qualities,
+    str_or_none,
     traverse_obj,
-    unified_strdate,
-    xpath_text,
+    url_or_none,
+    urljoin,
 )
 
 
 class EuropaIE(InfoExtractor):
-    _WORKING = False
-    _VALID_URL = r'https?://ec\.europa\.eu/avservices/(?:video/player|audio/audioDetails)\.cfm\?.*?\bref=(?P<id>[A-Za-z0-9-]+)'
+    _VALID_URL = r'https?://audiovisual\.ec\.europa\.eu/(?P<language>[^/]*)/video/(?P<id>[A-Za-z0-9-]+)'
+    _FORMATS = {
+        'lr': {'vcodec': 'h264', 'acodec': 'aac', 'height': 480},
+        'hdmp4': {'vcodec': 'h264', 'acodec': 'aac', 'height': 1080},
+        'mp3': {'vcodec': 'none', 'acodec': 'mp3', 'abr': 128},
+    }
     _TESTS = [{
-        'url': 'http://ec.europa.eu/avservices/video/player.cfm?ref=I107758',
-        'md5': '574f080699ddd1e19a675b0ddf010371',
+        'url': 'https://audiovisual.ec.europa.eu/en/video/I-107758',
+        'md5': '728cca2fd41d5aa7350cec1141fbe620',
         'info_dict': {
-            'id': 'I107758',
+            'id': 'I-107758',
             'ext': 'mp4',
-            'title': 'TRADE - Wikileaks on TTIP',
-            'description': 'NEW  LIVE EC Midday press briefing of 11/08/2015',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'title': 'TRADE - Wikileaks on TTIP:- Q&A',
+            'description': 'LIVE EC Midday press briefing of 11/08/2015',
+            'uploader': 'beluga',
+            'duration': 34.92,
+            'thumbnail': 'https://vod.prd.commavservices.eu/18/107758/THUMB_M_I107758INT1W.jpg',
+            'timestamp': 1439288640,
             'upload_date': '20150811',
-            'duration': 34,
-            'view_count': int,
-            'formats': 'mincount:3',
+            'modified_timestamp': 1731858348,
+            'modified_date': '20241117',
         },
     }, {
-        'url': 'http://ec.europa.eu/avservices/video/player.cfm?sitelang=en&ref=I107786',
-        'only_matching': True,
+        'url': 'https://audiovisual.ec.europa.eu/en/video/I-107786',
+        'md5': '5ecf1eb72800573ed75a53fc06511967',
+        'info_dict': {
+            'id': 'I-107786',
+            'ext': 'mp4',
+            'title': 'Midday press briefing from 14/08/2015',
+            'description': 'md5:e56082f090a0ad1da6b76f453dd9d155',
+            'uploader': 'beluga',
+            'thumbnail': 'https://vod.prd.commavservices.eu/06/107786/THUMB_M_I107786INT1W.jpg',
+            'timestamp': 1439503200,
+            'upload_date': '20150813',
+            'modified_timestamp': 1731858616,
+            'modified_date': '20241117',
+        },
     }, {
-        'url': 'http://ec.europa.eu/avservices/audio/audioDetails.cfm?ref=I-109295&sitelang=en',
-        'only_matching': True,
+        'url': 'https://audiovisual.ec.europa.eu/en/video/I-109295',
+        'md5': '3a6d560e0aff5633de4bb7cdc368ab72',
+        'info_dict': {
+            'id': 'I-109295',
+            'ext': 'mp4',
+            'title': 'md5:dfc882adaabf388999e20d3079ee5277',
+            'description': 'md5:67374bddab3fd2a8a319a92e1a286ad2',
+            'uploader': 'beluga',
+            'thumbnail': 'https://vod.prd.commavservices.eu/15/109295/THUMB_M_I109295INT1W_03.jpg',
+            'timestamp': 1443762000,
+            'upload_date': '20151002',
+            'modified_timestamp': 1731845416,
+            'modified_date': '20241117',
+        },
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        playlist = self._download_xml(
-            f'http://ec.europa.eu/avservices/video/player/playlist.cfm?ID={video_id}', video_id)
-
-        def get_item(type_, preference):
-            items = {}
-            for item in playlist.findall(f'./info/{type_}/item'):
-                lang, label = xpath_text(item, 'lg', default=None), xpath_text(item, 'label', default=None)
-                if lang and label:
-                    items[lang] = label.strip()
-            for p in preference:
-                if items.get(p):
-                    return items[p]
-
-        query = parse_qs(url)
-        preferred_lang = query.get('sitelang', ('en', ))[0]
-
-        preferred_langs = orderedSet((preferred_lang, 'en', 'int'))
-
-        title = get_item('title', preferred_langs) or video_id
-        description = get_item('description', preferred_langs)
-        thumbnail = xpath_text(playlist, './info/thumburl', 'thumbnail')
-        upload_date = unified_strdate(xpath_text(playlist, './info/date', 'upload date'))
-        duration = parse_duration(xpath_text(playlist, './info/duration', 'duration'))
-        view_count = int_or_none(xpath_text(playlist, './info/views', 'views'))
-
-        language_preference = qualities(preferred_langs[::-1])
-
+        language, video_id = self._match_valid_url(url).group('language', 'id')
+        constants = self._download_webpage('https://audiovisual.ec.europa.eu/js/constants.js', video_id, 'Downloading constants')
+        api = self._search_regex(r'"urlJellyfishApi":\s*"([^"]+)"', constants, 'urlJellyfishApi', 'https://yy2iyrkool.execute-api.eu-west-1.amazonaws.com/jellyfish/')
+        media = self._download_json(urljoin(api, f'medias/{video_id}'), video_id, 'Downloading media JSON')
+        info = traverse_obj(media, ('latest', {
+            'modified_timestamp': ('timestamp', {parse_iso8601}),
+            'uploader': ('user', {str_or_none}),
+            'id': ('data', 'reference', {str_or_none}),
+            'duration': ('data', 'duration', {lambda d: None if d == 1 else d}),
+            'timestamp': ('data', 'productionDatetime', {parse_iso8601}),
+            'title': ('data', 'titles', ..., ..., {lambda t: t and t.strip()}, any),
+            'description': ('data', 'summaries', ..., ..., {lambda t: t and t.strip()}, any),
+            'thumbnails': ('data', 'files', ..., ('image', 'thumb'), {'url': ('url', {url_or_none})}),
+        }))
         formats = []
-        for file_ in playlist.findall('./files/file'):
-            video_url = xpath_text(file_, './url')
-            if not video_url:
-                continue
-            lang = xpath_text(file_, './lg')
-            formats.append({
-                'url': video_url,
-                'format_id': lang,
-                'format_note': xpath_text(file_, './lglabel'),
-                'language_preference': language_preference(lang),
-            })
 
-        return {
-            'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'upload_date': upload_date,
-            'duration': duration,
-            'view_count': view_count,
-            'formats': formats,
-        }
+        for file in traverse_obj(media, ('latest', 'data', 'files', ...)):
+            l = traverse_obj(file, ('language', {lambda l: l and l.lower()}))
+            for k in ('mp3', 'lr', 'hdmp4'):
+                if f_url := traverse_obj(file, (k, 'url')):
+                    formats.append({
+                        'url': f_url,
+                        'language': l,
+                        'language_preference': 10 if (l and l.lower() == language) or l == 'int' else -10,
+                        'format_id': f'{k}-{l}',
+                        **self._FORMATS[k],
+                    })
+        return {**info, 'formats': formats}
 
 
 class EuroParlWebstreamIE(InfoExtractor):
