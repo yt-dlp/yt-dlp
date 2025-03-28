@@ -807,13 +807,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             continuation_ep, ('commandExecutorCommand', 'commands'), expected_type=list, default=[])
         continuation_commands.append(continuation_ep)
         for command in continuation_commands:
-            if isinstance(command, dict):
-                continuation = try_get(
-                    command, lambda x: x['continuationCommand']['token'], str)
-                if not continuation:
-                    continue
-                ctp = command.get('clickTrackingParams')
-                return cls._build_api_continuation_query(continuation, ctp)
+            continuation = traverse_obj(command, ('continuationCommand', 'token', {str}))
+            if not continuation:
+                continue
+            ctp = command.get('clickTrackingParams')
+            return cls._build_api_continuation_query(continuation, ctp)
 
     @classmethod
     def _extract_continuation(cls, renderer):
