@@ -97,7 +97,7 @@ class EuropaIE(InfoExtractor):
 class EuroParlWebstreamIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         https?://multimedia\.europarl\.europa\.eu/
-        (?:[^/]*/)?(?:webstreaming|video)/(?:[^_]*_)?(?P<id>[\w-]+)
+        (?:[^/]*/)?webstreaming/(?:[^_]*_)?(?P<id>[\w-]+)
     '''
     _TESTS = [{
         'url': 'https://multimedia.europarl.europa.eu/pl/webstreaming/plenary-session_20220914-0900-PLENARY',
