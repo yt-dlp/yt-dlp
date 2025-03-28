@@ -162,31 +162,43 @@ class EuroParlWebstreamIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        stream_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']
+        status = traverse_obj(stream_info, ('media_item', 'mediaSubType'))
+        base = 'https://control.eup.glcloud.eu/content-manager/api/v1/socket.io/?EIO=4&transport=polling'
+        headers = {'referer': f'https://control.eup.glcloud.eu/content-manager/content-page/{video_id}'}
+        sid = self._download_socket_json(base, video_id, note='Opening socket', headers=headers)['sid']
+        base += '&sid=' + sid
+        self._download_webpage(base, video_id, 'Polling socket with payload', data=b'40/content,', headers=headers)
+        self._download_webpage(base, video_id, 'Polling socket', headers=headers)
+        self._download_socket_json(base, video_id, 'Getting broadcast metadata from socket', headers=headers)
 
-        webpage_nextjs = self._search_nextjs_data(webpage, display_id)['props']['pageProps']
+        # webpage = self._download_webpage(f'https://control.eup.glcloud.eu/content-manager/content-page/{video_id}', video_id)
+        # stream_info = self._search_json(r'<script [^>]*id="ng-state"[^>]*>', webpage, 'stream info', video_id)['contentEventKey']
 
-        json_info = self._download_json(
-            'https://acs-api.europarl.connectedviews.eu/api/FullMeeting', display_id,
-            query={
-                'api-version': 1.0,
-                'tenantId': 'bae646ca-1fc8-4363-80ba-2c04f06b4968',
-                'externalReference': display_id,
-            })
+        # json_info = self._download_json(
+        #     'https://acs-api.europarl.connectedviews.eu/api/FullMeeting', display_id,
+        #     query={
+        #         'api-version': 1.0,
+        #         'tenantId': 'bae646ca-1fc8-4363-80ba-2c04f06b4968',
+        #         'externalReference': display_id,
+        #     })
 
-        formats, subtitles = [], {}
-        for hls_url in traverse_obj(json_info, ((('meetingVideo'), ('meetingVideos', ...)), 'hlsUrl')):
-            fmt, subs = self._extract_m3u8_formats_and_subtitles(hls_url, display_id)
-            formats.extend(fmt)
-            self._merge_subtitles(subs, target=subtitles)
-
+        # formats, subtitles = [], {}
+        # for hls_url in traverse_obj(json_info, ((('meetingVideo'), ('meetingVideos', ...)), 'hlsUrl')):
+        #     fmt, subs = self._extract_m3u8_formats_and_subtitles(hls_url, display_id)
+        #     formats.extend(fmt)
+        #     self._merge_subtitles(subs, target=subtitles)
         return {
-            'id': json_info['id'],
-            'display_id': display_id,
-            'title': traverse_obj(webpage_nextjs, (('mediaItem', 'title'), ('title', )), get_all=False),
-            'formats': formats,
-            'subtitles': subtitles,
-            'release_timestamp': parse_iso8601(json_info.get('startDateTime')),
-            'is_live': traverse_obj(webpage_nextjs, ('mediaItem', 'mediaSubType')) == 'Live',
+            'live_status': 'is_upcoming' if status == 'Upcoming' else 'is_live' if status == 'Live' else 'was_live',
+            **traverse_obj(stream_info, {
+                'id': ('mediaID', {str_or_none}),
+                'display_id': ('slug', {str_or_none}),
+                'title': ('title', {str_or_none}),
+                'description': ('mediaItem', 'description', {str_or_none}),
+                'release_timestamp': ('mediaItem', 'mediaDate', {parse_iso8601}),
+                'thumbnail': ('mediaItem', 'mediaThumbnailURL', {url_or_none}),
+                'live_status': ('mediaSubType'),
+            }),
         }
