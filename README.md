@@ -393,6 +393,13 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     e.g. socks5://user:pass@127.0.0.1:1080/.
                                     Pass in an empty string (--proxy "") for
                                     direct connection
+    --url-prefix URL                Prepend the specified URL prefix to every request URL. 
+                                    For example, if you set the URL prefix to 
+                                    `http://127.0.0.1:1080/`, a request originally aimed at 
+                                    `https://url.com` will be modified to 
+                                    `http://127.0.0.1:1080/https://url.com`. 
+                                    pass in an empty string (i.e., `--url-prefix ""`) to use 
+                                    the original request URLs directly
     --socket-timeout SECONDS        Time to wait before giving up, in seconds
     --source-address IP             Client-side IP address to bind to
     --impersonate CLIENT[:OS]       Client to impersonate for requests. E.g.
