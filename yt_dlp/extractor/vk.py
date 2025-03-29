@@ -768,9 +768,26 @@ class VKMusicIE(VKBaseIE):
                 'title': 'Skillet - Feel Invincible',
                 'duration': 230,
                 'uploader': 'Skillet',
-                'artist': 'Skillet',
                 'artists': ['Skillet'],
                 'track': 'Feel Invincible',
+                'thumbnail': r're:https?://.*\.jpg',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            'note': 'artists are in meta[17], 18th item contains empty string',
+            'url': 'https://vk.com/audio-2001844083_29844083',
+            'info_dict': {
+                'id': '-2001844083_29844083',
+                'ext': 'm4a',
+                'title': 'Pusha T, Stormzy - Good Goodbye (feat. Pusha T and Stormzy)',
+                'duration': 211,
+                'uploader': 'Pusha T, Stormzy',
+                'artists': ['Pusha T', 'Stormzy'],
+                'track': 'Good Goodbye (feat. Pusha T and Stormzy)',
+                'thumbnail': r're:https?://.*\.jpg',
             },
             'params': {
                 'skip_download': True,
@@ -782,20 +799,24 @@ class VKMusicIE(VKBaseIE):
         len_ = len(meta)
         info = {}
 
-        info['id'] = track_id \
-            if len_ < 2 or not meta[1] or not meta[0] \
-            else f'{meta[1]}_{meta[0]}'
+        info['id'] = f'{meta[1]}_{meta[0]}' \
+            if len_ >= 2 and meta[1] and meta[0] \
+            else track_id
 
         title = meta[3] if len_ >= 3 else None
-        artist = meta[4] if len_ >= 4 else None
+        artist = meta[4] if len_ >= 4 else None  # artists in one string, may include "feat."
         info['title'] = join_nonempty(artist, title, delim=' - ')
-        if title:
-            info['track'] = title
-        if artist:
-            info['artist'] = info['uploader'] = artist
+        info['track'] = title
+        info['uploader'] = artist
+
+        # artists as list
+        info['artists'] = (
+            traverse_obj((*meta[17], *meta[18]), ({dict}, 'name', ...))
+            if len_ >= 18 else None
+        ) or [artist]
 
         info['duration'] = int_or_none(meta[5]) if len_ >= 5 else None
-        # info['thumbnail'] = meta[14] if len_ >= 14 else None
+        info['thumbnails'] = [{'url': meta[14]}] if len_ >= 14 else []
 
         return info
 
@@ -830,7 +851,6 @@ class VKMusicIE(VKBaseIE):
                 **self._parse_track_meta(meta, track_id),
                 'formats': [{
                     'url': url,
-                    # XXX: copied from VKWallPostIE._real_extract
                     'ext': 'm4a',
                     'vcodec': 'none',
                     'acodec': 'mp3',
@@ -859,9 +879,6 @@ class VKMusicIE(VKBaseIE):
 
             entries = []
             for ent in tracks:
-                # XXX: repeating code
-                # meta-parsers for track and playlist items should be unified
-
                 info = self._parse_track_meta(ent)
                 track_id = info.pop('id')
                 title = info.pop('title')
