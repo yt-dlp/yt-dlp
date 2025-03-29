@@ -921,7 +921,7 @@ class VKMusicIE(VKBaseIE):
                 album=title,
                 uploader=artist,
                 artists=[artist],
-                thumbnails=traverse_obj(meta, ({'url': 'coverUrl'}, ...)),
+                thumbnails=[traverse_obj(meta, {'url': 'coverUrl'})],
                 genres=[genre] if genre else [],
                 release_year=int_or_none(year),  # XXX: is None ok here?
                 modified_timestamp=int_or_none(meta.get('lastUpdated')),
