@@ -798,13 +798,15 @@ class VKMusicIE(VKBaseIE):
             'info_dict': {
                 'id': '-2000984503_984503',
                 'title': 'Linkin Park - One More Light',
+                'description': '',
                 'album': 'One More Light',
                 'uploader': 'Linkin Park',
-                'artist': 'Linkin Park',
+                'artists': ['Linkin Park'],
                 'thumbnail': r're:https?://.*\.jpg',
-                'genre': 'Альтернатива',
+                'genres': ['Alternative'],
                 'release_year': 2017,
                 'modified_timestamp': int,
+                'modified_date': str,
                 'view_count': int,
             },
             'playlist_count': 10,
@@ -921,7 +923,7 @@ class VKMusicIE(VKBaseIE):
                 album=title,
                 uploader=artist,
                 artists=[artist],
-                thumbnails=[traverse_obj(meta, {'url': 'coverUrl'})],
+                thumbnail=meta.get('coverUrl'),  # XXX: should i also specify `thumbnails`?
                 genres=[genre] if genre else [],
                 release_year=int_or_none(year),  # XXX: is None ok here?
                 modified_timestamp=int_or_none(meta.get('lastUpdated')),
