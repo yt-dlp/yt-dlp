@@ -832,7 +832,7 @@ class VKMusicIE(VKBaseIE):
 
         # artists as list
         info['artists'] = (
-            traverse_obj((*meta[17], *meta[18]), ({dict}, 'name', ...))
+            traverse_obj((*meta[17], *meta[18]), (..., 'name'))
             if len_ >= 18 else None
         ) or [artist]
 
