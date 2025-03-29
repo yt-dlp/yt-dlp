@@ -832,7 +832,8 @@ class VKMusicIE(VKBaseIE):
             # copied regex from VKWallPostIE
             # XXX: common code should be unified, moved to a class
             data_audio = self._search_regex(
-                r'data-audio="([^"]+)', webpage, 'data-audio attr', group=1)
+                r'data-audio="([^"]+)',
+                webpage, 'data-audio attr', group=1)
 
             meta = self._parse_json(unescapeHTML(data_audio), track_id)
             one_more_id = meta[24]
@@ -885,8 +886,7 @@ class VKMusicIE(VKBaseIE):
                 audio_url = f'https://vk.com/audio{track_id}'
 
                 entries.append(self.url_result(
-                    audio_url, VKMusicIE, track_id, title,
-                    **info))
+                    audio_url, VKMusicIE, track_id, title, **info))
 
             artist = meta.get('authorName')
             thumbnail = meta.get('coverUrl')
