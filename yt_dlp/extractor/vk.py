@@ -758,7 +758,7 @@ class VKWallPostIE(VKBaseIE):
 
 class VKMusicIE(VKBaseIE):
     IE_NAME = 'vk:music'
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/(?:audio(?P<track_id>-?\d+_\d+)|(?:.*\?z=audio_playlist|music/[a-z]+/)(?P<playlist_id>-?\d+_\d+)(?:(?:%2F|_)(?P<access_hash>[0-9a-f]+))?)'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/(?:audio(?P<track_id>-?\d+_\d+)|(?:.*\?(?:act|z)=audio_playlist|music/[a-z]+/)(?P<playlist_id>-?\d+_\d+)(?:(?:%2F|_|[?&]access_hash=)(?P<access_hash>[0-9a-f]+))?)'
     _TESTS = [
         {
             'url': 'https://vk.com/audio-2001746599_34746599',
