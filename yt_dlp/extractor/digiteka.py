@@ -23,39 +23,53 @@ class DigitekaIE(InfoExtractor):
             )
             /id
         )/(?P<id>[\d+a-z]+)'''
-    _EMBED_REGEX = [r'<(?:iframe|script)[^>]+src=["\'](?P<url>(?:https?:)?//(?:www\.)?ultimedia\.com/deliver/(?:generic|musique)(?:/[^/]+)*/(?:src|article)/[\d+a-z]+)']
-    _TESTS = [{
-        # news
-        'url': 'https://www.ultimedia.com/default/index/videogeneric/id/s8uk0r',
-        'md5': '276a0e49de58c7e85d32b057837952a2',
-        'info_dict': {
-            'id': 's8uk0r',
-            'ext': 'mp4',
-            'title': 'Loi sur la fin de vie: le texte prévoit un renforcement des directives anticipées',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 74,
-            'upload_date': '20150317',
-            'timestamp': 1426604939,
-            'uploader_id': '3fszv',
+    _EMBED_REGEX = [
+        r'<(?:iframe|script)(?:(?!>)[\s\S])*(?:data-)?src=["\'](?P<url>(?:https?:)?//(?:www\.)?(?:digiteka\.net|ultimedia\.com)/deliver/(?P<embed_type>generic|musique)(?:/[^/]+)*/(?:src|article)/(?P<id>[\d+a-z]+))',
+    ]
+    _TESTS = [
+        {
+            'url': 'https://www.ultimedia.com/deliver/generic/iframe/mdtk/01747256/zone/60/src/x8smpxf',
+            'info_dict': {
+                'id': 'x8smpxf',
+                'title': 'B. Bazin (Saint-Gobain) \'Notre cours de bourse a doublé depuis 2 ans et il a encore du potentiel !\'',
+                'thumbnail': 'https://vod.digiteka.com/x8smpxf/thumbnails/e7c0403e5ff43ef78ee7baa8e27d3c26fb1deaa4-858x480.jpg',
+                'url': 'https://assets.digiteka.com/encoded/04ddd4e10a9bb92f2a6e15d5adf40c9154db532a/mp4/d2da1c9e12f03d3f_480.mp4',
+                'ext': 'mp4',
+            },
         },
-    }, {
-        # music
-        'url': 'https://www.ultimedia.com/default/index/videomusic/id/xvpfp8',
-        'md5': '2ea3513813cf230605c7e2ffe7eca61c',
-        'info_dict': {
-            'id': 'xvpfp8',
-            'ext': 'mp4',
-            'title': 'Two - C\'est La Vie (clip)',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 233,
-            'upload_date': '20150224',
-            'timestamp': 1424760500,
-            'uploader_id': '3rfzk',
+    ]
+    _WEBPAGE_TESTS = [
+        {
+            'url': 'https://www.boursorama.com/bourse/actualites/le-retour-des-taux-negatifs-est-il-possible-169e3e0cf337df132285b41e124dc98e',
+            'info_dict': {
+                'id': 'xvussq5',
+                'title': 'Le retour des taux négatifs est-il possible ? ',
+                'thumbnail': 'https://vod.digiteka.com/xvussq5/thumbnails/9a4df121fc0532ab4d0befbece630fd7725d91a7-858x480.jpg',
+                'url': 'https://assets.digiteka.com/encoded/0308c71b8ba91157ae76f0ca21c58f80e63ccf7a/mp4/0dde8b5bc0a8f240_480.mp4',
+                'ext': 'mp4',
+            },
         },
-    }, {
-        'url': 'https://www.digiteka.net/deliver/generic/iframe/mdtk/01637594/src/lqm3kl/zone/1/showtitle/1/autoplay/yes',
-        'only_matching': True,
-    }]
+    ]
+
+    def _fallback_to_iframe_content(self, url, video_id):
+        iframe_content = self._download_webpage(url, video_id)
+
+        video_url = self._og_search_video_url(iframe_content)
+        video_format = video_url.split('.')[-1]
+        video_title = self._og_search_title(iframe_content)
+        video_thumbnail = self._og_search_thumbnail(iframe_content)
+
+        return {
+            'id': video_id,
+            'title': video_title,
+            'thumbnail': video_thumbnail,
+            'formats': [
+                {
+                    'url': video_url,
+                    'ext': video_format,
+                },
+            ],
+        }
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -66,8 +80,10 @@ class DigitekaIE(InfoExtractor):
 
         deliver_info = self._download_json(
             f'http://www.ultimedia.com/deliver/video?video={video_id}&topic={video_type}',
-            video_id)
-
+            video_id,
+        )
+        if not deliver_info:
+            return self._fallback_to_iframe_content(url, video_id)
         yt_id = deliver_info.get('yt_id')
         if yt_id:
             return self.url_result(yt_id, 'Youtube')
@@ -75,11 +91,17 @@ class DigitekaIE(InfoExtractor):
         jwconf = deliver_info['jwconf']
 
         formats = []
+
         for source in jwconf['playlist'][0]['sources']:
-            formats.append({
-                'url': source['file'],
-                'format_id': source.get('label'),
-            })
+            if source['file'] is not False:
+                formats.append(
+                    {
+                        'url': source['file'],
+                        'format_id': source.get('label'),
+                    },
+                )
+        if not formats:
+            return self._fallback_to_iframe_content(url, video_id)
 
         title = deliver_info['title']
         thumbnail = jwconf.get('image')
