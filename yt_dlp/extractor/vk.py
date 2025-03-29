@@ -758,7 +758,7 @@ class VKWallPostIE(VKBaseIE):
 
 class VKMusicIE(VKBaseIE):
     IE_NAME = 'vk:music'
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/(?:audio(?P<track_id>-?\d+_\d+)|(?:.*\?(?:act|z)=audio_playlist|music/[a-z]+/)(?P<playlist_id>-?\d+_\d+)(?:(?:%2F|_|[?&]access_hash=)(?P<access_hash>[0-9a-f]+))?)'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/(?:audio(?P<track_id>-?\d+_\d+)|(?:.*\?(?:act|z)=audio_playlist|music/[a-z]+/)(?P<playlist_id>(?P<pl_oid>-?\d+)_(?P<pl_id>\d+))(?:(?:%2F|_|[?&]access_hash=)(?P<access_hash>[0-9a-f]+))?)'
     _TESTS = [
         {
             'url': 'https://vk.com/audio-2001746599_34746599',
@@ -843,7 +843,6 @@ class VKMusicIE(VKBaseIE):
         mobj = self._match_valid_url(url)
         track_id = mobj.group('track_id')
         playlist_id = mobj.group('playlist_id')
-        access_hash = mobj.group('access_hash') or ''
 
         if track_id:
             webpage = self._download_webpage(url, track_id)
@@ -879,25 +878,25 @@ class VKMusicIE(VKBaseIE):
             }
 
         elif playlist_id:
-            playlist = self._download_payload('al_audio', playlist_id, {
+            meta = self._download_payload('al_audio', playlist_id, {
                 'act': 'load_section',
-                'access_hash': access_hash,
+                'access_hash': mobj.group('access_hash') or '',
                 'claim': '0',
                 'context': '',
                 'from_id': self._parse_vk_id(),
                 'is_loading_all': '1',
                 'is_preload': '0',
                 'offset': '0',
-                'owner_id': '',
-                'playlist_id': '',
+                'owner_id': mobj.group('pl_oid'),
+                'playlist_id': mobj.group('pl_id'),
                 'ref': '',
                 'type': 'playlist',
-            })
+            })[0]
 
-            meta = self._parse_json(playlist, playlist_id)[0]
             tracks = meta['list']
 
             entries = []
+
             for ent in tracks:
                 info = self._parse_track_meta(ent)
                 track_id = info.pop('id')
