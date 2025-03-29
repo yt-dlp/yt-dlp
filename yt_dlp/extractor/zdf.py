@@ -16,6 +16,7 @@ from ..utils import (
     qualities,
     traverse_obj,
     try_get,
+    unified_timestamp,
     update_url_query,
     url_or_none,
     urljoin,
@@ -415,6 +416,10 @@ class ZDFIE(ZDFBaseIE):
         'only_matching': True,
     }]
 
+    @classmethod
+    def suitable(cls, url):
+        return False if ZDFHeuteIE.suitable(url) else super().suitable(url)
+
     _GRAPHQL_QUERY = '''
 query VideoByCanonical($canonical: String!) {
   videoByCanonical(canonical: $canonical) {
@@ -568,7 +573,7 @@ class ZDFCollectionIE(ZDFBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if ZDFIE.suitable(url) else super().suitable(url)
+        return False if ZDFIE.suitable(url) or ZDFHeuteIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
@@ -631,3 +636,77 @@ class ZDFCollectionIE(ZDFBaseIE):
 
         return self.playlist_result(entries, channel_id, title, traverse_obj(
             collection_data, ('data', 'smartCollectionByCanonical', 'infoText', {str})))
+
+
+# TODO: This extractor is a minimal effort implementation and incomplete.
+# It only does what is necessary to get back the functionality that was present
+# before the redesign of the ZDF website in 2025-03.
+# It uses an API that is no longer used by offical clients,
+# and likely never was at all for the purpase the extractor uses it for.
+# A proper implementation should likely use the API of the mobile app instead:
+# https://zdf-prod-futura.zdf.de/news/documents/ (note 'news' vs 'mediathekV2')
+class ZDFHeuteIE(ZDFBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?zdf\.de/nachrichten/(?:[^/?#]+/)*(?P<id>[^/?#]+)\.html'
+    _TESTS = [{
+        'url': 'https://www.zdf.de/nachrichten/zdfheute-live/beckenbauer-gedenkfeier-muenchen-video-100.html',
+        'md5': 'd28621e4cd8bcdc25fdefdf12dc79a1e',
+        'info_dict': {
+            'id': '240119_beckenbauer_gesamt_hli',
+            'ext': 'mp4',
+            'title': 'Gedenkfeier für Franz Beckenbauer',
+            'description': 'md5:a50f2ee818d4a78f20179b88affbe9da',
+            'duration': 6510,
+            'thumbnail': 'https://www.zdf.de/assets/beckenbauer-trauerfeier-muenchen-tn-102~1920x1080?cb=1705669625816',
+            'timestamp': 1705674600,
+            'upload_date': '20240119',
+        },
+    }]
+
+    def _download_v2_doc(self, document_id):
+        return self._download_json(
+            f'https://zdf-prod-futura.zdf.de/mediathekV2/document/{document_id}',
+            document_id)
+
+    def _extract_mobile(self, video_id):
+        video = self._download_v2_doc(video_id)
+
+        formats = []
+        formitaeten = try_get(video, lambda x: x['document']['formitaeten'], list)
+        document = formitaeten and video['document']
+        if formitaeten:
+            title = document['titel']
+            content_id = document['basename']
+
+            format_urls = set()
+            for f in formitaeten or []:
+                self._extract_format(content_id, formats, format_urls, f)
+
+        thumbnails = []
+        teaser_bild = document.get('teaserBild')
+        if isinstance(teaser_bild, dict):
+            for thumbnail_key, thumbnail in teaser_bild.items():
+                thumbnail_url = try_get(
+                    thumbnail, lambda x: x['url'], str)
+                if thumbnail_url:
+                    thumbnails.append({
+                        'url': thumbnail_url,
+                        'id': thumbnail_key,
+                        'width': int_or_none(thumbnail.get('width')),
+                        'height': int_or_none(thumbnail.get('height')),
+                    })
+
+        return {
+            'id': content_id,
+            'title': title,
+            'description': document.get('beschreibung'),
+            'duration': int_or_none(document.get('length')),
+            'timestamp': unified_timestamp(document.get('date')) or unified_timestamp(
+                try_get(video, lambda x: x['meta']['editorialDate'], str)),
+            'thumbnails': thumbnails,
+            'subtitles': self._extract_subtitles(document.get('captions') or []),
+            'formats': formats,
+        }
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self._extract_mobile(video_id)
