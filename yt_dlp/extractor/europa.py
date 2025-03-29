@@ -1,10 +1,11 @@
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
+    int_or_none,
     parse_iso8601,
     str_or_none,
     traverse_obj,
     url_or_none,
-    urljoin,
 )
 
 
@@ -13,7 +14,9 @@ class EuropaIE(InfoExtractor):
     _FORMATS = {
         'lr': {'vcodec': 'h264', 'acodec': 'aac', 'height': 480},
         'hdmp4': {'vcodec': 'h264', 'acodec': 'aac', 'height': 1080},
-        'mp3': {'vcodec': 'none', 'acodec': 'mp3', 'abr': 128},
+        'h264': {'vcodec': 'h264', 'acodec': 'aac'},
+        'mp3': {'vcodec': 'none', 'acodec': 'mp3'},
+        'aac': {'vcodec': 'none', 'acodec': 'aac'},
     }
     _TESTS = [{
         'url': 'https://audiovisual.ec.europa.eu/en/video/I-107758',
@@ -23,13 +26,13 @@ class EuropaIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'TRADE - Wikileaks on TTIP:- Q&A',
             'description': 'LIVE EC Midday press briefing of 11/08/2015',
-            'uploader': 'beluga',
             'duration': 34.92,
-            'thumbnail': 'https://vod.prd.commavservices.eu/18/107758/THUMB_M_I107758INT1W.jpg',
-            'timestamp': 1439288640,
+            'thumbnail': r're:https://vod\.prd\.commavservices\.eu/18/107758/THUMB_M_I107758INT1W\.jpg(\?.*)?',
+            'timestamp': 1439269680,
             'upload_date': '20150811',
-            'modified_timestamp': 1731858348,
+            'modified_timestamp': 1731858374,
             'modified_date': '20241117',
+            'view_count': int,
         },
     }, {
         'url': 'https://audiovisual.ec.europa.eu/en/video/I-107786',
@@ -38,13 +41,13 @@ class EuropaIE(InfoExtractor):
             'id': 'I-107786',
             'ext': 'mp4',
             'title': 'Midday press briefing from 14/08/2015',
-            'description': 'md5:e56082f090a0ad1da6b76f453dd9d155',
-            'uploader': 'beluga',
-            'thumbnail': 'https://vod.prd.commavservices.eu/06/107786/THUMB_M_I107786INT1W.jpg',
-            'timestamp': 1439503200,
-            'upload_date': '20150813',
-            'modified_timestamp': 1731858616,
+            'description': 'md5:9ebb5df32a5203f3ad7b931bc8bcec47',
+            'thumbnail': r're:https://vod\.prd\.commavservices\.eu/06/107786/THUMB_M_I107786INT1W\.jpg(\?.*)?',
+            'timestamp': 1439528880,
+            'upload_date': '20150814',
+            'modified_timestamp': 1731858776,
             'modified_date': '20241117',
+            'view_count': int,
         },
     }, {
         'url': 'https://audiovisual.ec.europa.eu/en/video/I-109295',
@@ -54,44 +57,70 @@ class EuropaIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'md5:dfc882adaabf388999e20d3079ee5277',
             'description': 'md5:67374bddab3fd2a8a319a92e1a286ad2',
-            'uploader': 'beluga',
-            'thumbnail': 'https://vod.prd.commavservices.eu/15/109295/THUMB_M_I109295INT1W_03.jpg',
-            'timestamp': 1443762000,
+            'thumbnail': r're:https://vod\.prd\.commavservices\.eu/15/109295/THUMB_M_I109295INT1W_03\.jpg(\?.*)?',
+            'timestamp': 1443762600,
             'upload_date': '20151002',
             'modified_timestamp': 1731845416,
             'modified_date': '20241117',
+            'view_count': int,
+        },
+    }, {
+        'url': 'https://audiovisual.ec.europa.eu/en/video/I-270061',
+        'md5': '5a10c7cc7b9f55fcbda6f0aa1ec72a66',
+        'info_dict': {
+            'id': 'I-270061',
+            'ext': 'mp4',
+            'title': 'JRC – Capacity Building in Evidence-Informed Policymaking – Final Conference',
+            'description': 'md5:fb28f76bd68b98ccc2d5e8b4bbdbe4e8',
+            'view_count': int,
+            'duration': 212.97,
+            'thumbnail': r're:https://api\.prd\.commavservices\.eu/thumbnail/I-270061/0195d78b-961e-7ef3-89f1-e95cf27f953f/640\.jpg(\?.*)?',
+            'timestamp': 1743051780,
+            'upload_date': '20250327',
+            'modified_timestamp': 1743079487,
+            'modified_date': '20250327',
         },
     }]
 
     def _real_extract(self, url):
         language, video_id = self._match_valid_url(url).group('language', 'id')
+        language = language.upper()
         constants = self._download_webpage('https://audiovisual.ec.europa.eu/js/constants.js', video_id, 'Downloading constants')
-        api = self._search_regex(r'"urlJellyfishApi":\s*"([^"]+)"', constants, 'urlJellyfishApi', 'https://yy2iyrkool.execute-api.eu-west-1.amazonaws.com/jellyfish/')
-        media = self._download_json(urljoin(api, f'medias/{video_id}'), video_id, 'Downloading media JSON')
-        info = traverse_obj(media, ('latest', {
+        api = self._search_regex(r'"urlLuceneServices":\s*"([^"]+)"', constants, 'urlLuceneServices',
+                                 'https://gfdwwnbuul.execute-api.eu-west-1.amazonaws.com/avsportal/') + 'avsportal'
+        media = self._download_json(api, video_id, 'Downloading media JSON', query={'ref': video_id})['response']['docs'][0]
+        info = traverse_obj(media, {
+            'id': ('ref', {str_or_none}),
+            'description': ('summary_json', (language, ...), {lambda s: s and s.strip()}, {clean_html}, any),
+            'title': ('titles_json', (language, ...), {lambda s: s and s.strip()}, {clean_html}, any),
+            'duration': ('duration', {lambda d: float(d) if d and d != '1' else None}),
+            'view_count': ('views', {int_or_none}),
             'modified_timestamp': ('timestamp', {parse_iso8601}),
-            'uploader': ('user', {str_or_none}),
-            'id': ('data', 'reference', {str_or_none}),
-            'duration': ('data', 'duration', {lambda d: None if d == 1 else d}),
-            'timestamp': ('data', 'productionDatetime', {parse_iso8601}),
-            'title': ('data', 'titles', ..., ..., {lambda t: t and t.strip()}, any),
-            'description': ('data', 'summaries', ..., ..., {lambda t: t and t.strip()}, any),
-            'thumbnails': ('data', 'files', ..., ('image', 'thumb'), {'url': ('url', {url_or_none})}),
-        }))
+            'timestamp': ('search_date', {parse_iso8601}),
+        })
         formats = []
+        thumbnails = []
 
-        for file in traverse_obj(media, ('latest', 'data', 'files', ...)):
-            l = traverse_obj(file, ('language', {lambda l: l and l.lower()}))
-            for k in ('mp3', 'lr', 'hdmp4'):
-                if f_url := traverse_obj(file, (k, 'url')):
-                    formats.append({
-                        'url': f_url,
-                        'language': l,
-                        'language_preference': 10 if (l and l.lower() == language) or l == 'int' else -10,
-                        'format_id': f'{k}-{l}',
-                        **self._FORMATS[k],
-                    })
-        return {**info, 'formats': formats}
+        for aspect, languages in traverse_obj(media, ('media_json', {dict.items})):
+            for l, codecs in dict.items(languages):
+                pref = 10 if l == language or l == 'INT' else -10
+                for c, u in traverse_obj(codecs, ({dict.items}, lambda _, v: url_or_none(v[1]))):
+                    c = c.lower()
+                    if c in ('thumb', 'image'):
+                        thumbnails.append({'id': f'{c}-{aspect}', 'url': u})
+                    elif c == 'hls':
+                        formats.extend(self._extract_m3u8_formats(u, video_id, ext='mp4'))
+                    else:
+                        codec, _, h = c.partition('_')
+                        formats.append({
+                            'url': u,
+                            'height': int_or_none(h),
+                            'language': l,
+                            'language_preference': pref,
+                            'format_id': f'{c}-{aspect}-{l}',
+                            **(self._FORMATS.get(codec) or {}),
+                        })
+        return {**info, 'formats': formats, 'thumbnails': thumbnails}
 
 
 class EuroParlWebstreamIE(InfoExtractor):
