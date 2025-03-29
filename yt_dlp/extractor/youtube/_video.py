@@ -3250,7 +3250,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if player_url:
                         self.report_warning(
                             f'nsig extraction failed: Some formats may be missing\n'
-                            f'         n = {query["n"][0]} ; player = {player_url}',
+                            f'         n = {query["n"][0]} ; player = {player_url}\n'
+                            f'         {bug_reports_message(before="\n")}',
                             video_id=video_id, only_once=True)
                         self.write_debug(e, only_once=True)
                     else:
