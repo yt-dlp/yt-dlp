@@ -14,6 +14,7 @@ from ..utils import (
     dict_get,
     float_or_none,
     int_or_none,
+    join_nonempty,
     make_archive_id,
     parse_duration,
     parse_iso8601,
@@ -26,6 +27,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urljoin,
+    value,
 )
 
 
@@ -1097,8 +1099,8 @@ class TwitchClipsIE(TwitchBaseIE):
             'channel_id': '25163635',
             'channel_is_verified': False,
             'channel_follower_count': int,
-            'uploader': 'stereotype_',
-            'uploader_id': '43566419',
+            'uploader': 'EA',
+            'uploader_id': '25163635',
         },
     }, {
         'url': 'https://www.twitch.tv/xqc/clip/CulturedAmazingKuduDatSheffy-TiZ_-ixAGYR3y2Uy',
@@ -1118,8 +1120,8 @@ class TwitchClipsIE(TwitchBaseIE):
             'channel_id': '71092938',
             'channel_is_verified': True,
             'channel_follower_count': int,
-            'uploader': 'okSTFUdude',
-            'uploader_id': '744085721',
+            'uploader': 'xQc',
+            'uploader_id': '71092938',
             'categories': ['Just Chatting'],
         },
     }, {
@@ -1161,30 +1163,28 @@ class TwitchClipsIE(TwitchBaseIE):
             'sig': clip['playbackAccessToken']['signature'],
             'token': clip['playbackAccessToken']['value'],
         }
-        asset_default = traverse_obj(clip, ('assets', 0), {})
-        asset_portrait = traverse_obj(clip, ('assets', 1), {})
-        game = traverse_obj(clip, ('game', 'displayName'))
+        asset_default = traverse_obj(clip, ('assets', 0, {dict})) or {}
+        asset_portrait = traverse_obj(clip, ('assets', 1, {dict})) or {}
 
         formats = []
-        for quality in traverse_obj(asset_default, ('videoQualities'), default=[]):
-            if source := traverse_obj(quality, ('sourceURL', {url_or_none})):
-                formats.append({
-                    'url': update_url_query(source, access_query),
-                    'format_id': quality.get('quality'),
-                    'height': int_or_none(quality.get('quality')),
-                    'fps': float_or_none(quality.get('frameRate')),
-                    'aspect_ratio': float_or_none(asset_default.get('aspectRatio')),
-                })
-
+        default_aspect_ratio = float_or_none(asset_default.get('aspectRatio'))
+        formats.extend(traverse_obj(asset_default, ('videoQualities', lambda _, v: url_or_none(v['sourceURL']), {
+            'url': ('sourceURL', {update_url_query(query=access_query)}),
+            'format_id': ('quality', {str}),
+            'height': ('quality', {int_or_none}),
+            'fps': ('frameRate', {float_or_none}),
+            'aspect_ratio': {value(default_aspect_ratio)},
+        })))
+        portrait_aspect_ratio = float_or_none(asset_portrait.get('aspectRatio'))
         for i, quality in enumerate(traverse_obj(asset_portrait, ('videoQualities'), default=[])):
             if source := traverse_obj(quality, ('sourceURL', {url_or_none})):
                 formats.append({
                     'url': update_url_query(source, access_query),
-                    'format_id': 'portrait-' + ('best' if i == 0 else quality.get('quality')),
+                    'format_id': join_nonempty('portrait', 'best' if i == 0 else quality.get('quality')),
                     'height': int_or_none(quality.get('quality')),
                     'fps': float_or_none(quality.get('frameRate')),
-                    'aspect_ratio': float_or_none(asset_portrait.get('aspectRatio')),
-                    'quality': -1,
+                    'aspect_ratio': portrait_aspect_ratio,
+                    'quality': -2,
                 })
 
         thumbnails = []
@@ -1211,18 +1211,20 @@ class TwitchClipsIE(TwitchBaseIE):
             'id': clip.get('id') or slug,
             '_old_archive_ids': [make_archive_id(self, old_id)] if old_id else None,
             'display_id': slug,
-            'title': clip.get('title'),
             'formats': formats,
-            'duration': traverse_obj(clip, ('durationSeconds', {int_or_none})),
-            'view_count': traverse_obj(clip, ('viewCount', {int_or_none})),
-            'timestamp': traverse_obj(clip, ('createdAt', {parse_iso8601})),
             'thumbnails': thumbnails,
-            'creator': traverse_obj(clip, ('broadcaster', 'displayName')),
-            'channel': traverse_obj(clip, ('broadcaster', 'displayName')),
-            'channel_id': traverse_obj(clip, ('broadcaster', 'id')),
-            'channel_follower_count': traverse_obj(clip, ('broadcaster', 'followers', 'totalCount', {int_or_none})),
-            'channel_is_verified': traverse_obj(clip, ('broadcaster', 'isPartner')),
-            'uploader': traverse_obj(clip, ('curator', 'displayName')),
-            'uploader_id': traverse_obj(clip, ('curator', 'id')),
-            'categories': [game] if game else None,
+            **traverse_obj(clip, {
+                'title': ('title', {str}),
+                'duration': ('durationSeconds', {int_or_none}),
+                'view_count': ('viewCount', {int_or_none}),
+                'timestamp': ('createdAt', {parse_iso8601}),
+                'creator': ('broadcaster', 'displayName', {str}),
+                'channel': ('broadcaster', 'displayName', {str}),
+                'channel_id': ('broadcaster', 'id', {str}),
+                'channel_follower_count': ('broadcaster', 'followers', 'totalCount', {int_or_none}),
+                'channel_is_verified': ('broadcaster', 'isPartner', {bool}),
+                'uploader': ('broadcaster', 'displayName', {str}),
+                'uploader_id': ('broadcaster', 'id', {str}),
+                'categories': ('game', 'displayName', {str}, filter, all, filter),
+            }),
         }
