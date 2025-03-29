@@ -2115,7 +2115,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _load_nsig_code_from_cache(self, player_id):
         cache_id = ('nsig code', player_id)
 
-        if func_code := self._player_cache.get(cache_id):
+        func_code = self._player_cache.get(cache_id)
+        if func_code:
             return func_code
 
         # We don't know which player JS variant is cached to disk, so ignore cache if forcing one
