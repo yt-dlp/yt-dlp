@@ -84,7 +84,7 @@ class VKBaseIE(InfoExtractor):
         if not mobj:
             return 0
 
-        return int(mobj[1])
+        return int(mobj[0])
 
     def _download_payload(self, path, video_id, data, fatal=True):
         endpoint = f'https://vk.com/{path}.php'
