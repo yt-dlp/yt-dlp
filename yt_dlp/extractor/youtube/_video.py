@@ -1762,12 +1762,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     ]
 
     _PLAYER_JS_VARIANT_MAP = {
-        'main': '/s/player/{}/player_ias.vflset/en_US/base.js',
-        'tce': '/s/player/{}/player_ias_tce.vflset/en_US/base.js',
-        'tv': '/s/player/{}/tv-player-ias.vflset/tv-player-ias.js',
-        'tv_es6': '/s/player/{}/tv-player-es6.vflset/tv-player-es6.js',
-        'phone': '/s/player/{}/player-plasma-ias-phone-en_US.vflset/base.js',
-        'tablet': '/s/player/{}/player-plasma-ias-tablet-en_US.vflset/base.js',
+        'main': 'player_ias.vflset/en_US/base.js',
+        'tce': 'player_ias_tce.vflset/en_US/base.js',
+        'tv': 'tv-player-ias.vflset/tv-player-ias.js',
+        'tv_es6': 'tv-player-es6.vflset/tv-player-es6.js',
+        'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
+        'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',
     }
 
     @classmethod
@@ -1949,14 +1949,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             get_all=False, expected_type=str)
         if not player_url:
             return
-        js_variant = self._configuration_arg('force_js_variant', [''])[0]
-        if js_variant not in ('false', ''):
-            if js_variant not in self._PLAYER_JS_VARIANT_MAP:
-                raise ExtractorError(
-                    f'Invalid JS variant name "{js_variant}" requested by extractor argument', expected=True)
+
+        requested_js_variant = self._configuration_arg('force_js_variant', [''])[0]
+        if requested_js_variant in self._PLAYER_JS_VARIANT_MAP:
             player_id = self._extract_player_info(player_url)
-            self.write_debug(f'Forcing {js_variant} variant for player {player_id}')
-            player_url = self._PLAYER_JS_VARIANT_MAP[js_variant].format(player_id)
+            original_url = player_url
+            player_url = f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[requested_js_variant]}'
+            if original_url != player_url:
+                self.write_debug(
+                    f'Forcing "{requested_js_variant}" player JS variant for player {player_id}\n'
+                    f'        original url = {original_url}', only_once=True)
+        elif requested_js_variant not in ('false', ''):
+            self.report_warning(
+                f'Invalid player JS variant name "{requested_js_variant}" requested. '
+                f'Valid choices are: {", ".join(self._PLAYER_JS_VARIANT_MAP)}', only_once=True)
+
         return urljoin('https://www.youtube.com', player_url)
 
     def _download_player_url(self, video_id, fatal=False):
