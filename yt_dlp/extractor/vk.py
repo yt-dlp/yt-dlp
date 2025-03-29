@@ -778,6 +778,27 @@ class VKMusicIE(VKBaseIE):
         },
     ]
 
+    def _parse_track_meta(self, meta, track_id=None):
+        len_ = len(meta)
+        info = {}
+
+        info['id'] = track_id \
+            if len_ < 2 or not meta[1] or not meta[0] \
+            else f'{meta[1]}_{meta[0]}'
+
+        title = meta[3] if len_ >= 3 else None
+        artist = meta[4] if len_ >= 4 else None
+        info['title'] = join_nonempty(artist, title, delim=' - ')
+        if title:
+            info['track'] = title
+        if artist:
+            info['artist'] = info['uploader'] = artist
+
+        info['duration'] = int_or_none(meta[5]) if len_ >= 5 else None
+        # info['thumbnail'] = meta[14] if len_ >= 14 else None
+
+        return info
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         track_id = mobj.group('track_id')
@@ -804,18 +825,9 @@ class VKMusicIE(VKBaseIE):
             })[0][0]
 
             url = _unmask_url(meta[2], self._parse_vk_id())
-            title = meta[3]
-            artist = meta[4]
-            thumbnail = meta[14]
 
             return {
-                'id': track_id,
-                'title': join_nonempty(artist, title, delim=' - '),
-                # 'thumbnails': [thumbnail],
-                'duration': int_or_none(meta[5]),
-                'uploader': artist,  # XXX: we don't have an uploader in player meta
-                'artist': artist,
-                'track': title,
+                **self._parse_track_meta(meta, track_id),
                 'formats': [{
                     'url': url,
                     # XXX: copied from VKWallPostIE._real_extract
@@ -850,19 +862,14 @@ class VKMusicIE(VKBaseIE):
                 # XXX: repeating code
                 # meta-parsers for track and playlist items should be unified
 
-                title = ent[3]
-                artist = ent[4]
-
-                track_id = f'{ent[1]}_{ent[0]}'
+                info = self._parse_track_meta(ent)
+                track_id = info.pop('id')
+                title = info.pop('title')
                 audio_url = f'https://vk.com/audio{track_id}'
 
                 entries.append(self.url_result(
-                    audio_url, VKMusicIE, track_id,
-                    join_nonempty(artist, title, delim=' - '),
-                    track=title, artist=artist, uploader=artist,
-                    duration=int_or_none(ent[5]),
-                    # thumbnails=[meta[14]]
-                ))
+                    audio_url, VKMusicIE, track_id, title,
+                    **info))
 
             artist = meta.get('authorName')
             thumbnail = meta.get('coverUrl')
