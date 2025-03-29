@@ -253,7 +253,7 @@ class RaiPlayIE(RaiBaseIE):
     _VALID_URL = rf'(?P<base>https?://(?:www\.)?raiplay\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)'
     _TESTS = [{
         'url': 'https://www.raiplay.it/video/2014/04/Report-del-07042014-cb27157f-9dd0-4aee-b788-b1f67643a391.html',
-        'md5': '8970abf8caf8aef4696e7b1f2adfc696',
+        'md5': 'c064c0b2d09c278fb293116ef5d0a32d',
         'info_dict': {
             'id': 'cb27157f-9dd0-4aee-b788-b1f67643a391',
             'ext': 'mp4',
@@ -267,13 +267,13 @@ class RaiPlayIE(RaiBaseIE):
             'series': 'Report',
             'season': '2013/14',
             'subtitles': {'it': 'count:4'},
-            'release_year': 2024,
+            'release_year': int,
             'episode': 'Espresso nel caffè - 07/04/2014',
             'timestamp': 1396919880,
             'upload_date': '20140408',
             'formats': 'count:4',
+            'creators': ['Rai 3'],
         },
-        'params': {'skip_download': True},
     }, {
         # 1080p
         'url': 'https://www.raiplay.it/video/2021/11/Blanca-S1E1-Senza-occhi-b1255a4a-8e72-4a2f-b9f3-fc1308e00736.html',
@@ -337,6 +337,7 @@ class RaiPlayIE(RaiBaseIE):
     def _real_extract(self, url):
         base, video_id = self._match_valid_url(url).groups()
 
+        base = base.replace('/iframe/', '/')
         media = self._download_json(
             f'{base}.json', video_id, 'Downloading video JSON')
 
@@ -583,8 +584,8 @@ class RaiPlaySoundPlaylistIE(InfoExtractor):
                                     traverse_obj(program, ('podcast_info', 'description')))
 
 
-class RaiIE(RaiBaseIE):
-    _VALID_URL = rf'https?://[^/]+\.(?:rai\.(?:it|tv))/.+?-(?P<id>{RaiBaseIE._UUID_RE})(?:-.+?)?\.html'
+class RaiArchiveIE(RaiBaseIE):
+    _VALID_URL = rf'https?://[^/]+\.(?:rai\.(?:it|tv))/dl/.+?-(?P<id>{RaiBaseIE._UUID_RE})(?:-.+?)?\.html'
     _TESTS = [{
         'url': 'https://www.raisport.rai.it/dl/raiSport/media/rassegna-stampa-04a9f4bd-b563-40cf-82a6-aad3529cb4a9.html',
         'info_dict': {
@@ -656,6 +657,36 @@ class RaiIE(RaiBaseIE):
         }
 
 
+class RaiIE(InfoExtractor):
+    _VALID_URL = rf'https?://(?:www\.)?rai\.(?:it|tv)/programmi/.+-(?P<id>{RaiBaseIE._UUID_RE})(?:-.+?)?\.html'
+    _TESTS = [{
+        'url': 'https://www.rai.it/programmi/report/inchieste/Questione-di-lobby-9fbdb9dc-3765-4377-823e-58db0561a4f2.html',
+        'md5': '870422055ba90cf0312888654cc9ee34',
+        'info_dict': {
+            'id': 'f12422bb-0d3f-49a1-aa20-fb5bdacdc6d7',
+            'ext': 'mp4',
+            'upload_date': '20250112',
+            'timestamp': 1736718900,
+            'uploader': 'Rai 3',
+            'title': 'Questione di lobby - Report 12/01/2025',
+            'season': '2024/25',
+            'episode': 'Questione di lobby',
+            'duration': 2089,
+            'alt_title': 'St 2024/25 - Report - Questione di lobby',
+            'creators': ['Rai 3'],
+            'series': 'Report',
+            'thumbnail': 'https://www.raiplay.it/dl/img/2025/01/25265735.png',
+            'description': 'md5:df05db433304fe5881af142cca73d74a',
+            'release_year': int,
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        html = self._download_webpage(url, video_id)
+        return self.url_result(self._search_regex(r'<iframe [^>]*\bsrc=["\']([^"\']+)', html, 'iframe url'))
+
+
 class RaiNewsIE(RaiBaseIE):
     _VALID_URL = rf'https?://(www\.)?rainews\.it/(?!articoli)[^?#]+-(?P<id>{RaiBaseIE._UUID_RE})(?:-[^/?#]+)?\.html'
     _EMBED_REGEX = [rf'<iframe[^>]+data-src="(?P<url>/iframe/[^?#]+?{RaiBaseIE._UUID_RE}\.html)']
@@ -708,7 +739,7 @@ class RaiNewsIE(RaiBaseIE):
         if not relinker_url:
             # fallback on old implementation for some old content
             try:
-                return RaiIE._real_extract(self, url)
+                return RaiArchiveIE._real_extract(self, url)
             except GeoRestrictedError:
                 raise
             except ExtractorError as e:
