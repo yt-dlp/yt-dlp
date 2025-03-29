@@ -1386,15 +1386,15 @@ from .nowness import (
 )
 from .noz import NozIE
 from .npo import (
-    NPOIE,
+    NPO3IE,
+    NTRIE,
     VPROIE,
-    WNLIE,
     AndereTijdenIE,
     HetKlokhuisIE,
-    NPOLiveIE,
-    NPORadioFragmentIE,
     NPORadioIE,
+    NPOStartIE,
     SchoolTVIE,
+    ZappIE,
 )
 from .npr import NprIE
 from .nrk import (
