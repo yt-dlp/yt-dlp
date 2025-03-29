@@ -789,7 +789,9 @@ class VKMusicIE(VKBaseIE):
 
             # copied regex from VKWallPostIE
             # XXX: common code should be unified, moved to a class
-            data_audio = re.search(r'data-audio="([^"]+)', webpage)[1]
+            data_audio = self._search_regex(
+                r'data-audio="([^"]+)', webpage, 'data-audio attr', group=1)
+
             meta = self._parse_json(unescapeHTML(data_audio), track_id)
             one_more_id = meta[24]
 
