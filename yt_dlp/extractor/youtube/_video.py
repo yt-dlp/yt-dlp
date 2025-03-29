@@ -2013,7 +2013,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self.write_debug(f'Extracting signature function {func_id}')
         cache_spec, code = None, None
         # We don't know which player JS variant is cached to disk, so ignore cache if forcing one
-        if self._configuration_arg('force_js_variant', [''])[0] in ('false', ''):
+        if self._configuration_arg('force_js_variant', [''])[0] not in self._PLAYER_JS_VARIANT_MAP:
             cache_spec = self.cache.load('youtube-sigfuncs', func_id, min_ver='2025.03.27')
 
         if not cache_spec:
@@ -2119,7 +2119,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return func_code
 
         # We don't know which player JS variant is cached to disk, so ignore cache if forcing one
-        if self._configuration_arg('force_js_variant', [''])[0] in ('false', ''):
+        if self._configuration_arg('force_js_variant', [''])[0] not in self._PLAYER_JS_VARIANT_MAP:
             func_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.03.27')
             if func_code:
                 self._player_cache[cache_id] = func_code
