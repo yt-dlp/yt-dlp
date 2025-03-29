@@ -766,10 +766,10 @@ class VKMusicIE(VKBaseIE):
                 'id': '-2001746599_34746599',
                 'ext': 'm4a',
                 'title': 'Skillet - Feel Invincible',
-                'duration': 230,
+                'track': 'Feel Invincible',
                 'uploader': 'Skillet',
                 'artists': ['Skillet'],
-                'track': 'Feel Invincible',
+                'duration': 230,
                 'thumbnail': r're:https?://.*\.jpg',
             },
             'params': {
@@ -783,12 +783,31 @@ class VKMusicIE(VKBaseIE):
                 'id': '-2001844083_29844083',
                 'ext': 'm4a',
                 'title': 'Pusha T, Stormzy - Good Goodbye (feat. Pusha T and Stormzy)',
-                'duration': 211,
+                'track': 'Good Goodbye (feat. Pusha T and Stormzy)',
                 'uploader': 'Pusha T, Stormzy',
                 'artists': ['Pusha T', 'Stormzy'],
-                'track': 'Good Goodbye (feat. Pusha T and Stormzy)',
+                'duration': 211,
                 'thumbnail': r're:https?://.*\.jpg',
             },
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            'url': 'https://vk.com/artist/linkinpark/releases?z=audio_playlist-2000984503_984503%2Fc468f3a862b6f73b55',
+            'info_dict': {
+                'id': '-2000984503_984503',
+                'title': 'Linkin Park - One More Light',
+                'album': 'One More Light',
+                'uploader': 'Linkin Park',
+                'artist': 'Linkin Park',
+                'thumbnail': r're:https?://.*\.jpg',
+                'genre': 'Альтернатива',
+                'release_year': 2017,
+                'modified_timestamp': int,
+                'view_count': int,
+            },
+            'playlist_count': 10,
             'params': {
                 'skip_download': True,
             },
@@ -803,7 +822,7 @@ class VKMusicIE(VKBaseIE):
             if len_ >= 2 and meta[1] and meta[0] \
             else track_id
 
-        title = meta[3] if len_ >= 3 else None
+        title = meta[3] if len_ >= 3 else None  # TODO: fallback
         artist = meta[4] if len_ >= 4 else None  # artists in one string, may include "feat."
         info['title'] = join_nonempty(artist, title, delim=' - ')
         info['track'] = title
@@ -888,16 +907,26 @@ class VKMusicIE(VKBaseIE):
                 entries.append(self.url_result(
                     audio_url, VKMusicIE, track_id, title, **info))
 
+            title = meta.get('title')  # TODO: fallback
             artist = meta.get('authorName')
-            thumbnail = meta.get('coverUrl')
+            genre, year = self._search_regex(
+                r'^([^<]+)<\s*span[^>]*>[^<]*</\s*span\s*>(\d+)$',
+                meta.get('infoLine1'), 'genre and release year',
+                default=(None, None), fatal=False, group=(1, 2))
+
             return self.playlist_result(
-                entries, playlist_id,
-                meta.get('title'),  # TODO: maybe also "artist - title"?
+                entries,
+                playlist_id,
+                join_nonempty(artist, title, delim=' - '),
                 meta.get('description'),
-                uploader=artist, artist=artist,
-                thumbnails=[thumbnail] if thumbnail else None,
-                # TODO: there are even more useful metadata
-            )
+                album=title,
+                uploader=artist,
+                artists=[artist],
+                thumbnails=traverse_obj(meta, ({'url': 'coverUrl'}, ...)),
+                genres=[genre] if genre else [],
+                release_year=int_or_none(year),  # XXX: is None ok here?
+                modified_timestamp=int_or_none(meta.get('lastUpdated')),
+                view_count=int_or_none(meta.get('listens')))
 
 
 class VKPlayBaseIE(InfoExtractor):
