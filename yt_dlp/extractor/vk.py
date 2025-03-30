@@ -760,7 +760,7 @@ class VKWallPostIE(VKBaseIE):
 
 class VKMusicIE(VKBaseIE):
     IE_NAME = 'vk:music'
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/(?:audio(?P<track_id>-?\d+_\d+)|(?:.*\?(?:act|z)=audio_playlist|music/[a-z]+/)(?P<playlist_id>(?P<pl_oid>-?\d+)_(?P<pl_id>\d+))(?:(?:%2F|_|[?&]access_hash=)(?P<access_hash>[0-9a-f]+))?)'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/(?:audio(?P<track_id>-?\d+_\d+)|(?:.*[\?&](?:act|z)=audio_playlist|music/[a-z]+/)(?P<playlist_id>(?P<pl_oid>-?\d+)_(?P<pl_id>\d+))(?:(?:%2F|_|[?&]access_hash=)(?P<access_hash>[0-9a-f]+))?)'
     _TESTS = [
         {
             'url': 'https://vk.com/audio-2001746599_34746599',
@@ -847,6 +847,25 @@ class VKMusicIE(VKBaseIE):
                 'duration': 207,
                 'thumbnail': r're:https?://.*\.jpg',
             },
+            'params': {
+                'skip_download': True,
+            }
+        },
+        {
+            'url': 'https://vk.com/audios877252112?block=playlists&section=general&z=audio_playlist-147845620_2390',
+            'info_dict': {
+                'id': '-147845620_2390',
+                'title': 'VK Музыка - VK Fest 2024: Белая сцена',
+                'description': 'md5:6d652551bb1faaddbcd46321a77fa8d0',
+                'album': 'VK Fest 2024: Белая сцена',  # XXX: not an album (but who cares actually)
+                'uploader': 'VK Музыка',
+                'artists': ['VK Музыка'],  # XXX: not actually a list of all artists
+                'thumbnail': r're:https?://.*\.jpg',
+                'modified_timestamp': int,
+                'modified_date': str,
+                'view_count': int,
+            },
+            'playlist_count': 18,
             'params': {
                 'skip_download': True,
             }
@@ -955,8 +974,8 @@ class VKMusicIE(VKBaseIE):
                 entries.append(self.url_result(
                     audio_url, VKMusicIE, track_id, title, **info))
 
-            title = meta.get('title')  # TODO: fallback
-            artist = meta.get('authorName')
+            title = unescapeHTML(meta.get('title'))  # TODO: fallback
+            artist = unescapeHTML(meta.get('authorName'))
             genre, year = self._search_regex(
                 r'^([^<]+)<\s*span[^>]*>[^<]*</\s*span\s*>(\d+)$',
                 meta.get('infoLine1'), 'genre and release year',
@@ -966,13 +985,13 @@ class VKMusicIE(VKBaseIE):
                 entries,
                 playlist_id,
                 join_nonempty(artist, title, delim=' - '),
-                meta.get('description'),
+                unescapeHTML(meta.get('rawDescription')),
                 album=title,
                 uploader=artist,
                 artists=[artist],
                 thumbnail=meta.get('coverUrl'),  # XXX: should i also specify `thumbnails`?
-                genres=[genre] if genre else [],
-                release_year=int_or_none(year),  # XXX: is None ok here?
+                genres=[unescapeHTML(genre)] if genre else None,
+                release_year=int_or_none(year),
                 modified_timestamp=int_or_none(meta.get('lastUpdated')),
                 view_count=int_or_none(meta.get('listens')))
 
