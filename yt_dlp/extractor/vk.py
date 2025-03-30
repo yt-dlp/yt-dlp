@@ -896,6 +896,17 @@ class VKMusicIE(VKBaseIE):
         info['duration'] = int_or_none(meta[5]) if len_ >= 5 else None
         info['thumbnails'] = [{'url': meta[14]}] if len_ >= 14 else []
 
+        # meta[30] is 2 bits
+        #    most significant: isExplicit
+        #   least significant: isForeignAgent
+        # i. e.
+        #   00 = safe
+        #   01 = marked by RKN as "foreign agent"
+        #   10 = explicit lyrics
+        #   11 = both E lyrics and "foreign agent"
+        if len_ >= 30 and meta[30]:
+            info['age_limit'] = 18
+
         return info
 
     def _real_extract(self, url):
