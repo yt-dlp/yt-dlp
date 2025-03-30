@@ -815,7 +815,7 @@ class VKMusicIE(VKBaseIE):
             'url': 'https://vk.com/artist/linkinpark/releases?z=audio_playlist-2000984503_984503%2Fc468f3a862b6f73b55',
             'info_dict': {
                 'id': '-2000984503_984503',
-                'title': 'Linkin Park - One More Light',
+                'title': 'One More Light',
                 'description': '',
                 'album': 'One More Light',
                 'uploader': 'Linkin Park',
@@ -853,11 +853,9 @@ class VKMusicIE(VKBaseIE):
             'url': 'https://vk.com/audios877252112?block=playlists&section=general&z=audio_playlist-147845620_2390',
             'info_dict': {
                 'id': '-147845620_2390',
-                'title': 'VK Музыка - VK Fest 2024: Белая сцена',
+                'title': 'VK Fest 2024: Белая сцена',
                 'description': 'md5:6d652551bb1faaddbcd46321a77fa8d0',
-                'album': 'VK Fest 2024: Белая сцена',  # XXX: not an album (but who cares actually)
                 'uploader': 'VK Музыка',
-                'artists': ['VK Музыка'],  # XXX: not actually a list of all artists
                 'thumbnail': r're:https?://.*\.jpg',
                 'modified_timestamp': int,
                 'modified_date': str,
@@ -989,15 +987,14 @@ class VKMusicIE(VKBaseIE):
                 r'^([^<]+)<\s*span[^>]*>[^<]*</\s*span\s*>(\d+)$',
                 meta.get('infoLine1'), 'genre and release year',
                 default=(None, None), fatal=False, group=(1, 2))
+            is_album = year is not None
 
             return self.playlist_result(
-                entries,
-                playlist_id,
-                join_nonempty(artist, title, delim=' - '),
+                entries, playlist_id, title,
                 unescapeHTML(meta.get('rawDescription')),
-                album=title,
+                album=title if is_album else None,
                 uploader=artist,
-                artists=[artist],
+                artists=[artist] if is_album else None,
                 thumbnail=meta.get('coverUrl'),  # XXX: should i also specify `thumbnails`?
                 genres=[unescapeHTML(genre)] if genre else None,
                 release_year=int_or_none(year),
