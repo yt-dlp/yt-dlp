@@ -1,4 +1,5 @@
 import datetime
+import json
 
 from .common import InfoExtractor
 
@@ -41,12 +42,54 @@ class IvooxIE(InfoExtractor):
         media_id = self._match_id(url)
         webpage = self._download_webpage(url, media_id)
 
-        # Extract the podcast info
-        date = datetime.datetime.fromisoformat(self._html_search_regex(r'data-prm-pubdate="(.+?)"', webpage, 'title'))
-        timestamp = int(datetime.datetime.timestamp(date))
-        author = self._html_search_regex(r'data-prm-author="(.+?)"', webpage, 'title')
-        podcast = self._html_search_regex(r'data-prm-podname="(.+?)"', webpage, 'title')
-        title = self._html_search_regex(r'data-prm-title="(.+?)"', webpage, 'title')
+        # Set the 'defaults' for the data we want to extract
+        date = None
+        timestamp = None
+        author = None
+        channel = None
+        title = None
+        thumbnail = None
+        description = None
+
+        # This platform embeds a JSON document with a lot of the chapter
+        # information there; Try getting all the info from here first
+        embedded_pattern = r'>({"@context":"https://schema.org/","@type":"PodcastEpisode".+?)</script>',
+        embedded_metadata = self._html_search_regex(embedded_pattern, webpage, 'embedded metadata')
+        try:
+            metadata = json.loads(embedded_metadata)
+            if metadata['@type'] == 'PodcastEpisode':
+                title = metadata['name']
+                thumbnail = metadata['image']
+                description = metadata['description']
+                y, m, d = metadata['datePublished'].split('-')
+                date = datetime.datetime(int(y), int(m), int(d))
+                timestamp = int(datetime.datetime.timestamp(date))
+                if metadata.get('partOfSeries'):
+                    channel = metadata['partOfSeries']['name']
+        except Exception as e:
+            self.report_warning(f'Failed to extract embedded json; Reason: {e}', media_id)
+
+        # Fallback extraction of the the podcast info
+        if date is None:
+            self.report_warning('Fallback extration of date', media_id)
+            date = datetime.datetime.fromisoformat(self._html_search_regex(r'data-prm-pubdate="(.+?)"', webpage, 'title'))
+            timestamp = int(datetime.datetime.timestamp(date))
+        if author is None:
+            # Author uses fallback since it is not explicitly embedded elsewhere
+            #self.report_warning('Fallback extration of author', media_id)
+            author = self._html_search_regex(r'data-prm-author="(.+?)"', webpage, 'author')
+        if channel is None:
+            self.report_warning('Fallback extration of channel', media_id)
+            channel = self._html_search_regex(r'data-prm-podname="(.+?)"', webpage, 'channel')
+        if title is None:
+            self.report_warning('Fallback extration of title', media_id)
+            title = self._html_search_regex(r'data-prm-title="(.+?)"', webpage, 'title')
+        if thumbnail is None:
+            self.report_warning('Fallback extration of thumbnail', media_id, 'thumbnail')
+            thumbnail = self._og_search_thumbnail(webpage)
+        if description is None:
+            self.report_warning('Fallback extration of description', media_id, 'description')
+            description = self._og_search_description(webpage)
 
         # Extract the download URL
         headers = {
@@ -74,9 +117,10 @@ class IvooxIE(InfoExtractor):
         return {
             'id': media_id,
             'title': title,
+            'thumbnail': thumbnail,
             'uploader': author,
-            'channel': podcast,
+            'channel': channel,
             'timestamp': timestamp,
-            'description': self._og_search_description(webpage),
+            'description': description,
             'formats': formats,
         }
