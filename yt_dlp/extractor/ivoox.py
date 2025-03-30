@@ -53,7 +53,7 @@ class IvooxIE(InfoExtractor):
 
         # This platform embeds a JSON document with a lot of the chapter
         # information there; Try getting all the info from here first
-        embedded_pattern = r'>({"@context":"https://schema.org/","@type":"PodcastEpisode".+?)</script>',
+        embedded_pattern = r'>({"@context":"https://schema.org/","@type":"PodcastEpisode".+?)</script>'
         embedded_metadata = self._html_search_regex(embedded_pattern, webpage, 'embedded metadata')
         try:
             metadata = json.loads(embedded_metadata)
@@ -76,7 +76,6 @@ class IvooxIE(InfoExtractor):
             timestamp = int(datetime.datetime.timestamp(date))
         if author is None:
             # Author uses fallback since it is not explicitly embedded elsewhere
-            #self.report_warning('Fallback extration of author', media_id)
             author = self._html_search_regex(r'data-prm-author="(.+?)"', webpage, 'author')
         if channel is None:
             self.report_warning('Fallback extration of channel', media_id)
