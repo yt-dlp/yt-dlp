@@ -1771,17 +1771,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }
     _INVERSE_PLAYER_JS_VARIANT_MAP = {value: key for key, value in _PLAYER_JS_VARIANT_MAP.items()}
 
-    @functools.cached_property
-    def forced_js_variant(self):
-        requested_js_variant = self._configuration_arg('force_js_variant', [''])[0]
-        if requested_js_variant in self._PLAYER_JS_VARIANT_MAP:
-            return requested_js_variant
-        elif requested_js_variant not in ('false', ''):
-            self.report_warning(
-                f'Invalid player JS variant name "{requested_js_variant}" requested. '
-                f'Valid choices are: {", ".join(self._PLAYER_JS_VARIANT_MAP)}', only_once=True)
-        return None
-
     @classmethod
     def suitable(cls, url):
         from yt_dlp.utils import parse_qs
@@ -1962,14 +1951,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not player_url:
             return
 
-        if self.forced_js_variant:
+        requested_js_variant = self._configuration_arg('force_js_variant', [''])[0]
+        if requested_js_variant in self._PLAYER_JS_VARIANT_MAP:
             player_id = self._extract_player_info(player_url)
             original_url = player_url
-            player_url = f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[self.forced_js_variant]}'
+            player_url = f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[requested_js_variant]}'
             if original_url != player_url:
                 self.write_debug(
-                    f'Forcing "{self.forced_js_variant}" player JS variant for player {player_id}\n'
+                    f'Forcing "{requested_js_variant}" player JS variant for player {player_id}\n'
                     f'        original url = {original_url}', only_once=True)
+        elif requested_js_variant not in ('false', ''):
+            self.report_warning(
+                f'Invalid player JS variant name "{requested_js_variant}" requested. '
+                f'Valid choices are: {", ".join(self._PLAYER_JS_VARIANT_MAP)}', only_once=True)
 
         return urljoin('https://www.youtube.com', player_url)
 
