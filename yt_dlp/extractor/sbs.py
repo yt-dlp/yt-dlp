@@ -126,9 +126,10 @@ class SBSIE(InfoExtractor):
         fixed_subtitles = {}
         for lang, subs in subtitles.items():
             for sub in subs:
+                fixed_lang = lang
                 if sub['url'].lower().endswith('_fe.vtt'):
-                    lang += '-forced'
-                fixed_subtitles.setdefault(lang, []).append(sub)
+                    fixed_lang += '-forced'
+                fixed_subtitles.setdefault(fixed_lang, []).append(sub)
 
         return {
             'id': video_id,
