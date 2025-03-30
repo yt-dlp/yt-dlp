@@ -797,6 +797,7 @@ class VKMusicIE(VKBaseIE):
         },
         {
             'note': 'meta is AudioPlayerBlock__root[data-exec], no artists in 17/18',
+            'skip': 'authentication required',
             'url': 'https://vk.com/audio-26549346_456239443',
             'info_dict': {
                 'id': '-26549346_456239443',
