@@ -877,11 +877,11 @@ class VKMusicIE(VKBaseIE):
             if data_audio:
                 meta = self._parse_json(unescapeHTML(data_audio), track_id)
             else:
-                player = get_element_html_by_class('AudioPlayerBlock__root', webpage)
+                data_exec = self._search_regex(
+                    r'class="AudioPlayerBlock__root"[^>]+data-exec="([^"]+)',
+                    webpage, 'AudioPlayerBlock data-exec', group=1)
                 meta = traverse_obj(
-                    self._parse_json(
-                        extract_attributes(player).get('data-exec'),
-                        track_id),
+                    self._parse_json(unescapeHTML(data_exec), track_id),
                     ('AudioPlayerBlock/init', 'firstAudio'))
 
             one_more_id = meta[24]
