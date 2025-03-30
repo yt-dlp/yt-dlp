@@ -1770,6 +1770,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',
     }
 
+    @functools.cached_property
+    def forced_js_variant(self):
+        requested_js_variant = self._configuration_arg('force_js_variant', [''])[0]
+        if requested_js_variant in self._PLAYER_JS_VARIANT_MAP:
+            return requested_js_variant
+        elif requested_js_variant not in ('false', ''):
+            self.report_warning(
+                f'Invalid player JS variant name "{requested_js_variant}" requested. '
+                f'Valid choices are: {", ".join(self._PLAYER_JS_VARIANT_MAP)}', only_once=True)
+        return None
+
     @classmethod
     def suitable(cls, url):
         from yt_dlp.utils import parse_qs
@@ -1950,19 +1961,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not player_url:
             return
 
-        requested_js_variant = self._configuration_arg('force_js_variant', [''])[0]
-        if requested_js_variant in self._PLAYER_JS_VARIANT_MAP:
+        if self.forced_js_variant:
             player_id = self._extract_player_info(player_url)
             original_url = player_url
-            player_url = f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[requested_js_variant]}'
+            player_url = f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[self.forced_js_variant]}'
             if original_url != player_url:
                 self.write_debug(
-                    f'Forcing "{requested_js_variant}" player JS variant for player {player_id}\n'
+                    f'Forcing "{self.forced_js_variant}" player JS variant for player {player_id}\n'
                     f'        original url = {original_url}', only_once=True)
-        elif requested_js_variant not in ('false', ''):
-            self.report_warning(
-                f'Invalid player JS variant name "{requested_js_variant}" requested. '
-                f'Valid choices are: {", ".join(self._PLAYER_JS_VARIANT_MAP)}', only_once=True)
 
         return urljoin('https://www.youtube.com', player_url)
 
@@ -2013,7 +2019,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self.write_debug(f'Extracting signature function {func_id}')
         cache_spec, code = None, None
         # We don't know which player JS variant is cached to disk, so ignore cache if forcing one
-        if self._configuration_arg('force_js_variant', [''])[0] not in self._PLAYER_JS_VARIANT_MAP:
+        if not self.forced_js_variant:
             cache_spec = self.cache.load('youtube-sigfuncs', func_id, min_ver='2025.03.27')
 
         if not cache_spec:
@@ -2120,7 +2126,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return func_code
 
         # We don't know which player JS variant is cached to disk, so ignore cache if forcing one
-        if self._configuration_arg('force_js_variant', [''])[0] not in self._PLAYER_JS_VARIANT_MAP:
+        if not self.forced_js_variant:
             func_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.03.27')
             if func_code:
                 self._player_cache[cache_id] = func_code
