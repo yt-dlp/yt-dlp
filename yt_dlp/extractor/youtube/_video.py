@@ -2005,15 +2005,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return id_m.group('id')
 
     def _load_player(self, video_id, player_url, fatal=True):
-        player_id = self._extract_player_info(player_url)
-        if player_id not in self._code_cache:
+        player_js_key = self._player_js_cache_key(player_url)
+        if player_js_key not in self._code_cache:
             code = self._download_webpage(
                 player_url, video_id, fatal=fatal,
-                note='Downloading player ' + player_id,
-                errnote=f'Download of {player_url} failed')
+                note=f'Downloading player {player_js_key}',
+                errnote=f'Download of {player_js_key} failed')
             if code:
-                self._code_cache[player_id] = code
-        return self._code_cache.get(player_id)
+                self._code_cache[player_js_key] = code
+        return self._code_cache.get(player_js_key)
 
     def _extract_signature_function(self, video_id, player_url, example_sig):
         # Read from filesystem cache
