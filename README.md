@@ -2239,7 +2239,8 @@ For ease of use, a few more compat options are available:
 * `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext,-prefer-vp9-sort`
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
 * `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
-* `--compat-options 2023`: Same as `--compat-options prefer-vp9-sort`. Use this to enable all future compat options
+* `--compat-options 2023`: Same as `--compat-options 2024,prefer-vp9-sort`
+* `--compat-options 2024`: Currently does nothing. Use this to enable all future compat options
 
 The following compat options restore vulnerable behavior from before security patches:
 
