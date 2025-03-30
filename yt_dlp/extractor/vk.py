@@ -14,9 +14,7 @@ from ..utils import (
     UserNotLive,
     clean_html,
     get_element_by_class,
-    get_element_html_by_class,
     get_element_html_by_id,
-    extract_attributes,
     int_or_none,
     join_nonempty,
     parse_qs,
@@ -811,7 +809,7 @@ class VKMusicIE(VKBaseIE):
             },
             'params': {
                 'skip_download': True,
-            }
+            },
         },
         {
             'url': 'https://vk.com/artist/linkinpark/releases?z=audio_playlist-2000984503_984503%2Fc468f3a862b6f73b55',
@@ -849,7 +847,7 @@ class VKMusicIE(VKBaseIE):
             },
             'params': {
                 'skip_download': True,
-            }
+            },
         },
         {
             'url': 'https://vk.com/audios877252112?block=playlists&section=general&z=audio_playlist-147845620_2390',
@@ -868,8 +866,8 @@ class VKMusicIE(VKBaseIE):
             'playlist_count': 18,
             'params': {
                 'skip_download': True,
-            }
-        }
+            },
+        },
     ]
 
     def _parse_track_meta(self, meta, track_id=None):
