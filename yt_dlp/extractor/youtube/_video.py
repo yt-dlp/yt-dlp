@@ -2121,21 +2121,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return inner
 
     def _load_nsig_code_from_cache(self, player_url):
-        cache_id = ('nsig code', self._player_js_cache_key(player_url))
+        cache_id = ('youtube-nsig', self._player_js_cache_key(player_url))
 
         if func_code := self._player_cache.get(cache_id):
             return func_code
 
-        func_code = self.cache.load('youtube-nsig', cache_id[1], min_ver='2025.03.30')
+        func_code = self.cache.load(*cache_id, min_ver='2025.03.30')
         if func_code:
             self._player_cache[cache_id] = func_code
 
         return func_code
 
     def _store_nsig_code_to_cache(self, player_url, func_code):
-        cache_id = ('nsig code', self._player_js_cache_key(player_url))
+        cache_id = ('youtube-nsig', self._player_js_cache_key(player_url))
         if cache_id not in self._player_cache:
-            self.cache.store('youtube-nsig', cache_id[1], func_code)
+            self.cache.store(*cache_id, func_code)
             self._player_cache[cache_id] = func_code
 
     def _decrypt_signature(self, s, video_id, player_url):
