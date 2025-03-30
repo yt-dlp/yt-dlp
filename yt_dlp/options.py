@@ -1423,11 +1423,11 @@ def create_parser():
     filesystem.add_option(
         '--mtime',
         action='store_true', dest='updatetime', default=None,
-        help='Use the Last-modified header to set the file modification time (default)')
+        help='Use the Last-modified header to set the file modification time')
     filesystem.add_option(
         '--no-mtime',
         action='store_false', dest='updatetime',
-        help='Do not use the Last-modified header to set the file modification time')
+        help='Do not use the Last-modified header to set the file modification time (default)')
     filesystem.add_option(
         '--write-description',
         action='store_true', dest='writedescription', default=False,
