@@ -2214,10 +2214,21 @@ class GenericIE(InfoExtractor):
             if is_live is not None:
                 info['live_status'] = 'not_live' if is_live == 'false' else 'is_live'
                 return
-            headers = m3u8_format.get('http_headers') or info.get('http_headers')
-            duration = self._extract_m3u8_vod_duration(
-                m3u8_format['url'], info.get('id'), note='Checking m3u8 live status',
-                errnote='Failed to download m3u8 media playlist', headers=headers)
+            headers = m3u8_format.get('http_headers') or info.get('http_headers') or {}
+            display_id = info.get('id')
+            urlh = self._request_webpage(
+                m3u8_format['url'], display_id, 'Checking m3u8 live status', errnote=False,
+                headers={**headers, 'Accept-Encoding': 'identity'}, fatal=False)
+            if urlh is False:
+                return
+            first_bytes = urlh.read(512)
+            if not first_bytes.startswith(b'#EXTM3U'):
+                return
+            m3u8_doc = self._webpage_read_content(
+                urlh, urlh.url, display_id, prefix=first_bytes, fatal=False, errnote=False)
+            if not m3u8_doc:
+                return
+            duration = self._parse_m3u8_vod_duration(m3u8_doc, display_id)
             if not duration:
                 info['live_status'] = 'is_live'
             info['duration'] = info.get('duration') or duration
