@@ -1951,7 +1951,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not player_url:
             return
 
-        requested_js_variant = self._configuration_arg('force_js_variant', [''])[0]
+        requested_js_variant = self._configuration_arg('player_js_variant', [''])[0] or 'actual'
         if requested_js_variant in self._PLAYER_JS_VARIANT_MAP:
             player_id = self._extract_player_info(player_url)
             original_url = player_url
@@ -1960,7 +1960,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.write_debug(
                     f'Forcing "{requested_js_variant}" player JS variant for player {player_id}\n'
                     f'        original url = {original_url}', only_once=True)
-        elif requested_js_variant not in ('false', ''):
+        elif requested_js_variant != 'actual':
             self.report_warning(
                 f'Invalid player JS variant name "{requested_js_variant}" requested. '
                 f'Valid choices are: {", ".join(self._PLAYER_JS_VARIANT_MAP)}', only_once=True)
