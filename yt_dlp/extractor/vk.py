@@ -14,7 +14,9 @@ from ..utils import (
     UserNotLive,
     clean_html,
     get_element_by_class,
+    get_element_html_by_class,
     get_element_html_by_id,
+    extract_attributes,
     int_or_none,
     join_nonempty,
     parse_qs,
@@ -794,6 +796,23 @@ class VKMusicIE(VKBaseIE):
             },
         },
         {
+            'note': 'meta is AudioPlayerBlock__root[data-exec], no artists in 17/18',
+            'url': 'https://vk.com/audio-26549346_456239443',
+            'info_dict': {
+                'id': '-26549346_456239443',
+                'ext': 'm4a',
+                'title': 'Fairie\'s Death Waltz - Still to Wake',
+                'track': 'Still to Wake',
+                'uploader': 'Fairie\'s Death Waltz',
+                'artists': ['Fairie\'s Death Waltz'],
+                'duration': 349,
+                'thumbnail': r're:https?://.*\.jpg',
+            },
+            'params': {
+                'skip_download': True,
+            }
+        },
+        {
             'url': 'https://vk.com/artist/linkinpark/releases?z=audio_playlist-2000984503_984503%2Fc468f3a862b6f73b55',
             'info_dict': {
                 'id': '-2000984503_984503',
@@ -852,10 +871,19 @@ class VKMusicIE(VKBaseIE):
             # copied regex from VKWallPostIE
             # XXX: common code should be unified, moved to a class
             data_audio = self._search_regex(
-                r'data-audio="([^"]+)',
-                webpage, 'data-audio attr', group=1)
+                r'data-audio="([^"]+)', webpage, 'data-audio attr',
+                default=None, group=1)
 
-            meta = self._parse_json(unescapeHTML(data_audio), track_id)
+            if data_audio:
+                meta = self._parse_json(unescapeHTML(data_audio), track_id)
+            else:
+                player = get_element_html_by_class('AudioPlayerBlock__root', webpage)
+                meta = traverse_obj(
+                    self._parse_json(
+                        extract_attributes(player).get('data-exec'),
+                        track_id),
+                    ('AudioPlayerBlock/init', 'firstAudio'))
+
             one_more_id = meta[24]
 
             del data_audio
