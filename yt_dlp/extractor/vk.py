@@ -834,6 +834,23 @@ class VKMusicIE(VKBaseIE):
                 'skip_download': True,
             },
         },
+        {
+            'note': 'special symbols in title and artist must be unescaped',
+            'url': 'https://vk.com/audio-2001069891_6069891',
+            'info_dict': {
+                'id': '-2001069891_6069891',
+                'ext': 'm4a',
+                'title': 'Jack Thomas feat. Nico & Vinz - Rivers (feat. Nico & Vinz)',
+                'track': 'Rivers (feat. Nico & Vinz)',
+                'uploader': 'Jack Thomas feat. Nico & Vinz',
+                'artists': ['Jack Thomas', 'Nico & Vinz'],
+                'duration': 207,
+                'thumbnail': r're:https?://.*\.jpg',
+            },
+            'params': {
+                'skip_download': True,
+            }
+        }
     ]
 
     def _parse_track_meta(self, meta, track_id=None):
@@ -844,14 +861,15 @@ class VKMusicIE(VKBaseIE):
             if len_ >= 2 and meta[1] and meta[0] \
             else track_id
 
-        title = meta[3] if len_ >= 3 else None  # TODO: fallback
-        artist = meta[4] if len_ >= 4 else None  # artists in one string, may include "feat."
+        title = unescapeHTML(meta[3]) if len_ >= 3 else None  # TODO: fallback
+        artist = unescapeHTML(meta[4]) if len_ >= 4 else None  # artists in one string, may include "feat."
         info['title'] = join_nonempty(artist, title, delim=' - ')
         info['track'] = title
         info['uploader'] = artist
 
         # artists as list
         info['artists'] = (
+            # not htmlescaped unlike meta[4]
             traverse_obj((*meta[17], *meta[18]), (..., 'name'))
             if len_ >= 18 else None
         ) or [artist]
