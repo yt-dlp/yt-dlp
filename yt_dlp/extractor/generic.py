@@ -2224,7 +2224,10 @@ class GenericIE(InfoExtractor):
             first_bytes = urlh.read(512)
             if not first_bytes.startswith(b'#EXTM3U'):
                 return
-            m3u8_doc = self._webpage_read_content(urlh, urlh.url, display_id, prefix=first_bytes)
+            m3u8_doc = self._webpage_read_content(
+                urlh, urlh.url, display_id, prefix=first_bytes, fatal=False, errnote=False)
+            if not m3u8_doc:
+                return
             duration = self._parse_m3u8_vod_duration(m3u8_doc, display_id)
             if not duration:
                 info['live_status'] = 'is_live'
