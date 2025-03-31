@@ -1769,7 +1769,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
         'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',
     }
-    _INVERSE_PLAYER_JS_VARIANT_MAP = {value: key for key, value in _PLAYER_JS_VARIANT_MAP.items()}
+    _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
 
     @classmethod
     def suitable(cls, url):
@@ -3280,7 +3280,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_damaged = try_call(lambda: format_duration < duration // 2)
             if is_damaged:
                 self.report_warning(
-                    f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
+                    'Some formats are possibly damaged. They will be deprioritized', video_id, only_once=True)
 
             po_token = fmt.get(STREAMING_DATA_INITIAL_PO_TOKEN)
 
