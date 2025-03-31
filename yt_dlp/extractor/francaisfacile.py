@@ -74,6 +74,7 @@ class FrancaisFacileIE(InfoExtractor):
         return {
             'id': data['mediaId'],
             'display_id': display_id,
+            'vcodec': 'none',
             'title': self._html_extract_title(webpage),
             **self._search_json_ld(webpage, display_id, fatal=False),
             **traverse_obj(data, {
