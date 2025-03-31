@@ -50,6 +50,9 @@ class RTVSIE(InfoExtractor):
             'upload_date': '20211111',
             'thumbnail': 'https://www.rtvs.sk/media/a501/image/file/2/0916/robin.jpg',
         },
+    }, {
+        'url': 'https://www.stvr.sk/radio/archiv/11224/414872',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
