@@ -5,6 +5,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     InAdvancePagedList,
+    OnDemandPagedList,
     clean_html,
     int_or_none,
     make_archive_id,
@@ -97,7 +98,7 @@ class JioSaavnBaseIE(InfoExtractor):
 
 class JioSaavnSongIE(JioSaavnBaseIE):
     IE_NAME = 'jiosaavn:song'
-    _VALID_URL = r'https?://(?:www\.)?(?:jiosaavn\.com/song/[^/?#]+/|saavn\.com/s/song/(?:[^/?#]+/){3})(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:jiosaavn\.com/(?:song|shows)/[^/?#]+/|saavn\.com/s/song/(?:[^/?#]+/){3})(?P<id>[^/?#]+)$'
     _TESTS = [{
         'url': 'https://www.jiosaavn.com/song/leja-re/OQsEfQFVUXk',
         'md5': '3b84396d15ed9e083c3106f1fa589c04',
@@ -200,6 +201,73 @@ class JioSaavnPlaylistIE(JioSaavnBaseIE):
         return self.playlist_result(InAdvancePagedList(
             functools.partial(self._entries, display_id, playlist_data),
             total_pages, self._PAGE_SIZE), display_id, traverse_obj(playlist_data, ('listname', {str})))
+
+
+class JioSaavnShowPlaylistIE(JioSaavnBaseIE):
+    IE_NAME = 'jiosaavn:showplaylist'
+    _VALID_URL = r'https?://(?:www\.)?(?:jio)?saavn\.com/shows/[^#/?]+/(?P<season_id>\d+)/(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://www.jiosaavn.com/shows/talking-music/1/PjReFP-Sguk_',
+        'info_dict': {
+            'id': 'PjReFP-Sguk_',
+            'title': 'Talking Music',
+        },
+        'playlist_mincount': 10,
+    }]
+    _PAGE_SIZE = 10
+
+    def _fetch_first_page(self, token, season_id):
+        resp = self._call_api('show', token, 'show page 1', {
+            'season_number': season_id, 'api_version': '4', 'sort_order': '', 'includeMetaTags': 0})
+        return resp.get('episodes')
+
+    def _fetch_page(self, token, season_id, page):
+        return self._call_api('show', token, f'show page {page}', {
+            'p': page, '__call': 'show.getAllEpisodes', 'show_id': token, 'season_number': season_id,
+            'api_version': '4', 'sort_order': 'desc'})
+
+    def _extract_song(self, song_data, url=None):
+        info = traverse_obj(song_data, {
+            'id': ('id', {str}),
+            'title': ('title', {clean_html}),
+            'thumbnail': ('image', {clean_html}),
+            'duration': ('more_info', 'duration', {parse_duration}),
+            'release_year': ('year', {int_or_none}),
+            'artists': ('more_info', 'artistMap', 'primary_artists', {lambda x: x['name']}),
+            'webpage_url': ('perma_url', {url_or_none}),
+        })
+        if webpage_url := info.get('webpage_url') or url:
+            info['display_id'] = url_basename(webpage_url)
+            info['_old_archive_ids'] = [make_archive_id(JioSaavnSongIE, info['display_id'])]
+        return info
+
+    def _yield_songs(self, playlist_data):
+        for song_data in playlist_data:
+            song_info = self._extract_song(song_data)
+            url = smuggle_url(song_info['webpage_url'], {
+                'id': song_data['id'],
+                'encrypted_media_url': song_data['more_info']['encrypted_media_url'],
+            })
+            yield self.url_result(url, JioSaavnSongIE, url_transparent=True, **song_info)
+
+    def _entries(self, token, show_id, season_id, page):
+        if page > 0:
+            page_data = self._fetch_page(show_id, season_id, page + 1)
+        else:
+            page_data = self._fetch_first_page(token, season_id)
+        yield from self._yield_songs(page_data)
+
+    def _real_extract(self, url):
+        show_id = self._match_id(url)
+        season_id = self._match_valid_url(url).group('season_id')
+        unique_id = f'{show_id}-{season_id}'
+        webpage = self._download_webpage(url, unique_id)
+        webpage = webpage.replace('undefined', 'null')
+        json_data = self._search_json(r'"showView"\s*:\s*', webpage, 'jdata', unique_id)
+        token = traverse_obj(json_data, 'current_id')
+        show_title = traverse_obj(json_data, ('show', 'title', 'text', {str}))
+        entries = OnDemandPagedList(functools.partial(self._entries, show_id, token, season_id), self._PAGE_SIZE)
+        return self.playlist_result(entries, show_id, show_title)
 
 
 class JioSaavnArtistIE(JioSaavnBaseIE):
