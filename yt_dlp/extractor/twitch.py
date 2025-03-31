@@ -1176,7 +1176,7 @@ class TwitchClipsIE(TwitchBaseIE):
             'aspect_ratio': {value(default_aspect_ratio)},
         })))
         portrait_aspect_ratio = float_or_none(asset_portrait.get('aspectRatio'))
-        for traverse_obj(asset_portrait, ('videoQualities', lambda _, v: url_or_none(v['sourceURL'])):
+        for source in traverse_obj(asset_portrait, ('videoQualities', lambda _, v: url_or_none(v['sourceURL']))):
             formats.append({
                 'url': update_url_query(source['sourceURL'], access_query),
                 'format_id': join_nonempty('portrait', source.get('quality')),
