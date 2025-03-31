@@ -1176,33 +1176,36 @@ class TwitchClipsIE(TwitchBaseIE):
             'aspect_ratio': {value(default_aspect_ratio)},
         })))
         portrait_aspect_ratio = float_or_none(asset_portrait.get('aspectRatio'))
-        for i, quality in enumerate(traverse_obj(asset_portrait, ('videoQualities'), default=[])):
-            if source := traverse_obj(quality, ('sourceURL', {url_or_none})):
-                formats.append({
-                    'url': update_url_query(source, access_query),
-                    'format_id': join_nonempty('portrait', 'best' if i == 0 else quality.get('quality')),
-                    'height': int_or_none(quality.get('quality')),
-                    'fps': float_or_none(quality.get('frameRate')),
-                    'aspect_ratio': portrait_aspect_ratio,
-                    'quality': -2,
-                })
+        for traverse_obj(asset_portrait, ('videoQualities', lambda _, v: url_or_none(v['sourceURL'])):
+            formats.append({
+                'url': update_url_query(source['sourceURL'], access_query),
+                'format_id': join_nonempty('portrait', source.get('quality')),
+                'height': int_or_none(source.get('quality')),
+                'fps': float_or_none(source.get('frameRate')),
+                'aspect_ratio': portrait_aspect_ratio,
+                'quality': -2,
+            })
 
         thumbnails = []
-        thumb_default = clip.get('thumbnailURL')
-        thumb_asset_default = asset_default.get('thumbnailURL')
-        thumbnails.append({
-            'id': 'default',
-            'url': thumb_asset_default,
-        })
-        if thumb_asset_default != thumb_default:
+        thumb_asset_default_url = url_or_none(asset_default.get('thumbnailURL'))
+        if thumb_asset_default_url:
             thumbnails.append({
-                'id': 'small',
-                'url': thumb_default,
+                'id': 'default',
+                'url': thumb_asset_default_url,
+                'preference': 0,
             })
-        if thumb_asset_portrait := asset_portrait.get('thumbnailURL'):
+        if thumb_asset_portrait_url := url_or_none(asset_portrait.get('thumbnailURL')):
             thumbnails.append({
                 'id': 'portrait',
-                'url': thumb_asset_portrait,
+                'url': thumb_asset_portrait_url,
+                'preference': -1,
+            })
+        thumb_default_url = url_or_none(clip.get('thumbnailURL'))
+        if thumb_default_url and thumb_default_url != thumb_asset_default_url:
+            thumbnails.append({
+                'id': 'small',
+                'url': thumb_default_url,
+                'preference': -2,
             })
 
         old_id = self._search_regex(r'%7C(\d+)(?:-\d+)?.mp4', formats[-1]['url'], 'old id', default=None)
