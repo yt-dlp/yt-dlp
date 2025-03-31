@@ -21,14 +21,13 @@ from ..utils import (
     parse_qs,
     qualities,
     str_or_none,
-    traverse_obj,
     try_get,
     unified_timestamp,
     update_url_query,
     url_or_none,
     urljoin,
-    value,
 )
+from ..utils.traversal import traverse_obj, value
 
 
 class TwitchBaseIE(InfoExtractor):
