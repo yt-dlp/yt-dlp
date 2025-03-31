@@ -1,11 +1,14 @@
 from .common import InfoExtractor
-from ..utils import float_or_none, url_or_none
+from ..utils import (
+    ExtractorError,
+    float_or_none,
+    url_or_none,
+)
 from ..utils.traversal import traverse_obj
 
 
 class FrancaisFacileIE(InfoExtractor):
-    _VALID_URL = r'https?://francaisfacile\.rfi\.fr/fr/(actualit%C3%A9|podcasts/[^/#?]+)/(?P<id>\d+)-'
-    IE_NAME = 'francaisfacile'
+    _VALID_URL = r'https?://francaisfacile\.rfi\.fr/fr/(actualit%C3%A9|podcasts/[^/#?]+)/(?P<id>[^/#?]+)'
     _TESTS = [{
         'url': 'https://francaisfacile.rfi.fr/fr/actualit%C3%A9/20250305-r%C3%A9concilier-les-jeunes-avec-la-lecture-gr%C3%A2ce-aux-r%C3%A9seaux-sociaux',
         'md5': '4f33674cb205744345cc835991100afa',
@@ -48,16 +51,23 @@ class FrancaisFacileIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        webpage = self._download_webpage(
-            url, None, headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:135.0) Gecko/20100101 Firefox/135.0',
+        display_id = self._match_id(url)
+        try:  # yt-dlp's default user-agents are too old and blocked by the site
+            webpage = self._download_webpage(url, display_id, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:136.0) Gecko/20100101 Firefox/136.0',
             })
+        except ExtractorError as e:
+            if not isinstance(e.cause, HTTPError) or e.cause.status != 403:
+                raise
+            # Retry with impersonation if hardcoded UA is insufficient
+            webpage = self._download_webpage(url, display_id, impersonate=True)
         data = self._search_json(
             r'<script[^>]+\bdata-media-id=[^>]+\btype="application/json"[^>]*>',
-            webpage, 'audio data', None)
-        audio_id = data['mediaId']
+            webpage, 'audio data', display_id)
+
         return {
-            'id': audio_id,
+            'id': data['mediaId'],
+            'display_id': display_id,
             'title': self._html_extract_title(webpage),
             **self._search_json_ld(webpage, audio_id, fatal=False),
             **traverse_obj(data, {
