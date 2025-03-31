@@ -20,7 +20,7 @@ class RTVSIE(InfoExtractor):
             'ext': 'mp3',
             'title': 'Ostrov pokladov 1 časť.mp3',
             'duration': 2854,
-            'thumbnail': 'https://www.rtvs.sk/media/a501/image/file/2/0000/b1R8.rtvs.jpg',
+            'thumbnail': 'https://www.stvr.sk/media/a501/image/file/2/0000/rtvs-00009383.png',
             'display_id': '135331',
         },
     }, {
@@ -31,7 +31,7 @@ class RTVSIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Amaro Džives - Náš deň',
             'description': 'Galavečer pri príležitosti Medzinárodného dňa Rómov.',
-            'thumbnail': 'https://www.rtvs.sk/media/a501/image/file/2/0031/L7Qm.amaro_dzives_png.jpg',
+            'thumbnail': 'https://www.stvr.sk/media/a501/image/file/2/0031/L7Qm.amaro_dzives_png.jpg',
             'timestamp': 1428555900,
             'upload_date': '20150409',
             'duration': 4986,
@@ -48,7 +48,7 @@ class RTVSIE(InfoExtractor):
             'display_id': '307655',
             'duration': 831,
             'upload_date': '20211111',
-            'thumbnail': 'https://www.rtvs.sk/media/a501/image/file/2/0916/robin.jpg',
+            'thumbnail': 'https://www.stvr.sk/media/a501/image/file/2/0916/robin.jpg',
         },
     }, {
         'url': 'https://www.stvr.sk/radio/archiv/11224/414872',
