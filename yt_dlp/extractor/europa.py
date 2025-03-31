@@ -213,7 +213,7 @@ class EuroParlWebstreamIE(InfoExtractor):
             'multicast': 'true',
             'analytics': 'false',
         }
-        webpage = self._download_webpage(f'https://control.eup.glcloud.eu/content-manager/content-page/{video_id}?lang=en&audio=en&autoplay=true&logo=false&muted=false&fullscreen=true&disclaimer=false&multicast=true&analytics=false',
+        webpage = self._download_webpage(f'https://control.eup.glcloud.eu/content-manager/content-page/{video_id}',
                                          video_id, 'Downloading iframe', query=query)
         stream_info = self._search_json(r'<script [^>]*id="ng-state"[^>]*>', webpage, 'stream info', video_id)['contentEventKey']
         player_url = stream_info.get('playerUrl')
@@ -231,7 +231,7 @@ class EuroParlWebstreamIE(InfoExtractor):
                 'startTime': ('startTime', {str_or_none}),
                 'endTime': ('endTime', {str_or_none}),
             })
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(player_url, video_id, query=query)
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(player_url, video_id, query=query, ext='mp4')
         else:
             formats = None
             subtitles = None
