@@ -1769,7 +1769,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
         'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',
     }
-    _INVERSE_PLAYER_JS_VARIANT_MAP = {value: key for key, value in _PLAYER_JS_VARIANT_MAP.items()}
+    _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
 
     @classmethod
     def suitable(cls, url):
