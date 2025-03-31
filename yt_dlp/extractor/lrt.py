@@ -1,8 +1,11 @@
+
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
     merge_dicts,
+    str_or_none,
     traverse_obj,
+    unified_timestamp,
     url_or_none,
 )
 
@@ -106,3 +109,43 @@ class LRTVODIE(LRTBaseIE):
         }
 
         return merge_dicts(clean_info, jw_data, json_ld_data)
+
+
+class LRTRadioIE(LRTBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?lrt\.lt/radioteka/irasas/(?P<id>[0-9]+)/(?P<path>[^?#/]+)'
+    _TESTS = [{
+        # m3u8 download
+        'url': 'https://www.lrt.lt/radioteka/irasas/2000359728/nemarios-eiles-apie-pragarus-ir-skaistyklas-su-aiste-kiltinaviciute',
+        'info_dict': {
+            'id': '2000359728',
+            'ext': 'm4a',
+            'title': 'Nemarios eilės: apie pragarus ir skaistyklas su Aiste Kiltinavičiūte',
+            'description': 'md5:5eee9a0e86a55bf547bd67596204625d',
+            'timestamp': 1726143120,
+            'upload_date': '20240912',
+            'tags': list,
+            'thumbnail': r're:https?://.+/.+\.jpe?g',
+            'categories': list,
+        },
+    }, {
+        'url': 'https://www.lrt.lt/radioteka/irasas/2000304654/vakaras-su-knyga-svetlana-aleksijevic-cernobylio-malda-v-dalis?season=%2Fmediateka%2Faudio%2Fvakaras-su-knyga%2F2023',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        video_id, path = self._match_valid_url(url).groups()
+
+        base_url = 'https://www.lrt.lt'
+        api_url = 'https://www.lrt.lt/radioteka/api/media'
+        media_url = f'/mediateka/irasas/{video_id}/{path}'
+        media = self._download_json(api_url, video_id, query={'url': media_url})
+        return traverse_obj(media, {
+            'id': ('id', {int}, {str_or_none}),
+            'title': ('title', {str}),
+            'tags': ('tags', ..., 'name'),
+            'categories': ('playlist_item', 'category', {lambda x: [x]}),
+            'description': ('content', {clean_html}, {str}),
+            'timestamp': ('date', {lambda x: x.replace('.', '/')}, {unified_timestamp}),
+            'thumbnail': ('playlist_item', 'image', {lambda x: f'{base_url}{x}'}, {url_or_none}),
+            'formats': ('playlist_item', 'file', {lambda x: self._extract_m3u8_formats(x, video_id)}),
+        })
