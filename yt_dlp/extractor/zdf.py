@@ -34,6 +34,12 @@ class ZDFBaseIE(InfoExtractor):
             url, video_id, note=f'Downloading {item}',
             errnote=f'Failed to download {item}', headers=headers)
 
+    def _extract_chapters(self, data):
+        return traverse_obj(data, (lambda _, v: 'anchorOffset' in v, {
+            'start_time': ('anchorOffset', {float_or_none}),
+            'title': ('anchorLabel', {str}),
+        }), default=None)
+
     @staticmethod
     def _extract_subtitles(src):
         seen_urls = set()
@@ -506,21 +512,12 @@ query VideoByCanonical($canonical: String!) {
                 'season_number': ('episodeInfo', 'seasonNumber', {int_or_none}),
                 'series': ('smartCollection', 'title', {str}),
                 'series_id': ('smartCollection', 'canonical', {str}),
-                'chapters': ('currentMedia', 'nodes', 0, {self._extract_chapters}),
+                'chapters': ('currentMedia', 'nodes', 0, 'streamAnchorTags', 'nodes', {self._extract_chapters}),
             })),
         }
 
-    def _extract_chapters(self, data):
-        chapter_marks = traverse_obj(data, ('streamAnchorTags', 'nodes'))
-        chapter_marks.append({'anchorOffset': float_or_none(data.get('duration'))})
-        return [{
-            'start_time': chap.get('anchorOffset'),
-            'end_time': next_chap.get('anchorOffset'),
-            'title': chap.get('anchorLabel'),
-        } for chap, next_chap in zip(chapter_marks, chapter_marks[1:])] or None
 
-
-class ZDFCollectionIE(ZDFBaseIE):
+class ZDFChannelIE(ZDFBaseIE):
     _VALID_URL = r'https?://www\.zdf\.de/(?:[^/?#]+/)*(?P<id>[^/?#]+)'
     _TESTS = [{
         # Playlist, legacy URL before website redesign in 2025-03

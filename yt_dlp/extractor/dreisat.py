@@ -1,12 +1,10 @@
 from .zdf import ZDFBaseIE
 from ..utils import (
-    NO_DEFAULT,
-    ExtractorError,
     int_or_none,
     merge_dicts,
+    parse_iso8601,
+    require,
     traverse_obj,
-    try_get,
-    unified_timestamp,
 )
 
 
@@ -58,6 +56,23 @@ class DreiSatIE(ZDFBaseIE):
             'upload_date': '20250328',
         },
     }, {
+        # Video with chapters
+        'url': 'https://www.3sat.de/kultur/buchmesse/dein-buch-das-beste-von-der-leipziger-buchmesse-2025-teil-1-100.html',
+        'md5': '65e8f365799d2266c9110d83d748445e',
+        'info_dict': {
+            'id': '250330_dein_buch1_bum',
+            'ext': 'mp4',
+            'title': 'dein buch  - Das Beste von der Leipziger Buchmesse 2025 - Teil 1',
+            'description': 'md5:bae51bfc22f15563ce3acbf97d2e8844',
+            'duration': 5399.0,
+            'thumbnail': 'https://www.3sat.de/assets/buchmesse-kerkeling-100~original?cb=1743329640903',
+            'chapters': 'count:24',
+            'episode': 'dein buch  - Das Beste von der Leipziger Buchmesse 2025 - Teil 1',
+            'episode_id': 'POS_1ef236cc-b390-401e-acd0-4fb4b04315fb',
+            'timestamp': 1743327000,
+            'upload_date': '20250330',
+        },
+    }, {
         # Same as https://www.zdf.de/filme/filme-sonstige/der-hauptmann-112.html
         'url': 'https://www.3sat.de/film/spielfilm/der-hauptmann-100.html',
         'only_matching': True,
@@ -67,53 +82,35 @@ class DreiSatIE(ZDFBaseIE):
         'only_matching': True,
     }]
 
-    def _extract_player(self, webpage, video_id, fatal=True):
-        return self._parse_json(
-            self._search_regex(
-                r'(?s)data-zdfplayer-jsb=(["\'])(?P<json>{.+?})\1', webpage,
-                'player JSON', default='{}' if not fatal else NO_DEFAULT,
-                group='json'),
-            video_id)
-
-    def _extract_regular(self, url, player, video_id):
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        player = self._search_json(
+            r'data-zdfplayer-jsb=(["\'])', webpage, 'player JSON', video_id)
         player_url = player['content']
         api_token = f'Bearer {player["apiToken"]}'
 
         content = self._call_api(player_url, video_id, 'video metadata', api_token)
-        return self._extract_entry(player_url, api_token, content, video_id)
 
-    def _extract_entry(self, url, api_token, content, video_id):
-        title = content.get('title') or content['teaserHeadline']
-
-        t = content['mainVideoContent']['http://zdf.de/rels/target']
-        ptmd_path = traverse_obj(t, (
+        video_target = content['mainVideoContent']['http://zdf.de/rels/target']
+        ptmd_path = traverse_obj(video_target, (
             (('streams', 'default'), None),
             ('http://zdf.de/rels/streams/ptmd', 'http://zdf.de/rels/streams/ptmd-template'),
-        ), get_all=False)
-        if not ptmd_path:
-            raise ExtractorError('Could not extract ptmd_path')
-
-        info = self._extract_ptmd(url, ptmd_path, video_id, api_token)
-        layouts = try_get(
-            content, lambda x: x['teaserImageRef']['layouts'], dict)
-        thumbnails = self._extract_thumbnails(layouts)
-
-        chapter_marks = t.get('streamAnchorTag') or []
-        chapter_marks.append({'anchorOffset': int_or_none(t.get('duration'))})
-        chapters = [{
-            'start_time': chap.get('anchorOffset'),
-            'end_time': next_chap.get('anchorOffset'),
-            'title': chap.get('anchorLabel'),
-        } for chap, next_chap in zip(chapter_marks, chapter_marks[1:])]
+            {str}, any, {require('ptmd path')}))
+        info = self._extract_ptmd(player_url, ptmd_path, video_id, api_token)
 
         return merge_dicts(info, {
-            'title': title,
-            'description': content.get('leadParagraph') or content.get('teasertext'),
-            'duration': int_or_none(t.get('duration')),
-            'timestamp': unified_timestamp(content.get('editorialDate')),
-            'thumbnails': thumbnails,
-            'chapters': chapters or None,
-            'episode': title,
+            **traverse_obj(content, {
+                'title': (('title', 'teaserHeadline'), {str}, any),
+                'episode': (('title', 'teaserHeadline'), {str}, any),
+                'description': (('leadParagraph', 'teasertext'), {str}, any),
+                'timestamp': ('editorialDate', {parse_iso8601}),
+            }),
+            **traverse_obj(video_target, {
+                'duration': ('duration', {int_or_none}),
+                'chapters': ('streamAnchorTag', {self._extract_chapters}),
+            }),
+            'thumbnails': self._extract_thumbnails(traverse_obj(content, ('teaserImageRef', 'layouts', {dict}))),
             **traverse_obj(content, ('programmeItem', 0, 'http://zdf.de/rels/target', {
                 'series_id': ('http://zdf.de/rels/cmdm/series', 'seriesUuid', {str}),
                 'series': ('http://zdf.de/rels/cmdm/series', 'seriesTitle', {str}),
@@ -124,10 +121,3 @@ class DreiSatIE(ZDFBaseIE):
                 'episode_id': ('contentId', {str}),
             })),
         })
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, video_id)
-        player = self._extract_player(webpage, url)
-        return self._extract_regular(url, player, video_id)

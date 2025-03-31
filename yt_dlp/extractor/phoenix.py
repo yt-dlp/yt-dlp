@@ -10,7 +10,7 @@ from ..utils import (
 
 class PhoenixIE(ZDFBaseIE):
     IE_NAME = 'phoenix.de'
-    _VALID_URL = r'https?://(?:www\.)?phoenix\.de/(?:[^/]+/)*[^/?#&]*-a-(?P<id>\d+)\.html'
+    _VALID_URL = r'https?://(?:www\.)?phoenix\.de/(?:[^/?#]+/)*[^/?#&]*-a-(?P<id>\d+)\.html'
     _TESTS = [{
         'url': 'https://www.phoenix.de/sendungen/dokumentationen/spitzbergen-a-893349.html',
         'md5': '768bbcd67a51fbfb22263ecdbc49146d',
