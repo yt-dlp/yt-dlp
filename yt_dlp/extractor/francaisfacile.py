@@ -8,7 +8,7 @@ from ..utils.traversal import traverse_obj
 
 
 class FrancaisFacileIE(InfoExtractor):
-    _VALID_URL = r'https?://francaisfacile\.rfi\.fr/fr/(?:actualit%C3%A9|podcasts/[^/#?]+)/(?P<id>[^/#?]+)'
+    _VALID_URL = r'https?://francaisfacile\.rfi\.fr/[a-z]{2}/(?:actualit%C3%A9|podcasts/[^/#?]+)/(?P<id>[^/#?]+)'
     _TESTS = [{
         'url': 'https://francaisfacile.rfi.fr/fr/actualit%C3%A9/20250305-r%C3%A9concilier-les-jeunes-avec-la-lecture-gr%C3%A2ce-aux-r%C3%A9seaux-sociaux',
         'md5': '4f33674cb205744345cc835991100afa',
