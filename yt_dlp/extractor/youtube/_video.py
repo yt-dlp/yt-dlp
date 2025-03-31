@@ -3280,7 +3280,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_damaged = try_call(lambda: format_duration < duration // 2)
             if is_damaged:
                 self.report_warning(
-                    f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
+                    'Some formats are possibly damaged. They will be deprioritized', video_id, only_once=True)
 
             po_token = fmt.get(STREAMING_DATA_INITIAL_PO_TOKEN)
 
