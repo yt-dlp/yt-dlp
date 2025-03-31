@@ -97,7 +97,7 @@ class EuropaIE(InfoExtractor):
 class EuroParlWebstreamIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         https?://multimedia\.europarl\.europa\.eu/
-        (?:[^/]*/)?webstreaming/(?:[^_]*_)?(?P<id>[\w-]+)
+        (?P<lang>[^/]*/)?webstreaming/(?:[^_]*_)?(?P<id>[\w-]+)
     '''
     _TESTS = [{
         'url': 'https://multimedia.europarl.europa.eu/pl/webstreaming/plenary-session_20220914-0900-PLENARY',
@@ -201,8 +201,20 @@ class EuroParlWebstreamIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(f'https://control.eup.glcloud.eu/content-manager/content-page/{video_id}', video_id)
+        lang, video_id = self._match_valid_url(url).group('lang', 'id')
+        query = {
+            'lang': lang,
+            'audio': lang,
+            'autoplay': 'true',
+            'logo': 'false',
+            'muted': 'false',
+            'fullscreen': 'true',
+            'disclaimer': 'false',
+            'multicast': 'true',
+            'analytics': 'false',
+        }
+        webpage = self._download_webpage(f'https://control.eup.glcloud.eu/content-manager/content-page/{video_id}?lang=en&audio=en&autoplay=true&logo=false&muted=false&fullscreen=true&disclaimer=false&multicast=true&analytics=false',
+                                         video_id, 'Downloading iframe', query=query)
         stream_info = self._search_json(r'<script [^>]*id="ng-state"[^>]*>', webpage, 'stream info', video_id)['contentEventKey']
         player_url = stream_info.get('playerUrl')
         # status = traverse_obj(stream_info, ('media_item', 'mediaSubType'))
@@ -215,7 +227,10 @@ class EuroParlWebstreamIE(InfoExtractor):
         # self._download_socket_json(base, video_id, 'Getting broadcast metadata from socket', headers=headers)
         if player_url:
             live_status = 'was_live'
-            query = None if stream_info.get('finalVod') else {'startTime': stream_info.get('startTime'), 'endTime': stream_info.get('endTime')}
+            query = None if stream_info.get('finalVod') else traverse_obj(stream_info, {
+                'startTime': ('startTime', {str_or_none}),
+                'endTime': ('endTime', {str_or_none}),
+            })
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(player_url, video_id, query=query)
         else:
             formats = None
