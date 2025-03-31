@@ -744,6 +744,7 @@ from .gettr import (
     GettrStreamingIE,
 )
 from .giantbomb import GiantBombIE
+from .giniko import GinikoIE
 from .glide import GlideIE
 from .globalplayer import (
     GlobalPlayerAudioEpisodeIE,
