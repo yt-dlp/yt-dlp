@@ -61,6 +61,7 @@ class FrancaisFacileIE(InfoExtractor):
                 raise
             # Retry with impersonation if hardcoded UA is insufficient
             webpage = self._download_webpage(url, display_id, impersonate=True)
+
         data = self._search_json(
             r'<script[^>]+\bdata-media-id=[^>]+\btype="application/json"[^>]*>',
             webpage, 'audio data', display_id)
