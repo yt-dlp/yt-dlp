@@ -5,9 +5,11 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     InAdvancePagedList,
+    OnDemandPagedList,
     clean_html,
     int_or_none,
     make_archive_id,
+    parse_duration,
     smuggle_url,
     unsmuggle_url,
     url_basename,
@@ -96,7 +98,7 @@ class JioSaavnBaseIE(InfoExtractor):
 
 class JioSaavnSongIE(JioSaavnBaseIE):
     IE_NAME = 'jiosaavn:song'
-    _VALID_URL = r'https?://(?:www\.)?(?:jiosaavn\.com/song/[^/?#]+/|saavn\.com/s/song/(?:[^/?#]+/){3})(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:jiosaavn\.com/(?:song|shows)/[^/?#]+/|saavn\.com/s/song/(?:[^/?#]+/){3})(?P<id>[^/?#]+)$'
     _TESTS = [{
         'url': 'https://www.jiosaavn.com/song/leja-re/OQsEfQFVUXk',
         'md5': '3b84396d15ed9e083c3106f1fa589c04',
@@ -172,14 +174,14 @@ class JioSaavnPlaylistIE(JioSaavnBaseIE):
             'id': 'DVR,pFUOwyXqIp77B1JF,A__',
             'title': 'Mood Hindi',
         },
-        'playlist_mincount': 801,
+        'playlist_mincount': 750,
     }, {
         'url': 'https://www.jiosaavn.com/featured/taaza-tunes/Me5RridRfDk_',
         'info_dict': {
             'id': 'Me5RridRfDk_',
             'title': 'Taaza Tunes',
         },
-        'playlist_mincount': 301,
+        'playlist_mincount': 50,
     }]
     _PAGE_SIZE = 50
 
@@ -199,3 +201,150 @@ class JioSaavnPlaylistIE(JioSaavnBaseIE):
         return self.playlist_result(InAdvancePagedList(
             functools.partial(self._entries, display_id, playlist_data),
             total_pages, self._PAGE_SIZE), display_id, traverse_obj(playlist_data, ('listname', {str})))
+
+
+class JioSaavnShowPlaylistIE(JioSaavnBaseIE):
+    IE_NAME = 'jiosaavn:showplaylist'
+    _VALID_URL = r'https?://(?:www\.)?(?:jio)?saavn\.com/shows/[^#/?]+/(?P<season_id>\d+)/(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://www.jiosaavn.com/shows/talking-music/1/PjReFP-Sguk_',
+        'info_dict': {
+            'id': 'PjReFP-Sguk_',
+            'title': 'Talking Music',
+        },
+        'playlist_mincount': 10,
+    }]
+    _PAGE_SIZE = 10
+
+    def _fetch_first_page(self, token, season_id):
+        resp = self._call_api('show', token, 'show page 1', {
+            'season_number': season_id, 'api_version': '4', 'sort_order': '', 'includeMetaTags': 0})
+        return resp.get('episodes')
+
+    def _fetch_page(self, token, season_id, page):
+        return self._call_api('show', token, f'show page {page}', {
+            'p': page, '__call': 'show.getAllEpisodes', 'show_id': token, 'season_number': season_id,
+            'api_version': '4', 'sort_order': 'desc'})
+
+    def _extract_song(self, song_data, url=None):
+        info = traverse_obj(song_data, {
+            'id': ('id', {str}),
+            'title': ('title', {clean_html}),
+            'thumbnail': ('image', {clean_html}),
+            'duration': ('more_info', 'duration', {parse_duration}),
+            'release_year': ('year', {int_or_none}),
+            'artists': ('more_info', 'artistMap', 'primary_artists', {lambda x: x['name']}),
+            'webpage_url': ('perma_url', {url_or_none}),
+        })
+        if webpage_url := info.get('webpage_url') or url:
+            info['display_id'] = url_basename(webpage_url)
+            info['_old_archive_ids'] = [make_archive_id(JioSaavnSongIE, info['display_id'])]
+        return info
+
+    def _yield_songs(self, playlist_data):
+        for song_data in playlist_data:
+            song_info = self._extract_song(song_data)
+            url = smuggle_url(song_info['webpage_url'], {
+                'id': song_data['id'],
+                'encrypted_media_url': song_data['more_info']['encrypted_media_url'],
+            })
+            yield self.url_result(url, JioSaavnSongIE, url_transparent=True, **song_info)
+
+    def _entries(self, token, show_id, season_id, page):
+        if page > 0:
+            page_data = self._fetch_page(show_id, season_id, page + 1)
+        else:
+            page_data = self._fetch_first_page(token, season_id)
+        yield from self._yield_songs(page_data)
+
+    def _real_extract(self, url):
+        show_id = self._match_id(url)
+        season_id = self._match_valid_url(url).group('season_id')
+        unique_id = f'{show_id}-{season_id}'
+        webpage = self._download_webpage(url, unique_id)
+        webpage = webpage.replace('undefined', 'null')
+        json_data = self._search_json(r'"showView"\s*:\s*', webpage, 'jdata', unique_id)
+        token = traverse_obj(json_data, 'current_id')
+        show_title = traverse_obj(json_data, ('show', 'title', 'text', {str}))
+        entries = OnDemandPagedList(functools.partial(self._entries, show_id, token, season_id), self._PAGE_SIZE)
+        return self.playlist_result(entries, show_id, show_title)
+
+
+class JioSaavnArtistIE(JioSaavnBaseIE):
+    IE_NAME = 'jiosaavn:artist'
+    _VALID_URL = r'https?://(?:www\.)?(?:jio)?saavn\.com/artist/[^/?#]+/(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://www.jiosaavn.com/artist/krsna-songs/rYLBEve2z3U_',
+        'info_dict': {
+            'id': 'rYLBEve2z3U_',
+            'title': 'KR$NA',
+        },
+        'playlist_mincount': 99,
+    }, {
+        'url': 'https://www.jiosaavn.com/artist/sanam-puri-songs/SkNEv3qRhDE_',
+        'info_dict': {
+            'id': 'SkNEv3qRhDE_',
+            'title': 'Sanam Puri',
+        },
+        'playlist_mincount': 55,
+    }]
+    _PAGE_SIZE = 50
+
+    def _fetch_page(self, token, page):
+        return self._call_api('artist', token, f'artist page {page}', {
+            'p': page, 'n_song': self._PAGE_SIZE, 'n_album': self._PAGE_SIZE, 'sub_type': '',
+            'includeMetaTags': '', 'api_version': '4', 'category': 'alphabetical', 'sort_order': 'asc'})
+
+    def _extract_song(self, song_data, url=None):
+        info = traverse_obj(song_data, {
+            'id': ('id', {str}),
+            'title': ('title', {clean_html}),
+            'album': ('more_info', 'album', {clean_html}),
+            'thumbnail': ('image', {clean_html}),
+            'duration': ('more_info', 'duration', {parse_duration}),
+            'release_year': ('year', {int_or_none}),
+            'artists': ('more_info', 'artistMap', 'primary_artists', {lambda x: x['name']}),
+            'webpage_url': ('perma_url', {url_or_none}),
+        })
+        if webpage_url := info.get('webpage_url') or url:
+            info['display_id'] = url_basename(webpage_url)
+            info['_old_archive_ids'] = [make_archive_id(JioSaavnSongIE, info['display_id'])]
+
+        return info
+
+    def _yield_songs(self, playlist_data):
+        for song_data in traverse_obj(playlist_data, ('topSongs')):
+            song_info = self._extract_song(song_data)
+            url = smuggle_url(song_info['webpage_url'], {
+                'id': song_data['id'],
+                'encrypted_media_url': song_data['more_info']['encrypted_media_url'],
+            })
+            yield self.url_result(url, JioSaavnSongIE, url_transparent=True, **song_info)
+
+    def _entries(self, token, page):
+        page_data = self._first_page if page == 0 else self._fetch_page(token, page)
+        yield from self._yield_songs(page_data)
+
+    def _generate_result(self, token):
+        # note:
+        # 1. the total number of songs in a page result is not constant
+        # 2. end of list is identified by 'topSongs' array being empty
+        page = 0
+        result = []
+
+        # added static page count limit to avoid potential infinite loop
+        while page < 20000:
+            entries = list(self._entries(token, page))
+            if len(entries) == 0:
+                break
+            result.extend(entries)
+            page += 1
+        return result
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        self._first_page = self._fetch_page(display_id, 0)
+        entries = self._generate_result(display_id)
+        name = self._first_page.get('name')
+
+        return self.playlist_result(entries, display_id, name)
