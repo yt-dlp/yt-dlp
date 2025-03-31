@@ -1,3 +1,5 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -15,7 +17,7 @@ class FrancaisFacileIE(InfoExtractor):
         'md5': '4f33674cb205744345cc835991100afa',
         'info_dict': {
             'id': 'WBMZ58952-FLE-FR-20250305',
-            'display_id': '20250305-r%C3%A9concilier-les-jeunes-avec-la-lecture-gr%C3%A2ce-aux-r%C3%A9seaux-sociaux',
+            'display_id': '20250305-réconcilier-les-jeunes-avec-la-lecture-grâce-aux-réseaux-sociaux',
             'title': 'Réconcilier les jeunes avec la lecture grâce aux réseaux sociaux',
             'url': 'https://aod-fle.akamaized.net/fle/sounds/fr/2025/03/05/6b6af52a-f9ba-11ef-a1f8-005056a97652.mp3',
             'ext': 'mp3',
@@ -29,7 +31,7 @@ class FrancaisFacileIE(InfoExtractor):
         'md5': 'b8c3a63652d4ae8e8092dda5700c1cd9',
         'info_dict': {
             'id': 'WBMZ59102-FLE-FR-20250307',
-            'display_id': '20250307-argentine-le-sac-d-un-alpiniste-retrouv%C3%A9-40-ans-apr%C3%A8s-sa-mort',
+            'display_id': '20250307-argentine-le-sac-d-un-alpiniste-retrouvé-40-ans-après-sa-mort',
             'title': 'Argentine: le sac d\'un alpiniste retrouvé 40 ans après sa mort',
             'url': 'https://aod-fle.akamaized.net/fle/sounds/fr/2025/03/07/8edf4082-fb46-11ef-8a37-005056bf762b.mp3',
             'ext': 'mp3',
@@ -43,7 +45,7 @@ class FrancaisFacileIE(InfoExtractor):
         'md5': 'db83c2cc2589b4c24571c6b6cf14f5f1',
         'info_dict': {
             'id': 'WBMZ59441-FLE-FR-20250317',
-            'display_id': '20250317-le-mot-de-david-foenkinos-peut-%C3%AAtre',
+            'display_id': '20250317-le-mot-de-david-foenkinos-peut-être',
             'title': 'Le mot de David Foenkinos: «peut-être» - Un mot, une histoire',
             'url': 'https://aod-fle.akamaized.net/fle/sounds/fr/2025/03/17/4ca6cbbe-0315-11f0-a85b-005056a97652.mp3',
             'ext': 'mp3',
@@ -55,7 +57,7 @@ class FrancaisFacileIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        display_id = urllib.parse.unquote(self._match_id(url))
 
         try:  # yt-dlp's default user-agents are too old and blocked by the site
             webpage = self._download_webpage(url, display_id, headers={
