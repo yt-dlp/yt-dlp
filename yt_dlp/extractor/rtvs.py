@@ -10,6 +10,7 @@ from ..utils import (
 
 class RTVSIE(InfoExtractor):
     IE_NAME = 'stvr'
+    IE_DESC = 'Slovak Television and Radio (formerly RTVS)'
     _VALID_URL = r'https?://(?:www\.)?(?:rtvs|stvr)\.sk/(?:radio|televizia)/archiv(?:/\d+)?/(?P<id>\d+)/?(?:[#?]|$)'
     _TESTS = [{
         # radio archive
