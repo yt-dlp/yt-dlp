@@ -1221,7 +1221,7 @@ class TwitchClipsIE(TwitchBaseIE):
                 'duration': ('durationSeconds', {int_or_none}),
                 'view_count': ('viewCount', {int_or_none}),
                 'timestamp': ('createdAt', {parse_iso8601}),
-                'creator': ('broadcaster', 'displayName', {str}),
+                'creators': ('broadcaster', 'displayName', {str}, filter, all),
                 'channel': ('broadcaster', 'displayName', {str}),
                 'channel_id': ('broadcaster', 'id', {str}),
                 'channel_follower_count': ('broadcaster', 'followers', 'totalCount', {int_or_none}),
