@@ -18,7 +18,7 @@ class On24IE(InfoExtractor):
     _VALID_URL = [
         rf'{_URL_BASE_RE}/wcc/r/{_ID_RE}/{_KEY_RE}',
         rf'{_URL_BASE_RE}/eventRegistration/console/(?:EventConsoleApollo\.jsp|apollox/mainEvent/?)\?{_URL_QUERY_RE}',
-        rf'{_URL_BASE_RE}/eventRegistration/EventLobbyServlet/?\?target=[\w-]+\.jsp&{_URL_QUERY_RE}',
+        rf'{_URL_BASE_RE}/eventRegistration/EventLobbyServlet/?\?{_URL_QUERY_RE}',
     ]
 
     _TESTS = [{
