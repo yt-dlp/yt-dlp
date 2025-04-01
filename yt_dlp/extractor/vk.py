@@ -758,7 +758,10 @@ class VKWallPostIE(VKBaseIE):
 
 class VKMusicIE(VKBaseIE):
     IE_NAME = 'vk:music'
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/(?:audio(?P<track_id>-?\d+_\d+)|(?:.*[\?&](?:act|z)=audio_playlist|music/[a-z]+/)(?P<playlist_id>(?P<pl_oid>-?\d+)_(?P<pl_id>\d+))(?:(?:%2F|_|[?&]access_hash=)(?P<access_hash>[0-9a-f]+))?)'
+
+    # Debug and test on https://regexr.com/8dlot
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/(?:audio(?P<track_id>-?\d+_\d+)|(?:.*[\?&](?:act|z)=audio_playlist|music/[a-z]+/)(?P<playlist_id>(?P<pl_oid>-?\d+)_(?P<pl_id>\d+)))(?:(?:%2F|_|[?&]access_hash=)(?P<access_hash>[0-9a-f]+))?'
+
     _TESTS = [
         {
             'url': 'https://vk.com/audio-2001746599_34746599',
@@ -909,47 +912,49 @@ class VKMusicIE(VKBaseIE):
         mobj = self._match_valid_url(url)
         track_id = mobj.group('track_id')
         playlist_id = mobj.group('playlist_id')
+        access_hash = mobj.group('access_hash')
 
         if track_id:
-            webpage = self._download_webpage(url, track_id)
+            if not access_hash:
+                webpage = self._download_webpage(url, track_id)
 
-            # copied regex from VKWallPostIE
-            # XXX: common code should be unified, moved to a class
-            data_audio = self._search_regex(
-                r'data-audio="([^"]+)', webpage, 'data-audio attr',
-                default=None, group=1)
+                data_audio = self._search_regex(
+                    r'data-audio="([^"]+)', webpage, 'data-audio attr',
+                    default=None, group=1)
 
-            if data_audio:
-                meta = self._parse_json(unescapeHTML(data_audio), track_id)
-            else:
-                if self._parse_vk_id() == 0:
-                    self.raise_login_required(
-                        'This track is unavailable. '
-                        'Log in or provide a link with access hash')
+                if data_audio:
+                    meta = self._parse_json(unescapeHTML(data_audio), track_id)
+                else:
+                    if self._parse_vk_id() == 0:
+                        self.raise_login_required(
+                            'This track is unavailable. '
+                            'Log in or provide a link with access hash')
 
-                data_exec = self._search_regex(
-                    r'class="AudioPlayerBlock__root"[^>]+data-exec="([^"]+)',
-                    webpage, 'AudioPlayerBlock data-exec', group=1)
+                    data_exec = self._search_regex(
+                        r'class="AudioPlayerBlock__root"[^>]+data-exec="([^"]+)',
+                        webpage, 'AudioPlayerBlock data-exec', group=1)
 
-                meta = traverse_obj(
-                    self._parse_json(unescapeHTML(data_exec), track_id),
-                    ('AudioPlayerBlock/init', 'firstAudio'))
+                    meta = traverse_obj(
+                        self._parse_json(unescapeHTML(data_exec), track_id),
+                        ('AudioPlayerBlock/init', 'firstAudio'))
 
-            one_more_id = meta[24]
+                    del data_exec
 
-            block_reason = traverse_obj(
-                self._parse_json(meta[12], track_id, fatal=False),
-                ('claim', 'reason'))
+                del data_audio
+                del webpage
 
-            if block_reason == 'geo':
-                self.raise_geo_restricted()
+                access_hash = meta[24]
 
-            del data_audio
-            del webpage
+                block_reason = traverse_obj(
+                    self._parse_json(meta[12], track_id, fatal=False),
+                    ('claim', 'reason'))
+
+                if block_reason == 'geo':
+                    self.raise_geo_restricted()
 
             meta = self._download_payload('al_audio', track_id, {
                 'act': 'reload_audios',
-                'audio_ids': f'{track_id}_{one_more_id}',
+                'audio_ids': f'{track_id}_{access_hash}',
             })[0][0]
 
             url = _unmask_url(meta[2], self._parse_vk_id())
@@ -968,7 +973,7 @@ class VKMusicIE(VKBaseIE):
         elif playlist_id:
             meta = self._download_payload('al_audio', playlist_id, {
                 'act': 'load_section',
-                'access_hash': mobj.group('access_hash') or '',
+                'access_hash': access_hash or '',
                 'claim': '0',
                 'context': '',
                 'from_id': self._parse_vk_id(),
