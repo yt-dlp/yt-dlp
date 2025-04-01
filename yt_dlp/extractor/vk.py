@@ -992,9 +992,10 @@ class VKMusicIE(VKBaseIE):
 
             for ent in tracks:
                 info = self._parse_track_meta(ent)
+                ent_access = f'_{ent[24]}' if len(ent) >= 24 and ent[24] else ''
                 track_id = info.pop('id')
                 title = info.pop('title')
-                audio_url = f'https://vk.com/audio{track_id}'
+                audio_url = f'https://vk.com/audio{track_id}{ent_access}'
 
                 entries.append(self.url_result(
                     audio_url, VKMusicIE, track_id, title, **info))
