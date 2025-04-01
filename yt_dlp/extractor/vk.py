@@ -815,7 +815,7 @@ class VKMusicIE(VKBaseIE):
             'url': 'https://vk.com/artist/linkinpark/releases?z=audio_playlist-2000984503_984503%2Fc468f3a862b6f73b55',
             'info_dict': {
                 'id': '-2000984503_984503',
-                'title': 'One More Light',
+                'title': 'Linkin Park - One More Light',
                 'description': '',
                 'album': 'One More Light',
                 'uploader': 'Linkin Park',
@@ -990,7 +990,8 @@ class VKMusicIE(VKBaseIE):
             is_album = year is not None
 
             return self.playlist_result(
-                entries, playlist_id, title,
+                entries, playlist_id,
+                join_nonempty(artist, title, delim=' - ') if is_album else title,
                 unescapeHTML(meta.get('rawDescription')),
                 album=title if is_album else None,
                 uploader=artist,
