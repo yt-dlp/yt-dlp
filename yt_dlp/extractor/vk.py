@@ -908,6 +908,21 @@ class VKMusicIE(VKBaseIE):
 
         return info
 
+    def _raise_if_blocked(self, meta, track_id):
+        reason = traverse_obj(
+            self._parse_json(
+                meta[12] if len(meta) >= 12 else None,
+                track_id, fatal=False),
+            ('claim', 'reason'))
+
+        if reason == 'geo':
+            self.raise_geo_restricted()
+        # can be an empty string
+        elif reason is not None:
+            raise ExtractorError(
+                'This track is unavailable. '
+                f'Reason code: {reason:r}')
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         track_id = mobj.group('track_id')
@@ -943,19 +958,22 @@ class VKMusicIE(VKBaseIE):
                 del data_audio
                 del webpage
 
+                self._raise_if_blocked(meta, track_id)
+
                 access_hash = meta[24]
-
-                block_reason = traverse_obj(
-                    self._parse_json(meta[12], track_id, fatal=False),
-                    ('claim', 'reason'))
-
-                if block_reason == 'geo':
-                    self.raise_geo_restricted()
 
             meta = self._download_payload('al_audio', track_id, {
                 'act': 'reload_audios',
                 'audio_ids': f'{track_id}_{access_hash}',
-            })[0][0]
+            })[0]
+
+            # vk sends an empty list when auth required
+            if not meta:
+                self.raise_login_required()
+
+            meta = meta[0]
+
+            self._raise_if_blocked(meta, track_id)
 
             url = _unmask_url(meta[2], self._parse_vk_id())
 
