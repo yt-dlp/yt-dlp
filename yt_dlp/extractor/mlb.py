@@ -449,9 +449,7 @@ mutation initPlaybackSession(
 
         if not (m3u8_url and token):
             errors = '; '.join(traverse_obj(response, ('errors', ..., 'message', {str})))
-            if 'not entitled' in errors:
-                raise ExtractorError(errors, expected=True)
-            elif errors:  # Only warn when 'blacked out' since radio formats are available
+            if errors:  # Only warn when 'blacked out' or 'not entitled'; radio formats may be available
                 self.report_warning(f'API returned errors for {format_id}: {errors}')
             else:
                 self.report_warning(f'No formats available for {format_id} broadcast; skipping')

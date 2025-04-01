@@ -44,7 +44,7 @@ def websocket_handler(websocket):
                 return websocket.send('2')
         elif isinstance(message, str):
             if message == 'headers':
-                return websocket.send(json.dumps(dict(websocket.request.headers)))
+                return websocket.send(json.dumps(dict(websocket.request.headers.raw_items())))
             elif message == 'path':
                 return websocket.send(websocket.request.path)
             elif message == 'source_address':
@@ -88,7 +88,7 @@ def create_wss_websocket_server():
     certfn = os.path.join(TEST_DIR, 'testcert.pem')
     sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     sslctx.load_cert_chain(certfn, None)
-    return create_websocket_server(ssl_context=sslctx)
+    return create_websocket_server(ssl=sslctx)
 
 
 MTLS_CERT_DIR = os.path.join(TEST_DIR, 'testdata', 'certificate')
@@ -103,7 +103,7 @@ def create_mtls_wss_websocket_server():
     sslctx.load_verify_locations(cafile=cacertfn)
     sslctx.load_cert_chain(certfn, None)
 
-    return create_websocket_server(ssl_context=sslctx)
+    return create_websocket_server(ssl=sslctx)
 
 
 def create_legacy_wss_websocket_server():
@@ -112,7 +112,7 @@ def create_legacy_wss_websocket_server():
     sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
     sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
     sslctx.load_cert_chain(certfn, None)
-    return create_websocket_server(ssl_context=sslctx)
+    return create_websocket_server(ssl=sslctx)
 
 
 def ws_validate_and_send(rh, req):
@@ -139,7 +139,7 @@ class TestWebsSocketRequestHandlerConformance:
         cls.wss_thread, cls.wss_port = create_wss_websocket_server()
         cls.wss_base_url = f'wss://127.0.0.1:{cls.wss_port}'
 
-        cls.bad_wss_thread, cls.bad_wss_port = create_websocket_server(ssl_context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER))
+        cls.bad_wss_thread, cls.bad_wss_port = create_websocket_server(ssl=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER))
         cls.bad_wss_host = f'wss://127.0.0.1:{cls.bad_wss_port}'
 
         cls.mtls_wss_thread, cls.mtls_wss_port = create_mtls_wss_websocket_server()
@@ -266,18 +266,18 @@ class TestWebsSocketRequestHandlerConformance:
         with handler(cookiejar=cookiejar) as rh:
             ws = ws_validate_and_send(rh, Request(self.ws_base_url))
             ws.send('headers')
-            assert json.loads(ws.recv())['cookie'] == 'test=ytdlp'
+            assert HTTPHeaderDict(json.loads(ws.recv()))['cookie'] == 'test=ytdlp'
             ws.close()
 
         with handler() as rh:
             ws = ws_validate_and_send(rh, Request(self.ws_base_url))
             ws.send('headers')
-            assert 'cookie' not in json.loads(ws.recv())
+            assert 'cookie' not in HTTPHeaderDict(json.loads(ws.recv()))
             ws.close()
 
             ws = ws_validate_and_send(rh, Request(self.ws_base_url, extensions={'cookiejar': cookiejar}))
             ws.send('headers')
-            assert json.loads(ws.recv())['cookie'] == 'test=ytdlp'
+            assert HTTPHeaderDict(json.loads(ws.recv()))['cookie'] == 'test=ytdlp'
             ws.close()
 
     @pytest.mark.skip_handler('Websockets', 'Set-Cookie not supported by websockets')
@@ -287,7 +287,7 @@ class TestWebsSocketRequestHandlerConformance:
             ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie', extensions={'cookiejar': YoutubeDLCookieJar()}))
             ws = ws_validate_and_send(rh, Request(self.ws_base_url, extensions={'cookiejar': YoutubeDLCookieJar()}))
             ws.send('headers')
-            assert 'cookie' not in json.loads(ws.recv())
+            assert 'cookie' not in HTTPHeaderDict(json.loads(ws.recv()))
             ws.close()
 
     @pytest.mark.skip_handler('Websockets', 'Set-Cookie not supported by websockets')
@@ -298,12 +298,12 @@ class TestWebsSocketRequestHandlerConformance:
             ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie'))
             ws = ws_validate_and_send(rh, Request(self.ws_base_url))
             ws.send('headers')
-            assert json.loads(ws.recv())['cookie'] == 'test=ytdlp'
+            assert HTTPHeaderDict(json.loads(ws.recv()))['cookie'] == 'test=ytdlp'
             ws.close()
             cookiejar.clear_session_cookies()
             ws = ws_validate_and_send(rh, Request(self.ws_base_url))
             ws.send('headers')
-            assert 'cookie' not in json.loads(ws.recv())
+            assert 'cookie' not in HTTPHeaderDict(json.loads(ws.recv()))
             ws.close()
 
     def test_source_address(self, handler):
@@ -340,6 +340,14 @@ class TestWebsSocketRequestHandlerConformance:
             assert headers['test2'] == 'changed'
             assert headers['test3'] == 'test3'
             ws.close()
+
+    def test_keep_header_casing(self, handler):
+        with handler(headers=HTTPHeaderDict({'x-TeSt1': 'test'})) as rh:
+            ws = ws_validate_and_send(rh, Request(self.ws_base_url, headers={'x-TeSt2': 'test'}, extensions={'keep_header_casing': True}))
+            ws.send('headers')
+            headers = json.loads(ws.recv())
+            assert 'x-TeSt1' in headers
+            assert 'x-TeSt2' in headers
 
     @pytest.mark.parametrize('client_cert', (
         {'client_certificate': os.path.join(MTLS_CERT_DIR, 'clientwithkey.crt')},

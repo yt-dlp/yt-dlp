@@ -4,8 +4,23 @@ import xml.etree.ElementTree
 
 import pytest
 
-from yt_dlp.utils import dict_get, int_or_none, str_or_none
-from yt_dlp.utils.traversal import traverse_obj
+from yt_dlp.utils import (
+    ExtractorError,
+    determine_ext,
+    dict_get,
+    int_or_none,
+    join_nonempty,
+    str_or_none,
+)
+from yt_dlp.utils.traversal import (
+    find_element,
+    find_elements,
+    require,
+    subs_list_to_dict,
+    traverse_obj,
+    trim_str,
+    unpack,
+)
 
 _TEST_DATA = {
     100: 100,
@@ -23,6 +38,14 @@ _TEST_DATA = {
     ),
     'dict': {},
 }
+
+_TEST_HTML = '''<html><body>
+    <div class="a">1</div>
+    <div class="a" id="x" custom="z">2</div>
+    <div class="b" data-id="y" custom="z">3</div>
+    <p class="a">4</p>
+    <p id="d" custom="e">5</p>
+</body></html>'''
 
 
 class TestTraversal:
@@ -419,6 +442,186 @@ class TestTraversal:
             'function key should yield all values'
         assert traverse_obj(morsel, [(None,), any]) == morsel, \
             'Morsel should not be implicitly changed to dict on usage'
+
+    def test_traversal_filter(self):
+        data = [None, False, True, 0, 1, 0.0, 1.1, '', 'str', {}, {0: 0}, [], [1]]
+
+        assert traverse_obj(data, [..., filter]) == [True, 1, 1.1, 'str', {0: 0}, [1]], \
+            '`filter` should filter falsy values'
+
+
+class TestTraversalHelpers:
+    def test_traversal_require(self):
+        with pytest.raises(ExtractorError):
+            traverse_obj(_TEST_DATA, ['None', {require('value')}])
+        assert traverse_obj(_TEST_DATA, ['str', {require('value')}]) == 'str', \
+            '`require` should pass through non `None` values'
+
+    def test_subs_list_to_dict(self):
+        assert traverse_obj([
+            {'name': 'de', 'url': 'https://example.com/subs/de.vtt'},
+            {'name': 'en', 'url': 'https://example.com/subs/en1.ass'},
+            {'name': 'en', 'url': 'https://example.com/subs/en2.ass'},
+        ], [..., {
+            'id': 'name',
+            'url': 'url',
+        }, all, {subs_list_to_dict}]) == {
+            'de': [{'url': 'https://example.com/subs/de.vtt'}],
+            'en': [
+                {'url': 'https://example.com/subs/en1.ass'},
+                {'url': 'https://example.com/subs/en2.ass'},
+            ],
+        }, 'function should build subtitle dict from list of subtitles'
+        assert traverse_obj([
+            {'name': 'de', 'url': 'https://example.com/subs/de.ass'},
+            {'name': 'de'},
+            {'name': 'en', 'content': 'content'},
+            {'url': 'https://example.com/subs/en'},
+        ], [..., {
+            'id': 'name',
+            'data': 'content',
+            'url': 'url',
+        }, all, {subs_list_to_dict(lang=None)}]) == {
+            'de': [{'url': 'https://example.com/subs/de.ass'}],
+            'en': [{'data': 'content'}],
+        }, 'subs with mandatory items missing should be filtered'
+        assert traverse_obj([
+            {'url': 'https://example.com/subs/de.ass', 'name': 'de'},
+            {'url': 'https://example.com/subs/en', 'name': 'en'},
+        ], [..., {
+            'id': 'name',
+            'ext': ['url', {determine_ext(default_ext=None)}],
+            'url': 'url',
+        }, all, {subs_list_to_dict(ext='ext')}]) == {
+            'de': [{'url': 'https://example.com/subs/de.ass', 'ext': 'ass'}],
+            'en': [{'url': 'https://example.com/subs/en', 'ext': 'ext'}],
+        }, '`ext` should set default ext but leave existing value untouched'
+        assert traverse_obj([
+            {'name': 'en', 'url': 'https://example.com/subs/en2', 'prio': True},
+            {'name': 'en', 'url': 'https://example.com/subs/en1', 'prio': False},
+        ], [..., {
+            'id': 'name',
+            'quality': ['prio', {int}],
+            'url': 'url',
+        }, all, {subs_list_to_dict(ext='ext')}]) == {'en': [
+            {'url': 'https://example.com/subs/en1', 'ext': 'ext'},
+            {'url': 'https://example.com/subs/en2', 'ext': 'ext'},
+        ]}, '`quality` key should sort subtitle list accordingly'
+        assert traverse_obj([
+            {'name': 'de', 'url': 'https://example.com/subs/de.ass'},
+            {'name': 'de'},
+            {'name': 'en', 'content': 'content'},
+            {'url': 'https://example.com/subs/en'},
+        ], [..., {
+            'id': 'name',
+            'url': 'url',
+            'data': 'content',
+        }, all, {subs_list_to_dict(lang='en')}]) == {
+            'de': [{'url': 'https://example.com/subs/de.ass'}],
+            'en': [
+                {'data': 'content'},
+                {'url': 'https://example.com/subs/en'},
+            ],
+        }, 'optionally provided lang should be used if no id available'
+        assert traverse_obj([
+            {'name': 1, 'url': 'https://example.com/subs/de1'},
+            {'name': {}, 'url': 'https://example.com/subs/de2'},
+            {'name': 'de', 'ext': 1, 'url': 'https://example.com/subs/de3'},
+            {'name': 'de', 'ext': {}, 'url': 'https://example.com/subs/de4'},
+        ], [..., {
+            'id': 'name',
+            'url': 'url',
+            'ext': 'ext',
+        }, all, {subs_list_to_dict(lang=None)}]) == {
+            'de': [
+                {'url': 'https://example.com/subs/de3'},
+                {'url': 'https://example.com/subs/de4'},
+            ],
+        }, 'non str types should be ignored for id and ext'
+        assert traverse_obj([
+            {'name': 1, 'url': 'https://example.com/subs/de1'},
+            {'name': {}, 'url': 'https://example.com/subs/de2'},
+            {'name': 'de', 'ext': 1, 'url': 'https://example.com/subs/de3'},
+            {'name': 'de', 'ext': {}, 'url': 'https://example.com/subs/de4'},
+        ], [..., {
+            'id': 'name',
+            'url': 'url',
+            'ext': 'ext',
+        }, all, {subs_list_to_dict(lang='de')}]) == {
+            'de': [
+                {'url': 'https://example.com/subs/de1'},
+                {'url': 'https://example.com/subs/de2'},
+                {'url': 'https://example.com/subs/de3'},
+                {'url': 'https://example.com/subs/de4'},
+            ],
+        }, 'non str types should be replaced by default id'
+
+    def test_trim_str(self):
+        with pytest.raises(TypeError):
+            trim_str('positional')
+
+        assert callable(trim_str(start='a'))
+        assert trim_str(start='ab')('abc') == 'c'
+        assert trim_str(end='bc')('abc') == 'a'
+        assert trim_str(start='a', end='c')('abc') == 'b'
+        assert trim_str(start='ab', end='c')('abc') == ''
+        assert trim_str(start='a', end='bc')('abc') == ''
+        assert trim_str(start='ab', end='bc')('abc') == ''
+        assert trim_str(start='abc', end='abc')('abc') == ''
+        assert trim_str(start='', end='')('abc') == 'abc'
+
+    def test_unpack(self):
+        assert unpack(lambda *x: ''.join(map(str, x)))([1, 2, 3]) == '123'
+        assert unpack(join_nonempty)([1, 2, 3]) == '1-2-3'
+        assert unpack(join_nonempty, delim=' ')([1, 2, 3]) == '1 2 3'
+        with pytest.raises(TypeError):
+            unpack(join_nonempty)()
+        with pytest.raises(TypeError):
+            unpack()
+
+    def test_find_element(self):
+        for improper_kwargs in [
+            dict(attr='data-id'),
+            dict(value='y'),
+            dict(attr='data-id', value='y', cls='a'),
+            dict(attr='data-id', value='y', id='x'),
+            dict(cls='a', id='x'),
+            dict(cls='a', tag='p'),
+            dict(cls='[ab]', regex=True),
+        ]:
+            with pytest.raises(AssertionError):
+                find_element(**improper_kwargs)(_TEST_HTML)
+
+        assert find_element(cls='a')(_TEST_HTML) == '1'
+        assert find_element(cls='a', html=True)(_TEST_HTML) == '<div class="a">1</div>'
+        assert find_element(id='x')(_TEST_HTML) == '2'
+        assert find_element(id='[ex]')(_TEST_HTML) is None
+        assert find_element(id='[ex]', regex=True)(_TEST_HTML) == '2'
+        assert find_element(id='x', html=True)(_TEST_HTML) == '<div class="a" id="x" custom="z">2</div>'
+        assert find_element(attr='data-id', value='y')(_TEST_HTML) == '3'
+        assert find_element(attr='data-id', value='y(?:es)?')(_TEST_HTML) is None
+        assert find_element(attr='data-id', value='y(?:es)?', regex=True)(_TEST_HTML) == '3'
+        assert find_element(
+            attr='data-id', value='y', html=True)(_TEST_HTML) == '<div class="b" data-id="y" custom="z">3</div>'
+
+    def test_find_elements(self):
+        for improper_kwargs in [
+            dict(tag='p'),
+            dict(attr='data-id'),
+            dict(value='y'),
+            dict(attr='data-id', value='y', cls='a'),
+            dict(cls='a', tag='div'),
+            dict(cls='[ab]', regex=True),
+        ]:
+            with pytest.raises(AssertionError):
+                find_elements(**improper_kwargs)(_TEST_HTML)
+
+        assert find_elements(cls='a')(_TEST_HTML) == ['1', '2', '4']
+        assert find_elements(cls='a', html=True)(_TEST_HTML) == [
+            '<div class="a">1</div>', '<div class="a" id="x" custom="z">2</div>', '<p class="a">4</p>']
+        assert find_elements(attr='custom', value='z')(_TEST_HTML) == ['2', '3']
+        assert find_elements(attr='custom', value='[ez]')(_TEST_HTML) == []
+        assert find_elements(attr='custom', value='[ez]', regex=True)(_TEST_HTML) == ['2', '3', '5']
 
 
 class TestDictGet:

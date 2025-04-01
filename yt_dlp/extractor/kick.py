@@ -1,4 +1,3 @@
-import functools
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -67,7 +66,7 @@ class KickIE(KickBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if KickClipIE.suitable(url) else super().suitable(url)
+        return False if (KickVODIE.suitable(url) or KickClipIE.suitable(url)) else super().suitable(url)
 
     def _real_extract(self, url):
         channel = self._match_id(url)
@@ -98,25 +97,25 @@ class KickIE(KickBaseIE):
 
 class KickVODIE(KickBaseIE):
     IE_NAME = 'kick:vod'
-    _VALID_URL = r'https?://(?:www\.)?kick\.com/video/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
+    _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+/videos/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
     _TESTS = [{
-        'url': 'https://kick.com/video/e74614f4-5270-4319-90ad-32179f19a45c',
+        'url': 'https://kick.com/xqc/videos/8dd97a8d-e17f-48fb-8bc3-565f88dbc9ea',
         'md5': '3870f94153e40e7121a6e46c068b70cb',
         'info_dict': {
-            'id': 'e74614f4-5270-4319-90ad-32179f19a45c',
+            'id': '8dd97a8d-e17f-48fb-8bc3-565f88dbc9ea',
             'ext': 'mp4',
-            'title': r're:❎ MEGA DRAMA ❎ LIVE ❎ CLICK ❎ ULTIMATE SKILLS .+',
+            'title': '18+ #ad 🛑LIVE🛑CLICK🛑DRAMA🛑NEWS🛑STUFF🛑REACT🛑GET IN HHERE🛑BOP BOP🛑WEEEE WOOOO🛑',
             'description': 'THE BEST AT ABSOLUTELY EVERYTHING. THE JUICER. LEADER OF THE JUICERS.',
             'channel': 'xqc',
             'channel_id': '668',
             'uploader': 'xQc',
             'uploader_id': '676',
-            'upload_date': '20240724',
-            'timestamp': 1721796562,
-            'duration': 18566.0,
+            'upload_date': '20240909',
+            'timestamp': 1725919141,
+            'duration': 10155.0,
             'thumbnail': r're:^https?://.*\.jpg',
             'view_count': int,
-            'categories': ['VALORANT'],
+            'categories': ['Just Chatting'],
             'age_limit': 0,
         },
         'params': {'skip_download': 'm3u8'},
@@ -137,7 +136,7 @@ class KickVODIE(KickBaseIE):
                 'uploader': ('livestream', 'channel', 'user', 'username', {str}),
                 'uploader_id': ('livestream', 'channel', 'user_id', {int}, {str_or_none}),
                 'timestamp': ('created_at', {parse_iso8601}),
-                'duration': ('livestream', 'duration', {functools.partial(float_or_none, scale=1000)}),
+                'duration': ('livestream', 'duration', {float_or_none(scale=1000)}),
                 'thumbnail': ('livestream', 'thumbnail', {url_or_none}),
                 'categories': ('livestream', 'categories', ..., 'name', {str}),
                 'view_count': ('views', {int_or_none}),
@@ -148,7 +147,7 @@ class KickVODIE(KickBaseIE):
 
 class KickClipIE(KickBaseIE):
     IE_NAME = 'kick:clips'
-    _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+/?\?(?:[^#]+&)?clip=(?P<id>clip_[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+(?:/clips/|/?\?(?:[^#]+&)?clip=)(?P<id>clip_[\w-]+)'
     _TESTS = [{
         'url': 'https://kick.com/mxddy?clip=clip_01GYXVB5Y8PWAPWCWMSBCFB05X',
         'info_dict': {
@@ -186,6 +185,26 @@ class KickClipIE(KickBaseIE):
             'view_count': int,
             'like_count': int,
             'categories': ['Just Chatting'],
+            'age_limit': 0,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://kick.com/spreen/clips/clip_01J8RGZRKHXHXXKJEHGRM932A5',
+        'info_dict': {
+            'id': 'clip_01J8RGZRKHXHXXKJEHGRM932A5',
+            'ext': 'mp4',
+            'title': 'KLJASLDJKLJKASDLJKDAS',
+            'channel': 'spreen',
+            'channel_id': '5312671',
+            'uploader': 'AnormalBarraBaja',
+            'uploader_id': '26518262',
+            'duration': 43.0,
+            'upload_date': '20240927',
+            'timestamp': 1727399987,
+            'thumbnail': 'https://clips.kick.com/clips/f2/clip_01J8RGZRKHXHXXKJEHGRM932A5/thumbnail.webp',
+            'view_count': int,
+            'like_count': int,
+            'categories': ['Minecraft'],
             'age_limit': 0,
         },
         'params': {'skip_download': 'm3u8'},

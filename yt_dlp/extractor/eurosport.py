@@ -3,7 +3,12 @@ from ..utils import traverse_obj
 
 
 class EurosportIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.eurosport\.com/\w+/(?:[\w-]+/[\d-]+/)?[\w-]+_(?P<id>vid\d+)'
+    _VALID_URL = r'''(?x)
+        https?://(?:
+            (?:(?:www|espanol)\.)?eurosport\.(?:com(?:\.tr)?|de|dk|es|fr|hu|it|nl|no|ro)|
+            eurosport\.tvn24\.pl
+        )/[\w-]+/(?:[\w-]+/[\d-]+/)?[\w.-]+_(?P<id>vid\d+)
+    '''
     _TESTS = [{
         'url': 'https://www.eurosport.com/tennis/roland-garros/2022/highlights-rafael-nadal-brushes-aside-caper-ruud-to-win-record-extending-14th-french-open-title_vid1694147/video.shtml',
         'info_dict': {
@@ -70,6 +75,42 @@ class EurosportIE(InfoExtractor):
             'duration': 105.0,
             'upload_date': '20230518',
         },
+    }, {
+        'url': 'https://www.eurosport.de/radsport/vuelta-a-espana/2024/vuelta-a-espana-2024-wout-van-aert-und-co.-verzweifeln-an-mcnulty-zeitfahr-krimi-in-lissabon_vid2219478/video.shtml',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.eurosport.dk/speedway/mikkel-michelsen-misser-finalen-i-cardiff-se-danskeren-i-semifinalen-her_vid2219363/video.shtml',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.eurosport.nl/mixed-martial-arts/ufc/2022/ufc-305-respect-tussen-adesanya-en-du-plessis_vid2219650/video.shtml',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.eurosport.es/ciclismo/la-vuelta-2024-carlos-rodriguez-olvida-la-crono-y-ya-espera-que-llegue-la-montana-no-me-encontre-nada-comodo_vid2219682/video.shtml',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.eurosport.fr/football/supercoupe-d-europe/2024-2025/kylian-mbappe-vinicius-junior-eduardo-camavinga-touche.-extraits-de-l-entrainement-du-real-madrid-en-video_vid2216993/video.shtml',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.eurosport.it/calcio/serie-a/2024-2025/samardzic-a-bergamo-per-le-visite-mediche-con-l-atalanta_vid2219680/video.shtml',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.eurosport.hu/kerekpar/vuelta-a-espana/2024/dramai-harc-a-masodpercekert-meglepetesgyoztes-a-vuelta-nyitoszakaszan_vid2219481/video.shtml',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.eurosport.no/golf/fedex-st-jude-championship/2024/ligger-pa-andreplass-sa-skjer-dette-drama_vid30000618/video.shtml',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.eurosport.no/golf/fedex-st-jude-championship/2024/ligger-pa-andreplass-sa-skjer-dette-drama_vid2219531/video.shtml',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.eurosport.ro/tenis/western-southern-open-2/2024/rezumatul-partidei-dintre-zverev-si-shelton-de-la-cincinnati_vid2219657/video.shtml',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.eurosport.com.tr/hentbol/olympic-games-paris-2024/2024/paris-2024-denmark-ile-germany-olimpiyatlarin-onemli-anlari_vid2215836/video.shtml',
+        'only_matching': True,
+    }, {
+        'url': 'https://eurosport.tvn24.pl/kolarstwo/tour-de-france-kobiet/2024/kasia-niewiadoma-przed-ostatnim-8.-etapem-tour-de-france-kobiet_vid2219765/video.shtml',
+        'only_matching': True,
     }]
 
     _TOKEN = None
@@ -77,6 +118,7 @@ class EurosportIE(InfoExtractor):
     # actually defined in https://netsport.eurosport.io/?variables={"databaseId":<databaseId>,"playoutType":"VDP"}&extensions={"persistedQuery":{"version":1 ..
     # but this method require to get sha256 hash
     _GEO_COUNTRIES = ['DE', 'NL', 'EU', 'IT', 'FR']  # Not complete list but it should work
+    _GEO_BYPASS = False
 
     def _real_initialize(self):
         if EurosportIE._TOKEN is None:
@@ -98,13 +140,13 @@ class EurosportIE(InfoExtractor):
         for stream_type in json_data['attributes']['streaming']:
             if stream_type == 'hls':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id, ext='mp4')
+                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id, ext='mp4', fatal=False)
             elif stream_type == 'dash':
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id)
+                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id, fatal=False)
             elif stream_type == 'mss':
                 fmts, subs = self._extract_ism_formats_and_subtitles(
-                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id)
+                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id, fatal=False)
 
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)

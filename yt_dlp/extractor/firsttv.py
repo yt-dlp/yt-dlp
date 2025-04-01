@@ -12,7 +12,7 @@ from ..utils import (
 class FirstTVIE(InfoExtractor):
     IE_NAME = '1tv'
     IE_DESC = 'Первый канал'
-    _VALID_URL = r'https?://(?:www\.)?1tv\.ru/(?:[^/]+/)+(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:sport)?1tv\.ru/(?:[^/?#]+/)+(?P<id>[^/?#]+)'
 
     _TESTS = [{
         # single format
@@ -51,6 +51,9 @@ class FirstTVIE(InfoExtractor):
         'playlist_count': 13,
     }, {
         'url': 'http://www.1tv.ru/shows/tochvtoch-supersezon/vystupleniya/evgeniy-dyatlov-vladimir-vysockiy-koni-priveredlivye-toch-v-toch-supersezon-fragment-vypuska-ot-06-11-2016',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.sport1tv.ru/sport/chempionat-rossii-po-figurnomu-kataniyu-2025',
         'only_matching': True,
     }]
 

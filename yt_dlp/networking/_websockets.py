@@ -33,8 +33,9 @@ if not websockets:
 import websockets.version
 
 websockets_version = tuple(map(int_or_none, websockets.version.version.split('.')))
-if websockets_version < (12, 0):
-    raise ImportError('Only websockets>=12.0 is supported')
+if websockets_version < (13, 0):
+    websockets._yt_dlp__version = f'{websockets.version.version} (unsupported)'
+    raise ImportError('Only websockets>=13.0 is supported')
 
 import websockets.sync.client
 from websockets.uri import parse_uri
@@ -47,10 +48,7 @@ from websockets.uri import parse_uri
 # 2: "AttributeError: 'ClientConnection' object has no attribute 'recv_events_exc'. Did you mean: 'recv_events'?"
 import websockets.sync.connection  # isort: split
 with contextlib.suppress(Exception):
-    # > 12.0
     websockets.sync.connection.Connection.recv_exc = None
-    # 12.0
-    websockets.sync.connection.Connection.recv_events_exc = None
 
 
 class WebsocketsResponseAdapter(WebSocketResponse):
@@ -119,6 +117,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         extensions.pop('timeout', None)
         extensions.pop('cookiejar', None)
         extensions.pop('legacy_ssl', None)
+        extensions.pop('keep_header_casing', None)
 
     def close(self):
         # Remove the logging handler that contains a reference to our logger
@@ -126,15 +125,16 @@ class WebsocketsRH(WebSocketRequestHandler):
         for name, handler in self.__logging_handlers.items():
             logging.getLogger(name).removeHandler(handler)
 
-    def _send(self, request):
-        timeout = self._calculate_timeout(request)
-        headers = self._merge_headers(request.headers)
+    def _prepare_headers(self, request, headers):
         if 'cookie' not in headers:
             cookiejar = self._get_cookiejar(request)
             cookie_header = cookiejar.get_cookie_header(request.url)
             if cookie_header:
                 headers['cookie'] = cookie_header
 
+    def _send(self, request):
+        timeout = self._calculate_timeout(request)
+        headers = self._get_headers(request)
         wsuri = parse_uri(request.url)
         create_conn_kwargs = {
             'source_address': (self.source_address, 0) if self.source_address else None,
@@ -162,7 +162,7 @@ class WebsocketsRH(WebSocketRequestHandler):
                 additional_headers=headers,
                 open_timeout=timeout,
                 user_agent_header=None,
-                ssl_context=ssl_ctx if wsuri.secure else None,
+                ssl=ssl_ctx if wsuri.secure else None,
                 close_timeout=0,  # not ideal, but prevents yt-dlp hanging
             )
             return WebsocketsResponseAdapter(conn, url=request.url)

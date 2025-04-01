@@ -8,14 +8,17 @@ from ..utils import (
     UnsupportedError,
     clean_html,
     determine_ext,
+    extract_attributes,
     format_field,
     get_element_by_class,
+    get_elements_html_by_class,
     int_or_none,
     join_nonempty,
     parse_count,
     parse_iso8601,
     traverse_obj,
     unescapeHTML,
+    urljoin,
 )
 
 
@@ -382,8 +385,10 @@ class RumbleChannelIE(InfoExtractor):
                 if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                     break
                 raise
-            for video_url in re.findall(r'class="[^>"]*videostream__link[^>]+href="([^"]+\.html)"', webpage):
-                yield self.url_result('https://rumble.com' + video_url)
+            for video_url in traverse_obj(
+                get_elements_html_by_class('videostream__link', webpage), (..., {extract_attributes}, 'href'),
+            ):
+                yield self.url_result(urljoin('https://rumble.com', video_url))
 
     def _real_extract(self, url):
         url, playlist_id = self._match_valid_url(url).groups()

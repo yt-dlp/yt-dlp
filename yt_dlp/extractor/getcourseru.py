@@ -52,7 +52,7 @@ class GetCourseRuIE(InfoExtractor):
     _BASE_URL_RE = rf'https?://(?:(?!player02\.)[^.]+\.getcourse\.(?:ru|io)|{"|".join(map(re.escape, _DOMAINS))})'
     _VALID_URL = [
         rf'{_BASE_URL_RE}/(?!pl/|teach/)(?P<id>[^?#]+)',
-        rf'{_BASE_URL_RE}/(:?pl/)?teach/control/lesson/view\?(?:[^#]+&)?id=(?P<id>\d+)',
+        rf'{_BASE_URL_RE}/(?:pl/)?teach/control/lesson/view\?(?:[^#]+&)?id=(?P<id>\d+)',
     ]
     _TESTS = [{
         'url': 'http://academymel.online/3video_1',

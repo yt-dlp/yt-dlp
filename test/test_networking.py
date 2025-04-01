@@ -614,7 +614,6 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 rh, Request(f'http://127.0.0.1:{self.http_port}/source_address')).read().decode()
             assert source_address == data
 
-    # Not supported by CurlCFFI
     @pytest.mark.skip_handler('CurlCFFI', 'not supported by curl-cffi')
     def test_gzip_trailing_garbage(self, handler):
         with handler() as rh:
@@ -720,6 +719,15 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     rh, Request(
                         f'http://127.0.0.1:{self.http_port}/headers', proxies={'all': 'http://10.255.255.255'})).close()
 
+    @pytest.mark.skip_handlers_if(lambda _, handler: handler not in ['Urllib', 'CurlCFFI'], 'handler does not support keep_header_casing')
+    def test_keep_header_casing(self, handler):
+        with handler() as rh:
+            res = validate_and_send(
+                rh, Request(
+                    f'http://127.0.0.1:{self.http_port}/headers', headers={'X-test-heaDer': 'test'}, extensions={'keep_header_casing': True})).read().decode()
+
+            assert 'X-test-heaDer: test' in res
+
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
 class TestClientCertificate:
@@ -821,6 +829,24 @@ class TestRequestHandlerMisc:
         assert len(logging_handlers) == before_count + 1
         rh.close()
         assert len(logging_handlers) == before_count
+
+    def test_wrap_request_errors(self):
+        class TestRequestHandler(RequestHandler):
+            def _validate(self, request):
+                if request.headers.get('x-fail'):
+                    raise UnsupportedRequest('test error')
+
+            def _send(self, request: Request):
+                raise RequestError('test error')
+
+        with TestRequestHandler(logger=FakeLogger()) as rh:
+            with pytest.raises(UnsupportedRequest, match='test error') as exc_info:
+                rh.validate(Request('http://example.com', headers={'x-fail': '1'}))
+            assert exc_info.value.handler is rh
+
+            with pytest.raises(RequestError, match='test error') as exc_info:
+                rh.send(Request('http://example.com'))
+            assert exc_info.value.handler is rh
 
 
 @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
@@ -1271,6 +1297,7 @@ class TestRequestHandlerValidation:
             ({'legacy_ssl': False}, False),
             ({'legacy_ssl': True}, False),
             ({'legacy_ssl': 'notabool'}, AssertionError),
+            ({'keep_header_casing': True}, UnsupportedRequest),
         ]),
         ('Requests', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
@@ -1281,6 +1308,9 @@ class TestRequestHandlerValidation:
             ({'legacy_ssl': False}, False),
             ({'legacy_ssl': True}, False),
             ({'legacy_ssl': 'notabool'}, AssertionError),
+            ({'keep_header_casing': False}, False),
+            ({'keep_header_casing': True}, False),
+            ({'keep_header_casing': 'notabool'}, AssertionError),
         ]),
         ('CurlCFFI', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
