@@ -3604,7 +3604,7 @@ def _configuration_args(main_key, argdict, exe, keys=None, default=[], use_compa
     keys = [f'{root_key}{k}' for k in (keys or [''])]
     if root_key in keys:
         if main_key != exe:
-            keys.append((main_key, exe))
+            keys.extend((main_key, exe))
         keys.append('default')
     else:
         use_compat = False
