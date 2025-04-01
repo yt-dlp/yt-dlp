@@ -922,14 +922,27 @@ class VKMusicIE(VKBaseIE):
             if data_audio:
                 meta = self._parse_json(unescapeHTML(data_audio), track_id)
             else:
+                if self._parse_vk_id() == 0:
+                    self.raise_login_required(
+                        'This track is unavailable. '
+                        'Log in or provide a link with access hash')
+
                 data_exec = self._search_regex(
                     r'class="AudioPlayerBlock__root"[^>]+data-exec="([^"]+)',
                     webpage, 'AudioPlayerBlock data-exec', group=1)
+
                 meta = traverse_obj(
                     self._parse_json(unescapeHTML(data_exec), track_id),
                     ('AudioPlayerBlock/init', 'firstAudio'))
 
             one_more_id = meta[24]
+
+            block_reason = traverse_obj(
+                self._parse_json(meta[12], track_id, fatal=False),
+                ('claim', 'reason'))
+
+            if block_reason == 'geo':
+                self.raise_geo_restricted()
 
             del data_audio
             del webpage
