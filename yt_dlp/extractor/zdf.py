@@ -186,8 +186,10 @@ class ZDFBaseIE(InfoExtractor):
 
 class ZDFIE(ZDFBaseIE):
     _VALID_URL = [
-        # Legacy URLs end in .html and redirect
+        # Legacy redirects from before website redesign in 2025-03
+        # Also: URLs for the `/nachrichten/` sub-site
         r'https?://(?:www\.)?zdf\.de/(?:[^/?#]+/)*(?P<id>[^/?#]+)\.html',
+        # URLs for individual videos on the main site
         r'https?://(?:www\.)?zdf\.de/(?:video|play)/(?:[^/?#]+/)*(?P<id>[^/?#]+)/?',
     ]
     _TESTS = [{
@@ -328,6 +330,21 @@ class ZDFIE(ZDFBaseIE):
             '_old_archive_ids': ['211219_sendung_hjo_dgs'],
         },
     }, {
+        # Video that requires fallback extraction
+        'url': 'https://www.zdf.de/nachrichten/politik/deutschland/koalitionsverhandlungen-spd-cdu-csu-dobrindt-100.html',
+        'md5': '95903ecbd37f2881b4462d074b8f8c44',
+        'info_dict': {
+            'id': 'koalitionsverhandlungen-spd-cdu-csu-dobrindt-100',
+            'ext': 'mp4',
+            'title': 'Dobrindt schließt Steuererhöhungen aus',
+            'description': 'md5:9a117646d7b8df6bc902eb543a9c9023',
+            'duration': 325,
+            'thumbnail': 'https://www.zdf.de/assets/dobrindt-csu-berlin-direkt-100~1920x1080?cb=1743357653736',
+            'timestamp': 1743374520,
+            'upload_date': '20250330',
+            '_old_archive_ids': ['250330_clip_2_bdi'],
+        },
+    }, {
         'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
         'md5': '57af4423db0455a3975d2dc4578536bc',
         'info_dict': {
@@ -422,10 +439,6 @@ class ZDFIE(ZDFBaseIE):
         'only_matching': True,
     }]
 
-    @classmethod
-    def suitable(cls, url):
-        return False if ZDFHeuteIE.suitable(url) else super().suitable(url)
-
     _GRAPHQL_QUERY = '''
 query VideoByCanonical($canonical: String!) {
   videoByCanonical(canonical: $canonical) {
@@ -476,20 +489,72 @@ query VideoByCanonical($canonical: String!) {
 }
     '''
 
+    # This fallback should generally only happen for pages under `zdf.de/nachrichten`.
+    # They are on a separate website for which GraphQL often doesn't return results.
+    # The API used here is no longer in use by official clients and likely deprecated.
+    # Long-term, news documents probably should use the API used by the mobile apps:
+    # https://zdf-prod-futura.zdf.de/news/documents/ (note 'news' vs 'mediathekV2')
+    def _extract_fallback(self, document_id):
+        video = self._download_json(
+            f'https://zdf-prod-futura.zdf.de/mediathekV2/document/{document_id}',
+            document_id, note='Downloading fallback metadata',
+            errnote='Failed to download fallback metadata')
+
+        formats = []
+        formitaeten = try_get(video, lambda x: x['document']['formitaeten'], list)
+        document = formitaeten and video['document']
+        if formitaeten:
+            title = document['titel']
+            content_id = document['basename']
+
+            format_urls = set()
+            for f in formitaeten or []:
+                self._extract_format(content_id, formats, format_urls, f)
+
+        thumbnails = []
+        teaser_bild = document.get('teaserBild')
+        if isinstance(teaser_bild, dict):
+            for thumbnail_key, thumbnail in teaser_bild.items():
+                thumbnail_url = try_get(
+                    thumbnail, lambda x: x['url'], str)
+                if thumbnail_url:
+                    thumbnails.append({
+                        'url': thumbnail_url,
+                        'id': thumbnail_key,
+                        'width': int_or_none(thumbnail.get('width')),
+                        'height': int_or_none(thumbnail.get('height')),
+                    })
+
+        return {
+            'id': document_id,
+            'title': title,
+            'description': document.get('beschreibung'),
+            'duration': int_or_none(document.get('length')),
+            'timestamp': unified_timestamp(document.get('date')) or unified_timestamp(
+                try_get(video, lambda x: x['meta']['editorialDate'], str)),
+            'thumbnails': thumbnails,
+            'subtitles': self._extract_subtitles(document.get('captions') or []),
+            'formats': formats,
+            '_old_archive_ids': [content_id],
+        }
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_data = self._download_graphql(video_id, 'video metadata', body={
             'operationName': 'VideoByCanonical',
             'query': self._GRAPHQL_QUERY,
             'variables': {'canonical': video_id},
-        })
+        })['data']['videoByCanonical']
+
+        if not video_data:
+            return self._extract_fallback(video_id)
+
         # TODO: If there are multiple PTMD templates,
         # usually one of them is a sign-language variant of the video.
         # The format order works out fine as is and prefers the "normal" video,
         # but this should probably be made more explicit.
         ptmd_templates = traverse_obj(
-            video_data,
-            ('data', 'videoByCanonical', 'currentMedia', 'nodes', ..., 'ptmdTemplate'))
+            video_data, ('currentMedia', 'nodes', ..., 'ptmdTemplate'))
         ptmd_data = self._extract_ptmd(
             'https://api.zdf.de', ptmd_templates, video_id,
             self._get_api_token(video_id))
@@ -503,7 +568,7 @@ query VideoByCanonical($canonical: String!) {
         return {
             'id': video_id,
             **ptmd_data,
-            **traverse_obj(video_data, ('data', 'videoByCanonical', {
+            **traverse_obj(video_data, {
                 'title': ('title', {str}),
                 'description': (('leadParagraph', ('teaser', 'description')), any, {str}),
                 'timestamp': ('editorialDate', {parse_iso8601}),
@@ -513,7 +578,7 @@ query VideoByCanonical($canonical: String!) {
                 'series': ('smartCollection', 'title', {str}),
                 'series_id': ('smartCollection', 'canonical', {str}),
                 'chapters': ('currentMedia', 'nodes', 0, 'streamAnchorTags', 'nodes', {self._extract_chapters}),
-            })),
+            }),
         }
 
 
@@ -570,7 +635,7 @@ class ZDFChannelIE(ZDFBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if ZDFIE.suitable(url) or ZDFHeuteIE.suitable(url) else super().suitable(url)
+        return False if ZDFIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
@@ -591,21 +656,18 @@ class ZDFChannelIE(ZDFBaseIE):
                         'sha256Hash': 'cb49420e133bd668ad895a8cea0e65cba6aa11ac1cacb02341ff5cf32a17cd02',
                     },
                 }),
-            })
+            })['data']['smartCollectionByCanonical']
 
-        video_data = traverse_obj(
-            collection_data, ('data', 'smartCollectionByCanonical', 'video'))
-        season_data = traverse_obj(
-            collection_data, ('data', 'smartCollectionByCanonical', 'seasons'))
+        video_data = traverse_obj(collection_data, ('video', {dict}))
+        season_data = traverse_obj(collection_data, ('seasons', {dict}))
 
         if not self._yes_playlist(
                 channel_id if season_data else None,
                 traverse_obj(video_data, ('canonical', {str}))):
             return self.url_result(video_data['sharingUrl'], ie=ZDFIE)
 
-        title = (traverse_obj(collection_data, ('data', 'smartCollectionByCanonical', 'title'))
-                 or self._html_search_meta(
-            ['og:title', 'title', 'twitter:title'], webpage, 'title', fatal=False))
+        title = traverse_obj(collection_data, ('title', {str})) or self._html_search_meta(
+            ['og:title', 'title', 'twitter:title'], webpage, 'title', fatal=False)
 
         needs_pagination = traverse_obj(season_data, (
             'seasons', ..., 'episodes', 'pageInfo', 'hasNextPage',
@@ -613,7 +675,7 @@ class ZDFChannelIE(ZDFBaseIE):
         if needs_pagination:
             # TODO: Implement pagination for collections with long seasons
             # e.g. https://www.zdf.de/magazine/heute-journal-104
-            self.report_warning('This collections contains seasons with more than 100 episodes, some episodes are missing from the result.')
+            self.report_warning('This collection contains seasons with more than 100 episodes, some episodes are missing from the result.')
 
         videos = traverse_obj(season_data, ('seasons', ..., 'episodes', 'videos', ...))
         season_id = parse_qs(url).get('staffel', [None])[-1]
@@ -631,79 +693,5 @@ class ZDFChannelIE(ZDFBaseIE):
             'series': {lambda _: title},
         })) for video in videos or [] if video.get('currentMediaType') != 'NOVIDEO']
 
-        return self.playlist_result(entries, channel_id, title, traverse_obj(
-            collection_data, ('data', 'smartCollectionByCanonical', 'infoText', {str})))
-
-
-# TODO: This extractor is a minimal effort implementation and incomplete.
-# It only does what is necessary to get back the functionality that was present
-# before the redesign of the ZDF website in 2025-03.
-# It uses an API that is no longer used by offical clients,
-# and likely never was at all for the purpase the extractor uses it for.
-# A proper implementation should likely use the API of the mobile app instead:
-# https://zdf-prod-futura.zdf.de/news/documents/ (note 'news' vs 'mediathekV2')
-class ZDFHeuteIE(ZDFBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?zdf\.de/nachrichten/(?:[^/?#]+/)*(?P<id>[^/?#]+)\.html'
-    _TESTS = [{
-        'url': 'https://www.zdf.de/nachrichten/zdfheute-live/beckenbauer-gedenkfeier-muenchen-video-100.html',
-        'md5': 'd28621e4cd8bcdc25fdefdf12dc79a1e',
-        'info_dict': {
-            'id': '240119_beckenbauer_gesamt_hli',
-            'ext': 'mp4',
-            'title': 'Gedenkfeier für Franz Beckenbauer',
-            'description': 'md5:a50f2ee818d4a78f20179b88affbe9da',
-            'duration': 6510,
-            'thumbnail': 'https://www.zdf.de/assets/beckenbauer-trauerfeier-muenchen-tn-102~1920x1080?cb=1705669625816',
-            'timestamp': 1705674600,
-            'upload_date': '20240119',
-        },
-    }]
-
-    def _download_v2_doc(self, document_id):
-        return self._download_json(
-            f'https://zdf-prod-futura.zdf.de/mediathekV2/document/{document_id}',
-            document_id)
-
-    def _extract_mobile(self, video_id):
-        video = self._download_v2_doc(video_id)
-
-        formats = []
-        formitaeten = try_get(video, lambda x: x['document']['formitaeten'], list)
-        document = formitaeten and video['document']
-        if formitaeten:
-            title = document['titel']
-            content_id = document['basename']
-
-            format_urls = set()
-            for f in formitaeten or []:
-                self._extract_format(content_id, formats, format_urls, f)
-
-        thumbnails = []
-        teaser_bild = document.get('teaserBild')
-        if isinstance(teaser_bild, dict):
-            for thumbnail_key, thumbnail in teaser_bild.items():
-                thumbnail_url = try_get(
-                    thumbnail, lambda x: x['url'], str)
-                if thumbnail_url:
-                    thumbnails.append({
-                        'url': thumbnail_url,
-                        'id': thumbnail_key,
-                        'width': int_or_none(thumbnail.get('width')),
-                        'height': int_or_none(thumbnail.get('height')),
-                    })
-
-        return {
-            'id': content_id,
-            'title': title,
-            'description': document.get('beschreibung'),
-            'duration': int_or_none(document.get('length')),
-            'timestamp': unified_timestamp(document.get('date')) or unified_timestamp(
-                try_get(video, lambda x: x['meta']['editorialDate'], str)),
-            'thumbnails': thumbnails,
-            'subtitles': self._extract_subtitles(document.get('captions') or []),
-            'formats': formats,
-        }
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        return self._extract_mobile(video_id)
+        return self.playlist_result(
+            entries, channel_id, title, traverse_obj(collection_data, ('infoText', {str})))

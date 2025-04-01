@@ -2602,7 +2602,6 @@ from .zattoo import (
 from .zdf import (
     ZDFIE,
     ZDFChannelIE,
-    ZDFHeuteIE,
 )
 from .zee5 import (
     Zee5IE,
