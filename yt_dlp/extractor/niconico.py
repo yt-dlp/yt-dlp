@@ -1007,7 +1007,7 @@ class NiconicoLiveIE(InfoExtractor):
             if data.get('type') == 'stream':
                 m3u8_url = data['data']['uri']
                 qualities = data['data']['availableQualities']
-                cookies = data['data'].get('cookies', [])
+                cookies = data['data']['cookies']
                 break
             elif data.get('type') == 'disconnect':
                 self.write_debug(recv)
