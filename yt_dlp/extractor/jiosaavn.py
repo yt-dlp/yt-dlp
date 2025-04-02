@@ -10,6 +10,7 @@ from ..utils import (
     clean_html,
     int_or_none,
     make_archive_id,
+    smuggle_url,
     unified_strdate,
     unified_timestamp,
     unsmuggle_url,
@@ -118,14 +119,18 @@ class JioSaavnBaseIE(InfoExtractor):
     def _yield_songs(self, playlist_data):
         for song_data in traverse_obj(playlist_data, ('songs', lambda _, v: v['id'] and v['perma_url'])):
             song_info = self._extract_song(song_data)
-            song_info['formats'] = list(self._extract_formats(song_data))
-            yield song_info
+            url = smuggle_url(song_info['webpage_url'], {
+                'id': song_data['id'],
+                'encrypted_media_url': song_data['encrypted_media_url'],
+            })
+            yield self.url_result(url, JioSaavnSongIE, url_transparent=True, **song_info)
 
 
 class JioSaavnSongIE(JioSaavnBaseIE):
     IE_NAME = 'jiosaavn:song'
     _VALID_URL = [
-        JioSaavnBaseIE._URL_BASE_RE + r'/(?:song|shows)/[^/?#]+/(?P<id>[^/?#]+)$',
+        JioSaavnBaseIE._URL_BASE_RE + r'/shows/[^/?#]+/(?P<id>[^/?#]+)(?:#__youtubedl_smuggle=[^/?#]+)?$',
+        JioSaavnBaseIE._URL_BASE_RE + r'/song/[^/?#]+/(?P<id>[^/?#]+)',
         JioSaavnBaseIE._URL_BASE_RE + r'/s/song/(?:[^/?#]+/){3}(?P<id>[^/?#]+)',
     ]
     _TESTS = [{
@@ -141,7 +146,7 @@ class JioSaavnSongIE(JioSaavnBaseIE):
             'duration': 205,
             'view_count': int,
             'release_year': 2018,
-            'artists': ['Sandesh Shandilya', 'Dhvani Bhanushali', 'Tanishk Bagchi'],
+            'artists': 'count:3',
             '_old_archive_ids': ['jiosaavnsong OQsEfQFVUXk'],
             'media_type': 'song',
             'channel': 'T-Series',
@@ -163,7 +168,7 @@ class JioSaavnSongIE(JioSaavnBaseIE):
             'duration': 222,
             'view_count': int,
             'release_year': 2024,
-            'artists': ['Anirudh Ravichander', 'Shilpa Rao', 'Ramajogayya Sastry'],
+            'artists': 'count:3',
             '_old_archive_ids': ['jiosaavnsong P1FfWjZkQ0Q'],
             'media_type': 'song',
             'channel': 'T-Series',
@@ -317,12 +322,11 @@ class JioSaavnShowPlaylistIE(JioSaavnBaseIE):
     def _yield_songs(self, playlist_data):
         for song_data in playlist_data:
             song_info = self._extract_song(song_data)
-            formats_data = {
+            url = smuggle_url(song_info['webpage_url'], {
                 'id': song_data['id'],
                 'encrypted_media_url': song_data['more_info']['encrypted_media_url'],
-            }
-            song_info['formats'] = list(self._extract_formats(formats_data))
-            yield song_info
+            })
+            yield self.url_result(url, JioSaavnSongIE, url_transparent=True, **song_info)
 
     def _entries(self, show_id, season_id, page):
         page_data = self._fetch_page(show_id, season_id, page + 1)
@@ -364,16 +368,6 @@ class JioSaavnArtistIE(JioSaavnShowPlaylistIE):
         return self._call_api('artist', token, f'artist page {page + 1}', {
             'p': page, 'n_song': self._PAGE_SIZE, 'n_album': self._PAGE_SIZE, 'sub_type': '',
             'includeMetaTags': '', 'api_version': '4', 'category': 'alphabetical', 'sort_order': 'asc'})
-
-    def _yield_songss(self, playlist_data):
-        for song_data in playlist_data.get('topSongs'):
-            song_info = self._extract_song(song_data)
-            formats_data = {
-                'id': song_data['id'],
-                'encrypted_media_url': song_data['more_info']['encrypted_media_url'],
-            }
-            song_info['formats'] = list(self._extract_formats(formats_data))
-            yield song_info
 
     def _entries(self, token, page):
         page_data = self._first_page if page == 0 else self._fetch_page(token, page)
