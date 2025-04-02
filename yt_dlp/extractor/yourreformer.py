@@ -15,11 +15,6 @@ class YourReformerIE(InfoExtractor):
         },
     }]
 
-    @classmethod
-    def _extract_url(cls, webpage):
-        return cls._extract_url_from_webpage(
-            webpage, r'https?://(?:www\.)?yourreformerathome\.uscreen\.io/programs/[^/?#&]+')
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
