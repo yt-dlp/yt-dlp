@@ -3154,7 +3154,8 @@ def is_html(first_bytes):
         while first_bytes.startswith(bom):
             encoding, first_bytes = enc, first_bytes[len(bom):]
 
-    return re.match(r'\s*<', first_bytes.decode(encoding, 'replace'))
+    decoded = first_bytes.decode(encoding, 'replace')
+    return re.match(r'\s*<(?:!DOCTYPE|![a-zA-Z]|!--|!|\?|[a-zA-Z])[^>]*', decoded)
 
 
 def determine_protocol(info_dict):
