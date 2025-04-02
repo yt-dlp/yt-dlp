@@ -65,7 +65,7 @@ class YourReformerIE(InfoExtractor):
 
         # Extract the m3u8 URL
         m3u8_url = self._search_regex(
-            r'(https?://stream\.mux\.com/[^.]+\.m3u8\?token=[^"\'&]+)',
+            r'(https?://stream\.mux\.com/[^.]+\.m3u8(?:\?token=[^"\'&]+)?)',
             program_content, 'm3u8 url')
 
         # Get the m3u8 manifest
