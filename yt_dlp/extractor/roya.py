@@ -10,7 +10,6 @@ class RoyaLiveIE(InfoExtractor):
             'id': '1',
             'title': r're:Roya TV \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             'ext': 'mp4',
-            'is_live': True,
             'live_status': 'is_live',
         },
     }, {
@@ -19,7 +18,6 @@ class RoyaLiveIE(InfoExtractor):
             'id': '21',
             'title': r're:Roya News \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             'ext': 'mp4',
-            'is_live': True,
             'live_status': 'is_live',
         },
     }, {
