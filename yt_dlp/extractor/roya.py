@@ -34,7 +34,7 @@ class RoyaLiveIE(InfoExtractor):
             f'https://ticket.roya-tv.com/api/v5/fastchannel/{media_id}', media_id)['data']['secured_url']
 
         title = traverse_obj(
-            self._download_json('https://backend.roya.tv/api/v01/channels/schedule-pagination', media_id),
+            self._download_json('https://backend.roya.tv/api/v01/channels/schedule-pagination', media_id, fatal=False),
             ('data', 0, 'channel', lambda _, v: str(v['id']) == media_id, 'title', {str}, any))
 
         return {
