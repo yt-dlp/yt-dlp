@@ -14,6 +14,7 @@ from ..utils import (
     UserNotLive,
     clean_html,
     get_element_by_class,
+    get_element_html_by_class,
     get_element_html_by_id,
     int_or_none,
     join_nonempty,
@@ -1028,16 +1029,12 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
             'info_dict': {
                 'id': '-2000984503_984503',
                 'title': 'Linkin Park - One More Light',
-                'description': '',
                 'album': 'One More Light',
                 'uploader': 'Linkin Park',
                 'artists': ['Linkin Park'],
                 'thumbnails': [{'url': r're:https?://.*\.jpg'}],
                 'genres': ['Alternative'],
                 'release_year': 2017,
-                'modified_timestamp': int,
-                'modified_date': str,
-                'view_count': int,
             },
             'playlist_count': 10,
             'params': {
@@ -1052,12 +1049,24 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
                 'description': 'md5:6d652551bb1faaddbcd46321a77fa8d0',
                 'uploader': 'VK Музыка',
                 'thumbnails': [{'url': r're:https?://.*\.jpg'}],
-                'modified_timestamp': int,
-                'modified_date': str,
-                'view_count': int,
             },
             'playlist_count': 18,
             'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            'url': 'https://vk.com/music/playlist/-147845620_2206_876b2b81e867a433c2',
+            'info_dict': {
+                'id': '-147845620_2206',
+                'title': 'Электроника: новинки',
+                'description': 're:^Актуальные новинки электронной музыки',
+                'uploader': 'VK Музыка',
+                'thumbnails': [{'url': r're:https?://.*\.jpg'}],
+            },
+            'playlist_mincount': 100,
+            'params': {
+                'extract_flat': True,  # DO NOT process 150+ entries
                 'skip_download': True,
             },
         },
@@ -1066,58 +1075,70 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         playlist_id = mobj.group('full_id')
+        access_hash = mobj.group('hash')
 
-        meta = self._download_payload('al_audio', playlist_id, {
-            'act': 'load_section',
-            'access_hash': mobj.group('hash') or '',
-            'claim': '0',
-            'context': '',
-            'from_id': self._parse_vk_id(),
-            'is_loading_all': '1',
-            'is_preload': '0',
-            'offset': '0',
-            'owner_id': mobj.group('oid'),
-            'playlist_id': mobj.group('id'),
-            'ref': '',
-            'type': 'playlist',
-        })[0]
-        tracks = meta['list']
+        hash_in_url = f'_{access_hash}' if access_hash else ''
+        webpage = self._download_webpage(
+            f'https://vk.com/music/album/{playlist_id}{hash_in_url}',
+            playlist_id)
+        del hash_in_url
+
+        html = get_element_html_by_class('AudioPlaylistSnippet', webpage)
+        del webpage
 
         entries = []
-        for ent in tracks:
-            info = self._parse_track_meta(ent)
+
+        for mobj in re.finditer(r'data-audio="([^"]+)', html):
+            meta = self._parse_json(
+                unescapeHTML(mobj.group(1)),
+                playlist_id, fatal=False)
+            if not meta:
+                continue
+
+            info = self._parse_track_meta(meta)
             track_id = info.pop('id')
             title = info.pop('title')
 
-            ent_hash = f'_{ent[24]}' if len(ent) >= 24 and ent[24] else ''
-            audio_url = f'https://vk.com/audio{track_id}{ent_hash}'
+            hash_in_url = f'_{meta[24]}' if len(meta) >= 24 and meta[24] else ''
+            audio_url = f'https://vk.com/audio{track_id}{hash_in_url}'
 
             entries.append(self.url_result(
                 audio_url, VKMusicTrackIE, track_id, title, **info))
 
-        title = unescapeHTML(meta.get('title'))
-        artist = unescapeHTML(meta.get('authorName'))
+        title = self._html_search_regex(
+            r'class="[^"]*AudioPlaylistSnippet__title--main[^"]*"[^>]*>([^<]+)',
+            html, 'playlist title', fatal=False, group=1)
 
-        genre, year = self._search_regex(
-            r'^([^<]+)<\s*span[^>]*>[^<]*</\s*span\s*>(\d+)$',
-            meta.get('infoLine1'), 'genre and release year',
-            default=(None, None), fatal=False, group=(1, 2))
+        artist = self._html_search_regex(
+            r'class="[^"]*AudioPlaylistSnippet__author[^"]*"[^>]*>\s*<a(?:\s[^>]*)?>([^<]+)',
+            html, 'playlist author', fatal=False, group=1)
+
+        description = clean_html(get_element_by_class(
+            'AudioPlaylistSnippet__description', html))
+        # description = self._html_search_regex(
+        #     r'div\s[^>]*class="[^"]*AudioPlaylistSnippet__description[^"]*">??????',
+        #     html, 'playlist description', fatal=False, group=1)
+
+        genre, year = self._html_search_regex(
+            r'class="[^"]*AudioPlaylistSnippet__info[^"]*"[^>]*>\s*(.+)&nbsp;.*;(\d+)\s*</',
+            html, 'genre and release year', default=(None, None), group=(1, 2))
+
         is_album = year is not None
 
-        thumbnail = url_or_none(meta.get('coverUrl'))
+        thumbnail = url_or_none(self._html_search_regex(
+            r'class="[^"]*AudioPlaylistSnippet__cover[^"]*"[^>]*style="background-image\s*:\s*url\s*\(\s*\'([^\']+)',
+            html, 'playlist thumbnail', fatal=False, group=1))
 
         return self.playlist_result(
             entries, playlist_id,
             join_nonempty(artist, title, delim=' - ') if is_album else title,
-            unescapeHTML(meta.get('rawDescription')),
+            description,
             album=title if is_album else None,
             uploader=artist,
             artists=[artist] if is_album else None,
             thumbnails=[{'url': thumbnail}] if thumbnail else [],
-            genres=[unescapeHTML(genre)] if genre else None,
-            release_year=int_or_none(year),
-            modified_timestamp=int_or_none(meta.get('lastUpdated')),
-            view_count=int_or_none(meta.get('listens')))
+            genres=[genre] if genre else None,
+            release_year=int_or_none(year))
 
 
 class VKPlayBaseIE(InfoExtractor):
