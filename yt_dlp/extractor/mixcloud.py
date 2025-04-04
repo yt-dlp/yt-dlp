@@ -37,7 +37,7 @@ class MixcloudIE(MixcloudBaseIE):
             'ext': 'm4a',
             'title': 'Cryptkeeper',
             'description': 'After quite a long silence from myself, finally another Drum\'n\'Bass mix with my favourite current dance floor bangers.',
-            'uploader': 'Daniel Holbach',
+            'uploader': 'dholbach',
             'uploader_id': 'dholbach',
             'thumbnail': r're:https?://.*\.jpg',
             'view_count': int,
@@ -46,10 +46,11 @@ class MixcloudIE(MixcloudBaseIE):
             'uploader_url': 'https://www.mixcloud.com/dholbach/',
             'artist': 'Submorphics & Chino , Telekinesis, Porter Robinson, Enei, Breakage ft Jess Mills',
             'duration': 3723,
-            'tags': [],
+            'tags': ["liquid drum and bass", "drum and bass"],
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'artists': list,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -67,10 +68,11 @@ class MixcloudIE(MixcloudBaseIE):
             'upload_date': '20150203',
             'uploader_url': 'https://www.mixcloud.com/gillespeterson/',
             'duration': 2992,
-            'tags': [],
+            'tags': ["jazz", "soul", "world music", "funk"],
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'artists': list,
         },
         'params': {'skip_download': '404 playback error on site'},
     }, {
@@ -295,7 +297,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
         'url': 'http://www.mixcloud.com/dholbach/',
         'info_dict': {
             'id': 'dholbach_uploads',
-            'title': 'Daniel Holbach (uploads)',
+            'title': 'dholbach (uploads)',
             'description': 'md5:a3f468a60ac8c3e1f8616380fc469b2b',
         },
         'playlist_mincount': 36,
@@ -303,7 +305,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
         'url': 'http://www.mixcloud.com/dholbach/uploads/',
         'info_dict': {
             'id': 'dholbach_uploads',
-            'title': 'Daniel Holbach (uploads)',
+            'title': 'dholbach (uploads)',
             'description': 'md5:a3f468a60ac8c3e1f8616380fc469b2b',
         },
         'playlist_mincount': 36,
@@ -311,7 +313,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
         'url': 'http://www.mixcloud.com/dholbach/favorites/',
         'info_dict': {
             'id': 'dholbach_favorites',
-            'title': 'Daniel Holbach (favorites)',
+            'title': 'dholbach (favorites)',
             'description': 'md5:a3f468a60ac8c3e1f8616380fc469b2b',
         },
         # 'params': {
@@ -337,7 +339,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
             'title': 'First Ear (stream)',
             'description': 'we maraud for ears',
         },
-        'playlist_mincount': 269,
+        'playlist_mincount': 267,
     }]
 
     _TITLE_KEY = 'displayName'
@@ -361,7 +363,7 @@ class MixcloudPlaylistIE(MixcloudPlaylistBaseIE):
             'id': 'maxvibes_jazzcat-on-ness-radio',
             'title': 'Ness Radio sessions',
         },
-        'playlist_mincount': 59,
+        'playlist_mincount': 58,
     }]
     _TITLE_KEY = 'name'
     _DESCRIPTION_KEY = 'description'
