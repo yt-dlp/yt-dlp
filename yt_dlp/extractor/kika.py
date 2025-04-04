@@ -127,7 +127,7 @@ class KikaIE(InfoExtractor):
 
 
 class KikaPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?kika\.de/[\w/-]+/(?P<id>[a-z-]+\d+)'
+    _VALID_URL = r'https?://(?:www\.)?kika\.de/[\w-]+/(?P<id>[a-z-]+\d+)'
     _GEO_COUNTRIES = ['DE']
 
     _TESTS = [{
