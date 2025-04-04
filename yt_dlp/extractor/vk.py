@@ -792,40 +792,39 @@ class VKMusicBaseIE(VKBaseIE):
 
     def _parse_track_meta(self, meta, track_id=None):
         len_ = len(meta)
-        info = {}
 
-        info['id'] = f'{meta[1]}_{meta[0]}' \
-            if len_ >= 2 and meta[1] and meta[0] \
-            else track_id
+        # track title
+        title = unescapeHTML(meta[3]) if len_ >= 3 else None
+        # artists in one string, may include "feat."
+        artist = unescapeHTML(meta[4]) if len_ >= 4 else None
 
-        title = unescapeHTML(meta[3]) if len_ >= 3 else None  # TODO: fallback
-        artist = unescapeHTML(meta[4]) if len_ >= 4 else None  # artists in one string, may include "feat."
-        info['title'] = join_nonempty(artist, title, delim=' - ')
-        info['track'] = title
-        info['uploader'] = artist
+        return {
+            'id': (f'{meta[1]}_{meta[0]}'
+                if len_ >= 2 and meta[1] and meta[0]
+                else track_id),
 
-        # artists as list
-        info['artists'] = (
-            # not htmlescaped unlike meta[4]
-            traverse_obj((*meta[17], *meta[18]), (..., 'name'))
-            if len_ >= 18 else None
-        ) or [artist]
+            'title': join_nonempty(artist, title, delim=' - '),
+            'track': title,
+            'uploader': artist,
 
-        info['duration'] = int_or_none(meta[5]) if len_ >= 5 else None
-        info['thumbnails'] = [{'url': meta[14]}] if len_ >= 14 else []
+            # ['Main Artist', 'Feat. Artist']
+            'artists': traverse_obj(
+                (*meta[17], *meta[18]) if len_ >= 18 else None,
+                (..., 'name'), default=[artist]),
 
-        # meta[30] is 2 bits
-        #    most significant: isExplicit
-        #   least significant: isForeignAgent
-        # i. e.
-        #   00 = safe
-        #   01 = marked by RKN as "foreign agent"
-        #   10 = explicit lyrics
-        #   11 = both E lyrics and "foreign agent"
-        if len_ >= 30 and meta[30]:
-            info['age_limit'] = 18
+            'duration': int_or_none(meta[5]) if len_ >= 5 else None,
+            'thumbnails': [{'url': meta[14]}] if len_ >= 14 else [],
 
-        return info
+            # meta[30] is 2 bits
+            #    most significant: isExplicit
+            #   least significant: isForeignAgent
+            # i. e.
+            #   00 = safe
+            #   01 = marked by RKN as "foreign agent"
+            #   10 = explicit lyrics
+            #   11 = both E lyrics and "foreign agent"
+            'age_limit': 18 if len_ >= 30 and meta[30] else None,
+        }
 
     def _raise_if_blocked(self, meta, track_id):
         reason = traverse_obj(
