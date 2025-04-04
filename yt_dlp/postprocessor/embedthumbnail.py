@@ -73,7 +73,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         # Correct extension for WebP file with wrong extension (see #25687, #25717)
         convertor = FFmpegThumbnailsConvertorPP(self._downloader)
-        convertor.fixup_webp(info, idx)
+        convertor.fixup_thumbnail(info, idx)
 
         original_thumbnail = thumbnail_filename = info['thumbnails'][idx]['filepath']
 
