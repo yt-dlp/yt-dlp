@@ -823,7 +823,7 @@ class VKMusicBaseIE(VKBaseIE):
             #   01 = marked by RKN as "foreign agent"
             #   10 = explicit lyrics
             #   11 = both E lyrics and "foreign agent"
-            'age_limit': 18 if len_ >= 30 and meta[30] else None,
+            'age_limit': 18 if len_ >= 30 and meta[30] else 0,
         }
 
     def _raise_if_blocked(self, meta, track_id):
@@ -864,6 +864,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
                 'artists': ['Skillet'],
                 'duration': 230,
                 'thumbnail': r're:https?://.*\.jpg',
+                'age_limit': 0,
             },
             'params': {
                 'skip_download': True,
@@ -881,10 +882,28 @@ class VKMusicTrackIE(VKMusicBaseIE):
                 'artists': ['Pusha T', 'Stormzy'],
                 'duration': 211,
                 'thumbnail': r're:https?://.*\.jpg',
+                'age_limit': 0,
             },
             'params': {
                 'skip_download': True,
             },
+        },
+        {
+            'url': 'https://vk.com/audio-2001533203_5533203',
+            'info_dict': {
+                'id': '-2001533203_5533203',
+                'ext': 'm4a',
+                'title': 'Linkin Park feat. Page Hamilton - All for Nothing (feat. Page Hamilton)',
+                'track': 'All for Nothing (feat. Page Hamilton)',
+                'uploader': 'Linkin Park feat. Page Hamilton',
+                'artists': ['Linkin Park', 'Page Hamilton'],
+                'duration': 213,
+                'thumbnail': r're:https?://.*\.jpg',
+                'age_limit': 18,
+            },
+            'params': {
+                'skip_download': True,
+            }
         },
         {
             'note': 'meta is AudioPlayerBlock__root[data-exec], no artists in 17/18',
@@ -916,6 +935,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
                 'artists': ['Jack Thomas', 'Nico & Vinz'],
                 'duration': 207,
                 'thumbnail': r're:https?://.*\.jpg',
+                'age_limit': 0,
             },
             'params': {
                 'skip_download': True,
