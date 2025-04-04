@@ -872,7 +872,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
         },
         {
             'note': 'artists are in meta[17], 18th item contains empty string',
-            'url': 'https://vk.com/audio-2001844083_29844083',
+            'url': 'https://m.vk.com/audio-2001844083_29844083',
             'info_dict': {
                 'id': '-2001844083_29844083',
                 'ext': 'm4a',
@@ -889,7 +889,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
             },
         },
         {
-            'url': 'https://vk.com/audio-2001533203_5533203',
+            'url': 'https://m.vk.com/audio-2001533203_5533203',
             'info_dict': {
                 'id': '-2001533203_5533203',
                 'ext': 'm4a',
@@ -949,7 +949,9 @@ class VKMusicTrackIE(VKMusicBaseIE):
         access_hash = mobj.group('hash')
 
         if not access_hash:
-            webpage = self._download_webpage(url, track_id)
+            webpage = self._download_webpage(
+                f'https://vk.com/audio{track_id}',
+                track_id)
 
             data_audio = self._search_regex(
                 r'data-audio="([^"]+)', webpage, 'data-audio attr',
