@@ -803,8 +803,8 @@ class VKMusicBaseIE(VKBaseIE):
 
         return {
             'id': (f'{meta[1]}_{meta[0]}'
-                if len_ >= 2 and meta[1] and meta[0]
-                else track_id),
+                   if len_ >= 2 and meta[1] and meta[0]
+                   else track_id),
 
             'title': join_nonempty(artist, title, delim=' - '),
             'track': title,
@@ -906,7 +906,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
             },
             'params': {
                 'skip_download': True,
-            }
+            },
         },
         {
             'url': 'https://vk.com/audio-26549346_456239443_59159cef5d080f5450',
