@@ -320,7 +320,7 @@ def create_parser():
     PRESET_ALIASES = {
         'mp3': ['-f', 'ba[acodec=mp3]/ba/b', '-x', '--audio-format', 'mp3'],
         'aac': ['-f', 'ba[acodec*=aac]/ba[acodec^=mp4a.40.]/ba/b', '-x', '--audio-format', 'aac'],
-        'mp4': ['--merge-output-format', 'mp4', '--remux', 'mp4', '-S', 'vcodec:h264,res,acodec:aac'],
+        'mp4': ['--merge-output-format', 'mp4', '--remux', 'mp4', '-S', 'vcodec:h264,lang,quality,res,fps,hdr:12,acodec:aac'],
         'mkv': ['--merge-output-format', 'mkv', '--remux', 'mkv'],
         'embed': ['--embed-subs', '--embed-thumbnail', '--embed-metadata'],
     }
