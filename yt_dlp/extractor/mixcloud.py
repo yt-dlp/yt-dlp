@@ -198,7 +198,7 @@ class MixcloudIE(MixcloudBaseIE):
         tags = []
         for t in cloudcast.get('tags'):
             tag = try_get(t, lambda x: x['tag']['name'], str)
-            if not tag:
+            if tag:
                 tags.append(tag)
 
         get_count = lambda x: int_or_none(try_get(cloudcast, lambda y: y[x]['totalCount']))
