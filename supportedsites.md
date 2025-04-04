@@ -472,6 +472,7 @@ The only reliable way to check if a site is supported is to try it.
  - **FoxNewsVideo**
  - **FoxSports**
  - **fptplay**: fptplay.vn
+ - **FrancaisFacile**
  - **FranceCulture**
  - **FranceInter**
  - **francetv**
@@ -1251,7 +1252,6 @@ The only reliable way to check if a site is supported is to try it.
  - **rtve.es:infantil**: RTVE infantil
  - **rtve.es:live**: RTVE.es live streams
  - **rtve.es:television**
- - **RTVS**
  - **rtvslo.si**
  - **rtvslo.si:show**
  - **RudoVideo**
@@ -1407,6 +1407,7 @@ The only reliable way to check if a site is supported is to try it.
  - **StretchInternet**
  - **Stripchat**
  - **stv:player**
+ - **stvr**: Slovak Television and Radio (formerly RTVS)
  - **Subsplash**
  - **subsplash:playlist**
  - **Substack**

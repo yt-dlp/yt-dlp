@@ -544,7 +544,7 @@ class VKIE(VKBaseIE):
                 'uploader_id': (('author_id', 'authorId'), {str_or_none}, any),
                 'duration': ('duration', {int_or_none}),
                 'chapters': ('time_codes', lambda _, v: isinstance(v['time'], int), {
-                    'title': ('text', {str}),
+                    'title': ('text', {unescapeHTML}),
                     'start_time': 'time',
                 }),
             }),
