@@ -798,6 +798,9 @@ class VKMusicBaseIE(VKBaseIE):
         # artists in one string, may include "feat."
         artist = unescapeHTML(meta[4]) if len_ >= 4 else None
 
+        # album cover art url
+        thumbnail = url_or_none(meta[14] if len_ >= 14 else None)
+
         return {
             'id': (f'{meta[1]}_{meta[0]}'
                 if len_ >= 2 and meta[1] and meta[0]
@@ -813,7 +816,7 @@ class VKMusicBaseIE(VKBaseIE):
                 (..., 'name'), default=[artist]),
 
             'duration': int_or_none(meta[5]) if len_ >= 5 else None,
-            'thumbnails': [{'url': meta[14]}] if len_ >= 14 else [],
+            'thumbnails': [{'url': thumbnail}] if thumbnail else [],
 
             # meta[30] is 2 bits
             #    most significant: isExplicit
@@ -906,7 +909,6 @@ class VKMusicTrackIE(VKMusicBaseIE):
             }
         },
         {
-            'note': 'meta is AudioPlayerBlock__root[data-exec], no artists in 17/18',
             'url': 'https://vk.com/audio-26549346_456239443_59159cef5d080f5450',
             'info_dict': {
                 'id': '-26549346_456239443',
@@ -916,7 +918,6 @@ class VKMusicTrackIE(VKMusicBaseIE):
                 'uploader': 'Fairie\'s Death Waltz',
                 'artists': ['Fairie\'s Death Waltz'],
                 'duration': 349,
-                'thumbnail': '',  # TODO: skip incorrect URLs
                 'age_limit': 0,
             },
             'params': {
@@ -1094,13 +1095,16 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
             entries.append(self.url_result(
                 audio_url, VKMusicTrackIE, track_id, title, **info))
 
-        title = unescapeHTML(meta.get('title'))  # TODO: fallback
+        title = unescapeHTML(meta.get('title'))
         artist = unescapeHTML(meta.get('authorName'))
+
         genre, year = self._search_regex(
             r'^([^<]+)<\s*span[^>]*>[^<]*</\s*span\s*>(\d+)$',
             meta.get('infoLine1'), 'genre and release year',
             default=(None, None), fatal=False, group=(1, 2))
         is_album = year is not None
+
+        thumbnail = url_or_none(meta.get('coverUrl'))
 
         return self.playlist_result(
             entries, playlist_id,
@@ -1109,7 +1113,7 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
             album=title if is_album else None,
             uploader=artist,
             artists=[artist] if is_album else None,
-            thumbnails=traverse_obj(meta, ({'url': 'coverUrl'}, {lambda obj: [obj]})),
+            thumbnails=[{'url': thumbnail}] if thumbnail else [],
             genres=[unescapeHTML(genre)] if genre else None,
             release_year=int_or_none(year),
             modified_timestamp=int_or_none(meta.get('lastUpdated')),
