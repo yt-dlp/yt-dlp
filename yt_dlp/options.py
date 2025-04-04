@@ -324,6 +324,7 @@ def create_parser():
         'mkv': ['--merge-output-format', 'mkv', '--remux', 'mkv'],
         'embed': ['--embed-subs', '--embed-thumbnail', '--embed-metadata'],
     }
+
     def _preset_alias_callback(option, opt_str, value, parser):
         if not value:
             return
