@@ -124,3 +124,45 @@ class KikaIE(InfoExtractor):
                         'vbr': ('bitrateVideo', {int_or_none}, {lambda x: None if x == -1 else x}),
                     }),
                 }
+
+
+class KikaPlaylistIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?kika\.de/[\w/-]+/(?P<id>[a-z-]+\d+)'
+    _GEO_COUNTRIES = ['DE']
+
+    _TESTS = [{
+        'url': 'https://www.kika.de/marcus-level/marcus-level-102',
+        'info_dict': {
+            'id': 'marcus-level-102',
+            'title': 'Marcus Level',
+            'description': 'Marcus bekommt die neue Version seines Lieblingsvideospiels: '
+            '"Gorbar and the Valley of the Seven Light Towers". Als er die Spielkonsole anschaltet, '
+            'schießt ein greller, weißer Lichtstrahl aus dem Bildschirm. Marcus befindet sich plötzlich '
+            'im Videospiel in der Rolle seines Lieblingshelden "Gorbar the Magnificent". Sowohl Marcus, '
+            'als auch Gorbar, der sich nun in Marcus\' Zuhause befindet, stehen beide vor großen Herausforderungen.',
+        },
+        'playlist_count': 35,
+    }]
+
+    def _real_extract(self, url):
+        def fetch_page(playlist_url):
+            while playlist_url:
+                data = self._download_json(playlist_url, playlist_id)
+                for item in traverse_obj(data, ('content', ..., {dict})):
+                    yield self.url_result(
+                        item['api']['url'],
+                        ie=KikaIE,
+                        **traverse_obj(item, {
+                            'id': ('id', {str}),
+                            'title': ('title', {str}),
+                            'duration': ('duration', {int_or_none}),
+                            'timestamp': ('date', {parse_iso8601}),
+                        }))
+                # This becomes 'None' when reaching the last page
+                playlist_url = data['links']['next']
+
+        playlist_id = self._match_valid_url(url).group('id')
+        brand_data = self._download_json(f'https://www.kika.de/_next-api/proxy/v1/brands/{playlist_id}', playlist_id)
+
+        return self.playlist_result(fetch_page(brand_data['videoSubchannel']['videosPageUrl']),
+                                    playlist_id, title=brand_data.get('title'), description=brand_data.get('description'))
