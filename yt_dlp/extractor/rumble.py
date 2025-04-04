@@ -179,6 +179,9 @@ class RumbleEmbedIE(InfoExtractor):
                 meta = video_info.get('meta') or {}
                 if not video_info.get('url'):
                     continue
+                # With default query parms returns m3u8 varients which are duplicates, without returns tar files
+                if ext == 'tar':
+                    continue
                 if ext == 'hls':
                     if meta.get('live') is True and video.get('live') == 1:
                         live_status = 'post_live'
