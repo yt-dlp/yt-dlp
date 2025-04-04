@@ -36,7 +36,7 @@ class RumbleEmbedIE(InfoExtractor):
             'upload_date': '20191020',
             'channel_url': 'https://rumble.com/c/WMAR',
             'channel': 'WMAR',
-            'thumbnail': 'https://sp.rmbl.ws/s8/1/5/M/z/1/5Mz1a.qR4e-small-WMAR-2-News-Latest-Headline.jpg',
+            'thumbnail': r're:https://.+\.jpg',
             'duration': 234,
             'uploader': 'WMAR',
             'live_status': 'not_live',
@@ -52,7 +52,7 @@ class RumbleEmbedIE(InfoExtractor):
             'upload_date': '20220217',
             'channel_url': 'https://rumble.com/c/CyberTechNews',
             'channel': 'CTNews',
-            'thumbnail': 'https://sp.rmbl.ws/s8/6/7/i/9/h/7i9hd.OvCc.jpg',
+            'thumbnail': r're:https://.+\.jpg',
             'duration': 901,
             'uploader': 'CTNews',
             'live_status': 'not_live',
@@ -112,6 +112,22 @@ class RumbleEmbedIE(InfoExtractor):
             'duration': 16427,
             'uploader': 'Rumble Events',
             'live_status': 'was_live',
+        },
+        'params': {'skip_download': True},
+    }, {
+        'url': 'https://rumble.com/embed/v6pezdb',
+        'info_dict': {
+            'id': 'v6pezdb',
+            'ext': 'mp4',
+            'title': '"Es war einmal ein Mädchen" – Ein filmisches Zeitzeugnis aus Leningrad 1944',
+            'uploader': 'RT DE',
+            'channel': 'RT DE',
+            'channel_url': 'https://rumble.com/c/RTDE',
+            'duration': 309,
+            'thumbnail': 'https://1a-1791.com/video/fww1/dc/s8/1/n/z/2/y/nz2yy.qR4e-small-Es-war-einmal-ein-Mdchen-Ei.jpg',
+            'timestamp': 1743703500,
+            'upload_date': '20250403',
+            'live_status': 'not_live',
         },
         'params': {'skip_download': True},
     }, {
@@ -189,22 +205,22 @@ class RumbleEmbedIE(InfoExtractor):
                         video_info['url'], video_id,
                         ext='mp4', m3u8_id='hls', fatal=False, live=live_status == 'is_live'))
                     continue
-                timeline = ext == 'timeline'
-                if timeline:
-                    ext = determine_ext(video_info['url'])
+                is_timeline = ext == 'timeline'
+                is_audio = ext == 'audio'
                 formats.append({
-                    'ext': ext,
-                    'acodec': 'none' if timeline else None,
+                    'ext': determine_ext(video_info['url']),
+                    'acodec': 'none' if is_timeline else None,
+                    'vcodec': 'none' if is_audio else None,
                     'url': video_info['url'],
                     'format_id': join_nonempty(ext, format_field(meta, 'h', '%sp')),
-                    'format_note': 'Timeline' if timeline else None,
-                    'fps': None if timeline else video.get('fps'),
+                    'format_note': 'Timeline' if is_timeline else None,
+                    'fps': None if is_timeline or is_audio else video.get('fps'),
                     **traverse_obj(meta, {
-                        'tbr': 'bitrate',
-                        'filesize': 'size',
-                        'width': 'w',
-                        'height': 'h',
-                    }, expected_type=lambda x: int(x) or None),
+                        'tbr': ('bitrate', {int_or_none}),
+                        'filesize': ('size', {int_or_none}),
+                        'width': ('w', {int_or_none}),
+                        'height': ('h', {int_or_none}),
+                    }),
                 })
 
         subtitles = {
