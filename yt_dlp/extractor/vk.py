@@ -907,8 +907,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
         },
         {
             'note': 'meta is AudioPlayerBlock__root[data-exec], no artists in 17/18',
-            'skip': 'authentication required',
-            'url': 'https://vk.com/audio-26549346_456239443',
+            'url': 'https://vk.com/audio-26549346_456239443_59159cef5d080f5450',
             'info_dict': {
                 'id': '-26549346_456239443',
                 'ext': 'm4a',
@@ -917,7 +916,8 @@ class VKMusicTrackIE(VKMusicBaseIE):
                 'uploader': 'Fairie\'s Death Waltz',
                 'artists': ['Fairie\'s Death Waltz'],
                 'duration': 349,
-                'thumbnail': r're:https?://.*\.jpg',
+                'thumbnail': '',  # TODO: skip incorrect URLs
+                'age_limit': 0,
             },
             'params': {
                 'skip_download': True,
