@@ -1088,7 +1088,7 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
             album=title if is_album else None,
             uploader=artist,
             artists=[artist] if is_album else None,
-            thumbnail=meta.get('coverUrl'),  # XXX: should i also specify `thumbnails`?
+            thumbnails=traverse_obj(meta, ({'url': 'coverUrl'}, {lambda obj: [obj]})),
             genres=[unescapeHTML(genre)] if genre else None,
             release_year=int_or_none(year),
             modified_timestamp=int_or_none(meta.get('lastUpdated')),
