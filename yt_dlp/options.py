@@ -317,6 +317,23 @@ def create_parser():
         parser.rargs[:0] = shlex.split(
             opts if value is None else opts.format(*map(shlex.quote, value)))
 
+    PRESET_ALIASES = {
+        'mp3': ['-f', 'ba[acodec=mp3]/ba/b', '-x', '--audio-format', 'mp3'],
+        'aac': ['-f', 'ba[acodec*=aac]/ba[acodec^=mp4a.40.]/ba/b', '-x', '--audio-format', 'aac'],
+        'mp4': ['--merge-output-format', 'mp4', '--remux', 'mp4', '-S', 'vcodec:h264,res,acodec:aac'],
+        'mkv': ['--merge-output-format', 'mkv', '--remux', 'mkv'],
+        'embed': ['--embed-subs', '--embed-thumbnail', '--embed-metadata'],
+    }
+    def _preset_alias_callback(option, opt_str, value, parser):
+        if not value:
+            return
+        if isinstance(value, str):
+            value = value.split(',')
+        for alias in value:
+            if alias not in PRESET_ALIASES:
+                raise optparse.OptionValueError(f'Unknown preset alias: {alias}')
+            parser.rargs[:0] = PRESET_ALIASES[alias]
+
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
         '-h', '--help', dest='print_help', action='store_true',
@@ -518,6 +535,13 @@ def create_parser():
             'Alias options can trigger more aliases; so be careful to avoid defining recursive options. '
             f'As a safety measure, each alias may be triggered a maximum of {_YoutubeDLOptionParser.ALIAS_TRIGGER_LIMIT} times. '
             'This option can be used multiple times'))
+    general.add_option(
+        '-t', '--preset-alias',
+        metavar='PRESET', dest='_', type='str',
+        action='callback', callback=_preset_alias_callback,
+        help=(
+            'Applies a predefined preset. The preset is a comma separated list of aliases,'
+            f' e.g. --preset-alias mp3,embed. The following presets are available: {", ".join(PRESET_ALIASES)}.'))
 
     network = optparse.OptionGroup(parser, 'Network Options')
     network.add_option(
