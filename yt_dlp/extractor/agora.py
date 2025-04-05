@@ -146,7 +146,7 @@ class TokFMPodcastIE(InfoExtractor):
         'url': 'https://audycje.tokfm.pl/podcast/91275,-Systemowy-rasizm-Czy-zamieszki-w-USA-po-morderstwie-w-Minneapolis-doprowadza-do-zmian-w-sluzbach-panstwowych',
         'info_dict': {
             'id': '91275',
-            'ext': 'aac',
+            'ext': 'mp3',
             'title': 'md5:a9b15488009065556900169fb8061cce',
             'episode': 'md5:a9b15488009065556900169fb8061cce',
             'series': 'Analizy',
@@ -165,7 +165,7 @@ class TokFMPodcastIE(InfoExtractor):
         metadata = metadata[0]
 
         formats = []
-        for ext in ('aac', 'mp3'):
+        for ext in ('mp3',):
             url_data = self._download_json(
                 f'https://api.podcast.radioagora.pl/api4/getSongUrl?podcast_id={media_id}&device_id={uuid.uuid4()}&ppre=false&audio={ext}',
                 media_id, f'Downloading podcast {ext} URL')
