@@ -195,7 +195,7 @@ class RumbleEmbedIE(InfoExtractor):
                 meta = video_info.get('meta') or {}
                 if not video_info.get('url'):
                     continue
-                # With default query parms returns m3u8 varients which are duplicates, without returns tar files
+                # With default query params returns m3u8 variants which are duplicates, without returns tar files
                 if ext == 'tar':
                     continue
                 if ext == 'hls':
@@ -208,7 +208,6 @@ class RumbleEmbedIE(InfoExtractor):
                 is_timeline = ext == 'timeline'
                 is_audio = ext == 'audio'
                 formats.append({
-                    'ext': determine_ext(video_info['url']),
                     'acodec': 'none' if is_timeline else None,
                     'vcodec': 'none' if is_audio else None,
                     'url': video_info['url'],
