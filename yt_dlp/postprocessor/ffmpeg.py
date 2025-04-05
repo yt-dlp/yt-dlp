@@ -469,6 +469,15 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
             return ['-vbr', f'{int(q)}']
         return ['-q:a', f'{q}']
 
+    def convert_opus_to_mp3(self, source_file, target_file, bitrate='320k'):
+        if self._preferredquality and self._preferredquality > 10:
+            bitrate = f'{self._preferredquality}k'
+        
+        self.to_screen(f'Converting OPUS to MP3 explicitly: {source_file} → {target_file} (bitrate: {bitrate})')
+        self.run_ffmpeg(source_file, target_file, 'libmp3lame', ['-b:a', bitrate])
+        if os.path.exists(target_file):
+            os.remove(source_file)
+
     def run_ffmpeg(self, path, out_path, codec, more_opts):
         if codec is None:
             acodec_opts = []
@@ -482,6 +491,19 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, information):
+        filepath = information['filepath']
+        file_ext = filepath.split('.')[-1].lower()
+
+        # Automatically convert opus → mp3 only if mp3 is explicitly requested
+        # or if no specific format is requested and mp3 is the default codec
+        if file_ext == 'opus' and (self.mapping == 'mp3' or self.mapping == 'best'):
+            new_filepath = filepath.rsplit('.', 1)[0] + '.mp3'
+            self.convert_opus_to_mp3(filepath, new_filepath)
+            information['filepath'] = new_filepath
+            information['ext'] = 'mp3'
+            return [], information
+
+        # Continue with the standard processing
         orig_path = path = information['filepath']
         target_format, _skip_msg = resolve_mapping(information['ext'], self.mapping)
         if target_format == 'best' and information['ext'] in self.COMMON_AUDIO_EXTS:
