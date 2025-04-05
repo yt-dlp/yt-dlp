@@ -1,12 +1,6 @@
-import datetime
-
-from yt_dlp.utils._utils import UserNotLive
-
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    traverse_obj,
-)
+from ..utils import UserNotLive, int_or_none, parse_iso8601, url_or_none, urljoin
+from ..utils.traversal import require, traverse_obj
 
 
 class PartiBaseIE(InfoExtractor):
