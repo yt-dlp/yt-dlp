@@ -1,4 +1,3 @@
-
 from .common import InfoExtractor
 from ..utils import UserNotLive, int_or_none, parse_iso8601, url_or_none, urljoin
 from ..utils.traversal import traverse_obj
@@ -13,23 +12,20 @@ class PartiBaseIE(InfoExtractor):
 class PartiVideoIE(PartiBaseIE):
     IE_NAME = 'parti:video'
     _VALID_URL = r'https?://(?:www\.)?parti\.com/video/(?P<id>\d+)'
-    _TESTS = [
-        {
-            'url': 'https://parti.com/video/66284',
-            'info_dict': {
-                'id': '66284',
-                'ext': 'mp4',
-                'title': 'NOW LIVE ',
-                'upload_date': '20250327',
-                'is_live': False,
-                'categories': ['Gaming'],
-                'thumbnail': 'https://assets.parti.com/351424_eb9e5250-2821-484a-9c5f-ca99aa666c87.png',
-                'channel': 'ItZTMGG',
-                'timestamp': 1743044379,
-            },
-            'params': {'skip_download': 'm3u8'},
+    _TESTS = [{
+        'url': 'https://parti.com/video/66284',
+        'info_dict': {
+            'id': '66284',
+            'ext': 'mp4',
+            'title': 'NOW LIVE ',
+            'upload_date': '20250327',
+            'categories': ['Gaming'],
+            'thumbnail': 'https://assets.parti.com/351424_eb9e5250-2821-484a-9c5f-ca99aa666c87.png',
+            'channel': 'ItZTMGG',
+            'timestamp': 1743044379,
         },
-    ]
+        'params': {'skip_download': 'm3u8'},
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -53,28 +49,23 @@ class PartiVideoIE(PartiBaseIE):
 class PartiLivestreamIE(PartiBaseIE):
     IE_NAME = 'parti:livestream'
     _VALID_URL = r'https?://(?:www\.)?parti\.com/creator/(?P<service>[\w]+)/(?P<id>[\w/-]+)'
-    _TESTS = [
-        {
-            'url': 'https://parti.com/creator/parti/Capt_Robs_Adventures',
-            'info_dict': {
-                'id': 'Capt_Robs_Adventures',
-                'ext': 'mp4',
-                'title': str,
-                'description': str,
-                'upload_date': str,
-                'is_live': True,
-                'live_status': 'is_live',
-                'timestamp': int,
-                'thumbnail': str,
-                'view_count': int,
-            },
-            'params': {'skip_download': 'm3u8'},
+    _TESTS = [{
+        'url': 'https://parti.com/creator/parti/Capt_Robs_Adventures',
+        'info_dict': {
+            'id': 'Capt_Robs_Adventures',
+            'ext': 'mp4',
+            'title': r"re:I'm Live on Parti \d{4}-\d{2}-\d{2} \d{2}:\d{2}",
+            'view_count': int,
+            'thumbnail': r're:https://assets\.parti\.com/.+\.png',
+            'timestamp': 1743879776,
+            'upload_date': '20250405',
+            'live_status': 'is_live',
         },
-        {
-            'url': 'https://parti.com/creator/discord/sazboxgaming/0',
-            'only_matching': True,
-        },
-    ]
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://parti.com/creator/discord/sazboxgaming/0',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         service, creator_slug = self._match_valid_url(url).group('service', 'id')
