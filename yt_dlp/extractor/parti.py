@@ -35,7 +35,6 @@ class PartiVideoIE(PartiBaseIE):
             'id': video_id,
             'formats': self._extract_m3u8_formats(
                 urljoin('https://watch.parti.com', data['livestream_recording']), video_id, 'mp4'),
-            'is_live': False,
             **traverse_obj(data, {
                 'title': ('event_title', {str}),
                 'channel': ('user_name', {str}),
