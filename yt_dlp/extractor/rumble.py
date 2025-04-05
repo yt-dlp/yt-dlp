@@ -7,7 +7,6 @@ from ..utils import (
     ExtractorError,
     UnsupportedError,
     clean_html,
-    determine_ext,
     extract_attributes,
     format_field,
     get_element_by_class,
@@ -184,34 +183,34 @@ class RumbleEmbedIE(InfoExtractor):
             live_status = None
 
         formats = []
-        for ext, ext_info in (video.get('ua') or {}).items():
-            if isinstance(ext_info, dict):
-                for height, video_info in ext_info.items():
+        for format_type, format_info in (video.get('ua') or {}).items():
+            if isinstance(format_info, dict):
+                for height, video_info in format_info.items():
                     if not traverse_obj(video_info, ('meta', 'h', {int_or_none})):
                         video_info.setdefault('meta', {})['h'] = height
-                ext_info = ext_info.values()
+                format_info = format_info.values()
 
-            for video_info in ext_info:
+            for video_info in format_info:
                 meta = video_info.get('meta') or {}
                 if not video_info.get('url'):
                     continue
                 # With default query params returns m3u8 variants which are duplicates, without returns tar files
-                if ext == 'tar':
+                if format_type == 'tar':
                     continue
-                if ext == 'hls':
+                if format_type == 'hls':
                     if meta.get('live') is True and video.get('live') == 1:
                         live_status = 'post_live'
                     formats.extend(self._extract_m3u8_formats(
                         video_info['url'], video_id,
                         ext='mp4', m3u8_id='hls', fatal=False, live=live_status == 'is_live'))
                     continue
-                is_timeline = ext == 'timeline'
-                is_audio = ext == 'audio'
+                is_timeline = format_type == 'timeline'
+                is_audio = format_type == 'audio'
                 formats.append({
                     'acodec': 'none' if is_timeline else None,
                     'vcodec': 'none' if is_audio else None,
                     'url': video_info['url'],
-                    'format_id': join_nonempty(ext, format_field(meta, 'h', '%sp')),
+                    'format_id': join_nonempty(format_type, format_field(meta, 'h', '%sp')),
                     'format_note': 'Timeline' if is_timeline else None,
                     'fps': None if is_timeline or is_audio else video.get('fps'),
                     **traverse_obj(meta, {
