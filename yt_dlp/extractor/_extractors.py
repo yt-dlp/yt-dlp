@@ -2232,7 +2232,7 @@ from .tvplay import (
     TVPlayIE,
 )
 from .tvplayer import TVPlayerIE
-from .tvw import TvwIE
+from .tvw import TvwIE, TvwTvChannelsIE
 from .tweakers import TweakersIE
 from .twentymin import TwentyMinutenIE
 from .twentythreevideo import TwentyThreeVideoIE
