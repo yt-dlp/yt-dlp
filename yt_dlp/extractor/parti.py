@@ -22,7 +22,7 @@ class PartiVideoIE(PartiBaseIE):
                 'title': 'NOW LIVE ',
                 'upload_date': '20250327',
                 'is_live': False,
-                'categories': list,
+                'categories': ['Gaming'],
                 'thumbnail': 'https://assets.parti.com/351424_eb9e5250-2821-484a-9c5f-ca99aa666c87.png',
                 'channel': 'ItZTMGG',
                 'timestamp': 1743044379,
