@@ -10,6 +10,7 @@ from ..utils import (
     float_or_none,
     get_elements_html_by_class,
     int_or_none,
+    js_to_json,
     merge_dicts,
     mimetype2ext,
     parse_iso8601,
@@ -417,4 +418,224 @@ class NYTimesCookingRecipeIE(InfoExtractor):
             'subtitles': subtitles,
             'thumbnails': [{'url': thumb_url} for thumb_url in traverse_obj(
                 recipe_data, ('image', 'crops', 'recipe', ..., {url_or_none}))],
+        }
+
+
+class NYTimesAudioIE(NYTimesBaseIE):
+    _VALID_URL = r"https?://(?:www\.)?nytimes\.com/\d{4}/\d{2}/\d{2}/(?:podcasts|books)/(?:[\w-]+/)?(?P<id>[^./?#]+)(?:\.html)?"
+    _TESTS = [
+        {
+            "url": "http://www.nytimes.com/2016/10/14/podcasts/revelations-from-the-final-weeks.html",
+            "md5": "cd402e44a059c8caf3b5f514c9264d0f",
+            "info_dict": {
+                "id": "100000004709062",
+                "title": "Revelations From the Final Weeks",
+                "ext": "mp3",
+                "description": "md5:fb5c6b93b12efc51649b4847fe066ee4",
+                "timestamp": 1476448332,
+                "upload_date": "20161014",
+                "creators": [''],
+                "series": "The Run-Up",
+                "episode": "‘He Was Like an Octopus’",
+                "episode_number": 20,
+                "duration": 2130,
+                "thumbnail": r"re:https?://\w+\.nyt.com/images/.*\.jpg",
+            },
+        },
+        {
+            "url": "https://www.nytimes.com/2023/11/25/podcasts/poultry-slam.html",
+            "info_dict": {
+                "id": "100000009191248",
+                "title": "Poultry Slam",
+                "ext": "mp3",
+                "description": "md5:1e6f16b21bb9287b8a1fe563145a72fe",
+                "timestamp": 1700911084,
+                "upload_date": "20231125",
+                "creators": [],
+                "series": "This American Life",
+                "episode": "Poultry Slam",
+                "duration": 3523,
+                "thumbnail": r"re:https?://\w+\.nyt.com/images/.*\.png",
+            },
+            "params": {
+                "skip_download": True,
+            },
+        },
+        {
+            "url": "http://www.nytimes.com/2016/10/16/books/review/inside-the-new-york-times-book-review-the-rise-of-hitler.html",
+            "info_dict": {
+                "id": "100000004709479",
+                "title": "Inside The New York Times Book Review: The Rise of Hitler",
+                "ext": "mp3",
+                "description": "md5:288161c98c098a0c24f07a94af7108c3",
+                "timestamp": 1476461513,
+                "upload_date": "20161014",
+                "creators": ['Pamela Paul'],
+                "series": "",
+                "episode": "The Rise of Hitler",
+                "duration": 3475,
+                "thumbnail": r"re:https?://\w+\.nyt.com/images/.*\.jpg",
+            },
+            "params": {
+                "skip_download": True,
+            },
+        },
+        {
+            "url": "https://www.nytimes.com/2023/12/07/podcasts/the-daily/nikki-haley.html",
+            "info_dict": {
+                "id": "100000009214128",
+                "title": "Nikki Haley’s Moment",
+                "ext": "mp3",
+                "description": "md5:bf9f532fe689967ef1c458bcb057f3e5",
+                "timestamp": 1701946819,
+                "upload_date": "20231207",
+                "creators": [],
+                "series": "The Daily",
+                "episode": "Listen to ‘The Daily’: Nikki Haley’s Moment",
+                "duration": 1908,
+            },
+            "params": {
+                "skip_download": True,
+            },
+        },
+        {
+            "url": "https://www.nytimes.com/2023/12/18/podcasts/israel-putin.html",
+            "md5": "708b4fd393ca103280fe9e56d91b08b5",
+            "info_dict": {
+                "id": "100000009227362",
+                "title": "Pressure Mounts on Israel, and Putin Profits Off Boycott",
+                "ext": "mp3",
+                "description": "Hear the news in five minutes.",
+                "timestamp": 1702897212,
+                "upload_date": "20231218",
+                "creators": [],
+                "series": "The Headlines",
+                "episode": "The Headlines",
+                "duration": 298,
+                "thumbnail": r"re:https?://\w+\.nyt.com/images/.*\.jpg",
+            },
+        },
+    ]
+
+    def _extract_content_from_block(self, block):
+        return traverse_obj(
+            block,
+            {
+                "creators": ("data", "track", "credit", all),
+                "duration": (
+                    ("data", "media"),
+                    ("track", "length"),
+                    ("duration", None),
+                    {int_or_none},
+                ),
+                "series": (
+                    ("data", "media"),
+                    ("podcast", "podcastSeries"),
+                    ("title", None),
+                    {str_or_none},
+                ),
+                "episode": (
+                    ("data", "media"),
+                    ("track", "headline"),
+                    ("title", "default"), {str}),
+                "episode_number": (
+                    "data",
+                    "podcast",
+                    "episode",
+                    {lambda v: v.split()[1]},
+                    {int_or_none},
+                ),
+                "url": (
+                    ("data", "media"),
+                    ("track", "fileUrl"),
+                    ("source", None),
+                    {url_or_none},
+                ),
+                "vcodec": "none",
+            },
+            get_all=False,
+        )
+
+    def _real_extract(self, url):
+        page_id = self._match_id(url)
+        webpage = self._download_webpage(url, page_id)
+
+        art_json = self._search_json(
+            r"window\.__preloadedData\s*=",
+            webpage,
+            "media details",
+            page_id,
+            transform_source=js_to_json,
+        )["initialData"]["data"]["article"]
+
+        blocks = traverse_obj(
+            art_json,
+            (
+                "sprinkledBody",
+                "content",
+                lambda _, v: v["__typename"]
+                in ("InteractiveBlock", "HeaderMultimediaBlock"),
+                "media",
+            ),
+        )
+        if not blocks:
+            raise ExtractorError("Unable to extract any media blocks from webpage")
+
+        common_info = {
+            "title": remove_end(
+                self._html_extract_title(webpage), " - The New York Times"
+            ),
+            "description": self._html_search_meta(
+                ["og:description", "twitter:description"], webpage
+            ),
+            "id": traverse_obj(
+                art_json, ("sourceId")
+            ),  # poltry slam is under art_json > 'sourceId'
+            **traverse_obj(
+                art_json,
+                {
+                    "id": (
+                        "sprinkledBody",
+                        "content",
+                        ...,
+                        "media",
+                        "sourceId",
+                        any,
+                        {str},
+                    ),
+                    "title": ("headline", "default"),
+                    "description": ("summary"),
+                    "timestamp": ("firstPublished", {parse_iso8601}),
+                    "thumbnails": (
+                        "promotionalMedia",
+                        "assetCrops",
+                        ...,
+                        "renditions",
+                        ...,
+                        all,
+                        {self._extract_thumbnails},
+                    ),
+                },
+            ),
+        }
+
+        entries = []
+        for block in blocks:
+            if block.get("html"):
+                block = self._search_json(
+                    r"function\s+getFlexData\(\)\s*\{\s*return",
+                    block.get("html"),
+                    "Retrieve the inner JSON",
+                    page_id,
+                )
+            entries.append(
+                merge_dicts(self._extract_content_from_block(block), common_info)
+            )
+
+        if len(entries) > 1:
+            return self.playlist_result(entries, page_id, **common_info)
+
+        return {
+            "id": page_id,
+            **entries[0],
         }
