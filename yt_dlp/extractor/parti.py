@@ -93,15 +93,14 @@ class PartiLivestreamIE(PartiBaseIE):
             raise UserNotLive(video_id=creator_id)
 
         channel_info = data['channel']
-        formats = self._extract_m3u8_formats(
-            channel_info['playback_url'], creator_slug, live=True, query={
-                'token': channel_info['playback_auth_token'],
-                'player_version': '1.17.0',
-            })
 
         return {
             'id': creator_slug,
-            'formats': formats,
+            'formats': self._extract_m3u8_formats(
+                channel_info['playback_url'], creator_slug, live=True, query={
+                    'token': channel_info['playback_auth_token'],
+                    'player_version': '1.17.0',
+                }),
             'is_live': True,
             **traverse_obj(data, {
                 'title': ('livestream_event_info', 'event_name', {str}),
