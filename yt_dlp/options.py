@@ -328,12 +328,9 @@ def create_parser():
     def _preset_alias_callback(option, opt_str, value, parser):
         if not value:
             return
-        if isinstance(value, str):
-            value = value.split(',')
-        for alias in value:
-            if alias not in PRESET_ALIASES:
-                raise optparse.OptionValueError(f'Unknown preset alias: {alias}')
-            parser.rargs[:0] = PRESET_ALIASES[alias]
+        if value not in PRESET_ALIASES:
+            raise optparse.OptionValueError(f'Unknown preset alias: {value}')
+        parser.rargs[:0] = PRESET_ALIASES[value]
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
@@ -541,8 +538,9 @@ def create_parser():
         metavar='PRESET', dest='_', type='str',
         action='callback', callback=_preset_alias_callback,
         help=(
-            'Applies a predefined preset. The preset is a comma separated list of aliases,'
-            f' e.g. --preset-alias mp3,embed. The following presets are available: {", ".join(PRESET_ALIASES)}.'))
+            'Applies a predefined preset. e.g. --preset-alias mp3. '
+            f'The following presets are available: {", ".join(PRESET_ALIASES)}. '
+            'This option can be used multiple times.'))
 
     network = optparse.OptionGroup(parser, 'Network Options')
     network.add_option(
