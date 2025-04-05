@@ -1483,6 +1483,8 @@ The only reliable way to check if a site is supported is to try it.
  - **ThisVid**
  - **ThisVidMember**
  - **ThisVidPlaylist**
+ - **Threads**
+ - **ThreadsIOS**: Threads' iOS `barcelona://` URL
  - **ThreeSpeak**
  - **ThreeSpeakUser**
  - **TikTok**
