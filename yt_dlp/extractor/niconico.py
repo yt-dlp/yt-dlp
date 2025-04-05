@@ -27,6 +27,7 @@ from ..utils import (
     traverse_obj,
     try_get,
     unescapeHTML,
+    unified_timestamp,
     update_url_query,
     url_basename,
     url_or_none,
@@ -985,6 +986,7 @@ class NiconicoLiveIE(InfoExtractor):
                     'quality': 'abr',
                     'protocol': 'hls+fmp4',
                     'latency': latency,
+                    'accessRightMethod': 'single_cookie',
                     'chasePlay': False,
                 },
                 'room': {
@@ -1005,6 +1007,7 @@ class NiconicoLiveIE(InfoExtractor):
             if data.get('type') == 'stream':
                 m3u8_url = data['data']['uri']
                 qualities = data['data']['availableQualities']
+                cookies = data['data']['cookies']
                 break
             elif data.get('type') == 'disconnect':
                 self.write_debug(recv)
@@ -1042,6 +1045,11 @@ class NiconicoLiveIE(InfoExtractor):
                     'ext': traverse_obj(parse_qs(img_url), ('image', 0, {determine_ext(default_ext='jpg')})),
                     **res,
                 })
+
+        for cookie in cookies:
+            self._set_cookie(
+                cookie['domain'], cookie['name'], cookie['value'],
+                expire_time=unified_timestamp(cookie['expires']), path=cookie['path'], secure=cookie['secure'])
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
         for fmt, q in zip(formats, reversed(qualities[1:])):
