@@ -23,6 +23,8 @@ from ._base import (
     _split_innertube_client,
     short_client_name,
 )
+from .pot._director import initialize_pot_director
+from .pot.provider import PoTokenContext, PoTokenRequest
 from ..openload import PhantomJSwrapper
 from ...jsinterp import JSInterpreter
 from ...networking.exceptions import HTTPError
@@ -66,6 +68,7 @@ from ...utils import (
     urljoin,
     variadic,
 )
+from ...utils.networking import clean_headers, clean_proxies, select_proxy
 
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 STREAMING_DATA_INITIAL_PO_TOKEN = '__yt_dlp_po_token'
@@ -1784,6 +1787,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         super().__init__(*args, **kwargs)
         self._code_cache = {}
         self._player_cache = {}
+        self._pot_director = None
+
+    def _real_initialize(self):
+        super()._real_initialize()
+        self._pot_director = initialize_pot_director(self)
 
     def _prepare_live_from_start_formats(self, formats, video_id, live_start_time, url, webpage_url, smuggled_data, is_live):
         lock = threading.Lock()
@@ -2818,7 +2826,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
     def fetch_po_token(self, client='web', context=_PoTokenContext.GVS, ytcfg=None, visitor_data=None,
-                       data_sync_id=None, session_index=None, player_url=None, video_id=None, **kwargs):
+                       data_sync_id=None, session_index=None, player_url=None, video_id=None, webpage=None, **kwargs):
         """
         Fetch a PO Token for a given client and context. This function will validate required parameters for a given context and client.
 
@@ -2832,9 +2840,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         @param session_index: session index.
         @param player_url: player URL.
         @param video_id: video ID.
+        @param webpage: video webpage.
         @param kwargs: Additional arguments to pass down. May be more added in the future.
         @return: The fetched PO Token. None if it could not be fetched.
         """
+
+        # TODO(future): This validation should be moved into pot framework.
+        #  Some sort of middleware or validation provider perhaps?
 
         # GVS WebPO Token is bound to visitor_data / Visitor ID when logged out.
         # Must have visitor_data for it to function.
@@ -2875,11 +2887,64 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             session_index=session_index,
             player_url=player_url,
             video_id=video_id,
+            video_webpage=webpage,
             **kwargs,
         )
 
     def _fetch_po_token(self, client, **kwargs):
-        """(Unstable) External PO Token fetch stub"""
+
+        context = kwargs.get('context')
+
+        # Avoid fetching PO Tokens when not required
+        if not (
+            _PoTokenContext(context) in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
+            or self._configuration_arg('fetch_pot', ['when_required'], ie_key=YoutubeIE)[0] == 'always'
+        ):
+            return None
+
+        headers = self.get_param('http_headers').copy()
+        proxies = self._downloader.proxies.copy()
+        clean_headers(headers)
+        clean_proxies(proxies, headers)
+
+        innertube_host = self._select_api_hostname(None, default_client=client)
+
+        pot_request = PoTokenRequest(
+            context=PoTokenContext(context),
+            innertube_context=traverse_obj(kwargs, ('ytcfg', 'INNERTUBE_CONTEXT')),
+            innertube_host=innertube_host,
+            internal_client_name=client,
+            session_index=kwargs.get('session_index'),
+            player_url=kwargs.get('player_url'),
+            video_webpage=kwargs.get('video_webpage'),
+            is_authenticated=self.is_authenticated,
+            visitor_data=kwargs.get('visitor_data'),
+            data_sync_id=kwargs.get('data_sync_id'),
+            video_id=kwargs.get('video_id'),
+            request_cookiejar=self._downloader.cookiejar,
+
+            # All requests that would need to be proxied should be in the
+            # context of www.youtube.com or the innertube host
+            request_proxy=(
+                select_proxy('https://www.youtube.com', proxies)
+                or select_proxy(f'https://{innertube_host}', proxies)
+            ),
+            request_headers=headers,
+            request_timeout=self.get_param('socket_timeout'),
+            request_verify_tls=not self.get_param('nocheckcertificate'),
+            request_source_address=self.get_param('source_address'),
+
+            bypass_cache=False,
+        )
+
+        po_token = self._pot_director.get_po_token(pot_request)
+
+        if not po_token:
+            self.write_debug(f'{kwargs.get("video_id")}: No {pot_request.context.value} PO Token available for {client} client')
+            return
+
+        self.write_debug(f'{kwargs.get("video_id")}: Fetched a {pot_request.context.value} PO Token for {client} client')
+        return po_token
 
     @staticmethod
     def _is_agegated(player_response):
@@ -3037,8 +3102,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'video_id': video_id,
                 'data_sync_id': data_sync_id if self.is_authenticated else None,
                 'player_url': player_url if require_js_player else None,
+                'webpage': webpage,
                 'session_index': self._extract_session_index(master_ytcfg, player_ytcfg),
-                'ytcfg': player_ytcfg,
+                'ytcfg': player_ytcfg or self._get_default_ytcfg(client),
             }
 
             player_po_token = self.fetch_po_token(
