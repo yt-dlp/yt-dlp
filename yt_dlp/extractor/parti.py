@@ -44,7 +44,7 @@ class PartiVideoIE(PartiBaseIE):
                 'title': ('event_title', {str}),
                 'channel': ('user_name', {str}),
                 'thumbnail': ('event_file', {url_or_none}),
-                'categories': ('category_name', {str}, all),
+                'categories': ('category_name', {str}, filter, all),
                 'timestamp': ('event_start_ts', {int_or_none}),
             }),
         }
