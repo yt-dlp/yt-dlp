@@ -1495,6 +1495,7 @@ from .parler import ParlerIE
 from .parlview import ParlviewIE
 from .patreon import (
     PatreonCampaignIE,
+    PatreonCollectionIE,
     PatreonIE,
 )
 from .pbs import (
