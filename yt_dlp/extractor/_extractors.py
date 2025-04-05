@@ -1942,6 +1942,7 @@ from .spankbang import (
     SpankBangIE,
     SpankBangPlaylistIE,
 )
+from .speedrun import SpeedRunIE
 from .spiegel import SpiegelIE
 from .spike import (
     BellatorIE,
