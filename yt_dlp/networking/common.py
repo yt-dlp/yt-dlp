@@ -61,10 +61,11 @@ class RequestDirector:
     @param verbose: Print debug request information to stdout.
     """
 
-    def __init__(self, logger, verbose=False):
+    def __init__(self, logger, url_prefix=None, verbose=False):
         self.handlers: dict[str, RequestHandler] = {}
         self.preferences: set[Preference] = set()
         self.logger = logger  # TODO(Grub4k): default logger
+        self.url_prefix = url_prefix
         self.verbose = verbose
 
     def close(self):
@@ -99,6 +100,10 @@ class RequestDirector:
             raise RequestError('No request handlers configured')
 
         assert isinstance(request, Request)
+
+        # Add url_prefix to request url
+        if self.url_prefix:
+            request.url = f'{self.url_prefix}{request.url}'
 
         unexpected_errors = []
         unsupported_errors = []
