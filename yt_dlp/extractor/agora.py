@@ -146,7 +146,7 @@ class TokFMPodcastIE(InfoExtractor):
         'url': 'https://audycje.tokfm.pl/podcast/91275,-Systemowy-rasizm-Czy-zamieszki-w-USA-po-morderstwie-w-Minneapolis-doprowadza-do-zmian-w-sluzbach-panstwowych',
         'info_dict': {
             'id': '91275',
-            'ext': 'aac',
+            'ext': 'mp3',
             'title': 'md5:a9b15488009065556900169fb8061cce',
             'episode': 'md5:a9b15488009065556900169fb8061cce',
             'series': 'Analizy',
@@ -165,18 +165,16 @@ class TokFMPodcastIE(InfoExtractor):
         metadata = metadata[0]
 
         formats = []
-        for ext in ('aac', 'mp3'):
-            url_data = self._download_json(
-                f'https://api.podcast.radioagora.pl/api4/getSongUrl?podcast_id={media_id}&device_id={uuid.uuid4()}&ppre=false&audio={ext}',
-                media_id, f'Downloading podcast {ext} URL')
-            # prevents inserting the mp3 (default) multiple times
-            if 'link_ssl' in url_data and f'.{ext}' in url_data['link_ssl']:
-                formats.append({
-                    'url': url_data['link_ssl'],
-                    'ext': ext,
-                    'vcodec': 'none',
-                    'acodec': ext,
-                })
+        url_data = self._download_json(
+            f'https://api.podcast.radioagora.pl/api4/getSongUrl?podcast_id={media_id}&device_id={uuid.uuid4()}&ppre=false&audio=mp3',
+            media_id, 'Downloading podcast mp3 URL')
+        if 'link_ssl' in url_data:
+            formats.append({
+                'url': url_data['link_ssl'],
+                'ext': 'mp3',
+                'vcodec': 'none',
+                'acodec': 'mp3',
+            })
 
         return {
             'id': media_id,
