@@ -34,12 +34,11 @@ class PartiVideoIE(PartiBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._call_api(f'get_livestream_channel_info/recent/{video_id}', video_id)
-        formats = self._extract_m3u8_formats(
-            urljoin('https://watch.parti.com', data['livestream_recording']), video_id, 'mp4')
 
         return {
             'id': video_id,
-            'formats': formats,
+            'formats': self._extract_m3u8_formats(
+                urljoin('https://watch.parti.com', data['livestream_recording']), video_id, 'mp4'),
             'is_live': False,
             **traverse_obj(data, {
                 'title': ('event_title', {str}),
