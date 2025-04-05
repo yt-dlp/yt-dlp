@@ -159,6 +159,12 @@ def set_compat_opts(opts):
     elif 'prefer-vp9-sort' in opts.compat_opts:
         opts.format_sort.extend(FormatSorter._prefer_vp9_sort)
 
+    if 'mtime-by-default' in opts.compat_opts:
+        if opts.updatetime is None:
+            opts.updatetime = True
+        else:
+            _unused_compat_opt('mtime-by-default')
+
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
     _audio_multistreams_set = set_default_compat('multistreams', 'allow_multiple_audio_streams', False, remove_compat=False)
     if _video_multistreams_set is False and _audio_multistreams_set is False:
