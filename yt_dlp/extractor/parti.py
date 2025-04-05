@@ -1,77 +1,64 @@
+
 from .common import InfoExtractor
 from ..utils import UserNotLive, int_or_none, parse_iso8601, url_or_none, urljoin
 from ..utils.traversal import require, traverse_obj
 
 
 class PartiBaseIE(InfoExtractor):
-    _RECORDING_BASE_URL = 'https://watch.parti.com'
-    _GET_LIVESTREAM_API = 'https://api-backend.parti.com/parti_v2/profile/get_livestream_channel_info'
-    _PLAYBACK_VERSION = '1.17.0'
-
-    def _get_formats(self, stream_url, creator, is_live):
-        return self._extract_m3u8_formats(stream_url, creator, 'mp4', live=is_live)
-
-    def _build_recording_url(self, path):
-        return self._RECORDING_BASE_URL + '/' + path
+    def _call_api(self, path, video_id, note=None):
+        return self._download_json(
+            f'https://api-backend.parti.com/parti_v2/profile/{path}', video_id, note)
 
 
 class PartiVideoIE(PartiBaseIE):
     IE_NAME = 'parti:video'
-    IE_DESC = 'Download a video from parti.com'
-    _VALID_URL = r'https://parti\.com/video/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?parti\.com/video/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://parti.com/video/66284',
             'info_dict': {
                 'id': '66284',
                 'ext': 'mp4',
-                'title': str,
-                'upload_date': str,
+                'title': 'NOW LIVE ',
+                'upload_date': '20250327',
                 'is_live': False,
                 'categories': list,
-                'thumbnail': str,
-                'channel': str,
+                'thumbnail': 'https://assets.parti.com/351424_eb9e5250-2821-484a-9c5f-ca99aa666c87.png',
+                'channel': 'ItZTMGG',
+                'timestamp': 1743044379,
             },
             'params': {'skip_download': 'm3u8'},
         },
     ]
 
-    def _get_video_info(self, video_id):
-        url = self._GET_LIVESTREAM_API + '/recent/' + video_id
-        data = self._download_json(url, video_id)
-        return traverse_obj(data, {
-            'channel': ('user_name', {str}),
-            'thumbnail': ('event_file', {str}),
-            'categories': ('category', {lambda c: [c]}),
-            'url': ('livestream_recording', {str}),
-            'title': ('event_title', {str}),
-            'upload_date': ('event_start_ts', {lambda ts: datetime.date.fromtimestamp(ts).strftime('%Y%m%d')}),
-        })
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._get_video_info(video_id)
-        full_recording_url = self._build_recording_url(video_info['url'])
-        formats = self._get_formats(full_recording_url, video_info['channel'], is_live=False)
+        data = self._call_api(f'get_livestream_channel_info/recent/{video_id}', video_id)
+        formats = self._extract_m3u8_formats(
+            urljoin('https://watch.parti.com', data['livestream_recording']), video_id, 'mp4')
 
         return {
             'id': video_id,
-            'url': url,
             'formats': formats,
             'is_live': False,
-            **video_info,
+            **traverse_obj(data, {
+                'title': ('event_title', {str}),
+                'channel': ('user_name', {str}),
+                'thumbnail': ('event_file', {url_or_none}),
+                'categories': ('category_name', {str}, all),
+                'timestamp': ('event_start_ts', {int_or_none}),
+            }),
         }
 
 
 class PartiLivestreamIE(PartiBaseIE):
     IE_NAME = 'parti:livestream'
-    IE_DESC = 'Download a stream from parti.com'
-    _VALID_URL = r'https://parti\.com/creator/(parti|discord|telegram)/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?parti\.com/creator/(?P<service>[\w]+)/(?P<id>[\w/-]+)'
     _TESTS = [
         {
-            'url': 'https://parti.com/creator/parti/SpartanTheDog',
+            'url': 'https://parti.com/creator/parti/Capt_Robs_Adventures',
             'info_dict': {
-                'id': 'SpartanTheDog',
+                'id': 'Capt_Robs_Adventures',
                 'ext': 'mp4',
                 'title': str,
                 'description': str,
@@ -81,58 +68,47 @@ class PartiLivestreamIE(PartiBaseIE):
             },
             'params': {'skip_download': 'm3u8'},
         },
+        {
+            'url': 'https://parti.com/creator/discord/sazboxgaming/0',
+            'only_matching': True,
+        },
     ]
-    _CREATOR_API = 'https://api-backend.parti.com/parti_v2/profile/get_user_by_social_media/parti'
-
-    def _get_creator_id(self, creator):
-        """ The creator ID is a number returned as plain text """
-        url = self._CREATOR_API + '/' + creator
-        page = self._download_webpage(url, None, 'Fetching creator id')
-        return str(page)
-
-    def _get_live_playback_data(self, creator_id):
-        """ If the stream is live, we can use this URL to download. """
-        url = self._GET_LIVESTREAM_API + '/' + creator_id
-        data = self._download_json(url, None, 'Fetching user profile feed')
-        if not data:
-            raise Exception('No data!')
-
-        extracted = traverse_obj(data, {
-            'base_url': ('channel_info', 'channel', 'playback_url', {str}),
-            'auth_token': ('channel_info', 'channel', 'playback_auth_token', {str}),
-            'viewer_count': ('channel_info', 'stream', 'viewer_count', {int_or_none}),
-            'is_live': ('channel_info', 'stream', {lambda x: x is not None}),
-        })
-
-        base_url = extracted['base_url']
-        auth_token = extracted['auth_token']
-        url = None
-        if base_url and auth_token:
-            url = f'{base_url}?token={auth_token}&player_version={self._PLAYBACK_VERSION}'
-
-        return {
-            'url': url,
-            **extracted,
-        }
 
     def _real_extract(self, url):
-        creator = self._match_id(url)
+        service, creator_slug = self._match_valid_url(url).group('service', 'id')
 
-        creator_id = self._get_creator_id(creator)
-        playback_data = self._get_live_playback_data(creator_id)
-        if not playback_data['is_live']:
-            raise UserNotLive
+        encoded_creator_slug = creator_slug.replace('/', '%23')
+        creator_id = self._call_api(
+            f'get_user_by_social_media/{service}/{encoded_creator_slug}',
+            creator_slug, note='Fetching user ID')
 
-        formats = self._get_formats(playback_data['url'], creator, is_live=True)
+        data = self._call_api(
+            f'get_livestream_channel_info/{creator_id}', creator_id,
+            note='Fetching user profile feed')['channel_info']
 
-        created_at = datetime.datetime.now()
-        streamed_at = created_at.strftime('%Y%m%d')
+        if not traverse_obj(data, ('channel', 'is_live', {bool})):
+            raise UserNotLive(video_id=creator_id)
+
+        stream_data = traverse_obj(data, ('channel', {
+            'url': ('playback_url', {url_or_none}, {require('Stream url')}),
+            'token': ('playback_auth_token', {str}, {require('Stream token')}),
+        }))
+
+        formats = self._extract_m3u8_formats(
+            stream_data['url'], creator_slug, live=True, query={
+                'token': stream_data['token'],
+                'player_version': '1.17.0',
+            })
+
         return {
-            'id': creator,
-            'url': url,
-            'title': f'{creator}\'s Parti Livestream',
-            'description': f'A livestream from {created_at}',
-            'upload_date': streamed_at,
-            'is_live': True,
+            'id': creator_slug,
             'formats': formats,
+            'is_live': True,
+            **traverse_obj(data, {
+                'title': ('livestream_event_info', 'event_name', {str}),
+                'description': ('livestream_event_info', 'event_description', {str}),
+                'thumbnail': ('livestream_event_info', 'livestream_preview_file', {url_or_none}),
+                'timestamp': ('stream', 'start_time', {parse_iso8601}),
+                'view_count': ('stream', 'viewer_count', {int_or_none}),
+            }),
         }
