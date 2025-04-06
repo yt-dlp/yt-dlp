@@ -1,14 +1,13 @@
 import json
-import time
 
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     float_or_none,
-    jwt_decode_hs256,
+    jwt_is_expired,
     parse_iso8601,
     url_or_none,
-    variadic,jwt_is_expired,
+    variadic,
 )
 from ..utils.traversal import traverse_obj
 
