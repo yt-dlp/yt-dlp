@@ -35,7 +35,7 @@ class IvooxIE(InfoExtractor):
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
-        webpage = self._download_webpage(url, media_id)
+        webpage = self._download_webpage(url, media_id, fatal=False)
 
         data = traverse_obj(self._search_nuxt_data(webpage, media_id), ('data', 'audio'))
 
