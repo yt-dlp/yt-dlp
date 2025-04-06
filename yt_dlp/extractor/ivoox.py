@@ -28,6 +28,9 @@ class IvooxIE(InfoExtractor):
     }, {
         'url': 'https://go.ivoox.com/rf/143594959',
         'only_matching': True,
+    }, {
+        'url': 'https://www.ivoox.com/en/campodelgas-28-03-2025-audios-mp3_rf_144036942_1.html',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
