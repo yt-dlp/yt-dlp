@@ -164,21 +164,20 @@ class TokFMPodcastIE(InfoExtractor):
             raise ExtractorError('No such podcast', expected=True)
         metadata = metadata[0]
 
-        formats = []
-        url_data = self._download_json(
-            f'https://api.podcast.radioagora.pl/api4/getSongUrl?podcast_id={media_id}&device_id={uuid.uuid4()}&ppre=false&audio=mp3',
-            media_id, 'Downloading podcast mp3 URL')
-        if 'link_ssl' in url_data:
-            formats.append({
-                'url': url_data['link_ssl'],
-                'ext': 'mp3',
-                'vcodec': 'none',
-                'acodec': 'mp3',
-            })
+        mp3_url = self._download_json(
+            'https://api.podcast.radioagora.pl/api4/getSongUrl',
+            media_id, 'Downloading podcast mp3 URL', query={
+                'podcast_id': media_id,
+                'device_id': str(uuid.uuid4()),
+                'ppre': 'false',
+                'audio': 'mp3',
+            })['link_ssl']
 
         return {
             'id': media_id,
-            'formats': formats,
+            'url': mp3_url,
+            'vcodec': 'none',
+            'ext': 'mp3',
             'title': metadata.get('podcast_name'),
             'series': metadata.get('series_name'),
             'episode': metadata.get('podcast_name'),
