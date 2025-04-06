@@ -1,11 +1,19 @@
-
 from .common import InfoExtractor
-from ..utils import clean_html, determine_ext, parse_duration, traverse_obj, unescapeHTML, unified_strdate
+from ..utils import (
+    clean_html,
+    parse_duration,
+    str_or_none,
+    traverse_obj,
+    unescapeHTML,
+    unified_timestamp,
+    url_or_none,
+)
 
 
 class NDTVIE(InfoExtractor):
     _WORKING = True
-    _VALID_URL = r'https?://(?:[^/]+\.)?ndtv\.com/(?:[^/]+/)*videos?/?(?:[^/]+/)*[^/?^&]+-(?P<id>\d+)'
+    IE_NAME = 'ndtv:video'
+    _VALID_URL = r'https?://(?:[^/]+\.)?ndtv\.com/(?:[^#/]+/)*videos?/?(?:[^#/]+/)*[^/?^&]+-(?P<id>\d+)'
 
     _TESTS = [
         {
@@ -17,9 +25,10 @@ class NDTVIE(InfoExtractor):
                 'title': 'प्राइम टाइम: सिस्टम बीमार, स्कूल बदहाल',
                 'description': 'md5:de6008f2439005344c1c0c686032b43a',
                 'upload_date': '20170928',
+                'timestamp': 1506612600.0,
                 'duration': 2218,
                 'thumbnail': r're:https?://.*\.jpg',
-                'categories': 'shows',
+                'categories': ['shows'],
                 'channel_id': '2',
             },
         },
@@ -31,70 +40,75 @@ class NDTVIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Cracker-Free Diwali Wishes From Karan Johar, Kriti Sanon & Other Stars',
                 'description': 'md5:f115bba1adf2f6433fa7c1ade5feb465',
-                'upload_date': '20171019',
+                'upload_date': '20171018',
+                'timestamp': 1508352987.0,
                 'duration': 137,
                 'thumbnail': r're:https?://.*\.jpg',
-                'categories': 'entertainment',
+                'categories': ['entertainment'],
                 'channel_id': '1',
             },
         },
         {
             'url': 'https://www.ndtv.com/video/ndtv-jai-jawan-dnd-john-abraham-is-busy-watching-soldiers-fitness-routine-826286',
-            'md5': '19d9a96480a8dac0e03a42efce27350f',
+            'md5': '443cbf0b7dd82089f5ebb11804fbc892',
             'info_dict': {
                 'id': '826286',
                 'ext': 'mp4',
                 'title': 'NDTV Jai Jawan: DND, John Abraham Is Busy Watching Soldiers\' Fitness Routine',
                 'description': 'md5:ad700713b10702555555e6a01a25442a',
                 'upload_date': '20240818',
+                'timestamp': 1723964765.0,
                 'duration': 220,
-                'thumbnail': 'https://c.ndtvimg.com/2024-08/be8djnjc_jai-jawan_640x480_18_August_24.jpg',
-                'categories': 'entertainment',
+                'thumbnail': r're:https?://.*\.jpg',
+                'categories': ['entertainment'],
                 'channel_id': '1',
             },
         },
         {
             'url': 'https://www.ndtv.com/video/cancer-can-be-prevented-cured-with-lifestyle-changes-expert-to-ndtv-827194',
-            'md5': '72734ed9226e200454100ffe7dfae2b6',
+            'md5': '3bb5e431246a5d6431affc0e26cec4a0',
             'info_dict': {
                 'id': '827194',
                 'ext': 'mp4',
                 'title': '"Cancer Can Be Prevented, Cured With Lifestyle Changes": Expert To NDTV',
                 'description': 'md5:cbecc6372e33370014748db9ad2b5df0',
                 'upload_date': '20240818',
+                'timestamp': 1723970085.0,
                 'duration': 931,
-                'thumbnail': 'https://c.ndtvimg.com/2024-08/hh48aduk_dr-sameer-kaul_640x480_18_August_24.jpg',
-                'categories': 'news',
+                'thumbnail': r're:https?://.*\.jpg',
+                'categories': ['news'],
                 'channel_id': '1',
             },
         },
         {
             'url': 'https://sports.ndtv.com/cricket/videos/ex-india-captain-ms-dhoni-spotted-at-airport-820044',
-            'md5': '9f3442f49aa660623e8925c0fc7606a4',
+            'md5': '57ef9cee36e0178ef1b67a879300eee1',
             'info_dict': {
                 'id': '820044',
                 'ext': 'mp4',
                 'title': 'Ex-India Captain MS Dhoni Spotted At Airport',
                 'description': 'md5:7be70dbb543bb647f83dbd6e7b8f16a0',
                 'upload_date': '20240730',
+                'timestamp': 1722336305.0,
                 'duration': 45,
-                'thumbnail': 'https://c.ndtvimg.com/2024-07/itrg8ilo_msdhoni_640x480_31_July_24.jpg',
-                'categories': 'fangully',
+                'thumbnail': r're:https?://.*\.jpg',
+                'categories': ['fangully'],
                 'channel_id': '',
             },
         },
         {
             'url': 'https://doctor.ndtv.com/videos/attack-the-heart-attack-a-public-awareness-initiative-by-medtronics-822292',
-            'md5': 'a13ad8bbb45eec4405a45f9bd7ed0356',
+            'md5': '74c9715df47630dd9abbcb64ec3c988f',
             'info_dict': {
                 'id': '822292',
                 'ext': 'mp4',
                 'title': 'Attack The Heart Attack - A Public Awareness Initiative By Medtronics',
                 'description': 'md5:31b876e23795b4d7ef91797f88b22730',
                 'upload_date': '20240805',
+                'timestamp': 1722816000,
                 'duration': 1304,
-                'thumbnail': 'https://c.ndtvimg.com/2024-08/kh67tomo_heartattack_640x480_05_August_24.jpg',
-                'categories': 'Health',
+                'thumbnail': r're:https?://.*\.jpg',
+                'categories': ['Health'],
                 'channel_id': '1',
             },
         },
@@ -107,9 +121,10 @@ class NDTVIE(InfoExtractor):
                 'title': 'Watch NDTV Food Awards 2024 On NDTV 24x7 On Saturday 9th March, 2024',
                 'description': 'md5:11948e8404b058cd0a9d174aa1e88e84',
                 'upload_date': '20240307',
+                'timestamp': 1709799526.0,
                 'duration': 35,
-                'thumbnail': 'https://c.ndtvimg.com/2024-03/2eianfs_food-awards_640x480_08_March_24.jpg',
-                'categories': 'food',
+                'thumbnail': r're:https?://.*\.jpg',
+                'categories': ['food'],
                 'channel_id': '1',
             },
         },
@@ -155,42 +170,29 @@ class NDTVIE(InfoExtractor):
         # found this expression in one article
         # will update this json data handler more generic if more of similar patterns found
         webpage = webpage.replace('true / false', 'true')
+        json_data = self._search_json(r'__html5playerdata\s*=\s*', webpage, 'json_data', video_id)
 
-        data = self._search_json(r'__html5playerdata\s*=\s*', webpage, 'json_data', video_id)
-
-        title = clean_html(unescapeHTML(traverse_obj(data, ('title'))))
-        duration = parse_duration(traverse_obj(data, ('dur')))
-        upload_date = unified_strdate(traverse_obj(data, ('date')))
-        video_m3u8 = traverse_obj(data, ('media'))
-        video_mp4 = traverse_obj(data, ('media_mp4'))
-        video_webm = traverse_obj(data, ('media_webm'))
-        description = clean_html(unescapeHTML(traverse_obj(data, ('description'))))
-        thumbnail = traverse_obj(data, ('image'))
-        channel_id = traverse_obj(data, ('channel'))
-        categories = traverse_obj(data, ('category'))
+        video_data = traverse_obj(json_data, {
+            'id': ('id', {str_or_none}),
+            'title': ('title', {unescapeHTML}, {clean_html}),
+            'description': ('description', {unescapeHTML}, {clean_html}),
+            'duration': ('dur', {parse_duration}),
+            'thumbnail': ('image', {url_or_none}),
+            'categories': ('category', {str}, all),
+            'timestamp': ('date', {unified_timestamp}),
+            'channel_id': ('channel', {str}),
+        })
 
         formats = []
+        video_m3u8 = traverse_obj(json_data, ('media', {url_or_none}))
+        video_mp4 = traverse_obj(json_data, ('media_mp4', {url_or_none}))
+        video_webm = traverse_obj(json_data, ('media_webm', {url_or_none}))
         if video_mp4:
-            formats.append({'url': video_mp4, 'ext': determine_ext(video_mp4)})
+            formats.append({'url': video_mp4})
         if video_webm:
-            formats.append({'url': video_webm, 'ext': determine_ext(video_webm)})
+            formats.append({'url': video_webm})
         if video_m3u8:
-            m3u8_data = self._extract_m3u8_formats(video_m3u8, video_id)
-            formats.extend(m3u8_data)
-            # here, making the assumption that mp4 video available is always the highest quality
-            # will update if any deviation found
-            formats[0]['width'] = m3u8_data[-1]['width']
-            formats[0]['height'] = m3u8_data[-1]['height']
-            formats[0]['tbr'] = m3u8_data[-1]['tbr']
+            formats.extend(self._extract_m3u8_formats(video_m3u8, video_id))
+        video_data['formats'] = formats
 
-        return {
-            'id': video_id,
-            'formats': formats,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'duration': duration,
-            'upload_date': upload_date,
-            'categories': categories,
-            'channel_id': channel_id,
-        }
+        return video_data
