@@ -1,3 +1,5 @@
+import itertools
+
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -140,8 +142,8 @@ class KikaPlaylistIE(InfoExtractor):
     }]
 
     def _entries(self, playlist_url, playlist_id):
-        while playlist_url:
-            data = self._download_json(playlist_url, playlist_id)
+        for page in itertools.count(1):
+            data = self._download_json(playlist_url, playlist_id, note=f'Downloading page {page}')
             for item in traverse_obj(data, ('content', lambda _, v: url_or_none(v['api']['url']))):
                 yield self.url_result(
                     item['api']['url'], ie=KikaIE,
@@ -151,8 +153,10 @@ class KikaPlaylistIE(InfoExtractor):
                         'duration': ('duration', {int_or_none}),
                         'timestamp': ('date', {parse_iso8601}),
                     }))
-            # This becomes 'None' when reaching the last page
+
             playlist_url = traverse_obj(data, ('links', 'next', {url_or_none}))
+            if not playlist_url:
+                break
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
