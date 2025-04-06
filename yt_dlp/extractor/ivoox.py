@@ -37,7 +37,7 @@ class IvooxIE(InfoExtractor):
         media_id = self._match_id(url)
         webpage = self._download_webpage(url, media_id, fatal=False)
 
-        data = traverse_obj(self._search_nuxt_data(webpage, media_id, fatal=False), ('data', 'audio'))
+        data = self._search_nuxt_data(webpage, media_id, fatal=False, traverse=('data', 0, 'data', 'audio'))
 
         direct_download = self._download_json(
             f'https://vcore-web.ivoox.com/v1/public/audios/{media_id}/download-url', media_id, fatal=False,
@@ -64,7 +64,7 @@ class IvooxIE(InfoExtractor):
             'title': self._html_search_regex(r'data-prm-title="([^"]+)"', webpage, 'title', default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'description': self._og_search_description(webpage, default=None),
-            **self._search_json_ld(webpage, media_id, fatal=False),
+            **self._search_json_ld(webpage or '', media_id, default={}),
             **traverse_obj(data, {
                 'title': ('title', {str}),
                 'description': ('description', {str}),
