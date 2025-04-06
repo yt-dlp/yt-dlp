@@ -62,8 +62,8 @@ class IvooxIE(InfoExtractor):
             'timestamp': parse_iso8601(self._html_search_regex(r'data-prm-pubdate="([^"]+)"', webpage, 'timestamp', default=None)),
             'channel': self._html_search_regex(r'data-prm-podname="([^"]+)"', webpage, 'channel', default=None),
             'title': self._html_search_regex(r'data-prm-title="([^"]+)"', webpage, 'title', default=None),
-            'thumbnail': self._og_search_thumbnail(webpage),
-            'description': self._og_search_description(webpage),
+            'thumbnail': self._og_search_thumbnail(webpage, default=None),
+            'description': self._og_search_description(webpage, default=None),
             **self._search_json_ld(webpage, media_id, fatal=False),
             **traverse_obj(data, {
                 'title': ('title', {str}),
