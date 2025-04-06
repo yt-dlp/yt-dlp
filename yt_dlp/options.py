@@ -237,7 +237,8 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
             result.append(formatter.format_option(option))
         formatter.dedent()
         formatter.dedent()
-        return f'{formatted_help}\n{heading}{"\n".join(result)}'
+        help_lines = '\n'.join(result)
+        return f'{formatted_help}\n{heading}{help_lines}'
 
 
 def create_parser():
