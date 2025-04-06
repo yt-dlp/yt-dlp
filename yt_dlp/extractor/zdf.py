@@ -9,18 +9,19 @@ from ..utils import (
     float_or_none,
     int_or_none,
     join_nonempty,
+    make_archive_id,
     merge_dicts,
     parse_codecs,
     parse_iso8601,
     parse_qs,
     qualities,
-    traverse_obj,
     try_get,
     unified_timestamp,
     url_or_none,
     urljoin,
     variadic,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ZDFBaseIE(InfoExtractor):
@@ -190,7 +191,7 @@ class ZDFIE(ZDFBaseIE):
             'series_id': 'sylt---deutschlands-edles-nordlicht-movie-100',
             'timestamp': 1612462500,
             'upload_date': '20210204',
-            '_old_archive_ids': ['210402_1915_sendung_dok'],
+            '_old_archive_ids': ['zdf 210402_1915_sendung_dok'],
         },
     }, {
         # Standalone video (i.e. not part of a playlist), play URL
@@ -206,7 +207,7 @@ class ZDFIE(ZDFBaseIE):
             'series_id': 'sylt---deutschlands-edles-nordlicht-movie-100',
             'timestamp': 1612462500,
             'upload_date': '20210204',
-            '_old_archive_ids': ['210402_1915_sendung_dok'],
+            '_old_archive_ids': ['zdf 210402_1915_sendung_dok'],
         },
         'params': {'skip_download': True},
     }, {
@@ -223,7 +224,7 @@ class ZDFIE(ZDFBaseIE):
             'series_id': 'sylt---deutschlands-edles-nordlicht-movie-100',
             'timestamp': 1612462500,
             'upload_date': '20210204',
-            '_old_archive_ids': ['210402_1915_sendung_dok'],
+            '_old_archive_ids': ['zdf 210402_1915_sendung_dok'],
         },
         'params': {'skip_download': True},
     }, {
@@ -245,7 +246,7 @@ class ZDFIE(ZDFBaseIE):
             'episode_number': 2,
             'timestamp': 1445797800,
             'upload_date': '20151025',
-            '_old_archive_ids': ['151025_magie_farben2_tex'],
+            '_old_archive_ids': ['zdf 151025_magie_farben2_tex'],
         },
     }, {
         # Video belongs to a playlist, play URL
@@ -266,7 +267,7 @@ class ZDFIE(ZDFBaseIE):
             'episode_number': 2,
             'timestamp': 1445797800,
             'upload_date': '20151025',
-            '_old_archive_ids': ['151025_magie_farben2_tex'],
+            '_old_archive_ids': ['zdf 151025_magie_farben2_tex'],
         },
         'params': {'skip_download': True},
     }, {
@@ -288,7 +289,7 @@ class ZDFIE(ZDFBaseIE):
             'episode_number': 2,
             'timestamp': 1445797800,
             'upload_date': '20151025',
-            '_old_archive_ids': ['151025_magie_farben2_tex'],
+            '_old_archive_ids': ['zdf 151025_magie_farben2_tex'],
         },
         'params': {'skip_download': True},
     }, {
@@ -311,7 +312,7 @@ class ZDFIE(ZDFBaseIE):
             'episode_number': 370,
             'timestamp': 1639946700,
             'upload_date': '20211219',
-            '_old_archive_ids': ['211219_sendung_hjo_dgs'],
+            '_old_archive_ids': ['zdf 211219_sendung_hjo_dgs'],
         },
     }, {
         # Video that requires fallback extraction
@@ -326,7 +327,7 @@ class ZDFIE(ZDFBaseIE):
             'thumbnail': 'https://www.zdf.de/assets/dobrindt-csu-berlin-direkt-100~1920x1080?cb=1743357653736',
             'timestamp': 1743374520,
             'upload_date': '20250330',
-            '_old_archive_ids': ['250330_clip_2_bdi'],
+            '_old_archive_ids': ['zdf 250330_clip_2_bdi'],
         },
     }, {
         'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
@@ -346,7 +347,7 @@ class ZDFIE(ZDFBaseIE):
             'episode_number': 1,
             'timestamp': 1635520560,
             'upload_date': '20211029',
-            '_old_archive_ids': ['video_funk_1770473'],
+            '_old_archive_ids': ['zdf video_funk_1770473'],
         },
     }, {
         'url': 'https://www.zdf.de/serien/soko-stuttgart/das-geld-anderer-leute-100.html',
@@ -365,7 +366,7 @@ class ZDFIE(ZDFBaseIE):
             'episode_number': 10,
             'timestamp': 1728983700,
             'upload_date': '20241015',
-            '_old_archive_ids': ['191205_1800_sendung_sok8'],
+            '_old_archive_ids': ['zdf 191205_1800_sendung_sok8'],
         },
     }, {
         'url': 'https://www.zdf.de/serien/northern-lights/begegnung-auf-der-bruecke-100.html',
@@ -384,7 +385,7 @@ class ZDFIE(ZDFBaseIE):
             'episode_number': 1,
             'timestamp': 1738546500,
             'upload_date': '20250203',
-            '_old_archive_ids': ['240319_2310_sendung_not'],
+            '_old_archive_ids': ['zdf 240319_2310_sendung_not'],
         },
     }, {
         # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
@@ -483,35 +484,29 @@ query VideoByCanonical($canonical: String!) {
             f'https://zdf-prod-futura.zdf.de/mediathekV2/document/{document_id}',
             document_id, note='Downloading fallback metadata',
             errnote='Failed to download fallback metadata')
+        document = video['document']
 
+        content_id = document.get('basename')
         formats = []
-        formitaeten = try_get(video, lambda x: x['document']['formitaeten'], list)
-        document = formitaeten and video['document']
-        if formitaeten:
-            title = document['titel']
-            content_id = document['basename']
-
-            format_urls = set()
-            for f in formitaeten or []:
-                self._extract_format(content_id, formats, format_urls, f)
+        format_urls = set()
+        for f in traverse_obj(document, ('formitaeten', ..., {dict})):
+            self._extract_format(document_id, formats, format_urls, f)
 
         thumbnails = []
-        teaser_bild = document.get('teaserBild')
-        if isinstance(teaser_bild, dict):
-            for thumbnail_key, thumbnail in teaser_bild.items():
-                thumbnail_url = try_get(
-                    thumbnail, lambda x: x['url'], str)
-                if thumbnail_url:
-                    thumbnails.append({
-                        'url': thumbnail_url,
-                        'id': thumbnail_key,
-                        'width': int_or_none(thumbnail.get('width')),
-                        'height': int_or_none(thumbnail.get('height')),
-                    })
+        for thumbnail_key, thumbnail in traverse_obj(document, ('teaserBild', {dict.items})):
+            thumbnail_url = traverse_obj(thumbnail, ('url', {url_or_none}))
+            if not thumbnail_url:
+                continue
+            thumbnails.append({
+                'url': thumbnail_url,
+                'id': thumbnail_key,
+                'width': int_or_none(thumbnail.get('width')),
+                'height': int_or_none(thumbnail.get('height')),
+            })
 
         return {
             'id': document_id,
-            'title': title,
+            'title': document.get('titel'),
             'description': document.get('beschreibung'),
             'duration': int_or_none(document.get('length')),
             'timestamp': unified_timestamp(document.get('date')) or unified_timestamp(
@@ -519,7 +514,7 @@ query VideoByCanonical($canonical: String!) {
             'thumbnails': thumbnails,
             'subtitles': self._extract_subtitles(document.get('captions') or []),
             'formats': formats,
-            '_old_archive_ids': [content_id],
+            '_old_archive_ids': [make_archive_id(ZDFIE, content_id)] if content_id else [],
         }
 
     def _real_extract(self, url):
@@ -546,7 +541,7 @@ query VideoByCanonical($canonical: String!) {
         # because it is not available during playlist extraction.
         # We fix it here manually instead of inside the method
         # because other extractors do rely on using it as their ID.
-        ptmd_data['_old_archive_ids'] = [ptmd_data['id']]
+        ptmd_data['_old_archive_ids'] = [make_archive_id(ZDFIE, ptmd_data['id'])]
         del ptmd_data['id']
 
         return {
