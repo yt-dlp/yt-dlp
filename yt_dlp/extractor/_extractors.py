@@ -640,6 +640,10 @@ from .fancode import (
     FancodeLiveIE,
     FancodeVodIE,
 )
+from .fanicon import (
+    FaniconFCIE,
+    FaniconIE,
+)
 from .fathom import FathomIE
 from .faz import FazIE
 from .fc2 import (
