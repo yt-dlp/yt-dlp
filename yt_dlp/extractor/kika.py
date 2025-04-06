@@ -128,7 +128,6 @@ class KikaIE(InfoExtractor):
 
 class KikaPlaylistIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?kika\.de/[\w-]+/(?P<id>[a-z-]+\d+)'
-    _GEO_COUNTRIES = ['DE']
 
     _TESTS = [{
         'url': 'https://www.kika.de/logo/logo-die-welt-und-ich-562',
@@ -160,5 +159,6 @@ class KikaPlaylistIE(InfoExtractor):
         brand_data = self._download_json(
             f'https://www.kika.de/_next-api/proxy/v1/brands/{playlist_id}', playlist_id)
 
-        return self.playlist_result(self._entries(brand_data['videoSubchannel']['videosPageUrl'], playlist_id),
-                                    playlist_id, title=brand_data.get('title'), description=brand_data.get('description'))
+        return self.playlist_result(
+            self._entries(brand_data['videoSubchannel']['videosPageUrl'], playlist_id),
+            playlist_id, title=brand_data.get('title'), description=brand_data.get('description'))
