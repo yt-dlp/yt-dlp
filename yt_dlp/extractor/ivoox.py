@@ -45,10 +45,11 @@ class IvooxIE(InfoExtractor):
 
         download_paths = {
             traverse_obj(direct_download, ('data', 'downloadUrl', {str})),
-            *traverse_obj(data, (('downloadUrl', 'mediaUrl'), {str}, all))}
+            *traverse_obj(data, (('downloadUrl', 'mediaUrl'), {str})),
+        }
 
         formats = []
-        for path in traverse_obj(download_paths, (..., {str})):
+        for path in download_paths:
             formats.append({
                 'url': urljoin('https://ivoox.com', path),
                 'http_headers': {'Referer': url},
