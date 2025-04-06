@@ -65,7 +65,7 @@ class IvooxIE(InfoExtractor):
             'title': self._html_search_regex(r'data-prm-title="([^"]+)"', webpage, 'title', default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'description': self._og_search_description(webpage, default=None),
-            **self._search_json_ld(webpage or '', media_id, default={}),
+            **self._search_json_ld(webpage, media_id, default={}),
             **traverse_obj(data, {
                 'title': ('title', {str}),
                 'description': ('description', {str}),
