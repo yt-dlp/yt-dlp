@@ -45,8 +45,8 @@ class IvooxIE(InfoExtractor):
             note='Fetching direct download link', headers={'Referer': url})
 
         download_paths = {
-            traverse_obj(direct_download, ('data', 'downloadUrl', {str})),
-            *traverse_obj(data, (('downloadUrl', 'mediaUrl'), {str})),
+            *traverse_obj(direct_download, ('data', 'downloadUrl', {str}, filter, all)),
+            *traverse_obj(data, (('downloadUrl', 'mediaUrl'), {str}, filter)),
         }
 
         formats = []
