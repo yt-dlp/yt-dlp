@@ -34,6 +34,7 @@ from ...utils import (
     clean_html,
     datetime_from_str,
     filesize_from_tbr,
+    filter_dict,
     float_or_none,
     format_field,
     get_first,
@@ -130,7 +131,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
     _PLAYER_INFO_RE = (
-        r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/player',
+        r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/(?:tv-)?player',
         r'/(?P<id>[a-zA-Z0-9_-]{8,})/player(?:_ias\.vflset(?:/[a-zA-Z]{2,3}_[a-zA-Z]{2,3})?|-plasma-ias-(?:phone|tablet)-[a-z]{2}_[A-Z]{2}\.vflset)/base\.js$',
         r'\b(?P<id>vfl[a-zA-Z0-9_-]+)\b.*?\.js$',
     )
@@ -1760,6 +1761,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         },
     ]
 
+    _PLAYER_JS_VARIANT_MAP = {
+        'main': 'player_ias.vflset/en_US/base.js',
+        'tce': 'player_ias_tce.vflset/en_US/base.js',
+        'tv': 'tv-player-ias.vflset/tv-player-ias.js',
+        'tv_es6': 'tv-player-es6.vflset/tv-player-es6.js',
+        'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
+        'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',
+    }
+    _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
+
     @classmethod
     def suitable(cls, url):
         from yt_dlp.utils import parse_qs
@@ -1939,11 +1950,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             get_all=False, expected_type=str)
         if not player_url:
             return
-        # TODO: Add proper support for the 'tce' variant players
-        # See https://github.com/yt-dlp/yt-dlp/issues/12398
-        if '/player_ias_tce.vflset/' in player_url:
-            self.write_debug(f'Modifying tce player URL: {player_url}')
-            player_url = player_url.replace('/player_ias_tce.vflset/', '/player_ias.vflset/')
+
+        requested_js_variant = self._configuration_arg('player_js_variant', [''])[0] or 'actual'
+        if requested_js_variant in self._PLAYER_JS_VARIANT_MAP:
+            player_id = self._extract_player_info(player_url)
+            original_url = player_url
+            player_url = f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[requested_js_variant]}'
+            if original_url != player_url:
+                self.write_debug(
+                    f'Forcing "{requested_js_variant}" player JS variant for player {player_id}\n'
+                    f'        original url = {original_url}', only_once=True)
+        elif requested_js_variant != 'actual':
+            self.report_warning(
+                f'Invalid player JS variant name "{requested_js_variant}" requested. '
+                f'Valid choices are: {", ".join(self._PLAYER_JS_VARIANT_MAP)}', only_once=True)
+
         return urljoin('https://www.youtube.com', player_url)
 
     def _download_player_url(self, video_id, fatal=False):
@@ -1957,6 +1978,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 r'player\\?/([0-9a-fA-F]{8})\\?/', iframe_webpage, 'player version', fatal=fatal)
             if player_version:
                 return f'https://www.youtube.com/s/player/{player_version}/player_ias.vflset/en_US/base.js'
+
+    def _player_js_cache_key(self, player_url):
+        player_id = self._extract_player_info(player_url)
+        player_path = remove_start(urllib.parse.urlparse(player_url).path, f'/s/player/{player_id}/')
+        variant = self._INVERSE_PLAYER_JS_VARIANT_MAP.get(player_path)
+        if not variant:
+            self.write_debug(
+                f'Unable to determine player JS variant\n'
+                f'        player = {player_url}', only_once=True)
+            variant = re.sub(r'[^a-zA-Z0-9]', '_', remove_end(player_path, '.js'))
+        return join_nonempty(player_id, variant)
 
     def _signature_cache_id(self, example_sig):
         """ Return a string representation of a signature """
@@ -1973,30 +2005,29 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return id_m.group('id')
 
     def _load_player(self, video_id, player_url, fatal=True):
-        player_id = self._extract_player_info(player_url)
-        if player_id not in self._code_cache:
+        player_js_key = self._player_js_cache_key(player_url)
+        if player_js_key not in self._code_cache:
             code = self._download_webpage(
                 player_url, video_id, fatal=fatal,
-                note='Downloading player ' + player_id,
-                errnote=f'Download of {player_url} failed')
+                note=f'Downloading player {player_js_key}',
+                errnote=f'Download of {player_js_key} failed')
             if code:
-                self._code_cache[player_id] = code
-        return self._code_cache.get(player_id)
+                self._code_cache[player_js_key] = code
+        return self._code_cache.get(player_js_key)
 
     def _extract_signature_function(self, video_id, player_url, example_sig):
-        player_id = self._extract_player_info(player_url)
-
         # Read from filesystem cache
-        func_id = f'js_{player_id}_{self._signature_cache_id(example_sig)}'
+        func_id = join_nonempty(
+            self._player_js_cache_key(player_url), self._signature_cache_id(example_sig))
         assert os.path.basename(func_id) == func_id
 
         self.write_debug(f'Extracting signature function {func_id}')
-        cache_spec, code = self.cache.load('youtube-sigfuncs', func_id), None
+        cache_spec, code = self.cache.load('youtube-sigfuncs', func_id, min_ver='2025.03.31'), None
 
         if not cache_spec:
             code = self._load_player(video_id, player_url)
         if code:
-            res = self._parse_sig_js(code)
+            res = self._parse_sig_js(code, player_url)
             test_string = ''.join(map(chr, range(len(example_sig))))
             cache_spec = [ord(c) for c in res(test_string)]
             self.cache.store('youtube-sigfuncs', func_id, cache_spec)
@@ -2044,7 +2075,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f'    return {expr_code}\n')
         self.to_screen('Extracted signature function:\n' + code)
 
-    def _parse_sig_js(self, jscode):
+    def _parse_sig_js(self, jscode, player_url):
         # Examples where `sig` is funcname:
         # sig=function(a){a=a.split(""); ... ;return a.join("")};
         # ;c&&(c=sig(decodeURIComponent(c)),a.set(b,encodeURIComponent(c)));return a};
@@ -2068,8 +2099,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
              r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\('),
             jscode, 'Initial JS player signature function name', group='sig')
 
+        varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
         jsi = JSInterpreter(jscode)
-        initial_function = jsi.extract_function(funcname)
+        initial_function = jsi.extract_function(funcname, filter_dict({varname: global_list}))
         return lambda s: initial_function([s])
 
     def _cached(self, func, *cache_id):
@@ -2087,6 +2119,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 raise ret
             return ret
         return inner
+
+    def _load_nsig_code_from_cache(self, player_url):
+        cache_id = ('youtube-nsig', self._player_js_cache_key(player_url))
+
+        if func_code := self._player_cache.get(cache_id):
+            return func_code
+
+        func_code = self.cache.load(*cache_id, min_ver='2025.03.31')
+        if func_code:
+            self._player_cache[cache_id] = func_code
+
+        return func_code
+
+    def _store_nsig_code_to_cache(self, player_url, func_code):
+        cache_id = ('youtube-nsig', self._player_js_cache_key(player_url))
+        if cache_id not in self._player_cache:
+            self.cache.store(*cache_id, func_code)
+            self._player_cache[cache_id] = func_code
 
     def _decrypt_signature(self, s, video_id, player_url):
         """Turn the encrypted s field into a working signature"""
@@ -2128,9 +2178,31 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 video_id=video_id, note='Executing signature code').strip()
 
         self.write_debug(f'Decrypted nsig {s} => {ret}')
+        # Only cache nsig func JS code to disk if successful, and only once
+        self._store_nsig_code_to_cache(player_url, func_code)
         return ret
 
     def _extract_n_function_name(self, jscode, player_url=None):
+        varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
+        if debug_str := traverse_obj(global_list, (lambda _, v: v.endswith('_w8_'), any)):
+            funcname = self._search_regex(
+                r'''(?xs)
+                    [;\n](?:
+                        (?P<f>function\s+)|
+                        (?:var\s+)?
+                    )(?P<funcname>[a-zA-Z0-9_$]+)\s*(?(f)|=\s*function\s*)
+                    \((?P<argname>[a-zA-Z0-9_$]+)\)\s*\{
+                    (?:(?!\}[;\n]).)+
+                    \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
+                    \{\s*return\s+%s\[%d\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
+                ''' % (re.escape(varname), global_list.index(debug_str)),
+                jscode, 'nsig function name', group='funcname', default=None)
+            if funcname:
+                return funcname
+            self.write_debug(join_nonempty(
+                'Initial search was unable to find nsig function name',
+                player_url and f'        player = {player_url}', delim='\n'), only_once=True)
+
         # Examples (with placeholders nfunc, narray, idx):
         # *  .get("n"))&&(b=nfunc(b)
         # *  .get("n"))&&(b=narray[idx](b)
@@ -2160,7 +2232,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not funcname:
             self.report_warning(join_nonempty(
                 'Falling back to generic n function search',
-                player_url and f'         player = {player_url}', delim='\n'))
+                player_url and f'         player = {player_url}', delim='\n'), only_once=True)
             return self._search_regex(
                 r'''(?xs)
                 ;\s*(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
@@ -2173,14 +2245,60 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])\s*[,;]', jscode,
             f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
 
-    def _fixup_n_function_code(self, argnames, code):
-        return argnames, re.sub(
-            rf';\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(["\'])undefined\1\s*\)\s*return\s+{argnames[0]};',
-            ';', code)
+    def _extract_player_js_global_var(self, jscode, player_url):
+        """Returns tuple of strings: variable assignment code, variable name, variable value code"""
+        extract_global_var = self._cached(self._search_regex, 'js global array', player_url)
+        varcode, varname, varvalue = extract_global_var(
+            r'''(?x)
+                (?P<q1>["\'])use\s+strict(?P=q1);\s*
+                (?P<code>
+                    var\s+(?P<name>[a-zA-Z0-9_$]+)\s*=\s*
+                    (?P<value>
+                        (?P<q2>["\'])(?:(?!(?P=q2)).|\\.)+(?P=q2)
+                        \.split\((?P<q3>["\'])(?:(?!(?P=q3)).)+(?P=q3)\)
+                        |\[\s*(?:(?P<q4>["\'])(?:(?!(?P=q4)).|\\.)*(?P=q4)\s*,?\s*)+\]
+                    )
+                )[;,]
+            ''', jscode, 'global variable', group=('code', 'name', 'value'), default=(None, None, None))
+        if not varcode:
+            self.write_debug(join_nonempty(
+                'No global array variable found in player JS',
+                player_url and f'        player = {player_url}', delim='\n'), only_once=True)
+        return varcode, varname, varvalue
+
+    def _interpret_player_js_global_var(self, jscode, player_url):
+        """Returns tuple of: variable name string, variable value list"""
+        _, varname, array_code = self._extract_player_js_global_var(jscode, player_url)
+        jsi = JSInterpreter(array_code)
+        interpret_global_var = self._cached(jsi.interpret_expression, 'js global list', player_url)
+        return varname, interpret_global_var(array_code, {}, allow_recursion=10)
+
+    def _fixup_n_function_code(self, argnames, nsig_code, jscode, player_url):
+        varcode, varname, _ = self._extract_player_js_global_var(jscode, player_url)
+        if varcode and varname:
+            nsig_code = varcode + '; ' + nsig_code
+            _, global_list = self._interpret_player_js_global_var(jscode, player_url)
+        else:
+            varname = 'dlp_wins'
+            global_list = []
+
+        undefined_idx = global_list.index('undefined') if 'undefined' in global_list else r'\d+'
+        fixed_code = re.sub(
+            rf'''(?x)
+                ;\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(?:
+                    (["\'])undefined\1|
+                    {re.escape(varname)}\[{undefined_idx}\]
+                )\s*\)\s*return\s+{re.escape(argnames[0])};
+            ''', ';', nsig_code)
+        if fixed_code == nsig_code:
+            self.write_debug(join_nonempty(
+                'No typeof statement found in nsig function code',
+                player_url and f'        player = {player_url}', delim='\n'), only_once=True)
+        return argnames, fixed_code
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
-        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.02.19')
+        func_code = self._load_nsig_code_from_cache(player_url)
         jscode = func_code or self._load_player(video_id, player_url)
         jsi = JSInterpreter(jscode)
 
@@ -2189,10 +2307,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         func_name = self._extract_n_function_name(jscode, player_url=player_url)
 
-        # XXX: Workaround for the `typeof` gotcha
-        func_code = self._fixup_n_function_code(*jsi.extract_function_code(func_name))
+        # XXX: Workaround for the global array variable and lack of `typeof` implementation
+        func_code = self._fixup_n_function_code(*jsi.extract_function_code(func_name), jscode, player_url)
 
-        self.cache.store('youtube-nsig', player_id, func_code)
         return jsi, player_id, func_code
 
     def _extract_n_function_from_code(self, jsi, func_code):
@@ -3141,14 +3258,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'n': decrypt_nsig(query['n'][0], video_id, player_url),
                     })
                 except ExtractorError as e:
-                    phantomjs_hint = ''
-                    if isinstance(e, JSInterpreter.Exception):
-                        phantomjs_hint = (f'         Install {self._downloader._format_err("PhantomJS", self._downloader.Styles.EMPHASIS)} '
-                                          f'to workaround the issue. {PhantomJSwrapper.INSTALL_HINT}\n')
                     if player_url:
                         self.report_warning(
-                            f'nsig extraction failed: Some formats may be missing\n{phantomjs_hint}'
-                            f'         n = {query["n"][0]} ; player = {player_url}', video_id=video_id, only_once=True)
+                            f'nsig extraction failed: Some formats may be missing\n'
+                            f'         n = {query["n"][0]} ; player = {player_url}\n'
+                            f'         {bug_reports_message(before="")}',
+                            video_id=video_id, only_once=True)
                         self.write_debug(e, only_once=True)
                     else:
                         self.report_warning(
@@ -3165,7 +3280,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_damaged = try_call(lambda: format_duration < duration // 2)
             if is_damaged:
                 self.report_warning(
-                    f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
+                    'Some formats are possibly damaged. They will be deprioritized', video_id, only_once=True)
 
             po_token = fmt.get(STREAMING_DATA_INITIAL_PO_TOKEN)
 
