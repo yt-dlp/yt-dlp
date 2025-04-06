@@ -596,7 +596,7 @@ class ZDFChannelIE(ZDFBaseIE):
             'series_id': 'sylt---deutschlands-edles-nordlicht-movie-100',
             'timestamp': 1612462500,
             'upload_date': '20210204',
-            '_old_archive_ids': ['210402_1915_sendung_dok'],
+            '_old_archive_ids': ['zdf 210402_1915_sendung_dok'],
         },
         'params': {'skip_download': True},
     }, {
