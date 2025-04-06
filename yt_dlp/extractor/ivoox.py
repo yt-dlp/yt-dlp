@@ -1,125 +1,76 @@
-import datetime
-import json
-
 from .common import InfoExtractor
+from ..utils import int_or_none, parse_iso8601, url_or_none, urljoin
+from ..utils.traversal import traverse_obj
 
 
 class IvooxIE(InfoExtractor):
     _VALID_URL = (
-        r'https?://(?:www\.)?ivoox\.com/.*_rf_(?P<id>[0-9]+)_1\.html',
+        r'https?://(?:www\.)?ivoox\.com/(?:\w{2}/)?[^/?#]+_rf_(?P<id>[0-9]+)_1\.html',
         r'https?://go\.ivoox\.com/rf/(?P<id>[0-9]+)',
     )
-    _TESTS = [
-        {
-            'url': 'https://www.ivoox.com/dex-08x30-rostros-del-mal-los-asesinos-en-audios-mp3_rf_143594959_1.html',
-            'md5': 'f3cc6b8db8995e0c95604deb6a8f0f2f',
-            'info_dict': {
-                # For videos, only the 'id' and 'ext' fields are required to RUN the test:
-                'id': '143594959',
-                'ext': 'mp3',
-                'timestamp': 1742727600,
-                'author': 'Santiago Camacho',
-                'channel': 'DIAS EXTRAÑOS con Santiago Camacho',
-                'title': 'DEx 08x30 Rostros del mal: Los asesinos en serie que aterrorizaron España',
-            },
+    _TESTS = [{
+        'url': 'https://www.ivoox.com/dex-08x30-rostros-del-mal-los-asesinos-en-audios-mp3_rf_143594959_1.html',
+        'md5': '993f712de5b7d552459fc66aa3726885',
+        'info_dict': {
+            'id': '143594959',
+            'ext': 'mp3',
+            'timestamp': 1742731200,
+            'channel': 'DIAS EXTRAÑOS con Santiago Camacho',
+            'title': 'DEx 08x30 Rostros del mal: Los asesinos en serie que aterrorizaron España',
+            'description': 'md5:eae8b4b9740d0216d3871390b056bb08',
+            'uploader': 'Santiago Camacho',
+            'thumbnail': 'https://static-1.ivoox.com/audios/c/d/5/2/cd52f46783fe735000c33a803dce2554_XXL.jpg',
+            'upload_date': '20250323',
+            'episode': 'DEx 08x30 Rostros del mal: Los asesinos en serie que aterrorizaron España',
+            'duration': 11837,
+            'tags': ['españa', 'asesinos en serie', 'arropiero', 'historia criminal', 'mataviejas'],
         },
-        {
-            'url': 'https://go.ivoox.com/rf/143594959',
-            'md5': 'f3cc6b8db8995e0c95604deb6a8f0f2f',
-            'info_dict': {
-                # For videos, only the 'id' and 'ext' fields are required to RUN the test:
-                'id': '143594959',
-                'ext': 'mp3',
-                'timestamp': 1742727600,
-                'author': 'Santiago Camacho',
-                'channel': 'DIAS EXTRAÑOS con Santiago Camacho',
-                'title': 'DEx 08x30 Rostros del mal: Los asesinos en serie que aterrorizaron España',
-            },
-        },
-    ]
+    }, {
+        'url': 'https://go.ivoox.com/rf/143594959',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
         webpage = self._download_webpage(url, media_id)
 
-        # Set the 'defaults' for the data we want to extract
-        date = None
-        timestamp = None
-        author = None
-        channel = None
-        title = None
-        thumbnail = None
-        description = None
+        data = traverse_obj(self._search_nuxt_data(webpage, media_id), ('data', 'audio'))
 
-        # This platform embeds a JSON document with a lot of the chapter
-        # information there; Try getting all the info from here first
-        embedded_pattern = r'>({"@context":"https://schema.org/","@type":"PodcastEpisode".+?)</script>'
-        embedded_metadata = self._html_search_regex(embedded_pattern, webpage, 'embedded metadata')
-        try:
-            metadata = json.loads(embedded_metadata)
-            if metadata['@type'] == 'PodcastEpisode':
-                title = metadata['name']
-                thumbnail = metadata['image']
-                description = metadata['description']
-                y, m, d = metadata['datePublished'].split('-')
-                date = datetime.datetime(int(y), int(m), int(d))
-                timestamp = int(datetime.datetime.timestamp(date))
-                if metadata.get('partOfSeries'):
-                    channel = metadata['partOfSeries']['name']
-        except Exception as e:
-            self.report_warning(f'Failed to extract embedded json; Reason: {e}', media_id)
+        direct_download = self._download_json(
+            f'https://vcore-web.ivoox.com/v1/public/audios/{media_id}/download-url', media_id, fatal=False,
+            note='Fetching direct download link', headers={
+                'Referer': url,
+            })
 
-        # Fallback extraction of the the podcast info
-        if date is None:
-            self.report_warning('Fallback extration of date', media_id)
-            date = datetime.datetime.fromisoformat(self._html_search_regex(r'data-prm-pubdate="(.+?)"', webpage, 'title'))
-            timestamp = int(datetime.datetime.timestamp(date))
-        if author is None:
-            # Author uses fallback since it is not explicitly embedded elsewhere
-            author = self._html_search_regex(r'data-prm-author="(.+?)"', webpage, 'author')
-        if channel is None:
-            self.report_warning('Fallback extration of channel', media_id)
-            channel = self._html_search_regex(r'data-prm-podname="(.+?)"', webpage, 'channel')
-        if title is None:
-            self.report_warning('Fallback extration of title', media_id)
-            title = self._html_search_regex(r'data-prm-title="(.+?)"', webpage, 'title')
-        if thumbnail is None:
-            self.report_warning('Fallback extration of thumbnail', media_id, 'thumbnail')
-            thumbnail = self._og_search_thumbnail(webpage)
-        if description is None:
-            self.report_warning('Fallback extration of description', media_id, 'description')
-            description = self._og_search_description(webpage)
+        download_paths = {
+            traverse_obj(direct_download, ('data', 'downloadUrl', {str})),
+            *traverse_obj(data, (('downloadUrl', 'mediaUrl'), {str}, all))}
 
-        # Extract the download URL
-        headers = {
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Encoding': 'identity',
-            'Origin': 'https://www.ivoox.com',
-            'Referer': 'https://www.ivoox.com/',
-            'Priority': 'u=1, i',
-        }
-        metadata_url = f'https://vcore-web.ivoox.com/v1/public/audios/{media_id}/download-url'
-        download_json = self._download_json(metadata_url, media_id, headers=headers)
-        download_url = download_json['data']['downloadUrl']
-        url = f'https://ivoox.com{download_url}'
-
-        # Formats
-        formats = [
-            {
-                'url': url,
-                'ext': 'mp3',
-                'format_id': 'mp3_default',
-                'http_headers': headers,
-            },
-        ]
+        formats = []
+        for path in traverse_obj(download_paths, (..., {str})):
+            formats.append({
+                'url': urljoin('https://ivoox.com', path),
+                'http_headers': {
+                    'Referer': url,
+                },
+            })
 
         return {
             'id': media_id,
-            'title': title,
-            'thumbnail': thumbnail,
-            'uploader': author,
-            'channel': channel,
-            'timestamp': timestamp,
-            'description': description,
             'formats': formats,
+            'uploader': self._html_search_regex(r'data-prm-author="([^"]+)"', webpage, 'author', default=None),
+            'timestamp': parse_iso8601(self._html_search_regex(r'data-prm-pubdate="([^"]+)"', webpage, 'timestamp', default=None)),
+            'channel': self._html_search_regex(r'data-prm-podname="([^"]+)"', webpage, 'channel', default=None),
+            'title': self._html_search_regex(r'data-prm-title="([^"]+)"', webpage, 'title', default=None),
+            'thumbnail': self._og_search_thumbnail(webpage),
+            'description': self._og_search_description(webpage),
+            **self._search_json_ld(webpage, media_id, fatal=False),
+            **traverse_obj(data, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'thumbnail': ('image', {url_or_none}),
+                'timestamp': ('uploadDate', {parse_iso8601(delimiter=' ')}),
+                'duration': ('duration', {int_or_none}),
+                'tags': ('tags', ..., 'name', {str}),
+            }),
         }
