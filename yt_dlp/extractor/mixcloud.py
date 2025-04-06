@@ -213,8 +213,8 @@ class MixcloudIE(MixcloudBaseIE):
                 'like_count': ('favorites', 'totalCount', {int_or_none}),
                 'repost_count': ('reposts', 'totalCount', {int_or_none}),
                 'comment_count': ('comments', 'totalCount', {int_or_none}),
-                'tags': ('tags', ..., 'tag', 'name', {str}, all, filter),
-                'artists': ('featuringArtistList', ..., {str}, all, filter),
+                'tags': ('tags', ..., 'tag', 'name', {str}, filter, all, filter),
+                'artists': ('featuringArtistList', ..., {str}, filter, all, filter),
             }),
         }
 
