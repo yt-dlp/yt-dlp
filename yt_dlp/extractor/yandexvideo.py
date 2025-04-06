@@ -9,7 +9,7 @@ from ..utils import (
     parse_qs,
     qualities,
     try_get,
-    update_url,
+    update_url_query,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -191,11 +191,12 @@ class YandexVideoPreviewIE(InfoExtractor):
 class ZenYandexBaseIE(InfoExtractor):
     def _fetch_ssr_data(self, url, video_id):
         webpage = self._download_webpage(url, video_id)
-        redirect = self._search_json(r'(?:var|let|const)\s+it\s*=', webpage, 'redirect', id, default={}).get('retpath')
+        redirect = self._search_json(
+            r'(?:var|let|const)\s+it\s*=', webpage, 'redirect', video_id, default={}).get('retpath')
         if redirect:
             video_id = self._match_id(redirect)
             webpage = self._download_webpage(redirect, video_id, note='Redirecting')
-        return self._search_json(
+        return video_id, self._search_json(
             r'(?:var|let|const)\s+_params\s*=\s*\(', webpage, 'metadata', video_id,
             contains_pattern=r'{["\']ssrData.+}')['ssrData']
 
@@ -275,13 +276,15 @@ class ZenYandexIE(ZenYandexBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_data = self._fetch_ssr_data(url, video_id)['videoMetaResponse']
+        video_id, ssr_data = self._fetch_ssr_data(url, video_id)
+        video_data = ssr_data['videoMetaResponse']
 
         formats, subtitles = [], {}
+        quality = qualities(('4', '0', '1', '2', '3', '5', '6', '7'))
         # Deduplicate stream URLs. The "dzen_dash" query parameter is present in some URLs but can be omitted
         stream_urls = set(traverse_obj(video_data, (
             'video', ('id', ('streams', ...), ('mp4Streams', ..., 'url'), ('oneVideoStreams', ..., 'url')),
-            {url_or_none}, {update_url(query_update={'dzen_dash': []})})))
+            {url_or_none}, {update_url_query(query={'dzen_dash': []})})))
         for s_url in stream_urls:
             ext = determine_ext(s_url)
             content_type = traverse_obj(parse_qs(s_url), ('ct', 0))
@@ -291,7 +294,6 @@ class ZenYandexIE(ZenYandexBaseIE):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(s_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
             elif content_type == '0':
                 format_type = traverse_obj(parse_qs(s_url), ('type', 0))
-                quality = qualities(('4', '0', '1', '2', '3', '5', '6', '7'))
                 formats.append({
                     'url': s_url,
                     'format_id': format_type,
@@ -386,8 +388,8 @@ class ZenYandexChannelIE(ZenYandexBaseIE):
         for page in itertools.count(1):
             for item in traverse_obj(feed_data, (
                 (None, ('items', lambda _, v: v['tab'] in ('shorts', 'longs'))),
-                'items', lambda _, v: v['link']),
-            ):
+                'items', lambda _, v: url_or_none(v['link']),
+            )):
                 yield self.url_result(item['link'], ZenYandexIE, item.get('id'), title=item.get('title'))
 
             more = traverse_obj(feed_data, ('more', 'link', {url_or_none}))
@@ -400,7 +402,8 @@ class ZenYandexChannelIE(ZenYandexBaseIE):
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-        channel_data = self._fetch_ssr_data(url, channel_id)['exportResponse']
+        channel_id, ssr_data = self._fetch_ssr_data(url, channel_id)
+        channel_data = ssr_data['exportResponse']
 
         return self.playlist_result(
             self._entries(channel_data['feedData'], channel_id),
