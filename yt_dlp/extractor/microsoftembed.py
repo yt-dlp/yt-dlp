@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     parse_iso8601,
+    parse_resolution,
     traverse_obj,
     unified_timestamp,
     url_basename,
@@ -83,8 +84,8 @@ class MicrosoftMediusBaseIE(InfoExtractor):
             subtitles.setdefault(sub.pop('tag', 'und'), []).append(sub)
         return subtitles
 
-    def _extract_ism(self, ism_url, video_id):
-        formats = self._extract_ism_formats(ism_url, video_id)
+    def _extract_ism(self, ism_url, video_id, fatal=True):
+        formats = self._extract_ism_formats(ism_url, video_id, fatal=fatal)
         for fmt in formats:
             if fmt['language'] != 'eng' and 'English' not in fmt['format_id']:
                 fmt['language_preference'] = -10
@@ -218,9 +219,21 @@ class MicrosoftLearnEpisodeIE(MicrosoftMediusBaseIE):
             'description': 'md5:7bbbfb593d21c2cf2babc3715ade6b88',
             'timestamp': 1676339547,
             'upload_date': '20230214',
-            'thumbnail': r're:https://learn\.microsoft\.com/video/media/.*\.png',
+            'thumbnail': r're:https://learn\.microsoft\.com/video/media/.+\.png',
             'subtitles': 'count:14',
         },
+    }, {
+        'url': 'https://learn.microsoft.com/en-gb/shows/on-demand-instructor-led-training-series/az-900-module-1',
+        'info_dict': {
+            'id': '4fe10f7c-d83c-463b-ac0e-c30a8195e01b',
+            'ext': 'mp4',
+            'title': 'AZ-900 Cloud fundamentals (1 of 6)',
+            'description': 'md5:3c2212ce865e9142f402c766441bd5c9',
+            'thumbnail': r're:https://.+/.+\.jpg',
+            'timestamp': 1706605184,
+            'upload_date': '20240130',
+        },
+        'params': {'format': 'bv[protocol=https]'},
     }]
 
     def _real_extract(self, url):
@@ -230,9 +243,32 @@ class MicrosoftLearnEpisodeIE(MicrosoftMediusBaseIE):
         entry_id = self._html_search_meta('entryId', webpage, 'entryId', fatal=True)
         video_info = self._download_json(
             f'https://learn.microsoft.com/api/video/public/v1/entries/{entry_id}', video_id)
+
+        formats = []
+        if ism_url := traverse_obj(video_info, ('publicVideo', 'adaptiveVideoUrl', {url_or_none})):
+            formats.extend(self._extract_ism(ism_url, video_id, fatal=False))
+        if hls_url := traverse_obj(video_info, ('publicVideo', 'adaptiveVideoHLSUrl', {url_or_none})):
+            formats.extend(self._extract_m3u8_formats(hls_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
+        if mpd_url := traverse_obj(video_info, ('publicVideo', 'adaptiveVideoDashUrl', {url_or_none})):
+            formats.extend(self._extract_mpd_formats(mpd_url, video_id, mpd_id='dash', fatal=False))
+        for key in ('low', 'medium', 'high'):
+            if video_url := traverse_obj(video_info, ('publicVideo', f'{key}QualityVideoUrl', {url_or_none})):
+                formats.append({
+                    'url': video_url,
+                    'format_id': f'video-http-{key}',
+                    'acodec': 'none',
+                    **parse_resolution(video_url),
+                })
+        if audio_url := traverse_obj(video_info, ('publicVideo', 'audioUrl', {url_or_none})):
+            formats.append({
+                'url': audio_url,
+                'format_id': 'audio-http',
+                'vcodec': 'none',
+            })
+
         return {
             'id': entry_id,
-            'formats': self._extract_ism(video_info['publicVideo']['adaptiveVideoUrl'], video_id),
+            'formats': formats,
             'subtitles': self._sub_to_dict(traverse_obj(video_info, (
                 'publicVideo', 'captions', lambda _, v: url_or_none(v['url']), {
                     'tag': ('language', {str}),

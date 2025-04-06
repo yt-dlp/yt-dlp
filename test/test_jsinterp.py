@@ -118,6 +118,7 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f(){var x = 20; x = 30 + 1; return x;}', 31)
         self._test('function f(){var x = 20; x += 30 + 1; return x;}', 51)
         self._test('function f(){var x = 20; x -= 30 + 1; return x;}', -11)
+        self._test('function f(){var x = 2; var y = ["a", "b"]; y[x%y["length"]]="z"; return y}', ['z', 'b'])
 
     @unittest.skip('Not implemented')
     def test_comments(self):
@@ -403,6 +404,8 @@ class TestJSInterpreter(unittest.TestCase):
         test_result = list('test')
         tests = [
             'function f(a, b){return a.split(b)}',
+            'function f(a, b){return a["split"](b)}',
+            'function f(a, b){let x = ["split"]; return a[x[0]](b)}',
             'function f(a, b){return String.prototype.split.call(a, b)}',
             'function f(a, b){return String.prototype.split.apply(a, [b])}',
         ]
@@ -440,6 +443,9 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f(){return "012345678".slice(1, -1)}', '1234567')
         self._test('function f(){return "012345678".slice(-1, 1)}', '')
         self._test('function f(){return "012345678".slice(-3, -1)}', '67')
+
+    def test_splice(self):
+        self._test('function f(){var T = ["0", "1", "2"]; T["splice"](2, 1, "0")[0]; return T }', ['0', '1', '0'])
 
     def test_js_number_to_string(self):
         for test, radix, expected in [
