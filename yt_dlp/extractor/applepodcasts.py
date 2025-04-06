@@ -1,27 +1,42 @@
 from .common import InfoExtractor
 from ..utils import (
-    clean_html,
     clean_podcast_url,
-    get_element_by_class,
     int_or_none,
     parse_iso8601,
-    try_get,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ApplePodcastsIE(InfoExtractor):
     _VALID_URL = r'https?://podcasts\.apple\.com/(?:[^/]+/)?podcast(?:/[^/]+){1,2}.*?\bi=(?P<id>\d+)'
     _TESTS = [{
+        'url': 'https://podcasts.apple.com/us/podcast/ferreck-dawn-to-the-break-of-dawn-117/id1625658232?i=1000665010654',
+        'md5': '82cc219b8cc1dcf8bfc5a5e99b23b172',
+        'info_dict': {
+            'id': '1000665010654',
+            'ext': 'mp3',
+            'title': 'Ferreck Dawn - To The Break of Dawn 117',
+            'episode': 'Ferreck Dawn - To The Break of Dawn 117',
+            'description': 'md5:1fc571102f79dbd0a77bfd71ffda23bc',
+            'upload_date': '20240812',
+            'timestamp': 1723449600,
+            'duration': 3596,
+            'series': 'Ferreck Dawn - To The Break of Dawn',
+            'thumbnail': 're:.+[.](png|jpe?g|webp)',
+        },
+    }, {
         'url': 'https://podcasts.apple.com/us/podcast/207-whitney-webb-returns/id1135137367?i=1000482637777',
-        'md5': '41dc31cd650143e530d9423b6b5a344f',
+        'md5': 'baf8a6b8b8aa6062dbb4639ed73d0052',
         'info_dict': {
             'id': '1000482637777',
             'ext': 'mp3',
             'title': '207 - Whitney Webb Returns',
+            'episode': '207 - Whitney Webb Returns',
+            'episode_number': 207,
             'description': 'md5:75ef4316031df7b41ced4e7b987f79c6',
             'upload_date': '20200705',
             'timestamp': 1593932400,
-            'duration': 6454,
+            'duration': 5369,
             'series': 'The Tim Dillon Show',
             'thumbnail': 're:.+[.](png|jpe?g|webp)',
         },
@@ -39,47 +54,24 @@ class ApplePodcastsIE(InfoExtractor):
     def _real_extract(self, url):
         episode_id = self._match_id(url)
         webpage = self._download_webpage(url, episode_id)
-        episode_data = {}
-        ember_data = {}
-        # new page type 2021-11
-        amp_data = self._parse_json(self._search_regex(
-            r'(?s)id="shoebox-media-api-cache-amp-podcasts"[^>]*>\s*({.+?})\s*<',
-            webpage, 'AMP data', default='{}'), episode_id, fatal=False) or {}
-        amp_data = try_get(amp_data,
-                           lambda a: self._parse_json(
-                               next(a[x] for x in iter(a) if episode_id in x),
-                               episode_id),
-                           dict) or {}
-        amp_data = amp_data.get('d') or []
-        episode_data = try_get(
-            amp_data,
-            lambda a: next(x for x in a
-                           if x['type'] == 'podcast-episodes' and x['id'] == episode_id),
-            dict)
-        if not episode_data:
-            # try pre 2021-11 page type: TODO: consider deleting if no longer used
-            ember_data = self._parse_json(self._search_regex(
-                r'(?s)id="shoebox-ember-data-store"[^>]*>\s*({.+?})\s*<',
-                webpage, 'ember data'), episode_id) or {}
-            ember_data = ember_data.get(episode_id) or ember_data
-            episode_data = try_get(ember_data, lambda x: x['data'], dict)
-        episode = episode_data['attributes']
-        description = episode.get('description') or {}
-
-        series = None
-        for inc in (amp_data or ember_data.get('included') or []):
-            if inc.get('type') == 'media/podcast':
-                series = try_get(inc, lambda x: x['attributes']['name'])
-        series = series or clean_html(get_element_by_class('podcast-header__identity', webpage))
+        server_data = self._search_json(
+            r'<script [^>]*\bid=["\']serialized-server-data["\'][^>]*>', webpage,
+            'server data', episode_id, contains_pattern=r'\[{(?s:.+)}\]')[0]['data']
+        model_data = traverse_obj(server_data, (
+            'headerButtonItems', lambda _, v: v['$kind'] == 'bookmark' and v['modelType'] == 'EpisodeOffer',
+            'model', {dict}, any))
 
         return {
             'id': episode_id,
-            'title': episode.get('name'),
-            'url': clean_podcast_url(episode['assetUrl']),
-            'description': description.get('standard') or description.get('short'),
-            'timestamp': parse_iso8601(episode.get('releaseDateTime')),
-            'duration': int_or_none(episode.get('durationInMilliseconds'), 1000),
-            'series': series,
+            **self._json_ld(
+                traverse_obj(server_data, ('seoData', 'schemaContent', {dict}))
+                or self._yield_json_ld(webpage, episode_id, fatal=False), episode_id, fatal=False),
+            **traverse_obj(model_data, {
+                'title': ('title', {str}),
+                'url': ('streamUrl', {clean_podcast_url}),
+                'timestamp': ('releaseDate', {parse_iso8601}),
+                'duration': ('duration', {int_or_none}),
+            }),
             'thumbnail': self._og_search_thumbnail(webpage),
             'vcodec': 'none',
         }

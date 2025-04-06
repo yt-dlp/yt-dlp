@@ -2,7 +2,13 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import js_to_json, str_or_none, traverse_obj
+from ..networking import HEADRequest
+from ..utils import (
+    determine_ext,
+    js_to_json,
+    str_or_none,
+)
+from ..utils.traversal import traverse_obj
 
 
 class SubstackIE(InfoExtractor):
@@ -42,6 +48,19 @@ class SubstackIE(InfoExtractor):
             'thumbnail': 'md5:e30bfaa9da40e82aa62354263a9dd232',
             'uploader': "Andrew Zimmern's Spilled Milk ",
             'uploader_id': '577659',
+        },
+    }, {
+        # Podcast that needs its file extension resolved to mp3
+        'url': 'https://persuasion1.substack.com/p/summers',
+        'md5': '1456a755d46084744facdfac9edf900f',
+        'info_dict': {
+            'id': '141970405',
+            'ext': 'mp3',
+            'title': 'Larry Summers on What Went Wrong on Campus',
+            'description': 'Yascha Mounk and Larry Summers also discuss the promise and perils of artificial intelligence.',
+            'thumbnail': r're:https://substackcdn\.com/image/.+\.jpeg',
+            'uploader': 'Persuasion',
+            'uploader_id': '61579',
         },
     }]
 
@@ -89,7 +108,15 @@ class SubstackIE(InfoExtractor):
         post_type = webpage_info['post']['type']
         formats, subtitles = [], {}
         if post_type == 'podcast':
-            formats, subtitles = [{'url': webpage_info['post']['podcast_url']}], {}
+            fmt = {'url': webpage_info['post']['podcast_url']}
+            if not determine_ext(fmt['url'], default_ext=None):
+                # The redirected format URL expires but the original URL doesn't,
+                # so we only want to extract the extension from this request
+                fmt['ext'] = determine_ext(self._request_webpage(
+                    HEADRequest(fmt['url']), display_id,
+                    'Resolving podcast file extension',
+                    'Podcast URL is invalid').url)
+            formats.append(fmt)
         elif post_type == 'video':
             formats, subtitles = self._extract_video_formats(webpage_info['post']['videoUpload']['id'], canonical_url)
         else:

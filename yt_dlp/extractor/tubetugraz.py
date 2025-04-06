@@ -236,7 +236,7 @@ class TubeTuGrazSeriesIE(TubeTuGrazBaseIE):
                 },
             },
         ],
-        'min_playlist_count': 4,
+        'playlist_mincount': 4,
     }]
 
     def _real_extract(self, url):

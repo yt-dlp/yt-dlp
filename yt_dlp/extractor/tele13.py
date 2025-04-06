@@ -8,7 +8,7 @@ from ..utils import (
 
 
 class Tele13IE(InfoExtractor):
-    _VALID_URL = r'^https?://(?:www\.)?t13\.cl/videos(?:/[^/]+)+/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?t13\.cl/videos(?:/[^/]+)+/(?P<id>[\w-]+)'
     _TESTS = [
         {
             'url': 'http://www.t13.cl/videos/actualidad/el-circulo-de-hierro-de-michelle-bachelet-en-su-regreso-a-la-moneda',

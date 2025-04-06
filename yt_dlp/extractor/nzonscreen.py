@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class NZOnScreenIE(InfoExtractor):
-    _VALID_URL = r'^https?://www\.nzonscreen\.com/title/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://www\.nzonscreen\.com/title/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.nzonscreen.com/title/shoop-shoop-diddy-wop-cumma-cumma-wang-dang-1982',
         'info_dict': {

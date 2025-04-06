@@ -7,7 +7,7 @@ from ..utils import (
 
 
 class GolemIE(InfoExtractor):
-    _VALID_URL = r'^https?://video\.golem\.de/.+?/(?P<id>.+?)/'
+    _VALID_URL = r'https?://video\.golem\.de/.+?/(?P<id>.+?)/'
     _TEST = {
         'url': 'http://video.golem.de/handy/14095/iphone-6-und-6-plus-test.html',
         'md5': 'c1a2c0a3c863319651c7c992c5ee29bf',

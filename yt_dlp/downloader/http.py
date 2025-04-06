@@ -15,7 +15,6 @@ from ..utils import (
     ThrottledDownload,
     XAttrMetadataError,
     XAttrUnavailableError,
-    encodeFilename,
     int_or_none,
     parse_http_range,
     try_call,
@@ -58,9 +57,8 @@ class HttpFD(FileDownloader):
 
         if self.params.get('continuedl', True):
             # Establish possible resume length
-            if os.path.isfile(encodeFilename(ctx.tmpfilename)):
-                ctx.resume_len = os.path.getsize(
-                    encodeFilename(ctx.tmpfilename))
+            if os.path.isfile(ctx.tmpfilename):
+                ctx.resume_len = os.path.getsize(ctx.tmpfilename)
 
         ctx.is_resume = ctx.resume_len > 0
 
@@ -241,7 +239,7 @@ class HttpFD(FileDownloader):
                     ctx.resume_len = byte_counter
                 else:
                     try:
-                        ctx.resume_len = os.path.getsize(encodeFilename(ctx.tmpfilename))
+                        ctx.resume_len = os.path.getsize(ctx.tmpfilename)
                     except FileNotFoundError:
                         ctx.resume_len = 0
                 raise RetryDownload(e)

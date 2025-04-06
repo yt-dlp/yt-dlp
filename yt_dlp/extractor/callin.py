@@ -3,7 +3,7 @@ from ..utils import float_or_none, int_or_none, make_archive_id, traverse_obj
 
 
 class CallinIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?callin\.com/(episode)/(?P<id>[-a-zA-Z]+)'
+    _VALID_URL = r'https?://(?:www\.)?callin\.com/episode/(?P<id>[-a-zA-Z]+)'
     _TESTS = [{
         'url': 'https://www.callin.com/episode/the-title-ix-regime-and-the-long-march-through-EBfXYSrsjc',
         'info_dict': {

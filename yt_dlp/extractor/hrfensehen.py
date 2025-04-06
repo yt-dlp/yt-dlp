@@ -13,7 +13,7 @@ from ..utils import (
 
 class HRFernsehenIE(InfoExtractor):
     IE_NAME = 'hrfernsehen'
-    _VALID_URL = r'^https?://www\.(?:hr-fernsehen|hessenschau)\.de/.*,video-(?P<id>[0-9]{6})\.html'
+    _VALID_URL = r'https?://www\.(?:hr-fernsehen|hessenschau)\.de/.*,video-(?P<id>[0-9]{6})\.html'
     _TESTS = [{
         'url': 'https://www.hessenschau.de/tv-sendung/hessenschau-vom-26082020,video-130546.html',
         'md5': '5c4e0ba94677c516a2f65a84110fc536',
