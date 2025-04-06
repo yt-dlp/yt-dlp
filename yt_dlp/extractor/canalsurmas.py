@@ -8,7 +8,7 @@ from ..utils import (
     jwt_decode_hs256,
     parse_iso8601,
     url_or_none,
-    variadic,
+    variadic,jwt_is_expired,
 )
 from ..utils.traversal import traverse_obj
 
@@ -31,12 +31,8 @@ class CanalsurmasIE(InfoExtractor):
     _API_BASE = 'https://api-rtva.interactvty.com'
     _access_token = None
 
-    @staticmethod
-    def _is_jwt_expired(token):
-        return jwt_decode_hs256(token)['exp'] - time.time() < 300
-
     def _call_api(self, endpoint, video_id, fields=None):
-        if not self._access_token or self._is_jwt_expired(self._access_token):
+        if not self._access_token or jwt_is_expired(self._access_token):
             self._access_token = self._download_json(
                 f'{self._API_BASE}/jwt/token/', None,
                 'Downloading access token', 'Failed to download access token',
