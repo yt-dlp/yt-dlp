@@ -37,7 +37,8 @@ class IvooxIE(InfoExtractor):
         media_id = self._match_id(url)
         webpage = self._download_webpage(url, media_id, fatal=False)
 
-        data = self._search_nuxt_data(webpage, media_id, fatal=False, traverse=('data', 0, 'data', 'audio'))
+        data = self._search_nuxt_data(
+            webpage, media_id, fatal=False, traverse=('data', 0, 'data', 'audio'))
 
         direct_download = self._download_json(
             f'https://vcore-web.ivoox.com/v1/public/audios/{media_id}/download-url', media_id, fatal=False,
