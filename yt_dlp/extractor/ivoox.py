@@ -41,9 +41,7 @@ class IvooxIE(InfoExtractor):
 
         direct_download = self._download_json(
             f'https://vcore-web.ivoox.com/v1/public/audios/{media_id}/download-url', media_id, fatal=False,
-            note='Fetching direct download link', headers={
-                'Referer': url,
-            })
+            note='Fetching direct download link', headers={'Referer': url})
 
         download_paths = {
             traverse_obj(direct_download, ('data', 'downloadUrl', {str})),
@@ -53,9 +51,7 @@ class IvooxIE(InfoExtractor):
         for path in traverse_obj(download_paths, (..., {str})):
             formats.append({
                 'url': urljoin('https://ivoox.com', path),
-                'http_headers': {
-                    'Referer': url,
-                },
+                'http_headers': {'Referer': url},
             })
 
         return {
