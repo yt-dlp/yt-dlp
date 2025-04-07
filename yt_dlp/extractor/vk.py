@@ -13,6 +13,7 @@ from ..utils import (
     ExtractorError,
     UserNotLive,
     clean_html,
+    extract_attributes,
     get_element_by_class,
     get_element_html_by_class,
     get_element_html_by_id,
@@ -1083,6 +1084,7 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
             playlist_id)
         del hash_in_url
 
+        # to remove big scripts and other elements not used by parser
         html = get_element_html_by_class('AudioPlaylistSnippet', webpage)
         del webpage
 
@@ -1105,29 +1107,29 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
             entries.append(self.url_result(
                 audio_url, VKMusicTrackIE, track_id, title, **info))
 
-        title = self._html_search_regex(
-            r'class="[^"]*AudioPlaylistSnippet__title--main[^"]*"[^>]*>([^<]+)',
-            html, 'playlist title', fatal=False, group=1)
+        header = get_element_html_by_class('AudioPlaylistSnippet__header', html)
 
-        artist = self._html_search_regex(
-            r'class="[^"]*AudioPlaylistSnippet__author[^"]*"[^>]*>\s*<a(?:\s[^>]*)?>([^<]+)',
-            html, 'playlist author', fatal=False, group=1)
+        title = clean_html(get_element_by_class('AudioPlaylistSnippet__title', header))
+        artist = clean_html(get_element_by_class('AudioPlaylistSnippet__author', header))
 
-        description = clean_html(get_element_by_class(
-            'AudioPlaylistSnippet__description', html))
-        # description = self._html_search_regex(
-        #     r'div\s[^>]*class="[^"]*AudioPlaylistSnippet__description[^"]*">??????',
-        #     html, 'playlist description', fatal=False, group=1)
+        info_text = clean_html(get_element_by_class('AudioPlaylistSnippet__info', header))
+        info_sep = info_text.find('·')
 
-        genre, year = self._html_search_regex(
-            r'class="[^"]*AudioPlaylistSnippet__info[^"]*"[^>]*>\s*(.+)&nbsp;.*;(\d+)\s*</',
-            html, 'genre and release year', default=(None, None), group=(1, 2))
-
+        year = int_or_none(info_text[info_sep + 1:]) if info_sep != -1 else None
         is_album = year is not None
+        genre = info_text[:info_sep].rstrip() if is_album else None
 
-        thumbnail = url_or_none(self._html_search_regex(
-            r'class="[^"]*AudioPlaylistSnippet__cover[^"]*"[^>]*style="background-image\s*:\s*url\s*\(\s*\'([^\']+)',
-            html, 'playlist thumbnail', fatal=False, group=1))
+        del header
+
+        description = clean_html(get_element_by_class('AudioPlaylistSnippet__description', html))
+
+        thumbnail = url_or_none(self._search_regex(
+            r'background[^:;]*:\s*url\s*\(\s*\'([^\']+)',
+            extract_attributes(
+                get_element_html_by_class(
+                    'AudioPlaylistSnippet__cover',
+                    html)).get('style'),
+            'playlist thumbnail', fatal=False, group=1))
 
         return self.playlist_result(
             entries, playlist_id,
@@ -1138,7 +1140,7 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
             artists=[artist] if is_album else None,
             thumbnails=[{'url': thumbnail}] if thumbnail else [],
             genres=[genre] if genre else None,
-            release_year=int_or_none(year))
+            release_year=year)
 
 
 class VKPlayBaseIE(InfoExtractor):
