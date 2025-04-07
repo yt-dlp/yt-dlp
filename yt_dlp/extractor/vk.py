@@ -814,7 +814,7 @@ class VKMusicBaseIE(VKBaseIE):
             # ['Main Artist', 'Feat. Artist']
             'artists': traverse_obj(
                 (*meta[17], *meta[18]) if len_ >= 18 else None,
-                (..., 'name'), default=[artist]),
+                (..., 'name')) or [artist],
 
             'duration': int_or_none(meta[5]) if len_ >= 5 else None,
             'thumbnails': [{'url': thumbnail}] if thumbnail else [],
