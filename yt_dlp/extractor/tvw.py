@@ -1,7 +1,8 @@
 import json
+import urllib
 
 from .common import InfoExtractor
-from ..utils import clean_html, remove_end, unified_timestamp, url_or_none
+from ..utils import clean_html, remove_end, unescapeHTML, unified_timestamp, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -114,4 +115,54 @@ class TvwIE(InfoExtractor):
                 'location': ('locationName', {str}),
                 'is_live': ('eventStatus', {lambda x: x == 'live'}),
             }),
+        }
+
+
+class TvwTvChannelsIE(InfoExtractor):
+    IE_NAME = 'Tvw:TvChannels'
+    _VALID_URL = r'https?://(?:www\.)?tvw\.org/tvchannels/(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://tvw.org/tvchannels/air/',
+        'info_dict': {
+            'id': 'TVWAIR',
+            'ext': 'mp4',
+            'display_id': 'air',
+            'title': r're:^TVW Cable Channel Live Stream',
+            'thumbnail': r're:^https?://.*\.(?:jpe?g|png)$',
+            'live_status': 'is_live',
+        },
+    }, {
+        'url': 'https://tvw.org/tvchannels/tvw2/',
+        'info_dict': {
+            'id': 'TVW2',
+            'ext': 'mp4',
+            'display_id': 'tvw2',
+            'title': r're:^TVW-2 Broadcast Channel',
+            'thumbnail': r're:^https?://.*\.(?:jpe?g|png)$',
+            'live_status': 'is_live',
+        },
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+
+        stream_url = self._html_search_regex(r"<iframe[\s]*id=\"invintus-persistent-stream-frame\"[^>]+src=[\"\'](?P<url>.+?)[\"\']", webpage, 'url')
+        parsed_url = urllib.parse.urlparse(unescapeHTML(stream_url))
+        parsed_querystring = urllib.parse.parse_qs(parsed_url.query)
+
+        encoder_obj = json.loads(traverse_obj(parsed_querystring, ('encoder', 0)))
+
+        video_id = encoder_obj.get('streamName')
+        m3u8_url = encoder_obj.get('live247URI')
+
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=True)
+
+        return {
+            'id': video_id,
+            'display_id': display_id,
+            'formats': formats,
+            'title': remove_end(self._og_search_title(webpage, default=None), ' - TVW'),
+            'thumbnail': self._og_search_thumbnail(webpage, default=None),
+            'is_live': True,
         }
