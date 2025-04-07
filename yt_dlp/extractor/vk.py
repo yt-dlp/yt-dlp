@@ -868,7 +868,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
                 'uploader': 'Skillet',
                 'artists': ['Skillet'],
                 'duration': 230,
-                'thumbnail': r're:https?://.*\.jpg',
+                'thumbnail': r're:^https?://.*\.jpg',
                 'age_limit': 0,
             },
             'params': {
@@ -886,7 +886,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
                 'uploader': 'Pusha T, Stormzy',
                 'artists': ['Pusha T', 'Stormzy'],
                 'duration': 211,
-                'thumbnail': r're:https?://.*\.jpg',
+                'thumbnail': r're:^https?://.*\.jpg',
                 'age_limit': 0,
             },
             'params': {
@@ -903,7 +903,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
                 'uploader': 'Linkin Park feat. Page Hamilton',
                 'artists': ['Linkin Park', 'Page Hamilton'],
                 'duration': 213,
-                'thumbnail': r're:https?://.*\.jpg',
+                'thumbnail': r're:^https?://.*\.jpg',
                 'age_limit': 18,
             },
             'params': {
@@ -937,7 +937,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
                 'uploader': 'Jack Thomas feat. Nico & Vinz',
                 'artists': ['Jack Thomas', 'Nico & Vinz'],
                 'duration': 207,
-                'thumbnail': r're:https?://.*\.jpg',
+                'thumbnail': r're:^https?://.*\.jpg',
                 'age_limit': 0,
             },
             'params': {
@@ -1034,7 +1034,7 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
                 'album': 'One More Light',
                 'uploader': 'Linkin Park',
                 'artists': ['Linkin Park'],
-                'thumbnails': [{'url': r're:https?://.*\.jpg'}],
+                'thumbnails': [{'url': r're:^https?://.*\.jpg'}],
                 'genres': ['Alternative'],
                 'release_year': 2017,
             },
@@ -1050,7 +1050,7 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
                 'title': 'VK Fest 2024: Белая сцена',
                 'description': 'md5:6d652551bb1faaddbcd46321a77fa8d0',
                 'uploader': 'VK Музыка',
-                'thumbnails': [{'url': r're:https?://.*\.jpg'}],
+                'thumbnails': [{'url': r're:^https?://.*\.jpg'}],
             },
             'playlist_count': 18,
             'params': {
@@ -1064,7 +1064,7 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
                 'title': 'Электроника: новинки',
                 'description': 're:^Актуальные новинки электронной музыки',
                 'uploader': 'VK Музыка',
-                'thumbnails': [{'url': r're:https?://.*\.jpg'}],
+                'thumbnails': [{'url': r're:^https?://.*\.jpg'}],
             },
             'playlist_mincount': 100,
             'params': {
