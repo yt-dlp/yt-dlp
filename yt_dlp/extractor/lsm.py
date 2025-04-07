@@ -226,32 +226,43 @@ class LSMLTVEmbedIE(InfoExtractor):
 
 
 class LSMReplayIE(InfoExtractor):
-    _VALID_URL = r'https?://replay\.lsm\.lv/[^/?#]+/(?:ieraksts|statja)/[^/?#]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://replay\.lsm\.lv/[^/?#]+/(?:skaties/|klausies/)?(?:ieraksts|statja)/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://replay.lsm.lv/lv/ieraksts/ltv/311130/4-studija-zolitudes-tragedija-un-incupes-stacija',
-        'md5': '64f72a360ca530d5ed89c77646c9eee5',
+        'url': 'https://replay.lsm.lv/lv/skaties/ieraksts/ltv/347098/kas-notiek-ar-nacionalas-aviokompanijas-airbaltic-parvaldibu-un-finansem',
+        'md5': 'b279559b45067a69443f705698286018',
         'info_dict': {
-            'id': '46k_d23-6000-105',
+            'id': 'v2n_d25-2100-003',
             'ext': 'mp4',
-            'timestamp': 1700586300,
-            'description': 'md5:0f1b14798cc39e1ae578bd0eb268f759',
-            'duration': 1442,
-            'upload_date': '20231121',
-            'title': '4. studija. Zolitūdes traģēdija un Inčupes stacija',
-            'thumbnail': 'https://ltv.lsm.lv/storage/media/8/7/large/5/1f9604e1.jpg',
+            'thumbnail': 'https://ltv.lsm.lv/storage/media/0/4/large/4/cabb45ec.jpg',
+            'timestamp': 1737573600,
+            'description': 'md5:d330eaac7d5c643b7e47380ed1b0b035',
+            'upload_date': '20250122',
+            'title': 'Kas notiek ar nacionālās aviokompānijas "airBaltic" pārvaldību un finansēm?',
+            'duration': 4856,
         },
     }, {
-        'url': 'https://replay.lsm.lv/lv/ieraksts/lr/183522/138-nepilniga-kompensejamo-zalu-sistema-pat-menesiem-dzena-pacientus-pa-aptiekam',
-        'md5': '719b33875cd1429846eeeaeec6df2830',
+        'url': 'https://replay.lsm.lv/lv/klausies/ieraksts/lr/202718/193-latvijas-dabas-perles-izcirtisim-vecos-mezus-kamer-politiki-lemj-par-to-sargasanu',
         'info_dict': {
-            'id': 'a342781',
-            'ext': 'mp3',
-            'duration': 1823,
-            'title': '#138 Nepilnīgā kompensējamo zāļu sistēma pat mēnešiem dzenā pacientus pa aptiekām',
-            'thumbnail': 'https://pic.latvijasradio.lv/public/assets/media/9/d/large_fd4675ac.jpg',
-            'upload_date': '20231102',
-            'timestamp': 1698921060,
-            'description': 'md5:7bac3b2dd41e44325032943251c357b1',
+            'id': 'playlist',
+            'ext': 'mp4',
+            'thumbnail': 'https://pic.latvijasradio.lv/public/assets/media/9/c/large_9962893f.jpg',
+            'duration': 1827,
+            'description': 'md5:8a73f14cca0c949001ba8d2733600783',
+            'title': '#193 Latvijas dabas pērles – izcirtīsim vecos mežus, kamēr politiķi lemj par to sargāšanu?',
+            'timestamp': 1738830660,
+            'upload_date': '20250206',
+        },
+    }, {
+        'url': 'https://replay.lsm.lv/lv/klausies/ieraksts/lr/201390/zelts-viraks-un-regejs-davanas-keniniem',
+        'info_dict': {
+            'id': 'playlist',
+            'ext': 'mp4',
+            'upload_date': '20250106',
+            'timestamp': 1736182800,
+            'description': 'md5:cdf444eb33be09dfb700ddd688767f25',
+            'duration': 3600,
+            'title': 'Zelts, vīraks un regejs: dāvanas ķēniņiem',
+            'thumbnail': 'https://pic.latvijasradio.lv/public/assets/media/d/3/large_b17ee26f.jpg',
         },
     }, {
         'url': 'https://replay.lsm.lv/ru/statja/ltv/311130/4-studija-zolitudes-tragedija-un-incupes-stacija',
@@ -272,7 +283,8 @@ class LSMReplayIE(InfoExtractor):
             '_type': 'url_transparent',
             'id': video_id,
             **traverse_obj(data, {
-                'url': ('playback', 'service', 'url', {url_or_none}),
+                # Fall back to hls_url for audio streams
+                'url': ('playback', 'service', ('url', 'hls_url'), {url_or_none}),
                 'title': ('mediaItem', 'title'),
                 'description': ('mediaItem', ('lead', 'body')),
                 'duration': ('mediaItem', 'duration', {int_or_none}),
