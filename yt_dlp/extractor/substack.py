@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
     determine_ext,
+    float_or_none,
     js_to_json,
     str_or_none,
 )
@@ -62,6 +63,29 @@ class SubstackIE(InfoExtractor):
             'uploader': 'Persuasion',
             'uploader_id': '61579',
         },
+    }, {
+        # An embedded public video on a regular newsletter page
+        'url': 'https://jessica.substack.com/p/livestream-today-chat-with-me-and',
+        'md5': '7466bdd760b8ef8a60a1336c4e86ce20',
+        'info_dict': {
+            'id': '86e0da19-8263-4376-a84a-76b501db12d0',
+            'ext': 'mp4',
+            'title': 'liz.mp4',
+            'thumbnail': r're:https://substack.*\.com/video_upload/post/158453351/86e0da19-8263-4376-a84a-76b501db12d0/.*\.png',
+            'duration': 3087.8333,
+            'uploader_id': '535611',
+        },
+    }, {
+        # An embedded public audio on a regular newsletter page
+        'url': 'https://jessica.substack.com/p/audio-of-jd-vance-calling-rape-an?utm_source=publication-search',
+        'md5': 'bd6c2a9e0c590844496db94ad7653781',
+        'info_dict': {
+            'id': '17e80ab3-d5d6-488e-a939-404f33c17ef5',
+            'ext': 'mp3',
+            'title': 'JD Vance rape inconvenient.m4a',
+            'duration': 25.939592,
+            'uploader_id': '535611',
+        },
     }]
 
     @classmethod
@@ -75,10 +99,13 @@ class SubstackIE(InfoExtractor):
             yield parsed._replace(netloc=f'{mobj.group("subdomain")}.substack.com').geturl()
             raise cls.StopExtraction
 
-    def _extract_video_formats(self, video_id, url):
+    def _extract_video_formats(self, video_id, url, query_params={}):
         formats, subtitles = [], {}
         for video_format in ('hls', 'mp4'):
-            video_url = urllib.parse.urljoin(url, f'/api/v1/video/upload/{video_id}/src?type={video_format}')
+            q = {'type': video_format}
+            q.update(query_params)
+            query_string = '&'.join(f'{k}={v}' for k, v in q.items())
+            video_url = urllib.parse.urljoin(url, f'/api/v1/video/upload/{video_id}/src?{query_string}')
 
             if video_format == 'hls':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(video_url, video_id, 'mp4', fatal=False)
@@ -107,6 +134,16 @@ class SubstackIE(InfoExtractor):
 
         post_type = webpage_info['post']['type']
         formats, subtitles = [], {}
+        result_info = {
+            'id': str(webpage_info['post']['id']),
+            'subtitles': subtitles,
+            'title': traverse_obj(webpage_info, ('post', 'title')),
+            'description': traverse_obj(webpage_info, ('post', 'description')),
+            'thumbnail': traverse_obj(webpage_info, ('post', 'cover_image')),
+            'uploader': traverse_obj(webpage_info, ('pub', 'name')),
+            'uploader_id': str_or_none(traverse_obj(webpage_info, ('post', 'publication_id'))),
+            'webpage_url': canonical_url,
+        }
         if post_type == 'podcast':
             fmt = {'url': webpage_info['post']['podcast_url']}
             if not determine_ext(fmt['url'], default_ext=None):
@@ -116,20 +153,89 @@ class SubstackIE(InfoExtractor):
                     HEADRequest(fmt['url']), display_id,
                     'Resolving podcast file extension',
                     'Podcast URL is invalid').url)
-            formats.append(fmt)
+            result_info['formats'] = [fmt]
+            return result_info
         elif post_type == 'video':
-            formats, subtitles = self._extract_video_formats(webpage_info['post']['videoUpload']['id'], canonical_url)
-        else:
-            self.raise_no_formats(f'Page type "{post_type}" is not supported')
+            formats, subtitles = self._extract_video_formats(
+                webpage_info['post']['videoUpload']['id'], canonical_url)
+            result_info.update({
+                'formats': formats,
+                'subtitles': subtitles,
+            })
+            return result_info
+        elif post_type == 'newsletter':
+            results = []
+            found_items = []
+            post_id = str(webpage_info['post']['id'])
+            post_title = traverse_obj(webpage_info, ('post', 'title'))
+            assert result_info['uploader_id'] is not None, 'newsletter posted without user_id'
 
-        return {
-            'id': str(webpage_info['post']['id']),
-            'formats': formats,
-            'subtitles': subtitles,
-            'title': traverse_obj(webpage_info, ('post', 'title')),
-            'description': traverse_obj(webpage_info, ('post', 'description')),
-            'thumbnail': traverse_obj(webpage_info, ('post', 'cover_image')),
-            'uploader': traverse_obj(webpage_info, ('pub', 'name')),
-            'uploader_id': str_or_none(traverse_obj(webpage_info, ('post', 'publication_id'))),
-            'webpage_url': canonical_url,
-        }
+            video_players = re.finditer(
+                r'<div[^>]*data-component-name="VideoEmbedPlayer"[^>]*>',
+                webpage)
+            for vp in video_players:
+                video_id = self._search_regex(r'id="([^"]+)"',
+                                              vp.group(0),
+                                              'video id', group=1).replace('media-', '')
+                video_metadata_url = urllib.parse.urljoin(url, f'/api/v1/video/upload/{video_id}')
+                json_vid_data = self._download_json(video_metadata_url, video_id)
+                assert video_id == json_vid_data['id'], 'unexpected json metadata retrieved'
+                json_vid_data['_type'] = 'video'
+                found_items.append(json_vid_data)
+
+            audio_players = re.finditer(
+                r'<div[^>]*data-component-name="AudioEmbedPlayer"[^>]*>',
+                webpage)
+            for ap in audio_players:
+                video_uri = self._search_regex(r'src="(/api/v1/audio/upload/[^"]+)"',
+                                               webpage[ap.start():],
+                                               'video uri', group=1)
+                video_metadata_url = urllib.parse.urljoin(url, video_uri.replace('/src', ''))
+                video_id = self._search_regex(r'upload/([^/]+)/src',
+                                              video_uri,
+                                              'video id', group=1)
+                json_vid_data = self._download_json(video_metadata_url, video_id)
+                assert video_id == json_vid_data['id'], 'unexpected json metadata retrieved'
+                json_vid_data['_type'] = 'audio'
+                json_vid_data['_uri'] = video_uri
+                found_items.append(json_vid_data)
+
+            for json_vid_data in found_items:
+                video_id = json_vid_data['id']
+                if 'video' in json_vid_data['_type']:
+                    formats, subtitles = self._extract_video_formats(
+                        video_id, canonical_url,
+                        query_params={'override_publication_id': result_info['uploader_id']})
+                else:
+                    fmt = {'url': urllib.parse.urljoin(url, json_vid_data['_uri'])}
+                    if not determine_ext(fmt['url'], default_ext=None):
+                        # The redirected format URL expires but the original URL doesn't,
+                        # so we only want to extract the extension from this request
+                        fmt['ext'] = determine_ext(self._request_webpage(
+                            HEADRequest(fmt['url']), video_id,
+                            'Resolving audio file extension',
+                            'Embedded audio URL is invalid').url)
+                    formats.append(fmt)
+
+                new_result = dict(result_info)
+                new_result.update({
+                    'formats': formats,
+                    'subtitles': subtitles,
+                    'id': video_id,
+                    'title': json_vid_data.get('name', None),
+                    'description': None,
+                    'thumbnail': json_vid_data.get('thumbnail_url', None),
+                    'duration': float_or_none(json_vid_data.get('duration', None)),
+                    # videos can be cross-embedded, so the publication id should be of the uploader
+                    'uploader_id': str_or_none(json_vid_data.get('user_id', None)),
+                    'uploader': None,  # video uploader username is not included
+                })
+                results.append(new_result)
+
+            if len(results) > 0:
+                playlist_title = f'Videos for {post_title}'
+                return self.playlist_result(results, post_id, playlist_title)
+            else:
+                self.raise_no_formats(f'Page type "{post_type}" contains no supported embeds')
+
+        self.raise_no_formats(f'Page type "{post_type}" is not supported')
