@@ -832,19 +832,20 @@ class VKMusicBaseIE(VKBaseIE):
         }
 
     def _raise_if_blocked(self, meta, track_id):
+        if len(meta) < 12:
+            return None
+
         reason = traverse_obj(
-            self._parse_json(
-                meta[12] if len(meta) >= 12 else None,
-                track_id, fatal=False),
+            self._parse_json(meta[12], track_id, fatal=False),
             ('claim', 'reason'))
 
-        if reason == 'geo':
-            self.raise_geo_restricted()
-        # can be an empty string
-        elif reason is not None:
+        if reason is not None:
+            if reason == 'geo':
+                self.raise_geo_restricted()
+
+            # an empty string or an internal ID
             raise ExtractorError(
-                'This track is unavailable. '
-                f'Reason code: {reason:r}')
+                f'This track is unavailable. Reason code: {reason:r}')
 
 
 class VKMusicTrackIE(VKMusicBaseIE):
@@ -986,16 +987,16 @@ class VKMusicTrackIE(VKMusicBaseIE):
 
             access_hash = meta[24]
 
-        meta = self._download_payload('al_audio', track_id, {
-            'act': 'reload_audios',
-            'audio_ids': f'{track_id}_{access_hash}',
-        })[0]
+        try:
+            meta = self._download_payload('al_audio', track_id, {
+                'act': 'reload_audios',
+                'audio_ids': f'{track_id}_{access_hash}',
+            })[0][0]
+        except (ExtractorError, IndexError):
+            if vk_id == 0:
+                self.raise_login_required()
+            raise ExtractorError('This track is unavailable')
 
-        # vk sends an empty list when auth required
-        if not meta:
-            self.raise_login_required()
-
-        meta = meta[0]
         self._raise_if_blocked(meta, track_id)
         url = self._unmask_url(meta[2], vk_id)
 
