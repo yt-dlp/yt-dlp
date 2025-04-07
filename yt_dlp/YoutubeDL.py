@@ -1836,6 +1836,8 @@ class YoutubeDL:
         It will also download the videos if 'download'.
         Returns the resolved ie_result.
         """
+        self.check_max_downloads()
+
         if extra_info is None:
             extra_info = {}
         result_type = ie_result.get('_type', 'video')
@@ -2058,6 +2060,8 @@ class YoutubeDL:
         failures = 0
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, (playlist_index, entry) in enumerate(entries):
+            self.check_max_downloads()
+
             if lazy:
                 resolved_entries.append((playlist_index, entry))
             if not entry:
@@ -3018,7 +3022,6 @@ class YoutubeDL:
                 if requested_ranges != ({}, ):
                     to_screen(f'Downloading {len(requested_ranges)} time ranges:',
                               (f'{c["start_time"]:.1f}-{c["end_time"]:.1f}' for c in requested_ranges))
-            max_downloads_reached = False
 
             for fmt, chapter in itertools.product(formats_to_download, requested_ranges):
                 new_info = self._copy_infodict(info_dict)
@@ -3036,17 +3039,12 @@ class YoutubeDL:
                         'section_number': chapter.get('index'),
                     })
                 downloaded_formats.append(new_info)
-                try:
-                    self.process_info(new_info)
-                except MaxDownloadsReached:
-                    max_downloads_reached = True
+                self.process_info(new_info)
                 self._raise_pending_errors(new_info)
                 # Remove copied info
                 for key, val in tuple(new_info.items()):
                     if info_dict.get(key) == val:
                         new_info.pop(key)
-                if max_downloads_reached:
-                    break
 
             write_archive = {f.get('__write_download_archive', False) for f in downloaded_formats}
             assert write_archive.issubset({True, False, 'ignore'})
@@ -3055,8 +3053,6 @@ class YoutubeDL:
 
             info_dict['requested_downloads'] = downloaded_formats
             info_dict = self.run_all_pps('after_video', info_dict)
-            if max_downloads_reached:
-                raise MaxDownloadsReached
 
         # We update the info dict with the selected best quality format (backwards compatibility)
         info_dict.update(best_format)
@@ -3237,12 +3233,18 @@ class YoutubeDL:
             os.remove(file)
         return None
 
+    def check_max_downloads(self):
+        if self._num_downloads >= float(self.params.get('max_downloads') or 'inf'):
+            raise MaxDownloadsReached
+
     @_catch_unsafe_extension_error
     def process_info(self, info_dict):
         """Process a single resolved IE result. (Modifies it in-place)"""
 
         assert info_dict.get('_type', 'video') == 'video'
         original_infodict = info_dict
+
+        self.check_max_downloads()
 
         if 'format' not in info_dict and 'ext' in info_dict:
             info_dict['format'] = info_dict['ext']
@@ -3263,7 +3265,6 @@ class YoutubeDL:
 
         new_info, _ = self.pre_process(info_dict, 'video')
         replace_info_dict(new_info)
-        self._num_downloads += 1
 
         # info_dict['_filename'] needs to be set for backward compatibility
         info_dict['_filename'] = full_filename = self.prepare_filename(info_dict, warn=True)
@@ -3273,13 +3274,9 @@ class YoutubeDL:
         # Forced printings
         self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
 
-        def check_max_downloads():
-            if self._num_downloads >= float(self.params.get('max_downloads') or 'inf'):
-                raise MaxDownloadsReached
-
         if self.params.get('simulate'):
             info_dict['__write_download_archive'] = self.params.get('force_write_download_archive')
-            check_max_downloads()
+            self.check_max_downloads()
             return
 
         if full_filename is None:
@@ -3598,7 +3595,7 @@ class YoutubeDL:
         assert info_dict is original_infodict  # Make sure the info_dict was modified in-place
         if self.params.get('force_write_download_archive'):
             info_dict['__write_download_archive'] = True
-        check_max_downloads()
+        self._num_downloads += 1
 
     def __download_wrapper(self, func):
         @functools.wraps(func)
