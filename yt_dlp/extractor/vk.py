@@ -1044,6 +1044,20 @@ class VKMusicPlaylistIE(VKMusicBaseIE):
             },
         },
         {
+            'note': 'special symbols must be unescaped',
+            'url': 'https://vk.com/music/playlist/-25611523_85178143',
+            'info_dict': {
+                'id': '-25611523_85178143',
+                'title': 'Mondträume – Lovers, Sinners & Liars (2019, Alfa Matrix)',
+                'uploader': 'E:\\music\\futurepop',
+                'thumbnails': [{'url': r're:^https?://.*\.jpg'}],
+            },
+            'playlist_count': 22,
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
             'url': 'https://vk.com/audios877252112?block=playlists&section=general&z=audio_playlist-147845620_2390',
             'info_dict': {
                 'id': '-147845620_2390',
