@@ -950,6 +950,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
         mobj = self._match_valid_url(url)
         track_id = mobj.group('id')
         access_hash = mobj.group('hash')
+        vk_id = self._parse_vk_id()
 
         if not access_hash:
             webpage = self._download_webpage(
@@ -963,7 +964,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
             if data_audio:
                 meta = self._parse_json(unescapeHTML(data_audio), track_id)
             else:
-                if self._parse_vk_id() == 0:
+                if vk_id == 0:
                     self.raise_login_required(
                         'This track is unavailable. '
                         'Log in or provide a link with access hash')
@@ -996,7 +997,7 @@ class VKMusicTrackIE(VKMusicBaseIE):
 
         meta = meta[0]
         self._raise_if_blocked(meta, track_id)
-        url = self._unmask_url(meta[2], self._parse_vk_id())
+        url = self._unmask_url(meta[2], vk_id)
 
         return {
             **self._parse_track_meta(meta, track_id),
