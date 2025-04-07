@@ -4,6 +4,27 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.03.31
+
+#### Core changes
+- [Add `--compat-options 2024`](https://github.com/yt-dlp/yt-dlp/commit/22e34adbd741e1c7072015debd615dc3fb71c401) ([#12789](https://github.com/yt-dlp/yt-dlp/issues/12789)) by [seproDev](https://github.com/seproDev)
+
+#### Extractor changes
+- **francaisfacile**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/bb321cfdc3fd4400598ddb12a15862bc2ac8fc10) ([#12787](https://github.com/yt-dlp/yt-dlp/issues/12787)) by [mlabeeb03](https://github.com/mlabeeb03)
+- **generic**: [Validate response before checking m3u8 live status](https://github.com/yt-dlp/yt-dlp/commit/9a1ec1d36e172d252714cef712a6d091e0a0c4f2) ([#12784](https://github.com/yt-dlp/yt-dlp/issues/12784)) by [bashonly](https://github.com/bashonly)
+- **microsoftlearnepisode**: [Extract more formats](https://github.com/yt-dlp/yt-dlp/commit/d63696f23a341ee36a3237ccb5d5e14b34c2c579) ([#12799](https://github.com/yt-dlp/yt-dlp/issues/12799)) by [bashonly](https://github.com/bashonly)
+- **mlbtv**: [Fix radio-only extraction](https://github.com/yt-dlp/yt-dlp/commit/f033d86b96b36f8c5289dd7c3304f42d4d9f6ff4) ([#12792](https://github.com/yt-dlp/yt-dlp/issues/12792)) by [bashonly](https://github.com/bashonly)
+- **on24**: [Support `mainEvent` URLs](https://github.com/yt-dlp/yt-dlp/commit/e465b078ead75472fcb7b86f6ccaf2b5d3bc4c21) ([#12800](https://github.com/yt-dlp/yt-dlp/issues/12800)) by [bashonly](https://github.com/bashonly)
+- **sbs**: [Fix subtitles extraction](https://github.com/yt-dlp/yt-dlp/commit/29560359120f28adaaac67c86fa8442eb72daa0d) ([#12785](https://github.com/yt-dlp/yt-dlp/issues/12785)) by [bashonly](https://github.com/bashonly)
+- **stvr**: [Rename extractor from RTVS to STVR](https://github.com/yt-dlp/yt-dlp/commit/5fc521cbd0ce7b2410d0935369558838728e205d) ([#12788](https://github.com/yt-dlp/yt-dlp/issues/12788)) by [mireq](https://github.com/mireq)
+- **twitch**: clips: [Extract portrait formats](https://github.com/yt-dlp/yt-dlp/commit/61046c31612b30c749cbdae934b7fe26abe659d7) ([#12763](https://github.com/yt-dlp/yt-dlp/issues/12763)) by [DmitryScaletta](https://github.com/DmitryScaletta)
+- **youtube**
+    - [Add `player_js_variant` extractor-arg](https://github.com/yt-dlp/yt-dlp/commit/07f04005e40ebdb368920c511e36e98af0077ed3) ([#12767](https://github.com/yt-dlp/yt-dlp/issues/12767)) by [bashonly](https://github.com/bashonly)
+    - tab: [Fix playlist continuation extraction](https://github.com/yt-dlp/yt-dlp/commit/6a6d97b2cbc78f818de05cc96edcdcfd52caa259) ([#12777](https://github.com/yt-dlp/yt-dlp/issues/12777)) by [coletdjnz](https://github.com/coletdjnz)
+
+#### Misc. changes
+- **cleanup**: Miscellaneous: [5e457af](https://github.com/yt-dlp/yt-dlp/commit/5e457af57fae9645b1b8fa0ed689229c8fb9656b) by [bashonly](https://github.com/bashonly)
+
 ### 2025.03.27
 
 #### Core changes

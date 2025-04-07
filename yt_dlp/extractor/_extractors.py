@@ -683,6 +683,7 @@ from .foxnews import (
 )
 from .foxsports import FoxSportsIE
 from .fptplay import FptplayIE
+from .francaisfacile import FrancaisFacileIE
 from .franceinter import FranceInterIE
 from .francetv import (
     FranceTVIE,
@@ -902,6 +903,7 @@ from .ivi import (
     IviIE,
 )
 from .ivideon import IvideonIE
+from .ivoox import IvooxIE
 from .iwara import (
     IwaraIE,
     IwaraPlaylistIE,
@@ -959,7 +961,10 @@ from .kick import (
 )
 from .kicker import KickerIE
 from .kickstarter import KickStarterIE
-from .kika import KikaIE
+from .kika import (
+    KikaIE,
+    KikaPlaylistIE,
+)
 from .kinja import KinjaEmbedIE
 from .kinopoisk import KinoPoiskIE
 from .kommunetv import KommunetvIE
@@ -1060,6 +1065,7 @@ from .loom import (
 from .lovehomeporn import LoveHomePornIE
 from .lrt import (
     LRTVODIE,
+    LRTRadioIE,
     LRTStreamIE,
 )
 from .lsm import (
@@ -1492,6 +1498,10 @@ from .paramountplus import (
 )
 from .parler import ParlerIE
 from .parlview import ParlviewIE
+from .parti import (
+    PartiLivestreamIE,
+    PartiVideoIE,
+)
 from .patreon import (
     PatreonCampaignIE,
     PatreonIE,
@@ -1738,6 +1748,7 @@ from .roosterteeth import (
     RoosterTeethSeriesIE,
 )
 from .rottentomatoes import RottenTomatoesIE
+from .roya import RoyaLiveIE
 from .rozhlas import (
     MujRozhlasIE,
     RozhlasIE,
