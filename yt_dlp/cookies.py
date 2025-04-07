@@ -1327,18 +1327,20 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 raise ValueError(http.cookiejar.MISSING_FILENAME_TEXT)
 
         def prepare_line(line):
+            assert line.endswith('\n')
+            line = line[:-1]
             if line.startswith(self._HTTPONLY_PREFIX):
                 line = line[len(self._HTTPONLY_PREFIX):]
             # comments and empty lines are fine
             if line.startswith('#') or not line.strip():
-                return line
+                return line + '\n'
             cookie_list = line.split('\t')
             if len(cookie_list) != self._ENTRY_LEN:
                 raise http.cookiejar.LoadError(f'invalid length {len(cookie_list)}')
             cookie = self._CookieFileEntry(*cookie_list)
             if cookie.expires_at and not cookie.expires_at.isdigit():
                 raise http.cookiejar.LoadError(f'invalid expires at {cookie.expires_at}')
-            return line
+            return line + '\n'
 
         cf = io.StringIO()
         with self.open(filename) as f:
