@@ -3874,7 +3874,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not traverse_obj(initial_data, 'contents'):
                 self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
                 initial_data = None
-        if not initial_data:
+        if not initial_data and 'initial_data' not in self._configuration_arg('player_skip'):
             query = {'videoId': video_id}
             query.update(self._get_checkok_params())
             initial_data = self._extract_response(
