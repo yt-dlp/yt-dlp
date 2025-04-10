@@ -39,6 +39,7 @@ from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import brotli, curl_cffi, requests, urllib3
 from yt_dlp.networking import (
     HEADRequest,
+    PATCHRequest,
     PUTRequest,
     Request,
     RequestDirector,
@@ -1856,6 +1857,7 @@ class TestRequest:
 
     def test_request_helpers(self):
         assert HEADRequest('http://example.com').method == 'HEAD'
+        assert PATCHRequest('http://example.com').method == 'PATCH'
         assert PUTRequest('http://example.com').method == 'PUT'
 
     def test_headers(self):
