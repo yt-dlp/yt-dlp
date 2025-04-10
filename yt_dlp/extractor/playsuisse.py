@@ -120,6 +120,12 @@ class PlaySuisseIE(InfoExtractor):
             id
             name
             description
+            descriptionLong
+            year
+            contentTypes
+            directors
+            mainCast
+            productionCountries
             duration
             episodeNumber
             seasonNumber
@@ -215,9 +221,7 @@ class PlaySuisseIE(InfoExtractor):
         if not self._ID_TOKEN:
             raise ExtractorError('Login failed')
 
-    def _get_media_data(self, media_id):
-        # NOTE In the web app, the "locale" header is used to switch between languages,
-        # However this doesn't seem to take effect when passing the header here.
+    def _get_media_data(self, media_id, locale):
         response = self._download_json(
             'https://www.playsuisse.ch/api/graphql',
             media_id, data=json.dumps({
@@ -225,8 +229,7 @@ class PlaySuisseIE(InfoExtractor):
                 'query': self._GRAPHQL_QUERY,
                 'variables': {'assetId': media_id},
             }).encode(),
-            headers={'Content-Type': 'application/json', 'locale': 'de'})
-
+            headers={'Content-Type': 'application/json', 'locale': locale})
         return response['data']['assetV2']
 
     def _real_extract(self, url):
@@ -234,7 +237,7 @@ class PlaySuisseIE(InfoExtractor):
             self.raise_login_required(method='password')
 
         media_id = self._match_id(url)
-        media_data = self._get_media_data(media_id)
+        media_data = self._get_media_data(media_id, traverse_obj(parse_qs(url), ('locale', 0), default='de'))
         info = self._extract_single(media_data)
         if media_data.get('episodes'):
             info.update({
@@ -257,15 +260,20 @@ class PlaySuisseIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
 
         return {
-            'id': media_data['id'],
-            'title': media_data.get('name'),
-            'description': media_data.get('description'),
+            'id': traverse_obj(media_data, 'id'),
+            'title': traverse_obj(media_data, 'name'),
+            'description': traverse_obj(media_data, 'descriptionLong') or traverse_obj(media_data, 'description'),
+            'genres': traverse_obj(media_data, 'contentTypes'),
+            'creators': traverse_obj(media_data, 'directors'),
+            'cast': traverse_obj(media_data, 'mainCast'),
+            'location': traverse_obj(media_data, 'productionCountries'),
+            'release_year': int_or_none(traverse_obj(media_data, 'year', lambda _, x: x[:4])),
             'thumbnails': thumbnails,
-            'duration': int_or_none(media_data.get('duration')),
+            'duration': int_or_none(traverse_obj(media_data, 'duration')),
             'formats': formats,
             'subtitles': subtitles,
-            'series': media_data.get('seriesName'),
-            'season_number': int_or_none(media_data.get('seasonNumber')),
-            'episode': media_data.get('name') if media_data.get('episodeNumber') else None,
-            'episode_number': int_or_none(media_data.get('episodeNumber')),
+            'series': traverse_obj(media_data, 'seriesName'),
+            'season_number': int_or_none(traverse_obj(media_data, 'seasonNumber')),
+            'episode': traverse_obj(media_data, 'name') if traverse_obj(media_data, 'episodeNumber') else None,
+            'episode_number': int_or_none(traverse_obj(media_data, 'episodeNumber')),
         }
