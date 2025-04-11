@@ -1,5 +1,0 @@
-
-{{commands}}
-
-
-complete --command yt-dlp --arguments ":ytfavorites :ytrecommended :ytsubscriptions :ytwatchlater :ythistory"
