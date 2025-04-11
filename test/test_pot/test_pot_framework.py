@@ -199,14 +199,14 @@ class TestPoTokenProvider:
         assert sent_request.proxies == {'http': 'http://example-proxy-override.com'}
         assert sent_request.extensions['cookiejar'] is not cookiejar_request
 
-    def test_get_setting(self, ie, logger):
+    def test_get_config_arg(self, ie, logger):
         provider = ExamplePTP(ie=ie, logger=logger, settings={'abc': ['123D'], 'xyz': ['456a', '789B']})
 
-        assert provider.get_setting('abc') == ['123d']
-        assert provider.get_setting('abc', default=['default']) == ['123d']
-        assert provider.get_setting('ABC', default=['default']) == ['default']
-        assert provider.get_setting('abc', casesense=True) == ['123D']
-        assert provider.get_setting('xyz', casesense=False) == ['456a', '789b']
+        assert provider._configuration_arg('abc') == ['123d']
+        assert provider._configuration_arg('abc', default=['default']) == ['123d']
+        assert provider._configuration_arg('ABC', default=['default']) == ['default']
+        assert provider._configuration_arg('abc', casesense=True) == ['123D']
+        assert provider._configuration_arg('xyz', casesense=False) == ['456a', '789b']
 
     def test_require_class_end_with_suffix(self, ie, logger):
         class InvalidSuffix(PoTokenProvider):
@@ -314,13 +314,13 @@ class TestPoTokenCacheProvider:
         assert provider.BUG_REPORT_MESSAGE == 'please report this issue to the provider developer at  https://example.com/issues  .'
         assert provider.is_available()
 
-    def test_get_setting(self, ie, logger):
+    def test_get_config_arg(self, ie, logger):
         provider = ExampleCacheProviderPCP(ie=ie, logger=logger, settings={'abc': ['123D'], 'xyz': ['456a', '789B']})
-        assert provider.get_setting('abc') == ['123d']
-        assert provider.get_setting('abc', default=['default']) == ['123d']
-        assert provider.get_setting('ABC', default=['default']) == ['default']
-        assert provider.get_setting('abc', casesense=True) == ['123D']
-        assert provider.get_setting('xyz', casesense=False) == ['456a', '789b']
+        assert provider._configuration_arg('abc') == ['123d']
+        assert provider._configuration_arg('abc', default=['default']) == ['123d']
+        assert provider._configuration_arg('ABC', default=['default']) == ['default']
+        assert provider._configuration_arg('abc', casesense=True) == ['123D']
+        assert provider._configuration_arg('xyz', casesense=False) == ['456a', '789b']
 
     def test_require_class_end_with_suffix(self, ie, logger):
         class InvalidSuffix(PoTokenCacheProvider):
@@ -384,14 +384,14 @@ class TestPoTokenCacheSpecProvider:
         assert provider.generate_cache_spec(pot_request).default_ttl == 60
         assert provider.generate_cache_spec(pot_request).write_policy == CacheProviderWritePolicy.WRITE_FIRST
 
-    def test_get_setting(self, ie, logger):
+    def test_get_config_arg(self, ie, logger):
         provider = ExampleCacheSpecProviderPCSP(ie=ie, logger=logger, settings={'abc': ['123D'], 'xyz': ['456a', '789B']})
 
-        assert provider.get_setting('abc') == ['123d']
-        assert provider.get_setting('abc', default=['default']) == ['123d']
-        assert provider.get_setting('ABC', default=['default']) == ['default']
-        assert provider.get_setting('abc', casesense=True) == ['123D']
-        assert provider.get_setting('xyz', casesense=False) == ['456a', '789b']
+        assert provider._configuration_arg('abc') == ['123d']
+        assert provider._configuration_arg('abc', default=['default']) == ['123d']
+        assert provider._configuration_arg('ABC', default=['default']) == ['default']
+        assert provider._configuration_arg('abc', casesense=True) == ['123D']
+        assert provider._configuration_arg('xyz', casesense=False) == ['456a', '789b']
 
     def test_require_class_end_with_suffix(self, ie, logger):
         class InvalidSuffix(PoTokenCacheSpecProvider):

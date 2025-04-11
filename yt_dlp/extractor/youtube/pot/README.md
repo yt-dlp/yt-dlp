@@ -88,7 +88,7 @@ class MyPoTokenProviderPTP(PoTokenProvider):  # Provider name must end with "PTP
 
         # ℹ️ Settings are pulled from extractor args passed to yt-dlp with the key `youtubepot-<PROVIDER_KEY>`.
         # For this example, the extractor arg would be `--extractor-args "youtubepot-mypotokenprovider:url=https://custom.example.com/get_pot"`
-        external_provider_url = self.get_setting('url', default=['https://provider.example.com/get_pot'])[0]
+        external_provider_url = self._configuration_arg('url', default=['https://provider.example.com/get_pot'])[0]
 
         # You should use the internal HTTP client to make requests where possible,
         # as it will handle cookies and other networking settings passed to yt-dlp.
@@ -201,7 +201,7 @@ class MyCacheProviderPCP(PoTokenCacheProvider):  # Provider name must end with "
 
     def get(self, key: str):
         # ℹ️ Similar to PO Token Providers, Cache Providers and Cache Spec Providers are passed down extractor args matching key youtubepot-<PROVIDER_KEY>.
-        some_setting = self.get_setting('some_setting', default=['default_value'])[0]
+        some_setting = self._configuration_arg('some_setting', default=['default_value'])[0]
         return self.my_cache.get(key)
 
     def store(self, key: str, value: str, expires_at: str):

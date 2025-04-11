@@ -19,7 +19,7 @@ class WebPoPCSP(PoTokenCacheSpecProvider, BuiltInIEContentProvider):
     PROVIDER_NAME = 'webpo'
 
     def generate_cache_spec(self, request: PoTokenRequest) -> PoTokenCacheSpec | None:
-        bind_to_visitor_id = self.get_setting('bind_to_visitor_id', default=['true'])[0] == 'true'
+        bind_to_visitor_id = self._configuration_arg('bind_to_visitor_id', default=['true'])[0] == 'true'
         content_binding, content_binding_type = get_webpo_content_binding(
             request, bind_to_visitor_id=bind_to_visitor_id)
 

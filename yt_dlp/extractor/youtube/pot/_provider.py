@@ -82,7 +82,7 @@ class IEContentProvider(abc.ABC):
     def close(self):  # noqa: B027
         pass
 
-    def get_setting(self, key, default=NO_DEFAULT, *, casesense=False):
+    def _configuration_arg(self, key, default=NO_DEFAULT, *, casesense=False):
         '''
         @returns            A list of values for the setting given by "key"
                             or "default" if no such key is present
