@@ -204,7 +204,7 @@ class MyCacheProviderPCP(PoTokenCacheProvider):  # Provider name must end with "
         some_setting = self._configuration_arg('some_setting', default=['default_value'])[0]
         return self.my_cache.get(key)
 
-    def store(self, key: str, value: str, expires_at: str):
+    def store(self, key: str, value: str, expires_at: int):
         self.my_cache.store(key, value, expires_at)
 
     def delete(self, key: str):
