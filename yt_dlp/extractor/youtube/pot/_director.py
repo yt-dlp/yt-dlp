@@ -44,30 +44,34 @@ if typing.TYPE_CHECKING:
 
 
 class YoutubeIEContentProviderLogger(IEContentProviderLogger):
-    def __init__(self, ie, prefix, enable_trace=False):
+    def __init__(self, ie, prefix, log_level=IEContentProviderLogger.LogLevel.INFO):
         self.__ie = ie
         self.prefix = prefix
-        self.enable_trace = enable_trace
+        self.log_level = log_level
 
     def _format_msg(self, message: str):
         prefixstr = format_field(self.prefix, None, '[%s] ')
         return f'{prefixstr}{message}'
 
     def trace(self, message: str):
-        if self.enable_trace:
+        if self.log_level <= self.LogLevel.TRACE:
             self.__ie.write_debug(self._format_msg('TRACE: ' + message))
 
     def debug(self, message: str):
-        self.__ie.write_debug(self._format_msg(message))
+        if self.log_level <= self.LogLevel.DEBUG:
+            self.__ie.write_debug(self._format_msg(message))
 
     def info(self, message: str):
-        self.__ie.to_screen(self._format_msg(message))
+        if self.log_level <= self.LogLevel.INFO:
+            self.__ie.to_screen(self._format_msg(message))
 
     def warning(self, message: str, *, once=False):
-        self.__ie.report_warning(self._format_msg(message), only_once=once)
+        if self.log_level <= self.LogLevel.WARNING:
+            self.__ie.report_warning(self._format_msg(message), only_once=once)
 
     def error(self, message: str):
-        self.__ie._downloader.report_error(self._format_msg(message), is_error=False)
+        if self.log_level <= self.LogLevel.ERROR:
+            self.__ie._downloader.report_error(self._format_msg(message), is_error=False)
 
 
 class PoTokenCache:
@@ -90,20 +94,21 @@ class PoTokenCache:
 
         self.logger = logger
 
-    def _get_available_providers(self) -> Iterable[PoTokenCacheProvider]:
-        return (provider for provider in self.cache_providers.values() if provider.is_available())
-
-    def _get_cache_providers(self, request: PoTokenRequest) -> list[PoTokenCacheProvider]:
-        """Sorts cache providers by preference, given a request"""
+    def _get_cache_providers(self, request: PoTokenRequest) -> Iterable[PoTokenCacheProvider]:
+        """Sorts available cache providers by preference, given a request"""
         preferences = {
             provider: sum(pref(provider, request) for pref in self.cache_provider_preferences)
-            for provider in self._get_available_providers()
+            for provider in self.cache_providers.values()
         }
-        self.logger.trace(f'Available PO Token Providers: {provider_display_list(self._get_available_providers())}')
-        self.logger.trace('Cache Provider preferences for this request: {}'.format(', '.join(
-            f'{provider.PROVIDER_KEY}={pref}' for provider, pref in preferences.items())))
+        if self.logger.log_level <= self.logger.LogLevel.TRACE:
+            # calling is_available() for every PO Token provider upfront may have some overhead
+            self.logger.trace(f'PO Token Cache Providers: {provider_display_list(self.cache_providers.values())}')
+            self.logger.trace('Cache Provider preferences for this request: {}'.format(', '.join(
+                f'{provider.PROVIDER_KEY}={pref}' for provider, pref in preferences.items())))
 
-        return sorted(self._get_available_providers(), key=preferences.get, reverse=True)
+        return (
+            provider for provider in sorted(self.cache_providers.values(), key=preferences.get, reverse=True) if provider.is_available()
+        )
 
     def _get_cache_spec(self, request: PoTokenRequest) -> PoTokenCacheSpec | None:
         for provider in self.cache_spec_providers.values():
@@ -150,6 +155,7 @@ class PoTokenCache:
 
         for idx, provider in enumerate(self._get_cache_providers(request)):
             try:
+                self.logger.trace(f'Attempting to fetch PO Token response from "{provider.PROVIDER_NAME}" cache provider')
                 cache_response = provider.get(cache_key)
                 if not cache_response:
                     continue
@@ -199,24 +205,22 @@ class PoTokenCache:
         self.logger.trace(f'Using write policy: {write_policy}')
 
         for idx, provider in enumerate(self._get_cache_providers(request)):
-            # WRITE_FIRST should not write to lower priority providers in the case the highest priority provider fails
-            if idx > 0 and write_policy == CacheProviderWritePolicy.WRITE_FIRST:
-                return
             try:
                 self.logger.trace(
                     f'Caching PO Token response in "{provider.PROVIDER_NAME}" cache provider (key={cache_key}, expires_at={cache_response.expires_at})',
                 )
                 provider.store(key=cache_key, value=json.dumps(dataclasses.asdict(cache_response)), expires_at=cache_response.expires_at)
-
             except PoTokenCacheProviderError as e:
                 self.logger.warning(
                     f'Error from "{provider.PROVIDER_NAME}" PO Token cache provider: {e!r}{provider_bug_report_message(provider) if not e.expected else ""}')
-                continue
             except Exception as e:
                 self.logger.error(
                     f'Error occurred with "{provider.PROVIDER_NAME}" PO Token cache provider: {e!r}{provider_bug_report_message(provider)}',
                 )
-                continue
+
+            # WRITE_FIRST should not write to lower priority providers in the case the highest priority provider fails
+            if idx == 0 and write_policy == CacheProviderWritePolicy.WRITE_FIRST:
+                return
 
     def close(self):
         for provider in self.cache_providers.values():
@@ -239,21 +243,21 @@ class PoTokenRequestDirector:
     def register_preference(self, preference):
         self.preferences.append(preference)
 
-    def _get_available_providers(self) -> list[PoTokenProvider]:
-        return [provider for provider in self.providers.values() if provider.is_available()]
-
-    def _get_providers(self, request: PoTokenRequest) -> list[PoTokenProvider]:
+    def _get_providers(self, request: PoTokenRequest) -> Iterable[PoTokenProvider]:
         """Sorts available providers by preference, given a request"""
         preferences = {
             provider: sum(pref(provider, request) for pref in self.preferences)
-            for provider in self._get_available_providers()
-            if provider.is_available()
+            for provider in self.providers.values()
         }
-        self.logger.trace(f'Available PO Token Providers: {provider_display_list(self._get_available_providers())}')
-        self.logger.trace('Provider preferences for this request: {}'.format(', '.join(
-            f'{provider.PROVIDER_NAME}={pref}' for provider, pref in preferences.items())))
+        if self.logger.log_level <= self.logger.LogLevel.TRACE:
+            # calling is_available() for every PO Token provider upfront may have some overhead
+            self.logger.trace(f'PO Token Providers: {provider_display_list(self.providers.values())}')
+            self.logger.trace('Provider preferences for this request: {}'.format(', '.join(
+                f'{provider.PROVIDER_NAME}={pref}' for provider, pref in preferences.items())))
 
-        return sorted(self._get_available_providers(), key=preferences.get, reverse=True)
+        return (
+            provider for provider in sorted(self.providers.values(), key=preferences.get, reverse=True) if provider.is_available()
+        )
 
     def _get_po_token(self, request) -> PoTokenResponse | None:
         for provider in self._get_providers(request):
@@ -322,45 +326,49 @@ def initialize_pot_director(ie):
     if not ie._downloader:
         raise ExtractorError('Downloader not set', expected=False)
 
-    enable_trace = ie._configuration_arg('pot_debug', ['false'], ie_key='youtube', casesense=False)[0] == 'true'
+    log_level = min(
+        IEContentProviderLogger.LogLevel(ie._configuration_arg('pot_log_level', ['INFO'], ie_key='youtube', casesense=False)[0].upper()),
+        IEContentProviderLogger.LogLevel.DEBUG if ie._downloader.params.get('verbose', False) else IEContentProviderLogger.LogLevel.INFO,
+    )
 
     cache_providers = []
     for cache_provider in _pot_cache_providers.value.values():
         settings = traverse_obj(ie._downloader.params, ('extractor_args', f'{EXTRACTOR_ARG_PREFIX}-{cache_provider.PROVIDER_KEY.lower()}'))
-        cache_provider_logger = YoutubeIEContentProviderLogger(ie, f'pot:cache:{cache_provider.PROVIDER_NAME}', enable_trace=enable_trace)
+        cache_provider_logger = YoutubeIEContentProviderLogger(ie, f'pot:cache:{cache_provider.PROVIDER_NAME}', log_level=log_level)
         cache_providers.append(cache_provider(ie, cache_provider_logger, settings or {}))
 
     cache_spec_providers = []
     for cache_spec_provider in _pot_pcs_providers.value.values():
         settings = traverse_obj(ie._downloader.params, ('extractor_args', f'{EXTRACTOR_ARG_PREFIX}-{cache_spec_provider.PROVIDER_KEY.lower()}'))
-        cache_spec_provider_logger = YoutubeIEContentProviderLogger(ie, f'pot:cache:spec:{cache_spec_provider.PROVIDER_NAME}', enable_trace=enable_trace)
+        cache_spec_provider_logger = YoutubeIEContentProviderLogger(ie, f'pot:cache:spec:{cache_spec_provider.PROVIDER_NAME}', log_level=log_level)
         cache_spec_providers.append(cache_spec_provider(ie, cache_spec_provider_logger, settings or {}))
 
     cache = PoTokenCache(
-        logger=YoutubeIEContentProviderLogger(ie, 'pot:cache', enable_trace=enable_trace),
+        logger=YoutubeIEContentProviderLogger(ie, 'pot:cache', log_level=log_level),
         cache_providers=cache_providers,
         cache_spec_providers=cache_spec_providers,
         cache_provider_preferences=list(_pot_cache_provider_preferences.value),
     )
 
     director = PoTokenRequestDirector(
-        logger=YoutubeIEContentProviderLogger(ie, 'pot', enable_trace=enable_trace),
+        logger=YoutubeIEContentProviderLogger(ie, 'pot', log_level=log_level),
         cache=cache,
     )
 
     for provider in _pot_providers.value.values():
         settings = traverse_obj(ie._downloader.params, ('extractor_args', f'{EXTRACTOR_ARG_PREFIX}-{provider.PROVIDER_KEY.lower()}'))
-        logger = YoutubeIEContentProviderLogger(ie, f'pot:{provider.PROVIDER_NAME}', enable_trace=enable_trace)
+        logger = YoutubeIEContentProviderLogger(ie, f'pot:{provider.PROVIDER_NAME}', log_level=log_level)
         director.register_provider(provider(ie, logger, settings or {}))
 
     for preference in _ptp_preferences.value:
         director.register_preference(preference)
 
-    director.logger.debug(f'PO Token Providers: {provider_display_list(director.providers.values())}')
-    director.logger.debug(f'PO Token Cache Providers: {provider_display_list(cache.cache_providers.values())}')
-    director.logger.debug(f'PO Token Cache Spec Providers: {provider_display_list(cache.cache_spec_providers.values())}')
-    director.logger.trace(f'Registered {len(director.preferences)} provider preferences')
-    director.logger.trace(f'Registered {len(cache.cache_provider_preferences)} cache provider preferences')
+    if director.logger.log_level <= director.logger.LogLevel.DEBUG:
+        director.logger.debug(f'PO Token Providers: {provider_display_list(director.providers.values())}')
+        director.logger.debug(f'PO Token Cache Providers: {provider_display_list(cache.cache_providers.values())}')
+        director.logger.debug(f'PO Token Cache Spec Providers: {provider_display_list(cache.cache_spec_providers.values())}')
+        director.logger.trace(f'Registered {len(director.preferences)} provider preferences')
+        director.logger.trace(f'Registered {len(cache.cache_provider_preferences)} cache provider preferences')
 
     return director
 

@@ -505,3 +505,10 @@ def test_register_cache_provider_preference(ie):
         return 1
 
     assert len(_pot_cache_provider_preferences.value) == before + 1
+
+
+def test_logger_log_level(logger):
+    assert logger.LogLevel('INFO') == logger.LogLevel.INFO
+    assert logger.LogLevel('debuG') == logger.LogLevel.DEBUG
+    assert logger.LogLevel(10) == logger.LogLevel.DEBUG
+    assert logger.LogLevel('UNKNOWN') == logger.LogLevel.INFO

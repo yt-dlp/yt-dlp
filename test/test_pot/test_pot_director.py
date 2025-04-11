@@ -240,9 +240,11 @@ class BaseMockCacheProvider(PoTokenCacheProvider, abc.ABC):
         self.store_calls = 0
         self.delete_calls = 0
         self.get_calls = 0
+        self.available_called_times = 0
         self.available = available
 
     def is_available(self) -> bool:
+        self.available_called_times += 1
         return self.available
 
     def store(self, *args, **kwargs):
@@ -303,9 +305,10 @@ class MockMemoryPCP(BaseMockCacheProvider):
         return self.cache.get(key, [None])[0]
 
 
-def create_memory_pcp(ie, logger, provider_key='memory'):
-    cache = MockMemoryPCP(ie, logger, {})
+def create_memory_pcp(ie, logger, provider_key='memory', provider_name='memory', available=True):
+    cache = MockMemoryPCP(ie, logger, {}, available=available)
     cache.PROVIDER_KEY = provider_key
+    cache.PROVIDER_NAME = provider_name
     return cache
 
 
@@ -921,6 +924,96 @@ class TestPoTokenCache:
 
         assert logger.messages['error'].count("Error occurred with \"unexpected_error\" PO Token cache provider: ValueError('something went wrong'); example bug report message") == 3
 
+    def test_cache_provider_unavailable_no_fallback(self, pot_request, ie, logger):
+        provider = create_memory_pcp(ie, logger, available=False)
+
+        cache = PoTokenCache(
+            cache_providers=[provider],
+            cache_spec_providers=[ExampleCacheSpecProviderPCSP(ie=ie, logger=logger, settings={})],
+            logger=logger,
+        )
+
+        response = PoTokenResponse(EXAMPLE_PO_TOKEN)
+        cache.store(pot_request, response)
+        assert cache.get(pot_request) is None
+        assert provider.get_calls == 0
+        assert provider.store_calls == 0
+        assert provider.available_called_times
+
+    def test_cache_provider_unavailable_fallback(self, pot_request, ie, logger):
+        provider_unavailable = create_memory_pcp(ie, logger, provider_key='unavailable', provider_name='unavailable', available=False)
+        provider_available = create_memory_pcp(ie, logger, provider_key='available', provider_name='available')
+
+        cache = PoTokenCache(
+            cache_providers=[provider_unavailable, provider_available],
+            cache_spec_providers=[ExampleCacheSpecProviderPCSP(ie=ie, logger=logger, settings={})],
+            logger=logger,
+        )
+
+        response = PoTokenResponse(EXAMPLE_PO_TOKEN)
+        cache.store(pot_request, response)
+        assert cache.get(pot_request) is not None
+        assert provider_unavailable.get_calls == 0
+        assert provider_unavailable.store_calls == 0
+        assert provider_available.get_calls == 1
+        assert provider_available.store_calls == 1
+        assert provider_unavailable.available_called_times
+        assert provider_available.available_called_times
+
+        # should not even try to use the provider for the request
+        assert 'Attempting to fetch a PO Token response from "unavailable" provider' not in logger.messages['trace']
+        assert 'Attempting to fetch a PO Token response from "available" provider' not in logger.messages['trace']
+
+    def test_available_not_called(self, ie, pot_request, logger):
+        # Test that the available method is not called when provider higher in the list is available
+        provider_unavailable = create_memory_pcp(
+            ie, logger, provider_key='unavailable', provider_name='unavailable', available=False)
+        provider_available = create_memory_pcp(ie, logger, provider_key='available', provider_name='available')
+
+        logger.log_level = logger.LogLevel.INFO
+
+        cache = PoTokenCache(
+            cache_providers=[provider_available, provider_unavailable],
+            cache_spec_providers=[ExampleCacheSpecProviderPCSP(ie=ie, logger=logger, settings={})],
+            logger=logger,
+        )
+
+        response = PoTokenResponse(EXAMPLE_PO_TOKEN)
+        cache.store(pot_request, response, write_policy=CacheProviderWritePolicy.WRITE_FIRST)
+        assert cache.get(pot_request) is not None
+        assert provider_unavailable.get_calls == 0
+        assert provider_unavailable.store_calls == 0
+        assert provider_available.get_calls == 1
+        assert provider_available.store_calls == 1
+        assert provider_unavailable.available_called_times == 0
+        assert provider_available.available_called_times
+        assert 'PO Token Cache Providers: available-0.0.0 (external), unavailable-0.0.0 (external, unavailable)' not in logger.messages.get('trace', [])
+
+    def test_available_called_trace(self, ie, pot_request, logger):
+        # But if logging level is trace should call available (as part of debug logging)
+        provider_unavailable = create_memory_pcp(
+            ie, logger, provider_key='unavailable', provider_name='unavailable', available=False)
+        provider_available = create_memory_pcp(ie, logger, provider_key='available', provider_name='available')
+
+        logger.log_level = logger.LogLevel.TRACE
+
+        cache = PoTokenCache(
+            cache_providers=[provider_available, provider_unavailable],
+            cache_spec_providers=[ExampleCacheSpecProviderPCSP(ie=ie, logger=logger, settings={})],
+            logger=logger,
+        )
+
+        response = PoTokenResponse(EXAMPLE_PO_TOKEN)
+        cache.store(pot_request, response, write_policy=CacheProviderWritePolicy.WRITE_FIRST)
+        assert cache.get(pot_request) is not None
+        assert provider_unavailable.get_calls == 0
+        assert provider_unavailable.store_calls == 0
+        assert provider_available.get_calls == 1
+        assert provider_available.store_calls == 1
+        assert provider_unavailable.available_called_times
+        assert provider_available.available_called_times
+        assert 'PO Token Cache Providers: available-0.0.0 (external), unavailable-0.0.0 (external, unavailable)' in logger.messages.get('trace', [])
+
     def test_close(self, ie, pot_request, logger):
         # Should call close on the cache providers and cache specs
         memory_pcp = create_memory_pcp(ie, logger, provider_key='memory')
@@ -1172,7 +1265,40 @@ class TestPoTokenRequestDirector:
         assert pot_provider.request_called_times == 1
         assert pot_provider.available_called_times
         # should not even try use the provider for the request
-        assert 'Provider preferences for this request: success=0' in logger.messages['trace']
+        assert 'Attempting to fetch a PO Token from "unavailable" provider' not in logger.messages['trace']
+        assert 'Attempting to fetch a PO Token from "success" provider' in logger.messages['trace']
+
+    def test_available_not_called(self, ie, logger, pot_cache, pot_request, pot_provider):
+        # Test that the available method is not called when provider higher in the list is available
+        logger.log_level = logger.LogLevel.INFO
+        director = PoTokenRequestDirector(logger=logger, cache=pot_cache)
+        provider = UnavailablePTP(ie, logger, {})
+        director.register_provider(pot_provider)
+        director.register_provider(provider)
+
+        response = director.get_po_token(pot_request)
+        assert response == EXAMPLE_PO_TOKEN
+        assert provider.request_called_times == 0
+        assert provider.available_called_times == 0
+        assert pot_provider.request_called_times == 1
+        assert pot_provider.available_called_times == 2
+        assert 'PO Token Providers: success-0.0.1 (external), unavailable-0.0.0 (external, unavailable)' not in logger.messages.get('trace', [])
+
+    def test_available_called_trace(self, ie, logger, pot_cache, pot_request, pot_provider):
+        # But if logging level is trace should call available (as part of debug logging)
+        logger.log_level = logger.LogLevel.TRACE
+        director = PoTokenRequestDirector(logger=logger, cache=pot_cache)
+        provider = UnavailablePTP(ie, logger, {})
+        director.register_provider(pot_provider)
+        director.register_provider(provider)
+
+        response = director.get_po_token(pot_request)
+        assert response == EXAMPLE_PO_TOKEN
+        assert provider.request_called_times == 0
+        assert provider.available_called_times == 1
+        assert pot_provider.request_called_times == 1
+        assert pot_provider.available_called_times == 3
+        assert 'PO Token Providers: success-0.0.1 (external), unavailable-0.0.0 (external, unavailable)' in logger.messages['trace']
 
     def test_provider_error_no_fallback_unexpected(self, ie, logger, pot_cache, pot_request):
         director = PoTokenRequestDirector(logger=logger, cache=pot_cache)

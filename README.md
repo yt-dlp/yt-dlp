@@ -1786,7 +1786,7 @@ The following extractors use this feature:
 
 ##### PO Token settings
 * `po_token`:  Proof of Origin (PO) Token(s) to use. Comma seperated list of PO Tokens in the format `CLIENT.CONTEXT+PO_TOKEN`, e.g. `youtube:po_token=web.gvs+XXX,web.player=XXX,web_safari.gvs+YYY`. Context can be either `gvs` (Google Video Server URLs) or `player` (Innertube player request)
-* `pot_debug`: Enable debug logging for PO Token fetching. Either `true` or `false` (default `false`)
+* `pot_log_level`: PO Token provider log level. One of `TRACE`, `DEBUG`, `INFO`, `WARNING`, `ERROR`. Default is `DEBUG` if `-v` is used, otherwise `INFO`
 * `fetch_pot`: Policy to use for fetching a PO Token from providers. `always` to always try fetch a PO Token regardless if the client requires one for the given context. `when_required` to only fetch a PO Token if the client requires one for the given context (default)
 
 ###### youtubepot-webpo

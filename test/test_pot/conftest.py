@@ -10,6 +10,8 @@ from yt_dlp.utils.networking import HTTPHeaderDict
 
 class MockLogger(IEContentProviderLogger):
 
+    log_level = IEContentProviderLogger.LogLevel.TRACE
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.messages = {}

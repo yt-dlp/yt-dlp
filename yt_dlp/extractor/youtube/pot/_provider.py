@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import enum
 import functools
 
 from yt_dlp.extractor.common import InfoExtractor
@@ -11,6 +12,25 @@ from yt_dlp.version import __version__
 
 
 class IEContentProviderLogger(abc.ABC):
+
+    class LogLevel(enum.IntEnum):
+        TRACE = 0
+        DEBUG = 10
+        INFO = 20
+        WARNING = 30
+        ERROR = 40
+
+        @classmethod
+        def _missing_(cls, value):
+            if isinstance(value, str):
+                value = value.upper()
+                if value in dir(cls):
+                    return cls[value]
+
+            return cls.INFO
+
+    log_level = LogLevel.INFO
+
     @abc.abstractmethod
     def trace(self, message: str):
         pass
