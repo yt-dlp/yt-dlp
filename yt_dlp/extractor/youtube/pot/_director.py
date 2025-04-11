@@ -15,6 +15,13 @@ from yt_dlp.extractor.youtube.pot._provider import (
     IEContentProvider,
     IEContentProviderLogger,
 )
+from yt_dlp.extractor.youtube.pot._registry import (
+    _pot_cache_provider_preferences,
+    _pot_cache_providers,
+    _pot_pcs_providers,
+    _pot_providers,
+    _ptp_preferences,
+)
 from yt_dlp.extractor.youtube.pot.cache import (
     CacheProviderWritePolicy,
     PoTokenCacheProvider,
@@ -29,13 +36,6 @@ from yt_dlp.extractor.youtube.pot.provider import (
     PoTokenRequest,
     PoTokenResponse,
     provider_bug_report_message,
-)
-from yt_dlp.globals import (
-    _pot_cache_provider_preferences,
-    _pot_cache_providers,
-    _pot_pcs_providers,
-    _pot_providers,
-    _ptp_preferences,
 )
 from yt_dlp.utils import ExtractorError, bug_reports_message, format_field, join_nonempty, traverse_obj
 

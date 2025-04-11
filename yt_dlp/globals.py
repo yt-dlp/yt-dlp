@@ -28,12 +28,3 @@ plugin_ies_overrides = Indirect(defaultdict(list))
 # Misc
 IN_CLI = Indirect(False)
 LAZY_EXTRACTORS = Indirect(None)  # `False`=force, `None`=disabled, `True`=enabled
-
-
-# YouTube extractor - Internal only
-_pot_providers = Indirect({})
-_ptp_preferences = Indirect(set())
-_pot_pcs_providers = Indirect({})
-_pot_cache_providers = Indirect({})
-_pot_cache_provider_preferences = Indirect(set())
-_pot_memory_cache = Indirect({})

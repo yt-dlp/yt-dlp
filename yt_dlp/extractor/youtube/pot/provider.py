@@ -16,7 +16,7 @@ from yt_dlp.extractor.youtube.pot._provider import (
     register_preference_generic,
     register_provider_generic,
 )
-from yt_dlp.globals import _pot_providers, _ptp_preferences
+from yt_dlp.extractor.youtube.pot._registry import _pot_providers, _ptp_preferences
 from yt_dlp.networking import Request
 from yt_dlp.utils import traverse_obj
 from yt_dlp.utils.networking import HTTPHeaderDict

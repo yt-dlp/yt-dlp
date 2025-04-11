@@ -6,7 +6,7 @@ from yt_dlp.extractor.youtube.pot._provider import IEContentProvider, BuiltInIEC
 from yt_dlp.utils import bug_reports_message
 from yt_dlp.extractor.youtube.pot._builtin.memory_cache import MemoryLRUPCP, memorylru_preference, initialize_global_cache
 from yt_dlp.version import __version__
-from yt_dlp.globals import _pot_memory_cache, _pot_cache_providers
+from yt_dlp.extractor.youtube.pot._registry import _pot_cache_providers, _pot_memory_cache
 
 
 class TestMemoryLRUPCS:

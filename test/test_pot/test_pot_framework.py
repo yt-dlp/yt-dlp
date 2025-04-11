@@ -18,8 +18,6 @@ from yt_dlp.extractor.youtube.pot.cache import (
 
 import yt_dlp.extractor.youtube.pot.cache as cache
 
-from yt_dlp.globals import _pot_cache_providers, _pot_cache_provider_preferences, _pot_pcs_providers
-
 from yt_dlp.networking import Request
 from yt_dlp.extractor.youtube.pot.provider import (
     PoTokenResponse,
@@ -30,7 +28,7 @@ from yt_dlp.extractor.youtube.pot.provider import (
     register_preference,
 )
 
-from yt_dlp.globals import _pot_providers, _ptp_preferences
+from yt_dlp.extractor.youtube.pot._registry import _pot_providers, _ptp_preferences, _pot_pcs_providers, _pot_cache_providers, _pot_cache_provider_preferences
 
 
 class ExamplePTP(PoTokenProvider):

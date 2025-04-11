@@ -6,12 +6,12 @@ from collections import OrderedDict
 from threading import Lock
 
 from yt_dlp.extractor.youtube.pot._provider import BuiltInIEContentProvider
+from yt_dlp.extractor.youtube.pot._registry import _pot_memory_cache
 from yt_dlp.extractor.youtube.pot.cache import (
     PoTokenCacheProvider,
     register_preference,
     register_provider,
 )
-from yt_dlp.globals import _pot_memory_cache
 
 
 def initialize_global_cache(max_size: int):
