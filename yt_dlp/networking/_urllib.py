@@ -261,11 +261,6 @@ class ProxyHandler(urllib.request.BaseHandler):
             self, req, proxy, None)
 
 
-class PATCHRequest(urllib.request.Request):
-    def get_method(self):
-        return 'PATCH'
-
-
 class PUTRequest(urllib.request.Request):
     def get_method(self):
         return 'PUT'
@@ -284,8 +279,6 @@ def update_Request(req, url=None, data=None, headers=None, query=None):
     req_get_method = req.get_method()
     if req_get_method == 'HEAD':
         req_type = HEADRequest
-    elif req_get_method == 'PATCH':
-        req_type = PATCHRequest
     elif req_get_method == 'PUT':
         req_type = PUTRequest
     else:
