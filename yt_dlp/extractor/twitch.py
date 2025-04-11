@@ -154,10 +154,10 @@ class TwitchBaseIE(InfoExtractor):
 
         # TODO: remove existence checks when the values will be generated
         if self._DEVICE_ID:
-            headers["X-Device-Id"] = self._DEVICE_ID
+            headers['X-Device-Id'] = self._DEVICE_ID
 
         if self._CLIENT_INTEGRITY:
-            headers["Client-Integrity"] = self._CLIENT_INTEGRITY
+            headers['Client-Integrity'] = self._CLIENT_INTEGRITY
 
         return self._download_json(
             'https://gql.twitch.tv/gql', video_id, note,
@@ -566,7 +566,7 @@ class TwitchVodIE(TwitchBaseIE):
         pagenum = 1
         gql_ops = [{
             'operationName': 'VideoCommentsByOffsetOrCursor',
-            'variables': {'videoID': vod_id}
+            'variables': {'videoID': vod_id},
             # 'variables.cursor': <filled in in subsequent requests>
         }]
 
@@ -584,7 +584,7 @@ class TwitchVodIE(TwitchBaseIE):
 
             response_errors = traverse_obj(response, (..., 'errors'))
             if response_errors:
-                self.report_warning(f"Error response recevied for fetching next chat history fragment: {response_errors}")
+                self.report_warning(f'Error response recevied for fetching next chat history fragment: {response_errors}')
 
             comments_obj = traverse_obj(response, (0, 'data', 'video', 'comments'))
             chat_history.extend(traverse_obj(comments_obj, ('edges', ..., 'node')))
@@ -594,7 +594,7 @@ class TwitchVodIE(TwitchBaseIE):
             if has_more_pages:
                 cursor = traverse_obj(comments_obj, ('edges', 0, 'cursor'))
                 if cursor is None:
-                    self.report_warning("Cannot continue downloading chat history: cursor is missing. There are additional chat pages to download.")
+                    self.report_warning('Cannot continue downloading chat history: cursor is missing. There are additional chat pages to download.')
                     break
 
                 pagenum += 1
@@ -604,9 +604,9 @@ class TwitchVodIE(TwitchBaseIE):
                 cursor = traverse_obj(comments_obj, ('edges', 0, 'cursor'))
 
                 if cursor is not None:
-                    self.report_warning("Next page indication is missing, but found cursor. Continuing chat history download.")
+                    self.report_warning('Next page indication is missing, but found cursor. Continuing chat history download.')
                 else:  # In this case maintenance might be needed. Purpose is to prevent silent errors.
-                    self.report_warning("Next page indication is missing, and cursor not found.")
+                    self.report_warning('Next page indication is missing, and cursor not found.')
 
         if not chat_history:
             return
@@ -615,7 +615,7 @@ class TwitchVodIE(TwitchBaseIE):
 
         return {'rechat': [{
             'data': json.dumps(chat_history),
-            'ext': 'twitch-gql-20221228.json'
+            'ext': 'twitch-gql-20221228.json',
         }]}
 
     def _real_extract(self, url):
