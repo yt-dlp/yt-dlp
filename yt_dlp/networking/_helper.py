@@ -13,7 +13,6 @@ import urllib.request
 from .exceptions import RequestError
 from ..dependencies import certifi
 from ..socks import ProxyType, sockssocket
-from ..utils import format_field, traverse_obj
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
@@ -80,19 +79,6 @@ def make_socks_proxy_opts(socks_proxy):
         'username': unquote_if_non_empty(url_components.username),
         'password': unquote_if_non_empty(url_components.password),
     }
-
-
-def select_proxy(url, proxies):
-    """Unified proxy selector for all backends"""
-    url_components = urllib.parse.urlparse(url)
-    if 'no' in proxies:
-        hostport = url_components.hostname + format_field(url_components.port, None, ':%s')
-        if urllib.request.proxy_bypass_environment(hostport, {'no': proxies['no']}):
-            return
-        elif urllib.request.proxy_bypass(hostport):  # check system settings
-            return
-
-    return traverse_obj(proxies, url_components.scheme or 'http', 'all')
 
 
 def get_redirect_method(method, status):
