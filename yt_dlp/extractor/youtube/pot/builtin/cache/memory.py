@@ -8,8 +8,8 @@ from threading import Lock
 from yt_dlp.extractor.youtube.pot._provider import BuiltInIEContentProvider
 from yt_dlp.extractor.youtube.pot.cache import (
     PoTokenCacheProvider,
-    register_pcp,
-    register_pcp_preference,
+    register_preference,
+    register_provider,
 )
 from yt_dlp.globals import _pot_memory_cache
 
@@ -26,7 +26,7 @@ def initialize_global_cache(max_size: int):
     return _pot_memory_cache.value['cache'], _pot_memory_cache.value['lock'], _pot_memory_cache.value['max_size']
 
 
-@register_pcp
+@register_provider
 class MemoryLRUPCP(PoTokenCacheProvider, BuiltInIEContentProvider):
     PROVIDER_NAME = 'memory'
     DEFAULT_CACHE_SIZE = 25
@@ -74,7 +74,7 @@ class MemoryLRUPCP(PoTokenCacheProvider, BuiltInIEContentProvider):
             self.cache.pop(key, None)
 
 
-@register_pcp_preference(MemoryLRUPCP)
+@register_preference(MemoryLRUPCP)
 def memorylru_preference(*_, **__):
     # Memory LRU Cache SHOULD be the highest priority
     return 10000

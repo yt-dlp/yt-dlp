@@ -168,14 +168,14 @@ def my_provider_preference(provider: PoTokenProvider, request: PoTokenRequest, *
 ```python
 from yt_dlp.extractor.youtube.pot.cache import (
     PoTokenCacheProvider,
-    register_pcp_preference,
-    register_pcp
+    register_preference,
+    register_provider
 )
 
 from yt_dlp.extractor.youtube.pot.provider import PoTokenRequest
 
 
-@register_pcp
+@register_provider
 class MyCacheProviderPCP(PoTokenCacheProvider):  # Provider name must end with "PCP"
     PROVIDER_VERSION = '0.1.0'
     # Define a unique display name for the provider
@@ -219,7 +219,7 @@ class MyCacheProviderPCP(PoTokenCacheProvider):  # Provider name must end with "
 # VERY IMPORTANT: yt-dlp has a built-in memory cache with a priority of 10000. Your cache provider should be lower than this.
 
 
-@register_pcp_preference(MyCacheProviderPCP)
+@register_preference(MyCacheProviderPCP)
 def my_cache_preference(provider: PoTokenCacheProvider, request: PoTokenRequest, *_, **__) -> int:
     return 50
 ```
@@ -236,13 +236,13 @@ from yt_dlp.extractor.youtube.pot.cache import (
     PoTokenCacheSpec,
     PoTokenCacheSpecProvider,
     CacheProviderWritePolicy,
-    register_pcsp,
+    register_spec,
 )
 from yt_dlp.utils import traverse_obj
 from yt_dlp.extractor.youtube.pot.provider import PoTokenRequest
 
 
-@register_pcsp
+@register_spec
 class MyCacheSpecProviderPCSP(PoTokenCacheSpecProvider):  # Provider name must end with "PCSP"
     PROVIDER_VERSION = '0.1.0'
     # Define a unique display name for the provider

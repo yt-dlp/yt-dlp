@@ -11,13 +11,12 @@ from yt_dlp.extractor.youtube.pot.provider import (
 
 from yt_dlp.extractor.youtube.pot.cache import (
     PoTokenCacheProvider,
-    register_pcp,
-    register_pcp_preference,
     PoTokenCacheSpec,
     PoTokenCacheSpecProvider,
-    register_pcsp,
     CacheProviderWritePolicy,
 )
+
+import yt_dlp.extractor.youtube.pot.cache as cache
 
 from yt_dlp.globals import _pot_cache_providers, _pot_cache_provider_preferences, _pot_pcs_providers
 
@@ -468,7 +467,7 @@ def test_register_pot_preference(ie):
 
 def test_register_cache_provider(ie):
 
-    @register_pcp
+    @cache.register_provider
     class UnavailableCacheProviderPCP(PoTokenCacheProvider):
         def is_available(self) -> bool:
             return False
@@ -488,7 +487,7 @@ def test_register_cache_provider(ie):
 
 def test_register_cache_provider_spec(ie):
 
-    @register_pcsp
+    @cache.register_spec
     class UnavailableCacheProviderPCSP(PoTokenCacheSpecProvider):
         def is_available(self) -> bool:
             return False
@@ -503,7 +502,7 @@ def test_register_cache_provider_spec(ie):
 def test_register_cache_provider_preference(ie):
     before = len(_pot_cache_provider_preferences.value)
 
-    @register_pcp_preference(ExampleCacheProviderPCP)
+    @cache.register_preference(ExampleCacheProviderPCP)
     def unavailable_preference(provider: PoTokenCacheProvider, request: PoTokenRequest):
         return 1
 

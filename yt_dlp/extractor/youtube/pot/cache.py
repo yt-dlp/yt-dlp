@@ -61,7 +61,7 @@ class PoTokenCacheSpecProvider(IEContentProvider, abc.ABC, suffix='PCSP'):
         pass
 
 
-def register_pcp(provider: type[PoTokenCacheProvider]):
+def register_provider(provider: type[PoTokenCacheProvider]):
     """Register a PoTokenCacheProvider class"""
     return register_provider_generic(
         provider=provider,
@@ -70,7 +70,7 @@ def register_pcp(provider: type[PoTokenCacheProvider]):
     )
 
 
-def register_pcsp(provider: type[PoTokenCacheSpecProvider]):
+def register_spec(provider: type[PoTokenCacheSpecProvider]):
     """Register a PoTokenCacheSpecProvider class"""
     return register_provider_generic(
         provider=provider,
@@ -80,7 +80,7 @@ def register_pcsp(provider: type[PoTokenCacheSpecProvider]):
 
 
 # XXX: I don't think the typing is correct, and that we need py3.10 to properly type this
-def register_pcp_preference(*providers: type[PoTokenCacheProvider]) -> typing.Callable[[PCPPreference], PCPPreference]:
+def register_preference(*providers: type[PoTokenCacheProvider]) -> typing.Callable[[PCPPreference], PCPPreference]:
     """Register a preference for a PoTokenCacheProvider"""
     return register_preference_generic(
         PoTokenCacheProvider,

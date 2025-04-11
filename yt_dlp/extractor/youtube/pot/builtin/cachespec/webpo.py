@@ -6,7 +6,7 @@ from yt_dlp.extractor.youtube.pot.cache import (
     CacheProviderWritePolicy,
     PoTokenCacheSpec,
     PoTokenCacheSpecProvider,
-    register_pcsp,
+    register_spec,
 )
 from yt_dlp.extractor.youtube.pot.provider import (
     PoTokenRequest,
@@ -14,7 +14,7 @@ from yt_dlp.extractor.youtube.pot.provider import (
 from yt_dlp.utils import traverse_obj
 
 
-@register_pcsp
+@register_spec
 class WebPoPCSP(PoTokenCacheSpecProvider, BuiltInIEContentProvider):
     PROVIDER_NAME = 'webpo'
 
