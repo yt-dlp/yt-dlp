@@ -225,7 +225,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
             raise
 
     def format_option_help(self, formatter=None):
-        assert formatter, ''
+        assert formatter, 'Formatter can not be None'
         formatted_help = super().format_option_help(formatter=formatter)
         formatter.indent()
         heading = formatter.format_heading('Preset aliases')
