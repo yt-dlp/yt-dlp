@@ -10,7 +10,7 @@ import urllib.parse
 from yt_dlp.extractor.youtube.pot.provider import PoTokenContext, PoTokenRequest
 from yt_dlp.utils import traverse_obj
 
-__all__ = ['WEBPO_CLIENTS', 'get_webpo_content_binding']
+__all__ = ['WEBPO_CLIENTS', 'ContentBindingType', 'get_webpo_content_binding']
 
 WEBPO_CLIENTS = (
     'WEB',

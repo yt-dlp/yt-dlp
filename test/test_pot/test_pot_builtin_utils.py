@@ -4,7 +4,7 @@ from yt_dlp.extractor.youtube.pot.provider import (
 
 )
 
-from yt_dlp.extractor.youtube.pot.builtin.utils import get_webpo_content_binding, ContentBindingType
+from yt_dlp.extractor.youtube.pot.utils import get_webpo_content_binding, ContentBindingType
 
 
 class TestGetWebPoContentBinding:

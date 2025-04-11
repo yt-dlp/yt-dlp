@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from yt_dlp.extractor.youtube.pot._provider import BuiltInIEContentProvider
-from yt_dlp.extractor.youtube.pot.builtin.utils import ContentBindingType, get_webpo_content_binding
 from yt_dlp.extractor.youtube.pot.cache import (
     CacheProviderWritePolicy,
     PoTokenCacheSpec,
@@ -11,6 +10,7 @@ from yt_dlp.extractor.youtube.pot.cache import (
 from yt_dlp.extractor.youtube.pot.provider import (
     PoTokenRequest,
 )
+from yt_dlp.extractor.youtube.pot.utils import ContentBindingType, get_webpo_content_binding
 from yt_dlp.utils import traverse_obj
 
 

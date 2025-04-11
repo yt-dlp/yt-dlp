@@ -1,1 +1,2 @@
-from .builtin import utils as _  # noqa: F401
+# Trigger import of built-in providers
+from ._builtin import _trigger_import  # noqa: F401

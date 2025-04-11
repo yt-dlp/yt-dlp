@@ -10,7 +10,7 @@ from yt_dlp.extractor.youtube.pot.provider import (
 )
 from yt_dlp.version import __version__
 
-from yt_dlp.extractor.youtube.pot.builtin.cachespec.webpo import WebPoPCSP
+from yt_dlp.extractor.youtube.pot._builtin.webpo_cachespec import WebPoPCSP
 from yt_dlp.globals import _pot_pcs_providers
 
 

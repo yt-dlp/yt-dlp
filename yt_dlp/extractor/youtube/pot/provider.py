@@ -97,7 +97,7 @@ class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
 
     # Innertube Client Name.
     # For example, "WEB", "ANDROID", "TVHTML5".
-    # For a list of WebPO client names, see yt_dlp.extractor.youtube.pot.builtin.utils.WEBPO_CLIENTS.
+    # For a list of WebPO client names, see yt_dlp.extractor.youtube.pot._builtin.utils.WEBPO_CLIENTS.
     # Also see yt_dlp.extractor.youtube._base.INNERTUBE_CLIENTS for a list of client names currently supported by the YouTube extractor.
     _SUPPORTED_CLIENTS: tuple[str] | None = ()
 

@@ -8,7 +8,7 @@ Refer to the [PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Gui
 
 - `yt_dlp.extractor.youtube.pot.cache`
 - `yt_dlp.extractor.youtube.pot.provider`
-- `yt_dlp.extractor.youtube.pot.builtin.utils`
+- `yt_dlp.extractor.youtube.pot.utils`
 
 Everything else is internal-only and no guarantees are made about the API stability.
 
@@ -33,7 +33,7 @@ from yt_dlp.extractor.youtube.pot.provider import (
     register_preference,
 )
 from yt_dlp.networking.common import Request
-from yt_dlp.extractor.youtube.pot.builtin.utils import get_webpo_content_binding
+from yt_dlp.extractor.youtube.pot.utils import get_webpo_content_binding
 from yt_dlp.utils import traverse_obj
 from yt_dlp.networking.exceptions import RequestError
 import json
@@ -50,7 +50,7 @@ class MyPoTokenProviderPTP(PoTokenProvider):  # Provider name must end with "PTP
 
     # Innertube Client Name.
     # For example, "WEB", "ANDROID", "TVHTML5".
-    # For a list of WebPO client names, see yt_dlp.extractor.youtube.pot.builtin.utils.WEBPO_CLIENTS.
+    # For a list of WebPO client names, see yt_dlp.extractor.youtube.pot.utils.WEBPO_CLIENTS.
     # Also see yt_dlp.extractor.youtube._base.INNERTUBE_CLIENTS for a list of client names currently supported by the YouTube extractor.
     _SUPPORTED_CLIENTS = ('WEB', 'TVHTML5')
 

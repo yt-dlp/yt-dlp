@@ -4,7 +4,7 @@ from collections import OrderedDict
 import pytest
 from yt_dlp.extractor.youtube.pot._provider import IEContentProvider, BuiltInIEContentProvider
 from yt_dlp.utils import bug_reports_message
-from yt_dlp.extractor.youtube.pot.builtin.cache.memory import MemoryLRUPCP, memorylru_preference, initialize_global_cache
+from yt_dlp.extractor.youtube.pot._builtin.memory_cache import MemoryLRUPCP, memorylru_preference, initialize_global_cache
 from yt_dlp.version import __version__
 from yt_dlp.globals import _pot_memory_cache, _pot_cache_providers
 
