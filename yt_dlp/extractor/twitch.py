@@ -4,7 +4,6 @@ import json
 import random
 import re
 import urllib.parse
-import time
 
 from .common import InfoExtractor
 from ..utils import (
