@@ -4,7 +4,7 @@ from collections import OrderedDict
 import pytest
 from yt_dlp.extractor.youtube.pot._provider import IEContentProvider, BuiltInIEContentProvider
 from yt_dlp.utils import bug_reports_message
-from yt_dlp.extractor.youtube.pot.builtin.cache.memory import MemoryLRUPCP, memorylru_preference
+from yt_dlp.extractor.youtube.pot.builtin.cache.memory import MemoryLRUPCP, memorylru_preference, initialize_global_cache
 from yt_dlp.version import __version__
 from yt_dlp.globals import _pot_memory_cache, _pot_cache_providers
 
@@ -94,20 +94,6 @@ class TestMemoryLRUPCS:
         assert len(pcp.cache) == 0
         assert pcp.get('key1') is None
 
-    def test_max_size_setting(self, ie, logger):
-        MAX_SIZE = 5
-        called_max_size = 0
-
-        def initialize_cache(max_size):
-            nonlocal called_max_size
-            called_max_size = max_size
-            return OrderedDict(), threading.Lock(), max_size
-
-        pcp = MemoryLRUPCP(ie, logger, {'max_size': [str(MAX_SIZE)]}, initialize_cache=initialize_cache)
-
-        assert called_max_size == MAX_SIZE
-        assert pcp.max_size == MAX_SIZE
-
     def test_use_global_cache_default(self, ie, logger):
         pcp = MemoryLRUPCP(ie, logger, {})
         assert pcp.max_size == _pot_memory_cache.value['max_size'] == 25
@@ -123,7 +109,7 @@ class TestMemoryLRUPCS:
         pcp = MemoryLRUPCP(ie, logger, {})
         assert pcp.max_size == _pot_memory_cache.value['max_size'] == 25
         with pytest.raises(ValueError, match='Cannot change max_size of initialized global memory cache'):
-            MemoryLRUPCP(ie, logger, {'max_size': ['50']})
+            initialize_global_cache(50)
 
         assert pcp.max_size == _pot_memory_cache.value['max_size'] == 25
 

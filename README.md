@@ -1789,9 +1789,6 @@ The following extractors use this feature:
 * `pot_debug`: Enable debug logging for PO Token fetching. Either `true` or `false` (default `false`)
 * `fetch_pot`: Policy to use for fetching a PO Token from providers. `always` to always try fetch a PO Token regardless if the client requires one for the given context. `when_required` to only fetch a PO Token if the client requires one for the given context (default)
 
-###### youtubepot-memory
-* `max_size`: Max size of the PO Token LRU memory cache (default 25)
-
 ###### youtubepot-webpo
 * `bind_to_visitor_id`: Whether to use the Visitor ID instead of Visitor Data for caching WebPO tokens. Either `true` or `false` (default `true`)
 

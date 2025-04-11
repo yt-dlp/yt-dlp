@@ -12,7 +12,6 @@ from yt_dlp.extractor.youtube.pot.cache import (
     register_pcp_preference,
 )
 from yt_dlp.globals import _pot_memory_cache
-from yt_dlp.utils import int_or_none
 
 
 def initialize_global_cache(max_size: int):
@@ -39,8 +38,7 @@ class MemoryLRUPCP(PoTokenCacheProvider, BuiltInIEContentProvider):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self.cache, self.lock, self.max_size = initialize_cache(
-            int_or_none(self.settings.get('max_size', [''])[0]) or self.DEFAULT_CACHE_SIZE)
+        self.cache, self.lock, self.max_size = initialize_cache(self.DEFAULT_CACHE_SIZE)
 
     def is_available(self) -> bool:
         return True
