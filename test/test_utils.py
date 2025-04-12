@@ -659,6 +659,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(url_or_none('mms://foo.de'), 'mms://foo.de')
         self.assertEqual(url_or_none('rtspu://foo.de'), 'rtspu://foo.de')
         self.assertEqual(url_or_none('ftps://foo.de'), 'ftps://foo.de')
+        self.assertEqual(url_or_none('ws://foo.de'), 'ws://foo.de')
+        self.assertEqual(url_or_none('wss://foo.de'), 'wss://foo.de')
 
     def test_parse_age_limit(self):
         self.assertEqual(parse_age_limit(None), None)
@@ -1260,6 +1262,7 @@ class TestUtil(unittest.TestCase):
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
+        self.assertEqual(js_to_json('{a: `${e("")}`}'), '{"a": "\\"e\\"(\\"\\")"}')
 
     def test_js_to_json_template_literal(self):
         self.assertEqual(js_to_json('`Hello ${name}`', {'name': '"world"'}), '"Hello world"')
