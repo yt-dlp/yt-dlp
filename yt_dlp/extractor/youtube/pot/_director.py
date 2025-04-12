@@ -312,7 +312,6 @@ class PoTokenRequestDirector:
         return pot_response.po_token
 
     def close(self):
-        # TODO: hook into ydl close
         for provider in self.providers.values():
             provider.close()
 
@@ -354,6 +353,8 @@ def initialize_pot_director(ie):
         logger=YoutubeIEContentProviderLogger(ie, 'pot', log_level=log_level),
         cache=cache,
     )
+
+    ie._downloader.add_close_hook(director.close)
 
     for provider in _pot_providers.value.values():
         settings = traverse_obj(ie._downloader.params, ('extractor_args', f'{EXTRACTOR_ARG_PREFIX}-{provider.PROVIDER_KEY.lower()}'))
