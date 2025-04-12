@@ -1,9 +1,16 @@
 import json
-import urllib
 
 from .common import InfoExtractor
-from ..utils import clean_html, remove_end, unescapeHTML, unified_timestamp, url_or_none
-from ..utils.traversal import traverse_obj
+from ..utils import (
+    clean_html,
+    extract_attributes,
+    parse_qs,
+    remove_end,
+    require,
+    unified_timestamp,
+    url_or_none,
+)
+from ..utils.traversal import find_element, traverse_obj
 
 
 class TvwIE(InfoExtractor):
@@ -124,9 +131,8 @@ class TvwTvChannelsIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://tvw.org/tvchannels/air/',
         'info_dict': {
-            'id': 'TVWAIR',
+            'id': 'air',
             'ext': 'mp4',
-            'display_id': 'air',
             'title': r're:^TVW Cable Channel Live Stream',
             'thumbnail': r're:^https?://.*\.(?:jpe?g|png)$',
             'live_status': 'is_live',
@@ -134,9 +140,8 @@ class TvwTvChannelsIE(InfoExtractor):
     }, {
         'url': 'https://tvw.org/tvchannels/tvw2/',
         'info_dict': {
-            'id': 'TVW2',
+            'id': 'tvw2',
             'ext': 'mp4',
-            'display_id': 'tvw2',
             'title': r're:^TVW-2 Broadcast Channel',
             'thumbnail': r're:^https?://.*\.(?:jpe?g|png)$',
             'live_status': 'is_live',
@@ -144,24 +149,16 @@ class TvwTvChannelsIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
 
-        stream_url = self._html_search_regex(r"<iframe[\s]*id=\"invintus-persistent-stream-frame\"[^>]+src=[\"\'](?P<url>.+?)[\"\']", webpage, 'url')
-        parsed_url = urllib.parse.urlparse(unescapeHTML(stream_url))
-        parsed_querystring = urllib.parse.parse_qs(parsed_url.query)
-
-        encoder_obj = json.loads(traverse_obj(parsed_querystring, ('encoder', 0)))
-
-        video_id = encoder_obj.get('streamName')
-        m3u8_url = encoder_obj.get('live247URI')
-
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=True)
+        m3u8_url = traverse_obj(webpage, (
+            {find_element(id='invintus-persistent-stream-frame', html=True)}, {extract_attributes},
+            'src', {parse_qs}, 'encoder', 0, {json.loads}, 'live247URI', {url_or_none}, {require('stream url')}))
 
         return {
             'id': video_id,
-            'display_id': display_id,
-            'formats': formats,
+            'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls', live=True),
             'title': remove_end(self._og_search_title(webpage, default=None), ' - TVW'),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'is_live': True,
