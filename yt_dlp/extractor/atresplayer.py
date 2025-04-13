@@ -4,7 +4,6 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    bug_reports_message,
     float_or_none,
     int_or_none,
     parse_age_limit,
@@ -120,11 +119,10 @@ class AtresPlayerIE(InfoExtractor):
             if src_type in ('application/vnd.apple.mpegurl', 'application/hls+legacy', 'application/hls+hevc'):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     src_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
-            elif src_type in ('application/dash+xml', 'application/dashvo+xml', 'application/dash+hevc'):
+            elif src_type in ('application/dash+xml', 'application/dash+hevc'):
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
                     src_url, video_id, mpd_id='dash', fatal=False)
             else:
-                self.report_warning(f'Unsupported video format "{src_type}"{bug_reports_message()}')
                 continue
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
