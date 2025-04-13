@@ -1362,7 +1362,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
 
     def _download_webpage_handle(self, *args, **kwargs):
         headers = self.geo_verification_headers()
-        headers.update(kwargs.get('headers', {}))
+        headers.update(kwargs.get('headers') or {})
         kwargs['headers'] = headers
         return super()._download_webpage_handle(
             *args, **kwargs)

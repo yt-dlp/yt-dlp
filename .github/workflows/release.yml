@@ -2,10 +2,6 @@ name: Release
 on:
   workflow_call:
     inputs:
-      prerelease:
-        required: false
-        default: true
-        type: boolean
       source:
         required: false
         default: ''
@@ -18,6 +14,10 @@ on:
         required: false
         default: ''
         type: string
+      prerelease:
+        required: false
+        default: true
+        type: boolean
   workflow_dispatch:
     inputs:
       source:
@@ -278,11 +278,20 @@ jobs:
           make clean-cache
           python -m build --no-isolation .
 
+      - name: Upload artifacts
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-pypi
+          path: |
+            dist/*
+          compression-level: 0
+
       - name: Publish to PyPI
+        if: github.event_name == 'workflow_dispatch'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
-          attestations: false  # Currently doesn't work w/ reusable workflows (breaks nightly)
 
   publish:
     needs: [prepare, build]

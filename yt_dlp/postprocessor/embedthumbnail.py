@@ -12,7 +12,6 @@ from ..utils import (
     PostProcessingError,
     check_executable,
     encodeArgument,
-    encodeFilename,
     prepend_extension,
     shell_quote,
 )
@@ -68,7 +67,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.to_screen('There are no thumbnails on disk')
             return [], info
         thumbnail_filename = info['thumbnails'][idx]['filepath']
-        if not os.path.exists(encodeFilename(thumbnail_filename)):
+        if not os.path.exists(thumbnail_filename):
             self.report_warning('Skipping embedding the thumbnail because the file is missing.')
             return [], info
 
@@ -85,7 +84,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             thumbnail_filename = convertor.convert_thumbnail(thumbnail_filename, 'png')
             thumbnail_ext = 'png'
 
-        mtime = os.stat(encodeFilename(filename)).st_mtime
+        mtime = os.stat(filename).st_mtime
 
         success = True
         if info['ext'] == 'mp3':
@@ -154,12 +153,12 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 else:
                     if not prefer_atomicparsley:
                         self.to_screen('mutagen was not found. Falling back to AtomicParsley')
-                    cmd = [encodeFilename(atomicparsley, True),
-                           encodeFilename(filename, True),
+                    cmd = [atomicparsley,
+                           filename,
                            encodeArgument('--artwork'),
-                           encodeFilename(thumbnail_filename, True),
+                           thumbnail_filename,
                            encodeArgument('-o'),
-                           encodeFilename(temp_filename, True)]
+                           temp_filename]
                     cmd += [encodeArgument(o) for o in self._configuration_args('AtomicParsley')]
 
                     self._report_run('atomicparsley', filename)

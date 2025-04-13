@@ -55,8 +55,7 @@ default = [
     "websockets>=13.0",
 ]
 curl-cffi = [
-    "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
-    "curl-cffi>=0.5.10,!=0.6.*,<0.7.2; os_name!='nt' and implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.11; implementation_name=='cpython'",
 ]
 secretstorage = [
     "cffi",
@@ -76,14 +75,14 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.7.0",
+    "ruff~=0.11.0",
 ]
 test = [
     "pytest~=8.1",
     "pytest-rerunfailures~=14.0",
 ]
 pyinstaller = [
-    "pyinstaller>=6.10.0",  # Windows temp cleanup fixed in 6.10.0
+    "pyinstaller>=6.11.1",  # Windows temp cleanup fixed in 6.11.1
 ]
 
 [project.urls]
@@ -186,6 +185,7 @@ ignore = [
     "E501",    # line-too-long
     "E731",    # lambda-assignment
     "E741",    # ambiguous-variable-name
+    "UP031",   # printf-string-formatting
     "UP036",   # outdated-version-block
     "B006",    # mutable-argument-default
     "B008",    # function-call-in-default-argument
@@ -194,6 +194,7 @@ ignore = [
     "B023",    # function-uses-loop-variable (false positives)
     "B028",    # no-explicit-stacklevel
     "B904",    # raise-without-from-inside-except
+    "A005",    # stdlib-module-shadowing
     "C401",    # unnecessary-generator-set
     "C402",    # unnecessary-generator-dict
     "PIE790",  # unnecessary-placeholder
@@ -258,9 +259,6 @@ select = [
     "A002",   # builtin-argument-shadowing
     "C408",   # unnecessary-collection-call
 ]
-"yt_dlp/jsinterp.py" = [
-    "UP031",  # printf-string-formatting
-]
 
 [tool.ruff.lint.isort]
 known-first-party = [
@@ -313,6 +311,16 @@ banned-from = [
 "yt_dlp.compat.compat_urllib_parse_urlparse".msg = "Use `urllib.parse.urlparse` instead."
 "yt_dlp.compat.compat_shlex_quote".msg = "Use `yt_dlp.utils.shell_quote` instead."
 "yt_dlp.utils.error_to_compat_str".msg = "Use `str` instead."
+"yt_dlp.utils.bytes_to_intlist".msg = "Use `list` instead."
+"yt_dlp.utils.intlist_to_bytes".msg = "Use `bytes` instead."
+"yt_dlp.utils.decodeArgument".msg = "Do not use"
+"yt_dlp.utils.decodeFilename".msg = "Do not use"
+"yt_dlp.utils.encodeFilename".msg = "Do not use"
+"yt_dlp.compat.compat_os_name".msg = "Use `os.name` instead."
+"yt_dlp.compat.compat_realpath".msg = "Use `os.path.realpath` instead."
+"yt_dlp.compat.functools".msg = "Use `functools` instead."
+"yt_dlp.utils.decodeOption".msg = "Do not use"
+"yt_dlp.utils.compiled_regex_type".msg = "Use `re.Pattern` instead."
 
 [tool.autopep8]
 max_line_length = 120
@@ -375,9 +383,14 @@ select = [
     "W391",
     "W504",
 ]
+exclude = "*/extractor/lazy_extractors.py,*venv*,*/test/testdata/sigs/player-*.js,.idea,.vscode"
 
 [tool.pytest.ini_options]
-addopts = "-ra -v --strict-markers"
+addopts = [
+    "-ra",  # summary: all except passed
+    "--verbose",
+    "--strict-markers",
+]
 markers = [
     "download",
 ]

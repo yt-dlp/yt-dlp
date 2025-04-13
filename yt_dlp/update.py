@@ -13,7 +13,6 @@ import sys
 from dataclasses import dataclass
 from zipimport import zipimporter
 
-from .compat import compat_realpath
 from .networking import Request
 from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
@@ -66,9 +65,14 @@ def _get_variant_and_executable_path():
             machine = '_legacy' if version_tuple(platform.mac_ver()[0]) < (10, 15) else ''
         else:
             machine = f'_{platform.machine().lower()}'
+            is_64bits = sys.maxsize > 2**32
             # Ref: https://en.wikipedia.org/wiki/Uname#Examples
             if machine[1:] in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
-                machine = '_x86' if platform.architecture()[0][:2] == '32' else ''
+                machine = '_x86' if not is_64bits else ''
+            # platform.machine() on 32-bit raspbian OS may return 'aarch64', so check "64-bitness"
+            # See: https://github.com/yt-dlp/yt-dlp/issues/11813
+            elif machine[1:] == 'aarch64' and not is_64bits:
+                machine = '_armv7l'
             # sys.executable returns a /tmp/ path for staticx builds (linux_static)
             # Ref: https://staticx.readthedocs.io/en/latest/usage.html#run-time-information
             if static_exe_path := os.getenv('STATICX_PROG_PATH'):
@@ -113,7 +117,7 @@ _FILE_SUFFIXES = {
 }
 
 _NON_UPDATEABLE_REASONS = {
-    **{variant: None for variant in _FILE_SUFFIXES},  # Updatable
+    **dict.fromkeys(_FILE_SUFFIXES),  # Updatable
     **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
        for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
     'py2exe': 'py2exe is no longer supported by yt-dlp; This executable cannot be updated',
@@ -200,8 +204,6 @@ class UpdateInfo:
 
     binary_name: str | None = _get_binary_name()  # noqa: RUF009: Always returns the same value
     checksum: str | None = None
-
-    _has_update = True
 
 
 class Updater:
@@ -523,16 +525,21 @@ class Updater:
     @functools.cached_property
     def filename(self):
         """Filename of the executable"""
-        return compat_realpath(_get_variant_and_executable_path()[1])
+        return os.path.realpath(_get_variant_and_executable_path()[1])
 
     @functools.cached_property
     def cmd(self):
         """The command-line to run the executable, if known"""
+        argv = None
         # There is no sys.orig_argv in py < 3.10. Also, it can be [] when frozen
         if getattr(sys, 'orig_argv', None):
-            return sys.orig_argv
+            argv = sys.orig_argv
         elif getattr(sys, 'frozen', False):
-            return sys.argv
+            argv = sys.argv
+        # linux_static exe's argv[0] will be /tmp/staticx-NNNN/yt-dlp_linux if we don't fixup here
+        if argv and os.getenv('STATICX_PROG_PATH'):
+            argv = [self.filename, *argv[1:]]
+        return argv
 
     def restart(self):
         """Restart the executable"""
@@ -562,62 +569,14 @@ class Updater:
             f'Unable to {action}{delim} visit  '
             f'https://github.com/{self.requested_repo}/releases/{path}', True)
 
-    # XXX: Everything below this line in this class is deprecated / for compat only
-    @property
-    def _target_tag(self):
-        """Deprecated; requested tag with 'tags/' prepended when necessary for API calls"""
-        return f'tags/{self.requested_tag}' if self.requested_tag != 'latest' else self.requested_tag
-
-    def _check_update(self):
-        """Deprecated; report whether there is an update available"""
-        return bool(self.query_update(_output=True))
-
-    def __getattr__(self, attribute: str):
-        """Compat getter function for deprecated attributes"""
-        deprecated_props_map = {
-            'check_update': '_check_update',
-            'target_tag': '_target_tag',
-            'target_channel': 'requested_channel',
-        }
-        update_info_props_map = {
-            'has_update': '_has_update',
-            'new_version': 'version',
-            'latest_version': 'requested_version',
-            'release_name': 'binary_name',
-            'release_hash': 'checksum',
-        }
-
-        if attribute not in deprecated_props_map and attribute not in update_info_props_map:
-            raise AttributeError(f'{type(self).__name__!r} object has no attribute {attribute!r}')
-
-        msg = f'{type(self).__name__}.{attribute} is deprecated and will be removed in a future version'
-        if attribute in deprecated_props_map:
-            source_name = deprecated_props_map[attribute]
-            if not source_name.startswith('_'):
-                msg += f'. Please use {source_name!r} instead'
-            source = self
-            mapping = deprecated_props_map
-
-        else:  # attribute in update_info_props_map
-            msg += '. Please call query_update() instead'
-            source = self.query_update()
-            if source is None:
-                source = UpdateInfo('', None, None, None)
-                source._has_update = False
-            mapping = update_info_props_map
-
-        deprecation_warning(msg)
-        for target_name, source_name in mapping.items():
-            value = getattr(source, source_name)
-            setattr(self, target_name, value)
-
-        return getattr(self, attribute)
-
 
 def run_update(ydl):
     """Update the program file with the latest version from the repository
     @returns    Whether there was a successful update (No update = False)
     """
+    deprecation_warning(
+        '"yt_dlp.update.run_update(ydl)" is deprecated and may be removed in a future version. '
+        'Use "yt_dlp.update.Updater(ydl).update()" instead')
     return Updater(ydl).update()
 
 

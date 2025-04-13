@@ -398,7 +398,7 @@ def create_parser():
             '(Alias: --no-config)'))
     general.add_option(
         '--no-config-locations',
-        action='store_const', dest='config_locations', const=[],
+        action='store_const', dest='config_locations', const=None,
         help=(
             'Do not load any custom configuration files (default). When given inside a '
             'configuration file, ignore all previous --config-locations defined in the current file'))
@@ -410,16 +410,27 @@ def create_parser():
             '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
         '--plugin-dirs',
-        dest='plugin_dirs', metavar='PATH', action='append',
+        metavar='PATH',
+        dest='plugin_dirs',
+        action='callback',
+        callback=_list_from_options_callback,
+        type='str',
+        callback_kwargs={'delim': None},
+        default=['default'],
         help=(
             'Path to an additional directory to search for plugins. '
             'This option can be used multiple times to add multiple directories. '
-            'Note that this currently only works for extractor plugins; '
-            'postprocessor plugins can only be loaded from the default plugin directories'))
+            'Use "default" to search the default plugin directories (default)'))
+    general.add_option(
+        '--no-plugin-dirs',
+        dest='plugin_dirs', action='store_const', const=[],
+        help='Clear plugin directories to search, including defaults and those provided by previous --plugin-dirs')
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
-        help='Do not extract the videos of a playlist, only list them')
+        help=(
+            'Do not extract a playlist\'s URL result entries; '
+            'some entry metadata may be missing and downloading may be bypassed'))
     general.add_option(
         '--no-flat-playlist',
         action='store_false', dest='extract_flat',
@@ -483,13 +494,14 @@ def create_parser():
                 'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
-                'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext',
+                'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext', 'prefer-vp9-sort',
             }, 'aliases': {
-                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext'],
-                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext'],
+                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
+                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization'],
                 '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
-                '2023': [],
+                '2023': ['2024', 'prefer-vp9-sort'],
+                '2024': [],
             },
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
@@ -700,7 +712,8 @@ def create_parser():
     selection.add_option(
         '--break-on-existing',
         action='store_true', dest='break_on_existing', default=False,
-        help='Stop the download process when encountering a file that is in the archive')
+        help='Stop the download process when encountering a file that is in the archive '
+             'supplied with the --download-archive option')
     selection.add_option(
         '--no-break-on-existing',
         action='store_false', dest='break_on_existing',
@@ -1367,12 +1380,12 @@ def create_parser():
         help='Allow Unicode characters, "&" and spaces in filenames (default)')
     filesystem.add_option(
         '--windows-filenames',
-        action='store_true', dest='windowsfilenames', default=False,
+        action='store_true', dest='windowsfilenames', default=None,
         help='Force filenames to be Windows-compatible')
     filesystem.add_option(
         '--no-windows-filenames',
         action='store_false', dest='windowsfilenames',
-        help='Make filenames Windows-compatible only if using Windows (default)')
+        help='Sanitize filenames only minimally')
     filesystem.add_option(
         '--trim-filenames', '--trim-file-names', metavar='LENGTH',
         dest='trim_file_name', default=0, type=int,
