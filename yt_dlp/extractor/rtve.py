@@ -1,6 +1,7 @@
 import base64
 import io
 import struct
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -32,8 +33,8 @@ class RTVEBaseIE(InfoExtractor):
                 alphabet_data, _, url_data = data.partition(b'#')
                 quality_str, _, url_data = url_data.rpartition(b'%%')
                 quality_str = quality_str.decode() or ''
-                alphabet = RTVEALaCartaIE._get_alphabet(alphabet_data)
-                url = RTVEALaCartaIE._get_url(alphabet, url_data)
+                alphabet = RTVEBaseIE._get_alphabet(alphabet_data)
+                url = RTVEBaseIE._get_url(alphabet, url_data)
                 yield quality_str, url
             encrypted_data.read(4)  # CRC
 
@@ -182,10 +183,11 @@ class RTVEALaCartaIE(RTVEBaseIE):
         'info_dict': {
             'id': '7048976',
             'ext': 'mp4',
-            'title': 'Saber vivir - 07/07/24',
+            'title': 'Gusano',
             'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
-            'duration': 2162.68,
+            'duration': 292.86,
             'series': 'Agus & Lui: Churros y Crafts',
+            '_old_archive_ids': ['rtveinfantil 7048976'],
         },
     }]
 
@@ -209,11 +211,14 @@ class RTVEALaCartaIE(RTVEBaseIE):
 
         self._merge_subtitles(self.extract_subtitles(video_id), target=subtitles)
 
+        is_infantil = urllib.parse.urlparse(url).path.startswith('/infantil/')
+
         return {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
             **self._parse_metadata(metadata),
+            '_old_archive_ids': [f'rtveinfantil {video_id}'] if is_infantil else None,
         }
 
 
@@ -317,7 +322,7 @@ class RTVELiveIE(RTVEBaseIE):
 
 class RTVETelevisionIE(InfoExtractor):
     IE_NAME = 'rtve.es:television'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/television/[^/]+/[^/]+/(?P<id>\d+).shtml'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/television/[^/?#]+/[^/?#]+/(?P<id>\d+).shtml'
 
     _TEST = {
         'url': 'https://www.rtve.es/television/20091103/video-inedito-del-8o-programa/299020.shtml',
