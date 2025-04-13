@@ -5,19 +5,123 @@ import struct
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    clean_html,
     determine_ext,
     float_or_none,
+    parse_iso8601,
     qualities,
-    try_get,
+    url_or_none,
 )
+from ..utils.traversal import subs_list_to_dict, traverse_obj
 
 
-class RTVEALaCartaIE(InfoExtractor):
+class RTVEBaseIE(InfoExtractor):
+    # Reimplementation of https://js2.rtve.es/pages/app-player/3.5.1/js/pf_video.js
+    @staticmethod
+    def _decrypt_url(png):
+        encrypted_data = io.BytesIO(base64.b64decode(png)[8:])
+        while True:
+            length_data = encrypted_data.read(4)
+            length = struct.unpack('!I', length_data)[0]
+            chunk_type = encrypted_data.read(4)
+            if chunk_type == b'IEND':
+                break
+            data = encrypted_data.read(length)
+            if chunk_type == b'tEXt':
+                data = bytes(filter(None, data))
+                alphabet_data, _, url_data = data.partition(b'#')
+                quality_str, _, url_data = url_data.rpartition(b'%%')
+                quality_str = quality_str.decode() or ''
+                alphabet = RTVEALaCartaIE._get_alphabet(alphabet_data)
+                url = RTVEALaCartaIE._get_url(alphabet, url_data)
+                yield quality_str, url
+            encrypted_data.read(4)  # CRC
+
+    @staticmethod
+    def _get_url(alphabet, url_data):
+        url = ''
+        f = 0
+        e = 3
+        b = 1
+        for char in url_data.decode('iso-8859-1'):
+            if f == 0:
+                l = int(char) * 10
+                f = 1
+            else:
+                if e == 0:
+                    l += int(char)
+                    url += alphabet[l]
+                    e = (b + 3) % 4
+                    f = 0
+                    b += 1
+                else:
+                    e -= 1
+        return url
+
+    @staticmethod
+    def _get_alphabet(alphabet_data):
+        alphabet = []
+        e = 0
+        d = 0
+        for char in alphabet_data.decode('iso-8859-1'):
+            if d == 0:
+                alphabet.append(char)
+                d = e = (e + 1) % 4
+            else:
+                d -= 1
+        return alphabet
+
+    def _extract_png_formats_and_subtitles(self, video_id, media_type='videos'):
+        formats, subtitles = [], {}
+        q = qualities(['Media', 'Alta', 'HQ', 'HD_READY', 'HD_FULL'])
+        for manager in ('rtveplayw', 'default'):
+            png = self._download_webpage(
+                f'http://www.rtve.es/ztnr/movil/thumbnail/{manager}/{media_type}/{video_id}.png',
+                video_id, 'Downloading url information', query={'q': 'v2'}, fatal=False)
+            if not png:
+                continue
+
+            for quality, video_url in self._decrypt_url(png):
+                ext = determine_ext(video_url)
+                if ext == 'm3u8':
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                        video_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+                    formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
+                elif ext == 'mpd':
+                    fmts, subs = self._extract_mpd_formats_and_subtitles(
+                        video_url, video_id, 'dash', fatal=False)
+                    formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
+                else:
+                    formats.append({
+                        'format_id': quality,
+                        'quality': q(quality),
+                        'url': video_url,
+                    })
+        return formats, subtitles
+
+    def _parse_metadata(self, metadata):
+        return traverse_obj(metadata, {
+            'title': ('title', {str.strip}),
+            'alt_title': ('alt', {str.strip}),
+            'description': ('description', {clean_html}),
+            'timestamp': ('dateOfEmission', {parse_iso8601(delimiter=' ')}),
+            'release_timestamp': ('publicationDate', {parse_iso8601(delimiter=' ')}),
+            'modified_timestamp': ('modificationDate', {parse_iso8601(delimiter=' ')}),
+            'thumbnail': (('thumbnail', 'image', 'imageSEO'), {url_or_none}, any),
+            'duration': ('duration', {float_or_none(scale=1000)}),
+            'is_live': ('live', {bool}),
+            'series': (('programTitle', ('programInfo', 'title')), {clean_html}, any),
+        })
+
+
+class RTVEALaCartaIE(RTVEBaseIE):
     IE_NAME = 'rtve.es:alacarta'
     IE_DESC = 'RTVE a la carta and Play'
     _VALID_URL = [
-        r'https?://(?:www\.)?rtve\.es/(m/)?(alacarta/videos|filmoteca)/[^/]+/[^/]+/(?P<id>\d+)',
-        r'https?://(?:www\.)?rtve\.es/(m/)?play/videos/[^/]+/[^/]+/(?P<id>\d+)',
+        r'https?://(?:www\.)?rtve\.es/(m/)?(?:(?:alacarta|play)/videos|filmoteca)/[^/?#]+/[^/?#]+/(?P<id>\d+)',
+        r'https?://(?:www\.)?rtve\.es/infantil/serie/[^/?#]+/video/[^/?#]+/(?P<id>\d+)',
     ]
 
     _TESTS = [{
@@ -45,7 +149,6 @@ class RTVEALaCartaIE(InfoExtractor):
         'params': {
             'skip_download': 'live stream',
         },
-        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
     }, {
         'url': 'http://www.rtve.es/alacarta/videos/servir-y-proteger/servir-proteger-capitulo-104/4236788/',
         'md5': 'f3cf0d1902d008c48c793e736706c174',
@@ -57,7 +160,6 @@ class RTVEALaCartaIE(InfoExtractor):
             'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
             'series': 'Servir y proteger',
         },
-        'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
     }, {
         'url': 'http://www.rtve.es/m/alacarta/videos/cuentame-como-paso/cuentame-como-paso-t16-ultimo-minuto-nuestra-vida-capitulo-276/2969138/?media=tve',
         'only_matching': True,
@@ -66,7 +168,7 @@ class RTVEALaCartaIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.rtve.es/play/videos/saber-vivir/07-07-24/16177116/',
-        'md5': '9eebcf6e8d6306c3b7c46e86a0115f55',
+        'md5': 'a5b24fcdfa3ff5cb7908aba53d22d4b6',
         'info_dict': {
             'id': '16177116',
             'ext': 'mp4',
@@ -75,140 +177,50 @@ class RTVEALaCartaIE(InfoExtractor):
             'duration': 2162.68,
             'series': 'Saber vivir',
         },
-        'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
+    }, {
+        'url': 'https://www.rtve.es/infantil/serie/agus-lui-churros-crafts/video/gusano/7048976/',
+        'info_dict': {
+            'id': '7048976',
+            'ext': 'mp4',
+            'title': 'Saber vivir - 07/07/24',
+            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
+            'duration': 2162.68,
+            'series': 'Agus & Lui: Churros y Crafts',
+        },
     }]
 
-    def _real_initialize(self):
-        user_agent_b64 = base64.b64encode(self.get_param('http_headers')['User-Agent'].encode()).decode('utf-8')
-        self._manager = self._download_json(
-            'http://www.rtve.es/odin/loki/' + user_agent_b64,
-            None, 'Fetching manager info')['manager']
-
-    @staticmethod
-    def _decrypt_url(png):
-        encrypted_data = io.BytesIO(base64.b64decode(png)[8:])
-        while True:
-            length_data = encrypted_data.read(4)
-            length = struct.unpack('!I', length_data)[0]
-            chunk_type = encrypted_data.read(4)
-            if chunk_type == b'IEND':
-                break
-            data = encrypted_data.read(length)
-            if chunk_type == b'tEXt':
-                if b'%%' in data:
-                    alphabet_data, text = data.split(b'\0')
-                    quality, url_data = text.split(b'%%')
-                    alphabet = RTVEALaCartaIE._get_alfabet(alphabet_data)
-                    url = RTVEALaCartaIE._get_url(alphabet, url_data)
-                    quality_str = quality.decode()
-                else:
-                    data = bytes(filter(None, data))
-                    alphabet_data, url_data = data.split(b'#')
-                    alphabet = RTVEALaCartaIE._get_alfabet(alphabet_data)
-
-                    url = RTVEALaCartaIE._get_url(alphabet, url_data)
-                    quality_str = ''
-                yield quality_str, url
-            encrypted_data.read(4)  # CRC
-
-    @staticmethod
-    def _get_url(alphabet, url_data):
-        url = ''
-        f = 0
-        e = 3
-        b = 1
-        for letter in url_data.decode('iso-8859-1'):
-            if f == 0:
-                l = int(letter) * 10
-                f = 1
-            else:
-                if e == 0:
-                    l += int(letter)
-                    url += alphabet[l]
-                    e = (b + 3) % 4
-                    f = 0
-                    b += 1
-                else:
-                    e -= 1
-        return url
-
-    @staticmethod
-    def _get_alfabet(alphabet_data):
-        alphabet = []
-        e = 0
-        d = 0
-        for l in alphabet_data.decode('iso-8859-1'):
-            if d == 0:
-                alphabet.append(l)
-                d = e = (e + 1) % 4
-            else:
-                d -= 1
-        return alphabet
-
-    def _extract_png_formats(self, video_id):
-        formats = []
-        q = qualities(['Media', 'Alta', 'HQ', 'HD_READY', 'HD_FULL'])
-        for manager in (self._manager, 'rtveplayw'):
-            png = self._download_webpage(
-                f'http://www.rtve.es/ztnr/movil/thumbnail/{manager}/videos/{video_id}.png',
-                video_id, 'Downloading url information', query={'q': 'v2'})
-
-            for quality, video_url in self._decrypt_url(png):
-                ext = determine_ext(video_url)
-                if ext == 'm3u8':
-                    formats.extend(self._extract_m3u8_formats(
-                        video_url, video_id, 'mp4', 'm3u8_native',
-                        m3u8_id='hls', fatal=False))
-                elif ext == 'mpd':
-                    formats.extend(self._extract_mpd_formats(
-                        video_url, video_id, 'dash', fatal=False))
-                else:
-                    formats.append({
-                        'format_id': quality,
-                        'quality': q(quality),
-                        'url': video_url,
-                    })
-        return formats
+    def _get_subtitles(self, video_id):
+        subtitle_data = self._download_json(
+            f'https://api2.rtve.es/api/videos/{video_id}/subtitulos.json', video_id,
+            'Downloading subtitles info')
+        return traverse_obj(subtitle_data, ('page', 'items', ..., {
+            'id': ('lang', {str}),
+            'url':( 'src', {url_or_none}),
+        }, all, {subs_list_to_dict(lang='es')}))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        info = self._download_json(
+        metadata = self._download_json(
             f'http://www.rtve.es/api/videos/{video_id}/config/alacarta_videos.json',
             video_id)['page']['items'][0]
-        if info['state'] == 'DESPU':
+        if metadata['state'] == 'DESPU':
             raise ExtractorError('The video is no longer available', expected=True)
-        title = info['title'].strip()
-        formats = self._extract_png_formats(video_id)
+        formats, subtitles = self._extract_png_formats_and_subtitles(video_id)
 
-        sbt_file = f'https://api2.rtve.es/api/videos/{video_id}/subtitulos.json'
-        subtitles = self.extract_subtitles(video_id, sbt_file)
-
-        is_live = info.get('live') is True
+        self._merge_subtitles(self.extract_subtitles(video_id), target=subtitles)
 
         return {
             'id': video_id,
-            'title': title,
             'formats': formats,
-            'thumbnail': info.get('image'),
             'subtitles': subtitles,
-            'duration': float_or_none(info.get('duration'), 1000),
-            'is_live': is_live,
-            'series': info.get('programTitle'),
+            **self._parse_metadata(metadata),
         }
 
-    def _get_subtitles(self, video_id, sub_file):
-        subs = self._download_json(
-            sub_file, video_id,
-            'Downloading subtitles info')['page']['items']
-        return dict(
-            (s['lang'], [{'ext': 'vtt', 'url': s['src']}])
-            for s in subs)
 
-
-class RTVEAudioIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
+class RTVEAudioIE(RTVEBaseIE):
     IE_NAME = 'rtve.es:audio'
     IE_DESC = 'RTVE audio'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(alacarta|play)/audios/[^/]+/[^/]+/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(alacarta|play)/audios/[^/?#]+/[^/?#]+/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://www.rtve.es/alacarta/audios/a-hombros-de-gigantes/palabra-ingeniero-codigos-informaticos-27-04-21/5889192/',
@@ -217,8 +229,11 @@ class RTVEAudioIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
             'id': '5889192',
             'ext': 'mp3',
             'title': 'Códigos informáticos',
+            'alt_title': 'Códigos informáticos - Escuchar ahora',
             'duration': 349.440,
             'series': 'A hombros de gigantes',
+            'description': 'md5:72b0d7c1ca20fd327bdfff7ac0171afb',
+            'thumbnail': 'https://img2.rtve.es/a/palabra-ingeniero-codigos-informaticos-270421_5889192.png',
         },
     }, {
         'url': 'https://www.rtve.es/play/audios/en-radio-3/ignatius-farray/5791165/',
@@ -227,9 +242,11 @@ class RTVEAudioIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
             'id': '5791165',
             'ext': 'mp3',
             'title': 'Ignatius Farray',
+            'alt_title': 'En Radio 3 - Ignatius Farray - 13/02/21 - escuchar ahora',
             'thumbnail': r're:https?://.+/1613243011863.jpg',
             'duration': 3559.559,
             'series': 'En Radio 3',
+            'description': 'md5:124aa60b461e0b1724a380bad3bc4040',
         },
     }, {
         'url': 'https://www.rtve.es/play/audios/frankenstein-o-el-moderno-prometeo/capitulo-26-ultimo-muerte-victor-juan-jose-plans-mary-shelley/6082623/',
@@ -238,78 +255,30 @@ class RTVEAudioIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
             'id': '6082623',
             'ext': 'mp3',
             'title': 'Capítulo 26 y último: La muerte de Victor',
+            'alt_title': 'Frankenstein o el moderno Prometeo - Capítulo 26 y último: La muerte de Victor',
             'thumbnail': r're:https?://.+/1632147445707.jpg',
             'duration': 3174.086,
             'series': 'Frankenstein o el moderno Prometeo',
+            'description': 'md5:4ee6fcb82ebe2e46d267e1d1c1a8f7b5',
         },
     }]
-
-    def _extract_png_formats(self, audio_id):
-        """
-        This function retrieves media related png thumbnail which obfuscate
-        valuable information about the media. This information is decrypted
-        via base class _decrypt_url function providing media quality and
-        media url
-        """
-        png = self._download_webpage(
-            f'http://www.rtve.es/ztnr/movil/thumbnail/{self._manager}/audios/{audio_id}.png',
-            audio_id, 'Downloading url information', query={'q': 'v2'})
-        q = qualities(['Media', 'Alta', 'HQ', 'HD_READY', 'HD_FULL'])
-        formats = []
-        for quality, audio_url in self._decrypt_url(png):
-            ext = determine_ext(audio_url)
-            if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    audio_url, audio_id, 'mp4', 'm3u8_native',
-                    m3u8_id='hls', fatal=False))
-            elif ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    audio_url, audio_id, 'dash', fatal=False))
-            else:
-                formats.append({
-                    'format_id': quality,
-                    'quality': q(quality),
-                    'url': audio_url,
-                })
-        return formats
 
     def _real_extract(self, url):
         audio_id = self._match_id(url)
-        info = self._download_json(
-            f'https://www.rtve.es/api/audios/{audio_id}.json',
-            audio_id)['page']['items'][0]
+        metadata = self._download_json(
+            f'https://www.rtve.es/api/audios/{audio_id}.json', audio_id)['page']['items'][0]
+
+        formats, subtitles = self._extract_png_formats_and_subtitles(audio_id, media_type='audios')
 
         return {
             'id': audio_id,
-            'title': info['title'].strip(),
-            'thumbnail': info.get('thumbnail'),
-            'duration': float_or_none(info.get('duration'), 1000),
-            'series': try_get(info, lambda x: x['programInfo']['title']),
-            'formats': self._extract_png_formats(audio_id),
+            'formats': formats,
+            'subtitles': subtitles,
+            **self._parse_metadata(metadata),
         }
 
 
-class RTVEInfantilIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
-    IE_NAME = 'rtve.es:infantil'
-    IE_DESC = 'RTVE infantil'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/infantil/serie/[^/]+/video/[^/]+/(?P<id>[0-9]+)/'
-
-    _TESTS = [{
-        'url': 'https://www.rtve.es/infantil/serie/agus-lui-churros-crafts/video/gusano/7048976/',
-        'md5': '7da8391b203a2d9cb665f11fae025e72',
-        'info_dict': {
-            'id': '7048976',
-            'ext': 'mp4',
-            'title': 'Gusano',
-            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
-            'duration': 292.86,
-            'series': 'Agus & Lui: Churros y Crafts',
-        },
-        'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
-    }]
-
-
-class RTVELiveIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
+class RTVELiveIE(RTVEBaseIE):
     IE_NAME = 'rtve.es:live'
     IE_DESC = 'RTVE.es live streams'
     _VALID_URL = r'https?://(?:www\.)?rtve\.es/directo/(?P<id>[a-zA-Z0-9-]+)'
@@ -325,26 +294,23 @@ class RTVELiveIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
         'params': {
             'skip_download': 'live stream',
         },
-        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('id')
-
+        video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        title = self._html_extract_title(webpage)
 
-        data_setup = self._search_regex(
-            r'<div[^>]+class="[^"]*videoPlayer[^"]*"[^>]*data-setup=\'([^\']*)\'',
-            webpage, 'data_setup',
-        )
-        data_setup = self._parse_json(data_setup, video_id)
+        data_setup = self._search_json(
+            r'<div[^>]+class="[^"]*videoPlayer[^"]*"[^>]*data-setup=\'',
+            webpage, 'data_setup', video_id)
+
+        formats, subtitles = self._extract_png_formats_and_subtitles(data_setup['idAsset'])
 
         return {
             'id': video_id,
-            'title': title,
-            'formats': self._extract_png_formats(data_setup.get('idAsset')),
+            'title': self._html_extract_title(webpage),
+            'formats': formats,
+            'subtitles': subtitles,
             'is_live': True,
         }
 
