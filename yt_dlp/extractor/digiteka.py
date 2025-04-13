@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, traverse_obj, url_or_none
 
 
 class DigitekaIE(InfoExtractor):
@@ -23,9 +23,7 @@ class DigitekaIE(InfoExtractor):
             )
             /id
         )/(?P<id>[\d+a-z]+)'''
-    _EMBED_REGEX = [
-        r'<(?:iframe|script)(?:(?!>)[\s\S])*(?:data-)?src=["\'](?P<url>(?:https?:)?//(?:www\.)?(?:digiteka\.net|ultimedia\.com)/deliver/(?P<embed_type>generic|musique)(?:/[^/]+)*/(?:src|article)/(?P<id>[\d+a-z]+))',
-    ]
+    _EMBED_REGEX = [r'<(?:iframe|script)(?:(?!>)[\s\S])*(?:data-)?src=["\'](?P<url>(?:https?:)?//(?:www\.)?(?:digiteka\.net|ultimedia\.com)/deliver/(?P<embed_type>generic|musique)(?:/[^/]+)*/(?:src|article)/(?P<id>[\d+a-z]+))']
     _TESTS = [
         {
             'url': 'https://www.ultimedia.com/deliver/generic/iframe/mdtk/01747256/zone/60/src/x8smpxf',
@@ -52,23 +50,13 @@ class DigitekaIE(InfoExtractor):
     ]
 
     def _fallback_to_iframe_content(self, url, video_id):
-        iframe_content = self._download_webpage(url, video_id)
-
-        video_url = self._og_search_video_url(iframe_content)
-        video_format = video_url.split('.')[-1]
-        video_title = self._og_search_title(iframe_content)
-        video_thumbnail = self._og_search_thumbnail(iframe_content)
+        webpage = self._download_webpage(url, video_id)
 
         return {
             'id': video_id,
-            'title': video_title,
-            'thumbnail': video_thumbnail,
-            'formats': [
-                {
-                    'url': video_url,
-                    'ext': video_format,
-                },
-            ],
+            'url': self._og_search_video_url(webpage),
+            'title': self._og_search_title(webpage),
+            'thumbnail': self._og_search_thumbnail(webpage),
         }
 
     def _real_extract(self, url):
@@ -80,8 +68,7 @@ class DigitekaIE(InfoExtractor):
 
         deliver_info = self._download_json(
             f'http://www.ultimedia.com/deliver/video?video={video_id}&topic={video_type}',
-            video_id,
-        )
+            video_id)
         if not deliver_info:
             return self._fallback_to_iframe_content(url, video_id)
         yt_id = deliver_info.get('yt_id')
@@ -92,14 +79,13 @@ class DigitekaIE(InfoExtractor):
 
         formats = []
 
-        for source in jwconf['playlist'][0]['sources']:
-            if source['file'] is not False:
-                formats.append(
-                    {
-                        'url': source['file'],
-                        'format_id': source.get('label'),
-                    },
-                )
+        for source in traverse_obj(jwconf, ('playlist', 0, 'sources', lambda _, v: url_or_none(v['file']))):
+            formats.append(
+                {
+                    'url': source['file'],
+                    'format_id': source.get('label'),
+                },
+            )
         if not formats:
             return self._fallback_to_iframe_content(url, video_id)
 
