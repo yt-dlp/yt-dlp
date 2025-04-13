@@ -6,6 +6,8 @@ import sys
 import unittest
 from unittest.mock import patch
 
+from yt_dlp.globals import all_plugins_loaded
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -15,7 +17,6 @@ import json
 
 from test.helper import FakeYDL, assertRegexpMatches, try_rm
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_os_name
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
@@ -487,11 +488,11 @@ class TestFormatSelection(unittest.TestCase):
 
     def test_format_filtering(self):
         formats = [
-            {'format_id': 'A', 'filesize': 500, 'width': 1000},
-            {'format_id': 'B', 'filesize': 1000, 'width': 500},
-            {'format_id': 'C', 'filesize': 1000, 'width': 400},
-            {'format_id': 'D', 'filesize': 2000, 'width': 600},
-            {'format_id': 'E', 'filesize': 3000},
+            {'format_id': 'A', 'filesize': 500, 'width': 1000, 'aspect_ratio': 1.0},
+            {'format_id': 'B', 'filesize': 1000, 'width': 500, 'aspect_ratio': 1.33},
+            {'format_id': 'C', 'filesize': 1000, 'width': 400, 'aspect_ratio': 1.5},
+            {'format_id': 'D', 'filesize': 2000, 'width': 600, 'aspect_ratio': 1.78},
+            {'format_id': 'E', 'filesize': 3000, 'aspect_ratio': 0.56},
             {'format_id': 'F'},
             {'format_id': 'G', 'filesize': 1000000},
         ]
@@ -549,6 +550,31 @@ class TestFormatSelection(unittest.TestCase):
         with contextlib.suppress(ExtractorError):
             ydl.process_ie_result(info_dict)
         self.assertEqual(ydl.downloaded_info_dicts, [])
+
+        ydl = YDL({'format': 'best[aspect_ratio=1]'})
+        ydl.process_ie_result(info_dict)
+        downloaded = ydl.downloaded_info_dicts[0]
+        self.assertEqual(downloaded['format_id'], 'A')
+
+        ydl = YDL({'format': 'all[aspect_ratio > 1.00]'})
+        ydl.process_ie_result(info_dict)
+        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
+        self.assertEqual(downloaded_ids, ['D', 'C', 'B'])
+
+        ydl = YDL({'format': 'all[aspect_ratio < 1.00]'})
+        ydl.process_ie_result(info_dict)
+        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
+        self.assertEqual(downloaded_ids, ['E'])
+
+        ydl = YDL({'format': 'best[aspect_ratio=1.5]'})
+        ydl.process_ie_result(info_dict)
+        downloaded = ydl.downloaded_info_dicts[0]
+        self.assertEqual(downloaded['format_id'], 'C')
+
+        ydl = YDL({'format': 'all[aspect_ratio!=1]'})
+        ydl.process_ie_result(info_dict)
+        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
+        self.assertEqual(downloaded_ids, ['E', 'D', 'C', 'B'])
 
     @patch('yt_dlp.postprocessor.ffmpeg.FFmpegMergerPP.available', False)
     def test_default_format_spec_without_ffmpeg(self):
@@ -762,6 +788,13 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(width)06d.%%(ext)s', 'NA.%(ext)s')
         test('%%(width)06d.%(ext)s', '%(width)06d.mp4')
 
+        # Sanitization options
+        test('%(title3)s', (None, 'foo⧸bar⧹test'))
+        test('%(title5)s', (None, 'aei_A'), restrictfilenames=True)
+        test('%(title3)s', (None, 'foo_bar_test'), windowsfilenames=False, restrictfilenames=True)
+        if sys.platform != 'win32':
+            test('%(title3)s', (None, 'foo⧸bar\\test'), windowsfilenames=False)
+
         # ID sanitization
         test('%(id)s', '_abcd', info={'id': '_abcd'})
         test('%(some_id)s', '_abcd', info={'some_id': '_abcd'})
@@ -839,8 +872,8 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(filesize)#D', '1Ki')
         test('%(height)5.2D', ' 1.08k')
         test('%(title4)#S', 'foo_bar_test')
-        test('%(title4).10S', ('foo ＂bar＂ ', 'foo ＂bar＂' + ('#' if compat_os_name == 'nt' else ' ')))
-        if compat_os_name == 'nt':
+        test('%(title4).10S', ('foo ＂bar＂ ', 'foo ＂bar＂' + ('#' if os.name == 'nt' else ' ')))
+        if os.name == 'nt':
             test('%(title4)q', ('"foo ""bar"" test"', None))
             test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', None))
             test('%(formats.0.id)#q', ('"id 1"', None))
@@ -903,9 +936,9 @@ class TestYoutubeDL(unittest.TestCase):
 
         # Environment variable expansion for prepare_filename
         os.environ['__yt_dlp_var'] = 'expanded'
-        envvar = '%__yt_dlp_var%' if compat_os_name == 'nt' else '$__yt_dlp_var'
+        envvar = '%__yt_dlp_var%' if os.name == 'nt' else '$__yt_dlp_var'
         test(envvar, (envvar, 'expanded'))
-        if compat_os_name == 'nt':
+        if os.name == 'nt':
             test('%s%', ('%s%', '%s%'))
             os.environ['s'] = 'expanded'
             test('%s%', ('%s%', 'expanded'))  # %s% should be expanded before escaping %s
@@ -1395,6 +1428,12 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertIsNone(check_for_cookie_header(result), msg='http_headers cookies for wrong domain')
         self.assertFalse(result.get('cookies'), msg='Cookies set in cookies field for wrong domain')
         self.assertFalse(ydl.cookiejar.get_cookie_header(fmt['url']), msg='Cookies set in cookiejar for wrong domain')
+
+    def test_load_plugins_compat(self):
+        # Should try to reload plugins if they haven't already been loaded
+        all_plugins_loaded.value = False
+        FakeYDL().close()
+        assert all_plugins_loaded.value
 
 
 if __name__ == '__main__':

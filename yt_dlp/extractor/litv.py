@@ -1,30 +1,32 @@
 import json
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     smuggle_url,
     traverse_obj,
     try_call,
     unsmuggle_url,
+    urljoin,
 )
 
 
 class LiTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?litv\.tv/(?:vod|promo)/[^/]+/(?:content\.do)?\?.*?\b(?:content_)?id=(?P<id>[^&]+)'
-
-    _URL_TEMPLATE = 'https://www.litv.tv/vod/%s/content.do?content_id=%s'
-
+    _VALID_URL = r'https?://(?:www\.)?litv\.tv/(?:[^/?#]+/watch/|vod/[^/?#]+/content\.do\?content_id=)(?P<id>[\w-]+)'
+    _URL_TEMPLATE = 'https://www.litv.tv/%s/watch/%s'
+    _GEO_COUNTRIES = ['TW']
     _TESTS = [{
-        'url': 'https://www.litv.tv/vod/drama/content.do?brc_id=root&id=VOD00041610&isUHEnabled=true&autoPlay=1',
+        'url': 'https://www.litv.tv/drama/watch/VOD00041610',
         'info_dict': {
             'id': 'VOD00041606',
             'title': '花千骨',
         },
         'playlist_count': 51,  # 50 episodes + 1 trailer
     }, {
-        'url': 'https://www.litv.tv/vod/drama/content.do?brc_id=root&id=VOD00041610&isUHEnabled=true&autoPlay=1',
+        'url': 'https://www.litv.tv/drama/watch/VOD00041610',
         'md5': 'b90ff1e9f1d8f5cfcd0a44c3e2b34c7a',
         'info_dict': {
             'id': 'VOD00041610',
@@ -32,16 +34,15 @@ class LiTVIE(InfoExtractor):
             'title': '花千骨第1集',
             'thumbnail': r're:https?://.*\.jpg$',
             'description': '《花千骨》陸劇線上看。十六年前，平靜的村莊內，一名女嬰隨異相出生，途徑此地的蜀山掌門清虛道長算出此女命運非同一般，她體內散發的異香易招惹妖魔。一念慈悲下，他在村莊周邊設下結界阻擋妖魔入侵，讓其年滿十六後去蜀山，並賜名花千骨。',
-            'categories': ['奇幻', '愛情', '中國', '仙俠'],
+            'categories': ['奇幻', '愛情', '仙俠', '古裝'],
             'episode': 'Episode 1',
             'episode_number': 1,
         },
         'params': {
             'noplaylist': True,
         },
-        'skip': 'Georestricted to Taiwan',
     }, {
-        'url': 'https://www.litv.tv/promo/miyuezhuan/?content_id=VOD00044841&',
+        'url': 'https://www.litv.tv/drama/watch/VOD00044841',
         'md5': '88322ea132f848d6e3e18b32a832b918',
         'info_dict': {
             'id': 'VOD00044841',
@@ -55,94 +56,62 @@ class LiTVIE(InfoExtractor):
     def _extract_playlist(self, playlist_data, content_type):
         all_episodes = [
             self.url_result(smuggle_url(
-                self._URL_TEMPLATE % (content_type, episode['contentId']),
+                self._URL_TEMPLATE % (content_type, episode['content_id']),
                 {'force_noplaylist': True}))  # To prevent infinite recursion
-            for episode in traverse_obj(playlist_data, ('seasons', ..., 'episode', lambda _, v: v['contentId']))]
+            for episode in traverse_obj(playlist_data, ('seasons', ..., 'episodes', lambda _, v: v['content_id']))]
 
-        return self.playlist_result(all_episodes, playlist_data['contentId'], playlist_data.get('title'))
+        return self.playlist_result(all_episodes, playlist_data['content_id'], playlist_data.get('title'))
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
-
         video_id = self._match_id(url)
-
         webpage = self._download_webpage(url, video_id)
+        vod_data = self._search_nextjs_data(webpage, video_id)['props']['pageProps']
 
-        if self._search_regex(
-                r'(?i)<meta\s[^>]*http-equiv="refresh"\s[^>]*content="[0-9]+;\s*url=https://www\.litv\.tv/"',
-                webpage, 'meta refresh redirect', default=False, group=0):
-            raise ExtractorError('No such content found', expected=True)
+        program_info = traverse_obj(vod_data, ('programInformation', {dict})) or {}
+        playlist_data = traverse_obj(vod_data, ('seriesTree'))
+        if playlist_data and self._yes_playlist(program_info.get('series_id'), video_id, smuggled_data):
+            return self._extract_playlist(playlist_data, program_info.get('content_type'))
 
-        program_info = self._parse_json(self._search_regex(
-            r'var\s+programInfo\s*=\s*([^;]+)', webpage, 'VOD data', default='{}'),
-            video_id)
+        asset_id = traverse_obj(program_info, ('assets', 0, 'asset_id', {str}))
+        if asset_id:  # This is a VOD
+            media_type = 'vod'
+        else:  # This is a live stream
+            asset_id = program_info['content_id']
+            media_type = program_info['content_type']
+        puid = try_call(lambda: self._get_cookies('https://www.litv.tv/')['PUID'].value)
+        if puid:
+            endpoint = 'get-urls'
+        else:
+            puid = str(uuid.uuid4())
+            endpoint = 'get-urls-no-auth'
+        video_data = self._download_json(
+            f'https://www.litv.tv/api/{endpoint}', video_id,
+            data=json.dumps({'AssetId': asset_id, 'MediaType': media_type, 'puid': puid}).encode(),
+            headers={'Content-Type': 'application/json'})
 
-        # In browsers `getProgramInfo` request is always issued. Usually this
-        # endpoint gives the same result as the data embedded in the webpage.
-        # If, for some reason, there are no embedded data, we do an extra request.
-        if 'assetId' not in program_info:
-            program_info = self._download_json(
-                'https://www.litv.tv/vod/ajax/getProgramInfo', video_id,
-                query={'contentId': video_id},
-                headers={'Accept': 'application/json'})
-
-        series_id = program_info['seriesId']
-        if self._yes_playlist(series_id, video_id, smuggled_data):
-            playlist_data = self._download_json(
-                'https://www.litv.tv/vod/ajax/getSeriesTree', video_id,
-                query={'seriesId': series_id}, headers={'Accept': 'application/json'})
-            return self._extract_playlist(playlist_data, program_info['contentType'])
-
-        video_data = self._parse_json(self._search_regex(
-            r'uiHlsUrl\s*=\s*testBackendData\(([^;]+)\);',
-            webpage, 'video data', default='{}'), video_id)
-        if not video_data:
-            payload = {'assetId': program_info['assetId']}
-            puid = try_call(lambda: self._get_cookies('https://www.litv.tv/')['PUID'].value)
-            if puid:
-                payload.update({
-                    'type': 'auth',
-                    'puid': puid,
-                })
-                endpoint = 'getUrl'
-            else:
-                payload.update({
-                    'watchDevices': program_info['watchDevices'],
-                    'contentType': program_info['contentType'],
-                })
-                endpoint = 'getMainUrlNoAuth'
-            video_data = self._download_json(
-                f'https://www.litv.tv/vod/ajax/{endpoint}', video_id,
-                data=json.dumps(payload).encode(),
-                headers={'Content-Type': 'application/json'})
-
-        if not video_data.get('fullpath'):
-            error_msg = video_data.get('errorMessage')
-            if error_msg == 'vod.error.outsideregionerror':
+        if error := traverse_obj(video_data, ('error', {dict})):
+            error_msg = traverse_obj(error, ('message', {str}))
+            if error_msg and 'OutsideRegionError' in error_msg:
                 self.raise_geo_restricted('This video is available in Taiwan only')
-            if error_msg:
+            elif error_msg:
                 raise ExtractorError(f'{self.IE_NAME} said: {error_msg}', expected=True)
-            raise ExtractorError(f'Unexpected result from {self.IE_NAME}')
+            raise ExtractorError(f'Unexpected error from {self.IE_NAME}')
 
         formats = self._extract_m3u8_formats(
-            video_data['fullpath'], video_id, ext='mp4',
-            entry_protocol='m3u8_native', m3u8_id='hls')
+            video_data['result']['AssetURLs'][0], video_id, ext='mp4', m3u8_id='hls')
         for a_format in formats:
             # LiTV HLS segments doesn't like compressions
             a_format.setdefault('http_headers', {})['Accept-Encoding'] = 'identity'
 
-        title = program_info['title'] + program_info.get('secondaryMark', '')
-        description = program_info.get('description')
-        thumbnail = program_info.get('imageFile')
-        categories = [item['name'] for item in program_info.get('category', [])]
-        episode = int_or_none(program_info.get('episode'))
-
         return {
             'id': video_id,
             'formats': formats,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'categories': categories,
-            'episode_number': episode,
+            'title': join_nonempty('title', 'secondary_mark', delim='', from_dict=program_info),
+            **traverse_obj(program_info, {
+                'description': ('description', {str}),
+                'thumbnail': ('picture', {urljoin('https://p-cdnstatic.svc.litv.tv/')}),
+                'categories': ('genres', ..., 'name', {str}),
+                'episode_number': ('episode', {int_or_none}),
+            }),
         }

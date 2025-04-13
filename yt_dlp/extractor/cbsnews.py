@@ -96,7 +96,7 @@ class CBSNewsBaseIE(InfoExtractor):
             **traverse_obj(item, {
                 'title': (None, ('fulltitle', 'title')),
                 'description': 'dek',
-                'timestamp': ('timestamp', {lambda x: float_or_none(x, 1000)}),
+                'timestamp': ('timestamp', {float_or_none(scale=1000)}),
                 'duration': ('duration', {float_or_none}),
                 'subtitles': ('captions', {get_subtitles}),
                 'thumbnail': ('images', ('hd', 'sd'), {url_or_none}),

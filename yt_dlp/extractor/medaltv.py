@@ -102,11 +102,10 @@ class MedalTVIE(InfoExtractor):
             item_id = item_id or '%dp' % height
             if item_id not in item_url:
                 return
-            width = int(round(aspect_ratio * height))
             container.append({
                 'url': item_url,
                 id_key: item_id,
-                'width': width,
+                'width': round(aspect_ratio * height),
                 'height': height,
             })
 

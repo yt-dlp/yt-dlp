@@ -2,7 +2,6 @@ import base64
 import collections
 import functools
 import getpass
-import hashlib
 import http.client
 import http.cookiejar
 import http.cookies
@@ -25,12 +24,12 @@ import xml.etree.ElementTree
 from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
-    compat_os_name,
     urllib_req_to_req,
 )
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..downloader.hls import HlsFD
+from ..globals import plugin_ies_overrides
 from ..networking import HEADRequest, Request
 from ..networking.exceptions import (
     HTTPError,
@@ -47,6 +46,7 @@ from ..utils import (
     FormatSorter,
     GeoRestrictedError,
     GeoUtils,
+    ISO639Utils,
     LenientJSONDecoder,
     Popen,
     RegexNotFoundError,
@@ -78,7 +78,7 @@ from ..utils import (
     parse_iso8601,
     parse_m3u8_attributes,
     parse_resolution,
-    sanitize_filename,
+    qualities,
     sanitize_url,
     smuggle_url,
     str_or_none,
@@ -100,6 +100,7 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
+from ..utils._utils import _request_dump_filename
 
 
 class InfoExtractor:
@@ -201,6 +202,11 @@ class InfoExtractor:
                                             fragment_base_url
                                  * "duration" (optional, int or float)
                                  * "filesize" (optional, int)
+                    * hls_media_playlist_data
+                                 The M3U8 media playlist data as a string.
+                                 Only use if the data must be modified during extraction and
+                                 the native HLS downloader should bypass requesting the URL.
+                                 Does not apply if ffmpeg is used as external downloader
                     * is_from_start  Is a live format that can be downloaded
                                 from the start. Boolean
                     * preference Order number of this format. If this field is
@@ -278,6 +284,7 @@ class InfoExtractor:
     thumbnails:     A list of dictionaries, with the following entries:
                         * "id" (optional, string) - Thumbnail format ID
                         * "url"
+                        * "ext" (optional, string) - actual image extension if not given in URL
                         * "preference" (optional, int) - quality of the image
                         * "width" (optional, int)
                         * "height" (optional, int)
@@ -333,7 +340,7 @@ class InfoExtractor:
     like_count:     Number of positive ratings of the video
     dislike_count:  Number of negative ratings of the video
     repost_count:   Number of reposts of the video
-    average_rating: Average rating give by users, the scale used depends on the webpage
+    average_rating: Average rating given by users, the scale used depends on the webpage
     comment_count:  Number of comments on the video
     comments:       A list of comments, each with one or more of the following
                     properties (all but one of text or html optional):
@@ -520,7 +527,7 @@ class InfoExtractor:
     or _extract_from_webpage as necessary. While these are normally classmethods,
     _extract_from_webpage is allowed to be an instance method.
 
-    _extract_from_webpage may raise self.StopExtraction() to stop further
+    _extract_from_webpage may raise self.StopExtraction to stop further
     processing of the webpage and obtain exclusive rights to it. This is useful
     when the extractor cannot reliably be matched using just the URL,
     e.g. invidious/peertube instances
@@ -1016,23 +1023,6 @@ class InfoExtractor:
                 'Visit http://blocklist.rkn.gov.ru/ for a block reason.',
                 expected=True)
 
-    def _request_dump_filename(self, url, video_id, data=None):
-        if data is not None:
-            data = hashlib.md5(data).hexdigest()
-        basen = join_nonempty(video_id, data, url, delim='_')
-        trim_length = self.get_param('trim_file_name') or 240
-        if len(basen) > trim_length:
-            h = '___' + hashlib.md5(basen.encode()).hexdigest()
-            basen = basen[:trim_length - len(h)] + h
-        filename = sanitize_filename(f'{basen}.dump', restricted=True)
-        # Working around MAX_PATH limitation on Windows (see
-        # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
-        if compat_os_name == 'nt':
-            absfilepath = os.path.abspath(filename)
-            if len(absfilepath) > 259:
-                filename = fR'\\?\{absfilepath}'
-        return filename
-
     def __decode_webpage(self, webpage_bytes, encoding, headers):
         if not encoding:
             encoding = self._guess_encoding_from_content(headers.get('Content-Type', ''), webpage_bytes)
@@ -1061,7 +1051,9 @@ class InfoExtractor:
         if self.get_param('write_pages'):
             if isinstance(url_or_request, Request):
                 data = self._create_request(url_or_request, data).data
-            filename = self._request_dump_filename(urlh.url, video_id, data)
+            filename = _request_dump_filename(
+                urlh.url, video_id, data,
+                trim_length=self.get_param('trim_file_name'))
             self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
@@ -1122,7 +1114,9 @@ class InfoExtractor:
                              impersonate=None, require_impersonation=False):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
-                filename = self._request_dump_filename(url_or_request.url, video_id, url_or_request.data)
+                filename = _request_dump_filename(
+                    url_or_request.url, video_id, url_or_request.data,
+                    trim_length=self.get_param('trim_file_name'))
                 self.to_screen(f'Loading request from {filename}')
                 try:
                     with open(filename, 'rb') as dumpf:
@@ -1408,6 +1402,13 @@ class InfoExtractor:
             return None, None
 
         self.write_debug(f'Using netrc for {netrc_machine} authentication')
+
+        # compat: <=py3.10: netrc cannot parse tokens as empty strings, will return `""` instead
+        # Ref: https://github.com/yt-dlp/yt-dlp/issues/11413
+        #      https://github.com/python/cpython/commit/15409c720be0503131713e3d3abc1acd0da07378
+        if sys.version_info < (3, 11):
+            return tuple(x if x != '""' else '' for x in info[::2])
+
         return info[0], info[2]
 
     def _get_login_info(self, username_option='username', password_option='password', netrc_machine=None):
@@ -1569,8 +1570,12 @@ class InfoExtractor:
         """Yield all json ld objects in the html"""
         if default is not NO_DEFAULT:
             fatal = False
+        if not fatal and not isinstance(html, str):
+            return
         for mobj in re.finditer(JSON_LD_RE, html):
-            json_ld_item = self._parse_json(mobj.group('json_ld'), video_id, fatal=fatal)
+            json_ld_item = self._parse_json(
+                mobj.group('json_ld'), video_id, fatal=fatal,
+                errnote=False if default is not NO_DEFAULT else None)
             for json_ld in variadic(json_ld_item):
                 if isinstance(json_ld, dict):
                     yield json_ld
@@ -1844,12 +1849,26 @@ class InfoExtractor:
 
     @staticmethod
     def _remove_duplicate_formats(formats):
-        format_urls = set()
+        seen_urls = set()
+        seen_fragment_urls = set()
         unique_formats = []
         for f in formats:
-            if f['url'] not in format_urls:
-                format_urls.add(f['url'])
+            fragments = f.get('fragments')
+            if callable(fragments):
                 unique_formats.append(f)
+
+            elif fragments:
+                fragment_urls = frozenset(
+                    fragment.get('url') or urljoin(f['fragment_base_url'], fragment['path'])
+                    for fragment in fragments)
+                if fragment_urls not in seen_fragment_urls:
+                    seen_fragment_urls.add(fragment_urls)
+                    unique_formats.append(f)
+
+            elif f['url'] not in seen_urls:
+                seen_urls.add(f['url'])
+                unique_formats.append(f)
+
         formats[:] = unique_formats
 
     def _is_valid_url(self, url, video_id, item='video', headers={}):
@@ -2161,6 +2180,8 @@ class InfoExtractor:
             media_url = media.get('URI')
             if media_url:
                 manifest_url = format_url(media_url)
+                is_audio = media_type == 'AUDIO'
+                is_alternate = media.get('DEFAULT') == 'NO' or media.get('AUTOSELECT') == 'NO'
                 formats.extend({
                     'format_id': join_nonempty(m3u8_id, group_id, name, idx),
                     'format_note': name,
@@ -2173,7 +2194,11 @@ class InfoExtractor:
                     'preference': preference,
                     'quality': quality,
                     'has_drm': has_drm,
-                    'vcodec': 'none' if media_type == 'AUDIO' else None,
+                    'vcodec': 'none' if is_audio else None,
+                    # Alternate audio formats (e.g. audio description) should be deprioritized
+                    'source_preference': -2 if is_audio and is_alternate else None,
+                    # Save this to assign source_preference based on associated video stream
+                    '_audio_group_id': group_id if is_audio and not is_alternate else None,
                 } for idx in _extract_m3u8_playlist_indices(manifest_url))
 
         def build_stream_name():
@@ -2268,6 +2293,8 @@ class InfoExtractor:
                     # ignore references to rendition groups and treat them
                     # as complete formats.
                     if audio_group_id and codecs and f.get('vcodec') != 'none':
+                        # Save this to determine quality of audio formats that only have a GROUP-ID
+                        f['_audio_group_id'] = audio_group_id
                         audio_group = groups.get(audio_group_id)
                         if audio_group and audio_group[0].get('URI'):
                             # TODO: update acodec for audio only formats with
@@ -2290,6 +2317,28 @@ class InfoExtractor:
                         formats.append(http_f)
 
                 last_stream_inf = {}
+
+        # Some audio-only formats only have a GROUP-ID without any other quality/bitrate/codec info
+        # Each audio GROUP-ID corresponds with one or more video formats' AUDIO attribute
+        # For sorting purposes, set source_preference based on the quality of the video formats they are grouped with
+        # See https://github.com/yt-dlp/yt-dlp/issues/11178
+        audio_groups_by_quality = orderedSet(f['_audio_group_id'] for f in sorted(
+            traverse_obj(formats, lambda _, v: v.get('vcodec') != 'none' and v['_audio_group_id']),
+            key=lambda x: (x.get('tbr') or 0, x.get('width') or 0)))
+        audio_quality_map = {
+            audio_groups_by_quality[0]: 'low',
+            audio_groups_by_quality[-1]: 'high',
+        } if len(audio_groups_by_quality) > 1 else None
+        audio_preference = qualities(audio_groups_by_quality)
+        for fmt in formats:
+            audio_group_id = fmt.pop('_audio_group_id', None)
+            if not audio_quality_map or not audio_group_id or fmt.get('vcodec') != 'none':
+                continue
+            # Use source_preference since quality and preference are set by params
+            fmt['source_preference'] = audio_preference(audio_group_id)
+            fmt['format_note'] = join_nonempty(
+                fmt.get('format_note'), audio_quality_map.get(audio_group_id), delim=', ')
+
         return formats, subtitles
 
     def _extract_m3u8_vod_duration(
@@ -2919,8 +2968,7 @@ class InfoExtractor:
                             segment_duration = None
                             if 'total_number' not in representation_ms_info and 'segment_duration' in representation_ms_info:
                                 segment_duration = float_or_none(representation_ms_info['segment_duration'], representation_ms_info['timescale'])
-                                representation_ms_info['total_number'] = int(math.ceil(
-                                    float_or_none(period_duration, segment_duration, default=0)))
+                                representation_ms_info['total_number'] = math.ceil(float_or_none(period_duration, segment_duration, default=0))
                             representation_ms_info['fragments'] = [{
                                 media_location_key: media_template % {
                                     'Number': segment_number,
@@ -3071,7 +3119,11 @@ class InfoExtractor:
             url_pattern = stream.attrib['Url']
             stream_timescale = int_or_none(stream.get('TimeScale')) or timescale
             stream_name = stream.get('Name')
-            stream_language = stream.get('Language', 'und')
+            # IsmFD expects ISO 639 Set 2 language codes (3-character length)
+            # See: https://github.com/yt-dlp/yt-dlp/issues/11356
+            stream_language = stream.get('Language') or 'und'
+            if len(stream_language) != 3:
+                stream_language = ISO639Utils.short2long(stream_language) or 'und'
             for track in stream.findall('QualityLevel'):
                 KNOWN_TAGS = {'255': 'AACL', '65534': 'EC-3'}
                 fourcc = track.get('FourCC') or KNOWN_TAGS.get(track.get('AudioTag'))
@@ -3753,7 +3805,7 @@ class InfoExtractor:
         """ Merge subtitle dictionaries, language by language. """
         if target is None:
             target = {}
-        for d in dicts:
+        for d in filter(None, dicts):
             for lang, subs in d.items():
                 target[lang] = cls._merge_subtitle_items(target.get(lang, []), subs)
         return target
@@ -3775,7 +3827,7 @@ class InfoExtractor:
     def mark_watched(self, *args, **kwargs):
         if not self.get_param('mark_watched', False):
             return
-        if self.supports_login() and self._get_login_info()[0] is not None or self._cookies_passed:
+        if (self.supports_login() and self._get_login_info()[0] is not None) or self._cookies_passed:
             self._mark_watched(*args, **kwargs)
 
     def _mark_watched(self, *args, **kwargs):
@@ -3935,14 +3987,18 @@ class InfoExtractor:
     def __init_subclass__(cls, *, plugin_name=None, **kwargs):
         if plugin_name:
             mro = inspect.getmro(cls)
-            super_class = cls.__wrapped__ = mro[mro.index(cls) + 1]
-            cls.PLUGIN_NAME, cls.ie_key = plugin_name, super_class.ie_key
-            cls.IE_NAME = f'{super_class.IE_NAME}+{plugin_name}'
+            next_mro_class = super_class = mro[mro.index(cls) + 1]
+
             while getattr(super_class, '__wrapped__', None):
                 super_class = super_class.__wrapped__
-            setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
-            _PLUGIN_OVERRIDES[super_class].append(cls)
 
+            if not any(override.PLUGIN_NAME == plugin_name for override in plugin_ies_overrides.value[super_class]):
+                cls.__wrapped__ = next_mro_class
+                cls.PLUGIN_NAME, cls.ie_key = plugin_name, next_mro_class.ie_key
+                cls.IE_NAME = f'{next_mro_class.IE_NAME}+{plugin_name}'
+
+                setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
+                plugin_ies_overrides.value[super_class].append(cls)
         return super().__init_subclass__(**kwargs)
 
 
@@ -3998,6 +4054,3 @@ class UnsupportedURLIE(InfoExtractor):
 
     def _real_extract(self, url):
         raise UnsupportedError(url)
-
-
-_PLUGIN_OVERRIDES = collections.defaultdict(list)
