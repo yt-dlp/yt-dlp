@@ -195,7 +195,7 @@ class RTVEALaCartaIE(RTVEBaseIE):
             'Downloading subtitles info')
         return traverse_obj(subtitle_data, ('page', 'items', ..., {
             'id': ('lang', {str}),
-            'url':( 'src', {url_or_none}),
+            'url': ('src', {url_or_none}),
         }, all, {subs_list_to_dict(lang='es')}))
 
     def _real_extract(self, url):
