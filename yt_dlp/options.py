@@ -500,7 +500,8 @@ def create_parser():
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization'],
                 '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
-                '2023': ['prefer-vp9-sort'],
+                '2023': ['2024', 'prefer-vp9-sort'],
+                '2024': [],
             },
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
