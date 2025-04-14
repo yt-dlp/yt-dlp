@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import http.cookiejar
 import json
+import platform
 import subprocess
 import typing
 import urllib.parse
@@ -25,7 +26,7 @@ class DenoJSI(ExternalJSI):
     _BASE_PREFERENCE = 5
     _EXE_NAME = 'deno'
     _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check']
-    _INIT_SCRIPT = 'localStorage.clear(); delete window.Deno; global = window;\n'
+    _INIT_SCRIPT = 'localStorage.clear(); delete window.Deno; global = window = globalThis;\n'
 
     def __init__(self, *args, flags=[], replace_flags=False, init_script=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -63,7 +64,7 @@ class DenoJSDomJSI(DenoJSI):
     _BASE_PREFERENCE = 4
     _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check']
     _JSDOM_IMPORT_CHECKED = False
-    _JSDOM_URL = 'https://cdn.esm.sh/jsdom'
+    _JSDOM_URL = 'https://esm.sh/v135/jsdom'  # force use esm v135, esm-dev/esm.sh#1034
 
     @staticmethod
     def serialize_cookie(cookiejar: YoutubeDLCookieJar | None, url: str):
@@ -111,9 +112,8 @@ class DenoJSDomJSI(DenoJSI):
     def _ensure_jsdom(self):
         if self._JSDOM_IMPORT_CHECKED:
             return
-        with TempFileWrapper(f'import jsdom from "{self._JSDOM_URL}"', suffix='.js') as js_file:
-            cmd = [self.exe, 'run', js_file.name]
-            self._run_deno(cmd)
+        cmd = [self.exe, 'cache', self._JSDOM_URL]
+        self._run_deno(cmd)
         self._JSDOM_IMPORT_CHECKED = True
 
     def execute(self, jscode, video_id=None, note='Executing JS in Deno with jsdom', html='', cookiejar=None):
@@ -179,9 +179,14 @@ class DenoJSDomJSI(DenoJSI):
         }}
         '''
 
+        # https://github.com/prebuild/node-gyp-build/blob/6822ec5/node-gyp-build.js#L196-L198
+        # This jsdom dependency raises fatal error on linux unless read permission is provided
+        read_flag = ['--allow-read=/etc/alpine-release'] if platform.system() == 'Linux' else []
+
         location_args = ['--location', self._url] if self._url else []
+
         with TempFileWrapper(script, suffix='.js') as js_file:
-            cmd = [self.exe, 'run', *self._flags, *location_args, js_file.name]
+            cmd = [self.exe, 'run', *self._flags, *read_flag, *location_args, js_file.name]
             result = self._run_deno(cmd)
             try:
                 data = json.loads(result)
