@@ -1,11 +1,19 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import clean_html, remove_end, unified_timestamp, url_or_none
-from ..utils.traversal import traverse_obj
+from ..utils import clean_html, extract_attributes, remove_end, unified_timestamp, url_or_none
+from ..utils.traversal import find_elements, traverse_obj
 
 
-class TvwIE(InfoExtractor):
+class TvwBaseIE(InfoExtractor):
+    def _get_title(self, webpage):
+        return remove_end(self._og_search_title(webpage, default=None), ' - TVW')
+
+    def _get_description(self, webpage):
+        return self._og_search_description(webpage, default=None)
+
+
+class TvwIE(TvwBaseIE):
     _VALID_URL = r'https?://(?:www\.)?tvw\.org/video/(?P<id>[^/?#]+)'
 
     _TESTS = [{
@@ -103,8 +111,8 @@ class TvwIE(InfoExtractor):
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            'title': remove_end(self._og_search_title(webpage, default=None), ' - TVW'),
-            'description': self._og_search_description(webpage, default=None),
+            'title': self._get_title(webpage),
+            'description': self._get_description(webpage),
             **traverse_obj(video_data, {
                 'title': ('title', {str}),
                 'description': ('description', {clean_html}),
@@ -115,3 +123,44 @@ class TvwIE(InfoExtractor):
                 'is_live': ('eventStatus', {lambda x: x == 'live'}),
             }),
         }
+
+
+class TvwNewsIE(TvwBaseIE):
+    IE_NAME = 'Tvw:News'
+    _VALID_URL = r'https?://(?:www\.)?tvw\.org/(\d{4})/(0[1-9]|1[0-2])/(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://tvw.org/2024/01/the-impact-issues-to-watch-in-the-2024-legislative-session/',
+        'info_dict': {
+            'id': 'the-impact-issues-to-watch-in-the-2024-legislative-session',
+            'title': 'The Impact - Issues to Watch in the 2024 Legislative Session',
+            'description': 'md5:65f0b33ec8f18ff1cd401c5547aa5441',
+        },
+        'playlist_count': 6,
+    }, {
+        'url': 'https://tvw.org/2024/06/the-impact-water-rights-and-the-skookumchuck-dam-debate/',
+        'info_dict': {
+            'id': 'the-impact-water-rights-and-the-skookumchuck-dam-debate',
+            'title': 'The Impact - Water Rights and the Skookumchuck Dam Debate',
+            'description': 'md5:185f3a2350ef81e3fa159ac3e040a94b',
+        },
+        'playlist_count': 1,
+    }, {
+        'url': 'https://tvw.org/2023/09/5th-annual-tvw-open-thank-you/',
+        'info_dict': {
+            'id': '5th-annual-tvw-open-thank-you',
+            'title': '5th Annual TVW Open THANK YOU!',
+            'description': 'md5:5306eef5b03c87108797cb6261c5f16c',
+        },
+        'playlist_count': 0,
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
+
+        video_ids = traverse_obj(webpage, (
+            {find_elements(cls='invintus-player', html=True)}, ..., {extract_attributes}, 'data-eventid'))
+
+        return self.playlist_result(
+            (self.url_result(f'https://tvw.org/watch?eventID={video_id}') for video_id in video_ids), playlist_id,
+            playlist_title=self._get_title(webpage), playlist_description=self._get_description(webpage))
