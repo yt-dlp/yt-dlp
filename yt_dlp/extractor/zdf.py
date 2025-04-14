@@ -109,7 +109,7 @@ class ZDFBaseIE(InfoExtractor):
             ptmd = self._call_api(ptmd_url, video_id, 'PTMD data', api_token)
             # As per above TODO on sign language videos variants,
             # prefer content_id from the last entry to get the "regular" ID.
-            content_id = ptmd.get('basename') or ptmd_url.split('/')[-1]
+            content_id = ptmd.get('basename') or ptmd_url.split('/')[-2]
             duration = (duration or traverse_obj(ptmd, ('attributes', 'duration', 'value', {float_or_none(scale=1000)})))
             src_captions += ptmd.get('captions') or []
             for stream in traverse_obj(ptmd, ('priorityList', ..., 'formitaeten', ..., {dict})):
