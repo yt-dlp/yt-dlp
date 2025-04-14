@@ -88,6 +88,11 @@ class ZDFBaseIE(InfoExtractor):
         }) for f in fmts)
 
     def _extract_ptmd(self, api_base_url, templates, video_id, api_token=None):
+        # TODO: If there are multiple PTMD templates,
+        # usually one of them is a sign-language variant of the video.
+        # The format order works out fine as is and prefers the "regular" video,
+        # but this should probably be made more explicit.
+
         # TODO: HTTPS formats are extracted without resolution information
         # However, we know vertical resolution and the caller often knows apsect ratio.
         # So we could calculate the correct resulution from those two data points.
@@ -102,7 +107,9 @@ class ZDFBaseIE(InfoExtractor):
             ptmd_url = urljoin(api_base_url, template.replace(
                 '{playerId}', 'android_native_6'))
             ptmd = self._call_api(ptmd_url, video_id, 'PTMD data', api_token)
-            content_id = content_id or ptmd.get('basename') or ptmd_url.split('/')[-1]
+            # As per above TODO on sign language videos variants,
+            # prefer content_id from the last entry to get the "regular" ID.
+            content_id = ptmd.get('basename') or ptmd_url.split('/')[-1]
             duration = (duration or traverse_obj(ptmd, ('attributes', 'duration', 'value', {float_or_none(scale=1000)})))
             src_captions += ptmd.get('captions') or []
             for stream in traverse_obj(ptmd, ('priorityList', ..., 'formitaeten', ..., {dict})):
@@ -294,6 +301,7 @@ class ZDFIE(ZDFBaseIE):
         'params': {'skip_download': True},
     }, {
         # Video with chapters
+        # Also: video with sign-language variant
         'url': 'https://www.zdf.de/video/magazine/heute-journal-104/heute-journal-vom-19-12-2021-100',
         'md5': '1175003f28507bd27b266181c4de9f56',
         'info_dict': {
@@ -312,7 +320,8 @@ class ZDFIE(ZDFBaseIE):
             'episode_number': 370,
             'timestamp': 1639946700,
             'upload_date': '20211219',
-            '_old_archive_ids': ['zdf 211219_sendung_hjo_dgs'],
+            # Videos with sign language variants must not have a 'dgs' suffix on their old archive IDs.
+            '_old_archive_ids': ['zdf 211219_sendung_hjo'],
         },
     }, {
         # Video that requires fallback extraction
@@ -528,10 +537,6 @@ query VideoByCanonical($canonical: String!) {
         if not video_data:
             return self._extract_fallback(video_id)
 
-        # TODO: If there are multiple PTMD templates,
-        # usually one of them is a sign-language variant of the video.
-        # The format order works out fine as is and prefers the "normal" video,
-        # but this should probably be made more explicit.
         ptmd_templates = traverse_obj(
             video_data, ('currentMedia', 'nodes', ..., 'ptmdTemplate'))
         ptmd_data = self._extract_ptmd(
