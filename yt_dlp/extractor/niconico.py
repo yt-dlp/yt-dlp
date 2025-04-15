@@ -13,11 +13,13 @@ from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     clean_html,
+    determine_ext,
     float_or_none,
     int_or_none,
     join_nonempty,
     parse_duration,
     parse_iso8601,
+    parse_qs,
     parse_resolution,
     qualities,
     remove_start,
@@ -25,7 +27,9 @@ from ..utils import (
     traverse_obj,
     try_get,
     unescapeHTML,
+    unified_timestamp,
     update_url_query,
+    url_basename,
     url_or_none,
     urlencode_postdata,
     urljoin,
@@ -430,6 +434,7 @@ class NiconicoIE(InfoExtractor):
                     'format_id': ('id', {str}),
                     'abr': ('bitRate', {float_or_none(scale=1000)}),
                     'asr': ('samplingRate', {int_or_none}),
+                    'quality': ('qualityLevel', {int_or_none}),
                 }), get_all=False),
                 'acodec': 'aac',
             }
@@ -441,7 +446,9 @@ class NiconicoIE(InfoExtractor):
         min_abr = min(traverse_obj(audios, (..., 'bitRate', {float_or_none})), default=0) / 1000
         for video_fmt in video_fmts:
             video_fmt['tbr'] -= min_abr
-            video_fmt['format_id'] = f'video-{video_fmt["tbr"]:.0f}'
+            video_fmt['format_id'] = url_basename(video_fmt['url']).rpartition('.')[0]
+            video_fmt['quality'] = traverse_obj(videos, (
+                lambda _, v: v['id'] == video_fmt['format_id'], 'qualityLevel', {int_or_none}, any)) or -1
             yield video_fmt
 
     def _real_extract(self, url):
@@ -979,6 +986,7 @@ class NiconicoLiveIE(InfoExtractor):
                     'quality': 'abr',
                     'protocol': 'hls+fmp4',
                     'latency': latency,
+                    'accessRightMethod': 'single_cookie',
                     'chasePlay': False,
                 },
                 'room': {
@@ -999,6 +1007,7 @@ class NiconicoLiveIE(InfoExtractor):
             if data.get('type') == 'stream':
                 m3u8_url = data['data']['uri']
                 qualities = data['data']['availableQualities']
+                cookies = data['data']['cookies']
                 break
             elif data.get('type') == 'disconnect':
                 self.write_debug(recv)
@@ -1033,8 +1042,14 @@ class NiconicoLiveIE(InfoExtractor):
                 thumbnails.append({
                     'id': f'{name}_{width}x{height}',
                     'url': img_url,
+                    'ext': traverse_obj(parse_qs(img_url), ('image', 0, {determine_ext(default_ext='jpg')})),
                     **res,
                 })
+
+        for cookie in cookies:
+            self._set_cookie(
+                cookie['domain'], cookie['name'], cookie['value'],
+                expire_time=unified_timestamp(cookie['expires']), path=cookie['path'], secure=cookie['secure'])
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
         for fmt, q in zip(formats, reversed(qualities[1:])):

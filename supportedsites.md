@@ -1,6 +1,13 @@
 # Supported sites
+
+Below is a list of all extractors that are currently included with yt-dlp.
+If a site is not listed here, it might still be supported by yt-dlp's embed extraction or generic extractor.
+Not all sites listed here are guaranteed to work; websites are constantly changing and sometimes this breaks yt-dlp's support for them.
+The only reliable way to check if a site is supported is to try it.
+
  - **17live**
  - **17live:clip**
+ - **17live:vod**
  - **1News**: 1news.co.nz article videos
  - **1tv**: Первый канал
  - **20min**
@@ -194,7 +201,7 @@
  - **blogger.com**
  - **Bloomberg**
  - **Bluesky**
- - **BokeCC**
+ - **BokeCC**: CC视频
  - **BongaCams**
  - **Boosty**
  - **BostonGlobe**
@@ -218,6 +225,7 @@
  - **bt:vestlendingen**: Bergens Tidende - Vestlendingen
  - **Bundesliga**
  - **Bundestag**
+ - **BunnyCdn**
  - **BusinessInsider**
  - **BuzzFeed**
  - **BYUtv**: (**Currently broken**)
@@ -236,6 +244,7 @@
  - **CanalAlpha**
  - **canalc2.tv**
  - **Canalplus**: mycanal.fr and piwiplus.fr
+ - **Canalsurmas**
  - **CaracolTvPlay**: [*caracoltv-play*](## "netrc machine")
  - **CartoonNetwork**
  - **cbc.ca**
@@ -314,7 +323,8 @@
  - **curiositystream**: [*curiositystream*](## "netrc machine")
  - **curiositystream:collections**: [*curiositystream*](## "netrc machine")
  - **curiositystream:series**: [*curiositystream*](## "netrc machine")
- - **CWTV**
+ - **cwtv**
+ - **cwtv:movie**
  - **Cybrary**: [*cybrary*](## "netrc machine")
  - **CybraryCourse**: [*cybrary*](## "netrc machine")
  - **DacastPlaylist**
@@ -338,8 +348,6 @@
  - **daystar:clip**
  - **DBTV**
  - **DctpTv**
- - **DeezerAlbum**
- - **DeezerPlaylist**
  - **democracynow**
  - **DestinationAmerica**
  - **DetikEmbed**
@@ -349,6 +357,7 @@
  - **DigitalConcertHall**: [*digitalconcerthall*](## "netrc machine") DigitalConcertHall extractor
  - **DigitallySpeaking**
  - **Digiteka**
+ - **Digiview**
  - **DiscogsReleasePlaylist**
  - **DiscoveryLife**
  - **DiscoveryNetworksDe**
@@ -463,11 +472,12 @@
  - **FoxNewsVideo**
  - **FoxSports**
  - **fptplay**: fptplay.vn
+ - **FrancaisFacile**
  - **FranceCulture**
  - **FranceInter**
- - **FranceTV**
+ - **francetv**
+ - **francetv:site**
  - **francetvinfo.fr**
- - **FranceTVSite**
  - **Freesound**
  - **freespeech.org**
  - **freetv:series**
@@ -499,7 +509,7 @@
  - **GediDigital**
  - **gem.cbc.ca**: [*cbcgem*](## "netrc machine")
  - **gem.cbc.ca:live**
- - **gem.cbc.ca:playlist**
+ - **gem.cbc.ca:playlist**: [*cbcgem*](## "netrc machine")
  - **Genius**
  - **GeniusLyrics**
  - **Germanupa**: germanupa.de
@@ -601,10 +611,10 @@
  - **Inc**
  - **IndavideoEmbed**
  - **InfoQ**
- - **Instagram**: [*instagram*](## "netrc machine")
- - **instagram:story**: [*instagram*](## "netrc machine")
- - **instagram:tag**: [*instagram*](## "netrc machine") Instagram hashtag search URLs
- - **instagram:user**: [*instagram*](## "netrc machine") Instagram user profile (**Currently broken**)
+ - **Instagram**
+ - **instagram:story**
+ - **instagram:tag**: Instagram hashtag search URLs
+ - **instagram:user**: Instagram user profile (**Currently broken**)
  - **InstagramIOS**: IOS instagram:// URL
  - **Internazionale**
  - **InternetVideoArchive**
@@ -653,7 +663,6 @@
  - **KelbyOne**: (**Currently broken**)
  - **Kenh14Playlist**
  - **Kenh14Video**
- - **Ketnet**
  - **khanacademy**
  - **khanacademy:unit**
  - **kick:clips**
@@ -725,6 +734,7 @@
  - **Livestreamfails**
  - **Lnk**
  - **loc**: Library of Congress
+ - **Loco**
  - **loom**
  - **loom:folder**
  - **LoveHomePorn**
@@ -819,11 +829,11 @@
  - **MotherlessUploader**
  - **Motorsport**: motorsport.com (**Currently broken**)
  - **MovieFap**
- - **Moviepilot**
+ - **moviepilot**: Moviepilot trailer
  - **MoviewPlay**
  - **Moviezine**
  - **MovingImage**
- - **MSN**: (**Currently broken**)
+ - **MSN**
  - **mtg**: MTG services
  - **mtv**
  - **mtv.de**: (**Currently broken**)
@@ -1242,7 +1252,6 @@
  - **rtve.es:infantil**: RTVE infantil
  - **rtve.es:live**: RTVE.es live streams
  - **rtve.es:television**
- - **RTVS**
  - **rtvslo.si**
  - **rtvslo.si:show**
  - **RudoVideo**
@@ -1297,8 +1306,8 @@
  - **sejm**
  - **Sen**
  - **SenalColombiaLive**: (**Currently broken**)
- - **SenateGov**
- - **SenateISVP**
+ - **senate.gov**
+ - **senate.gov:isvp**
  - **SendtoNews**: (**Currently broken**)
  - **Servus**
  - **Sexu**: (**Currently broken**)
@@ -1334,6 +1343,7 @@
  - **Smotrim**
  - **SnapchatSpotlight**
  - **Snotr**
+ - **SoftWhiteUnderbelly**: [*softwhiteunderbelly*](## "netrc machine")
  - **Sohu**
  - **SohuV**
  - **SonyLIV**: [*sonyliv*](## "netrc machine")
@@ -1390,12 +1400,14 @@
  - **StoryFire**
  - **StoryFireSeries**
  - **StoryFireUser**
+ - **Streaks**
  - **Streamable**
  - **StreamCZ**
  - **StreetVoice**
  - **StretchInternet**
  - **Stripchat**
  - **stv:player**
+ - **stvr**: Slovak Television and Radio (formerly RTVS)
  - **Subsplash**
  - **subsplash:playlist**
  - **Substack**
@@ -1528,6 +1540,8 @@
  - **tv5unis**
  - **tv5unis:video**
  - **tv8.it**
+ - **tv8.it:live**: TV8 Live
+ - **tv8.it:playlist**: TV8 Playlist
  - **TVANouvelles**
  - **TVANouvellesArticle**
  - **tvaplus**: TVA+
@@ -1548,6 +1562,7 @@
  - **tvp:​vod:series**
  - **TVPlayer**
  - **TVPlayHome**
+ - **Tvw**
  - **Tweakers**
  - **TwitCasting**
  - **TwitCastingLive**
@@ -1629,8 +1644,6 @@
  - **viewlift**
  - **viewlift:embed**
  - **Viidea**
- - **viki**: [*viki*](## "netrc machine")
- - **viki:channel**: [*viki*](## "netrc machine")
  - **vimeo**: [*vimeo*](## "netrc machine")
  - **vimeo:album**: [*vimeo*](## "netrc machine")
  - **vimeo:channel**: [*vimeo*](## "netrc machine")
@@ -1668,8 +1681,12 @@
  - **vpro**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **vqq:series**
  - **vqq:video**
+ - **vrsquare**: VR SQUARE
+ - **vrsquare:channel**
+ - **vrsquare:search**
+ - **vrsquare:section**
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
- - **VrtNU**: [*vrtnu*](## "netrc machine") VRT MAX
+ - **vrtmax**: [*vrtnu*](## "netrc machine") VRT MAX (formerly VRT NU)
  - **VTM**: (**Currently broken**)
  - **VTV**
  - **VTVGo**

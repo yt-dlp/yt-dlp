@@ -46,7 +46,7 @@ class TelecincoBaseIE(InfoExtractor):
                 error_code = traverse_obj(
                     self._webpage_read_content(error.cause.response, caronte['cerbero'], video_id, fatal=False),
                     ({json.loads}, 'code', {int}))
-                if error_code == 4038:
+                if error_code in (4038, 40313):
                     self.raise_geo_restricted(countries=['ES'])
             raise
 
