@@ -353,7 +353,7 @@ class CDAIE(InfoExtractor):
 
 class CDAFolderIE(InfoExtractor):
     _MAX_PAGE_SIZE = 36
-    _VALID_URL = r'https?://(?:www\.)?cda\.pl/(?P<channel>\w+)/folder/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?cda\.pl/(?P<channel>[a-zA-Z0-9-]+)/folder/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://www.cda.pl/domino264/folder/31188385',
