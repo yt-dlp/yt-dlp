@@ -1,4 +1,5 @@
 import itertools
+import json
 import re
 
 from .common import InfoExtractor
@@ -9,12 +10,12 @@ from ..utils import (
     int_or_none,
     mimetype2ext,
     srt_subtitles_timecode,
-    traverse_obj,
     try_get,
     url_or_none,
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import find_elements, require, traverse_obj
 
 
 class LinkedInBaseIE(InfoExtractor):
@@ -271,3 +272,76 @@ class LinkedInLearningCourseIE(LinkedInLearningBaseIE):
             entries, course_slug,
             course_data.get('title'),
             course_data.get('description'))
+
+
+class LinkedInEventsIE(InfoExtractor):
+    IE_NAME = 'linkedin:events'
+    _VALID_URL = r'https?://(?:www\.)?linkedin\.com/events/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://www.linkedin.com/events/7084656651378536448/comments/',
+        'info_dict': {
+            'id': '7084656651378536448',
+            'ext': 'mp4',
+            'title': '#37 Aprende a hacer una entrevista en inglés para tu próximo trabajo remoto',
+            'description': '¡Agarra para anotar que se viene tremendo evento!',
+            'duration': 1765,
+            'timestamp': 1689113772,
+            'upload_date': '20230711',
+        },
+    }, {
+        'url': 'https://www.linkedin.com/events/27-02energyfreedombyenergyclub7295762520814874625/comments/',
+        'info_dict': {
+            'id': '27-02energyfreedombyenergyclub7295762520814874625',
+            'ext': 'mp4',
+            'title': '27.02 Energy Freedom by Energy Club',
+            'description': 'md5:1292e6f31df998914c293787a02c3b91',
+            'duration': 6420,
+            'timestamp': 1739445333,
+            'upload_date': '20250213',
+        },
+    }]
+
+    def _real_extract(self, url):
+        event_id = self._match_id(url)
+        webpage = self._download_webpage(url, event_id)
+
+        base_data = traverse_obj(webpage, (
+            {find_elements(tag='code', attr='style', value='display: none')}, ..., {json.loads}, 'included', ...))
+        player_data = traverse_obj(base_data, (
+            lambda _, v: v['$type'] == 'com.linkedin.videocontent.VideoPlayMetadata', any, {require('player metadata')}))
+        meta_data = traverse_obj(base_data, (
+            lambda _, v: v['$type'] == 'com.linkedin.voyager.dash.events.ProfessionalEvent', any))
+
+        formats = []
+        for prog_fmts in traverse_obj(player_data, ('progressiveStreams', ..., {dict})):
+            for url in traverse_obj(prog_fmts, ('streamingLocations', ..., 'url', {url_or_none})):
+                formats.append({
+                    'url': url,
+                    **traverse_obj(prog_fmts, {
+                        'width': ('width', {int_or_none}),
+                        'height': ('height', {int_or_none}),
+                        'tbr': ('bitRate', {int_or_none(scale=1000)}),
+                        'filesize': ('size', {int_or_none}),
+                        'ext': ('mediaType', {mimetype2ext}),
+                    }),
+                })
+
+        for m3u8_url in traverse_obj(player_data, (
+            'adaptiveStreams', lambda _, v: v['protocol'] == 'HLS', 'masterPlaylists', ..., 'url', {url_or_none},
+        )):
+            formats.extend(self._extract_m3u8_formats(
+                m3u8_url, event_id, 'mp4', m3u8_id='hls', fatal=False))
+
+        return {
+            'id': event_id,
+            'formats': formats,
+            **traverse_obj(player_data, {
+                'duration': ('duration', {int_or_none(scale=1000)}),
+                'timestamp': ('liveStreamCreatedAt', {int_or_none(scale=1000)}),
+            }),
+            **traverse_obj(meta_data, {
+                'title': ('name', {str}),
+                'description': ('description', 'text', {str}),
+                'timestamp': ('createdAt', {int_or_none(scale=1000)}),
+            }),
+        }
