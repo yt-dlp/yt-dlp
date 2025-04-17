@@ -546,6 +546,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'gridContinuation': (self._grid_entries, None),
                 'itemSectionContinuation': (self._post_thread_continuation_entries, None),
                 'sectionListContinuation': (extract_entries, None),  # for feeds
+                'continuationItemRenderer': (extract_entries, 'contents'),
             }
 
             continuation_items = traverse_obj(response, (
