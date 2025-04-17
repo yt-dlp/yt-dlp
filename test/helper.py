@@ -136,7 +136,7 @@ def _iter_differences(got, expected, field):
             return
 
         if op == 'startswith':
-            if not val.startswith(got):
+            if not got.startswith(val):
                 yield field, f'should start with {val!r}, got {got!r}'
             return
 
@@ -148,7 +148,7 @@ def _iter_differences(got, expected, field):
         if op == 'md5':
             hash_val = md5(got)
             if hash_val != val:
-                yield field, f'expected hash {val}, got {hash_val}'
+                yield field, f'expected hash {val}, got {hash_val} (raw value: {got})'
             return
 
         if got != expected:
