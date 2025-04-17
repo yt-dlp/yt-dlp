@@ -1,3 +1,4 @@
+import json
 import re
 import time
 
@@ -6,9 +7,7 @@ from ..utils import (
     ExtractorError,
     determine_ext,
     js_to_json,
-    parse_qs,
     traverse_obj,
-    urlencode_postdata,
 )
 
 
@@ -16,7 +15,8 @@ class IPrimaIE(InfoExtractor):
     _VALID_URL = r'https?://(?!cnn)(?:[^/]+)\.iprima\.cz/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _GEO_BYPASS = False
     _NETRC_MACHINE = 'iprima'
-    _AUTH_ROOT = 'https://auth.iprima.cz'
+    _AUTH_ROOT = 'https://ucet.iprima.cz'
+    _DEVICE_ID = 'Windows Chrome'
     access_token = None
 
     _TESTS = [{
@@ -86,46 +86,20 @@ class IPrimaIE(InfoExtractor):
         if self.access_token:
             return
 
-        login_page = self._download_webpage(
-            f'{self._AUTH_ROOT}/oauth2/login', None, note='Downloading login page',
-            errnote='Downloading login page failed')
+        token_request_data = json.dumps({
+            'email': username,
+            'password': password,
+            'deviceName': self._DEVICE_ID,
+        }).encode()
 
-        login_form = self._hidden_inputs(login_page)
-
-        login_form.update({
-            '_email': username,
-            '_password': password})
-
-        profile_select_html, login_handle = self._download_webpage_handle(
-            f'{self._AUTH_ROOT}/oauth2/login', None, data=urlencode_postdata(login_form),
-            note='Logging in')
-
-        # a profile may need to be selected first, even when there is only a single one
-        if '/profile-select' in login_handle.url:
-            profile_id = self._search_regex(
-                r'data-identifier\s*=\s*["\']?(\w+)', profile_select_html, 'profile id')
-
-            login_handle = self._request_webpage(
-                f'{self._AUTH_ROOT}/user/profile-select-perform/{profile_id}', None,
-                query={'continueUrl': '/user/login?redirect_uri=/user/'}, note='Selecting profile')
-
-        code = traverse_obj(login_handle.url, ({parse_qs}, 'code', 0))
-        if not code:
-            raise ExtractorError('Login failed', expected=True)
-
-        token_request_data = {
-            'scope': 'openid+email+profile+phone+address+offline_access',
-            'client_id': 'prima_sso',
-            'grant_type': 'authorization_code',
-            'code': code,
-            'redirect_uri': f'{self._AUTH_ROOT}/sso/auth-check'}
+        token_request_headers = {'content-type': 'application/json'}
 
         token_data = self._download_json(
-            f'{self._AUTH_ROOT}/oauth2/token', None,
+            f'{self._AUTH_ROOT}/api/session/create', None,
             note='Downloading token', errnote='Downloading token failed',
-            data=urlencode_postdata(token_request_data))
+            data=token_request_data, headers=token_request_headers)
 
-        self.access_token = token_data.get('access_token')
+        self.access_token = traverse_obj(token_data, ('accessToken', 'value'))
         if self.access_token is None:
             raise ExtractorError('Getting token failed', expected=True)
 
