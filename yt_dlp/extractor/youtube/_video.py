@@ -3647,7 +3647,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     reason = remove_end(reason, 'This helps protect our community. Learn more')
                     reason = f'{remove_end(reason.strip(), ".")}. {self._youtube_login_hint}'
                 elif get_first(playability_statuses, ('errorScreen', 'playerCaptchaViewModel', {dict})):
-                    reason += '. YouTube is requiring a recaptcha challenge before playback'
+                    reason += '. YouTube is requiring a captcha challenge before playback'
                 self.raise_no_formats(reason, expected=True)
 
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
