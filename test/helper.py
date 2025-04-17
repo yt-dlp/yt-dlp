@@ -148,7 +148,7 @@ def _iter_differences(got, expected, field):
         if op == 'md5':
             hash_val = md5(got)
             if hash_val != val:
-                yield field, f'expected hash {val}, got {hash_val} (raw value: {got})'
+                yield field, f'expected hash {val}, got {hash_val}'
             return
 
         if got != expected:
