@@ -61,7 +61,7 @@ class LocoIE(InfoExtractor):
         video_type, video_id = self._match_valid_url(url).group('type', 'id')
         webpage = self._download_webpage(url, video_id)
         stream = traverse_obj(self._search_nextjs_data(webpage, video_id), (
-            'props', 'pageProps', ('liveStreamData', 'stream'), {dict}, any, {require('stream info')}))
+            'props', 'pageProps', ('liveStreamData', 'stream', 'liveStream'), {dict}, any, {require('stream info')}))
 
         return {
             'formats': self._extract_m3u8_formats(stream['conf']['hls'], video_id),
