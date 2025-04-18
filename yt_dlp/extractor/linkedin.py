@@ -82,7 +82,10 @@ class LinkedInLearningBaseIE(LinkedInBaseIE):
 
 
 class LinkedInIE(LinkedInBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?linkedin\.com/posts/[^/?#]+-(?P<id>\d+)-\w{4}/?(?:[?#]|$)'
+    _VALID_URL = [
+        r'https?://(?:www\.)?linkedin\.com/posts/[^/?#]+-(?P<id>\d+)-\w{4}/?(?:[?#]|$)',
+        r'https?://(?:www\.)?linkedin\.com/feed/update/urn:li:activity:(?P<id>\d+)',
+    ]
     _TESTS = [{
         'url': 'https://www.linkedin.com/posts/mishalkhawaja_sendinblueviews-toronto-digitalmarketing-ugcPost-6850898786781339649-mM20',
         'info_dict': {
@@ -106,6 +109,9 @@ class LinkedInIE(LinkedInBaseIE):
             'like_count': int,
             'subtitles': 'mincount:1',
         },
+    }, {
+        'url': 'https://www.linkedin.com/feed/update/urn:li:activity:7016901149999955968/?utm_source=share&utm_medium=member_desktop',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
