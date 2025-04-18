@@ -62,9 +62,9 @@ class LocoIE(InfoExtractor):
     }]
 
     # From _app.js
-    CLIENT_ID = 'TlwKp1zmF6eKFpcisn3FyR18WkhcPkZtzwPVEEC3'
-    CLIENT_SCRET = 'Kp7tYlUN7LXvtcSpwYvIitgYcLparbtsQSe5AdyyCdiEJBP53Vt9J8eB4AsLdChIpcO2BM19RA3HsGtqDJFjWmwoonvMSG3ZQmnS8x1YIM8yl82xMXZGbE3NKiqmgBVU'
-    USER_AGENT = '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+    _CLIENT_ID = 'TlwKp1zmF6eKFpcisn3FyR18WkhcPkZtzwPVEEC3'
+    _CLIENT_SECRET = 'Kp7tYlUN7LXvtcSpwYvIitgYcLparbtsQSe5AdyyCdiEJBP53Vt9J8eB4AsLdChIpcO2BM19RA3HsGtqDJFjWmwoonvMSG3ZQmnS8x1YIM8yl82xMXZGbE3NKiqmgBVU'
+    _USER_AGENT = '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
 
     def _is_jwt_expired(self, token):
         return jwt_decode_hs256(token)['exp'] - time.time() < 300
@@ -77,20 +77,20 @@ class LocoIE(InfoExtractor):
             'https://api.getloconow.com/v3/user/device_profile/', video_id,
             'Downloading access token', fatal=False, data=json.dumps({
                 'platform': 7,
-                'client_id': self.CLIENT_ID,
-                'client_secret': self.CLIENT_SCRET,
+                'client_id': self._CLIENT_ID,
+                'client_secret': self._CLIENT_SECRET,
                 'model': 'Mozilla',
                 'os_name': 'Win32',
-                'os_ver': self.USER_AGENT,
-                'app_ver': self.USER_AGENT,
+                'os_ver': self._USER_AGENT,
+                'app_ver': self._USER_AGENT,
             }).encode(), headers={
                 'Content-Type': 'application/json;charset=utf-8',
-                'user-agent': self.USER_AGENT,
+                'user-agent': self._USER_AGENT,
                 'DEVICE-ID': ''.join(random.choices('0123456789abcdef', k=32)) + 'live',
                 'X-APP-LANG': 'en',
                 'X-APP-LOCALE': 'en-US',
-                'X-CLIENT-ID': self.CLIENT_ID,
-                'X-CLIENT-SECRET': self.CLIENT_SCRET,
+                'X-CLIENT-ID': self._CLIENT_ID,
+                'X-CLIENT-SECRET': self._CLIENT_SECRET,
                 'X-PLATFORM': '7',
             }), 'access_token')
         if access_token and not self._is_jwt_expired(access_token):
