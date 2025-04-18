@@ -9,6 +9,7 @@ from ..utils import (
     clean_html,
     determine_ext,
     float_or_none,
+    make_archive_id,
     parse_iso8601,
     qualities,
     url_or_none,
@@ -121,7 +122,7 @@ class RTVEALaCartaIE(RTVEBaseIE):
     IE_NAME = 'rtve.es:alacarta'
     IE_DESC = 'RTVE a la carta and Play'
     _VALID_URL = [
-        r'https?://(?:www\.)?rtve\.es/(m/)?(?:(?:alacarta|play)/videos|filmoteca)/[^/?#]+/[^/?#]+/(?P<id>\d+)',
+        r'https?://(?:www\.)?rtve\.es/(?:m/)?(?:(?:alacarta|play)/videos|filmoteca)/(?!directo)(?:[^/?#]+/){2}(?P<id>\d+)',
         r'https?://(?:www\.)?rtve\.es/infantil/serie/[^/?#]+/video/[^/?#]+/(?P<id>\d+)',
     ]
 
@@ -218,14 +219,14 @@ class RTVEALaCartaIE(RTVEBaseIE):
             'formats': formats,
             'subtitles': subtitles,
             **self._parse_metadata(metadata),
-            '_old_archive_ids': [f'rtveinfantil {video_id}'] if is_infantil else None,
+            '_old_archive_ids': [make_archive_id('rtveinfantil', video_id)] if is_infantil else None,
         }
 
 
 class RTVEAudioIE(RTVEBaseIE):
     IE_NAME = 'rtve.es:audio'
     IE_DESC = 'RTVE audio'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(alacarta|play)/audios/[^/?#]+/[^/?#]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(alacarta|play)/audios/(?:[^/?#]+/){2}(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://www.rtve.es/alacarta/audios/a-hombros-de-gigantes/palabra-ingeniero-codigos-informaticos-27-04-21/5889192/',
