@@ -40,7 +40,7 @@ class ExamplePTP(PoTokenProvider):
     _SUPPORTED_CLIENTS = ('WEB',)
     _SUPPORTED_CONTEXTS = (PoTokenContext.GVS, )
 
-    _SUPPORTED_EXTERNAL_REQEUST_FEATURES = (
+    _SUPPORTED_EXTERNAL_REQUEST_FEATURES = (
         ExternalRequestFeature.PROXY_SCHEME_HTTP,
         ExternalRequestFeature.PROXY_SCHEME_SOCKS5H,
     )
@@ -164,7 +164,7 @@ class TestPoTokenProvider:
 
     def test_provider_ignore_external_request_features(self, ie, logger, pot_request):
         class InternalPTP(ExamplePTP):
-            _SUPPORTED_EXTERNAL_REQEUST_FEATURES = None
+            _SUPPORTED_EXTERNAL_REQUEST_FEATURES = None
 
         provider = InternalPTP(ie=ie, logger=logger, settings={})
 
@@ -175,7 +175,7 @@ class TestPoTokenProvider:
 
     def test_provider_unsupported_external_request_source_address(self, ie, logger, pot_request):
         class InternalPTP(ExamplePTP):
-            _SUPPORTED_EXTERNAL_REQEUST_FEATURES = tuple()
+            _SUPPORTED_EXTERNAL_REQUEST_FEATURES = tuple()
 
         provider = InternalPTP(ie=ie, logger=logger, settings={})
 
@@ -191,7 +191,7 @@ class TestPoTokenProvider:
 
     def test_provider_supported_external_request_source_address(self, ie, logger, pot_request):
         class InternalPTP(ExamplePTP):
-            _SUPPORTED_EXTERNAL_REQEUST_FEATURES = (
+            _SUPPORTED_EXTERNAL_REQUEST_FEATURES = (
                 ExternalRequestFeature.SOURCE_ADDRESS,
             )
 
@@ -205,7 +205,7 @@ class TestPoTokenProvider:
 
     def test_provider_unsupported_external_request_tls_verification(self, ie, logger, pot_request):
         class InternalPTP(ExamplePTP):
-            _SUPPORTED_EXTERNAL_REQEUST_FEATURES = tuple()
+            _SUPPORTED_EXTERNAL_REQUEST_FEATURES = tuple()
 
         provider = InternalPTP(ie=ie, logger=logger, settings={})
 
@@ -221,7 +221,7 @@ class TestPoTokenProvider:
 
     def test_provider_supported_external_request_tls_verification(self, ie, logger, pot_request):
         class InternalPTP(ExamplePTP):
-            _SUPPORTED_EXTERNAL_REQEUST_FEATURES = (
+            _SUPPORTED_EXTERNAL_REQUEST_FEATURES = (
                 ExternalRequestFeature.DISABLE_TLS_VERIFICATION,
             )
 

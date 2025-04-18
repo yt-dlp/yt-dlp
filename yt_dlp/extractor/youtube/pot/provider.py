@@ -117,7 +117,7 @@ class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
     # If making external requests to websites (i.e. to youtube.com) using another library or service (i.e., not _request_webpage),
     # add the request features that are supported.
     # If only using _request_webpage to make external requests, set this to None.
-    _SUPPORTED_EXTERNAL_REQEUST_FEATURES: tuple[ExternalRequestFeature] | None = ()
+    _SUPPORTED_EXTERNAL_REQUEST_FEATURES: tuple[ExternalRequestFeature] | None = ()
 
     def __validate_request(self, request: PoTokenRequest):
         if not self.is_available():
@@ -147,11 +147,11 @@ class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
                 'socks5': ExternalRequestFeature.PROXY_SCHEME_SOCKS5,
                 'socks5h': ExternalRequestFeature.PROXY_SCHEME_SOCKS5H,
             }.items()
-            if feature in (self._SUPPORTED_EXTERNAL_REQEUST_FEATURES or [])
+            if feature in (self._SUPPORTED_EXTERNAL_REQUEST_FEATURES or [])
         }
 
     def __validate_external_request_features(self, request: PoTokenRequest):
-        if self._SUPPORTED_EXTERNAL_REQEUST_FEATURES is None:
+        if self._SUPPORTED_EXTERNAL_REQUEST_FEATURES is None:
             return
 
         if request.request_proxy:
@@ -160,11 +160,11 @@ class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
                 raise PoTokenProviderRejectedRequest(
                     f'External requests by "{self.PROVIDER_NAME}" provider do not support proxy scheme "{scheme}". Supported proxy schemes: {", ".join(self._supported_proxy_schemes) or "none"}')
 
-        if request.request_source_address and ExternalRequestFeature.SOURCE_ADDRESS not in self._SUPPORTED_EXTERNAL_REQEUST_FEATURES:
+        if request.request_source_address and ExternalRequestFeature.SOURCE_ADDRESS not in self._SUPPORTED_EXTERNAL_REQUEST_FEATURES:
             raise PoTokenProviderRejectedRequest(
                 f'External requests by "{self.PROVIDER_NAME}" provider do not support setting source address')
 
-        if not request.request_verify_tls and ExternalRequestFeature.DISABLE_TLS_VERIFICATION not in self._SUPPORTED_EXTERNAL_REQEUST_FEATURES:
+        if not request.request_verify_tls and ExternalRequestFeature.DISABLE_TLS_VERIFICATION not in self._SUPPORTED_EXTERNAL_REQUEST_FEATURES:
             raise PoTokenProviderRejectedRequest(
                 f'External requests by "{self.PROVIDER_NAME}" provider do not support ignoring TLS certificate failures')
 

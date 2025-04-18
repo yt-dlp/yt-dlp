@@ -62,7 +62,7 @@ class MyPoTokenProviderPTP(PoTokenProvider):  # Provider name must end with "PTP
     # If your provider makes external requests to websites (i.e. to youtube.com) using another library or service (i.e., not _request_webpage),
     # set the request features that are supported here.
     # If only using _request_webpage to make external requests, set this to None.
-    _SUPPORTED_EXTERNAL_REQEUST_FEATURES = (
+    _SUPPORTED_EXTERNAL_REQUEST_FEATURES = (
         ExternalRequestFeature.PROXY_SCHEME_HTTP, 
         ExternalRequestFeature.SOURCE_ADDRESS, 
         ExternalRequestFeature.DISABLE_TLS_VERIFICATION
