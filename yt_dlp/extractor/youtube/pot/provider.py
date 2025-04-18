@@ -17,7 +17,7 @@ from yt_dlp.extractor.youtube.pot._provider import (
     register_provider_generic,
 )
 from yt_dlp.extractor.youtube.pot._registry import _pot_providers, _ptp_preferences
-from yt_dlp.networking import Request
+from yt_dlp.networking import Request, Response
 from yt_dlp.utils import traverse_obj
 from yt_dlp.utils.networking import HTTPHeaderDict
 
@@ -135,27 +135,34 @@ class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
 
     # Helper functions
 
-    def _urlopen(self, pot_request: PoTokenRequest, http_request: Request):
-        """Make a request using the request parameters from the PoTokenRequest.
-        Use this instead of calling requests, urllib3 or other HTTP client libraries directly!!
+    def _request_webpage(self, request: Request, pot_request: PoTokenRequest | None = None, note=None, **kwargs) -> Response:
+        """Make a request using the internal HTTP Client.
+        Use this instead of calling requests, urllib3 or other HTTP client libraries directly!
 
         YouTube cookies will be automatically applied if this request is made to YouTube.
+
+        @param request: The request to make
+        @param pot_request: The PoTokenRequest to use. Request parameters will be merged from it.
+        @param note: Custom log message to display when making the request. Set to `False` to disable logging.
 
         Tips:
         - Disable proxy (e.g. if calling local service): Request(..., proxies={'all': None})
         - Set request timeout:  Request(..., extensions={'timeout': 5.0})
         """
-        req = http_request.copy()
+        req = request.copy()
 
         # Merge some ctx request settings into the request
         # Most of these will already be used by the configured ydl instance,
         # however, the YouTube extractor may override some.
-        req.headers = HTTPHeaderDict(pot_request.request_headers, req.headers)
-        req.proxies = req.proxies or ({'all': pot_request.request_proxy} if pot_request.request_proxy else {})
+        if pot_request is not None:
+            req.headers = HTTPHeaderDict(pot_request.request_headers, req.headers)
+            req.proxies = req.proxies or ({'all': pot_request.request_proxy} if pot_request.request_proxy else {})
 
-        if pot_request.request_cookiejar is not None:
-            req.extensions['cookiejar'] = req.extensions.get('cookiejar', pot_request.request_cookiejar)
+            if pot_request.request_cookiejar is not None:
+                req.extensions['cookiejar'] = req.extensions.get('cookiejar', pot_request.request_cookiejar)
 
+        if note is not False:
+            self.logger.info(str(note) if note else 'Requesting webpage')
         return self.ie._downloader.urlopen(req)
 
 

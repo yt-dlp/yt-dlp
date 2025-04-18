@@ -2943,7 +2943,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.write_debug(f'{kwargs.get("video_id")}: No {pot_request.context.value} PO Token available for {client} client')
             return
 
-        self.write_debug(f'{kwargs.get("video_id")}: Fetched a {pot_request.context.value} PO Token for {client} client')
+        self.write_debug(f'{kwargs.get("video_id")}: Retrieved a {pot_request.context.value} PO Token for {client} client')
         return po_token
 
     @staticmethod

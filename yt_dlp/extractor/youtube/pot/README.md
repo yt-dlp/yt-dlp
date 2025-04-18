@@ -89,16 +89,16 @@ class MyPoTokenProviderPTP(PoTokenProvider):  # Provider name must end with "PTP
         # ℹ️ Settings are pulled from extractor args passed to yt-dlp with the key `youtubepot-<PROVIDER_KEY>`.
         # For this example, the extractor arg would be `--extractor-args "youtubepot-mypotokenprovider:url=https://custom.example.com/get_pot"`
         external_provider_url = self._configuration_arg('url', default=['https://provider.example.com/get_pot'])[0]
-
+        
+        # See below for logging guidelines
+        self.logger.trace(f'Using external provider URL: {external_provider_url}')
+        
         # You should use the internal HTTP client to make requests where possible,
         # as it will handle cookies and other networking settings passed to yt-dlp.
         try:
-            # See below for logging guidelines
-            self.logger.info(f'Requesting {request.context.value} PO Token for {request.internal_client_name} client from external provider')
-
-            # See docstring in _urlopen method for request tips
-            response = self._urlopen(
-                request, Request(external_provider_url, data=json.dumps({
+            # See docstring in _request_webpage method for request tips
+            response = self._request_webpage(
+                Request(external_provider_url, data=json.dumps({
                     'content_binding': get_webpo_content_binding(request),
                     'proxy': request.request_proxy,
                     'headers': request.request_headers,
@@ -107,7 +107,10 @@ class MyPoTokenProviderPTP(PoTokenProvider):  # Provider name must end with "PTP
                     # Important: If your provider has its own caching, please respect `bypass_cache`.
                     # This may be used in the future to request a fresh PO Token if required.
                     'do_not_cache': request.bypass_cache,
-                }).encode(), proxies={'all': None}))
+                }).encode(), proxies={'all': None}), 
+                pot_request=request, 
+                note=f'Requesting {request.context.value} PO Token for {request.internal_client_name} client from external provider',
+            )
 
         except RequestError as e:
             # ℹ️ If there is an error, raise PoTokenProviderError.

@@ -149,7 +149,7 @@ class TestPoTokenProvider:
         with pytest.raises(PoTokenProviderRejectedRequest):
             provider.request_pot(pot_request)
 
-    def test_provider_urlopen(self, ie, logger, pot_request):
+    def test_provider_request_webpage(self, ie, logger, pot_request):
         provider = ExamplePTP(ie=ie, logger=logger, settings={})
 
         cookiejar = YoutubeDLCookieJar()
@@ -162,16 +162,17 @@ class TestPoTokenProvider:
 
         ie._downloader.urlopen = mock_urlopen
 
-        sent_request = provider._urlopen(pot_request, Request(
+        sent_request = provider._request_webpage(Request(
             'https://example.com',
-        ))
+        ), pot_request=pot_request)
 
         assert sent_request.url == 'https://example.com'
         assert sent_request.headers['User-Agent'] == 'example-user-agent'
         assert sent_request.proxies == {'all': 'socks5://example-proxy.com'}
         assert sent_request.extensions['cookiejar'] is cookiejar
+        assert 'Requesting webpage' in logger.messages['info']
 
-    def test_provider_urlopen_override(self, ie, logger, pot_request):
+    def test_provider_request_webpage_override(self, ie, logger, pot_request):
         provider = ExamplePTP(ie=ie, logger=logger, settings={})
 
         cookiejar_request = YoutubeDLCookieJar()
@@ -184,17 +185,47 @@ class TestPoTokenProvider:
 
         ie._downloader.urlopen = mock_urlopen
 
-        sent_request = provider._urlopen(pot_request, Request(
+        sent_request = provider._request_webpage(Request(
             'https://example.com',
             headers={'User-Agent': 'override-user-agent-override'},
             proxies={'http': 'http://example-proxy-override.com'},
             extensions={'cookiejar': YoutubeDLCookieJar()},
-        ))
+        ), pot_request=pot_request, note='Custom requesting webpage')
 
         assert sent_request.url == 'https://example.com'
         assert sent_request.headers['User-Agent'] == 'override-user-agent-override'
         assert sent_request.proxies == {'http': 'http://example-proxy-override.com'}
         assert sent_request.extensions['cookiejar'] is not cookiejar_request
+        assert 'Custom requesting webpage' in logger.messages['info']
+
+    def test_provider_request_webpage_no_log(self, ie, logger, pot_request):
+        provider = ExamplePTP(ie=ie, logger=logger, settings={})
+
+        def mock_urlopen(request):
+            return request
+
+        ie._downloader.urlopen = mock_urlopen
+
+        sent_request = provider._request_webpage(Request(
+            'https://example.com',
+        ), note=False)
+
+        assert sent_request.url == 'https://example.com'
+        assert 'info' not in logger.messages
+
+    def test_provider_request_webpage_no_pot_request(self, ie, logger):
+        provider = ExamplePTP(ie=ie, logger=logger, settings={})
+
+        def mock_urlopen(request):
+            return request
+
+        ie._downloader.urlopen = mock_urlopen
+
+        sent_request = provider._request_webpage(Request(
+            'https://example.com',
+        ), pot_request=None)
+
+        assert sent_request.url == 'https://example.com'
 
     def test_get_config_arg(self, ie, logger):
         provider = ExamplePTP(ie=ie, logger=logger, settings={'abc': ['123D'], 'xyz': ['456a', '789B']})
