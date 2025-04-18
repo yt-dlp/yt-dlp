@@ -109,6 +109,9 @@ class CDAIE(InfoExtractor):
     }, {
         'url': 'http://ebd.cda.pl/0x0/5749950c',
         'only_matching': True,
+    }, {
+        'url': 'https://www.cda.pl/Test-t3st-t-1/folder/12345678',
+        'only_matching': True,
     }]
 
     def _download_age_confirm_page(self, url, video_id, *args, **kwargs):
