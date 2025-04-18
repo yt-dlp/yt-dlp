@@ -16,7 +16,7 @@ from yt_dlp.extractor.youtube.pot._registry import _pot_pcs_providers
 
 @pytest.fixture()
 def pot_request(pot_request) -> PoTokenRequest:
-    pot_request.visitor_data = 'CgsxMjM0NTY3ODkwMSiA4s-qBg%3D%3D'  # visitor_id=12345678901
+    pot_request.visitor_data = 'CgsxMjNhYmNYWVpfLSiA4s%2DqBg%3D%3D'  # visitor_id=123abcXYZ_-
     return pot_request
 
 
@@ -51,13 +51,13 @@ class TestWebPoPCSP:
         *[(client, context, is_authenticated, remote_host, source_address, request_proxy, expected) for client in [
             'WEB', 'MWEB', 'TVHTML5', 'WEB_EMBEDDED_PLAYER', 'WEB_CREATOR', 'TVHTML5_SIMPLY_EMBEDDED_PLAYER']
           for context, is_authenticated, remote_host, source_address, request_proxy, expected in [
-            (PoTokenContext.GVS, False, 'example-remote-host', 'example-source-address', 'example-request-proxy', {'t': 'webpo', 'ip': 'example-remote-host', 'sa': 'example-source-address', 'px': 'example-request-proxy', 'cb': '12345678901', 'cbt': 'visitor_id'}),
-            (PoTokenContext.PLAYER, False, 'example-remote-host', 'example-source-address', 'example-request-proxy', {'t': 'webpo', 'ip': 'example-remote-host', 'sa': 'example-source-address', 'px': 'example-request-proxy', 'cb': '12345678901', 'cbt': 'video_id'}),
+            (PoTokenContext.GVS, False, 'example-remote-host', 'example-source-address', 'example-request-proxy', {'t': 'webpo', 'ip': 'example-remote-host', 'sa': 'example-source-address', 'px': 'example-request-proxy', 'cb': '123abcXYZ_-', 'cbt': 'visitor_id'}),
+            (PoTokenContext.PLAYER, False, 'example-remote-host', 'example-source-address', 'example-request-proxy', {'t': 'webpo', 'ip': 'example-remote-host', 'sa': 'example-source-address', 'px': 'example-request-proxy', 'cb': '123abcXYZ_-', 'cbt': 'video_id'}),
             (PoTokenContext.GVS, True, 'example-remote-host', 'example-source-address', 'example-request-proxy', {'t': 'webpo', 'ip': 'example-remote-host', 'sa': 'example-source-address', 'px': 'example-request-proxy', 'cb': 'example-data-sync-id', 'cbt': 'datasync_id'}),
         ]],
-        ('WEB_REMIX', PoTokenContext.PLAYER, False, 'example-remote-host', 'example-source-address', 'example-request-proxy', {'t': 'webpo', 'ip': 'example-remote-host', 'sa': 'example-source-address', 'px': 'example-request-proxy', 'cb': '12345678901', 'cbt': 'visitor_id'}),
-        ('WEB', PoTokenContext.GVS, False, None, None, None, {'t': 'webpo', 'cb': '12345678901', 'cbt': 'visitor_id', 'ip': None, 'sa': None, 'px': None}),
-        ('TVHTML5', PoTokenContext.PLAYER, False, None, None, 'http://example.com', {'t': 'webpo', 'cb': '12345678901', 'cbt': 'video_id', 'ip': None, 'sa': None, 'px': 'http://example.com'}),
+        ('WEB_REMIX', PoTokenContext.PLAYER, False, 'example-remote-host', 'example-source-address', 'example-request-proxy', {'t': 'webpo', 'ip': 'example-remote-host', 'sa': 'example-source-address', 'px': 'example-request-proxy', 'cb': '123abcXYZ_-', 'cbt': 'visitor_id'}),
+        ('WEB', PoTokenContext.GVS, False, None, None, None, {'t': 'webpo', 'cb': '123abcXYZ_-', 'cbt': 'visitor_id', 'ip': None, 'sa': None, 'px': None}),
+        ('TVHTML5', PoTokenContext.PLAYER, False, None, None, 'http://example.com', {'t': 'webpo', 'cb': '123abcXYZ_-', 'cbt': 'video_id', 'ip': None, 'sa': None, 'px': 'http://example.com'}),
 
     ])
     def test_generate_key_bindings(self, ie, logger, pot_request, client_name, context, is_authenticated, remote_host, source_address, request_proxy, expected):
@@ -68,7 +68,7 @@ class TestWebPoPCSP:
         pot_request.innertube_context['client']['remoteHost'] = remote_host
         pot_request.request_source_address = source_address
         pot_request.request_proxy = request_proxy
-        pot_request.video_id = '12345678901'  # same as visitor id to test type
+        pot_request.video_id = '123abcXYZ_-'  # same as visitor id to test type
 
         assert pcs.generate_cache_spec(pot_request).key_bindings == expected
 
@@ -78,7 +78,7 @@ class TestWebPoPCSP:
         pot_request.innertube_context['client']['clientName'] = 'WEB'
         pot_request.context = PoTokenContext.GVS
         pot_request.is_authenticated = False
-        assert pcs.generate_cache_spec(pot_request).key_bindings == {'t': 'webpo', 'ip': None, 'sa': None, 'px': None, 'cb': 'CgsxMjM0NTY3ODkwMSiA4s-qBg%3D%3D', 'cbt': 'visitor_data'}
+        assert pcs.generate_cache_spec(pot_request).key_bindings == {'t': 'webpo', 'ip': None, 'sa': None, 'px': None, 'cb': 'CgsxMjNhYmNYWVpfLSiA4s%2DqBg%3D%3D', 'cbt': 'visitor_data'}
 
     def test_default_ttl(self, ie, logger, pot_request):
         pcs = WebPoPCSP(ie=ie, logger=logger, settings={})

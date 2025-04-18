@@ -29,8 +29,8 @@ class TestGetWebPoContentBinding:
         assert get_webpo_content_binding(pot_request) == expected
 
     def test_extract_visitor_id(self, pot_request):
-        pot_request.visitor_data = 'CgsxMjM0NTY3ODkwMSiA4s-qBg%3D%3D'
-        assert get_webpo_content_binding(pot_request, bind_to_visitor_id=True) == ('12345678901', ContentBindingType.VISITOR_ID)
+        pot_request.visitor_data = 'CgsxMjNhYmNYWVpfLSiA4s%2DqBg%3D%3D'
+        assert get_webpo_content_binding(pot_request, bind_to_visitor_id=True) == ('123abcXYZ_-', ContentBindingType.VISITOR_ID)
 
     def test_invalid_visitor_id(self, pot_request):
         # visitor id not alphanumeric (i.e. protobuf extraction failed)

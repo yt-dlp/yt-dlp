@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import enum
+import re
 import urllib.parse
 
 from yt_dlp.extractor.youtube.pot.provider import PoTokenContext, PoTokenRequest
@@ -58,7 +59,7 @@ def _extract_visitor_id(visitor_data):
     with contextlib.suppress(Exception):
         visitor_id = base64.urlsafe_b64decode(urllib.parse.unquote_plus(visitor_data))[2:13].decode()
         # check that visitor id is all letters and numbers
-        if visitor_id.isalnum() and len(visitor_id) == 11:
+        if re.fullmatch(r'[A-Za-z0-9_-]{11}', visitor_id):
             return visitor_id
 
     return None
