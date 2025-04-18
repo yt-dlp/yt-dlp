@@ -353,7 +353,7 @@ class CDAIE(InfoExtractor):
 
 class CDAFolderIE(InfoExtractor):
     _MAX_PAGE_SIZE = 36
-    _VALID_URL = r'https?://(?:www\.)?cda\.pl/(?P<channel>\w+)/folder/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?cda\.pl/(?P<channel>[\w-]+)/folder/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://www.cda.pl/domino264/folder/31188385',
@@ -378,6 +378,9 @@ class CDAFolderIE(InfoExtractor):
                 'title': 'TESTY KOSMETYKÓW',
             },
             'playlist_mincount': 139,
+        }, {
+            'url': 'https://www.cda.pl/FILMY-SERIALE-ANIME-KRESKOWKI-BAJKI/folder/18493422',
+            'only_matching': True,
         }]
 
     def _real_extract(self, url):
