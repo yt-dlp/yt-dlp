@@ -4,7 +4,6 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    float_or_none,
     int_or_none,
     parse_age_limit,
     url_or_none,
@@ -14,7 +13,7 @@ from ..utils.traversal import traverse_obj
 
 
 class AtresPlayerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?atresplayer\.com/[^/?#]+/[^/?#]+/[^/?#]+/[^/?#]+/(?P<display_id>.+?)_(?P<id>[0-9a-f]{24})'
+    _VALID_URL = r'https?://(?:www\.)?atresplayer\.com/(?:[^/?#]+/){4}(?P<display_id>.+?)_(?P<id>[0-9a-f]{24})'
     _NETRC_MACHINE = 'atresplayer'
     _TESTS = [{
         'url': 'https://www.atresplayer.com/lasexta/programas/el-objetivo/clips/mbappe-describe-como-entrenador-a-carlo-ancelotti-sabe-cuando-tiene-que-ser-padre-jefe-amigo-entrenador_67f2dfb2fb6ab0e4c7203849/',
@@ -82,7 +81,7 @@ class AtresPlayerIE(InfoExtractor):
         try:
             self._download_webpage(
                 'https://account.atresplayer.com/auth/v1/login', None,
-                'Logging in', data=urlencode_postdata({
+                'Logging in', 'Failed to log in', data=urlencode_postdata({
                     'username': username,
                     'password': password,
                 }))
@@ -94,15 +93,13 @@ class AtresPlayerIE(InfoExtractor):
     def _real_extract(self, url):
         display_id, video_id = self._match_valid_url(url).groups()
 
-        url_data = self._download_json(
-            self._API_BASE + 'client/v1/url', video_id,
-            note='Downloading API Endpoint Data',
-            query={'href': urllib.parse.urlparse(url).path})
-
-        metadata = self._download_json(url_data['href'], video_id)
+        metadata_url = self._download_json(
+            self._API_BASE + 'client/v1/url', video_id, 'Downloading API endpoint data',
+            query={'href': urllib.parse.urlparse(url).path})['href']
+        metadata = self._download_json(metadata_url, video_id)
 
         try:
-            video_data = self._download_json(metadata['urlVideo'], video_id, note='Downloading video data')
+            video_data = self._download_json(metadata['urlVideo'], video_id, 'Downloading video data')
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 error = self._parse_json(e.cause.response.read(), None)
@@ -149,7 +146,7 @@ class AtresPlayerIE(InfoExtractor):
                 'season': ('currentSeason', 'title', {str}),
                 'season_number': ('currentSeason', 'seasonNumber', {int_or_none}),
                 'episode_number': ('numberOfEpisode', {int_or_none}),
-                'timestamp': ('publicationDate', {float_or_none(scale=1000)}),
+                'timestamp': ('publicationDate', {int_or_none(scale=1000)}),
                 'channel': ('channel', 'title', {str}),
             }),
         }
