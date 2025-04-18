@@ -14,8 +14,8 @@ from ..utils.traversal import find_element, traverse_obj
 
 
 class TvwIE(InfoExtractor):
+    IE_NAME = 'tvw'
     _VALID_URL = r'https?://(?:www\.)?tvw\.org/video/(?P<id>[^/?#]+)'
-
     _TESTS = [{
         'url': 'https://tvw.org/video/billy-frank-jr-statue-maquette-unveiling-ceremony-2024011211/',
         'md5': '9ceb94fe2bb7fd726f74f16356825703',
