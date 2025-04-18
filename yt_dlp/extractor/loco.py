@@ -1,5 +1,9 @@
+import json
+import random
+import time
+
 from .common import InfoExtractor
-from ..utils import int_or_none, url_or_none
+from ..utils import int_or_none, jwt_decode_hs256, try_call, url_or_none
 from ..utils.traversal import require, traverse_obj
 
 
@@ -57,11 +61,56 @@ class LocoIE(InfoExtractor):
         },
     }]
 
+    # From _app.js
+    CLIENT_ID = 'TlwKp1zmF6eKFpcisn3FyR18WkhcPkZtzwPVEEC3'
+    CLIENT_SCRET = 'Kp7tYlUN7LXvtcSpwYvIitgYcLparbtsQSe5AdyyCdiEJBP53Vt9J8eB4AsLdChIpcO2BM19RA3HsGtqDJFjWmwoonvMSG3ZQmnS8x1YIM8yl82xMXZGbE3NKiqmgBVU'
+    USER_AGENT = '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+
+    def _is_jwt_expired(self, token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 300
+
+    def _get_access_token(self, video_id):
+        access_token = try_call(lambda: self._get_cookies('https://loco.com')['access_token'].value)
+        if access_token and not self._is_jwt_expired(access_token):
+            return access_token
+        access_token = traverse_obj(self._download_json(
+            'https://api.getloconow.com/v3/user/device_profile/', video_id,
+            'Downloading access token', fatal=False, data=json.dumps({
+                'platform': 7,
+                'client_id': self.CLIENT_ID,
+                'client_secret': self.CLIENT_SCRET,
+                'model': 'Mozilla',
+                'os_name': 'Win32',
+                'os_ver': self.USER_AGENT,
+                'app_ver': self.USER_AGENT,
+            }).encode(), headers={
+                'Content-Type': 'application/json;charset=utf-8',
+                'user-agent': self.USER_AGENT,
+                'DEVICE-ID': ''.join(random.choices('0123456789abcdef', k=32)) + 'live',
+                'X-APP-LANG': 'en',
+                'X-APP-LOCALE': 'en-US',
+                'X-CLIENT-ID': self.CLIENT_ID,
+                'X-CLIENT-SECRET': self.CLIENT_SCRET,
+                'X-PLATFORM': '7',
+            }), 'access_token')
+        if access_token and not self._is_jwt_expired(access_token):
+            self._set_cookie('.loco.com', 'access_token', access_token)
+            return access_token
+
     def _real_extract(self, url):
         video_type, video_id = self._match_valid_url(url).group('type', 'id')
         webpage = self._download_webpage(url, video_id)
         stream = traverse_obj(self._search_nextjs_data(webpage, video_id), (
             'props', 'pageProps', ('liveStreamData', 'stream', 'liveStream'), {dict}, any, {require('stream info')}))
+
+        if access_token := self._get_access_token(video_id):
+            self._request_webpage(
+                'https://drm.loco.com/v1/streams/playback/', video_id,
+                'Downloading video authorization', fatal=False, headers={
+                    'authorization': access_token,
+                }, query={
+                    'stream_uid': stream['uid'],
+                })
 
         return {
             'formats': self._extract_m3u8_formats(stream['conf']['hls'], video_id),
