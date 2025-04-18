@@ -286,19 +286,40 @@ class RTVEAudioIE(RTVEBaseIE):
 class RTVELiveIE(RTVEBaseIE):
     IE_NAME = 'rtve.es:live'
     IE_DESC = 'RTVE.es live streams'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/directo/(?P<id>[a-zA-Z0-9-]+)'
+    _VALID_URL = [
+        r'https?://(?:www\.)?rtve\.es/directo/(?P<id>[a-zA-Z0-9-]+)',
+        r'https?://(?:www\.)?rtve\.es/play/videos/directo/[^/?#]+/(?P<id>[a-zA-Z0-9-]+)',
+    ]
 
     _TESTS = [{
         'url': 'http://www.rtve.es/directo/la-1/',
         'info_dict': {
             'id': 'la-1',
             'ext': 'mp4',
-            'title': str,
             'live_status': 'is_live',
+            'title': str,
+            'description': str,
+            'thumbnail': r're:https://img\d\.rtve\.es/resources/thumbslive/\d+\.jpg',
+            'timestamp': int,
+            'upload_date': str,
         },
-        'params': {
-            'skip_download': 'live stream',
+        'params': {'skip_download': 'live stream'},
+    }, {
+        'url': 'https://www.rtve.es/play/videos/directo/deportes/tdp/',
+        'info_dict': {
+            'id': 'tdp',
+            'ext': 'mp4',
+            'live_status': 'is_live',
+            'title': str,
+            'description': str,
+            'thumbnail': r're:https://img2\d\.rtve\.es/resources/thumbslive/\d+\.jpg',
+            'timestamp': int,
+            'upload_date': str,
         },
+        'params': {'skip_download': 'live stream'},
+    }, {
+        'url': 'http://www.rtve.es/play/videos/directo/canales-lineales/la-1/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -313,6 +334,7 @@ class RTVELiveIE(RTVEBaseIE):
 
         return {
             'id': video_id,
+            **self._search_json_ld(webpage, video_id, fatal=False),
             'title': self._html_extract_title(webpage),
             'formats': formats,
             'subtitles': subtitles,
