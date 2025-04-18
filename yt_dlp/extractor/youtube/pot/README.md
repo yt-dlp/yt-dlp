@@ -31,6 +31,7 @@ from yt_dlp.extractor.youtube.pot.provider import (
     PoTokenProviderRejectedRequest,
     register_provider,
     register_preference,
+    ExternalRequestFeature,
 )
 from yt_dlp.networking.common import Request
 from yt_dlp.extractor.youtube.pot.utils import get_webpo_content_binding
@@ -58,10 +59,14 @@ class MyPoTokenProviderPTP(PoTokenProvider):  # Provider name must end with "PTP
         PoTokenContext.GVS,
     )
 
-    # Possible values: http, https, socks4, socks4a, socks5, socks5h
-    # If your provider makes requests outside PoTokenProvider._urlopen, you should set this to any proxy schemes supported.
-    # If you use PoTokenProvider._urlopen to make requests, set to None.
-    _SUPPORTED_PROXY_SCHEMES = ('http',)
+    # If your provider makes external requests to websites (i.e. to youtube.com) using another library or service (i.e., not _request_webpage),
+    # set the request features that are supported here.
+    # If only using _request_webpage to make external requests, set this to None.
+    _SUPPORTED_EXTERNAL_REQEUST_FEATURES = (
+        ExternalRequestFeature.PROXY_SCHEME_HTTP, 
+        ExternalRequestFeature.SOURCE_ADDRESS, 
+        ExternalRequestFeature.DISABLE_TLS_VERIFICATION
+    )
 
     def is_available(self) -> bool:
         """

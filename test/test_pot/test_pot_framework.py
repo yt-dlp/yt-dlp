@@ -6,6 +6,7 @@ from yt_dlp.utils.networking import HTTPHeaderDict
 from yt_dlp.extractor.youtube.pot.provider import (
     PoTokenRequest,
     PoTokenContext,
+    ExternalRequestFeature,
 
 )
 
@@ -38,7 +39,11 @@ class ExamplePTP(PoTokenProvider):
 
     _SUPPORTED_CLIENTS = ('WEB',)
     _SUPPORTED_CONTEXTS = (PoTokenContext.GVS, )
-    _SUPPORTED_PROXY_SCHEMES = ('socks5', 'http')
+
+    _SUPPORTED_EXTERNAL_REQEUST_FEATURES = (
+        ExternalRequestFeature.PROXY_SCHEME_HTTP,
+        ExternalRequestFeature.PROXY_SCHEME_SOCKS5H,
+    )
 
     def is_available(self) -> bool:
         return True
@@ -146,8 +151,87 @@ class TestPoTokenProvider:
         provider = ExamplePTP(ie=ie, logger=logger, settings={})
         pot_request.request_proxy = 'socks4://example.com'
 
-        with pytest.raises(PoTokenProviderRejectedRequest):
+        with pytest.raises(
+            PoTokenProviderRejectedRequest,
+            match='External requests by "example" provider do not support proxy scheme "socks4". Supported proxy '
+            'schemes: http, socks5h',
+        ):
             provider.request_pot(pot_request)
+
+        pot_request.request_proxy = 'http://example.com'
+
+        assert provider.request_pot(pot_request)
+
+    def test_provider_ignore_external_request_features(self, ie, logger, pot_request):
+        class InternalPTP(ExamplePTP):
+            _SUPPORTED_EXTERNAL_REQEUST_FEATURES = None
+
+        provider = InternalPTP(ie=ie, logger=logger, settings={})
+
+        pot_request.request_proxy = 'socks5://example.com'
+        assert provider.request_pot(pot_request)
+        pot_request.request_source_address = '0.0.0.0'
+        assert provider.request_pot(pot_request)
+
+    def test_provider_unsupported_external_request_source_address(self, ie, logger, pot_request):
+        class InternalPTP(ExamplePTP):
+            _SUPPORTED_EXTERNAL_REQEUST_FEATURES = tuple()
+
+        provider = InternalPTP(ie=ie, logger=logger, settings={})
+
+        pot_request.request_source_address = None
+        assert provider.request_pot(pot_request)
+
+        pot_request.request_source_address = '0.0.0.0'
+        with pytest.raises(
+            PoTokenProviderRejectedRequest,
+            match='External requests by "example" provider do not support setting source address',
+        ):
+            provider.request_pot(pot_request)
+
+    def test_provider_supported_external_request_source_address(self, ie, logger, pot_request):
+        class InternalPTP(ExamplePTP):
+            _SUPPORTED_EXTERNAL_REQEUST_FEATURES = (
+                ExternalRequestFeature.SOURCE_ADDRESS,
+            )
+
+        provider = InternalPTP(ie=ie, logger=logger, settings={})
+
+        pot_request.request_source_address = None
+        assert provider.request_pot(pot_request)
+
+        pot_request.request_source_address = '0.0.0.0'
+        assert provider.request_pot(pot_request)
+
+    def test_provider_unsupported_external_request_tls_verification(self, ie, logger, pot_request):
+        class InternalPTP(ExamplePTP):
+            _SUPPORTED_EXTERNAL_REQEUST_FEATURES = tuple()
+
+        provider = InternalPTP(ie=ie, logger=logger, settings={})
+
+        pot_request.request_verify_tls = True
+        assert provider.request_pot(pot_request)
+
+        pot_request.request_verify_tls = False
+        with pytest.raises(
+            PoTokenProviderRejectedRequest,
+            match='External requests by "example" provider do not support ignoring TLS certificate failures',
+        ):
+            provider.request_pot(pot_request)
+
+    def test_provider_supported_external_request_tls_verification(self, ie, logger, pot_request):
+        class InternalPTP(ExamplePTP):
+            _SUPPORTED_EXTERNAL_REQEUST_FEATURES = (
+                ExternalRequestFeature.DISABLE_TLS_VERIFICATION,
+            )
+
+        provider = InternalPTP(ie=ie, logger=logger, settings={})
+
+        pot_request.request_verify_tls = True
+        assert provider.request_pot(pot_request)
+
+        pot_request.request_verify_tls = False
+        assert provider.request_pot(pot_request)
 
     def test_provider_request_webpage(self, ie, logger, pot_request):
         provider = ExamplePTP(ie=ie, logger=logger, settings={})

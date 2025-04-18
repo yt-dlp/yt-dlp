@@ -66,7 +66,6 @@ class ExamplePTP(BaseMockPoTokenProvider):
 
     _SUPPORTED_CLIENTS = ('WEB',)
     _SUPPORTED_CONTEXTS = (PoTokenContext.GVS, )
-    _SUPPORTED_PROXY_SCHEMES = ('socks5', 'http')
 
     def _real_request_pot(self, request: PoTokenRequest) -> PoTokenResponse:
         if request.data_sync_id == 'example':
@@ -82,7 +81,6 @@ def success_ptp(response: PoTokenResponse | None = None, key: str | None = None)
 
         _SUPPORTED_CLIENTS = ('WEB',)
         _SUPPORTED_CONTEXTS = (PoTokenContext.GVS,)
-        _SUPPORTED_PROXY_SCHEMES = ('socks5', 'http')
 
         def _real_request_pot(self, request: PoTokenRequest) -> PoTokenResponse:
             return response or PoTokenResponse(EXAMPLE_PO_TOKEN)

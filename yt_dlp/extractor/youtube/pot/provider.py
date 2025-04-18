@@ -6,6 +6,7 @@ import abc
 import copy
 import dataclasses
 import enum
+import functools
 import typing
 import urllib.parse
 
@@ -22,6 +23,7 @@ from yt_dlp.utils import traverse_obj
 from yt_dlp.utils.networking import HTTPHeaderDict
 
 __all__ = [
+    'ExternalRequestFeature',
     'PoTokenContext',
     'PoTokenProvider',
     'PoTokenProviderError',
@@ -90,6 +92,17 @@ class PoTokenProviderError(IEContentProviderError):
     """An error occurred while fetching a PO Token"""
 
 
+class ExternalRequestFeature(enum.Enum):
+    PROXY_SCHEME_HTTP = enum.auto()
+    PROXY_SCHEME_HTTPS = enum.auto()
+    PROXY_SCHEME_SOCKS4 = enum.auto()
+    PROXY_SCHEME_SOCKS4A = enum.auto()
+    PROXY_SCHEME_SOCKS5 = enum.auto()
+    PROXY_SCHEME_SOCKS5H = enum.auto()
+    SOURCE_ADDRESS = enum.auto()
+    DISABLE_TLS_VERIFICATION = enum.auto()
+
+
 class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
 
     # Set to None to disable the check
@@ -101,8 +114,10 @@ class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
     # Also see yt_dlp.extractor.youtube._base.INNERTUBE_CLIENTS for a list of client names currently supported by the YouTube extractor.
     _SUPPORTED_CLIENTS: tuple[str] | None = ()
 
-    # Possible values: http, https, socks4, socks4a, socks5, socks5h
-    _SUPPORTED_PROXY_SCHEMES: tuple[str] | None = ()
+    # If making external requests to websites (i.e. to youtube.com) using another library or service (i.e., not _request_webpage),
+    # add the request features that are supported.
+    # If only using _request_webpage to make external requests, set this to None.
+    _SUPPORTED_EXTERNAL_REQEUST_FEATURES: tuple[ExternalRequestFeature] | None = ()
 
     def __validate_request(self, request: PoTokenRequest):
         if not self.is_available():
@@ -118,11 +133,40 @@ class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
                 raise PoTokenProviderRejectedRequest(
                     f'Client "{client_name}" is not supported by {self.PROVIDER_NAME}. Supported clients: {", ".join(self._SUPPORTED_CLIENTS) or "none"}')
 
-        if self._SUPPORTED_PROXY_SCHEMES is not None and request.request_proxy:
+        self.__validate_external_request_features(request)
+
+    @functools.cached_property
+    def _supported_proxy_schemes(self):
+        return {
+            scheme: feature
+            for scheme, feature in {
+                'http': ExternalRequestFeature.PROXY_SCHEME_HTTP,
+                'https': ExternalRequestFeature.PROXY_SCHEME_HTTPS,
+                'socks4': ExternalRequestFeature.PROXY_SCHEME_SOCKS4,
+                'socks4a': ExternalRequestFeature.PROXY_SCHEME_SOCKS4A,
+                'socks5': ExternalRequestFeature.PROXY_SCHEME_SOCKS5,
+                'socks5h': ExternalRequestFeature.PROXY_SCHEME_SOCKS5H,
+            }.items()
+            if feature in (self._SUPPORTED_EXTERNAL_REQEUST_FEATURES or [])
+        }
+
+    def __validate_external_request_features(self, request: PoTokenRequest):
+        if self._SUPPORTED_EXTERNAL_REQEUST_FEATURES is None:
+            return
+
+        if request.request_proxy:
             scheme = urllib.parse.urlparse(request.request_proxy).scheme
-            if scheme.lower() not in self._SUPPORTED_PROXY_SCHEMES:
+            if scheme.lower() not in self._supported_proxy_schemes:
                 raise PoTokenProviderRejectedRequest(
-                    f'Proxy scheme "{scheme}" is not supported by {self.PROVIDER_NAME}. Supported proxy schemes: {", ".join(self._SUPPORTED_PROXY_SCHEMES) or "none"}')
+                    f'External requests by "{self.PROVIDER_NAME}" provider do not support proxy scheme "{scheme}". Supported proxy schemes: {", ".join(self._supported_proxy_schemes) or "none"}')
+
+        if request.request_source_address and ExternalRequestFeature.SOURCE_ADDRESS not in self._SUPPORTED_EXTERNAL_REQEUST_FEATURES:
+            raise PoTokenProviderRejectedRequest(
+                f'External requests by "{self.PROVIDER_NAME}" provider do not support setting source address')
+
+        if not request.request_verify_tls and ExternalRequestFeature.DISABLE_TLS_VERIFICATION not in self._SUPPORTED_EXTERNAL_REQEUST_FEATURES:
+            raise PoTokenProviderRejectedRequest(
+                f'External requests by "{self.PROVIDER_NAME}" provider do not support ignoring TLS certificate failures')
 
     def request_pot(self, request: PoTokenRequest) -> PoTokenResponse:
         self.__validate_request(request)
