@@ -379,7 +379,7 @@ class CDAFolderIE(InfoExtractor):
             },
             'playlist_mincount': 139,
         }, {
-            'url': 'https://www.cda.pl/Test-t3st_t-1/folder/12345678',
+            'url': 'https://www.cda.pl/FILMY-SERIALE-ANIME-KRESKOWKI-BAJKI/folder/18493422',
             'only_matching': True,
         }]
 
