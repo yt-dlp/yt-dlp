@@ -89,7 +89,6 @@ class LocoIE(InfoExtractor):
     # From _app.js
     _CLIENT_ID = 'TlwKp1zmF6eKFpcisn3FyR18WkhcPkZtzwPVEEC3'
     _CLIENT_SECRET = 'Kp7tYlUN7LXvtcSpwYvIitgYcLparbtsQSe5AdyyCdiEJBP53Vt9J8eB4AsLdChIpcO2BM19RA3HsGtqDJFjWmwoonvMSG3ZQmnS8x1YIM8yl82xMXZGbE3NKiqmgBVU'
-    _USER_AGENT = '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
 
     def _is_jwt_expired(self, token):
         return jwt_decode_hs256(token)['exp'] - time.time() < 300
@@ -106,11 +105,10 @@ class LocoIE(InfoExtractor):
                 'client_secret': self._CLIENT_SECRET,
                 'model': 'Mozilla',
                 'os_name': 'Win32',
-                'os_ver': self._USER_AGENT,
-                'app_ver': self._USER_AGENT,
+                'os_ver': '5.0 (Windows)',
+                'app_ver': '5.0 (Windows)',
             }).encode(), headers={
                 'Content-Type': 'application/json;charset=utf-8',
-                'user-agent': self._USER_AGENT,
                 'DEVICE-ID': ''.join(random.choices('0123456789abcdef', k=32)) + 'live',
                 'X-APP-LANG': 'en',
                 'X-APP-LOCALE': 'en-US',
