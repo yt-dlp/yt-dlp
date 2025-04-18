@@ -1570,6 +1570,8 @@ class InfoExtractor:
         """Yield all json ld objects in the html"""
         if default is not NO_DEFAULT:
             fatal = False
+        if not fatal and not isinstance(html, str):
+            return
         for mobj in re.finditer(JSON_LD_RE, html):
             json_ld_item = self._parse_json(
                 mobj.group('json_ld'), video_id, fatal=fatal,
