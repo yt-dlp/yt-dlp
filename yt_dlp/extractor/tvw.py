@@ -126,15 +126,15 @@ class TvwIE(InfoExtractor):
 
 
 class TvwTvChannelsIE(InfoExtractor):
-    IE_NAME = 'Tvw:TvChannels'
+    IE_NAME = 'tvw:tvchannels'
     _VALID_URL = r'https?://(?:www\.)?tvw\.org/tvchannels/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://tvw.org/tvchannels/air/',
         'info_dict': {
             'id': 'air',
             'ext': 'mp4',
-            'title': r're:^TVW Cable Channel Live Stream',
-            'thumbnail': r're:^https?://.*\.(?:jpe?g|png)$',
+            'title': r're:TVW Cable Channel Live Stream',
+            'thumbnail': r're:https?://.+/.+\.(?:jpe?g|png)$',
             'live_status': 'is_live',
         },
     }, {
@@ -142,8 +142,8 @@ class TvwTvChannelsIE(InfoExtractor):
         'info_dict': {
             'id': 'tvw2',
             'ext': 'mp4',
-            'title': r're:^TVW-2 Broadcast Channel',
-            'thumbnail': r're:^https?://.*\.(?:jpe?g|png)$',
+            'title': r're:TVW-2 Broadcast Channel',
+            'thumbnail': r're:https?://.+/.+\.(?:jpe?g|png)$',
             'live_status': 'is_live',
         },
     }]
