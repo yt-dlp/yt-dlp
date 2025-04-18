@@ -28,7 +28,7 @@ class AtresPlayerIE(InfoExtractor):
             'tags': ['Entrevista informativa', 'Actualidad', 'Debate informativo', 'Política', 'Economía', 'Sociedad', 'Cara a cara', 'Análisis', 'Más periodismo'],
             'series': 'El Objetivo',
             'season': 'Temporada 12',
-            'timestamp': 1743970079.052,
+            'timestamp': 1743970079,
             'upload_date': '20250406',
         },
     }, {
@@ -45,7 +45,7 @@ class AtresPlayerIE(InfoExtractor):
             'tags': ['Entrevista', 'Variedades', 'Humor', 'Entretenimiento', 'Te sigo', 'Buen rollo', 'Cara a cara'],
             'series': 'El Hormiguero ',
             'season': 'Temporada 14',
-            'timestamp': 1744320111.868,
+            'timestamp': 1744320111,
             'upload_date': '20250410',
         },
     }, {
@@ -65,7 +65,7 @@ class AtresPlayerIE(InfoExtractor):
             'season_number': 1,
             'episode': 'Episode 3',
             'episode_number': 3,
-            'timestamp': 1743095191.333,
+            'timestamp': 1743095191,
             'upload_date': '20250327',
         },
     }, {
