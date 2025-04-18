@@ -59,6 +59,31 @@ class LocoIE(InfoExtractor):
             'upload_date': '20250226',
             'modified_date': '20250226',
         },
+    }, {
+        # Requires video authorization
+        'url': 'https://loco.com/stream/ac854641-ae0f-497c-a8ea-4195f6d8cc53',
+        'md5': '0513edf85c1e65c9521f555f665387d5',
+        'info_dict': {
+            'id': 'ac854641-ae0f-497c-a8ea-4195f6d8cc53',
+            'ext': 'mp4',
+            'title': 'DUAS CONTAS DESAFIANTE, RUSH TOP 1 NO BRASIL!',
+            'description': 'md5:aa77818edd6fe00dd4b6be75cba5f826',
+            'uploader_id': '7Y9JNAZC3Q',
+            'channel': 'ayellol',
+            'channel_follower_count': int,
+            'comment_count': int,
+            'view_count': int,
+            'concurrent_view_count': int,
+            'like_count': int,
+            'duration': 1229,
+            'thumbnail': 'https://static.ivory.getloconow.com/default_thumb/f5aa678b-6d04-45d9-a89a-859af0a8028f.jpg',
+            'tags': ['Gameplay', 'Carry'],
+            'series': 'League of Legends',
+            'timestamp': 1741182253,
+            'upload_date': '20250305',
+            'modified_timestamp': 1741182419,
+            'modified_date': '20250305',
+        },
     }]
 
     # From _app.js
