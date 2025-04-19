@@ -1783,7 +1783,6 @@ from .rtvcplay import (
 from .rtve import (
     RTVEALaCartaIE,
     RTVEAudioIE,
-    RTVEInfantilIE,
     RTVELiveIE,
     RTVETelevisionIE,
 )
@@ -2237,7 +2236,11 @@ from .tvplay import (
     TVPlayIE,
 )
 from .tvplayer import TVPlayerIE
-from .tvw import TvwIE, TvwNewsIE
+from .tvw import (
+    TvwIE,
+    TvwNewsIE,
+    TvwTvChannelsIE,
+)
 from .tweakers import TweakersIE
 from .twentymin import TwentyMinutenIE
 from .twentythreevideo import TwentyThreeVideoIE

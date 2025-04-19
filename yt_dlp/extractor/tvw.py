@@ -1,21 +1,13 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import clean_html, extract_attributes, remove_end, unified_timestamp, url_or_none
-from ..utils.traversal import find_elements, traverse_obj
+from ..utils import clean_html, extract_attributes, parse_qs, remove_end, require, unified_timestamp, url_or_none
+from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
-class TvwBaseIE(InfoExtractor):
-    def _get_title(self, webpage):
-        return remove_end(self._og_search_title(webpage, default=None), ' - TVW')
-
-    def _get_description(self, webpage):
-        return self._og_search_description(webpage, default=None)
-
-
-class TvwIE(TvwBaseIE):
+class TvwIE(InfoExtractor):
+    IE_NAME = 'tvw'
     _VALID_URL = r'https?://(?:www\.)?tvw\.org/video/(?P<id>[^/?#]+)'
-
     _TESTS = [{
         'url': 'https://tvw.org/video/billy-frank-jr-statue-maquette-unveiling-ceremony-2024011211/',
         'md5': '9ceb94fe2bb7fd726f74f16356825703',
@@ -111,8 +103,8 @@ class TvwIE(TvwBaseIE):
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            'title': self._get_title(webpage),
-            'description': self._get_description(webpage),
+            'title': remove_end(self._og_search_title(webpage, default=None), ' - TVW'),
+            'description': self._og_search_description(webpage, default=None),
             **traverse_obj(video_data, {
                 'title': ('title', {str}),
                 'description': ('description', {clean_html}),
@@ -125,7 +117,7 @@ class TvwIE(TvwBaseIE):
         }
 
 
-class TvwNewsIE(TvwBaseIE):
+class TvwNewsIE(InfoExtractor):
     IE_NAME = 'Tvw:News'
     _VALID_URL = r'https?://(?:www\.)?tvw\.org/(\d{4})/(0[1-9]|1[0-2])/(?P<id>[^/?#]+)'
     _TESTS = [{
@@ -163,4 +155,44 @@ class TvwNewsIE(TvwBaseIE):
 
         return self.playlist_result(
             (self.url_result(f'https://tvw.org/watch?eventID={video_id}') for video_id in video_ids), playlist_id,
-            playlist_title=self._get_title(webpage), playlist_description=self._get_description(webpage))
+            playlist_title=remove_end(self._og_search_title(webpage, default=None), ' - TVW'), playlist_description=self._og_search_description(webpage, default=None))
+
+
+class TvwTvChannelsIE(InfoExtractor):
+    IE_NAME = 'tvw:tvchannels'
+    _VALID_URL = r'https?://(?:www\.)?tvw\.org/tvchannels/(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://tvw.org/tvchannels/air/',
+        'info_dict': {
+            'id': 'air',
+            'ext': 'mp4',
+            'title': r're:TVW Cable Channel Live Stream',
+            'thumbnail': r're:https?://.+/.+\.(?:jpe?g|png)$',
+            'live_status': 'is_live',
+        },
+    }, {
+        'url': 'https://tvw.org/tvchannels/tvw2/',
+        'info_dict': {
+            'id': 'tvw2',
+            'ext': 'mp4',
+            'title': r're:TVW-2 Broadcast Channel',
+            'thumbnail': r're:https?://.+/.+\.(?:jpe?g|png)$',
+            'live_status': 'is_live',
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+
+        m3u8_url = traverse_obj(webpage, (
+            {find_element(id='invintus-persistent-stream-frame', html=True)}, {extract_attributes},
+            'src', {parse_qs}, 'encoder', 0, {json.loads}, 'live247URI', {url_or_none}, {require('stream url')}))
+
+        return {
+            'id': video_id,
+            'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls', live=True),
+            'title': remove_end(self._og_search_title(webpage, default=None), ' - TVW'),
+            'thumbnail': self._og_search_thumbnail(webpage, default=None),
+            'is_live': True,
+        }
