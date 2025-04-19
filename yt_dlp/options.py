@@ -228,7 +228,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         assert formatter, 'Formatter can not be None'
         formatted_help = super().format_option_help(formatter=formatter)
         formatter.indent()
-        heading = formatter.format_heading('Preset aliases')
+        heading = formatter.format_heading('Preset Aliases')
         formatter.indent()
         result = []
         for name, args in _PRESET_ALIASES.items():
@@ -555,10 +555,10 @@ def create_parser():
         metavar='PRESET', dest='_', type='str',
         action='callback', callback=_preset_alias_callback,
         help=(
-            'Applies a predefined preset. e.g. --preset-alias mp3. '
+            'Applies a predefined set of options. e.g. --preset-alias mp3. '
             f'The following presets are available: {", ".join(_PRESET_ALIASES)}. '
-            'See the "Preset aliases" section at the end for more infos. '
-            'This option can be used multiple times.'))
+            'See the "Preset Aliases" section at the end for more info. '
+            'This option can be used multiple times'))
 
     network = optparse.OptionGroup(parser, 'Network Options')
     network.add_option(
