@@ -155,7 +155,6 @@ _PRESET_ALIASES = {
     'aac': ['-f', 'ba[acodec*=aac]/ba[acodec^=mp4a.40.]/ba/b', '-x', '--audio-format', 'aac'],
     'mp4': ['--merge-output-format', 'mp4', '--remux', 'mp4', '-S', 'vcodec:h264,lang,quality,res,fps,hdr:12,acodec:aac'],
     'mkv': ['--merge-output-format', 'mkv', '--remux', 'mkv'],
-    'embed': ['--embed-subs', '--embed-thumbnail', '--embed-metadata'],
 }
 
 
