@@ -31,7 +31,7 @@ class PlaySuisseIE(InfoExtractor):
                 'id': '763211',
                 'ext': 'mp4',
                 'title': 'Knochen',
-                'description': 'md5:8ea7a8076ba000cd9e8bc132fd0afdd8',
+                'description': 'md5:2f88aab021fe3ba4b301ad7456b14cbb',
                 'duration': 3344,
                 'series': 'Wilder',
                 'season': 'Season 1',
@@ -42,24 +42,33 @@ class PlaySuisseIE(InfoExtractor):
             },
         }, {
             # film
-            'url': 'https://www.playsuisse.ch/watch/808675',
+            'url': 'https://www.playsuisse.ch/detail/2573198',
             'md5': '818b94c1d2d7c4beef953f12cb8f3e75',
             'info_dict': {
-                'id': '808675',
+                'id': '2573198',
                 'ext': 'mp4',
-                'title': 'Der Läufer',
-                'description': 'md5:9f61265c7e6dcc3e046137a792b275fd',
-                'duration': 5280,
+                'title': 'Azor',
+                'description': 'md5:1550b151bc818fd0d12f6517d9821ddc',
+                'genres': 'Fiction',
+                'creators': 'Andreas Fontana',
+                'cast': 'Fabrizio Rongione, Stéphanie Cléau, Gilles Privat, Alexandre Trocki',
+                'location': 'France, Argentine',
+                'year': '2021',
+                'duration': 5715,
                 'thumbnail': 're:https://playsuisse-img.akamaized.net/',
             },
         }, {
             # series (treated as a playlist)
             'url': 'https://www.playsuisse.ch/detail/1115687',
             'info_dict': {
-                'description': 'md5:e4a2ae29a8895823045b5c3145a02aa3',
                 'id': '1115687',
                 'series': 'They all came out to Montreux',
                 'title': 'They all came out to Montreux',
+                'description': 'md5:0fefd8c5b4468a0bb35e916887681520',
+                'genres': 'Documentary',
+                'creators': 'Oliver Murray',
+                'location': 'Switzerland',
+                'year': '2021',
             },
             'playlist': [{
                 'info_dict': {
@@ -120,6 +129,12 @@ class PlaySuisseIE(InfoExtractor):
             id
             name
             description
+            descriptionLong
+            year
+            contentTypes
+            directors
+            mainCast
+            productionCountries
             duration
             episodeNumber
             seasonNumber
@@ -215,9 +230,7 @@ class PlaySuisseIE(InfoExtractor):
         if not self._ID_TOKEN:
             raise ExtractorError('Login failed')
 
-    def _get_media_data(self, media_id):
-        # NOTE In the web app, the "locale" header is used to switch between languages,
-        # However this doesn't seem to take effect when passing the header here.
+    def _get_media_data(self, media_id, locale):
         response = self._download_json(
             'https://www.playsuisse.ch/api/graphql',
             media_id, data=json.dumps({
@@ -225,8 +238,7 @@ class PlaySuisseIE(InfoExtractor):
                 'query': self._GRAPHQL_QUERY,
                 'variables': {'assetId': media_id},
             }).encode(),
-            headers={'Content-Type': 'application/json', 'locale': 'de'})
-
+            headers={'Content-Type': 'application/json', 'locale': locale})
         return response['data']['assetV2']
 
     def _real_extract(self, url):
@@ -234,7 +246,7 @@ class PlaySuisseIE(InfoExtractor):
             self.raise_login_required(method='password')
 
         media_id = self._match_id(url)
-        media_data = self._get_media_data(media_id)
+        media_data = self._get_media_data(media_id, traverse_obj(parse_qs(url), ('locale', 0), default='de'))
         info = self._extract_single(media_data)
         if media_data.get('episodes'):
             info.update({
@@ -257,15 +269,22 @@ class PlaySuisseIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
 
         return {
-            'id': media_data['id'],
-            'title': media_data.get('name'),
-            'description': media_data.get('description'),
             'thumbnails': thumbnails,
-            'duration': int_or_none(media_data.get('duration')),
             'formats': formats,
             'subtitles': subtitles,
-            'series': media_data.get('seriesName'),
-            'season_number': int_or_none(media_data.get('seasonNumber')),
-            'episode': media_data.get('name') if media_data.get('episodeNumber') else None,
-            'episode_number': int_or_none(media_data.get('episodeNumber')),
+            **traverse_obj(media_data, {
+                'id': ('id', {str}),
+                'title': ('name', {str}),
+                'description': (('descriptionLong', 'description'), {str}, any),
+                'genres': ('contentTypes', ..., {str}),
+                'creators': ('directors', ..., {str}),
+                'cast': ('mainCast', ..., {str}),
+                'location': ('productionCountries', ..., {str}, any),
+                'release_year': ('year', {str}),
+                'duration': ('duration', {int_or_none}),
+                'series': ('seriesName', {str}),
+                'season_number': ('seasonNumber', {int_or_none}),
+                'episode': ('name', {str}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+            }),
         }
