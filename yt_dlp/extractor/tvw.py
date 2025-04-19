@@ -75,6 +75,20 @@ class TvwIE(InfoExtractor):
             'display_id': 'washington-to-washington-a-new-space-race-2022041111',
             'categories': ['Washington to Washington', 'General Interest'],
         },
+    }, {
+        'url': 'https://tvw.org/watch?eventID=2025041235',
+        'md5': '7d697c02f110b37d6a47622ea608ca90',
+        'info_dict': {
+            'id': '2025041235',
+            'ext': 'mp4',
+            'title': 'Legislative Review -- April 18',
+            'thumbnail': r're:^https?://.*\.(?:jpe?g|png)$',
+            'description': 'Legislative Review features highlights from Friday\'s legislative activity (4/18/25).',
+            'timestamp': 1745006400,
+            'upload_date': '20250418',
+            'location': 'Hayner Media Center',
+            'categories': ['Legislative Review'],
+        },
     }]
 
     def _real_extract(self, url):
