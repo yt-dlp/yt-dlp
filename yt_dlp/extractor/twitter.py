@@ -1717,21 +1717,22 @@ class TwitterSpacesIE(TwitterBaseIE):
     _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13})'
 
     _TESTS = [{
-        'url': 'https://twitter.com/i/spaces/1RDxlgyvNXzJL',
+        'url': 'https://twitter.com/i/spaces/1OwxWwQOPlNxQ',
         'info_dict': {
-            'id': '1RDxlgyvNXzJL',
+            'id': '1OwxWwQOPlNxQ',
             'ext': 'm4a',
-            'title': 'King Carlo e la mossa Kansas City per fare il Grande Centro',
-            'description': 'Twitter Space participated by annarita digiorgio, Signor Ernesto, Raffaello Colosimo, Simone M. Sepe',
-            'uploader': r're:Lucio Di Gaetano.*?',
-            'uploader_id': 'luciodigaetano',
+            'title': 'Everybody in: @mtbarra & @elonmusk discuss the future of EV charging',
+            'description': 'md5:318cde7a7c2753fa5069cda27a6f2413',
             'live_status': 'was_live',
-            'timestamp': 1659877956,
-            'upload_date': '20220807',
-            'release_timestamp': 1659904215,
-            'release_date': '20220807',
+            'release_date': '20230608',
+            'release_timestamp': 1686256230,
+            'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
+            'timestamp': 1686254250,
+            'upload_date': '20230608',
+            'uploader': 'Mary Barra',
+            'uploader_id': 'mtbarra',
         },
-        'skip': 'No longer available',
+        'params': {'skip_download': 'm3u8'},
     }, {
         # post_live/TimedOut but downloadable
         'url': 'https://twitter.com/i/spaces/1vAxRAVQWONJl',
@@ -1739,13 +1740,14 @@ class TwitterSpacesIE(TwitterBaseIE):
             'id': '1vAxRAVQWONJl',
             'ext': 'm4a',
             'title': 'Framing Up FinOps: Billing Tools',
-            'description': 'Twitter Space participated by rupa, Alfonso Hernandez',
+            'description': 'md5:d36a80d8607ce1c3feb0e26604045f0d',
             'uploader': 'Google Cloud',
             'uploader_id': 'googlecloud',
             'live_status': 'post_live',
+            'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
             'timestamp': 1681409554,
             'upload_date': '20230413',
-            'release_timestamp': 1681839000,
+            'release_timestamp': 1681839082,
             'release_date': '20230418',
             'protocol': 'm3u8',  # ffmpeg is forced
             'container': 'm4a_dash',  # audio-only format fixup is applied
@@ -1758,10 +1760,13 @@ class TwitterSpacesIE(TwitterBaseIE):
             'id': '1eaKbrQbjoRKX',
             'ext': 'm4a',
             'title': 'あ',
-            'description': 'Twitter Space participated by nobody yet',
+            'description': 'md5:e6a6be6e7a990b9c6e210ecf94089748',
             'uploader': '息根とめる',
             'uploader_id': 'tomeru_ikinone',
             'live_status': 'was_live',
+            'release_date': '20230601',
+            'release_timestamp': 1685617200,
+            'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
             'timestamp': 1685617198,
             'upload_date': '20230601',
             'protocol': 'm3u8',  # ffmpeg is forced
@@ -1775,13 +1780,14 @@ class TwitterSpacesIE(TwitterBaseIE):
             'id': '1DXGydznBYWKM',
             'ext': 'mp4',
             'title': 'America and Israel’s “special relationship”',
-            'description': 'Twitter Space participated by nobody yet',
+            'description': 'md5:e6a6be6e7a990b9c6e210ecf94089748',
             'uploader': 'Candace Owens',
             'uploader_id': 'RealCandaceO',
             'live_status': 'was_live',
+            'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
             'timestamp': 1723931351,
             'upload_date': '20240817',
-            'release_timestamp': 1723932000,
+            'release_timestamp': 1723932056,
             'release_date': '20240817',
             'protocol': 'm3u8_native',  # not ffmpeg, detected as video space
         },
@@ -1861,18 +1867,22 @@ class TwitterSpacesIE(TwitterBaseIE):
 
         return {
             'id': space_id,
-            'title': metadata.get('title'),
             'description': f'Twitter Space participated by {participants}',
-            'uploader': traverse_obj(
-                metadata, ('creator_results', 'result', 'legacy', 'name')),
-            'uploader_id': traverse_obj(
-                metadata, ('creator_results', 'result', 'legacy', 'screen_name')),
-            'live_status': live_status,
-            'release_timestamp': try_call(
-                lambda: int_or_none(metadata['scheduled_start'], scale=1000)),
-            'timestamp': int_or_none(metadata.get('created_at'), scale=1000),
             'formats': formats,
             'http_headers': headers,
+            'live_status': live_status,
+            **traverse_obj(metadata, {
+                'title': ('title', {str}),
+                'release_timestamp': ('started_at', {int_or_none(scale=1000)}),
+                'timestamp': ('created_at', {int_or_none(scale=1000)}),
+            }),
+            **traverse_obj(metadata, ('creator_results', 'result', 'legacy', {
+                'uploader': ('name', {str}),
+                'uploader_id': ('screen_name', {str_or_none}),
+                'thumbnail': (
+                    'profile_image_url_https', {lambda x: x.replace('_normal', '_400x400')}, {url_or_none},
+                ),
+            })),
         }
 
 
