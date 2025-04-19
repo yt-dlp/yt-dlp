@@ -153,8 +153,8 @@ class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
 _PRESET_ALIASES = {
     'mp3': ['-f', 'ba[acodec^=mp3]/ba/b', '-x', '--audio-format', 'mp3'],
     'aac': ['-f', 'ba[acodec^=aac]/ba[acodec^=mp4a.40.]/ba/b', '-x', '--audio-format', 'aac'],
-    'mp4': ['--merge-output-format', 'mp4', '--remux', 'mp4', '-S', 'vcodec:h264,lang,quality,res,fps,hdr:12,acodec:aac'],
-    'mkv': ['--merge-output-format', 'mkv', '--remux', 'mkv'],
+    'mp4': ['--merge-output-format', 'mp4', '--remux-video', 'mp4', '-S', 'vcodec:h264,lang,quality,res,fps,hdr:12,acodec:aac'],
+    'mkv': ['--merge-output-format', 'mkv', '--remux-video', 'mkv'],
     'sleep': ['--sleep-subtitles', '5', '--sleep-requests', '0.75', '--sleep-interval', '10', '--max-sleep-interval', '20'],
 }
 
