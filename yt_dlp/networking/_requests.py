@@ -10,7 +10,7 @@ import warnings
 
 from ..dependencies import brotli, requests, urllib3
 from ..utils import bug_reports_message, int_or_none, variadic
-from ..utils.networking import normalize_url
+from ..utils.networking import normalize_url, select_proxy
 
 if requests is None:
     raise ImportError('requests module is not installed')
@@ -41,7 +41,6 @@ from ._helper import (
     create_socks_proxy_socket,
     get_redirect_method,
     make_socks_proxy_opts,
-    select_proxy,
 )
 from .common import (
     Features,

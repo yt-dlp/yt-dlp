@@ -1435,6 +1435,27 @@ class TestYoutubeDL(unittest.TestCase):
         FakeYDL().close()
         assert all_plugins_loaded.value
 
+    def test_close_hooks(self):
+        # Should call all registered close hooks on close
+        close_hook_called = False
+        close_hook_two_called = False
+
+        def close_hook():
+            nonlocal close_hook_called
+            close_hook_called = True
+
+        def close_hook_two():
+            nonlocal close_hook_two_called
+            close_hook_two_called = True
+
+        ydl = FakeYDL()
+        ydl.add_close_hook(close_hook)
+        ydl.add_close_hook(close_hook_two)
+
+        ydl.close()
+        self.assertTrue(close_hook_called, 'Close hook was not called')
+        self.assertTrue(close_hook_two_called, 'Close hook two was not called')
+
 
 if __name__ == '__main__':
     unittest.main()
