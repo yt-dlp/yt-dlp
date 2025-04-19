@@ -1,13 +1,21 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import clean_html, extract_attributes, parse_qs, remove_end, require, unified_timestamp, url_or_none
+from ..utils import (
+    clean_html,
+    extract_attributes,
+    parse_qs,
+    remove_end,
+    require,
+    unified_timestamp,
+    url_or_none,
+)
 from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
 class TvwIE(InfoExtractor):
     IE_NAME = 'tvw'
-    _VALID_URL = r'https?://(?:www\.)?tvw\.org/video/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?tvw\.org/(?:video|watch)/?(?:\?eventID=)?(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://tvw.org/video/billy-frank-jr-statue-maquette-unveiling-ceremony-2024011211/',
         'md5': '9ceb94fe2bb7fd726f74f16356825703',
@@ -71,7 +79,10 @@ class TvwIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        # Use a newer user agent as the default yt-dlp one triggers the Cloudflare anti-bot challenge
+        webpage = self._download_webpage(url, display_id, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0',
+        })
 
         client_id = self._html_search_meta('clientID', webpage, fatal=True)
         video_id = self._html_search_meta('eventID', webpage, fatal=True)
@@ -118,8 +129,8 @@ class TvwIE(InfoExtractor):
 
 
 class TvwNewsIE(InfoExtractor):
-    IE_NAME = 'Tvw:News'
-    _VALID_URL = r'https?://(?:www\.)?tvw\.org/(\d{4})/(0[1-9]|1[0-2])/(?P<id>[^/?#]+)'
+    IE_NAME = 'tvw:News'
+    _VALID_URL = r'https?://(?:www\.)?tvw\.org/\d{4}/\d{2}/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://tvw.org/2024/01/the-impact-issues-to-watch-in-the-2024-legislative-session/',
         'info_dict': {
@@ -148,14 +159,18 @@ class TvwNewsIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        webpage = self._download_webpage(url, playlist_id)
+        # Use a newer user agent as the default yt-dlp one triggers the Cloudflare anti-bot challenge
+        webpage = self._download_webpage(url, playlist_id, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0',
+        })
 
         video_ids = traverse_obj(webpage, (
             {find_elements(cls='invintus-player', html=True)}, ..., {extract_attributes}, 'data-eventid'))
 
-        return self.playlist_result(
-            (self.url_result(f'https://tvw.org/watch?eventID={video_id}') for video_id in video_ids), playlist_id,
-            playlist_title=remove_end(self._og_search_title(webpage, default=None), ' - TVW'), playlist_description=self._og_search_description(webpage, default=None))
+        return self.playlist_from_matches(
+            (f'https://tvw.org/watch?eventID={video_id}' for video_id in video_ids), playlist_id,
+            playlist_title=remove_end(self._og_search_title(webpage, default=None), ' - TVW'),
+            playlist_description=self._og_search_description(webpage, default=None), ie=TvwIE)
 
 
 class TvwTvChannelsIE(InfoExtractor):
@@ -183,7 +198,10 @@ class TvwTvChannelsIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        # Use a newer user agent as the default yt-dlp one triggers the Cloudflare anti-bot challenge
+        webpage = self._download_webpage(url, video_id, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0',
+        })
 
         m3u8_url = traverse_obj(webpage, (
             {find_element(id='invintus-persistent-stream-frame', html=True)}, {extract_attributes},
