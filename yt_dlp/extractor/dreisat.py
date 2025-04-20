@@ -98,7 +98,8 @@ class DreiSatIE(ZDFBaseIE):
             ('http://zdf.de/rels/streams/ptmd', 'http://zdf.de/rels/streams/ptmd-template'),
             {str}, any, {require('ptmd path')}))
         ptmd_url = self._expand_ptmd_template(player_url, ptmd_path)
-        info = self._extract_ptmd(ptmd_url, video_id, api_token)
+        aspect_ratio = self._parse_aspect_ratio(video_target.get('aspectRatio'))
+        info = self._extract_ptmd(ptmd_url, video_id, api_token, aspect_ratio)
 
         return merge_dicts(info, {
             **traverse_obj(content, {

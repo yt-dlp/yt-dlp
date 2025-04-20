@@ -34,6 +34,12 @@ class ZDFBaseIE(InfoExtractor):
             url, video_id, note=f'Downloading {item}',
             errnote=f'Failed to download {item}', headers=headers)
 
+    def _parse_aspect_ratio(self, aspect_ratio):
+        if not aspect_ratio or not isinstance(aspect_ratio, str):
+            return None
+        mobj = re.match(r'(?P<width>\d+):(?P<height>\d+)', aspect_ratio)
+        return int(mobj.group('width')) / int(mobj.group('height')) if mobj else None
+
     def _extract_chapters(self, data):
         return traverse_obj(data, (lambda _, v: 'anchorOffset' in v, {
             'start_time': ('anchorOffset', {float_or_none}),
@@ -58,15 +64,12 @@ class ZDFBaseIE(InfoExtractor):
     def _expand_ptmd_template(self, api_base_url, template):
         return urljoin(api_base_url, template.replace('{playerId}', 'android_native_6'))
 
-    def _extract_ptmd(self, ptmd_urls, video_id, api_token=None):
+    def _extract_ptmd(self, ptmd_urls, video_id, api_token=None, aspect_ratio=None):
         # TODO: If there are multiple PTMD templates,
         # usually one of them is a sign-language variant of the video.
         # The format order works out fine as is and prefers the "regular" video,
         # but this should probably be made more explicit.
 
-        # TODO: HTTPS formats are extracted without resolution information
-        # However, we know vertical resolution and the caller often knows apsect ratio.
-        # So we could calculate the correct resulution from those two data points.
         ptmd_urls = variadic(ptmd_urls)
         src_captions = []
 
@@ -96,10 +99,13 @@ class ZDFBaseIE(InfoExtractor):
                             fmts = self._extract_mpd_formats(
                                 format_url, content_id, mpd_id='dash', fatal=False)
                         else:
+                            height = int_or_none(quality.get('highestVerticalResolution'))
+                            width = round(aspect_ratio * height) if aspect_ratio and height else None
                             fmts = [{
                                 'url': format_url,
                                 **parse_codecs(quality.get('mimeCodec')),
-                                'height': int_or_none(quality.get('highestVerticalResolution')),
+                                'height': height,
+                                'width': width,
                                 'format_id': join_nonempty('http', stream.get('type'), quality.get('quality')),
                                 'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
                             }]
@@ -468,8 +474,8 @@ query VideoByCanonical($canonical: String!) {
 }
     '''
 
-    def _extract_ptmd(self, ptmd_urls, video_id, api_token=None):
-        ptmd_data = super()._extract_ptmd(ptmd_urls, video_id, api_token)
+    def _extract_ptmd(self, ptmd_urls, video_id, api_token=None, aspect_ratio=None):
+        ptmd_data = super()._extract_ptmd(ptmd_urls, video_id, api_token, aspect_ratio)
         # We can't use the ID from PTMD extraction as the video ID
         # because it is not available during playlist extraction.
         # We fix it here manually instead of inside the base class
@@ -531,11 +537,14 @@ query VideoByCanonical($canonical: String!) {
 
         if not video_data:
             return self._extract_fallback(video_id)
-
-        ptmd_urls = traverse_obj(video_data, (
-            'currentMedia', 'nodes', ..., 'ptmdTemplate',
+        ptmd_nodes = traverse_obj(video_data, ('currentMedia', 'nodes'))
+        ptmd_urls = traverse_obj(ptmd_nodes, (
+            ..., 'ptmdTemplate',
             {functools.partial(self._expand_ptmd_template, 'https://api.zdf.de')}))
-        ptmd_data = self._extract_ptmd(ptmd_urls, video_id, self._get_api_token(video_id))
+        aspect_ratio = traverse_obj(ptmd_nodes, (
+            ..., 'aspectRatio', {self._parse_aspect_ratio}, any))
+        ptmd_data = self._extract_ptmd(
+            ptmd_urls, video_id, self._get_api_token(video_id), aspect_ratio)
 
         return {
             'id': video_id,
