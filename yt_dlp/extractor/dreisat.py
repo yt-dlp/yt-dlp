@@ -97,7 +97,8 @@ class DreiSatIE(ZDFBaseIE):
             (('streams', 'default'), None),
             ('http://zdf.de/rels/streams/ptmd', 'http://zdf.de/rels/streams/ptmd-template'),
             {str}, any, {require('ptmd path')}))
-        info = self._extract_ptmd(player_url, ptmd_path, video_id, api_token)
+        ptmd_url = self._expand_ptmd_template(player_url, ptmd_path)
+        info = self._extract_ptmd(ptmd_url, video_id, api_token)
 
         return merge_dicts(info, {
             **traverse_obj(content, {

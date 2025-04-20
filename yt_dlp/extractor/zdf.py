@@ -1,3 +1,4 @@
+import functools
 import json
 import re
 import time
@@ -87,7 +88,10 @@ class ZDFBaseIE(InfoExtractor):
             'quality': qualities(self._QUALITIES)(meta.get('quality')),
         }) for f in fmts)
 
-    def _extract_ptmd(self, api_base_url, templates, video_id, api_token=None):
+    def _expand_ptmd_template(self, api_base_url, template):
+        return urljoin(api_base_url, template.replace('{playerId}', 'android_native_6'))
+
+    def _extract_ptmd(self, ptmd_urls, video_id, api_token=None):
         # TODO: If there are multiple PTMD templates,
         # usually one of them is a sign-language variant of the video.
         # The format order works out fine as is and prefers the "regular" video,
@@ -96,16 +100,14 @@ class ZDFBaseIE(InfoExtractor):
         # TODO: HTTPS formats are extracted without resolution information
         # However, we know vertical resolution and the caller often knows apsect ratio.
         # So we could calculate the correct resulution from those two data points.
-        templates = variadic(templates)
+        ptmd_urls = variadic(ptmd_urls)
         src_captions = []
 
         content_id = None
         duration = None
         formats = []
         track_uris = set()
-        for template in templates:
-            ptmd_url = urljoin(api_base_url, template.replace(
-                '{playerId}', 'android_native_6'))
+        for ptmd_url in ptmd_urls:
             ptmd = self._call_api(ptmd_url, video_id, 'PTMD data', api_token)
             # As per above TODO on sign language videos variants,
             # prefer content_id from the last entry to get the "regular" ID.
@@ -537,11 +539,10 @@ query VideoByCanonical($canonical: String!) {
         if not video_data:
             return self._extract_fallback(video_id)
 
-        ptmd_templates = traverse_obj(
-            video_data, ('currentMedia', 'nodes', ..., 'ptmdTemplate'))
-        ptmd_data = self._extract_ptmd(
-            'https://api.zdf.de', ptmd_templates, video_id,
-            self._get_api_token(video_id))
+        ptmd_urls = traverse_obj(video_data, (
+            'currentMedia', 'nodes', ..., 'ptmdTemplate',
+            {functools.partial(self._expand_ptmd_template, 'https://api.zdf.de')}))
+        ptmd_data = self._extract_ptmd(ptmd_urls, video_id, self._get_api_token(video_id))
         # We can't use the ID from PTMD extraction as the video ID
         # because it is not available during playlist extraction.
         # We fix it here manually instead of inside the method

@@ -71,8 +71,7 @@ class PhoenixIE(ZDFBaseIE):
         content_id = details['tracking']['nielsen']['content']['assetid']
 
         info = self._extract_ptmd(
-            'https://tmd.phoenix.de',
-            f'tmd/2/{{playerId}}/vod/ptmd/phoenix/{content_id}',
+            f'https://tmd.phoenix.de/tmd/2/android_native_6/vod/ptmd/phoenix/{content_id}',
             content_id)
 
         duration = int_or_none(try_get(
