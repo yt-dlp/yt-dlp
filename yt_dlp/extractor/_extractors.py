@@ -1205,7 +1205,7 @@ from .mtv import (
 from .muenchentv import MuenchenTVIE
 from .murrtube import (
     MurrtubeIE,
-    MurrtubeUserIE,
+    MurrtubePlaylistIE,
 )
 from .museai import MuseAIIE
 from .musescore import MuseScoreIE
