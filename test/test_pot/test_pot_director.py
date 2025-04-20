@@ -1237,7 +1237,7 @@ class TestPoTokenRequestDirector:
         assert response == EXAMPLE_PO_TOKEN
         assert provider.request_called_times == 1
         assert pot_provider.request_called_times == 1
-        assert 'PO Token Provider "unsupported" does not support this request, trying next available provider. Reason: unsupported request' in logger.messages['trace']
+        assert 'PO Token Provider "unsupported" rejected this request, trying next available provider. Reason: unsupported request' in logger.messages['trace']
 
     def test_unavailable_request_no_fallback(self, ie, logger, pot_cache, pot_request):
         director = PoTokenRequestDirector(logger=logger, cache=pot_cache)

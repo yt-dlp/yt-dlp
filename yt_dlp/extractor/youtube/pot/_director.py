@@ -266,7 +266,7 @@ class PoTokenRequestDirector:
                 response = provider.request_pot(request.copy())
             except PoTokenProviderRejectedRequest as e:
                 self.logger.trace(
-                    f'PO Token Provider "{provider.PROVIDER_NAME}" does not support this request, trying next available provider. Reason: {e}')
+                    f'PO Token Provider "{provider.PROVIDER_NAME}" rejected this request, trying next available provider. Reason: {e}')
                 continue
             except PoTokenProviderError as e:
                 self.logger.warning(

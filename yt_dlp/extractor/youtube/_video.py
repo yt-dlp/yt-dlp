@@ -2869,6 +2869,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'Got a GVS PO Token for {client} client, but missing Data Sync ID for account. Formats may not work.'
                     f'You may need to pass a Data Sync ID with --extractor-args "youtube:data_sync_id=XXX"')
 
+            self.write_debug(f'{video_id}: Retrieved a {context.value} PO Token for {client} client from config')
             return config_po_token
 
         # Require GVS WebPO Token if logged in for external fetching
@@ -2878,7 +2879,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f'You may need to pass a Data Sync ID with --extractor-args "youtube:data_sync_id=XXX"')
             return
 
-        return self._fetch_po_token(
+        po_token = self._fetch_po_token(
             client=client,
             context=context.value,
             ytcfg=ytcfg,
@@ -2890,6 +2891,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             video_webpage=webpage,
             **kwargs,
         )
+
+        if po_token:
+            self.write_debug(f'{video_id}: Retrieved a {context.value} PO Token for {client} client')
+            return po_token
 
     def _fetch_po_token(self, client, **kwargs):
 
@@ -2937,14 +2942,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             bypass_cache=False,
         )
 
-        po_token = self._pot_director.get_po_token(pot_request)
-
-        if not po_token:
-            self.write_debug(f'{kwargs.get("video_id")}: No {pot_request.context.value} PO Token available for {client} client')
-            return
-
-        self.write_debug(f'{kwargs.get("video_id")}: Retrieved a {pot_request.context.value} PO Token for {client} client')
-        return po_token
+        return self._pot_director.get_po_token(pot_request)
 
     @staticmethod
     def _is_agegated(player_response):
