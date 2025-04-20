@@ -11,7 +11,7 @@ from ..utils.traversal import traverse_obj
 
 
 class CloudyCDNIE(InfoExtractor):
-    _VALID_URL = r'(?:https?:)?//embed\.cloudycdn\.services/(?P<site_id>[^/?#]+)/media/(?P<id>[\w-]+)'
+    _VALID_URL = r'(?:https?:)?//embed\.(?:cloudycdn\.services|backscreen\.com)/(?P<site_id>[^/?#]+)/media/(?P<id>[\w-]+)'
     _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://embed.cloudycdn.services/ltv/media/46k_d23-6000-105?',
@@ -23,7 +23,7 @@ class CloudyCDNIE(InfoExtractor):
             'duration': 1442,
             'upload_date': '20231121',
             'title': 'D23-6000-105_cetstud',
-            'thumbnail': 'https://store.cloudycdn.services/tmsp00060/assets/media/660858/placeholder1700589200.jpg',
+            'thumbnail': 'https://store.bstrm.net/tmsp00060/assets/media/660858/placeholder1700589200.jpg',
         },
     }, {
         'url': 'https://embed.cloudycdn.services/izm/media/26e_lv-8-5-1',
@@ -33,7 +33,7 @@ class CloudyCDNIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'LV-8-5-1',
             'timestamp': 1669767167,
-            'thumbnail': 'https://store.cloudycdn.services/tmsp00120/assets/media/488306/placeholder1679423604.jpg',
+            'thumbnail': 'https://store.bstrm.net/tmsp00120/assets/media/488306/placeholder1679423604.jpg',
             'duration': 1205,
             'upload_date': '20221130',
         },
@@ -48,9 +48,21 @@ class CloudyCDNIE(InfoExtractor):
             'duration': 1673,
             'title': 'D24-6000-074-cetstud',
             'timestamp': 1718902233,
-            'thumbnail': 'https://store.cloudycdn.services/tmsp00060/assets/media/788392/placeholder1718903938.jpg',
+            'thumbnail': 'https://store.bstrm.net/tmsp00060/assets/media/788392/placeholder1718903938.jpg',
         },
         'params': {'format': 'bv'},
+    }, {
+        'url': 'https://embed.backscreen.com/ltv/media/p3t_d25-2100-004',
+        'md5': 'c359a301c8bd7780b8d3e674534474df',
+        'info_dict': {
+            'id': 'p3t_d25-2100-004',
+            'ext': 'mp4',
+            'title': 'D25-2100-004-KNL',
+            'duration': 4945,
+            'thumbnail': 'https://store.bstrm.net/tmsp00060/assets/media/907501/placeholder1738217398.jpg',
+            'timestamp': 1738186743,
+            'upload_date': '20250129',
+        },
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.tavaklase.lv/video/es-esmu-mina-um-2/',
