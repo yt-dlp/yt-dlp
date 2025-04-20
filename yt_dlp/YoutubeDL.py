@@ -32,7 +32,7 @@ from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
 from .extractor import gen_extractor_classes, get_info_extractor, import_extractors
 from .extractor.common import UnsupportedURLIE
-from .extractor.openload import PhantomJSwrapper
+from .jsinterp import PhantomJSwrapper
 from .globals import (
     IN_CLI,
     LAZY_EXTRACTORS,
@@ -445,6 +445,8 @@ class YoutubeDL:
                        Actual sleep time will be a random float from range
                        [sleep_interval; max_sleep_interval].
     sleep_interval_subtitles: Number of seconds to sleep before each subtitle download
+    jsi_preference:    Preferred JS interpreters to use during extraction. Can be
+                       given as comma-separated values.
     listformats:       Print an overview of available video formats and exit.
     list_thumbnails:   Print a table of all thumbnails and exit.
     match_filter:      A function that gets called for every video with the signature
