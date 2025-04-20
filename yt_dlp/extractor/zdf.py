@@ -55,38 +55,6 @@ class ZDFBaseIE(InfoExtractor):
             })
         return subtitles
 
-    def _extract_format(self, video_id, formats, format_urls, meta):
-        format_url = meta['url']
-        if format_url in format_urls:
-            return
-        format_urls.add(format_url)
-        ext = determine_ext(format_url)
-        if ext == 'm3u8':
-            fmts = self._extract_m3u8_formats(
-                format_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
-        elif ext == 'mpd':
-            fmts = self._extract_mpd_formats(
-                format_url, video_id, mpd_id='dash', fatal=False)
-        else:
-            f = parse_codecs(meta.get('mimeCodec'))
-            if not f and meta.get('type'):
-                data = meta['type'].split('_')
-                if len(data) >= 3 and data[2] == ext:
-                    f = {'vcodec': data[0], 'acodec': data[1]}
-            f.update({
-                'url': format_url,
-                'height': int_or_none(meta.get('highestVerticalResolution')),
-                'format_id': join_nonempty('http', meta.get('type'), meta.get('quality')),
-                'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
-            })
-            fmts = [f]
-        formats.extend(merge_dicts(f, {
-            'format_note': join_nonempty(meta.get('quality'), meta.get('class'), delim=', '),
-            'language': meta.get('language'),
-            'language_preference': 10 if meta.get('class') == 'main' else -10 if meta.get('class') == 'ad' else -1,
-            'quality': qualities(self._QUALITIES)(meta.get('quality')),
-        }) for f in fmts)
-
     def _expand_ptmd_template(self, api_base_url, template):
         return urljoin(api_base_url, template.replace('{playerId}', 'android_native_6'))
 
@@ -116,15 +84,31 @@ class ZDFBaseIE(InfoExtractor):
             for stream in traverse_obj(ptmd, ('priorityList', ..., 'formitaeten', ..., {dict})):
                 for quality in traverse_obj(stream, ('qualities', ..., {dict})):
                     for variant in traverse_obj(quality, ('audio', 'tracks', lambda _, v: url_or_none(v['uri']))):
-                        self._extract_format(
-                            content_id, formats, track_uris, {
-                                'url': variant.get('uri'),
-                                'type': stream.get('type'),
-                                'mimeCodec': quality.get('mimeCodec'),
-                                'quality': quality.get('quality'),
-                                'class': variant.get('class'),
-                                'language': variant.get('language'),
-                            })
+                        format_url = variant['uri']
+                        if format_url in track_uris:
+                            continue
+                        track_uris.add(format_url)
+                        ext = determine_ext(format_url)
+                        if ext == 'm3u8':
+                            fmts = self._extract_m3u8_formats(
+                                format_url, content_id, 'mp4', m3u8_id='hls', fatal=False)
+                        elif ext == 'mpd':
+                            fmts = self._extract_mpd_formats(
+                                format_url, content_id, mpd_id='dash', fatal=False)
+                        else:
+                            fmts = [{
+                                'url': format_url,
+                                **parse_codecs(quality.get('mimeCodec')),
+                                'height': int_or_none(quality.get('highestVerticalResolution')),
+                                'format_id': join_nonempty('http', stream.get('type'), quality.get('quality')),
+                                'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
+                            }]
+                        formats.extend(merge_dicts(f, {
+                            'format_note': join_nonempty(quality.get('quality'), variant.get('class'), delim=', '),
+                            'language': variant.get('language'),
+                            'language_preference': 10 if variant.get('class') == 'main' else -10 if variant.get('class') == 'ad' else -1,
+                            'quality': qualities(self._QUALITIES)(quality.get('quality')),
+                        }) for f in fmts)
 
         return {
             'extractor_key': ZDFIE.ie_key(),
