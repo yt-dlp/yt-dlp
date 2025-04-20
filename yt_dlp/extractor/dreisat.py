@@ -27,7 +27,7 @@ class DreiSatIE(ZDFBaseIE):
         },
     }, {
         'url': 'https://www.3sat.de/film/ab-18/ab-18---mein-fremdes-ich-100.html',
-        'md5': '66cb9013ce37f6e008dc99bfcf1356bc',
+        'md5': 'f92638413a11d759bdae95c9d8ec165c',
         'info_dict': {
             'id': '221128_mein_fremdes_ich2_ab18',
             'ext': 'mp4',
@@ -42,7 +42,7 @@ class DreiSatIE(ZDFBaseIE):
         },
     }, {
         'url': 'https://www.3sat.de/gesellschaft/37-grad-leben/aus-dem-leben-gerissen-102.html',
-        'md5': '69f276184c9a24147e4baae728fbc3c4',
+        'md5': 'a903eaf8d1fd635bd3317cd2ad87ec84',
         'info_dict': {
             'id': '250323_0903_sendung_sgl',
             'ext': 'mp4',
@@ -58,7 +58,7 @@ class DreiSatIE(ZDFBaseIE):
     }, {
         # Video with chapters
         'url': 'https://www.3sat.de/kultur/buchmesse/dein-buch-das-beste-von-der-leipziger-buchmesse-2025-teil-1-100.html',
-        'md5': '65e8f365799d2266c9110d83d748445e',
+        'md5': '6b95790ce52e75f0d050adcdd2711ee6',
         'info_dict': {
             'id': '250330_dein_buch1_bum',
             'ext': 'mp4',

@@ -126,7 +126,6 @@ class ZDFBaseIE(InfoExtractor):
             'duration': duration,
             'formats': formats,
             'subtitles': self._extract_subtitles(src_captions),
-            '_format_sort_fields': ('tbr', 'res', 'quality', 'language_preference'),
         }
 
     def _get_api_token(self, video_id):
@@ -298,7 +297,7 @@ class ZDFIE(ZDFBaseIE):
         # Video with chapters
         # Also: video with sign-language variant
         'url': 'https://www.zdf.de/video/magazine/heute-journal-104/heute-journal-vom-19-12-2021-100',
-        'md5': '1175003f28507bd27b266181c4de9f56',
+        'md5': '6ada39465497a84fb98d48ffff69e7b7',
         'info_dict': {
             'id': 'heute-journal-vom-19-12-2021-100',
             'ext': 'mp4',
@@ -321,7 +320,7 @@ class ZDFIE(ZDFBaseIE):
     }, {
         # Video that requires fallback extraction
         'url': 'https://www.zdf.de/nachrichten/politik/deutschland/koalitionsverhandlungen-spd-cdu-csu-dobrindt-100.html',
-        'md5': '95903ecbd37f2881b4462d074b8f8c44',
+        'md5': 'c3a78514dd993a5781aa3afe50db51e2',
         'info_dict': {
             'id': 'koalitionsverhandlungen-spd-cdu-csu-dobrindt-100',
             'ext': 'mp4',
@@ -376,7 +375,7 @@ class ZDFIE(ZDFBaseIE):
         'url': 'https://www.zdf.de/serien/northern-lights/begegnung-auf-der-bruecke-100.html',
         'info_dict': {
             'id': 'begegnung-auf-der-bruecke-100',
-            'ext': 'mp4',
+            'ext': 'webm',
             'title': 'Begegnung auf der Brücke',
             'description': 'md5:e53a555da87447f7f1207f10353f8e45',
             'duration': 3083.0,
