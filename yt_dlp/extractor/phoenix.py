@@ -70,7 +70,7 @@ class PhoenixIE(ZDFBaseIE):
         title = title or details['title']
         content_id = details['tracking']['nielsen']['content']['assetid']
 
-        info = self._extract_ptmd(
+        info = self._extract_ptmd_urls(
             f'https://tmd.phoenix.de/tmd/2/android_native_6/vod/ptmd/phoenix/{content_id}',
             content_id)
 

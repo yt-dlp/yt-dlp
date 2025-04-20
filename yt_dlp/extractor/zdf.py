@@ -64,24 +64,29 @@ class ZDFBaseIE(InfoExtractor):
     def _expand_ptmd_template(self, api_base_url, template):
         return urljoin(api_base_url, template.replace('{playerId}', 'android_native_6'))
 
-    def _extract_ptmd(self, ptmd_urls, video_id, api_token=None, aspect_ratio=None):
-        # TODO: If there are multiple PTMD templates,
-        # usually one of them is a sign-language variant of the video.
-        # The format order works out fine as is and prefers the "regular" video,
-        # but this should probably be made more explicit.
-
+    def _extract_ptmd_urls(self, ptmd_urls, video_id, api_token=None, aspect_ratio=None):
         ptmd_urls = variadic(ptmd_urls)
+        ptmd_info = []
+        for url in ptmd_urls:
+            ptmd_info.append({
+                'url': url,
+                'dgs': False,
+            })
+        return self._extract_ptmd(ptmd_info, video_id, api_token, aspect_ratio)
+
+    def _extract_ptmd(self, ptmd_info, video_id, api_token=None, aspect_ratio=None):
+        ptmd_info = variadic(ptmd_info)
         src_captions = []
 
         content_id = None
         duration = None
         formats = []
         track_uris = set()
-        for ptmd_url in ptmd_urls:
-            ptmd = self._call_api(ptmd_url, video_id, 'PTMD data', api_token)
-            # As per above TODO on sign language videos variants,
-            # prefer content_id from the last entry to get the "regular" ID.
-            content_id = ptmd.get('basename') or ptmd_url.split('/')[-2]
+        for info in ptmd_info:
+            ptmd = self._call_api(info['url'], video_id, 'PTMD data', api_token)
+            basename = ptmd.get('basename') or info['url'].split('/')[-2]
+            if not content_id and not info['dgs']:
+                content_id = basename
             duration = (duration or traverse_obj(ptmd, ('attributes', 'duration', 'value', {float_or_none(scale=1000)})))
             src_captions += ptmd.get('captions') or []
             for stream in traverse_obj(ptmd, ('priorityList', ..., 'formitaeten', ..., {dict})):
@@ -94,10 +99,10 @@ class ZDFBaseIE(InfoExtractor):
                         ext = determine_ext(format_url)
                         if ext == 'm3u8':
                             fmts = self._extract_m3u8_formats(
-                                format_url, content_id, 'mp4', m3u8_id='hls', fatal=False)
+                                format_url, basename, 'mp4', m3u8_id='hls', fatal=False)
                         elif ext == 'mpd':
                             fmts = self._extract_mpd_formats(
-                                format_url, content_id, mpd_id='dash', fatal=False)
+                                format_url, basename, mpd_id='dash', fatal=False)
                         else:
                             height = int_or_none(quality.get('highestVerticalResolution'))
                             width = round(aspect_ratio * height) if aspect_ratio and height else None
@@ -110,8 +115,11 @@ class ZDFBaseIE(InfoExtractor):
                                 'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
                             }]
                         formats.extend(merge_dicts(f, {
-                            'format_note': join_nonempty(quality.get('quality'), variant.get('class'), delim=', '),
+                            'format_note': join_nonempty(
+                                quality.get('quality'), variant.get('class'),
+                                'dgs' if info['dgs'] else '', delim=', '),
                             'language': variant.get('language'),
+                            'preference': -2 if info['dgs'] else -1,
                             'language_preference': 10 if variant.get('class') == 'main' else -10 if variant.get('class') == 'ad' else -1,
                             'quality': qualities(self._QUALITIES)(quality.get('quality')),
                         }) for f in fmts)
@@ -474,8 +482,8 @@ query VideoByCanonical($canonical: String!) {
 }
     '''
 
-    def _extract_ptmd(self, ptmd_urls, video_id, api_token=None, aspect_ratio=None):
-        ptmd_data = super()._extract_ptmd(ptmd_urls, video_id, api_token, aspect_ratio)
+    def _extract_ptmd(self, ptmd_info, video_id, api_token=None, aspect_ratio=None):
+        ptmd_data = super()._extract_ptmd(ptmd_info, video_id, api_token, aspect_ratio)
         # We can't use the ID from PTMD extraction as the video ID
         # because it is not available during playlist extraction.
         # We fix it here manually instead of inside the base class
@@ -499,7 +507,7 @@ query VideoByCanonical($canonical: String!) {
         ptmd_url = traverse_obj(document, (
             ('streamApiUrlAndroid', ('streams', 0, 'streamApiUrlAndroid')),
             {url_or_none}, any))
-        ptmd_data = self._extract_ptmd(ptmd_url, document_id, self._get_api_token(document_id))
+        ptmd_data = self._extract_ptmd_urls(ptmd_url, document_id, self._get_api_token(document_id))
 
         thumbnails = []
         for thumbnail_key, thumbnail in traverse_obj(document, ('teaserBild', {dict.items})):
@@ -538,17 +546,19 @@ query VideoByCanonical($canonical: String!) {
         if not video_data:
             return self._extract_fallback(video_id)
         ptmd_nodes = traverse_obj(video_data, ('currentMedia', 'nodes'))
-        ptmd_urls = traverse_obj(ptmd_nodes, (
-            ..., 'ptmdTemplate',
-            {functools.partial(self._expand_ptmd_template, 'https://api.zdf.de')}))
+        ptmd_info = traverse_obj(ptmd_nodes, (..., {
+            'url': ('ptmdTemplate', {functools.partial(self._expand_ptmd_template, 'https://api.zdf.de')}),
+            # Sign-language variant (DGS = *D*eutsche *G*ebärden*s*prache')
+            'dgs': ('vodMediaType', {lambda x: x == 'DGS'}),
+        }))
         aspect_ratio = traverse_obj(ptmd_nodes, (
             ..., 'aspectRatio', {self._parse_aspect_ratio}, any))
-        ptmd_data = self._extract_ptmd(
-            ptmd_urls, video_id, self._get_api_token(video_id), aspect_ratio)
+        ptmd_result = self._extract_ptmd(
+            ptmd_info, video_id, self._get_api_token(video_id), aspect_ratio)
 
         return {
             'id': video_id,
-            **ptmd_data,
+            **ptmd_result,
             **traverse_obj(video_data, {
                 'title': ('title', {str}),
                 'description': (('leadParagraph', ('teaser', 'description')), any, {str}),
