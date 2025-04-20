@@ -286,6 +286,16 @@ from .bloomberg import BloombergIE
 from .bluesky import BlueskyIE
 from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
+from .boomplay import (
+    BoomplayEpisodeIE,
+    BoomplayGenericPlaylistIE,
+    BoomplayMusicIE,
+    BoomplayPlaylistIE,
+    BoomplayPodcastIE,
+    BoomplaySearchIE,
+    BoomplaySearchURLIE,
+    BoomplayVideoIE,
+)
 from .boosty import BoostyIE
 from .bostonglobe import BostonGlobeIE
 from .box import BoxIE
