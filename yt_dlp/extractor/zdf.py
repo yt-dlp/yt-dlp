@@ -15,7 +15,6 @@ from ..utils import (
     parse_codecs,
     parse_iso8601,
     parse_qs,
-    qualities,
     unified_timestamp,
     url_or_none,
     urljoin,
@@ -26,7 +25,6 @@ from ..utils.traversal import traverse_obj
 
 class ZDFBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['DE']
-    _QUALITIES = ('auto', 'low', 'med', 'high', 'veryhigh', 'hd', 'fhd', 'uhd')
 
     def _call_api(self, url, video_id, item, api_token=None):
         headers = {'Api-Auth': api_token} if api_token else {}
@@ -111,17 +109,15 @@ class ZDFBaseIE(InfoExtractor):
                                 **parse_codecs(quality.get('mimeCodec')),
                                 'height': height,
                                 'width': width,
-                                'format_id': join_nonempty('http', stream.get('type'), quality.get('quality')),
+                                'format_id': join_nonempty('http', stream.get('type')),
                                 'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
                             }]
                         formats.extend(merge_dicts(f, {
                             'format_note': join_nonempty(
-                                quality.get('quality'), variant.get('class'),
-                                'dgs' if info['dgs'] else '', delim=', '),
+                                variant.get('class'), 'dgs' if info['dgs'] else '', delim=', '),
                             'language': variant.get('language'),
                             'preference': -2 if info['dgs'] else -1,
                             'language_preference': 10 if variant.get('class') == 'main' else -10 if variant.get('class') == 'ad' else -1,
-                            'quality': qualities(self._QUALITIES)(quality.get('quality')),
                         }) for f in fmts)
 
         return {
