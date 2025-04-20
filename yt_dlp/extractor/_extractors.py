@@ -1104,7 +1104,11 @@ from .markiza import (
 )
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
-from .matchtv import MatchTVIE
+from .matchtv import (
+    MatchTVFeedIE,
+    MatchTVIE,
+    MatchTVVideoIE,
+)
 from .mbn import MBNIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
@@ -2445,6 +2449,7 @@ from .webcamerapl import WebcameraplIE
 from .webcaster import (
     WebcasterFeedIE,
     WebcasterIE,
+    WebcasterPlayerEmbedIE,
 )
 from .webofstories import (
     WebOfStoriesIE,
