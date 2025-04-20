@@ -16,7 +16,6 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     qualities,
-    try_get,
     unified_timestamp,
     url_or_none,
     urljoin,
@@ -485,6 +484,16 @@ query VideoByCanonical($canonical: String!) {
 }
     '''
 
+    def _extract_ptmd(self, ptmd_urls, video_id, api_token=None):
+        ptmd_data = super()._extract_ptmd(ptmd_urls, video_id, api_token)
+        # We can't use the ID from PTMD extraction as the video ID
+        # because it is not available during playlist extraction.
+        # We fix it here manually instead of inside the base class
+        # because other extractors do rely on using it as their ID.
+        ptmd_data['_old_archive_ids'] = [make_archive_id(ZDFIE, ptmd_data['id'])]
+        del ptmd_data['id']
+        return ptmd_data
+
     # This fallback should generally only happen for pages under `zdf.de/nachrichten`.
     # They are on a separate website for which GraphQL often doesn't return results.
     # The API used here is no longer in use by official clients and likely deprecated.
@@ -497,11 +506,10 @@ query VideoByCanonical($canonical: String!) {
             errnote='Failed to download fallback metadata')
         document = video['document']
 
-        content_id = document.get('basename')
-        formats = []
-        format_urls = set()
-        for f in traverse_obj(document, ('formitaeten', ..., {dict})):
-            self._extract_format(document_id, formats, format_urls, f)
+        ptmd_url = traverse_obj(document, (
+            ('streamApiUrlAndroid', ('streams', 0, 'streamApiUrlAndroid')),
+            {url_or_none}, any))
+        ptmd_data = self._extract_ptmd(ptmd_url, document_id, self._get_api_token(document_id))
 
         thumbnails = []
         for thumbnail_key, thumbnail in traverse_obj(document, ('teaserBild', {dict.items})):
@@ -517,15 +525,16 @@ query VideoByCanonical($canonical: String!) {
 
         return {
             'id': document_id,
-            'title': document.get('titel'),
-            'description': document.get('beschreibung'),
-            'duration': int_or_none(document.get('length')),
-            'timestamp': unified_timestamp(document.get('date')) or unified_timestamp(
-                try_get(video, lambda x: x['meta']['editorialDate'], str)),
             'thumbnails': thumbnails,
-            'subtitles': self._extract_subtitles(document.get('captions') or []),
-            'formats': formats,
-            '_old_archive_ids': [make_archive_id(ZDFIE, content_id)] if content_id else [],
+            **ptmd_data,
+            **traverse_obj(video, {
+                'title': ('document', 'titel', {str}),
+                'description': ('document', 'beschreibung', {str}),
+                'timestamp': (
+                    (('document', 'date'), ('meta', 'editorialDate')),
+                    {unified_timestamp}, any),
+                'subtitles': ('document', 'captions', {self._extract_subtitles}),
+            }),
         }
 
     def _real_extract(self, url):
@@ -543,12 +552,6 @@ query VideoByCanonical($canonical: String!) {
             'currentMedia', 'nodes', ..., 'ptmdTemplate',
             {functools.partial(self._expand_ptmd_template, 'https://api.zdf.de')}))
         ptmd_data = self._extract_ptmd(ptmd_urls, video_id, self._get_api_token(video_id))
-        # We can't use the ID from PTMD extraction as the video ID
-        # because it is not available during playlist extraction.
-        # We fix it here manually instead of inside the method
-        # because other extractors do rely on using it as their ID.
-        ptmd_data['_old_archive_ids'] = [make_archive_id(ZDFIE, ptmd_data['id'])]
-        del ptmd_data['id']
 
         return {
             'id': video_id,
