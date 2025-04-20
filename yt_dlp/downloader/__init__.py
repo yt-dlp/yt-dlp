@@ -33,7 +33,7 @@ from .mhtml import MhtmlFD
 from .niconico import NiconicoDmcFD, NiconicoLiveFD
 from .rtmp import RtmpFD
 from .rtsp import RtspFD
-from .websocket import WebSocketFragmentFD
+from .websocket import WebSocketFragmentFD, WebSocketToFileFD
 from .youtube_live_chat import YoutubeLiveChatFD
 from .bunnycdn import BunnyCdnFD
 
@@ -122,6 +122,9 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
             return HlsFD
         elif params.get('hls_prefer_native') is False:
             return FFmpegFD
+
+    if protocol == 'websocket_frag' and info_dict.get('container') == 'fmp4' and external_downloader != 'ffmpeg':
+        return WebSocketToFileFD
 
     return PROTOCOL_MAP.get(protocol, default)
 
