@@ -3651,7 +3651,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                 elif "This content isn't available, try again later" in reason:
                     reason = (
-                        f'{remove_end(reason.strip(), ".")}. {"Your account" if self.is_authenticated else "The current session"} has been rate-limited by YouTube for up to an hour.'
+                        f'{remove_end(reason.strip(), ".")}. {"Your account" if self.is_authenticated else "The current session"} has been rate-limited by YouTube for up to an hour. '
                         'It is recommended to use `-t sleep` to add a delay between downloads to avoid hitting the rate limit. '
                         'For more information, refer to  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#this-content-isnt-available-try-again-later .'
                     )
