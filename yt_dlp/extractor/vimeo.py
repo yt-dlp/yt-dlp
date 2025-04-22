@@ -244,9 +244,13 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             join_nonempty(f'https://api.vimeo.com/videos/{video_id}', unlisted_hash, delim=':'),
             video_id, 'Downloading API JSON', headers={
                 'Authorization': f'jwt {jwt_token}',
-                'Accept': 'application/json',
+                'Accept': 'application/vnd.vimeo.*+json;version=3.4.10',
             }, query={
+                # TODO: Reverse-engineer generating the 'anon_signature' param
+                # Ref: https://f.vimeocdn.com/js_opt/app/vimeo-next/_next/static/chunks/60908-af70235e46909bce.js
+                'outro': 'beginning',  # Needed to avoid https://github.com/yt-dlp/yt-dlp/issues/12974
                 'fields': ','.join((
+                    # 'embed_player_config_url' is a viable alternative to 'config_url'
                     'config_url', 'created_time', 'description', 'download', 'license',
                     'metadata.connections.comments.total', 'metadata.connections.likes.total',
                     'release_time', 'stats.plays')),
