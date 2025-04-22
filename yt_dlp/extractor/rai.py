@@ -322,6 +322,7 @@ class RaiPlayIE(RaiBaseIE):
             'upload_date': '20120924',
         },
     }, {
+        # checking program_info gives false positive for DRM
         'url': 'https://www.raiplay.it/video/2022/10/Ad-ogni-costo---Un-giorno-in-Pretura---Puntata-del-15102022-1dfd1295-ea38-4bac-b51e-f87e2881693b.html',
         'md5': '572c6f711b7c5f2d670ba419b4ae3b08',
         'info_dict': {
