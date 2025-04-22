@@ -1385,7 +1385,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
         },
         'params': {'skip_download': 'm3u8'},
-        'expected_warnings': ['Failed to parse XML'],
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
     }, {
         'url': 'https://vimeo.com/user21297594/review/75524534/3c257a1b5d',
         'md5': 'c507a72f780cacc12b2248bb4006d253',
@@ -1397,7 +1397,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'uploader_id': 'user21297594',
             'description': "Comedian Dick Hardwick's five minute demo filmed in front of a live theater audience.\nEdit by Doug Mattocks",
             'duration': 304,
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-43303819d9ebe24c2630352e18b7056d25197d09b3ae901abdac4c4f1d68de71-d_1280',
+            'thumbnail': 'https://i.vimeocdn.com/video/450115033-43303819d9ebe24c2630352e18b7056d25197d09b3ae901abdac4c4f1d68de71-d_1280',
             'uploader_url': 'https://vimeo.com/user21297594',
         },
         'skip': '404 Not Found',
@@ -1555,7 +1555,7 @@ class VimeoProIE(VimeoBaseInfoExtractor):
         'params': {
             'format': 'best[protocol=https]',
         },
-        'expected_warnings': ['Failed to parse XML'],
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
     }, {
         # password-protected VimeoPro page with Vimeo player embed
         'url': 'https://vimeopro.com/cadfem/simulation-conference-mechanische-systeme-in-perfektion',
@@ -1575,7 +1575,7 @@ class VimeoProIE(VimeoBaseInfoExtractor):
             'videopassword': 'Conference2022',
             'skip_download': True,
         },
-        'expected_warnings': ['Failed to parse XML'],
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
     }]
 
     def _real_extract(self, url):
