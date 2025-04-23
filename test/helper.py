@@ -136,7 +136,7 @@ def _iter_differences(got, expected, field):
             return
 
         if op == 'startswith':
-            if not val.startswith(got):
+            if not got.startswith(val):
                 yield field, f'should start with {val!r}, got {got!r}'
             return
 
