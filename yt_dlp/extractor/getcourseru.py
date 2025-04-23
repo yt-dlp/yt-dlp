@@ -21,7 +21,7 @@ class GetCourseRuPlayerIE(InfoExtractor):
         },
         'skip': 'JWT expired',
     }, {
-        'url': 'https://cf-api-2.vhcdn.com/sign-player/?json=eyJ2aWRlb19oYXNoIjoiOGFmZDdjNDg5OTUyMTA4ZTAwZjAxOTU5MGYzNzExZjMiLCJ1c2VyX2lkIjo0MjI3MDg4MDMsInN1Yl9sb2dpbl91c2VyX2lkIjpudWxsLCJsZXNzb25faWQiOjM0MjA5NTQ5OSwiaXAiOiIxNzguMjM3LjIzOC4xMjciLCJnY19ob3N0Ijoic2Nob29sLm9sbmV2YWRlY29yLmNvbSIsInRpbWUiOjE3NDUwMTMyNDAsInBheWxvYWQiOiJ1XzQyMjcwODgwMyIsInVpX2xhbmd1YWdlIjoicnUifQ==&s=69ef351e301fa4286d5699c897c4f02b',
+        'url': 'https://cf-api-2.vhcdn.com/sign-player/?json=example',
         'info_dict': {
             'id': '435735291',
             'title': '8afd7c489952108e00f019590f3711f3',
