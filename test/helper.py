@@ -1,6 +1,7 @@
 import errno
 import hashlib
 import json
+import os
 import os.path
 import re
 import ssl
@@ -87,8 +88,9 @@ class FakeYDL(YoutubeDL):
 
 
 def gettestcases(include_onlymatching=False):
-    import yt_dlp.plugins
-    yt_dlp.plugins.load_all_plugins()
+    if os.environ.get('_YT_DLP_TEST_DO_LOAD_PLUGINS'):
+        import yt_dlp.plugins as plugins
+        plugins.load_all_plugins()
     for ie in yt_dlp.extractor.gen_extractors():
         yield from ie.get_testcases(include_onlymatching)
 
