@@ -51,7 +51,7 @@ def run_tests(*tests, pattern=None, ci=False, load_plugins=False):
     try:
         return subprocess.call(arguments, env={
             **os.environ,
-            '_YT_DLP_TEST_DO_LOAD_PLUGINS': '1' if load_plugins else '',
+            'YTDLP_NO_PLUGINS': '1' if os.environ.get('YTDLP_NO_PLUGINS') or not load_plugins else '',
         })
     except FileNotFoundError:
         pass

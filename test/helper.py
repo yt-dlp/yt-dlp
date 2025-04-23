@@ -88,7 +88,7 @@ class FakeYDL(YoutubeDL):
 
 
 def gettestcases(include_onlymatching=False):
-    if os.environ.get('_YT_DLP_TEST_DO_LOAD_PLUGINS'):
+    if not os.environ.get('YTDLP_NO_PLUGINS'):
         import yt_dlp.plugins as plugins
         plugins.load_all_plugins()
     for ie in yt_dlp.extractor.gen_extractors():
