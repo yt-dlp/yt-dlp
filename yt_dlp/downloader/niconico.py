@@ -85,6 +85,7 @@ class NiconicoLiveFD(FileDownloader):
                             'quality': live_quality,
                             'protocol': 'hls+fmp4',
                             'latency': live_latency,
+                            'accessRightMethod': 'single_cookie',
                             'chasePlay': False,
                         },
                         'room': {
