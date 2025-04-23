@@ -87,6 +87,8 @@ class FakeYDL(YoutubeDL):
 
 
 def gettestcases(include_onlymatching=False):
+    import yt_dlp.plugins
+    yt_dlp.plugins.load_all_plugins()
     for ie in yt_dlp.extractor.gen_extractors():
         yield from ie.get_testcases(include_onlymatching)
 
