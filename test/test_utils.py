@@ -249,6 +249,14 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_path('abc.../def...'), 'abc..#\\def..#')
         self.assertEqual(sanitize_path('C:\\abc:%(title)s.%(ext)s'), 'C:\\abc#%(title)s.%(ext)s')
 
+        self.assertEqual(sanitize_path('CON.opus'), 'CON_res.opus')
+        self.assertEqual(sanitize_path('abc\\CON\\def'), 'abc\\CON_res\\def')
+        self.assertEqual(sanitize_path('CON\\abc'), 'CON_res\\abc')
+        self.assertEqual(sanitize_path('CON.'), 'CON#')
+        self.assertEqual(sanitize_path('CON..'), 'CON_res.#')
+        self.assertEqual(sanitize_path('\\\\.\\CON'), '\\\\.\\CON')
+        self.assertEqual(sanitize_path('\\\\.\\CON\\abc'), '\\\\.\\CON_res\\abc')
+
         # Check with nt._path_normpath if available
         try:
             from nt import _path_normpath as nt_path_normpath
