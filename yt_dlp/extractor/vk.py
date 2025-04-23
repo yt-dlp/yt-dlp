@@ -301,6 +301,24 @@ class VKIE(VKBaseIE):
             },
         },
         {
+            'url': 'https://vkvideo.ru/video-50883936_456244102',
+            'info_dict': {
+                'id': '-50883936_456244102',
+                'ext': 'mp4',
+                'title': 'Добивание Украины // Техник в коме // МОЯ ЗЛОСТЬ №140',
+                'description': 'md5:a9bc46181e9ebd0fdd82cef6c0191140',
+                'uploader': 'Стас Ай, Как Просто!',
+                'uploader_id': '-50883936',
+                'comment_count': int,
+                'like_count': int,
+                'duration': 4651,
+                'thumbnail': r're:https?://.+\.jpg',
+                'chapters': 'count:59',
+                'timestamp': 1743333869,
+                'upload_date': '20250330',
+            },
+        },
+        {
             # live stream, hls and rtmp links, most likely already finished live
             # stream by the time you are reading this comment
             'url': 'https://vk.com/video-140332_456239111',
@@ -540,7 +558,7 @@ class VKIE(VKBaseIE):
                 'title': ('md_title', {unescapeHTML}),
                 'description': ('description', {clean_html}, filter),
                 'thumbnail': ('jpg', {url_or_none}),
-                'uploader': ('md_author', {str}),
+                'uploader': ('md_author', {unescapeHTML}),
                 'uploader_id': (('author_id', 'authorId'), {str_or_none}, any),
                 'duration': ('duration', {int_or_none}),
                 'chapters': ('time_codes', lambda _, v: isinstance(v['time'], int), {
