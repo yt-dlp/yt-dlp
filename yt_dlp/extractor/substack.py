@@ -86,6 +86,51 @@ class SubstackIE(InfoExtractor):
             'duration': 25.939592,
             'uploader_id': '535611',
         },
+    }, {
+        # A "podcast" page which contains embedded video
+        'url': 'https://substack.com/home/post/p-161501224',
+        'info_dict': {
+            'id': '161501224',
+            'title': 'Videos for Global Medical Tyranny Just Got Real | Daily Pulse',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': '161501224',
+                'ext': 'mp3',
+                'title': 'Global Medical Tyranny Just Got Real | Daily Pulse',
+                'uploader_id': '975571',
+                'uploader': 'The Vigilant Fox',
+                'thumbnail': r're:https://substack.*video.*/video_upload/post/.+\.png',
+                'description': 'The news you weren’t supposed to see.',
+            },
+        }, {
+            'info_dict': {
+                'id': '95b4b5a7-3873-465d-a6f4-8d3c499f29f2',
+                'ext': 'mp4',
+                'title': 'WHO.mp4',
+                'uploader_id': '82027648',
+                'duration': 593.3333,
+                'thumbnail': r're:https://substack.*video.*/video_upload/post/.+\.png',
+            },
+        }, {
+            'info_dict': {
+                'id': '235db8bf-c6e8-439a-b51a-eb7566fc7ac1',
+                'ext': 'mp4',
+                'title': 'The Vigilant Fox\'s Video - Apr 16, 2025-VEED.mp4',
+                'uploader_id': '82027648',
+                'duration': 498.86667,
+                'thumbnail': r're:https://substack.*video.*/video_upload/post/.+\.png',
+            },
+        }, {
+            'info_dict': {
+                'id': 'ef3fe4c1-d748-4665-ba9c-33396008e75b',
+                'ext': 'mp4',
+                'title': 'The Vigilant Fox\'s Video - Apr 16, 2025-VEED (1).mp4',
+                'uploader_id': '82027648',
+                'duration': 410.53333,
+                'thumbnail': r're:https://substack.*video.*/video_upload/post/.+\.png',
+            },
+        }],
     }]
 
     @classmethod
