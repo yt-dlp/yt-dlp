@@ -1091,10 +1091,30 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 r'<link[^>]+rel=["\']license["\'][^>]+href=(["\'])(?P<license>(?:(?!\1).)+)\1',
                 webpage, 'license', default=None, group='license')
 
+        # Clean description to remove potential SEO spam or unwanted content
+        def clean_description(desc):
+            if not desc:
+                return desc
+            # Remove common spammy phrases or patterns (example)
+            spam_patterns = [
+                r'(?i)buy now',
+                r'(?i)click here',
+                r'(?i)subscribe',
+                r'(?i)free download',
+                r'(?i)visit our website',
+                r'(?i)check out',
+                r'(?i)follow us',
+            ]
+            for pattern in spam_patterns:
+                desc = re.sub(pattern, '', desc)
+            # Remove excessive whitespace
+            desc = re.sub(r'\s+', ' ', desc).strip()
+            return desc
+
         info_dict.update({
             'formats': formats,
             'timestamp': unified_timestamp(timestamp),
-            'description': video_description,
+            'description': clean_description(video_description),
             'webpage_url': url,
             'view_count': view_count,
             'like_count': like_count,

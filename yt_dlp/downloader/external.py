@@ -159,10 +159,14 @@ class ExternalFD(FragmentFD):
             _, stderr, returncode = self._call_process(cmd, info_dict)
             if not returncode:
                 break
-            # TODO: Decide whether to retry based on error code
+            # Decide whether to retry based on error code
             # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
             if stderr:
                 self.to_stderr(stderr)
+            # Example: retry only on specific aria2c exit codes (1, 4, 5, 6, 7, 8)
+            # This can be adjusted based on actual aria2c exit codes
+            if returncode not in (1, 4, 5, 6, 7, 8):
+                break
             retry.error = Exception()
             continue
         if not skip_unavailable_fragments and retry_manager.error:
