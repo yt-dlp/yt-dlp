@@ -176,7 +176,7 @@ WINDOWS_RESERVED_NAMES = (
             ('COM', 'LPT'),
             ('\N{SUPERSCRIPT ONE}', '\N{SUPERSCRIPT TWO}', '\N{SUPERSCRIPT THREE}'),
         )
-    )
+    ),
 )
 WINDOWS_RESERVED_NAMES_RE = fr'({"|".join(WINDOWS_RESERVED_NAMES)})'
 
