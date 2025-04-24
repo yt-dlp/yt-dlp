@@ -701,7 +701,7 @@ def _sanitize_windows_reserved_names(s):
         other = match.group(3) if match.group(3) else ''
         if not match.group(2) and other:
             return match.group(1) + other
-        return match.group(1) + '_res' + match.group(2) + other # suffix the reserved portion only
+        return match.group(1) + '_res' + match.group(2) + other  # suffix the reserved portion only
     return re.sub(fr'{WINDOWS_RESERVED_NAMES_RE}(\.*)(.*$)', suffix_sanitize, s)
 
 
