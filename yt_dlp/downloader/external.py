@@ -457,8 +457,6 @@ class FFmpegFD(ExternalFD):
 
     @classmethod
     def available(cls, path=None):
-        # TODO: Fix path for ffmpeg
-        # Fixme: This may be wrong when --ffmpeg-location is used
         return FFmpegPostProcessor().available
 
     def on_process_started(self, proc, stdin):

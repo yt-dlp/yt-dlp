@@ -118,8 +118,9 @@ class ThePlatformBaseIE(OnceIE):
                 'categories', lambda _, v: v.get('label') in ('category', None), 'name', {str})) or None,
             'tags': traverse_obj(info, ('keywords', {lambda x: re.split(r'[;,]\s?', x) if x else None})),
             'location': extract_site_specific_field('region'),
-            'series': extract_site_specific_field('show'),
+            'series': extract_site_specific_field('show') or extract_site_specific_field('seriesTitle'),
             'season_number': int_or_none(extract_site_specific_field('seasonNumber')),
+            'episode_number': int_or_none(extract_site_specific_field('episodeNumber')),
             'media_type': extract_site_specific_field('programmingType') or extract_site_specific_field('type'),
         }
 

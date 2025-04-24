@@ -26,6 +26,7 @@ from ..utils import (
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
+    truncate_string,
     try_call,
     try_get,
     url_or_none,
@@ -249,6 +250,12 @@ class TikTokBaseIE(InfoExtractor):
         elif fatal:
             raise ExtractorError('Unable to extract webpage video data')
 
+        if not traverse_obj(video_data, ('video', {dict})) and traverse_obj(video_data, ('isContentClassified', {bool})):
+            message = 'This post may not be comfortable for some audiences. Log in for access'
+            if fatal:
+                self.raise_login_required(message)
+            self.report_warning(f'{message}. {self._login_hint()}', video_id=video_id)
+
         return video_data, status
 
     def _get_subtitles(self, aweme_detail, aweme_id, user_name):
@@ -438,7 +445,7 @@ class TikTokBaseIE(InfoExtractor):
         return {
             'id': aweme_id,
             **traverse_obj(aweme_detail, {
-                'title': ('desc', {str}),
+                'title': ('desc', {truncate_string(left=72)}),
                 'description': ('desc', {str}),
                 'timestamp': ('create_time', {int_or_none}),
             }),
@@ -589,7 +596,7 @@ class TikTokBaseIE(InfoExtractor):
                 'duration': ('duration', {int_or_none}),
             })),
             **traverse_obj(aweme_detail, {
-                'title': ('desc', {str}),
+                'title': ('desc', {truncate_string(left=72)}),
                 'description': ('desc', {str}),
                 # audio-only slideshows have a video duration of 0 and an actual audio duration
                 'duration': ('video', 'duration', {int_or_none}, filter),
@@ -650,7 +657,7 @@ class TikTokIE(TikTokBaseIE):
         'info_dict': {
             'id': '6742501081818877190',
             'ext': 'mp4',
-            'title': 'md5:5e2a23877420bb85ce6521dbee39ba94',
+            'title': 'Tag 1 Friend reverse this Video and look what happens 🤩😱 @skyandtami ...',
             'description': 'md5:5e2a23877420bb85ce6521dbee39ba94',
             'duration': 27,
             'height': 1024,
@@ -854,7 +861,7 @@ class TikTokIE(TikTokBaseIE):
         'info_dict': {
             'id': '7253412088251534594',
             'ext': 'm4a',
-            'title': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #рекомендации ',
+            'title': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #р...',
             'description': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #рекомендации ',
             'uploader': 'hara_yoimiya',
             'uploader_id': '6582536342634676230',
@@ -895,8 +902,12 @@ class TikTokIE(TikTokBaseIE):
 
         if video_data and status == 0:
             return self._parse_aweme_video_web(video_data, url, video_id)
-        elif status == 10216:
-            raise ExtractorError('This video is private', expected=True)
+        elif status in (10216, 10222):
+            # 10216: private post; 10222: private account
+            self.raise_login_required(
+                'You do not have permission to view this post. Log into an account that has access')
+        elif status == 10204:
+            raise ExtractorError('Your IP address is blocked from accessing this post', expected=True)
         raise ExtractorError(f'Video not available, status code {status}', video_id=video_id)
 
 

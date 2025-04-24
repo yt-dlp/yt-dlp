@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import itertools
 import math
 import re
 import urllib.parse
@@ -31,9 +32,9 @@ if curl_cffi is None:
 
 curl_cffi_version = tuple(map(int, re.split(r'[^\d]+', curl_cffi.__version__)[:3]))
 
-if curl_cffi_version != (0, 5, 10) and not ((0, 7, 0) <= curl_cffi_version < (0, 7, 2)):
+if curl_cffi_version != (0, 5, 10) and not (0, 10) <= curl_cffi_version:
     curl_cffi._yt_dlp__version = f'{curl_cffi.__version__} (unsupported)'
-    raise ImportError('Only curl_cffi versions 0.5.10, 0.7.0 and 0.7.1 are supported')
+    raise ImportError('Only curl_cffi versions 0.5.10 and 0.10.x are supported')
 
 import curl_cffi.requests
 from curl_cffi.const import CurlECode, CurlOpt
@@ -97,12 +98,57 @@ class CurlCFFIResponseAdapter(Response):
             return self.fp.read(amt)
         except curl_cffi.requests.errors.RequestsError as e:
             if e.code == CurlECode.PARTIAL_FILE:
-                content_length = int_or_none(e.response.headers.get('Content-Length'))
+                content_length = e.response and int_or_none(e.response.headers.get('Content-Length'))
                 raise IncompleteRead(
                     partial=self.fp.bytes_read,
                     expected=content_length - self.fp.bytes_read if content_length is not None else None,
                     cause=e) from e
             raise TransportError(cause=e) from e
+
+
+# See: https://github.com/lexiforest/curl_cffi?tab=readme-ov-file#supported-impersonate-browsers
+#      https://github.com/lexiforest/curl-impersonate?tab=readme-ov-file#supported-browsers
+BROWSER_TARGETS: dict[tuple[int, ...], dict[str, ImpersonateTarget]] = {
+    (0, 5): {
+        'chrome99': ImpersonateTarget('chrome', '99', 'windows', '10'),
+        'chrome99_android': ImpersonateTarget('chrome', '99', 'android', '12'),
+        'chrome100': ImpersonateTarget('chrome', '100', 'windows', '10'),
+        'chrome101': ImpersonateTarget('chrome', '101', 'windows', '10'),
+        'chrome104': ImpersonateTarget('chrome', '104', 'windows', '10'),
+        'chrome107': ImpersonateTarget('chrome', '107', 'windows', '10'),
+        'chrome110': ImpersonateTarget('chrome', '110', 'windows', '10'),
+        'edge99': ImpersonateTarget('edge', '99', 'windows', '10'),
+        'edge101': ImpersonateTarget('edge', '101', 'windows', '10'),
+        'safari15_3': ImpersonateTarget('safari', '15.3', 'macos', '11'),
+        'safari15_5': ImpersonateTarget('safari', '15.5', 'macos', '12'),
+    },
+    (0, 7): {
+        'chrome116': ImpersonateTarget('chrome', '116', 'windows', '10'),
+        'chrome119': ImpersonateTarget('chrome', '119', 'macos', '14'),
+        'chrome120': ImpersonateTarget('chrome', '120', 'macos', '14'),
+        'chrome123': ImpersonateTarget('chrome', '123', 'macos', '14'),
+        'chrome124': ImpersonateTarget('chrome', '124', 'macos', '14'),
+        'safari17_0': ImpersonateTarget('safari', '17.0', 'macos', '14'),
+        'safari17_2_ios': ImpersonateTarget('safari', '17.2', 'ios', '17.2'),
+    },
+    (0, 9): {
+        'safari15_3': ImpersonateTarget('safari', '15.3', 'macos', '14'),
+        'safari15_5': ImpersonateTarget('safari', '15.5', 'macos', '14'),
+        'chrome119': ImpersonateTarget('chrome', '119', 'macos', '14'),
+        'chrome120': ImpersonateTarget('chrome', '120', 'macos', '14'),
+        'chrome123': ImpersonateTarget('chrome', '123', 'macos', '14'),
+        'chrome124': ImpersonateTarget('chrome', '124', 'macos', '14'),
+        'chrome131': ImpersonateTarget('chrome', '131', 'macos', '14'),
+        'chrome131_android': ImpersonateTarget('chrome', '131', 'android', '14'),
+        'chrome133a': ImpersonateTarget('chrome', '133', 'macos', '15'),
+        'firefox133': ImpersonateTarget('firefox', '133', 'macos', '14'),
+        'safari18_0': ImpersonateTarget('safari', '18.0', 'macos', '15'),
+        'safari18_0_ios': ImpersonateTarget('safari', '18.0', 'ios', '18.0'),
+    },
+    (0, 10): {
+        'firefox135': ImpersonateTarget('firefox', '135', 'macos', '14'),
+    },
+}
 
 
 @register_rh
@@ -112,30 +158,21 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
     _SUPPORTED_PROXY_SCHEMES = ('http', 'https', 'socks4', 'socks4a', 'socks5', 'socks5h')
     _SUPPORTED_IMPERSONATE_TARGET_MAP = {
-        **({
-            ImpersonateTarget('chrome', '124', 'macos', '14'): curl_cffi.requests.BrowserType.chrome124,
-            ImpersonateTarget('chrome', '123', 'macos', '14'): curl_cffi.requests.BrowserType.chrome123,
-            ImpersonateTarget('chrome', '120', 'macos', '14'): curl_cffi.requests.BrowserType.chrome120,
-            ImpersonateTarget('chrome', '119', 'macos', '14'): curl_cffi.requests.BrowserType.chrome119,
-            ImpersonateTarget('chrome', '116', 'windows', '10'): curl_cffi.requests.BrowserType.chrome116,
-        } if curl_cffi_version >= (0, 7, 0) else {}),
-        ImpersonateTarget('chrome', '110', 'windows', '10'): curl_cffi.requests.BrowserType.chrome110,
-        ImpersonateTarget('chrome', '107', 'windows', '10'): curl_cffi.requests.BrowserType.chrome107,
-        ImpersonateTarget('chrome', '104', 'windows', '10'): curl_cffi.requests.BrowserType.chrome104,
-        ImpersonateTarget('chrome', '101', 'windows', '10'): curl_cffi.requests.BrowserType.chrome101,
-        ImpersonateTarget('chrome', '100', 'windows', '10'): curl_cffi.requests.BrowserType.chrome100,
-        ImpersonateTarget('chrome', '99', 'windows', '10'): curl_cffi.requests.BrowserType.chrome99,
-        ImpersonateTarget('edge', '101', 'windows', '10'): curl_cffi.requests.BrowserType.edge101,
-        ImpersonateTarget('edge', '99', 'windows', '10'): curl_cffi.requests.BrowserType.edge99,
-        **({
-            ImpersonateTarget('safari', '17.0', 'macos', '14'): curl_cffi.requests.BrowserType.safari17_0,
-        } if curl_cffi_version >= (0, 7, 0) else {}),
-        ImpersonateTarget('safari', '15.5', 'macos', '12'): curl_cffi.requests.BrowserType.safari15_5,
-        ImpersonateTarget('safari', '15.3', 'macos', '11'): curl_cffi.requests.BrowserType.safari15_3,
-        ImpersonateTarget('chrome', '99', 'android', '12'): curl_cffi.requests.BrowserType.chrome99_android,
-        **({
-            ImpersonateTarget('safari', '17.2', 'ios', '17.2'): curl_cffi.requests.BrowserType.safari17_2_ios,
-        } if curl_cffi_version >= (0, 7, 0) else {}),
+        target: name if curl_cffi_version >= (0, 9) else curl_cffi.requests.BrowserType[name]
+        for name, target in dict(sorted(itertools.chain.from_iterable(
+            targets.items()
+            for version, targets in BROWSER_TARGETS.items()
+            if curl_cffi_version >= version
+        ), key=lambda x: (
+            # deprioritize mobile targets since they give very different behavior
+            x[1].os not in ('ios', 'android'),
+            # prioritize edge < firefox < safari < chrome
+            ('edge', 'firefox', 'safari', 'chrome').index(x[1].client),
+            # prioritize newest version
+            float(x[1].version) if x[1].version else 0,
+            # group by os name
+            x[1].os,
+        ), reverse=True)).items()
     }
 
     def _create_instance(self, cookiejar=None):
