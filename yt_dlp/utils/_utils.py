@@ -167,7 +167,7 @@ JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>\s*(?P<
 
 NUMBER_RE = r'\d+(?:\.\d+)?'
 
-WINDOWS_RESERVED_NAMES_RE = fr'({'|'.join(
+WINDOWS_RESERVED_NAMES_RE = fr'({"|".join(
     ("CON", "CONOUT$", "CONIN$", "PRN", "AUX", "CLOCK$", "NUL")
     + tuple(f"{name:s}{num:d}" for name, num in itertools.product(("COM", "LPT"), range(0, 10)))
     + tuple(
