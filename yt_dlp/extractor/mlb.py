@@ -365,13 +365,15 @@ mutation initPlaybackSession(
                 'All videos are only available to registered users', method='password')
 
     def _set_device_id(self, username):
-        if not self._device_id:
-            self._device_id = self.cache.load(
-                self._NETRC_MACHINE, 'device_ids', default={}).get(username)
+        if self._device_id:
+            return
+        device_id_cache = self.cache.load(self._NETRC_MACHINE, 'device_ids', default={})
+        self._device_id = device_id_cache.get(username)
         if self._device_id:
             return
         self._device_id = str(uuid.uuid4())
-        self.cache.store(self._NETRC_MACHINE, 'device_ids', {username: self._device_id})
+        device_id_cache[username] = self._device_id
+        self.cache.store(self._NETRC_MACHINE, 'device_ids', device_id_cache)
 
     def _perform_login(self, username, password):
         try:
