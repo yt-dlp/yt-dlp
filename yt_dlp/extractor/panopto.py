@@ -14,8 +14,9 @@ from ..utils import (
     int_or_none,
     parse_qs,
     srt_subtitles_timecode,
-    traverse_obj,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class PanoptoBaseIE(InfoExtractor):
@@ -345,21 +346,16 @@ class PanoptoIE(PanoptoBaseIE):
         subtitles = {}
         for stream in streams or []:
             stream_formats = []
-            http_stream_url = stream.get('StreamHttpUrl')
-            stream_url = stream.get('StreamUrl')
-
-            if http_stream_url:
-                stream_formats.append({'url': http_stream_url})
-
-            if stream_url:
+            for stream_url in set(traverse_obj(stream, (('StreamHttpUrl', 'StreamUrl'), {url_or_none}))):
                 media_type = stream.get('ViewerMediaFileTypeName')
                 if media_type in ('hls', ):
-                    m3u8_formats, stream_subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, video_id)
-                    stream_formats.extend(m3u8_formats)
-                    subtitles = self._merge_subtitles(subtitles, stream_subtitles)
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_url, video_id, m3u8_id='hls', fatal=False)
+                    stream_formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
                 else:
                     stream_formats.append({
                         'url': stream_url,
+                        'ext': media_type,
                     })
             for fmt in stream_formats:
                 fmt.update({

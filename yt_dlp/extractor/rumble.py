@@ -7,7 +7,6 @@ from ..utils import (
     ExtractorError,
     UnsupportedError,
     clean_html,
-    determine_ext,
     extract_attributes,
     format_field,
     get_element_by_class,
@@ -36,7 +35,7 @@ class RumbleEmbedIE(InfoExtractor):
             'upload_date': '20191020',
             'channel_url': 'https://rumble.com/c/WMAR',
             'channel': 'WMAR',
-            'thumbnail': 'https://sp.rmbl.ws/s8/1/5/M/z/1/5Mz1a.qR4e-small-WMAR-2-News-Latest-Headline.jpg',
+            'thumbnail': r're:https://.+\.jpg',
             'duration': 234,
             'uploader': 'WMAR',
             'live_status': 'not_live',
@@ -52,7 +51,7 @@ class RumbleEmbedIE(InfoExtractor):
             'upload_date': '20220217',
             'channel_url': 'https://rumble.com/c/CyberTechNews',
             'channel': 'CTNews',
-            'thumbnail': 'https://sp.rmbl.ws/s8/6/7/i/9/h/7i9hd.OvCc.jpg',
+            'thumbnail': r're:https://.+\.jpg',
             'duration': 901,
             'uploader': 'CTNews',
             'live_status': 'not_live',
@@ -115,6 +114,22 @@ class RumbleEmbedIE(InfoExtractor):
         },
         'params': {'skip_download': True},
     }, {
+        'url': 'https://rumble.com/embed/v6pezdb',
+        'info_dict': {
+            'id': 'v6pezdb',
+            'ext': 'mp4',
+            'title': '"Es war einmal ein Mädchen" – Ein filmisches Zeitzeugnis aus Leningrad 1944',
+            'uploader': 'RT DE',
+            'channel': 'RT DE',
+            'channel_url': 'https://rumble.com/c/RTDE',
+            'duration': 309,
+            'thumbnail': 'https://1a-1791.com/video/fww1/dc/s8/1/n/z/2/y/nz2yy.qR4e-small-Es-war-einmal-ein-Mdchen-Ei.jpg',
+            'timestamp': 1743703500,
+            'upload_date': '20250403',
+            'live_status': 'not_live',
+        },
+        'params': {'skip_download': True},
+    }, {
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
         'only_matching': True,
     }]
@@ -168,40 +183,42 @@ class RumbleEmbedIE(InfoExtractor):
             live_status = None
 
         formats = []
-        for ext, ext_info in (video.get('ua') or {}).items():
-            if isinstance(ext_info, dict):
-                for height, video_info in ext_info.items():
+        for format_type, format_info in (video.get('ua') or {}).items():
+            if isinstance(format_info, dict):
+                for height, video_info in format_info.items():
                     if not traverse_obj(video_info, ('meta', 'h', {int_or_none})):
                         video_info.setdefault('meta', {})['h'] = height
-                ext_info = ext_info.values()
+                format_info = format_info.values()
 
-            for video_info in ext_info:
+            for video_info in format_info:
                 meta = video_info.get('meta') or {}
                 if not video_info.get('url'):
                     continue
-                if ext == 'hls':
+                # With default query params returns m3u8 variants which are duplicates, without returns tar files
+                if format_type == 'tar':
+                    continue
+                if format_type == 'hls':
                     if meta.get('live') is True and video.get('live') == 1:
                         live_status = 'post_live'
                     formats.extend(self._extract_m3u8_formats(
                         video_info['url'], video_id,
                         ext='mp4', m3u8_id='hls', fatal=False, live=live_status == 'is_live'))
                     continue
-                timeline = ext == 'timeline'
-                if timeline:
-                    ext = determine_ext(video_info['url'])
+                is_timeline = format_type == 'timeline'
+                is_audio = format_type == 'audio'
                 formats.append({
-                    'ext': ext,
-                    'acodec': 'none' if timeline else None,
+                    'acodec': 'none' if is_timeline else None,
+                    'vcodec': 'none' if is_audio else None,
                     'url': video_info['url'],
-                    'format_id': join_nonempty(ext, format_field(meta, 'h', '%sp')),
-                    'format_note': 'Timeline' if timeline else None,
-                    'fps': None if timeline else video.get('fps'),
+                    'format_id': join_nonempty(format_type, format_field(meta, 'h', '%sp')),
+                    'format_note': 'Timeline' if is_timeline else None,
+                    'fps': None if is_timeline or is_audio else video.get('fps'),
                     **traverse_obj(meta, {
-                        'tbr': 'bitrate',
-                        'filesize': 'size',
-                        'width': 'w',
-                        'height': 'h',
-                    }, expected_type=lambda x: int(x) or None),
+                        'tbr': ('bitrate', {int_or_none}),
+                        'filesize': ('size', {int_or_none}),
+                        'width': ('w', {int_or_none}),
+                        'height': ('h', {int_or_none}),
+                    }),
                 })
 
         subtitles = {

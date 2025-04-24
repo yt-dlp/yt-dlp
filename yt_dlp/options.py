@@ -150,6 +150,15 @@ class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
         return opts
 
 
+_PRESET_ALIASES = {
+    'mp3': ['-f', 'ba[acodec^=mp3]/ba/b', '-x', '--audio-format', 'mp3'],
+    'aac': ['-f', 'ba[acodec^=aac]/ba[acodec^=mp4a.40.]/ba/b', '-x', '--audio-format', 'aac'],
+    'mp4': ['--merge-output-format', 'mp4', '--remux-video', 'mp4', '-S', 'vcodec:h264,lang,quality,res,fps,hdr:12,acodec:aac'],
+    'mkv': ['--merge-output-format', 'mkv', '--remux-video', 'mkv'],
+    'sleep': ['--sleep-subtitles', '5', '--sleep-requests', '0.75', '--sleep-interval', '10', '--max-sleep-interval', '20'],
+}
+
+
 class _YoutubeDLOptionParser(optparse.OptionParser):
     # optparse is deprecated since Python 3.2. So assume a stable interface even for private methods
     ALIAS_DEST = '_triggered_aliases'
@@ -214,6 +223,22 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
             if len({self._long_opt[p] for p in e.possibilities}) == 1:
                 return e.possibilities[0]
             raise
+
+    def format_option_help(self, formatter=None):
+        assert formatter, 'Formatter can not be None'
+        formatted_help = super().format_option_help(formatter=formatter)
+        formatter.indent()
+        heading = formatter.format_heading('Preset Aliases')
+        formatter.indent()
+        result = []
+        for name, args in _PRESET_ALIASES.items():
+            option = optparse.Option('-t', help=shlex.join(args))
+            formatter.option_strings[option] = f'-t {name}'
+            result.append(formatter.format_option(option))
+        formatter.dedent()
+        formatter.dedent()
+        help_lines = '\n'.join(result)
+        return f'{formatted_help}\n{heading}{help_lines}'
 
 
 def create_parser():
@@ -316,6 +341,13 @@ def create_parser():
         assert (nargs == 0 and value is None) or len(value) == nargs
         parser.rargs[:0] = shlex.split(
             opts if value is None else opts.format(*map(shlex.quote, value)))
+
+    def _preset_alias_callback(option, opt_str, value, parser):
+        if not value:
+            return
+        if value not in _PRESET_ALIASES:
+            raise optparse.OptionValueError(f'Unknown preset alias: {value}')
+        parser.rargs[:0] = _PRESET_ALIASES[value]
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
@@ -518,6 +550,15 @@ def create_parser():
             '"-S=aext:ARG0,abr -x --audio-format ARG0". All defined aliases are listed in the --help output. '
             'Alias options can trigger more aliases; so be careful to avoid defining recursive options. '
             f'As a safety measure, each alias may be triggered a maximum of {_YoutubeDLOptionParser.ALIAS_TRIGGER_LIMIT} times. '
+            'This option can be used multiple times'))
+    general.add_option(
+        '-t', '--preset-alias',
+        metavar='PRESET', dest='_', type='str',
+        action='callback', callback=_preset_alias_callback,
+        help=(
+            'Applies a predefined set of options. e.g. --preset-alias mp3. '
+            f'The following presets are available: {", ".join(_PRESET_ALIASES)}. '
+            'See the "Preset Aliases" section at the end for more info. '
             'This option can be used multiple times'))
 
     network = optparse.OptionGroup(parser, 'Network Options')
