@@ -1982,7 +1982,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _player_js_cache_key(self, player_url):
         player_id = self._extract_player_info(player_url)
         player_path = remove_start(urllib.parse.urlparse(player_url).path, f'/s/player/{player_id}/')
-        variant = self._INVERSE_PLAYER_JS_VARIANT_MAP.get(player_path)
+        variant = self._INVERSE_PLAYER_JS_VARIANT_MAP.get(player_path) or next((
+            v for k, v in self._INVERSE_PLAYER_JS_VARIANT_MAP.items()
+            if re.fullmatch(re.escape(k).replace('en_US', r'[a-zA-Z0-9_]+'), player_path)), None)
         if not variant:
             self.write_debug(
                 f'Unable to determine player JS variant\n'
