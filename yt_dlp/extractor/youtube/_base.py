@@ -617,12 +617,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         # Check that we are still logged-in and cookies have not rotated after every request
         if self._had_cookie_auth and not self._has_auth_cookies():
             self._had_cookie_auth = False
-            # TODO: should this be an error? Since now all visitor data, etc. we have extracted would be invalid.
-            self.report_warning(
+            raise ExtractorError(
                 'The provided YouTube account cookies are no longer valid. '
                 'They have likely been rotated in the browser as a security measure. '
                 f'For tips on how to effectively export YouTube cookies, refer to  {self._COOKIE_HOWTO_WIKI_URL}  .',
-                only_once=True)
+                expected=True)
 
         return response
 
