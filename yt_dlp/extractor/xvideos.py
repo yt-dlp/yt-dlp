@@ -345,7 +345,7 @@ class XVideosRelatedIE(XVideosPlaylistIE):
 
 
 class XVideosChannelIE(XVideosPlaylistIE):
-    _CHANNEL_REGEX = r'''(?:amateur-|pornstar-|model-)?(?:channel|profile|pornstar|model|amateur)s/'''
+    _CHANNEL_REGEX = r'''(?:amateur-|model-)?(?:channel|profile|pornstar|model|amateur)s/'''
     _VALID_URL = r'''(?x)
                     https?://
                         (?:[^/]+\.)?xvideos(?:\d+)?\.com/
@@ -357,9 +357,6 @@ class XVideosChannelIE(XVideosPlaylistIE):
                     $
                  ''' % _CHANNEL_REGEX
     _TESTS = [{
-        'url': 'https://www.xvideos.com/pornstar-channels/sienna-west',
-        'playlist_mincount': 5,
-    }, {
         'url': 'https://www.xvideos.com/pornstars/silvia-jons#_tabVideos',
         'playlist_mincount': 5,
     }, {
