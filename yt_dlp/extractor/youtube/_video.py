@@ -3650,9 +3650,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     reason += '. YouTube is requiring a captcha challenge before playback'
                 elif "This content isn't available, try again later" in reason:
                     reason = (
-                        f'{remove_end(reason.strip(), ".")}. {"Your account" if self.is_authenticated else "The current session"} has been rate-limited by YouTube for up to an hour. '
-                        'It is recommended to use `-t sleep` to add a delay between video requests to avoid hitting the rate limit. '
-                        'For more information, refer to  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#this-content-isnt-available-try-again-later .'
+                        f'{remove_end(reason.strip(), ".")}. {"Your account" if self.is_authenticated else "The current session"} '
+                        f'has been rate-limited by YouTube for up to an hour. It is recommended to use `-t sleep` to add a delay '
+                        f'between video requests to avoid exceeding the rate limit. For more information, refer to  '
+                        f'https://github.com/yt-dlp/yt-dlp/wiki/Extractors#this-content-isnt-available-try-again-later'
                     )
                 self.raise_no_formats(reason, expected=True)
 
