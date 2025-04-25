@@ -1725,9 +1725,9 @@ class TwitterSpacesIE(TwitterBaseIE):
             'description': 'Twitter Space participated by Elon Musk',
             'live_status': 'was_live',
             'release_date': '20230608',
-            'release_timestamp': 1686256200,
+            'release_timestamp': 1686256230,
             'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
-            'timestamp': 1686256230,
+            'timestamp': 1686254250,
             'upload_date': '20230608',
             'uploader': 'Mary Barra',
             'uploader_id': 'mtbarra',
@@ -1745,9 +1745,9 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader_id': 'googlecloud',
             'live_status': 'post_live',
             'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
-            'timestamp': 1681839082,
-            'upload_date': '20230418',
-            'release_timestamp': 1681839000,
+            'timestamp': 1681409554,
+            'upload_date': '20230413',
+            'release_timestamp': 1681839082,
             'release_date': '20230418',
             'protocol': 'm3u8',  # ffmpeg is forced
             'container': 'm4a_dash',  # audio-only format fixup is applied
@@ -1764,8 +1764,10 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader': '息根とめる',
             'uploader_id': 'tomeru_ikinone',
             'live_status': 'was_live',
+            'release_date': '20230601',
+            'release_timestamp': 1685617200,
             'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
-            'timestamp': 1685617200,
+            'timestamp': 1685617198,
             'upload_date': '20230601',
             'protocol': 'm3u8',  # ffmpeg is forced
             'container': 'm4a_dash',  # audio-only format fixup is applied
@@ -1783,9 +1785,9 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader_id': 'RealCandaceO',
             'live_status': 'was_live',
             'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
-            'timestamp': 1723932056,
+            'timestamp': 1723931351,
             'upload_date': '20240817',
-            'release_timestamp': 1723932000,
+            'release_timestamp': 1723932056,
             'release_date': '20240817',
             'protocol': 'm3u8_native',  # not ffmpeg, detected as video space
         },
@@ -1871,8 +1873,9 @@ class TwitterSpacesIE(TwitterBaseIE):
             'live_status': live_status,
             **traverse_obj(metadata, {
                 'title': ('title', {str}),
-                'release_timestamp': ('scheduled_start', {int_or_none(scale=1000)}),
-                'timestamp': ('started_at', {int_or_none(scale=1000)}),
+                # started_at is None when stream is_upcoming so fallback to scheduled_start for --wait-for-video
+                'release_timestamp': (('started_at', 'scheduled_start'), {int_or_none(scale=1000)}, any),
+                'timestamp': ('created_at', {int_or_none(scale=1000)}),
             }),
             **traverse_obj(metadata, ('creator_results', 'result', 'legacy', {
                 'uploader': ('name', {str}),
