@@ -600,9 +600,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         return ' '.join(authorizations)
 
-    @functools.cached_property
+    @property
     def is_authenticated(self):
-        return bool(self._has_auth_cookies())
+        return self._has_auth_cookies()
 
     def _has_auth_cookies(self):
         yt_sapisid, yt_1psapisid, yt_3psapisid = self._get_sid_cookies()
@@ -616,11 +616,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         # Check that we are still logged-in and cookies have not rotated after every request
         if self._had_cookie_auth and not self._has_auth_cookies():
-            raise ExtractorError(
+            self.report_warning(
                 'The provided YouTube account cookies are no longer valid. '
                 'They have likely been rotated in the browser as a security measure. '
                 f'For tips on how to effectively export YouTube cookies, refer to  {self._COOKIE_HOWTO_WIKI_URL}  .',
-                expected=True)
+                only_once=False)
 
         return response
 
