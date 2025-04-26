@@ -611,7 +611,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         # YouTube doesn't appear to clear 3PSAPISID when rotating cookies (as of 2025-04-26)
         # But LOGIN_INFO is cleared and should exist if logged in
         has_login_info = 'LOGIN_INFO' in self._youtube_cookies
-        return has_login_info and (yt_sapisid or yt_1psapisid or yt_3psapisid)
+        return bool(has_login_info and (yt_sapisid or yt_1psapisid or yt_3psapisid))
 
     def _request_webpage(self, *args, **kwargs):
         response = super()._request_webpage(*args, **kwargs)
