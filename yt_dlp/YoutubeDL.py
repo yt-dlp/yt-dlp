@@ -1403,8 +1403,33 @@ class YoutubeDL:
                 value = map(str, variadic(value) if '#' in flags else [value])
                 value, fmt = shell_quote(value, shell=True), str_fmt
             elif fmt[-1] == 'B':  # bytes
-                value = f'%{str_fmt}'.encode() % str(value).encode()
-                value, fmt = value.decode('utf-8', 'ignore'), 's'
+                limit_match = re.match(r'\.?(\d+)B$', fmt)  # Match optional dot, digits, then B at the end
+                if limit_match:
+                    try:
+                        limit = int(limit_match.group(1))
+                        byte_value = str(value).encode('utf-8')
+                        if len(byte_value) > limit:
+                            # Truncate carefully: step back if limit falls within a multi-byte char
+                            original_limit = limit
+                            while limit > 0 and (byte_value[limit] & 0xC0) == 0x80:  # 0xC0 = 11000000, 0x80 = 10000000
+                                limit -= 1
+                            # If we stepped back too far (e.g., limit was 1 on a 2-byte char), result is empty
+                            if limit < 0:
+                                limit = 0
+                            # Check if the first byte itself indicates a multi-byte char that exceeds the original limit
+                            if limit == 0 and original_limit > 0 and (byte_value[0] & 0xC0) >= 0xC0:
+                                byte_value = b''  # Cannot fit even the first multi-byte char
+                            else:
+                                byte_value = byte_value[:limit]
+
+                        value = byte_value.decode('utf-8', 'ignore')
+                    except ValueError:  # Should not happen with regex match, but safety first
+                        self.report_warning(f'Error parsing byte limit from specifier: {fmt}')
+                        value = str(value)  # Keep original value
+                else:
+                    self.report_warning(f'Invalid byte limit format specifier: {fmt}')
+                    value = str(value)  # Keep original value if format is invalid
+                fmt = 's'  # Ensure final substitution treats it as a string
             elif fmt[-1] == 'U':  # unicode normalized
                 value, fmt = unicodedata.normalize(
                     # "+" = compatibility equivalence, "#" = NFD
