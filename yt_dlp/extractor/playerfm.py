@@ -1,6 +1,7 @@
 
 from .common import ExtractorError, InfoExtractor
 from ..utils import determine_ext, join_nonempty
+from ..utils.traversal import traverse_obj
 
 
 class PlayerFmIE(InfoExtractor):
@@ -22,7 +23,7 @@ class PlayerFmIE(InfoExtractor):
             'id': 'thursday-april-24-2025',
             'thumbnail': r're:^https://.*\.(jpg|png)',
             'title': 'Thursday, April 24, 2025',
-            'creators': ['Lester Holt', 'NBC News'],
+            'creators': ['Lester Holt, NBC News'],
             'description': '<p>Trump urges Putin to \'STOP\' after deadly Russian strike on Ukraine; More than 90,000 people have paid their respects to Pope Francis; Miami shooting leaves three injured; and more on tonight’s broadcast.</p>',
             'duration': 1250,
             'ext': 'mp3',
@@ -33,8 +34,8 @@ class PlayerFmIE(InfoExtractor):
             'id': 'ep-109-its-kicking-off-how-have-the-rules-for-kickoff-changed-what-are-the-best-approaches-to-getting-the-game-underway-and-how-could-we-improve-on-the-present-system',
             'thumbnail': r're:^https://.*\.(jpg|png)',
             'title': '#109 It\'s kicking off! How have the rules for kickoff changed, what are the best approaches to getting the game underway, and how could we improve on the present system?',
-            'creators': ['Soccer Roundup'],
-            'description': '`<p>Ryan is joined by Joe and Taylor to answer the age old question (in your best Jerry Seinfeld impression), "What\'s the deal with kickoff?!" How does a game get underway, how have the rules regarding kickoff evolved since the mid-1800s, what are the different approaches to getting your tactics right from kickoff, how could we improve upon the current system, and much much more!</p><p>The Soccer 101 theme, and plenty of other excellent music, can be found right here: <a href="https://aerialist.bandcamp.com/">https://aerialist.bandcamp.com</a>.</p>`',
+            'creators': ['TSS'],
+            'description': '<p>Ryan is joined by Joe and Taylor to answer the age old question (in your best Jerry Seinfeld impression), "What\'s the deal with kickoff?!" How does a game get underway, how have the rules regarding kickoff evolved since the mid-1800s, what are the different approaches to getting your tactics right from kickoff, how could we improve upon the current system, and much much more!</p><p>The Soccer 101 theme, and plenty of other excellent music, can be found right here: <a href="https://aerialist.bandcamp.com/">https://aerialist.bandcamp.com</a>.</p>',
             'duration': 1765,
             'ext': 'mp3',
         },
@@ -45,7 +46,12 @@ class PlayerFmIE(InfoExtractor):
         video_id = self._match_id(url)
         data = self._download_json(url + '.json', None)
 
-        thumbnail = data['image']['url'] if 'image' in data else data['series']['image']['url']
+        title = data.get('title')
+        description = data.get('description')
+        duration = data.get('duration')
+        thumbnail = traverse_obj(data, ('image', 'url'), ('series', 'image', 'url'))
+        creators = [traverse_obj(data, ('series', 'author'))]
+
         video_url = join_nonempty('https', self._search_regex(r'redirect.mp3/(.*)', data['url'], 'redirect'), delim='://')
         if not video_url:
             raise ExtractorError('URL to podcast not found', expected=True)
@@ -56,9 +62,9 @@ class PlayerFmIE(InfoExtractor):
         return {
             'id': video_id,
             'thumbnail': thumbnail,
-            'title': data['title'],
-            'creators': data['series']['author'].split(', '),
-            'description': data['description'],
-            'duration': data['duration'],
+            'title': title,
+            'creators': creators,
+            'description': description,
+            'duration': duration,
             'formats': formats,
         }
