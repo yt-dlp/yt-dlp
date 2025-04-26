@@ -453,16 +453,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return preferred_lang
 
     def _initialize_consent(self):
-        if self._has_auth_cookies():
+        if self._has_auth_cookies:
             return
-        cookies = self._youtube_cookies()
+        cookies = self._youtube_cookies
         socs = cookies.get('SOCS')
         if socs and not socs.value.startswith('CAA'):  # not consented
             return
         self._set_cookie('.youtube.com', 'SOCS', 'CAI', secure=True)  # accept all (required for mixes)
 
     def _initialize_pref(self):
-        cookies = self._youtube_cookies()
+        cookies = self._youtube_cookies
         pref_cookie = cookies.get('PREF')
         pref = {}
         if pref_cookie:
@@ -475,7 +475,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _initialize_cookie_auth(self):
         self._had_cookie_auth = False
-        if self._has_auth_cookies():
+        if self._has_auth_cookies:
             self._had_cookie_auth = True
             self.write_debug('Found YouTube account cookies')
 
@@ -555,6 +555,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         return f'{scheme} {"_".join(parts)}'
 
+    @property
     def _youtube_cookies(self):
         return self._get_cookies('https://www.youtube.com')
 
@@ -563,7 +564,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         Get SAPISID, 1PSAPISID, 3PSAPISID cookie values
         @returns sapisid, 1psapisid, 3psapisid
         """
-        yt_cookies = self._youtube_cookies()
+        yt_cookies = self._youtube_cookies
         yt_sapisid = try_call(lambda: yt_cookies['SAPISID'].value)
         yt_3papisid = try_call(lambda: yt_cookies['__Secure-3PAPISID'].value)
         yt_1papisid = try_call(lambda: yt_cookies['__Secure-1PAPISID'].value)
@@ -602,20 +603,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     @property
     def is_authenticated(self):
-        return self._has_auth_cookies()
+        return self._has_auth_cookies
 
+    @property
     def _has_auth_cookies(self):
         yt_sapisid, yt_1psapisid, yt_3psapisid = self._get_sid_cookies()
         # YouTube doesn't appear to clear 3PSAPISID when rotating cookies (as of 2025-04-26)
         # But LOGIN_INFO is cleared and should exist if logged in
-        has_login_info = 'LOGIN_INFO' in self._youtube_cookies()
+        has_login_info = 'LOGIN_INFO' in self._youtube_cookies
         return has_login_info and (yt_sapisid or yt_1psapisid or yt_3psapisid)
 
     def _request_webpage(self, *args, **kwargs):
         response = super()._request_webpage(*args, **kwargs)
 
         # Check that we are still logged-in and cookies have not rotated after every request
-        if self._had_cookie_auth and not self._has_auth_cookies():
+        if self._had_cookie_auth and not self._has_auth_cookies:
             self.report_warning(
                 'The provided YouTube account cookies are no longer valid. '
                 'They have likely been rotated in the browser as a security measure. '
