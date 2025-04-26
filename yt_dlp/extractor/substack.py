@@ -88,7 +88,7 @@ class SubstackIE(InfoExtractor):
         },
     }, {
         # A "podcast" page which contains embedded video
-        'url': 'https://substack.com/home/post/p-161501224',
+        'url': 'https://vigilantfox.substack.com/p/global-medical-tyranny-just-got-real?source=queue',
         'info_dict': {
             'id': '161501224',
             'title': 'Videos for Global Medical Tyranny Just Got Real | Daily Pulse',
