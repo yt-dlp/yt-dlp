@@ -621,7 +621,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             self.report_warning(
                 'The provided YouTube account cookies are no longer valid. '
                 'They have likely been rotated in the browser as a security measure. '
-                f'For tips on how to effectively export YouTube cookies, refer to  {self._COOKIE_HOWTO_WIKI_URL}  .',
+                f'For tips on how to effectively export YouTube cookies, refer to  {self._COOKIE_HOWTO_WIKI_URL} .',
                 only_once=False)
 
         return response
