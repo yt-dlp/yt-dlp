@@ -41,18 +41,22 @@ class NiconicoBaseIE(InfoExtractor):
     _LOGIN_BASE = 'https://account.nicovideo.jp'
     _NETRC_MACHINE = 'niconico'
 
+    @property
+    def is_logged_in(self):
+        return bool(self._get_cookies('https://www.nicovideo.jp').get('user_session'))
+
     def raise_login_error(self, error, default, expected=True):
         raise ExtractorError(f'Unable to login: {error or default}', expected=expected)
 
     def _perform_login(self, username, password):
-        if self._get_cookies('https://www.nicovideo.jp').get('user_session'):
+        if self.is_logged_in:
             return
 
         self._request_webpage(
             f'{self._LOGIN_BASE}/login', None, 'Requesting session cookies')
         webpage = self._download_webpage(
             f'{self._LOGIN_BASE}/login/redirector', None,
-            'Logging in', headers={
+            'Logging in', 'Unable to log in', headers={
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Referer': f'{self._LOGIN_BASE}/login',
             }, data=urlencode_postdata({
@@ -60,11 +64,7 @@ class NiconicoBaseIE(InfoExtractor):
                 'password': password,
             }),
         )
-
-        if traverse_obj(self._search_json(
-            r'NicoGoogleTagManagerDataLayer\s*=\s*\[',
-            webpage, 'data layer', None, fatal=False,
-        ), ('user', 'login_status', {lambda x: x == 'login'})):
+        if self.is_logged_in:
             return
 
         if err_msg := traverse_obj(webpage, (
@@ -84,8 +84,7 @@ class NiconicoBaseIE(InfoExtractor):
             )
 
             if 'error-code' in parse_qs(urlh.url):
-                err_msg = traverse_obj(self._download_webpage(urlh.url, None), (
-                    {find_element(cls='pageMainMsg')}, {clean_html}))
+                err_msg = traverse_obj(mfa, ({find_element(cls='pageMainMsg')}, {clean_html}))
                 self.raise_login_error(err_msg, 'MFA session expired')
             if 'formError' in mfa:
                 err_msg = traverse_obj(mfa, (
