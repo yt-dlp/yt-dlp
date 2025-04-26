@@ -474,9 +474,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         self._set_cookie('.youtube.com', name='PREF', value=urllib.parse.urlencode(pref))
 
     def _initialize_cookie_auth(self):
-        self._had_cookie_auth = False
+        self._passed_auth_cookies = False
         if self._has_auth_cookies:
-            self._had_cookie_auth = True
+            self._passed_auth_cookies = True
             self.write_debug('Found YouTube account cookies')
 
     def _real_initialize(self):
@@ -617,7 +617,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         response = super()._request_webpage(*args, **kwargs)
 
         # Check that we are still logged-in and cookies have not rotated after every request
-        if self._had_cookie_auth and not self._has_auth_cookies:
+        if self._passed_auth_cookies and not self._has_auth_cookies:
             self.report_warning(
                 'The provided YouTube account cookies are no longer valid. '
                 'They have likely been rotated in the browser as a security measure. '
