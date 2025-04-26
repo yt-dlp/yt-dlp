@@ -1221,20 +1221,10 @@ class TwitterIE(TwitterBaseIE):
     }]
 
     _MEDIA_ID_RE = re.compile(r'_video/(\d+)/')
-
-    @property
-    def _GRAPHQL_ENDPOINT(self):
-        if self.is_logged_in:
-            return 'zZXycP0V6H7m-2r0mOnFcA/TweetDetail'
-        return '2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId'
+    _GRAPHQL_ENDPOINT = '2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId'
 
     def _graphql_to_legacy(self, data, twid):
-        result = traverse_obj(data, (
-            'threaded_conversation_with_injections_v2', 'instructions', 0, 'entries',
-            lambda _, v: v['entryId'] == f'tweet-{twid}', 'content', 'itemContent',
-            'tweet_results', 'result', ('tweet', None), {dict},
-        ), default={}, get_all=False) if self.is_logged_in else traverse_obj(
-            data, ('tweetResult', 'result', {dict}), default={})
+        result = traverse_obj(data, ('tweetResult', 'result', {dict})) or {}
 
         typename = result.get('__typename')
         if typename not in ('Tweet', 'TweetWithVisibilityResults', 'TweetTombstone', 'TweetUnavailable', None):
@@ -1278,37 +1268,6 @@ class TwitterIE(TwitterBaseIE):
 
     def _build_graphql_query(self, media_id):
         return {
-            'variables': {
-                'focalTweetId': media_id,
-                'includePromotedContent': True,
-                'with_rux_injections': False,
-                'withBirdwatchNotes': True,
-                'withCommunity': True,
-                'withDownvotePerspective': False,
-                'withQuickPromoteEligibilityTweetFields': True,
-                'withReactionsMetadata': False,
-                'withReactionsPerspective': False,
-                'withSuperFollowsTweetFields': True,
-                'withSuperFollowsUserFields': True,
-                'withV2Timeline': True,
-                'withVoice': True,
-            },
-            'features': {
-                'graphql_is_translatable_rweb_tweet_is_translatable_enabled': False,
-                'interactive_text_enabled': True,
-                'responsive_web_edit_tweet_api_enabled': True,
-                'responsive_web_enhance_cards_enabled': True,
-                'responsive_web_graphql_timeline_navigation_enabled': False,
-                'responsive_web_text_conversations_enabled': False,
-                'responsive_web_uc_gql_enabled': True,
-                'standardized_nudges_misinfo': True,
-                'tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled': False,
-                'tweetypie_unmention_optimization_enabled': True,
-                'unified_cards_ad_metadata_container_dynamic_card_content_query_enabled': True,
-                'verified_phone_label_enabled': False,
-                'vibe_api_enabled': True,
-            },
-        } if self.is_logged_in else {
             'variables': {
                 'tweetId': media_id,
                 'withCommunity': False,
