@@ -462,8 +462,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         self._set_cookie('.youtube.com', 'SOCS', 'CAI', secure=True)  # accept all (required for mixes)
 
     def _initialize_pref(self):
-        cookies = self._youtube_cookies
-        pref_cookie = cookies.get('PREF')
+        pref_cookie = self._youtube_cookies.get('PREF')
         pref = {}
         if pref_cookie:
             try:
