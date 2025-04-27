@@ -314,9 +314,9 @@ class LinkedInEventsIE(InfoExtractor):
 
         formats = []
         for prog_fmts in traverse_obj(player_data, ('progressiveStreams', ..., {dict})):
-            for url in traverse_obj(prog_fmts, ('streamingLocations', ..., 'url', {url_or_none})):
+            for fmt_url in traverse_obj(prog_fmts, ('streamingLocations', ..., 'url', {url_or_none})):
                 formats.append({
-                    'url': url,
+                    'url': fmt_url,
                     **traverse_obj(prog_fmts, {
                         'width': ('width', {int_or_none}),
                         'height': ('height', {int_or_none}),
