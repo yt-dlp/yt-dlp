@@ -323,7 +323,7 @@ class LinkedInEventsIE(InfoExtractor):
                 'year': ('dateOn', 'year'),
                 'month': ('dateOn', 'month'),
                 'day': ('dateOn', 'day'),
-                'hour':  ('timeOfDay', 'hour'),
+                'hour': ('timeOfDay', 'hour'),
                 'minute': ('timeOfDay', 'minute'),
                 'second': ('timeOfDay', 'second'),
             }), expected_type=int_or_none)
