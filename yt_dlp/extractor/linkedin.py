@@ -1,3 +1,4 @@
+import datetime as dt
 import itertools
 import json
 import re
@@ -307,12 +308,43 @@ class LinkedInEventsIE(InfoExtractor):
 
         base_data = traverse_obj(webpage, (
             {find_elements(tag='code', attr='style', value='display: none')}, ..., {json.loads}, 'included', ...))
-        player_data = traverse_obj(base_data, (
-            lambda _, v: v['$type'] == 'com.linkedin.videocontent.VideoPlayMetadata', any, {require('player metadata')}))
         meta_data = traverse_obj(base_data, (
-            lambda _, v: v['$type'] == 'com.linkedin.voyager.dash.events.ProfessionalEvent', any))
+            lambda _, v: v['$type'] == 'com.linkedin.voyager.dash.events.ProfessionalEvent', any)) or {}
 
-        formats = []
+        live_status = {
+            'PAST': 'was_live',
+            'ONGOING': 'is_live',
+            'FUTURE': 'is_upcoming',
+        }.get(meta_data.get('lifecycleState'))
+
+        if live_status == 'is_upcoming':
+            player_data = {}
+            dt_params = traverse_obj(meta_data, ('startDateTime', {
+                'year': ('dateOn', 'year'),
+                'month': ('dateOn', 'month'),
+                'day': ('dateOn', 'day'),
+                'hour':  ('timeOfDay', 'hour'),
+                'minute': ('timeOfDay', 'minute'),
+                'second': ('timeOfDay', 'second'),
+            }), expected_type=int_or_none)
+
+            if len(dt_params) == 6:
+                start_time = dt.datetime(**dt_params, tzinfo=dt.timezone.utc)
+                # Extracted as release_timestamp for --wait-for-video support
+                player_data['liveStreamCreatedAt'] = start_time.timestamp() * 1000
+                message = f'This live event will begin at {start_time.strftime("%Y-%m-%d %H:%M:%S %Z")}'
+            else:
+                message = 'This live event has not yet started'
+
+            self.raise_no_formats(message, expected=True, video_id=event_id)
+
+        else:
+            # TODO: Add support for audio-only live events
+            player_data = traverse_obj(base_data, (
+                lambda _, v: v['$type'] == 'com.linkedin.videocontent.VideoPlayMetadata',
+                any, {require('video player data')}))
+
+        formats, subtitles = [], {}
         for prog_fmts in traverse_obj(player_data, ('progressiveStreams', ..., {dict})):
             for fmt_url in traverse_obj(prog_fmts, ('streamingLocations', ..., 'url', {url_or_none})):
                 formats.append({
@@ -329,15 +361,19 @@ class LinkedInEventsIE(InfoExtractor):
         for m3u8_url in traverse_obj(player_data, (
             'adaptiveStreams', lambda _, v: v['protocol'] == 'HLS', 'masterPlaylists', ..., 'url', {url_or_none},
         )):
-            formats.extend(self._extract_m3u8_formats(
-                m3u8_url, event_id, 'mp4', m3u8_id='hls', fatal=False))
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                m3u8_url, event_id, 'mp4', m3u8_id='hls', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
         return {
             'id': event_id,
             'formats': formats,
+            'subtitles': subtitles,
+            'live_status': live_status,
             **traverse_obj(player_data, {
                 'duration': ('duration', {int_or_none(scale=1000)}),
-                'timestamp': ('liveStreamCreatedAt', {int_or_none(scale=1000)}),
+                'release_timestamp': ('liveStreamCreatedAt', {int_or_none(scale=1000)}),
             }),
             **traverse_obj(meta_data, {
                 'title': ('name', {str}),
