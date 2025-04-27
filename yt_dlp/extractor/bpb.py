@@ -126,6 +126,7 @@ class BpbIE(InfoExtractor):
             'quality': 10 if note == 'high' else 0,
             'format_note': note,
             'format_id': join_nonempty(extension, note),
+            **parse_resolution(source.get('label')),
         }
 
     def _real_extract(self, url):
