@@ -288,6 +288,9 @@ class LinkedInEventsIE(InfoExtractor):
             'duration': 1765,
             'timestamp': 1689113772,
             'upload_date': '20230711',
+            'release_timestamp': 1689174012,
+            'release_date': '20230712',
+            'live_status': 'was_live',
         },
     }, {
         'url': 'https://www.linkedin.com/events/27-02energyfreedombyenergyclub7295762520814874625/comments/',
@@ -299,6 +302,9 @@ class LinkedInEventsIE(InfoExtractor):
             'duration': 6420,
             'timestamp': 1739445333,
             'upload_date': '20250213',
+            'release_timestamp': 1740657620,
+            'release_date': '20250227',
+            'live_status': 'was_live',
         },
     }]
 
