@@ -36,7 +36,7 @@ jobs:
       run: python3 ./devscripts/make_lazy_extractors.py
     - name: Run ruff
       run: ruff check --output-format github .
-    - name: Check file mode
-      run: git ls-files --format="%(objectmode) %(path)" yt_dlp/ | grep -v "^100644"
     - name: Run autopep8
       run: autopep8 --diff .
+    - name: Check file mode
+      run: git ls-files --format="%(objectmode) %(path)" yt_dlp/ | ( ! grep -v "^100644" )
