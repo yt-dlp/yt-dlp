@@ -45,7 +45,7 @@ class NiconicoBaseIE(InfoExtractor):
     def is_logged_in(self):
         return bool(self._get_cookies('https://www.nicovideo.jp').get('user_session'))
 
-    def raise_login_error(self, error, default, expected=True):
+    def _raise_login_error(self, error, default, expected=True):
         raise ExtractorError(f'Unable to login: {error or default}', expected=expected)
 
     def _perform_login(self, username, password):
@@ -70,7 +70,7 @@ class NiconicoBaseIE(InfoExtractor):
         if err_msg := traverse_obj(webpage, (
             {find_element(cls='notice error')}, {find_element(cls='notice__text')}, {clean_html},
         )):
-            self.raise_login_error(err_msg, 'Invalid username or password')
+            self._raise_login_error(err_msg, 'Invalid username or password')
         elif 'oneTimePw' in webpage:
             post_url = self._search_regex(
                 r'<form[^>]+action=(["\'])(?P<url>.+?)\1', webpage, 'post url', group='url')
@@ -85,13 +85,13 @@ class NiconicoBaseIE(InfoExtractor):
 
             if 'error-code' in parse_qs(urlh.url):
                 err_msg = traverse_obj(mfa, ({find_element(cls='pageMainMsg')}, {clean_html}))
-                self.raise_login_error(err_msg, 'MFA session expired')
+                self._raise_login_error(err_msg, 'MFA session expired')
             if 'formError' in mfa:
                 err_msg = traverse_obj(mfa, (
                     {find_element(cls='formError')}, {find_element(tag='div')}, {clean_html}))
-                self.raise_login_error(err_msg, 'MFA challenge failed')
+                self._raise_login_error(err_msg, 'MFA challenge failed')
         else:
-            self.raise_login_error(None, 'Unexpected login error', expected=False)
+            self._raise_login_error(None, 'Unexpected login error', expected=False)
 
 
 class NiconicoIE(NiconicoBaseIE):
