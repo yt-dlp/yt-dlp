@@ -273,12 +273,10 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'Authorization': f'Bearer {self._fetch_oauth_token()}',
                 **self._IOS_CLIENT_HEADERS,
             }, query={
-                'outro': 'beginning',
                 'fields': ','.join((
-                    # 'embed_player_config_url' is a viable alternative to 'config_url'
-                    'config_url', 'created_time', 'description', 'download', 'license',
-                    'metadata.connections.comments.total', 'metadata.connections.likes.total',
-                    'release_time', 'stats.plays')),
+                    'config_url', 'embed_player_config_url', 'player_embed_url', 'download', 'play',
+                    'files', 'description', 'license', 'release_time', 'created_time', 'stats.plays',
+                    'metadata.connections.comments.total', 'metadata.connections.likes.total')),
             }, **kwargs)
 
     def _extract_original_format(self, url, video_id, unlisted_hash=None, api_data=None):
