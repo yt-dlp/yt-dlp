@@ -274,7 +274,7 @@ class LinkedInLearningCourseIE(LinkedInLearningBaseIE):
             course_data.get('description'))
 
 
-class LinkedInEventsIE(InfoExtractor):
+class LinkedInEventsIE(LinkedInBaseIE):
     IE_NAME = 'linkedin:events'
     _VALID_URL = r'https?://(?:www\.)?linkedin\.com/events/(?P<id>[\w-]+)'
     _TESTS = [{
@@ -306,6 +306,10 @@ class LinkedInEventsIE(InfoExtractor):
             'live_status': 'was_live',
         },
     }]
+
+    def _real_initialize(self):
+        if not self._get_cookies('https://www.linkedin.com/').get('li_at'):
+            self.raise_login_required()
 
     def _real_extract(self, url):
         event_id = self._match_id(url)
