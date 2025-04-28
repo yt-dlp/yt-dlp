@@ -83,6 +83,9 @@ class TV2DKIE(InfoExtractor):
     }, {
         'url': 'https://www.tv2nord.dk/artikel/dybt-uacceptabelt',
         'only_matching': True,
+    }, {
+        'url': 'https://www.tv2kosmopol.dk/metropolen/chaufforer-beordres-til-at-kore-videre-i-ulovlige-busser-med-rode-advarselslamper',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
