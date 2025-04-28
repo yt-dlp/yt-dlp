@@ -96,13 +96,16 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 expected=True)
         return password
 
-    def _verify_video_password(self, video_id, password, token):
+    def _verify_video_password(self, video_id):
+        video_password = self._get_video_password()
+        token = self._download_json(
+            'https://vimeo.com/_next/viewer', video_id, 'Downloading viewer info')['xsrft']
         url = f'https://vimeo.com/{video_id}'
         try:
-            return self._download_webpage(
+            self._request_webpage(
                 f'{url}/password', video_id,
                 'Submitting video password', data=json.dumps({
-                    'password': password,
+                    'password': video_password,
                     'token': token,
                 }, separators=(',', ':')).encode(), headers={
                     'Accept': '*/*',
@@ -900,10 +903,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                         self._webpage_read_content(e.cause.response, e.cause.response.url, video_id, fatal=False),
                         ({json.loads}, 'invalid_parameters', ..., 'field'),
                 )):
-                    viewer = self._download_json(
-                        'https://vimeo.com/_next/viewer', video_id, 'Downloading viewer info')
-                    self._verify_video_password(
-                        video_id, self._get_video_password(), viewer['xsrft'])
+                    self._verify_video_password(video_id)
                     continue
                 raise
 
@@ -1453,12 +1453,8 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         user, video_id, review_hash = self._match_valid_url(url).group('user', 'id', 'hash')
         data_url = f'https://vimeo.com/{user}/review/data/{video_id}/{review_hash}'
         data = self._download_json(data_url, video_id)
-        viewer = {}
         if data.get('isLocked') is True:
-            video_password = self._get_video_password()
-            viewer = self._download_json(
-                'https://vimeo.com/_rv/viewer', video_id)
-            self._verify_video_password(video_id, video_password, viewer['xsrft'])
+            self._verify_video_password(video_id)
             data = self._download_json(data_url, video_id)
         clip_data = data['clipData']
         config_url = clip_data['configUrl']
