@@ -39,8 +39,14 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     _NETRC_MACHINE = 'vimeo'
     _LOGIN_REQUIRED = False
     _LOGIN_URL = 'https://vimeo.com/log_in'
-    _APP_AUTH = 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw=='
-    _APP_USER_AGENT = 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0'
+    _IOS_CLIENT_AUTH = 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw=='
+    _IOS_CLIENT_HEADERS = {
+        'Accept': 'application/vnd.vimeo.*+json; version=3.4.10',
+        'Accept-Language': 'en',
+        'User-Agent': 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0',
+    }
+    _IOS_OAUTH_CACHE_KEY = 'oauth-token-ios'
+    _ios_oauth_token = None
 
     @staticmethod
     def _smuggle_referrer(url, referrer_url):
@@ -241,14 +247,31 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             '_format_sort_fields': ('quality', 'res', 'fps', 'hdr:12', 'source'),
         }
 
+    def _fetch_oauth_token(self):
+        if not self._ios_oauth_token:
+            self._ios_oauth_token = self.cache.load(self._NETRC_MACHINE, self._IOS_OAUTH_CACHE_KEY)
+
+        if not self._ios_oauth_token:
+            self._ios_oauth_token = self._download_json(
+                'https://api.vimeo.com/oauth/authorize/client', None,
+                'Fetching OAuth token', 'Failed to fetch OAuth token',
+                headers={
+                    'Authorization': f'Basic {self._IOS_CLIENT_AUTH}',
+                    **self._IOS_CLIENT_HEADERS,
+                }, data=urlencode_postdata({
+                    'grant_type': 'client_credentials',
+                    'scope': 'private public create edit delete interact upload purchased stats',
+                }, quote_via=urllib.parse.quote))['access_token']
+            self.cache.store(self._NETRC_MACHINE, self._IOS_OAUTH_CACHE_KEY, self._ios_oauth_token)
+
+        return self._ios_oauth_token
+
     def _call_videos_api(self, video_id, unlisted_hash=None, **kwargs):
         return self._download_json(
             join_nonempty(f'https://api.vimeo.com/videos/{video_id}', unlisted_hash, delim=':'),
             video_id, 'Downloading API JSON', headers={
-                'Authorization': f'Basic {self._APP_AUTH}',
-                'Accept': 'application/vnd.vimeo.*+json; version=3.4.10',
-                'Accept-Language': 'en',
-                'User-Agent': self._APP_USER_AGENT,
+                'Authorization': f'Bearer {self._fetch_oauth_token()}',
+                **self._IOS_CLIENT_HEADERS,
             }, query={
                 'outro': 'beginning',
                 'fields': ','.join((
