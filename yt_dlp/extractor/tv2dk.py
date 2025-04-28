@@ -4,7 +4,6 @@ import re
 from .common import InfoExtractor
 from .jwplatform import JWPlatformIE
 from ..utils import (
-    ExtractorError,
     determine_ext,
     js_to_json,
     url_or_none,
@@ -89,23 +88,14 @@ class TV2DKIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-
         search_space = traverse_obj(webpage, {find_element(tag='article')}) or webpage
-        players = re.findall(r'x-data="(?:video_player|simple_player)\(({[^"]+})', search_space)
 
-        entries = []
-        for player in players:
-            player_data = self._parse_json(
-                player, video_id, transform_source=js_to_json, fatal=False)
-            jwplayer_id = traverse_obj(player_data, (('jwpMediaId', 'videoId'), {str}, any))
-            if jwplayer_id:
-                entries.append(self.url_result(f'jwplatform:{jwplayer_id}', JWPlatformIE, jwplayer_id))
+        player_ids = traverse_obj(
+            re.findall(r'x-data="(?:video_player|simple_player)\(({[^"]+})', search_space),
+            (..., {js_to_json}, {json.loads}, ('jwpMediaId', 'videoId'), {str}))
 
-        if len(entries) == 1:
-            return entries[0]
-        elif len(entries) > 1:
-            return self.playlist_result(entries, video_id)
-        raise ExtractorError(f'No video found for {video_id}', expected=True)
+        return self.playlist_from_matches(
+            player_ids, video_id, getter=lambda x: f'jwplatform:{x}', ie=JWPlatformIE)
 
 
 class TV2DKBornholmPlayIE(InfoExtractor):
