@@ -1,4 +1,3 @@
-import datetime as dt
 import itertools
 import json
 import re
@@ -325,25 +324,11 @@ class LinkedInEventsIE(InfoExtractor):
 
         if live_status == 'is_upcoming':
             player_data = {}
-            dt_params = traverse_obj(meta_data, ('startDateTime', {
-                'year': ('dateOn', 'year'),
-                'month': ('dateOn', 'month'),
-                'day': ('dateOn', 'day'),
-                'hour': ('timeOfDay', 'hour'),
-                'minute': ('timeOfDay', 'minute'),
-                'second': ('timeOfDay', 'second'),
-            }), expected_type=int_or_none)
-
-            if len(dt_params) == 6:
-                start_time = dt.datetime(**dt_params, tzinfo=dt.timezone.utc)
-                # Extracted as release_timestamp for --wait-for-video support
-                player_data['liveStreamCreatedAt'] = start_time.timestamp() * 1000
-                message = f'This live event will begin at {start_time.strftime("%Y-%m-%d %H:%M:%S %Z")}'
+            if event_time := traverse_obj(meta_data, ('displayEventTime', {str})):
+                message = f'This live event is scheduled for {event_time}'
             else:
                 message = 'This live event has not yet started'
-
             self.raise_no_formats(message, expected=True, video_id=event_id)
-
         else:
             # TODO: Add support for audio-only live events
             player_data = traverse_obj(base_data, (
@@ -377,13 +362,16 @@ class LinkedInEventsIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'live_status': live_status,
-            **traverse_obj(player_data, {
-                'duration': ('duration', {int_or_none(scale=1000)}),
-                'release_timestamp': ('liveStreamCreatedAt', {int_or_none(scale=1000)}),
-            }),
             **traverse_obj(meta_data, {
                 'title': ('name', {str}),
                 'description': ('description', 'text', {str}),
                 'timestamp': ('createdAt', {int_or_none(scale=1000)}),
+                # timeRange.start is available when the stream is_upcoming
+                'release_timestamp': ('timeRange', 'start', {int_or_none(scale=1000)}),
+            }),
+            **traverse_obj(player_data, {
+                'duration': ('duration', {int_or_none(scale=1000)}),
+                # liveStreamCreatedAt is only available when the stream is_live or was_live
+                'release_timestamp': ('liveStreamCreatedAt', {int_or_none(scale=1000)}),
             }),
         }
