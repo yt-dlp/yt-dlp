@@ -23,7 +23,6 @@ from ..utils import (
     qualities,
     remove_start,
     str_or_none,
-    traverse_obj,
     try_get,
     unescapeHTML,
     unified_timestamp,
@@ -33,13 +32,70 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import find_element, traverse_obj
 
 
-class NiconicoIE(InfoExtractor):
+class NiconicoBaseIE(InfoExtractor):
+    _GEO_BYPASS = False
+    _GEO_COUNTRIES = ['JP']
+    _LOGIN_BASE = 'https://account.nicovideo.jp'
+    _NETRC_MACHINE = 'niconico'
+
+    @property
+    def is_logged_in(self):
+        return bool(self._get_cookies('https://www.nicovideo.jp').get('user_session'))
+
+    def _raise_login_error(self, message, expected=True):
+        raise ExtractorError(f'Unable to login: {message}', expected=expected)
+
+    def _perform_login(self, username, password):
+        if self.is_logged_in:
+            return
+
+        self._request_webpage(
+            f'{self._LOGIN_BASE}/login', None, 'Requesting session cookies')
+        webpage = self._download_webpage(
+            f'{self._LOGIN_BASE}/login/redirector', None,
+            'Logging in', 'Unable to log in', headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Referer': f'{self._LOGIN_BASE}/login',
+            }, data=urlencode_postdata({
+                'mail_tel': username,
+                'password': password,
+            }))
+
+        if self.is_logged_in:
+            return
+        elif err_msg := traverse_obj(webpage, (
+            {find_element(cls='notice error')}, {find_element(cls='notice__text')}, {clean_html},
+        )):
+            self._raise_login_error(err_msg or 'Invalid username or password')
+        elif 'oneTimePw' in webpage:
+            post_url = self._search_regex(
+                r'<form[^>]+action=(["\'])(?P<url>.+?)\1', webpage, 'post url', group='url')
+            mfa, urlh = self._download_webpage_handle(
+                urljoin(self._LOGIN_BASE, post_url), None,
+                'Performing MFA', 'Unable to complete MFA', headers={
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }, data=urlencode_postdata({
+                    'otp': self._get_tfa_info('6 digit number shown on app'),
+                }))
+            if self.is_logged_in:
+                return
+            elif 'error-code' in parse_qs(urlh.url):
+                err_msg = traverse_obj(mfa, ({find_element(cls='pageMainMsg')}, {clean_html}))
+                self._raise_login_error(err_msg or 'MFA session expired')
+            elif 'formError' in mfa:
+                err_msg = traverse_obj(mfa, (
+                    {find_element(cls='formError')}, {find_element(tag='div')}, {clean_html}))
+                self._raise_login_error(err_msg or 'MFA challenge failed')
+
+        self._raise_login_error('Unexpected login error', expected=False)
+
+
+class NiconicoIE(NiconicoBaseIE):
     IE_NAME = 'niconico'
     IE_DESC = 'ニコニコ動画'
-    _GEO_COUNTRIES = ['JP']
-    _GEO_BYPASS = False
 
     _TESTS = [{
         'url': 'http://www.nicovideo.jp/watch/sm22312215',
@@ -179,47 +235,6 @@ class NiconicoIE(InfoExtractor):
     }]
 
     _VALID_URL = r'https?://(?:(?:www\.|secure\.|sp\.)?nicovideo\.jp/watch|nico\.ms)/(?P<id>(?:[a-z]{2})?[0-9]+)'
-    _NETRC_MACHINE = 'niconico'
-
-    def _perform_login(self, username, password):
-        login_ok = True
-        login_form_strs = {
-            'mail_tel': username,
-            'password': password,
-        }
-        self._request_webpage(
-            'https://account.nicovideo.jp/login', None,
-            note='Acquiring Login session')
-        page = self._download_webpage(
-            'https://account.nicovideo.jp/login/redirector?show_button_twitter=1&site=niconico&show_button_facebook=1', None,
-            note='Logging in', errnote='Unable to log in',
-            data=urlencode_postdata(login_form_strs),
-            headers={
-                'Referer': 'https://account.nicovideo.jp/login',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            })
-        if 'oneTimePw' in page:
-            post_url = self._search_regex(
-                r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page, 'post url', group='url')
-            page = self._download_webpage(
-                urljoin('https://account.nicovideo.jp', post_url), None,
-                note='Performing MFA', errnote='Unable to complete MFA',
-                data=urlencode_postdata({
-                    'otp': self._get_tfa_info('6 digits code'),
-                }), headers={
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                })
-            if 'oneTimePw' in page or 'formError' in page:
-                err_msg = self._html_search_regex(
-                    r'formError["\']+>(.*?)</div>', page, 'form_error',
-                    default='There\'s an error but the message can\'t be parsed.',
-                    flags=re.DOTALL)
-                self.report_warning(f'Unable to log in: MFA challenge failed, "{err_msg}"')
-                return False
-        login_ok = 'class="notice error"' not in page
-        if not login_ok:
-            self.report_warning('Unable to log in: bad username or password')
-        return login_ok
 
     def _yield_dms_formats(self, api_data, video_id):
         fmt_filter = lambda _, v: v['isAvailable'] and v['id']
@@ -738,7 +753,7 @@ class NiconicoUserIE(InfoExtractor):
         return self.playlist_result(self._entries(list_id), list_id)
 
 
-class NiconicoLiveIE(InfoExtractor):
+class NiconicoLiveIE(NiconicoBaseIE):
     IE_NAME = 'niconico:live'
     IE_DESC = 'ニコニコ生放送'
     _VALID_URL = r'https?://(?:sp\.)?live2?\.nicovideo\.jp/(?:watch|gate)/(?P<id>lv\d+)'
