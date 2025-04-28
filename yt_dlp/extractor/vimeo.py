@@ -40,7 +40,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     _LOGIN_REQUIRED = False
     _LOGIN_URL = 'https://vimeo.com/log_in'
     _APP_AUTH = 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw=='
-    _APP_USER_AGENT = 'Vimeo/11.9.0 (com.vimeo; build:110900.64.0; iOS 16.1.1) Alamofire/5.9.0 VimeoNetworking/5.0.0'
+    _APP_USER_AGENT = 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0'
 
     @staticmethod
     def _smuggle_referrer(url, referrer_url):
