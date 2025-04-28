@@ -80,15 +80,15 @@ class NiconicoBaseIE(InfoExtractor):
                 }, data=urlencode_postdata({
                     'otp': self._get_tfa_info('6 digit number shown on app'),
                 }))
-            if 'error-code' in parse_qs(urlh.url):
+            if self.is_logged_in:
+                return
+            elif 'error-code' in parse_qs(urlh.url):
                 err_msg = traverse_obj(mfa, ({find_element(cls='pageMainMsg')}, {clean_html}))
                 self._raise_login_error(err_msg or 'MFA session expired')
             elif 'formError' in mfa:
                 err_msg = traverse_obj(mfa, (
                     {find_element(cls='formError')}, {find_element(tag='div')}, {clean_html}))
                 self._raise_login_error(err_msg or 'MFA challenge failed')
-            elif self.is_logged_in:
-                return
 
         self._raise_login_error('Unexpected login error', expected=False)
 
