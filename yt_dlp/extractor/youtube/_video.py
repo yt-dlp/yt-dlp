@@ -1982,7 +1982,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _player_js_cache_key(self, player_url):
         player_id = self._extract_player_info(player_url)
         player_path = remove_start(urllib.parse.urlparse(player_url).path, f'/s/player/{player_id}/')
-        variant = self._INVERSE_PLAYER_JS_VARIANT_MAP.get(player_path)
+        variant = self._INVERSE_PLAYER_JS_VARIANT_MAP.get(player_path) or next((
+            v for k, v in self._INVERSE_PLAYER_JS_VARIANT_MAP.items()
+            if re.fullmatch(re.escape(k).replace('en_US', r'[a-zA-Z0-9_]+'), player_path)), None)
         if not variant:
             self.write_debug(
                 f'Unable to determine player JS variant\n'
@@ -3648,6 +3650,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     reason = f'{remove_end(reason.strip(), ".")}. {self._youtube_login_hint}'
                 elif get_first(playability_statuses, ('errorScreen', 'playerCaptchaViewModel', {dict})):
                     reason += '. YouTube is requiring a captcha challenge before playback'
+                elif "This content isn't available, try again later" in reason:
+                    reason = (
+                        f'{remove_end(reason.strip(), ".")}. {"Your account" if self.is_authenticated else "The current session"} '
+                        f'has been rate-limited by YouTube for up to an hour. It is recommended to use `-t sleep` to add a delay '
+                        f'between video requests to avoid exceeding the rate limit. For more information, refer to  '
+                        f'https://github.com/yt-dlp/yt-dlp/wiki/Extractors#this-content-isnt-available-try-again-later'
+                    )
                 self.raise_no_formats(reason, expected=True)
 
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
