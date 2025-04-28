@@ -7,6 +7,7 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     mimetype2ext,
+    parse_resolution,
     unified_strdate,
     url_or_none,
     urljoin,
