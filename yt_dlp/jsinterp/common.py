@@ -88,7 +88,7 @@ class JSIWrapper:
         self._url = self._sanitize_url(url)
         self.preferences: set[JSIPreference] = {
             order_to_pref(self._load_pref_from_option(), 10000),
-            order_to_pref(preferred_order, 100)
+            order_to_pref(preferred_order, 100),
         } | _JSI_PREFERENCES
 
         handler_classes = self._load_allowed_jsi_cls(only_include, exclude)

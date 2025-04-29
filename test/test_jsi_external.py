@@ -51,13 +51,19 @@ class NetscapeFields:
         return all(getattr(self, attr) == getattr(other, attr) for attr in ['name', 'value', 'domain', 'path', 'secure', 'expires'])
 
 
-def test_jsi_rumtimes(exclude=[]):
+def use_jsi_rumtimes(exclude=[]):
     def inner(func: typing.Callable[[unittest.TestCase, type[JSI]], None]):
         @functools.wraps(func)
         def wrapper(self: unittest.TestCase):
             for key, jsi in get_included_jsi(exclude=exclude).items():
+                def wrapped_jsi_with_unavaliable_auto_skip(*args, **kwargs):
+                    instance = jsi(*args, **kwargs)
+                    if not instance.is_available():
+                        self.skipTest(f'{key} is not available')
+                    return instance
+
                 with self.subTest(key):
-                    func(self, jsi)
+                    func(self, wrapped_jsi_with_unavaliable_auto_skip)
         return wrapper
     return inner
 
@@ -69,12 +75,12 @@ class TestExternalJSI(unittest.TestCase):
     def setUp(self):
         self.ydl = FakeYDL()
 
-    @test_jsi_rumtimes()
+    @use_jsi_rumtimes()
     def test_execute(self, jsi_cls: type[JSI]):
         jsi = jsi_cls(self.ydl, '', 10)
         self.assertEqual(jsi.execute('console.log("Hello, world!");'), 'Hello, world!')
 
-    @test_jsi_rumtimes()
+    @use_jsi_rumtimes()
     def test_user_agent(self, jsi_cls: type[JSI]):
         ua = self.ydl.params['http_headers']['User-Agent']
 
@@ -85,13 +91,13 @@ class TestExternalJSI(unittest.TestCase):
         jsi = jsi_cls(self.ydl, '', 10, user_agent='test/ua')
         self.assertEqual(jsi.execute('console.log(navigator.userAgent);'), 'test/ua')
 
-    @test_jsi_rumtimes()
+    @use_jsi_rumtimes()
     def test_location(self, jsi_cls: type[JSI]):
         jsi = jsi_cls(self.ydl, 'https://example.com/123/456', 10)
         self.assertEqual(jsi.execute('console.log(JSON.stringify([location.href, location.hostname]));'),
                          '["https://example.com/123/456","example.com"]')
 
-    @test_jsi_rumtimes(exclude=['Deno'])
+    @use_jsi_rumtimes(exclude=['Deno'])
     def test_execute_dom_parse(self, jsi_cls: type[JSI]):
         jsi = jsi_cls(self.ydl, '', 10)
         self.assertEqual(jsi.execute(
@@ -99,7 +105,7 @@ class TestExternalJSI(unittest.TestCase):
             html='<html><body><div id="test-div">Hello, world!</div></body></html>'),
             'Hello, world!')
 
-    @test_jsi_rumtimes(exclude=['Deno'])
+    @use_jsi_rumtimes(exclude=['Deno'])
     def test_execute_dom_script(self, jsi_cls: type[JSI]):
         jsi = jsi_cls(self.ydl, '', 10)
         self.assertEqual(jsi.execute(
@@ -115,7 +121,7 @@ class TestExternalJSI(unittest.TestCase):
             </body></html>'''),
             'Hello, world!')
 
-    @test_jsi_rumtimes(exclude=['Deno'])
+    @use_jsi_rumtimes(exclude=['Deno'])
     def test_dom_location(self, jsi_cls: type[JSI]):
         jsi = jsi_cls(self.ydl, 'https://example.com/123/456', 10)
         self.assertEqual(jsi.execute(
@@ -125,7 +131,7 @@ class TestExternalJSI(unittest.TestCase):
             <body><div id="test-div">Hello, world!</div></body></html>'''),
             'example.com')
 
-    @test_jsi_rumtimes(exclude=['Deno'])
+    @use_jsi_rumtimes(exclude=['Deno'])
     def test_execute_cookiejar(self, jsi_cls: type[JSI]):
         cookiejar = YoutubeDLCookieJar()
         ref_cookiejar = YoutubeDLCookieJar()
@@ -176,7 +182,7 @@ class TestExternalJSI(unittest.TestCase):
             cookiejar=cookiejar),
             'test1=new1; test2=new2; test3=test3; test5=test5')
 
-    @test_jsi_rumtimes(exclude=['PhantomJS'])
+    @use_jsi_rumtimes(exclude=['PhantomJS'])
     def test_wasm(self, jsi_cls: type[JSI]):
         with open(os.path.join(self._TESTDATA_DIR, 'hello_wasm.js')) as f:
             js_mod = f.read()
