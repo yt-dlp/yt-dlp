@@ -23,7 +23,6 @@ from ..utils import (
     qualities,
     remove_start,
     str_or_none,
-    try_get,
     unescapeHTML,
     unified_timestamp,
     update_url_query,
@@ -785,8 +784,6 @@ class NiconicoLiveIE(NiconicoBaseIE):
         'only_matching': True,
     }]
 
-    _KNOWN_LATENCY = ('high', 'low')
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
@@ -802,22 +799,19 @@ class NiconicoLiveIE(NiconicoBaseIE):
         })
 
         hostname = remove_start(urllib.parse.urlparse(urlh.url).hostname, 'sp.')
-        latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
-        if latency not in self._KNOWN_LATENCY:
-            latency = 'high'
 
         ws = self._request_webpage(
             Request(ws_url, headers={'Origin': f'https://{hostname}'}),
             video_id=video_id, note='Connecting to WebSocket server')
 
-        self.write_debug('[debug] Sending HLS server request')
+        self.write_debug('Sending HLS server request')
         ws.send(json.dumps({
             'type': 'startWatching',
             'data': {
                 'stream': {
                     'quality': 'abr',
-                    'protocol': 'hls+fmp4',
-                    'latency': latency,
+                    'protocol': 'hls',
+                    'latency': 'high',
                     'accessRightMethod': 'single_cookie',
                     'chasePlay': False,
                 },
@@ -881,16 +875,20 @@ class NiconicoLiveIE(NiconicoBaseIE):
         for cookie in cookies:
             self._set_cookie(
                 cookie['domain'], cookie['name'], cookie['value'],
-                expire_time=unified_timestamp(cookie['expires']), path=cookie['path'], secure=cookie['secure'])
+                expire_time=unified_timestamp(cookie.get('expires')), path=cookie['path'], secure=cookie['secure'])
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
-        for fmt, q in zip(formats, reversed(qualities[1:])):
+        qualities = [
+            *('audio_high', 'audio_low'),
+            *(q for q in qualities[1:] if not q.startswith('audio')),
+        ]
+        for fmt, q in zip(formats, qualities):
             fmt.update({
                 'format_id': q,
                 'protocol': 'niconico_live',
                 'ws': ws,
                 'video_id': video_id,
-                'live_latency': latency,
+                'live_latency': 'high',
                 'origin': hostname,
             })
 
