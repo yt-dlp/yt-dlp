@@ -2122,23 +2122,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return ret
         return inner
 
-    def _load_nsig_code_from_cache(self, player_url):
-        cache_id = ('youtube-nsig', self._player_js_cache_key(player_url))
+    def _load_player_data_from_cache(self, name, player_url):
+        cache_id = (f'youtube-{name}', self._player_js_cache_key(player_url))
 
-        if func_code := self._player_cache.get(cache_id):
-            return func_code
+        if data := self._player_cache.get(cache_id):
+            return data
 
-        func_code = self.cache.load(*cache_id, min_ver='2025.03.31')
-        if func_code:
-            self._player_cache[cache_id] = func_code
+        data = self.cache.load(*cache_id, min_ver='2025.03.31')
+        if data:
+            self._player_cache[cache_id] = data
 
-        return func_code
+        return data
 
-    def _store_nsig_code_to_cache(self, player_url, func_code):
-        cache_id = ('youtube-nsig', self._player_js_cache_key(player_url))
+    def _store_player_data_to_cache(self, name, player_url, data):
+        cache_id = (f'youtube-{name}', self._player_js_cache_key(player_url))
         if cache_id not in self._player_cache:
-            self.cache.store(*cache_id, func_code)
-            self._player_cache[cache_id] = func_code
+            self.cache.store(*cache_id, data)
+            self._player_cache[cache_id] = data
 
     def _decrypt_signature(self, s, video_id, player_url):
         """Turn the encrypted s field into a working signature"""
@@ -2181,7 +2181,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         self.write_debug(f'Decrypted nsig {s} => {ret}')
         # Only cache nsig func JS code to disk if successful, and only once
-        self._store_nsig_code_to_cache(player_url, func_code)
+        self._store_player_data_to_cache('nsig', player_url, func_code)
         return ret
 
     def _extract_n_function_name(self, jscode, player_url=None):
@@ -2300,7 +2300,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
-        func_code = self._load_nsig_code_from_cache(player_url)
+        func_code = self._load_player_data_from_cache('nsig', player_url)
         jscode = func_code or self._load_player(video_id, player_url)
         jsi = JSInterpreter(jscode)
 
@@ -2336,23 +2336,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         Extract signatureTimestamp (sts)
         Required to tell API what sig/player version is in use.
         """
-        sts = None
-        if isinstance(ytcfg, dict):
-            sts = int_or_none(ytcfg.get('STS'))
+        if sts := traverse_obj(ytcfg, ('STS', {int_or_none})):
+            return sts
 
-        if not sts:
-            # Attempt to extract from player
-            if player_url is None:
-                error_msg = 'Cannot extract signature timestamp without player_url.'
-                if fatal:
-                    raise ExtractorError(error_msg)
-                self.report_warning(error_msg)
-                return
-            code = self._load_player(video_id, player_url, fatal=fatal)
-            if code:
-                sts = int_or_none(self._search_regex(
-                    r'(?:signatureTimestamp|sts)\s*:\s*(?P<sts>[0-9]{5})', code,
-                    'JS player signature timestamp', group='sts', fatal=fatal))
+        if not player_url:
+            error_msg = 'Cannot extract signature timestamp without player url'
+            if fatal:
+                raise ExtractorError(error_msg)
+            self.report_warning(error_msg)
+            return None
+
+        sts = self._load_player_data_from_cache('sts', player_url)
+        if sts:
+            return sts
+
+        if code := self._load_player(video_id, player_url, fatal=fatal):
+            sts = int_or_none(self._search_regex(
+                r'(?:signatureTimestamp|sts)\s*:\s*(?P<sts>[0-9]{5})', code,
+                'JS player signature timestamp', group='sts', fatal=fatal))
+            if sts:
+                self._store_player_data_to_cache('sts', player_url, sts)
+
         return sts
 
     def _mark_watched(self, video_id, player_responses):
