@@ -2,79 +2,46 @@ from __future__ import annotations
 
 import abc
 import typing
-import functools
+import inspect
 
+from ..globals import jsi_runtimes
 from ..extractor.common import InfoExtractor
 from ..utils import (
     classproperty,
     format_field,
     filter_dict,
     get_exe_version,
-    variadic,
     url_or_none,
     sanitize_url,
     ExtractorError,
 )
 
-
-_JSI_HANDLERS: dict[str, type[JSI]] = {}
 _JSI_PREFERENCES: set[JSIPreference] = set()
-_ALL_FEATURES = {
-    'wasm',
-    'location',
-    'dom',
-    'cookies',
-}
 
 
-def get_jsi_keys(jsi_or_keys: typing.Iterable[str | type[JSI] | JSI]) -> list[str]:
+def all_handlers() -> dict[str, type[JSI]]:
+    return {jsi.JSI_KEY: jsi for jsi in jsi_runtimes.value.values()}
+
+
+def to_jsi_keys(jsi_or_keys: typing.Iterable[str | type[JSI] | JSI]) -> list[str]:
     return [jok if isinstance(jok, str) else jok.JSI_KEY for jok in jsi_or_keys]
 
 
-def filter_jsi_keys(features=None, only_include=None, exclude=None):
-    keys = list(_JSI_HANDLERS)
-    if features:
-        keys = [key for key in keys if key in _JSI_HANDLERS
-                and _JSI_HANDLERS[key]._SUPPORTED_FEATURES.issuperset(features)]
-    if only_include:
-        keys = [key for key in keys if key in get_jsi_keys(only_include)]
-    if exclude:
-        keys = [key for key in keys if key not in get_jsi_keys(exclude)]
-    return keys
-
-
-def filter_jsi_include(only_include: typing.Iterable[str] | None, exclude: typing.Iterable[str] | None):
-    keys = get_jsi_keys(only_include) if only_include else _JSI_HANDLERS.keys()
-    return [key for key in keys if key not in (exclude or [])]
-
-
-def filter_jsi_feature(features: typing.Iterable[str], keys=None):
-    keys = keys if keys is not None else _JSI_HANDLERS.keys()
-    return [key for key in keys if key in _JSI_HANDLERS
-            and _JSI_HANDLERS[key]._SUPPORTED_FEATURES.issuperset(features)]
+def get_included_jsi(only_include=None, exclude=None):
+    return {
+        key: value for key, value in all_handlers().items()
+        if (not only_include or key in to_jsi_keys(only_include))
+        and (not exclude or key not in to_jsi_keys(exclude))
+    }
 
 
 def order_to_pref(jsi_order: typing.Iterable[str | type[JSI] | JSI], multiplier: int) -> JSIPreference:
-    jsi_order = reversed(get_jsi_keys(jsi_order))
+    jsi_order = reversed(to_jsi_keys(jsi_order))
     pref_score = {jsi_cls: (i + 1) * multiplier for i, jsi_cls in enumerate(jsi_order)}
 
     def _pref(jsi: JSI, *args):
         return pref_score.get(jsi.JSI_KEY, 0)
     return _pref
-
-
-def require_features(param_features: dict[str, str | typing.Iterable[str]]):
-    assert all(_ALL_FEATURES.issuperset(variadic(kw_feature)) for kw_feature in param_features.values())
-
-    def outer(func):
-        @functools.wraps(func)
-        def inner(self: JSIWrapper, *args, **kwargs):
-            for kw_name, kw_feature in param_features.items():
-                if kw_name in kwargs and not self._features.issuperset(variadic(kw_feature)):
-                    raise ExtractorError(f'feature {kw_feature} is required for `{kw_name}` param but not declared')
-            return func(self, *args, **kwargs)
-        return inner
-    return outer
 
 
 class JSIWrapper:
@@ -85,25 +52,17 @@ class JSIWrapper:
     ```
     def _real_extract(self, url):
         ...
-        jsi = JSIWrapper(self, url, features=['js'])
+        jsi = JSIWrapper(self, url)
         result = jsi.execute(jscode, video_id)
         ...
     ```
 
-    Features:
-    - `wasm`: supports window.WebAssembly
-    - `location`: supports mocking window.location
-    - `dom`: supports DOM interface (not necessarily rendering)
-    - `cookies`: supports document.cookie read & write
-
     @param dl_or_ie: `YoutubeDL` or `InfoExtractor` instance.
-    @param url: setting url context, used by JSI that supports `location` feature
-    @param features: only JSI that supports all of these features will be selected
+    @param url: setting url context
     @param only_include: limit JSI to choose from.
     @param exclude: JSI to avoid using.
     @param jsi_params: extra kwargs to pass to `JSI.__init__()` for each JSI, using jsi key as dict key.
     @param preferred_order: list of JSI to use. First in list is tested first.
-    @param fallback_jsi: list of JSI that may fail and should act non-fatal and fallback to other JSI. Pass `"all"` to always fallback
     @param timeout: timeout parameter for all chosen JSI
     @param user_agent: override user-agent to use for supported JSI
     """
@@ -112,45 +71,56 @@ class JSIWrapper:
         self,
         dl_or_ie: YoutubeDL | InfoExtractor,
         url: str = '',
-        features: typing.Iterable[str] = [],
         only_include: typing.Iterable[str | type[JSI]] = [],
         exclude: typing.Iterable[str | type[JSI]] = [],
         jsi_params: dict[str, dict] = {},
         preferred_order: typing.Iterable[str | type[JSI]] = [],
-        fallback_jsi: typing.Iterable[str | type[JSI]] | typing.Literal['all'] = [],
         timeout: float | int = 10,
         user_agent: str | None = None,
     ):
-        self._downloader: YoutubeDL = dl_or_ie._downloader if isinstance(dl_or_ie, InfoExtractor) else dl_or_ie
-        self._url = sanitize_url(url_or_none(url)) or ''
-        self._features = set(features)
-        if url and not self._url:
-            self.report_warning(f'Invalid URL: "{url}", using empty string instead')
+        if isinstance(dl_or_ie, InfoExtractor):
+            self._downloader = dl_or_ie._downloader
+            self._ie_key = dl_or_ie.ie_key()
+        else:
+            self._downloader = dl_or_ie
+            self._ie_key = None
 
-        if unsupported_features := self._features - _ALL_FEATURES:
-            raise ExtractorError(f'Unsupported features: {unsupported_features}, allowed features: {_ALL_FEATURES}')
+        self._url = self._sanitize_url(url)
+        self.preferences: set[JSIPreference] = {
+            order_to_pref(self._load_pref_from_option(), 10000),
+            order_to_pref(preferred_order, 100)
+        } | _JSI_PREFERENCES
 
-        user_prefs = self._downloader.params.get('jsi_preference', [])
-        for invalid_key in [jsi_key for jsi_key in user_prefs if jsi_key not in _JSI_HANDLERS]:
-            self.report_warning(f'`{invalid_key}` is not a valid JSI, ignoring preference setting')
-            user_prefs.remove(invalid_key)
-
-        handler_classes = [_JSI_HANDLERS[key] for key in filter_jsi_keys(self._features, only_include, exclude)]
-        self.write_debug(f'Select JSI for features={self._features}: {get_jsi_keys(handler_classes)}, '
-                         f'included: {get_jsi_keys(only_include) or "all"}, excluded: {get_jsi_keys(exclude)}')
+        handler_classes = self._load_allowed_jsi_cls(only_include, exclude)
         if not handler_classes:
-            raise ExtractorError(f'No JSI supports features={self._features}')
+            raise ExtractorError('No JSI is allowed to use')
 
         self._handler_dict = {cls.JSI_KEY: cls(
-            self._downloader, url=self._url, timeout=timeout, features=self._features,
+            self._downloader, url=self._url, timeout=timeout,
             user_agent=user_agent, **jsi_params.get(cls.JSI_KEY, {}),
-        ) for cls in handler_classes}
+        ) for cls in handler_classes.values()}
 
-        self.preferences: set[JSIPreference] = {
-            order_to_pref(user_prefs, 10000), order_to_pref(preferred_order, 100)} | _JSI_PREFERENCES
-
-        self._fallback_jsi = get_jsi_keys(handler_classes) if fallback_jsi == 'all' else get_jsi_keys(fallback_jsi)
         self._is_test = self._downloader.params.get('test', False)
+
+    def _sanitize_url(self, url):
+        sanitized = sanitize_url(url_or_none(url)) or ''
+        if url and not sanitized:
+            self.report_warning(f'Invalid URL: "{url}", using empty string instead')
+        return sanitized
+
+    def _load_pref_from_option(self):
+        user_prefs = self._downloader.params.get('jsi_preference', [])
+        valid_handlers = list(all_handlers())
+        for invalid_key in [jsi_key for jsi_key in user_prefs if jsi_key not in valid_handlers]:
+            self.report_warning(f'`{invalid_key}` is not a valid JSI, ignoring preference setting')
+            user_prefs.remove(invalid_key)
+        return user_prefs
+
+    def _load_allowed_jsi_cls(self, only_include, exclude):
+        handler_classes = get_included_jsi(only_include, exclude)
+        self.write_debug(f'Select JSI: {to_jsi_keys(handler_classes)}, '
+                         f'included: {to_jsi_keys(only_include) or "all"}, excluded: {to_jsi_keys(exclude)}')
+        return handler_classes
 
     def write_debug(self, message, only_once=False):
         return self._downloader.write_debug(f'[JSIDirector] {message}', only_once=only_once)
@@ -159,11 +129,19 @@ class JSIWrapper:
         return self._downloader.report_warning(f'[JSIDirector] {message}', only_once=only_once)
 
     def _get_handlers(self, method_name: str, *args, **kwargs) -> list[JSI]:
-        handlers = [h for h in self._handler_dict.values() if callable(getattr(h, method_name, None))]
-        self.write_debug(f'Choosing handlers for method `{method_name}`: {get_jsi_keys(handlers)}')
+        def _supports(jsi: JSI):
+            if not callable(method := getattr(jsi, method_name, None)):
+                return False
+            method_params = inspect.signature(method).parameters
+            return all(key in method_params for key in kwargs)
+
+        handlers = [h for h in self._handler_dict.values() if _supports(h)]
+        self.write_debug(f'Choosing handlers for method `{method_name}` with kwargs {list(kwargs)}'
+                         f': {to_jsi_keys(handlers)}')
+
         if not handlers:
-            raise ExtractorError(f'No JSI supports method `{method_name}`, '
-                                 f'included handlers: {get_jsi_keys(self._handler_dict.values())}')
+            raise ExtractorError(f'No JSI supports method `{method_name}` with kwargs {list(kwargs)}, '
+                                 f'included handlers: {to_jsi_keys(self._handler_dict.values())}')
 
         preferences = {
             handler.JSI_KEY: sum(pref_func(handler, method_name, args, kwargs) for pref_func in self.preferences)
@@ -188,25 +166,25 @@ class JSIWrapper:
                 self.write_debug(f'{handler.JSI_KEY} is not available')
                 unavailable.append(handler.JSI_NAME)
                 continue
+
             try:
                 self.write_debug(f'Dispatching `{method_name}` task to {handler.JSI_NAME}')
                 return getattr(handler, method_name)(*args, **kwargs)
             except ExtractorError as e:
-                if handler.JSI_KEY not in self._fallback_jsi:
-                    raise
-                else:
-                    exceptions.append((handler, e))
-                    self.write_debug(f'{handler.JSI_NAME} encountered error, fallback to next handler: {e}')
+                if self._is_test:
+                    raise ExtractorError(f'{handler.JSI_NAME} got error while evaluating js, '
+                                         f'add "{handler.JSI_KEY}" in `exclude` if it should not be used')
+                exceptions.append((handler, e))
+                self.write_debug(f'{handler.JSI_NAME} encountered error, fallback to next handler: {e}')
 
         if not exceptions:
             msg = f'No available JSI installed, please install one of: {", ".join(unavailable)}'
         else:
             msg = f'Failed to perform {method_name}, total {len(exceptions)} errors'
             if unavailable:
-                msg = f'{msg}. You can try installing one of unavailable JSI: {", ".join(unavailable)}'
+                msg = f'{msg}. You may try installing one of unavailable JSI: {", ".join(unavailable)}'
         raise ExtractorError(msg)
 
-    @require_features({'location': 'location', 'html': 'dom', 'cookiejar': 'cookies'})
     def execute(self, jscode: str, video_id: str | None, note: str | None = None,
                 html: str | None = None, cookiejar: YoutubeDLCookieJar | None = None) -> str:
         """
@@ -215,24 +193,20 @@ class JSIWrapper:
         @param jscode: JS code to execute
         @param video_id
         @param note
-        @param html: html to load as document, requires `dom` feature
-        @param cookiejar: cookiejar to read and set cookies, requires `cookies` feature, pass `InfoExtractor.cookiejar` if you want to read and write cookies
+        @param html: html to load as document
+        @param cookiejar: cookiejar to read and set cookies, pass `InfoExtractor.cookiejar` if you want to read and write cookies
         """
         return self._dispatch_request('execute', jscode, video_id, **filter_dict({
             'note': note, 'html': html, 'cookiejar': cookiejar}))
 
 
 class JSI(abc.ABC):
-    _SUPPORTED_FEATURES: set[str] = set()
     _BASE_PREFERENCE: int = 0
 
-    def __init__(self, downloader: YoutubeDL, url: str, timeout: float | int, features: set[str], user_agent=None):
-        if not self._SUPPORTED_FEATURES.issuperset(features):
-            raise ExtractorError(f'{self.JSI_NAME} does not support all required features: {features}')
+    def __init__(self, downloader: YoutubeDL, url: str, timeout: float | int, user_agent=None):
         self._downloader = downloader
         self._url = url
         self.timeout = timeout
-        self.features = features
         self.user_agent: str = user_agent or self._downloader.params['http_headers']['User-Agent']
 
     @abc.abstractmethod
@@ -277,15 +251,6 @@ class ExternalJSI(JSI, abc.ABC):
         return bool(cls.exe)
 
 
-def register_jsi(jsi_cls: JsiClass) -> JsiClass:
-    """Register a JS interpreter class"""
-    assert issubclass(jsi_cls, JSI), f'{jsi_cls} must be a subclass of JSI'
-    assert jsi_cls.JSI_KEY not in _JSI_HANDLERS, f'JSI {jsi_cls.JSI_KEY} already registered'
-    assert jsi_cls._SUPPORTED_FEATURES.issubset(_ALL_FEATURES), f'{jsi_cls._SUPPORTED_FEATURES - _ALL_FEATURES}  not declared in `_All_FEATURES`'
-    _JSI_HANDLERS[jsi_cls.JSI_KEY] = jsi_cls
-    return jsi_cls
-
-
 def register_jsi_preference(*handlers: type[JSI]):
     assert all(issubclass(handler, JSI) for handler in handlers), f'{handlers} must all be a subclass of JSI'
 
@@ -301,13 +266,12 @@ def register_jsi_preference(*handlers: type[JSI]):
 
 @register_jsi_preference()
 def _base_preference(handler: JSI, *args):
-    return getattr(handler, '_BASE_PREFERENCE', 0)
+    return min(10, getattr(handler, '_BASE_PREFERENCE', 0))
 
 
 if typing.TYPE_CHECKING:
     from ..YoutubeDL import YoutubeDL
     from ..cookies import YoutubeDLCookieJar
-    JsiClass = typing.TypeVar('JsiClass', bound=type[JSI])
 
     class JSIPreference(typing.Protocol):
         def __call__(self, handler: JSI, method_name: str, *args, **kwargs) -> int:

@@ -16,13 +16,11 @@ from ..utils import (
     unified_timestamp,
 )
 from ._helper import TempFileWrapper, random_string, override_navigator_js, extract_script_tags
-from .common import ExternalJSI, register_jsi
+from .common import ExternalJSI
 
 
-@register_jsi
 class DenoJSI(ExternalJSI):
     """JS interpreter class using Deno binary"""
-    _SUPPORTED_FEATURES = {'wasm', 'location'}
     _BASE_PREFERENCE = 5
     _EXE_NAME = 'deno'
     _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check']
@@ -58,9 +56,7 @@ class DenoJSI(ExternalJSI):
             return self._run_deno(cmd)
 
 
-@register_jsi
 class DenoJSDomJSI(DenoJSI):
-    _SUPPORTED_FEATURES = {'wasm', 'location', 'dom', 'cookies'}
     _BASE_PREFERENCE = 4
     _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check']
     _JSDOM_IMPORT_CHECKED = False
@@ -112,8 +108,7 @@ class DenoJSDomJSI(DenoJSI):
     def _ensure_jsdom(self):
         if self._JSDOM_IMPORT_CHECKED:
             return
-        cmd = [self.exe, 'cache', self._JSDOM_URL]
-        self._run_deno(cmd)
+        self._run_deno([self.exe, 'cache', self._JSDOM_URL])
         self._JSDOM_IMPORT_CHECKED = True
 
     def execute(self, jscode, video_id=None, note='Executing JS in Deno with jsdom', html='', cookiejar=None):
@@ -180,7 +175,7 @@ class DenoJSDomJSI(DenoJSI):
         '''
 
         # https://github.com/prebuild/node-gyp-build/blob/6822ec5/node-gyp-build.js#L196-L198
-        # This jsdom dependency raises fatal error on linux unless read permission is provided
+        # This jsdom dependency raises fatal error on linux unless read for this file is allowed
         read_flag = ['--allow-read=/etc/alpine-release'] if platform.system() == 'Linux' else []
 
         location_args = ['--location', self._url] if self._url else []

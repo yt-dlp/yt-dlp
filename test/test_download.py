@@ -25,7 +25,7 @@ from test.helper import (
 
 import yt_dlp.YoutubeDL  # isort: split
 from yt_dlp.extractor import get_info_extractor
-from yt_dlp.jsinterp.common import filter_jsi_keys
+from yt_dlp.jsinterp.common import get_included_jsi
 from yt_dlp.networking.exceptions import HTTPError, TransportError
 from yt_dlp.utils import (
     DownloadError,
@@ -85,16 +85,16 @@ class TestDownload(unittest.TestCase):
 
 def generator(test_case, tname):
 
-    # setting `jsi_matrix` to True, `jsi_matrix_features` to list, or
-    #   setting `jsi_matrix_only_include` or `jsi_matrix_exclude` to non-empty list
+    # setting `jsi_matrix` to True, or `jsi_matrix_only_include`, `jsi_matrix_exclude` to non-empty list
     #   to trigger matrix behavior for JSI
-    if isinstance(test_case.get('jsi_matrix_features'), list) or any(test_case.get(key) for key in [
+    if any(test_case.get(key) for key in [
         'jsi_matrix', 'jsi_matrix_only_include', 'jsi_matrix_exclude',
     ]):
-        jsi_keys = filter_jsi_keys(
-            test_case.get('jsi_matrix_features'), test_case.get('jsi_matrix_only_include'),
-            test_case.get('jsi_matrix_exclude'))
+        jsi_keys = list(get_included_jsi(only_include=test_case.get('jsi_matrix_only_include'),
+                                         exclude=test_case.get('jsi_matrix_exclude')))
 
+        # use jsi_preference here, instead of force blocking other jsi runtimes
+        # exclusion, if needed, should be specified in test case to optimize testing
         def generate_jsi_sub_case(jsi_key):
             sub_case = filter_dict(test_case, lambda k, _: not k.startswith('jsi_matrix'))
             sub_case['params'] = {**test_case.get('params', {}), 'jsi_preference': [jsi_key]}
@@ -102,8 +102,9 @@ def generator(test_case, tname):
 
         def run_sub_cases(self):
             for i, jsi_key in enumerate(jsi_keys):
-                print(f'Running case {tname} using JSI: {jsi_key} ({i + 1}/{len(jsi_keys)})')
-                generate_jsi_sub_case(jsi_key)(self)
+                with self.subTest(jsi_key):
+                    print(f'Running case {tname} using JSI: {jsi_key} ({i + 1}/{len(jsi_keys)})')
+                    generate_jsi_sub_case(jsi_key)(self)
         return run_sub_cases
 
     def test_template(self):

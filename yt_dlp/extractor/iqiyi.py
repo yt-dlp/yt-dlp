@@ -417,7 +417,7 @@ class IqIE(InfoExtractor):
             'cast': ['Sangmin Choi', 'Ratana  Aiamsaart'],
         },
         'expected_warnings': ['format is restricted'],
-        'jsi_matrix_features': ['dom'],
+        'jsi_matrix': True,
     }, {
         'url': 'https://www.iq.com/play/one-piece-episode-1000-1ma1i6ferf4',
         'md5': '2d7caf6eeca8a32b407094b33b757d39',
@@ -616,7 +616,7 @@ class IqIE(InfoExtractor):
         else:
             ut_list = ['0']
 
-        jsi = JSIWrapper(self, url, ['dom'], timeout=120)
+        jsi = JSIWrapper(self, url, timeout=120)
 
         # bid 0 as an initial format checker
         dash_paths = self._parse_json(jsi.execute(self._DASH_JS % {
