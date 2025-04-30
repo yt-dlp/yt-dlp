@@ -167,11 +167,9 @@ class ZDFBaseIE(InfoExtractor):
 
 class ZDFIE(ZDFBaseIE):
     _VALID_URL = [
-        # Legacy redirects from before website redesign in 2025-03
-        # Also: URLs for the `/nachrichten/` sub-site
+        r'https?://(?:www\.)?zdf\.de/(?:video|play)/(?:[^/?#]+/)*(?P<id>[^/?#]+)',
+        # /nachrichten/ sub-site URLs and legacy redirects from before the redesign in 2025-03
         r'https?://(?:www\.)?zdf\.de/(?:[^/?#]+/)*(?P<id>[^/?#]+)\.html',
-        # URLs for individual videos on the main site
-        r'https?://(?:www\.)?zdf\.de/(?:video|play)/(?:[^/?#]+/)*(?P<id>[^/?#]+)/?',
     ]
     _TESTS = [{
         # Standalone video (i.e. not part of a playlist), video URL
