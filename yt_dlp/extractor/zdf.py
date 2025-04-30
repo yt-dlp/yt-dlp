@@ -480,6 +480,13 @@ query VideoByCanonical($canonical: String!) {
 }
     '''
 
+    def _extract_ptmd(self, *args, **kwargs):
+        ptmd_data = super()._extract_ptmd(*args, **kwargs)
+        # This was the video id before the graphql redesign, other extractors still use it as such
+        old_archive_id = ptmd_data.pop('id')
+        ptmd_data['_old_archive_ids'] = [make_archive_id(self, old_archive_id)]
+        return ptmd_data
+
     # This fallback should generally only happen for pages under `zdf.de/nachrichten`.
     # They are on a separate website for which GraphQL often doesn't return results.
     # The API used here is no longer in use by official clients and likely deprecated.
@@ -495,7 +502,6 @@ query VideoByCanonical($canonical: String!) {
         ptmd_url = traverse_obj(document, (
             ('streamApiUrlAndroid', ('streams', 0, 'streamApiUrlAndroid')),
             {url_or_none}, any, {require('PTMD URL')}))
-        ptmd_data = self._extract_ptmd(ptmd_url, document_id, self._get_api_token())
 
         thumbnails = []
         for thumbnail_key, thumbnail in traverse_obj(document, ('teaserBild', {dict.items}, ...)):
@@ -510,9 +516,7 @@ query VideoByCanonical($canonical: String!) {
             })
 
         return {
-            'id': document_id,
             'thumbnails': thumbnails,
-            **ptmd_data,
             **traverse_obj(video, {
                 'title': ('document', 'titel', {str}),
                 'description': ('document', 'beschreibung', {str}),
@@ -521,6 +525,8 @@ query VideoByCanonical($canonical: String!) {
                     {unified_timestamp}, any),
                 'subtitles': ('document', 'captions', {self._extract_subtitles}),
             }),
+            **self._extract_ptmd(ptmd_url, document_id, self._get_api_token()),
+            'id': document_id,
         }
 
     def _real_extract(self, url):
@@ -545,14 +551,7 @@ query VideoByCanonical($canonical: String!) {
             if not aspect_ratio:
                 aspect_ratio = self._parse_aspect_ratio(node.get('aspectRatio'))
 
-        ptmd_result = self._extract_ptmd(ptmd_urls, video_id, self._get_api_token(), aspect_ratio)
-        # This was the video id before the graphql redesign, other extractors still use it as such
-        old_archive_id = ptmd_result.pop('id')
-
         return {
-            'id': video_id,
-            '_old_archive_ids': [make_archive_id(self, old_archive_id)],
-            **ptmd_result,
             **traverse_obj(video_data, {
                 'title': ('title', {str}),
                 'description': (('leadParagraph', ('teaser', 'description')), any, {str}),
@@ -564,6 +563,8 @@ query VideoByCanonical($canonical: String!) {
                 'series_id': ('smartCollection', 'canonical', {str}),
                 'chapters': ('currentMedia', 'nodes', 0, 'streamAnchorTags', 'nodes', {self._extract_chapters}),
             }),
+            **self._extract_ptmd(ptmd_urls, video_id, self._get_api_token(), aspect_ratio),
+            'id': video_id,
         }
 
 
