@@ -533,7 +533,7 @@ query VideoByCanonical($canonical: String!) {
             ..., 'aspectRatio', {self._parse_aspect_ratio}, any))
         ptmd_result = self._extract_ptmd(ptmd_info, video_id, self._get_api_token(), aspect_ratio)
         # This was the video id before the graphql redesign, other extractors still use it as such
-        old_archive_id = ptmd_data.pop('id')
+        old_archive_id = ptmd_result.pop('id')
 
         return {
             'id': video_id,
