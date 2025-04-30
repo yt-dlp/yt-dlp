@@ -9,7 +9,7 @@ from ..utils.traversal import require, traverse_obj
 
 class DreiSatIE(ZDFBaseIE):
     IE_NAME = '3sat'
-    _VALID_URL = r'https?://(?:www\.)?3sat\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)\.html'
+    _VALID_URL = r'https?://(?:www\.)?3sat\.de/(?:[^/?#]+/)*(?P<id>[^/?#&]+)\.html'
     _TESTS = [{
         'url': 'https://www.3sat.de/dokumentation/reise/traumziele-suedostasiens-die-philippinen-und-vietnam-102.html',
         'info_dict': {
