@@ -396,7 +396,7 @@ class ZDFIE(ZDFBaseIE):
             'upload_date': '20250203',
             '_old_archive_ids': ['zdf 240319_2310_sendung_not'],
         },
-        'params': {'skip_download': 'geo-restricted m3u8'},
+        'params': {'skip_download': 'geo-restricted http format'},
     }, {
         # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
         'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
