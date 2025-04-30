@@ -70,7 +70,7 @@ class ZDFBaseIE(InfoExtractor):
             if not subtitle_url or subtitle_url in seen_urls:
                 continue
             seen_urls.add(subtitle_url)
-            lang = caption.get('language', 'deu')
+            lang = caption.get('language') or 'deu'
             subtitles.setdefault(lang, []).append({
                 'url': subtitle_url,
             })
