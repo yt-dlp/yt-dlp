@@ -1761,6 +1761,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         },
     ]
 
+    _PLAYER_JS_VARIANT_MAP = {
+        'main': 'player_ias.vflset/en_US/base.js',
+        'tce': 'player_ias_tce.vflset/en_US/base.js',
+        'tv': 'tv-player-ias.vflset/tv-player-ias.js',
+        'tv_es6': 'tv-player-es6.vflset/tv-player-es6.js',
+        'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
+        'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',
+    }
+    _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
+
     @classmethod
     def suitable(cls, url):
         from yt_dlp.utils import parse_qs
@@ -1940,6 +1950,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             get_all=False, expected_type=str)
         if not player_url:
             return
+
+        requested_js_variant = self._configuration_arg('player_js_variant', [''])[0] or 'actual'
+        if requested_js_variant in self._PLAYER_JS_VARIANT_MAP:
+            player_id = self._extract_player_info(player_url)
+            original_url = player_url
+            player_url = f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[requested_js_variant]}'
+            if original_url != player_url:
+                self.write_debug(
+                    f'Forcing "{requested_js_variant}" player JS variant for player {player_id}\n'
+                    f'        original url = {original_url}', only_once=True)
+        elif requested_js_variant != 'actual':
+            self.report_warning(
+                f'Invalid player JS variant name "{requested_js_variant}" requested. '
+                f'Valid choices are: {", ".join(self._PLAYER_JS_VARIANT_MAP)}', only_once=True)
+
         return urljoin('https://www.youtube.com', player_url)
 
     def _download_player_url(self, video_id, fatal=False):
@@ -1953,6 +1978,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 r'player\\?/([0-9a-fA-F]{8})\\?/', iframe_webpage, 'player version', fatal=fatal)
             if player_version:
                 return f'https://www.youtube.com/s/player/{player_version}/player_ias.vflset/en_US/base.js'
+
+    def _player_js_cache_key(self, player_url):
+        player_id = self._extract_player_info(player_url)
+        player_path = remove_start(urllib.parse.urlparse(player_url).path, f'/s/player/{player_id}/')
+        variant = self._INVERSE_PLAYER_JS_VARIANT_MAP.get(player_path) or next((
+            v for k, v in self._INVERSE_PLAYER_JS_VARIANT_MAP.items()
+            if re.fullmatch(re.escape(k).replace('en_US', r'[a-zA-Z0-9_]+'), player_path)), None)
+        if not variant:
+            self.write_debug(
+                f'Unable to determine player JS variant\n'
+                f'        player = {player_url}', only_once=True)
+            variant = re.sub(r'[^a-zA-Z0-9]', '_', remove_end(player_path, '.js'))
+        return join_nonempty(player_id, variant)
 
     def _signature_cache_id(self, example_sig):
         """ Return a string representation of a signature """
@@ -1969,25 +2007,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return id_m.group('id')
 
     def _load_player(self, video_id, player_url, fatal=True):
-        player_id = self._extract_player_info(player_url)
-        if player_id not in self._code_cache:
+        player_js_key = self._player_js_cache_key(player_url)
+        if player_js_key not in self._code_cache:
             code = self._download_webpage(
                 player_url, video_id, fatal=fatal,
-                note='Downloading player ' + player_id,
-                errnote=f'Download of {player_url} failed')
+                note=f'Downloading player {player_js_key}',
+                errnote=f'Download of {player_js_key} failed')
             if code:
-                self._code_cache[player_id] = code
-        return self._code_cache.get(player_id)
+                self._code_cache[player_js_key] = code
+        return self._code_cache.get(player_js_key)
 
     def _extract_signature_function(self, video_id, player_url, example_sig):
-        player_id = self._extract_player_info(player_url)
-
         # Read from filesystem cache
-        func_id = f'js_{player_id}_{self._signature_cache_id(example_sig)}'
+        func_id = join_nonempty(
+            self._player_js_cache_key(player_url), self._signature_cache_id(example_sig))
         assert os.path.basename(func_id) == func_id
 
         self.write_debug(f'Extracting signature function {func_id}')
-        cache_spec, code = self.cache.load('youtube-sigfuncs', func_id, min_ver='2025.03.27'), None
+        cache_spec, code = self.cache.load('youtube-sigfuncs', func_id, min_ver='2025.03.31'), None
 
         if not cache_spec:
             code = self._load_player(video_id, player_url)
@@ -2085,23 +2122,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return ret
         return inner
 
-    def _load_nsig_code_from_cache(self, player_id):
-        cache_id = ('nsig code', player_id)
+    def _load_player_data_from_cache(self, name, player_url):
+        cache_id = (f'youtube-{name}', self._player_js_cache_key(player_url))
 
-        if func_code := self._player_cache.get(cache_id):
-            return func_code
+        if data := self._player_cache.get(cache_id):
+            return data
 
-        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2025.03.27')
-        if func_code:
-            self._player_cache[cache_id] = func_code
+        data = self.cache.load(*cache_id, min_ver='2025.03.31')
+        if data:
+            self._player_cache[cache_id] = data
 
-        return func_code
+        return data
 
-    def _store_nsig_code_to_cache(self, player_id, func_code):
-        cache_id = ('nsig code', player_id)
+    def _store_player_data_to_cache(self, name, player_url, data):
+        cache_id = (f'youtube-{name}', self._player_js_cache_key(player_url))
         if cache_id not in self._player_cache:
-            self.cache.store('youtube-nsig', player_id, func_code)
-            self._player_cache[cache_id] = func_code
+            self.cache.store(*cache_id, data)
+            self._player_cache[cache_id] = data
 
     def _decrypt_signature(self, s, video_id, player_url):
         """Turn the encrypted s field into a working signature"""
@@ -2144,7 +2181,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         self.write_debug(f'Decrypted nsig {s} => {ret}')
         # Only cache nsig func JS code to disk if successful, and only once
-        self._store_nsig_code_to_cache(player_id, func_code)
+        self._store_player_data_to_cache('nsig', player_url, func_code)
         return ret
 
     def _extract_n_function_name(self, jscode, player_url=None):
@@ -2263,7 +2300,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
-        func_code = self._load_nsig_code_from_cache(player_id)
+        func_code = self._load_player_data_from_cache('nsig', player_url)
         jscode = func_code or self._load_player(video_id, player_url)
         jsi = JSInterpreter(jscode)
 
@@ -2299,23 +2336,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         Extract signatureTimestamp (sts)
         Required to tell API what sig/player version is in use.
         """
-        sts = None
-        if isinstance(ytcfg, dict):
-            sts = int_or_none(ytcfg.get('STS'))
+        if sts := traverse_obj(ytcfg, ('STS', {int_or_none})):
+            return sts
 
-        if not sts:
-            # Attempt to extract from player
-            if player_url is None:
-                error_msg = 'Cannot extract signature timestamp without player_url.'
-                if fatal:
-                    raise ExtractorError(error_msg)
-                self.report_warning(error_msg)
-                return
-            code = self._load_player(video_id, player_url, fatal=fatal)
-            if code:
-                sts = int_or_none(self._search_regex(
-                    r'(?:signatureTimestamp|sts)\s*:\s*(?P<sts>[0-9]{5})', code,
-                    'JS player signature timestamp', group='sts', fatal=fatal))
+        if not player_url:
+            error_msg = 'Cannot extract signature timestamp without player url'
+            if fatal:
+                raise ExtractorError(error_msg)
+            self.report_warning(error_msg)
+            return None
+
+        sts = self._load_player_data_from_cache('sts', player_url)
+        if sts:
+            return sts
+
+        if code := self._load_player(video_id, player_url, fatal=fatal):
+            sts = int_or_none(self._search_regex(
+                r'(?:signatureTimestamp|sts)\s*:\s*(?P<sts>[0-9]{5})', code,
+                'JS player signature timestamp', group='sts', fatal=fatal))
+            if sts:
+                self._store_player_data_to_cache('sts', player_url, sts)
+
         return sts
 
     def _mark_watched(self, video_id, player_responses):
@@ -3197,12 +3238,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
                 encrypted_sig = try_get(sc, lambda x: x['s'][0])
                 if not all((sc, fmt_url, player_url, encrypted_sig)):
-                    self.report_warning(
-                        f'Some {client_name} client https formats have been skipped as they are missing a url. '
-                        f'{"Your account" if self.is_authenticated else "The current session"} may have '
-                        f'the SSAP (server-side ads) experiment which interferes with yt-dlp. '
-                        f'Please see  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details.',
-                        video_id, only_once=True)
+                    msg = f'Some {client_name} client https formats have been skipped as they are missing a url. '
+                    if client_name == 'web':
+                        msg += 'YouTube is forcing SABR streaming for this client. '
+                    else:
+                        msg += (
+                            f'YouTube may have enabled the SABR-only or Server-Side Ad Placement experiment for '
+                            f'{"your account" if self.is_authenticated else "the current session"}. '
+                        )
+                    msg += 'See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details'
+                    self.report_warning(msg, video_id, only_once=True)
                     continue
                 try:
                     fmt_url += '&{}={}'.format(
@@ -3226,7 +3271,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if player_url:
                         self.report_warning(
                             f'nsig extraction failed: Some formats may be missing\n'
-                            f'         n = {query["n"][0]} ; player = {player_url}',
+                            f'         n = {query["n"][0]} ; player = {player_url}\n'
+                            f'         {bug_reports_message(before="")}',
                             video_id=video_id, only_once=True)
                         self.write_debug(e, only_once=True)
                     else:
@@ -3244,7 +3290,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_damaged = try_call(lambda: format_duration < duration // 2)
             if is_damaged:
                 self.report_warning(
-                    f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
+                    'Some formats are possibly damaged. They will be deprioritized', video_id, only_once=True)
 
             po_token = fmt.get(STREAMING_DATA_INITIAL_PO_TOKEN)
 
@@ -3610,6 +3656,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if 'sign in' in reason.lower():
                     reason = remove_end(reason, 'This helps protect our community. Learn more')
                     reason = f'{remove_end(reason.strip(), ".")}. {self._youtube_login_hint}'
+                elif get_first(playability_statuses, ('errorScreen', 'playerCaptchaViewModel', {dict})):
+                    reason += '. YouTube is requiring a captcha challenge before playback'
+                elif "This content isn't available, try again later" in reason:
+                    reason = (
+                        f'{remove_end(reason.strip(), ".")}. {"Your account" if self.is_authenticated else "The current session"} '
+                        f'has been rate-limited by YouTube for up to an hour. It is recommended to use `-t sleep` to add a delay '
+                        f'between video requests to avoid exceeding the rate limit. For more information, refer to  '
+                        f'https://github.com/yt-dlp/yt-dlp/wiki/Extractors#this-content-isnt-available-try-again-later'
+                    )
                 self.raise_no_formats(reason, expected=True)
 
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
@@ -3838,7 +3893,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not traverse_obj(initial_data, 'contents'):
                 self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
                 initial_data = None
-        if not initial_data:
+        if not initial_data and 'initial_data' not in self._configuration_arg('player_skip'):
             query = {'videoId': video_id}
             query.update(self._get_checkok_params())
             initial_data = self._extract_response(

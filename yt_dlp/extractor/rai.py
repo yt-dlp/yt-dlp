@@ -322,6 +322,27 @@ class RaiPlayIE(RaiBaseIE):
             'upload_date': '20120924',
         },
     }, {
+        # checking program_info gives false positive for DRM
+        'url': 'https://www.raiplay.it/video/2022/10/Ad-ogni-costo---Un-giorno-in-Pretura---Puntata-del-15102022-1dfd1295-ea38-4bac-b51e-f87e2881693b.html',
+        'md5': '572c6f711b7c5f2d670ba419b4ae3b08',
+        'info_dict': {
+            'id': '1dfd1295-ea38-4bac-b51e-f87e2881693b',
+            'ext': 'mp4',
+            'title': 'Ad ogni costo - Un giorno in Pretura - Puntata del 15/10/2022',
+            'alt_title': 'St 2022/23 - Un giorno in pretura - Ad ogni costo',
+            'description': 'md5:4046d97b2687f74f06a8b8270ba5599f',
+            'uploader': 'Rai 3',
+            'duration': 3773.0,
+            'thumbnail': 'https://www.raiplay.it/dl/img/2022/10/12/1665586539957_2048x2048.png',
+            'creators': ['Rai 3'],
+            'series': 'Un giorno in pretura',
+            'season': '2022/23',
+            'episode': 'Ad ogni costo',
+            'timestamp': 1665507240,
+            'upload_date': '20221011',
+            'release_year': 2025,
+        },
+    }, {
         'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
         'only_matching': True,
     }, {
@@ -340,9 +361,8 @@ class RaiPlayIE(RaiBaseIE):
         media = self._download_json(
             f'{base}.json', video_id, 'Downloading video JSON')
 
-        if not self.get_param('allow_unplayable_formats'):
-            if traverse_obj(media, (('program_info', None), 'rights_management', 'rights', 'drm')):
-                self.report_drm(video_id)
+        if traverse_obj(media, ('rights_management', 'rights', 'drm')):
+            self.report_drm(video_id)
 
         video = media['video']
         relinker_info = self._extract_relinker_info(video['content_url'], video_id)
