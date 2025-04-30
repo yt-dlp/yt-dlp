@@ -20,7 +20,7 @@ from ..utils import (
     urljoin,
     variadic,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
 class ZDFBaseIE(InfoExtractor):
@@ -494,7 +494,7 @@ query VideoByCanonical($canonical: String!) {
 
         ptmd_url = traverse_obj(document, (
             ('streamApiUrlAndroid', ('streams', 0, 'streamApiUrlAndroid')),
-            {url_or_none}, any))
+            {url_or_none}, any, {require('PTMD URL')}))
         ptmd_data = self._extract_ptmd_urls(ptmd_url, document_id, self._get_api_token())
 
         thumbnails = []
