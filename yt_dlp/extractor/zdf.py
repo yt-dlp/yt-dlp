@@ -96,7 +96,8 @@ class ZDFBaseIE(InfoExtractor):
             is_dgs = info.get('dgs')
             if not content_id and not is_dgs:
                 content_id = basename
-            duration = (duration or traverse_obj(ptmd, ('attributes', 'duration', 'value', {float_or_none(scale=1000)})))
+            if not duration:
+                duration = traverse_obj(ptmd, ('attributes', 'duration', 'value', {float_or_none(scale=1000)}))
             src_captions += ptmd.get('captions') or []
             for stream in traverse_obj(ptmd, ('priorityList', ..., 'formitaeten', ..., {dict})):
                 for quality in traverse_obj(stream, ('qualities', ..., {dict})):
