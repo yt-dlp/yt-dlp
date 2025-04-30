@@ -22,8 +22,8 @@ class DreiSatIE(ZDFBaseIE):
             'thumbnail': 'https://www.3sat.de/assets/traumziele-suedostasiens-die-philippinen-und-vietnam-100~original?cb=1699870351148',
             'episode': 'Traumziele Südostasiens (1/2): Die Philippinen und Vietnam',
             'episode_id': 'POS_cc7ff51c-98cf-4d12-b99d-f7a551de1c95',
-            'timestamp': 1738593000,
-            'upload_date': '20250203',
+            'timestamp': 1747920900,
+            'upload_date': '20250522',
         },
     }, {
         'url': 'https://www.3sat.de/film/ab-18/ab-18---mein-fremdes-ich-100.html',
