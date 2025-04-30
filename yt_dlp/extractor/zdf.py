@@ -498,7 +498,7 @@ query VideoByCanonical($canonical: String!) {
         ptmd_data = self._extract_ptmd_urls(ptmd_url, document_id, self._get_api_token())
 
         thumbnails = []
-        for thumbnail_key, thumbnail in traverse_obj(document, ('teaserBild', {dict.items})):
+        for thumbnail_key, thumbnail in traverse_obj(document, ('teaserBild', {dict.items}, ...)):
             thumbnail_url = traverse_obj(thumbnail, ('url', {url_or_none}))
             if not thumbnail_url:
                 continue
