@@ -96,7 +96,7 @@ class ZDFBaseIE(InfoExtractor):
         content_id = None
         duration = None
         formats = []
-        track_uris = set()
+        seen_urls = set()
         for info in ptmd_info:
             ptmd = self._call_api(info['url'], video_id, 'PTMD data', api_token)
             basename = ptmd.get('basename') or info['url'].split('/')[-2]
@@ -109,9 +109,9 @@ class ZDFBaseIE(InfoExtractor):
                 for quality in traverse_obj(stream, ('qualities', ..., {dict})):
                     for variant in traverse_obj(quality, ('audio', 'tracks', lambda _, v: url_or_none(v['uri']))):
                         format_url = variant['uri']
-                        if format_url in track_uris:
+                        if format_url in seen_urls:
                             continue
-                        track_uris.add(format_url)
+                        seen_urls.add(format_url)
                         ext = determine_ext(format_url)
                         if ext == 'm3u8':
                             fmts = self._extract_m3u8_formats(
