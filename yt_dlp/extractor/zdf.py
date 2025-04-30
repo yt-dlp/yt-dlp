@@ -1,9 +1,11 @@
+import itertools
 import json
 import re
 import time
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
     filter_dict,
     float_or_none,
@@ -181,6 +183,7 @@ class ZDFIE(ZDFBaseIE):
         # /nachrichten/ sub-site URLs and legacy redirects from before the redesign in 2025-03
         r'https?://(?:www\.)?zdf\.de/(?:[^/?#]+/)*(?P<id>[^/?#]+)\.html',
     ]
+    IE_NAME = 'zdf'
     _TESTS = [{
         # Standalone video (i.e. not part of a playlist), video URL
         'url': 'https://www.zdf.de/video/dokus/sylt---deutschlands-edles-nordlicht-movie-100/sylt-deutschlands-edles-nordlicht-100',
@@ -571,6 +574,7 @@ query VideoByCanonical($canonical: String!) {
 
 class ZDFChannelIE(ZDFBaseIE):
     _VALID_URL = r'https?://www\.zdf\.de/(?:[^/?#]+/)*(?P<id>[^/?#]+)'
+    IE_NAME = 'zdf:channel'
     _TESTS = [{
         # Playlist, legacy URL before website redesign in 2025-03
         'url': 'https://www.zdf.de/sport/das-aktuelle-sportstudio',
@@ -579,7 +583,7 @@ class ZDFChannelIE(ZDFBaseIE):
             'title': 'das aktuelle sportstudio',
             'description': 'md5:e46c785324238a03edcf8b301c5fd5dc',
         },
-        'playlist_mincount': 18,
+        'playlist_mincount': 25,
     }, {
         # Playlist, current URL
         'url': 'https://www.zdf.de/sport/das-aktuelle-sportstudio-220',
@@ -588,7 +592,7 @@ class ZDFChannelIE(ZDFBaseIE):
             'title': 'das aktuelle sportstudio',
             'description': 'md5:e46c785324238a03edcf8b301c5fd5dc',
         },
-        'playlist_mincount': 18,
+        'playlist_mincount': 25,
     }, {
         # Standalone video (i.e. not part of a playlist), collection URL
         'add_ie': [ZDFIE.ie_key()],
@@ -617,25 +621,107 @@ class ZDFChannelIE(ZDFBaseIE):
         'playlist_mincount': 2,
     }, {
         'url': 'https://www.zdf.de/serien/taunuskrimi/',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'taunuskrimi-100',
+            'title': 'Taunuskrimi',
+            'description': 'md5:ee7204e9c625c3b611d1274f9d0e3070',
+        },
+        'playlist_mincount': 8,
+    }, {
+        'url': 'https://www.zdf.de/serien/taunuskrimi/?staffel=1',
+        'info_dict': {
+            'id': 'taunuskrimi-100-s1',
+            'title': 'Taunuskrimi - Season 1',
+            'description': 'md5:ee7204e9c625c3b611d1274f9d0e3070',
+        },
+        'playlist_count': 7,
+    }, {
+        'url': 'https://www.zdf.de/magazine/heute-journal-104',
+        'info_dict': {
+            'id': 'heute-journal-104',
+            'title': 'heute journal',
+            'description': 'md5:6edad39189abf8431795d3d6d7f986b3',
+        },
+        'playlist_mincount': 500,
+    }, {
+        'url': 'https://www.zdf.de/magazine/heute-journal-104?staffel=2024',
+        'info_dict': {
+            'id': 'heute-journal-104-s2024',
+            'title': 'heute journal - Season 2024',
+            'description': 'md5:6edad39189abf8431795d3d6d7f986b3',
+        },
+        'playlist_count': 242,
     }]
+
+    _PAGE_SIZE = 24
 
     @classmethod
     def suitable(cls, url):
         return False if ZDFIE.suitable(url) else super().suitable(url)
 
+    def _fetch_page(self, playlist_id, canonical_id, season_idx, season_number, page_number, cursor=None):
+        return self._download_graphql(
+            playlist_id, f'season {season_number} page {page_number} JSON', query={
+                'operationName': 'seasonByCanonical',
+                'variables': json.dumps(filter_dict({
+                    'seasonIndex': season_idx,
+                    'canonical': canonical_id,
+                    'episodesPageSize': self._PAGE_SIZE,
+                    'episodesAfter': cursor,
+                })),
+                'extensions': json.dumps({
+                    'persistedQuery': {
+                        'version': 1,
+                        'sha256Hash': '9412a0f4ac55dc37d46975d461ec64bfd14380d815df843a1492348f77b5c99a',
+                    },
+                }),
+            })['data']['smartCollectionByCanonical']
+
+    def _entries(self, playlist_id, canonical_id, season_numbers, requested_season_number):
+        for season_idx, season_number in enumerate(season_numbers):
+            if requested_season_number is not None and requested_season_number != season_number:
+                continue
+
+            cursor = None
+            for page_number in itertools.count(1):
+                page = self._fetch_page(
+                    playlist_id, canonical_id, season_idx, season_number, page_number, cursor)
+
+                nodes = traverse_obj(page, ('seasons', 'nodes', ...))
+
+                for episode in traverse_obj(nodes, (
+                    ..., 'episodes', 'nodes', lambda _, v: url_or_none(v['sharingUrl']),
+                )):
+                    yield self.url_result(
+                        episode['sharingUrl'], ZDFIE,
+                        **traverse_obj(episode, {
+                            'id': ('canonical', {str}),
+                            'title': ('teaser', 'title', {str}),
+                            'description': (('leadParagraph', ('teaser', 'description')), any, {str}),
+                            'timestamp': ('editorialDate', {parse_iso8601}),
+                            'episode_number': ('episodeInfo', 'episodeNumber', {int_or_none}),
+                            'season_number': ('episodeInfo', 'seasonNumber', {int_or_none}),
+                        }))
+
+                page_info = traverse_obj(nodes, (-1, 'episodes', 'pageInfo', {dict})) or {}
+                if not page_info.get('hasNextPage') or not page_info.get('endCursor'):
+                    break
+                cursor = page_info['endCursor']
+
     def _real_extract(self, url):
-        channel_id = self._match_id(url)
-        webpage, urlh = self._download_webpage_handle(url, channel_id)
+        canonical_id = self._match_id(url)
         # Make sure to get the correct ID in case of redirects
-        channel_id = self._search_regex(self._VALID_URL, urlh.url, 'channel id', group='id')
+        urlh = self._request_webpage(url, canonical_id)
+        canonical_id = self._search_regex(self._VALID_URL, urlh.url, 'channel id', group='id')
+        season_number = traverse_obj(parse_qs(url), ('staffel', -1, {int_or_none}))
+        playlist_id = join_nonempty(canonical_id, season_number and f's{season_number}')
 
         collection_data = self._download_graphql(
-            channel_id, 'smart collection data', query={
+            playlist_id, 'smart collection data', query={
                 'operationName': 'GetSmartCollectionByCanonical',
                 'variables': json.dumps({
-                    'canonical': channel_id,
-                    'videoPageSize': 100,
+                    'canonical': canonical_id,
+                    'videoPageSize': 100,  # Use max page size to get episodes from all seasons
                 }),
                 'extensions': json.dumps({
                     'persistedQuery': {
@@ -644,41 +730,21 @@ class ZDFChannelIE(ZDFBaseIE):
                     },
                 }),
             })['data']['smartCollectionByCanonical']
-
-        video_data = traverse_obj(collection_data, ('video', {dict}))
-        season_data = traverse_obj(collection_data, ('seasons', {dict}))
+        video_data = traverse_obj(collection_data, ('video', {dict})) or {}
+        season_numbers = traverse_obj(collection_data, ('seasons', 'seasons', ..., 'number', {int_or_none}))
 
         if not self._yes_playlist(
-                channel_id if season_data else None,
-                traverse_obj(video_data, ('canonical', {str}))):
-            return self.url_result(video_data['sharingUrl'], ie=ZDFIE)
+            season_numbers and playlist_id,
+            url_or_none(video_data.get('sharingUrl')) and video_data.get('canonical'),
+        ):
+            return self.url_result(video_data['sharingUrl'], ZDFIE, video_data['canonical'])
 
-        title = traverse_obj(collection_data, ('title', {str})) or self._html_search_meta(
-            ['og:title', 'title', 'twitter:title'], webpage, 'title', fatal=False)
-
-        needs_pagination = traverse_obj(season_data, (
-            'seasons', ..., 'episodes', 'pageInfo', 'hasNextPage',
-            lambda _, v: v is True, any), default=False)
-        if needs_pagination:
-            # TODO: Implement pagination for collections with long seasons
-            # e.g. https://www.zdf.de/magazine/heute-journal-104
-            self.report_warning('This collection contains seasons with more than 100 episodes, some episodes are missing from the result.')
-
-        videos = traverse_obj(season_data, ('seasons', ..., 'episodes', 'videos', ...))
-        season_id = parse_qs(url).get('staffel', [None])[-1]
-        videos = [v for v in videos
-                  if not season_id or season_id == str(traverse_obj(v, ('episodeInfo', 'seasonNumber')))]
-        entries = [self.url_result(video['sharingUrl'], ZDFIE, **traverse_obj(video, {
-            'id': ('canonical', {str}),
-            'title': ('teaser', 'title', {str}),
-            'description': (('leadParagraph', ('teaser', 'description')), any, {str}),
-            'timestamp': ('editorialDate', {parse_iso8601}),
-            'thumbnails': ('teaser', 'imageWithoutLogo', 'layouts', {self._extract_thumbnails}),
-            'episode_number': ('episodeInfo', 'episodeNumber', {int_or_none}),
-            'season_number': ('episodeInfo', 'seasonNumber', {int_or_none}),
-            'series_id': {lambda _: channel_id},
-            'series': {lambda _: title},
-        })) for video in videos or [] if video.get('currentMediaType') != 'NOVIDEO']
+        if season_number is not None and season_number not in season_numbers:
+            raise ExtractorError(f'Season {season_number} was not found in the collection data')
 
         return self.playlist_result(
-            entries, channel_id, title, traverse_obj(collection_data, ('infoText', {str})))
+            self._entries(playlist_id, canonical_id, season_numbers, season_number),
+            playlist_id, join_nonempty(
+                traverse_obj(collection_data, ('title', {str})),
+                season_number and f'Season {season_number}', delim=' - '),
+            traverse_obj(collection_data, ('infoText', {str})))
