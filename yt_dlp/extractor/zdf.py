@@ -132,7 +132,6 @@ class ZDFBaseIE(InfoExtractor):
                         }) for f in fmts)
 
         return {
-            'extractor_key': ZDFIE.ie_key(),
             'id': content_id,
             'duration': duration,
             'formats': formats,
