@@ -130,12 +130,12 @@ class ZDFBaseIE(InfoExtractor):
                                 'format_id': join_nonempty('http', stream.get('type')),
                                 'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
                             }]
+                        f_class = variant.get('class')
                         formats.extend(merge_dicts(f, {
-                            'format_note': join_nonempty(
-                                variant.get('class'), is_dgs and 'German Sign Language', delim=', '),
+                            'format_note': join_nonempty(f_class, is_dgs and 'German Sign Language', delim=', '),
                             'language': variant.get('language'),
                             'preference': -2 if is_dgs else -1,
-                            'language_preference': 10 if variant.get('class') == 'main' else -10 if variant.get('class') == 'ad' else -1,
+                            'language_preference': 10 if f_class == 'main' else -10 if f_class == 'ad' else -1,
                         }) for f in fmts)
 
         return {
