@@ -11,7 +11,6 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     make_archive_id,
-    merge_dicts,
     parse_codecs,
     parse_iso8601,
     parse_qs,
@@ -98,7 +97,7 @@ class ZDFBaseIE(InfoExtractor):
                 content_id = basename
             if not duration:
                 duration = traverse_obj(ptmd, ('attributes', 'duration', 'value', {float_or_none(scale=1000)}))
-            src_captions += ptmd.get('captions') or []
+            src_captions += traverse_obj(ptmd, ('captions', ..., {dict}))
             for stream in traverse_obj(ptmd, ('priorityList', ..., 'formitaeten', ..., {dict})):
                 for quality in traverse_obj(stream, ('qualities', ..., {dict})):
                     for variant in traverse_obj(quality, ('audio', 'tracks', lambda _, v: url_or_none(v['uri']))):
@@ -125,12 +124,16 @@ class ZDFBaseIE(InfoExtractor):
                                 'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
                             }]
                         f_class = variant.get('class')
-                        formats.extend(merge_dicts(f, {
-                            'format_note': join_nonempty(f_class, is_dgs and 'German Sign Language', delim=', '),
-                            'language': variant.get('language'),
-                            'preference': -2 if is_dgs else -1,
-                            'language_preference': 10 if f_class == 'main' else -10 if f_class == 'ad' else -1,
-                        }) for f in fmts)
+                        for f in fmts:
+                            formats.append({
+                                **f,
+                                'format_id': join_nonempty(f.get('format_id'), is_dgs and 'dgs'),
+                                'format_note': join_nonempty(
+                                    f_class, is_dgs and 'German Sign Language', f.get('format_note'), delim=', '),
+                                'language': variant.get('language') or f.get('language'),
+                                'preference': -2 if is_dgs else -1,
+                                'language_preference': 10 if f_class == 'main' else -10 if f_class == 'ad' else -1,
+                            })
 
         return {
             'id': content_id,
