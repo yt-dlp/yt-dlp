@@ -80,13 +80,7 @@ class ZDFBaseIE(InfoExtractor):
         return urljoin(api_base_url, template.replace('{playerId}', 'android_native_6'))
 
     def _extract_ptmd_urls(self, ptmd_urls, video_id, api_token=None, aspect_ratio=None):
-        ptmd_urls = variadic(ptmd_urls)
-        ptmd_info = []
-        for url in ptmd_urls:
-            ptmd_info.append({
-                'url': url,
-                'dgs': False,
-            })
+        ptmd_info = [{'url': url, 'dgs': False} for url in variadic(ptmd_urls)]
         return self._extract_ptmd(ptmd_info, video_id, api_token, aspect_ratio)
 
     def _extract_ptmd(self, ptmd_info, video_id, api_token=None, aspect_ratio=None):
