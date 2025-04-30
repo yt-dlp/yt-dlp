@@ -5,7 +5,6 @@ import time
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     determine_ext,
     filter_dict,
     float_or_none,
@@ -141,19 +140,17 @@ class ZDFBaseIE(InfoExtractor):
         }
 
     def _download_graphql(self, item_id, data_desc, query=None, body=None):
-        if not query and not body:
-            raise ExtractorError(
-                'GraphQL API requires either query parameters or a body',
-                video_id=item_id)
+        assert query or body, 'One of query or body is required'
 
         return self._download_json(
-            'https://api.zdf.de/graphql', item_id, note=f'Downloading {data_desc}',
-            errnote=f'Failed to download {data_desc}', query=query,
-            data=json.dumps(body).encode() if body else None, headers={
+            'https://api.zdf.de/graphql', item_id,
+            f'Downloading {data_desc}', f'Failed to download {data_desc}',
+            query=query, data=json.dumps(body).encode() if body else None,
+            headers=filter_dict({
                 'Api-Auth': self._get_api_token(),
                 'Apollo-Require-Preflight': True,
                 'Content-Type': 'application/json' if body else None,
-            })
+            }))
 
     @staticmethod
     def _extract_thumbnails(source):
