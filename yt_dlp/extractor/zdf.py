@@ -1,4 +1,3 @@
-import functools
 import json
 import re
 import time
@@ -14,7 +13,9 @@ from ..utils import (
     parse_codecs,
     parse_iso8601,
     parse_qs,
+    smuggle_url,
     unified_timestamp,
+    unsmuggle_url,
     url_or_none,
     urljoin,
     variadic,
@@ -77,27 +78,33 @@ class ZDFBaseIE(InfoExtractor):
     def _expand_ptmd_template(self, api_base_url, template):
         return urljoin(api_base_url, template.replace('{playerId}', 'android_native_6'))
 
-    def _extract_ptmd_urls(self, ptmd_urls, video_id, api_token=None, aspect_ratio=None):
-        ptmd_info = [{'url': url, 'dgs': False} for url in variadic(ptmd_urls)]
-        return self._extract_ptmd(ptmd_info, video_id, api_token, aspect_ratio)
-
-    def _extract_ptmd(self, ptmd_info, video_id, api_token=None, aspect_ratio=None):
-        ptmd_info = variadic(ptmd_info)
-        src_captions = []
-
+    def _extract_ptmd(self, ptmd_urls, video_id, api_token=None, aspect_ratio=None):
         content_id = None
         duration = None
-        formats = []
+        formats, src_captions = [], []
         seen_urls = set()
-        for info in ptmd_info:
-            ptmd = self._call_api(info['url'], video_id, 'PTMD data', api_token)
-            basename = ptmd.get('basename') or info['url'].split('/')[-2]
-            is_dgs = info.get('dgs')
+
+        for ptmd_url in variadic(ptmd_urls):
+            ptmd_url, smuggled_data = unsmuggle_url(ptmd_url, {})
+            # Is it a DGS variant? (*D*eutsche *G*ebärden*s*prache' / German Sign Language)
+            is_dgs = smuggled_data.get('vod_media_type') == 'DGS'
+            ptmd = self._call_api(ptmd_url, video_id, 'PTMD data', api_token)
+
+            basename = (
+                ptmd.get('basename')
+                # ptmd_url examples:
+                # https://api.zdf.de/tmd/2/android_native_6/vod/ptmd/mediathek/250328_sendung_hsh/3
+                # https://tmd.phoenix.de/tmd/2/android_native_6/vod/ptmd/phoenix/221215_phx_spitzbergen
+                or self._search_regex(r'/vod/ptmd/[^/?#]+/(\w+)', ptmd_url, 'content ID', default=None))
+            # If this is_dgs, then it's from ZDFIE and it only uses content_id for _old_archive_ids,
+            # and the old version of the extractor didn't extract DGS variants, so ignore basename
             if not content_id and not is_dgs:
                 content_id = basename
+
             if not duration:
                 duration = traverse_obj(ptmd, ('attributes', 'duration', 'value', {float_or_none(scale=1000)}))
             src_captions += traverse_obj(ptmd, ('captions', ..., {dict}))
+
             for stream in traverse_obj(ptmd, ('priorityList', ..., 'formitaeten', ..., {dict})):
                 for quality in traverse_obj(stream, ('qualities', ..., {dict})):
                     for variant in traverse_obj(quality, ('audio', 'tracks', lambda _, v: url_or_none(v['uri']))):
@@ -108,10 +115,10 @@ class ZDFBaseIE(InfoExtractor):
                         ext = determine_ext(format_url)
                         if ext == 'm3u8':
                             fmts = self._extract_m3u8_formats(
-                                format_url, basename, 'mp4', m3u8_id='hls', fatal=False)
+                                format_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
                         elif ext == 'mpd':
                             fmts = self._extract_mpd_formats(
-                                format_url, basename, mpd_id='dash', fatal=False)
+                                format_url, video_id, mpd_id='dash', fatal=False)
                         else:
                             height = int_or_none(quality.get('highestVerticalResolution'))
                             width = round(aspect_ratio * height) if aspect_ratio and height else None
@@ -136,7 +143,7 @@ class ZDFBaseIE(InfoExtractor):
                             })
 
         return {
-            'id': content_id,
+            'id': content_id or video_id,
             'duration': duration,
             'formats': formats,
             'subtitles': self._extract_subtitles(src_captions),
@@ -488,7 +495,7 @@ query VideoByCanonical($canonical: String!) {
         ptmd_url = traverse_obj(document, (
             ('streamApiUrlAndroid', ('streams', 0, 'streamApiUrlAndroid')),
             {url_or_none}, any, {require('PTMD URL')}))
-        ptmd_data = self._extract_ptmd_urls(ptmd_url, document_id, self._get_api_token())
+        ptmd_data = self._extract_ptmd(ptmd_url, document_id, self._get_api_token())
 
         thumbnails = []
         for thumbnail_key, thumbnail in traverse_obj(document, ('teaserBild', {dict.items}, ...)):
@@ -526,15 +533,19 @@ query VideoByCanonical($canonical: String!) {
 
         if not video_data:
             return self._extract_fallback(video_id)
-        ptmd_nodes = traverse_obj(video_data, ('currentMedia', 'nodes'))
-        ptmd_info = traverse_obj(ptmd_nodes, (..., {
-            'url': ('ptmdTemplate', {functools.partial(self._expand_ptmd_template, 'https://api.zdf.de')}),
-            # Sign-language variant (DGS = *D*eutsche *G*ebärden*s*prache')
-            'dgs': ('vodMediaType', {lambda x: x == 'DGS'}),
-        }))
-        aspect_ratio = traverse_obj(ptmd_nodes, (
-            ..., 'aspectRatio', {self._parse_aspect_ratio}, any))
-        ptmd_result = self._extract_ptmd(ptmd_info, video_id, self._get_api_token(), aspect_ratio)
+
+        aspect_ratio = None
+        ptmd_urls = []
+        for node in traverse_obj(video_data, ('currentMedia', 'nodes', lambda _, v: v['ptmdTemplate'])):
+            ptmd_url = self._expand_ptmd_template('https://api.zdf.de', node['ptmdTemplate'])
+            # Smuggle vod_media_type so that _extract_ptmd is aware of 'DGS' variants
+            if vod_media_type := node.get('vodMediaType'):
+                ptmd_url = smuggle_url(ptmd_url, {'vod_media_type': vod_media_type})
+            ptmd_urls.append(ptmd_url)
+            if not aspect_ratio:
+                aspect_ratio = self._parse_aspect_ratio(node.get('aspectRatio'))
+
+        ptmd_result = self._extract_ptmd(ptmd_urls, video_id, self._get_api_token(), aspect_ratio)
         # This was the video id before the graphql redesign, other extractors still use it as such
         old_archive_id = ptmd_result.pop('id')
 
