@@ -155,14 +155,14 @@ class ZDFBaseIE(InfoExtractor):
     @staticmethod
     def _extract_thumbnails(source):
         return [{
-            'id': format_id,
+            'id': str(format_id),
             'url': url,
             'preference': 1 if format_id == 'original' else 0,
-            **traverse_obj(re.search(r'(?P<width>\d+|auto)[Xx](?P<height>\d+|auto)', format_id), {
+            **traverse_obj(re.search(r'(?P<width>\d+|auto)[Xx](?P<height>\d+|auto)', str(format_id)), {
                 'width': ('width', {int_or_none}),
                 'height': ('height', {int_or_none}),
             }),
-        } for format_id, url in (source or {}).items() if url]
+        } for format_id, url in traverse_obj(source, ({dict.items}, lambda _, v: url_or_none(v[1])))]
 
 
 class ZDFIE(ZDFBaseIE):
