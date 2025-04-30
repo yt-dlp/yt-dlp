@@ -3234,12 +3234,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
                 encrypted_sig = try_get(sc, lambda x: x['s'][0])
                 if not all((sc, fmt_url, player_url, encrypted_sig)):
-                    self.report_warning(
-                        f'Some {client_name} client https formats have been skipped as they are missing a url. '
-                        f'{"Your account" if self.is_authenticated else "The current session"} may have '
-                        f'the SSAP (server-side ads) experiment which interferes with yt-dlp. '
-                        f'Please see  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details.',
-                        video_id, only_once=True)
+                    msg = f'Some {client_name} client https formats have been skipped as they are missing a url. '
+                    if client_name == 'web':
+                        msg += 'YouTube is forcing SABR streaming for this client. '
+                    else:
+                        msg += (
+                            f'YouTube may have enabled the SABR-only or Server-Side Ad Placement experiment for '
+                            f'{"your account" if self.is_authenticated else "the current session"}. '
+                        )
+                    msg += 'See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details'
+                    self.report_warning(msg, video_id, only_once=True)
                     continue
                 try:
                     fmt_url += '&{}={}'.format(
