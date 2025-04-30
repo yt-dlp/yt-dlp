@@ -100,7 +100,8 @@ class ZDFBaseIE(InfoExtractor):
         for info in ptmd_info:
             ptmd = self._call_api(info['url'], video_id, 'PTMD data', api_token)
             basename = ptmd.get('basename') or info['url'].split('/')[-2]
-            if not content_id and not info['dgs']:
+            is_dgs = info.get('dgs')
+            if not content_id and not is_dgs:
                 content_id = basename
             duration = (duration or traverse_obj(ptmd, ('attributes', 'duration', 'value', {float_or_none(scale=1000)})))
             src_captions += ptmd.get('captions') or []
@@ -131,9 +132,9 @@ class ZDFBaseIE(InfoExtractor):
                             }]
                         formats.extend(merge_dicts(f, {
                             'format_note': join_nonempty(
-                                variant.get('class'), 'dgs' if info['dgs'] else '', delim=', '),
+                                variant.get('class'), is_dgs and 'German Sign Language', delim=', '),
                             'language': variant.get('language'),
-                            'preference': -2 if info['dgs'] else -1,
+                            'preference': -2 if is_dgs else -1,
                             'language_preference': 10 if variant.get('class') == 'main' else -10 if variant.get('class') == 'ad' else -1,
                         }) for f in fmts)
 
