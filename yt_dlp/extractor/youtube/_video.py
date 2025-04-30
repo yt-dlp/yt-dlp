@@ -3236,7 +3236,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if not all((sc, fmt_url, player_url, encrypted_sig)):
                     msg = f'Some {client_name} client https formats have been skipped as they are missing a url. '
                     if client_name == 'web':
-                        msg += 'SABR streaming is being forced by YouTube for this client. '
+                        msg += 'YouTube is forcing SABR streaming for this client. '
                     else:
                         msg += (
                             f'YouTube may have enabled the SABR-only or Server-Side Ad Placement experiment for '
