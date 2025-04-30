@@ -3,9 +3,8 @@ from ..utils import (
     int_or_none,
     merge_dicts,
     parse_iso8601,
-    require,
-    traverse_obj,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class DreiSatIE(ZDFBaseIE):
