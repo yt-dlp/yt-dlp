@@ -470,16 +470,6 @@ query VideoByCanonical($canonical: String!) {
 }
     '''
 
-    def _extract_ptmd(self, ptmd_info, video_id, api_token=None, aspect_ratio=None):
-        ptmd_data = super()._extract_ptmd(ptmd_info, video_id, api_token, aspect_ratio)
-        # We can't use the ID from PTMD extraction as the video ID
-        # because it is not available during playlist extraction.
-        # We fix it here manually instead of inside the base class
-        # because other extractors do rely on using it as their ID.
-        ptmd_data['_old_archive_ids'] = [make_archive_id(ZDFIE, ptmd_data['id'])]
-        del ptmd_data['id']
-        return ptmd_data
-
     # This fallback should generally only happen for pages under `zdf.de/nachrichten`.
     # They are on a separate website for which GraphQL often doesn't return results.
     # The API used here is no longer in use by official clients and likely deprecated.
@@ -542,9 +532,12 @@ query VideoByCanonical($canonical: String!) {
         aspect_ratio = traverse_obj(ptmd_nodes, (
             ..., 'aspectRatio', {self._parse_aspect_ratio}, any))
         ptmd_result = self._extract_ptmd(ptmd_info, video_id, self._get_api_token(), aspect_ratio)
+        # This was the video id before the graphql redesign, other extractors still use it as such
+        old_archive_id = ptmd_data.pop('id')
 
         return {
             'id': video_id,
+            '_old_archive_ids': [make_archive_id(self, old_archive_id)],
             **ptmd_result,
             **traverse_obj(video_data, {
                 'title': ('title', {str}),
