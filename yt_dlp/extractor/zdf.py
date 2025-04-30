@@ -7,6 +7,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     determine_ext,
+    filter_dict,
     float_or_none,
     int_or_none,
     join_nonempty,
@@ -25,12 +26,28 @@ from ..utils.traversal import traverse_obj
 
 class ZDFBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['DE']
+    _TOKEN_CACHE_PARAMS = ('zdf', 'api-token')
+    _token_cache = {}
+
+    def _get_api_token(self):
+        # As of 2025-03, this API is used by the Android app for getting tokens.
+        # An equivalent token could be extracted from the webpage should the API become unavailable.
+        # For now this allows the extractor to avoid dealing with Next.js hydration data.
+        if not self._token_cache:
+            self._token_cache.update(self.cache.load(*self._TOKEN_CACHE_PARAMS, default={}))
+
+        if traverse_obj(self._token_cache, ('expires', {int_or_none}), default=0) < int(time.time()):
+            self._token_cache.update(self._download_json(
+                'https://zdf-prod-futura.zdf.de/mediathekV2/token', None,
+                'Downloading API token', 'Failed to download API token'))
+            self.cache.store(*self._TOKEN_CACHE_PARAMS, self._token_cache)
+
+        return f'{self._token_cache["type"]} {self._token_cache["token"]}'
 
     def _call_api(self, url, video_id, item, api_token=None):
-        headers = {'Api-Auth': api_token} if api_token else {}
         return self._download_json(
-            url, video_id, note=f'Downloading {item}',
-            errnote=f'Failed to download {item}', headers=headers)
+            url, video_id, f'Downloading {item}', f'Failed to download {item}',
+            headers=filter_dict({'Api-Auth': api_token}))
 
     def _parse_aspect_ratio(self, aspect_ratio):
         if not aspect_ratio or not isinstance(aspect_ratio, str):
@@ -128,20 +145,6 @@ class ZDFBaseIE(InfoExtractor):
             'subtitles': self._extract_subtitles(src_captions),
         }
 
-    def _get_api_token(self, video_id):
-        # As of 2025-03, this API is used by the Android app for getting tokens.
-        # An equivalent token could be extracted from the webpage should the API become unavailable.
-        # For now this allows the extractor to avoid dealing with Next.js hydration data.
-        TOKEN_CACHE_SECTION = 'zdf'
-        TOKEN_CACHE_KEY = 'api-token'
-        token_data = self.cache.load(TOKEN_CACHE_SECTION, TOKEN_CACHE_KEY)
-        if traverse_obj(token_data, ('expires', {int_or_none}), default=0) < int(time.time()):
-            token_data = self._download_json(
-                'https://zdf-prod-futura.zdf.de/mediathekV2/token', video_id,
-                note='Downloading API token')
-            self.cache.store(TOKEN_CACHE_SECTION, TOKEN_CACHE_KEY, token_data)
-        return f'{token_data["type"]} {token_data["token"]}'
-
     def _download_graphql(self, item_id, data_desc, query=None, body=None):
         if not query and not body:
             raise ExtractorError(
@@ -152,7 +155,7 @@ class ZDFBaseIE(InfoExtractor):
             'https://api.zdf.de/graphql', item_id, note=f'Downloading {data_desc}',
             errnote=f'Failed to download {data_desc}', query=query,
             data=json.dumps(body).encode() if body else None, headers={
-                'Api-Auth': self._get_api_token(item_id),
+                'Api-Auth': self._get_api_token(),
                 'Apollo-Require-Preflight': True,
                 'Content-Type': 'application/json' if body else None,
             })
@@ -502,7 +505,7 @@ query VideoByCanonical($canonical: String!) {
         ptmd_url = traverse_obj(document, (
             ('streamApiUrlAndroid', ('streams', 0, 'streamApiUrlAndroid')),
             {url_or_none}, any))
-        ptmd_data = self._extract_ptmd_urls(ptmd_url, document_id, self._get_api_token(document_id))
+        ptmd_data = self._extract_ptmd_urls(ptmd_url, document_id, self._get_api_token())
 
         thumbnails = []
         for thumbnail_key, thumbnail in traverse_obj(document, ('teaserBild', {dict.items})):
@@ -548,8 +551,7 @@ query VideoByCanonical($canonical: String!) {
         }))
         aspect_ratio = traverse_obj(ptmd_nodes, (
             ..., 'aspectRatio', {self._parse_aspect_ratio}, any))
-        ptmd_result = self._extract_ptmd(
-            ptmd_info, video_id, self._get_api_token(video_id), aspect_ratio)
+        ptmd_result = self._extract_ptmd(ptmd_info, video_id, self._get_api_token(), aspect_ratio)
 
         return {
             'id': video_id,
