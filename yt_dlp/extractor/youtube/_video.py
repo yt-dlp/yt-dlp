@@ -3334,8 +3334,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'width': int_or_none(fmt.get('width')),
                 'language': join_nonempty(language_code, 'desc' if is_descriptive else '') or None,
                 'language_preference': PREFERRED_LANG_VALUE if is_original else 5 if is_default else -10 if is_descriptive else -1,
-                # Strictly de-prioritize broken, damaged and 3gp formats
-                'preference': -20 if require_po_token else -10 if is_damaged else -2 if itag == '17' else None,
+                # Strictly de-prioritize damaged and 3gp formats
+                'preference': -10 if is_damaged else -2 if itag == '17' else None,
             }
             mime_mobj = re.match(
                 r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt.get('mimeType') or '')
