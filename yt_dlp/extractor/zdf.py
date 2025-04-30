@@ -56,10 +56,10 @@ class ZDFBaseIE(InfoExtractor):
         return int(mobj.group('width')) / int(mobj.group('height')) if mobj else None
 
     def _extract_chapters(self, data):
-        return traverse_obj(data, (lambda _, v: 'anchorOffset' in v, {
+        return traverse_obj(data, (lambda _, v: isinstance(v['anchorOffset'], (int, float)), {
             'start_time': ('anchorOffset', {float_or_none}),
             'title': ('anchorLabel', {str}),
-        }), default=None)
+        })) or None
 
     @staticmethod
     def _extract_subtitles(src):
