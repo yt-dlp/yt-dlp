@@ -589,8 +589,8 @@ class TikTokBaseIE(InfoExtractor):
             'uploader_id': (('authorId', 'uid', 'id'), {str_or_none}),
         }), get_all=False)
 
-        streetAddress = traverse_obj(aweme_detail,('contentLocation','address'))
-        pointOfInterest = traverse_obj(aweme_detail,('poi'))
+        streetAddress = traverse_obj(aweme_detail, ('contentLocation','address'))
+        pointOfInterest = traverse_obj(aweme_detail, ('poi'))
 
         return {
             'id': video_id,
