@@ -239,7 +239,7 @@ class TikTokBaseIE(InfoExtractor):
         # location tag from and is housed under
         # __UNIVERSAL_DATA_FOR_REHYDRATION__
         # again.
-        # tags includedin the finished video_data such as "author" seem to be 
+        # tags includedin the finished video_data such as "author" seem to be
         # included in this section.
         if universal_data := self._get_universal_data(webpage, video_id):
             self.write_debug('Found universal data for rehydration')
