@@ -597,8 +597,8 @@ class TikTokBaseIE(InfoExtractor):
             'formats': None if extract_flat else self._extract_web_formats(aweme_detail),
             'subtitles': None if extract_flat else self.extract_subtitles(aweme_detail, video_id, None),
             'http_headers': {'Referer': webpage_url},
-            'contentLocation':streetAddress,
-            'pointOfInterest':pointOfInterest,
+            'contentLocation': streetAddress,
+            'pointOfInterest': pointOfInterest,
             **author_info,
             'channel_url': format_field(author_info, 'channel_id', self._UPLOADER_URL_FORMAT, default=None),
             'uploader_url': format_field(
