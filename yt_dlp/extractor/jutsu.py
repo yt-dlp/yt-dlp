@@ -56,7 +56,8 @@ class JutsuIE(InfoExtractor):
 
         # Extract video sources from <source> tags
         sources = re.findall(
-            r'<source[^>]+src="([^"]+?)"[^>]*label="([^"]+)?"', episode_page
+            r'<source[^>]+src="([^"]+?)"[^>]*label="([^"]+)?",',
+            episode_page,
         )
 
         formats = []
