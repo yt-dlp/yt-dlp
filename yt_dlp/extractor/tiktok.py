@@ -606,7 +606,7 @@ class TikTokBaseIE(InfoExtractor):
                 # audio-only slideshows have a video duration of 0 and an actual audio duration
                 'duration': ('video', 'duration', {int_or_none}, filter),
                 'timestamp': ('createTime', {int_or_none}),
-                'location': ('contentLocation', 'address', 'streetAddress', {str})
+                'location': ('contentLocation', 'address', 'streetAddress', {str}),
             }),
             **traverse_obj(aweme_detail, ('stats', {
                 'view_count': 'playCount',
