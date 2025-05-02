@@ -1812,14 +1812,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 with lock:
                     refetch_manifest(format_id, delay)
 
-                f = next((f for f in formats if f.get('format_id') == format_id and 'manifest_url' in f), None)
+                f = next((f for f in formats if f.get('format_id') == format_id), None)
                 if not f:
-                    # still no manifest_url → retry
                     if not is_live:
                         retry.error = f'{video_id}: Video is no longer live'
                     else:
                         retry.error = f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}'
                     continue
+
+                if not isinstance(f, dict) or not f.get('manifest_url'):
+                    break
+
                 return f.get('manifest_url'), f.get('manifest_stream_number'), is_live
             return None
 
