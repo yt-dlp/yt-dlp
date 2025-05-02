@@ -1812,7 +1812,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 with lock:
                     refetch_manifest(format_id, delay)
 
-                f = next((f for f in formats if f.get('format_id') == format_id), None)
+                f = next((f for f in formats if f['format_id'] == format_id), None)
                 if not f:
                     if not is_live:
                         retry.error = f'{video_id}: Video is no longer live'
