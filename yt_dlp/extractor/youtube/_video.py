@@ -1820,6 +1820,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         retry.error = f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}'
                     continue
 
+                # Formats from ended premieres will be missing a manifest_url
+                # See https://github.com/yt-dlp/yt-dlp/issues/8543
                 if not f.get('manifest_url'):
                     break
 
