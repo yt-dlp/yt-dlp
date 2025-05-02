@@ -12,13 +12,12 @@ jsi_runtimes.value.update({
     if name.endswith('JSI')
 })
 
-plugin_spec = PluginSpec(
+register_plugin_spec(PluginSpec(
     module_name='jsinterp',
     suffix='JSI',
     destination=jsi_runtimes,
     plugin_destination=plugin_jsis,
-)
-register_plugin_spec(plugin_spec)
+))
 
 __all__ = [
     JSInterpreter,

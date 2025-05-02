@@ -3,6 +3,7 @@ from __future__ import annotations
 import http.cookiejar
 import json
 import platform
+import re
 import subprocess
 import typing
 import urllib.parse
@@ -59,8 +60,8 @@ class DenoJSI(ExternalJSI):
 class DenoJSDomJSI(DenoJSI):
     _BASE_PREFERENCE = 4
     _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check']
-    _JSDOM_IMPORT_CHECKED = False
-    _JSDOM_URL = 'https://esm.sh/v135/jsdom'  # force use esm v135, esm-dev/esm.sh#1034
+    _JSDOM_VERSION = None
+    _JSDOM_URL = 'https://esm.sh/v135/jsdom'  # force use esm v135, see esm-dev/esm.sh #1034
 
     @staticmethod
     def serialize_cookie(cookiejar: YoutubeDLCookieJar | None, url: str):
@@ -106,10 +107,18 @@ class DenoJSDomJSI(DenoJSI):
                 False, None, None, {}))
 
     def _ensure_jsdom(self):
-        if self._JSDOM_IMPORT_CHECKED:
+        if self._JSDOM_VERSION:
             return
-        self._run_deno([self.exe, 'cache', self._JSDOM_URL])
-        self._JSDOM_IMPORT_CHECKED = True
+        # `--allow-import` is unsupported in v1, and esm.sh:443 is default allowed remote host for v2
+        result = self._run_deno([self.exe, 'info', self._JSDOM_URL])
+        version_line = next((line for line in result.splitlines() if self._JSDOM_URL in line), '')
+        if m := re.search(r'@([\d\.]+)', version_line):
+            self._JSDOM_VERSION = m[1]
+
+    def report_version(self):
+        super().report_version()
+        self._ensure_jsdom()
+        self.write_debug(f'JSDOM lib version {self._JSDOM_VERSION}')
 
     def execute(self, jscode, video_id=None, note='Executing JS in Deno with jsdom', html='', cookiejar=None):
         self.report_note(video_id, note)

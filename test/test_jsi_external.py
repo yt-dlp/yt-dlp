@@ -57,6 +57,8 @@ def use_jsi_rumtimes(exclude=[]):
         def wrapper(self: unittest.TestCase):
             for key, jsi in get_included_jsi(exclude=exclude).items():
                 def wrapped_jsi_with_unavaliable_auto_skip(*args, **kwargs):
+                    if getattr(jsi, 'TEST_DATA_PLUGIN', False):
+                        self.skipTest('Testdata plugin')
                     instance = jsi(*args, **kwargs)
                     if not instance.is_available():
                         self.skipTest(f'{key} is not available')

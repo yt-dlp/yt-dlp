@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import abc
-import typing
 import inspect
+import typing
 
 from ..globals import jsi_runtimes
 from ..extractor.common import InfoExtractor
@@ -19,7 +19,7 @@ from ..utils import (
 _JSI_PREFERENCES: set[JSIPreference] = set()
 
 
-def all_handlers() -> dict[str, type[JSI]]:
+def get_all_handlers() -> dict[str, type[JSI]]:
     return {jsi.JSI_KEY: jsi for jsi in jsi_runtimes.value.values()}
 
 
@@ -29,13 +29,14 @@ def to_jsi_keys(jsi_or_keys: typing.Iterable[str | type[JSI] | JSI]) -> list[str
 
 def get_included_jsi(only_include=None, exclude=None):
     return {
-        key: value for key, value in all_handlers().items()
+        key: value for key, value in get_all_handlers().items()
         if (not only_include or key in to_jsi_keys(only_include))
         and (not exclude or key not in to_jsi_keys(exclude))
     }
 
 
 def order_to_pref(jsi_order: typing.Iterable[str | type[JSI] | JSI], multiplier: int) -> JSIPreference:
+    """convert a list of jsi keys into a preference function"""
     jsi_order = reversed(to_jsi_keys(jsi_order))
     pref_score = {jsi_cls: (i + 1) * multiplier for i, jsi_cls in enumerate(jsi_order)}
 
@@ -87,7 +88,7 @@ class JSIWrapper:
 
         self._url = self._sanitize_url(url)
         self.preferences: set[JSIPreference] = {
-            order_to_pref(self._load_pref_from_option(), 10000),
+            order_to_pref(self._load_jsi_keys_from_option('jsi_preference'), 10000),
             order_to_pref(preferred_order, 100),
         } | _JSI_PREFERENCES
 
@@ -108,17 +109,20 @@ class JSIWrapper:
             self.report_warning(f'Invalid URL: "{url}", using empty string instead')
         return sanitized
 
-    def _load_pref_from_option(self):
-        user_prefs = self._downloader.params.get('jsi_preference', [])
-        valid_handlers = list(all_handlers())
-        for invalid_key in [jsi_key for jsi_key in user_prefs if jsi_key not in valid_handlers]:
-            self.report_warning(f'`{invalid_key}` is not a valid JSI, ignoring preference setting')
-            user_prefs.remove(invalid_key)
-        return user_prefs
+    def _load_jsi_keys_from_option(self, option_key):
+        jsi_keys = self._downloader.params.get(option_key, [])
+        valid_handlers = list(get_all_handlers())
+        for invalid_key in [key for key in jsi_keys if key not in valid_handlers]:
+            self.report_warning(f'{option_key}: `{invalid_key}` is not a valid JSI', only_once=True)
+            jsi_keys.remove(invalid_key)
+        return jsi_keys
 
     def _load_allowed_jsi_cls(self, only_include, exclude):
-        handler_classes = get_included_jsi(only_include, exclude)
-        self.write_debug(f'Select JSI: {to_jsi_keys(handler_classes)}, '
+        self.write_debug(f'Loaded JSI runtimes: {get_all_handlers()}')
+        handler_classes = filter_dict(
+            get_included_jsi(only_include, exclude),
+            lambda _, v: v.supports_extractor(self._ie_key))
+        self.write_debug(f'Select JSI {"for " + self._ie_key if self._ie_key else ""}: {to_jsi_keys(handler_classes)}, '
                          f'included: {to_jsi_keys(only_include) or "all"}, excluded: {to_jsi_keys(exclude)}')
         return handler_classes
 
@@ -129,13 +133,13 @@ class JSIWrapper:
         return self._downloader.report_warning(f'[JSIDirector] {message}', only_once=only_once)
 
     def _get_handlers(self, method_name: str, *args, **kwargs) -> list[JSI]:
-        def _supports(jsi: JSI):
+        def _supports_method_with_params(jsi: JSI):
             if not callable(method := getattr(jsi, method_name, None)):
                 return False
             method_params = inspect.signature(method).parameters
             return all(key in method_params for key in kwargs)
 
-        handlers = [h for h in self._handler_dict.values() if _supports(h)]
+        handlers = [h for h in self._handler_dict.values() if _supports_method_with_params(h)]
         self.write_debug(f'Choosing handlers for method `{method_name}` with kwargs {list(kwargs)}'
                          f': {to_jsi_keys(handlers)}')
 
@@ -169,6 +173,7 @@ class JSIWrapper:
 
             try:
                 self.write_debug(f'Dispatching `{method_name}` task to {handler.JSI_NAME}')
+                handler.report_version()
                 return getattr(handler, method_name)(*args, **kwargs)
             except ExtractorError as e:
                 if self._is_test:
@@ -225,6 +230,13 @@ class JSI(abc.ABC):
     def report_note(self, video_id, note):
         self.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
 
+    def report_version(self):
+        raise NotImplementedError
+
+    @classmethod
+    def supports_extractor(cls, ie_key: str):
+        return True
+
     @classproperty
     def JSI_NAME(cls) -> str:
         return cls.__name__[:-3]
@@ -249,6 +261,9 @@ class ExternalJSI(JSI, abc.ABC):
     @classmethod
     def is_available(cls):
         return bool(cls.exe)
+
+    def report_version(self):
+        self.write_debug(f'{self._EXE_NAME} version {self.exe_version}')
 
 
 def register_jsi_preference(*handlers: type[JSI]):
