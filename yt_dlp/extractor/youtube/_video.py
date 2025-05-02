@@ -1820,10 +1820,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         retry.error = f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}'
                     continue
 
-                if not isinstance(f, dict) or not f.get('manifest_url'):
+                if not f.get('manifest_url'):
                     break
 
-                return f.get('manifest_url'), f.get('manifest_stream_number'), is_live
+                return f['manifest_url'], f['manifest_stream_number'], is_live
             return None
 
         for f in formats:
