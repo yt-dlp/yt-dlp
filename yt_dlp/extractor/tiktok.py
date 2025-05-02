@@ -232,15 +232,6 @@ class TikTokBaseIE(InfoExtractor):
             self.report_warning(f'{message}. {self._login_hint()}')
             return video_data, status
 
-        # this is the area the main video info is being extracted from
-        # in the present case data from TikTok is being extracted from
-        # a series of "script" tags with types application/json
-        # locationCreated is the tag being looked for to retrieve
-        # location tag from and is housed under
-        # __UNIVERSAL_DATA_FOR_REHYDRATION__
-        # again.
-        # tags includedin the finished video_data such as "author" seem to be
-        # included in this section.
         if universal_data := self._get_universal_data(webpage, video_id):
             self.write_debug('Found universal data for rehydration')
             status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
@@ -589,16 +580,16 @@ class TikTokBaseIE(InfoExtractor):
             'uploader_id': (('authorId', 'uid', 'id'), {str_or_none}),
         }), get_all=False)
 
-        streetAddress = traverse_obj(aweme_detail, ('contentLocation', 'address'))
-        pointOfInterest = traverse_obj(aweme_detail, ('poi'))
+        streetAddress = traverse_obj(aweme_detail,('contentLocation','address'))
+        pointOfInterest = traverse_obj(aweme_detail,('poi'))
 
         return {
             'id': video_id,
             'formats': None if extract_flat else self._extract_web_formats(aweme_detail),
             'subtitles': None if extract_flat else self.extract_subtitles(aweme_detail, video_id, None),
             'http_headers': {'Referer': webpage_url},
-            'contentLocation': streetAddress,
-            'pointOfInterest': pointOfInterest,
+            'contentLocation':streetAddress,
+            'pointOfInterest':pointOfInterest,
             **author_info,
             'channel_url': format_field(author_info, 'channel_id', self._UPLOADER_URL_FORMAT, default=None),
             'uploader_url': format_field(
@@ -615,6 +606,7 @@ class TikTokBaseIE(InfoExtractor):
                 # audio-only slideshows have a video duration of 0 and an actual audio duration
                 'duration': ('video', 'duration', {int_or_none}, filter),
                 'timestamp': ('createTime', {int_or_none}),
+                'location': ((('contentLocation', 'address', 'streetAddress'), ('poi', 'name')), {str}, any)
             }),
             **traverse_obj(aweme_detail, ('stats', {
                 'view_count': 'playCount',
