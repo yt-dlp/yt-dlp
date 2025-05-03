@@ -9,6 +9,7 @@ from ..utils import (
     OnDemandPagedList,
     clean_html,
     determine_ext,
+    format_field,
     get_element_by_class,
     get_elements_html_by_class,
     int_or_none,
@@ -124,6 +125,8 @@ class BitChuteIE(InfoExtractor):
         'only_matching': True,
     }]
     _GEO_BYPASS = False
+    _UPLOADER_URL_TMPL = 'https://www.bitchute.com/profile/%s/'
+    _CHANNEL_URL_TMPL = 'https://www.bitchute.com/channel/%s/'
 
     def _check_format(self, video_url, video_id):
         urls = orderedSet(
@@ -191,7 +194,7 @@ class BitChuteIE(InfoExtractor):
                 'channel_id': ('channel', 'channel_id', {str}),
                 'channel_url': ('channel', 'channel_url', {urljoin('https://www.bitchute.com/')}),
                 'uploader_id': ('profile_id', {str}),
-                'uploader_url': ('profile_id', {lambda x: f'https://www.bitchute.com/profile/{x}/' if x else None}),
+                'uploader_url': ('profile_id', {format_field(template=self._UPLOADER_URL_TMPL)}, filter),
                 'timestamp': ('date_published', {parse_iso8601}),
                 'duration': ('duration', {parse_duration}),
                 'tags': ('hashtags', ..., {str}, filter, all, filter),
@@ -201,10 +204,10 @@ class BitChuteIE(InfoExtractor):
             **traverse_obj(channel, {
                 'channel': ('channel_name', {str}),
                 'channel_id': ('channel_id', {str}),
-                'channel_url': ('url_slug', {lambda x: f'https://www.bitchute.com/channel/{x}/' if x else None}),
+                'channel_url': ('url_slug', {format_field(template=self._CHANNEL_URL_TMPL)}, filter),
                 'uploader': ('profile_name', {str}),
                 'uploader_id': ('profile_id', {str}),
-                'uploader_url': ('profile_id', {lambda x: f'https://www.bitchute.com/profile/{x}/' if x else None}),
+                'uploader_url': ('profile_id', {format_field(template=self._UPLOADER_URL_TMPL)}, filter),
             }),
             'id': video_id,
             'formats': formats,
