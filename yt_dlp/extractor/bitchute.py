@@ -25,7 +25,7 @@ from ..utils.traversal import traverse_obj
 
 
 class BitChuteIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www|old)\.)?bitchute\.com/(?:video|embed|torrent/[^/]+)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:(?:www|old)\.)?bitchute\.com/(?:video|embed|torrent/[^/?#]+)/(?P<id>[^/?#&]+)'
     _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://www.bitchute.com/video/UGlrF9o9b-Q/',
