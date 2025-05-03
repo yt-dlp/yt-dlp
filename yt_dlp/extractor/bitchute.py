@@ -93,28 +93,6 @@ class BitChuteIE(InfoExtractor):
         },
         'params': {'check_formats': None},
     }, {
-        # restricted video
-        'url': 'https://www.bitchute.com/video/WEnQU7XGcTdl/',
-        'info_dict': {
-            'id': 'WEnQU7XGcTdl',
-            'ext': 'mp4',
-            'title': 'Impartial Truth - Ein Letzter Appell an die Vernunft',
-            'description': 'md5:e7e8390ab79d2c84f3f5d068ed333535',
-            'uploader': 'Freier_Mann',
-            'uploader_id': 'OBhKX1Ss0jyL',
-            'uploader_url': 'https://www.bitchute.com/profile/OBhKX1Ss0jyL/',
-            'channel': 'Der Freie',
-            'channel_id': 'dV8xxWKIxSVU',
-            'channel_url': 'https://www.bitchute.com/channel/freier_mann/',
-            'view_count': int,
-            'duration': 4806.0,
-            'thumbnail': r're:https?://.+/.+\.jpg$',
-            'timestamp': 1609918804,
-            'upload_date': '20210106',
-        },
-        'params': {'skip_download': True},
-        'skip': 'Georestricted in DE',
-    }, {
         'url': 'https://www.bitchute.com/embed/lbb5G1hjPhw/',
         'only_matching': True,
     }, {
