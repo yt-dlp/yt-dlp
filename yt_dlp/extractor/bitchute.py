@@ -4,6 +4,7 @@ import re
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -127,15 +128,25 @@ class BitChuteIE(InfoExtractor):
 
     def _call_api(self, endpoint, data, display_id, fatal=True):
         note = endpoint.rpartition('/')[2]
-        # TODO: Add error handling for geo-restriction
-        return self._download_json(
-            f'https://api.bitchute.com/api/beta/{endpoint}', display_id,
-            f'Downloading {note} API JSON', f'Unable to download {note} API JSON',
-            fatal=fatal, data=json.dumps(data).encode(),
-            headers={
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            })
+        try:
+            return self._download_json(
+                f'https://api.bitchute.com/api/beta/{endpoint}', display_id,
+                f'Downloading {note} API JSON', f'Unable to download {note} API JSON',
+                data=json.dumps(data).encode(),
+                headers={
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                })
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                errors = '. '.join(traverse_obj(e.cause.response.read().decode(), (
+                    {json.loads}, 'errors', lambda _, v: v['context'] == 'reason', 'message', {str})))
+                if errors and 'location' in errors:
+                    # Can always be fatal since the video/media call will reach this code first
+                    self.raise_geo_restricted(errors)
+            if fatal:
+                raise
+            self.report_warning(e.msg)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
