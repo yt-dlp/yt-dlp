@@ -192,7 +192,7 @@ jobs:
         with:
           path: ./repo
       - name: Virtualized Install, Prepare & Build
-        uses: yt-dlp/run-on-arch-action@v2
+        uses: yt-dlp/run-on-arch-action@v3
         with:
           # Ref: https://github.com/uraimo/run-on-arch-action/issues/55
           env: |
