@@ -198,6 +198,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'duration': 1322,
         },
     }, {
+        # lede_media_block already has sourceId
         'url': 'https://www.nytimes.com/2023/11/29/business/dealbook/kamala-harris-biden-voters.html',
         'md5': '3eb5ddb1d6f86254fe4f233826778737',
         'info_dict': {
@@ -228,6 +229,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
         },
         'playlist_count': 3,
     }, {
+        # lede_media_block does not have sourceId
         'url': 'https://www.nytimes.com/2025/04/30/well/move/hip-mobility-routine.html',
         'info_dict': {
             'id': 'hip-mobility-routine',
@@ -277,8 +279,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
         blocks = []
         block_filter = lambda k, v: k == 'media' and v['__typename'] in ('Video', 'Audio')
         if lede_media_block := traverse_obj(content, (..., 'ledeMedia', block_filter, any)):
-            if not lede_media_block.get('sourceId'):
-                lede_media_block['sourceId'] = art_json.get('sourceId')
+            lede_media_block.setdefault('sourceId', art_json.get('sourceId'))
             blocks.append(lede_media_block)
         blocks.extend(traverse_obj(content, (..., block_filter)))
         if not blocks:
