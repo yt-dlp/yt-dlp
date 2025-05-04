@@ -181,6 +181,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
             'duration': 119.0,
         },
+        'skip': 'HTTP Error 500: Internal Server Error',
     }, {
         # article with audio and no video
         'url': 'https://www.nytimes.com/2023/09/29/health/mosquitoes-genetic-engineering.html',
@@ -190,9 +191,9 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'ext': 'mp3',
             'title': 'The Gamble: Can Genetically Modified Mosquitoes End Disease?',
             'description': 'md5:9ff8b47acbaf7f3ca8c732f5c815be2e',
-            'timestamp': 1695960700,
+            'timestamp': 1696008129,
             'upload_date': '20230929',
-            'creator': 'Stephanie Nolen, Natalija Gormalova',
+            'creators': ['Stephanie Nolen', 'Natalija Gormalova'],
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
             'duration': 1322,
         },
@@ -207,7 +208,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'timestamp': 1701290997,
             'upload_date': '20231129',
             'uploader': 'By The New York Times',
-            'creator': 'Katie Rogers',
+            'creators': ['Katie Rogers'],
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
             'duration': 97.631,
         },
@@ -222,10 +223,21 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'title': 'Drunk and Asleep on the Job: Air Traffic Controllers Pushed to the Brink',
             'description': 'md5:549e5a5e935bf7d048be53ba3d2c863d',
             'upload_date': '20231202',
-            'creator': 'Emily Steel, Sydney Ember',
+            'creators': ['Emily Steel', 'Sydney Ember'],
             'timestamp': 1701511264,
         },
         'playlist_count': 3,
+    }, {
+        'url': 'https://www.nytimes.com/2025/04/30/well/move/hip-mobility-routine.html',
+        'info_dict': {
+            'id': 'hip-mobility-routine',
+            'title': 'Tight Hips? These Moves Can Help.',
+            'description': 'Sitting all day is hard on your hips. Try this simple routine for better mobility.',
+            'creators': ['Alyssa Ages', 'Theodore Tae'],
+            'timestamp': 1746003629,
+            'upload_date': '20250430',
+        },
+        'playlist_count': 7,
     }, {
         'url': 'https://www.nytimes.com/2023/12/02/business/media/netflix-squid-game-challenge.html',
         'only_matching': True,
@@ -233,7 +245,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
 
     def _extract_content_from_block(self, block):
         details = traverse_obj(block, {
-            'id': ('sourceId', {str}),
+            'id': (('sourceId', 'id'), {str}, any),
             'uploader': ('bylines', ..., 'renderedRepresentation', {str}),
             'duration': (None, (('duration', {float_or_none(scale=1000)}), ('length', {int_or_none}))),
             'timestamp': ('firstPublished', {parse_iso8601}),
@@ -256,14 +268,19 @@ class NYTimesArticleIE(NYTimesBaseIE):
 
     def _real_extract(self, url):
         page_id = self._match_id(url)
-        webpage = self._download_webpage(url, page_id)
+        webpage = self._download_webpage(url, page_id, impersonate=True)
         art_json = self._search_json(
             r'window\.__preloadedData\s*=', webpage, 'media details', page_id,
             transform_source=lambda x: x.replace('undefined', 'null'))['initialData']['data']['article']
+        content = art_json['sprinkledBody']['content']
 
-        blocks = traverse_obj(art_json, (
-            'sprinkledBody', 'content', ..., ('ledeMedia', None),
-            lambda _, v: v['__typename'] in ('Video', 'Audio')))
+        blocks = []
+        block_filter = lambda k, v: k == 'media' and v['__typename'] in ('Video', 'Audio')
+        if lede_media_block := traverse_obj(content, (..., 'ledeMedia', block_filter, any)):
+            if not lede_media_block.get('sourceId'):
+                lede_media_block['sourceId'] = art_json.get('sourceId')
+            blocks.append(lede_media_block)
+        blocks.extend(traverse_obj(content, (..., block_filter)))
         if not blocks:
             raise ExtractorError('Unable to extract any media blocks from webpage')
 
@@ -273,8 +290,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
                 'sprinkledBody', 'content', ..., 'summary', 'content', ..., 'text', {str}),
                 get_all=False) or self._html_search_meta(['og:description', 'twitter:description'], webpage),
             'timestamp': traverse_obj(art_json, ('firstPublished', {parse_iso8601})),
-            'creator': ', '.join(
-                traverse_obj(art_json, ('bylines', ..., 'creators', ..., 'displayName'))),  # TODO: change to 'creators' (list)
+            'creators': traverse_obj(art_json, ('bylines', ..., 'creators', ..., 'displayName', {str})),
             'thumbnails': self._extract_thumbnails(traverse_obj(
                 art_json, ('promotionalMedia', 'assetCrops', ..., 'renditions', ...))),
         }
