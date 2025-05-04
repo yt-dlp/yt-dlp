@@ -176,6 +176,8 @@ class RTVSLOShowIE(InfoExtractor):
         'info_dict': {
             'id': '173250997',
             'title': 'Ekipa Bled',
+            'description': 'md5:c88471e27a1268c448747a5325319ab7',
+            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/173250997/logo_wide1.jpg',
         },
         'playlist_count': 18,
     }]
@@ -187,4 +189,7 @@ class RTVSLOShowIE(InfoExtractor):
         return self.playlist_from_matches(
             re.findall(r'<a [^>]*\bhref="(/arhiv/[^"]+)"', webpage),
             playlist_id, self._html_extract_title(webpage),
-            getter=urljoin('https://365.rtvslo.si'), ie=RTVSLOIE)
+            getter=urljoin('https://365.rtvslo.si'), ie=RTVSLOIE,
+            description=self._og_search_description(webpage),
+            thumbnail=self._og_search_thumbnail(webpage),
+        )

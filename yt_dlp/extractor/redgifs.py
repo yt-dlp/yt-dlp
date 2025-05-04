@@ -12,7 +12,7 @@ from ..utils import (
 )
 
 
-class RedGifsBaseInfoExtractor(InfoExtractor):
+class RedGifsBaseIE(InfoExtractor):
     _FORMATS = {
         'gif': 250,
         'sd': 480,
@@ -113,8 +113,8 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         return page_fetcher(page) if page else OnDemandPagedList(page_fetcher, self._PAGE_SIZE)
 
 
-class RedGifsIE(RedGifsBaseInfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/watch/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
+class RedGifsIE(RedGifsBaseIE):
+    _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/(?:watch|ifr)/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
     _TESTS = [{
         'url': 'https://www.redgifs.com/watch/squeakyhelplesswisent',
         'info_dict': {
@@ -147,6 +147,22 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'age_limit': 18,
             'tags': list,
         },
+    }, {
+        'url': 'https://www.redgifs.com/ifr/squeakyhelplesswisent',
+        'info_dict': {
+            'id': 'squeakyhelplesswisent',
+            'ext': 'mp4',
+            'title': 'Hotwife Legs Thick',
+            'timestamp': 1636287915,
+            'upload_date': '20211107',
+            'uploader': 'ignored52',
+            'duration': 16,
+            'view_count': int,
+            'like_count': int,
+            'categories': list,
+            'age_limit': 18,
+            'tags': list,
+        },
     }]
 
     def _real_extract(self, url):
@@ -156,7 +172,7 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
         return self._parse_gif_data(video_info['gif'])
 
 
-class RedGifsSearchIE(RedGifsBaseInfoExtractor):
+class RedGifsSearchIE(RedGifsBaseIE):
     IE_DESC = 'Redgifs search'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/browse\?(?P<query>[^#]+)'
     _PAGE_SIZE = 80
@@ -210,7 +226,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
             entries, query_str, tags, f'RedGifs search for {tags}, ordered by {order}')
 
 
-class RedGifsUserIE(RedGifsBaseInfoExtractor):
+class RedGifsUserIE(RedGifsBaseIE):
     IE_DESC = 'Redgifs user'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/users/(?P<username>[^/?#]+)(?:\?(?P<query>[^#]+))?'
     _PAGE_SIZE = 80

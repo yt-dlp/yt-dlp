@@ -8,6 +8,7 @@ import contextlib
 import datetime as dt
 import email.header
 import email.utils
+import enum
 import errno
 import functools
 import hashlib
@@ -51,8 +52,9 @@ from ..compat import (
     compat_HTMLParseError,
 )
 from ..dependencies import xattr
+from ..globals import IN_CLI
 
-__name__ = __name__.rsplit('.', 1)[0]  # noqa: A001: Pretend to be the parent module
+__name__ = __name__.rsplit('.', 1)[0]  # noqa: A001 # Pretend to be the parent module
 
 
 class NO_DEFAULT:
@@ -685,7 +687,8 @@ def _sanitize_path_parts(parts):
         elif part == '..':
             if sanitized_parts and sanitized_parts[-1] != '..':
                 sanitized_parts.pop()
-            sanitized_parts.append('..')
+            else:
+                sanitized_parts.append('..')
             continue
         # Replace invalid segments with `#`
         # - trailing dots and spaces (`asdf...` => `asdf..#`)
@@ -702,7 +705,8 @@ def sanitize_path(s, force=False):
         if not force:
             return s
         root = '/' if s.startswith('/') else ''
-        return root + '/'.join(_sanitize_path_parts(s.split('/')))
+        path = '/'.join(_sanitize_path_parts(s.split('/')))
+        return root + path if root or path else '.'
 
     normed = s.replace('/', '\\')
 
@@ -721,7 +725,8 @@ def sanitize_path(s, force=False):
         root = '\\' if normed[:1] == '\\' else ''
         parts = normed.split('\\')
 
-    return root + '\\'.join(_sanitize_path_parts(parts))
+    path = '\\'.join(_sanitize_path_parts(parts))
+    return root + path if root or path else '.'
 
 
 def sanitize_url(url, *, scheme='http'):
@@ -1483,8 +1488,7 @@ def write_string(s, out=None, encoding=None):
 
 # TODO: Use global logger
 def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
-    from .. import _IN_CLI
-    if _IN_CLI:
+    if IN_CLI.value:
         if msg in deprecation_warning._cache:
             return
         deprecation_warning._cache.add(msg)
@@ -2040,7 +2044,7 @@ def url_or_none(url):
     if not url or not isinstance(url, str):
         return None
     url = url.strip()
-    return url if re.match(r'(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
+    return url if re.match(r'(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?|wss?):)?//', url) else None
 
 
 def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
@@ -2763,7 +2767,8 @@ def js_to_json(code, vars={}, *, strict=False):
     def template_substitute(match):
         evaluated = js_to_json(match.group(1), vars, strict=strict)
         if evaluated[0] == '"':
-            return json.loads(evaluated)
+            with contextlib.suppress(json.JSONDecodeError):
+                return json.loads(evaluated)
         return evaluated
 
     def fix_kv(m):
@@ -3243,7 +3248,7 @@ def _match_one(filter_part, dct, incomplete):
             op = lambda attr, value: not unnegated_op(attr, value)
         else:
             op = unnegated_op
-        comparison_value = m['quotedstrval'] or m['strval'] or m['intval']
+        comparison_value = m['quotedstrval'] or m['strval']
         if m['quote']:
             comparison_value = comparison_value.replace(r'\{}'.format(m['quote']), m['quote'])
         actual_value = dct.get(m['key'])
@@ -4887,10 +4892,6 @@ class Config:
     filename = None
     __initialized = False
 
-    # Internal only, do not use! Hack to enable --plugin-dirs
-    # TODO(coletdjnz): remove when plugin globals system is implemented
-    _plugin_dirs = None
-
     def __init__(self, parser, label=None):
         self.parser, self.label = parser, label
         self._loaded_paths, self.configs = set(), []
@@ -5330,7 +5331,7 @@ class FormatSorter:
 
     settings = {
         'vcodec': {'type': 'ordered', 'regex': True,
-                   'order': ['av0?1', 'vp0?9.0?2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
+                   'order': ['av0?1', r'vp0?9\.0?2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
         'acodec': {'type': 'ordered', 'regex': True,
                    'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'ac-?4', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
         'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
@@ -5628,6 +5629,24 @@ def filesize_from_tbr(tbr, duration):
     return int(duration * tbr * (1000 / 8))
 
 
+def _request_dump_filename(url, video_id, data=None, trim_length=None):
+    if data is not None:
+        data = hashlib.md5(data).hexdigest()
+    basen = join_nonempty(video_id, data, url, delim='_')
+    trim_length = trim_length or 240
+    if len(basen) > trim_length:
+        h = '___' + hashlib.md5(basen.encode()).hexdigest()
+        basen = basen[:trim_length - len(h)] + h
+    filename = sanitize_filename(f'{basen}.dump', restricted=True)
+    # Working around MAX_PATH limitation on Windows (see
+    # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
+    if os.name == 'nt':
+        absfilepath = os.path.abspath(filename)
+        if len(absfilepath) > 259:
+            filename = fR'\\?\{absfilepath}'
+    return filename
+
+
 # XXX: Temporary
 class _YDLLogger:
     def __init__(self, ydl=None):
@@ -5656,3 +5675,32 @@ class _YDLLogger:
     def stderr(self, message):
         if self._ydl:
             self._ydl.to_stderr(message)
+
+
+class _ProgressState(enum.Enum):
+    """
+    Represents a state for a progress bar.
+
+    See: https://conemu.github.io/en/AnsiEscapeCodes.html#ConEmu_specific_OSC
+    """
+
+    HIDDEN = 0
+    INDETERMINATE = 3
+    VISIBLE = 1
+    WARNING = 4
+    ERROR = 2
+
+    @classmethod
+    def from_dict(cls, s, /):
+        if s['status'] == 'finished':
+            return cls.INDETERMINATE
+
+        # Not currently used
+        if s['status'] == 'error':
+            return cls.ERROR
+
+        return cls.INDETERMINATE if s.get('_percent') is None else cls.VISIBLE
+
+    def get_ansi_escape(self, /, percent=None):
+        percent = 0 if percent is None else int(percent)
+        return f'\033]9;4;{self.value};{percent}\007'

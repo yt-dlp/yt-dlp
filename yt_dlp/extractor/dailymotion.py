@@ -100,7 +100,7 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
 
 class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
-                    https?://
+                    (?:https?:)?//
                     (?:
                         dai\.ly/|
                         (?:
@@ -116,7 +116,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                     (?P<id>[^/?_&#]+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
     '''
     IE_NAME = 'dailymotion'
-    _EMBED_REGEX = [r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1']
+    _EMBED_REGEX = [rf'(?ix)<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)["\'](?P<url>{_VALID_URL[5:]})']
     _TESTS = [{
         'url': 'http://www.dailymotion.com/video/x5kesuj_office-christmas-party-review-jason-bateman-olivia-munn-t-j-miller_news',
         'md5': '074b95bdee76b9e3654137aee9c79dfe',
@@ -307,6 +307,25 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'duration': 28,
             'description': 'Que lindura',
             'tags': [],
+        },
+    }, {
+        # //geo.dailymotion.com/player/xysxq.html?video=k2Y4Mjp7krAF9iCuINM
+        'url': 'https://lcp.fr/programmes/avant-la-catastrophe-la-naissance-de-la-dictature-nazie-1933-1936-346819',
+        'info_dict': {
+            'id': 'k2Y4Mjp7krAF9iCuINM',
+            'ext': 'mp4',
+            'title': 'Avant la catastrophe la naissance de la dictature nazie 1933 -1936',
+            'description': 'md5:7b620d5e26edbe45f27bbddc1c0257c1',
+            'uploader': 'LCP Assemblée nationale',
+            'uploader_id': 'xbz33d',
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 3220,
+            'thumbnail': 'https://s1.dmcdn.net/v/Xvumk1djJBUZfjj2a/x1080',
+            'tags': [],
+            'timestamp': 1739919947,
+            'upload_date': '20250218',
         },
     }]
     _GEO_BYPASS = False
