@@ -31,6 +31,7 @@ from ..utils import (
     timetuple_from_msec,
     try_call,
 )
+from ..utils._utils import _ProgressState
 
 
 class FileDownloader:
@@ -333,7 +334,7 @@ class FileDownloader:
             progress_dict), s.get('progress_idx') or 0)
         self.to_console_title(self.ydl.evaluate_outtmpl(
             progress_template.get('download-title') or 'yt-dlp %(progress._default_template)s',
-            progress_dict))
+            progress_dict), _ProgressState.from_dict(s), s.get('_percent'))
 
     def _format_progress(self, *args, **kwargs):
         return self.ydl._format_text(
@@ -357,6 +358,7 @@ class FileDownloader:
                 '_speed_str': self.format_speed(speed).strip(),
                 '_total_bytes_str': _format_bytes('total_bytes'),
                 '_elapsed_str': self.format_seconds(s.get('elapsed')),
+                '_percent': 100.0,
                 '_percent_str': self.format_percent(100),
             })
             self._report_progress_status(s, join_nonempty(
@@ -375,13 +377,15 @@ class FileDownloader:
                     return
                 self._progress_delta_time += update_delta
 
+        progress = try_call(
+            lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
+            lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
+            lambda: s['downloaded_bytes'] == 0 and 0)
         s.update({
             '_eta_str': self.format_eta(s.get('eta')).strip(),
             '_speed_str': self.format_speed(s.get('speed')),
-            '_percent_str': self.format_percent(try_call(
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
-                lambda: s['downloaded_bytes'] == 0 and 0)),
+            '_percent': progress,
+            '_percent_str': self.format_percent(progress),
             '_total_bytes_str': _format_bytes('total_bytes'),
             '_total_bytes_estimate_str': _format_bytes('total_bytes_estimate'),
             '_downloaded_bytes_str': _format_bytes('downloaded_bytes'),

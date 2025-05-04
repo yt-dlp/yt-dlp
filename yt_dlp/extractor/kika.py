@@ -1,3 +1,5 @@
+import itertools
+
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -124,3 +126,43 @@ class KikaIE(InfoExtractor):
                         'vbr': ('bitrateVideo', {int_or_none}, {lambda x: None if x == -1 else x}),
                     }),
                 }
+
+
+class KikaPlaylistIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?kika\.de/[\w-]+/(?P<id>[a-z-]+\d+)'
+
+    _TESTS = [{
+        'url': 'https://www.kika.de/logo/logo-die-welt-und-ich-562',
+        'info_dict': {
+            'id': 'logo-die-welt-und-ich-562',
+            'title': 'logo!',
+            'description': 'md5:7b9d7f65561b82fa512f2cfb553c397d',
+        },
+        'playlist_count': 100,
+    }]
+
+    def _entries(self, playlist_url, playlist_id):
+        for page in itertools.count(1):
+            data = self._download_json(playlist_url, playlist_id, note=f'Downloading page {page}')
+            for item in traverse_obj(data, ('content', lambda _, v: url_or_none(v['api']['url']))):
+                yield self.url_result(
+                    item['api']['url'], ie=KikaIE,
+                    **traverse_obj(item, {
+                        'id': ('id', {str}),
+                        'title': ('title', {str}),
+                        'duration': ('duration', {int_or_none}),
+                        'timestamp': ('date', {parse_iso8601}),
+                    }))
+
+            playlist_url = traverse_obj(data, ('links', 'next', {url_or_none}))
+            if not playlist_url:
+                break
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        brand_data = self._download_json(
+            f'https://www.kika.de/_next-api/proxy/v1/brands/{playlist_id}', playlist_id)
+
+        return self.playlist_result(
+            self._entries(brand_data['videoSubchannel']['videosPageUrl'], playlist_id),
+            playlist_id, title=brand_data.get('title'), description=brand_data.get('description'))

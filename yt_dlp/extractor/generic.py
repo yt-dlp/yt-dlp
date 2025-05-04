@@ -37,6 +37,7 @@ from ..utils import (
     unescapeHTML,
     unified_timestamp,
     unsmuggle_url,
+    update_url,
     update_url_query,
     url_or_none,
     urlhandle_detect_ext,
@@ -291,6 +292,19 @@ class GenericIE(InfoExtractor):
                 'formats': 'mincount:9',
                 'upload_date': '20130904',
                 'timestamp': 1378272859.0,
+            },
+        },
+        # Live DASH MPD
+        {
+            'url': 'https://livesim2.dashif.org/livesim2/ato_10/testpic_2s/Manifest.mpd',
+            'info_dict': {
+                'id': 'Manifest',
+                'ext': 'mp4',
+                'title': r're:Manifest \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+                'live_status': 'is_live',
+            },
+            'params': {
+                'skip_download': 'livestream',
             },
         },
         # m3u8 served with Content-Type: audio/x-mpegURL; charset=utf-8
@@ -2200,10 +2214,21 @@ class GenericIE(InfoExtractor):
             if is_live is not None:
                 info['live_status'] = 'not_live' if is_live == 'false' else 'is_live'
                 return
-            headers = m3u8_format.get('http_headers') or info.get('http_headers')
-            duration = self._extract_m3u8_vod_duration(
-                m3u8_format['url'], info.get('id'), note='Checking m3u8 live status',
-                errnote='Failed to download m3u8 media playlist', headers=headers)
+            headers = m3u8_format.get('http_headers') or info.get('http_headers') or {}
+            display_id = info.get('id')
+            urlh = self._request_webpage(
+                m3u8_format['url'], display_id, 'Checking m3u8 live status', errnote=False,
+                headers={**headers, 'Accept-Encoding': 'identity'}, fatal=False)
+            if urlh is False:
+                return
+            first_bytes = urlh.read(512)
+            if not first_bytes.startswith(b'#EXTM3U'):
+                return
+            m3u8_doc = self._webpage_read_content(
+                urlh, urlh.url, display_id, prefix=first_bytes, fatal=False, errnote=False)
+            if not m3u8_doc:
+                return
+            duration = self._parse_m3u8_vod_duration(m3u8_doc, display_id)
             if not duration:
                 info['live_status'] = 'is_live'
             info['duration'] = info.get('duration') or duration
@@ -2436,10 +2461,9 @@ class GenericIE(InfoExtractor):
             subtitles = {}
             if format_id.endswith('mpegurl') or ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
-            elif format_id.endswith(('mpd', 'dash+xml')) or ext == 'mpd':
-                formats, subtitles = self._extract_mpd_formats_and_subtitles(url, video_id, headers=headers)
             elif format_id == 'f4m' or ext == 'f4m':
                 formats = self._extract_f4m_formats(url, video_id, headers=headers)
+            # Don't check for DASH/mpd here, do it later w/ first_bytes. Same number of requests either way
             else:
                 formats = [{
                     'format_id': format_id,
@@ -2514,13 +2538,15 @@ class GenericIE(InfoExtractor):
                 return self.playlist_result(
                     self._parse_xspf(
                         doc, video_id, xspf_url=url,
-                        xspf_base_url=full_response.url),
+                        xspf_base_url=new_url),
                     video_id)
             elif re.match(r'(?i)^(?:{[^}]+})?MPD$', doc.tag):
                 info_dict['formats'], info_dict['subtitles'] = self._parse_mpd_formats_and_subtitles(
                     doc,
-                    mpd_base_url=full_response.url.rpartition('/')[0],
+                    # Do not use yt_dlp.utils.base_url here since it will raise on file:// URLs
+                    mpd_base_url=update_url(new_url, query=None, fragment=None).rpartition('/')[0],
                     mpd_url=url)
+                info_dict['live_status'] = 'is_live' if doc.get('type') == 'dynamic' else None
                 self._extra_manifest_info(info_dict, url)
                 self.report_detected('DASH manifest')
                 return info_dict

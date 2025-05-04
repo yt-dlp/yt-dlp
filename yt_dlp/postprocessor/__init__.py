@@ -33,15 +33,38 @@ from .movefilesafterdownload import MoveFilesAfterDownloadPP
 from .sponskrub import SponSkrubPP
 from .sponsorblock import SponsorBlockPP
 from .xattrpp import XAttrMetadataPP
-from ..plugins import load_plugins
+from ..globals import plugin_pps, postprocessors
+from ..plugins import PACKAGE_NAME, register_plugin_spec, PluginSpec
+from ..utils import deprecation_warning
 
-_PLUGIN_CLASSES = load_plugins('postprocessor', 'PP')
+
+def __getattr__(name):
+    lookup = plugin_pps.value
+    if name in lookup:
+        deprecation_warning(
+            f'Importing a plugin Post-Processor from {__name__} is deprecated. '
+            f'Please import {PACKAGE_NAME}.postprocessor.{name} instead.')
+        return lookup[name]
+
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
 
 
 def get_postprocessor(key):
-    return globals()[key + 'PP']
+    return postprocessors.value[key + 'PP']
 
 
-globals().update(_PLUGIN_CLASSES)
-__all__ = [name for name in globals() if name.endswith('PP')]
-__all__.extend(('FFmpegPostProcessor', 'PostProcessor'))
+register_plugin_spec(PluginSpec(
+    module_name='postprocessor',
+    suffix='PP',
+    destination=postprocessors,
+    plugin_destination=plugin_pps,
+))
+
+_default_pps = {
+    name: value
+    for name, value in globals().items()
+    if name.endswith('PP') or name in ('FFmpegPostProcessor', 'PostProcessor')
+}
+postprocessors.value.update(_default_pps)
+
+__all__ = list(_default_pps.values())

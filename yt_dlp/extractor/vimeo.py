@@ -39,6 +39,14 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     _NETRC_MACHINE = 'vimeo'
     _LOGIN_REQUIRED = False
     _LOGIN_URL = 'https://vimeo.com/log_in'
+    _IOS_CLIENT_AUTH = 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw=='
+    _IOS_CLIENT_HEADERS = {
+        'Accept': 'application/vnd.vimeo.*+json; version=3.4.10',
+        'Accept-Language': 'en',
+        'User-Agent': 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0',
+    }
+    _IOS_OAUTH_CACHE_KEY = 'oauth-token-ios'
+    _ios_oauth_token = None
 
     @staticmethod
     def _smuggle_referrer(url, referrer_url):
@@ -88,13 +96,16 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 expected=True)
         return password
 
-    def _verify_video_password(self, video_id, password, token):
+    def _verify_video_password(self, video_id):
+        video_password = self._get_video_password()
+        token = self._download_json(
+            'https://vimeo.com/_next/viewer', video_id, 'Downloading viewer info')['xsrft']
         url = f'https://vimeo.com/{video_id}'
         try:
-            return self._download_webpage(
+            self._request_webpage(
                 f'{url}/password', video_id,
                 'Submitting video password', data=json.dumps({
-                    'password': password,
+                    'password': video_password,
                     'token': token,
                 }, separators=(',', ':')).encode(), headers={
                     'Accept': '*/*',
@@ -239,20 +250,39 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             '_format_sort_fields': ('quality', 'res', 'fps', 'hdr:12', 'source'),
         }
 
-    def _call_videos_api(self, video_id, jwt_token, unlisted_hash=None, **kwargs):
+    def _fetch_oauth_token(self):
+        if not self._ios_oauth_token:
+            self._ios_oauth_token = self.cache.load(self._NETRC_MACHINE, self._IOS_OAUTH_CACHE_KEY)
+
+        if not self._ios_oauth_token:
+            self._ios_oauth_token = self._download_json(
+                'https://api.vimeo.com/oauth/authorize/client', None,
+                'Fetching OAuth token', 'Failed to fetch OAuth token',
+                headers={
+                    'Authorization': f'Basic {self._IOS_CLIENT_AUTH}',
+                    **self._IOS_CLIENT_HEADERS,
+                }, data=urlencode_postdata({
+                    'grant_type': 'client_credentials',
+                    'scope': 'private public create edit delete interact upload purchased stats',
+                }, quote_via=urllib.parse.quote))['access_token']
+            self.cache.store(self._NETRC_MACHINE, self._IOS_OAUTH_CACHE_KEY, self._ios_oauth_token)
+
+        return self._ios_oauth_token
+
+    def _call_videos_api(self, video_id, unlisted_hash=None, **kwargs):
         return self._download_json(
             join_nonempty(f'https://api.vimeo.com/videos/{video_id}', unlisted_hash, delim=':'),
             video_id, 'Downloading API JSON', headers={
-                'Authorization': f'jwt {jwt_token}',
-                'Accept': 'application/json',
+                'Authorization': f'Bearer {self._fetch_oauth_token()}',
+                **self._IOS_CLIENT_HEADERS,
             }, query={
                 'fields': ','.join((
-                    'config_url', 'created_time', 'description', 'download', 'license',
-                    'metadata.connections.comments.total', 'metadata.connections.likes.total',
-                    'release_time', 'stats.plays')),
+                    'config_url', 'embed_player_config_url', 'player_embed_url', 'download', 'play',
+                    'files', 'description', 'license', 'release_time', 'created_time', 'stats.plays',
+                    'metadata.connections.comments.total', 'metadata.connections.likes.total')),
             }, **kwargs)
 
-    def _extract_original_format(self, url, video_id, unlisted_hash=None, jwt=None, api_data=None):
+    def _extract_original_format(self, url, video_id, unlisted_hash=None, api_data=None):
         # Original/source formats are only available when logged in
         if not self._get_cookies('https://vimeo.com/').get('vimeo'):
             return
@@ -283,12 +313,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'quality': 1,
                 }
 
-        jwt = jwt or traverse_obj(self._download_json(
-            'https://vimeo.com/_rv/viewer', video_id, 'Downloading jwt token', fatal=False), ('jwt', {str}))
-        if not jwt:
-            return
         original_response = api_data or self._call_videos_api(
-            video_id, jwt, unlisted_hash, fatal=False, expected_status=(403, 404))
+            video_id, unlisted_hash, fatal=False, expected_status=(403, 404))
         for download_data in traverse_obj(original_response, ('download', ..., {dict})):
             download_url = download_data.get('link')
             if not download_url or download_data.get('quality') != 'source':
@@ -410,6 +436,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'duration': 10,
                 'comment_count': int,
                 'like_count': int,
+                'view_count': int,
                 'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d',
             },
             'params': {
@@ -500,15 +527,16 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader': 'The DMCI',
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/dmci',
                 'uploader_id': 'dmci',
-                'timestamp': 1324343742,
+                'timestamp': 1324361742,
                 'upload_date': '20111220',
-                'description': 'md5:ae23671e82d05415868f7ad1aec21147',
+                'description': 'md5:f37b4ad0f3ded6fa16f38ecde16c3c44',
                 'duration': 60,
                 'comment_count': int,
                 'view_count': int,
                 'thumbnail': 'https://i.vimeocdn.com/video/231174622-dd07f015e9221ff529d451e1cc31c982b5d87bfafa48c4189b1da72824ee289a-d',
                 'like_count': int,
-                'tags': 'count:11',
+                'release_timestamp': 1324361742,
+                'release_date': '20111220',
             },
             # 'params': {'format': 'Original'},
             'expected_warnings': ['Failed to parse XML: not well-formed'],
@@ -521,15 +549,18 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'id': '393756517',
                 # 'ext': 'mov',
                 'ext': 'mp4',
-                'timestamp': 1582642091,
+                'timestamp': 1582660091,
                 'uploader_id': 'frameworkla',
                 'title': 'Straight To Hell - Sabrina: Netflix',
                 'uploader': 'Framework Studio',
-                'description': 'md5:f2edc61af3ea7a5592681ddbb683db73',
                 'upload_date': '20200225',
                 'duration': 176,
                 'thumbnail': 'https://i.vimeocdn.com/video/859377297-836494a4ef775e9d4edbace83937d9ad34dc846c688c0c419c0e87f7ab06c4b3-d',
                 'uploader_url': 'https://vimeo.com/frameworkla',
+                'comment_count': int,
+                'like_count': int,
+                'release_timestamp': 1582660091,
+                'release_date': '20200225',
             },
             # 'params': {'format': 'source'},
             'expected_warnings': ['Failed to parse XML: not well-formed'],
@@ -630,7 +661,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'description': str,  # FIXME: Dynamic SEO spam description
                 'upload_date': '20150209',
                 'timestamp': 1423518307,
-                'thumbnail': 'https://i.vimeocdn.com/video/default',
+                'thumbnail': r're:https://i\.vimeocdn\.com/video/default',
                 'duration': 10,
                 'like_count': int,
                 'uploader_url': 'https://vimeo.com/user20132939',
@@ -667,6 +698,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'like_count': int,
                 'uploader_url': 'https://vimeo.com/aliniamedia',
                 'release_date': '20160329',
+                'view_count': int,
             },
             'params': {'skip_download': True},
             'expected_warnings': ['Failed to parse XML: not well-formed'],
@@ -678,18 +710,19 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 # 'ext': 'm4v',
                 'ext': 'mp4',
                 'title': 'Eastnor Castle 2015 Firework Champions - The Promo!',
-                'description': 'md5:5967e090768a831488f6e74b7821b3c1',
+                'description': 'md5:9441e6829ae94f380cc6417d982f63ac',
                 'uploader_id': 'fireworkchampions',
                 'uploader': 'Firework Champions',
                 'upload_date': '20150910',
-                'timestamp': 1441901895,
+                'timestamp': 1441916295,
                 'thumbnail': 'https://i.vimeocdn.com/video/534715882-6ff8e4660cbf2fea68282876d8d44f318825dfe572cc4016e73b3266eac8ae3a-d',
                 'uploader_url': 'https://vimeo.com/fireworkchampions',
-                'tags': 'count:6',
                 'duration': 229,
                 'view_count': int,
                 'like_count': int,
                 'comment_count': int,
+                'release_timestamp': 1441916295,
+                'release_date': '20150910',
             },
             'params': {
                 'skip_download': True,
@@ -820,7 +853,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader': 'Raja Virdi',
                 'uploader_id': 'rajavirdi',
                 'uploader_url': 'https://vimeo.com/rajavirdi',
-                'duration': 309,
+                'duration': 300,
                 'thumbnail': r're:https://i\.vimeocdn\.com/video/1716727772-[\da-f]+-d',
             },
             # 'params': {'format': 'source'},
@@ -860,12 +893,9 @@ class VimeoIE(VimeoBaseInfoExtractor):
         return checked
 
     def _extract_from_api(self, video_id, unlisted_hash=None):
-        viewer = self._download_json(
-            'https://vimeo.com/_next/viewer', video_id, 'Downloading viewer info')
-
         for retry in (False, True):
             try:
-                video = self._call_videos_api(video_id, viewer['jwt'], unlisted_hash)
+                video = self._call_videos_api(video_id, unlisted_hash)
                 break
             except ExtractorError as e:
                 if (not retry and isinstance(e.cause, HTTPError) and e.cause.status == 400
@@ -873,15 +903,14 @@ class VimeoIE(VimeoBaseInfoExtractor):
                         self._webpage_read_content(e.cause.response, e.cause.response.url, video_id, fatal=False),
                         ({json.loads}, 'invalid_parameters', ..., 'field'),
                 )):
-                    self._verify_video_password(
-                        video_id, self._get_video_password(), viewer['xsrft'])
+                    self._verify_video_password(video_id)
                     continue
                 raise
 
         info = self._parse_config(self._download_json(
             video['config_url'], video_id), video_id)
         source_format = self._extract_original_format(
-            f'https://vimeo.com/{video_id}', video_id, unlisted_hash, jwt=viewer['jwt'], api_data=video)
+            f'https://vimeo.com/{video_id}', video_id, unlisted_hash, api_data=video)
         if source_format:
             info['formats'].append(source_format)
 
@@ -1122,7 +1151,7 @@ class VimeoOndemandIE(VimeoIE):  # XXX: Do not subclass from concrete IE
             'description': 'md5:aeeba3dbd4d04b0fa98a4fdc9c639998',
             'upload_date': '20140906',
             'timestamp': 1410032453,
-            'thumbnail': 'https://i.vimeocdn.com/video/488238335-d7bf151c364cff8d467f1b73784668fe60aae28a54573a35d53a1210ae283bd8-d_1280',
+            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
             'comment_count': int,
             'license': 'https://creativecommons.org/licenses/by-nc-nd/3.0/',
             'duration': 53,
@@ -1132,7 +1161,7 @@ class VimeoOndemandIE(VimeoIE):  # XXX: Do not subclass from concrete IE
         'params': {
             'format': 'best[protocol=https]',
         },
-        'expected_warnings': ['Unable to download JSON metadata'],
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
     }, {
         # requires Referer to be passed along with og:video:url
         'url': 'https://vimeo.com/ondemand/36938/126682985',
@@ -1149,13 +1178,14 @@ class VimeoOndemandIE(VimeoIE):  # XXX: Do not subclass from concrete IE
             'duration': 121,
             'comment_count': int,
             'view_count': int,
-            'thumbnail': 'https://i.vimeocdn.com/video/517077723-7066ae1d9a79d3eb361334fb5d58ec13c8f04b52f8dd5eadfbd6fb0bcf11f613-d_1280',
+            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
             'like_count': int,
+            'tags': 'count:5',
         },
         'params': {
             'skip_download': True,
         },
-        'expected_warnings': ['Unable to download JSON metadata'],
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
     }, {
         'url': 'https://vimeo.com/ondemand/nazmaalik',
         'only_matching': True,
@@ -1237,7 +1267,7 @@ class VimeoUserIE(VimeoChannelIE):  # XXX: Do not subclass from concrete IE
     _TESTS = [{
         'url': 'https://vimeo.com/nkistudio/videos',
         'info_dict': {
-            'title': 'Nki',
+            'title': 'AKAMA',
             'id': 'nkistudio',
         },
         'playlist_mincount': 66,
@@ -1370,10 +1400,10 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'uploader_id': 'user170863801',
             'uploader_url': 'https://vimeo.com/user170863801',
             'duration': 30,
-            'thumbnail': 'https://i.vimeocdn.com/video/1912612821-09a43bd2e75c203d503aed89de7534f28fc4474a48f59c51999716931a246af5-d_1280',
+            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
         },
         'params': {'skip_download': 'm3u8'},
-        'expected_warnings': ['Failed to parse XML'],
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
     }, {
         'url': 'https://vimeo.com/user21297594/review/75524534/3c257a1b5d',
         'md5': 'c507a72f780cacc12b2248bb4006d253',
@@ -1423,12 +1453,8 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         user, video_id, review_hash = self._match_valid_url(url).group('user', 'id', 'hash')
         data_url = f'https://vimeo.com/{user}/review/data/{video_id}/{review_hash}'
         data = self._download_json(data_url, video_id)
-        viewer = {}
         if data.get('isLocked') is True:
-            video_password = self._get_video_password()
-            viewer = self._download_json(
-                'https://vimeo.com/_rv/viewer', video_id)
-            self._verify_video_password(video_id, video_password, viewer['xsrft'])
+            self._verify_video_password(video_id)
             data = self._download_json(data_url, video_id)
         clip_data = data['clipData']
         config_url = clip_data['configUrl']
@@ -1436,7 +1462,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         info_dict = self._parse_config(config, video_id)
         source_format = self._extract_original_format(
             f'https://vimeo.com/{user}/review/{video_id}/{review_hash}/action',
-            video_id, unlisted_hash=clip_data.get('unlistedHash'), jwt=viewer.get('jwt'))
+            video_id, unlisted_hash=clip_data.get('unlistedHash'))
         if source_format:
             info_dict['formats'].append(source_format)
         info_dict['description'] = clean_html(clip_data.get('description'))
@@ -1528,20 +1554,22 @@ class VimeoProIE(VimeoBaseInfoExtractor):
             'uploader_id': 'openstreetmapus',
             'uploader': 'OpenStreetMap US',
             'title': 'Andy Allan - Putting the Carto into OpenStreetMap Cartography',
-            'description': 'md5:2c362968038d4499f4d79f88458590c1',
+            'description': 'md5:8cf69a1a435f2d763f4adf601e9c3125',
             'duration': 1595,
             'upload_date': '20130610',
-            'timestamp': 1370893156,
+            'timestamp': 1370907556,
             'license': 'by',
-            'thumbnail': 'https://i.vimeocdn.com/video/440260469-19b0d92fca3bd84066623b53f1eb8aaa3980c6c809e2d67b6b39ab7b4a77a344-d_960',
+            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
             'view_count': int,
             'comment_count': int,
             'like_count': int,
-            'tags': 'count:1',
+            'release_timestamp': 1370907556,
+            'release_date': '20130610',
         },
         'params': {
             'format': 'best[protocol=https]',
         },
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
     }, {
         # password-protected VimeoPro page with Vimeo player embed
         'url': 'https://vimeopro.com/cadfem/simulation-conference-mechanische-systeme-in-perfektion',
@@ -1549,7 +1577,7 @@ class VimeoProIE(VimeoBaseInfoExtractor):
             'id': '764543723',
             'ext': 'mp4',
             'title': 'Mechanische Systeme in Perfektion: Realität erfassen, Innovation treiben',
-            'thumbnail': 'https://i.vimeocdn.com/video/1543784598-a1a750494a485e601110136b9fe11e28c2131942452b3a5d30391cb3800ca8fd-d_1280',
+            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
             'description': 'md5:2a9d195cd1b0f6f79827107dc88c2420',
             'uploader': 'CADFEM',
             'uploader_id': 'cadfem',
@@ -1561,6 +1589,7 @@ class VimeoProIE(VimeoBaseInfoExtractor):
             'videopassword': 'Conference2022',
             'skip_download': True,
         },
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
     }]
 
     def _real_extract(self, url):

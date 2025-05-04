@@ -638,6 +638,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 'img_bipbop_adv_example_fmp4',
                 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
                 [{
+                    # 60kbps (bitrate not provided in m3u8); sorted as worst because it's grouped with lowest bitrate video track
                     'format_id': 'aud1-English',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -645,15 +646,9 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                     'audio_ext': 'mp4',
+                    'source_preference': 0,
                 }, {
-                    'format_id': 'aud2-English',
-                    'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a2/prog_index.m3u8',
-                    'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
-                    'language': 'en',
-                    'ext': 'mp4',
-                    'protocol': 'm3u8_native',
-                    'audio_ext': 'mp4',
-                }, {
+                    # 192kbps (bitrate not provided in m3u8)
                     'format_id': 'aud3-English',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a3/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -661,6 +656,17 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                     'audio_ext': 'mp4',
+                    'source_preference': 1,
+                }, {
+                    # 384kbps (bitrate not provided in m3u8); sorted as best because it's grouped with the highest bitrate video track
+                    'format_id': 'aud2-English',
+                    'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a2/prog_index.m3u8',
+                    'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
+                    'language': 'en',
+                    'ext': 'mp4',
+                    'protocol': 'm3u8_native',
+                    'audio_ext': 'mp4',
+                    'source_preference': 2,
                 }, {
                     'format_id': '530',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/prog_index.m3u8',

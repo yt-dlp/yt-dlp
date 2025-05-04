@@ -52,7 +52,8 @@ class SoundcloudBaseIE(InfoExtractor):
     _API_VERIFY_AUTH_TOKEN = 'https://api-auth.soundcloud.com/connect/session%s'
     _HEADERS = {}
 
-    _IMAGE_REPL_RE = r'-([0-9a-z]+)\.jpg'
+    _IMAGE_REPL_RE = r'-[0-9a-z]+\.(?P<ext>jpg|png)'
+    _TAGS_RE = re.compile(r'"([^"]+)"|([^ ]+)')
 
     _ARTWORK_MAP = {
         'mini': 16,
@@ -331,12 +332,14 @@ class SoundcloudBaseIE(InfoExtractor):
         thumbnails = []
         artwork_url = info.get('artwork_url')
         thumbnail = artwork_url or user.get('avatar_url')
-        if isinstance(thumbnail, str):
-            if re.search(self._IMAGE_REPL_RE, thumbnail):
+        if url_or_none(thumbnail):
+            if mobj := re.search(self._IMAGE_REPL_RE, thumbnail):
                 for image_id, size in self._ARTWORK_MAP.items():
+                    # Soundcloud serves JPEG regardless of URL's ext *except* for "original" thumb
+                    ext = mobj.group('ext') if image_id == 'original' else 'jpg'
                     i = {
                         'id': image_id,
-                        'url': re.sub(self._IMAGE_REPL_RE, f'-{image_id}.jpg', thumbnail),
+                        'url': re.sub(self._IMAGE_REPL_RE, f'-{image_id}.{ext}', thumbnail),
                     }
                     if image_id == 'tiny' and not artwork_url:
                         size = 18
@@ -372,6 +375,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'comment_count': extract_count('comment'),
             'repost_count': extract_count('reposts'),
             'genres': traverse_obj(info, ('genre', {str}, filter, all, filter)),
+            'tags': traverse_obj(info, ('tag_list', {self._TAGS_RE.findall}, ..., ..., filter)),
             'artists': traverse_obj(info, ('publisher_metadata', 'artist', {str}, filter, all, filter)),
             'formats': formats if not extract_flat else None,
         }
@@ -425,6 +429,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'thumbnail': 'https://i1.sndcdn.com/artworks-000031955188-rwb18x-original.jpg',
                 'uploader_url': 'https://soundcloud.com/ethmusic',
+                'tags': 'count:14',
             },
         },
         # geo-restricted
@@ -440,7 +445,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_id': '9615865',
                 'timestamp': 1337635207,
                 'upload_date': '20120521',
-                'duration': 227.155,
+                'duration': 227.103,
                 'license': 'all-rights-reserved',
                 'view_count': int,
                 'like_count': int,
@@ -450,6 +455,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'thumbnail': 'https://i1.sndcdn.com/artworks-v8bFHhXm7Au6-0-original.jpg',
                 'genres': ['Alternative'],
                 'artists': ['The Royal Concept'],
+                'tags': [],
             },
         },
         # private link
@@ -475,6 +481,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/jaimemf',
                 'thumbnail': 'https://a1.sndcdn.com/images/default_avatar_large.png',
                 'genres': ['youtubedl'],
+                'tags': [],
             },
         },
         # private link (alt format)
@@ -500,15 +507,16 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/jaimemf',
                 'thumbnail': 'https://a1.sndcdn.com/images/default_avatar_large.png',
                 'genres': ['youtubedl'],
+                'tags': [],
             },
         },
         # downloadable song
         {
             'url': 'https://soundcloud.com/the80m/the-following',
-            'md5': '9ffcddb08c87d74fb5808a3c183a1d04',
+            'md5': 'ecb87d7705d5f53e6c02a63760573c75',  # wav: '9ffcddb08c87d74fb5808a3c183a1d04'
             'info_dict': {
                 'id': '343609555',
-                'ext': 'wav',
+                'ext': 'opus',  # wav original available with auth
                 'title': 'The Following',
                 'track': 'The Following',
                 'description': '',
@@ -526,15 +534,18 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'view_count': int,
                 'genres': ['Dance & EDM'],
                 'artists': ['80M'],
+                'tags': ['80M', 'EDM', 'Dance', 'Music'],
             },
+            'expected_warnings': ['Original download format is only available for registered users'],
         },
         # private link, downloadable format
+        # tags with spaces (e.g. "Uplifting Trance", "Ori Uplift")
         {
             'url': 'https://soundcloud.com/oriuplift/uponly-238-no-talking-wav/s-AyZUd',
-            'md5': '64a60b16e617d41d0bef032b7f55441e',
+            'md5': '2e1530d0e9986a833a67cb34fc90ece0',  # wav: '64a60b16e617d41d0bef032b7f55441e'
             'info_dict': {
                 'id': '340344461',
-                'ext': 'wav',
+                'ext': 'opus',  # wav original available with auth
                 'title': 'Uplifting Only 238 [No Talking] (incl. Alex Feed Guestmix) (Aug 31, 2017) [wav]',
                 'track': 'Uplifting Only 238 [No Talking] (incl. Alex Feed Guestmix) (Aug 31, 2017) [wav]',
                 'description': 'md5:fa20ee0fca76a3d6df8c7e57f3715366',
@@ -552,7 +563,9 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/oriuplift',
                 'genres': ['Trance'],
                 'artists': ['Ori Uplift'],
+                'tags': ['Orchestral', 'Emotional', 'Uplifting Trance', 'Trance', 'Ori Uplift', 'UpOnly'],
             },
+            'expected_warnings': ['Original download format is only available for registered users'],
         },
         # no album art, use avatar pic for thumbnail
         {
@@ -577,6 +590,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'uploader_url': 'https://soundcloud.com/garyvee',
                 'artists': ['MadReal'],
+                'tags': [],
             },
             'params': {
                 'skip_download': True,
@@ -604,7 +618,46 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'genres': ['Piano'],
                 'uploader_url': 'https://soundcloud.com/giovannisarani',
+                'tags': 'count:10',
             },
+        },
+        # .png "original" artwork, 160kbps m4a HLS format
+        {
+            'url': 'https://soundcloud.com/skorxh/audio-dealer',
+            'info_dict': {
+                'id': '2011421339',
+                'ext': 'm4a',
+                'title': 'audio dealer',
+                'description': '',
+                'uploader': '$KORCH',
+                'uploader_id': '150292288',
+                'uploader_url': 'https://soundcloud.com/skorxh',
+                'comment_count': int,
+                'view_count': int,
+                'like_count': int,
+                'repost_count': int,
+                'duration': 213.469,
+                'tags': [],
+                'artists': ['$KORXH'],
+                'track': 'audio dealer',
+                'timestamp': 1737143201,
+                'upload_date': '20250117',
+                'license': 'all-rights-reserved',
+                'thumbnail': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-original.png',
+                'thumbnails': [
+                    {'id': 'mini', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-mini.jpg'},
+                    {'id': 'tiny', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-tiny.jpg'},
+                    {'id': 'small', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-small.jpg'},
+                    {'id': 'badge', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-badge.jpg'},
+                    {'id': 't67x67', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-t67x67.jpg'},
+                    {'id': 'large', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-large.jpg'},
+                    {'id': 't300x300', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-t300x300.jpg'},
+                    {'id': 'crop', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-crop.jpg'},
+                    {'id': 't500x500', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-t500x500.jpg'},
+                    {'id': 'original', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-original.png'},
+                ],
+            },
+            'params': {'skip_download': 'm3u8', 'format': 'hls_aac_160k'},
         },
         {
             # AAC HQ format available (account with active subscription needed)
