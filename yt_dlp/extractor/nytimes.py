@@ -247,7 +247,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
 
     def _extract_content_from_block(self, block):
         details = traverse_obj(block, {
-            'id': (('sourceId', 'id'), {str}, any),
+            'id': ('sourceId', {str}),
             'uploader': ('bylines', ..., 'renderedRepresentation', {str}),
             'duration': (None, (('duration', {float_or_none(scale=1000)}), ('length', {int_or_none}))),
             'timestamp': ('firstPublished', {parse_iso8601}),
