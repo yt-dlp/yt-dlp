@@ -2,9 +2,11 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     try_get,
     unified_strdate,
 )
+from ..utils.traversal import traverse_obj
 
 
 class WatIE(InfoExtractor):
@@ -72,6 +74,11 @@ class WatIE(InfoExtractor):
         if error_desc:
             if video_info.get('error_code') == 'GEOBLOCKED':
                 self.raise_geo_restricted(error_desc, video_info.get('geoList'))
+            elif video_info.get('error_code') == 'DELIVERY_ERROR':
+                if traverse_obj(video_data, ('delivery', 'code')) == 500:
+                    self.report_drm(video_id)
+                error_desc = join_nonempty(
+                    error_desc, traverse_obj(video_data, ('delivery', 'error', {str})), delim=': ')
             raise ExtractorError(error_desc, expected=True)
 
         title = video_info['title']
