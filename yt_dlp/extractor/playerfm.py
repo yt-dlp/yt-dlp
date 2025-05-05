@@ -50,10 +50,11 @@ class PlayerFmIE(InfoExtractor):
             'id': video_id,
             'url': 'https://' + self._search_regex(r'redirect\.mp3/(.+)', data['url'], 'video url'),
             'vcodec': 'none',
-            'thumbnail': thumbnail,
-            'title': title,
-            'creators': creators,
-            'description': description,
-            'duration': duration,
-            'formats': formats,
+            **traverse_obj(data, {
+                'title': ('title', {str}),
+                'description': ('description', {clean_html}),
+                'duration': ('duration', {int_or_none}),
+                'thumbnail': (('image', ('series', 'image')), 'url', {url_or_none}, any),
+                'creators': ('series', 'author', {str}, filter, all, filter),
+            }),
         }
