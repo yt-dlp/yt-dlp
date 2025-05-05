@@ -5,7 +5,7 @@ from ..utils.traversal import traverse_obj
 
 
 class PlayerFmIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www.)?player.fm/(?:series)?/[a-z\d-]+/(?P<id>[a-z\d-]+)'
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?player\.fm/(?:series/)?[\w-]+/(?P<id>[\w-]+))'
     _TESTS = [{
         'url': 'https://player.fm/series/chapo-trap-house/movie-mindset-33-casino-feat-felix',
         'info_dict': {
