@@ -43,8 +43,8 @@ class PlayerFmIE(InfoExtractor):
 
     def _real_extract(self, url):
         # podcast url is always after last backlash
-        video_id = self._match_id(url)
-        data = self._download_json(url + '.json', None)
+        video_id, url = self._match_valid_url(url).group('id', 'url')
+        data = self._download_json(url + '.json', video_id)
 
         title = data.get('title')
         description = data.get('description')
