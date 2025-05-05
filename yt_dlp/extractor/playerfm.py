@@ -13,7 +13,7 @@ class PlayerFmIE(InfoExtractor):
             'thumbnail': r're:^https://.*\.(jpg|png)',
             'title': 'Movie Mindset 33 - Casino feat. Felix',
             'creators': ['Chapo Trap House'],
-            'description': 'The first episode of this season of Movie Mindset is free for all listeners as always. To listen to the rest of the season, subscribe at <a href="http://www.patreon.com/chapotraphouse">www.patreon.com/chapotraphouse</a> When you love movies, you’ve got to watch them. There’s no other way…Movie Mindset Season 3 commences with our first ever single feature on the most referenced movie in Chapo Trap House history: Martin Scorsese’s masterpiece Casino. Will and Hesse are joined by Felix to take a kaleidoscopic and dizzying dive into the inferno of American greed that is Las Vegas. Anchored by a triumvirate of all career great performances from Robert De Niro, Sharon Stone and Joe Pesci in FULL PSYCHO MODE, Casino is by equal turns hilarious and stomach turning and stands alone as Scorsese’s grandest and most generous examination of evil and the tragic flaws that doom us all. Should you listen even if you haven’t seen this movie? Why take a chance? At least that the way we feel about it.',
+            'description': r're:The first episode of this season of Movie Mindset is free .+ we feel about it\.',
             'duration': 6830,
             'ext': 'mp3',
         },
