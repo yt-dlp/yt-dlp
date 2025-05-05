@@ -46,12 +46,6 @@ class PlayerFmIE(InfoExtractor):
         video_id, url = self._match_valid_url(url).group('id', 'url')
         data = self._download_json(url + '.json', video_id)
 
-        title = data.get('title')
-        description = data.get('description')
-        duration = data.get('duration')
-        thumbnail = traverse_obj(data, ('image', 'url'), ('series', 'image', 'url'))
-        creators = [traverse_obj(data, ('series', 'author'))]
-
         video_url = join_nonempty('https', self._search_regex(r'redirect.mp3/(.*)', data['url'], 'redirect'), delim='://')
         if not video_url:
             raise ExtractorError('URL to podcast not found', expected=True)
