@@ -3,6 +3,7 @@ import json
 
 from .art19 import Art19IE
 from .common import InfoExtractor
+from ..networking.common import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -110,6 +111,16 @@ class NebulaBaseIE(InfoExtractor):
             'channel_url': channel_url,
             'uploader_url': channel_url,
         }
+
+    def _mark_watched(self, content_id, slug):
+        data = {'completed': True}
+        req = Request(
+            f'https://content.api.nebula.app/{content_id.split(":")[0]}s/{content_id}/progress/',
+            method='PATCH')
+        self._call_api(
+            req, slug,
+            data=json.dumps(data).encode('utf8'), headers={'content-type': 'application/json'},
+            fatal=False, note='Marking watched', errnote='Unable to mark watched')
 
 
 class NebulaIE(NebulaBaseIE):
@@ -221,6 +232,7 @@ class NebulaIE(NebulaBaseIE):
         slug = self._match_id(url)
         url, smuggled_data = unsmuggle_url(url, {})
         if smuggled_data.get('id'):
+            self.mark_watched(smuggled_data['id'], slug)
             return {
                 'id': smuggled_data['id'],
                 'display_id': slug,
@@ -231,6 +243,7 @@ class NebulaIE(NebulaBaseIE):
         metadata = self._call_api(
             f'https://content.api.nebula.app/content/videos/{slug}',
             slug, note='Fetching video metadata')
+        self.mark_watched(metadata['id'], slug)
         return {
             **self._extract_video_metadata(metadata),
             **self._extract_formats(metadata['id'], slug),
@@ -301,6 +314,7 @@ class NebulaClassIE(NebulaBaseIE):
         slug, episode = self._match_valid_url(url).group('id', 'ep')
         url, smuggled_data = unsmuggle_url(url, {})
         if smuggled_data.get('id'):
+            self.mark_watched(smuggled_data['id'], slug)
             return {
                 'id': smuggled_data['id'],
                 'display_id': slug,
@@ -311,6 +325,7 @@ class NebulaClassIE(NebulaBaseIE):
         metadata = self._call_api(
             f'https://content.api.nebula.app/content/{slug}/{episode}/?include=lessons',
             slug, note='Fetching class/podcast metadata')
+        self.mark_watched(metadata['id'], slug)
         content_type = metadata.get('type')
         if content_type == 'lesson':
             return {
