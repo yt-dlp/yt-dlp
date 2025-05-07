@@ -4007,6 +4007,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     info['concurrent_view_count'] = vc
                 elif info.get('view_count') is None:
                     info['view_count'] = vc
+                elif get_first(microformats, 'isShortsEligible'):
+                    info['engaged_view_count'] = info['view_count']
+                    info['view_count'] = vc
 
         vsir = get_first(contents, 'videoSecondaryInfoRenderer')
         if vsir:
