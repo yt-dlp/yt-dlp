@@ -3,7 +3,7 @@ import json
 
 from .art19 import Art19IE
 from .common import InfoExtractor
-from ..networking.common import Request
+from ..networking import PATCHRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -113,14 +113,11 @@ class NebulaBaseIE(InfoExtractor):
         }
 
     def _mark_watched(self, content_id, slug):
-        data = {'completed': True}
-        req = Request(
-            f'https://content.api.nebula.app/{content_id.split(":")[0]}s/{content_id}/progress/',
-            method='PATCH')
         self._call_api(
-            req, slug,
-            data=json.dumps(data).encode('utf8'), headers={'content-type': 'application/json'},
-            fatal=False, note='Marking watched', errnote='Unable to mark watched')
+            PATCHRequest(f'https://content.api.nebula.app/{content_id.split(":")[0]}s/{content_id}/progress/'),
+            slug, 'Marking watched', 'Unable to mark watched', fatal=False,
+            data=json.dumps({'completed': True}).encode(),
+            headers={'content-type': 'application/json'})
 
 
 class NebulaIE(NebulaBaseIE):
