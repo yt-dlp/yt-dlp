@@ -877,13 +877,8 @@ class InfoExtractor:
         else:
             self._downloader._first_webpage_request = False
 
-        if note is None:
-            self.report_download_webpage(video_id)
-        elif note is not False:
-            if video_id is None:
-                self.to_screen(str(note))
-            else:
-                self.to_screen(f'{video_id}: {note}')
+        if note is not False:
+            self.report_download_webpage(video_id, note=note)
 
         # Some sites check X-Forwarded-For HTTP header in order to figure out
         # the origin of the client behind proxy. This allows bypassing geo
@@ -1236,9 +1231,9 @@ class InfoExtractor:
         """Report information extraction."""
         self.to_screen(f'{id_or_name}: Extracting information')
 
-    def report_download_webpage(self, video_id):
+    def report_download_webpage(self, video_id, note=None):
         """Report webpage download."""
-        self.to_screen(f'{video_id}: Downloading webpage')
+        self.to_screen(join_nonempty(video_id, note or 'Downloading webpage', delim=': '))
 
     def report_age_confirmation(self):
         """Report attempt to confirm age."""
