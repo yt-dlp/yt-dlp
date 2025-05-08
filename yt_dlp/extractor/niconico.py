@@ -891,7 +891,7 @@ class NiconicoLiveIE(NiconicoBaseIE):
         formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
         for fmt in formats:
             if fmt.get('acodec') == 'none':
-                fmt['format_id'] = next(q_iter, fmt.get('format_id'))
+                fmt['format_id'] = next(q_iter, fmt['format_id'])
             elif fmt.get('vcodec') == 'none':
                 abr = parse_bitrate(fmt['url'].lower())
                 fmt.update({
