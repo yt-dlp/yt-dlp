@@ -1495,6 +1495,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Lesmiscore',
                 'uploader_url': 'https://www.youtube.com/@lesmiscore',
                 'timestamp': 1648005313,
+                'media_type': 'short',
             },
         }, {
             # Prefer primary title+description language metadata by default
@@ -1719,6 +1720,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_follower_count': int,
                 'categories': ['People & Blogs'],
                 'tags': [],
+                'media_type': 'short',
             },
         },
     ]
@@ -3787,7 +3789,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'tags': keywords,
             'playable_in_embed': get_first(playability_statuses, 'playableInEmbed'),
             'live_status': live_status,
-            'media_type': 'livestream' if get_first(video_details, 'isLiveContent') else None,
+            'media_type': (
+                'livestream' if get_first(video_details, 'isLiveContent')
+                else 'short' if get_first(microformats, 'isShortsEligible')
+                else None),
             'release_timestamp': live_start_time,
             '_format_sort_fields': (  # source_preference is lower for potentially damaged formats
                 'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec', 'channels', 'acodec', 'lang', 'proto'),
