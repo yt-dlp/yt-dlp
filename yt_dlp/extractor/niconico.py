@@ -16,6 +16,7 @@ from ..utils import (
     determine_ext,
     float_or_none,
     int_or_none,
+    parse_bitrate,
     parse_duration,
     parse_iso8601,
     parse_qs,
@@ -877,20 +878,27 @@ class NiconicoLiveIE(NiconicoBaseIE):
                 cookie['domain'], cookie['name'], cookie['value'],
                 expire_time=unified_timestamp(cookie.get('expires')), path=cookie['path'], secure=cookie['secure'])
 
+        fmt_common = {
+            'live_latency': 'high',
+            'origin': hostname,
+            'protocol': 'niconico_live',
+            'video_id': video_id,
+            'ws': ws,
+        }
+        q_iter = (q for q in qualities[1:] if not q.startswith('audio_'))  # ignore initial 'abr'
+        a_map = {96: 'audio_low', 192: 'audio_high'}
+
         formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
-        qualities = [
-            *('audio_high', 'audio_low'),
-            *(q for q in qualities[1:] if not q.startswith('audio')),
-        ]
-        for fmt, q in zip(formats, qualities):
-            fmt.update({
-                'format_id': q,
-                'protocol': 'niconico_live',
-                'ws': ws,
-                'video_id': video_id,
-                'live_latency': 'high',
-                'origin': hostname,
-            })
+        for fmt in formats:
+            if fmt.get('acodec') == 'none':
+                fmt['format_id'] = next(q_iter, fmt.get('format_id'))
+            elif fmt.get('vcodec') == 'none':
+                abr = parse_bitrate(fmt['url'].lower())
+                fmt.update({
+                    'abr': abr,
+                    'format_id': a_map.get(abr, fmt['format_id']),
+                })
+            fmt.update(fmt_common)
 
         return {
             'id': video_id,
