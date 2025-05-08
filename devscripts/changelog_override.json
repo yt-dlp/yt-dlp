@@ -245,5 +245,14 @@
         "when": "76ac023ff02f06e8c003d104f02a03deeddebdcd",
         "short": "[ie/youtube:tab] Improve shorts title extraction (#11997)",
         "authors": ["bashonly", "d3d9"]
+    },
+    {
+        "action": "add",
+        "when": "88eb1e7a9a2720ac89d653c0d0e40292388823bb",
+        "short": "[priority] **New option `--preset-alias`/`-t` has been added**\nThis provides convenient predefined aliases for common use cases. Available presets include `mp4`, `mp3`, `mkv`, `aac`, and `sleep`. See [the README](https://github.com/yt-dlp/yt-dlp/blob/master/README.md#preset-aliases) for more details."
+    },
+    {
+        "action": "remove",
+        "when": "d596824c2f8428362c072518856065070616e348"
     }
 ]

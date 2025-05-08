@@ -192,7 +192,7 @@ jobs:
         with:
           path: ./repo
       - name: Virtualized Install, Prepare & Build
-        uses: yt-dlp/run-on-arch-action@v2
+        uses: yt-dlp/run-on-arch-action@v3
         with:
           # Ref: https://github.com/uraimo/run-on-arch-action/issues/55
           env: |
@@ -411,7 +411,7 @@ jobs:
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python devscripts/install_deps.py -o --include build
           python devscripts/install_deps.py --include curl-cffi
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-6.11.1-py3-none-any.whl"
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-6.13.0-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -460,7 +460,7 @@ jobs:
         run: |
           python devscripts/install_deps.py -o --include build
           python devscripts/install_deps.py
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-6.11.1-py3-none-any.whl"
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-6.13.0-py3-none-any.whl"
 
       - name: Prepare
         run: |
