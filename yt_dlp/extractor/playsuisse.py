@@ -284,7 +284,7 @@ class PlaySuisseIE(InfoExtractor):
                 'duration': ('duration', {int_or_none}),
                 'series': ('seriesName', {str}),
                 'season_number': ('seasonNumber', {int_or_none}),
-                'episode': ('name', {str}),
+                'episode': ('name', {str}, {lambda x: x if media_data['episodeNumber'] is not None else None}),
                 'episode_number': ('episodeNumber', {int_or_none}),
             }),
         }
