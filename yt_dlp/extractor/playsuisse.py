@@ -230,7 +230,7 @@ class PlaySuisseIE(InfoExtractor):
         if not self._ID_TOKEN:
             raise ExtractorError('Login failed')
 
-    def _get_media_data(self, media_id, locale):
+    def _get_media_data(self, media_id, locale=None):
         response = self._download_json(
             'https://www.playsuisse.ch/api/graphql',
             media_id, data=json.dumps({
