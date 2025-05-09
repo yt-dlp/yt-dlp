@@ -56,7 +56,7 @@ class PlaySuisseIE(InfoExtractor):
                 'cast': 'Fabrizio Rongione; Stéphanie Cléau; Gilles Privat; Alexandre Trocki',
                 'location': 'France; Argentine',
                 'release_year': 2021,
-                'duration': 5715,
+                'duration': 5981,
                 'thumbnail': 're:https://playsuisse-img.akamaized.net/',
             },
         }, {
@@ -283,7 +283,7 @@ class PlaySuisseIE(InfoExtractor):
                 'creators': ('directors', ..., {str}, all, {unpack(join_nonempty, delim='; ')}, filter),
                 'cast': ('mainCast', ..., {str}, all, {unpack(join_nonempty, delim='; ')}, filter),
                 'location': ('productionCountries', ..., {str}, all, {unpack(join_nonempty, delim='; ')}, filter),
-                'release_year': ('year', {int_or_none}),
+                'release_year': ('year', {str}, {lambda x: x[:4]}, {int_or_none}),
                 'duration': ('duration', {int_or_none}),
                 'series': ('seriesName', {str}),
                 'season_number': ('seasonNumber', {int_or_none}),
