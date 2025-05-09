@@ -238,7 +238,8 @@ class PlaySuisseIE(InfoExtractor):
                 'query': self._GRAPHQL_QUERY,
                 'variables': {'assetId': media_id},
             }).encode(),
-            headers={'Content-Type': 'application/json', 'locale': locale})
+            headers={'Content-Type': 'application/json', 'locale': locale or 'de'})
+
         return response['data']['assetV2']
 
     def _real_extract(self, url):
