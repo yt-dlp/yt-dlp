@@ -279,7 +279,7 @@ class PlaySuisseIE(InfoExtractor):
                 'genres': ('contentTypes', ..., {str}),
                 'creators': ('directors', ..., {str}),
                 'cast': ('mainCast', ..., {str}),
-                'location': ('productionCountries', ..., {str}, any),
+                'location': ('productionCountries', ..., {str}, all, {unpack(join_nonempty, delim='; ')}, filter),
                 'release_year': ('year', {int_or_none}),
                 'duration': ('duration', {int_or_none}),
                 'series': ('seriesName', {str}),
