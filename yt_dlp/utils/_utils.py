@@ -167,6 +167,12 @@ JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>\s*(?P<
 
 NUMBER_RE = r'\d+(?:\.\d+)?'
 
+VOID_ELEMENTS = [
+    'area', 'base', 'br', 'col', 'embed',
+    'hr', 'img', 'input', 'link', 'meta',
+    'param', 'source', 'track', 'wbr',
+]
+
 
 @functools.cache
 def preferredencoding():
@@ -364,15 +370,13 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, *, tag=r'[\w
     if not value:
         return
 
-    quote = '' if re.match(r'''[\s"'`=<>]''', value) else '?'
-
     value = re.escape(value) if escape_value else value
 
     partial_element_re = rf'''(?x)
         <(?P<tag>{tag})
-         (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
-         \s{re.escape(attribute)}\s*=\s*(?P<_q>['"]{quote})(?-x:{value})(?P=_q)
-        '''
+        (?:\s[^>"']*|"[^"]*"|'[^']*')*?
+        \s{re.escape(attribute)}\s*=\s*(?P<q>['"])?(?-x:{value})(?(q)(?P=q)|(?=[\s/>]))
+    '''
 
     for m in re.finditer(partial_element_re, html):
         content, whole = get_element_text_and_html_by_tag(m.group('tag'), html[m.start():])
@@ -436,12 +440,17 @@ def get_element_text_and_html_by_tag(tag, html):
             return haystack.index(needle)
         except ValueError:
             raise exc
-    closing_tag = f'</{tag}>'
+
     whole_start = find_or_raise(
         html, f'<{tag}', compat_HTMLParseError(f'opening {tag} tag not found'))
     content_start = find_or_raise(
         html[whole_start:], '>', compat_HTMLParseError(f'malformed opening {tag} tag'))
     content_start += whole_start + 1
+
+    if tag in VOID_ELEMENTS:
+        return '', html[whole_start:content_start]
+
+    closing_tag = f'</{tag}>'
     with HTMLBreakOnClosingTagParser() as parser:
         parser.feed(html[whole_start:content_start])
         if not parser.tagstack or parser.tagstack[0] != tag:
