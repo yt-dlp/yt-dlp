@@ -3792,7 +3792,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'media_type': (
                 'livestream' if get_first(video_details, 'isLiveContent')
                 else 'short' if get_first(microformats, 'isShortsEligible')
-                else None),
+                else 'video'),
             'release_timestamp': live_start_time,
             '_format_sort_fields': (  # source_preference is lower for potentially damaged formats
                 'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec', 'channels', 'acodec', 'lang', 'proto'),
