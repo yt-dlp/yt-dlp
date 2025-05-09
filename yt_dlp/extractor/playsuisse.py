@@ -28,12 +28,12 @@ class PlaySuisseIE(InfoExtractor):
         {
             # episode in a series
             'url': 'https://www.playsuisse.ch/watch/763182?episodeId=763211',
-            'md5': '82df2a470b2dfa60c2d33772a8a60cf8',
+            'md5': 'e20d1ede6872a03b41905ca1060a1ef2',
             'info_dict': {
                 'id': '763211',
                 'ext': 'mp4',
                 'title': 'Knochen',
-                'description': 'md5:2f88aab021fe3ba4b301ad7456b14cbb',
+                'description': 'md5:3bdd80e2ce20227c47aab1df2a79a519',
                 'duration': 3344,
                 'series': 'Wilder',
                 'season': 'Season 1',
@@ -45,17 +45,17 @@ class PlaySuisseIE(InfoExtractor):
         }, {
             # film
             'url': 'https://www.playsuisse.ch/detail/2573198',
-            'md5': '818b94c1d2d7c4beef953f12cb8f3e75',
+            'md5': '1f115bb0a5191477b1a5771643a4283d',
             'info_dict': {
                 'id': '2573198',
                 'ext': 'mp4',
                 'title': 'Azor',
-                'description': 'md5:1550b151bc818fd0d12f6517d9821ddc',
+                'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
                 'genres': 'Fiction',
                 'creators': 'Andreas Fontana',
-                'cast': 'Fabrizio Rongione, Stéphanie Cléau, Gilles Privat, Alexandre Trocki',
-                'location': 'France, Argentine',
-                'year': '2021',
+                'cast': 'Fabrizio Rongione; Stéphanie Cléau; Gilles Privat; Alexandre Trocki',
+                'location': 'France; Argentine',
+                'release_year': 2021,
                 'duration': 5715,
                 'thumbnail': 're:https://playsuisse-img.akamaized.net/',
             },
@@ -70,7 +70,7 @@ class PlaySuisseIE(InfoExtractor):
                 'genres': 'Documentary',
                 'creators': 'Oliver Murray',
                 'location': 'Switzerland',
-                'year': '2021',
+                'release_year': 2021,
             },
             'playlist': [{
                 'info_dict': {
@@ -279,9 +279,9 @@ class PlaySuisseIE(InfoExtractor):
                 'id': ('id', {str}),
                 'title': ('name', {str}),
                 'description': (('descriptionLong', 'description'), {str}, any),
-                'genres': ('contentTypes', ..., {str}),
-                'creators': ('directors', ..., {str}),
-                'cast': ('mainCast', ..., {str}),
+                'genres': ('contentTypes', ..., {str}, all, {unpack(join_nonempty, delim='; ')}, filter),
+                'creators': ('directors', ..., {str}, all, {unpack(join_nonempty, delim='; ')}, filter),
+                'cast': ('mainCast', ..., {str}, all, {unpack(join_nonempty, delim='; ')}, filter),
                 'location': ('productionCountries', ..., {str}, all, {unpack(join_nonempty, delim='; ')}, filter),
                 'release_year': ('year', {int_or_none}),
                 'duration': ('duration', {int_or_none}),
