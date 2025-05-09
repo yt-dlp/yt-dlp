@@ -246,7 +246,7 @@ class PlaySuisseIE(InfoExtractor):
             self.raise_login_required(method='password')
 
         media_id = self._match_id(url)
-        media_data = self._get_media_data(media_id, traverse_obj(parse_qs(url), ('locale', 0), default='de'))
+        media_data = self._get_media_data(media_id, traverse_obj(parse_qs(url), ('locale', 0)))
         info = self._extract_single(media_data)
         if media_data.get('episodes'):
             info.update({
