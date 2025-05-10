@@ -376,6 +376,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Afrojack',
                 'uploader_url': 'https://www.youtube.com/@Afrojack',
                 'uploader_id': '@Afrojack',
+                'media_type': 'video',
             },
             'params': {
                 'youtube_include_dash_manifest': True,
@@ -413,10 +414,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
                 'timestamp': 1401991663,
+                'media_type': 'video',
             },
         },
         {
-            'note': 'Age-gate video with embed allowed in public site',
+            'note': 'Formerly an age-gate video with embed allowed in public site',
             'url': 'https://youtube.com/watch?v=HsUATh_Nc2U',
             'info_dict': {
                 'id': 'HsUATh_Nc2U',
@@ -424,8 +426,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Godzilla 2 (Official Video)',
                 'description': 'md5:bf77e03fcae5529475e500129b05668a',
                 'upload_date': '20200408',
-                'age_limit': 18,
-                'availability': 'needs_auth',
+                'age_limit': 0,
+                'availability': 'public',
                 'channel_id': 'UCYQT13AtrJC0gsM1far_zJg',
                 'channel': 'FlyingKitty',
                 'channel_url': 'https://www.youtube.com/channel/UCYQT13AtrJC0gsM1far_zJg',
@@ -443,8 +445,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@FlyingKitty900',
                 'comment_count': int,
                 'channel_is_verified': True,
+                'media_type': 'video',
             },
-            'skip': 'Age-restricted; requires authentication',
         },
         {
             'note': 'Age-gate video embedable only with clientScreen=EMBED',
@@ -507,6 +509,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Herr Lurik',
                 'uploader_url': 'https://www.youtube.com/@HerrLurik',
                 'uploader_id': '@HerrLurik',
+                'media_type': 'video',
             },
         },
         {
@@ -546,6 +549,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'deadmau5',
                 'uploader_url': 'https://www.youtube.com/@deadmau5',
                 'uploader_id': '@deadmau5',
+                'media_type': 'video',
             },
             'expected_warnings': [
                 'DASH manifest missing',
@@ -581,6 +585,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@Olympics',
                 'channel_is_verified': True,
                 'timestamp': 1440707674,
+                'media_type': 'livestream',
             },
             'params': {
                 'skip_download': 'requires avconv',
@@ -615,6 +620,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@AllenMeow',
                 'uploader_id': '@AllenMeow',
                 'timestamp': 1299776999,
+                'media_type': 'video',
             },
         },
         # url_encoded_fmt_stream_map is empty string
@@ -809,6 +815,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'like_count': int,
                 'age_limit': 0,
                 'channel_follower_count': int,
+                'media_type': 'video',
             },
             'params': {
                 'skip_download': True,
@@ -868,6 +875,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@BKCHarvard',
                 'uploader_url': 'https://www.youtube.com/@BKCHarvard',
                 'timestamp': 1422422076,
+                'media_type': 'video',
             },
             'params': {
                 'skip_download': True,
@@ -904,6 +912,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
                 'timestamp': 1447987198,
+                'media_type': 'video',
             },
             'params': {
                 'skip_download': True,
@@ -968,6 +977,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_is_verified': True,
                 'timestamp': 1484761047,
+                'media_type': 'video',
             },
             'params': {
                 'skip_download': True,
@@ -1070,6 +1080,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'tags': 'count:11',
                 'live_status': 'not_live',
                 'channel_follower_count': int,
+                'media_type': 'video',
             },
             'params': {
                 'skip_download': True,
@@ -1124,6 +1135,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@ElevageOrVert',
                 'uploader_id': '@ElevageOrVert',
                 'timestamp': 1497343210,
+                'media_type': 'video',
             },
             'params': {
                 'skip_download': True,
@@ -1163,6 +1175,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
                 'timestamp': 1377976349,
+                'media_type': 'video',
             },
             'params': {
                 'skip_download': True,
@@ -1207,6 +1220,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_follower_count': int,
                 'uploader': 'The Cinematic Orchestra',
                 'comment_count': int,
+                'media_type': 'video',
             },
             'params': {
                 'skip_download': True,
@@ -1275,6 +1289,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@walkaroundjapan7124',
                 'uploader_id': '@walkaroundjapan7124',
                 'timestamp': 1605884416,
+                'media_type': 'video',
             },
             'params': {
                 'skip_download': True,
@@ -1371,6 +1386,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
                 'timestamp': 1395685455,
+                'media_type': 'video',
             }, 'params': {'format': 'mhtml', 'skip_download': True},
         }, {
             # Ensure video upload_date is in UTC timezone (video was uploaded 1641170939)
@@ -1401,6 +1417,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@LeonNguyen',
                 'heatmap': 'count:100',
                 'timestamp': 1641170939,
+                'media_type': 'video',
             },
         }, {
             # date text is premiered video, ensure upload date in UTC (published 1641172509)
@@ -1434,6 +1451,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
                 'timestamp': 1641172509,
+                'media_type': 'video',
             },
         },
         {   # continuous livestream.
@@ -1495,6 +1513,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Lesmiscore',
                 'uploader_url': 'https://www.youtube.com/@lesmiscore',
                 'timestamp': 1648005313,
+                'media_type': 'short',
             },
         }, {
             # Prefer primary title+description language metadata by default
@@ -1523,6 +1542,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@coletdjnz',
                 'uploader': 'cole-dlp-test-acc',
                 'timestamp': 1662677394,
+                'media_type': 'video',
             },
             'params': {'skip_download': True},
         }, {
@@ -1551,6 +1571,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'cole-dlp-test-acc',
                 'timestamp': 1659073275,
                 'like_count': int,
+                'media_type': 'video',
             },
             'params': {'skip_download': True, 'extractor_args': {'youtube': {'lang': ['fr']}}},
             'expected_warnings': [r'Preferring "fr" translated fields'],
@@ -1587,6 +1608,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'media_type': 'video',
             },
             'params': {'extractor_args': {'youtube': {'player_client': ['ios']}}, 'format': '233-1'},
         }, {
@@ -1687,6 +1709,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'media_type': 'video',
             },
             'params': {
                 'extractor_args': {'youtube': {'player_client': ['ios'], 'player_skip': ['webpage']}},
@@ -1719,6 +1742,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_follower_count': int,
                 'categories': ['People & Blogs'],
                 'tags': [],
+                'media_type': 'short',
             },
         },
     ]
@@ -1754,6 +1778,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@ChristopherSykesDocumentaries',
                 'heatmap': 'count:100',
                 'timestamp': 1211825920,
+                'media_type': 'video',
             },
             'params': {
                 'skip_download': True,
@@ -3787,7 +3812,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'tags': keywords,
             'playable_in_embed': get_first(playability_statuses, 'playableInEmbed'),
             'live_status': live_status,
-            'media_type': 'livestream' if get_first(video_details, 'isLiveContent') else None,
+            'media_type': (
+                'livestream' if get_first(video_details, 'isLiveContent')
+                else 'short' if get_first(microformats, 'isShortsEligible')
+                else 'video'),
             'release_timestamp': live_start_time,
             '_format_sort_fields': (  # source_preference is lower for potentially damaged formats
                 'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec', 'channels', 'acodec', 'lang', 'proto'),
