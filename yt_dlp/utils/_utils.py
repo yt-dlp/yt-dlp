@@ -4764,6 +4764,11 @@ def jwt_decode_hs256(jwt):
     return json.loads(base64.urlsafe_b64decode(f'{payload_b64}==='))
 
 
+def jwt_is_expired(token, buffer=300, key='exp'):
+    exp = traversal.traverse_obj(token, ({jwt_decode_hs256}, key, {int, float})) or 0
+    return exp - time.time() < buffer
+
+
 WINDOWS_VT_MODE = False if os.name == 'nt' else None
 
 
