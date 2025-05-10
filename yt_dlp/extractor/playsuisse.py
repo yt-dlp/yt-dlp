@@ -7,11 +7,13 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     parse_qs,
     traverse_obj,
     update_url_query,
     urlencode_postdata,
 )
+from ..utils.traversal import unpack
 
 
 class PlaySuisseIE(InfoExtractor):
@@ -26,12 +28,12 @@ class PlaySuisseIE(InfoExtractor):
         {
             # episode in a series
             'url': 'https://www.playsuisse.ch/watch/763182?episodeId=763211',
-            'md5': '82df2a470b2dfa60c2d33772a8a60cf8',
+            'md5': 'e20d1ede6872a03b41905ca1060a1ef2',
             'info_dict': {
                 'id': '763211',
                 'ext': 'mp4',
                 'title': 'Knochen',
-                'description': 'md5:8ea7a8076ba000cd9e8bc132fd0afdd8',
+                'description': 'md5:3bdd80e2ce20227c47aab1df2a79a519',
                 'duration': 3344,
                 'series': 'Wilder',
                 'season': 'Season 1',
@@ -42,24 +44,33 @@ class PlaySuisseIE(InfoExtractor):
             },
         }, {
             # film
-            'url': 'https://www.playsuisse.ch/watch/808675',
-            'md5': '818b94c1d2d7c4beef953f12cb8f3e75',
+            'url': 'https://www.playsuisse.ch/detail/2573198',
+            'md5': '1f115bb0a5191477b1a5771643a4283d',
             'info_dict': {
-                'id': '808675',
+                'id': '2573198',
                 'ext': 'mp4',
-                'title': 'Der Läufer',
-                'description': 'md5:9f61265c7e6dcc3e046137a792b275fd',
-                'duration': 5280,
+                'title': 'Azor',
+                'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+                'genres': ['Fiction'],
+                'creators': ['Andreas Fontana'],
+                'cast': ['Fabrizio Rongione', 'Stéphanie Cléau', 'Gilles Privat', 'Alexandre Trocki'],
+                'location': 'France; Argentine',
+                'release_year': 2021,
+                'duration': 5981,
                 'thumbnail': 're:https://playsuisse-img.akamaized.net/',
             },
         }, {
             # series (treated as a playlist)
             'url': 'https://www.playsuisse.ch/detail/1115687',
             'info_dict': {
-                'description': 'md5:e4a2ae29a8895823045b5c3145a02aa3',
                 'id': '1115687',
                 'series': 'They all came out to Montreux',
                 'title': 'They all came out to Montreux',
+                'description': 'md5:0fefd8c5b4468a0bb35e916887681520',
+                'genres': ['Documentary'],
+                'creators': ['Oliver Murray'],
+                'location': 'Switzerland',
+                'release_year': 2021,
             },
             'playlist': [{
                 'info_dict': {
@@ -120,6 +131,12 @@ class PlaySuisseIE(InfoExtractor):
             id
             name
             description
+            descriptionLong
+            year
+            contentTypes
+            directors
+            mainCast
+            productionCountries
             duration
             episodeNumber
             seasonNumber
@@ -215,9 +232,7 @@ class PlaySuisseIE(InfoExtractor):
         if not self._ID_TOKEN:
             raise ExtractorError('Login failed')
 
-    def _get_media_data(self, media_id):
-        # NOTE In the web app, the "locale" header is used to switch between languages,
-        # However this doesn't seem to take effect when passing the header here.
+    def _get_media_data(self, media_id, locale=None):
         response = self._download_json(
             'https://www.playsuisse.ch/api/graphql',
             media_id, data=json.dumps({
@@ -225,7 +240,7 @@ class PlaySuisseIE(InfoExtractor):
                 'query': self._GRAPHQL_QUERY,
                 'variables': {'assetId': media_id},
             }).encode(),
-            headers={'Content-Type': 'application/json', 'locale': 'de'})
+            headers={'Content-Type': 'application/json', 'locale': locale or 'de'})
 
         return response['data']['assetV2']
 
@@ -234,7 +249,7 @@ class PlaySuisseIE(InfoExtractor):
             self.raise_login_required(method='password')
 
         media_id = self._match_id(url)
-        media_data = self._get_media_data(media_id)
+        media_data = self._get_media_data(media_id, traverse_obj(parse_qs(url), ('locale', 0)))
         info = self._extract_single(media_data)
         if media_data.get('episodes'):
             info.update({
@@ -257,15 +272,22 @@ class PlaySuisseIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
 
         return {
-            'id': media_data['id'],
-            'title': media_data.get('name'),
-            'description': media_data.get('description'),
             'thumbnails': thumbnails,
-            'duration': int_or_none(media_data.get('duration')),
             'formats': formats,
             'subtitles': subtitles,
-            'series': media_data.get('seriesName'),
-            'season_number': int_or_none(media_data.get('seasonNumber')),
-            'episode': media_data.get('name') if media_data.get('episodeNumber') else None,
-            'episode_number': int_or_none(media_data.get('episodeNumber')),
+            **traverse_obj(media_data, {
+                'id': ('id', {str}),
+                'title': ('name', {str}),
+                'description': (('descriptionLong', 'description'), {str}, any),
+                'genres': ('contentTypes', ..., {str}),
+                'creators': ('directors', ..., {str}),
+                'cast': ('mainCast', ..., {str}),
+                'location': ('productionCountries', ..., {str}, all, {unpack(join_nonempty, delim='; ')}, filter),
+                'release_year': ('year', {str}, {lambda x: x[:4]}, {int_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'series': ('seriesName', {str}),
+                'season_number': ('seasonNumber', {int_or_none}),
+                'episode': ('name', {str}, {lambda x: x if media_data['episodeNumber'] is not None else None}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+            }),
         }
