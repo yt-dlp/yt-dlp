@@ -2,20 +2,22 @@ import functools
 import re
 
 from .common import InfoExtractor
-from ..networking.exceptions import HTTPError
-from ..utils import ExtractorError, OnDemandPagedList, urlencode_postdata
+from ..utils import OnDemandPagedList, traverse_obj, urlencode_postdata
 
 
 class VideocampusSachsenIE(InfoExtractor):
-    IE_NAME = 'ViMP'
+    IE_NAME = 'VIMP'
     _INSTANCES = (
         'bergauf.tv',
         'campus.demo.vimp.com',
         'corporate.demo.vimp.com',
         'dancehalldatabase.com',
+        'demo.edu.medvc.eu',
         'drehzahl.tv',
         'educhannel.hs-gesundheit.de',  # Hochschule für Gesundheit NRW
         'emedia.ls.haw-hamburg.de',
+        'etat.kiss.lu',
+        'fabi.test.vimp.com',
         'globale-evolution.net',
         'hohu.tv',
         'htvideos.hightechhigh.org',
@@ -24,12 +26,17 @@ class VideocampusSachsenIE(InfoExtractor):
         'media.fh-swf.de',  # Fachhochschule Südwestfalen
         'media.hs-furtwangen.de',  # Hochschule Furtwangen
         'media.hwr-berlin.de',  # Hochschule für Wirtschaft und Recht Berlin
+        'mediacast.math.tku.edu.tw',
         'mediathek.dkfz.de',
         'mediathek.htw-berlin.de',  # Hochschule für Technik und Wirtschaft Berlin
         'mediathek.polizei-bw.de',
+        'mediathek.rheinmaintv.de',
         'medien.hs-merseburg.de',  # Hochschule Merseburg
+        'medienportal.hs-ansbach.de',  # Hochschule Ansbach
         'mitmedia.manukau.ac.nz',  # Manukau Institute of Technology Auckland (NZ)
         'mportal.europa-uni.de',  # Europa-Universität Viadrina
+        'multimedia.blue',
+        'oraniontest.vimp.com',
         'pacific.demo.vimp.com',
         'slctv.com',
         'streaming.prairiesouth.ca',
@@ -38,16 +45,22 @@ class VideocampusSachsenIE(InfoExtractor):
         'ursula2.genetics.emory.edu',
         'ursulablicklevideoarchiv.com',
         'v.agrarumweltpaedagogik.at',
+        'video-test.hrz.tu-chemnitz.de',
+        'video.biotest.com',
+        'video.desy.de',
         'video.eplay-tv.de',
         'video.fh-dortmund.de',  # Fachhochschule Dortmund
+        'video.hcu-hamburg.de',  # HafenCity Universität Hamburg
+        'video.hs-coburg.de',  # Hochschule Coburg
         'video.hs-nb.de',  # Hochschule Neubrandenburg
         'video.hs-offenburg.de',  # Hochschule Offenburg
         'video.hs-pforzheim.de',  # Hochschule Pforzheim
         'video.hspv.nrw.de',  # Hochschule für Polizei und öffentliche Verwaltung NRW
         'video.irtshdf.fr',
-        'video.pareygo.de',
+        'video.medi.ch',
         'video.tu-dortmund.de',  # Technische Universität Dortmund
         'video.tu-freiberg.de',  # Technische Universität Bergakademie Freiberg
+        'video.viscom.com',
         'videocampus.sachsen.de',  # Video Campus Sachsen (gemeinsame Videoplattform sächsischer Universitäten, Hochschulen und der Berufsakademie Sachsen)
         'videoportal.uni-freiburg.de',  # Albert-Ludwigs-Universität Freiburg
         'videoportal.vm.uni-freiburg.de',  # Albert-Ludwigs-Universität Freiburg
@@ -56,12 +69,16 @@ class VideocampusSachsenIE(InfoExtractor):
         'vimp-bemus.udk-berlin.de',
         'vimp.aekwl.de',
         'vimp.hs-mittweida.de',
+        'vimp.item24.com',
         'vimp.landesfilmdienste.de',
         'vimp.oth-regensburg.de',  # Ostbayerische Technische Hochschule Regensburg
+        'vimp.ph-gmuend.de',  # Pädagogische Hochschule Schwäbisch Gmünd
         'vimp.ph-heidelberg.de',  # Pädagogische Hochschule Heidelberg
-        'vimp.sma-events.com',
+        'vimp.spk-vorpommern.de',
+        'vimp.volksbank-goeppingen.de',
         'vimp.weka-fachmedien.de',
         'vimpdesk.com',
+        'vod.dma.swiss',
         'webtv.univ-montp3.fr',
         'www.b-tu.de/media',  # Brandenburgische Technische Universität Cottbus-Senftenberg
         'www.bergauf.tv',
@@ -77,6 +94,7 @@ class VideocampusSachsenIE(InfoExtractor):
         'www.salzi.tv',
         'www.signtube.co.uk',
         'www.twb-power.com',
+        'www.videos.hfm.saarland.de',
         'www.wenglor-media.com',
         'www2.univ-sba.dz',
     )
@@ -87,13 +105,48 @@ class VideocampusSachsenIE(InfoExtractor):
     )'''.format('|'.join(map(re.escape, _INSTANCES)))
 
     _TESTS = [
+        # non-standard hls location
+        {
+            'url': 'https://video.desy.de/video/vakuum-begreifen-luftwiderstand/d60d3682854de441d0ed092e2c825f6e',
+            'info_dict': {
+                'id': 'd60d3682854de441d0ed092e2c825f6e',
+                'title': 'Vakuum begreifen: Luftwiderstand',
+                # as the url suggests the thumbnail images files live in the
+                # cache, urls will change from time to time
+                'thumbnail': 'https://video.desy.de/cache/c1180148290d5ce154de7f821f432b8e.png',
+                'display_id': 'vakuum-begreifen-luftwiderstand',
+                'ext': 'mp4',
+            },
+        },
+        # no hls but mp4 with different qualities
+        {
+            'url': 'https://video.hcu-hamburg.de/video/stahl-und-holzbau-2-handout-2/29c45dae21191bce493e4ea18cc929a4',
+            'info_dict': {
+                'id': '29c45dae21191bce493e4ea18cc929a4',
+                'title': 'Stahl- und Holzbau 2 - Handout 2',
+                'thumbnail': 'https://video.hcu-hamburg.de/cache/7ae482b7ba22c01a0a2426df7da9e854.png',
+                'display_id': 'stahl-und-holzbau-2-handout-2',
+                'ext': 'mp4',
+            },
+        },
+        # no player options
+        {
+            'url': 'https://video.tu-freiberg.de/video/schauvorlesung-/19ffd2eb8a82b080b7a23c2b70a4c1a1',
+            'info_dict': {
+                'id': '19ffd2eb8a82b080b7a23c2b70a4c1a1',
+                'title': 'Schauvorlesung Fakultät 2 - 2024',
+                'description': 'md5:229b686fd94e801d7ffef6531c8710fb',
+                'thumbnail': 'https://video.tu-freiberg.de/cache/42ea37d0223e2e3905a850463bd8d6d5.png',
+                'display_id': 'schauvorlesung-',
+                'ext': 'mp4',
+            },
+        },
         {
             'url': 'https://videocampus.sachsen.de/m/e0d6c8ce6e394c188f1342f1ab7c50ed6fc4490b808699801def5cb2e46d76ca7367f622a9f516c542ffb805b24d6b643bd7c81f385acaac4c59081b87a2767b',
             'info_dict': {
                 'id': 'e6b9349905c1628631f175712250f2a1',
                 'title': 'Konstruktiver Entwicklungsprozess Vorlesung 7',
-                'description': 'Konstruktiver Entwicklungsprozess Vorlesung 7',
-                'thumbnail': 'https://videocampus.sachsen.de/cache/1a985379ad3aecba8097a6902c7daa4e.jpg',
+                'thumbnail': 'https://videocampus.sachsen.de/cache/6730fb25578cf4e00cd6afbdc977585e.png',
                 'ext': 'mp4',
             },
         },
@@ -102,8 +155,7 @@ class VideocampusSachsenIE(InfoExtractor):
             'info_dict': {
                 'id': 'fc99c527e4205b121cb7c74433469262',
                 'title': 'Was ist selbstgesteuertes Lernen?',
-                'description': 'md5:196aa3b0509a526db62f84679522a2f5',
-                'thumbnail': 'https://videocampus.sachsen.de/cache/6f4a85096ba24cb398e6ce54446b57ae.jpg',
+                'thumbnail': 'https://videocampus.sachsen.de/cache/a7765658ac3df9e75947a4d06aef7402.png',
                 'display_id': 'Was-ist-selbstgesteuertes-Lernen',
                 'ext': 'mp4',
             },
@@ -113,21 +165,8 @@ class VideocampusSachsenIE(InfoExtractor):
             'info_dict': {
                 'id': '09d4ed029002eb1bdda610f1103dd54c',
                 'title': 'Tutorial zur Nutzung von Adobe Connect aus Veranstalter-Sicht',
-                'description': 'md5:3d379ca3cc17b9da6784d7f58cca4d58',
-                'thumbnail': 'https://videocampus.sachsen.de/cache/2452498fe8c2d5a7dc79a05d30f407b6.jpg',
+                'thumbnail': 'https://videocampus.sachsen.de/cache/173fc4fe2133cc41b2905ca8976a4760.png',
                 'display_id': 'Tutorial-zur-Nutzung-von-Adobe-Connect-aus-Veranstalter-Sicht',
-                'ext': 'mp4',
-            },
-        },
-        {
-            'url': 'https://www2.univ-sba.dz/video/Presentation-de-la-Faculte-de-droit-et-des-sciences-politiques-Journee-portes-ouvertes-202122/0183356e41af7bfb83d7667b20d9b6a3',
-            'info_dict': {
-                'url': 'https://www2.univ-sba.dz/getMedium/0183356e41af7bfb83d7667b20d9b6a3.mp4',
-                'id': '0183356e41af7bfb83d7667b20d9b6a3',
-                'title': 'Présentation de la Faculté de droit et des sciences politiques - Journée portes ouvertes 2021/22',
-                'description': 'md5:508958bd93e0ca002ac731d94182a54f',
-                'thumbnail': 'https://www2.univ-sba.dz/cache/4d5d4a0b4189271a8cc6cb5328e14769.jpg',
-                'display_id': 'Presentation-de-la-Faculte-de-droit-et-des-sciences-politiques-Journee-portes-ouvertes-202122',
                 'ext': 'mp4',
             },
         },
@@ -147,6 +186,7 @@ class VideocampusSachsenIE(InfoExtractor):
             'info_dict': {
                 'id': 'fc99c527e4205b121cb7c74433469262',
                 'title': 'Was ist selbstgesteuertes Lernen?',
+                'thumbnail': 'https://videocampus.sachsen.de/cache/a7765658ac3df9e75947a4d06aef7402.png',
                 'ext': 'mp4',
             },
         },
@@ -157,30 +197,33 @@ class VideocampusSachsenIE(InfoExtractor):
             'host', 'id', 'tmp_id', 'display_id', 'embed_id')
         webpage = self._download_webpage(url, video_id or tmp_id, fatal=False) or ''
 
-        if not video_id:
-            video_id = embed_id or self._html_search_regex(
-                rf'src="https?://{host}/media/embed.*(?:\?|&)key=([0-9a-f]+)&?',
-                webpage, 'video_id')
-
-        if not (display_id or tmp_id):
-            # Title, description from embedded page's meta wouldn't be correct
-            title = self._html_search_regex(r'<video-js[^>]* data-piwik-title="([^"<]+)"', webpage, 'title', fatal=False)
-            description = None
-            thumbnail = None
-        else:
-            title = self._html_search_meta(('og:title', 'twitter:title', 'title'), webpage, fatal=False)
-            description = self._html_search_meta(
-                ('og:description', 'twitter:description', 'description'), webpage, fatal=False)
-            thumbnail = self._html_search_meta(('og:image', 'twitter:image'), webpage, fatal=False)
-
         formats, subtitles = [], {}
-        try:
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                f'https://{host}/media/hlsMedium/key/{video_id}/format/auto/ext/mp4/learning/0/path/m3u8',
-                video_id, 'mp4', m3u8_id='hls', fatal=True)
-        except ExtractorError as e:
-            if not isinstance(e.cause, HTTPError) or e.cause.status not in (404, 500):
-                raise
+        title = description = thumbnail = None
+
+        metadata = self._search_json(r'var\s+options\s*=\s*', webpage, 'player options', video_id or tmp_id or embed_id, default=None, fatal=False)
+
+        if metadata:
+            for source in metadata.get('sources', []):
+                if source.get('type') == 'application/x-mpegURL' and source.get('src'):
+                    _formats, _subtitles = self._extract_m3u8_formats_and_subtitles(source.get('src'), video_id or tmp_id or embed_id, fatal=False)
+                    formats.extend(_formats)
+                    subtitles.update(_subtitles)
+                elif source.get('src'):
+                    formats.append({'url': source.get('src')})
+
+            thumbnail = f'https://{host}{metadata.get("poster")}'
+            video_id = traverse_obj(metadata, ('videojsVimpOptions', 'Mediakey'))
+        else:
+            thumbnail = self._html_search_meta(('og:image', 'twitter:image'), webpage, fatal=False)
+            description = self._html_search_meta(('og:description', 'twitter:description', 'description'), webpage, fatal=False)
+            title = self._html_search_meta(('og:title', 'twitter:title', 'title'), webpage, fatal=False)
+
+        if not title:
+            title = self._html_search_regex(r'<h1[^>]*>([^<]+)</h1>', webpage, 'title', default=None, fatal=False)
+        if not title:
+            embed_data = self._download_json(f'https://{host}/media/embedCode', video_id, data=f'key={video_id}'.encode(), fatal=False)
+            if embed_data:
+                title = self._html_search_regex(r'title="([^"]+)"', embed_data.get('embedCode', ''), 'title', fatal=False)
 
         formats.append({'url': f'https://{host}/getMedium/{video_id}.mp4'})
 
@@ -196,7 +239,7 @@ class VideocampusSachsenIE(InfoExtractor):
 
 
 class ViMPPlaylistIE(InfoExtractor):
-    IE_NAME = 'ViMP:Playlist'
+    IE_NAME = 'VIMP:Playlist'
     _VALID_URL = r'''(?x)(?P<host>https?://(?:{}))/(?:
         (?P<mode1>album)/view/aid/(?P<album_id>[0-9]+)|
         (?P<mode2>category|channel)/(?P<name>[\w-]+)/(?P<channel_id>[0-9]+)|
