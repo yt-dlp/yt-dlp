@@ -1926,6 +1926,7 @@ from .soundcloud import (
     SoundcloudTrackStationIE,
     SoundcloudUserIE,
     SoundcloudUserPermalinkIE,
+    SoundcloudUserYouIE,
 )
 from .soundgasm import (
     SoundgasmIE,
