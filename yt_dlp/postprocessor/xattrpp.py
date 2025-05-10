@@ -33,7 +33,16 @@ class XAttrMetadataPP(PostProcessor):
         # (e.g., 4kB on ext4), and we don't want to have the other ones fail
         'user.dublincore.description': 'description',
         # 'user.xdg.comment': 'description',
+        'com.apple.metadata:kMDItemWhereFroms': 'webpage_url',
     }
+
+    APPLE_PLIST_TEMPLATE = '''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+\t<string>%s</string>
+</array>
+</plist>'''
 
     def run(self, info):
         mtime = os.stat(info['filepath']).st_mtime
@@ -44,6 +53,8 @@ class XAttrMetadataPP(PostProcessor):
                 if value:
                     if infoname == 'upload_date':
                         value = hyphenate_date(value)
+                    elif xattrname == 'com.apple.metadata:kMDItemWhereFroms':
+                        value = self.APPLE_PLIST_TEMPLATE % value
                     write_xattr(info['filepath'], xattrname, value.encode())
 
             except XAttrUnavailableError as e:
