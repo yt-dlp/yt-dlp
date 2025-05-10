@@ -10,12 +10,12 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
 class TvwIE(InfoExtractor):
     IE_NAME = 'tvw'
-    _VALID_URL = r'https?://(?:www\.)?tvw\.org/video/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?tvw\.org/(?:video|watch)/?(?:\?eventID=)?(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://tvw.org/video/billy-frank-jr-statue-maquette-unveiling-ceremony-2024011211/',
         'md5': '9ceb94fe2bb7fd726f74f16356825703',
@@ -75,11 +75,28 @@ class TvwIE(InfoExtractor):
             'display_id': 'washington-to-washington-a-new-space-race-2022041111',
             'categories': ['Washington to Washington', 'General Interest'],
         },
+    }, {
+        'url': 'https://tvw.org/watch?eventID=2025041235',
+        'md5': '7d697c02f110b37d6a47622ea608ca90',
+        'info_dict': {
+            'id': '2025041235',
+            'ext': 'mp4',
+            'title': 'Legislative Review -- April 18',
+            'thumbnail': r're:^https?://.*\.(?:jpe?g|png)$',
+            'description': 'Legislative Review features highlights from Friday\'s legislative activity (4/18/25).',
+            'timestamp': 1745006400,
+            'upload_date': '20250418',
+            'location': 'Hayner Media Center',
+            'categories': ['Legislative Review'],
+        },
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        # Use a newer user agent as the default yt-dlp one triggers the Cloudflare anti-bot challenge
+        webpage = self._download_webpage(url, display_id, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0',
+        })
 
         client_id = self._html_search_meta('clientID', webpage, fatal=True)
         video_id = self._html_search_meta('eventID', webpage, fatal=True)
@@ -125,6 +142,51 @@ class TvwIE(InfoExtractor):
         }
 
 
+class TvwNewsIE(InfoExtractor):
+    IE_NAME = 'tvw:News'
+    _VALID_URL = r'https?://(?:www\.)?tvw\.org/\d{4}/\d{2}/(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://tvw.org/2024/01/the-impact-issues-to-watch-in-the-2024-legislative-session/',
+        'info_dict': {
+            'id': 'the-impact-issues-to-watch-in-the-2024-legislative-session',
+            'title': 'The Impact - Issues to Watch in the 2024 Legislative Session',
+            'description': 'md5:65f0b33ec8f18ff1cd401c5547aa5441',
+        },
+        'playlist_count': 6,
+    }, {
+        'url': 'https://tvw.org/2024/06/the-impact-water-rights-and-the-skookumchuck-dam-debate/',
+        'info_dict': {
+            'id': 'the-impact-water-rights-and-the-skookumchuck-dam-debate',
+            'title': 'The Impact - Water Rights and the Skookumchuck Dam Debate',
+            'description': 'md5:185f3a2350ef81e3fa159ac3e040a94b',
+        },
+        'playlist_count': 1,
+    }, {
+        'url': 'https://tvw.org/2023/09/5th-annual-tvw-open-thank-you/',
+        'info_dict': {
+            'id': '5th-annual-tvw-open-thank-you',
+            'title': '5th Annual TVW Open THANK YOU!',
+            'description': 'md5:5306eef5b03c87108797cb6261c5f16c',
+        },
+        'playlist_count': 0,
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        # Use a newer user agent as the default yt-dlp one triggers the Cloudflare anti-bot challenge
+        webpage = self._download_webpage(url, playlist_id, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0',
+        })
+
+        video_ids = traverse_obj(webpage, (
+            {find_elements(cls='invintus-player', html=True)}, ..., {extract_attributes}, 'data-eventid'))
+
+        return self.playlist_from_matches(
+            (f'https://tvw.org/watch?eventID={video_id}' for video_id in video_ids), playlist_id,
+            playlist_title=remove_end(self._og_search_title(webpage, default=None), ' - TVW'),
+            playlist_description=self._og_search_description(webpage, default=None), ie=TvwIE)
+
+
 class TvwTvChannelsIE(InfoExtractor):
     IE_NAME = 'tvw:tvchannels'
     _VALID_URL = r'https?://(?:www\.)?tvw\.org/tvchannels/(?P<id>[^/?#]+)'
@@ -150,7 +212,10 @@ class TvwTvChannelsIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        # Use a newer user agent as the default yt-dlp one triggers the Cloudflare anti-bot challenge
+        webpage = self._download_webpage(url, video_id, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0',
+        })
 
         m3u8_url = traverse_obj(webpage, (
             {find_element(id='invintus-persistent-stream-frame', html=True)}, {extract_attributes},
