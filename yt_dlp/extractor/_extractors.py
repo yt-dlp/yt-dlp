@@ -201,7 +201,6 @@ from .banbye import (
     BanByeChannelIE,
     BanByeIE,
 )
-from .bandaichannel import BandaiChannelIE
 from .bandcamp import (
     BandcampAlbumIE,
     BandcampIE,
@@ -932,7 +931,6 @@ from .jiosaavn import (
     JioSaavnSongIE,
 )
 from .joj import JojIE
-from .joqrag import JoqrAgIE
 from .jove import JoveIE
 from .jstream import JStreamIE
 from .jtbc import (
