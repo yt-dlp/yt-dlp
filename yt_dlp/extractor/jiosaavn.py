@@ -6,8 +6,10 @@ from .common import InfoExtractor
 from ..utils import (
     InAdvancePagedList,
     ISO639Utils,
+    OnDemandPagedList,
     clean_html,
     int_or_none,
+    js_to_json,
     make_archive_id,
     smuggle_url,
     unified_strdate,
@@ -315,3 +317,54 @@ class JioSaavnPlaylistIE(JioSaavnBaseIE):
         return self.playlist_result(InAdvancePagedList(
             functools.partial(self._entries, display_id, playlist_data),
             total_pages, self._PAGE_SIZE), display_id, traverse_obj(playlist_data, ('listname', {str})))
+
+
+class JioSaavnShowPlaylistIE(JioSaavnBaseIE):
+    IE_NAME = 'jiosaavn:show:playlist'
+    _VALID_URL = JioSaavnBaseIE._URL_BASE_RE + r'/shows/(?P<show>[^#/?]+)/(?P<season>\d+)/[^/?#]+'
+    _TESTS = [{
+        'url': 'https://www.jiosaavn.com/shows/talking-music/1/PjReFP-Sguk_',
+        'info_dict': {
+            'id': 'talking-music-1',
+            'title': 'Talking Music',
+        },
+        'playlist_mincount': 11,
+    }]
+    _PAGE_SIZE = 10
+
+    def _fetch_page(self, show_id, season_id, page):
+        return self._call_api('show', show_id, f'show page {page}', {
+            'p': page,
+            '__call': 'show.getAllEpisodes',
+            'show_id': show_id,
+            'season_number': season_id,
+            'api_version': '4',
+            'sort_order': 'desc',
+        })
+
+    def _yield_episodes(self, playlist_data):
+        for episode_data in playlist_data:
+            episode_info = self._extract_episode(episode_data)
+            url = smuggle_url(episode_info['webpage_url'], {
+                'id': episode_data['id'],
+                'encrypted_media_url': episode_data['more_info']['encrypted_media_url'],
+            })
+            yield self.url_result(url, JioSaavnShowIE, url_transparent=True, **episode_info)
+
+    def _entries(self, show_id, season_id, page):
+        page_data = self._fetch_page(show_id, season_id, page + 1)
+        yield from self._yield_episodes(page_data)
+
+    def _real_extract(self, url):
+        show_slug, season_id = self._match_valid_url(url).group('show', 'season')
+        playlist_id = f'{show_slug}-{season_id}'
+        webpage = self._download_webpage(url, playlist_id)
+
+        show_info = self._search_json(
+            r'window\.__INITIAL_DATA__\s*=', webpage, 'initial data',
+            playlist_id, transform_source=js_to_json)['showView']
+        show_id = show_info['current_id']
+
+        entries = OnDemandPagedList(functools.partial(self._entries, show_id, season_id), self._PAGE_SIZE)
+        return self.playlist_result(
+            entries, playlist_id, traverse_obj(show_info, ('show', 'title', 'text', {str})))

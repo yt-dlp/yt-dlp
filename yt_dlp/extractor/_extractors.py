@@ -930,6 +930,7 @@ from .jiosaavn import (
     JioSaavnAlbumIE,
     JioSaavnPlaylistIE,
     JioSaavnShowIE,
+    JioSaavnShowPlaylistIE,
     JioSaavnSongIE,
 )
 from .joj import JojIE
