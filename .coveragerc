@@ -1,0 +1,28 @@
+[coverage:run]
+source = yt_dlp, devscripts
+omit = 
+    */extractor/lazy_extractors.py
+    */__pycache__/*
+    */test/*
+    */yt_dlp/compat/_deprecated.py
+    */yt_dlp/compat/_legacy.py
+data_file = .coverage
+
+[coverage:report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    pass
+    raise ImportError
+    except ImportError:
+    warnings\.warn
+    if TYPE_CHECKING:
+
+[coverage:html]
+directory = .coverage-reports/html
+title = yt-dlp Coverage Report
+
+[coverage:xml]
+output = .coverage-reports/coverage.xml
