@@ -6,7 +6,7 @@ on:
       - devscripts/**
       - test/**
       - yt_dlp/**.py
-      - '!yt_dlp/extractor/*.py'
+      - '!yt_dlp/extractor/**.py'
       - yt_dlp/extractor/__init__.py
       - yt_dlp/extractor/common.py
       - yt_dlp/extractor/extractors.py
@@ -16,7 +16,7 @@ on:
       - devscripts/**
       - test/**
       - yt_dlp/**.py
-      - '!yt_dlp/extractor/*.py'
+      - '!yt_dlp/extractor/**.py'
       - yt_dlp/extractor/__init__.py
       - yt_dlp/extractor/common.py
       - yt_dlp/extractor/extractors.py
