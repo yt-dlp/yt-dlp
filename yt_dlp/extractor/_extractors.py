@@ -929,6 +929,7 @@ from .jiocinema import (
 from .jiosaavn import (
     JioSaavnAlbumIE,
     JioSaavnPlaylistIE,
+    JioSaavnShowIE,
     JioSaavnSongIE,
 )
 from .joj import JojIE
