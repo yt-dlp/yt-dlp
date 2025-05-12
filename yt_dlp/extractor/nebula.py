@@ -75,7 +75,7 @@ class NebulaBaseIE(InfoExtractor):
                         'app_version': '23.10.0',
                         'platform': 'ios',
                     })
-                return {'formats': fmts, 'subtitles': subs}
+                break
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     self.raise_login_required()
@@ -84,6 +84,9 @@ class NebulaBaseIE(InfoExtractor):
                     self._real_initialize()
                     continue
                 raise
+
+        self.mark_watched(content_id, slug)
+        return {'formats': fmts, 'subtitles': subs}
 
     def _extract_video_metadata(self, episode):
         channel_url = traverse_obj(
@@ -229,7 +232,6 @@ class NebulaIE(NebulaBaseIE):
         slug = self._match_id(url)
         url, smuggled_data = unsmuggle_url(url, {})
         if smuggled_data.get('id'):
-            self.mark_watched(smuggled_data['id'], slug)
             return {
                 'id': smuggled_data['id'],
                 'display_id': slug,
@@ -240,7 +242,6 @@ class NebulaIE(NebulaBaseIE):
         metadata = self._call_api(
             f'https://content.api.nebula.app/content/videos/{slug}',
             slug, note='Fetching video metadata')
-        self.mark_watched(metadata['id'], slug)
         return {
             **self._extract_video_metadata(metadata),
             **self._extract_formats(metadata['id'], slug),
@@ -311,7 +312,6 @@ class NebulaClassIE(NebulaBaseIE):
         slug, episode = self._match_valid_url(url).group('id', 'ep')
         url, smuggled_data = unsmuggle_url(url, {})
         if smuggled_data.get('id'):
-            self.mark_watched(smuggled_data['id'], slug)
             return {
                 'id': smuggled_data['id'],
                 'display_id': slug,
@@ -322,7 +322,6 @@ class NebulaClassIE(NebulaBaseIE):
         metadata = self._call_api(
             f'https://content.api.nebula.app/content/{slug}/{episode}/?include=lessons',
             slug, note='Fetching class/podcast metadata')
-        self.mark_watched(metadata['id'], slug)
         content_type = metadata.get('type')
         if content_type == 'lesson':
             return {
@@ -334,6 +333,7 @@ class NebulaClassIE(NebulaBaseIE):
             if not episode_url and metadata.get('premium'):
                 self.raise_login_required()
 
+            self.mark_watched(metadata['id'], slug)
             if Art19IE.suitable(episode_url):
                 return self.url_result(episode_url, Art19IE)
             return traverse_obj(metadata, {
