@@ -87,12 +87,12 @@ class FirstTVIE(InfoExtractor):
                     fmts, subs = self._extract_mpd_formats_and_subtitles(
                         src, video_id, mpd_id='dash', fatal=False)
                 else:
-                    tbr = int_or_none(self._search_regex(
-                        fr'_(\d{{3,}})\.{ext}', src, 'tbr', default=None))
+                    tbr = self._search_regex(fr'_(\d{{3,}})\.{ext}', src, 'tbr', default=None)
                     formats.append({
                         'url': src,
+                        'ext': ext,
                         'format_id': join_nonempty('http', ext, tbr),
-                        'tbr': tbr,
+                        'tbr': int_or_none(tbr),
                         # quality metadata of http formats may be incorrect
                         'quality': -10,
                     })
