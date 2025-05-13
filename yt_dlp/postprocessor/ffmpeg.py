@@ -9,6 +9,7 @@ import subprocess
 import time
 
 from .common import PostProcessor
+from ..dependencies import mutagen
 from ..compat import imghdr
 from ..utils import (
     MEDIA_EXTENSIONS,
@@ -32,6 +33,7 @@ from ..utils import (
     variadic,
     write_json_file,
 )
+from ..utils.subtitles import Subtitle, parse_lrc
 
 EXT_TO_OUT_FORMATS = {
     'aac': 'adts',
@@ -586,7 +588,8 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('mp4', 'mov', 'm4a', 'webm', 'mkv', 'mka')
+    SUPPORTS_LYRICS = ('mp3', 'm4a', 'flac', 'opus')
+    SUPPORTED_EXTS = ('mp4', 'mov', 'm4a', 'webm', 'mkv', 'mka', *SUPPORTS_LYRICS)
 
     def __init__(self, downloader=None, already_have_subtitle=False):
         super().__init__(downloader)
@@ -594,9 +597,11 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        if info['ext'] not in self.SUPPORTED_EXTS:
+        ext = info['ext']
+        if ext not in self.SUPPORTED_EXTS:
             self.to_screen(f'Subtitles can only be embedded in {", ".join(self.SUPPORTED_EXTS)} files')
             return [], info
+
         subtitles = info.get('requested_subtitles')
         if not subtitles:
             self.to_screen('There aren\'t any subtitles to embed')
@@ -614,56 +619,86 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             return [], info
         '''
 
-        ext = info['ext']
-        sub_langs, sub_names, sub_filenames = [], [], []
-        webm_vtt_warn = False
-        mp4_ass_warn = False
+        warnings = set()
 
+        def warn_once(msg):
+            if msg not in warnings:
+                warnings.add(msg)
+                self.report_warning(msg)
+
+        subtitles_to_embed = {}
         for lang, sub_info in subtitles.items():
             if not os.path.exists(sub_info.get('filepath', '')):
                 self.report_warning(f'Skipping embedding {lang} subtitle because the file is missing')
-                continue
-            sub_ext = sub_info['ext']
-            if sub_ext == 'json':
-                self.report_warning('JSON subtitles cannot be embedded')
-            elif ext != 'webm' or (ext == 'webm' and sub_ext == 'vtt'):
-                sub_langs.append(lang)
-                sub_names.append(sub_info.get('name'))
-                sub_filenames.append(sub_info['filepath'])
+            elif sub_info['ext'] == 'json':
+                warn_once('JSON subtitles cannot be embedded')
+            elif ext == 'webm' and sub_info['ext'] != 'vtt':
+                warn_once('Only WebVTT subtitles can be embedded in webm files')
+            elif ext in self.SUPPORTS_LYRICS and sub_info['ext'] != 'lrc':
+                warn_once(f'Only lrc subtitles can be embedded in {ext} files')
+            elif ext in self.SUPPORTS_LYRICS and not mutagen:
+                raise PostProcessingError(
+                    f'[{self.PP_NAME}] module mutagen was not found. Please install using `python -m pip install mutagen`')
             else:
-                if not webm_vtt_warn and ext == 'webm' and sub_ext != 'vtt':
-                    webm_vtt_warn = True
-                    self.report_warning('Only WebVTT subtitles can be embedded in webm files')
-            if not mp4_ass_warn and ext == 'mp4' and sub_ext == 'ass':
-                mp4_ass_warn = True
-                self.report_warning('ASS subtitles cannot be properly embedded in mp4 files; expect issues')
+                if ext == 'mp4' and sub_info['ext'] == 'ass':
+                    warn_once('ASS subtitles cannot be properly embedded in mp4 files; expect issues')
+                subtitles_to_embed[lang] = sub_info
 
-        if not sub_langs:
+        if not subtitles_to_embed:
             return [], info
 
-        input_files = [filename, *sub_filenames]
+        sub_files = [sub['filepath'] for sub in subtitles_to_embed.values()]
+        files_to_delete = [] if self._already_have_subtitle else sub_files
+
+        if ext in self.SUPPORTS_LYRICS:
+            self._embed_lyrics(subtitles_to_embed, info['filepath'], ext)
+            return files_to_delete, info
 
         opts = [
-            *self.stream_copy_opts(ext=info['ext']),
+            *self.stream_copy_opts(ext=ext),
             # Don't copy the existing subtitles, we may be running the
             # postprocessor a second time
             '-map', '-0:s',
         ]
-        for i, (lang, name) in enumerate(zip(sub_langs, sub_names)):
-            opts.extend(['-map', f'{i + 1}:0'])
-            lang_code = ISO639Utils.short2long(lang) or lang
-            opts.extend([f'-metadata:s:s:{i}', f'language={lang_code}'])
-            if name:
+        for i, (lang, sub) in enumerate(subtitles_to_embed.items()):
+            lang = ISO639Utils.short2long(lang) or lang
+            opts.extend(['-map', f'{i + 1}:0', f'-metadata:s:s:{i}', f'language={lang}'])
+            if name := sub['name']:
                 opts.extend([f'-metadata:s:s:{i}', f'handler_name={name}',
                              f'-metadata:s:s:{i}', f'title={name}'])
 
         temp_filename = prepend_extension(filename, 'temp')
         self.to_screen(f'Embedding subtitles in "{filename}"')
-        self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
+        self.run_ffmpeg_multiple_files([filename, *sub_files], temp_filename, opts)
         os.replace(temp_filename, filename)
 
-        files_to_delete = [] if self._already_have_subtitle else sub_filenames
         return files_to_delete, info
+
+    def _embed_lyrics(self, subtitles, filename, ext):
+        assert mutagen and ext in self.SUPPORTS_LYRICS and all(sub['ext'] == 'lrc' for sub in subtitles.values())
+        self.to_screen(f'Embedding lyrics in "{filename}"')
+        if len(subtitles) > 1:
+            self.report_warning(
+                f'Your media player may be unable to display multiple subtitles in {ext}', only_once=True)
+
+        for sub in subtitles.values():
+            if not sub.get('data'):
+                with open(sub['filepath'], encoding='utf-8') as f:
+                    sub['data'] = f.read()
+
+        if ext == 'mp3':
+            metadata = mutagen.id3.ID3(filename)
+            for lang, sub in subtitles.items():
+                metadata.add(mutagen.id3.SYLT(
+                    encoding=mutagen.id3.Encoding.UTF8, format=2, type=1,
+                    lang=ISO639Utils.short2long(lang) or 'und',
+                    text=[(line.text, int(line.start * 1000))
+                          for line in parse_lrc(sub['data'])
+                          if isinstance(line, Subtitle)]))
+        else:
+            metadata = mutagen.File(filename)
+            metadata['©lyr' if ext == 'm4a' else 'lyrics'] = [sub['data'] for sub in subtitles.values()]
+        metadata.save()
 
 
 class FFmpegMetadataPP(FFmpegPostProcessor):
