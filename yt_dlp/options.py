@@ -230,6 +230,9 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         formatter.indent()
         heading = formatter.format_heading('Preset Aliases')
         formatter.indent()
+        description = formatter.format_description(
+            'Predefined aliases for convenience and ease of use. Note that future versions of yt-dlp '
+            'may add or adjust presets, but the existing preset names will not be changed or removed')
         result = []
         for name, args in _PRESET_ALIASES.items():
             option = optparse.Option('-t', help=shlex.join(args))
@@ -238,7 +241,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         formatter.dedent()
         formatter.dedent()
         help_lines = '\n'.join(result)
-        return f'{formatted_help}\n{heading}{help_lines}'
+        return f'{formatted_help}\n{heading}{description}\n{help_lines}'
 
 
 def create_parser():
