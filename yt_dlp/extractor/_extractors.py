@@ -338,7 +338,6 @@ from .canalc2 import Canalc2IE
 from .canalplus import CanalplusIE
 from .canalsurmas import CanalsurmasIE
 from .caracoltv import CaracolTvPlayIE
-from .cartoonnetwork import CartoonNetworkIE
 from .cbc import (
     CBCIE,
     CBCGemIE,
@@ -929,7 +928,10 @@ from .jiocinema import (
 )
 from .jiosaavn import (
     JioSaavnAlbumIE,
+    JioSaavnArtistIE,
     JioSaavnPlaylistIE,
+    JioSaavnShowIE,
+    JioSaavnShowPlaylistIE,
     JioSaavnSongIE,
 )
 from .joj import JojIE
@@ -1964,7 +1966,6 @@ from .spreaker import (
     SpreakerShowIE,
 )
 from .springboardplatform import SpringboardPlatformIE
-from .sprout import SproutIE
 from .sproutvideo import (
     SproutVideoIE,
     VidsIoIE,
