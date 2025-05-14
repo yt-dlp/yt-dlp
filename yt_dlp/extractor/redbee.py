@@ -337,12 +337,16 @@ class RTBFIE(RedBeeBaseIE):
                     'height': height,
                 })
 
+        has_drm = False
         mpd_url = None if data.get('isLive') else data.get('urlDash')
-        if mpd_url and (self.get_param('allow_unplayable_formats') or not data.get('drm')):
-            fmts, subs = self._extract_mpd_formats_and_subtitles(
-                mpd_url, media_id, mpd_id='dash', fatal=False)
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
+        if mpd_url:
+            if data.get('drm'):
+                has_drm = True
+            else:
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    mpd_url, media_id, mpd_id='dash', fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
 
         audio_url = data.get('urlAudio')
         if audio_url:
@@ -364,6 +368,9 @@ class RTBFIE(RedBeeBaseIE):
             fmts, subs = self._get_formats_and_subtitles(url, f'live_{media_id}' if is_live else media_id)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
+
+        if not formats and has_drm:
+            self.report_drm(media_id)
 
         return {
             'id': media_id,
