@@ -86,7 +86,7 @@ class IPrimaIE(InfoExtractor):
 
         token_data = self._download_json(
             'https://ucet.iprima.cz/api/session/create', None,
-            note='Downloading token', errnote='Downloading token failed',
+            note='Logging in', errnote='Failed to log in',
             data=json.dumps({
                 'email': username,
                 'password': password,
