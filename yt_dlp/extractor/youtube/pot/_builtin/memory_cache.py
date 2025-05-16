@@ -23,7 +23,11 @@ def initialize_global_cache(max_size: int):
     if _pot_memory_cache.value['max_size'] != max_size:
         raise ValueError('Cannot change max_size of initialized global memory cache')
 
-    return _pot_memory_cache.value['cache'], _pot_memory_cache.value['lock'], _pot_memory_cache.value['max_size']
+    return (
+        _pot_memory_cache.value['cache'],
+        _pot_memory_cache.value['lock'],
+        _pot_memory_cache.value['max_size'],
+    )
 
 
 @register_provider
@@ -46,31 +50,25 @@ class MemoryLRUPCP(PoTokenCacheProvider, BuiltInIEContentProvider):
     def get(self, key: str) -> str | None:
         with self.lock:
             if key not in self.cache:
-                self.logger.trace('cache miss')
                 return None
             value, expires_at = self.cache.pop(key)
             if expires_at < int(dt.datetime.now(dt.timezone.utc).timestamp()):
-                self.logger.trace(f'cache expired key={key}')
                 return None
             self.cache[key] = (value, expires_at)
-            self.logger.trace(f'cache hit key={key}')
             return value
 
     def store(self, key: str, value: str, expires_at: int):
         with self.lock:
             if expires_at < int(dt.datetime.now(dt.timezone.utc).timestamp()):
-                self.logger.trace(f'ignoring expired key={key}')
                 return
             if key in self.cache:
                 self.cache.pop(key)
             self.cache[key] = (value, expires_at)
             if len(self.cache) > self.max_size:
                 self.cache.popitem(last=False)
-            self.logger.trace(f'storing key={key}')
 
     def delete(self, key: str):
         with self.lock:
-            self.logger.trace(f'deleting key={key}')
             self.cache.pop(key, None)
 
 

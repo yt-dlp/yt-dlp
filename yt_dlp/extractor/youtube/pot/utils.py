@@ -31,7 +31,12 @@ class ContentBindingType(enum.Enum):
     VISITOR_ID = 'visitor_id'
 
 
-def get_webpo_content_binding(request: PoTokenRequest, webpo_clients=WEBPO_CLIENTS, bind_to_visitor_id=False) -> tuple[str | None, ContentBindingType | None]:
+def get_webpo_content_binding(
+    request: PoTokenRequest,
+    webpo_clients=WEBPO_CLIENTS,
+    bind_to_visitor_id=False,
+) -> tuple[str | None, ContentBindingType | None]:
+
     client_name = traverse_obj(request.innertube_context, ('client', 'clientName'))
     if not client_name or client_name not in webpo_clients:
         return None, None
@@ -59,7 +64,8 @@ def _extract_visitor_id(visitor_data):
     # Attempt to extract the visitor ID from the visitor_data protobuf
     # xxx: ideally should use a protobuf parser
     with contextlib.suppress(Exception):
-        visitor_id = base64.urlsafe_b64decode(urllib.parse.unquote_plus(visitor_data))[2:13].decode()
+        visitor_id = base64.urlsafe_b64decode(
+            urllib.parse.unquote_plus(visitor_data))[2:13].decode()
         # check that visitor id is all letters and numbers
         if re.fullmatch(r'[A-Za-z0-9_-]{11}', visitor_id):
             return visitor_id

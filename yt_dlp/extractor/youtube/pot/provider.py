@@ -241,6 +241,7 @@ def register_preference(*providers: type[PoTokenProvider]) -> typing.Callable[[P
 
 if typing.TYPE_CHECKING:
     Preference = typing.Callable[[PoTokenProvider, PoTokenRequest], int]
+    __all__.append('Preference')
 
     # Barebones innertube context. There may be more fields.
     class ClientInfo(typing.TypedDict, total=False):

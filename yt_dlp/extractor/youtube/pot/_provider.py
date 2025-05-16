@@ -62,7 +62,12 @@ class IEContentProvider(abc.ABC):
     PROVIDER_VERSION: str = '0.0.0'
     BUG_REPORT_LOCATION: str = '(developer has not provided a bug report location)'
 
-    def __init__(self, ie: InfoExtractor, logger: IEContentProviderLogger, settings: dict[str, list[str]], *_, **__):
+    def __init__(
+        self,
+        ie: InfoExtractor,
+        logger: IEContentProviderLogger,
+        settings: dict[str, list[str]], *_, **__,
+    ):
         self.ie = ie
         self.settings = settings or {}
         self.logger = logger
@@ -103,12 +108,12 @@ class IEContentProvider(abc.ABC):
         pass
 
     def _configuration_arg(self, key, default=NO_DEFAULT, *, casesense=False):
-        '''
+        """
         @returns            A list of values for the setting given by "key"
                             or "default" if no such key is present
         @param default      The default value to return when the key is not present (default: [])
         @param casesense    When false, the values are converted to lower case
-        '''
+        """
         val = traverse_obj(self.settings, key)
         if val is None:
             return [] if default is NO_DEFAULT else default
