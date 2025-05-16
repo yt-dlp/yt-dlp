@@ -569,9 +569,16 @@ def _extract_safari_cookies(profile, logger):
             if not os.path.isfile(cookies_path):
                 raise FileNotFoundError('could not find safari cookies database')
 
-    with open(cookies_path, 'rb') as f:
-        cookies_data = f.read()
+    try:
+        with open(cookies_path, 'rb') as f:
+            cookies_data = f.read()
 
+    except PermissionError as e:
+        raise PermissionError(
+            f"Permission denied when accessing Safari cookies at: {cookies_path}. "
+            f"Please ensure the application has the necessary permissions (e.g., Full Disk Access on macOS)."
+        )
+    
     jar = parse_safari_cookies(cookies_data, logger=logger)
     logger.info(f'Extracted {len(jar)} cookies from safari')
     return jar
