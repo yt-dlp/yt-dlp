@@ -110,12 +110,14 @@ class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
 
     # Innertube Client Name.
     # For example, "WEB", "ANDROID", "TVHTML5".
-    # For a list of WebPO client names, see yt_dlp.extractor.youtube.pot._builtin.utils.WEBPO_CLIENTS.
-    # Also see yt_dlp.extractor.youtube._base.INNERTUBE_CLIENTS for a list of client names currently supported by the YouTube extractor.
+    # For a list of WebPO client names, see yt_dlp.extractor.youtube.pot.utils.WEBPO_CLIENTS.
+    # Also see yt_dlp.extractor.youtube._base.INNERTUBE_CLIENTS
+    #  for a list of client names currently supported by the YouTube extractor.
     _SUPPORTED_CLIENTS: tuple[str] | None = ()
 
-    # If making external requests to websites (i.e. to youtube.com) using another library or service (i.e., not _request_webpage),
-    # add the request features that are supported.
+    # If making external requests to websites (i.e. to youtube.com)
+    #  using another library or service (i.e., not _request_webpage),
+    #  add the request features that are supported.
     # If only using _request_webpage to make external requests, set this to None.
     _SUPPORTED_EXTERNAL_REQUEST_FEATURES: tuple[ExternalRequestFeature] | None = ()
 
@@ -124,14 +126,20 @@ class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
             raise PoTokenProviderRejectedRequest(f'{self.PROVIDER_NAME} is not available')
 
         # Validate request using built-in settings
-        if self._SUPPORTED_CONTEXTS is not None and request.context not in self._SUPPORTED_CONTEXTS:
-            raise PoTokenProviderRejectedRequest(f'PO Token Context "{request.context}" is not supported by {self.PROVIDER_NAME}')
+        if (
+            self._SUPPORTED_CONTEXTS is not None
+            and request.context not in self._SUPPORTED_CONTEXTS
+        ):
+            raise PoTokenProviderRejectedRequest(
+                f'PO Token Context "{request.context}" is not supported by {self.PROVIDER_NAME}')
 
         if self._SUPPORTED_CLIENTS is not None:
-            client_name = traverse_obj(request.innertube_context, ('client', 'clientName'))
+            client_name = traverse_obj(
+                request.innertube_context, ('client', 'clientName'))
             if client_name not in self._SUPPORTED_CLIENTS:
                 raise PoTokenProviderRejectedRequest(
-                    f'Client "{client_name}" is not supported by {self.PROVIDER_NAME}. Supported clients: {", ".join(self._SUPPORTED_CLIENTS) or "none"}')
+                    f'Client "{client_name}" is not supported by {self.PROVIDER_NAME}. '
+                    f'Supported clients: {", ".join(self._SUPPORTED_CLIENTS) or "none"}')
 
         self.__validate_external_request_features(request)
 
@@ -158,15 +166,25 @@ class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
             scheme = urllib.parse.urlparse(request.request_proxy).scheme
             if scheme.lower() not in self._supported_proxy_schemes:
                 raise PoTokenProviderRejectedRequest(
-                    f'External requests by "{self.PROVIDER_NAME}" provider do not support proxy scheme "{scheme}". Supported proxy schemes: {", ".join(self._supported_proxy_schemes) or "none"}')
+                    f'External requests by "{self.PROVIDER_NAME}" provider do not '
+                    f'support proxy scheme "{scheme}". Supported proxy schemes: '
+                    f'{", ".join(self._supported_proxy_schemes) or "none"}')
 
-        if request.request_source_address and ExternalRequestFeature.SOURCE_ADDRESS not in self._SUPPORTED_EXTERNAL_REQUEST_FEATURES:
+        if (
+            request.request_source_address
+            and ExternalRequestFeature.SOURCE_ADDRESS not in self._SUPPORTED_EXTERNAL_REQUEST_FEATURES
+        ):
             raise PoTokenProviderRejectedRequest(
-                f'External requests by "{self.PROVIDER_NAME}" provider do not support setting source address')
+                f'External requests by "{self.PROVIDER_NAME}" provider '
+                f'do not support setting source address')
 
-        if not request.request_verify_tls and ExternalRequestFeature.DISABLE_TLS_VERIFICATION not in self._SUPPORTED_EXTERNAL_REQUEST_FEATURES:
+        if (
+            not request.request_verify_tls
+            and ExternalRequestFeature.DISABLE_TLS_VERIFICATION not in self._SUPPORTED_EXTERNAL_REQUEST_FEATURES
+        ):
             raise PoTokenProviderRejectedRequest(
-                f'External requests by "{self.PROVIDER_NAME}" provider do not support ignoring TLS certificate failures')
+                f'External requests by "{self.PROVIDER_NAME}" provider '
+                f'do not support ignoring TLS certificate failures')
 
     def request_pot(self, request: PoTokenRequest) -> PoTokenResponse:
         self.__validate_request(request)
@@ -198,7 +216,6 @@ class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
         # Merge some ctx request settings into the request
         # Most of these will already be used by the configured ydl instance,
         # however, the YouTube extractor may override some.
-        # TODO: add _Request_webpage to IeContentProvider
         if pot_request is not None:
             req.headers = HTTPHeaderDict(pot_request.request_headers, req.headers)
             req.proxies = req.proxies or ({'all': pot_request.request_proxy} if pot_request.request_proxy else {})

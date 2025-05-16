@@ -59,7 +59,7 @@ def get_webpo_content_binding(
 
 def _extract_visitor_id(visitor_data):
     if not visitor_data:
-        return
+        return None
 
     # Attempt to extract the visitor ID from the visitor_data protobuf
     # xxx: ideally should use a protobuf parser

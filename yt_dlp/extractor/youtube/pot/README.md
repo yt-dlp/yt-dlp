@@ -51,15 +51,18 @@ class MyPoTokenProviderPTP(PoTokenProvider):  # Provider name must end with "PTP
 
     # Innertube Client Name.
     # For example, "WEB", "ANDROID", "TVHTML5".
-    # For a list of WebPO client names, see yt_dlp.extractor.youtube.pot.utils.WEBPO_CLIENTS.
-    # Also see yt_dlp.extractor.youtube._base.INNERTUBE_CLIENTS for a list of client names currently supported by the YouTube extractor.
+    # For a list of WebPO client names, 
+    #  see yt_dlp.extractor.youtube.pot.utils.WEBPO_CLIENTS.
+    # Also see yt_dlp.extractor.youtube._base.INNERTUBE_CLIENTS 
+    #  for a list of client names currently supported by the YouTube extractor.
     _SUPPORTED_CLIENTS = ('WEB', 'TVHTML5')
 
     _SUPPORTED_CONTEXTS = (
         PoTokenContext.GVS,
     )
 
-    # If your provider makes external requests to websites (i.e. to youtube.com) using another library or service (i.e., not _request_webpage),
+    # If your provider makes external requests to websites (i.e. to youtube.com) 
+    #  using another library or service (i.e., not _request_webpage),
     # set the request features that are supported here.
     # If only using _request_webpage to make external requests, set this to None.
     _SUPPORTED_EXTERNAL_REQUEST_FEATURES = (
@@ -84,16 +87,18 @@ class MyPoTokenProviderPTP(PoTokenProvider):  # Provider name must end with "PTP
         pass
 
     def _real_request_pot(self, request: PoTokenRequest) -> PoTokenResponse:
-        # ℹ️ If you need to validate the request before making the request to the external source
-        # Raise yt_dlp.extractor.youtube.pot.provider.PoTokenProviderRejectedRequest if the request is not supported
+        # ℹ️ If you need to validate the request before making the request to the external source.
+        # Raise yt_dlp.extractor.youtube.pot.provider.PoTokenProviderRejectedRequest if the request is not supported.
         if request.is_authenticated:
             raise PoTokenProviderRejectedRequest(
                 'This provider does not support authenticated requests'
             )
 
         # ℹ️ Settings are pulled from extractor args passed to yt-dlp with the key `youtubepot-<PROVIDER_KEY>`.
-        # For this example, the extractor arg would be `--extractor-args "youtubepot-mypotokenprovider:url=https://custom.example.com/get_pot"`
-        external_provider_url = self._configuration_arg('url', default=['https://provider.example.com/get_pot'])[0]
+        # For this example, the extractor arg would be:
+        # `--extractor-args "youtubepot-mypotokenprovider:url=https://custom.example.com/get_pot"`
+        external_provider_url = self._configuration_arg(
+            'url', default=['https://provider.example.com/get_pot'])[0]
         
         # See below for logging guidelines
         self.logger.trace(f'Using external provider URL: {external_provider_url}')
@@ -114,12 +119,15 @@ class MyPoTokenProviderPTP(PoTokenProvider):  # Provider name must end with "PTP
                     'do_not_cache': request.bypass_cache,
                 }).encode(), proxies={'all': None}), 
                 pot_request=request, 
-                note=f'Requesting {request.context.value} PO Token for {request.internal_client_name} client from external provider',
+                note=(
+                  f'Requesting {request.context.value} PO Token '
+                  f'for {request.internal_client_name} client from external provider'),
             )
 
         except RequestError as e:
             # ℹ️ If there is an error, raise PoTokenProviderError.
-            # You can specify whether it is expected or not. If it is unexpected, the log will include a link to the bug report location (BUG_REPORT_LOCATION).
+            # You can specify whether it is expected or not. If it is unexpected, 
+            #  the log will include a link to the bug report location (BUG_REPORT_LOCATION).
             raise PoTokenProviderError(
                 'Networking error while fetching to get PO Token from external provider',
                 expected=True
@@ -153,17 +161,25 @@ def my_provider_preference(provider: PoTokenProvider, request: PoTokenRequest) -
 ## Logging Guidelines
 
 - Use the `self.logger` object to log messages.
-- When making HTTP requests, use `self.logger.info` to log a message to standard non-verbose output. This lets users know what is happening when a time-expensive operation is taking place.
-  - For example, `self.logger.info(f'Requesting {request.context.value} PO Token for {request.internal_client_name} client from external provider')`
-- Use `self.logger.debug` to log a message to the verbose output (`--verbose`). Try to keep this to a minimum.
-- Use `self.logger.trace` to log a message to the PO Token debug output (`--extractor-args "youtube:pot_debug=true"`). Log as much as you like here as needed for debugging your provider.
+- When making HTTP requests or any other expensive operation, use `self.logger.info` to log a message to standard non-verbose output.
+  - This lets users know what is happening when a time-expensive operation is taking place.
+  - It is recommended to include the PO Token context and internal client name in the message if possible.
+  - For example, `self.logger.info(f'Requesting {request.context.value} PO Token for {request.internal_client_name} client from external provider')`.
+- Use `self.logger.debug` to log a message to the verbose output (`--verbose`).
+  - For debugging information visible to users posting verbose logs.
+  - Try to not log too much, prefer using trace logging for detailed debug messages.
+- Use `self.logger.trace` to log a message to the PO Token debug output (`--extractor-args "youtube:pot_debug=true"`). 
+  - Log as much as you like here as needed for debugging your provider.
 - Avoid logging PO Tokens or any sensitive information to debug or info output.
 
 ## Debugging
 
-- Use `-v --extractor-args "youtube:pot_debug=true"` to enable PO Token debug output.
+- Use `-v --extractor-args "youtube:pot_trace=true"` to enable PO Token debug output.
 
 ## Caching
+
+> [!WARNING]
+> The following describes more advance features that most users/developers will not need to use.
 
 > [!IMPORTANT]
 > yt-dlp currently has a built-in LRU Memory Cache Provider and a cache spec provider for WebPO Tokens. 
