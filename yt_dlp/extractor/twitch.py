@@ -1225,8 +1225,8 @@ class TwitchClipsIE(TwitchBaseIE):
                 'channel_id': ('broadcaster', 'id', {str}),
                 'channel_follower_count': ('broadcaster', 'followers', 'totalCount', {int_or_none}),
                 'channel_is_verified': ('broadcaster', 'isPartner', {bool}),
-                'uploader': ('broadcaster', 'displayName', {str}),
-                'uploader_id': ('broadcaster', 'id', {str}),
+                'uploader': ('curator', 'displayName', {str}),
+                'uploader_id': ('curator', 'id', {str}),
                 'categories': ('game', 'displayName', {str}, filter, all, filter),
             }),
         }

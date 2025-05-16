@@ -14,12 +14,13 @@ from ..utils import (
     parse_duration,
     qualities,
     str_to_int,
-    traverse_obj,
     try_get,
     unified_timestamp,
+    url_or_none,
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class TwitCastingIE(InfoExtractor):
@@ -138,13 +139,7 @@ class TwitCastingIE(InfoExtractor):
             r'data-toggle="true"[^>]+datetime="([^"]+)"',
             webpage, 'datetime', None))
 
-        stream_server_data = self._download_json(
-            f'https://twitcasting.tv/streamserver.php?target={uploader_id}&mode=client', video_id,
-            'Downloading live info', fatal=False)
-
         is_live = any(f'data-{x}' in webpage for x in ['is-onlive="true"', 'live-type="live"', 'status="online"'])
-        if not traverse_obj(stream_server_data, 'llfmp4') and is_live:
-            self.raise_login_required(method='cookies')
 
         base_dict = {
             'title': title,
@@ -165,28 +160,37 @@ class TwitCastingIE(InfoExtractor):
                 return [data_movie_url]
 
         m3u8_urls = (try_get(webpage, find_dmu, list)
-                     or traverse_obj(video_js_data, (..., 'source', 'url'))
-                     or ([f'https://twitcasting.tv/{uploader_id}/metastream.m3u8'] if is_live else None))
-        if not m3u8_urls:
-            raise ExtractorError('Failed to get m3u8 playlist')
+                     or traverse_obj(video_js_data, (..., 'source', 'url')))
 
         if is_live:
-            m3u8_url = m3u8_urls[0]
-            formats = self._extract_m3u8_formats(
-                m3u8_url, video_id, ext='mp4', m3u8_id='hls',
-                live=True, headers=self._M3U8_HEADERS)
+            stream_data = self._download_json(
+                'https://twitcasting.tv/streamserver.php',
+                video_id, 'Downloading live info', query={
+                    'target': uploader_id,
+                    'mode': 'client',
+                    'player': 'pc_web',
+                })
 
-            if traverse_obj(stream_server_data, ('hls', 'source')):
-                formats.extend(self._extract_m3u8_formats(
-                    m3u8_url, video_id, ext='mp4', m3u8_id='source',
-                    live=True, query={'mode': 'source'},
-                    note='Downloading source quality m3u8',
-                    headers=self._M3U8_HEADERS, fatal=False))
+            formats = []
+            # low: 640x360, medium: 1280x720, high: 1920x1080
+            qq = qualities(['low', 'medium', 'high'])
+            for quality, m3u8_url in traverse_obj(stream_data, (
+                'tc-hls', 'streams', {dict.items}, lambda _, v: url_or_none(v[1]),
+            )):
+                formats.append({
+                    'url': m3u8_url,
+                    'format_id': f'hls-{quality}',
+                    'ext': 'mp4',
+                    'quality': qq(quality),
+                    'protocol': 'm3u8',
+                    'http_headers': self._M3U8_HEADERS,
+                })
 
             if websockets:
                 qq = qualities(['base', 'mobilesource', 'main'])
-                streams = traverse_obj(stream_server_data, ('llfmp4', 'streams')) or {}
-                for mode, ws_url in streams.items():
+                for mode, ws_url in traverse_obj(stream_data, (
+                    'llfmp4', 'streams', {dict.items}, lambda _, v: url_or_none(v[1]),
+                )):
                     formats.append({
                         'url': ws_url,
                         'format_id': f'ws-{mode}',
@@ -197,10 +201,15 @@ class TwitCastingIE(InfoExtractor):
                         'protocol': 'websocket_frag',
                     })
 
+            if not formats:
+                self.raise_login_required()
+
             infodict = {
                 'formats': formats,
                 '_format_sort_fields': ('source', ),
             }
+        elif not m3u8_urls:
+            raise ExtractorError('Failed to get m3u8 playlist')
         elif len(m3u8_urls) == 1:
             formats = self._extract_m3u8_formats(
                 m3u8_urls[0], video_id, 'mp4', headers=self._M3U8_HEADERS)
