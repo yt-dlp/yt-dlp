@@ -2903,7 +2903,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Avoid fetching PO Tokens when not required
         if not (
             _PoTokenContext(context) in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
-            or self._configuration_arg('fetch_pot', ['when_required'], ie_key=YoutubeIE)[0] == 'always'
+            or self._configuration_arg('fetch_pot', ['auto'], ie_key=YoutubeIE)[0] == 'always'
         ):
             return None
 

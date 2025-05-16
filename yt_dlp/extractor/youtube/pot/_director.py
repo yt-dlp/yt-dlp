@@ -44,10 +44,10 @@ if typing.TYPE_CHECKING:
 
 
 class YoutubeIEContentProviderLogger(IEContentProviderLogger):
-    def __init__(self, ie, prefix, log_level=IEContentProviderLogger.LogLevel.INFO):
+    def __init__(self, ie, prefix, log_level: IEContentProviderLogger.LogLevel | None = None):
         self.__ie = ie
         self.prefix = prefix
-        self.log_level = log_level
+        self.log_level = log_level if log_level is not None else self.LogLevel.INFO
 
     def _format_msg(self, message: str):
         prefixstr = format_field(self.prefix, None, '[%s] ')
@@ -325,21 +325,30 @@ def initialize_pot_director(ie):
     if not ie._downloader:
         raise ExtractorError('Downloader not set', expected=False)
 
-    log_level = min(
-        IEContentProviderLogger.LogLevel(ie._configuration_arg('pot_log_level', ['INFO'], ie_key='youtube', casesense=False)[0].upper()),
-        IEContentProviderLogger.LogLevel.DEBUG if ie._downloader.params.get('verbose', False) else IEContentProviderLogger.LogLevel.INFO,
-    )
+    enable_trace = ie._configuration_arg(
+        'pot_trace', ['false'], ie_key='youtube', casesense=False)[0] == 'true'
+
+    if enable_trace:
+        log_level = IEContentProviderLogger.LogLevel.TRACE
+    elif ie._downloader.params.get('verbose', False):
+        log_level = IEContentProviderLogger.LogLevel.DEBUG
+    else:
+        log_level = IEContentProviderLogger.LogLevel.INFO
 
     cache_providers = []
     for cache_provider in _pot_cache_providers.value.values():
-        settings = traverse_obj(ie._downloader.params, ('extractor_args', f'{EXTRACTOR_ARG_PREFIX}-{cache_provider.PROVIDER_KEY.lower()}'))
-        cache_provider_logger = YoutubeIEContentProviderLogger(ie, f'pot:cache:{cache_provider.PROVIDER_NAME}', log_level=log_level)
+        settings = traverse_obj(
+            ie._downloader.params, ('extractor_args', f'{EXTRACTOR_ARG_PREFIX}-{cache_provider.PROVIDER_KEY.lower()}'))
+        cache_provider_logger = YoutubeIEContentProviderLogger(
+            ie, f'pot:cache:{cache_provider.PROVIDER_NAME}', log_level=log_level)
         cache_providers.append(cache_provider(ie, cache_provider_logger, settings or {}))
 
     cache_spec_providers = []
     for cache_spec_provider in _pot_pcs_providers.value.values():
-        settings = traverse_obj(ie._downloader.params, ('extractor_args', f'{EXTRACTOR_ARG_PREFIX}-{cache_spec_provider.PROVIDER_KEY.lower()}'))
-        cache_spec_provider_logger = YoutubeIEContentProviderLogger(ie, f'pot:cache:spec:{cache_spec_provider.PROVIDER_NAME}', log_level=log_level)
+        settings = traverse_obj(
+            ie._downloader.params, ('extractor_args', f'{EXTRACTOR_ARG_PREFIX}-{cache_spec_provider.PROVIDER_KEY.lower()}'))
+        cache_spec_provider_logger = YoutubeIEContentProviderLogger(
+            ie, f'pot:cache:spec:{cache_spec_provider.PROVIDER_NAME}', log_level=log_level)
         cache_spec_providers.append(cache_spec_provider(ie, cache_spec_provider_logger, settings or {}))
 
     cache = PoTokenCache(
@@ -421,7 +430,6 @@ def validate_response(response: PoTokenResponse):
 
 
 def validate_cache_spec(spec: PoTokenCacheSpec):
-
     return (
         isinstance(spec, PoTokenCacheSpec)
         and isinstance(spec.write_policy, CacheProviderWritePolicy)
