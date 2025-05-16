@@ -573,6 +573,8 @@ def _extract_safari_cookies(profile, logger):
             cookies_data = f.read()
     except PermissionError:
         raise PermissionError(f'Permission denied when accessing Safari cookies at: {cookies_path}')
+
+    jar = parse_safari_cookies(cookies_data, logger=logger)
     logger.info(f'Extracted {len(jar)} cookies from safari')
     return jar
 
