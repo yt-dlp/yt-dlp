@@ -1383,7 +1383,6 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
         # Ref: https://github.com/python/cpython/blob/3.7/Lib/http/cookiejar.py#L1360
         self._policy._now = self._now = int(time.time())
         return self._cookies_for_request(urllib.request.Request(normalize_url(sanitize_url(url))))
-
     def clear(self, *args, **kwargs):
         with contextlib.suppress(KeyError):
             return super().clear(*args, **kwargs)
