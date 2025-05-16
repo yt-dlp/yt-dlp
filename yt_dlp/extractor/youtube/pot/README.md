@@ -217,30 +217,32 @@ class MyCacheProviderPCP(PoTokenCacheProvider):  # Provider name must end with "
         """
         return True
 
-    """
-    Implement the below cache operations.
-
-    - expires_at is a timestamp in UTC. It MUST be respected - cache entries should not be returned if they have expired.
-    """
-
     def get(self, key: str):
-        # ℹ️ Similar to PO Token Providers, Cache Providers and Cache Spec Providers are passed down extractor args matching key youtubepot-<PROVIDER_KEY>.
+        # ℹ️ Similar to PO Token Providers, Cache Providers and Cache Spec Providers 
+        # are passed down extractor args matching key youtubepot-<PROVIDER_KEY>.
         some_setting = self._configuration_arg('some_setting', default=['default_value'])[0]
         return self.my_cache.get(key)
 
     def store(self, key: str, value: str, expires_at: int):
+        # ⚠ expires_at MUST be respected. 
+        # Cache entries should not be returned if they have expired.
         self.my_cache.store(key, value, expires_at)
 
     def delete(self, key: str):
         self.my_cache.delete(key)
 
     def close(self):
-        # Optional close hook, called when YoutubeDL is closed.
+        # Optional close hook, called when the YoutubeDL instance is closed.
         pass
 
-# If there are multiple PO Token Cache Providers available, you can define a preference function to increase/decrease the priority of providers. 
-# IMPORTANT: Providers should be in preference of cache lookup time. For example, a memory cache should have a higher preference than a disk cache. 
-# VERY IMPORTANT: yt-dlp has a built-in memory cache with a priority of 10000. Your cache provider should be lower than this.
+# If there are multiple PO Token Cache Providers available, you can 
+# define a preference function to increase/decrease the priority of providers. 
+
+# IMPORTANT: Providers should be in preference of cache lookup time. 
+# For example, a memory cache should have a higher preference than a disk cache. 
+
+# VERY IMPORTANT: yt-dlp has a built-in memory cache with a priority of 10000. 
+# Your cache provider should be lower than this.
 
 
 @register_preference(MyCacheProviderPCP)
@@ -294,8 +296,10 @@ class MyCacheSpecProviderPCSP(PoTokenCacheSpecProvider):  # Provider name must e
             default_ttl=21600,
 
             # Optional: Specify a write policy.
-            # WRITE_FIRST will write to the highest priority provider only, whereas WRITE_ALL will write to all providers.
-            # WRITE_FIRST may be useful if the PO Token is short-lived and there is no use writing to all providers.
+            # WRITE_FIRST will write to the highest priority provider only, 
+            #  whereas WRITE_ALL will write to all providers.
+            # WRITE_FIRST may be useful if the PO Token is short-lived 
+            #  and there is no use writing to all providers.
             write_policy=CacheProviderWritePolicy.WRITE_ALL,
         )
 ```
