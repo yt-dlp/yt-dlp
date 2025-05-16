@@ -15,8 +15,6 @@ class IPrimaIE(InfoExtractor):
     _VALID_URL = r'https?://(?!cnn)(?:[^/]+)\.iprima\.cz/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _GEO_BYPASS = False
     _NETRC_MACHINE = 'iprima'
-    _AUTH_ROOT = 'https://ucet.iprima.cz'
-    _DEVICE_ID = 'Windows Chrome'
     access_token = None
 
     _TESTS = [{
@@ -86,22 +84,18 @@ class IPrimaIE(InfoExtractor):
         if self.access_token:
             return
 
-        token_request_data = json.dumps({
-            'email': username,
-            'password': password,
-            'deviceName': self._DEVICE_ID,
-        }).encode()
-
-        token_request_headers = {'content-type': 'application/json'}
-
         token_data = self._download_json(
-            f'{self._AUTH_ROOT}/api/session/create', None,
+            'https://ucet.iprima.cz/api/session/create', None,
             note='Downloading token', errnote='Downloading token failed',
-            data=token_request_data, headers=token_request_headers)
+            data=json.dumps({
+                'email': username,
+                'password': password,
+                'deviceName': 'Windows Chrome',
+            }).encode(), headers={'content-type': 'application/json'})
 
-        self.access_token = traverse_obj(token_data, ('accessToken', 'value'))
-        if self.access_token is None:
-            raise ExtractorError('Getting token failed', expected=True)
+        self.access_token = token_data['accessToken']['value']
+        if not self.access_token:
+            raise ExtractorError('Failed to fetch access token')
 
     def _real_initialize(self):
         if not self.access_token:
