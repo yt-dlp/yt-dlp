@@ -41,7 +41,7 @@ import json
 
 
 @register_provider
-class MyPoTokenProviderPTP(PoTokenProvider):  # Provider name must end with "PTP"
+class MyPoTokenProviderPTP(PoTokenProvider):  # Provider class name must end with "PTP"
     PROVIDER_VERSION = '0.2.1'
     # Define a unique display name for the provider
     PROVIDER_NAME = 'my-provider'
@@ -200,7 +200,7 @@ from yt_dlp.extractor.youtube.pot.provider import PoTokenRequest
 
 
 @register_provider
-class MyCacheProviderPCP(PoTokenCacheProvider):  # Provider name must end with "PCP"
+class MyCacheProviderPCP(PoTokenCacheProvider):  # Provider class name must end with "PCP"
     PROVIDER_VERSION = '0.1.0'
     # Define a unique display name for the provider
     PROVIDER_NAME = 'my-cache-provider'
@@ -255,7 +255,7 @@ def my_cache_preference(provider: PoTokenCacheProvider, request: PoTokenRequest)
 `yt_dlp.extractor.youtube.pot.cache`
 
 These are used to provide information on how to cache a particular PO Token Request. 
-You might have a different cache spec for different kinds of PO Tokens (e.g. WebPO vs iOSGuard)
+You might have a different cache spec for different kinds of PO Tokens.
 
 ```python
 from yt_dlp.extractor.youtube.pot.cache import (
@@ -269,7 +269,7 @@ from yt_dlp.extractor.youtube.pot.provider import PoTokenRequest
 
 
 @register_spec
-class MyCacheSpecProviderPCSP(PoTokenCacheSpecProvider):  # Provider name must end with "PCSP"
+class MyCacheSpecProviderPCSP(PoTokenCacheSpecProvider):  # Provider class name must end with "PCSP"
     PROVIDER_VERSION = '0.1.0'
     # Define a unique display name for the provider
     PROVIDER_NAME = 'mycachespec'
