@@ -2934,13 +2934,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return po_token
 
     def _fetch_po_token(self, client, **kwargs):
-
         context = kwargs.get('context')
 
         # Avoid fetching PO Tokens when not required
-        if not (
-            _PoTokenContext(context) in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
-            or self._configuration_arg('fetch_pot', ['auto'], ie_key=YoutubeIE)[0] == 'always'
+        fetch_pot_policy = self._configuration_arg('fetch_pot', [''], ie_key=YoutubeIE)[0]
+        if fetch_pot_policy not in ('never', 'auto', 'always'):
+            fetch_pot_policy = 'auto'
+        if (
+            fetch_pot_policy == 'never'
+            or (
+                fetch_pot_policy == 'auto'
+                and _PoTokenContext(context) not in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
+            )
         ):
             return None
 

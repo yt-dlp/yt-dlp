@@ -1807,7 +1807,7 @@ The following extractors use this feature:
 * `player_js_variant`: The player javascript variant to use for signature and nsig deciphering. The known variants are: `main`, `tce`, `tv`, `tv_es6`, `phone`, `tablet`. Only `main` is recommended as a possible workaround; the others are for debugging purposes. The default is to use what is prescribed by the site, and can be selected with `actual`
 * `po_token`:  Proof of Origin (PO) Token(s) to use. Comma seperated list of PO Tokens in the format `CLIENT.CONTEXT+PO_TOKEN`, e.g. `youtube:po_token=web.gvs+XXX,web.player=XXX,web_safari.gvs+YYY`. Context can be either `gvs` (Google Video Server URLs) or `player` (Innertube player request)
 * `pot_trace`: Enable debug logging for PO Token fetching. Either `true` or `false` (default)
-* `fetch_pot`: Policy to use for fetching a PO Token from providers. `always` to always try fetch a PO Token regardless if the client requires one for the given context, `auto` to only fetch a PO Token if the client requires one for the given context (default)
+* `fetch_pot`: Policy to use for fetching a PO Token from providers. `always` to always try fetch a PO Token regardless if the client requires one for the given context, `never` to never fetch a PO Token, or `auto` to only fetch a PO Token if the client requires one for the given context (default)
 
 #### youtubepot-webpo
 * `bind_to_visitor_id`: Whether to use the Visitor ID instead of Visitor Data for caching WebPO tokens. Either `true` or `false` (default `true`)
