@@ -23,7 +23,7 @@ class WebPoPCSP(PoTokenCacheSpecProvider, BuiltInIEContentProvider):
         content_binding, content_binding_type = get_webpo_content_binding(
             request, bind_to_visitor_id=bind_to_visitor_id)
 
-        if not content_binding:
+        if not content_binding or not content_binding_type:
             return None
 
         write_policy = CacheProviderWritePolicy.WRITE_ALL

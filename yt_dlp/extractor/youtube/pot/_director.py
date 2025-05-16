@@ -40,7 +40,8 @@ from yt_dlp.extractor.youtube.pot.provider import (
 from yt_dlp.utils import ExtractorError, bug_reports_message, format_field, join_nonempty, traverse_obj
 
 if typing.TYPE_CHECKING:
-    from yt_dlp.extractor.youtube.pot.cache import PCPPreference
+    from yt_dlp.extractor.youtube.pot.cache import CacheProviderPreference
+    from yt_dlp.extractor.youtube.pot.provider import Preference
 
 
 class YoutubeIEContentProviderLogger(IEContentProviderLogger):
@@ -81,12 +82,12 @@ class PoTokenCache:
         logger: IEContentProviderLogger,
         cache_providers: list[PoTokenCacheProvider],
         cache_spec_providers: list[PoTokenCacheSpecProvider],
-        cache_provider_preferences: list[PCPPreference] | None = None,
+        cache_provider_preferences: list[CacheProviderPreference] | None = None,
     ):
         self.cache_providers: dict[str, PoTokenCacheProvider] = {
             provider.PROVIDER_KEY: provider for provider in (cache_providers or [])
         }
-        self.cache_provider_preferences: list[PCPPreference] = cache_provider_preferences or []
+        self.cache_provider_preferences: list[CacheProviderPreference] = cache_provider_preferences or []
 
         self.cache_spec_providers: dict[str, PoTokenCacheSpecProvider] = {
             provider.PROVIDER_KEY: provider for provider in (cache_spec_providers or [])
@@ -107,8 +108,8 @@ class PoTokenCache:
                 f'{provider.PROVIDER_KEY}={pref}' for provider, pref in preferences.items())))
 
         return (
-            provider for provider in sorted(self.cache_providers.values(), key=preferences.get, reverse=True) if provider.is_available()
-        )
+            provider for provider in sorted(
+                self.cache_providers.values(), key=preferences.get, reverse=True) if provider.is_available())
 
     def _get_cache_spec(self, request: PoTokenRequest) -> PoTokenCacheSpec | None:
         for provider in self.cache_spec_providers.values():
@@ -129,14 +130,16 @@ class PoTokenCache:
                     f'Error occurred with "{provider.PROVIDER_NAME}" PO Token cache spec provider: {e!r}{provider_bug_report_message(provider)}',
                 )
                 continue
+        return None
 
     def _generate_key_bindings(self, spec: PoTokenCacheSpec) -> dict[str, str]:
         bindings_cleaned = {
             **{k: v for k, v in spec.key_bindings.items() if v is not None},
             # Allow us to invalidate caches if such need arises
             '_yt': 'v1',
-            '_p': spec._provider.PROVIDER_KEY,
         }
+        if spec._provider:
+            bindings_cleaned['_p'] = spec._provider.PROVIDER_KEY
         self.logger.trace('Generate cache key bindings: {}'.format(', '.join(f'{k}={v}' for k, v in bindings_cleaned.items())))
         return bindings_cleaned
 
@@ -184,6 +187,7 @@ class PoTokenCache:
                     f'Error occurred with "{provider.PROVIDER_NAME}" PO Token cache provider: {e!r}{provider_bug_report_message(provider)}',
                 )
                 continue
+        return None
 
     def store(self, request: PoTokenRequest, response: PoTokenResponse, write_policy: CacheProviderWritePolicy | None = None):
         spec = self._get_cache_spec(request)
@@ -232,15 +236,15 @@ class PoTokenCache:
 class PoTokenRequestDirector:
 
     def __init__(self, logger: IEContentProviderLogger, cache: PoTokenCache):
-        self.providers = {}
-        self.preferences = []
+        self.providers: dict[str, PoTokenProvider] = {}
+        self.preferences: list[Preference] = []
         self.cache = cache
         self.logger = logger
 
     def register_provider(self, provider: PoTokenProvider):
         self.providers[provider.PROVIDER_KEY] = provider
 
-    def register_preference(self, preference):
+    def register_preference(self, preference: Preference):
         self.preferences.append(preference)
 
     def _get_providers(self, request: PoTokenRequest) -> Iterable[PoTokenProvider]:
@@ -407,7 +411,7 @@ def clean_pot(po_token: str):
         raise ValueError('Invalid PO Token')
 
 
-def validate_response(response: PoTokenResponse):
+def validate_response(response: PoTokenResponse | None):
     if (
         not isinstance(response, PoTokenResponse)
         or not response.po_token

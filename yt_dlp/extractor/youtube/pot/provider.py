@@ -198,6 +198,7 @@ class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
         # Merge some ctx request settings into the request
         # Most of these will already be used by the configured ydl instance,
         # however, the YouTube extractor may override some.
+        # TODO: add _Request_webpage to IeContentProvider
         if pot_request is not None:
             req.headers = HTTPHeaderDict(pot_request.request_headers, req.headers)
             req.proxies = req.proxies or ({'all': pot_request.request_proxy} if pot_request.request_proxy else {})
@@ -229,7 +230,6 @@ def provider_bug_report_message(provider: IEContentProvider, before=';'):
     return (before + ' ' if before else '') + msg
 
 
-# XXX: I don't think the typing is correct, and that we need py3.10 to properly type this
 def register_preference(*providers: type[PoTokenProvider]) -> typing.Callable[[Preference], Preference]:
     """Register a preference for a PoTokenProvider"""
     return register_preference_generic(
@@ -240,7 +240,7 @@ def register_preference(*providers: type[PoTokenProvider]) -> typing.Callable[[P
 
 
 if typing.TYPE_CHECKING:
-    Preference = typing.Callable[[PoTokenProvider, PoTokenRequest, ...], int]
+    Preference = typing.Callable[[PoTokenProvider, PoTokenRequest], int]
 
     # Barebones innertube context. There may be more fields.
     class ClientInfo(typing.TypedDict, total=False):

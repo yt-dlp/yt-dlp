@@ -83,8 +83,8 @@ def register_spec(provider: type[PoTokenCacheSpecProvider]):
     )
 
 
-# XXX: I don't think the typing is correct, and that we need py3.10 to properly type this
-def register_preference(*providers: type[PoTokenCacheProvider]) -> typing.Callable[[PCPPreference], PCPPreference]:
+def register_preference(
+        *providers: type[PoTokenCacheProvider]) -> typing.Callable[[CacheProviderPreference], CacheProviderPreference]:
     """Register a preference for a PoTokenCacheProvider"""
     return register_preference_generic(
         PoTokenCacheProvider,
@@ -94,4 +94,4 @@ def register_preference(*providers: type[PoTokenCacheProvider]) -> typing.Callab
 
 
 if typing.TYPE_CHECKING:
-    PCPPreference = typing.Callable[[PoTokenCacheProvider, PoTokenRequest, ...], int]
+    CacheProviderPreference = typing.Callable[[PoTokenCacheProvider, PoTokenRequest], int]

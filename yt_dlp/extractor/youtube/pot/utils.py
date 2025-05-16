@@ -49,6 +49,8 @@ def get_webpo_content_binding(request: PoTokenRequest, webpo_clients=WEBPO_CLIEN
     elif request.context == PoTokenContext.PLAYER or client_name != 'WEB_REMIX':
         return request.video_id, ContentBindingType.VIDEO_ID
 
+    return None, None
+
 
 def _extract_visitor_id(visitor_data):
     if not visitor_data:
