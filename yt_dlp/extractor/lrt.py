@@ -117,7 +117,7 @@ class LRTRadioIE(LRTBaseIE):
         'url': 'https://www.lrt.lt/radioteka/irasas/2000359728/nemarios-eiles-apie-pragarus-ir-skaistyklas-su-aiste-kiltinaviciute',
         'info_dict': {
             'id': '2000359728',
-            'ext': 'mp4',
+            'ext': 'm4a',
             'title': 'Nemarios eilės: apie pragarus ir skaistyklas su Aiste Kiltinavičiūte',
             'description': 'md5:5eee9a0e86a55bf547bd67596204625d',
             'timestamp': 1726143120,
@@ -139,7 +139,7 @@ class LRTRadioIE(LRTBaseIE):
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(media['playlist_item']['file'], video_id, 'mp4'),
+            'formats': self._extract_m3u8_formats(media['playlist_item']['file'], video_id),
             **traverse_obj(media, {
                 'title': ('title', {str}),
                 'tags': ('tags', ..., 'name', {str}),
