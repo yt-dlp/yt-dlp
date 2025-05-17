@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import abc
 import inspect
+import sys
 import typing
 
-from ..globals import jsi_runtimes
+from ..globals import jsi_runtimes, plugin_jsis_overrides
 from ..extractor.common import InfoExtractor
 from ..utils import (
     classproperty,
@@ -214,24 +215,44 @@ class JSI(abc.ABC):
         self.timeout = timeout
         self.user_agent: str = user_agent or self._downloader.params['http_headers']['User-Agent']
 
+    @classmethod
+    def __init_subclass__(cls, *, plugin_name=None, **kwargs):
+        if plugin_name:
+            mro = inspect.getmro(cls)
+            next_mro_class = super_class = mro[mro.index(cls) + 1]
+
+            while getattr(super_class, '__wrapped__', None):
+                super_class = super_class.__wrapped__
+
+            if not any(override.PLUGIN_NAME == plugin_name for override in plugin_jsis_overrides.value[super_class]):
+                cls.__wrapped__ = next_mro_class
+                cls.PLUGIN_NAME, cls.JSI_KEY = plugin_name, next_mro_class.JSI_KEY
+                cls.JSI_NAME = f'{next_mro_class.JSI_NAME}+{plugin_name}'
+
+                setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
+                # additional update jsi_runtime because jsis are not further loaded like extractors
+                jsi_runtimes.value[super_class.JSI_KEY] = cls
+                plugin_jsis_overrides.value[super_class].append(cls)
+        return super().__init_subclass__(**kwargs)
+
     @abc.abstractmethod
     def is_available(self) -> bool:
         raise NotImplementedError
 
-    def write_debug(self, message, *args, **kwargs):
-        self._downloader.write_debug(f'[{self.JSI_KEY}] {message}', *args, **kwargs)
+    def write_debug(self, msg, *args, **kwargs):
+        self._downloader.write_debug(f'[{self.JSI_NAME}] {msg}', *args, **kwargs)
 
-    def report_warning(self, message, *args, **kwargs):
-        self._downloader.report_warning(f'[{self.JSI_KEY}] {message}', *args, **kwargs)
+    def report_warning(self, msg, *args, **kwargs):
+        self._downloader.report_warning(f'[{self.JSI_NAME}] {msg}', *args, **kwargs)
 
     def to_screen(self, msg, *args, **kwargs):
-        self._downloader.to_screen(f'[{self.JSI_KEY}] {msg}', *args, **kwargs)
+        self._downloader.to_screen(f'[{self.JSI_NAME}] {msg}', *args, **kwargs)
 
     def report_note(self, video_id, note):
         self.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
 
     def report_version(self):
-        raise NotImplementedError
+        pass
 
     @classmethod
     def supports_extractor(cls, ie_key: str):

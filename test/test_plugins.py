@@ -124,6 +124,11 @@ class TestPlugins(unittest.TestCase):
         self.assertIn(f'{PACKAGE_NAME}.jsinterp.normal', sys.modules.keys())
         self.assertIn('NormalPluginJSI', plugin_jsis.value)
 
+        self.assertNotIn('OverrideDenoJSI', plugins_jsi.keys())
+        self.assertNotIn('OverrideDenoJSI', plugin_jsis.value)
+        self.assertNotIn('_UnderscoreOverrideDenoJSI', plugins_jsi.keys())
+        self.assertNotIn('_UnderscoreOverrideDenoJSI', plugin_jsis.value)
+
     def test_importing_zipped_module(self):
         zip_path = TEST_DATA_DIR / 'zipped_plugins.zip'
         shutil.make_archive(str(zip_path)[:-4], 'zip', str(zip_path)[:-4])
@@ -208,6 +213,24 @@ class TestPlugins(unittest.TestCase):
         load_plugins(EXTRACTOR_PLUGIN_SPEC)
         from yt_dlp.extractor.generic import GenericIE
         self.assertEqual(GenericIE.IE_NAME, 'generic+override+underscore-override')
+
+    def test_jsi_override_plugin(self):
+        load_plugins(JSI_PLUGIN_SPEC)
+
+        from yt_dlp.jsinterp._deno import DenoJSI
+
+        # test that jsi_runtimes is updated with override jsi
+        self.assertTrue(DenoJSI is jsi_runtimes.value['Deno'])
+        self.assertEqual(jsi_runtimes.value['Deno'].TEST_FIELD, 'override')
+        self.assertEqual(jsi_runtimes.value['Deno'].SECONDARY_TEST_FIELD, 'underscore-override')
+
+        self.assertEqual(jsi_runtimes.value['Deno'].JSI_NAME, 'Deno+override+underscore-override')
+        importlib.invalidate_caches()
+        # test that loading a second time doesn't wrap a second time
+        load_plugins(EXTRACTOR_PLUGIN_SPEC)
+        from yt_dlp.jsinterp._deno import DenoJSI
+        self.assertTrue(DenoJSI is jsi_runtimes.value['Deno'])
+        self.assertEqual(jsi_runtimes.value['Deno'].JSI_NAME, 'Deno+override+underscore-override')
 
     def test_load_all_plugin_types(self):
 

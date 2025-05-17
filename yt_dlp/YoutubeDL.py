@@ -39,6 +39,8 @@ from .globals import (
     plugin_ies,
     plugin_ies_overrides,
     plugin_pps,
+    plugin_jsis,
+    plugin_jsis_overrides,
     all_plugins_loaded,
     plugin_dirs,
 )
@@ -4090,13 +4092,17 @@ class YoutubeDL:
         write_debug(f'Proxy map: {self.proxies}')
         write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
 
-        for plugin_type, plugins in (('Extractor', plugin_ies), ('Post-Processor', plugin_pps)):
+        for plugin_type, plugins in (('Extractor', plugin_ies), ('Post-Processor', plugin_pps),
+                                     ('JSI-Runtime', plugin_jsis)):
             display_list = [
                 klass.__name__ if klass.__name__ == name else f'{klass.__name__} as {name}'
                 for name, klass in plugins.value.items()]
             if plugin_type == 'Extractor':
                 display_list.extend(f'{plugins[-1].IE_NAME.partition("+")[2]} ({parent.__name__})'
                                     for parent, plugins in plugin_ies_overrides.value.items())
+            elif plugin_type == 'JSI-Runtime':
+                display_list.extend(f'{plugins[-1].JSI_NAME.partition("+")[2]} ({parent.__name__})'
+                                    for parent, plugins in plugin_jsis_overrides.value.items())
             if not display_list:
                 continue
             write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')
