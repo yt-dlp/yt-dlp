@@ -1,3 +1,5 @@
+import collections
+
 import pytest
 
 from yt_dlp import YoutubeDL
@@ -14,27 +16,22 @@ class MockLogger(IEContentProviderLogger):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.messages = {}
+        self.messages = collections.defaultdict(list)
 
     def trace(self, message: str):
-        self.messages.setdefault('trace', []).append(message)
-        pass
+        self.messages['trace'].append(message)
 
     def debug(self, message: str):
-        self.messages.setdefault('debug', []).append(message)
-        pass
+        self.messages['debug'].append(message)
 
     def info(self, message: str):
-        self.messages.setdefault('info', []).append(message)
-        pass
+        self.messages['info'].append(message)
 
     def warning(self, message: str, *, once=False):
-        self.messages.setdefault('warning', []).append(message)
-        pass
+        self.messages['warning'].append(message)
 
     def error(self, message: str):
-        self.messages.setdefault('error', []).append(message)
-        pass
+        self.messages['error'].append(message)
 
 
 @pytest.fixture
