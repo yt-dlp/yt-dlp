@@ -37,7 +37,7 @@ from yt_dlp.extractor.youtube.pot.provider import (
     PoTokenResponse,
     provider_bug_report_message,
 )
-from yt_dlp.utils import bug_reports_message, format_field, join_nonempty, traverse_obj
+from yt_dlp.utils import bug_reports_message, format_field, join_nonempty
 
 if typing.TYPE_CHECKING:
     from yt_dlp.extractor.youtube.pot.cache import CacheProviderPreference
@@ -363,23 +363,21 @@ def initialize_pot_director(ie):
     else:
         log_level = IEContentProviderLogger.LogLevel.INFO
 
+    def get_provider_logger_and_settings(provider, logger_key):
+        logger_prefix = f'{logger_key}:{provider.PROVIDER_NAME}'
+        extractor_key = f'{EXTRACTOR_ARG_PREFIX}-{provider.PROVIDER_KEY.lower()}'
+        return (
+            YoutubeIEContentProviderLogger(ie, logger_prefix, log_level=log_level),
+            ie.get_param('extractor_args', {}).get(extractor_key, {}))
+
     cache_providers = []
     for cache_provider in _pot_cache_providers.value.values():
-        settings = traverse_obj(
-            ie._downloader.params,
-            ('extractor_args', f'{EXTRACTOR_ARG_PREFIX}-{cache_provider.PROVIDER_KEY.lower()}'))
-        cache_provider_logger = YoutubeIEContentProviderLogger(
-            ie, f'pot:cache:{cache_provider.PROVIDER_NAME}', log_level=log_level)
-        cache_providers.append(cache_provider(ie, cache_provider_logger, settings or {}))
-
+        logger, settings = get_provider_logger_and_settings(cache_provider, 'pot:cache')
+        cache_providers.append(cache_provider(ie, logger, settings))
     cache_spec_providers = []
     for cache_spec_provider in _pot_pcs_providers.value.values():
-        settings = traverse_obj(
-            ie._downloader.params,
-            ('extractor_args', f'{EXTRACTOR_ARG_PREFIX}-{cache_spec_provider.PROVIDER_KEY.lower()}'))
-        cache_spec_provider_logger = YoutubeIEContentProviderLogger(
-            ie, f'pot:cache:spec:{cache_spec_provider.PROVIDER_NAME}', log_level=log_level)
-        cache_spec_providers.append(cache_spec_provider(ie, cache_spec_provider_logger, settings or {}))
+        logger, settings = get_provider_logger_and_settings(cache_spec_provider, 'pot:cache:spec')
+        cache_spec_providers.append(cache_spec_provider(ie, logger, settings))
 
     cache = PoTokenCache(
         logger=YoutubeIEContentProviderLogger(ie, 'pot:cache', log_level=log_level),
@@ -396,12 +394,8 @@ def initialize_pot_director(ie):
     ie._downloader.add_close_hook(director.close)
 
     for provider in _pot_providers.value.values():
-        settings = traverse_obj(
-            ie._downloader.params,
-            ('extractor_args', f'{EXTRACTOR_ARG_PREFIX}-{provider.PROVIDER_KEY.lower()}'))
-        logger = YoutubeIEContentProviderLogger(
-            ie, f'pot:{provider.PROVIDER_NAME}', log_level=log_level)
-        director.register_provider(provider(ie, logger, settings or {}))
+        logger, settings = get_provider_logger_and_settings(provider, 'pot')
+        director.register_provider(provider(ie, logger, settings))
 
     for preference in _ptp_preferences.value:
         director.register_preference(preference)
