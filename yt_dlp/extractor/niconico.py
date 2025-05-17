@@ -4,16 +4,15 @@ import itertools
 import json
 import re
 import time
-import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     clean_html,
     determine_ext,
+    extract_attributes,
     float_or_none,
     int_or_none,
     parse_bitrate,
@@ -22,9 +21,8 @@ from ..utils import (
     parse_qs,
     parse_resolution,
     qualities,
-    remove_start,
     str_or_none,
-    unescapeHTML,
+    truncate_string,
     unified_timestamp,
     update_url_query,
     url_basename,
@@ -756,6 +754,7 @@ class NiconicoUserIE(InfoExtractor):
 class NiconicoLiveIE(NiconicoBaseIE):
     IE_NAME = 'niconico:live'
     IE_DESC = 'ニコニコ生放送'
+
     _VALID_URL = r'https?://(?:sp\.)?live2?\.nicovideo\.jp/(?:watch|gate)/(?P<id>lv\d+)'
     _TESTS = [{
         'note': 'this test case includes invisible characters for title, pasting them as-is',
@@ -787,41 +786,46 @@ class NiconicoLiveIE(NiconicoBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
+        webpage = self._download_webpage(url, video_id, expected_status=404)
+        if err_msg := traverse_obj(webpage, (
+            {find_element(cls='message')}, {clean_html},
+        )):
+            raise ExtractorError(err_msg, expected=True)
 
-        embedded_data = self._parse_json(unescapeHTML(self._search_regex(
-            r'<script\s+id="embedded-data"\s*data-props="(.+?)"', webpage, 'embedded data')), video_id)
+        embedded_data = traverse_obj(webpage, (
+            {find_element(tag='script', id='embedded-data', html=True)},
+            {extract_attributes}, 'data-props', {json.loads},
+        ))
+        frontend_id = traverse_obj(embedded_data, (
+            'site', 'frontendId', {str_or_none}), default='9')
 
-        ws_url = traverse_obj(embedded_data, ('site', 'relive', 'webSocketUrl'))
-        if not ws_url:
-            raise ExtractorError('The live hasn\'t started yet or already ended.', expected=True)
-        ws_url = update_url_query(ws_url, {
-            'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
-        })
+        if not (ws_url := traverse_obj(embedded_data, (
+            'site', 'relive', 'webSocketUrl', {url_or_none},
+        ))):
+            raise ExtractorError('Unable to fetch WebSocket URL', expected=True)
 
-        hostname = remove_start(urllib.parse.urlparse(urlh.url).hostname, 'sp.')
-
+        ws_url = update_url_query(ws_url, {'frontend_id': frontend_id})
         ws = self._request_webpage(
-            Request(ws_url, headers={'Origin': f'https://{hostname}'}),
-            video_id=video_id, note='Connecting to WebSocket server')
+            ws_url, video_id, 'Connecting to WebSocket server',
+            headers={'Origin': 'https://live.nicovideo.jp'})
 
         self.write_debug('Sending HLS server request')
         ws.send(json.dumps({
-            'type': 'startWatching',
             'data': {
+                'reconnect': False,
+                'room': {
+                    'commentable': True,
+                    'protocol': 'webSocket',
+                },
                 'stream': {
-                    'quality': 'abr',
-                    'protocol': 'hls',
-                    'latency': 'high',
                     'accessRightMethod': 'single_cookie',
                     'chasePlay': False,
+                    'latency': 'high',
+                    'protocol': 'hls',
+                    'quality': 'abr',
                 },
-                'room': {
-                    'protocol': 'webSocket',
-                    'commentable': True,
-                },
-                'reconnect': False,
             },
+            'type': 'startWatching',
         }))
 
         while True:
@@ -841,17 +845,15 @@ class NiconicoLiveIE(NiconicoBaseIE):
                 raise ExtractorError('Disconnected at middle of extraction')
             elif data.get('type') == 'error':
                 self.write_debug(recv)
-                message = traverse_obj(data, ('body', 'code')) or recv
+                message = traverse_obj(data, ('body', 'code', {str_or_none}), default=recv)
                 raise ExtractorError(message)
             elif self.get_param('verbose', False):
-                if len(recv) > 100:
-                    recv = recv[:100] + '...'
-                self.write_debug(f'Server said: {recv}')
+                self.write_debug(f'Server response: {truncate_string(recv, 100)}')
 
         title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(
             ('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
 
-        raw_thumbs = traverse_obj(embedded_data, ('program', 'thumbnail')) or {}
+        raw_thumbs = traverse_obj(embedded_data, ('program', 'thumbnail', {dict}), default={})
         thumbnails = []
         for name, value in raw_thumbs.items():
             if not isinstance(value, dict):
@@ -878,18 +880,12 @@ class NiconicoLiveIE(NiconicoBaseIE):
                 cookie['domain'], cookie['name'], cookie['value'],
                 expire_time=unified_timestamp(cookie.get('expires')), path=cookie['path'], secure=cookie['secure'])
 
-        fmt_common = {
-            'live_latency': 'high',
-            'origin': hostname,
-            'protocol': 'niconico_live',
-            'video_id': video_id,
-            'ws': ws,
-        }
         q_iter = (q for q in qualities[1:] if not q.startswith('audio_'))  # ignore initial 'abr'
         a_map = {96: 'audio_low', 192: 'audio_high'}
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
         for fmt in formats:
+            fmt['protocol'] = 'niconico_live'
             if fmt.get('acodec') == 'none':
                 fmt['format_id'] = next(q_iter, fmt['format_id'])
             elif fmt.get('vcodec') == 'none':
@@ -898,11 +894,16 @@ class NiconicoLiveIE(NiconicoBaseIE):
                     'abr': abr,
                     'format_id': a_map.get(abr, fmt['format_id']),
                 })
-            fmt.update(fmt_common)
 
         return {
             'id': video_id,
             'title': title,
+            'downloader_options': {
+                'max_quality': traverse_obj(embedded_data, (
+                    'program', 'stream', 'maxQuality', {str})),
+                'ws': ws,
+                'ws_url': ws_url,
+            },
             **traverse_obj(embedded_data, {
                 'view_count': ('program', 'statistics', 'watchCount'),
                 'comment_count': ('program', 'statistics', 'commentCount'),
