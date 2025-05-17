@@ -3,6 +3,7 @@ import json
 import re
 import time
 import urllib.parse
+import uuid
 import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
@@ -10,6 +11,8 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
+    filter_dict,
+    parse_qs,
     unescapeHTML,
     unified_timestamp,
     urlencode_postdata,
@@ -74,6 +77,11 @@ MSO_INFO = {
         'name': 'Verizon FiOS',
         'username_field': 'IDToken1',
         'password_field': 'IDToken2',
+    },
+    'Fubo': {
+        'name': 'Fubo',
+        'username_field': 'username',
+        'password_field': 'password',
     },
     'Cablevision': {
         'name': 'Optimum/Cablevision',
@@ -1382,7 +1390,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
         resource_rating.text = rating
         return '<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">' + etree.tostring(channel).decode() + '</rss>'
 
-    def _extract_mvpd_auth(self, url, video_id, requestor_id, resource):
+    def _extract_mvpd_auth(self, url, video_id, requestor_id, resource, software_statement=None):
         def xml_text(xml_str, tag):
             return self._search_regex(
                 f'<{tag}>(.+?)</{tag}>', xml_str, tag)
@@ -1439,6 +1447,49 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
             if authn_token and is_expired(authn_token, 'simpleTokenExpires'):
                 authn_token = None
             if not authn_token:
+                reg_code = None
+                if software_statement:
+                    device_info, urlh = self._download_json_handle(
+                        'https://sp.auth.adobe.com/indiv/devices',
+                        video_id, 'Registering device with Adobe',
+                        data=json.dumps({'fingerprint': uuid.uuid4().hex}).encode(),
+                        headers={'Content-Type': 'application/json; charset=UTF-8'})
+
+                    device_id = device_info['deviceId']
+                    mvpd_headers['pass_sfp'] = urlh.get_header('pass_sfp')
+                    mvpd_headers['Ap_21'] = device_id
+
+                    registration = self._download_json(
+                        'https://sp.auth.adobe.com/o/client/register',
+                        video_id, 'Registering client with Adobe',
+                        data=json.dumps({'software_statement': software_statement}).encode(),
+                        headers={'Content-Type': 'application/json; charset=UTF-8'})
+
+                    access_token = self._download_json(
+                        'https://sp.auth.adobe.com/o/client/token', video_id,
+                        'Obtaining access token', data=urlencode_postdata({
+                            'grant_type': 'client_credentials',
+                            'client_id': registration['client_id'],
+                            'client_secret': registration['client_secret'],
+                        }),
+                        headers={
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                        })['access_token']
+                    mvpd_headers['Authorization'] = f'Bearer {access_token}'
+
+                    reg_code = self._download_json(
+                        f'https://sp.auth.adobe.com/reggie/v1/{requestor_id}/regcode',
+                        video_id, 'Obtaining registration code',
+                        data=urlencode_postdata({
+                            'requestor': requestor_id,
+                            'deviceId': device_id,
+                            'format': 'json',
+                        }),
+                        headers={
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                            'Authorization': f'Bearer {access_token}',
+                        })['code']
+
                 mso_id = self.get_param('ap_mso')
                 if mso_id:
                     username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
@@ -1448,18 +1499,20 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
 
                     provider_redirect_page_res = self._download_webpage_handle(
                         self._SERVICE_PROVIDER_TEMPLATE % 'authenticate/saml', video_id,
-                        'Downloading Provider Redirect Page', query={
+                        'Downloading Provider Redirect Page', query=filter_dict({
                             'noflash': 'true',
                             'mso_id': mso_id,
                             'requestor_id': requestor_id,
                             'no_iframe': 'false',
                             'domain_name': 'adobe.com',
                             'redirect_url': url,
-                        }, headers={
+                            'reg_code': reg_code,
+                        }), headers={
                             # yt-dlp's default user-agent is usually too old for Comcast_SSO
                             # See: https://github.com/yt-dlp/yt-dlp/issues/10848
                             'User-Agent': self._MODERN_USER_AGENT,
                         } if mso_id == 'Comcast_SSO' else None)
+
                 elif not self._cookies_passed:
                     raise_mvpd_required()
 
@@ -1699,6 +1752,27 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         query=hidden_data)
 
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
+                elif mso_id == 'Fubo':
+                    _, urlh = provider_redirect_page_res
+
+                    fubo_response = self._download_json(
+                        'https://api.fubo.tv/partners/tve/connect', video_id,
+                        'Authenticating with Fubo', 'Unable to authenticate with Fubo',
+                        query=parse_qs(urlh.url), data=json.dumps({
+                            'username': username,
+                            'password': password,
+                        }).encode(), headers={
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                        })
+
+                    self._request_webpage(
+                        'https://sp.auth.adobe.com/adobe-services/oauth2', video_id,
+                        'Authenticating with Adobe', 'Failed to authenticate with Adobe',
+                        query=filter_dict({
+                            'code': fubo_response['code'],
+                            'state': fubo_response['state'],
+                        }))
                 else:
                     # Some providers (e.g. DIRECTV NOW) have another meta refresh
                     # based redirect that should be followed.
@@ -1724,10 +1798,11 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                 try:
                     session = self._download_webpage(
                         self._SERVICE_PROVIDER_TEMPLATE % 'session', video_id,
-                        'Retrieving Session', data=urlencode_postdata({
+                        'Retrieving Session', data=urlencode_postdata(filter_dict({
                             '_method': 'GET',
                             'requestor_id': requestor_id,
-                        }), headers=mvpd_headers)
+                            'reg_code': reg_code,
+                        })), headers=mvpd_headers)
                 except ExtractorError as e:
                     if not mso_id and isinstance(e.cause, HTTPError) and e.cause.status == 401:
                         raise_mvpd_required()
