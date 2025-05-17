@@ -911,6 +911,7 @@ class YoutubeDL:
 
     def add_close_hook(self, ch):
         """Add a close hook, called when YoutubeDL.close() is called"""
+        assert callable(ch), 'Close hook must be callable'
         self._close_hooks.append(ch)
 
     def add_progress_hook(self, ph):

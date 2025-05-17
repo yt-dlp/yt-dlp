@@ -37,7 +37,7 @@ from yt_dlp.extractor.youtube.pot.provider import (
     PoTokenResponse,
     provider_bug_report_message,
 )
-from yt_dlp.utils import ExtractorError, bug_reports_message, format_field, join_nonempty, traverse_obj
+from yt_dlp.utils import bug_reports_message, format_field, join_nonempty, traverse_obj
 
 if typing.TYPE_CHECKING:
     from yt_dlp.extractor.youtube.pot.cache import CacheProviderPreference
@@ -351,15 +351,14 @@ EXTRACTOR_ARG_PREFIX = 'youtubepot'
 
 
 def initialize_pot_director(ie):
-    if not ie._downloader:
-        raise ExtractorError('Downloader not set', expected=False)
+    assert ie._downloader is not None, 'Downloader not set'
 
     enable_trace = ie._configuration_arg(
         'pot_trace', ['false'], ie_key='youtube', casesense=False)[0] == 'true'
 
     if enable_trace:
         log_level = IEContentProviderLogger.LogLevel.TRACE
-    elif ie._downloader.params.get('verbose', False):
+    elif ie.get_param('verbose', False):
         log_level = IEContentProviderLogger.LogLevel.DEBUG
     else:
         log_level = IEContentProviderLogger.LogLevel.INFO
@@ -448,8 +447,8 @@ def clean_pot(po_token: str):
 def validate_response(response: PoTokenResponse | None):
     if (
         not isinstance(response, PoTokenResponse)
-        or not response.po_token
         or not isinstance(response.po_token, str)
+        or not response.po_token
     ):  # noqa: SIM103
         return False
 
@@ -478,5 +477,5 @@ def validate_cache_spec(spec: PoTokenCacheSpec):
         and isinstance(spec.key_bindings, dict)
         and all(isinstance(k, str) for k in spec.key_bindings)
         and all(v is None or isinstance(v, str) for v in spec.key_bindings.values())
-        and len({k for k in spec.key_bindings.values() if k is not None}) > 0
+        and bool([v for v in spec.key_bindings.values() if v is not None])
     )
