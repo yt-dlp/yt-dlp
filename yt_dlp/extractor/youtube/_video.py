@@ -23,8 +23,7 @@ from ._base import (
     _split_innertube_client,
     short_client_name,
 )
-from ..openload import PhantomJSwrapper
-from ...jsinterp import JSInterpreter
+from ...jsinterp import JSInterpreter, PhantomJSwrapper
 from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
