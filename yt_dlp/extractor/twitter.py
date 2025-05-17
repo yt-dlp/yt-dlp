@@ -1342,7 +1342,7 @@ class TwitterIE(TwitterBaseIE):
                     'tweet_mode': 'extended',
                 })
         except ExtractorError as e:
-            if not isinstance(e.cause, HTTPError) or not e.cause.status == 429:
+            if not isinstance(e.cause, HTTPError) or e.cause.status != 429:
                 raise
             self.report_warning('Rate-limit exceeded; falling back to syndication endpoint')
             status = self._call_syndication_api(twid)

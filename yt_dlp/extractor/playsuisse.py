@@ -9,11 +9,10 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     parse_qs,
-    traverse_obj,
     update_url_query,
     urlencode_postdata,
 )
-from ..utils.traversal import unpack
+from ..utils.traversal import traverse_obj, unpack
 
 
 class PlaySuisseIE(InfoExtractor):

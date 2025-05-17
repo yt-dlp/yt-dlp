@@ -697,7 +697,7 @@ class SoundcloudIE(SoundcloudBaseIE):
             try:
                 return self._extract_info_dict(info, full_title, token)
             except ExtractorError as e:
-                if not isinstance(e.cause, HTTPError) or not e.cause.status == 429:
+                if not isinstance(e.cause, HTTPError) or e.cause.status != 429:
                     raise
                 self.report_warning(
                     'You have reached the API rate limit, which is ~600 requests per '

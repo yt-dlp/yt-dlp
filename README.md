@@ -44,6 +44,7 @@ yt-dlp is a feature-rich command-line audio/video downloader with support for [t
     * [Post-processing Options](#post-processing-options)
     * [SponsorBlock Options](#sponsorblock-options)
     * [Extractor Options](#extractor-options)
+    * [Preset Aliases](#preset-aliases)
 * [CONFIGURATION](#configuration)
     * [Configuration file encoding](#configuration-file-encoding)
     * [Authentication with netrc](#authentication-with-netrc)
