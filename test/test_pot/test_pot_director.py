@@ -7,7 +7,7 @@ import json
 import time
 import pytest
 
-from yt_dlp.extractor.youtube.pot._provider import BuiltInIEContentProvider, IEContentProvider
+from yt_dlp.extractor.youtube.pot._provider import BuiltinIEContentProvider, IEContentProvider
 
 from yt_dlp.extractor.youtube.pot.provider import (
     PoTokenRequest,
@@ -1478,11 +1478,11 @@ def test_validate_pot_response(response, expected):
 
 
 def test_built_in_provider(ie, logger):
-    class BuiltInProviderDefaultT(BuiltInIEContentProvider, suffix='T'):
+    class BuiltinProviderDefaultT(BuiltinIEContentProvider, suffix='T'):
         def is_available(self):
             return True
 
-    class BuiltInProviderCustomNameT(BuiltInIEContentProvider, suffix='T'):
+    class BuiltinProviderCustomNameT(BuiltinIEContentProvider, suffix='T'):
         PROVIDER_NAME = 'CustomName'
 
         def is_available(self):
@@ -1503,18 +1503,25 @@ def test_built_in_provider(ie, logger):
         def is_available(self) -> bool:
             return False
 
-    class BuiltInProviderUnavailableT(IEContentProvider, suffix='T'):
+    class BuiltinProviderUnavailableT(IEContentProvider, suffix='T'):
         def is_available(self) -> bool:
             return False
 
-    built_in_default = BuiltInProviderDefaultT(ie=ie, logger=logger, settings={})
-    built_in_custom_name = BuiltInProviderCustomNameT(ie=ie, logger=logger, settings={})
-    built_in_unavailable = BuiltInProviderUnavailableT(ie=ie, logger=logger, settings={})
+    built_in_default = BuiltinProviderDefaultT(ie=ie, logger=logger, settings={})
+    built_in_custom_name = BuiltinProviderCustomNameT(ie=ie, logger=logger, settings={})
+    built_in_unavailable = BuiltinProviderUnavailableT(ie=ie, logger=logger, settings={})
     external_default = ExternalProviderDefaultT(ie=ie, logger=logger, settings={})
     external_custom = ExternalProviderCustomT(ie=ie, logger=logger, settings={})
     external_unavailable = ExternalProviderUnavailableT(ie=ie, logger=logger, settings={})
 
     assert provider_display_list([]) == 'none'
-    assert provider_display_list([built_in_default]) == 'BuiltInProviderDefault'
+    assert provider_display_list([built_in_default]) == 'BuiltinProviderDefault'
     assert provider_display_list([external_unavailable]) == 'ExternalProviderUnavailable-0.0.0 (external, unavailable)'
-    assert provider_display_list([built_in_default, built_in_custom_name, external_default, external_custom, external_unavailable, built_in_unavailable]) == 'BuiltInProviderDefault, CustomName, ExternalProviderDefault-0.0.0 (external), custom-5.4b2 (external), ExternalProviderUnavailable-0.0.0 (external, unavailable), BuiltInProviderUnavailable-0.0.0 (external, unavailable)'
+    assert provider_display_list([
+        built_in_default,
+        built_in_custom_name,
+        external_default,
+        external_custom,
+        external_unavailable,
+        built_in_unavailable],
+    ) == 'BuiltinProviderDefault, CustomName, ExternalProviderDefault-0.0.0 (external), custom-5.4b2 (external), ExternalProviderUnavailable-0.0.0 (external, unavailable), BuiltinProviderUnavailable-0.0.0 (external, unavailable)'

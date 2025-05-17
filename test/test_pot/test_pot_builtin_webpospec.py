@@ -1,6 +1,6 @@
 import pytest
 
-from yt_dlp.extractor.youtube.pot._provider import IEContentProvider, BuiltInIEContentProvider
+from yt_dlp.extractor.youtube.pot._provider import IEContentProvider, BuiltinIEContentProvider
 from yt_dlp.extractor.youtube.pot.cache import CacheProviderWritePolicy
 from yt_dlp.utils import bug_reports_message
 from yt_dlp.extractor.youtube.pot.provider import (
@@ -23,7 +23,7 @@ def pot_request(pot_request) -> PoTokenRequest:
 class TestWebPoPCSP:
     def test_base_type(self):
         assert issubclass(WebPoPCSP, IEContentProvider)
-        assert issubclass(WebPoPCSP, BuiltInIEContentProvider)
+        assert issubclass(WebPoPCSP, BuiltinIEContentProvider)
 
     def test_init(self, ie, logger):
         pcs = WebPoPCSP(ie=ie, logger=logger, settings={})

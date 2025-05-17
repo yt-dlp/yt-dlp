@@ -2,7 +2,7 @@ import threading
 import time
 from collections import OrderedDict
 import pytest
-from yt_dlp.extractor.youtube.pot._provider import IEContentProvider, BuiltInIEContentProvider
+from yt_dlp.extractor.youtube.pot._provider import IEContentProvider, BuiltinIEContentProvider
 from yt_dlp.utils import bug_reports_message
 from yt_dlp.extractor.youtube.pot._builtin.memory_cache import MemoryLRUPCP, memorylru_preference, initialize_global_cache
 from yt_dlp.version import __version__
@@ -13,7 +13,7 @@ class TestMemoryLRUPCS:
 
     def test_base_type(self):
         assert issubclass(MemoryLRUPCP, IEContentProvider)
-        assert issubclass(MemoryLRUPCP, BuiltInIEContentProvider)
+        assert issubclass(MemoryLRUPCP, BuiltinIEContentProvider)
 
     @pytest.fixture
     def pcp(self, ie, logger) -> MemoryLRUPCP:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from yt_dlp.extractor.youtube.pot._provider import BuiltInIEContentProvider
+from yt_dlp.extractor.youtube.pot._provider import BuiltinIEContentProvider
 from yt_dlp.extractor.youtube.pot.cache import (
     CacheProviderWritePolicy,
     PoTokenCacheSpec,
@@ -15,7 +15,7 @@ from yt_dlp.utils import traverse_obj
 
 
 @register_spec
-class WebPoPCSP(PoTokenCacheSpecProvider, BuiltInIEContentProvider):
+class WebPoPCSP(PoTokenCacheSpecProvider, BuiltinIEContentProvider):
     PROVIDER_NAME = 'webpo'
 
     def generate_cache_spec(self, request: PoTokenRequest) -> PoTokenCacheSpec | None:

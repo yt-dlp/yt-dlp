@@ -11,7 +11,7 @@ import urllib.parse
 from collections.abc import Iterable
 
 from yt_dlp.extractor.youtube.pot._provider import (
-    BuiltInIEContentProvider,
+    BuiltinIEContentProvider,
     IEContentProvider,
     IEContentProviderLogger,
 )
@@ -415,9 +415,9 @@ def provider_display_list(providers: Iterable[IEContentProvider]):
     def provider_display_name(provider):
         display_str = join_nonempty(
             provider.PROVIDER_NAME,
-            provider.PROVIDER_VERSION if not isinstance(provider, BuiltInIEContentProvider) else None)
+            provider.PROVIDER_VERSION if not isinstance(provider, BuiltinIEContentProvider) else None)
         statuses = []
-        if not isinstance(provider, BuiltInIEContentProvider):
+        if not isinstance(provider, BuiltinIEContentProvider):
             statuses.append('external')
         if not provider.is_available():
             statuses.append('unavailable')

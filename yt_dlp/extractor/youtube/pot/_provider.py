@@ -120,7 +120,7 @@ class IEContentProvider(abc.ABC):
         return list(val) if casesense else [x.lower() for x in val]
 
 
-class BuiltInIEContentProvider(IEContentProvider, abc.ABC):
+class BuiltinIEContentProvider(IEContentProvider, abc.ABC):
     PROVIDER_VERSION = __version__
     BUG_REPORT_MESSAGE = bug_reports_message(before='')
 
