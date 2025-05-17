@@ -2,7 +2,6 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     merge_dicts,
-    str_or_none,
     traverse_obj,
     unified_timestamp,
     url_or_none,
@@ -118,7 +117,7 @@ class LRTRadioIE(LRTBaseIE):
         'url': 'https://www.lrt.lt/radioteka/irasas/2000359728/nemarios-eiles-apie-pragarus-ir-skaistyklas-su-aiste-kiltinaviciute',
         'info_dict': {
             'id': '2000359728',
-            'ext': 'm4a',
+            'ext': 'mp4',
             'title': 'Nemarios eilės: apie pragarus ir skaistyklas su Aiste Kiltinavičiūte',
             'description': 'md5:5eee9a0e86a55bf547bd67596204625d',
             'timestamp': 1726143120,
@@ -138,13 +137,15 @@ class LRTRadioIE(LRTBaseIE):
             'https://www.lrt.lt/radioteka/api/media', video_id,
             query={'url': f'/mediateka/irasas/{video_id}/{path}'})
 
-        return traverse_obj(media, {
-            'id': ('id', {int}, {str_or_none}),
-            'title': ('title', {str}),
-            'tags': ('tags', ..., 'name', {str}),
-            'categories': ('playlist_item', 'category', {str}, filter, all, filter),
-            'description': ('content', {clean_html}, {str}),
-            'timestamp': ('date', {lambda x: x.replace('.', '/')}, {unified_timestamp}),
-            'thumbnail': ('playlist_item', 'image', {urljoin('https://www.lrt.lt')}),
-            'formats': ('playlist_item', 'file', {lambda x: self._extract_m3u8_formats(x, video_id)}),
-        })
+        return {
+            'id': video_id,
+            'formats': self._extract_m3u8_formats(media['playlist_item']['file'], video_id, 'mp4'),
+            **traverse_obj(media, {
+                'title': ('title', {str}),
+                'tags': ('tags', ..., 'name', {str}),
+                'categories': ('playlist_item', 'category', {str}, filter, all, filter),
+                'description': ('content', {clean_html}, {str}),
+                'timestamp': ('date', {lambda x: x.replace('.', '/')}, {unified_timestamp}),
+                'thumbnail': ('playlist_item', 'image', {urljoin('https://www.lrt.lt')}),
+            }),
+        }
