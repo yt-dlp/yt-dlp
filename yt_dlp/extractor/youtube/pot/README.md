@@ -1,6 +1,6 @@
 # YoutubeIE PO Token Provider Framework
 
-As part of the YouTube extractor, we have a framework for providing PO Tokens programmatically. This can be used in plugins.
+As part of the YouTube extractor, we have a framework for providing PO Tokens programmatically. This can be used by plugins.
 
 Refer to the [PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide) for more information on PO Tokens.
 
