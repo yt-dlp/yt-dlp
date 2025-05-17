@@ -1221,20 +1221,10 @@ class TwitterIE(TwitterBaseIE):
     }]
 
     _MEDIA_ID_RE = re.compile(r'_video/(\d+)/')
-
-    @property
-    def _GRAPHQL_ENDPOINT(self):
-        if self.is_logged_in:
-            return 'zZXycP0V6H7m-2r0mOnFcA/TweetDetail'
-        return '2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId'
+    _GRAPHQL_ENDPOINT = '2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId'
 
     def _graphql_to_legacy(self, data, twid):
-        result = traverse_obj(data, (
-            'threaded_conversation_with_injections_v2', 'instructions', 0, 'entries',
-            lambda _, v: v['entryId'] == f'tweet-{twid}', 'content', 'itemContent',
-            'tweet_results', 'result', ('tweet', None), {dict},
-        ), default={}, get_all=False) if self.is_logged_in else traverse_obj(
-            data, ('tweetResult', 'result', {dict}), default={})
+        result = traverse_obj(data, ('tweetResult', 'result', {dict})) or {}
 
         typename = result.get('__typename')
         if typename not in ('Tweet', 'TweetWithVisibilityResults', 'TweetTombstone', 'TweetUnavailable', None):
@@ -1278,37 +1268,6 @@ class TwitterIE(TwitterBaseIE):
 
     def _build_graphql_query(self, media_id):
         return {
-            'variables': {
-                'focalTweetId': media_id,
-                'includePromotedContent': True,
-                'with_rux_injections': False,
-                'withBirdwatchNotes': True,
-                'withCommunity': True,
-                'withDownvotePerspective': False,
-                'withQuickPromoteEligibilityTweetFields': True,
-                'withReactionsMetadata': False,
-                'withReactionsPerspective': False,
-                'withSuperFollowsTweetFields': True,
-                'withSuperFollowsUserFields': True,
-                'withV2Timeline': True,
-                'withVoice': True,
-            },
-            'features': {
-                'graphql_is_translatable_rweb_tweet_is_translatable_enabled': False,
-                'interactive_text_enabled': True,
-                'responsive_web_edit_tweet_api_enabled': True,
-                'responsive_web_enhance_cards_enabled': True,
-                'responsive_web_graphql_timeline_navigation_enabled': False,
-                'responsive_web_text_conversations_enabled': False,
-                'responsive_web_uc_gql_enabled': True,
-                'standardized_nudges_misinfo': True,
-                'tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled': False,
-                'tweetypie_unmention_optimization_enabled': True,
-                'unified_cards_ad_metadata_container_dynamic_card_content_query_enabled': True,
-                'verified_phone_label_enabled': False,
-                'vibe_api_enabled': True,
-            },
-        } if self.is_logged_in else {
             'variables': {
                 'tweetId': media_id,
                 'withCommunity': False,
@@ -1717,21 +1676,22 @@ class TwitterSpacesIE(TwitterBaseIE):
     _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13})'
 
     _TESTS = [{
-        'url': 'https://twitter.com/i/spaces/1RDxlgyvNXzJL',
+        'url': 'https://twitter.com/i/spaces/1OwxWwQOPlNxQ',
         'info_dict': {
-            'id': '1RDxlgyvNXzJL',
+            'id': '1OwxWwQOPlNxQ',
             'ext': 'm4a',
-            'title': 'King Carlo e la mossa Kansas City per fare il Grande Centro',
-            'description': 'Twitter Space participated by annarita digiorgio, Signor Ernesto, Raffaello Colosimo, Simone M. Sepe',
-            'uploader': r're:Lucio Di Gaetano.*?',
-            'uploader_id': 'luciodigaetano',
+            'title': 'Everybody in: @mtbarra & @elonmusk discuss the future of EV charging',
+            'description': 'Twitter Space participated by Elon Musk',
             'live_status': 'was_live',
-            'timestamp': 1659877956,
-            'upload_date': '20220807',
-            'release_timestamp': 1659904215,
-            'release_date': '20220807',
+            'release_date': '20230608',
+            'release_timestamp': 1686256230,
+            'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
+            'timestamp': 1686254250,
+            'upload_date': '20230608',
+            'uploader': 'Mary Barra',
+            'uploader_id': 'mtbarra',
         },
-        'skip': 'No longer available',
+        'params': {'skip_download': 'm3u8'},
     }, {
         # post_live/TimedOut but downloadable
         'url': 'https://twitter.com/i/spaces/1vAxRAVQWONJl',
@@ -1743,9 +1703,10 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader': 'Google Cloud',
             'uploader_id': 'googlecloud',
             'live_status': 'post_live',
+            'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
             'timestamp': 1681409554,
             'upload_date': '20230413',
-            'release_timestamp': 1681839000,
+            'release_timestamp': 1681839082,
             'release_date': '20230418',
             'protocol': 'm3u8',  # ffmpeg is forced
             'container': 'm4a_dash',  # audio-only format fixup is applied
@@ -1762,6 +1723,9 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader': '息根とめる',
             'uploader_id': 'tomeru_ikinone',
             'live_status': 'was_live',
+            'release_date': '20230601',
+            'release_timestamp': 1685617200,
+            'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
             'timestamp': 1685617198,
             'upload_date': '20230601',
             'protocol': 'm3u8',  # ffmpeg is forced
@@ -1779,9 +1743,10 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader': 'Candace Owens',
             'uploader_id': 'RealCandaceO',
             'live_status': 'was_live',
+            'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
             'timestamp': 1723931351,
             'upload_date': '20240817',
-            'release_timestamp': 1723932000,
+            'release_timestamp': 1723932056,
             'release_date': '20240817',
             'protocol': 'm3u8_native',  # not ffmpeg, detected as video space
         },
@@ -1861,18 +1826,21 @@ class TwitterSpacesIE(TwitterBaseIE):
 
         return {
             'id': space_id,
-            'title': metadata.get('title'),
             'description': f'Twitter Space participated by {participants}',
-            'uploader': traverse_obj(
-                metadata, ('creator_results', 'result', 'legacy', 'name')),
-            'uploader_id': traverse_obj(
-                metadata, ('creator_results', 'result', 'legacy', 'screen_name')),
-            'live_status': live_status,
-            'release_timestamp': try_call(
-                lambda: int_or_none(metadata['scheduled_start'], scale=1000)),
-            'timestamp': int_or_none(metadata.get('created_at'), scale=1000),
             'formats': formats,
             'http_headers': headers,
+            'live_status': live_status,
+            **traverse_obj(metadata, {
+                'title': ('title', {str}),
+                # started_at is None when stream is_upcoming so fallback to scheduled_start for --wait-for-video
+                'release_timestamp': (('started_at', 'scheduled_start'), {int_or_none(scale=1000)}, any),
+                'timestamp': ('created_at', {int_or_none(scale=1000)}),
+            }),
+            **traverse_obj(metadata, ('creator_results', 'result', 'legacy', {
+                'uploader': ('name', {str}),
+                'uploader_id': ('screen_name', {str_or_none}),
+                'thumbnail': ('profile_image_url_https', {lambda x: x.replace('_normal', '_400x400')}, {url_or_none}),
+            })),
         }
 
 
