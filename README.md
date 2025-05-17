@@ -1890,6 +1890,10 @@ The following extractors use this feature:
 #### tver
 * `backend`: Backend API to use for extraction - one of `streaks` (default) or `brightcove` (deprecated)
 
+#### rplaylive
+
+* `jwt_token`: JWT token that can be found as value of `_AUTHORIZATION_` entry from the browser local storage. This can be used as an alternative login method.
+
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
