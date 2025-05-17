@@ -135,7 +135,7 @@ class PoTokenCache:
         bindings_cleaned = {
             **{k: v for k, v in spec.key_bindings.items() if v is not None},
             # Allow us to invalidate caches if such need arises
-            '_yt': 'v1',
+            '_dlp_cache': 'v1',
         }
         if spec._provider:
             bindings_cleaned['_p'] = spec._provider.PROVIDER_KEY
