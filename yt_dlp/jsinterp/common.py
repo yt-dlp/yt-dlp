@@ -252,7 +252,7 @@ class JSI(abc.ABC):
         self.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
 
     def report_version(self):
-        pass
+        return
 
     @classmethod
     def supports_extractor(cls, ie_key: str):
