@@ -195,9 +195,11 @@ def _extract_firefox_cookies(browser_name, profile, container, logger):
             if cursor is not None:
                 cursor.connection.close()
 
+
 @dataclass
 class _FirefoxBrowserSettings:
     browser_dirs: list[str]
+
 
 def _firefox_based_browser_settings(browser_name):
     if sys.platform in ('cygwin', 'win32'):
@@ -241,6 +243,7 @@ def _firefox_based_browser_settings(browser_name):
     return _FirefoxBrowserSettings(
         browser_dirs=browser_dirs,
     )
+
 
 def _firefox_cookie_dbs(roots):
     for root in map(os.path.abspath, roots):
