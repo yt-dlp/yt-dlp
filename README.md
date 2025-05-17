@@ -1810,7 +1810,7 @@ The following extractors use this feature:
 * `fetch_pot`: Policy to use for fetching a PO Token from providers. `always` to always try fetch a PO Token regardless if the client requires one for the given context, `never` to never fetch a PO Token, or `auto` to only fetch a PO Token if the client requires one for the given context (default)
 
 #### youtubepot-webpo
-* `bind_to_visitor_id`: Whether to use the Visitor ID instead of Visitor Data for caching WebPO tokens. Either `true` or `false` (default `true`)
+* `bind_to_visitor_id`: Whether to use the Visitor ID instead of Visitor Data for caching WebPO tokens. Either `true` (default) or `false`
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
 * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
