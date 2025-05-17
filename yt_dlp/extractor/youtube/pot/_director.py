@@ -451,16 +451,10 @@ def validate_response(response: PoTokenResponse | None):
     except ValueError:
         return False
 
-    return (
-        response.expires_at is None
-        or (
-            isinstance(response.expires_at, int)
-            and (
-                response.expires_at <= 0
-                or response.expires_at > int(dt.datetime.now(dt.timezone.utc).timestamp())
-            )
-        )
-    )
+    if not isinstance(response.expires_at, int):
+        return response.expires_at is None
+
+    return response.expires_at <= 0 or response.expires_at > int(dt.datetime.now(dt.timezone.utc).timestamp())
 
 
 def validate_cache_spec(spec: PoTokenCacheSpec):
