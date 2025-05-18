@@ -26,7 +26,6 @@ from ._helper import (
     create_socks_proxy_socket,
     get_redirect_method,
     make_socks_proxy_opts,
-    select_proxy,
 )
 from .common import Features, RequestHandler, Response, register_rh
 from .exceptions import (
@@ -41,7 +40,7 @@ from .exceptions import (
 from ..dependencies import brotli
 from ..socks import ProxyError as SocksProxyError
 from ..utils import update_url_query
-from ..utils.networking import normalize_url
+from ..utils.networking import normalize_url, select_proxy
 
 SUPPORTED_ENCODINGS = ['gzip', 'deflate']
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
