@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime as dt
 import typing
-from collections import OrderedDict
 from threading import Lock
 
 from yt_dlp.extractor.youtube.pot._provider import BuiltinIEContentProvider
@@ -16,7 +15,7 @@ from yt_dlp.extractor.youtube.pot.cache import (
 
 def initialize_global_cache(max_size: int):
     if _pot_memory_cache.value.get('cache') is None:
-        _pot_memory_cache.value['cache'] = OrderedDict()
+        _pot_memory_cache.value['cache'] = {}
         _pot_memory_cache.value['lock'] = Lock()
         _pot_memory_cache.value['max_size'] = max_size
 
@@ -38,7 +37,7 @@ class MemoryLRUPCP(PoTokenCacheProvider, BuiltinIEContentProvider):
     def __init__(
         self,
         *args,
-        initialize_cache: typing.Callable[[int], tuple[OrderedDict[str, tuple[str, int]], Lock, int]] = initialize_global_cache,
+        initialize_cache: typing.Callable[[int], tuple[dict[str, tuple[str, int]], Lock, int]] = initialize_global_cache,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -65,7 +64,8 @@ class MemoryLRUPCP(PoTokenCacheProvider, BuiltinIEContentProvider):
                 self.cache.pop(key)
             self.cache[key] = (value, expires_at)
             if len(self.cache) > self.max_size:
-                self.cache.popitem(last=False)
+                oldest_key = next(iter(self.cache))
+                self.cache.pop(oldest_key)
 
     def delete(self, key: str):
         with self.lock:
