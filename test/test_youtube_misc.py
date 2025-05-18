@@ -7,7 +7,8 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-
+from test.helper import FakeYDL
+from yt_dlp.utils import GeoRestrictedError
 from yt_dlp.extractor import YoutubeIE
 
 
@@ -21,6 +22,12 @@ class TestYoutubeMisc(unittest.TestCase):
         assertExtractId('http://www.youtube.com/watch?v=BaW_jenozKcsharePLED17F32AD9753930', 'BaW_jenozKc')
         assertExtractId('BaW_jenozKc', 'BaW_jenozKc')
 
+    def test_youtube_geo_restricted(self):
+        dl = FakeYDL()
+        dl.params['extract_flat'] = True
+        ie = YoutubeIE(dl)
+        with self.assertRaises(GeoRestrictedError):
+            ie.extract('https://www.youtube.com/watch?v=qh_liphx2no')
 
 if __name__ == '__main__':
     unittest.main()
