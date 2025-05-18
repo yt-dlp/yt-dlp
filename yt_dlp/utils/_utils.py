@@ -2021,8 +2021,7 @@ def str_to_int(int_str, *, dot_decimal=False):
     if dot_decimal:
         f = float_or_none(int_str)
         return int(f) if f is not None else None
-    else:
-        return int_or_none(int_str.replace('.', ''))
+    return int_or_none(int_str.replace('.', ''))
 
 
 @partial_application
