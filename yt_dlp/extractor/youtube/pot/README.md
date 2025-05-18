@@ -172,7 +172,7 @@ def my_provider_preference(provider: PoTokenProvider, request: PoTokenRequest) -
 - Use `self.logger.debug` to log a message to the verbose output (`--verbose`).
   - For debugging information visible to users posting verbose logs.
   - Try to not log too much, prefer using trace logging for detailed debug messages.
-- Use `self.logger.trace` to log a message to the PO Token debug output (`--extractor-args "youtube:pot_debug=true"`). 
+- Use `self.logger.trace` to log a message to the PO Token debug output (`--extractor-args "youtube:pot_trace=true"`). 
   - Log as much as you like here as needed for debugging your provider.
 - Avoid logging PO Tokens or any sensitive information to debug or info output.
 
