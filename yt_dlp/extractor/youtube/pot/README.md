@@ -147,7 +147,7 @@ class MyPoTokenProviderPTP(PoTokenProvider):  # Provider class name must end wit
 
         return PoTokenResponse(
             po_token=po_token,
-            # Optional, add a custom expiration time for the token. Use for caching.
+            # Optional, add a custom expiration timestamp for the token. Use for caching.
             # By default, yt-dlp will use the default ttl from a registered cache spec (see below)
             # Set to 0 or -1 to not cache this response.
             expires_at=None,
