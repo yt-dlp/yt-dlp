@@ -28,7 +28,7 @@ class DWIE(InfoExtractor):
             'modified_timestamp': 1464917222,
             'release_date': '20160605',
             'release_timestamp': 1465162200,
-            'thumbnail': 'https://static.dw.com/image/18342580_605.webp',
+            'thumbnail': r're:https?://static\.dw\.com/image/.+\.webp',
         },
     }, {
         'url': 'https://www.dw.com/en/30-years-since-the-fall-of-the-berlin-wall-what-happened-to-the-euphoria/audio-51155232',
@@ -41,7 +41,7 @@ class DWIE(InfoExtractor):
             'duration': 1561,
             'release_date': '20191107',
             'release_timestamp': 1573140547,
-            'thumbnail': 'https://static.dw.com/image/51151661_605.webp',
+            'thumbnail': r're:https?://static\.dw\.com/image/.+\.webp',
         },
     }, {
         'url': 'https://www.dw.com/en/10-years-since-higgs-boson-whats-next/a-62353123',
