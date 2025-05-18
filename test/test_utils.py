@@ -604,6 +604,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(str_to_int(523), 523)
         self.assertEqual(str_to_int('noninteger'), None)
         self.assertEqual(str_to_int([]), None)
+        self.assertEqual(str_to_int('123.456', dot_decimal=True), 123)
 
     def test_url_basename(self):
         self.assertEqual(url_basename('http://foo.de/'), '')
