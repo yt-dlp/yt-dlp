@@ -205,6 +205,8 @@ class TwitchBaseIE(InfoExtractor):
             if fmt.get('vcodec') and fmt['vcodec'].startswith('av01'):
                 # mpegts does not yet have proper support for av1
                 fmt['downloader_options'] = {'ffmpeg_args_out': ['-f', 'mp4']}
+            if self.get_param('live_from_start'):
+                fmt['downloader_options'] = {'ffmpeg_args': ['-live_start_index', '0']}
 
         return formats
 
@@ -1032,7 +1034,14 @@ class TwitchStreamIE(TwitchBaseIE):
         access_token = self._download_access_token(
             channel_name, 'stream', 'channelName')
 
-        stream_id = stream.get('id') or channel_name
+        stream_id = stream.get('id')
+        if self.get_param('live_from_start'):
+            if stream_id:
+                return self.url_result(f'https://www.twitch.tv/videos/{stream_id}', TwitchVodIE, stream_id)
+            self.report_warning('Unable to extract stream ID; cannot download live from start')
+        if not stream_id:
+            stream_id = channel_name
+
         formats = self._extract_twitch_m3u8_formats(
             'api/channel/hls', channel_name, access_token['value'], access_token['signature'])
         self._prefer_source(formats)
