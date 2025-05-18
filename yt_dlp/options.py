@@ -470,7 +470,7 @@ def create_parser():
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
-        help='Download livestreams from the start. Currently only supported for YouTube (Experimental)')
+        help='Download livestreams from the start. Currently only supported for YouTube (experimental) and Twitch')
     general.add_option(
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
