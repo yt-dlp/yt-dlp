@@ -568,9 +568,11 @@ def _extract_safari_cookies(profile, logger):
             cookies_path = os.path.expanduser('~/Library/Containers/com.apple.Safari/Data/Library/Cookies/Cookies.binarycookies')
             if not os.path.isfile(cookies_path):
                 raise FileNotFoundError('could not find safari cookies database')
-
-    with open(cookies_path, 'rb') as f:
-        cookies_data = f.read()
+    try:
+        with open(cookies_path, 'rb') as f:
+            cookies_data = f.read()
+    except PermissionError:
+        raise PermissionError(f'Permission denied when accessing Safari cookies at: {cookies_path}\nYou Can Checkout This Issue At https://github.com/yt-dlp/yt-dlp/issues/7392')
 
     jar = parse_safari_cookies(cookies_data, logger=logger)
     logger.info(f'Extracted {len(jar)} cookies from safari')
