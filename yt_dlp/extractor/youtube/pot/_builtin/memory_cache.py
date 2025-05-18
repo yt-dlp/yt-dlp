@@ -38,7 +38,7 @@ class MemoryLRUPCP(PoTokenCacheProvider, BuiltinIEContentProvider):
     def __init__(
         self,
         *args,
-        initialize_cache: typing.Callable[[int], tuple[OrderedDict, Lock, int]] = initialize_global_cache,
+        initialize_cache: typing.Callable[[int], tuple[OrderedDict[str, tuple[str, int]], Lock, int]] = initialize_global_cache,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)

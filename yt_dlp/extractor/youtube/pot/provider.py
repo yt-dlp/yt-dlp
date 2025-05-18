@@ -244,7 +244,7 @@ def provider_bug_report_message(provider: IEContentProvider, before=';'):
     if not before or before.endswith(('.', '!', '?')):
         msg = msg[0].title() + msg[1:]
 
-    return (before + ' ' if before else '') + msg
+    return f'{before} {msg}' if before else msg
 
 
 def register_preference(*providers: type[PoTokenProvider]) -> typing.Callable[[Preference], Preference]:

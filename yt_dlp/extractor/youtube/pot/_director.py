@@ -139,8 +139,7 @@ class PoTokenCache:
         }
         if spec._provider:
             bindings_cleaned['_p'] = spec._provider.PROVIDER_KEY
-        self.logger.trace(
-            'Generate cache key bindings: {}'.format(', '.join(f'{k}={v}' for k, v in bindings_cleaned.items())))
+        self.logger.trace(f'Generated cache key bindings: {bindings_cleaned}')
         return bindings_cleaned
 
     def _generate_key(self, bindings: dict) -> str:
