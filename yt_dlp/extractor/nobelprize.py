@@ -1,59 +1,60 @@
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
-    get_element_by_attribute,
-    int_or_none,
-    js_to_json,
-    mimetype2ext,
-    update_url_query,
+    ExtractorError,
+    clean_html,
+    parse_duration,
+    parse_qs,
+    unified_timestamp,
+    update_url,
+    url_or_none,
 )
+from ..utils.traversal import find_element, traverse_obj
 
 
 class NobelPrizeIE(InfoExtractor):
-    _WORKING = False
-    _VALID_URL = r'https?://(?:www\.)?nobelprize\.org/mediaplayer.*?\bid=(?P<id>\d+)'
-    _TEST = {
-        'url': 'http://www.nobelprize.org/mediaplayer/?id=2636',
-        'md5': '04c81e5714bb36cc4e2232fee1d8157f',
+    _VALID_URL = r'https?://(?:(?:mediaplayer|www)\.)?nobelprize\.org/mediaplayer/'
+    _TESTS = [{
+        'url': 'https://www.nobelprize.org/mediaplayer/?id=2636',
         'info_dict': {
             'id': '2636',
             'ext': 'mp4',
             'title': 'Announcement of the 2016 Nobel Prize in Physics',
-            'description': 'md5:05beba57f4f5a4bbd4cf2ef28fcff739',
+            'description': 'md5:1a2d8a6ca80c88fb3b9a326e0b0e8e43',
+            'duration': 1560.0,
+            'thumbnail': r're:https?://www\.nobelprize\.org/images/.+\.jpg',
+            'timestamp': 1504883793,
+            'upload_date': '20170908',
         },
-    }
+    }, {
+        'url': 'https://mediaplayer.nobelprize.org/mediaplayer/?qid=12693',
+        'info_dict': {
+            'id': '12693',
+            'ext': 'mp4',
+            'title': 'Nobel Lecture by Peter Higgs',
+            'description': 'md5:9b12e275dbe3a8138484e70e00673a05',
+            'duration': 1800.0,
+            'thumbnail': r're:https?://www\.nobelprize\.org/images/.+\.jpg',
+            'timestamp': 1504883793,
+            'upload_date': '20170908',
+        },
+    }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        media = self._parse_json(self._search_regex(
-            r'(?s)var\s*config\s*=\s*({.+?});', webpage,
-            'config'), video_id, js_to_json)['media']
-        title = media['title']
+        url = update_url(url, netloc='mediaplayer.nobelprize.org')
+        if not (video_id := traverse_obj(parse_qs(url), (('id', 'qid'), 0, any))):
+            raise ExtractorError('Invalid URL', expected=True)
 
-        formats = []
-        for source in media.get('source', []):
-            source_src = source.get('src')
-            if not source_src:
-                continue
-            ext = mimetype2ext(source.get('type')) or determine_ext(source_src)
-            if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    source_src, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id='hls', fatal=False))
-            elif ext == 'f4m':
-                formats.extend(self._extract_f4m_formats(
-                    update_url_query(source_src, {'hdcore': '3.7.0'}),
-                    video_id, f4m_id='hds', fatal=False))
-            else:
-                formats.append({
-                    'url': source_src,
-                })
+        webpage = self._download_webpage(url, video_id)
 
         return {
             'id': video_id,
-            'title': title,
-            'description': get_element_by_attribute('itemprop', 'description', webpage),
-            'duration': int_or_none(media.get('duration')),
-            'formats': formats,
+            'title': self._html_search_meta('caption', webpage),
+            'description': traverse_obj(webpage, (
+                {find_element(tag='span', attr='itemprop', value='description')}, {clean_html})),
+            'duration': parse_duration(self._html_search_meta('duration', webpage)),
+            **traverse_obj(next(self._yield_json_ld(webpage, video_id)), {
+                'url': ('contentUrl', {url_or_none}),
+                'thumbnail': ('thumbnail_url', {lambda x: self._proto_relative_url(x)}, {url_or_none}),
+                'timestamp': ('uploadDate', {unified_timestamp}),
+            }),
         }
