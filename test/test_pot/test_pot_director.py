@@ -578,7 +578,8 @@ class TestPoTokenCache:
         assert cache.get(pot_request) is None
         cache.store(pot_request, response)
         assert len(memorypcp.cache) == 1
-        assert hashlib.sha256(f'_dlp_cachev1_pExampleProviderv{pot_request.video_id}'.encode()).hexdigest() in memorypcp.cache
+        assert hashlib.sha256(
+            f"{{'_dlp_cache': 'v1', '_p': 'ExampleProvider', 'v': '{pot_request.video_id}'}}".encode()).hexdigest() in memorypcp.cache
 
         # The second spec provider returns the exact same key bindings as the first one,
         # however the PoTokenCache should use the provider key to differentiate between them
@@ -591,7 +592,8 @@ class TestPoTokenCache:
         assert cache.get(pot_request) is None
         cache.store(pot_request, response)
         assert len(memorypcp.cache) == 2
-        assert hashlib.sha256(f'_dlp_cachev1_pExampleProviderTwov{pot_request.video_id}'.encode()).hexdigest() in memorypcp.cache
+        assert hashlib.sha256(
+            f"{{'_dlp_cache': 'v1', '_p': 'ExampleProviderTwo', 'v': '{pot_request.video_id}'}}".encode()).hexdigest() in memorypcp.cache
 
     def test_cache_provider_preferences(self, pot_request, ie, logger):
         pcp_one = create_memory_pcp(ie, logger, provider_key='memory_pcp_one')

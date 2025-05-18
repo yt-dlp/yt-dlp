@@ -144,7 +144,7 @@ class PoTokenCache:
         return bindings_cleaned
 
     def _generate_key(self, bindings: dict) -> str:
-        binding_string = ''.join(f'{k}{v}' for k, v in sorted(bindings.items()))
+        binding_string = ''.join(repr(dict(sorted(bindings.items()))))
         return hashlib.sha256(binding_string.encode()).hexdigest()
 
     def get(self, request: PoTokenRequest) -> PoTokenResponse | None:
