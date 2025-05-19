@@ -11,7 +11,7 @@ from ..utils import (
 
 class PicartoIE(InfoExtractor):
     IE_NAME = 'picarto'
-    _VALID_URL = r'https?://(?:www.)?picarto\.tv/(?P<id>[a-zA-Z0-9]+)/?(?:$|[?#])'
+    _VALID_URL = r'https?://(?:www.)?picarto\.tv/(?P<id>[^/#?]+)/?(?:$|[?#])'
     _TEST = {
         'url': 'https://picarto.tv/Setz',
         'info_dict': {
