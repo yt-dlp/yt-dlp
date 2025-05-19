@@ -1957,11 +1957,8 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
         release_timestamp = parse_iso8601(start_time)
 
         if clip_status == 'unavailable' and release_timestamp and release_timestamp > time.time():
+            self.raise_no_formats(f'This live event is scheduled for {start_time}', expected=True)
             live_status = 'is_upcoming'
-            if start_time:
-                self.raise_no_formats(f'This live event is scheduled for {start_time}', expected=True)
-            else:
-                self.raise_no_formats('This live event has not yet started', expected=True)
             config_url = None
 
         elif view_policy == 'embed_only':
