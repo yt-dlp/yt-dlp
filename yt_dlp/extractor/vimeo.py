@@ -1886,7 +1886,10 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
         'stats.plays', 'pictures.sizes.link', 'live.status',
     )
 
-    def _call_events_api(self, event_id, ep=None, unlisted_hash=None, note=None, fields=(), referrer=None, query=None, headers=None):
+    def _call_events_api(
+        self, event_id, ep=None, unlisted_hash=None, note=None,
+        fields=(), referrer=None, query=None, headers=None,
+    ):
         resource = join_nonempty('event', ep, note, 'API JSON', delim=' ')
 
         return self._download_json(
