@@ -1692,6 +1692,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'ext': 'mp4',
             'display_id': '5034253',
             'title': 'Advancing Humans with AI',
+            'description': r're:AI is here to stay, but how do we ensure that people flourish in a world of pervasive AI use.{322}$',
             'uploader': 'MIT Media Lab',
             'uploader_id': 'mitmedialab',
             'uploader_url': 'https://vimeo.com/mitmedialab',
@@ -1739,6 +1740,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'ext': 'mp4',
             'display_id': '4768062',
             'title': r're:GRACELAND CAM \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+            'description': '24/7 camera at Graceland Mansion',
             'uploader': 'Elvis Presley\'s Graceland',
             'uploader_id': 'visitgraceland',
             'uploader_url': 'https://vimeo.com/visitgraceland',
@@ -1855,6 +1857,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'ext': 'mp4',
             'display_id': '5034253',
             'title': 'Advancing Humans with AI',
+            'description': r're:AI is here to stay, but how do we ensure that people flourish in a world of pervasive AI use.{322}$',
             'uploader': 'MIT Media Lab',
             'uploader_id': 'mitmedialab',
             'uploader_url': 'https://vimeo.com/mitmedialab',
@@ -2004,15 +2007,16 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             info = filter_dict(self._parse_config(
                 self._download_json(config_url, event_id, 'Downloading config JSON'), event_id))
         else:  # live_status == 'is_upcoming'
-            info = {
-                'id': event_id,
-                'title': live_event_data.get('title'),
-            }
+            info = {'id': event_id}
 
         if info.get('live_status') == 'post_live':
             self.report_warning('This live event recently ended and some formats may not yet be available')
 
         return {
+            **traverse_obj(live_event_data, {
+                'title': ('title', {str}),
+                'description': ('stream_description', {str}),
+            }),
             'display_id': event_id,
             'live_status': live_status,
             'release_timestamp': release_timestamp,
