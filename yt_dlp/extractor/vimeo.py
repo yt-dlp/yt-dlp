@@ -1870,21 +1870,12 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
     }]
 
     _EVENT_FIELDS = (
-        'chat_enabled', 'embed.autoplay', 'embed.byline', 'embed.loop', 'embed.playlist', 'embed.portrait',
-        'embed.schedule', 'embed.show_latest_archived_clip', 'embed.title', 'embed.logos', 'user.uri',
-        'user.name', 'user.account', 'title', 'uri', 'schedule', 'stream_description', 'lead_uuid',
-        'settings_link', 'metadata.connections.team_member', 'metadata.interactions.edit', 'clip_to_play.name',
-        'clip_to_play.uri', 'clip_to_play.embed.speed', 'clip_to_play.config_url', 'clip_to_play.pictures',
-        'clip_to_play.live.status', 'clip_to_play.privacy.embed', 'clip_to_play.privacy.view',
-        'clip_to_play.user.account', 'clip_to_play.user.uri', 'clip_to_play.app.uri', 'clip_to_play.password',
-        'clip_to_play.content_rating', 'streamable_clip.name', 'streamable_clip.uri', 'streamable_clip.config_url',
-        'streamable_clip.pictures', 'streamable_clip.live.status', 'streamable_clip.content_rating',
-        'stream_privacy.embed', 'stream_privacy.view', 'has_registration',
+        'title', 'uri', 'schedule', 'stream_description', 'stream_privacy.embed', 'stream_privacy.view',
+        'clip_to_play.name', 'clip_to_play.uri', 'clip_to_play.config_url', 'clip_to_play.live.status',
+        'clip_to_play.privacy.embed', 'clip_to_play.privacy.view', 'clip_to_play.password',
+        'streamable_clip.name', 'streamable_clip.uri', 'streamable_clip.config_url', 'streamable_clip.live.status',
     )
-    _VIDEOS_FIELDS = (
-        'items', 'content_rating', 'uri', 'name', 'config_url', 'duration',
-        'stats.plays', 'pictures.sizes.link', 'live.status',
-    )
+    _VIDEOS_FIELDS = ('items', 'uri', 'name', 'config_url', 'duration', 'live.status')
 
     def _call_events_api(
         self, event_id, ep=None, unlisted_hash=None, note=None,
