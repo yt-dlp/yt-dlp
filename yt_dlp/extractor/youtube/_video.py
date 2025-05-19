@@ -3994,15 +3994,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         automatic_captions, base_url, trans_code, trans_name, client_name,
                         subs_query if orig_lang == orig_trans_code else {'tlang': trans_code, **subs_query})
 
-        info['automatic_captions'] = {}
-        info['subtitles'] = {}
-        # Sort subtitles and automatic_captions according to player client priority
-        requested_clients = self._get_requested_clients(url, smuggled_data)
-        sort_key = lambda x: requested_clients.index(x[STREAMING_DATA_CLIENT_NAME])
-        for lang, caps in automatic_captions.items():
-            info['automatic_captions'][lang] = sorted(caps, key=sort_key, reverse=True)
-        for lang, subs in subtitles.items():
-            info['subtitles'][lang] = sorted(subs, key=sort_key, reverse=True)
+        info['automatic_captions'] = automatic_captions
+        info['subtitles'] = subtitles
 
         parsed_url = urllib.parse.urlparse(url)
         for component in [parsed_url.fragment, parsed_url.query]:
