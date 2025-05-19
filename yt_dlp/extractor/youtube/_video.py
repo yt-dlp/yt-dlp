@@ -72,6 +72,7 @@ from ...utils.networking import clean_headers, clean_proxies, select_proxy
 
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 STREAMING_DATA_INITIAL_PO_TOKEN = '__yt_dlp_po_token'
+STREAMING_DATA_FETCH_SUBS_PO_TOKEN = '__yt_dlp_fetch_subs_po_token'
 PO_TOKEN_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide'
 
 
@@ -3153,6 +3154,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             gvs_po_token = self.fetch_po_token(
                 context=_PoTokenContext.GVS, **fetch_po_token_args)
 
+            fetch_subs_po_token_func = functools.partial(
+                self.fetch_po_token,
+                context=_PoTokenContext.SUBS,
+                **fetch_po_token_args,
+            )
+
             required_pot_contexts = self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
 
             if (
@@ -3198,17 +3205,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 skipped_clients[client] = pr_id
             elif pr:
                 # Save client name for introspection later
-                sd = traverse_obj(pr, ('streamingData', {dict})) or {}
+                sd = pr.setdefault('streamingData', {})
                 sd[STREAMING_DATA_CLIENT_NAME] = client
                 sd[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
+                sd[STREAMING_DATA_FETCH_SUBS_PO_TOKEN] = fetch_subs_po_token_func
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
                     f[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
-                for c in traverse_obj(pr, (
-                    'captions', 'playerCaptionsTracklistRenderer', 'captionTracks', ..., {dict},
-                )):
-                    c[STREAMING_DATA_CLIENT_NAME] = client
-                    # TODO: Save PO token for subtitles
                 if deprioritize_pr:
                     deprioritized_prs.append(pr)
                 else:
@@ -3901,47 +3904,70 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec', 'channels', 'acodec', 'lang', 'proto'),
         }
 
-        subtitles = {}
-        pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
-        if pctr:
-            def get_lang_code(track):
-                return (remove_start(track.get('vssId') or '', '.').replace('.', '-')
-                        or track.get('languageCode'))
+        def get_lang_code(track):
+            return (remove_start(track.get('vssId') or '', '.').replace('.', '-')
+                    or track.get('languageCode'))
 
-            def process_language(container, base_url, lang_code, sub_name, client_name, query):
-                lang_subs = container.setdefault(lang_code, [])
-                for fmt in self._SUBTITLE_FORMATS:
-                    query.update({
-                        'fmt': fmt,
-                    })
-                    lang_subs.append({
-                        'ext': fmt,
-                        'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
-                        'name': sub_name,
-                        STREAMING_DATA_CLIENT_NAME: client_name,
-                    })
+        def process_language(container, base_url, lang_code, sub_name, client_name, query):
+            lang_subs = container.setdefault(lang_code, [])
+            for fmt in self._SUBTITLE_FORMATS:
+                query.update({
+                    'fmt': fmt,
+                })
+                lang_subs.append({
+                    'ext': fmt,
+                    'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
+                    'name': sub_name,
+                    STREAMING_DATA_CLIENT_NAME: client_name,
+                })
+
+        subtitles = {}
+        for pr in traverse_obj(player_responses, (
+            # Filter out initial_pr which does not have streamingData (smuggled client context)
+            lambda _, v: v['streamingData'] and v['captions']['playerCaptionsTracklistRenderer']
+        )):
+            pctr = pr['captions']['playerCaptionsTracklistRenderer']
+            client_name = pr['streamingData'][STREAMING_DATA_CLIENT_NAME]
+            client_config = self._get_default_ytcfg(client_name)
+            inntertube_client_name = client_config['INNERTUBE_CONTEXT']['client']['clientName']
+            required_contexts = client_config['PO_TOKEN_REQUIRED_CONTEXTS']
+            fetch_subs_po_token_func = pr['streamingData'][STREAMING_DATA_FETCH_SUBS_PO_TOKEN]
+            subs_po_token = None
 
             translation_languages = {
                 lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
-                for lang in traverse_obj(pctr, (..., 'translationLanguages', ...))}
+                for lang in traverse_obj(pctr, ('translationLanguages', ..., {dict}))}
 
             # NB: Constructing the full subtitle dictionary is slow
             get_translated_subs = 'translated_subs' not in self._configuration_arg('skip') and (
                 self.get_param('writeautomaticsub', False) or self.get_param('listsubtitles'))
-            for caption_track in traverse_obj(pctr, (..., 'captionTracks', ..., {dict})):
+            for caption_track in traverse_obj(pctr, ('captionTracks', lambda _, v: v['baseUrl'])):
+                base_url = caption_track['baseUrl']
+                qs = parse_qs(base_url)
                 lang_code = get_lang_code(caption_track)
-                # TODO: Pass PO token in the query parameter of process_language()
-                client_name = caption_track[STREAMING_DATA_CLIENT_NAME]
-                base_url = caption_track.get('baseUrl')
-                orig_lang = parse_qs(base_url).get('lang', [None])[-1]
-                if not base_url:
-                    continue
+
+                subs_query = {}
+                if 'xpe' in traverse_obj(qs, ('exp', ...)) or _PoTokenContext.SUBS in required_contexts:
+                    if not subs_po_token:
+                        subs_po_token = fetch_subs_po_token_func()
+                    if not subs_po_token:
+                        self.write_debug(
+                            f'{video_id}: No PO token available for {client_name} subtitles, skipping',
+                            only_once=True)
+                        break
+                    subs_query = {
+                        'pot': subs_po_token,
+                        'potc': '1',
+                        'c': inntertube_client_name,
+                    }
+
+                orig_lang = qs.get('lang', [None])[-1]
                 lang_name = self._get_text(caption_track, 'name', max_runs=1)
                 if caption_track.get('kind') != 'asr':
                     if not lang_code:
                         continue
                     process_language(
-                        subtitles, base_url, lang_code, lang_name, client_name, {})
+                        subtitles, base_url, lang_code, lang_name, client_name, subs_query)
                     if not caption_track.get('isTranslatable'):
                         continue
                 for trans_code, trans_name in translation_languages.items():
@@ -3962,11 +3988,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # The subs are returned without "-orig" as well for compatibility
                         process_language(
                             automatic_captions, base_url, f'{trans_code}-orig',
-                            f'{trans_name} (Original)', client_name, {})
+                            f'{trans_name} (Original)', client_name, subs_query)
                     # Setting tlang=lang returns damaged subtitles.
                     process_language(
                         automatic_captions, base_url, trans_code, trans_name, client_name,
-                        {} if orig_lang == orig_trans_code else {'tlang': trans_code})
+                        subs_query if orig_lang == orig_trans_code else {'tlang': trans_code, **subs_query})
 
         info['automatic_captions'] = {}
         info['subtitles'] = {}
