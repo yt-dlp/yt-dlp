@@ -3204,6 +3204,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
                     f[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
+                for c in traverse_obj(pr, (
+                    'captions', 'playerCaptionsTracklistRenderer', 'captionTracks', ..., {dict},
+                )):
+                    c[STREAMING_DATA_CLIENT_NAME] = client
+                    # TODO: Save PO token for subtitles
                 if deprioritize_pr:
                     deprioritized_prs.append(pr)
                 else:
@@ -3553,6 +3558,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     hls_manifest_url = hls_manifest_url.rstrip('/') + f'/pot/{po_token}'
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
+                for sub in traverse_obj(subs, (..., ..., {dict})):
+                    # TODO: Add po token to HLS subs?
+                    sub[STREAMING_DATA_CLIENT_NAME] = client_name
                 subtitles = self._merge_subtitles(subs, subtitles)
                 for f in fmts:
                     if process_manifest_format(f, 'hls', client_name, self._search_regex(
@@ -3564,6 +3572,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if po_token:
                     dash_manifest_url = dash_manifest_url.rstrip('/') + f'/pot/{po_token}'
                 formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
+                for sub in traverse_obj(subs, (..., ..., {dict})):
+                    # TODO: Add po token to DASH subs?
+                    sub[STREAMING_DATA_CLIENT_NAME] = client_name
                 subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
                 for f in formats:
                     if process_manifest_format(f, 'dash', client_name, f['format_id'], po_token):
@@ -3897,15 +3908,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return (remove_start(track.get('vssId') or '', '.').replace('.', '-')
                         or track.get('languageCode'))
 
-            # Converted into dicts to remove duplicates
-            captions = {
-                get_lang_code(sub): sub
-                for sub in traverse_obj(pctr, (..., 'captionTracks', ...))}
-            translation_languages = {
-                lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
-                for lang in traverse_obj(pctr, (..., 'translationLanguages', ...))}
-
-            def process_language(container, base_url, lang_code, sub_name, query):
+            def process_language(container, base_url, lang_code, sub_name, client_name, query):
                 lang_subs = container.setdefault(lang_code, [])
                 for fmt in self._SUBTITLE_FORMATS:
                     query.update({
@@ -3915,12 +3918,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'ext': fmt,
                         'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
                         'name': sub_name,
+                        STREAMING_DATA_CLIENT_NAME: client_name,
                     })
+
+            translation_languages = {
+                lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
+                for lang in traverse_obj(pctr, (..., 'translationLanguages', ...))}
 
             # NB: Constructing the full subtitle dictionary is slow
             get_translated_subs = 'translated_subs' not in self._configuration_arg('skip') and (
                 self.get_param('writeautomaticsub', False) or self.get_param('listsubtitles'))
-            for lang_code, caption_track in captions.items():
+            for caption_track in traverse_obj(pctr, (..., 'captionTracks', ..., {dict})):
+                lang_code = get_lang_code(caption_track)
+                # TODO: Pass PO token in the query parameter of process_language()
+                client_name = caption_track[STREAMING_DATA_CLIENT_NAME]
                 base_url = caption_track.get('baseUrl')
                 orig_lang = parse_qs(base_url).get('lang', [None])[-1]
                 if not base_url:
@@ -3930,7 +3941,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not lang_code:
                         continue
                     process_language(
-                        subtitles, base_url, lang_code, lang_name, {})
+                        subtitles, base_url, lang_code, lang_name, client_name, {})
                     if not caption_track.get('isTranslatable'):
                         continue
                 for trans_code, trans_name in translation_languages.items():
@@ -3950,13 +3961,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # Add an "-orig" label to the original language so that it can be distinguished.
                         # The subs are returned without "-orig" as well for compatibility
                         process_language(
-                            automatic_captions, base_url, f'{trans_code}-orig', f'{trans_name} (Original)', {})
+                            automatic_captions, base_url, f'{trans_code}-orig',
+                            f'{trans_name} (Original)', client_name, {})
                     # Setting tlang=lang returns damaged subtitles.
-                    process_language(automatic_captions, base_url, trans_code, trans_name,
-                                     {} if orig_lang == orig_trans_code else {'tlang': trans_code})
+                    process_language(
+                        automatic_captions, base_url, trans_code, trans_name, client_name,
+                        {} if orig_lang == orig_trans_code else {'tlang': trans_code})
 
-        info['automatic_captions'] = automatic_captions
-        info['subtitles'] = subtitles
+        info['automatic_captions'] = {}
+        info['subtitles'] = {}
+        # Sort subtitles and automatic_captions according to player client priority
+        requested_clients = self._get_requested_clients(url, smuggled_data)
+        sort_key = lambda x: requested_clients.index(x[STREAMING_DATA_CLIENT_NAME])
+        for lang, caps in automatic_captions.items():
+            info['automatic_captions'][lang] = sorted(caps, key=sort_key, reverse=True)
+        for lang, subs in subtitles.items():
+            info['subtitles'][lang] = sorted(subs, key=sort_key, reverse=True)
 
         parsed_url = urllib.parse.urlparse(url)
         for component in [parsed_url.fragment, parsed_url.query]:
