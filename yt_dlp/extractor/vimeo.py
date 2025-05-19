@@ -1652,7 +1652,13 @@ class VimeoProIE(VimeoBaseInfoExtractor):
 
 class VimeoEventIE(VimeoBaseInfoExtractor):
     IE_NAME = 'vimeo:event'
-    _VALID_URL = r'https?://(?:www\.)?vimeo\.com/event/(?P<id>\d+)(?:/(?:(?:embed/)?(?P<unlisted_hash>[\da-f]{10})|videos/(?P<video_id>\d+)))?'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?vimeo\.com/event/(?P<id>\d+)(?:/
+            (?:
+                (?:embed/)?(?P<unlisted_hash>[\da-f]{10})|
+                videos/(?P<video_id>\d+)
+            )
+        )?'''
     _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>https?://vimeo\.com/event/\d+/embed(?:[/?][^"\']*)?)["\'][^>]*>']
     _TESTS = [{
         # stream_privacy.view: 'anybody'
