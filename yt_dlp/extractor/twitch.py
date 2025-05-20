@@ -187,7 +187,7 @@ class TwitchBaseIE(InfoExtractor):
             'url': thumbnail,
         }] if thumbnail else None
 
-    def _extract_twitch_m3u8_formats(self, path, video_id, token, signature):
+    def _extract_twitch_m3u8_formats(self, path, video_id, token, signature, live_from_start=False):
         formats = self._extract_m3u8_formats(
             f'{self._USHER_BASE}/{path}/{video_id}.m3u8', video_id, 'mp4', query={
                 'allow_source': 'true',
@@ -205,7 +205,7 @@ class TwitchBaseIE(InfoExtractor):
             if fmt.get('vcodec') and fmt['vcodec'].startswith('av01'):
                 # mpegts does not yet have proper support for av1
                 fmt.setdefault('downloader_options', {}).update({'ffmpeg_args_out': ['-f', 'mp4']})
-            if self.get_param('live_from_start'):
+            if live_from_start:
                 fmt.setdefault('downloader_options', {}).update({'ffmpeg_args': ['-live_start_index', '0']})
                 fmt['is_from_start'] = True
 
@@ -553,7 +553,8 @@ class TwitchVodIE(TwitchBaseIE):
         access_token = self._download_access_token(vod_id, 'video', 'id')
 
         formats = self._extract_twitch_m3u8_formats(
-            'vod', vod_id, access_token['value'], access_token['signature'])
+            'vod', vod_id, access_token['value'], access_token['signature'],
+            live_from_start=self.get_param('live_from_start'))
         formats.extend(self._extract_storyboard(vod_id, video.get('storyboard'), info.get('duration')))
 
         self._prefer_source(formats)
@@ -1062,10 +1063,12 @@ class TwitchStreamIE(TwitchPlaylistBaseIE):
         timestamp = unified_timestamp(stream.get('createdAt'))
 
         if self.get_param('live_from_start'):
+            self.to_screen(f'{channel_name}: Extracting VOD to download live from start')
             entry = next(self._entries(channel_name, None, 'time'), None)
             if entry and entry['timestamp'] >= timestamp:
                 return entry
-            self.report_warning('Unable to extract associated VOD; cannot download live from start')
+            self.report_warning(
+                'Unable to extract the VOD associated with this livestream', video_id=channel_name)
 
         access_token = self._download_access_token(
             channel_name, 'stream', 'channelName')
