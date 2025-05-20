@@ -619,6 +619,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         sub_langs, sub_names, sub_filenames = [], [], []
         webm_vtt_warn = False
         mp4_ass_warn = False
+        files_to_delete = []
 
         for lang, sub_info in subtitles.items():
             if not os.path.exists(sub_info.get('filepath', '')):
@@ -632,20 +633,25 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
                 # If the WebVTT contains empty text cues, it'll corrupt remuxed Matroska files, dropping frames
                 sub_langs.append(lang)
                 sub_names.append(sub_info.get('name'))
-                sub_filename = sub_info['filepath']
+                original_file = sub_info['filepath']
+                if not self._already_have_subtitle:
+                    files_to_delete.append(original_file)
 
-                with open(sub_info['filepath'], 'rb') as f:
+                with open(original_file, 'rb') as f:
                     vtt_bytes = f.read()
                 blocks = list(webvtt.parse_fragment(vtt_bytes))
 
                 nonempty_blocks = [block for block in blocks if not isinstance(block, webvtt.CueBlock) or block.text.strip() != '']
                 if len(blocks) != len(nonempty_blocks):
                     self.report_warning(f'Filtering WebVTT for {lang} subtitle due to ffmpeg bug #11493')
-                    sub_filename = f'{sub_filename}_filtered.vtt'
-                    with open(sub_filename, 'w') as f:
+                    temp_file = prepend_extension(original_file, 'filtered')
+                    with open(temp_file, 'w', encoding='utf-8', newline='\n') as f:
                         for block in nonempty_blocks:
                             block.write_into(f)
-                sub_filenames.append(sub_filename)
+                    files_to_delete.append(temp_file)
+                    sub_filenames.append(temp_file)
+                else:
+                    sub_filenames.append(original_file)
             elif ext == 'webm':
                 if not webm_vtt_warn:
                     webm_vtt_warn = True
@@ -653,7 +659,10 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             else:
                 sub_langs.append(lang)
                 sub_names.append(sub_info.get('name'))
-                sub_filenames.append(sub_info['filepath'])
+                filepath = sub_info['filepath']
+                sub_filenames.append(filepath)
+                if not self._already_have_subtitle:
+                    files_to_delete.append(filepath)
             if not mp4_ass_warn and ext == 'mp4' and sub_ext == 'ass':
                 mp4_ass_warn = True
                 self.report_warning('ASS subtitles cannot be properly embedded in mp4 files; expect issues')
@@ -682,7 +691,6 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
         os.replace(temp_filename, filename)
 
-        files_to_delete = [] if self._already_have_subtitle else sub_filenames
         return files_to_delete, info
 
 
