@@ -3140,6 +3140,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_url = self._download_player_url(video_id)
                 tried_iframe_fallback = True
 
+            pr = initial_pr if client == 'web' else None
+
             visitor_data = visitor_data or self._extract_visitor_data(master_ytcfg, initial_pr, player_ytcfg)
             data_sync_id = data_sync_id or self._extract_data_sync_id(master_ytcfg, initial_pr, player_ytcfg)
 
@@ -3154,7 +3156,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'ytcfg': player_ytcfg or self._get_default_ytcfg(client),
             }
 
-            player_po_token = self.fetch_po_token(
+            # Don't need a player PO token for WEB if using player response from webpage
+            player_po_token = None if pr else self.fetch_po_token(
                 context=_PoTokenContext.PLAYER, **fetch_po_token_args)
 
             gvs_po_token = self.fetch_po_token(
@@ -3192,7 +3195,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     only_once=True)
                 deprioritize_pr = True
 
-            pr = initial_pr if client == 'web' else None
             try:
                 pr = pr or self._extract_player_response(
                     client, video_id,

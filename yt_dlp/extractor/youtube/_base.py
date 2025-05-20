@@ -788,6 +788,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _download_ytcfg(self, client, video_id):
         url = {
+            'mweb': 'https://m.youtube.com',
             'web': 'https://www.youtube.com',
             'web_music': 'https://music.youtube.com',
             'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1',
