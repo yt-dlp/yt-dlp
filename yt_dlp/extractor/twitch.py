@@ -1022,7 +1022,7 @@ class TwitchStreamIE(TwitchPlaylistBaseIE):
             'id': 'v' + video_id,
             'url': f'https://www.twitch.tv/videos/{video_id}',
             'title': node.get('title'),
-            'timestamp': unified_timestamp(node.get('publishedAt')),
+            'timestamp': unified_timestamp(node.get('publishedAt')) or 0,
         }
 
     def _real_extract(self, url):
@@ -1063,7 +1063,7 @@ class TwitchStreamIE(TwitchPlaylistBaseIE):
 
         if self.get_param('live_from_start'):
             entry = next(self._entries(channel_name, None, 'time'), None)
-            if entry and timestamp <= (entry.get('timestamp') or 0):
+            if entry and entry['timestamp'] >= timestamp:
                 return entry
             self.report_warning('Unable to extract associated VOD; cannot download live from start')
 
