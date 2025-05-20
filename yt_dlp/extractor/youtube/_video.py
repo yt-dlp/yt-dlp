@@ -4014,8 +4014,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(join_nonempty(
                 'One or more clients are requiring PO tokens for access to',
                 f'subtitles and automatic captions ({", ".join(skipped_subs_clients)}).',
-                need_subs_langs and f'Subtitles for these languages are missing: {need_subs_langs}.',
-                need_caps_langs and f'Automatic captions for these languages are missing: {need_caps_langs}',
+                need_subs_langs and f'Subtitles for these languages are missing: {", ".join(need_subs_langs)}.',
+                need_caps_langs and f'Automatic captions for these languages are missing: {", ".join(need_caps_langs)}',
                 delim=' '), video_id=video_id)
 
         info['automatic_captions'] = automatic_captions
