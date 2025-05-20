@@ -596,6 +596,8 @@ class JSInterpreter:
             var = m.group('var1') or m.group('var2')
             start, end = m.span()
             sign = m.group('pre_sign') or m.group('post_sign')
+            if var not in local_vars:
+                continue
             ret = local_vars[var]
             local_vars[var] += 1 if sign[0] == '+' else -1
             if m.group('pre_sign'):
