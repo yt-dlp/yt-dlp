@@ -1059,7 +1059,7 @@ class TwitchStreamIE(TwitchVideosBaseIE):
         if self.get_param('live_from_start'):
             self.to_screen(f'{channel_name}: Extracting VOD to download live from start')
             entry = next(self._entries(channel_name, None, 'time'), None)
-            if entry and entry['timestamp'] >= (timestamp or float('inf')):
+            if entry and entry.pop('timestamp') >= (timestamp or float('inf')):
                 return entry
             self.report_warning(
                 'Unable to extract the VOD associated with this livestream', video_id=channel_name)
