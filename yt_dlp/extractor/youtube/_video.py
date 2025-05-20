@@ -3922,44 +3922,52 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 })
 
         subtitles = {}
-        for pr in traverse_obj(player_responses, (
+        skipped_subs_clients = set()
+        prs = traverse_obj(player_responses, (
             # Filter out initial_pr which does not have streamingData (smuggled client context)
-            lambda _, v: v['streamingData'] and v['captions']['playerCaptionsTracklistRenderer']
-        )):
+            lambda _, v: v['streamingData'] and v['captions']['playerCaptionsTracklistRenderer']))
+
+        pctrs = traverse_obj(prs, (..., 'captions', 'playerCaptionsTracklistRenderer', {dict}))
+        translation_languages = {
+            lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
+            for lang in traverse_obj(pctrs, (..., 'translationLanguages', ..., {dict}))}
+        # NB: Constructing the full subtitle dictionary is slow
+        get_translated_subs = 'translated_subs' not in self._configuration_arg('skip') and (
+            self.get_param('writeautomaticsub', False) or self.get_param('listsubtitles'))
+
+        all_captions = traverse_obj(pctrs, (..., 'captionTracks', ..., {dict}))
+        need_subs_langs = {get_lang_code(sub) for sub in all_captions if sub.get('kind') != 'asr'}
+        need_caps_langs = {
+            remove_start(get_lang_code(sub), 'a-')
+            for sub in all_captions if sub.get('kind') == 'asr'}
+
+        for pr in prs:
             pctr = pr['captions']['playerCaptionsTracklistRenderer']
             client_name = pr['streamingData'][STREAMING_DATA_CLIENT_NAME]
             client_config = self._get_default_ytcfg(client_name)
             inntertube_client_name = client_config['INNERTUBE_CONTEXT']['client']['clientName']
-            required_contexts = client_config['PO_TOKEN_REQUIRED_CONTEXTS']
             fetch_subs_po_token_func = pr['streamingData'][STREAMING_DATA_FETCH_SUBS_PO_TOKEN]
-            subs_po_token = None
+            subs_query = {}
 
-            translation_languages = {
-                lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
-                for lang in traverse_obj(pctr, ('translationLanguages', ..., {dict}))}
-
-            # NB: Constructing the full subtitle dictionary is slow
-            get_translated_subs = 'translated_subs' not in self._configuration_arg('skip') and (
-                self.get_param('writeautomaticsub', False) or self.get_param('listsubtitles'))
             for caption_track in traverse_obj(pctr, ('captionTracks', lambda _, v: v['baseUrl'])):
                 base_url = caption_track['baseUrl']
                 qs = parse_qs(base_url)
                 lang_code = get_lang_code(caption_track)
+                requires_pot = (
+                    # We can detect the experiment for now
+                    'xpe' in traverse_obj(qs, ('exp', ...))
+                    or _PoTokenContext.SUBS in client_config['PO_TOKEN_REQUIRED_CONTEXTS'])
 
-                subs_query = {}
-                if 'xpe' in traverse_obj(qs, ('exp', ...)) or _PoTokenContext.SUBS in required_contexts:
-                    if not subs_po_token:
-                        subs_po_token = fetch_subs_po_token_func()
-                    if not subs_po_token:
-                        self.write_debug(
-                            f'{video_id}: No PO token available for {client_name} subtitles, skipping',
-                            only_once=True)
+                if requires_pot and not subs_query:
+                    if subs_po_token := fetch_subs_po_token_func():
+                        subs_query.update({
+                            'pot': subs_po_token,
+                            'potc': '1',
+                            'c': inntertube_client_name,
+                        })
+                    else:
+                        skipped_subs_clients.add(client_name)
                         break
-                    subs_query = {
-                        'pot': subs_po_token,
-                        'potc': '1',
-                        'c': inntertube_client_name,
-                    }
 
                 orig_lang = qs.get('lang', [None])[-1]
                 lang_name = self._get_text(caption_track, 'name', max_runs=1)
@@ -3993,6 +4001,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     process_language(
                         automatic_captions, base_url, trans_code, trans_name, client_name,
                         subs_query if orig_lang == orig_trans_code else {'tlang': trans_code, **subs_query})
+
+            # Avoid duplication if we got everything we needed from the first player reponse
+            need_subs_langs.difference_update(subtitles)
+            need_caps_langs.difference_update(automatic_captions)
+            if not (need_subs_langs or need_caps_langs):
+                break
+
+        subs_wanted = any((
+            self.get_param('writesubtitles'),
+            self.get_param('writeautomaticsub'),
+            self.get_param('listsubtitles')))
+        if subs_wanted and skipped_subs_clients and (need_subs_langs or need_caps_langs):
+            self.report_warning(join_nonempty(
+                'One or more clients are requiring PO tokens for access to',
+                f'subtitles and automatic captions ({", ".join(skipped_subs_clients)}).',
+                need_subs_langs and f'Subtitles for these languages are missing: {need_subs_langs}.',
+                need_caps_langs and f'Automatic captions for these languages are missing: {need_caps_langs}',
+                delim=' '), video_id=video_id)
 
         info['automatic_captions'] = automatic_captions
         info['subtitles'] = subtitles
