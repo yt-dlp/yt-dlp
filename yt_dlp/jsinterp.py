@@ -596,6 +596,7 @@ class JSInterpreter:
             var = m.group('var1') or m.group('var2')
             start, end = m.span()
             sign = m.group('pre_sign') or m.group('post_sign')
+            # Very cringe hotfix, to prevent string literals being parsed here
             if var not in local_vars:
                 continue
             ret = local_vars[var]
