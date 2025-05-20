@@ -57,6 +57,9 @@ default = [
 curl-cffi = [
     "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.11; implementation_name=='cpython'",
 ]
+zstd = [
+    "zstandard>=0.22.0",
+]
 secretstorage = [
     "cffi",
     "secretstorage",
