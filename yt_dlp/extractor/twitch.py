@@ -1063,7 +1063,7 @@ class TwitchStreamIE(TwitchPlaylistBaseIE):
 
         if self.get_param('live_from_start'):
             entry = next(self._entries(channel_name, None, 'time'), None)
-            if entry and timestamp <= entry.get('timestamp') or 0:
+            if entry and timestamp <= (entry.get('timestamp') or 0):
                 return entry
             self.report_warning('Unable to extract associated VOD; cannot download live from start')
 
