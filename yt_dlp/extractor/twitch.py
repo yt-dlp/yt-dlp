@@ -637,6 +637,10 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
     _PAGE_LIMIT = 100
 
     def _entries(self, channel_name, *args):
+        """
+        Subclasses must define _make_variables() and _extract_entry(),
+        as well as set _OPERATION_NAME, _ENTRY_KIND, _EDGE_KIND, and _NODE_KIND
+        """
         cursor = None
         variables_common = self._make_variables(channel_name, *args)
         entries_key = f'{self._ENTRY_KIND}s'
@@ -676,7 +680,22 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
                 break
 
 
-class TwitchVideosIE(TwitchPlaylistBaseIE):
+class TwitchVideosBaseIE(TwitchPlaylistBaseIE):
+    _OPERATION_NAME = 'FilterableVideoTower_Videos'
+    _ENTRY_KIND = 'video'
+    _EDGE_KIND = 'VideoEdge'
+    _NODE_KIND = 'Video'
+
+    @staticmethod
+    def _make_variables(channel_name, broadcast_type, sort):
+        return {
+            'channelOwnerLogin': channel_name,
+            'broadcastType': broadcast_type,
+            'videoSort': sort.upper(),
+        }
+
+
+class TwitchVideosIE(TwitchVideosBaseIE):
     _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/(?P<id>[^/]+)/(?:videos|profile)'
 
     _TESTS = [{
@@ -755,11 +774,6 @@ class TwitchVideosIE(TwitchPlaylistBaseIE):
         'views': 'Popular',
     }
 
-    _OPERATION_NAME = 'FilterableVideoTower_Videos'
-    _ENTRY_KIND = 'video'
-    _EDGE_KIND = 'VideoEdge'
-    _NODE_KIND = 'Video'
-
     @classmethod
     def suitable(cls, url):
         return (False
@@ -767,14 +781,6 @@ class TwitchVideosIE(TwitchPlaylistBaseIE):
                     TwitchVideosClipsIE,
                     TwitchVideosCollectionsIE))
                 else super().suitable(url))
-
-    @staticmethod
-    def _make_variables(channel_name, broadcast_type, sort):
-        return {
-            'channelOwnerLogin': channel_name,
-            'broadcastType': broadcast_type,
-            'videoSort': sort.upper(),
-        }
 
     @staticmethod
     def _extract_entry(node):
@@ -923,7 +929,7 @@ class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
             playlist_title=f'{channel_name} - Collections')
 
 
-class TwitchStreamIE(TwitchPlaylistBaseIE):
+class TwitchStreamIE(TwitchVideosBaseIE):
     IE_NAME = 'twitch:stream'
     _VALID_URL = r'''(?x)
                     https?://
@@ -987,10 +993,6 @@ class TwitchStreamIE(TwitchPlaylistBaseIE):
         },
     }]
     _PAGE_LIMIT = 1
-    _OPERATION_NAME = 'FilterableVideoTower_Videos'
-    _ENTRY_KIND = 'video'
-    _EDGE_KIND = 'VideoEdge'
-    _NODE_KIND = 'Video'
 
     @classmethod
     def suitable(cls, url):
@@ -1003,14 +1005,6 @@ class TwitchStreamIE(TwitchPlaylistBaseIE):
                     TwitchVideosCollectionsIE,
                     TwitchClipsIE))
                 else super().suitable(url))
-
-    @staticmethod
-    def _make_variables(channel_name, broadcast_type, sort):
-        return {
-            'channelOwnerLogin': channel_name,
-            'broadcastType': broadcast_type,
-            'videoSort': sort.upper(),
-        }
 
     @staticmethod
     def _extract_entry(node):
@@ -1065,7 +1059,7 @@ class TwitchStreamIE(TwitchPlaylistBaseIE):
         if self.get_param('live_from_start'):
             self.to_screen(f'{channel_name}: Extracting VOD to download live from start')
             entry = next(self._entries(channel_name, None, 'time'), None)
-            if entry and entry['timestamp'] >= timestamp:
+            if entry and entry['timestamp'] >= (timestamp or float('inf')):
                 return entry
             self.report_warning(
                 'Unable to extract the VOD associated with this livestream', video_id=channel_name)
