@@ -3911,9 +3911,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def process_language(container, base_url, lang_code, sub_name, client_name, query):
             lang_subs = container.setdefault(lang_code, [])
             for fmt in self._SUBTITLE_FORMATS:
-                query.update({
-                    'fmt': fmt,
-                })
+                query = {**query, 'fmt': fmt}
                 lang_subs.append({
                     'ext': fmt,
                     'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
@@ -3947,7 +3945,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             client_config = self._get_default_ytcfg(client_name)
             inntertube_client_name = client_config['INNERTUBE_CONTEXT']['client']['clientName']
             fetch_subs_po_token_func = pr['streamingData'][STREAMING_DATA_FETCH_SUBS_PO_TOKEN]
-            subs_query = {}
+            pot_params = {}
 
             for caption_track in traverse_obj(pctr, ('captionTracks', lambda _, v: v['baseUrl'])):
                 base_url = caption_track['baseUrl']
@@ -3958,9 +3956,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'xpe' in traverse_obj(qs, ('exp', ...))
                     or _PoTokenContext.SUBS in client_config['PO_TOKEN_REQUIRED_CONTEXTS'])
 
-                if requires_pot and not subs_query:
+                if requires_pot and not pot_params:
                     if subs_po_token := fetch_subs_po_token_func():
-                        subs_query.update({
+                        pot_params.update({
                             'pot': subs_po_token,
                             'potc': '1',
                             'c': inntertube_client_name,
@@ -3975,7 +3973,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not lang_code:
                         continue
                     process_language(
-                        subtitles, base_url, lang_code, lang_name, client_name, subs_query)
+                        subtitles, base_url, lang_code, lang_name, client_name, pot_params)
                     if not caption_track.get('isTranslatable'):
                         continue
                 for trans_code, trans_name in translation_languages.items():
@@ -3996,11 +3994,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # The subs are returned without "-orig" as well for compatibility
                         process_language(
                             automatic_captions, base_url, f'{trans_code}-orig',
-                            f'{trans_name} (Original)', client_name, subs_query)
+                            f'{trans_name} (Original)', client_name, pot_params)
                     # Setting tlang=lang returns damaged subtitles.
                     process_language(
                         automatic_captions, base_url, trans_code, trans_name, client_name,
-                        subs_query if orig_lang == orig_trans_code else {'tlang': trans_code, **subs_query})
+                        pot_params if orig_lang == orig_trans_code else {'tlang': trans_code, **pot_params})
 
             # Avoid duplication if we got everything we needed from the first player reponse
             need_subs_langs.difference_update(subtitles)
