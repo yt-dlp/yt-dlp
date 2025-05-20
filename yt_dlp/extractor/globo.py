@@ -146,10 +146,34 @@ class GloboIE(InfoExtractor):
         else:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 main_source['url'], video_id, 'mp4', m3u8_id='hls')
+                
+        # Extract both SRT and VTT subtitles
+        subtitles = {}
 
-        self._merge_subtitles(traverse_obj(main_source, ('text', ..., ('caption', 'subtitle'), {
-            'url': ('srt', 'url', {url_or_none}),
-        }, all, {subs_list_to_dict(lang='pt-BR')})), target=subtitles)
+        # Iterate over each source
+        for source in video.get('sources', []):
+            # Extract language tracks
+            lang_tracks = source.get('text', {})
+
+            # Iterate over each language (e.g., "por")
+            for lang, captions in lang_tracks.items():
+                # Iterate over each format (e.g., "caption", "webvtt")
+                for format_name, track in captions.get('caption', {}).items():
+                    # Extract the URL if it exists
+                    url = track.get('url')
+                    if url:
+                        ext = determine_ext(url)
+                        subtitles.setdefault(lang, []).append({
+                            'url': url,
+                            'ext': ext
+                        })
+
+        # Normalize "por" to "pt-BR"
+        if "por" in subtitles:
+            subtitles["pt-BR"] = subtitles.pop("por")
+
+        # Merge the extracted subtitles
+        self._merge_subtitles(subtitles, target=subtitles)
 
         return {
             'id': video_id,
