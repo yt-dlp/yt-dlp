@@ -204,9 +204,9 @@ class TwitchBaseIE(InfoExtractor):
         for fmt in formats:
             if fmt.get('vcodec') and fmt['vcodec'].startswith('av01'):
                 # mpegts does not yet have proper support for av1
-                fmt.setdefault('downloader_options', {})['ffmpeg_args_out'] = ['-f', 'mp4']
+                fmt.setdefault('downloader_options', {}).update({'ffmpeg_args_out': ['-f', 'mp4']})
             if self.get_param('live_from_start'):
-                fmt.setdefault('downloader_options', {})['ffmpeg_args'] = ['-live_start_index', '0']
+                fmt.setdefault('downloader_options', {}).update({'ffmpeg_args': ['-live_start_index', '0']})
 
         return formats
 
