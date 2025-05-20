@@ -207,6 +207,7 @@ class TwitchBaseIE(InfoExtractor):
                 fmt.setdefault('downloader_options', {}).update({'ffmpeg_args_out': ['-f', 'mp4']})
             if self.get_param('live_from_start'):
                 fmt.setdefault('downloader_options', {}).update({'ffmpeg_args': ['-live_start_index', '0']})
+                fmt['is_from_start'] = True
 
         return formats
 
@@ -921,7 +922,7 @@ class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
             playlist_title=f'{channel_name} - Collections')
 
 
-class TwitchStreamIE(TwitchBaseIE):
+class TwitchStreamIE(TwitchPlaylistBaseIE):
     IE_NAME = 'twitch:stream'
     _VALID_URL = r'''(?x)
                     https?://
@@ -984,6 +985,11 @@ class TwitchStreamIE(TwitchBaseIE):
             'skip_download': 'Livestream',
         },
     }]
+    _PAGE_LIMIT = 1
+    _OPERATION_NAME = 'FilterableVideoTower_Videos'
+    _ENTRY_KIND = 'video'
+    _EDGE_KIND = 'VideoEdge'
+    _NODE_KIND = 'Video'
 
     @classmethod
     def suitable(cls, url):
@@ -996,6 +1002,28 @@ class TwitchStreamIE(TwitchBaseIE):
                     TwitchVideosCollectionsIE,
                     TwitchClipsIE))
                 else super().suitable(url))
+
+    @staticmethod
+    def _make_variables(channel_name, broadcast_type, sort):
+        return {
+            'channelOwnerLogin': channel_name,
+            'broadcastType': broadcast_type,
+            'videoSort': sort.upper(),
+        }
+
+    @staticmethod
+    def _extract_entry(node):
+        if not isinstance(node, dict) or not node.get('id'):
+            return None
+        video_id = node['id']
+        return {
+            '_type': 'url',
+            'ie_key': TwitchVodIE.ie_key(),
+            'id': 'v' + video_id,
+            'url': f'https://www.twitch.tv/videos/{video_id}',
+            'title': node.get('title'),
+            'timestamp': unified_timestamp(node.get('publishedAt')),
+        }
 
     def _real_extract(self, url):
         channel_name = self._match_id(url).lower()
@@ -1031,23 +1059,23 @@ class TwitchStreamIE(TwitchBaseIE):
         if not stream:
             raise UserNotLive(video_id=channel_name)
 
+        timestamp = unified_timestamp(stream.get('createdAt'))
+
+        if self.get_param('live_from_start'):
+            entry = next(self._entries(channel_name, None, 'time'), None)
+            if entry and timestamp <= entry.get('timestamp') or 0:
+                return entry
+            self.report_warning('Unable to extract associated VOD; cannot download live from start')
+
         access_token = self._download_access_token(
             channel_name, 'stream', 'channelName')
 
-        stream_id = stream.get('id')
-        if self.get_param('live_from_start'):
-            if stream_id:
-                return self.url_result(f'https://www.twitch.tv/videos/{stream_id}', TwitchVodIE, stream_id)
-            self.report_warning('Unable to extract stream ID; cannot download live from start')
-        if not stream_id:
-            stream_id = channel_name
-
+        stream_id = stream.get('id') or channel_name
         formats = self._extract_twitch_m3u8_formats(
             'api/channel/hls', channel_name, access_token['value'], access_token['signature'])
         self._prefer_source(formats)
 
         view_count = stream.get('viewers')
-        timestamp = unified_timestamp(stream.get('createdAt'))
 
         sq_user = try_get(gql, lambda x: x[1]['data']['user'], dict) or {}
         uploader = sq_user.get('displayName')
