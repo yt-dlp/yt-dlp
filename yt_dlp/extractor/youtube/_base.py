@@ -48,7 +48,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS, _PoTokenContext.SUBS],
+        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
         'SUPPORTS_COOKIES': True,
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
@@ -61,7 +61,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS, _PoTokenContext.SUBS],
+        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
         'SUPPORTS_COOKIES': True,
     },
     'web_embedded': {
@@ -83,7 +83,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS, _PoTokenContext.SUBS],
+        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
         'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
@@ -95,7 +95,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS, _PoTokenContext.SUBS],
+        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
         'REQUIRE_AUTH': True,
         'SUPPORTS_COOKIES': True,
     },
@@ -161,7 +161,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS, _PoTokenContext.SUBS],
+        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
         'SUPPORTS_COOKIES': True,
     },
     'tv': {
