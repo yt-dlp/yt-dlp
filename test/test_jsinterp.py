@@ -480,7 +480,7 @@ class TestJSInterpreter(unittest.TestCase):
 
     def test_in_and_decrement_in_strings(self):
         self._test('function f() { var a = "test--"; return a; }', 'test--')
-        # self._test('function f() { var b = 1; var a = "b--"; return a; }', 'b--')
+        self._test('function f() { var b = 1; var a = "b--"; return a; }', 'b--')
 
 
 if __name__ == '__main__':
