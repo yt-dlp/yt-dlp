@@ -2318,10 +2318,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return varname, interpret_global_var(array_code, {}, allow_recursion=10)
 
     def _fixup_n_function_code(self, argnames, nsig_code, jscode, player_url):
-        varcode, varname, _ = self._extract_player_js_global_var(jscode, player_url)
-        if varcode and varname:
-            nsig_code = varcode + '; ' + nsig_code
-            _, global_list = self._interpret_player_js_global_var(jscode, player_url)
+        varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
+        if varname and global_list:
+            nsig_code = f'var {varname}={json.dumps(global_list)}; {nsig_code}'
         else:
             varname = 'dlp_wins'
             global_list = []
