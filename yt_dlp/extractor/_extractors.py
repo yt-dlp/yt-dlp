@@ -135,7 +135,10 @@ from .antenna import (
 from .anvato import AnvatoIE
 from .aol import AolIE
 from .apa import APAIE
-from .aparat import AparatIE
+from .aparat import (
+    AparatIE,
+    AparatPlaylistIE,
+)
 from .appleconnect import AppleConnectIE
 from .applepodcasts import ApplePodcastsIE
 from .appletrailers import (
