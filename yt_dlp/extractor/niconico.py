@@ -34,6 +34,7 @@ from ..utils.traversal import find_element, traverse_obj
 
 
 class NiconicoBaseIE(InfoExtractor):
+    _API_BASE = 'https://nvapi.nicovideo.jp'
     _BASE_URL = 'https://www.nicovideo.jp'
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['JP']
@@ -334,12 +335,12 @@ class NiconicoIE(NiconicoBaseIE):
             return
 
         m3u8_url = self._download_json(
-            f'https://nvapi.nicovideo.jp/v1/watch/{video_id}/access-rights/hls',
+            f'{self._API_BASE}/v1/watch/{video_id}/access-rights/hls',
             video_id, headers={
                 'Accept': 'application/json;charset=utf-8',
                 'Content-Type': 'application/json',
                 'X-Access-Right-Key': access_key,
-                'X-Request-With': 'https://www.nicovideo.jp',
+                'X-Request-With': self._BASE_URL,
                 **self._HEADERS,
             }, query={
                 'actionTrackId': track_id,
@@ -358,7 +359,7 @@ class NiconicoIE(NiconicoBaseIE):
                     'asr': ('samplingRate', {int_or_none}),
                     'format_id': ('id', {str}),
                     'quality': ('qualityLevel', {int_or_none}),
-                }), get_all=False),
+                }, any)),
                 'acodec': 'aac',
             })
 
