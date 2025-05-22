@@ -6,6 +6,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     str_or_none,
+    try_call,
     url_or_none,
 )
 from ..utils.traversal import find_element, traverse_obj
@@ -15,7 +16,7 @@ class ToutiaoIE(InfoExtractor):
     IE_NAME = 'toutiao'
     IE_DESC = '今日头条'
 
-    _VALID_URL = r'https?://www\.toutiao\.com/video/(?P<id>\d+)([/?#]|$)'
+    _VALID_URL = r'https?://www\.toutiao\.com/video/(?P<id>\d+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.toutiao.com/video/7505382061495176511/',
         'info_dict': {
@@ -54,7 +55,7 @@ class ToutiaoIE(InfoExtractor):
         if self._get_cookies('https://www.toutiao.com').get('ttwid'):
             return
 
-        _, urlh = self._download_json_handle(
+        urlh = self._request_webpage(
             'https://ttwid.bytedance.com/ttwid/union/register/', None,
             'Fetching ttwid', 'Unable to fetch ttwid', headers={
                 'Content-Type': 'application/json',
@@ -67,11 +68,11 @@ class ToutiaoIE(InfoExtractor):
             }).encode(),
         )
 
-        if ttwid := self._get_cookies(urlh.url)['ttwid'].value:
+        if ttwid := try_call(lambda: self._get_cookies(urlh.url)['ttwid'].value):
             self._set_cookie('.toutiao.com', 'ttwid', ttwid)
             return
 
-        self.raise_login_required(method='cookies')
+        self.raise_login_required()
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -88,7 +89,7 @@ class ToutiaoIE(InfoExtractor):
             formats.append({
                 'url': video['main_url'],
                 **traverse_obj(video, ('video_meta', {
-                    'acodec': ('audio_profile', {str_or_none}),
+                    'acodec': ('audio_profile', {str}),
                     'asr': ('audio_sample_rate', {int_or_none}),
                     'audio_channels': ('audio_channels', {float_or_none}, {int_or_none}),
                     'ext': ('vtype', {str}),
