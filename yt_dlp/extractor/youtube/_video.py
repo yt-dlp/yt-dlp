@@ -72,6 +72,9 @@ from ...utils.networking import clean_headers, clean_proxies, select_proxy
 
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 STREAMING_DATA_INITIAL_PO_TOKEN = '__yt_dlp_po_token'
+STREAMING_DATA_FETCH_SUBS_PO_TOKEN = '__yt_dlp_fetch_subs_po_token'
+STREAMING_DATA_INNERTUBE_CONTEXT = '__yt_dlp_innertube_context'
+
 PO_TOKEN_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide'
 
 
@@ -2863,7 +2866,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
     def fetch_po_token(self, client='web', context=_PoTokenContext.GVS, ytcfg=None, visitor_data=None,
-                       data_sync_id=None, session_index=None, player_url=None, video_id=None, webpage=None, **kwargs):
+                       data_sync_id=None, session_index=None, player_url=None, video_id=None, webpage=None,
+                       required=False, **kwargs):
         """
         Fetch a PO Token for a given client and context. This function will validate required parameters for a given context and client.
 
@@ -2878,6 +2882,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         @param player_url: player URL.
         @param video_id: video ID.
         @param webpage: video webpage.
+        @param required: Whether the PO Token is required (i.e. try to fetch unless policy is "never").
         @param kwargs: Additional arguments to pass down. May be more added in the future.
         @return: The fetched PO Token. None if it could not be fetched.
         """
@@ -2926,6 +2931,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_url=player_url,
             video_id=video_id,
             video_webpage=webpage,
+            required=required,
             **kwargs,
         )
 
@@ -2945,6 +2951,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or (
                 fetch_pot_policy == 'auto'
                 and _PoTokenContext(context) not in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
+                and not kwargs.get('required', False)
             )
         ):
             return None
@@ -3133,6 +3140,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_url = self._download_player_url(video_id)
                 tried_iframe_fallback = True
 
+            pr = initial_pr if client == 'web' else None
+
             visitor_data = visitor_data or self._extract_visitor_data(master_ytcfg, initial_pr, player_ytcfg)
             data_sync_id = data_sync_id or self._extract_data_sync_id(master_ytcfg, initial_pr, player_ytcfg)
 
@@ -3147,11 +3156,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'ytcfg': player_ytcfg or self._get_default_ytcfg(client),
             }
 
-            player_po_token = self.fetch_po_token(
+            # Don't need a player PO token for WEB if using player response from webpage
+            player_po_token = None if pr else self.fetch_po_token(
                 context=_PoTokenContext.PLAYER, **fetch_po_token_args)
 
             gvs_po_token = self.fetch_po_token(
                 context=_PoTokenContext.GVS, **fetch_po_token_args)
+
+            fetch_subs_po_token_func = functools.partial(
+                self.fetch_po_token,
+                context=_PoTokenContext.SUBS,
+                **fetch_po_token_args,
+            )
 
             required_pot_contexts = self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
 
@@ -3179,7 +3195,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     only_once=True)
                 deprioritize_pr = True
 
-            pr = initial_pr if client == 'web' else None
             try:
                 pr = pr or self._extract_player_response(
                     client, video_id,
@@ -3197,10 +3212,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if pr_id := self._invalid_player_response(pr, video_id):
                 skipped_clients[client] = pr_id
             elif pr:
-                # Save client name for introspection later
-                sd = traverse_obj(pr, ('streamingData', {dict})) or {}
+                # Save client details for introspection later
+                innertube_context = traverse_obj(player_ytcfg or self._get_default_ytcfg(client), 'INNERTUBE_CONTEXT')
+                sd = pr.setdefault('streamingData', {})
                 sd[STREAMING_DATA_CLIENT_NAME] = client
                 sd[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
+                sd[STREAMING_DATA_INNERTUBE_CONTEXT] = innertube_context
+                sd[STREAMING_DATA_FETCH_SUBS_PO_TOKEN] = fetch_subs_po_token_func
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
                     f[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
@@ -3258,6 +3276,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Only raise a warning for non-default clients, to not confuse users.
         # iOS HLS formats still work without PO Token, so we don't need to warn about them.
         if client_name in (*self._DEFAULT_CLIENTS, *self._DEFAULT_AUTHED_CLIENTS):
+            self.write_debug(msg, only_once=True)
+        else:
+            self.report_warning(msg, only_once=True)
+
+    def _report_pot_subtitles_skipped(self, video_id, client_name, msg=None):
+        msg = msg or (
+            f'{video_id}: Some {client_name} client subtitles require a PO Token which was not provided. '
+            'They will be discarded since they are not downloadable as-is. '
+            f'You can manually pass a Subtitles PO Token for this client with '
+            f'--extractor-args "youtube:po_token={client_name}.subs+XXX" . '
+            f'For more information, refer to  {PO_TOKEN_GUIDE_URL}')
+
+        subs_wanted = any((
+            self.get_param('writesubtitles'),
+            self.get_param('writeautomaticsub'),
+            self.get_param('listsubtitles')))
+
+        # Only raise a warning for non-default clients, to not confuse users.
+        if not subs_wanted or client_name in (*self._DEFAULT_CLIENTS, *self._DEFAULT_AUTHED_CLIENTS):
             self.write_debug(msg, only_once=True)
         else:
             self.report_warning(msg, only_once=True)
@@ -3553,6 +3590,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     hls_manifest_url = hls_manifest_url.rstrip('/') + f'/pot/{po_token}'
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
+                for sub in traverse_obj(subs, (..., ..., {dict})):
+                    # HLS subs (m3u8) do not need a PO token; save client name for debugging
+                    sub[STREAMING_DATA_CLIENT_NAME] = client_name
                 subtitles = self._merge_subtitles(subs, subtitles)
                 for f in fmts:
                     if process_manifest_format(f, 'hls', client_name, self._search_regex(
@@ -3564,6 +3604,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if po_token:
                     dash_manifest_url = dash_manifest_url.rstrip('/') + f'/pot/{po_token}'
                 formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
+                for sub in traverse_obj(subs, (..., ..., {dict})):
+                    # TODO: Investigate if DASH subs ever need a PO token; save client name for debugging
+                    sub[STREAMING_DATA_CLIENT_NAME] = client_name
                 subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
                 for f in formats:
                     if process_manifest_format(f, 'dash', client_name, f['format_id'], po_token):
@@ -3890,47 +3933,81 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec', 'channels', 'acodec', 'lang', 'proto'),
         }
 
+        def get_lang_code(track):
+            return (remove_start(track.get('vssId') or '', '.').replace('.', '-')
+                    or track.get('languageCode'))
+
+        def process_language(container, base_url, lang_code, sub_name, client_name, query):
+            lang_subs = container.setdefault(lang_code, [])
+            for fmt in self._SUBTITLE_FORMATS:
+                query = {**query, 'fmt': fmt}
+                lang_subs.append({
+                    'ext': fmt,
+                    'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
+                    'name': sub_name,
+                    STREAMING_DATA_CLIENT_NAME: client_name,
+                })
+
         subtitles = {}
-        pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
-        if pctr:
-            def get_lang_code(track):
-                return (remove_start(track.get('vssId') or '', '.').replace('.', '-')
-                        or track.get('languageCode'))
+        skipped_subs_clients = set()
+        prs = traverse_obj(player_responses, (
+            # Filter out initial_pr which does not have streamingData (smuggled client context)
+            lambda _, v: v['streamingData'] and v['captions']['playerCaptionsTracklistRenderer']))
 
-            # Converted into dicts to remove duplicates
-            captions = {
-                get_lang_code(sub): sub
-                for sub in traverse_obj(pctr, (..., 'captionTracks', ...))}
-            translation_languages = {
-                lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
-                for lang in traverse_obj(pctr, (..., 'translationLanguages', ...))}
+        pctrs = traverse_obj(prs, (..., 'captions', 'playerCaptionsTracklistRenderer', {dict}))
+        translation_languages = {
+            lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
+            for lang in traverse_obj(pctrs, (..., 'translationLanguages', ..., {dict}))}
+        # NB: Constructing the full subtitle dictionary is slow
+        get_translated_subs = 'translated_subs' not in self._configuration_arg('skip') and (
+            self.get_param('writeautomaticsub', False) or self.get_param('listsubtitles'))
 
-            def process_language(container, base_url, lang_code, sub_name, query):
-                lang_subs = container.setdefault(lang_code, [])
-                for fmt in self._SUBTITLE_FORMATS:
-                    query.update({
-                        'fmt': fmt,
-                    })
-                    lang_subs.append({
-                        'ext': fmt,
-                        'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
-                        'name': sub_name,
-                    })
+        all_captions = traverse_obj(pctrs, (..., 'captionTracks', ..., {dict}))
+        need_subs_langs = {get_lang_code(sub) for sub in all_captions if sub.get('kind') != 'asr'}
+        need_caps_langs = {
+            remove_start(get_lang_code(sub), 'a-')
+            for sub in all_captions if sub.get('kind') == 'asr'}
 
-            # NB: Constructing the full subtitle dictionary is slow
-            get_translated_subs = 'translated_subs' not in self._configuration_arg('skip') and (
-                self.get_param('writeautomaticsub', False) or self.get_param('listsubtitles'))
-            for lang_code, caption_track in captions.items():
-                base_url = caption_track.get('baseUrl')
-                orig_lang = parse_qs(base_url).get('lang', [None])[-1]
-                if not base_url:
-                    continue
+        for pr in prs:
+            pctr = pr['captions']['playerCaptionsTracklistRenderer']
+            client_name = pr['streamingData'][STREAMING_DATA_CLIENT_NAME]
+            innertube_client_name = pr['streamingData'][STREAMING_DATA_INNERTUBE_CONTEXT]['client']['clientName']
+            required_contexts = self._get_default_ytcfg(client_name)['PO_TOKEN_REQUIRED_CONTEXTS']
+            fetch_subs_po_token_func = pr['streamingData'][STREAMING_DATA_FETCH_SUBS_PO_TOKEN]
+
+            pot_params = {}
+            already_fetched_pot = False
+
+            for caption_track in traverse_obj(pctr, ('captionTracks', lambda _, v: v['baseUrl'])):
+                base_url = caption_track['baseUrl']
+                qs = parse_qs(base_url)
+                lang_code = get_lang_code(caption_track)
+                requires_pot = (
+                    # We can detect the experiment for now
+                    any(e in traverse_obj(qs, ('exp', ...)) for e in ('xpe', 'xpv'))
+                    or _PoTokenContext.SUBS in required_contexts)
+
+                if not already_fetched_pot:
+                    already_fetched_pot = True
+                    if subs_po_token := fetch_subs_po_token_func(required=requires_pot):
+                        pot_params.update({
+                            'pot': subs_po_token,
+                            'potc': '1',
+                            'c': innertube_client_name,
+                        })
+
+                if not pot_params and requires_pot:
+                    skipped_subs_clients.add(client_name)
+                    self._report_pot_subtitles_skipped(video_id, client_name)
+                    break
+
+                orig_lang = qs.get('lang', [None])[-1]
                 lang_name = self._get_text(caption_track, 'name', max_runs=1)
                 if caption_track.get('kind') != 'asr':
                     if not lang_code:
                         continue
                     process_language(
-                        subtitles, base_url, lang_code, lang_name, {})
+                        subtitles, base_url, lang_code, lang_name, client_name, pot_params)
                     if not caption_track.get('isTranslatable'):
                         continue
                 for trans_code, trans_name in translation_languages.items():
@@ -3950,10 +4027,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # Add an "-orig" label to the original language so that it can be distinguished.
                         # The subs are returned without "-orig" as well for compatibility
                         process_language(
-                            automatic_captions, base_url, f'{trans_code}-orig', f'{trans_name} (Original)', {})
+                            automatic_captions, base_url, f'{trans_code}-orig',
+                            f'{trans_name} (Original)', client_name, pot_params)
                     # Setting tlang=lang returns damaged subtitles.
-                    process_language(automatic_captions, base_url, trans_code, trans_name,
-                                     {} if orig_lang == orig_trans_code else {'tlang': trans_code})
+                    process_language(
+                        automatic_captions, base_url, trans_code, trans_name, client_name,
+                        pot_params if orig_lang == orig_trans_code else {'tlang': trans_code, **pot_params})
+
+            # Avoid duplication if we've already got everything we need
+            need_subs_langs.difference_update(subtitles)
+            need_caps_langs.difference_update(automatic_captions)
+            if not (need_subs_langs or need_caps_langs):
+                break
+
+        if skipped_subs_clients and (need_subs_langs or need_caps_langs):
+            self._report_pot_subtitles_skipped(video_id, True, msg=join_nonempty(
+                f'{video_id}: There are missing subtitles languages because a PO token was not provided.',
+                need_subs_langs and f'Subtitles for these languages are missing: {", ".join(need_subs_langs)}.',
+                need_caps_langs and f'Automatic captions for {len(need_caps_langs)} languages are missing.',
+                delim=' '))
 
         info['automatic_captions'] = automatic_captions
         info['subtitles'] = subtitles
