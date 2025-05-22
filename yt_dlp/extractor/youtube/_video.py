@@ -3282,13 +3282,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _report_pot_subtitle_skipped(self, video_id, client_name):
         msg = (
-            f'{video_id}: {client_name} client subtitles require a PO Token which was not provided. '
-            'They will be skipped as they may not work without it. '
-            f'You can manually pass a Subtitle PO Token for this client with --extractor-args "youtube:po_token={client_name}.subs+XXX". '
-            f'For more information, refer to  {PO_TOKEN_GUIDE_URL} . ')
+            f'{video_id}: Some {client_name} client subtitles require a PO Token which was not provided. '
+            'They will be discarded since they are not downloadable as-is. '
+            f'You can manually pass a Subtitles PO Token for this client with --extractor-args "youtube:po_token={client_name}.subs+XXX" . '
+            f'For more information, refer to  {PO_TOKEN_GUIDE_URL}')
+
+        subs_wanted = any((
+            self.get_param('writesubtitles'),
+            self.get_param('writeautomaticsub'),
+            self.get_param('listsubtitles')))
 
         # Only raise a warning for non-default clients, to not confuse users.
-        if client_name in (*self._DEFAULT_CLIENTS, *self._DEFAULT_AUTHED_CLIENTS):
+        if not subs_wanted or client_name in (*self._DEFAULT_CLIENTS, *self._DEFAULT_AUTHED_CLIENTS):
             self.write_debug(msg, only_once=True)
         else:
             self.report_warning(msg, only_once=True)
@@ -3985,8 +3990,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for pr in prs:
             pctr = pr['captions']['playerCaptionsTracklistRenderer']
             client_name = pr['streamingData'][STREAMING_DATA_CLIENT_NAME]
-            innertube_client_name = traverse_obj(
-                pr, ('streamingData', STREAMING_DATA_INNERTUBE_CONTEXT, 'client', 'clientName'))
+            innertube_client_name = pr['streamingData'][STREAMING_DATA_INNERTUBE_CONTEXT]['client']['clientName']
             required_contexts = self._get_default_ytcfg(client_name)['PO_TOKEN_REQUIRED_CONTEXTS']
             fetch_subs_po_token_func = pr['streamingData'][STREAMING_DATA_FETCH_SUBS_PO_TOKEN]
             pot_params = {}
@@ -4006,7 +4010,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self._report_pot_subtitle_skipped(video_id, client_name)
                     break
 
-                if not pot_params:
+                if subs_po_token and not pot_params:
                     pot_params.update({
                         'pot': subs_po_token,
                         'potc': '1',
@@ -4046,7 +4050,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         automatic_captions, base_url, trans_code, trans_name, client_name,
                         pot_params if orig_lang == orig_trans_code else {'tlang': trans_code, **pot_params})
 
-            # Avoid duplication if we got everything we needed from the first player reponse
+            # Avoid duplication if we've already got everything we need
             need_subs_langs.difference_update(subtitles)
             need_caps_langs.difference_update(automatic_captions)
             if not (need_subs_langs or need_caps_langs):
