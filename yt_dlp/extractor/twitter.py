@@ -1596,8 +1596,8 @@ class TwitterAmplifyIE(TwitterBaseIE):
 
 class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
     IE_NAME = 'twitter:broadcast'
-    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/broadcasts/(?P<id>[0-9a-zA-Z]{13})'
 
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/(?P<type>broadcasts|events)/(?P<id>\w+)'
     _TESTS = [{
         # untitled Periscope video
         'url': 'https://twitter.com/i/broadcasts/1yNGaQLWpejGj',
@@ -1641,10 +1641,22 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
             'view_count': int,
         },
+    }, {
+        'url': 'https://x.com/i/events/1910629646300762112',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        broadcast_id = self._match_id(url)
+        broadcast_type, broadcast_id = self._match_valid_url(url).groups()
+
+        if broadcast_type == 'events':
+            if b_id := traverse_obj(self._call_api(
+                f'live_event/1/{broadcast_id}/timeline.json', broadcast_id,
+            ), ('twitter_objects', 'broadcasts', ..., ('id', 'broadcast_id'), {str_or_none}, any)):
+                return self.url_result(
+                    f'https://x.com/i/broadcasts/{b_id}', TwitterBroadcastIE)
+            raise ExtractorError('No broadcast_id found', expected=True)
+
         broadcast = self._call_api(
             'broadcasts/show.json', broadcast_id,
             {'ids': broadcast_id})['broadcasts'][broadcast_id]
