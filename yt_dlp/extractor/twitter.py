@@ -1612,6 +1612,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'upload_date': '20200601',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
             'view_count': int,
+            'concurrent_view_count': int,
+            'live_status': 'was_live',
         },
     }, {
         'url': 'https://twitter.com/i/broadcasts/1ZkKzeyrPbaxv',
@@ -1626,6 +1628,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'upload_date': '20210303',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
             'view_count': int,
+            'concurrent_view_count': int,
+            'live_status': 'was_live',
         },
     }, {
         'url': 'https://twitter.com/i/broadcasts/1OyKAVQrgzwGb',
@@ -1640,6 +1644,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'upload_date': '20230420',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
             'view_count': int,
+            'concurrent_view_count': int,
+            'live_status': 'was_live',
         },
     }, {
         'url': 'https://x.com/i/events/1910629646300762112',
