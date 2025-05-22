@@ -3602,25 +3602,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if po_token:
                     dash_manifest_url = dash_manifest_url.rstrip('/') + f'/pot/{po_token}'
                 formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
-
-                exp_values = traverse_obj(subs, (..., ..., 'url', {parse_qs}, 'exp', ...))
-                subs_require_pot = (
-                    any(e in exp_values for e in ('xpe', 'xpv'))
-                    or _PoTokenContext.SUBS in required_contexts)
-                subs_pot_params = {}
-                if subs_po_token := fetch_subs_po_token_func(required=subs_require_pot):
-                    subs_pot_params.update({
-                        'pot': subs_po_token,
-                        'potc': '1',
-                        'c': innertube_client_name,
-                    })
-                if not subs_require_pot or subs_pot_params:
-                    for sub in traverse_obj(subs, (..., ..., {dict})):
-                        sub['url'] = update_url_query(sub['url'], subs_pot_params)
-                        sub[STREAMING_DATA_CLIENT_NAME] = client_name
-                    subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
-                elif not subtitles:
-                    self._report_pot_subtitle_skipped(video_id, client_name)
+                if subs:
+                    exp_values = traverse_obj(subs, (..., ..., 'url', {parse_qs}, 'exp', ...))
+                    subs_require_pot = (
+                        any(e in exp_values for e in ('xpe', 'xpv'))
+                        or _PoTokenContext.SUBS in required_contexts)
+                    subs_pot_params = {}
+                    if subs_po_token := fetch_subs_po_token_func(required=subs_require_pot):
+                        subs_pot_params.update({
+                            'pot': subs_po_token,
+                            'potc': '1',
+                            'c': innertube_client_name,
+                        })
+                    if not subs_require_pot or subs_pot_params:
+                        for sub in traverse_obj(subs, (..., ..., {dict})):
+                            sub['url'] = update_url_query(sub['url'], subs_pot_params)
+                            sub[STREAMING_DATA_CLIENT_NAME] = client_name
+                        subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
+                    elif not subtitles:
+                        self._report_pot_subtitle_skipped(video_id, client_name)
 
                 for f in formats:
                     if process_manifest_format(f, 'dash', client_name, f['format_id'], po_token):
