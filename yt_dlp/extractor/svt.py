@@ -471,8 +471,7 @@ class SVTPageIE(SVTBaseIE):
         webpage = self._download_webpage(url, display_id)
         title = self._og_search_title(webpage)
 
-        urql_state = self._search_json(
-            r'window\.svt\.(?:nyh\.)?urqlState\s*=', webpage, 'json data', display_id)
+        urql_state = self._search_json(r'urqlState\s*[=:]', webpage, 'json data', display_id)
 
         data = traverse_obj(urql_state, (..., 'data', {str}, {json.loads}), get_all=False) or {}
 

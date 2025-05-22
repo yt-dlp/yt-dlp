@@ -4,7 +4,6 @@ import re
 import time
 
 from .adobepass import AdobePassIE
-from .once import OnceIE
 from ..networking import HEADRequest, Request
 from ..utils import (
     ExtractorError,
@@ -26,7 +25,7 @@ default_ns = 'http://www.w3.org/2005/SMIL21/Language'
 _x = lambda p: xpath_with_ns(p, {'smil': default_ns})
 
 
-class ThePlatformBaseIE(OnceIE):
+class ThePlatformBaseIE(AdobePassIE):
     _TP_TLD = 'com'
 
     def _extract_theplatform_smil(self, smil_url, video_id, note='Downloading SMIL data'):
@@ -54,16 +53,13 @@ class ThePlatformBaseIE(OnceIE):
 
         formats = []
         for _format in smil_formats:
-            if OnceIE.suitable(_format['url']):
-                formats.extend(self._extract_once_formats(_format['url']))
-            else:
-                media_url = _format['url']
-                if determine_ext(media_url) == 'm3u8':
-                    hdnea2 = self._get_cookies(media_url).get('hdnea2')
-                    if hdnea2:
-                        _format['url'] = update_url_query(media_url, {'hdnea3': hdnea2.value})
+            media_url = _format['url']
+            if determine_ext(media_url) == 'm3u8':
+                hdnea2 = self._get_cookies(media_url).get('hdnea2')
+                if hdnea2:
+                    _format['url'] = update_url_query(media_url, {'hdnea3': hdnea2.value})
 
-                formats.append(_format)
+            formats.append(_format)
 
         return formats, subtitles
 
@@ -129,7 +125,7 @@ class ThePlatformBaseIE(OnceIE):
         return self._parse_theplatform_metadata(info)
 
 
-class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
+class ThePlatformIE(ThePlatformBaseIE):
     _VALID_URL = r'''(?x)
         (?:https?://(?:link|player)\.theplatform\.com/[sp]/(?P<provider_id>[^/]+)/
            (?:(?:(?:[^/]+/)+select/)?(?P<media>media/(?:guid/\d+/)?)?|(?P<config>(?:[^/\?]+/(?:swf|config)|onsite)/select/))?
