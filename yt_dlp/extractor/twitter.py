@@ -20,7 +20,6 @@ from ..utils import (
     remove_end,
     str_or_none,
     strip_or_none,
-    traverse_obj,
     truncate_string,
     try_call,
     try_get,
@@ -29,6 +28,7 @@ from ..utils import (
     url_or_none,
     xpath_text,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class TwitterBaseIE(InfoExtractor):
@@ -1649,19 +1649,37 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         },
     }, {
         'url': 'https://x.com/i/events/1910629646300762112',
-        'only_matching': True,
+        'info_dict': {
+            'id': '1LyxBWDRNqyKN',
+            'ext': 'mp4',
+            'title': '#ガンニバル ウォッチパーティー',
+            'concurrent_view_count': int,
+            'display_id': '1910629646300762112',
+            'live_status': 'was_live',
+            'tags': ['ガンニバル'],
+            'release_date': '20250423',
+            'release_timestamp': 1745409000,
+            'thumbnail': r're:https?://[^?#]+\.jpg\?token=',
+            'timestamp': 1745403328,
+            'upload_date': '20250423',
+            'uploader': 'ディズニープラス公式',
+            'uploader_id': 'DisneyPlusJP',
+            'uploader_url': 'https://twitter.com/DisneyPlusJP',
+            'view_count': int,
+        },
     }]
 
     def _real_extract(self, url):
-        broadcast_type, broadcast_id = self._match_valid_url(url).groups()
+        broadcast_type, display_id = self._match_valid_url(url).groups()
 
         if broadcast_type == 'events':
-            if b_id := traverse_obj(self._call_api(
-                f'live_event/1/{broadcast_id}/timeline.json', broadcast_id,
-            ), ('twitter_objects', 'broadcasts', ..., ('id', 'broadcast_id'), {str_or_none}, any)):
-                return self.url_result(
-                    f'https://x.com/i/broadcasts/{b_id}', TwitterBroadcastIE)
-            raise ExtractorError('No broadcast_id found', expected=True)
+            timeline = self._call_api(
+                f'live_event/1/{display_id}/timeline.json', display_id)
+            broadcast_id = traverse_obj(timeline, (
+                'twitter_objects', 'broadcasts', ..., ('id', 'broadcast_id'),
+                {str_or_none}, any, {require('broadcast ID')}))
+        else:
+            broadcast_id = display_id
 
         broadcast = self._call_api(
             'broadcasts/show.json', broadcast_id,
@@ -1672,6 +1690,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         info['title'] = broadcast.get('status') or info.get('title')
         info['uploader_id'] = broadcast.get('twitter_username') or info.get('uploader_id')
         info['uploader_url'] = format_field(broadcast, 'twitter_username', 'https://twitter.com/%s', default=None)
+        info['display_id'] = display_id
         if info['live_status'] == 'is_upcoming':
             return info
 
