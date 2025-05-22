@@ -3280,11 +3280,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         else:
             self.report_warning(msg, only_once=True)
 
-    def _report_pot_subtitle_skipped(self, video_id, client_name):
-        msg = (
+    def _report_pot_subtitles_skipped(self, video_id, client_name, msg=None):
+        msg = msg or (
             f'{video_id}: Some {client_name} client subtitles require a PO Token which was not provided. '
             'They will be discarded since they are not downloadable as-is. '
-            f'You can manually pass a Subtitles PO Token for this client with --extractor-args "youtube:po_token={client_name}.subs+XXX" . '
+            f'You can manually pass a Subtitles PO Token for this client with '
+            f'--extractor-args "youtube:po_token={client_name}.subs+XXX" . '
             f'For more information, refer to  {PO_TOKEN_GUIDE_URL}')
 
         subs_wanted = any((
@@ -3625,7 +3626,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             sub[STREAMING_DATA_CLIENT_NAME] = client_name
                         subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
                     elif not subtitles:
-                        self._report_pot_subtitle_skipped(video_id, client_name)
+                        self._report_pot_subtitles_skipped(video_id, client_name)
 
                 for f in formats:
                     if process_manifest_format(f, 'dash', client_name, f['format_id'], po_token):
@@ -4007,7 +4008,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 subs_po_token = fetch_subs_po_token_func(required=requires_pot)
                 if not subs_po_token and requires_pot:
                     skipped_subs_clients.add(client_name)
-                    self._report_pot_subtitle_skipped(video_id, client_name)
+                    self._report_pot_subtitles_skipped(video_id, client_name)
                     break
 
                 if subs_po_token and not pot_params:
@@ -4056,17 +4057,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not (need_subs_langs or need_caps_langs):
                 break
 
-        subs_wanted = any((
-            self.get_param('writesubtitles'),
-            self.get_param('writeautomaticsub'),
-            self.get_param('listsubtitles')))
-        if subs_wanted and skipped_subs_clients and (need_subs_langs or need_caps_langs):
-            self.report_warning(join_nonempty(
-                'One or more clients are requiring PO tokens for access to',
-                f'subtitles and automatic captions ({", ".join(skipped_subs_clients)}).',
+        if skipped_subs_clients and (need_subs_langs or need_caps_langs):
+            self._report_pot_subtitles_skipped(video_id, True, msg=join_nonempty(
+                f'{video_id}: There are missing subtitles languages because a PO token was not provided.',
                 need_subs_langs and f'Subtitles for these languages are missing: {", ".join(need_subs_langs)}.',
-                need_caps_langs and f'Automatic captions for these languages are missing: {", ".join(need_caps_langs)}',
-                delim=' '), video_id=video_id)
+                need_caps_langs and f'Automatic captions for {len(need_caps_langs)} languages are missing.',
+                delim=' '))
 
         info['automatic_captions'] = automatic_captions
         info['subtitles'] = subtitles
