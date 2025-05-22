@@ -10,7 +10,7 @@ import warnings
 
 from ..dependencies import brotli, requests, urllib3
 from ..utils import bug_reports_message, int_or_none, variadic
-from ..utils.networking import normalize_url
+from ..utils.networking import normalize_url, select_proxy
 
 if requests is None:
     raise ImportError('requests module is not installed')
@@ -21,9 +21,11 @@ if urllib3 is None:
 urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.split('.'))
 
 if urllib3_version < (1, 26, 17):
+    urllib3._yt_dlp__version = f'{urllib3.__version__} (unsupported)'
     raise ImportError('Only urllib3 >= 1.26.17 is supported')
 
 if requests.__build__ < 0x023202:
+    requests._yt_dlp__version = f'{requests.__version__} (unsupported)'
     raise ImportError('Only requests >= 2.32.2 is supported')
 
 import requests.adapters
@@ -39,7 +41,6 @@ from ._helper import (
     create_socks_proxy_socket,
     get_redirect_method,
     make_socks_proxy_opts,
-    select_proxy,
 )
 from .common import (
     Features,

@@ -5,7 +5,6 @@ import urllib.parse
 
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
-from .once import OnceIE
 from ..utils import (
     determine_ext,
     dict_get,
@@ -16,7 +15,7 @@ from ..utils import (
 )
 
 
-class ESPNIE(OnceIE):
+class ESPNIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
@@ -131,9 +130,7 @@ class ESPNIE(OnceIE):
                 return
             format_urls.add(source_url)
             ext = determine_ext(source_url)
-            if OnceIE.suitable(source_url):
-                formats.extend(self._extract_once_formats(source_url))
-            elif ext == 'smil':
+            if ext == 'smil':
                 formats.extend(self._extract_smil_formats(
                     source_url, video_id, fatal=False))
             elif ext == 'f4m':

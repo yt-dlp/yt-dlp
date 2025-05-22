@@ -26,6 +26,7 @@ from ..utils import (
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
+    truncate_string,
     try_call,
     try_get,
     url_or_none,
@@ -444,7 +445,7 @@ class TikTokBaseIE(InfoExtractor):
         return {
             'id': aweme_id,
             **traverse_obj(aweme_detail, {
-                'title': ('desc', {str}),
+                'title': ('desc', {truncate_string(left=72)}),
                 'description': ('desc', {str}),
                 'timestamp': ('create_time', {int_or_none}),
             }),
@@ -595,7 +596,7 @@ class TikTokBaseIE(InfoExtractor):
                 'duration': ('duration', {int_or_none}),
             })),
             **traverse_obj(aweme_detail, {
-                'title': ('desc', {str}),
+                'title': ('desc', {truncate_string(left=72)}),
                 'description': ('desc', {str}),
                 # audio-only slideshows have a video duration of 0 and an actual audio duration
                 'duration': ('video', 'duration', {int_or_none}, filter),
@@ -656,7 +657,7 @@ class TikTokIE(TikTokBaseIE):
         'info_dict': {
             'id': '6742501081818877190',
             'ext': 'mp4',
-            'title': 'md5:5e2a23877420bb85ce6521dbee39ba94',
+            'title': 'Tag 1 Friend reverse this Video and look what happens 🤩😱 @skyandtami ...',
             'description': 'md5:5e2a23877420bb85ce6521dbee39ba94',
             'duration': 27,
             'height': 1024,
@@ -860,7 +861,7 @@ class TikTokIE(TikTokBaseIE):
         'info_dict': {
             'id': '7253412088251534594',
             'ext': 'm4a',
-            'title': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #рекомендации ',
+            'title': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #р...',
             'description': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #рекомендации ',
             'uploader': 'hara_yoimiya',
             'uploader_id': '6582536342634676230',

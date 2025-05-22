@@ -7,6 +7,7 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     mimetype2ext,
+    parse_resolution,
     unified_strdate,
     url_or_none,
     urljoin,
@@ -110,24 +111,23 @@ class BpbIE(InfoExtractor):
 
         return attributes
 
-    @staticmethod
-    def _process_source(source):
+    def _process_source(self, source):
         url = url_or_none(source['src'])
         if not url:
             return None
 
         source_type = source.get('type', '')
         extension = mimetype2ext(source_type)
-        is_video = source_type.startswith('video')
-        note = url.rpartition('.')[0].rpartition('_')[2] if is_video else None
+        note = self._search_regex(r'[_-]([a-z]+)\.[\da-z]+(?:$|\?)', url, 'note', default=None)
 
         return {
             'url': url,
             'ext': extension,
-            'vcodec': None if is_video else 'none',
+            'vcodec': None if source_type.startswith('video') else 'none',
             'quality': 10 if note == 'high' else 0,
             'format_note': note,
             'format_id': join_nonempty(extension, note),
+            **parse_resolution(source.get('label')),
         }
 
     def _real_extract(self, url):

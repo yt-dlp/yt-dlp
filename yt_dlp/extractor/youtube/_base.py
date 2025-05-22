@@ -43,7 +43,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20241126.01.00',
+                'clientVersion': '2.20250312.04.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
@@ -55,7 +55,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20241126.01.00',
+                'clientVersion': '2.20250312.04.00',
                 'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)',
             },
         },
@@ -67,7 +67,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
-                'clientVersion': '1.20241201.00.00',
+                'clientVersion': '1.20250310.01.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
@@ -78,7 +78,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_REMIX',
-                'clientVersion': '1.20241127.01.00',
+                'clientVersion': '1.20250310.01.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
@@ -90,7 +90,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_CREATOR',
-                'clientVersion': '1.20241203.01.00',
+                'clientVersion': '1.20250312.03.01',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
@@ -102,9 +102,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '19.44.38',
+                'clientVersion': '20.10.38',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/19.44.38 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip',
                 'osName': 'Android',
                 'osVersion': '11',
             },
@@ -113,50 +113,16 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_JS_PLAYER': False,
         'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
     },
-    # This client now requires sign-in for every video
-    'android_music': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'ANDROID_MUSIC',
-                'clientVersion': '7.27.52',
-                'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.music/7.27.52 (Linux; U; Android 11) gzip',
-                'osName': 'Android',
-                'osVersion': '11',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
-        'REQUIRE_JS_PLAYER': False,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
-        'REQUIRE_AUTH': True,
-    },
-    # This client now requires sign-in for every video
-    'android_creator': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'ANDROID_CREATOR',
-                'clientVersion': '24.45.100',
-                'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.creator/24.45.100 (Linux; U; Android 11) gzip',
-                'osName': 'Android',
-                'osVersion': '11',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
-        'REQUIRE_JS_PLAYER': False,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
-        'REQUIRE_AUTH': True,
-    },
     # YouTube Kids videos aren't returned on this client for some reason
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_VR',
-                'clientVersion': '1.60.19',
+                'clientVersion': '1.62.27',
                 'deviceMake': 'Oculus',
                 'deviceModel': 'Quest 3',
                 'androidSdkVersion': 32,
-                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.60.19 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
+                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.62.27 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
                 'osName': 'Android',
                 'osVersion': '12L',
             },
@@ -170,53 +136,17 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '20.03.02',
+                'clientVersion': '20.10.4',
                 'deviceMake': 'Apple',
                 'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.youtube/20.03.02 (iPhone16,2; U; CPU iOS 18_2_1 like Mac OS X;)',
+                'userAgent': 'com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)',
                 'osName': 'iPhone',
-                'osVersion': '18.2.1.22C161',
+                'osVersion': '18.3.2.22D82',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
         'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
         'REQUIRE_JS_PLAYER': False,
-    },
-    # This client now requires sign-in for every video
-    'ios_music': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'IOS_MUSIC',
-                'clientVersion': '7.27.0',
-                'deviceMake': 'Apple',
-                'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.youtubemusic/7.27.0 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)',
-                'osName': 'iPhone',
-                'osVersion': '18.1.0.22B83',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
-        'REQUIRE_JS_PLAYER': False,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
-        'REQUIRE_AUTH': True,
-    },
-    # This client now requires sign-in for every video
-    'ios_creator': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'IOS_CREATOR',
-                'clientVersion': '24.45.100',
-                'deviceMake': 'Apple',
-                'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.ytcreator/24.45.100 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)',
-                'osName': 'iPhone',
-                'osVersion': '18.1.0.22B83',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
-        'REQUIRE_JS_PLAYER': False,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
-        'REQUIRE_AUTH': True,
     },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
@@ -224,7 +154,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'MWEB',
-                'clientVersion': '2.20241202.07.00',
+                'clientVersion': '2.20250311.03.00',
                 # mweb previously did not require PO Token with this UA
                 'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
@@ -237,7 +167,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'TVHTML5',
-                'clientVersion': '7.20250120.19.00',
+                'clientVersion': '7.20250312.16.00',
                 'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
             },
         },
@@ -487,6 +417,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _NETRC_MACHINE = 'youtube'
 
+    _COOKIE_HOWTO_WIKI_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies'
+
     def ucid_or_none(self, ucid):
         return self._search_regex(rf'^({self._YT_CHANNEL_UCID_RE})$', ucid, 'UC-id', default=None)
 
@@ -521,17 +453,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return preferred_lang
 
     def _initialize_consent(self):
-        cookies = self._get_cookies('https://www.youtube.com/')
-        if cookies.get('__Secure-3PSID'):
+        if self._has_auth_cookies:
             return
-        socs = cookies.get('SOCS')
+        socs = self._youtube_cookies.get('SOCS')
         if socs and not socs.value.startswith('CAA'):  # not consented
             return
         self._set_cookie('.youtube.com', 'SOCS', 'CAI', secure=True)  # accept all (required for mixes)
 
     def _initialize_pref(self):
-        cookies = self._get_cookies('https://www.youtube.com/')
-        pref_cookie = cookies.get('PREF')
+        pref_cookie = self._youtube_cookies.get('PREF')
         pref = {}
         if pref_cookie:
             try:
@@ -542,8 +472,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         self._set_cookie('.youtube.com', name='PREF', value=urllib.parse.urlencode(pref))
 
     def _initialize_cookie_auth(self):
-        yt_sapisid, yt_1psapisid, yt_3psapisid = self._get_sid_cookies()
-        if yt_sapisid or yt_1psapisid or yt_3psapisid:
+        self._passed_auth_cookies = False
+        if self._has_auth_cookies:
+            self._passed_auth_cookies = True
             self.write_debug('Found YouTube account cookies')
 
     def _real_initialize(self):
@@ -562,8 +493,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     @property
     def _youtube_login_hint(self):
-        return (f'{self._login_hint(method="cookies")}. Also see  '
-                'https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  '
+        return (f'{self._login_hint(method="cookies")}. Also see  {self._COOKIE_HOWTO_WIKI_URL}  '
                 'for tips on effectively exporting YouTube cookies')
 
     def _check_login_required(self):
@@ -623,12 +553,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         return f'{scheme} {"_".join(parts)}'
 
+    @property
+    def _youtube_cookies(self):
+        return self._get_cookies('https://www.youtube.com')
+
     def _get_sid_cookies(self):
         """
         Get SAPISID, 1PSAPISID, 3PSAPISID cookie values
         @returns sapisid, 1psapisid, 3psapisid
         """
-        yt_cookies = self._get_cookies('https://www.youtube.com')
+        yt_cookies = self._youtube_cookies
         yt_sapisid = try_call(lambda: yt_cookies['SAPISID'].value)
         yt_3papisid = try_call(lambda: yt_cookies['__Secure-3PAPISID'].value)
         yt_1papisid = try_call(lambda: yt_cookies['__Secure-1PAPISID'].value)
@@ -664,6 +598,31 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return None
 
         return ' '.join(authorizations)
+
+    @property
+    def is_authenticated(self):
+        return self._has_auth_cookies
+
+    @property
+    def _has_auth_cookies(self):
+        yt_sapisid, yt_1psapisid, yt_3psapisid = self._get_sid_cookies()
+        # YouTube doesn't appear to clear 3PSAPISID when rotating cookies (as of 2025-04-26)
+        # But LOGIN_INFO is cleared and should exist if logged in
+        has_login_info = 'LOGIN_INFO' in self._youtube_cookies
+        return bool(has_login_info and (yt_sapisid or yt_1psapisid or yt_3psapisid))
+
+    def _request_webpage(self, *args, **kwargs):
+        response = super()._request_webpage(*args, **kwargs)
+
+        # Check that we are still logged-in and cookies have not rotated after every request
+        if getattr(self, '_passed_auth_cookies', None) and not self._has_auth_cookies:
+            self.report_warning(
+                'The provided YouTube account cookies are no longer valid. '
+                'They have likely been rotated in the browser as a security measure. '
+                f'For tips on how to effectively export YouTube cookies, refer to  {self._COOKIE_HOWTO_WIKI_URL} .',
+                only_once=False)
+
+        return response
 
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
                   note='Downloading API JSON', errnote='Unable to download API page',
@@ -764,10 +723,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return get_first(
             args, [('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))],
             expected_type=str)
-
-    @functools.cached_property
-    def is_authenticated(self):
-        return bool(self._get_sid_authorization_header())
 
     def extract_ytcfg(self, video_id, webpage):
         if not webpage:
@@ -873,12 +828,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     @classmethod
     def _extract_continuation_ep_data(cls, continuation_ep: dict):
-        if isinstance(continuation_ep, dict):
-            continuation = try_get(
-                continuation_ep, lambda x: x['continuationCommand']['token'], str)
+        continuation_commands = traverse_obj(
+            continuation_ep, ('commandExecutorCommand', 'commands', ..., {dict}))
+        continuation_commands.append(continuation_ep)
+        for command in continuation_commands:
+            continuation = traverse_obj(command, ('continuationCommand', 'token', {str}))
             if not continuation:
-                return
-            ctp = continuation_ep.get('clickTrackingParams')
+                continue
+            ctp = command.get('clickTrackingParams')
             return cls._build_api_continuation_query(continuation, ctp)
 
     @classmethod
