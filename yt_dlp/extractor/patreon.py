@@ -341,7 +341,7 @@ class PatreonIE(PatreonBaseIE):
                 }))
 
         # all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, Vimeo
-        headers = {'referer': 'https://patreon.com/'}
+        headers = {'referer': url}
 
         # handle Vimeo embeds
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
@@ -379,11 +379,13 @@ class PatreonIE(PatreonBaseIE):
                     'url': post_file['url'],
                 })
             elif name == 'video' or determine_ext(post_file.get('url')) == 'm3u8':
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(post_file['url'], video_id)
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                    post_file['url'], video_id, headers=headers)
                 entries.append({
                     'id': video_id,
                     'formats': formats,
                     'subtitles': subtitles,
+                    'http_headers': headers,
                 })
 
         can_view_post = traverse_obj(attributes, 'current_user_can_view')
