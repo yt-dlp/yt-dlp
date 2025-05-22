@@ -3994,7 +3994,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             innertube_client_name = pr['streamingData'][STREAMING_DATA_INNERTUBE_CONTEXT]['client']['clientName']
             required_contexts = self._get_default_ytcfg(client_name)['PO_TOKEN_REQUIRED_CONTEXTS']
             fetch_subs_po_token_func = pr['streamingData'][STREAMING_DATA_FETCH_SUBS_PO_TOKEN]
+
             pot_params = {}
+            already_fetched_pot = False
 
             for caption_track in traverse_obj(pctr, ('captionTracks', lambda _, v: v['baseUrl'])):
                 base_url = caption_track['baseUrl']
@@ -4005,18 +4007,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     any(e in traverse_obj(qs, ('exp', ...)) for e in ('xpe', 'xpv'))
                     or _PoTokenContext.SUBS in required_contexts)
 
-                subs_po_token = fetch_subs_po_token_func(required=requires_pot)
-                if not subs_po_token and requires_pot:
+                if not already_fetched_pot:
+                    already_fetched_pot = True
+                    if subs_po_token := fetch_subs_po_token_func(required=requires_pot):
+                        pot_params.update({
+                            'pot': subs_po_token,
+                            'potc': '1',
+                            'c': innertube_client_name,
+                        })
+
+                if not pot_params and requires_pot:
                     skipped_subs_clients.add(client_name)
                     self._report_pot_subtitles_skipped(video_id, client_name)
                     break
-
-                if subs_po_token and not pot_params:
-                    pot_params.update({
-                        'pot': subs_po_token,
-                        'potc': '1',
-                        'c': innertube_client_name,
-                    })
 
                 orig_lang = qs.get('lang', [None])[-1]
                 lang_name = self._get_text(caption_track, 'name', max_runs=1)
