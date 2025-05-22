@@ -381,12 +381,11 @@ class PatreonIE(PatreonBaseIE):
             elif name == 'video' or determine_ext(post_file.get('url')) == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                     post_file['url'], video_id, headers=headers)
-                for f in formats:
-                    f.setdefault('http_headers', {}).update(headers)
                 entries.append({
                     'id': video_id,
                     'formats': formats,
                     'subtitles': subtitles,
+                    'http_headers': headers,
                 })
 
         can_view_post = traverse_obj(attributes, 'current_user_can_view')
