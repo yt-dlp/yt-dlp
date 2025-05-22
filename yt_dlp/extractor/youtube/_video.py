@@ -3583,11 +3583,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         subtitles = {}
         for sd in streaming_data:
             client_name = sd[STREAMING_DATA_CLIENT_NAME]
-            innertube_client_name = sd[STREAMING_DATA_INNERTUBE_CONTEXT]['client']['clientName']
-            required_contexts = self._get_default_ytcfg(client_name)['PO_TOKEN_REQUIRED_CONTEXTS']
-            fetch_subs_po_token_func = sd[STREAMING_DATA_FETCH_SUBS_PO_TOKEN]
             po_token = sd.get(STREAMING_DATA_INITIAL_PO_TOKEN)
-
             hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
                 if po_token:
@@ -3595,7 +3591,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
                 for sub in traverse_obj(subs, (..., ..., {dict})):
-                    # HLS subs (m3u8) do not currently require PO token
+                    # HLS subs (m3u8) do not need a PO token; save client name for debugging
                     sub[STREAMING_DATA_CLIENT_NAME] = client_name
                 subtitles = self._merge_subtitles(subs, subtitles)
                 for f in fmts:
@@ -3608,26 +3604,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if po_token:
                     dash_manifest_url = dash_manifest_url.rstrip('/') + f'/pot/{po_token}'
                 formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
-                if subs:
-                    exp_values = traverse_obj(subs, (..., ..., 'url', {parse_qs}, 'exp', ...))
-                    subs_require_pot = (
-                        any(e in exp_values for e in ('xpe', 'xpv'))
-                        or _PoTokenContext.SUBS in required_contexts)
-                    subs_pot_params = {}
-                    if subs_po_token := fetch_subs_po_token_func(required=subs_require_pot):
-                        subs_pot_params.update({
-                            'pot': subs_po_token,
-                            'potc': '1',
-                            'c': innertube_client_name,
-                        })
-                    if not subs_require_pot or subs_pot_params:
-                        for sub in traverse_obj(subs, (..., ..., {dict})):
-                            sub['url'] = update_url_query(sub['url'], subs_pot_params)
-                            sub[STREAMING_DATA_CLIENT_NAME] = client_name
-                        subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
-                    elif not subtitles:
-                        self._report_pot_subtitles_skipped(video_id, client_name)
-
+                for sub in traverse_obj(subs, (..., ..., {dict})):
+                    # TODO: Investigate if DASH subs ever need a PO token; save client name for debugging
+                    sub[STREAMING_DATA_CLIENT_NAME] = client_name
+                subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
                 for f in formats:
                     if process_manifest_format(f, 'dash', client_name, f['format_id'], po_token):
                         f['filesize'] = int_or_none(self._search_regex(
