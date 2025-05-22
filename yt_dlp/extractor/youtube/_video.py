@@ -3950,19 +3950,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         subtitles = {}
         skipped_subs_clients = set()
-        prs = traverse_obj(player_responses, (
-            # Filter out initial_pr which does not have streamingData (smuggled client context)
-            lambda _, v: v['streamingData'] and v['captions']['playerCaptionsTracklistRenderer']))
 
-        pctrs = traverse_obj(prs, (..., 'captions', 'playerCaptionsTracklistRenderer', {dict}))
+        # Only web/mweb clients provide translationLanguages, so include initial_pr in the traversal
         translation_languages = {
-            lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
-            for lang in traverse_obj(pctrs, (..., 'translationLanguages', ..., {dict}))}
+            lang['languageCode']: self._get_text(lang['languageName'], max_runs=1)
+            for lang in traverse_obj(player_responses, (
+                ..., 'captions', 'playerCaptionsTracklistRenderer', 'translationLanguages',
+                lambda _, v: v['languageCode'] and v['languageName']))
+        }
         # NB: Constructing the full subtitle dictionary is slow
         get_translated_subs = 'translated_subs' not in self._configuration_arg('skip') and (
             self.get_param('writeautomaticsub', False) or self.get_param('listsubtitles'))
 
-        all_captions = traverse_obj(pctrs, (..., 'captionTracks', ..., {dict}))
+        # Filter out initial_pr which does not have streamingData (smuggled client context)
+        prs = traverse_obj(player_responses, (
+            lambda _, v: v['streamingData'] and v['captions']['playerCaptionsTracklistRenderer']))
+        all_captions = traverse_obj(prs, (
+            ..., 'captions', 'playerCaptionsTracklistRenderer', 'captionTracks', ..., {dict}))
         need_subs_langs = {get_lang_code(sub) for sub in all_captions if sub.get('kind') != 'asr'}
         need_caps_langs = {
             remove_start(get_lang_code(sub), 'a-')
