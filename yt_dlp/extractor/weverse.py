@@ -290,12 +290,14 @@ class WeverseIE(WeverseBaseIE):
 
         elif live_status == 'is_live':
             video_info = self._call_api(
-                f'/video/v1.2/lives/{api_video_id}/playInfo?preview.format=json&preview.version=v2',
+                f'/video/v1.3/lives/{api_video_id}/playInfo?preview.format=json&preview.version=v2',
                 video_id, note='Downloading live JSON')
             playback = self._parse_json(video_info['lipPlayback'], video_id)
             m3u8_url = traverse_obj(playback, (
                 'media', lambda _, v: v['protocol'] == 'HLS', 'path', {url_or_none}), get_all=False)
-            formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls', live=True)
+            # Live subtitles are not downloadable, but extract to silence "ignoring subs" warning
+            formats, _ = self._extract_m3u8_formats_and_subtitles(
+                m3u8_url, video_id, 'mp4', m3u8_id='hls', live=True)
 
         elif live_status == 'post_live':
             if availability in ('premium_only', 'subscriber_only'):

@@ -6,7 +6,8 @@ import math
 import re
 import urllib.parse
 
-from ._helper import InstanceStoreMixin, select_proxy
+from ._helper import InstanceStoreMixin
+from ..utils.networking import select_proxy
 from .common import (
     Features,
     Request,
