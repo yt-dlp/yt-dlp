@@ -1680,7 +1680,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
                 f'live_event/1/{display_id}/timeline.json', display_id)
             broadcast_id = traverse_obj(timeline, (
                 'twitter_objects', 'broadcasts', ..., ('id', 'broadcast_id'),
-                {str_or_none}, any, {require('broadcast ID')}))
+                {str}, any, {require('broadcast ID')}))
         else:
             broadcast_id = display_id
 
