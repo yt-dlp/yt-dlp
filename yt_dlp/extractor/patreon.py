@@ -341,7 +341,7 @@ class PatreonIE(PatreonBaseIE):
                 }))
 
         # all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, Vimeo
-        headers = {'referer': 'https://patreon.com/'}
+        headers = {'referer': url}
 
         # handle Vimeo embeds
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
