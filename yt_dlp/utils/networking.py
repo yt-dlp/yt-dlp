@@ -216,6 +216,8 @@ def clean_proxies(proxies: dict, headers: HTTPHeaderDict):
         if proxy_key == 'no':  # special case
             continue
         if proxy_url is not None:
+            if isinstance(proxy_url, typing.Callable):
+                proxy_url = proxy_url()
             # Ensure proxies without a scheme are http.
             try:
                 proxy_scheme = urllib.request._parse_proxy(proxy_url)[0]
