@@ -19,6 +19,11 @@ from ..utils import (
 
 class BravoTVIE(AdobePassIE):
     _VALID_URL = r'https?://(?:www\.)?(?P<site>bravotv|oxygen)\.com/(?:[^/]+/)+(?P<id>[^/?#]+)'
+    _SOFTWARE_STATEMENTS = {
+        'bravo': 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI0MjY3NDZiZS0xYmE1LTRmNTItYjZmYy00NDViZDFhNGFmMWUiLCJuYmYiOjE1OTI5NDgyODEsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTkyOTQ4MjgxfQ.hcfR51UQ3GZAdDBuNDMvFE8iYXxcllhlVeOiEegU_glDkDJvi8pxtYoJEN9f4CrrfHT0F1pkDUwXVHhEtlu786LWpRNFUzjw2poKZqCh-akEhU8fbAp70LvWzdFF6K2C-4HsiNo3G5t354_OZnjxPE6PIOyDG_4HXAXzYAXInL2RXZPXZgew3rVBxrEt5Fork64DBPXhm9nEisEOnokaW34SskTovwwj5e8HVBNqzxJtvvSCrSjZ_oIcHu02YFudL--ZbxzATCLNIr1JJK1NDDxUu4C9S9at_yErTgsD2iDXCD2Pl4CjFEYb1qdl2pbPHcjDP30MbBA09BENyLcOsw',
+        'oxygen': 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJjNGU2YjlhNi1hNjhkLTQ4NzUtODFkNi00OWE3MzRmM2U4NjkiLCJuYmYiOjE1OTI5NDgyNTUsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTkyOTQ4MjU1fQ.xoixfDvRnFho5BoNTDxPYnLpPJYnIbAB_wvC7QQEnsFfnaXzooVekPzvKDq3UcZD4HRecqiIpyD9qPIzOebHWFBcnGryjZzugC18dc8ZVo29e68nCvRMFixAZOTXntKYm0NV4Dvt4ZZJN7gTzZN58449VAcM4-uKGQvzr2OG42-BglNVomwjtGdgr-WoMCf5S66NbzIuYIaFnSBH0RUKZCyxmHS0D5DDipzX0ItsWlx8iT0m_Wi8OL7PieyLRXnFioiJyOxoI25lC0xQnbxxWAcKMlFGkY86YBs5X_WNvASA_yujNmv6Sg1HQKc59rbdsTQjZoU_FoHiaQaDJmnzcA',
+    }
+
     _TESTS = [{
         'url': 'https://www.bravotv.com/top-chef/season-16/episode-15/videos/the-top-chef-season-16-winner-is',
         'info_dict': {
@@ -111,7 +116,7 @@ class BravoTVIE(AdobePassIE):
         tve = extract_attributes(get_element_html_by_class('tve-video-deck-app', webpage) or '')
         query = {
             'manifest': 'm3u',
-            'formats': 'm3u,mpeg4',
+            'formats': 'mpeg4',
         }
 
         if tve:
@@ -130,7 +135,7 @@ class BravoTVIE(AdobePassIE):
                 query.update({
                     'switch': 'HLSServiceSecure',
                     'auth': self._extract_mvpd_auth(
-                        url, release_pid, auth.get('adobePassRequestorId') or site, resource),
+                        url, release_pid, auth.get('adobePassRequestorId') or site, resource, self._SOFTWARE_STATEMENTS.get(site)),
                 })
 
         else:
