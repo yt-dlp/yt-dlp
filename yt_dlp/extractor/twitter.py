@@ -1684,17 +1684,21 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         else:
             broadcast_id = display_id
 
-        broadcast = self._call_api(
-            'broadcasts/show.json', broadcast_id,
-            {'ids': broadcast_id})['broadcasts'][broadcast_id]
-        if not broadcast:
+        if not (broadcast := self._call_api(
+            'broadcasts/show.json', broadcast_id, {'ids': broadcast_id},
+        )['broadcasts'][broadcast_id]):
             raise ExtractorError('Broadcast no longer exists', expected=True)
+
         info = self._parse_broadcast_data(broadcast, broadcast_id)
-        info['title'] = broadcast.get('status') or info.get('title')
-        info['uploader_id'] = broadcast.get('twitter_username') or info.get('uploader_id')
-        info['uploader_url'] = format_field(broadcast, 'twitter_username', 'https://twitter.com/%s', default=None)
-        info['display_id'] = display_id
+        info.update({
+            'display_id': display_id,
+            'title': broadcast.get('status') or info.get('title'),
+            'uploader_id': broadcast.get('twitter_username') or info.get('uploader_id'),
+            'uploader_url': format_field(
+                broadcast, 'twitter_username', 'https://twitter.com/%s', default=None),
+        })
         if info['live_status'] == 'is_upcoming':
+            self.raise_no_formats('This live broadcast has not yet started', expected=True)
             return info
 
         media_key = broadcast['media_key']
