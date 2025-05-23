@@ -16,7 +16,6 @@ from ..utils import (
     parse_iso8601,
     smuggle_url,
     str_or_none,
-    update_url,
     url_or_none,
     urljoin,
 )
@@ -343,7 +342,7 @@ class PatreonIE(PatreonBaseIE):
 
         # Must be all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, and Vimeo.
         # patreon.com URLs redirect to www.patreon.com; this matters when requesting mux.com m3u8s
-        headers = {'referer': update_url(url, netloc='www.patreon.com')}
+        headers = {'referer': 'https://www.patreon.com/'}
 
         # handle Vimeo embeds
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
