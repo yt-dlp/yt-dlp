@@ -1977,6 +1977,33 @@ See the [Developer Instructions](https://github.com/yt-dlp/yt-dlp/blob/master/CO
 
 # EMBEDDING YT-DLP
 
+# WEB UI
+
+This project includes a simple web UI to download videos.
+
+## Running the Web UI
+
+1.  **Install dependencies:**
+    Make sure you have Flask installed. If not, you can install it along with yt-dlp:
+    ```bash
+    pip install Flask yt-dlp
+    ```
+
+2.  **Start the web server:**
+    Navigate to the root directory of the project in your terminal and run:
+    ```bash
+    python web_server.py
+    ```
+
+3.  **Open the Web UI:**
+    Open your web browser and go to:
+    ```
+    http://localhost:5000
+    ```
+
+    You should see a page with an input box where you can paste video URLs. After pasting a URL and clicking "Fetch Formats", available video versions will be displayed with download links. Videos will be downloaded to a `downloads` folder created in the root of the project.
+
+
 yt-dlp makes the best effort to be a good command-line program, and thus should be callable from any programming language.
 
 Your program should avoid parsing the normal stdout since they may change in future versions. Instead, they should use options such as `-J`, `--print`, `--progress-template`, `--exec` etc to create console output that you can reliably reproduce and parse.
@@ -2171,7 +2198,6 @@ ydl_opts = {
 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     ydl.download(URLS)
 ```
-
 
 # CHANGES FROM YOUTUBE-DL
 
