@@ -70,6 +70,8 @@ class PodchaserIE(InfoExtractor):
             'categories': (('summary', None), 'categories', ..., 'text', {str}, filter, all, {orderedSet}),
             'tags': ('tags', ..., 'text', {str}),
         }))
+        info['vcodec'] = 'none'
+
         if info.get('series_id'):
             podcast_slug = traverse_obj(podcast, ('slug', {str})) or 'podcast'
             episode_slug = traverse_obj(episode, ('slug', {str})) or 'episode'
@@ -77,6 +79,7 @@ class PodchaserIE(InfoExtractor):
                 'https://www.podchaser.com/podcasts',
                 '-'.join((podcast_slug[:30].rstrip('-'), info['series_id'])),
                 '-'.join((episode_slug[:30].rstrip('-'), info['id']))))
+
         return info
 
     def _call_api(self, path, *args, **kwargs):
