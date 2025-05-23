@@ -558,6 +558,53 @@ class TestModifyChaptersPP(unittest.TestCase):
                 '[SponsorBlock]: Sponsor', 'c',
             ]), [])
 
+    def test_round_remove_chapter_Common(self):
+        keyframes = [1, 3, 5, 7]
+        chapters = self._pp._round_remove_chapters(keyframes, [
+            {'start_time': 0, 'end_time': 2},
+            {'start_time': 2, 'end_time': 6, 'remove': True},
+            {'start_time': 6, 'end_time': 10, 'remove': False},
+        ], duration=12)
+        self.assertEqual(chapters, [
+            {'start_time': 0, 'end_time': 2},
+            {'start_time': 2, 'end_time': 5, 'remove': True},
+            {'start_time': 6, 'end_time': 10, 'remove': False},
+        ])
+
+    def test_round_remove_chapter_AlreadyKeyframe(self):
+        keyframes = [1, 3, 5, 7]
+        chapters = self._pp._round_remove_chapters(keyframes, [
+            {'start_time': 0, 'end_time': 2},
+            {'start_time': 3, 'end_time': 7, 'remove': True},
+            {'start_time': 6, 'end_time': 10, 'remove': False},
+        ], duration=12)
+        self.assertEqual(chapters, [
+            {'start_time': 0, 'end_time': 2},
+            {'start_time': 3, 'end_time': 7, 'remove': True},
+            {'start_time': 6, 'end_time': 10, 'remove': False},
+        ])
+
+    def test_round_remove_chapter_RemoveEnd(self):
+        keyframes = [1, 3, 5, 7]
+        chapters = self._pp._round_remove_chapters(keyframes, [
+            {'start_time': 0, 'end_time': 2},
+            {'start_time': 3, 'end_time': 8, 'remove': True},
+        ], duration=8)
+        self.assertEqual(chapters, [
+            {'start_time': 0, 'end_time': 2},
+            {'start_time': 3, 'end_time': 8, 'remove': True},
+        ])
+
+    def test_round_remove_chapter_RemoveAfterLast(self):
+        keyframes = [1, 3, 5, 7]
+        chapters = self._pp._round_remove_chapters(keyframes, [
+            {'start_time': 0, 'end_time': 2},
+            {'start_time': 8, 'end_time': 9, 'remove': True},
+        ], duration=10)
+        self.assertEqual(chapters, [
+            {'start_time': 0, 'end_time': 2},
+        ])
+
     def test_make_concat_opts_CommonCase(self):
         sponsor_chapters = [self._chapter(1, 2, 's1'), self._chapter(10, 20, 's2')]
         expected = '''ffconcat version 1.0
