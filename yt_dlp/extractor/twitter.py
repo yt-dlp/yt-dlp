@@ -1673,7 +1673,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
     }]
 
     def _real_extract(self, url):
-        broadcast_type, display_id = self._match_valid_url(url).groups()
+        broadcast_type, display_id = self._match_valid_url(url).group('type', 'id')
 
         if broadcast_type == 'events':
             timeline = self._call_api(
