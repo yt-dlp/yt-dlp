@@ -175,7 +175,7 @@ class TwitCastingIE(InfoExtractor):
 
             password_params = {
                 'word': hashlib.md5(video_password.encode()).hexdigest(),
-            } if video_password else {}
+            } if video_password else None
 
             formats = []
             # low: 640x360, medium: 1280x720, high: 1920x1080
