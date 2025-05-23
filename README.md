@@ -217,6 +217,9 @@ The following provide support for impersonating browser requests. This may be re
 * [**secretstorage**](https://github.com/mitya57/secretstorage)\* - For `--cookies-from-browser` to access the **Gnome** keyring while decrypting cookies of **Chromium**-based browsers on **Linux**. Licensed under [BSD-3-Clause](https://github.com/mitya57/secretstorage/blob/master/LICENSE)
 * Any external downloader that you want to use with `--downloader`
 
+### Web UI
+* [**Flask**](https://flask.palletsprojects.com/) - Required for the Web UI. Install with `pip install Flask`.
+
 ### Deprecated
 
 * [**avconv** and **avprobe**](https://www.libav.org) - Now **deprecated** alternative to ffmpeg. License [depends on the build](https://libav.org/legal)
@@ -1125,6 +1128,37 @@ Predefined aliases for convenience and ease of use. Note that future
 
     -t sleep                        --sleep-subtitles 5 --sleep-requests 0.75
                                     --sleep-interval 10 --max-sleep-interval 20
+
+## Web UI
+
+yt-dlp includes a simple web UI to download videos through a browser.
+
+### Running the Web UI
+
+1.  **Ensure Dependencies are Met:**
+    Make sure you have Flask installed. If you installed yt-dlp via pip, you can install Flask alongside it:
+    ```bash
+    pip install "yt-dlp[default]" Flask
+    ```
+    Or, if you have yt-dlp installed by other means, ensure Flask is in your Python environment:
+    ```bash
+    pip install Flask
+    ```
+
+2.  **Start the Web Server:**
+    Navigate to the root directory of the yt-dlp project (where the `web_server.py` file is located) in your terminal and run:
+    ```bash
+    python web_server.py
+    ```
+    The server will start, typically on `http://localhost:5000`. You will see a message in the console indicating where it's serving and where downloaded files will be stored (default is a `downloads` folder in the project root).
+
+3.  **Using the Web Interface:**
+    Open your web browser and go to the address shown by the server (e.g., `http://localhost:5000`).
+    *   **Enter URL:** Paste the URL of the video you want to download into the input field.
+    *   **Fetch Formats:** Click the "Fetch Formats" button. The backend will retrieve video information.
+    *   **Download:** A list of available video formats will appear. Each format will show its extension, resolution/note, and approximate filesize. Click the "Download" button next to your desired format to start the download. The file will be saved to the server's `downloads` directory and then streamed to your browser.
+
+**Note:** The Web UI is a basic feature. For advanced downloading options and configurations, the command-line interface remains the primary tool.
 
 # CONFIGURATION
 
@@ -2171,7 +2205,6 @@ ydl_opts = {
 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     ydl.download(URLS)
 ```
-
 
 # CHANGES FROM YOUTUBE-DL
 
