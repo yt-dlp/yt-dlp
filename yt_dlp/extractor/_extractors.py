@@ -521,6 +521,14 @@ from .douyutv import (
     DouyuShowIE,
     DouyuTVIE,
 )
+from .downdogapp import (
+    DownDogBarreIE,
+    DownDogHiitIE,
+    DownDogMeditationIE,
+    DownDogPilatesIE,
+    DownDogPrenatalIE,
+    DownDogYogaIE,
+)
 from .dplay import (
     TLCIE,
     AmHistoryChannelIE,
