@@ -340,8 +340,9 @@ class PatreonIE(PatreonBaseIE):
                     'channel_follower_count': ('attributes', 'patron_count', {int_or_none}),
                 }))
 
-        # all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, Vimeo
-        headers = {'referer': url}
+        # Must be all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, and Vimeo.
+        # patreon.com URLs redirect to www.patreon.com; this matters when requesting mux.com m3u8s
+        headers = {'referer': 'https://www.patreon.com/'}
 
         # handle Vimeo embeds
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
@@ -352,7 +353,7 @@ class PatreonIE(PatreonBaseIE):
                     v_url, video_id, 'Checking Vimeo embed URL', headers=headers,
                     fatal=False, errnote=False, expected_status=429):  # 429 is TLS fingerprint rejection
                 entries.append(self.url_result(
-                    VimeoIE._smuggle_referrer(v_url, 'https://patreon.com/'),
+                    VimeoIE._smuggle_referrer(v_url, headers['referer']),
                     VimeoIE, url_transparent=True))
 
         embed_url = traverse_obj(attributes, ('embed', 'url', {url_or_none}))
