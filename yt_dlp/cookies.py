@@ -764,11 +764,11 @@ def _get_linux_desktop_environment(env, logger):
     GetDesktopEnvironment
     """
     xdg_current_desktop = env.get('XDG_CURRENT_DESKTOP', None)
-    desktop_session = env.get('DESKTOP_SESSION', None)
+    desktop_session = env.get('DESKTOP_SESSION', '')
     if xdg_current_desktop is not None:
         for part in map(str.strip, xdg_current_desktop.split(':')):
             if part == 'Unity':
-                if desktop_session is not None and 'gnome-fallback' in desktop_session:
+                if 'gnome-fallback' in desktop_session:
                     return _LinuxDesktopEnvironment.GNOME
                 else:
                     return _LinuxDesktopEnvironment.UNITY
@@ -797,35 +797,34 @@ def _get_linux_desktop_environment(env, logger):
                 return _LinuxDesktopEnvironment.UKUI
             elif part == 'LXQt':
                 return _LinuxDesktopEnvironment.LXQT
-        logger.info(f'XDG_CURRENT_DESKTOP is set to an unknown value: "{xdg_current_desktop}"')
+        logger.debug(f'XDG_CURRENT_DESKTOP is set to an unknown value: "{xdg_current_desktop}"')
 
-    elif desktop_session is not None:
-        if desktop_session == 'deepin':
-            return _LinuxDesktopEnvironment.DEEPIN
-        elif desktop_session in ('mate', 'gnome'):
-            return _LinuxDesktopEnvironment.GNOME
-        elif desktop_session in ('kde4', 'kde-plasma'):
+    if desktop_session == 'deepin':
+        return _LinuxDesktopEnvironment.DEEPIN
+    elif desktop_session in ('mate', 'gnome'):
+        return _LinuxDesktopEnvironment.GNOME
+    elif desktop_session in ('kde4', 'kde-plasma'):
+        return _LinuxDesktopEnvironment.KDE4
+    elif desktop_session == 'kde':
+        if 'KDE_SESSION_VERSION' in env:
             return _LinuxDesktopEnvironment.KDE4
-        elif desktop_session == 'kde':
-            if 'KDE_SESSION_VERSION' in env:
-                return _LinuxDesktopEnvironment.KDE4
-            else:
-                return _LinuxDesktopEnvironment.KDE3
-        elif 'xfce' in desktop_session or desktop_session == 'xubuntu':
-            return _LinuxDesktopEnvironment.XFCE
-        elif desktop_session == 'ukui':
-            return _LinuxDesktopEnvironment.UKUI
         else:
-            logger.info(f'DESKTOP_SESSION is set to an unknown value: "{desktop_session}"')
-
+            return _LinuxDesktopEnvironment.KDE3
+    elif 'xfce' in desktop_session or desktop_session == 'xubuntu':
+        return _LinuxDesktopEnvironment.XFCE
+    elif desktop_session == 'ukui':
+        return _LinuxDesktopEnvironment.UKUI
     else:
-        if 'GNOME_DESKTOP_SESSION_ID' in env:
-            return _LinuxDesktopEnvironment.GNOME
-        elif 'KDE_FULL_SESSION' in env:
-            if 'KDE_SESSION_VERSION' in env:
-                return _LinuxDesktopEnvironment.KDE4
-            else:
-                return _LinuxDesktopEnvironment.KDE3
+        logger.debug(f'DESKTOP_SESSION is set to an unknown value: "{desktop_session}"')
+
+    if 'GNOME_DESKTOP_SESSION_ID' in env:
+        return _LinuxDesktopEnvironment.GNOME
+    elif 'KDE_FULL_SESSION' in env:
+        if 'KDE_SESSION_VERSION' in env:
+            return _LinuxDesktopEnvironment.KDE4
+        else:
+            return _LinuxDesktopEnvironment.KDE3
+
     return _LinuxDesktopEnvironment.OTHER
 
 

@@ -230,6 +230,9 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         formatter.indent()
         heading = formatter.format_heading('Preset Aliases')
         formatter.indent()
+        description = formatter.format_description(
+            'Predefined aliases for convenience and ease of use. Note that future versions of yt-dlp '
+            'may add or adjust presets, but the existing preset names will not be changed or removed')
         result = []
         for name, args in _PRESET_ALIASES.items():
             option = optparse.Option('-t', help=shlex.join(args))
@@ -238,7 +241,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         formatter.dedent()
         formatter.dedent()
         help_lines = '\n'.join(result)
-        return f'{formatted_help}\n{heading}{help_lines}'
+        return f'{formatted_help}\n{heading}{description}\n{help_lines}'
 
 
 def create_parser():
@@ -470,7 +473,7 @@ def create_parser():
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
-        help='Download livestreams from the start. Currently only supported for YouTube (Experimental)')
+        help='Download livestreams from the start. Currently experimental and only supported for YouTube and Twitch')
     general.add_option(
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
@@ -545,9 +548,9 @@ def create_parser():
         help=(
             'Create aliases for an option string. Unless an alias starts with a dash "-", it is prefixed with "--". '
             'Arguments are parsed according to the Python string formatting mini-language. '
-            'E.g. --alias get-audio,-X "-S=aext:{0},abr -x --audio-format {0}" creates options '
+            'E.g. --alias get-audio,-X "-S aext:{0},abr -x --audio-format {0}" creates options '
             '"--get-audio" and "-X" that takes an argument (ARG0) and expands to '
-            '"-S=aext:ARG0,abr -x --audio-format ARG0". All defined aliases are listed in the --help output. '
+            '"-S aext:ARG0,abr -x --audio-format ARG0". All defined aliases are listed in the --help output. '
             'Alias options can trigger more aliases; so be careful to avoid defining recursive options. '
             f'As a safety measure, each alias may be triggered a maximum of {_YoutubeDLOptionParser.ALIAS_TRIGGER_LIMIT} times. '
             'This option can be used multiple times'))

@@ -590,39 +590,12 @@ class JSInterpreter:
                     return ret, True
             return ret, False
 
-        for m in re.finditer(rf'''(?x)
-                (?P<pre_sign>\+\+|--)(?P<var1>{_NAME_RE})|
-                (?P<var2>{_NAME_RE})(?P<post_sign>\+\+|--)''', expr):
-            var = m.group('var1') or m.group('var2')
-            start, end = m.span()
-            sign = m.group('pre_sign') or m.group('post_sign')
-            ret = local_vars[var]
-            local_vars[var] += 1 if sign[0] == '+' else -1
-            if m.group('pre_sign'):
-                ret = local_vars[var]
-            expr = expr[:start] + self._dump(ret, local_vars) + expr[end:]
-
-        if not expr:
-            return None, should_return
-
         m = re.match(fr'''(?x)
-            (?P<assign>
                 (?P<out>{_NAME_RE})(?:\[(?P<index>{_NESTED_BRACKETS})\])?\s*
                 (?P<op>{"|".join(map(re.escape, set(_OPERATORS) - _COMP_OPERATORS))})?
                 =(?!=)(?P<expr>.*)$
-            )|(?P<return>
-                (?!if|return|true|false|null|undefined|NaN)(?P<name>{_NAME_RE})$
-            )|(?P<attribute>
-                (?P<var>{_NAME_RE})(?:
-                    (?P<nullish>\?)?\.(?P<member>[^(]+)|
-                    \[(?P<member2>{_NESTED_BRACKETS})\]
-                )\s*
-            )|(?P<indexing>
-                (?P<in>{_NAME_RE})\[(?P<idx>.+)\]$
-            )|(?P<function>
-                (?P<fname>{_NAME_RE})\((?P<args>.*)\)$
-            )''', expr)
-        if m and m.group('assign'):
+            ''', expr)
+        if m:  # We are assigning a value to a variable
             left_val = local_vars.get(m.group('out'))
 
             if not m.group('index'):
@@ -640,7 +613,35 @@ class JSInterpreter:
                 m.group('op'), self._index(left_val, idx), m.group('expr'), expr, local_vars, allow_recursion)
             return left_val[idx], should_return
 
-        elif expr.isdigit():
+        for m in re.finditer(rf'''(?x)
+                (?P<pre_sign>\+\+|--)(?P<var1>{_NAME_RE})|
+                (?P<var2>{_NAME_RE})(?P<post_sign>\+\+|--)''', expr):
+            var = m.group('var1') or m.group('var2')
+            start, end = m.span()
+            sign = m.group('pre_sign') or m.group('post_sign')
+            ret = local_vars[var]
+            local_vars[var] += 1 if sign[0] == '+' else -1
+            if m.group('pre_sign'):
+                ret = local_vars[var]
+            expr = expr[:start] + self._dump(ret, local_vars) + expr[end:]
+
+        if not expr:
+            return None, should_return
+
+        m = re.match(fr'''(?x)
+            (?P<return>
+                (?!if|return|true|false|null|undefined|NaN)(?P<name>{_NAME_RE})$
+            )|(?P<attribute>
+                (?P<var>{_NAME_RE})(?:
+                    (?P<nullish>\?)?\.(?P<member>[^(]+)|
+                    \[(?P<member2>{_NESTED_BRACKETS})\]
+                )\s*
+            )|(?P<indexing>
+                (?P<in>{_NAME_RE})\[(?P<idx>.+)\]$
+            )|(?P<function>
+                (?P<fname>{_NAME_RE})\((?P<args>.*)\)$
+            )''', expr)
+        if expr.isdigit():
             return int(expr), should_return
 
         elif expr == 'break':
