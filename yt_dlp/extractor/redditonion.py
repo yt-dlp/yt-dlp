@@ -260,6 +260,9 @@ class RedditOnionIE(InfoExtractor):
         # reddit video @ nm reddit
         'url': 'https://nm.reddittorjg6rue252oqsxryoxengawnmo46qy4kyii5wtqnwfj4ooad.onion/r/Cricket/comments/8idvby/lousy_cameraman_finds_himself_in_cairns_line_of/',
         'only_matching': True,
+    }, {
+        'url': 'https://www.reddittorjg6rue252oqsxryoxengawnmo46qy4kyii5wtqnwfj4ooad.onion/r/serbia/comments/pu9wbx/ako_vu%C4%8Di%C4%87_izgubi_izbore_ja_%C4%87u_da_crknem/',
+        'only_matching': True,
     }]
 
     def _perform_login(self, username, password):
