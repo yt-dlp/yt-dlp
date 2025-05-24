@@ -44,12 +44,14 @@ class WeverseBaseIE(InfoExtractor):
     }
     _LOGIN_HINT_TMPL = (
         'You can log in using your refresh token with --username "{}" --password "REFRESH_TOKEN" '
-        '(replace REFRESH_TOKEN with the actual value of the "{}" cookie found in your web browser). ')
+        '(replace REFRESH_TOKEN with the actual value of the "{}" cookie found in your web browser). '
+        'You can add an optional username suffix, e.g. --username "{}" , '
+        'if you need to manage multiple accounts. ')
     _LOGIN_ERRORS_MAP = {
         'login_required': 'This video is only available for logged-in users. ',
         'invalid_username': '"{}" is not valid login username for this extractor. ',
         'invalid_password': (
-            'Your password is not a valid refresh token. Double check that '
+            'Your password is not a valid refresh token. Make sure that '
             'you are passing the refresh token, and NOT the access token. '),
         'no_refresh_token': (
             'Your access token has expired and there is no refresh token available. '
@@ -135,16 +137,17 @@ class WeverseBaseIE(InfoExtractor):
         return {'Authorization': f'Bearer {self._oauth_tokens[self._ACCESS_TOKEN_KEY]}'}
 
     def _report_login_error(self, error_id):
+        error_msg = self._LOGIN_ERRORS_MAP[error_id]
         username = self._get_login_info()[0]
-        error_msg = self._LOGIN_ERRORS_MAP[error_id].format(username)
 
         if error_id == 'invalid_username':
+            error_msg = error_msg.format(username)
             username = f'{self._OAUTH_PREFIX}+{username}'
         elif not username:
-            username = self._OAUTH_PREFIX
+            username = f'{self._OAUTH_PREFIX}+USERNAME'
 
         raise ExtractorError(join_nonempty(
-            error_msg, self._LOGIN_HINT_TMPL.format(username, self._REFRESH_TOKEN_KEY),
+            error_msg, self._LOGIN_HINT_TMPL.format(self._OAUTH_PREFIX, self._REFRESH_TOKEN_KEY, username),
             'Or else you can u', self._login_hint(method='session_cookies')[1:], delim=''), expected=True)
 
     def _perform_login(self, username, password):
