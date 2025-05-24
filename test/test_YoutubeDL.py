@@ -2,6 +2,7 @@
 
 # Allow direct execution
 import os
+import platform
 import sys
 import unittest
 from unittest.mock import patch
@@ -724,6 +725,7 @@ class TestYoutubeDL(unittest.TestCase):
         'title3': 'foo/bar\\test',
         'title4': 'foo "bar" test',
         'title5': 'áéí 𝐀',
+        'title6': 'あ' * 10,
         'timestamp': 1618488000,
         'duration': 100000,
         'playlist_index': 1,
@@ -739,12 +741,14 @@ class TestYoutubeDL(unittest.TestCase):
 
     def test_prepare_outtmpl_and_filename(self):
         def test(tmpl, expected, *, info=None, **params):
+            if 'trim_file_name' not in params:
+                params['trim_file_name'] = 'none'  # disable trimming
             params['outtmpl'] = tmpl
             ydl = FakeYDL(params)
             ydl._num_downloads = 1
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
-            out = ydl.evaluate_outtmpl(tmpl, info or self.outtmpl_info)
+            out = ydl.evaluate_outtmpl(tmpl, info or self.outtmpl_info, trim_filename=True)
             fname = ydl.prepare_filename(info or self.outtmpl_info)
 
             if not isinstance(expected, (list, tuple)):
@@ -950,6 +954,20 @@ class TestYoutubeDL(unittest.TestCase):
         test('Hello %(title2)s', 'Hello %PATH%')
         test('%(title3)s', ('foo/bar\\test', 'foo⧸bar⧹test'))
         test('folder/%(title3)s', ('folder/foo/bar\\test', f'folder{os.path.sep}foo⧸bar⧹test'))
+
+        # --trim-filenames
+        test('%(title6)s.%(ext)s', 'あ' * 10 + '.mp4')
+        test('%(title6)s.%(ext)s', 'あ' * 3 + '.mp4', trim_file_name='3c')
+        if sys.getfilesystemencoding() == 'utf-8' and platform.system() != 'Windows':
+            test('%(title6)s.%(ext)s', 'あ' * 3 + '.mp4', trim_file_name='9b')
+            test('%(title6)s.%(ext)s', 'あ' * 3 + '.mp4', trim_file_name='10b')
+            test('%(title6)s.%(ext)s', 'あ' * 3 + '.mp4', trim_file_name='11b')
+            test('%(title6)s.%(ext)s', 'あ' * 4 + '.mp4', trim_file_name='12b')
+        elif platform.system() == 'Windows':
+            test('%(title6)s.%(ext)s', 'あ' * 4 + '.mp4', trim_file_name='8b')
+            test('%(title6)s.%(ext)s', 'あ' * 4 + '.mp4', trim_file_name='9b')
+            test('%(title6)s.%(ext)s', 'あ' * 5 + '.mp4', trim_file_name='10b')
+        test('folder/%(title6)s.%(ext)s', f'fol{os.path.sep}あああ.mp4', trim_file_name='3c')
 
     def test_format_note(self):
         ydl = YoutubeDL()
