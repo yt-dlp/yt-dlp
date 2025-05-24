@@ -22,9 +22,11 @@ from yt_dlp.plugins import (
 from yt_dlp.globals import (
     extractors,
     postprocessors,
+    jsi_runtimes,
     plugin_dirs,
     plugin_ies,
     plugin_pps,
+    plugin_jsis,
     all_plugins_loaded,
     plugin_specs,
 )
@@ -44,16 +46,24 @@ POSTPROCESSOR_PLUGIN_SPEC = PluginSpec(
     plugin_destination=plugin_pps,
 )
 
+JSI_PLUGIN_SPEC = PluginSpec(
+    module_name='jsinterp',
+    suffix='JSI',
+    destination=jsi_runtimes,
+    plugin_destination=plugin_jsis,
+)
+
 
 def reset_plugins():
     plugin_ies.value = {}
     plugin_pps.value = {}
+    plugin_jsis.value = {}
     plugin_dirs.value = ['default']
     plugin_specs.value = {}
     all_plugins_loaded.value = False
     # Clearing override plugins is probably difficult
     for module_name in tuple(sys.modules):
-        for plugin_type in ('extractor', 'postprocessor'):
+        for plugin_type in ('extractor', 'postprocessor', 'jsinterp'):
             if module_name.startswith(f'{PACKAGE_NAME}.{plugin_type}.'):
                 del sys.modules[module_name]
 
@@ -108,6 +118,17 @@ class TestPlugins(unittest.TestCase):
         self.assertIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
         self.assertIn('NormalPluginPP', plugin_pps.value)
 
+    def test_jsi_runtime_classes(self):
+        plugins_jsi = load_plugins(JSI_PLUGIN_SPEC)
+        self.assertIn('NormalPluginJSI', plugins_jsi.keys())
+        self.assertIn(f'{PACKAGE_NAME}.jsinterp.normal', sys.modules.keys())
+        self.assertIn('NormalPluginJSI', plugin_jsis.value)
+
+        self.assertNotIn('OverrideDenoJSI', plugins_jsi.keys())
+        self.assertNotIn('OverrideDenoJSI', plugin_jsis.value)
+        self.assertNotIn('_UnderscoreOverrideDenoJSI', plugins_jsi.keys())
+        self.assertNotIn('_UnderscoreOverrideDenoJSI', plugin_jsis.value)
+
     def test_importing_zipped_module(self):
         zip_path = TEST_DATA_DIR / 'zipped_plugins.zip'
         shutil.make_archive(str(zip_path)[:-4], 'zip', str(zip_path)[:-4])
@@ -125,6 +146,9 @@ class TestPlugins(unittest.TestCase):
             plugins_pp = load_plugins(POSTPROCESSOR_PLUGIN_SPEC)
             self.assertIn('ZippedPluginPP', plugins_pp.keys())
 
+            plugins_jsi = load_plugins(JSI_PLUGIN_SPEC)
+            self.assertIn('ZippedPluginJSI', plugins_jsi.keys())
+
         finally:
             sys.path.remove(str(zip_path))
             os.remove(zip_path)
@@ -134,13 +158,14 @@ class TestPlugins(unittest.TestCase):
         reload_plugins_path = TEST_DATA_DIR / 'reload_plugins'
         load_plugins(EXTRACTOR_PLUGIN_SPEC)
         load_plugins(POSTPROCESSOR_PLUGIN_SPEC)
+        load_plugins(JSI_PLUGIN_SPEC)
 
         # Remove default folder and add reload_plugin path
         sys.path.remove(str(TEST_DATA_DIR))
         sys.path.append(str(reload_plugins_path))
         importlib.invalidate_caches()
         try:
-            for plugin_type in ('extractor', 'postprocessor'):
+            for plugin_type in ('extractor', 'postprocessor', 'jsinterp'):
                 package = importlib.import_module(f'{PACKAGE_NAME}.{plugin_type}')
                 self.assertIn(reload_plugins_path / PACKAGE_NAME / plugin_type, map(Path, package.__path__))
 
@@ -159,6 +184,14 @@ class TestPlugins(unittest.TestCase):
                             msg='Reloading has not replaced original postprocessor plugin')
             self.assertTrue(
                 postprocessors.value['NormalPluginPP'].REPLACED,
+                msg='Reloading has not replaced original postprocessor plugin globally')
+
+            plugins_jsi = load_plugins(JSI_PLUGIN_SPEC)
+            self.assertIn('NormalPluginJSI', plugins_jsi.keys())
+            self.assertTrue(plugins_jsi['NormalPluginJSI'].REPLACED,
+                            msg='Reloading has not replaced original postprocessor plugin')
+            self.assertTrue(
+                jsi_runtimes.value['NormalPluginJSI'].REPLACED,
                 msg='Reloading has not replaced original postprocessor plugin globally')
 
         finally:
@@ -181,6 +214,24 @@ class TestPlugins(unittest.TestCase):
         from yt_dlp.extractor.generic import GenericIE
         self.assertEqual(GenericIE.IE_NAME, 'generic+override+underscore-override')
 
+    def test_jsi_override_plugin(self):
+        load_plugins(JSI_PLUGIN_SPEC)
+
+        from yt_dlp.jsinterp._deno import DenoJSI
+
+        # test that jsi_runtimes is updated with override jsi
+        self.assertTrue(DenoJSI is jsi_runtimes.value['Deno'])
+        self.assertEqual(jsi_runtimes.value['Deno'].TEST_FIELD, 'override')
+        self.assertEqual(jsi_runtimes.value['Deno'].SECONDARY_TEST_FIELD, 'underscore-override')
+
+        self.assertEqual(jsi_runtimes.value['Deno'].JSI_NAME, 'Deno+override+underscore-override')
+        importlib.invalidate_caches()
+        # test that loading a second time doesn't wrap a second time
+        load_plugins(EXTRACTOR_PLUGIN_SPEC)
+        from yt_dlp.jsinterp._deno import DenoJSI
+        self.assertTrue(DenoJSI is jsi_runtimes.value['Deno'])
+        self.assertEqual(jsi_runtimes.value['Deno'].JSI_NAME, 'Deno+override+underscore-override')
+
     def test_load_all_plugin_types(self):
 
         # no plugin specs registered
@@ -188,24 +239,29 @@ class TestPlugins(unittest.TestCase):
 
         self.assertNotIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
         self.assertNotIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
+        self.assertNotIn(f'{PACKAGE_NAME}.jsinterp.normal', sys.modules.keys())
 
         register_plugin_spec(EXTRACTOR_PLUGIN_SPEC)
         register_plugin_spec(POSTPROCESSOR_PLUGIN_SPEC)
+        register_plugin_spec(JSI_PLUGIN_SPEC)
         load_all_plugins()
         self.assertTrue(all_plugins_loaded.value)
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
         self.assertIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
+        self.assertIn(f'{PACKAGE_NAME}.jsinterp.normal', sys.modules.keys())
 
     def test_no_plugin_dirs(self):
         register_plugin_spec(EXTRACTOR_PLUGIN_SPEC)
         register_plugin_spec(POSTPROCESSOR_PLUGIN_SPEC)
+        register_plugin_spec(JSI_PLUGIN_SPEC)
 
         plugin_dirs.value = []
         load_all_plugins()
 
         self.assertNotIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
         self.assertNotIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
+        self.assertNotIn(f'{PACKAGE_NAME}.jsinterp.normal', sys.modules.keys())
 
     def test_set_plugin_dirs(self):
         custom_plugin_dir = str(TEST_DATA_DIR / 'plugin_packages')
@@ -236,9 +292,11 @@ class TestPlugins(unittest.TestCase):
     def test_get_plugin_spec(self):
         register_plugin_spec(EXTRACTOR_PLUGIN_SPEC)
         register_plugin_spec(POSTPROCESSOR_PLUGIN_SPEC)
+        register_plugin_spec(JSI_PLUGIN_SPEC)
 
         self.assertEqual(plugin_specs.value.get('extractor'), EXTRACTOR_PLUGIN_SPEC)
         self.assertEqual(plugin_specs.value.get('postprocessor'), POSTPROCESSOR_PLUGIN_SPEC)
+        self.assertEqual(plugin_specs.value.get('jsinterp'), JSI_PLUGIN_SPEC)
         self.assertIsNone(plugin_specs.value.get('invalid'))
 
 
