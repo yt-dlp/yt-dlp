@@ -48,7 +48,7 @@ class WeverseBaseIE(InfoExtractor):
         'You can add an optional username suffix, e.g. --username "{}" , '
         'if you need to manage multiple accounts. ')
     _LOGIN_ERRORS_MAP = {
-        'login_required': 'This video is only available for logged-in users. ',
+        'login_required': 'This content is only available for logged-in users. ',
         'invalid_username': '"{}" is not valid login username for this extractor. ',
         'invalid_password': (
             'Your password is not a valid refresh token. Make sure that '
