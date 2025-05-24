@@ -64,9 +64,9 @@ class JSIWrapper:
     @param only_include: limit JSI to choose from.
     @param exclude: JSI to avoid using.
     @param jsi_params: extra kwargs to pass to `JSI.__init__()` for each JSI, using jsi key as dict key.
-    @param preferred_order: list of JSI to use. First in list is tested first.
+    @param preferred_order: list of JSI to try before others. First in list is tried first.
     @param timeout: timeout parameter for all chosen JSI
-    @param user_agent: override user-agent to use for supported JSI
+    @param user_agent: specify user-agent to use, default to downloader UA
     """
 
     def __init__(
@@ -97,6 +97,7 @@ class JSIWrapper:
         if not handler_classes:
             raise ExtractorError('No JSI is allowed to use')
 
+        user_agent = user_agent or self._downloader.params['http_headers']['User-Agent']
         self._handler_dict = {cls.JSI_KEY: cls(
             self._downloader, url=self._url, timeout=timeout,
             user_agent=user_agent, **jsi_params.get(cls.JSI_KEY, {}),
