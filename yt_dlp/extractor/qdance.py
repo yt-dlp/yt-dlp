@@ -1,11 +1,10 @@
 import json
-import time
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    jwt_decode_hs256,
+    jwt_is_expired,
     str_or_none,
     traverse_obj,
     try_call,
@@ -116,7 +115,7 @@ class QDanceIE(InfoExtractor):
             self.raise_login_required()
 
     def _get_auth(self):
-        if (try_call(lambda: jwt_decode_hs256(self._access_token)['exp']) or 0) <= int(time.time() - 120):
+        if jwt_is_expired(self._access_token, 120):
             if not self._refresh_token:
                 raise ExtractorError(
                     'Cannot refresh access token, login with yt-dlp or refresh cookies in browser')
