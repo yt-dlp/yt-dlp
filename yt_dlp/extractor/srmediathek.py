@@ -7,12 +7,17 @@ from ..utils import (
     parse_qs,
     unified_strdate,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import (
+    find_element,
+    require,
+    traverse_obj,
+)
 
 
 class SRMediathekIE(ARDMediathekBaseIE):
     IE_NAME = 'sr:mediathek'
     IE_DESC = 'Saarländischer Rundfunk'
+    CLS_COMMON = 'teaser__image__caption__text teaser__image__caption__text--'
 
     _VALID_URL = r'https?://(?:www\.)?sr-mediathek\.de/index\.php\?.*?&id=(?P<id>\d+)'
     _TESTS = [{
@@ -70,29 +75,26 @@ class SRMediathekIE(ARDMediathekBaseIE):
         player_url = traverse_obj(webpage, (
             {find_element(tag='div', id=f'player{video_id}', html=True)},
             {extract_attributes}, 'data-mediacollection-ardplayer',
-            {lambda x: self._proto_relative_url(x)},
-        ))
+            {self._proto_relative_url}, {require('player URL')}))
         article = traverse_obj(webpage, (
             {find_element(cls='article__content')},
-            {find_element(tag='p')}, {clean_html},
-        ))
-        cls_common = 'teaser__image__caption__text teaser__image__caption__text--'
+            {find_element(tag='p')}, {clean_html}))
 
         return {
             **self._extract_media_info(player_url, webpage, video_id),
             'id': video_id,
             'title': traverse_obj(webpage, (
-                {find_element(cls='ardplayer-title')}, {str.strip})),
+                {find_element(cls='ardplayer-title')}, {clean_html})),
             'channel': traverse_obj(webpage, (
-                {find_element(cls=f'{cls_common}subheadline')},
-                {lambda x: x.split('|')[0]}, {str.strip})),
+                {find_element(cls=f'{self.CLS_COMMON}subheadline')},
+                {lambda x: x.split('|')[0]}, {clean_html})),
             'description': description,
             'duration': parse_duration(self._search_regex(
                 r'(\d{2}:\d{2}:\d{2})', article, 'duration')),
             'release_date': unified_strdate(self._search_regex(
                 r'(\d{2}\.\d{2}\.\d{4})', article, 'release_date')),
             'series': traverse_obj(webpage, (
-                {find_element(cls=f'{cls_common}headline')}, {str.strip})),
+                {find_element(cls=f'{self.CLS_COMMON}headline')}, {clean_html})),
             'series_id': traverse_obj(webpage, (
                 {find_element(cls='teaser__link', html=True)},
                 {extract_attributes}, 'href', {parse_qs}, 'sen', ..., {str}, any)),
