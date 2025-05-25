@@ -568,6 +568,7 @@ class TestTraversalHelpers:
         assert trim_str(start='a', end='bc')('abc') == ''
         assert trim_str(start='ab', end='bc')('abc') == ''
         assert trim_str(start='abc', end='abc')('abc') == ''
+        assert trim_str(start='', end='')('abc') == 'abc'
         assert trim_str(start=re.compile(r'\w+'))('123_abc-123') == '-123'
         assert trim_str(end=re.compile(r'\|.+'))('abc| 123') == 'abc'
         assert trim_str(start=re.compile(r'\d+'), end='-456')('123abc-456') == 'abc'
