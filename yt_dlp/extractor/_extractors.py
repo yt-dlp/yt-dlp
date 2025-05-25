@@ -522,12 +522,7 @@ from .douyutv import (
     DouyuTVIE,
 )
 from .downdogapp import (
-    DownDogBarreIE,
-    DownDogHiitIE,
-    DownDogMeditationIE,
-    DownDogPilatesIE,
-    DownDogPrenatalIE,
-    DownDogYogaIE,
+    DownDogAppIE,
 )
 from .dplay import (
     TLCIE,
