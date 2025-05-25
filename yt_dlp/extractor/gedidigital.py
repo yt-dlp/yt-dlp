@@ -1,20 +1,14 @@
-import re
+import json
 
 from .common import InfoExtractor
-from ..utils import (
-    base_url,
-    determine_ext,
-    int_or_none,
-    url_basename,
-    urljoin,
-)
+from ..utils import int_or_none, js_to_json
 
 
 class GediDigitalIE(InfoExtractor):
-    _VALID_URL = r'''(?x:(?P<base_url>(?:https?:)//video\.
+    _VALID_URL = r'''(?x:(?:https?:)//(?:\w+\.)?
         (?:
             (?:
-                (?:espresso\.)?repubblica
+                repubblica
                 |lastampa
                 |ilsecoloxix
                 |huffingtonpost
@@ -33,24 +27,35 @@ class GediDigitalIE(InfoExtractor):
                 |corrierealpi
                 |lasentinella
             )\.gelocal
-        )\.it(?:/[^/]+){2,4}/(?P<id>\d+))(?:$|[?&].*))'''
-    _EMBED_REGEX = [rf'''(?x)
-            (?:
-                data-frame-src=|
-                <iframe[^\n]+src=
-            )
-            (["'])(?P<url>{_VALID_URL})\1''']
+        )\.it/[^?]+/video/(?P<slug>[a-z0-9_-]+)-(?P<id>\d+))'''
     _TESTS = [{
         'url': 'https://video.lastampa.it/politica/il-paradosso-delle-regionali-la-lega-vince-ma-sembra-aver-perso/121559/121683',
-        'md5': '84658d7fb9e55a6e57ecc77b73137494',
+        'md5': '6d1238ab5f4753b6f3d9eb396bff8ea3',
         'info_dict': {
-            'id': '121683',
+            'id': '375544',
             'ext': 'mp4',
             'title': 'Il paradosso delle Regionali: ecco perché la Lega vince ma sembra aver perso',
-            'description': 'md5:de7f4d6eaaaf36c153b599b10f8ce7ca',
+            'description': 'md5:fad65b086b8b23fd4db66dc1f7a530f9',
             'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?-thumb-full-.+?\.jpg$',
             'duration': 125,
+            'display_id': 'il_paradosso_delle_regionali_ecco_perche_la_lega_vince_ma_sembra_aver_perso',
+            'uploader_id': '6210505280001',
         },
+    }, {
+        'url': 'https://www.repubblica.it/video/tv/2023/10/25/video/maurizio_molinari_israele_sotto_shock_per_le_parole_del_segretario_generale_dellonu-422547542',
+        'md5': '3cdb25ee59373cb326dd402c7e18490f',
+        'info_dict': {
+            'id': '422547542',
+            'ext': 'mp4',
+            'display_id': 'maurizio_molinari_israele_sotto_shock_per_le_parole_del_segretario_generale_dellonu',
+            'title': 'Maurizio Molinari: "Israele sotto shock per le parole del segretario generale dell\'Onu"',
+            'uploader_id': '6210505280001',
+            'duration': 89,
+            'thumbnail': 'https://www.repstatic.it/video/photo/2023/10/25/918897/918897-thumb-full-720-molinari_porta_a_porta_24_10_23.jpg',
+        },
+    }, {
+        'url': 'https://roma.repubblica.it/cronaca/2025/05/22/video/giornata_biodiversita_mattarella_si_improvvisa_giardiniere_annaffia_una_piantina_a_castelporziano-424598388/',
+        'only_matching': True,
     }, {
         'url': 'https://video.huffingtonpost.it/embed/politica/cotticelli-non-so-cosa-mi-sia-successo-sto-cercando-di-capire-se-ho-avuto-un-malore/29312/29276?responsive=true&el=video971040871621586700',
         'only_matching': True,
@@ -104,95 +109,53 @@ class GediDigitalIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _sanitize_urls(urls):
-        # add protocol if missing
-        for i, e in enumerate(urls):
-            if e.startswith('//'):
-                urls[i] = f'https:{e}'
-        # clean iframes urls
-        for i, e in enumerate(urls):
-            urls[i] = urljoin(base_url(e), url_basename(e))
-        return urls
-
-    @classmethod
-    def _extract_embed_urls(cls, url, webpage):
-        return cls._sanitize_urls(tuple(super()._extract_embed_urls(url, webpage)))
-
-    @staticmethod
-    def _clean_formats(formats):
-        format_urls = set()
-        clean_formats = []
-        for f in formats:
-            if f['url'] not in format_urls:
-                if f.get('audio_ext') != 'none' and not f.get('acodec'):
-                    continue
-                format_urls.add(f['url'])
-                clean_formats.append(f)
-        formats[:] = clean_formats
-
     def _real_extract(self, url):
-        video_id, url = self._match_valid_url(url).group('id', 'base_url')
+        slug, video_id = self._match_valid_url(url).group('slug', 'id')
         webpage = self._download_webpage(url, video_id)
-        title = self._html_search_meta(
-            ['twitter:title', 'og:title'], webpage, fatal=True)
-        player_data = re.findall(
-            r"PlayerFactory\.setParam\('(?P<type>format|param)',\s*'(?P<name>[^']+)',\s*'(?P<val>[^']+)'\);",
-            webpage)
-
+        data = self._search_json(
+            r'BrightcoveVideoPlayerOptions\s*=', webpage, 'Brightcove video player options', video_id, transform_source=js_to_json,
+        )
+        streams = json.loads(data['videoSrc'])
         formats = []
-        duration = thumb = None
-        for t, n, v in player_data:
-            if t == 'format':
-                if n in ('video-hds-vod-ec', 'video-hls-vod-ec', 'video-viralize', 'video-youtube-pfp'):
-                    continue
-                elif n.endswith('-vod-ak'):
-                    formats.extend(self._extract_akamai_formats(
-                        v, video_id, {'http': 'media.gedidigital.it'}))
-                else:
-                    ext = determine_ext(v)
-                    if ext == 'm3u8':
-                        formats.extend(self._extract_m3u8_formats(
-                            v, video_id, 'mp4', 'm3u8_native', m3u8_id=n, fatal=False))
-                        continue
-                    f = {
-                        'format_id': n,
-                        'url': v,
-                    }
-                    if ext == 'mp3':
-                        abr = int_or_none(self._search_regex(
-                            r'-mp3-audio-(\d+)', v, 'abr', default=None))
-                        f.update({
-                            'abr': abr,
-                            'tbr': abr,
-                            'acodec': ext,
-                            'vcodec': 'none',
-                        })
-                    else:
-                        mobj = re.match(r'^video-rrtv-(\d+)(?:-(\d+))?$', n)
-                        if mobj:
-                            f.update({
-                                'height': int(mobj.group(1)),
-                                'vbr': int_or_none(mobj.group(2)),
-                            })
-                        if not f.get('vbr'):
-                            f['vbr'] = int_or_none(self._search_regex(
-                                r'-video-rrtv-(\d+)', v, 'abr', default=None))
-                    formats.append(f)
-            elif t == 'param':
-                if n in ['image_full', 'image']:
-                    thumb = v
-                elif n == 'videoDuration':
-                    duration = int_or_none(v)
-
-        self._clean_formats(formats)
+        for stream in streams:
+            if stream['type'] == 'video/mp4':
+                bitrate = self._search_regex(r'video-rrtv-(\d+)', stream['src'], 'vbr', None)
+                formats.append({
+                    'format_id': f'mp4-{bitrate}' if bitrate else 'mp4',
+                    'url': stream['src'],
+                    'ext': 'mp4',
+                    'vcodec': 'avc1',
+                    'acodec': 'mp4a',
+                    'vbr': int_or_none(bitrate),
+                })
+            elif stream['type'] == 'application/x-mpegURL':
+                new_formats = self._extract_m3u8_formats(stream['src'], video_id)
+                for fmt in new_formats:
+                    fmt.setdefault('vbr', int_or_none(self._search_regex(r'/hls/_(\d+)/', fmt['url'], 'vbr', None)))
+                formats.extend(new_formats)
+            elif stream['type'] == 'audio/mp3':
+                bitrate = self._search_regex(r'mp3-audio-(\d+)', stream['src'], 'vbr', None)
+                formats.append({
+                    'format_id': f'mp3-{bitrate}' if bitrate else 'mp3',
+                    'url': stream['src'],
+                    'ext': 'mp3',
+                    'acodec': 'mp3',
+                    'abr': int_or_none(bitrate),
+                    'tbr': int_or_none(bitrate),
+                })
+            else:
+                formats.append({
+                    'format_id': stream['type'],
+                    'url': stream['src'],
+                })
 
         return {
             'id': video_id,
-            'title': title,
-            'description': self._html_search_meta(
-                ['twitter:description', 'og:description', 'description'], webpage),
-            'thumbnail': thumb or self._og_search_thumbnail(webpage),
+            'display_id': slug,
+            'title': data.get('videoTitle') or self._html_search_meta(['twitter:title', 'og:title'], webpage),
+            'description': self._html_search_meta(['twitter:description', 'og:description', 'description'], webpage, default=None),
             'formats': formats,
-            'duration': duration,
+            'thumbnail': data.get('posterSrc') or self._og_search_thumbnail(webpage),
+            'uploader_id': data.get('accountId'),
+            'duration': int_or_none(data.get('videoLenght')),
         }
