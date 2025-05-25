@@ -7,26 +7,10 @@ from ..utils import int_or_none, js_to_json
 class GediDigitalIE(InfoExtractor):
     _VALID_URL = r'''(?x:(?:https?:)//(?:\w+\.)?
         (?:
-            (?:
-                repubblica
-                |lastampa
-                |ilsecoloxix
-                |huffingtonpost
-            )|
-            (?:
-                iltirreno
-                |messaggeroveneto
-                |ilpiccolo
-                |gazzettadimantova
-                |mattinopadova
-                |laprovinciapavese
-                |tribunatreviso
-                |nuovavenezia
-                |gazzettadimodena
-                |lanuovaferrara
-                |corrierealpi
-                |lasentinella
-            )\.gelocal
+            repubblica
+            |lastampa
+            |ilsecoloxix
+            |huffingtonpost
         )\.it/[^?]+(?:/video/(?P<slug>[a-z0-9_-]+)-|/)(?P<id>\d+))'''
     _TESTS = [{
         'url': 'https://video.lastampa.it/politica/il-paradosso-delle-regionali-la-lega-vince-ma-sembra-aver-perso/121559/121683',
