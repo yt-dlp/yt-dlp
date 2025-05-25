@@ -17,8 +17,8 @@ from ..utils.traversal import (
 class SRMediathekIE(ARDMediathekBaseIE):
     IE_NAME = 'sr:mediathek'
     IE_DESC = 'Saarländischer Rundfunk'
-    CLS_COMMON = 'teaser__image__caption__text teaser__image__caption__text--'
 
+    _CLS_COMMON = 'teaser__image__caption__text teaser__image__caption__text--'
     _VALID_URL = r'https?://(?:www\.)?sr-mediathek\.de/index\.php\?.*?&id=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.sr-mediathek.de/index.php?seite=7&id=141317',
@@ -86,7 +86,7 @@ class SRMediathekIE(ARDMediathekBaseIE):
             'title': traverse_obj(webpage, (
                 {find_element(cls='ardplayer-title')}, {clean_html})),
             'channel': traverse_obj(webpage, (
-                {find_element(cls=f'{self.CLS_COMMON}subheadline')},
+                {find_element(cls=f'{self._CLS_COMMON}subheadline')},
                 {lambda x: x.split('|')[0]}, {clean_html})),
             'description': description,
             'duration': parse_duration(self._search_regex(
@@ -94,7 +94,7 @@ class SRMediathekIE(ARDMediathekBaseIE):
             'release_date': unified_strdate(self._search_regex(
                 r'(\d{2}\.\d{2}\.\d{4})', article, 'release_date')),
             'series': traverse_obj(webpage, (
-                {find_element(cls=f'{self.CLS_COMMON}headline')}, {clean_html})),
+                {find_element(cls=f'{self._CLS_COMMON}headline')}, {clean_html})),
             'series_id': traverse_obj(webpage, (
                 {find_element(cls='teaser__link', html=True)},
                 {extract_attributes}, 'href', {parse_qs}, 'sen', ..., {str}, any)),
