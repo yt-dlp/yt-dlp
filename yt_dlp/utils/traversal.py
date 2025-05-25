@@ -448,11 +448,23 @@ def trim_str(*, start=None, end=None):
     def trim(s):
         if s is None:
             return None
+
         start_idx = 0
-        if start and s.startswith(start):
-            start_idx = len(start)
-        if end and s.endswith(end):
-            return s[start_idx:-len(end)]
+        if start:
+            if isinstance(start, re.Pattern):
+                mobj = start.match(s)
+                if mobj:
+                    start_idx = mobj.end()
+            elif s.startswith(start):
+                start_idx = len(start)
+        if end:
+            if isinstance(end, re.Pattern):
+                mobj = end.search(s, pos=start_idx)
+                if mobj and mobj.end() == len(s):
+                    return s[start_idx:mobj.start()]
+            elif s.endswith(end):
+                return s[start_idx:-len(end)]
+
         return s[start_idx:]
 
     return trim
