@@ -1429,7 +1429,6 @@ from .nuum import (
     NuumMediaIE,
     NuumTabIE,
 )
-from .nuvid import NuvidIE
 from .nytimes import (
     NYTimesArticleIE,
     NYTimesCookingIE,
