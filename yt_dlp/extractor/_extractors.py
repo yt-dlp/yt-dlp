@@ -647,7 +647,11 @@ from .fc2 import (
     FC2LiveIE,
 )
 from .fczenit import FczenitIE
-from .fifa import FifaIE
+from .fifa import (
+    FifaArticleIE,
+    FifaContentIE,
+    FifaPlayerIE,
+)
 from .filmon import (
     FilmOnChannelIE,
     FilmOnIE,
