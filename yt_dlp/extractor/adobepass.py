@@ -45,6 +45,7 @@ MSO_INFO = {
         'name': 'Comcast XFINITY',
         'username_field': 'user',
         'password_field': 'passwd',
+        'needs_newer_ua': True,
     },
     'TWC': {
         'name': 'Time Warner Cable | Spectrum',
@@ -1355,7 +1356,6 @@ MSO_INFO = {
 class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     _SERVICE_PROVIDER_TEMPLATE = 'https://sp.auth.adobe.com/adobe-services/%s'
     _USER_AGENT = 'Mozilla/5.0 (X11; Linux i686; rv:47.0) Gecko/20100101 Firefox/47.0'
-    _MODERN_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; rv:131.0) Gecko/20100101 Firefox/131.0'
     _MVPD_CACHE = 'ap-mvpd'
 
     _DOWNLOADING_LOGIN_PAGE = 'Downloading Provider Login Page'
@@ -1366,6 +1366,14 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
         kwargs['headers'] = headers
         return super()._download_webpage_handle(
             *args, **kwargs)
+
+    @staticmethod
+    def _get_mso_headers(mso_info):
+        # yt-dlp's default user-agent is usually too old for some MSO's like Comcast_SSO
+        # See: https://github.com/yt-dlp/yt-dlp/issues/10848
+        return {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:131.0) Gecko/20100101 Firefox/131.0',
+        } if mso_info.get('needs_newer_ua') else {}
 
     @staticmethod
     def _get_mvpd_resource(provider_id, title, guid, rating):
@@ -1383,6 +1391,12 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
         return '<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">' + etree.tostring(channel).decode() + '</rss>'
 
     def _extract_mvpd_auth(self, url, video_id, requestor_id, resource):
+        mso_id = self.get_param('ap_mso')
+        if mso_id:
+            mso_info = MSO_INFO[mso_id]
+        else:
+            mso_info = {}
+
         def xml_text(xml_str, tag):
             return self._search_regex(
                 f'<{tag}>(.+?)</{tag}>', xml_str, tag)
@@ -1400,6 +1414,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
             form_data.update(data)
             return self._download_webpage_handle(
                 post_url, video_id, note, data=urlencode_postdata(form_data), headers={
+                    **self._get_mso_headers(mso_info),
                     'Content-Type': 'application/x-www-form-urlencoded',
                 })
 
@@ -1439,12 +1454,10 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
             if authn_token and is_expired(authn_token, 'simpleTokenExpires'):
                 authn_token = None
             if not authn_token:
-                mso_id = self.get_param('ap_mso')
                 if mso_id:
                     username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
                     if not username or not password:
                         raise_mvpd_required()
-                    mso_info = MSO_INFO[mso_id]
 
                     provider_redirect_page_res = self._download_webpage_handle(
                         self._SERVICE_PROVIDER_TEMPLATE % 'authenticate/saml', video_id,
@@ -1455,11 +1468,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             'no_iframe': 'false',
                             'domain_name': 'adobe.com',
                             'redirect_url': url,
-                        }, headers={
-                            # yt-dlp's default user-agent is usually too old for Comcast_SSO
-                            # See: https://github.com/yt-dlp/yt-dlp/issues/10848
-                            'User-Agent': self._MODERN_USER_AGENT,
-                        } if mso_id == 'Comcast_SSO' else None)
+                        }, headers=self._get_mso_headers(mso_info))
                 elif not self._cookies_passed:
                     raise_mvpd_required()
 
@@ -1489,8 +1498,8 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             oauth_redirect_url = extract_redirect_url(
                                 provider_redirect_page, fatal=True)
                             provider_login_page_res = self._download_webpage_handle(
-                                oauth_redirect_url, video_id,
-                                self._DOWNLOADING_LOGIN_PAGE)
+                                oauth_redirect_url, video_id, self._DOWNLOADING_LOGIN_PAGE,
+                                headers=self._get_mso_headers(mso_info))
                         else:
                             provider_login_page_res = post_form(
                                 provider_redirect_page_res,
