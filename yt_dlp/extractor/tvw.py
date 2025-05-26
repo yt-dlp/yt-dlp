@@ -1,13 +1,21 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import clean_html, remove_end, unified_timestamp, url_or_none
-from ..utils.traversal import traverse_obj
+from ..utils import (
+    clean_html,
+    extract_attributes,
+    parse_qs,
+    remove_end,
+    require,
+    unified_timestamp,
+    url_or_none,
+)
+from ..utils.traversal import find_element, traverse_obj
 
 
 class TvwIE(InfoExtractor):
+    IE_NAME = 'tvw'
     _VALID_URL = r'https?://(?:www\.)?tvw\.org/video/(?P<id>[^/?#]+)'
-
     _TESTS = [{
         'url': 'https://tvw.org/video/billy-frank-jr-statue-maquette-unveiling-ceremony-2024011211/',
         'md5': '9ceb94fe2bb7fd726f74f16356825703',
@@ -114,4 +122,44 @@ class TvwIE(InfoExtractor):
                 'location': ('locationName', {str}),
                 'is_live': ('eventStatus', {lambda x: x == 'live'}),
             }),
+        }
+
+
+class TvwTvChannelsIE(InfoExtractor):
+    IE_NAME = 'tvw:tvchannels'
+    _VALID_URL = r'https?://(?:www\.)?tvw\.org/tvchannels/(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://tvw.org/tvchannels/air/',
+        'info_dict': {
+            'id': 'air',
+            'ext': 'mp4',
+            'title': r're:TVW Cable Channel Live Stream',
+            'thumbnail': r're:https?://.+/.+\.(?:jpe?g|png)$',
+            'live_status': 'is_live',
+        },
+    }, {
+        'url': 'https://tvw.org/tvchannels/tvw2/',
+        'info_dict': {
+            'id': 'tvw2',
+            'ext': 'mp4',
+            'title': r're:TVW-2 Broadcast Channel',
+            'thumbnail': r're:https?://.+/.+\.(?:jpe?g|png)$',
+            'live_status': 'is_live',
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+
+        m3u8_url = traverse_obj(webpage, (
+            {find_element(id='invintus-persistent-stream-frame', html=True)}, {extract_attributes},
+            'src', {parse_qs}, 'encoder', 0, {json.loads}, 'live247URI', {url_or_none}, {require('stream url')}))
+
+        return {
+            'id': video_id,
+            'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls', live=True),
+            'title': remove_end(self._og_search_title(webpage, default=None), ' - TVW'),
+            'thumbnail': self._og_search_thumbnail(webpage, default=None),
+            'is_live': True,
         }

@@ -58,6 +58,14 @@ class TestCookies(unittest.TestCase):
             ({'DESKTOP_SESSION': 'kde'}, _LinuxDesktopEnvironment.KDE3),
             ({'DESKTOP_SESSION': 'xfce'}, _LinuxDesktopEnvironment.XFCE),
 
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de', 'DESKTOP_SESSION': 'gnome'}, _LinuxDesktopEnvironment.GNOME),
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de', 'DESKTOP_SESSION': 'mate'}, _LinuxDesktopEnvironment.GNOME),
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de', 'DESKTOP_SESSION': 'kde4'}, _LinuxDesktopEnvironment.KDE4),
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de', 'DESKTOP_SESSION': 'kde'}, _LinuxDesktopEnvironment.KDE3),
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de', 'DESKTOP_SESSION': 'xfce'}, _LinuxDesktopEnvironment.XFCE),
+
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de', 'DESKTOP_SESSION': 'my_custom_de', 'GNOME_DESKTOP_SESSION_ID': 1}, _LinuxDesktopEnvironment.GNOME),
+
             ({'GNOME_DESKTOP_SESSION_ID': 1}, _LinuxDesktopEnvironment.GNOME),
             ({'KDE_FULL_SESSION': 1}, _LinuxDesktopEnvironment.KDE3),
             ({'KDE_FULL_SESSION': 1, 'DESKTOP_SESSION': 'kde4'}, _LinuxDesktopEnvironment.KDE4),

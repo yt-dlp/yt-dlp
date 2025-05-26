@@ -54,7 +54,7 @@ from ..compat import (
 from ..dependencies import xattr
 from ..globals import IN_CLI
 
-__name__ = __name__.rsplit('.', 1)[0]  # noqa: A001: Pretend to be the parent module
+__name__ = __name__.rsplit('.', 1)[0]  # noqa: A001 # Pretend to be the parent module
 
 
 class NO_DEFAULT:
