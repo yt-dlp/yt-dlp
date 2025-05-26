@@ -2228,7 +2228,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_name(self, jscode, player_url=None):
         varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
-        if debug_str := traverse_obj(global_list, (lambda _, v: v.endswith('_w8_'), any)):
+        if debug_str := traverse_obj(global_list, (lambda _, v: v.endswith('-_w8_'), any)):
             funcname = self._search_regex(
                 r'''(?xs)
                     [;\n](?:
@@ -2289,8 +2289,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])\s*[,;]', jscode,
             f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
 
-    def _extract_player_js_global_var(self, jscode, player_url):
-        """Returns tuple of strings: variable assignment code, variable name, variable value code"""
+    def _interpret_player_js_global_var(self, jscode, player_url):
+        """Returns tuple of: variable name string, variable value list"""
         extract_global_var = self._cached(self._search_regex, 'js global array', player_url)
         varcode, varname, varvalue = extract_global_var(
             r'''(?x)
@@ -2308,27 +2308,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.write_debug(join_nonempty(
                 'No global array variable found in player JS',
                 player_url and f'        player = {player_url}', delim='\n'), only_once=True)
-        return varcode, varname, varvalue
+            return None, None
 
-    def _interpret_player_js_global_var(self, jscode, player_url):
-        """Returns tuple of: variable name string, variable value list"""
-        _, varname, array_code = self._extract_player_js_global_var(jscode, player_url)
-        jsi = JSInterpreter(array_code)
+        jsi = JSInterpreter(varcode)
         interpret_global_var = self._cached(jsi.interpret_expression, 'js global list', player_url)
-        return varname, interpret_global_var(array_code, {}, allow_recursion=10)
+        return varname, interpret_global_var(varvalue, {}, allow_recursion=10)
 
     def _fixup_n_function_code(self, argnames, nsig_code, jscode, player_url):
-        varcode, varname, _ = self._extract_player_js_global_var(jscode, player_url)
-        if varcode and varname:
-            nsig_code = varcode + '; ' + nsig_code
-            _, global_list = self._interpret_player_js_global_var(jscode, player_url)
+        varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
+        if varname and global_list:
+            nsig_code = f'var {varname}={json.dumps(global_list)}; {nsig_code}'
         else:
             varname = 'dlp_wins'
             global_list = []
 
         undefined_idx = global_list.index('undefined') if 'undefined' in global_list else r'\d+'
         fixed_code = re.sub(
-            rf'''(?x)
+            fr'''(?x)
                 ;\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(?:
                     (["\'])undefined\1|
                     {re.escape(varname)}\[{undefined_idx}\]
