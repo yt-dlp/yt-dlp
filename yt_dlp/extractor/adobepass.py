@@ -3,6 +3,7 @@ import json
 import re
 import time
 import urllib.parse
+import uuid
 import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
@@ -1393,7 +1394,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
         resource_rating.text = rating
         return '<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">' + etree.tostring(channel).decode() + '</rss>'
 
-    def _extract_mvpd_auth(self, url, video_id, requestor_id, resource):
+    def _extract_mvpd_auth(self, url, video_id, requestor_id, resource, software_statement):
         mso_id = self.get_param('ap_mso')
         if mso_id:
             mso_info = MSO_INFO[mso_id]
@@ -1461,34 +1462,72 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
         }
 
         guid = xml_text(resource, 'guid') if '<' in resource else resource
-        count = 0
-        while count < 2:
+        for _ in range(2):
             requestor_info = self.cache.load(self._MVPD_CACHE, requestor_id) or {}
             authn_token = requestor_info.get('authn_token')
             if authn_token and is_expired(authn_token, 'simpleTokenExpires'):
                 authn_token = None
             if not authn_token:
-                if mso_id:
-                    username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
-                    if not username or not password:
-                        raise_mvpd_required()
-
-                    provider_redirect_page_res = self._download_webpage_handle(
-                        self._SERVICE_PROVIDER_TEMPLATE % 'authenticate/saml', video_id,
-                        'Downloading Provider Redirect Page', query={
-                            'noflash': 'true',
-                            'mso_id': mso_id,
-                            'requestor_id': requestor_id,
-                            'no_iframe': 'false',
-                            'domain_name': 'adobe.com',
-                            'redirect_url': url,
-                        }, headers=self._get_mso_headers(mso_info))
-                elif not self._cookies_passed:
+                if not mso_id:
+                    raise_mvpd_required()
+                username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
+                if not username or not password:
                     raise_mvpd_required()
 
-                if not mso_id:
-                    pass
-                elif mso_id == 'Comcast_SSO':
+                device_info, urlh = self._download_json_handle(
+                    'https://sp.auth.adobe.com/indiv/devices',
+                    video_id, 'Registering device with Adobe',
+                    data=json.dumps({'fingerprint': uuid.uuid4().hex}).encode(),
+                    headers={'Content-Type': 'application/json; charset=UTF-8'})
+
+                device_id = device_info['deviceId']
+                mvpd_headers['pass_sfp'] = urlh.get_header('pass_sfp')
+                mvpd_headers['Ap_21'] = device_id
+
+                registration = self._download_json(
+                    'https://sp.auth.adobe.com/o/client/register',
+                    video_id, 'Registering client with Adobe',
+                    data=json.dumps({'software_statement': software_statement}).encode(),
+                    headers={'Content-Type': 'application/json; charset=UTF-8'})
+
+                access_token = self._download_json(
+                    'https://sp.auth.adobe.com/o/client/token', video_id,
+                    'Obtaining access token', data=urlencode_postdata({
+                        'grant_type': 'client_credentials',
+                        'client_id': registration['client_id'],
+                        'client_secret': registration['client_secret'],
+                    }),
+                    headers={
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    })['access_token']
+                mvpd_headers['Authorization'] = f'Bearer {access_token}'
+
+                reg_code = self._download_json(
+                    f'https://sp.auth.adobe.com/reggie/v1/{requestor_id}/regcode',
+                    video_id, 'Obtaining registration code',
+                    data=urlencode_postdata({
+                        'requestor': requestor_id,
+                        'deviceId': device_id,
+                        'format': 'json',
+                    }),
+                    headers={
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                        'Authorization': f'Bearer {access_token}',
+                    })['code']
+
+                provider_redirect_page_res = self._download_webpage_handle(
+                    self._SERVICE_PROVIDER_TEMPLATE % 'authenticate/saml', video_id,
+                    'Downloading Provider Redirect Page', query={
+                        'noflash': 'true',
+                        'mso_id': mso_id,
+                        'requestor_id': requestor_id,
+                        'no_iframe': 'false',
+                        'domain_name': 'adobe.com',
+                        'redirect_url': url,
+                        'reg_code': reg_code,
+                    }, headers=self._get_mso_headers(mso_info))
+
+                if mso_id == 'Comcast_SSO':
                     # Comcast page flow varies by video site and whether you
                     # are on Comcast's network.
                     provider_redirect_page, urlh = provider_redirect_page_res
@@ -1751,6 +1790,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         'Retrieving Session', data=urlencode_postdata({
                             '_method': 'GET',
                             'requestor_id': requestor_id,
+                            'reg_code': reg_code,
                         }), headers=mvpd_headers)
                 except ExtractorError as e:
                     if not mso_id and isinstance(e.cause, HTTPError) and e.cause.status == 401:
@@ -1758,7 +1798,6 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     raise
                 if '<pendingLogout' in session:
                     self.cache.store(self._MVPD_CACHE, requestor_id, {})
-                    count += 1
                     continue
                 authn_token = unescapeHTML(xml_text(session, 'authnToken'))
                 requestor_info['authn_token'] = authn_token
@@ -1779,7 +1818,6 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     }), headers=mvpd_headers)
                 if '<pendingLogout' in authorize:
                     self.cache.store(self._MVPD_CACHE, requestor_id, {})
-                    count += 1
                     continue
                 if '<error' in authorize:
                     raise ExtractorError(xml_text(authorize, 'details'), expected=True)
@@ -1802,6 +1840,5 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                 }), headers=mvpd_headers)
             if '<pendingLogout' in short_authorize:
                 self.cache.store(self._MVPD_CACHE, requestor_id, {})
-                count += 1
                 continue
             return short_authorize
