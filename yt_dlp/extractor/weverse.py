@@ -31,7 +31,6 @@ from ..utils.traversal import require, traverse_obj
 class WeverseBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'weverse'
     _ACCOUNT_API_BASE = 'https://accountapi.weverse.io'
-    _CLIENT_ID = 'weverse'
     _CLIENT_PLATFORM = 'WEB'
     _SIGNING_KEY = b'1b9cb6378d959b45714bec49971ade22e6e24e42'
     _ACCESS_TOKEN_KEY = 'we2_access_token'
@@ -69,7 +68,7 @@ class WeverseBaseIE(InfoExtractor):
         return {
             **self._API_HEADERS,
             'X-ACC-APP-SECRET': '5419526f1c624b38b10787e5c10b2a7a',
-            'X-ACC-SERVICE-ID': self._CLIENT_ID,
+            'X-ACC-SERVICE-ID': 'weverse',
             'X-ACC-TRACE-ID': str(uuid.uuid4()),
         }
 
