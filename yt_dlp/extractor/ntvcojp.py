@@ -1,84 +1,110 @@
-from .common import InfoExtractor
-from ..networking.exceptions import HTTPError
+from .streaks import StreaksBaseIE
 from ..utils import (
-    ExtractorError,
-    clean_html,
     int_or_none,
-    unified_timestamp,
-    urljoin,
+    parse_iso8601,
+    str_or_none,
+    url_or_none,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
-class NTVCoJpCUIE(InfoExtractor):
-    IE_NAME = 'cu.ntv.co.jp'
-    IE_DESC = 'Nippon Television Network'
-    _VALID_URL = r'https?://cu\.ntv\.co\.jp/(?!program)(?P<id>[^/?&#]+)'
-    _TEST = {
-        'url': 'https://cu.ntv.co.jp/gaki_20250525/',
-        'info_dict': {
-            'title': '放送開始36年!方正ココリコが選ぶ神回&地獄回!',
-            'id': 'gaki_20250525',
-            'ext': 'mp4',
-            'categories': ['ダウンタウンのガキの使いやあらへんで！'],
-            'description': '神回地獄回座談会!レギュラー放送1756回の中からココリコと方正が神回と地獄回をそれぞれ選んで発表!若手時代の遠藤がガキ使メンバーに振り回される!?田中が好きな懐かしの番組名物キャラに爆笑!?方正が思い出に残っている持ち込み回とは?笑ってはいけないシリーズから遠藤が大汗をかくほど追い詰められる企画が誕生していた!?3人のトラウマになっている過酷罰ゲームを振り返り!方正記念企画のはずがまさかの展開で涙!?',
-            'timestamp': 1748145124,
-            'release_timestamp': 1748145539,
-            'duration': 1450,
-            'episode_number': 255,
-            'episode': '放送開始36年!方正ココリコが選ぶ神回&地獄回!',
-            'upload_date': '20250525',
-            'release_date': '20250525',
+class NTVJpCuIE(StreaksBaseIE):
+    IE_NAME = 'ntvjp:cu'
+    IE_DESC = '日テレ無料TADA!'
+
+    _VALID_URL = r'https?://cu\.ntv\.co\.jp/(?!program-list)(?P<id>[\w-]+)/?$'
+    _TESTS = [
+        {
+            'url': 'https://cu.ntv.co.jp/gaki_20250525/',
+            'info_dict': {
+                'id': 'gaki_20250525',
+                'ext': 'mp4',
+                'title': '放送開始36年!方正ココリコが選ぶ神回&地獄回!',
+                'cast': 'count:2',
+                'description': 'md5:1e1db556224d627d4d2f74370c650927',
+                'display_id': 'ref:gaki_20250525',
+                'duration': 1450,
+                'episode': '放送開始36年!方正ココリコが選ぶ神回&地獄回!',
+                'episode_id': '000000010172808',
+                'episode_number': 255,
+                'genres': ['variety'],
+                'live_status': 'not_live',
+                'modified_date': '20250525',
+                'modified_timestamp': 1748145537,
+                'release_date': '20250525',
+                'release_timestamp': 1748145539,
+                'series': 'ダウンタウンのガキの使いやあらへんで！',
+                'series_id': 'gaki',
+                'thumbnail': r're:https?://.+\.jpg',
+                'timestamp': 1748145197,
+                'upload_date': '20250525',
+                'uploader': '日本テレビ放送網',
+                'uploader_id': '0x7FE2',
+            },
         },
-    }
+    ]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        meta = self._search_json(r'window\.app\s*=', webpage, 'episode info', video_id, fatal=False)
-        episode = traverse_obj(meta, ('falcorCache', 'catalog', 'episode', video_id, 'value'))
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
 
-        nt_path = self._search_regex(r'<script[^>]+src=["\'](/assets/nt\.[^"\']+\.js)["\']', webpage, 'stream API config')
-        nt_js = self._download_webpage(urljoin(url, nt_path), video_id, note='Downloading stream API config')
-        video_url = self._search_regex(r'videoPlaybackUrl:\s*[\'"]([^\'"]+)[\'"]', nt_js, 'stream API url')
-        api_key = self._search_regex(r'api_key:\s*[\'"]([^\'"]+)[\'"]', nt_js, 'stream API key')
-
-        try:
-            source_meta = self._download_json(
-                f'{video_url}ref:{video_id}',
-                video_id,
-                headers={'X-Streaks-Api-Key': api_key},
-                note='Downloading stream metadata',
-            )
-        except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
-                self.raise_geo_restricted(countries=['JP'])
-            raise
-
-        formats, subtitles = [], {}
-        for src in traverse_obj(source_meta, ('sources', ..., 'src')):
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(src, video_id, fatal=False)
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
+        info = traverse_obj(
+            self._search_json(
+                r'window\.app\s*=',
+                webpage,
+                'video info',
+                display_id,
+            ),
+            ('falcorCache', 'catalog', 'episode', display_id, 'value', {dict}),
+            default={},
+        )
+        media_id = traverse_obj(info, ('streaks_data', 'mediaid', {str_or_none}, {require('mediaID for Streaks')}))
+        non_phonetic = (lambda _, v: v['is_phonetic'] is False, 'value', {str})
 
         return {
-            'title': traverse_obj(webpage, ({find_element(tag='h3')}, {clean_html})),
-            'id': video_id,
-            **traverse_obj(
-                episode,
-                {
-                    'categories': ('keywords', {list}),
-                    'id': ('content_id', {str}),
-                    'description': ('description', 0, 'value'),
-                    'timestamp': ('created_at', {unified_timestamp}),
-                    'release_timestamp': ('pub_date', {unified_timestamp}),
-                    'duration': ('tv_episode_info', 'duration', {int_or_none}),
-                    'episode_number': ('tv_episode_info', 'episode_number', {int_or_none}),
-                    'episode': ('title', lambda _, v: not v.get('is_phonetic'), 'value'),
-                    'series': ('custom_data', 'program_name'),
+            **self._extract_from_streaks_api(
+                'ntv-tada',
+                media_id,
+                headers={
+                    'X-Streaks-Api-Key': 'df497719056b44059a0483b8faad1f4a',
                 },
-                get_all=False,
             ),
-            'formats': formats,
-            'subtitles': subtitles,
+            **traverse_obj(
+                info,
+                {
+                    'id': ('content_id', {str_or_none}),
+                    'title': ('title', *non_phonetic, any),
+                    'age_limit': ('is_adult_only_content', {lambda x: 18 if x else None}),
+                    'cast': ('credit', ..., 'name', *non_phonetic),
+                    'genres': ('genre', ..., {str}),
+                    'release_timestamp': ('pub_date', {parse_iso8601}),
+                    'tags': ('tags', ..., {str}),
+                    'thumbnail': ('artwork', ..., 'url', any, {url_or_none}),
+                },
+            ),
+            **traverse_obj(
+                info,
+                (
+                    'tv_episode_info',
+                    {
+                        'duration': ('duration', {int_or_none}),
+                        'episode_number': ('episode_number', {int}),
+                        'series': ('parent_show_title', *non_phonetic, any),
+                        'series_id': ('show_content_id', {str}),
+                    },
+                ),
+            ),
+            **traverse_obj(
+                info,
+                (
+                    'custom_data',
+                    {
+                        'description': ('program_detail', {str}),
+                        'episode': ('episode_title', {str}),
+                        'episode_id': ('episode_id', {str_or_none}),
+                        'uploader': ('network_name', {str}),
+                        'uploader_id': ('network_id', {str}),
+                    },
+                ),
+            ),
         }

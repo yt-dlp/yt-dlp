@@ -1420,7 +1420,7 @@ from .nrk import (
 )
 from .nrl import NRLTVIE
 from .nts import NTSLiveIE
-from .ntvcojp import NTVCoJpCUIE
+from .ntvcojp import NTVJpCuIE
 from .ntvde import NTVDeIE
 from .ntvru import NTVRuIE
 from .nubilesporn import NubilesPornIE
