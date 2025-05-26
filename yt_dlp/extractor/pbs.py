@@ -338,7 +338,7 @@ class PBSIE(InfoExtractor):
             },
             'params': {
                 'skip_download': True,  # video unavailable
-            }
+            },
         },
         {
             # Video embedded in iframe containing angle brackets as attribute's value (e.g.
@@ -425,7 +425,7 @@ class PBSIE(InfoExtractor):
                     {'start_time': 502.03, 'end_time': 884.03, 'title': 'Getting Dirty, Loving Nature, Doing It Right'},
                     {'start_time': 884.12, 'end_time': 1422.12, 'title': 'How Roger Cook Built His Legacy'},
                 ],
-            }
+            },
         },
         {
             'url': 'http://www.pbs.org/wgbh/roadshow/watch/episode/2105-indianapolis-hour-2/',
