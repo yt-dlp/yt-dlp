@@ -11,6 +11,7 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
+    parse_qs,
     unescapeHTML,
     unified_timestamp,
     urlencode_postdata,
@@ -78,6 +79,11 @@ MSO_INFO = {
         'username_field': 'IDToken1',
         'password_field': 'IDToken2',
         'login_hostname': 'ssoauth.verizon.com',
+    },
+    'Fubo': {
+        'name': 'Fubo',
+        'username_field': 'username',
+        'password_field': 'password',
     },
     'Cablevision': {
         'name': 'Optimum/Cablevision',
@@ -1761,6 +1767,27 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         query=hidden_data)
 
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
+                elif mso_id == 'Fubo':
+                    _, urlh = provider_redirect_page_res
+
+                    fubo_response = self._download_json(
+                        'https://api.fubo.tv/partners/tve/connect', video_id,
+                        'Authenticating with Fubo', 'Unable to authenticate with Fubo',
+                        query=parse_qs(urlh.url), data=json.dumps({
+                            'username': username,
+                            'password': password,
+                        }).encode(), headers={
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                        })
+
+                    self._request_webpage(
+                        'https://sp.auth.adobe.com/adobe-services/oauth2', video_id,
+                        'Authenticating with Adobe', 'Failed to authenticate with Adobe',
+                        query={
+                            'code': fubo_response['code'],
+                            'state': fubo_response['state'],
+                        })
                 else:
                     # Some providers (e.g. DIRECTV NOW) have another meta refresh
                     # based redirect that should be followed.
