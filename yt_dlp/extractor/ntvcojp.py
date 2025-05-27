@@ -12,7 +12,7 @@ class NTVCoJpCUIE(StreaksBaseIE):
     IE_NAME = 'ntvjp:cu'
     IE_DESC = '日テレ無料TADA!'
 
-    _VALID_URL = r'https?://cu\.ntv\.co\.jp/(?!program-list)(?P<id>[\w-]+)/?$'
+    _VALID_URL = r'https?://cu\.ntv\.co\.jp/(?!program-list|search)(?P<id>[\w-]+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://cu.ntv.co.jp/gaki_20250525/',
         'info_dict': {
