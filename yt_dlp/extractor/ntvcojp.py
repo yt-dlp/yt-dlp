@@ -8,7 +8,7 @@ from ..utils import (
 from ..utils.traversal import require, traverse_obj
 
 
-class NTVJpCuIE(StreaksBaseIE):
+class NTVCoJpCUIE(StreaksBaseIE):
     IE_NAME = 'ntvjp:cu'
     IE_DESC = '日テレ無料TADA!'
 
