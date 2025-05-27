@@ -1,12 +1,11 @@
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
-    determine_ext,
     parse_iso8601,
     update_url,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import subs_list_to_dict, traverse_obj
 
 
 class StarTrekIE(InfoExtractor):
@@ -50,21 +49,13 @@ class StarTrekIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        page_props = traverse_obj(self._search_nextjs_data(
-            webpage, video_id), ('props', 'pageProps', {dict}), default={})
-        video_data = traverse_obj(page_props, ('video', 'data', {dict}))
+        page_props = self._search_nextjs_data(webpage, video_id)['props']['pageProps']
+        video_data = page_props['video']['data']
         if youtube_id := video_data.get('youtube_video_id'):
             return self.url_result(youtube_id, 'Youtube')
 
         series_id = traverse_obj(video_data, (
             'series_and_movies', ..., 'series_or_movie', 'slug', {str}, any))
-
-        subtitles = {}
-        if sub_url := traverse_obj(video_data, ('legacy_subtitle_file', {url_or_none})):
-            subtitles.setdefault('en', []).append({
-                'ext': determine_ext(sub_url),
-                'url': sub_url,
-            })
 
         return {
             'id': video_id,
@@ -72,13 +63,13 @@ class StarTrekIE(InfoExtractor):
                 'queried', 'header', 'tab3', 'slices', ..., 'items',
                 lambda _, v: v['link']['slug'] == series_id, 'link_copy', {str}, any)),
             'series_id': series_id,
-            'subtitles': subtitles,
             **traverse_obj(video_data, {
                 'title': ('title', ..., 'text', {clean_html}, any),
                 'alt_title': ('subhead', ..., 'text', {clean_html}, any),
-                'categories': ('category', 'data', 'category_name', {str.upper}, all),
+                'categories': ('category', 'data', 'category_name', {str.upper}, filter, all),
                 'description': ('slices', ..., 'primary', 'content', ..., 'text', {clean_html}, any),
                 'release_timestamp': ('published', {parse_iso8601}),
+                'subtitles': ({'url': 'legacy_subtitle_file'}, all, {subs_list_to_dict(lang='en')}),
                 'thumbnail': ('poster_frame', 'url', {url_or_none}, {update_url(query=None)}),
                 'url': ('legacy_video_url', {url_or_none}),
             }),
