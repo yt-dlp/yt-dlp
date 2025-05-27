@@ -3,6 +3,9 @@ import functools
 from .common import InfoExtractor
 from ..utils import (
     InAdvancePagedList,
+    int_or_none,
+    join_nonempty,
+    orderedSet,
     str_or_none,
     strftime_or_none,
     traverse_obj,
@@ -12,11 +15,11 @@ from ..utils import (
 
 
 class VolejTVBaseIE(InfoExtractor):
-    _API_URL = 'https://api-volejtv-prod.apps.okd4.devopsie.cloud/api'
+    TBR_HEIGHT_MAPPING = {'6000': 1080, '2400': 720, '1500': 480, '800': 360}
 
-    def _call_api(self, endpoint, api_id, query={}):
-        return self._download_json(f'{self._API_URL}/{endpoint}', api_id,
-                                   'Downloading JSON', 'Unable to download JSON', query=query)
+    def _call_api(self, endpoint, display_id, query=None):
+        return self._download_json(
+            f'https://api-volejtv-prod.apps.okd4.devopsie.cloud/api/{endpoint}', display_id, query=query)
 
 
 class VolejTVIE(VolejTVBaseIE):
@@ -27,7 +30,7 @@ class VolejTVIE(VolejTVBaseIE):
         'info_dict': {
             'id': '270579',
             'ext': 'mp4',
-            'title': 'CZE-SWE (2024-06-16)',
+            'title': 'SWE-CZE (2024-06-16)',
             'categories': ['ženy'],
             'series': 'ZLATÁ EVROPSKÁ VOLEJBALOVÁ LIGA',
             'season': '2023-2024',
@@ -40,7 +43,7 @@ class VolejTVIE(VolejTVBaseIE):
             'id': '487520',
             'ext': 'mp4',
             'thumbnail': r're:https://.+\.(png|jpeg)',
-            'title': 'CZE-FRA (2024-09-06)',
+            'title': 'FRA-CZE (2024-09-06)',
             'categories': ['mládež'],
             'series': 'Mistrovství Evropy do 20 let',
             'season': '2024-2025',
@@ -54,32 +57,29 @@ class VolejTVIE(VolejTVBaseIE):
         video_id = self._match_id(url)
         json_data = self._call_api(f'match/{video_id}', video_id)
         formats = []
-        tbr_resolution_mapping = {'6000': '1080p', '2400': '720p', '1500': '480p', '800': '360p'}
-        for video in traverse_obj(json_data, ('videos', 0, 'qualities')):
-            formats.append({
-                'url': video['cloud_front_path'],
-                'tbr': int(video['quality']),
-                'format_id': str(video['id']),
-                'format_note': tbr_resolution_mapping[video['quality']],
-            })
+        for video in traverse_obj(json_data, ('videos', 0, 'qualities', lambda _, v: v['cloud_front_path'])):
+            formats.append(traverse_obj(video, {
+                'url': ('cloud_front_path', {url_or_none}),
+                'tbr': ('quality', {int_or_none}),
+                'format_id': ('id', {str_or_none}),
+                'height': ('quality', {lambda v: self.TBR_HEIGHT_MAPPING[v]}),
+            }))
         data = {
             'id': video_id,
             **traverse_obj(json_data, {
-                'series': ('competition_name', {str_or_none}),
-                'season': ('season', {str_or_none}),
+                'series': ('competition_name', {str}),
+                'season': ('season', {str}),
                 'timestamp': ('match_time', {unified_timestamp}),
                 'categories': ('category', ('title'), {str}, filter, all, filter),
                 'thumbnail': ('poster', {url_or_none}),
             }),
             'formats': formats,
         }
-        teams = list(set(traverse_obj(json_data, ('teams', ..., 'shortcut'))))
+        teams = orderedSet(traverse_obj(json_data, ('teams', ..., 'shortcut', {str})))
         if len(teams) > 2 and 'FIN' in teams:
             teams.remove('FIN')
-        title = '-'.join(sorted(teams))
-        if data.get('timestamp'):
-            title += f" ({strftime_or_none(data['timestamp'], '%Y-%m-%d')})"
-        data['title'] = title
+        data['title'] = join_nonempty(join_nonempty(*teams, delim='-'),
+                                      f"({strftime_or_none(data['timestamp'], '%Y-%m-%d')})", delim=' ')
         return data
 
 
