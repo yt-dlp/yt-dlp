@@ -4,7 +4,6 @@ import json
 import random
 import re
 import string
-import time
 
 from .common import InfoExtractor
 from ..utils import (
@@ -12,6 +11,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     jwt_decode_hs256,
+    jwt_is_expired,
     parse_age_limit,
     try_call,
     url_or_none,
@@ -106,8 +106,9 @@ class JioCinemaBaseIE(InfoExtractor):
                     'os': ('os', {str}),
                 })}, data=data)
 
-    def _is_token_expired(self, token):
-        return (try_call(lambda: jwt_decode_hs256(token)['exp']) or 0) <= int(time.time() - 180)
+    @staticmethod
+    def _is_token_expired(token):
+        return jwt_is_expired(token, 180)
 
     def _perform_login(self, username, password):
         if self._ACCESS_TOKEN and not self._is_token_expired(self._ACCESS_TOKEN):
