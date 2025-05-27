@@ -6,6 +6,7 @@ import time
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    ISO639Utils,
     determine_ext,
     filter_dict,
     float_or_none,
@@ -135,14 +136,23 @@ class ZDFBaseIE(InfoExtractor):
 
                         f_class = variant.get('class')
                         for f in fmts:
+                            f_lang = ISO639Utils.short2long(
+                                (f.get('language') or variant.get('language') or '').lower())
+                            has_video = (f.get('vcodec') or 'none') != 'none'
                             formats.append({
                                 **f,
-                                'format_id': join_nonempty(f.get('format_id'), is_dgs and 'dgs'),
+                                'format_id': join_nonempty(f['format_id'], is_dgs and 'dgs'),
                                 'format_note': join_nonempty(
                                     f_class, is_dgs and 'German Sign Language', f.get('format_note'), delim=', '),
-                                'language': variant.get('language') or f.get('language'),
                                 'preference': -2 if is_dgs else -1,
-                                'language_preference': 10 if f_class == 'main' else -10 if f_class == 'ad' else -1,
+                                'language': f_lang,
+                                'language_preference': (
+                                    -10 if ((not has_video and f.get('format_note') == 'Audiodeskription')
+                                            or (has_video and f_class == 'ad'))
+                                    else 10 if f_lang == 'deu' and f_class == 'main'
+                                    else 5 if f_lang == 'deu'
+                                    else 1 if f_class == 'main'
+                                    else -1),
                             })
 
         return {
