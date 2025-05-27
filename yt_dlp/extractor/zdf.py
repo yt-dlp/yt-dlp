@@ -131,7 +131,7 @@ class ZDFBaseIE(InfoExtractor):
                                 'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
                             }]
                         else:
-                            self.write_debug(f'Unsupported extension {ext} ({format_url}).')
+                            self.report_warning(f'Skipping unsupported extension "{ext}"', video_id=video_id)
                             fmts = []
 
                         f_class = variant.get('class')
