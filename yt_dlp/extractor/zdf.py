@@ -333,12 +333,13 @@ class ZDFIE(ZDFBaseIE):
             'title': 'Dobrindt schließt Steuererhöhungen aus',
             'description': 'md5:9a117646d7b8df6bc902eb543a9c9023',
             'duration': 325,
-            'thumbnail': 'https://www.zdf.de/assets/dobrindt-csu-berlin-direkt-100~1920x1080?cb=1743357653736',
+            'thumbnail': 'https://www.zdfheute.de/assets/dobrindt-csu-berlin-direkt-100~1920x1080?cb=1743357653736',
             'timestamp': 1743374520,
             'upload_date': '20250330',
             '_old_archive_ids': ['zdf 250330_clip_2_bdi'],
         },
     }, {
+        # FUNK video (hosted on a different CDN, has atypical PTMD and HLS files)
         'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
         'md5': '57af4423db0455a3975d2dc4578536bc',
         'info_dict': {
@@ -651,6 +652,7 @@ class ZDFChannelIE(ZDFBaseIE):
             'description': 'md5:6edad39189abf8431795d3d6d7f986b3',
         },
         'playlist_count': 242,
+        'skip': 'Video count changes daily, needs support for playlist_maxcount',
     }]
 
     _PAGE_SIZE = 24
