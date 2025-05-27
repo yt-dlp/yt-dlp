@@ -138,19 +138,19 @@ class ZDFBaseIE(InfoExtractor):
                         for f in fmts:
                             f_lang = ISO639Utils.short2long(
                                 (f.get('language') or variant.get('language') or '').lower())
-                            has_video = (f.get('vcodec') or 'none') != 'none'
+                            is_audio_only = f.get('vcodec') == 'none'
                             formats.append({
                                 **f,
                                 'format_id': join_nonempty(f['format_id'], is_dgs and 'dgs'),
                                 'format_note': join_nonempty(
-                                    has_video and f_class,
+                                    not is_audio_only and f_class,
                                     is_dgs and 'German Sign Language',
                                     f.get('format_note'), delim=', '),
                                 'preference': -2 if is_dgs else -1,
                                 'language': f_lang,
                                 'language_preference': (
-                                    -10 if ((not has_video and f.get('format_note') == 'Audiodeskription')
-                                            or (has_video and f_class == 'ad'))
+                                    -10 if ((is_audio_only and f.get('format_note') == 'Audiodeskription')
+                                            or (not is_audio_only and f_class == 'ad'))
                                     else 10 if f_lang == 'deu' and f_class == 'main'
                                     else 5 if f_lang == 'deu'
                                     else 1 if f_class == 'main'
