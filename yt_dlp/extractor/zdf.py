@@ -143,7 +143,9 @@ class ZDFBaseIE(InfoExtractor):
                                 **f,
                                 'format_id': join_nonempty(f['format_id'], is_dgs and 'dgs'),
                                 'format_note': join_nonempty(
-                                    f_class, is_dgs and 'German Sign Language', f.get('format_note'), delim=', '),
+                                    has_video and f_class,
+                                    is_dgs and 'German Sign Language',
+                                    f.get('format_note'), delim=', '),
                                 'preference': -2 if is_dgs else -1,
                                 'language': f_lang,
                                 'language_preference': (
