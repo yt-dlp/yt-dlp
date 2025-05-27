@@ -387,6 +387,9 @@ class InfoExtractor:
     chapters:       A list of dictionaries, with the following entries:
                         * "start_time" - The start time of the chapter in seconds
                         * "end_time" - The end time of the chapter in seconds
+                                       (optional, defaults to the start_time of
+                                       the next chapter or the end of the video
+                                       if this is the last chapter)
                         * "title" (optional, string)
     heatmap:        A list of dictionaries, with the following entries:
                         * "start_time" - The start time of the data point in seconds
