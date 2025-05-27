@@ -46,11 +46,11 @@ class NTVCoJpCUIE(StreaksBaseIE):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        info = traverse_obj(self._search_json(
-            r'window\.app\s*=', webpage, 'video info', display_id,
-        ), ('falcorCache', 'catalog', 'episode', display_id, 'value', {dict}), default={})
+        info = self._search_json(
+            r'window\.app\s*=', webpage, 'video info',
+            display_id)['falcorCache']['catalog']['episode'][display_id]['value']
         media_id = traverse_obj(info, (
-            'streaks_data', 'mediaid', {str_or_none}, {require('mediaID for Streaks')}))
+            'streaks_data', 'mediaid', {str_or_none}, {require('Streaks media ID')}))
         non_phonetic = (lambda _, v: v['is_phonetic'] is False, 'value', {str})
 
         return {
