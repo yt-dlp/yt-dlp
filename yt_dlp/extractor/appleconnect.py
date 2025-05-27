@@ -1,12 +1,11 @@
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     float_or_none,
     parse_resolution,
     qualities,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
 class AppleConnectIE(InfoExtractor):
@@ -54,15 +53,15 @@ class AppleConnectIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        if not (videos := traverse_obj(self._download_json(
+        videos = self._download_json(
             'https://amp-api.music.apple.com/v1/catalog/us/uploaded-videos',
-            video_id, headers=self._HEADERS, query={'ids': video_id, 'l': 'en-US'},
-        ), ('data', ..., 'attributes', any), default={})):
-            raise ExtractorError('Failed to fetch video information')
+            video_id, headers=self._HEADERS, query={'ids': video_id, 'l': 'en-US'})
+        attributes = traverse_obj(videos, (
+            'data', ..., 'attributes', any, {require('video information')}))
 
         formats = []
         quality = qualities(list(self._QUALITIES.keys()))
-        for format_id, src_url in traverse_obj(videos, (
+        for format_id, src_url in traverse_obj(attributes, (
             'assetTokens', {dict.items}, lambda _, v: url_or_none(v[1]),
         )):
             formats.append({
@@ -82,7 +81,7 @@ class AppleConnectIE(InfoExtractor):
             'formats': formats,
             'thumbnail': self._html_search_meta(
                 ('og:image', 'og:image:secure_url', 'twitter:image'), webpage),
-            **traverse_obj(videos, {
+            **traverse_obj(attributes, {
                 'title': ('name', {str}),
                 'duration': ('durationInMilliseconds', {float_or_none(scale=1000)}),
                 'upload_date': ('uploadDate', {str}, {lambda x: x.replace('-', '')}),
