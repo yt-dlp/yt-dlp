@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     parse_iso8601,
+    url_basename,
     url_or_none,
     variadic,
 )
@@ -14,7 +15,19 @@ class DWIE(InfoExtractor):
     IE_NAME = 'dw'
     IE_DESC = 'Deutsche Welle'
 
-    _VALID_URL = r'https?://(?:(?:amp|www)\.)?dw\.com/(?P<lang>[^/]+)/[^/]+/(?P<type>a(?:udio)?|live|program|video)-(?P<id>\d+)'
+    _ENTRIES_PATH_MAP = {
+        'a': 'videos',
+        'live': ('posts', ..., 'videos'),
+        'program': 'moreContentsFromUnifiedProgram',
+    }
+    _PATH_MAP = {
+        'a': 'article',
+        'audio': 'audio',
+        'live': 'liveblog',
+        'program': 'unified-program',
+        'video': 'video',
+    }
+    _VALID_URL = fr'https?://(?:(?:amp|www)\.)?dw\.com/(?P<lang>[^/?#]+)/[^/?#]+/(?P<type>{"|".join(_PATH_MAP)})-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.dw.com/en/intelligent-light/video-19112290',
         'info_dict': {
@@ -81,68 +94,60 @@ class DWIE(InfoExtractor):
     }]
 
     def _entries(self, url, graph_api, media_type):
-        if path := {
-            'a': 'videos',
-            'live': ('posts', ..., 'videos'),
-            'program': 'moreContentsFromUnifiedProgram',
-        }.get(media_type):
-            for dct in traverse_obj(graph_api, (
-                *variadic(path), lambda _, v: v['namedUrl'] not in url,
-            )):
-                yield self.url_result(
-                    f'https://www.dw.com{dct["namedUrl"]}', DWIE)
+        path = self._ENTRIES_PATH_MAP[media_type]
+        for dct in traverse_obj(graph_api, (
+            *variadic(path), lambda _, v: v['namedUrl'] not in url,
+        )):
+            yield self.url_result(
+                f'https://www.dw.com{dct["namedUrl"]}', DWIE)
 
         if media_type == 'a':
             for dct in traverse_obj(graph_api, ('audios', lambda _, v: v['mp3Src'])):
-                m3u8_url = traverse_obj(dct, 'mp3Src', {url_or_none})
+                mp3_url = traverse_obj(dct, 'mp3Src', {url_or_none})
 
                 yield from [{
-                    'id': m3u8_url.rpartition('/')[2].removesuffix('.mp3'),
+                    'id': url_basename(mp3_url).removesuffix('.mp3'),
                     'ext': 'mp3',
                     'title': dct.get('title'),
-                    'url': m3u8_url,
+                    'url': mp3_url,
+                    'vcodec': 'none',
                 }]
 
     def _real_extract(self, url):
-        lang, media_type, media_id = self._match_valid_url(url).groups()
+        lang, media_type, media_id = self._match_valid_url(url).group('lang', 'type', 'id')
         webpage = self._download_webpage(url, media_id)
 
-        path = {
-            'a': 'article',
-            'audio': 'audio',
-            'live': 'liveblog',
-            'program': 'unified-program',
-            'video': 'video',
-        }[media_type]
-
-        if not (app_state := self._search_json(
-            r'window\.__APP_STATE__\s*=\s*', webpage, 'app state', media_id, default={},
-        )):
+        app_state = self._search_json(
+            r'window\.__APP_STATE__\s*=\s*', webpage, 'app state', media_id, default={})
+        if not app_state:
             title = self._html_search_meta('twitter:title', webpage)
             pattern = re.compile(r'<source[^>]+src\s*=\s*(["\'])(?P<url>.+?)\1')
             entries = [{
-                'id': m.group('url').rpartition('/')[2].removesuffix('.mp3'),
+                'id': url_basename(m.group('url')).removesuffix('.mp3'),
                 'ext': 'mp3',
                 'title': title,
                 'url': m.group('url'),
+                'vcodec': 'none',
             } for m in pattern.finditer(webpage)]
 
             return self.playlist_result(entries, media_id, title)
-        else:
-            graph_api = traverse_obj(app_state, (
-                f'/graph-api/{lang}/content/{path}/{media_id}', 'data', 'content', {dict}))
 
-            if media_type in {'a', 'live', 'program'}:
-                return self.playlist_result(
-                    self._entries(url, graph_api, media_type), media_id, graph_api.get('title'))
-            elif media_type == 'audio':
-                formats = [{
-                    'ext': 'mp3',
-                    'url': traverse_obj(graph_api, 'mp3Src', {url_or_none}),
-                }]
-            else:
-                m3u8_url = traverse_obj(graph_api, 'hlsVideoSrc', {url_or_none})
-                formats = self._extract_m3u8_formats(m3u8_url, media_id, 'mp4', m3u8_id='hls')
+        path = self._PATH_MAP[media_type]
+        graph_api = traverse_obj(app_state, (
+            f'/graph-api/{lang}/content/{path}/{media_id}', 'data', 'content', {dict}))
+
+        if media_type in self._ENTRIES_PATH_MAP:
+            return self.playlist_result(
+                self._entries(url, graph_api, media_type), media_id, graph_api.get('title'))
+        elif media_type == 'audio':
+            formats = [{
+                'ext': 'mp3',
+                'url': traverse_obj(graph_api, 'mp3Src', {url_or_none}),
+                'vcodec': 'none',
+            }]
+        else:
+            m3u8_url = traverse_obj(graph_api, 'hlsVideoSrc', {url_or_none})
+            formats = self._extract_m3u8_formats(m3u8_url, media_id, 'mp4', m3u8_id='hls')
 
         return {
             'id': media_id,
