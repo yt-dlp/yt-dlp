@@ -401,7 +401,9 @@ class InfoExtractor:
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
                     to set it
     media_type:     The type of media as classified by the site, e.g. "episode", "clip", "trailer"
-    _old_archive_ids: A list of old archive ids needed for backward compatibility
+    _old_archive_ids: A list of old archive ids needed for backward
+                   compatibility. Individual ids should be generated using
+                   yt_dlp.utils.make_archive_id().
     _format_sort_fields: A list of fields to use for sorting formats
     __post_extractor: A function to be called just before the metadata is
                     written to either disk, logger or console. The function
