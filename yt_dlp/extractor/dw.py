@@ -6,9 +6,9 @@ from ..utils import (
     parse_iso8601,
     url_basename,
     url_or_none,
-    variadic,
+    urljoin,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
 class DWIE(InfoExtractor):
@@ -16,9 +16,9 @@ class DWIE(InfoExtractor):
     IE_DESC = 'Deutsche Welle'
 
     _ENTRIES_PATH_MAP = {
-        'a': 'videos',
+        'a': ('videos',),
         'live': ('posts', ..., 'videos'),
-        'program': 'moreContentsFromUnifiedProgram',
+        'program': ('moreContentsFromUnifiedProgram',),
     }
     _PATH_MAP = {
         'a': 'article',
@@ -94,12 +94,11 @@ class DWIE(InfoExtractor):
     }]
 
     def _entries(self, url, graph_api, media_type):
-        path = self._ENTRIES_PATH_MAP[media_type]
         for dct in traverse_obj(graph_api, (
-            *variadic(path), lambda _, v: v['namedUrl'] not in url,
+            *self._ENTRIES_PATH_MAP[media_type], lambda _, v: v['namedUrl'] not in url,
         )):
             yield self.url_result(
-                f'https://www.dw.com{dct["namedUrl"]}', DWIE)
+                urljoin('https://www.dw.com/', dct['namedUrl']), DWIE)
 
         if media_type == 'a':
             for dct in traverse_obj(graph_api, ('audios', lambda _, v: v['mp3Src'])):
@@ -142,19 +141,19 @@ class DWIE(InfoExtractor):
         elif media_type == 'audio':
             formats = [{
                 'ext': 'mp3',
-                'url': traverse_obj(graph_api, 'mp3Src', {url_or_none}),
+                'url': traverse_obj(graph_api, ('mp3Src', {url_or_none}, {require('mp3 URL')})),
                 'vcodec': 'none',
             }]
         else:
-            m3u8_url = traverse_obj(graph_api, 'hlsVideoSrc', {url_or_none})
-            formats = self._extract_m3u8_formats(m3u8_url, media_id, 'mp4', m3u8_id='hls')
+            formats = self._extract_m3u8_formats(
+                graph_api['hlsVideoSrc'], media_id, 'mp4', m3u8_id='hls')
 
         return {
             'id': media_id,
             'formats': formats,
             **traverse_obj(graph_api, {
                 'title': ('title', {str}),
-                'categories': ('thematicFocusCategory', 'name', {str}, all, filter),
+                'categories': ('thematicFocusCategory', 'name', {str}, filter, all, filter),
                 'description': ('teaser', {str}),
                 'duration': ('duration', {int_or_none}),
                 'modified_timestamp': ('lastModifiedDate', {parse_iso8601}),
