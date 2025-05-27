@@ -118,10 +118,7 @@ class ZDFBaseIE(InfoExtractor):
                         if ext == 'm3u8':
                             fmts = self._extract_m3u8_formats(
                                 format_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
-                        elif ext == 'mpd':
-                            fmts = self._extract_mpd_formats(
-                                format_url, video_id, mpd_id='dash', fatal=False)
-                        else:
+                        elif ext in ('mp4', 'webm'):
                             height = int_or_none(quality.get('highestVerticalResolution'))
                             width = round(aspect_ratio * height) if aspect_ratio and height else None
                             fmts = [{
@@ -132,6 +129,10 @@ class ZDFBaseIE(InfoExtractor):
                                 'format_id': join_nonempty('http', stream.get('type')),
                                 'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
                             }]
+                        else:
+                            self.write_debug(f'Unsupported extension {ext} ({format_url}).')
+                            fmts = []
+
                         f_class = variant.get('class')
                         for f in fmts:
                             formats.append({
