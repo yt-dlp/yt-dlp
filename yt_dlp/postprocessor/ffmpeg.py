@@ -393,6 +393,32 @@ class FFmpegPostProcessor(PostProcessor):
         string = string[1:] if string[0] == "'" else "'" + string
         return string[:-1] if string[-1] == "'" else string + "'"
 
+    def get_keyframe_timestamps(self, path, opts=[]):
+        if self.probe_basename != 'ffprobe':
+            if self.probe_available:
+                self.report_warning('Only ffprobe is supported for keyframe timestamp extraction')
+            raise PostProcessingError('ffprobe not found. Please install or provide the path using --ffmpeg-location')
+
+        self.check_version()
+
+        cmd = [
+            self.probe_executable,
+            encodeArgument('-select_streams'),
+            encodeArgument('v:0'),
+            encodeArgument('-show_entries'),
+            encodeArgument('packet=pts_time,flags'),
+            encodeArgument('-print_format'),
+            encodeArgument('json'),
+        ]
+
+        cmd += opts
+        cmd.append(self._ffmpeg_filename_argument(path))
+        self.write_debug(f'ffprobe command line: {shell_quote(cmd)}')
+        stdout, _, _ = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        result = json.loads(stdout)
+
+        return [float(packet['pts_time']) for packet in result['packets'] if 'K' in packet['flags']]
+
     def force_keyframes(self, filename, timestamps):
         timestamps = orderedSet(timestamps)
         if timestamps[0] == 0:
