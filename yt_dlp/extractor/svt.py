@@ -173,6 +173,7 @@ class SVTPlayIE(SVTPlayBaseIE):
             'ext': 'mp4',
             'title': '1. Farlig kryssning',
             'timestamp': 1491019200,
+            'description': 'md5:8f350bc605677a5ead36a19a62fd9a34',
             'upload_date': '20170401',
             'duration': 2566,
             'thumbnail': r're:^https?://(?:.*[\.-]jpg|www.svtstatic.se/image/.*)$',
@@ -192,6 +193,7 @@ class SVTPlayIE(SVTPlayBaseIE):
             'id': 'jvXAGVb',
             'ext': 'mp4',
             'title': 'James Fallon',
+            'description': 'md5:7398c7b6c3ff1f4efd3550649dba17cd',
             'timestamp': 1743379200,
             'upload_date': '20250331',
             'duration': 1081,
@@ -288,9 +290,12 @@ class SVTPlayIE(SVTPlayBaseIE):
                 'props', 'urqlState', ..., 'data', {json.loads}, 'detailsPageByPath',
                 'video', 'svtId', {str}), get_all=False)
             if not svt_id:
-                svt_id = traverse_obj(nextjs_data, (
+                details = traverse_obj(nextjs_data, (
                     'props', 'urqlState', ..., 'data', {json.loads}, 'detailsPageByPath',
-                    'modules', ..., 'details', 'smartStart', 'item', 'videos', ..., 'svtId', {str}), get_all=False)
+                    'modules', ..., 'details'), get_all=False)
+                description = details['description']
+                svt_id = traverse_obj(details, (
+                    'smartStart', 'item', 'videos', ..., 'svtId', {str}), get_all=False)
 
         if not svt_id:
             svt_id = self._search_regex(
@@ -299,6 +304,7 @@ class SVTPlayIE(SVTPlayBaseIE):
                 webpage, 'video id')
 
         info_dict = self._extract_by_video_id(svt_id, webpage)
+        info_dict['description'] = description
         info_dict['thumbnail'] = thumbnail
 
         return info_dict
