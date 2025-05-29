@@ -1,31 +1,70 @@
-from .common import InfoExtractor
+from .streaks import StreaksBaseIE
 from ..utils import (
     ExtractorError,
+    int_or_none,
     join_nonempty,
+    make_archive_id,
     smuggle_url,
     str_or_none,
     strip_or_none,
-    traverse_obj,
     update_url_query,
 )
+from ..utils.traversal import require, traverse_obj
 
 
-class TVerIE(InfoExtractor):
+class TVerIE(StreaksBaseIE):
     _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?P<type>lp|corner|series|episodes?|feature)/)+(?P<id>[a-zA-Z0-9]+)'
+    _GEO_COUNTRIES = ['JP']
+    _GEO_BYPASS = False
     _TESTS = [{
-        'skip': 'videos are only available for 7 days',
-        'url': 'https://tver.jp/episodes/ep83nf3w4p',
+        # via Streaks backend
+        'url': 'https://tver.jp/episodes/epc1hdugbk',
         'info_dict': {
-            'title': '家事ヤロウ!!! 売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！',
-            'description': 'md5:dc2c06b6acc23f1e7c730c513737719b',
-            'series': '家事ヤロウ!!!',
-            'episode': '売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！',
-            'alt_title': '売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！',
-            'channel': 'テレビ朝日',
-            'id': 'ep83nf3w4p',
+            'id': 'epc1hdugbk',
             'ext': 'mp4',
+            'display_id': 'ref:baeebeac-a2a6-4dbf-9eb3-c40d59b40068',
+            'title': '神回だけ見せます！ #2 壮烈！車大騎馬戦（木曜スペシャル）',
+            'alt_title': '神回だけ見せます！ #2 壮烈！車大騎馬戦（木曜スペシャル） 日テレ',
+            'description': 'md5:2726f742d5e3886edeaf72fb6d740fef',
+            'uploader_id': 'tver-ntv',
+            'channel': '日テレ',
+            'duration': 1158.024,
+            'thumbnail': 'https://statics.tver.jp/images/content/thumbnail/episode/xlarge/epc1hdugbk.jpg?v=16',
+            'series': '神回だけ見せます！',
+            'episode': '#2 壮烈！車大騎馬戦（木曜スペシャル）',
+            'episode_number': 2,
+            'timestamp': 1736486036,
+            'upload_date': '20250110',
+            'modified_timestamp': 1736870264,
+            'modified_date': '20250114',
+            'live_status': 'not_live',
+            'release_timestamp': 1651453200,
+            'release_date': '20220502',
+            '_old_archive_ids': ['brightcovenew ref:baeebeac-a2a6-4dbf-9eb3-c40d59b40068'],
         },
-        'add_ie': ['BrightcoveNew'],
+    }, {
+        # via Brightcove backend (deprecated)
+        'url': 'https://tver.jp/episodes/epc1hdugbk',
+        'info_dict': {
+            'id': 'ref:baeebeac-a2a6-4dbf-9eb3-c40d59b40068',
+            'ext': 'mp4',
+            'title': '神回だけ見せます！ #2 壮烈！車大騎馬戦（木曜スペシャル）',
+            'alt_title': '神回だけ見せます！ #2 壮烈！車大騎馬戦（木曜スペシャル） 日テレ',
+            'description': 'md5:2726f742d5e3886edeaf72fb6d740fef',
+            'uploader_id': '4394098882001',
+            'channel': '日テレ',
+            'duration': 1158.101,
+            'thumbnail': 'https://statics.tver.jp/images/content/thumbnail/episode/xlarge/epc1hdugbk.jpg?v=16',
+            'tags': [],
+            'series': '神回だけ見せます！',
+            'episode': '#2 壮烈！車大騎馬戦（木曜スペシャル）',
+            'episode_number': 2,
+            'timestamp': 1651388531,
+            'upload_date': '20220501',
+            'release_timestamp': 1651453200,
+            'release_date': '20220502',
+        },
+        'params': {'extractor_args': {'tver': {'backend': ['brightcove']}}},
     }, {
         'url': 'https://tver.jp/corner/f0103888',
         'only_matching': True,
@@ -38,26 +77,7 @@ class TVerIE(InfoExtractor):
             'id': 'srtxft431v',
             'title': '名探偵コナン',
         },
-        'playlist': [
-            {
-                'md5': '779ffd97493ed59b0a6277ea726b389e',
-                'info_dict': {
-                    'id': 'ref:conan-1137-241005',
-                    'ext': 'mp4',
-                    'title': '名探偵コナン #1137「行列店、味変の秘密」',
-                    'uploader_id': '5330942432001',
-                    'tags': [],
-                    'channel': '読売テレビ',
-                    'series': '名探偵コナン',
-                    'description': 'md5:601fccc1d2430d942a2c8068c4b33eb5',
-                    'episode': '#1137「行列店、味変の秘密」',
-                    'duration': 1469.077,
-                    'timestamp': 1728030405,
-                    'upload_date': '20241004',
-                    'alt_title': '名探偵コナン #1137「行列店、味変の秘密」 読売テレビ 10月5日(土)放送分',
-                    'thumbnail': r're:https://.+\.jpg',
-                },
-            }],
+        'playlist_mincount': 21,
     }, {
         'url': 'https://tver.jp/series/sru35hwdd2',
         'info_dict': {
@@ -70,7 +90,11 @@ class TVerIE(InfoExtractor):
         'only_matching': True,
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
-    _HEADERS = {'x-tver-platform-type': 'web'}
+    _HEADERS = {
+        'x-tver-platform-type': 'web',
+        'Origin': 'https://tver.jp',
+        'Referer': 'https://tver.jp/',
+    }
     _PLATFORM_QUERY = {}
 
     def _real_initialize(self):
@@ -103,6 +127,9 @@ class TVerIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
+        backend = self._configuration_arg('backend', ['streaks'])[0]
+        if backend not in ('brightcove', 'streaks'):
+            raise ExtractorError(f'Invalid backend value: {backend}', expected=True)
 
         if video_type == 'series':
             series_info = self._call_platform_api(
@@ -129,12 +156,6 @@ class TVerIE(InfoExtractor):
         video_info = self._download_json(
             f'https://statics.tver.jp/content/episode/{video_id}.json', video_id, 'Downloading video info',
             query={'v': version}, headers={'Referer': 'https://tver.jp/'})
-        p_id = video_info['video']['accountID']
-        r_id = traverse_obj(video_info, ('video', ('videoRefID', 'videoID')), get_all=False)
-        if not r_id:
-            raise ExtractorError('Failed to extract reference ID for Brightcove')
-        if not r_id.isdigit():
-            r_id = f'ref:{r_id}'
 
         episode = strip_or_none(episode_content.get('title'))
         series = str_or_none(episode_content.get('seriesTitle'))
@@ -161,17 +182,53 @@ class TVerIE(InfoExtractor):
             ]
         ]
 
-        return {
-            '_type': 'url_transparent',
+        metadata = {
             'title': title,
             'series': series,
             'episode': episode,
             # an another title which is considered "full title" for some viewers
             'alt_title': join_nonempty(title, provider, onair_label, delim=' '),
             'channel': provider,
-            'description': str_or_none(video_info.get('description')),
             'thumbnails': thumbnails,
-            'url': smuggle_url(
-                self.BRIGHTCOVE_URL_TEMPLATE % (p_id, r_id), {'geo_countries': ['JP']}),
-            'ie_key': 'BrightcoveNew',
+            **traverse_obj(video_info, {
+                'description': ('description', {str}),
+                'release_timestamp': ('viewStatus', 'startAt', {int_or_none}),
+                'episode_number': ('no', {int_or_none}),
+            }),
+        }
+
+        brightcove_id = traverse_obj(video_info, ('video', ('videoRefID', 'videoID'), {str}, any))
+        if brightcove_id and not brightcove_id.isdecimal():
+            brightcove_id = f'ref:{brightcove_id}'
+
+        streaks_id = traverse_obj(video_info, ('streaks', 'videoRefID', {str}))
+        if streaks_id and not streaks_id.startswith('ref:'):
+            streaks_id = f'ref:{streaks_id}'
+
+        # Deprecated Brightcove extraction reachable w/extractor-arg or fallback; errors are expected
+        if backend == 'brightcove' or not streaks_id:
+            if backend != 'brightcove':
+                self.report_warning(
+                    'No STREAKS ID found; falling back to Brightcove extraction', video_id=video_id)
+            if not brightcove_id:
+                raise ExtractorError('Unable to extract brightcove reference ID', expected=True)
+            account_id = traverse_obj(video_info, (
+                'video', 'accountID', {str}, {require('brightcove account ID', expected=True)}))
+            return {
+                **metadata,
+                '_type': 'url_transparent',
+                'url': smuggle_url(
+                    self.BRIGHTCOVE_URL_TEMPLATE % (account_id, brightcove_id),
+                    {'geo_countries': ['JP']}),
+                'ie_key': 'BrightcoveNew',
+            }
+
+        return {
+            **self._extract_from_streaks_api(video_info['streaks']['projectID'], streaks_id, {
+                'Origin': 'https://tver.jp',
+                'Referer': 'https://tver.jp/',
+            }),
+            **metadata,
+            'id': video_id,
+            '_old_archive_ids': [make_archive_id('BrightcoveNew', brightcove_id)] if brightcove_id else None,
         }

@@ -13,16 +13,17 @@ from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
+    determine_ext,
     float_or_none,
     int_or_none,
     merge_dicts,
     multipart_encode,
     parse_duration,
-    traverse_obj,
     try_call,
-    try_get,
+    url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class CDAIE(InfoExtractor):
@@ -290,34 +291,47 @@ class CDAIE(InfoExtractor):
             if not video or 'file' not in video:
                 self.report_warning(f'Unable to extract {version} version information')
                 return
-            if video['file'].startswith('uggc'):
-                video['file'] = codecs.decode(video['file'], 'rot_13')
-                if video['file'].endswith('adc.mp4'):
-                    video['file'] = video['file'].replace('adc.mp4', '.mp4')
-            elif not video['file'].startswith('http'):
-                video['file'] = decrypt_file(video['file'])
             video_quality = video.get('quality')
             qualities = video.get('qualities', {})
             video_quality = next((k for k, v in qualities.items() if v == video_quality), video_quality)
-            info_dict['formats'].append({
-                'url': video['file'],
-                'format_id': video_quality,
-                'height': int_or_none(video_quality[:-1]),
-            })
+            if video.get('file'):
+                if video['file'].startswith('uggc'):
+                    video['file'] = codecs.decode(video['file'], 'rot_13')
+                    if video['file'].endswith('adc.mp4'):
+                        video['file'] = video['file'].replace('adc.mp4', '.mp4')
+                elif not video['file'].startswith('http'):
+                    video['file'] = decrypt_file(video['file'])
+                info_dict['formats'].append({
+                    'url': video['file'],
+                    'format_id': video_quality,
+                    'height': int_or_none(video_quality[:-1]),
+                })
             for quality, cda_quality in qualities.items():
                 if quality == video_quality:
                     continue
                 data = {'jsonrpc': '2.0', 'method': 'videoGetLink', 'id': 2,
                         'params': [video_id, cda_quality, video.get('ts'), video.get('hash2'), {}]}
                 data = json.dumps(data).encode()
-                video_url = self._download_json(
+                response = self._download_json(
                     f'https://www.cda.pl/video/{video_id}', video_id, headers={
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
                     }, data=data, note=f'Fetching {quality} url',
                     errnote=f'Failed to fetch {quality} url', fatal=False)
-                if try_get(video_url, lambda x: x['result']['status']) == 'ok':
-                    video_url = try_get(video_url, lambda x: x['result']['resp'])
+                if (
+                    traverse_obj(response, ('result', 'status')) != 'ok'
+                    or not traverse_obj(response, ('result', 'resp', {url_or_none}))
+                ):
+                    continue
+                video_url = response['result']['resp']
+                ext = determine_ext(video_url)
+                if ext == 'mpd':
+                    info_dict['formats'].extend(self._extract_mpd_formats(
+                        video_url, video_id, mpd_id='dash', fatal=False))
+                elif ext == 'm3u8':
+                    info_dict['formats'].extend(self._extract_m3u8_formats(
+                        video_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
+                else:
                     info_dict['formats'].append({
                         'url': video_url,
                         'format_id': quality,
@@ -353,7 +367,7 @@ class CDAIE(InfoExtractor):
 
 class CDAFolderIE(InfoExtractor):
     _MAX_PAGE_SIZE = 36
-    _VALID_URL = r'https?://(?:www\.)?cda\.pl/(?P<channel>\w+)/folder/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?cda\.pl/(?P<channel>[\w-]+)/folder/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://www.cda.pl/domino264/folder/31188385',
@@ -378,6 +392,9 @@ class CDAFolderIE(InfoExtractor):
                 'title': 'TESTY KOSMETYKÓW',
             },
             'playlist_mincount': 139,
+        }, {
+            'url': 'https://www.cda.pl/FILMY-SERIALE-ANIME-KRESKOWKI-BAJKI/folder/18493422',
+            'only_matching': True,
         }]
 
     def _real_extract(self, url):

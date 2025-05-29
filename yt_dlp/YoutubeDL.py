@@ -640,6 +640,7 @@ class YoutubeDL:
         self._printed_messages = set()
         self._first_webpage_request = True
         self._post_hooks = []
+        self._close_hooks = []
         self._progress_hooks = []
         self._postprocessor_hooks = []
         self._download_retcode = 0
@@ -654,18 +655,20 @@ class YoutubeDL:
         if not all_plugins_loaded.value:
             load_all_plugins()
 
-        try:
-            windows_enable_vt_mode()
-        except Exception as e:
-            self.write_debug(f'Failed to enable VT mode: {e}')
-
         stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
         self._out_files = Namespace(
             out=stdout,
             error=sys.stderr,
             screen=sys.stderr if self.params.get('quiet') else stdout,
-            console=next(filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None),
         )
+
+        try:
+            windows_enable_vt_mode()
+        except Exception as e:
+            self.write_debug(f'Failed to enable VT mode: {e}')
+
+        # hehe "immutable" namespace
+        self._out_files.console = next(filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None)
 
         if self.params.get('no_color'):
             if self.params.get('color') is not None:
@@ -906,6 +909,11 @@ class YoutubeDL:
         """Add the post hook"""
         self._post_hooks.append(ph)
 
+    def add_close_hook(self, ch):
+        """Add a close hook, called when YoutubeDL.close() is called"""
+        assert callable(ch), 'Close hook must be callable'
+        self._close_hooks.append(ch)
+
     def add_progress_hook(self, ph):
         """Add the download progress hook"""
         self._progress_hooks.append(ph)
@@ -1013,6 +1021,9 @@ class YoutubeDL:
         if '_request_director' in self.__dict__:
             self._request_director.close()
             del self._request_director
+
+        for close_hook in self._close_hooks:
+            close_hook()
 
     def trouble(self, message=None, tb=None, is_error=True):
         """Determine action to take when a download problem appears.
@@ -4150,7 +4161,7 @@ class YoutubeDL:
             (target, rh.RH_NAME)
             for rh in self._request_director.handlers.values()
             if isinstance(rh, ImpersonateRequestHandler)
-            for target in rh.supported_targets
+            for target in reversed(rh.supported_targets)
         ]
 
     def _impersonate_target_available(self, target):

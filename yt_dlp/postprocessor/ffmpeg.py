@@ -743,7 +743,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             if value not in ('', None):
                 value = ', '.join(map(str, variadic(value)))
                 value = value.replace('\0', '')  # nul character cannot be passed in command line
-                metadata['common'].update({meta_f: value for meta_f in variadic(meta_list)})
+                metadata['common'].update(dict.fromkeys(variadic(meta_list), value))
 
         # Info on media metadata/metadata supported by ffmpeg:
         # https://wiki.multimedia.cx/index.php/FFmpeg_Metadata
