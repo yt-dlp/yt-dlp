@@ -52,7 +52,7 @@ class TestConvertThumbnail(unittest.TestCase):
         test_data_dir = 'test/testdata/thumbnails'
         generated_file = f'{test_data_dir}/empty.webp'
 
-        subprocess.run([
+        subprocess.check_call([
             pp.executable, '-y', '-f', 'lavfi', '-i', 'color=c=black:s=320x320',
             '-c:v', 'libwebp', '-pix_fmt', 'yuv420p', '-vframes', '1', generated_file,
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
