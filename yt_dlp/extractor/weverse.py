@@ -206,7 +206,7 @@ class WeverseBaseIE(InfoExtractor):
             'platform': self._CLIENT_PLATFORM,
             'wpf': 'pc',
         })
-        for retry in (False, True):
+        for is_retry in (False, True):
             wmsgpad = int(time.time() * 1000)
             wmd = base64.b64encode(hmac.HMAC(
                 self._SIGNING_KEY, f'{api_path[:255]}{wmsgpad}'.encode(),
@@ -225,7 +225,7 @@ class WeverseBaseIE(InfoExtractor):
                         'wmd': wmd,
                     })
             except ExtractorError as e:
-                if retry or not isinstance(e.cause, HTTPError):
+                if is_retry or not isinstance(e.cause, HTTPError):
                     raise
                 elif self._is_logged_in and e.cause.status == 401:
                     self._refresh_access_token()
