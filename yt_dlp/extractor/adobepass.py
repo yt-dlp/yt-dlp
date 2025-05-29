@@ -1597,7 +1597,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     self._download_json_handle(
                         'https://idp.philo.com/auth/update/login_code', video_id,
                         note='Submitting token', data=json.dumps(update_code_payload).encode('utf-8'),
-                        headers={ 
+                        headers={
                             'Content-Type': 'application/json',
                             'Accept': 'application/json',
                         })
