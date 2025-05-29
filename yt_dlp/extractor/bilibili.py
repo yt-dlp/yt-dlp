@@ -34,6 +34,7 @@ from ..utils import (
     parse_qs,
     parse_resolution,
     qualities,
+    sanitize_url,
     smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
@@ -42,6 +43,7 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
     urlencode_postdata,
+    value,
     variadic,
 )
 
@@ -66,6 +68,84 @@ class BilibiliBaseIE(InfoExtractor):
             self.to_screen(
                 f'Format(s) {missing_formats} are missing; you have to '
                 f'become a premium member to download them. {self._login_hint()}')
+
+    def _extract_heatmap(self, cid):
+        heatmap_json = self._download_json(
+            'https://bvc.bilivideo.com/pbp/data', cid,
+            note='Downloading heatmap', errnote='Failed to download heatmap', fatal=False,
+            query={'cid': cid})
+        if not isinstance(heatmap_json, dict):
+            return
+        duration = self._parse_json(heatmap_json['debug'], cid).get('max_time')
+        step_sec = traverse_obj(heatmap_json, ('step_sec', {int}))
+        heatmap_data = traverse_obj(heatmap_json, ('events', 'default', {list}))
+        if not step_sec or not heatmap_data:
+            return
+        peak = max(heatmap_data)
+        if not peak:
+            return
+
+        for idx, heatmap_entry in enumerate(heatmap_data):
+            start_time = idx * step_sec
+            end_time = start_time + step_sec
+            if duration and end_time >= duration:
+                yield {
+                    'start_time': start_time,
+                    'end_time': duration,
+                    'value': heatmap_entry / peak,
+                }
+                break
+            yield {
+                'start_time': start_time,
+                'end_time': end_time,
+                'value': heatmap_entry / peak,
+            }
+
+    def _extract_storyboard(self, duration, aid=None, bvid=None, cid=None):
+        if not (video_id := aid or bvid) or not duration:
+            return
+        if storyboard_info := traverse_obj(self._download_json(
+                'https://api.bilibili.com/x/player/videoshot', video_id,
+                note='Downloading storyboard info', errnote='Failed to download storyboard info',
+                query=filter_dict({
+                    'index': 1,
+                    'aid': aid,
+                    'bvid': bvid,
+                    'cid': cid,
+                })), ('data', {lambda v: v if v.get('image') and v.get('index') else None})):
+            rows, cols = storyboard_info.get('img_x_len'), storyboard_info.get('img_y_len')
+            fragments = []
+            last_duration = 0.0
+            for i, url in enumerate(storyboard_info['image'], start=1):
+                if not rows or not cols:
+                    fragments.append({'url': sanitize_url(url)})
+                    continue
+                elif (duration_index := i * rows * cols - 1) < len(storyboard_info['index']) - 1:
+                    current_duration = traverse_obj(storyboard_info, ('index', duration_index))
+                else:
+                    current_duration = duration
+                if not current_duration or current_duration <= last_duration or current_duration > duration:
+                    break
+                fragments.append({
+                    'url': sanitize_url(url),
+                    'duration': current_duration - last_duration if current_duration is not None else None,
+                })
+            if fragments:
+                return {
+                    'format_id': 'sb',
+                    'format_note': 'storyboard',
+                    'ext': 'mhtml',
+                    'protocol': 'mhtml',
+                    'acodec': 'none',
+                    'vcodec': 'none',
+                    'url': 'about:invalid',
+                    'width': storyboard_info.get('img_x_size'),
+                    'height': storyboard_info.get('img_y_size'),
+                    'fps': len(storyboard_info['image']) * rows * cols / duration if rows and cols else None,
+                    'rows': rows,
+                    'columns': cols,
+                    'fragments': fragments,
+                }
 
     def extract_formats(self, play_info):
         format_names = {
@@ -292,14 +372,21 @@ class BilibiliBaseIE(InfoExtractor):
         cid_edges = self._get_divisions(video_id, graph_version, {1: {'cid': cid}}, 1)
         for cid, edges in cid_edges.items():
             play_info = self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1})
+            formats = self.extract_formats(play_info)
+            duration = float_or_none(play_info.get('timelength'), scale=1000)
+            if storyboard_format := self._extract_storyboard(
+                    duration=duration,
+                    bvid=video_id, cid=cid):
+                formats.append(storyboard_format)
             yield {
                 **metainfo,
                 'id': f'{video_id}_{cid}',
                 'title': f'{metainfo.get("title")} - {next(iter(edges.values())).get("title")}',
-                'formats': self.extract_formats(play_info),
+                'formats': formats,
                 'description': f'{json.dumps(edges, ensure_ascii=False)}\n{metainfo.get("description", "")}',
-                'duration': float_or_none(play_info.get('timelength'), scale=1000),
+                'duration': duration,
                 'subtitles': self.extract_subtitles(video_id, cid),
+                'heatmap': list(self._extract_heatmap(cid)),
             }
 
 
@@ -315,7 +402,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'description': '滴妹今天唱Closer給你聽! 有史以来，被推最多次也是最久的歌曲，其实歌词跟我原本想像差蛮多的，不过还是好听！ 微博@阿滴英文',
             'uploader_id': '65880958',
             'uploader': '阿滴英文',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             'duration': 554.117,
             'tags': list,
             'comment_count': int,
@@ -324,6 +411,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'like_count': int,
             'view_count': int,
             '_old_archive_ids': ['bilibili 8903802_part1'],
+            'heatmap': [],
         },
     }, {
         'note': 'old av URL version',
@@ -342,8 +430,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'view_count': int,
             'tags': list,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 1074402_part1'],
+            'heatmap': [],
         },
         'params': {'skip_download': True},
     }, {
@@ -361,7 +450,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 'title': '物语中的人物是如何吐槽自己的OP的 p01 Staple Stable/战场原+羽川',
                 'tags': 'count:10',
                 'timestamp': 1589601697,
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
                 'uploader': '打牌还是打桩',
                 'uploader_id': '150259984',
                 'like_count': int,
@@ -371,6 +460,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
                 'duration': 90.314,
                 '_old_archive_ids': ['bilibili 498159642_part1'],
+                'heatmap': list,
             },
         }],
     }, {
@@ -382,7 +472,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'title': '物语中的人物是如何吐槽自己的OP的 p01 Staple Stable/战场原+羽川',
             'tags': 'count:10',
             'timestamp': 1589601697,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             'uploader': '打牌还是打桩',
             'uploader_id': '150259984',
             'like_count': int,
@@ -392,6 +482,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
             'duration': 90.314,
             '_old_archive_ids': ['bilibili 498159642_part1'],
+            'heatmap': list,
         },
     }, {
         'url': 'https://www.bilibili.com/video/av8903802/',
@@ -404,13 +495,14 @@ class BiliBiliIE(BilibiliBaseIE):
             'timestamp': 1488353834,
             'uploader_id': '65880958',
             'uploader': '阿滴英文',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             'duration': 554.117,
             'tags': list,
             'comment_count': int,
             'view_count': int,
             'like_count': int,
             '_old_archive_ids': ['bilibili 8903802_part1'],
+            'heatmap': [],
         },
         'params': {
             'skip_download': True,
@@ -433,8 +525,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'view_count': int,
             'like_count': int,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 463665680_part1'],
+            'heatmap': list,
         },
         'params': {'skip_download': True},
     }, {
@@ -452,8 +545,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'uploader_id': '528182630',
             'view_count': int,
             'like_count': int,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 893839363_part1'],
+            'heatmap': [],
         },
     }, {
         'note': 'newer festival video',
@@ -470,8 +564,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'uploader_id': '8469526',
             'view_count': int,
             'like_count': int,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 778246196_part1'],
+            'heatmap': list,
         },
     }, {
         'note': 'legacy flv/mp4 video',
@@ -489,8 +584,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'like_count': int,
             'tags': list,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 4120229_part4'],
+            'heatmap': [],
         },
         'params': {'extractor_args': {'bilibili': {'prefer_multi_flv': ['32']}}},
         'playlist_count': 19,
@@ -519,8 +615,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'like_count': int,
             'tags': list,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 15700301_part1'],
+            'heatmap': [],
         },
     }, {
         'note': 'interactive/split-path video',
@@ -538,7 +635,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'view_count': int,
             'like_count': int,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 292734508_part1'],
         },
         'playlist_count': 33,
@@ -557,10 +654,33 @@ class BiliBiliIE(BilibiliBaseIE):
                 'comment_count': int,
                 'view_count': int,
                 'like_count': int,
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
                 '_old_archive_ids': ['bilibili 292734508_part1'],
+                'heatmap': [],
             },
         }],
+    }, {
+        'note': 'storyboard',
+        'url': 'https://www.bilibili.com/video/av170001/',
+        'info_dict': {
+            'id': 'BV17x411w7KC_p1',
+            'title': '【MV】保加利亚妖王AZIS视频合辑 p01 Хоп',
+            'ext': 'mhtml',
+            'upload_date': '20111109',
+            'uploader_id': '122541',
+            'view_count': int,
+            '_old_archive_ids': ['bilibili 170001_part1'],
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+            'uploader': '冰封.虾子',
+            'timestamp': 1320850533,
+            'comment_count': int,
+            'tags': ['Hop', '保加利亚妖王', '保加利亚', 'Азис', 'azis', 'mv'],
+            'description': 'md5:acfd7360b96547f031f7ebead9e66d9e',
+            'like_count': int,
+            'duration': 199.4,
+            'heatmap': list,
+        },
+        'params': {'format': 'sb', 'playlist_items': '1'},
     }, {
         'note': '301 redirect to bangumi link',
         'url': 'https://www.bilibili.com/video/BV1TE411f7f1',
@@ -579,7 +699,8 @@ class BiliBiliIE(BilibiliBaseIE):
             'duration': 1183.957,
             'timestamp': 1571648124,
             'upload_date': '20191021',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+            'heatmap': [],
         },
     }, {
         'note': 'video has subtitles, which requires login',
@@ -598,7 +719,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'view_count': int,
             'like_count': int,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             'subtitles': 'count:2',  # login required for CC subtitle
             '_old_archive_ids': ['bilibili 898179753_part1'],
         },
@@ -784,6 +905,10 @@ class BiliBiliIE(BilibiliBaseIE):
                 'duration': float_or_none(play_info.get('timelength'), scale=1000),
             }
 
+        formats.append(self._extract_storyboard(
+            duration=float_or_none(play_info.get('timelength'), scale=1000),
+            bvid=video_id, cid=cid))
+
         return {
             **metainfo,
             'formats': formats,
@@ -814,7 +939,8 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'duration': 1420.791,
             'timestamp': 1320412200,
             'upload_date': '20111104',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+            'heatmap': list,
         },
     }, {
         'url': 'https://www.bilibili.com/bangumi/play/ep267851',
@@ -833,7 +959,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'duration': 1425.256,
             'timestamp': 1554566400,
             'upload_date': '20190406',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
         },
         'skip': 'Geo-restricted',
     }, {
@@ -854,7 +980,8 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'duration': 1922.129,
             'timestamp': 1602853860,
             'upload_date': '20201016',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+            'heatmap': list,
         },
     }]
 
@@ -880,6 +1007,8 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 headers=headers))
 
         premium_only = play_info.get('code') == -10403
+        episode_info = traverse_obj(play_info, ('result', 'play_view_business_info', 'episode_info'))
+        aid, cid = episode_info.get('aid'), episode_info.get('cid')
         play_info = traverse_obj(play_info, ('result', 'video_info', {dict})) or {}
 
         formats = self.extract_formats(play_info)
@@ -893,7 +1022,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         episode_number, episode_info = next((
             (idx, ep) for idx, ep in enumerate(traverse_obj(
                 bangumi_info, (('episodes', ('section', ..., 'episodes')), ..., {dict})), 1)
-            if str_or_none(ep.get('id')) == episode_id), (1, {}))
+            if str_or_none(ep.get('id')) == episode_id), (1, episode_info))
 
         season_id = bangumi_info.get('season_id')
         season_number, season_title = season_id and next((
@@ -902,8 +1031,10 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             if e.get('season_id') == season_id
         ), (None, None))
 
-        aid = episode_info.get('aid')
-
+        aid, cid = episode_info.get('aid', aid), episode_info.get('cid', cid)
+        duration = float_or_none(play_info.get('timelength'), scale=1000)
+        if storyboard_format := self._extract_storyboard(duration=duration, aid=aid, cid=cid):
+            formats.append(storyboard_format)
         return {
             'id': episode_id,
             'formats': formats,
@@ -922,10 +1053,11 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'season': str_or_none(season_title),
             'season_id': str_or_none(season_id),
             'season_number': season_number,
-            'duration': float_or_none(play_info.get('timelength'), scale=1000),
-            'subtitles': self.extract_subtitles(episode_id, episode_info.get('cid'), aid=aid),
+            'duration': duration,
+            'subtitles': self.extract_subtitles(episode_id, cid, aid=aid),
             '__post_extractor': self.extract_comments(aid),
             'http_headers': {'Referer': url},
+            'heatmap': list(self._extract_heatmap(cid)),
         }
 
 
@@ -963,7 +1095,8 @@ class BiliBiliBangumiMediaIE(BilibiliBaseIE):
                 'duration': 1525.777,
                 'timestamp': 1425074413,
                 'upload_date': '20150227',
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+                'heatmap': list,
             },
         }],
     }]
@@ -1018,7 +1151,8 @@ class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
                 'duration': 1436.992,
                 'timestamp': 1343185080,
                 'upload_date': '20120725',
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+                'heatmap': list,
             },
         }],
     }]
@@ -1052,10 +1186,14 @@ class BilibiliCheeseBaseIE(BilibiliBaseIE):
             query={'avid': aid, 'cid': cid, 'ep_id': ep_id, 'fnval': 16, 'fourk': 1},
             headers=self._HEADERS, note='Downloading playinfo')['data']
 
+        formats = self.extract_formats(play_info)
+        duration = traverse_obj(episode_info, ('duration', {int_or_none}))
+        if storyboard_format := self._extract_storyboard(duration=duration, aid=aid, cid=cid):
+            formats.append(storyboard_format)
         return {
             'id': str_or_none(ep_id),
             'episode_id': str_or_none(ep_id),
-            'formats': self.extract_formats(play_info),
+            'formats': formats,
             'extractor_key': BilibiliCheeseIE.ie_key(),
             'extractor': BilibiliCheeseIE.IE_NAME,
             'webpage_url': f'https://www.bilibili.com/cheese/play/ep{ep_id}',
@@ -1063,7 +1201,7 @@ class BilibiliCheeseBaseIE(BilibiliBaseIE):
                 'episode': ('title', {str}),
                 'title': {lambda v: v and join_nonempty('index', 'title', delim=' - ', from_dict=v)},
                 'alt_title': ('subtitle', {str}),
-                'duration': ('duration', {int_or_none}),
+                'duration': {value(duration)},
                 'episode_number': ('index', {int_or_none}),
                 'thumbnail': ('cover', {url_or_none}),
                 'timestamp': ('release_date', {int_or_none}),
@@ -1076,6 +1214,7 @@ class BilibiliCheeseBaseIE(BilibiliBaseIE):
             'subtitles': self.extract_subtitles(ep_id, cid, aid=aid),
             '__post_extractor': self.extract_comments(aid),
             'http_headers': self._HEADERS,
+            'heatmap': list(self._extract_heatmap(cid)),
         }
 
     def _download_season_info(self, query_key, video_id):
@@ -1101,8 +1240,9 @@ class BilibiliCheeseIE(BilibiliCheeseBaseIE):
             'duration': 221,
             'timestamp': 1695549606,
             'upload_date': '20230924',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             'view_count': int,
+            'heatmap': list,
         },
     }]
 
@@ -1134,8 +1274,9 @@ class BilibiliCheeseSeasonIE(BilibiliCheeseBaseIE):
                 'duration': 221,
                 'timestamp': 1695549606,
                 'upload_date': '20230924',
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
                 'view_count': int,
+                'heatmap': list,
             },
         }],
         'params': {'playlist_items': '1'},
@@ -1531,6 +1672,7 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
             'view_count': int,
             'like_count': int,
             '_old_archive_ids': ['bilibili 687146339_part1'],
+            'heatmap': [],
         },
         'params': {'noplaylist': True},
     }, {
@@ -1725,8 +1867,9 @@ class BiliBiliSearchIE(SearchInfoExtractor):
                 'comment_count': int,
                 'view_count': int,
                 'like_count': int,
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
                 '_old_archive_ids': ['bilibili 988222410_part1'],
+                'heatmap': [],
             },
         }],
     }]
@@ -1773,7 +1916,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
             'id': '1003142',
             'ext': 'm4a',
             'title': '【tsukimi】YELLOW / 神山羊',
-            'artist': 'tsukimi',
+            'artists': ['tsukimi'],
             'comment_count': int,
             'description': 'YELLOW的mp3版！',
             'duration': 183,
@@ -1785,7 +1928,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
             'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1564836614,
             'upload_date': '20190803',
-            'uploader': 'tsukimi-つきみぐー',
+            'uploader': '十六夜tsukimiつきみぐ',
             'view_count': int,
         },
     }
@@ -1840,10 +1983,10 @@ class BilibiliAudioAlbumIE(BilibiliAudioBaseIE):
         'url': 'https://www.bilibili.com/audio/am10624',
         'info_dict': {
             'id': '10624',
-            'title': '每日新曲推荐（每日11:00更新）',
+            'title': '新曲推荐',
             'description': '每天11:00更新，为你推送最新音乐',
         },
-        'playlist_count': 19,
+        'playlist_mincount': 10,
     }
 
     def _real_extract(self, url):
