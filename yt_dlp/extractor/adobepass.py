@@ -1574,18 +1574,34 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             post_form(mvpd_confirm_page_res, 'Confirming Login')
                 elif mso_id == 'Philo':
                     # Philo has very unique authentication method
-                    self._download_webpage(
-                        'https://idp.philo.com/auth/init/login_code', video_id, 'Requesting auth code', data=urlencode_postdata({
-                            'ident': username,
-                            'device': 'web',
-                            'send_confirm_link': False,
-                            'send_token': True,
-                        }))
+                    philo_ident_payload = {
+                        'ident': username,
+                        'device': 'web',
+                        'send_confirm_link': False,
+                        'send_token': True,
+                        'device_ident': f'web-{uuid.uuid4().hex}',
+                        'include_login_link': True,
+                    }
+
+                    self._download_json_handle(
+                        'https://idp.philo.com/auth/init/login_code', video_id,
+                        note='Requesting Philo auth code', data=json.dumps(philo_ident_payload).encode('utf-8'),
+                        headers={
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        })
+
                     philo_code = getpass.getpass('Type auth code you have received [Return]: ')
-                    self._download_webpage(
-                        'https://idp.philo.com/auth/update/login_code', video_id, 'Submitting token', data=urlencode_postdata({
-                            'token': philo_code,
-                        }))
+
+                    update_code_payload = {'token': philo_code}
+                    self._download_json_handle(
+                        'https://idp.philo.com/auth/update/login_code', video_id,
+                        note='Submitting token', data=json.dumps(update_code_payload).encode('utf-8'),
+                        headers={
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        })
+
                     mvpd_confirm_page_res = self._download_webpage_handle('https://idp.philo.com/idp/submit', video_id, 'Confirming Philo Login')
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
                 elif mso_id == 'Verizon':
