@@ -266,8 +266,7 @@ class SVTPlayIE(SVTPlayBaseIE):
             'props', 'urqlState', ..., 'data', {json.loads},
             'detailsPageByPath', {dict}, any, {require('video data')}))
         details = traverse_obj(data, (
-            'modules', lambda _, v: v['details']['smartStart']['item']['videos'],
-            'details', {dict}, any))
+            'modules', lambda _, v: v['details']['smartStart']['item']['videos'], 'details', any))
         svt_id = traverse_obj(details, (
             'smartStart', 'item', 'videos',
             # There can be 'AudioDescribed' and 'SignInterpreted' variants; try 'Default' or else get first
