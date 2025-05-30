@@ -1574,19 +1574,16 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             post_form(mvpd_confirm_page_res, 'Confirming Login')
                 elif mso_id == 'Philo':
                     # Philo has very unique authentication method
-                    philo_ident_payload = {
-                        'ident': username,
-                        'device': 'web',
-                        'send_confirm_link': False,
-                        'send_token': True,
-                        'device_ident': f'web-{uuid.uuid4().hex}',
-                        'include_login_link': True,
-                    }
-
-                    self._download_json_handle(
+                    self._request_webpage(
                         'https://idp.philo.com/auth/init/login_code', video_id,
-                        note='Requesting Philo auth code', data=json.dumps(philo_ident_payload).encode('utf-8'),
-                        headers={
+                        'Requesting Philo auth code', data=json.dumps({
+                            'ident': username,
+                            'device': 'web',
+                            'send_confirm_link': False,
+                            'send_token': True,
+                            'device_ident': f'web-{uuid.uuid4().hex}',
+                            'include_login_link': True,
+                        }).encode(), headers={
                             'Content-Type': 'application/json',
                             'Accept': 'application/json',
                         })
