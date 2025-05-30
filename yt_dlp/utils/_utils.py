@@ -3040,7 +3040,7 @@ def parse_codecs(codecs_str):
             elif parts[:2] == ['vp9', '2']:
                 hdr = 'HDR10'
         elif parts[0] in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-4',
-                          'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
+                          'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl', 'iamf'):
             acodec = acodec or full_codec
         elif parts[0] in ('stpp', 'wvtt'):
             scodec = scodec or full_codec
