@@ -101,6 +101,41 @@ class NiconicoIE(NiconicoBaseIE):
     IE_NAME = 'niconico'
     IE_DESC = 'ニコニコ動画'
 
+    _ERROR_MAP = {
+        'FORBIDDEN': {
+            'ADMINISTRATOR_DELETE_VIDEO': 'Video unavailable, possibly removed by admins',
+            'CHANNEL_MEMBER_ONLY': 'Channel members only',
+            'DELETED_CHANNEL_VIDEO': 'Video unavailable, channel was closed',
+            'DELETED_COMMUNITY_VIDEO': 'Video unavailable, community deleted or missing',
+            'DEFAULT': 'Page unavailable, check the URL',
+            'HARMFUL_VIDEO': 'Sensitive content, login required',
+            'HIDDEN_VIDEO': 'Video unavailable, set to private',
+            'NOT_ALLOWED': 'No parmission',
+            'PPV_VIDEO': 'PPV video, payment information required',
+            'PREMIUM_ONLY': 'Premium members only',
+        },
+        'INVALID_PARAMETER': {
+            'DEFAULT': 'Video unavailable, may not exist or was deleted',
+        },
+        'MAINTENANCE': {
+            'DEFAULT': 'Maintenance is in progress',
+        },
+        'NOT_FOUND': {
+            'DEFAULT': 'Video unavailable, may not exist or was deleted',
+            'RIGHT_HOLDER_DELETE_VIDEO': 'Removed by rights-holder request',
+        },
+        'UNAUTHORIZED': {
+            'DEFAULT': 'Invalid session, re-login required',
+        },
+        'UNKNOWN': {
+            'DEFAULT': 'Failed to fetch content',
+        },
+    }
+    _STATUS_MAP = {
+        'needs_auth': 'PPV video, payment information required',
+        'premium_only': 'Premium members only',
+        'subscriber_only': 'Channel members only',
+    }
     _VALID_URL = r'https?://(?:(?:embed|sp|www)\.)?nicovideo\.jp/watch/(?P<id>(?:[a-z]{2})?\d+)'
     _TESTS = [{
         'url': 'http://www.nicovideo.jp/watch/sm22312215',
@@ -341,37 +376,6 @@ class NiconicoIE(NiconicoBaseIE):
         api_data = api_resp.get('data')
         release_timestamp = traverse_obj(api_data, ('publishScheduledAt', {parse_iso8601}))
 
-        ERROR_MESSAGES = {
-            'FORBIDDEN': {
-                'ADMINISTRATOR_DELETE_VIDEO': 'Video unavailable, possibly removed by admins',
-                'CHANNEL_MEMBER_ONLY': 'Channel members only',
-                'DELETED_CHANNEL_VIDEO': 'Video unavailable, channel was closed',
-                'DELETED_COMMUNITY_VIDEO': 'Video unavailable, community deleted or missing',
-                'DEFAULT': 'Page unavailable, check the URL',
-                'HARMFUL_VIDEO': 'Sensitive content, login required',
-                'HIDDEN_VIDEO': 'Video unavailable, set to private',
-                'NOT_ALLOWED': 'No parmission',
-                'PPV_VIDEO': 'PPV video, payment information required',
-                'PREMIUM_ONLY': 'Premium members only',
-            },
-            'INVALID_PARAMETER': {
-                'DEFAULT': 'Video unavailable, may not exist or was deleted',
-            },
-            'MAINTENANCE': {
-                'DEFAULT': 'Maintenance is in progress',
-            },
-            'NOT_FOUND': {
-                'DEFAULT': 'Video unavailable, may not exist or was deleted',
-                'RIGHT_HOLDER_DELETE_VIDEO': 'Removed by rights-holder request',
-            },
-            'UNAUTHORIZED': {
-                'DEFAULT': 'Invalid session, re-login required',
-            },
-            'UNKNOWN': {
-                'DEFAULT': 'Failed to fetch content',
-            },
-        }
-
         if (meta := api_resp.get('meta')).get('status') != 200:
             err_code = meta.get('errorCode')
             reason_code = traverse_obj(api_data, 'reasonCode', {str_or_none})
@@ -385,7 +389,7 @@ class NiconicoIE(NiconicoBaseIE):
                 err_msg = 'Sensitive content, adjust display settings to watch'
             elif reason_code == 'HIDDEN_VIDEO' and release_timestamp:
                 err_msg = f'Scheduled release, please wait. Release time: {release_timestamp}'
-            elif msg := traverse_obj(ERROR_MESSAGES, (
+            elif msg := traverse_obj(self._ERROR_MAP, (
                 err_code.upper(), (reason_code, 'DEFAULT'), {str}, any,
             )):
                 err_msg = msg
@@ -401,13 +405,8 @@ class NiconicoIE(NiconicoBaseIE):
             })),
         })
 
-        STATUS_MESSAGES = {
-            'needs_auth': 'PPV video, payment information required',
-            'premium_only': 'Premium members only',
-            'subscriber_only': 'Channel members only',
-        }
         if not (formats := self._extract_formats(api_data, video_id)):
-            if (err_msg := STATUS_MESSAGES.get(availability)):
+            if (err_msg := self._STATUS_MAP.get(availability)):
                 self.raise_login_required(err_msg, metadata_available=True)
 
         thumb_prefs = qualities(['url', 'middleUrl', 'largeUrl', 'player', 'ogp'])
