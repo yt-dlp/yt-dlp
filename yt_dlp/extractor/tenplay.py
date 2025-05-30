@@ -7,7 +7,7 @@ from ..utils import int_or_none, traverse_obj, url_or_none, urljoin
 
 class TenPlayIE(InfoExtractor):
     IE_NAME = '10play'
-    _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?:[^/]+/)+(?P<id>tpv\d{6}[a-z]{5})'
+    _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?:[^/?#]+/)+(?P<id>tpv\d{6}[a-z]{5})'
     _NETRC_MACHINE = '10play'
     _TESTS = [{
         # Geo-restricted to Australia
