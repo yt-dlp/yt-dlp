@@ -1589,11 +1589,9 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         })
 
                     philo_code = getpass.getpass('Type auth code you have received [Return]: ')
-
-                    update_code_payload = {'token': philo_code}
-                    self._download_json_handle(
+                    self._request_webpage(
                         'https://idp.philo.com/auth/update/login_code', video_id,
-                        note='Submitting token', data=json.dumps(update_code_payload).encode('utf-8'),
+                        'Submitting token', data=json.dumps({'token': philo_code}).encode(),
                         headers={
                             'Content-Type': 'application/json',
                             'Accept': 'application/json',
