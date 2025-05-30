@@ -3398,8 +3398,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         self._decrypt_signature(encrypted_sig, video_id, player_url),
                     )
                 except ExtractorError as e:
-                    self.report_warning('Signature extraction failed: Some formats may be missing',
-                                        video_id=video_id, only_once=True)
+                    self.report_warning(
+                        f'Signature extraction failed: Some formats may be missing\n'
+                        f'         player = {player_url}\n'
+                        f'         {bug_reports_message(before="")}',
+                        video_id=video_id, only_once=True)
+                    self.write_debug(
+                        f'{video_id}: Signature extraction failure info:\n'
+                        f'         encrypted sig = {encrypted_sig}\n'
+                        f'         player = {player_url}')
                     self.write_debug(e, only_once=True)
                     continue
 
