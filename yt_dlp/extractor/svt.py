@@ -6,9 +6,12 @@ from ..utils import (
     determine_ext,
     dict_get,
     int_or_none,
-    traverse_obj,
     try_get,
     unified_timestamp,
+)
+from ..utils.traversal import (
+    require,
+    traverse_obj,
 )
 
 
@@ -173,6 +176,7 @@ class SVTPlayIE(SVTPlayBaseIE):
             'ext': 'mp4',
             'title': '1. Farlig kryssning',
             'timestamp': 1491019200,
+            'description': 'md5:8f350bc605677a5ead36a19a62fd9a34',
             'upload_date': '20170401',
             'duration': 2566,
             'thumbnail': r're:^https?://(?:.*[\.-]jpg|www.svtstatic.se/image/.*)$',
@@ -192,13 +196,14 @@ class SVTPlayIE(SVTPlayBaseIE):
             'id': 'jvXAGVb',
             'ext': 'mp4',
             'title': 'James Fallon',
-            'timestamp': 1673917200,
-            'upload_date': '20230117',
+            'description': 'md5:7398c7b6c3ff1f4efd3550649dba17cd',
+            'timestamp': 1743379200,
+            'upload_date': '20250331',
             'duration': 1081,
             'thumbnail': r're:^https?://(?:.*[\.-]jpg|www.svtstatic.se/image/.*)$',
             'age_limit': 0,
             'episode': 'James Fallon',
-            'series': 'Anders Hansen möter...',
+            'series': 'Anders Hansen möter',
         },
         'params': {
             'skip_download': 'dash',
@@ -252,50 +257,28 @@ class SVTPlayIE(SVTPlayBaseIE):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         svt_id = mobj.group('svt_id') or mobj.group('modal_id')
-
         if svt_id:
             return self._extract_by_video_id(svt_id)
 
         webpage = self._download_webpage(url, video_id)
 
-        data = self._parse_json(
-            self._search_regex(
-                self._SVTPLAY_RE, webpage, 'embedded data', default='{}',
-                group='json'),
-            video_id, fatal=False)
-
-        thumbnail = self._og_search_thumbnail(webpage)
-
-        if data:
-            video_info = try_get(
-                data, lambda x: x['context']['dispatcher']['stores']['VideoTitlePageStore']['data']['video'],
-                dict)
-            if video_info:
-                info_dict = self._extract_video(video_info, video_id)
-                info_dict.update({
-                    'title': data['context']['dispatcher']['stores']['MetaStore']['title'],
-                    'thumbnail': thumbnail,
-                })
-                return info_dict
-
-            svt_id = try_get(
-                data, lambda x: x['statistics']['dataLake']['content']['id'],
-                str)
-
+        data = traverse_obj(self._search_nextjs_data(webpage, video_id), (
+            'props', 'urqlState', ..., 'data', {json.loads},
+            'detailsPageByPath', {dict}, any, {require('video data')}))
+        details = traverse_obj(data, (
+            'modules', lambda _, v: v['details']['smartStart']['item']['videos'], 'details', any))
+        svt_id = traverse_obj(details, (
+            'smartStart', 'item', 'videos',
+            # There can be 'AudioDescribed' and 'SignInterpreted' variants; try 'Default' or else get first
+            (lambda _, v: v['accessibility'] == 'Default', 0),
+            'svtId', {str}, any))
         if not svt_id:
-            nextjs_data = self._search_nextjs_data(webpage, video_id, fatal=False)
-            svt_id = traverse_obj(nextjs_data, (
-                'props', 'urqlState', ..., 'data', {json.loads}, 'detailsPageByPath',
-                'video', 'svtId', {str}), get_all=False)
-
-        if not svt_id:
-            svt_id = self._search_regex(
-                (r'<video[^>]+data-video-id=["\']([\da-zA-Z-]+)',
-                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/[\w-]+/[^"\']*\b(?:modalId|id)=([\w-]+)'),
-                webpage, 'video id')
+            svt_id = traverse_obj(data, ('video', 'svtId', {str}, {require('SVT ID')}))
 
         info_dict = self._extract_by_video_id(svt_id, webpage)
-        info_dict['thumbnail'] = thumbnail
+        if not info_dict.get('description'):
+            info_dict['description'] = traverse_obj(details, ('description', {str}))
+        info_dict['thumbnail'] = self._og_search_thumbnail(webpage)
 
         return info_dict
 
