@@ -55,8 +55,8 @@ class NobelPrizeIE(InfoExtractor):
                 {find_element(tag='span', attr='itemprop', value='description')}, {clean_html})),
             'duration': parse_duration(self._html_search_meta('duration', webpage)),
             **traverse_obj(next(self._yield_json_ld(webpage, video_id)), {
-                'url': ('contentUrl', {url_or_none}),
                 'thumbnail': ('thumbnail_url', {lambda x: self._proto_relative_url(x)}, {url_or_none}),
                 'timestamp': ('uploadDate', {unified_timestamp}),
+                'url': ('contentUrl', {url_or_none}),
             }),
         }
