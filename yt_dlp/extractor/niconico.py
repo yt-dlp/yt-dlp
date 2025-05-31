@@ -332,33 +332,6 @@ class NiconicoIE(NiconicoBaseIE):
 
         return formats
 
-    def _get_subtitles(self, video_id, api_data):
-        comments_info = traverse_obj(api_data, ('comment', 'nvComment', {dict}), default={})
-        if not comments_info.get('server'):
-            return
-
-        danmaku = traverse_obj(self._download_json(
-            f'{comments_info["server"]}/v1/threads', video_id,
-            'Downloading comments', 'Failed to download comments', headers={
-                'Content-Type': 'text/plain;charset=UTF-8',
-                'Origin': self._BASE_URL,
-                'Referer': f'{self._BASE_URL}/',
-                'X-Client-Os-Type': 'others',
-                **self._HEADERS,
-            }, data=json.dumps({
-                'additionals': {},
-                'params': comments_info.get('params'),
-                'threadKey': comments_info.get('threadKey'),
-            }).encode(), fatal=False,
-        ), ('data', 'threads', ..., 'comments', ...))
-
-        return {
-            'comments': [{
-                'ext': 'json',
-                'data': json.dumps(danmaku),
-            }],
-        }
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -370,15 +343,15 @@ class NiconicoIE(NiconicoBaseIE):
                 **self.geo_verification_headers(),
             }, query={
                 'actionTrackId': f'AAAAAAAAAA_{round(time_seconds() * 1000)}',
-            }, expected_status=[400, 404],
-        )
+            }, expected_status=[400, 404])
 
-        api_data = api_resp.get('data')
+        api_data = api_resp['data']
         release_timestamp = traverse_obj(api_data, ('publishScheduledAt', {parse_iso8601}))
 
-        if (meta := api_resp.get('meta')).get('status') != 200:
-            err_code = meta.get('errorCode')
-            reason_code = traverse_obj(api_data, 'reasonCode', {str_or_none})
+        meta = api_resp['meta']
+        if meta.get('status') != 200:
+            err_code = meta['errorCode']
+            reason_code = traverse_obj(api_data, ('reasonCode', {str_or_none}))
             err_msg = 'Server busy, service temporarily unavailable'
 
             if reason_code in ('DOMESTIC_VIDEO', 'HIGH_RISK_COUNTRY_VIDEO'):
@@ -405,8 +378,9 @@ class NiconicoIE(NiconicoBaseIE):
             })),
         })
 
-        if not (formats := self._extract_formats(api_data, video_id)):
-            if (err_msg := self._STATUS_MAP.get(availability)):
+        formats = self._extract_formats(api_data, video_id)
+        if not formats:
+            if err_msg := self._STATUS_MAP.get(availability):
                 self.raise_login_required(err_msg, metadata_available=True)
 
         thumb_prefs = qualities(['url', 'middleUrl', 'largeUrl', 'player', 'ogp'])
@@ -445,6 +419,33 @@ class NiconicoIE(NiconicoBaseIE):
                 'like_count': ('like', {int_or_none}),
                 'view_count': ('view', {int_or_none}),
             })),
+        }
+
+    def _get_subtitles(self, video_id, api_data):
+        comments_info = traverse_obj(api_data, ('comment', 'nvComment', {dict}), default={})
+        if not comments_info.get('server'):
+            return
+
+        danmaku = traverse_obj(self._download_json(
+            f'{comments_info["server"]}/v1/threads', video_id,
+            'Downloading comments', 'Failed to download comments', headers={
+                'Content-Type': 'text/plain;charset=UTF-8',
+                'Origin': self._BASE_URL,
+                'Referer': f'{self._BASE_URL}/',
+                'X-Client-Os-Type': 'others',
+                **self._HEADERS,
+            }, data=json.dumps({
+                'additionals': {},
+                'params': comments_info.get('params'),
+                'threadKey': comments_info.get('threadKey'),
+            }).encode(), fatal=False,
+        ), ('data', 'threads', ..., 'comments', ...))
+
+        return {
+            'comments': [{
+                'ext': 'json',
+                'data': json.dumps(danmaku),
+            }],
         }
 
 
