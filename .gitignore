@@ -105,6 +105,8 @@ README.txt
 *.zsh
 *.spec
 test/testdata/sigs/player-*.js
+test/testdata/thumbnails/empty.webp
+test/testdata/thumbnails/foo\ %d\ bar/foo_%d.*
 
 # Binary
 /youtube-dl

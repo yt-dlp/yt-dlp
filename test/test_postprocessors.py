@@ -8,6 +8,8 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+import subprocess
+
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import shell_quote
 from yt_dlp.postprocessor import (
@@ -47,7 +49,18 @@ class TestConvertThumbnail(unittest.TestCase):
             print('Skipping: ffmpeg not found')
             return
 
-        file = 'test/testdata/thumbnails/foo %d bar/foo_%d.{}'
+        test_data_dir = 'test/testdata/thumbnails'
+        generated_file = f'{test_data_dir}/empty.webp'
+
+        subprocess.check_call([
+            pp.executable, '-y', '-f', 'lavfi', '-i', 'color=c=black:s=320x320',
+            '-c:v', 'libwebp', '-pix_fmt', 'yuv420p', '-vframes', '1', generated_file,
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        file = test_data_dir + '/foo %d bar/foo_%d.{}'
+        initial_file = file.format('webp')
+        os.replace(generated_file, initial_file)
+
         tests = (('webp', 'png'), ('png', 'jpg'))
 
         for inp, out in tests:
@@ -55,10 +68,12 @@ class TestConvertThumbnail(unittest.TestCase):
             if os.path.exists(out_file):
                 os.remove(out_file)
             pp.convert_thumbnail(file.format(inp), out)
-            assert os.path.exists(out_file)
+            self.assertTrue(os.path.exists(out_file))
 
         for _, out in tests:
             os.remove(file.format(out))
+
+        os.remove(initial_file)
 
 
 class TestExec(unittest.TestCase):
@@ -610,3 +625,7 @@ outpoint 10.000000
         self.assertEqual(
             r"'special '\'' characters '\'' galore'\'\'\'",
             self._pp._quote_for_ffmpeg("special ' characters ' galore'''"))
+
+
+if __name__ == '__main__':
+    unittest.main()

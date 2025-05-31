@@ -256,7 +256,7 @@ jobs:
         with:
           path: |
             ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}
+          key: cache-reqs-${{ github.job }}-${{ github.ref }}
 
       - name: Install Requirements
         run: |
@@ -331,19 +331,16 @@ jobs:
         if: steps.restore-cache.outputs.cache-hit == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          cache_key: cache-reqs-${{ github.job }}
-          repository: ${{ github.repository }}
-          branch: ${{ github.ref }}
+          cache_key: cache-reqs-${{ github.job }}-${{ github.ref }}
         run: |
-          gh extension install actions/gh-actions-cache
-          gh actions-cache delete "${cache_key}" -R "${repository}" -B "${branch}" --confirm
+          gh cache delete "${cache_key}"
 
       - name: Cache requirements
         uses: actions/cache/save@v4
         with:
           path: |
             ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}
+          key: cache-reqs-${{ github.job }}-${{ github.ref }}
 
   macos_legacy:
     needs: process
