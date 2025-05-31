@@ -1,6 +1,5 @@
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     clean_html,
     parse_duration,
     parse_qs,
@@ -8,7 +7,11 @@ from ..utils import (
     update_url,
     url_or_none,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import (
+    find_element,
+    require,
+    traverse_obj,
+)
 
 
 class NobelPrizeIE(InfoExtractor):
@@ -41,9 +44,8 @@ class NobelPrizeIE(InfoExtractor):
 
     def _real_extract(self, url):
         url = update_url(url, netloc='mediaplayer.nobelprize.org')
-        if not (video_id := traverse_obj(parse_qs(url), (('id', 'qid'), 0, any))):
-            raise ExtractorError('Invalid URL', expected=True)
-
+        video_id = traverse_obj(parse_qs(url), (
+            ('id', 'qid'), 0, any, {require('video ID')}))
         webpage = self._download_webpage(url, video_id)
 
         return {
