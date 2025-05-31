@@ -1836,17 +1836,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
                 expected_type=dict)
-            _, live_status, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
-            is_live = live_status == 'is_live'
-            start_time = time.time()
+            with lock:
+                _, live_status, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
+                is_live = live_status == 'is_live'
+                start_time = time.time()
 
         def mpd_feed(format_id, delay):
             """
             @returns (manifest_url, manifest_stream_number, is_live) or None
             """
             for retry in self.RetryManager(fatal=False):
-                with lock:
-                    refetch_manifest(format_id, delay)
+                refetch_manifest(format_id, delay)
 
                 f = next((f for f in formats if f['format_id'] == format_id), None)
                 if not f:
@@ -1883,6 +1883,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         begin_index = 0
         download_start_time = ctx.get('start') or time.time()
 
+        section_start = ctx.get('section_start') or 0
+        section_end = ctx.get('section_end') or math.inf
+
+        self.write_debug(f'Selected section: {section_start} -> {section_end}')
+
         lack_early_segments = download_start_time - (live_start_time or download_start_time) > MAX_DURATION
         if lack_early_segments:
             self.report_warning(bug_reports_message(
@@ -1903,9 +1908,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                                or (mpd_url, stream_number, False))
             if not refresh_sequence:
                 if expire_fast and not is_live:
-                    return False, last_seq
+                    return False
                 elif old_mpd_url == mpd_url:
-                    return True, last_seq
+                    return True
+
             if manifestless_orig_fmt:
                 fmt_info = manifestless_orig_fmt
             else:
@@ -1916,14 +1922,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     fmts = None
                 if not fmts:
                     no_fragment_score += 2
-                    return False, last_seq
+                    return False
                 fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
             fragments = fmt_info['fragments']
             fragment_base_url = fmt_info['fragment_base_url']
             assert fragment_base_url
 
-            _last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
-            return True, _last_seq
+            return True
 
         self.write_debug(f'[{video_id}] Generating fragments for format {format_id}')
         while is_live:
@@ -1943,10 +1948,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     last_segment_url = None
                     continue
             else:
-                should_continue, last_seq = _extract_sequence_from_mpd(True, no_fragment_score > 15)
+                should_continue = _extract_sequence_from_mpd(True, no_fragment_score > 15)
                 no_fragment_score += 2
                 if not should_continue:
                     continue
+
+            last_fragment = fragments[-1]
+            last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
+
+            known_fragment = next(
+                (fragment for fragment in fragments if f'sq/{known_idx}' in fragment['path']), None)
+            if known_fragment and known_fragment['end'] > section_end:
+                break
 
             if known_idx > last_seq:
                 last_segment_url = None
@@ -1957,20 +1970,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if begin_index < 0 and known_idx < 0:
                 # skip from the start when it's negative value
                 known_idx = last_seq + begin_index
+
             if lack_early_segments:
-                known_idx = max(known_idx, last_seq - int(MAX_DURATION // fragments[-1]['duration']))
+                known_idx = max(known_idx, last_seq - int(MAX_DURATION // last_fragment['duration']))
+
+            fragment_count = last_seq - known_idx if section_end == math.inf else int(
+                (section_end - section_start) // last_fragment['duration'])
+
             try:
                 for idx in range(known_idx, last_seq):
                     # do not update sequence here or you'll get skipped some part of it
-                    should_continue, _ = _extract_sequence_from_mpd(False, False)
+                    should_continue = _extract_sequence_from_mpd(False, False)
                     if not should_continue:
                         known_idx = idx - 1
                         raise ExtractorError('breaking out of outer loop')
-                    last_segment_url = urljoin(fragment_base_url, f'sq/{idx}')
-                    yield {
-                        'url': last_segment_url,
-                        'fragment_count': last_seq,
-                    }
+
+                    frag_duration = last_fragment['duration']
+                    frag_start = last_fragment['start'] - (last_seq - idx) * frag_duration
+                    frag_end = frag_start + frag_duration
+
+                    if frag_start >= section_start and frag_end <= section_end:
+                        last_segment_url = urljoin(fragment_base_url, f'sq/{idx}')
+
+                        yield {
+                            'url': last_segment_url,
+                            'fragment_count': fragment_count,
+                            'duration': frag_duration,
+                            'start': frag_start,
+                            'end': frag_end,
+                        }
+
                 if known_idx == last_seq:
                     no_fragment_score += 5
                 else:
@@ -3509,6 +3538,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if all_formats or 'dashy' not in format_types:
                 dct['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
                 yield dct
+
+        if live_status == 'is_live' and self.get_param('download_ranges') and not self.get_param('live_from_start'):
+            self.report_warning('For YT livestreams, --download-sections is only supported with --live-from-start')
 
         needs_live_processing = self._needs_live_processing(live_status, duration)
         skip_bad_formats = 'incomplete' not in format_types
