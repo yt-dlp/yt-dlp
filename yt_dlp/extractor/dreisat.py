@@ -64,7 +64,7 @@ class DreiSatIE(ZDFBaseIE):
             'title': 'dein buch  - Das Beste von der Leipziger Buchmesse 2025 - Teil 1',
             'description': 'md5:bae51bfc22f15563ce3acbf97d2e8844',
             'duration': 5399.0,
-            'thumbnail': 'https://www.3sat.de/assets/buchmesse-kerkeling-100~original?cb=1743329640903',
+            'thumbnail': 'https://www.3sat.de/assets/buchmesse-kerkeling-100~original?cb=1747256996338',
             'chapters': 'count:24',
             'episode': 'dein buch  - Das Beste von der Leipziger Buchmesse 2025 - Teil 1',
             'episode_id': 'POS_1ef236cc-b390-401e-acd0-4fb4b04315fb',

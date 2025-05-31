@@ -6,6 +6,7 @@ import time
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    ISO639Utils,
     determine_ext,
     filter_dict,
     float_or_none,
@@ -118,10 +119,7 @@ class ZDFBaseIE(InfoExtractor):
                         if ext == 'm3u8':
                             fmts = self._extract_m3u8_formats(
                                 format_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
-                        elif ext == 'mpd':
-                            fmts = self._extract_mpd_formats(
-                                format_url, video_id, mpd_id='dash', fatal=False)
-                        else:
+                        elif ext in ('mp4', 'webm'):
                             height = int_or_none(quality.get('highestVerticalResolution'))
                             width = round(aspect_ratio * height) if aspect_ratio and height else None
                             fmts = [{
@@ -132,16 +130,31 @@ class ZDFBaseIE(InfoExtractor):
                                 'format_id': join_nonempty('http', stream.get('type')),
                                 'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
                             }]
+                        else:
+                            self.report_warning(f'Skipping unsupported extension "{ext}"', video_id=video_id)
+                            fmts = []
+
                         f_class = variant.get('class')
                         for f in fmts:
+                            f_lang = ISO639Utils.short2long(
+                                (f.get('language') or variant.get('language') or '').lower())
+                            is_audio_only = f.get('vcodec') == 'none'
                             formats.append({
                                 **f,
-                                'format_id': join_nonempty(f.get('format_id'), is_dgs and 'dgs'),
+                                'format_id': join_nonempty(f['format_id'], is_dgs and 'dgs'),
                                 'format_note': join_nonempty(
-                                    f_class, is_dgs and 'German Sign Language', f.get('format_note'), delim=', '),
-                                'language': variant.get('language') or f.get('language'),
+                                    not is_audio_only and f_class,
+                                    is_dgs and 'German Sign Language',
+                                    f.get('format_note'), delim=', '),
                                 'preference': -2 if is_dgs else -1,
-                                'language_preference': 10 if f_class == 'main' else -10 if f_class == 'ad' else -1,
+                                'language': f_lang,
+                                'language_preference': (
+                                    -10 if ((is_audio_only and f.get('format_note') == 'Audiodeskription')
+                                            or (not is_audio_only and f_class == 'ad'))
+                                    else 10 if f_lang == 'deu' and f_class == 'main'
+                                    else 5 if f_lang == 'deu'
+                                    else 1 if f_class == 'main'
+                                    else -1),
                             })
 
         return {
@@ -333,12 +346,13 @@ class ZDFIE(ZDFBaseIE):
             'title': 'Dobrindt schließt Steuererhöhungen aus',
             'description': 'md5:9a117646d7b8df6bc902eb543a9c9023',
             'duration': 325,
-            'thumbnail': 'https://www.zdf.de/assets/dobrindt-csu-berlin-direkt-100~1920x1080?cb=1743357653736',
+            'thumbnail': 'https://www.zdfheute.de/assets/dobrindt-csu-berlin-direkt-100~1920x1080?cb=1743357653736',
             'timestamp': 1743374520,
             'upload_date': '20250330',
             '_old_archive_ids': ['zdf 250330_clip_2_bdi'],
         },
     }, {
+        # FUNK video (hosted on a different CDN, has atypical PTMD and HLS files)
         'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
         'md5': '57af4423db0455a3975d2dc4578536bc',
         'info_dict': {
@@ -651,6 +665,7 @@ class ZDFChannelIE(ZDFBaseIE):
             'description': 'md5:6edad39189abf8431795d3d6d7f986b3',
         },
         'playlist_count': 242,
+        'skip': 'Video count changes daily, needs support for playlist_maxcount',
     }]
 
     _PAGE_SIZE = 24
