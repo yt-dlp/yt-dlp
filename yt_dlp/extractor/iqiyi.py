@@ -5,7 +5,7 @@ import time
 import urllib.parse
 
 from .common import InfoExtractor
-from .openload import PhantomJSwrapper
+from ..jsinterp import JSIWrapper
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -398,6 +398,27 @@ class IqIE(InfoExtractor):
     IE_DESC = 'International version of iQiyi'
     _VALID_URL = r'https?://(?:www\.)?iq\.com/play/(?:[\w%-]*-)?(?P<id>\w+)'
     _TESTS = [{
+        'url': 'https://www.iq.com/play/sangmin-dinneaw-episode-1-xmk7546rfw',
+        'md5': '63fcb4b7d4863472fe0a9be75d9e9d60',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'xmk7546rfw',
+            'title': '尚岷与丁尼奥 第1集',
+            'description': 'md5:e8fe4a8da25f4b8c86bc5506b1c3faaa',
+            'duration': 3092,
+            'timestamp': 1735520401,
+            'upload_date': '20241230',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'series': 'Sangmin Dinneaw',
+            'age_limit': 18,
+            'average_rating': float,
+            'categories': [],
+            'cast': ['Sangmin Choi', 'Ratana  Aiamsaart'],
+        },
+        'expected_warnings': ['format is restricted'],
+        'jsi_matrix': True,
+    }, {
         'url': 'https://www.iq.com/play/one-piece-episode-1000-1ma1i6ferf4',
         'md5': '2d7caf6eeca8a32b407094b33b757d39',
         'info_dict': {
@@ -418,6 +439,7 @@ class IqIE(InfoExtractor):
             'format': '500',
         },
         'expected_warnings': ['format is restricted'],
+        'skip': 'geo-restricted',
     }, {
         # VIP-restricted video
         'url': 'https://www.iq.com/play/mermaid-in-the-fog-2021-gbdpx13bs4',
@@ -449,7 +471,6 @@ class IqIE(InfoExtractor):
     }
 
     _DASH_JS = '''
-        console.log(page.evaluate(function() {
             var tvid = "%(tvid)s"; var vid = "%(vid)s"; var src = "%(src)s";
             var uid = "%(uid)s"; var dfp = "%(dfp)s"; var mode = "%(mode)s"; var lang = "%(lang)s";
             var bid_list = %(bid_list)s; var ut_list = %(ut_list)s; var tm = new Date().getTime();
@@ -515,9 +536,7 @@ class IqIE(InfoExtractor):
                 var dash_path = '/dash?' + enc_params.join('&'); dash_path += '&vf=' + cmd5x(dash_path);
                 dash_paths[bid] = dash_path;
             });
-            return JSON.stringify(dash_paths);
-        }));
-        saveAndExit();
+            console.log(JSON.stringify(dash_paths));
     '''
 
     def _extract_vms_player_js(self, webpage, video_id):
@@ -597,22 +616,22 @@ class IqIE(InfoExtractor):
         else:
             ut_list = ['0']
 
+        jsi = JSIWrapper(self, url, timeout=120)
+
         # bid 0 as an initial format checker
-        dash_paths = self._parse_json(PhantomJSwrapper(self, timeout=120_000).get(
-            url, note2='Executing signature code (this may take a couple minutes)',
-            html='<!DOCTYPE html>', video_id=video_id, jscode=self._DASH_JS % {
-                'tvid': video_info['tvId'],
-                'vid': video_info['vid'],
-                'src': traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'),
-                                    expected_type=str, default='04022001010011000000'),
-                'uid': uid,
-                'dfp': self._get_cookie('dfp', ''),
-                'mode': self._get_cookie('mod', 'intl'),
-                'lang': self._get_cookie('lang', 'en_us'),
-                'bid_list': '[' + ','.join(['0', *self._BID_TAGS.keys()]) + ']',
-                'ut_list': '[' + ','.join(ut_list) + ']',
-                'cmd5x_func': self._extract_cmd5x_function(webpage, video_id),
-            })[1].strip(), video_id)
+        dash_paths = self._parse_json(jsi.execute(self._DASH_JS % {
+            'tvid': video_info['tvId'],
+            'vid': video_info['vid'],
+            'src': traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'),
+                                expected_type=str, default='04022001010011000000'),
+            'uid': uid,
+            'dfp': self._get_cookie('dfp', ''),
+            'mode': self._get_cookie('mod', 'intl'),
+            'lang': self._get_cookie('lang', 'en_us'),
+            'bid_list': '[' + ','.join(['0', *self._BID_TAGS.keys()]) + ']',
+            'ut_list': '[' + ','.join(ut_list) + ']',
+            'cmd5x_func': self._extract_cmd5x_function(webpage, video_id),
+        }, video_id, html='<!DOCTYPE html>'), video_id)
 
         formats, subtitles = [], {}
         initial_format_data = self._download_json(
