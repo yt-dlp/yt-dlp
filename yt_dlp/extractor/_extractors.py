@@ -1788,6 +1788,7 @@ from .rtve import (
     RTVEALaCartaIE,
     RTVEAudioIE,
     RTVELiveIE,
+    RTVEProgramIE,
     RTVETelevisionIE,
 )
 from .rtvs import RTVSIE
