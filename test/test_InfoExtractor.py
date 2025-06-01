@@ -321,7 +321,7 @@ class TestInfoExtractor(unittest.TestCase):
 {
 "@context": "https://schema.org",
 "@type": "VideoObject",
-"thumbnail_url": "https://www.nobelprize.org/images/12693-landscape-medium-gallery.jpg"
+"thumbnail_url": "//www.nobelprize.org/images/12693-landscape-medium-gallery.jpg"
 }</script>''',
                 {
                     'thumbnails': [{'url': 'https://www.nobelprize.org/images/12693-landscape-medium-gallery.jpg'}],
