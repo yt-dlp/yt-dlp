@@ -190,13 +190,14 @@ class SVTPlayIE(SVTPlayBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
+        'expected_warnings': [r'Failed to download (?:MPD|m3u8)'],
     }, {
         'url': 'https://www.svtplay.se/video/jz2rYz7/anders-hansen-moter/james-fallon?info=visa',
         'info_dict': {
             'id': 'jvXAGVb',
             'ext': 'mp4',
             'title': 'James Fallon',
-            'description': 'md5:7398c7b6c3ff1f4efd3550649dba17cd',
+            'description': r're:James Fallon är hjärnforskaren .{532} att upptäcka psykopati tidigt\?$',
             'timestamp': 1743379200,
             'upload_date': '20250331',
             'duration': 1081,
@@ -238,19 +239,15 @@ class SVTPlayIE(SVTPlayBaseIE):
         'only_matching': True,
     }]
 
-    def _extract_by_video_id(self, video_id, webpage=None):
+    def _extract_by_video_id(self, video_id):
         data = self._download_json(
             f'https://api.svt.se/videoplayer-api/video/{video_id}',
             video_id, headers=self.geo_verification_headers())
         info_dict = self._extract_video(data, video_id)
+
         if not info_dict.get('title'):
-            title = dict_get(info_dict, ('episode', 'series'))
-            if not title and webpage:
-                title = re.sub(
-                    r'\s*\|\s*.+?$', '', self._og_search_title(webpage))
-            if not title:
-                title = video_id
-            info_dict['title'] = title
+            info_dict['title'] = traverse_obj(info_dict, 'episode', 'series')
+
         return info_dict
 
     def _real_extract(self, url):
@@ -275,10 +272,14 @@ class SVTPlayIE(SVTPlayBaseIE):
         if not svt_id:
             svt_id = traverse_obj(data, ('video', 'svtId', {str}, {require('SVT ID')}))
 
-        info_dict = self._extract_by_video_id(svt_id, webpage)
+        info_dict = self._extract_by_video_id(svt_id)
+
+        if not info_dict.get('title'):
+            info_dict['title'] = re.sub(r'\s*\|\s*.+?$', '', self._og_search_title(webpage))
+        if not info_dict.get('thumbnail'):
+            info_dict['thumbnail'] = self._og_search_thumbnail(webpage)
         if not info_dict.get('description'):
             info_dict['description'] = traverse_obj(details, ('description', {str}))
-        info_dict['thumbnail'] = self._og_search_thumbnail(webpage)
 
         return info_dict
 
@@ -288,17 +289,17 @@ class SVTSeriesIE(SVTPlayBaseIE):
     _TESTS = [{
         'url': 'https://www.svtplay.se/rederiet',
         'info_dict': {
-            'id': '14445680',
+            'id': 'jpmQYgn',
             'title': 'Rederiet',
-            'description': 'md5:d9fdfff17f5d8f73468176ecd2836039',
+            'description': 'md5:f71122f7cf2e52b643e75915e04cb83d',
         },
         'playlist_mincount': 318,
     }, {
-        'url': 'https://www.svtplay.se/rederiet?tab=season-2-14445680',
+        'url': 'https://www.svtplay.se/rederiet?tab=season-2-jpmQYgn',
         'info_dict': {
-            'id': 'season-2-14445680',
+            'id': 'season-2-jpmQYgn',
             'title': 'Rederiet - Säsong 2',
-            'description': 'md5:d9fdfff17f5d8f73468176ecd2836039',
+            'description': 'md5:f71122f7cf2e52b643e75915e04cb83d',
         },
         'playlist_mincount': 12,
     }]
