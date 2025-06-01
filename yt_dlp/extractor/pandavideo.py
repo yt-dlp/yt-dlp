@@ -73,5 +73,4 @@ class PandaVideoIE(InfoExtractor):
                 f'https://{server}.tv.pandavideo.com.br/{video_id}/playlist.m3u8', video_id, 'mp4', m3u8_id='hls'),
             'title': self._html_search_regex(r'<title>([^<]+)</title>', webpage, 'title', default=f'pandavideo_{video_id}', fatal=False),
             'description': self._html_search_meta('description', webpage, 'description', default=None, fatal=False),
-            'formats': self._extract_m3u8_formats(manifest_url, video_id),
         }
