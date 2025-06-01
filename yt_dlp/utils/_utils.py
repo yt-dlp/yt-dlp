@@ -2574,10 +2574,11 @@ def urlencode_postdata(*args, **kargs):
 
 
 @partial_application
-def update_url(url, *, query_update=None, **kwargs):
+def update_url(url, *, query_update=None, safe='', **kwargs):
     """Replace URL components specified by kwargs
        @param url           str or parse url tuple
        @param query_update  update query
+       @param safe          characters not percent-encoded in query
        @returns             str
     """
     if isinstance(url, str):
@@ -2590,13 +2591,13 @@ def update_url(url, *, query_update=None, **kwargs):
         kwargs['query'] = urllib.parse.urlencode({
             **urllib.parse.parse_qs(url.query),
             **query_update,
-        }, True)
+        }, True, safe)
     return urllib.parse.urlunparse(url._replace(**kwargs))
 
 
 @partial_application
-def update_url_query(url, query):
-    return update_url(url, query_update=query)
+def update_url_query(url, query, *, safe=''):
+    return update_url(url, query_update=query, safe=safe)
 
 
 def _multipart_encode_impl(data, boundary):
