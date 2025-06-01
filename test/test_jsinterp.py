@@ -478,6 +478,14 @@ class TestJSInterpreter(unittest.TestCase):
         func = jsi.extract_function('c', {'e': 10}, {'f': 100, 'g': 1000})
         self.assertEqual(func([1]), 1111)
 
+    def test_increment_decrement(self):
+        self._test('function f() { var x = 1; return ++x; }', 2)
+        self._test('function f() { var x = 1; return x++; }', 1)
+        self._test('function f() { var x = 1; x--; return x }', 0)
+        self._test('function f() { var y; var x = 1; x++, --x, x--, x--, y="z", "abc", x++; return --x }', -1)
+        self._test('function f() { var a = "test--"; return a; }', 'test--')
+        self._test('function f() { var b = 1; var a = "b--"; return a; }', 'b--')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -32,7 +32,7 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import find_element, require, traverse_obj
 
 
 class NiconicoBaseIE(InfoExtractor):
@@ -283,35 +283,54 @@ class NiconicoIE(NiconicoBaseIE):
                 lambda _, v: v['id'] == video_fmt['format_id'], 'qualityLevel', {int_or_none}, any)) or -1
             yield video_fmt
 
+    def _extract_server_response(self, webpage, video_id, fatal=True):
+        try:
+            return traverse_obj(
+                self._parse_json(self._html_search_meta('server-response', webpage) or '', video_id),
+                ('data', 'response', {dict}, {require('server response')}))
+        except ExtractorError:
+            if not fatal:
+                return {}
+            raise
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         try:
             webpage, handle = self._download_webpage_handle(
-                'https://www.nicovideo.jp/watch/' + video_id, video_id)
+                f'https://www.nicovideo.jp/watch/{video_id}', video_id,
+                headers=self.geo_verification_headers())
             if video_id.startswith('so'):
                 video_id = self._match_id(handle.url)
 
-            api_data = traverse_obj(
-                self._parse_json(self._html_search_meta('server-response', webpage) or '', video_id),
-                ('data', 'response', {dict}))
-            if not api_data:
-                raise ExtractorError('Server response data not found')
+            api_data = self._extract_server_response(webpage, video_id)
         except ExtractorError as e:
             try:
                 api_data = self._download_json(
-                    f'https://www.nicovideo.jp/api/watch/v3/{video_id}?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_{round(time.time() * 1000)}', video_id,
-                    note='Downloading API JSON', errnote='Unable to fetch data')['data']
+                    f'https://www.nicovideo.jp/api/watch/v3/{video_id}', video_id,
+                    'Downloading API JSON', 'Unable to fetch data', query={
+                        '_frontendId': '6',
+                        '_frontendVersion': '0',
+                        'actionTrackId': f'AAAAAAAAAA_{round(time.time() * 1000)}',
+                    }, headers=self.geo_verification_headers())['data']
             except ExtractorError:
                 if not isinstance(e.cause, HTTPError):
+                    # Raise if original exception was from _parse_json or utils.traversal.require
                     raise
+                # The webpage server response has more detailed error info than the API response
                 webpage = e.cause.response.read().decode('utf-8', 'replace')
-                error_msg = self._html_search_regex(
-                    r'(?s)<section\s+class="(?:(?:ErrorMessage|WatchExceptionPage-message)\s*)+">(.+?)</section>',
-                    webpage, 'error reason', default=None)
-                if not error_msg:
+                reason_code = self._extract_server_response(
+                    webpage, video_id, fatal=False).get('reasonCode')
+                if not reason_code:
                     raise
-                raise ExtractorError(clean_html(error_msg), expected=True)
+                if reason_code in ('DOMESTIC_VIDEO', 'HIGH_RISK_COUNTRY_VIDEO'):
+                    self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+                elif reason_code == 'HIDDEN_VIDEO':
+                    raise ExtractorError(
+                        'The viewing period of this video has expired', expected=True)
+                elif reason_code == 'DELETED_VIDEO':
+                    raise ExtractorError('This video has been deleted', expected=True)
+                raise ExtractorError(f'Niconico says: {reason_code}')
 
         availability = self._availability(**(traverse_obj(api_data, ('payment', 'video', {
             'needs_premium': ('isPremium', {bool}),

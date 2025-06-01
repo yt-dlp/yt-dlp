@@ -15,6 +15,7 @@ class TestGetWebPoContentBinding:
           for context, is_authenticated, expected in [
             (PoTokenContext.GVS, False, ('example-visitor-data', ContentBindingType.VISITOR_DATA)),
             (PoTokenContext.PLAYER, False, ('example-video-id', ContentBindingType.VIDEO_ID)),
+            (PoTokenContext.SUBS, False, ('example-video-id', ContentBindingType.VIDEO_ID)),
             (PoTokenContext.GVS, True, ('example-data-sync-id', ContentBindingType.DATASYNC_ID)),
         ]],
         ('WEB_REMIX', PoTokenContext.GVS, False, ('example-visitor-data', ContentBindingType.VISITOR_DATA)),
