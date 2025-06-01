@@ -64,7 +64,7 @@ class PandaVideoIE(InfoExtractor):
     }]
 
     def _real_extract(self, url: str) -> dict:
-        server, video_id = self._match_valid_url(url).groups()
+        server, video_id = self._match_valid_url(url).group('server', 'id')
         webpage = self._download_webpage(url, video_id)
 
         return {
