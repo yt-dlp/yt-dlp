@@ -3,6 +3,7 @@ import json
 import re
 import time
 import urllib.parse
+import uuid
 import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
@@ -10,6 +11,7 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
+    parse_qs,
     unescapeHTML,
     unified_timestamp,
     urlencode_postdata,
@@ -45,6 +47,8 @@ MSO_INFO = {
         'name': 'Comcast XFINITY',
         'username_field': 'user',
         'password_field': 'passwd',
+        'login_hostname': 'login.xfinity.com',
+        'needs_newer_ua': True,
     },
     'TWC': {
         'name': 'Time Warner Cable | Spectrum',
@@ -74,6 +78,12 @@ MSO_INFO = {
         'name': 'Verizon FiOS',
         'username_field': 'IDToken1',
         'password_field': 'IDToken2',
+        'login_hostname': 'ssoauth.verizon.com',
+    },
+    'Fubo': {
+        'name': 'Fubo',
+        'username_field': 'username',
+        'password_field': 'password',
     },
     'Cablevision': {
         'name': 'Optimum/Cablevision',
@@ -1338,6 +1348,7 @@ MSO_INFO = {
         'name': 'Sling TV',
         'username_field': 'username',
         'password_field': 'password',
+        'login_hostname': 'identity.sling.com',
     },
     'Suddenlink': {
         'name': 'Suddenlink',
@@ -1355,7 +1366,6 @@ MSO_INFO = {
 class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     _SERVICE_PROVIDER_TEMPLATE = 'https://sp.auth.adobe.com/adobe-services/%s'
     _USER_AGENT = 'Mozilla/5.0 (X11; Linux i686; rv:47.0) Gecko/20100101 Firefox/47.0'
-    _MODERN_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; rv:131.0) Gecko/20100101 Firefox/131.0'
     _MVPD_CACHE = 'ap-mvpd'
 
     _DOWNLOADING_LOGIN_PAGE = 'Downloading Provider Login Page'
@@ -1366,6 +1376,14 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
         kwargs['headers'] = headers
         return super()._download_webpage_handle(
             *args, **kwargs)
+
+    @staticmethod
+    def _get_mso_headers(mso_info):
+        # yt-dlp's default user-agent is usually too old for some MSO's like Comcast_SSO
+        # See: https://github.com/yt-dlp/yt-dlp/issues/10848
+        return {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:131.0) Gecko/20100101 Firefox/131.0',
+        } if mso_info.get('needs_newer_ua') else {}
 
     @staticmethod
     def _get_mvpd_resource(provider_id, title, guid, rating):
@@ -1382,7 +1400,13 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
         resource_rating.text = rating
         return '<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">' + etree.tostring(channel).decode() + '</rss>'
 
-    def _extract_mvpd_auth(self, url, video_id, requestor_id, resource):
+    def _extract_mvpd_auth(self, url, video_id, requestor_id, resource, software_statement):
+        mso_id = self.get_param('ap_mso')
+        if mso_id:
+            mso_info = MSO_INFO[mso_id]
+        else:
+            mso_info = {}
+
         def xml_text(xml_str, tag):
             return self._search_regex(
                 f'<{tag}>(.+?)</{tag}>', xml_str, tag)
@@ -1391,15 +1415,27 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
             token_expires = unified_timestamp(re.sub(r'[_ ]GMT', '', xml_text(token, date_ele)))
             return token_expires and token_expires <= int(time.time())
 
-        def post_form(form_page_res, note, data={}):
+        def post_form(form_page_res, note, data={}, validate_url=False):
             form_page, urlh = form_page_res
             post_url = self._html_search_regex(r'<form[^>]+action=(["\'])(?P<url>.+?)\1', form_page, 'post url', group='url')
             if not re.match(r'https?://', post_url):
                 post_url = urllib.parse.urljoin(urlh.url, post_url)
+            if validate_url:
+                # This request is submitting credentials so we should validate it when possible
+                url_parsed = urllib.parse.urlparse(post_url)
+                expected_hostname = mso_info.get('login_hostname')
+                if expected_hostname and expected_hostname != url_parsed.hostname:
+                    raise ExtractorError(
+                        f'Unexpected login URL hostname; expected "{expected_hostname}" but got '
+                        f'"{url_parsed.hostname}". Aborting before submitting credentials')
+                if url_parsed.scheme != 'https':
+                    self.write_debug('Upgrading login URL scheme to https')
+                    post_url = urllib.parse.urlunparse(url_parsed._replace(scheme='https'))
             form_data = self._hidden_inputs(form_page)
             form_data.update(data)
             return self._download_webpage_handle(
                 post_url, video_id, note, data=urlencode_postdata(form_data), headers={
+                    **self._get_mso_headers(mso_info),
                     'Content-Type': 'application/x-www-form-urlencoded',
                 })
 
@@ -1432,40 +1468,72 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
         }
 
         guid = xml_text(resource, 'guid') if '<' in resource else resource
-        count = 0
-        while count < 2:
+        for _ in range(2):
             requestor_info = self.cache.load(self._MVPD_CACHE, requestor_id) or {}
             authn_token = requestor_info.get('authn_token')
             if authn_token and is_expired(authn_token, 'simpleTokenExpires'):
                 authn_token = None
             if not authn_token:
-                mso_id = self.get_param('ap_mso')
-                if mso_id:
-                    username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
-                    if not username or not password:
-                        raise_mvpd_required()
-                    mso_info = MSO_INFO[mso_id]
-
-                    provider_redirect_page_res = self._download_webpage_handle(
-                        self._SERVICE_PROVIDER_TEMPLATE % 'authenticate/saml', video_id,
-                        'Downloading Provider Redirect Page', query={
-                            'noflash': 'true',
-                            'mso_id': mso_id,
-                            'requestor_id': requestor_id,
-                            'no_iframe': 'false',
-                            'domain_name': 'adobe.com',
-                            'redirect_url': url,
-                        }, headers={
-                            # yt-dlp's default user-agent is usually too old for Comcast_SSO
-                            # See: https://github.com/yt-dlp/yt-dlp/issues/10848
-                            'User-Agent': self._MODERN_USER_AGENT,
-                        } if mso_id == 'Comcast_SSO' else None)
-                elif not self._cookies_passed:
+                if not mso_id:
+                    raise_mvpd_required()
+                username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
+                if not username or not password:
                     raise_mvpd_required()
 
-                if not mso_id:
-                    pass
-                elif mso_id == 'Comcast_SSO':
+                device_info, urlh = self._download_json_handle(
+                    'https://sp.auth.adobe.com/indiv/devices',
+                    video_id, 'Registering device with Adobe',
+                    data=json.dumps({'fingerprint': uuid.uuid4().hex}).encode(),
+                    headers={'Content-Type': 'application/json; charset=UTF-8'})
+
+                device_id = device_info['deviceId']
+                mvpd_headers['pass_sfp'] = urlh.get_header('pass_sfp')
+                mvpd_headers['Ap_21'] = device_id
+
+                registration = self._download_json(
+                    'https://sp.auth.adobe.com/o/client/register',
+                    video_id, 'Registering client with Adobe',
+                    data=json.dumps({'software_statement': software_statement}).encode(),
+                    headers={'Content-Type': 'application/json; charset=UTF-8'})
+
+                access_token = self._download_json(
+                    'https://sp.auth.adobe.com/o/client/token', video_id,
+                    'Obtaining access token', data=urlencode_postdata({
+                        'grant_type': 'client_credentials',
+                        'client_id': registration['client_id'],
+                        'client_secret': registration['client_secret'],
+                    }),
+                    headers={
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    })['access_token']
+                mvpd_headers['Authorization'] = f'Bearer {access_token}'
+
+                reg_code = self._download_json(
+                    f'https://sp.auth.adobe.com/reggie/v1/{requestor_id}/regcode',
+                    video_id, 'Obtaining registration code',
+                    data=urlencode_postdata({
+                        'requestor': requestor_id,
+                        'deviceId': device_id,
+                        'format': 'json',
+                    }),
+                    headers={
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                        'Authorization': f'Bearer {access_token}',
+                    })['code']
+
+                provider_redirect_page_res = self._download_webpage_handle(
+                    self._SERVICE_PROVIDER_TEMPLATE % 'authenticate/saml', video_id,
+                    'Downloading Provider Redirect Page', query={
+                        'noflash': 'true',
+                        'mso_id': mso_id,
+                        'requestor_id': requestor_id,
+                        'no_iframe': 'false',
+                        'domain_name': 'adobe.com',
+                        'redirect_url': url,
+                        'reg_code': reg_code,
+                    }, headers=self._get_mso_headers(mso_info))
+
+                if mso_id == 'Comcast_SSO':
                     # Comcast page flow varies by video site and whether you
                     # are on Comcast's network.
                     provider_redirect_page, urlh = provider_redirect_page_res
@@ -1489,8 +1557,8 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             oauth_redirect_url = extract_redirect_url(
                                 provider_redirect_page, fatal=True)
                             provider_login_page_res = self._download_webpage_handle(
-                                oauth_redirect_url, video_id,
-                                self._DOWNLOADING_LOGIN_PAGE)
+                                oauth_redirect_url, video_id, self._DOWNLOADING_LOGIN_PAGE,
+                                headers=self._get_mso_headers(mso_info))
                         else:
                             provider_login_page_res = post_form(
                                 provider_redirect_page_res,
@@ -1500,7 +1568,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             provider_login_page_res, 'Logging in', {
                                 mso_info['username_field']: username,
                                 mso_info['password_field']: password,
-                            })
+                            }, validate_url=True)
                         mvpd_confirm_page, urlh = mvpd_confirm_page_res
                         if '<button class="submit" value="Resume">Resume</button>' in mvpd_confirm_page:
                             post_form(mvpd_confirm_page_res, 'Confirming Login')
@@ -1539,7 +1607,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             provider_redirect_page_res, 'Logging in', {
                                 mso_info['username_field']: username,
                                 mso_info['password_field']: password,
-                            })
+                            }, validate_url=True)
                         saml_login_page, urlh = saml_login_page_res
                         if 'Please try again.' in saml_login_page:
                             raise ExtractorError(
@@ -1560,7 +1628,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             [saml_login_page, saml_redirect_url], 'Logging in', {
                                 mso_info['username_field']: username,
                                 mso_info['password_field']: password,
-                            })
+                            }, validate_url=True)
                         if 'Please try again.' in saml_login_page:
                             raise ExtractorError(
                                 'Failed to login, incorrect User ID or Password.')
@@ -1631,7 +1699,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         provider_login_page_res, 'Logging in', {
                             mso_info['username_field']: username,
                             mso_info['password_field']: password,
-                        })
+                        }, validate_url=True)
 
                     provider_refresh_redirect_url = extract_redirect_url(
                         provider_association_redirect, url=urlh.url)
@@ -1682,7 +1750,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         provider_login_page_res, 'Logging in', {
                             mso_info['username_field']: username,
                             mso_info['password_field']: password,
-                        })
+                        }, validate_url=True)
 
                     provider_refresh_redirect_url = extract_redirect_url(
                         provider_association_redirect, url=urlh.url)
@@ -1699,6 +1767,27 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         query=hidden_data)
 
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
+                elif mso_id == 'Fubo':
+                    _, urlh = provider_redirect_page_res
+
+                    fubo_response = self._download_json(
+                        'https://api.fubo.tv/partners/tve/connect', video_id,
+                        'Authenticating with Fubo', 'Unable to authenticate with Fubo',
+                        query=parse_qs(urlh.url), data=json.dumps({
+                            'username': username,
+                            'password': password,
+                        }).encode(), headers={
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                        })
+
+                    self._request_webpage(
+                        'https://sp.auth.adobe.com/adobe-services/oauth2', video_id,
+                        'Authenticating with Adobe', 'Failed to authenticate with Adobe',
+                        query={
+                            'code': fubo_response['code'],
+                            'state': fubo_response['state'],
+                        })
                 else:
                     # Some providers (e.g. DIRECTV NOW) have another meta refresh
                     # based redirect that should be followed.
@@ -1717,7 +1806,8 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     }
                     if mso_id in ('Cablevision', 'AlticeOne'):
                         form_data['_eventId_proceed'] = ''
-                    mvpd_confirm_page_res = post_form(provider_login_page_res, 'Logging in', form_data)
+                    mvpd_confirm_page_res = post_form(
+                        provider_login_page_res, 'Logging in', form_data, validate_url=True)
                     if mso_id != 'Rogers':
                         post_form(mvpd_confirm_page_res, 'Confirming Login')
 
@@ -1727,6 +1817,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         'Retrieving Session', data=urlencode_postdata({
                             '_method': 'GET',
                             'requestor_id': requestor_id,
+                            'reg_code': reg_code,
                         }), headers=mvpd_headers)
                 except ExtractorError as e:
                     if not mso_id and isinstance(e.cause, HTTPError) and e.cause.status == 401:
@@ -1734,7 +1825,6 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     raise
                 if '<pendingLogout' in session:
                     self.cache.store(self._MVPD_CACHE, requestor_id, {})
-                    count += 1
                     continue
                 authn_token = unescapeHTML(xml_text(session, 'authnToken'))
                 requestor_info['authn_token'] = authn_token
@@ -1755,7 +1845,6 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     }), headers=mvpd_headers)
                 if '<pendingLogout' in authorize:
                     self.cache.store(self._MVPD_CACHE, requestor_id, {})
-                    count += 1
                     continue
                 if '<error' in authorize:
                     raise ExtractorError(xml_text(authorize, 'details'), expected=True)
@@ -1778,6 +1867,5 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                 }), headers=mvpd_headers)
             if '<pendingLogout' in short_authorize:
                 self.cache.store(self._MVPD_CACHE, requestor_id, {})
-                count += 1
                 continue
             return short_authorize

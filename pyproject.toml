@@ -65,7 +65,7 @@ build = [
     "build",
     "hatchling",
     "pip",
-    "setuptools>=71.0.2",  # 71.0.0 broke pyinstaller
+    "setuptools>=71.0.2,<81",  # See https://github.com/pyinstaller/pyinstaller/issues/9149
     "wheel",
 ]
 dev = [
