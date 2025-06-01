@@ -2,8 +2,8 @@ from .common import InfoExtractor
 
 
 class PandaVideoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<server>[\w-]+)\.tv\.pandavideo\.com\.br/embed/?\?(?:[^#]*&)?v=(?P<id>[\da-f-]+)'
-    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
+    _VALID_URL = r'https?://(?P<server>[\w-]+)\.tv\.pandavideo\.com\.br/embed/?\?(?:[^#"\']*&)?v=(?P<id>[\da-f-]+)'
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=["\'](?P<url>{_VALID_URL})']
     _WEBPAGE_TESTS = [{
         # Embedebd video test
         'url': 'https://www.pandavideo.com/',
