@@ -65,11 +65,12 @@ class PandaVideoIE(InfoExtractor):
 
     def _real_extract(self, url: str) -> dict:
         server, video_id = self._match_valid_url(url).groups()
-        manifest_url = f'https://{server}.tv.pandavideo.com.br/{video_id}/playlist.m3u8'
         webpage = self._download_webpage(url, video_id)
+
         return {
             'id': video_id,
-            'url': url,
+            'formats': self._extract_m3u8_formats(
+                f'https://{server}.tv.pandavideo.com.br/{video_id}/playlist.m3u8', video_id, 'mp4', m3u8_id='hls'),
             'title': self._html_search_regex(r'<title>([^<]+)</title>', webpage, 'title', default=f'pandavideo_{video_id}', fatal=False),
             'description': self._html_search_meta('description', webpage, 'description', default=None, fatal=False),
             'formats': self._extract_m3u8_formats(manifest_url, video_id),
