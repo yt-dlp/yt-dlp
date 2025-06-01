@@ -1676,7 +1676,7 @@ class InfoExtractor:
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
                 'thumbnails': traverse_obj(e, (('thumbnailUrl', 'thumbnailURL', 'thumbnail_url'), {
-                    'url': ({unescapeHTML}, {self._proto_relative_url}, {url_or_none}),
+                    'url': ({str}, {unescapeHTML}, {self._proto_relative_url}, {url_or_none}),
                 })),
                 'duration': parse_duration(e.get('duration')),
                 'timestamp': unified_timestamp(e.get('uploadDate')),
