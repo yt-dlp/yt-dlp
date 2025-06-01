@@ -1,17 +1,16 @@
 from .common import InfoExtractor
 from ..utils import (
+    UnsupportedError,
     clean_html,
+    int_or_none,
     parse_duration,
     parse_qs,
+    str_or_none,
     unified_timestamp,
     update_url,
     url_or_none,
 )
-from ..utils.traversal import (
-    find_element,
-    require,
-    traverse_obj,
-)
+from ..utils.traversal import find_element, traverse_obj
 
 
 class NobelPrizeIE(InfoExtractor):
@@ -43,10 +42,12 @@ class NobelPrizeIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        url = update_url(url, netloc='mediaplayer.nobelprize.org')
         video_id = traverse_obj(parse_qs(url), (
-            ('id', 'qid'), 0, any, {require('video ID')}))
-        webpage = self._download_webpage(url, video_id)
+            ('id', 'qid'), -1, {int_or_none}, {str_or_none}, any))
+        if not video_id:
+            raise UnsupportedError(url)
+        webpage = self._download_webpage(
+            update_url(url, netloc='mediaplayer.nobelprize.org'), video_id)
 
         return {
             'id': video_id,
@@ -55,7 +56,7 @@ class NobelPrizeIE(InfoExtractor):
                 {find_element(tag='span', attr='itemprop', value='description')}, {clean_html})),
             'duration': parse_duration(self._html_search_meta('duration', webpage)),
             **traverse_obj(next(self._yield_json_ld(webpage, video_id)), {
-                'thumbnail': ('thumbnail_url', {lambda x: self._proto_relative_url(x)}, {url_or_none}),
+                'thumbnail': ('thumbnail_url', {self._proto_relative_url}, {url_or_none}),
                 'timestamp': ('uploadDate', {unified_timestamp}),
                 'url': ('contentUrl', {url_or_none}),
             }),
