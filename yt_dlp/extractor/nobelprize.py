@@ -6,9 +6,7 @@ from ..utils import (
     parse_duration,
     parse_qs,
     str_or_none,
-    unified_timestamp,
     update_url,
-    url_or_none,
 )
 from ..utils.traversal import find_element, traverse_obj
 
@@ -50,14 +48,10 @@ class NobelPrizeIE(InfoExtractor):
             update_url(url, netloc='mediaplayer.nobelprize.org'), video_id)
 
         return {
+            **self._search_json_ld(webpage, video_id),
             'id': video_id,
             'title': self._html_search_meta('caption', webpage),
             'description': traverse_obj(webpage, (
                 {find_element(tag='span', attr='itemprop', value='description')}, {clean_html})),
             'duration': parse_duration(self._html_search_meta('duration', webpage)),
-            **traverse_obj(next(self._yield_json_ld(webpage, video_id)), {
-                'thumbnail': ('thumbnail_url', {self._proto_relative_url}, {url_or_none}),
-                'timestamp': ('uploadDate', {unified_timestamp}),
-                'url': ('contentUrl', {url_or_none}),
-            }),
         }
