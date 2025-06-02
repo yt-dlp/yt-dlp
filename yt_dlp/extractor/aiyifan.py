@@ -1,0 +1,109 @@
+import time
+import hashlib
+import re
+
+from yt_dlp.extractor.common import InfoExtractor
+
+
+class AiyifanIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?yfsp\.tv/play/(?P<id>[^/?#]+)(?:\?id=(?P<alt_id>[^&#]+))?'
+    # All the three domains are the same
+    _TESTS = [
+        {
+            'url': 'https://www.yfsp.tv/play/tFAWlkx5kr9?id=GB7vRUxjOn5',
+            'info_dict': {
+                'id': 'GB7vRUxjOn5',
+                'title': '工作细胞_dhp-gzxb-06-03AC62667',
+                'ext': 'mp4',
+            },
+            'params': {'skip_download': True}
+        },
+        {
+            'url': 'https://www.yfsp.tv/play/tFAWlkx5kr9',
+            'info_dict': {
+                'id': 'tFAWlkx5kr9',
+                'title': '工作细胞_dhp-gzxb-01-006E900E1',
+                'ext': 'mp4',
+            },
+            'params': {'skip_download': True}
+        },
+        {
+            'url': 'https://www.yfsp.tv/play/TtAyF6XpjfC',
+            'info_dict': {
+                'id': 'TtAyF6XpjfC',
+                'title': '大猿魂_dhp-dyh-01-008FFFF84',
+                'ext': 'mp4',
+            },
+            'params': {'skip_download': True}
+        }
+    ]
+
+    def compute_vv(self, query_str):
+        public_key = int(time.time() * 1000)
+        private_keys = [
+            "version001", "vers1on001", "vers1on00i", "bersion001",
+            "vcrsion001", "versi0n001", "versio_001", "version0o1"
+        ]
+        private_key = private_keys[public_key % len(private_keys)]
+        merge_str = f"{public_key}&{query_str.lower()}&{private_key}"
+        return hashlib.md5(merge_str.encode('utf-8')).hexdigest(), public_key
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        video_id = mobj.group('id')
+        alt_id = mobj.group('alt_id') or video_id
+
+        detail_query = f"tech=HLS&id={video_id}"
+        detail_vv, detail_pub = self.compute_vv(detail_query)
+        detail_params = {
+            'tech': 'HLS',
+            'id': video_id,
+            'vv': detail_vv,
+            'pub': detail_pub,
+        }
+
+        detail_api_url = 'https://m10.yfsp.tv/v3/video/detail'
+        detail = self._download_webpage(
+            detail_api_url, video_id, note='Downloading detail info',
+            query=detail_params)
+
+        detail_json = self._parse_json(detail, video_id)
+        title = detail_json['data']['info'][0]['title']
+
+        a = 1 if video_id == alt_id else 0
+        download_query = f"id={alt_id}&a={a}&usersign=1"
+        download_vv, download_pub = self.compute_vv(download_query)
+        download_params = {
+            'id': alt_id,
+            'a': a,
+            'usersign': 1,
+            'vv': download_vv,
+            'pub': download_pub,
+        }
+
+        download_api_url = 'https://m10.yfsp.tv/v3/video/play'
+        info = self._download_webpage(
+            download_api_url, video_id, note='Downloading playback info',
+            query=download_params)
+
+        info_json = self._parse_json(info, video_id)
+        m3u8_url = info_json["data"]["info"][0]["clarity"][-1]["path"]["rtmp"]
+
+        # optional: try to infer format
+        m3u8_base = re.match(r"(https://.*/mp4:[^/]+/[^/]+/[^/]+\.mp4)/", m3u8_url)
+        if m3u8_base:
+            fmt_str = m3u8_base.group(1).split("/")[-1].replace(".mp4", "")
+            title = f"{title}_{fmt_str}"
+
+        formats = self._extract_m3u8_formats(
+            m3u8_url, video_id, 'mp4',
+            entry_protocol='m3u8_native',
+            m3u8_id='hls', fatal=True)
+
+
+
+        return {
+            'id': video_id,
+            'title': title,
+            'formats': formats,
+        }
