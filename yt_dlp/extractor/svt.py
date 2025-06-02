@@ -129,11 +129,7 @@ class SVTIE(SVTBaseIE):
         return info_dict
 
 
-class SVTPlayBaseIE(SVTBaseIE):
-    _SVTPLAY_RE = r'root\s*\[\s*(["\'])_*svtplay\1\s*\]\s*=\s*(?P<json>{.+?})\s*;\s*\n'
-
-
-class SVTPlayIE(SVTPlayBaseIE):
+class SVTPlayIE(SVTBaseIE):
     IE_DESC = 'SVT Play and Öppet arkiv'
     _VALID_URL = r'''(?x)
                     (?:
@@ -284,7 +280,7 @@ class SVTPlayIE(SVTPlayBaseIE):
         return info_dict
 
 
-class SVTSeriesIE(SVTPlayBaseIE):
+class SVTSeriesIE(SVTBaseIE):
     _VALID_URL = r'https?://(?:www\.)?svtplay\.se/(?P<id>[^/?&#]+)(?:.+?\btab=(?P<season_slug>[^&#]+))?'
     _TESTS = [{
         'url': 'https://www.svtplay.se/rederiet',
