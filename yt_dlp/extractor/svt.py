@@ -100,35 +100,6 @@ class SVTBaseIE(InfoExtractor):
         }
 
 
-class SVTIE(SVTBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?svt\.se/wd\?(?:.*?&)?widgetId=(?P<widget_id>\d+)&.*?\barticleId=(?P<id>\d+)'
-    _EMBED_REGEX = [rf'(?:<iframe src|href)="(?P<url>{_VALID_URL}[^"]*)"']
-    _TEST = {
-        'url': 'http://www.svt.se/wd?widgetId=23991&sectionId=541&articleId=2900353&type=embed&contextSectionId=123&autostart=false',
-        'md5': '33e9a5d8f646523ce0868ecfb0eed77d',
-        'info_dict': {
-            'id': '2900353',
-            'ext': 'mp4',
-            'title': 'Stjärnorna skojar till det - under SVT-intervjun',
-            'duration': 27,
-            'age_limit': 0,
-        },
-    }
-
-    def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        widget_id = mobj.group('widget_id')
-        article_id = mobj.group('id')
-
-        info = self._download_json(
-            f'http://www.svt.se/wd?widgetId={widget_id}&articleId={article_id}&format=json&type=embed&output=json',
-            article_id)
-
-        info_dict = self._extract_video(info['video'], article_id)
-        info_dict['title'] = info['context']['title']
-        return info_dict
-
-
 class SVTPlayIE(SVTBaseIE):
     IE_DESC = 'SVT Play and Öppet arkiv'
     _VALID_URL = r'''(?x)
@@ -302,7 +273,7 @@ class SVTSeriesIE(SVTBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super().suitable(url)
+        return False if SVTPlayIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         series_slug, season_id = self._match_valid_url(url).groups()
@@ -443,7 +414,7 @@ class SVTPageIE(SVTBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super().suitable(url)
+        return False if SVTPlayIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
