@@ -16,7 +16,7 @@ class AiyifanIE(InfoExtractor):
                 'title': '工作细胞_dhp-gzxb-06-03AC62667',
                 'ext': 'mp4',
             },
-            'params': {'skip_download': True}
+            'params': {'skip_download': True},
         },
         {
             'url': 'https://www.yfsp.tv/play/tFAWlkx5kr9',
@@ -25,7 +25,7 @@ class AiyifanIE(InfoExtractor):
                 'title': '工作细胞_dhp-gzxb-01-006E900E1',
                 'ext': 'mp4',
             },
-            'params': {'skip_download': True}
+            'params': {'skip_download': True},
         },
         {
             'url': 'https://www.yfsp.tv/play/TtAyF6XpjfC',
@@ -34,7 +34,7 @@ class AiyifanIE(InfoExtractor):
                 'title': '大猿魂_dhp-dyh-01-008FFFF84',
                 'ext': 'mp4',
             },
-            'params': {'skip_download': True}
+            'params': {'skip_download': True},
         },
     ]
 
@@ -93,7 +93,7 @@ class AiyifanIE(InfoExtractor):
         m3u8_base = re.match(r'(https://.*/mp4:[^/]+/[^/]+/[^/]+\.mp4)/', m3u8_url)
         if m3u8_base:
             fmt_str = m3u8_base.group(1).split('/')[-1].replace('.mp4', '')
-            title = f"{title}_{fmt_str}"
+            title = f'{title}_{fmt_str}'
 
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, 'mp4',
