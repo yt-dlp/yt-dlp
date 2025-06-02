@@ -42,8 +42,6 @@ class UMGDeIE(InfoExtractor):
         display_id = self._match_id(url)
         video_id = display_id.split('-')[-1]
         webpage = self._download_webpage(url, display_id)
-        urlh = self._request_webpage(
-            'https://hls.universal-music.de/get', display_id, query={'id': video_id})
 
         return {
             **self._search_json_ld(webpage, display_id),
@@ -52,5 +50,6 @@ class UMGDeIE(InfoExtractor):
             'description': traverse_obj(webpage, (
                 {find_element(cls='_3Y0Lj')}, {clean_html})),
             'display_id': display_id,
-            'formats': self._extract_m3u8_formats(urlh.url, display_id, 'mp4'),
+            'formats': self._extract_m3u8_formats(
+                'https://hls.universal-music.de/get', display_id, 'mp4', query={'id': video_id}),
         }
