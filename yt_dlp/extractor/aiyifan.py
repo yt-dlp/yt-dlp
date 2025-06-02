@@ -1,6 +1,6 @@
-import time
 import hashlib
 import re
+import time
 
 from yt_dlp.extractor.common import InfoExtractor
 
@@ -35,17 +35,17 @@ class AiyifanIE(InfoExtractor):
                 'ext': 'mp4',
             },
             'params': {'skip_download': True}
-        }
+        },
     ]
 
     def compute_vv(self, query_str):
         public_key = int(time.time() * 1000)
         private_keys = [
-            "version001", "vers1on001", "vers1on00i", "bersion001",
-            "vcrsion001", "versi0n001", "versio_001", "version0o1"
+            'version001', 'vers1on001', 'vers1on00i', 'bersion001',
+            'vcrsion001', 'versi0n001', 'versio_001', 'version0o1',
         ]
         private_key = private_keys[public_key % len(private_keys)]
-        merge_str = f"{public_key}&{query_str.lower()}&{private_key}"
+        merge_str = f'{public_key}&{query_str.lower()}&{private_key}'
         return hashlib.md5(merge_str.encode('utf-8')).hexdigest(), public_key
 
     def _real_extract(self, url):
@@ -53,7 +53,7 @@ class AiyifanIE(InfoExtractor):
         video_id = mobj.group('id')
         alt_id = mobj.group('alt_id') or video_id
 
-        detail_query = f"tech=HLS&id={video_id}"
+        detail_query = f'tech=HLS&id={video_id}'
         detail_vv, detail_pub = self.compute_vv(detail_query)
         detail_params = {
             'tech': 'HLS',
@@ -71,7 +71,7 @@ class AiyifanIE(InfoExtractor):
         title = detail_json['data']['info'][0]['title']
 
         a = 1 if video_id == alt_id else 0
-        download_query = f"id={alt_id}&a={a}&usersign=1"
+        download_query = f'id={alt_id}&a={a}&usersign=1'
         download_vv, download_pub = self.compute_vv(download_query)
         download_params = {
             'id': alt_id,
@@ -87,12 +87,12 @@ class AiyifanIE(InfoExtractor):
             query=download_params)
 
         info_json = self._parse_json(info, video_id)
-        m3u8_url = info_json["data"]["info"][0]["clarity"][-1]["path"]["rtmp"]
+        m3u8_url = info_json['data']['info'][0]['clarity'][-1]['path']['rtmp']
 
         # optional: try to infer format
-        m3u8_base = re.match(r"(https://.*/mp4:[^/]+/[^/]+/[^/]+\.mp4)/", m3u8_url)
+        m3u8_base = re.match(r'(https://.*/mp4:[^/]+/[^/]+/[^/]+\.mp4)/', m3u8_url)
         if m3u8_base:
-            fmt_str = m3u8_base.group(1).split("/")[-1].replace(".mp4", "")
+            fmt_str = m3u8_base.group(1).split('/')[-1].replace('.mp4', '')
             title = f"{title}_{fmt_str}"
 
         formats = self._extract_m3u8_formats(
