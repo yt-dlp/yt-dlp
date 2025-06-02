@@ -101,6 +101,7 @@ class SVTBaseIE(InfoExtractor):
 
 
 class SVTPlayIE(SVTBaseIE):
+    IE_NAME = 'svt:play'
     IE_DESC = 'SVT Play and Öppet arkiv'
     _VALID_URL = r'''(?x)
                     (?:
@@ -252,6 +253,7 @@ class SVTPlayIE(SVTBaseIE):
 
 
 class SVTSeriesIE(SVTBaseIE):
+    IE_NAME = 'svt:play:series'
     _VALID_URL = r'https?://(?:www\.)?svtplay\.se/(?P<id>[^/?&#]+)(?:.+?\btab=(?P<season_slug>[^&#]+))?'
     _TESTS = [{
         'url': 'https://www.svtplay.se/rederiet',
@@ -337,6 +339,7 @@ class SVTSeriesIE(SVTBaseIE):
 
 
 class SVTPageIE(SVTBaseIE):
+    IE_NAME = 'svt:page'
     _VALID_URL = r'https?://(?:www\.)?svt\.se/(?:[^/?#]+/)*(?P<id>[^/?&#]+)'
     _TESTS = [{
         'url': 'https://www.svt.se/nyheter/lokalt/skane/viktor-18-forlorade-armar-och-ben-i-sepsis-vill-ateruppta-karaten-och-bli-svetsare',
