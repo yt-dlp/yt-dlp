@@ -7,7 +7,6 @@ from yt_dlp.extractor.common import InfoExtractor
 
 class AiyifanIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?yfsp\.tv/play/(?P<id>[^/?#]+)(?:\?id=(?P<alt_id>[^&#]+))?'
-    # All the three domains are the same
     _TESTS = [
         {
             'url': 'https://www.yfsp.tv/play/tFAWlkx5kr9?id=GB7vRUxjOn5',
