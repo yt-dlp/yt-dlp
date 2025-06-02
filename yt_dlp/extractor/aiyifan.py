@@ -100,8 +100,6 @@ class AiyifanIE(InfoExtractor):
             entry_protocol='m3u8_native',
             m3u8_id='hls', fatal=True)
 
-
-
         return {
             'id': video_id,
             'title': title,
