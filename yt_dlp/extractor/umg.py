@@ -7,7 +7,7 @@ class UMGDeIE(InfoExtractor):
     IE_NAME = 'umg:de'
     IE_DESC = 'Universal Music Deutschland'
 
-    _VALID_URL = r'https?://(?:www\.)?universal-music\.de/[^/]+/videos/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?universal-music\.de/[^/?#]+/videos/(?P<slug>[^/?#]+-(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://www.universal-music.de/sido/videos/jedes-wort-ist-gold-wert-457803',
         'info_dict': {
@@ -39,16 +39,15 @@ class UMGDeIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        video_id = display_id.split('-')[-1]
+        display_id, video_id = self._match_valid_url(url).group('slug', 'id')
         webpage = self._download_webpage(url, display_id)
 
         return {
             **self._search_json_ld(webpage, display_id),
             'id': video_id,
-            'artist': self._html_search_meta('umg-artist-screenname', webpage),
-            'description': traverse_obj(webpage, (
-                {find_element(cls='_3Y0Lj')}, {clean_html})),
+            'artists': traverse_obj(self._html_search_meta('umg-artist-screenname', webpage), all),
+            # The JSON LD description duplicates the title
+            'description': traverse_obj(webpage, ({find_element(cls='_3Y0Lj')}, {clean_html})),
             'display_id': display_id,
             'formats': self._extract_m3u8_formats(
                 'https://hls.universal-music.de/get', display_id, 'mp4', query={'id': video_id}),
