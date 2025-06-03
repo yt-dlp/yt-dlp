@@ -1170,6 +1170,11 @@ def create_parser():
         help='Specify a custom HTTP header and its value, separated by a colon ":". You can use this option multiple times',
     )
     workarounds.add_option(
+        '--no-std-headers',
+        action='store_true', dest='no_std_headers', default=False,
+        help='Suppress standard headers',
+    )
+    workarounds.add_option(
         '--bidi-workaround',
         dest='bidi_workaround', action='store_true',
         help='Work around terminals that lack bidirectional text support. Requires bidiv or fribidi executable in PATH')
