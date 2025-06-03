@@ -56,6 +56,7 @@ class TxxxIE(InfoExtractor):
         'privatehomeclips.com',
         'tubepornclassic.com',
         'txxx.com',
+        'txxx.me',
         'txxx.tube',
         'upornia.com',
         'upornia.tube',
