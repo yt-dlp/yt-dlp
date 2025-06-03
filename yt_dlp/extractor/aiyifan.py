@@ -12,7 +12,7 @@ class AiyifanIE(InfoExtractor):
             'url': 'https://www.yfsp.tv/play/tFAWlkx5kr9?id=GB7vRUxjOn5',
             'info_dict': {
                 'id': 'GB7vRUxjOn5',
-                'title': '工作细胞_dhp-gzxb-06-03AC62667',
+                'title': '工作细胞_06',
                 'ext': 'mp4',
             },
             'params': {'skip_download': True},
@@ -21,7 +21,7 @@ class AiyifanIE(InfoExtractor):
             'url': 'https://www.yfsp.tv/play/tFAWlkx5kr9',
             'info_dict': {
                 'id': 'tFAWlkx5kr9',
-                'title': '工作细胞_dhp-gzxb-01-006E900E1',
+                'title': '工作细胞_01',
                 'ext': 'mp4',
             },
             'params': {'skip_download': True},
@@ -31,6 +31,15 @@ class AiyifanIE(InfoExtractor):
             'info_dict': {
                 'id': 'TtAyF6XpjfC',
                 'title': '大猿魂_dhp-dyh-01-008FFFF84',
+                'ext': 'mp4',
+            },
+            'params': {'skip_download': True},
+        },
+        {
+            'url': 'https://www.yfsp.tv/play/hezikWmgrKC?id=8u1rb9IxuQE',
+            'info_dict': {
+                'id': 'hezikWmgrKC',
+                'title': 'NBA美国职业篮球赛_20210515qishivsqicai',
                 'ext': 'mp4',
             },
             'params': {'skip_download': True},
@@ -84,7 +93,8 @@ class AiyifanIE(InfoExtractor):
         info_json = self._parse_json(info, video_id)
         m3u8_url = info_json['data']['info'][0]['clarity'][-1]['path']['rtmp']
 
-        episode = re.search(r'dhp-[A-Za-z0-9]+-(\d+)-', m3u8_url).group(1)
+        print(m3u8_url)
+        episode = re.search(r'[A-Za-z0-9]+-[A-Za-z0-9]+-([A-Za-z0-9]*)-[A-Za-z0-9]+\.', m3u8_url).group(1)
         title = f'{title}_{episode}'
 
         formats = self._extract_m3u8_formats(
