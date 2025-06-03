@@ -2,11 +2,11 @@ import hashlib
 import re
 import time
 
-from yt_dlp.extractor.common import InfoExtractor
+from .common import InfoExtractor
 
 
 class AiyifanIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?yfsp\.tv/play/(?P<id>[^/?#]+)(?:\?id=(?P<alt_id>[^&#]+))?'
+    _VALID_URL = r'https?://(?:www\.)?(yfsp|iyf|aiyifan)\.tv/play/(?P<id>[^/?#]+)(?:\?id=(?P<alt_id>[^&#]+))?'
     _TESTS = [
         {
             'url': 'https://www.yfsp.tv/play/tFAWlkx5kr9?id=GB7vRUxjOn5',
@@ -61,12 +61,11 @@ class AiyifanIE(InfoExtractor):
             'pub': detail_pub,
         }
 
-        detail_api_url = 'https://m10.yfsp.tv/v3/video/detail'
         detail = self._download_webpage(
-            detail_api_url, video_id, note='Downloading detail info',
+            'https://m10.yfsp.tv/v3/video/detail', video_id, note='Downloading detail info',
             query=detail_params)
 
-        detail_json = self._parse_json(detail, video_id)
+        detail_json = self._download_json(detail, video_id)
         title = detail_json['data']['info'][0]['title']
 
         a = 1 if video_id == alt_id else 0
@@ -80,19 +79,15 @@ class AiyifanIE(InfoExtractor):
             'pub': download_pub,
         }
 
-        download_api_url = 'https://m10.yfsp.tv/v3/video/play'
         info = self._download_webpage(
-            download_api_url, video_id, note='Downloading playback info',
+            'https://m10.yfsp.tv/v3/video/play', video_id, note='Downloading playback info',
             query=download_params)
 
         info_json = self._parse_json(info, video_id)
         m3u8_url = info_json['data']['info'][0]['clarity'][-1]['path']['rtmp']
 
-        # optional: try to infer format
-        m3u8_base = re.match(r'(https://.*/mp4:[^/]+/[^/]+/[^/]+\.mp4)/', m3u8_url)
-        if m3u8_base:
-            fmt_str = m3u8_base.group(1).split('/')[-1].replace('.mp4', '')
-            title = f'{title}_{fmt_str}'
+        episode = re.search('dhp-[A-Za-z0-9]+-(\d+)-', m3u8_url).group(1)
+        title = f'{title}_{episode}'
 
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, 'mp4',
