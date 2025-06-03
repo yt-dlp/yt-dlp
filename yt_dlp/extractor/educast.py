@@ -90,16 +90,6 @@ class EducastIE(EducastBaseIE):
         'skip': 'This video is private and requires authentication to access',
     }]
 
-    def parse_timestamp(self, timestamp_str):
-        if isinstance(timestamp_str, str) and '.' in timestamp_str:
-            day, month, year_time = timestamp_str.split('.', 2)
-            year, time = year_time.split(' ', 1)
-            reformatted = f'{year}-{month}-{day} {time}'
-            timestamp = unified_timestamp(reformatted)
-            if timestamp is not None:
-                timestamp -= 3600  # Lisbon time (UTC+1)
-        return timestamp
-
     def _extract_video_formats(self, video_json, video_id):
         formats = []
         dash_url = traverse_obj(video_json, ('dash', 'url'))
@@ -135,7 +125,7 @@ class EducastIE(EducastBaseIE):
                 'alt_title': ('subtitle', {str}),
                 'description': ('clipDescription', {str}),
                 'uploader': ('author', {str}),
-                'timestamp': ('timestamp', {self.parse_timestamp}),
+                'timestamp': ('timestamp', {unified_timestamp}, {lambda x: x - 3600}),
                 'thumbnail': ('cover', {str}),
                 'license': ('licenceURL', {str}),
                 'webpage_url': ('url', {str}),
