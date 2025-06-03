@@ -61,11 +61,9 @@ class AiyifanIE(InfoExtractor):
             'pub': detail_pub,
         }
 
-        detail = self._download_webpage(
+        detail_json = self._download_json(
             'https://m10.yfsp.tv/v3/video/detail', video_id, note='Downloading detail info',
             query=detail_params)
-
-        detail_json = self._download_json(detail, video_id)
         title = detail_json['data']['info'][0]['title']
 
         a = 1 if video_id == alt_id else 0
@@ -86,7 +84,7 @@ class AiyifanIE(InfoExtractor):
         info_json = self._parse_json(info, video_id)
         m3u8_url = info_json['data']['info'][0]['clarity'][-1]['path']['rtmp']
 
-        episode = re.search('dhp-[A-Za-z0-9]+-(\d+)-', m3u8_url).group(1)
+        episode = re.search(r'dhp-[A-Za-z0-9]+-(\d+)-', m3u8_url).group(1)
         title = f'{title}_{episode}'
 
         formats = self._extract_m3u8_formats(
