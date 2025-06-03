@@ -45,7 +45,7 @@ class UMGDeIE(InfoExtractor):
         return {
             **self._search_json_ld(webpage, display_id),
             'id': video_id,
-            'artists': traverse_obj(self._html_search_meta('umg-artist-screenname', webpage), all),
+            'artists': traverse_obj(self._html_search_meta('umg-artist-screenname', webpage), (filter, all)),
             # The JSON LD description duplicates the title
             'description': traverse_obj(webpage, ({find_element(cls='_3Y0Lj')}, {clean_html})),
             'display_id': display_id,
