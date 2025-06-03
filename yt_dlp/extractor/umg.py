@@ -6,7 +6,6 @@ from ..utils.traversal import find_element, traverse_obj
 class UMGDeIE(InfoExtractor):
     IE_NAME = 'umg:de'
     IE_DESC = 'Universal Music Deutschland'
-
     _VALID_URL = r'https?://(?:www\.)?universal-music\.de/[^/?#]+/videos/(?P<slug>[^/?#]+-(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://www.universal-music.de/sido/videos/jedes-wort-ist-gold-wert-457803',
