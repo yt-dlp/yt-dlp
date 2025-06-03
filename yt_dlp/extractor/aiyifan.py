@@ -93,7 +93,6 @@ class AiyifanIE(InfoExtractor):
         info_json = self._parse_json(info, video_id)
         m3u8_url = info_json['data']['info'][0]['clarity'][-1]['path']['rtmp']
 
-        print(m3u8_url)
         episode = re.search(r'[A-Za-z0-9]+-[A-Za-z0-9]+-([A-Za-z0-9]*)-[A-Za-z0-9]+\.', m3u8_url).group(1)
         title = f'{title}_{episode}'
 
