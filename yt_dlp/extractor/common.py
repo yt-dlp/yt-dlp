@@ -1795,6 +1795,47 @@ class InfoExtractor:
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
 
+    def _search_nuxt_json(self, webpage, video_id, script_id='__NUXT_DATA__', *, fatal=True,
+                          traverse=('data', ..., {dict}, any), allow_recursion=100):
+        """Parses Nuxt.js metadata when it has already been rendered into a JSON array"""
+
+        ERROR_MSG = 'Unable to extract NUXT JSON data'
+        array = self._search_json(
+            fr'<script\b[^>]+\bid="{re.escape(script_id)}"[^>]*>', webpage, script_id,
+            video_id, contains_pattern=r'\[(?s:.+)\]', default=NO_DEFAULT if fatal else [{}])
+
+        def extract_element(element, allow_recursion):
+            if allow_recursion < 0:
+                msg = f'{ERROR_MSG}: recursion limit reached'
+                if fatal:
+                    raise ExtractorError(msg)
+                self.report_warning(msg, video_id=video_id, only_once=True)
+                return None
+            allow_recursion -= 1
+
+            try:
+                if isinstance(element, list) and element:
+                    if element[0] in ('ShallowReactive', 'Reactive') and isinstance(element[1], int):
+                        return extract_element(array[element[1]], allow_recursion)
+                    if all(isinstance(ele, int) for ele in element):
+                        return [extract_element(array[ele], allow_recursion) for ele in element]
+                if isinstance(element, dict):
+                    ret = {}
+                    for k, v in element.items():
+                        if isinstance(v, int):
+                            ret[k] = extract_element(array[v], allow_recursion)
+                        else:
+                            ret[k] = v
+                    return ret
+            except IndexError as e:
+                if not fatal:
+                    return None
+                raise ExtractorError(f'{ERROR_MSG}: {e}')
+
+            return element
+
+        return traverse_obj(extract_element(array[0], allow_recursion), traverse) or {}
+
     @staticmethod
     def _hidden_inputs(html):
         html = re.sub(r'<!--(?:(?!<!--).)*-->', '', html)
