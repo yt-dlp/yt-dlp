@@ -236,7 +236,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         for tt in (request.get('text_tracks') or []):
             subtitles.setdefault(tt['lang'], []).append({
                 'ext': 'vtt',
-                'url': urljoin('https://vimeo.com', tt['url']),
+                'url': urljoin('https://player.vimeo.com/', tt['url']),
             })
 
         thumbnails = []

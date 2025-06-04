@@ -314,6 +314,20 @@ class TestInfoExtractor(unittest.TestCase):
                 },
                 {},
             ),
+            (
+                # test thumbnail_url key without URL scheme
+                r'''
+<script type="application/ld+json">
+{
+"@context": "https://schema.org",
+"@type": "VideoObject",
+"thumbnail_url": "//www.nobelprize.org/images/12693-landscape-medium-gallery.jpg"
+}</script>''',
+                {
+                    'thumbnails': [{'url': 'https://www.nobelprize.org/images/12693-landscape-medium-gallery.jpg'}],
+                },
+                {},
+            ),
         ]
         for html, expected_dict, search_json_ld_kwargs in _TESTS:
             expect_dict(

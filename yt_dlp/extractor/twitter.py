@@ -20,7 +20,6 @@ from ..utils import (
     remove_end,
     str_or_none,
     strip_or_none,
-    traverse_obj,
     truncate_string,
     try_call,
     try_get,
@@ -29,6 +28,7 @@ from ..utils import (
     url_or_none,
     xpath_text,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class TwitterBaseIE(InfoExtractor):
@@ -1596,8 +1596,8 @@ class TwitterAmplifyIE(TwitterBaseIE):
 
 class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
     IE_NAME = 'twitter:broadcast'
-    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/broadcasts/(?P<id>[0-9a-zA-Z]{13})'
 
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/(?P<type>broadcasts|events)/(?P<id>\w+)'
     _TESTS = [{
         # untitled Periscope video
         'url': 'https://twitter.com/i/broadcasts/1yNGaQLWpejGj',
@@ -1605,6 +1605,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'id': '1yNGaQLWpejGj',
             'ext': 'mp4',
             'title': 'Andrea May Sahouri - Periscope Broadcast',
+            'display_id': '1yNGaQLWpejGj',
             'uploader': 'Andrea May Sahouri',
             'uploader_id': 'andreamsahouri',
             'uploader_url': 'https://twitter.com/andreamsahouri',
@@ -1612,6 +1613,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'upload_date': '20200601',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
             'view_count': int,
+            'concurrent_view_count': int,
+            'live_status': 'was_live',
         },
     }, {
         'url': 'https://twitter.com/i/broadcasts/1ZkKzeyrPbaxv',
@@ -1619,6 +1622,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'id': '1ZkKzeyrPbaxv',
             'ext': 'mp4',
             'title': 'Starship | SN10 | High-Altitude Flight Test',
+            'display_id': '1ZkKzeyrPbaxv',
             'uploader': 'SpaceX',
             'uploader_id': 'SpaceX',
             'uploader_url': 'https://twitter.com/SpaceX',
@@ -1626,6 +1630,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'upload_date': '20210303',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
             'view_count': int,
+            'concurrent_view_count': int,
+            'live_status': 'was_live',
         },
     }, {
         'url': 'https://twitter.com/i/broadcasts/1OyKAVQrgzwGb',
@@ -1633,6 +1639,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'id': '1OyKAVQrgzwGb',
             'ext': 'mp4',
             'title': 'Starship Flight Test',
+            'display_id': '1OyKAVQrgzwGb',
             'uploader': 'SpaceX',
             'uploader_id': 'SpaceX',
             'uploader_url': 'https://twitter.com/SpaceX',
@@ -1640,21 +1647,58 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'upload_date': '20230420',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
             'view_count': int,
+            'concurrent_view_count': int,
+            'live_status': 'was_live',
+        },
+    }, {
+        'url': 'https://x.com/i/events/1910629646300762112',
+        'info_dict': {
+            'id': '1LyxBWDRNqyKN',
+            'ext': 'mp4',
+            'title': '#ガンニバル ウォッチパーティー',
+            'concurrent_view_count': int,
+            'display_id': '1910629646300762112',
+            'live_status': 'was_live',
+            'release_date': '20250423',
+            'release_timestamp': 1745409000,
+            'tags': ['ガンニバル'],
+            'thumbnail': r're:https?://[^?#]+\.jpg\?token=',
+            'timestamp': 1745403328,
+            'upload_date': '20250423',
+            'uploader': 'ディズニープラス公式',
+            'uploader_id': 'DisneyPlusJP',
+            'uploader_url': 'https://twitter.com/DisneyPlusJP',
+            'view_count': int,
         },
     }]
 
     def _real_extract(self, url):
-        broadcast_id = self._match_id(url)
+        broadcast_type, display_id = self._match_valid_url(url).group('type', 'id')
+
+        if broadcast_type == 'events':
+            timeline = self._call_api(
+                f'live_event/1/{display_id}/timeline.json', display_id)
+            broadcast_id = traverse_obj(timeline, (
+                'twitter_objects', 'broadcasts', ..., ('id', 'broadcast_id'),
+                {str}, any, {require('broadcast ID')}))
+        else:
+            broadcast_id = display_id
+
         broadcast = self._call_api(
             'broadcasts/show.json', broadcast_id,
             {'ids': broadcast_id})['broadcasts'][broadcast_id]
         if not broadcast:
             raise ExtractorError('Broadcast no longer exists', expected=True)
         info = self._parse_broadcast_data(broadcast, broadcast_id)
-        info['title'] = broadcast.get('status') or info.get('title')
-        info['uploader_id'] = broadcast.get('twitter_username') or info.get('uploader_id')
-        info['uploader_url'] = format_field(broadcast, 'twitter_username', 'https://twitter.com/%s', default=None)
+        info.update({
+            'display_id': display_id,
+            'title': broadcast.get('status') or info.get('title'),
+            'uploader_id': broadcast.get('twitter_username') or info.get('uploader_id'),
+            'uploader_url': format_field(
+                broadcast, 'twitter_username', 'https://twitter.com/%s', default=None),
+        })
         if info['live_status'] == 'is_upcoming':
+            self.raise_no_formats('This live broadcast has not yet started', expected=True)
             return info
 
         media_key = broadcast['media_key']

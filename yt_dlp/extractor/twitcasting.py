@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import itertools
 import re
 
@@ -16,6 +17,7 @@ from ..utils import (
     str_to_int,
     try_get,
     unified_timestamp,
+    update_url_query,
     url_or_none,
     urlencode_postdata,
     urljoin,
@@ -171,6 +173,10 @@ class TwitCastingIE(InfoExtractor):
                     'player': 'pc_web',
                 })
 
+            password_params = {
+                'word': hashlib.md5(video_password.encode()).hexdigest(),
+            } if video_password else None
+
             formats = []
             # low: 640x360, medium: 1280x720, high: 1920x1080
             qq = qualities(['low', 'medium', 'high'])
@@ -178,7 +184,7 @@ class TwitCastingIE(InfoExtractor):
                 'tc-hls', 'streams', {dict.items}, lambda _, v: url_or_none(v[1]),
             )):
                 formats.append({
-                    'url': m3u8_url,
+                    'url': update_url_query(m3u8_url, password_params),
                     'format_id': f'hls-{quality}',
                     'ext': 'mp4',
                     'quality': qq(quality),
@@ -192,7 +198,7 @@ class TwitCastingIE(InfoExtractor):
                     'llfmp4', 'streams', {dict.items}, lambda _, v: url_or_none(v[1]),
                 )):
                     formats.append({
-                        'url': ws_url,
+                        'url': update_url_query(ws_url, password_params),
                         'format_id': f'ws-{mode}',
                         'ext': 'mp4',
                         'quality': qq(mode),
