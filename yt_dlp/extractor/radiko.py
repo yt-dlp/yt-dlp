@@ -43,27 +43,39 @@ class RadikoBaseIE(InfoExtractor):
     )
 
     _JST = datetime.timezone(datetime.timedelta(hours=9))
-    _has_tf30 = None
+    _account_privileges = None
 
     def _perform_login(self, username, password):
         try:
             login_info = self._download_json('https://radiko.jp/ap/member/webapi/member/login', None, note='Logging in',
                                              data=urlencode_postdata({'mail': username, 'pass': password}))
-            self._has_tf30 = '2' in login_info.get('privileges')
+            privileges_list = login_info.get('privileges', [])
+            self._account_privileges = {
+                'areafree': '1' in privileges_list,
+                'tf30': '2' in privileges_list,
+            }  # areafree = 1, timefree30 = 2, double plan = both
         except ExtractorError as error:
             if isinstance(error.cause, HTTPError) and error.cause.status == 401:
                 raise ExtractorError('Invalid username and/or password', expected=True)
             raise
 
-    def _check_tf30(self):
-        if self._has_tf30 is not None:
-            return self._has_tf30
+    def _check_privileges(self):
+        if self._account_privileges is not None:
+            # if already checked via perform_login
+            return self._account_privileges
+
         if self._get_cookies('https://radiko.jp').get('radiko_session') is None:
-            return
+            # if no account at all
+            return {'areafree': False, 'tf30': False}
+
+        # if passed cookies
         account_info = self._download_json('https://radiko.jp/ap/member/webapi/v2/member/login/check',
-                                           None, note='Checking account status from cookies', expected_status=400)
-        self._has_tf30 = account_info.get('timefreeplus') == '1'
-        return self._has_tf30
+                                           None, note='Checking account status from cookies', expected_status=400) or {}
+        self._account_privileges = {
+            'areafree': account_info.get('areafree') == '1',
+            'tf30': account_info.get('timefreeplus') == '1',
+        }
+        return self._account_privileges
 
     def _negotiate_token(self):
         _, auth1_handle = self._download_webpage_handle(
@@ -146,7 +158,7 @@ class RadikoBaseIE(InfoExtractor):
 
         if broadcast_day_end + datetime.timedelta(days=30) < now:
             self.raise_no_formats('Programme is no longer available.', video_id=video_id, expected=True)
-        elif broadcast_day_end + datetime.timedelta(days=7) < now and not self._check_tf30():
+        elif broadcast_day_end + datetime.timedelta(days=7) < now and not self._check_privileges()['tf30']:
             self.raise_login_required('Programme is only available with a Timefree 30 subscription',
                                       metadata_available=True)
 
