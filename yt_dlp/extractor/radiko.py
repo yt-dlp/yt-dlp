@@ -184,10 +184,19 @@ class RadikoBaseIE(InfoExtractor):
             f'https://radiko.jp/v3/station/stream/pc_html5/{station}.xml', video_id,
             note='Downloading stream information')
 
+        station_info = self._download_json(
+            f'https://radiko.jp/api/stations/batchGetStations?stationId={station}', video_id,
+            note='Checking station broadcast areas')
+        station_areas = traverse_obj(station_info, ('stationList', ..., 'prefecturesList'), get_all=False)
+
         formats = []
         found = set()
 
         timefree_int = 0 if is_onair else 1
+        stream_type = 'b' if area_id in station_areas else 'c'
+
+        if stream_type == 'c' and not self._check_privileges()['areafree']:
+            self.raise_login_required('Programme is only available with an Areafree subscription')
 
         for element in m3u8_playlist_data.findall(f'.//url[@timefree="{timefree_int}"]/playlist_create_url'):
             pcu = element.text
@@ -199,7 +208,7 @@ class RadikoBaseIE(InfoExtractor):
                 **query,
                 'l': '15',
                 'lsid': ''.join(random.choices('0123456789abcdef', k=32)),
-                'type': 'b',
+                'type': stream_type,
             })
 
             time_to_skip = None if is_onair else cursor - ft
