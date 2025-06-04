@@ -10,8 +10,8 @@ from ..utils import (
 )
 
 
-class PandatvLiveIE(InfoExtractor):
-    _VALID_URL = r'(?P<base_url>https?://(?:www\.|m\.)?pandalive\.co\.kr)/play/(?P<id>[\da-z]+)'
+class PandaTVIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.|m\.)?pandalive\.co\.kr/play/(?P<id>[\da-z]+)'
     _TESTS = [{
         'url': 'https://www.pandalive.co.kr/play/bebenim',
         'info_dict': {
@@ -29,33 +29,41 @@ class PandatvLiveIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        base_url, channel_id = self._match_valid_url(url).groups()
-        http_headers = {'Origin': base_url}
+        channel_id = self._match_id(url)
+        http_headers = {'Origin': 'https://www.pandalive.co.kr'}
 
-        # Prepare POST data
-        post_data = {'action': 'watch', 'userId': channel_id, 'password': '', 'shareLinkType': ''}
-        post_data_bytes = urlencode_postdata(post_data)
-
-        # Fetch video metadata
         video_meta = self._download_json(
-            'https://api.pandalive.co.kr/v1/live/play', channel_id, 'Downloading video meta data',
-            errnote=' Unable to download video meta data', data=post_data_bytes, expected_status=(200, 400))
+            'https://api.pandalive.co.kr/v1/live/play', channel_id,
+            'Downloading video meta data', 'Unable to download video meta data',
+            data=urlencode_postdata({
+                'action': 'watch',
+                'userId': channel_id,
+                'password': self.get_param('videopassword'),
+                'shareLinkType': '',
+            }), expected_status=400)
 
-        # Check video metadata
         if not video_meta.get('result'):
-            if traverse_obj(video_meta, ('errorData', 'code')) == 'castEnd':
+            error_code = traverse_obj(video_meta, ('errorData', 'code', {str}))
+            if error_code == 'castEnd':
                 raise UserNotLive(video_id=channel_id)
-            elif traverse_obj(video_meta, ('errorData', 'code')) == 'needAdult':
-                raise ExtractorError(
-                    'Adult verification is required. Check `--cookies` or `--cookies-from-browser` '
-                    'method in https://github.com/yt-dlp/yt-dlp#filesystem-options', expected=True)
+            elif error_code == 'needAdult':
+                self.raise_login_required('Adult verification is required for this stream')
+            elif error_code == 'needLogin':
+                self.raise_login_required('Login is required for this stream')
+            elif error_code == 'needCoinPurchase':
+                raise ExtractorError('Coin purchase is required for this stream', expected=True)
+            elif error_code == 'needUnlimitItem':
+                raise ExtractorError('Ticket purchase is required for this stream', expected=True)
+            elif error_code == 'wrongPw':
+                raise ExtractorError('Wrong or no stream password. Use --video-password option.', expected=True)
+            else:
+                raise ExtractorError(f'API returned an error code: {error_code}')
 
         return {
             'id': channel_id,
             'is_live': True,
             'formats': self._extract_m3u8_formats(
-                traverse_obj(video_meta, ('PlayList', 'hls', 0, 'url')), channel_id, headers=http_headers,
-                ext='mp4', fatal=False, live=True),
+                video_meta['PlayList']['hls'][0]['url'], channel_id, 'mp4', headers=http_headers, live=True),
             'http_headers': http_headers,
             **traverse_obj(video_meta.get('media'), {
                 'title': ('title', {str}),
