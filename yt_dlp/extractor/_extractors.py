@@ -300,7 +300,6 @@ from .brainpop import (
     BrainPOPIlIE,
     BrainPOPJrIE,
 )
-from .bravotv import BravoTVIE
 from .breitbart import BreitBartIE
 from .brightcove import (
     BrightcoveLegacyIE,
@@ -1262,6 +1261,7 @@ from .nba import (
 )
 from .nbc import (
     NBCIE,
+    BravoTVIE,
     NBCNewsIE,
     NBCOlympicsIE,
     NBCOlympicsStreamIE,
@@ -1269,6 +1269,7 @@ from .nbc import (
     NBCSportsStreamIE,
     NBCSportsVPlayerIE,
     NBCStationsIE,
+    SyfyIE,
 )
 from .ndr import (
     NDRIE,
@@ -2016,13 +2017,11 @@ from .sverigesradio import (
     SverigesRadioPublicationIE,
 )
 from .svt import (
-    SVTIE,
     SVTPageIE,
     SVTPlayIE,
     SVTSeriesIE,
 )
 from .swearnet import SwearnetEpisodeIE
-from .syfy import SyfyIE
 from .syvdk import SYVDKIE
 from .sztvhu import SztvHuIE
 from .tagesschau import TagesschauIE
@@ -2147,6 +2146,7 @@ from .toggle import (
 from .toggo import ToggoIE
 from .tonline import TOnlineIE
 from .toongoggles import ToonGogglesIE
+from .toutiao import ToutiaoIE
 from .toutv import TouTvIE
 from .toypics import (
     ToypicsIE,
