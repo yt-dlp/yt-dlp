@@ -22,7 +22,7 @@ class TurnerBaseIE(AdobePassIE):
     def _extract_timestamp(self, video_data):
         return int_or_none(xpath_attr(video_data, 'dateCreated', 'uts'))
 
-    def _add_akamai_spe_token(self, tokenizer_src, video_url, content_id, ap_data, custom_tokenizer_query=None):
+    def _add_akamai_spe_token(self, tokenizer_src, video_url, content_id, ap_data, software_statement, custom_tokenizer_query=None):
         secure_path = self._search_regex(r'https?://[^/]+(.+/)', video_url, 'secure path') + '*'
         token = self._AKAMAI_SPE_TOKEN_CACHE.get(secure_path)
         if not token:
@@ -34,7 +34,8 @@ class TurnerBaseIE(AdobePassIE):
             else:
                 query['videoId'] = content_id
             if ap_data.get('auth_required'):
-                query['accessToken'] = self._extract_mvpd_auth(ap_data['url'], content_id, ap_data['site_name'], ap_data['site_name'])
+                query['accessToken'] = self._extract_mvpd_auth(
+                    ap_data['url'], content_id, ap_data['site_name'], ap_data['site_name'], software_statement)
             auth = self._download_xml(
                 tokenizer_src, content_id, query=query)
             error_msg = xpath_text(auth, 'error/msg')
@@ -46,7 +47,7 @@ class TurnerBaseIE(AdobePassIE):
             self._AKAMAI_SPE_TOKEN_CACHE[secure_path] = token
         return video_url + '?hdnea=' + token
 
-    def _extract_cvp_info(self, data_src, video_id, path_data={}, ap_data={}, fatal=False):
+    def _extract_cvp_info(self, data_src, video_id, software_statement, path_data={}, ap_data={}, fatal=False):
         video_data = self._download_xml(
             data_src, video_id,
             transform_source=lambda s: fix_xml_ampersands(s).strip(),
@@ -101,7 +102,7 @@ class TurnerBaseIE(AdobePassIE):
                 video_url = self._add_akamai_spe_token(
                     secure_path_data['tokenizer_src'],
                     secure_path_data['media_src'] + video_url,
-                    content_id, ap_data)
+                    content_id, ap_data, software_statement)
             elif not re.match('https?://', video_url):
                 base_path_data = path_data.get(ext, path_data.get('default', {}))
                 media_src = base_path_data.get('media_src')
@@ -215,10 +216,12 @@ class TurnerBaseIE(AdobePassIE):
             'is_live': is_live,
         }
 
-    def _extract_ngtv_info(self, media_id, tokenizer_query, ap_data=None):
+    def _extract_ngtv_info(self, media_id, tokenizer_query, software_statement, ap_data=None):
+        if not isinstance(ap_data, dict):
+            ap_data = {}
         is_live = ap_data.get('is_live')
         streams_data = self._download_json(
-            f'http://medium.ngtv.io/media/{media_id}/tv',
+            f'https://medium.ngtv.io/media/{media_id}/tv',
             media_id)['media']['tv']
         duration = None
         chapters = []
@@ -230,8 +233,8 @@ class TurnerBaseIE(AdobePassIE):
                 continue
             if stream_data.get('playlistProtection') == 'spe':
                 m3u8_url = self._add_akamai_spe_token(
-                    'http://token.ngtv.io/token/token_spe',
-                    m3u8_url, media_id, ap_data or {}, tokenizer_query)
+                    'https://token.ngtv.io/token/token_spe',
+                    m3u8_url, media_id, ap_data, software_statement, tokenizer_query)
             formats.extend(self._extract_m3u8_formats(
                 m3u8_url, media_id, 'mp4', m3u8_id='hls', live=is_live, fatal=False))
 
