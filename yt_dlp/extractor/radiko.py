@@ -30,6 +30,7 @@ class RadikoBaseIE(InfoExtractor):
         'https://tf-c-rpaa-radiko.smartstream.ne.jp',
         'https://si-f-radiko.smartstream.ne.jp',
         'https://rpaa.smartstream.ne.jp',
+        'https://alliance-stream-radiko.smartstream.ne.jp',
     )
     _HOSTS_FOR_TIME_FREE_FFMPEG_SUPPORTED = (
         'https://rd-wowza-radiko.radiko-cf.com',
