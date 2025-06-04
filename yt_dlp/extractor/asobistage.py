@@ -7,7 +7,7 @@ from ..utils.traversal import traverse_obj
 
 class AsobiStageIE(InfoExtractor):
     IE_DESC = 'ASOBISTAGE (アソビステージ)'
-    _VALID_URL = r'https?://asobistage\.asobistore\.jp/event/(?P<id>(?P<event>\w+)/(?P<type>archive|player)/(?P<slug>\w+))(?:[?#]|$)'
+    _VALID_URL = r'https?://asobistage\.asobistore\.jp/event/(?P<id>(?P<event>\w+)/(?P<type>archive|player|premium_lp)/(?P<slug>\w+))(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://asobistage.asobistore.jp/event/315passionhour_2022summer/archive/frame',
         'info_dict': {
@@ -51,10 +51,20 @@ class AsobiStageIE(InfoExtractor):
     }, {
         'url': 'https://asobistage.asobistore.jp/event/ijigenfes_utagassen/player/day1',
         'only_matching': True,
+    }, {
+        'url': 'https://asobistage.asobistore.jp/event/gakuen_1stperiod/premium_lp/ss_premium',
+        'info_dict': {
+            'id': 'gakuen_1stperiod/premium_lp/ss_premium',
+            'title': '学園アイドルマスター The 1st Period Spotlight Star DAY１スペシャル視聴チケット特典',
+        },
+        'playlist_count': 2,
     }]
 
     _API_HOST = 'https://asobistage-api.asobistore.jp'
     _HEADERS = {}
+    _EMBED_HEADERS = {
+        'Referer': 'https://asobistage.asobistore.jp/',
+    }
     _is_logged_in = False
 
     @functools.cached_property
@@ -103,6 +113,10 @@ class AsobiStageIE(InfoExtractor):
     def _real_extract(self, url):
         webpage, urlh = self._download_webpage_handle(url, self._match_id(url))
         video_id, event, type_, slug = self._match_valid_url(urlh.url).group('id', 'event', 'type', 'slug')
+
+        if type_ == 'premium_lp':
+            return self._extract_premium_lp(video_id, event, slug)
+
         video_type = {'archive': 'archives', 'player': 'broadcasts'}[type_]
 
         event_data = traverse_obj(
@@ -147,6 +161,43 @@ class AsobiStageIE(InfoExtractor):
                 'formats': self._extract_m3u8_formats(channel_data.get('m3u8_url'), channel_id, fatal=False),
                 'is_live': video_type == 'broadcasts',
                 'thumbnail': url_or_none(channel_data.get('thumbnail')),
+            })
+
+        if not self._is_logged_in and not entries:
+            self.raise_login_required()
+
+        return self.playlist_result(entries, video_id, **event_data)
+
+    def _extract_premium_lp(self, video_id, event, slug):
+        contents = traverse_obj(self._download_json(
+            f'https://asobistage.asobistore.jp/cdn/v101/events/{event}/premium_lp.json',
+            video_id, 'Getting content list', 'Unable to get content list'), (
+            'contents', lambda _, v: v['premium_lp_slug'] == slug))
+        if not contents:
+            self.report_warning(f'No content found for event "{event}"')
+            return None
+
+        root_content = contents[0]
+        event_data = {
+            'title': root_content.get('title'),
+        }
+
+        entries = []
+        for content in traverse_obj(root_content, ('contentList', ..., 'contents', ...)):
+            movie_url = content.get('movieUrl')
+            embed_id = movie_url.rsplit('/', 1)[-1]
+            webpage = self._download_webpage(
+                movie_url, embed_id,
+                'Getting movie embed page', 'Failed to get movie embed page',
+                headers=self._EMBED_HEADERS)
+            m3u8_url = self._search_regex(r"<source src='([^']+)' ", webpage, 'player').replace('&amp;', '&')
+
+            entries.append({
+                'id': embed_id,
+                'title': root_content.get('title'),
+                'formats': self._extract_m3u8_formats(m3u8_url, embed_id, fatal=False),
+                'is_live': False,
+                'thumbnail': traverse_obj(root_content, ('thumb', 'url', {url_or_none})),
             })
 
         if not self._is_logged_in and not entries:
