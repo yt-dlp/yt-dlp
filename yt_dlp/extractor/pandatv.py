@@ -55,7 +55,7 @@ class PandaTVIE(InfoExtractor):
             elif error_code == 'needUnlimitItem':
                 raise ExtractorError('Ticket purchase is required for this stream', expected=True)
             elif error_code == 'wrongPw':
-                raise ExtractorError('Wrong or no stream password. Use --video-password option.', expected=True)
+                raise ExtractorError('Password protected video, use --video-password <password>', expected=True)
             else:
                 raise ExtractorError(f'API returned an error code: {error_code}')
 
