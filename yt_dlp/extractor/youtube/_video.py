@@ -2238,7 +2238,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     (?:
                         (?P<funcname_a>[a-zA-Z0-9_$]+)\s*noitcnuf\s*
                         |noitcnuf\s*=\s*(?P<funcname_b>[a-zA-Z0-9_$]+)(?:\s+rav)?
-                    )
+                    )[;\n]
                 ''' % re.escape(match.group('argname')[::-1])
                 if match := re.search(pattern, jscode[match.start()::-1]):
                     a, b = match.group('funcname_a', 'funcname_b')
