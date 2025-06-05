@@ -1748,7 +1748,7 @@ class InfoExtractor:
                         'description': (('description', 'articleBody'), {str}, {unescapeHTML}, any),
                         'modified_timestamp': ('dateModified', {parse_iso8601}),
                         'release_timestamp': ('datePublished', {parse_iso8601}),
-                        'tags': ('keywords', {str}, {unescapeHTML}, filter, all),
+                        'tags': ('keywords', {str}, {unescapeHTML}, {lambda x: x.split(',')}, filter),
                         'thumbnails': ('image', ..., {
                             'url': ({str}, {unescapeHTML}, {self._proto_relative_url}, {url_or_none}),
                         }),
