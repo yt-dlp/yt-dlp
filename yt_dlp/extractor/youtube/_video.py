@@ -2229,17 +2229,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_n_function_name(self, jscode, player_url=None):
         varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
         if debug_str := traverse_obj(global_list, (lambda _, v: v.endswith('-_w8_'), any)):
-            pattern = r'''\{\s*return\s+%s\[%d\]\s*\+\s*(?P<argname>[a-zA-Z0-9_$]+)\s*\}''' % (re.escape(varname), global_list.index(debug_str))
+            pattern = r'''(?x)
+                \{\s*return\s+%s\[%d\]\s*\+\s*(?P<argname>[a-zA-Z0-9_$]+)\s*\}
+            ''' % (re.escape(varname), global_list.index(debug_str))
             if match := re.search(pattern, jscode):
-                pattern = r'''(?xs)
-                \{\s*\)%s\(\s*
-                (?:
-                    (?P<funcname1>[a-zA-Z0-9_$]+)\s*noitcnuf\s*
-                    |noitcnuf\s*=\s*(?P<funcname2>[a-zA-Z0-9_$]+)(?:\s+rav)?
-                )
-                ''' % (re.escape(match.group('argname')[::-1]),)
+                pattern = r'''(?x)
+                    \{\s*\)%s\(\s*
+                    (?:
+                        (?P<funcname_a>[a-zA-Z0-9_$]+)\s*noitcnuf\s*
+                        |noitcnuf\s*=\s*(?P<funcname_b>[a-zA-Z0-9_$]+)(?:\s+rav)?
+                    )
+                ''' % re.escape(match.group('argname')[::-1])
                 if match := re.search(pattern, jscode[match.start()::-1]):
-                    a, b = match.group('funcname1', 'funcname2')
+                    a, b = match.group('funcname_a', 'funcname_b')
                     return (a or b)[::-1]
             self.write_debug(join_nonempty(
                 'Initial search was unable to find nsig function name',
