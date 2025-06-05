@@ -1020,7 +1020,7 @@ class TwitchStreamIE(TwitchVideosBaseIE):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:(?:www|go|m)\.)?twitch\.tv/|
+                            (?:(?:www|go|m)\.)?twitch\.tv/(?!directory/category/)|
                             player\.twitch\.tv/\?.*?\bchannel=
                         )
                         (?P<id>[^/#?]+)
