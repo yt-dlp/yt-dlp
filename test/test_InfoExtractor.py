@@ -1947,6 +1947,87 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(self.ie._search_nextjs_data('', None, default='{}'), {})
 
+    def test_search_nuxt_json(self):
+        HTML = '''
+            <script data-ssr="true" id="__NUXT_DATA__" type="application/json">
+                [
+                    ["ShallowReactive",1],
+                    {"data":2,"state":22,"once":26},
+                    ["ShallowReactive",3],
+                    {"$abcdef123456":4},
+                    {"podcast":5,"activeEpisodeData":7},
+                    {"podcast":6,"seasons":14},
+                    {"title":10,"id":11},
+                    ["Reactive",8],
+                    {"episode":9,"creators":18,"trick_data":19,"empty_list":21},
+                    {"title":12,"id":13},
+                    "Series Title",
+                    "podcast-id-01",
+                    "Episode Title",
+                    "episode-id-99",
+                    [15,16,17],
+                    1,
+                    2,
+                    3,
+                    [20],
+                    [99,"gotcha"],
+                    "Podcast Creator",
+                    [],
+                    {"$ssite-config":23},
+                    {"env":24,"name":25},
+                    "production",
+                    "podcast-website",
+                    ["Set"]
+                ]
+            </script>'''
+        DATA = {
+            'podcast': {
+                'podcast': {
+                    'title': 'Series Title',
+                    'id': 'podcast-id-01',
+                },
+                'seasons': [1, 2, 3],
+            },
+            'activeEpisodeData': {
+                'episode': {
+                    'title': 'Episode Title',
+                    'id': 'episode-id-99',
+                },
+                'creators': ['Podcast Creator'],
+                'trick_data': [99, 'gotcha'],
+                'empty_list': [],
+            },
+        }
+        FULL = {
+            'data': {
+                '$abcdef123456': DATA,
+            },
+            'state': {
+                '$ssite-config': {
+                    'env': 'production',
+                    'name': 'podcast-website',
+                },
+            },
+            'once': ['Set'],
+        }
+        BAD_HTML = '''
+            <script data-ssr="true" id="__NUXT_DATA__" type="application/json">
+                [
+                    ["ShallowReactive",1],
+                    {"data":2},
+                    {"improper_raw_list":3},
+                    [15,16,17]
+                ]
+            </script>'''
+
+        self.assertEqual(self.ie._search_nuxt_json(HTML, None), DATA)
+        self.assertEqual(self.ie._search_nuxt_json(HTML, None, traverse=None), FULL)
+        self.assertEqual(self.ie._search_nuxt_json('', None, fatal=False), {})
+        self.assertEqual(self.ie._search_nuxt_json(BAD_HTML, None, fatal=False), {})
+        self.assertEqual(self.ie._search_nuxt_json(HTML, None, fatal=False, allow_recursion=1), {})
+        with self.assertRaisesRegex(ExtractorError, r'recursion limit reached'):
+            self.ie._search_nuxt_json(HTML, None, allow_recursion=1)
+
 
 if __name__ == '__main__':
     unittest.main()
