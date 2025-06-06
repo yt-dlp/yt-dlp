@@ -44,6 +44,7 @@ yt-dlp is a feature-rich command-line audio/video downloader with support for [t
     * [Post-processing Options](#post-processing-options)
     * [SponsorBlock Options](#sponsorblock-options)
     * [Extractor Options](#extractor-options)
+    * [Preset Aliases](#preset-aliases)
 * [CONFIGURATION](#configuration)
     * [Configuration file encoding](#configuration-file-encoding)
     * [Authentication with netrc](#authentication-with-netrc)
@@ -348,8 +349,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --no-flat-playlist              Fully extract the videos of a playlist
                                     (default)
     --live-from-start               Download livestreams from the start.
-                                    Currently only supported for YouTube
-                                    (Experimental)
+                                    Currently experimental and only supported
+                                    for YouTube and Twitch
     --no-live-from-start            Download livestreams from the current time
                                     (default)
     --wait-for-video MIN[-MAX]      Wait for scheduled streams to become
@@ -375,12 +376,12 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     an alias starts with a dash "-", it is
                                     prefixed with "--". Arguments are parsed
                                     according to the Python string formatting
-                                    mini-language. E.g. --alias get-audio,-X
-                                    "-S=aext:{0},abr -x --audio-format {0}"
-                                    creates options "--get-audio" and "-X" that
-                                    takes an argument (ARG0) and expands to
-                                    "-S=aext:ARG0,abr -x --audio-format ARG0".
-                                    All defined aliases are listed in the --help
+                                    mini-language. E.g. --alias get-audio,-X "-S
+                                    aext:{0},abr -x --audio-format {0}" creates
+                                    options "--get-audio" and "-X" that takes an
+                                    argument (ARG0) and expands to "-S
+                                    aext:ARG0,abr -x --audio-format ARG0". All
+                                    defined aliases are listed in the --help
                                     output. Alias options can trigger more
                                     aliases; so be careful to avoid defining
                                     recursive options. As a safety measure, each
@@ -1105,6 +1106,10 @@ Make chapter entries for, or remove various segments (sponsor,
                                     arguments for different extractors
 
 ## Preset Aliases:
+Predefined aliases for convenience and ease of use. Note that future
+    versions of yt-dlp may add or adjust presets, but the existing preset
+    names will not be changed or removed
+
     -t mp3                          -f 'ba[acodec^=mp3]/ba/b' -x --audio-format
                                     mp3
 
@@ -1805,7 +1810,7 @@ The following extractors use this feature:
 * `raise_incomplete_data`: `Incomplete Data Received` raises an error instead of reporting a warning
 * `data_sync_id`: Overrides the account Data Sync ID used in Innertube API requests. This may be needed if you are using an account with `youtube:player_skip=webpage,configs` or `youtubetab:skip=webpage`
 * `visitor_data`: Overrides the Visitor Data used in Innertube API requests. This should be used with `player_skip=webpage,configs` and without cookies. Note: this may have adverse effects if used improperly. If a session from a browser is wanted, you should pass cookies instead (which contain the Visitor ID)
-* `po_token`:  Proof of Origin (PO) Token(s) to use. Comma seperated list of PO Tokens in the format `CLIENT.CONTEXT+PO_TOKEN`, e.g. `youtube:po_token=web.gvs+XXX,web.player=XXX,web_safari.gvs+YYY`. Context can be either `gvs` (Google Video Server URLs) or `player` (Innertube player request)
+* `po_token`:  Proof of Origin (PO) Token(s) to use. Comma seperated list of PO Tokens in the format `CLIENT.CONTEXT+PO_TOKEN`, e.g. `youtube:po_token=web.gvs+XXX,web.player=XXX,web_safari.gvs+YYY`. Context can be any of `gvs` (Google Video Server URLs), `player` (Innertube player request) or `subs` (Subtitles)
 * `pot_trace`: Enable debug logging for PO Token fetching. Either `true` or `false` (default)
 * `fetch_pot`: Policy to use for fetching a PO Token from providers. One of `always` (always try fetch a PO Token regardless if the client requires one for the given context), `never` (never fetch a PO Token), or `auto` (default; only fetch a PO Token if the client requires one for the given context)
 
