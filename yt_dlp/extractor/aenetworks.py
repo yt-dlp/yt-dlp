@@ -1,3 +1,5 @@
+import json
+
 from .theplatform import ThePlatformIE
 from ..utils import (
     ExtractorError,
@@ -203,19 +205,22 @@ class AENetworksIE(AENetworksBaseIE):
 
 class AENetworksListBaseIE(AENetworksBaseIE):
     def _call_api(self, resource, slug, brand, fields):
-        return self._download_json(
-            'https://yoga.appsvcs.aetnd.com/graphql',
-            slug, query={'brand': brand}, data=urlencode_postdata({
-                'query': '''{
-  %s(slug: "%s") {
-    %s
-  }
-}''' % (resource, slug, fields),  # noqa: UP031
-            }))['data'][resource]
+            return self._download_json(
+                'https://yoga.appsvcs.aetnd.com/graphql',
+                slug, query={'brand': brand},
+                data=json.dumps({
+                    'query': '''{
+    %s(slug: "%s") {
+        %s
+    }
+    }''' % (resource, slug, fields),  # noqa: UP031
+                }).encode(),
+                headers={'Content-Type': 'application/json'},
+            )['data'][resource]
 
     def _real_extract(self, url):
         domain, slug = self._match_valid_url(url).groups()
-        _, brand = self._DOMAIN_MAP[domain]
+        _, brand, _ = self._DOMAIN_MAP[domain]
         playlist = self._call_api(self._RESOURCE, slug, brand, self._FIELDS)
         base_url = f'http://watch.{domain}'
 
