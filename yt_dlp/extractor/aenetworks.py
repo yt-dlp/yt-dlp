@@ -204,18 +204,16 @@ class AENetworksIE(AENetworksBaseIE):
 
 class AENetworksListBaseIE(AENetworksBaseIE):
     def _call_api(self, resource, slug, brand, fields):
-            return self._download_json(
-                'https://yoga.appsvcs.aetnd.com/graphql',
-                slug, query={'brand': brand},
-                data=json.dumps({
-                    'query': '''{
-    %s(slug: "%s") {
-        %s
-    }
-    }''' % (resource, slug, fields),  # noqa: UP031
-                }).encode(),
-                headers={'Content-Type': 'application/json'},
-            )['data'][resource]
+        return self._download_json(
+            'https://yoga.appsvcs.aetnd.com/graphql', slug,
+            query={'brand': brand}, headers={'Content-Type': 'application/json'},
+            data=json.dumps({
+                'query': '''{
+  %s(slug: "%s") {
+    %s
+  }
+}''' % (resource, slug, fields),  # noqa: UP031
+            }).encode())['data'][resource]
 
     def _real_extract(self, url):
         domain, slug = self._match_valid_url(url).groups()
