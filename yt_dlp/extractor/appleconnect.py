@@ -1,21 +1,27 @@
+import base64
+import json
+
 from .common import InfoExtractor
 from ..utils import (
+    extract_attributes,
     float_or_none,
     parse_resolution,
     qualities,
     url_or_none,
+    urljoin,
 )
-from ..utils.traversal import require, traverse_obj
+from ..utils.traversal import (
+    find_element,
+    require,
+    traverse_obj,
+)
 
 
 class AppleConnectIE(InfoExtractor):
     IE_NAME = 'apple:music:connect'
     IE_DESC = 'Apple Music Connect'
 
-    _HEADERS = {
-        'Authorization': 'Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IldlYlBsYXlLaWQifQ.eyJpc3MiOiJBTVBXZWJQbGF5IiwiaWF0IjoxNzQ2NjM3MTY2LCJleHAiOjE3NTM4OTQ3NjYsInJvb3RfaHR0cHNfb3JpZ2luIjpbImFwcGxlLmNvbSJdfQ.ONPUnh6UMOJ1VWujIxxWuTdi2ueBAM01B8xMg4NkNy9mdE_C1Y15-xKGoZ6Qg6mgC-ZMdfFHt5Xf4hL4X4-lMw',
-        'Origin': 'https://music.apple.com',
-    }
+    _BASE_URL = 'https://music.apple.com'
     _QUALITIES = {
         'provisionalUploadVideo': (None, None),
         'sdVideo': (640, 480),
@@ -53,9 +59,27 @@ class AppleConnectIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
+        js_url = traverse_obj(webpage, (
+            {find_element(tag='script', attr='crossorigin', value='', html=True)},
+            {extract_attributes}, 'src', {urljoin(self._BASE_URL)}, {require('JS URL')}))
+        js = self._download_webpage(js_url, video_id)
+
+        header = base64.urlsafe_b64encode(
+            json.dumps({
+                'alg': 'ES256',
+                'typ': 'JWT',
+                'kid': 'WebPlayKid',
+            }, separators=(',', ':')).encode(),
+        ).decode().rstrip('=')
+        jwt = self._search_regex(
+            fr'(["\'])(?P<jwt>{header}(?:\.[\w-]+){{2}})\1', js, 'JSON Web Token', group='jwt')
+
         videos = self._download_json(
             'https://amp-api.music.apple.com/v1/catalog/us/uploaded-videos',
-            video_id, headers=self._HEADERS, query={'ids': video_id, 'l': 'en-US'})
+            video_id, headers={
+                'Authorization': f'Bearer {jwt}',
+                'Origin': self._BASE_URL,
+            }, query={'ids': video_id, 'l': 'en-US'})
         attributes = traverse_obj(videos, (
             'data', ..., 'attributes', any, {require('video information')}))
 
