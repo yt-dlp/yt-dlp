@@ -180,6 +180,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'TVHTML5_SIMPLY',
                 'clientVersion': '1.0',
+                'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 75,
