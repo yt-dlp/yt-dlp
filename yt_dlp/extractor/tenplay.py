@@ -6,32 +6,32 @@ from ..utils import int_or_none, traverse_obj, url_or_none, urljoin
 
 
 class TenPlayIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?:[^/]+/)+(?P<id>tpv\d{6}[a-z]{5})'
+    IE_NAME = '10play'
+    _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?:[^/?#]+/)+(?P<id>tpv\d{6}[a-z]{5})'
     _NETRC_MACHINE = '10play'
     _TESTS = [{
-        'url': 'https://10play.com.au/neighbours/web-extras/season-41/heres-a-first-look-at-mischa-bartons-neighbours-debut/tpv230911hyxnz',
+        # Geo-restricted to Australia
+        'url': 'https://10play.com.au/australian-survivor/web-extras/season-10-brains-v-brawn-ii/myless-journey/tpv250414jdmtf',
         'info_dict': {
-            'id': '6336940246112',
+            'id': '7440980000013868',
             'ext': 'mp4',
-            'title': 'Here\'s A First Look At Mischa Barton\'s Neighbours Debut',
-            'alt_title': 'Here\'s A First Look At Mischa Barton\'s Neighbours Debut',
-            'description': 'Neighbours Premieres Monday, September 18 At 4:30pm On 10 And 10 Play And 6:30pm On 10 Peach',
-            'duration': 74,
-            'season': 'Season 41',
-            'season_number': 41,
-            'series': 'Neighbours',
-            'thumbnail': r're:https://.*\.jpg',
+            'title': 'Myles\'s Journey',
+            'alt_title': 'Myles\'s Journey',
+            'description': 'Relive Myles\'s epic Brains V Brawn II journey to reach the game\'s final two',
             'uploader': 'Channel 10',
-            'age_limit': 15,
-            'timestamp': 1694386800,
-            'upload_date': '20230910',
             'uploader_id': '2199827728001',
+            'age_limit': 15,
+            'duration': 249,
+            'thumbnail': r're:https://.+/.+\.jpg',
+            'series': 'Australian Survivor',
+            'season': 'Season 10',
+            'season_number': 10,
+            'timestamp': 1744629420,
+            'upload_date': '20250414',
         },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'Only available in Australia',
+        'params': {'skip_download': 'm3u8'},
     }, {
+        # Geo-restricted to Australia
         'url': 'https://10play.com.au/neighbours/episodes/season-42/episode-9107/tpv240902nzqyp',
         'info_dict': {
             'id': '9000000000091177',
@@ -45,17 +45,38 @@ class TenPlayIE(InfoExtractor):
             'season': 'Season 42',
             'season_number': 42,
             'series': 'Neighbours',
-            'thumbnail': r're:https://.*\.jpg',
+            'thumbnail': r're:https://.+/.+\.jpg',
             'age_limit': 15,
             'timestamp': 1725517860,
             'upload_date': '20240905',
             'uploader': 'Channel 10',
             'uploader_id': '2199827728001',
         },
-        'params': {
-            'skip_download': True,
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # Geo-restricted to Australia; upgrading the m3u8 quality fails and we need the fallback
+        'url': 'https://10play.com.au/tiny-chef-show/episodes/season-1/episode-2/tpv240228pofvt',
+        'info_dict': {
+            'id': '9000000000084116',
+            'ext': 'mp4',
+            'uploader': 'Channel 10',
+            'uploader_id': '2199827728001',
+            'duration': 1297,
+            'title': 'The Tiny Chef Show - S1 Ep. 2',
+            'alt_title': 'S1 Ep. 2 - Popcorn/banana',
+            'description': 'md5:d4758b52b5375dfaa67a78261dcb5763',
+            'age_limit': 0,
+            'series': 'The Tiny Chef Show',
+            'season_number': 1,
+            'episode_number': 2,
+            'timestamp': 1747957740,
+            'thumbnail': r're:https://.+/.+\.jpg',
+            'upload_date': '20250522',
+            'season': 'Season 1',
+            'episode': 'Episode 2',
         },
-        'skip': 'Only available in Australia',
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Failed to download m3u8 information: HTTP Error 502'],
     }, {
         'url': 'https://10play.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
         'only_matching': True,
@@ -86,8 +107,11 @@ class TenPlayIE(InfoExtractor):
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
         # Attempt to get a higher quality stream
-        m3u8_url = m3u8_url.replace(',150,75,55,0000', ',300,150,75,55,0000')
-        formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
+        formats = self._extract_m3u8_formats(
+            m3u8_url.replace(',150,75,55,0000', ',300,150,75,55,0000'),
+            content_id, 'mp4', fatal=False)
+        if not formats:
+            formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
 
         return {
             'id': content_id,
@@ -112,21 +136,22 @@ class TenPlayIE(InfoExtractor):
 
 
 class TenPlaySeasonIE(InfoExtractor):
+    IE_NAME = '10play:season'
     _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?P<show>[^/?#]+)/episodes/(?P<season>[^/?#]+)/?(?:$|[?#])'
     _TESTS = [{
-        'url': 'https://10play.com.au/masterchef/episodes/season-14',
+        'url': 'https://10play.com.au/masterchef/episodes/season-15',
         'info_dict': {
-            'title': 'Season 14',
-            'id': 'MjMyOTIy',
+            'title': 'Season 15',
+            'id': 'MTQ2NjMxOQ==',
         },
-        'playlist_mincount': 64,
+        'playlist_mincount': 50,
     }, {
-        'url': 'https://10play.com.au/the-bold-and-the-beautiful-fast-tracked/episodes/season-2022',
+        'url': 'https://10play.com.au/the-bold-and-the-beautiful-fast-tracked/episodes/season-2024',
         'info_dict': {
-            'title': 'Season 2022',
+            'title': 'Season 2024',
             'id': 'Mjc0OTIw',
         },
-        'playlist_mincount': 256,
+        'playlist_mincount': 159,
     }]
 
     def _entries(self, load_more_url, display_id=None):
