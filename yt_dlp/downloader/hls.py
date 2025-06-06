@@ -227,8 +227,10 @@ class HlsFD(FragmentFD):
                     if format_index and discontinuity_count != format_index:
                         continue
                     if frag_index > 0:
-                        self.report_error(
-                            'Initialization fragment found after media fragments, unable to download')
+                        msg = 'Initialization fragment found after media fragments, unable to download'
+                        if format_index is None:
+                            msg += '; if due to discontinuities, try --hls-split-discontinuity'
+                        self.report_error(msg)
                         return False
                     frag_index += 1
                     map_info = parse_m3u8_attributes(line[11:])
