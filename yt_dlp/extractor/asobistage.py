@@ -62,9 +62,6 @@ class AsobiStageIE(InfoExtractor):
 
     _API_HOST = 'https://asobistage-api.asobistore.jp'
     _HEADERS = {}
-    _EMBED_HEADERS = {
-        'Referer': 'https://asobistage.asobistore.jp/',
-    }
     _is_logged_in = False
 
     @functools.cached_property
@@ -185,19 +182,23 @@ class AsobiStageIE(InfoExtractor):
         entries = []
         for content in traverse_obj(root_content, ('contentList', ..., 'contents', ...)):
             movie_url = content.get('movieUrl')
-            embed_id = movie_url.rsplit('/', 1)[-1]
-            webpage = self._download_webpage(
-                movie_url, embed_id,
-                'Getting movie embed page', 'Failed to get movie embed page',
-                headers=self._EMBED_HEADERS)
-            m3u8_url = self._search_regex(r"<source src='([^']+)' ", webpage, 'player').replace('&amp;', '&')
+            channel_id = movie_url.rsplit('/', 1)[-1]
+            channel_json = self._download_json(
+                f'https://survapi.channel.or.jp/proxy/v1/contents/{channel_id}/get_by_cuid', channel_id,
+                'Getting archive channel info', 'Unable to get archive channel info', fatal=False,
+                headers=self._HEADERS)
+            channel_data = traverse_obj(channel_json, ('ex_content', {
+                'm3u8_url': 'streaming_url',
+                'title': 'title',
+                'thumbnail': ('thumbnail', 'url'),
+            }))
 
             entries.append({
-                'id': embed_id,
-                'title': root_content.get('title'),
-                'formats': self._extract_m3u8_formats(m3u8_url, embed_id, fatal=False),
+                'id': channel_id,
+                'title': channel_data.get('title'),
+                'formats': self._extract_m3u8_formats(channel_data.get('m3u8_url'), channel_id, fatal=False),
                 'is_live': False,
-                'thumbnail': traverse_obj(root_content, ('thumb', 'url', {url_or_none})),
+                'thumbnail': url_or_none(channel_data.get('thumbnail')),
             })
 
         if not self._is_logged_in and not entries:
