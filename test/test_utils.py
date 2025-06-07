@@ -798,6 +798,9 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'test': '第二行тест'})),
             parse_qs('http://example.com/path?test=%E7%AC%AC%E4%BA%8C%E8%A1%8C%D1%82%D0%B5%D1%81%D1%82'))
+        self.assertEqual(update_url_query(
+            'http://example.com/path', {'filter': 'type(image/png)'}, safe='()'),
+            'http://example.com/path?filter=type(image%2Fpng)')
 
     def test_multipart_encode(self):
         self.assertEqual(
