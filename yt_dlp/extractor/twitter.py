@@ -6,7 +6,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
-from ..jsinterp import js_number_to_string
+from ..jsinterp.native import js_number_to_string
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
