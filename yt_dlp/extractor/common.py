@@ -1,4 +1,5 @@
 import base64
+import binascii
 import collections
 import functools
 import getpass
@@ -1777,6 +1778,60 @@ class InfoExtractor:
         return self._search_json(
             r'<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>', webpage, 'next.js data',
             video_id, end_pattern='</script>', fatal=fatal, default=default, **kw)
+
+    def _search_nextjs_v13_data(self, webpage, video_id, fatal=True):
+        """Parses Next.js app router flight data that was introduced in Next.js v13"""
+        nextjs_data = []
+        if not fatal and not isinstance(webpage, str):
+            return nextjs_data
+        # This regex pattern can afford to be and should be strict
+        # Ref: https://github.com/vercel/next.js/commit/5a4a08fdce91a038f2ed3a70568d3ed040403150
+        #      /packages/next/src/server/app-render/use-flight-response.tsx
+        flight_segments = re.findall(r'<script[^>]*>self\.__next_f\.push\((\[.+?\])\)</script>', webpage)
+
+        def flatten(flight_data):
+            if not isinstance(flight_data, list) or not flight_data:
+                return
+            if len(flight_data) == 4 and flight_data[0] == '$':
+                _, name, _, data = flight_data
+                if not isinstance(data, dict):
+                    return
+                children = data.pop('children', None)
+                if data and name and name[0] == '$':
+                    # It is useful hydration JSON data
+                    nextjs_data.append(data)
+                flatten(children)
+                return
+            for f in flight_data:
+                flatten(f)
+
+        for flight_segment in flight_segments:
+            segment = self._parse_json(flight_segment, video_id, fatal=fatal, errnote=None if fatal else False)
+            # Some earlier versions of next.js "optimized" away this array structure; this is unsupported
+            # Ref: https://github.com/vercel/next.js/commit/0123a9d5c9a9a77a86f135b7ae30b46ca986d761
+            if not isinstance(segment, list) or len(segment) != 2:
+                self.write_debug(
+                    f'{video_id}: Unsupported next.js flight data structure detected', only_once=True)
+                continue
+            payload_type, chunk = segment
+            if payload_type == 3:
+                try:
+                    chunk = base64.b64decode(chunk).decode()
+                except (ValueError, binascii.Error):
+                    msg = 'Unable to parse next.js data: unable to decode flight data'
+                    if not fatal:
+                        self.report_warning(msg, video_id=video_id, only_once=True)
+                        continue
+                    raise ExtractorError(msg)
+            elif payload_type != 1:
+                # Ignore useless payload types (0: bootstrap, 2: form state)
+                continue
+            # Not all chunks are complete JSON data; this should always be non-fatal
+            flatten(self._search_json(
+                r'^[\da-f]+:', chunk, 'flight data', video_id,
+                default=None, contains_pattern=r'\[.+\]'))
+
+        return nextjs_data
 
     def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', *, fatal=True, traverse=('data', 0)):
         """Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function"""
