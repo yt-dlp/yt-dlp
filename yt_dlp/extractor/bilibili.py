@@ -912,10 +912,10 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             elif premium_only or '成为大会员抢先看' in webpage or '开通大会员观看' in webpage:
                 self.raise_login_required('This video is for premium members only')
 
-        if traverse_obj(play_info, (
-            'result', 'play_check', 'play_detail', {lambda x: x and x == 'PLAY_PREVIEW'}),  # vs 'PLAY_WHOLE'
-            ('raw', 'data', 'play_video_type', {lambda x: x and x == 'preview'}),  # vs 'whole'
-        ):
+        if traverse_obj(play_info, ((
+            ('result', 'play_check', 'play_detail'),  # 'PLAY_PREVIEW' vs 'PLAY_WHOLE'
+            ('raw', 'data', 'play_video_type'),  # 'preview' vs 'whole'
+        ), any, {lambda x: x in ('PLAY_PREVIEW', 'preview')})):
             self.report_warning(
                 'Only preview format is available, '
                 f'you have to become a premium member to access full video. {self._login_hint()}')
