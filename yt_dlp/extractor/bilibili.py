@@ -913,7 +913,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
         if traverse_obj(play_info, (
             'result', 'play_check', 'play_detail', {lambda x: x and x == 'PLAY_PREVIEW'}),  # vs 'PLAY_WHOLE'
-            ('raw', 'data', 'play_video_type', {lambda x: x and x == 'preview'})  # vs 'whole'
+            ('raw', 'data', 'play_video_type', {lambda x: x and x == 'preview'}),  # vs 'whole'
         ):
             self.report_warning(
                 'Only preview format is available, '
