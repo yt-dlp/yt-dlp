@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from .youtube import YoutubeIE
 from ..utils import (
     clean_html,
     parse_iso8601,
@@ -11,7 +12,6 @@ from ..utils.traversal import subs_list_to_dict, traverse_obj
 class StarTrekIE(InfoExtractor):
     IE_NAME = 'startrek'
     IE_DESC = 'STAR TREK'
-
     _VALID_URL = r'https?://(?:www\.)?startrek\.com(?:/en-(?:ca|un))?/videos/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.startrek.com/en-un/videos/official-trailer-star-trek-lower-decks-season-4',
@@ -52,7 +52,7 @@ class StarTrekIE(InfoExtractor):
         page_props = self._search_nextjs_data(webpage, video_id)['props']['pageProps']
         video_data = page_props['video']['data']
         if youtube_id := video_data.get('youtube_video_id'):
-            return self.url_result(youtube_id, 'Youtube')
+            return self.url_result(youtube_id, YoutubeIE)
 
         series_id = traverse_obj(video_data, (
             'series_and_movies', ..., 'series_or_movie', 'slug', {str}, any))
