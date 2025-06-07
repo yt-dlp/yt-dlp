@@ -13,7 +13,9 @@ from ..utils import (
     ExtractorError,
     UserNotLive,
     clean_html,
+    extract_attributes,
     get_element_by_class,
+    get_element_html_by_class,
     get_element_html_by_id,
     int_or_none,
     join_nonempty,
@@ -72,6 +74,19 @@ class VKBaseIE(InfoExtractor):
         if re.search(r'onLoginFailed', login_page):
             raise ExtractorError(
                 'Unable to login, incorrect username and/or password', expected=True)
+
+    def _parse_vk_id(self):
+        sui = self._get_cookies('https://login.vk.com').get('sui')
+        if not sui:
+            return 0
+
+        # example of what `sui` cookie contains:
+        # 123456789%2CSaCxka2wNY7OZKE5QkmtVTxCxg6Ftgb-zVgNXvMVWQH
+        mobj = re.match(r'^\d+', sui.value)
+        if not mobj:
+            return 0
+
+        return int(mobj[0])
 
     def _download_payload(self, path, video_id, data, fatal=True):
         endpoint = f'https://vk.com/{path}.php'
@@ -715,39 +730,7 @@ class VKWallPostIE(VKBaseIE):
         'url': 'https://m.vk.com/wall-23538238_35',
         'only_matching': True,
     }]
-    _BASE64_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN0PQRSTUVWXYZO123456789+/='
     _AUDIO = collections.namedtuple('Audio', ['id', 'owner_id', 'url', 'title', 'performer', 'duration', 'album_id', 'unk', 'author_link', 'lyrics', 'flags', 'context', 'extra', 'hashes', 'cover_url', 'ads'])
-
-    def _decode(self, enc):
-        dec = ''
-        e = n = 0
-        for c in enc:
-            r = self._BASE64_CHARS.index(c)
-            cond = n % 4
-            e = 64 * e + r if cond else r
-            n += 1
-            if cond:
-                dec += chr(255 & e >> (-2 * n & 6))
-        return dec
-
-    def _unmask_url(self, mask_url, vk_id):
-        if 'audio_api_unavailable' in mask_url:
-            extra = mask_url.split('?extra=')[1].split('#')
-            func, base = self._decode(extra[1]).split(chr(11))
-            mask_url = list(self._decode(extra[0]))
-            url_len = len(mask_url)
-            indexes = [None] * url_len
-            index = int(base) ^ vk_id
-            for n in range(url_len - 1, -1, -1):
-                index = (url_len * (n + 1) ^ index + n) % url_len
-                indexes[n] = index
-            for n in range(1, url_len):
-                c = mask_url[n]
-                index = indexes[url_len - 1 - n]
-                mask_url[n] = mask_url[index]
-                mask_url[index] = c
-            mask_url = ''.join(mask_url)
-        return mask_url
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
@@ -791,6 +774,407 @@ class VKWallPostIE(VKBaseIE):
         return self.playlist_result(
             entries, post_id, join_nonempty(uploader, f'Wall post {post_id}', delim=' - '),
             clean_html(get_element_by_class('wall_post_text', webpage)))
+
+
+class VKMusicBaseIE(VKBaseIE):
+    _BASE64_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN0PQRSTUVWXYZO123456789+/='
+
+    def _b64_decode(self, enc):
+        dec = ''
+        e = n = 0
+        for c in enc:
+            r = self._BASE64_CHARS.index(c)
+            cond = n % 4
+            e = 64 * e + r if cond else r
+            n += 1
+            if cond:
+                dec += chr(255 & e >> (-2 * n & 6))
+        return dec
+
+    def _unmask_url(self, mask_url, vk_id):
+        if 'audio_api_unavailable' in mask_url:
+            extra = mask_url.split('?extra=')[1].split('#')
+            _, base = self._b64_decode(extra[1]).split(chr(11))
+            mask_url = list(self._b64_decode(extra[0]))
+            url_len = len(mask_url)
+            indexes = [None] * url_len
+            index = int(base) ^ vk_id
+            for n in range(url_len - 1, -1, -1):
+                index = (url_len * (n + 1) ^ index + n) % url_len
+                indexes[n] = index
+            for n in range(1, url_len):
+                c = mask_url[n]
+                index = indexes[url_len - 1 - n]
+                mask_url[n] = mask_url[index]
+                mask_url[index] = c
+            mask_url = ''.join(mask_url)
+        return mask_url
+
+    def _parse_track_meta(self, meta, track_id=None):
+        len_ = len(meta)
+
+        # track title
+        title = unescapeHTML(meta[3]) if len_ >= 3 else None
+        # artists in one string, may include "feat."
+        artist = unescapeHTML(meta[4]) if len_ >= 4 else None
+
+        # album cover art url
+        thumbnail = url_or_none(meta[14] if len_ >= 14 else None)
+
+        return {
+            'id': (f'{meta[1]}_{meta[0]}'
+                   if len_ >= 2 and meta[1] and meta[0]
+                   else track_id),
+
+            'title': join_nonempty(artist, title, delim=' - '),
+            'track': title,
+            'uploader': artist,
+
+            # ['Main Artist', 'Feat. Artist']
+            'artists': traverse_obj(
+                (*meta[17], *meta[18]) if len_ >= 18 else None,
+                (..., 'name')) or [artist],
+
+            'duration': int_or_none(meta[5]) if len_ >= 5 else None,
+            'thumbnails': [{'url': thumbnail}] if thumbnail else [],
+
+            # meta[30] is 2 bits
+            #    most significant: isExplicit
+            #   least significant: isForeignAgent
+            # i. e.
+            #   00 = safe
+            #   01 = marked by RKN as "foreign agent"
+            #   10 = explicit lyrics
+            #   11 = both E lyrics and "foreign agent"
+            'age_limit': 18 if len_ >= 30 and meta[30] else 0,
+        }
+
+    def _raise_if_blocked(self, meta, track_id):
+        if len(meta) < 12:
+            return None
+
+        reason = traverse_obj(
+            self._parse_json(meta[12], track_id, fatal=False),
+            ('claim', 'reason'))
+
+        if reason is not None:
+            if reason == 'geo':
+                self.raise_geo_restricted()
+
+            # an empty string or an internal ID
+            raise ExtractorError(
+                f'This track is unavailable. Reason code: {reason:r}')
+
+
+class VKMusicTrackIE(VKMusicBaseIE):
+    IE_NAME = 'vkmusic:track'
+
+    _VALID_URL = r'''(?x)
+                    https?://
+                        (?:(?:m|new)\.)?vk\.(?:com|ru)/
+                        audio(?P<id>-?\d+_\d+)
+                        (?:(?:%2F|_)(?P<hash>[0-9a-f]+))?
+                    '''
+
+    _TESTS = [
+        {
+            'url': 'https://vk.com/audio-2001746599_34746599',
+            'info_dict': {
+                'id': '-2001746599_34746599',
+                'ext': 'm4a',
+                'title': 'Skillet - Feel Invincible',
+                'track': 'Feel Invincible',
+                'uploader': 'Skillet',
+                'artists': ['Skillet'],
+                'duration': 230,
+                'thumbnail': r're:^https?://.*\.jpg',
+                'age_limit': 0,
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            'note': 'artists are in meta[17], 18th item contains empty string',
+            'url': 'https://m.vk.com/audio-2001844083_29844083',
+            'info_dict': {
+                'id': '-2001844083_29844083',
+                'ext': 'm4a',
+                'title': 'Pusha T, Stormzy - Good Goodbye (feat. Pusha T and Stormzy)',
+                'track': 'Good Goodbye (feat. Pusha T and Stormzy)',
+                'uploader': 'Pusha T, Stormzy',
+                'artists': ['Pusha T', 'Stormzy'],
+                'duration': 211,
+                'thumbnail': r're:^https?://.*\.jpg',
+                'age_limit': 0,
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            'url': 'https://m.vk.com/audio-2001533203_5533203',
+            'info_dict': {
+                'id': '-2001533203_5533203',
+                'ext': 'm4a',
+                'title': 'Linkin Park feat. Page Hamilton - All for Nothing (feat. Page Hamilton)',
+                'track': 'All for Nothing (feat. Page Hamilton)',
+                'uploader': 'Linkin Park feat. Page Hamilton',
+                'artists': ['Linkin Park', 'Page Hamilton'],
+                'duration': 213,
+                'thumbnail': r're:^https?://.*\.jpg',
+                'age_limit': 18,
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            'url': 'https://vk.com/audio-26549346_456239443_59159cef5d080f5450',
+            'info_dict': {
+                'id': '-26549346_456239443',
+                'ext': 'm4a',
+                'title': 'Fairie\'s Death Waltz - Still to Wake',
+                'track': 'Still to Wake',
+                'uploader': 'Fairie\'s Death Waltz',
+                'artists': ['Fairie\'s Death Waltz'],
+                'duration': 349,
+                'age_limit': 0,
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            'note': 'special symbols in title and artist must be unescaped',
+            'url': 'https://vk.com/audio-2001069891_6069891',
+            'info_dict': {
+                'id': '-2001069891_6069891',
+                'ext': 'm4a',
+                'title': 'Jack Thomas feat. Nico & Vinz - Rivers (feat. Nico & Vinz)',
+                'track': 'Rivers (feat. Nico & Vinz)',
+                'uploader': 'Jack Thomas feat. Nico & Vinz',
+                'artists': ['Jack Thomas', 'Nico & Vinz'],
+                'duration': 207,
+                'thumbnail': r're:^https?://.*\.jpg',
+                'age_limit': 0,
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+    ]
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        track_id = mobj.group('id')
+        access_hash = mobj.group('hash')
+        vk_id = self._parse_vk_id()
+
+        if not access_hash:
+            webpage = self._download_webpage(
+                f'https://vk.com/audio{track_id}',
+                track_id)
+
+            data_audio = self._search_regex(
+                r'data-audio="([^"]+)', webpage, 'data-audio attr',
+                default=None, group=1)
+
+            if data_audio:
+                meta = self._parse_json(unescapeHTML(data_audio), track_id)
+            else:
+                if vk_id == 0:
+                    self.raise_login_required(
+                        'This track is unavailable. '
+                        'Log in or provide a link with access hash')
+
+                data_exec = self._search_regex(
+                    r'class="AudioPlayerBlock__root"[^>]+data-exec="([^"]+)',
+                    webpage, 'AudioPlayerBlock data-exec', group=1)
+
+                meta = traverse_obj(
+                    self._parse_json(unescapeHTML(data_exec), track_id),
+                    ('AudioPlayerBlock/init', 'firstAudio'))
+
+                del data_exec
+
+            del data_audio
+            del webpage
+
+            self._raise_if_blocked(meta, track_id)
+
+            access_hash = meta[24]
+
+        try:
+            meta = self._download_payload('al_audio', track_id, {
+                'act': 'reload_audios',
+                'audio_ids': f'{track_id}_{access_hash}',
+            })[0][0]
+        except (ExtractorError, IndexError):
+            if vk_id == 0:
+                self.raise_login_required()
+            raise ExtractorError('This track is unavailable')
+
+        self._raise_if_blocked(meta, track_id)
+        url = self._unmask_url(meta[2], vk_id)
+
+        return {
+            **self._parse_track_meta(meta, track_id),
+            'formats': [{
+                'url': url,
+                'ext': 'm4a',
+                'vcodec': 'none',
+                'acodec': 'mp3',
+                'container': 'm4a_dash',
+            }],
+        }
+
+
+class VKMusicPlaylistIE(VKMusicBaseIE):
+    IE_NAME = 'vkmusic:playlist'
+
+    _VALID_URL = r'''(?x)
+                    https?://
+                        (?:(?:m|new)\.)?vk\.(?:com|ru)/
+                        (?:
+                            music/(?:album|playlist)/|
+                            .*[?&](?:act|z)=audio_playlist
+                        )
+                        (?P<full_id>(?P<oid>-?\d+)_(?P<id>\d+))
+                        (?:(?:%2F|_|[?&]access_hash=)(?P<hash>[0-9a-f]+))?
+                    '''
+
+    _TESTS = [
+        {
+            'url': 'https://vk.com/artist/linkinpark/releases?z=audio_playlist-2000984503_984503%2Fc468f3a862b6f73b55',
+            'info_dict': {
+                'id': '-2000984503_984503',
+                'title': 'Linkin Park - One More Light',
+                'album': 'One More Light',
+                'uploader': 'Linkin Park',
+                'artists': ['Linkin Park'],
+                'thumbnails': [{'url': r're:^https?://.*\.jpg'}],
+                'genres': ['Alternative'],
+                'release_year': 2017,
+            },
+            'playlist_count': 10,
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            'note': 'special symbols must be unescaped',
+            'url': 'https://vk.com/music/playlist/-25611523_85178143',
+            'info_dict': {
+                'id': '-25611523_85178143',
+                'title': 'Mondträume – Lovers, Sinners & Liars (2019, Alfa Matrix)',
+                'uploader': 'E:\\music\\futurepop',
+                'thumbnails': [{'url': r're:^https?://.*\.jpg'}],
+            },
+            'playlist_count': 22,
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            'url': 'https://vk.com/audios877252112?block=playlists&section=general&z=audio_playlist-147845620_2390',
+            'info_dict': {
+                'id': '-147845620_2390',
+                'title': 'VK Fest 2024: Белая сцена',
+                'description': 'md5:6d652551bb1faaddbcd46321a77fa8d0',
+                'uploader': 'VK Музыка',
+                'thumbnails': [{'url': r're:^https?://.*\.jpg'}],
+            },
+            'playlist_count': 18,
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            'url': 'https://vk.com/music/playlist/-147845620_2206_876b2b81e867a433c2',
+            'info_dict': {
+                'id': '-147845620_2206',
+                'title': 'Электроника: новинки',
+                'description': 're:^Актуальные новинки электронной музыки',
+                'uploader': 'VK Музыка',
+                'thumbnails': [{'url': r're:^https?://.*\.jpg'}],
+            },
+            'playlist_mincount': 100,
+            'params': {
+                'extract_flat': True,  # DO NOT process 150+ entries
+                'skip_download': True,
+            },
+        },
+    ]
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        playlist_id = mobj.group('full_id')
+        access_hash = mobj.group('hash')
+
+        hash_in_url = f'_{access_hash}' if access_hash else ''
+        webpage = self._download_webpage(
+            f'https://vk.com/music/album/{playlist_id}{hash_in_url}',
+            playlist_id)
+        del hash_in_url
+
+        # to remove big scripts and other elements not used by parser
+        html = get_element_html_by_class('AudioPlaylistSnippet', webpage)
+        del webpage
+
+        entries = []
+
+        for mobj in re.finditer(r'data-audio="([^"]+)', html):
+            meta = self._parse_json(
+                unescapeHTML(mobj.group(1)),
+                playlist_id, fatal=False)
+            if not meta:
+                continue
+
+            info = self._parse_track_meta(meta)
+            track_id = info.pop('id')
+            title = info.pop('title')
+
+            hash_in_url = f'_{meta[24]}' if len(meta) >= 24 and meta[24] else ''
+            audio_url = f'https://vk.com/audio{track_id}{hash_in_url}'
+
+            entries.append(self.url_result(
+                audio_url, VKMusicTrackIE, track_id, title, **info))
+
+        header = get_element_html_by_class('AudioPlaylistSnippet__header', html)
+
+        title = clean_html(get_element_by_class('AudioPlaylistSnippet__title', header))
+        artist = clean_html(get_element_by_class('AudioPlaylistSnippet__author', header))
+
+        info_text = clean_html(get_element_by_class('AudioPlaylistSnippet__info', header))
+        info_sep = info_text.find('·')
+
+        year = int_or_none(info_text[info_sep + 1:]) if info_sep != -1 else None
+        is_album = year is not None
+        genre = info_text[:info_sep].rstrip() if is_album else None
+
+        del header
+
+        description = clean_html(get_element_by_class('AudioPlaylistSnippet__description', html))
+
+        thumbnail = url_or_none(self._search_regex(
+            r'background[^:;]*:\s*url\s*\(\s*\'([^\']+)',
+            extract_attributes(
+                get_element_html_by_class(
+                    'AudioPlaylistSnippet__cover',
+                    html)).get('style'),
+            'playlist thumbnail', fatal=False, group=1))
+
+        return self.playlist_result(
+            entries, playlist_id,
+            join_nonempty(artist, title, delim=' - ') if is_album else title,
+            description,
+            album=title if is_album else None,
+            uploader=artist,
+            artists=[artist] if is_album else None,
+            thumbnails=[{'url': thumbnail}] if thumbnail else [],
+            genres=[genre] if genre else None,
+            release_year=year)
 
 
 class VKPlayBaseIE(InfoExtractor):
