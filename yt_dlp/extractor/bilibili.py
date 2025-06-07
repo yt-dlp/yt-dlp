@@ -899,7 +899,8 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 'Extracting episode', query={'fnval': 12240, 'ep_id': episode_id},
                 headers=headers))
 
-        geo_blocked = traverse_obj(play_info, ('raw', 'data', 'plugins', lambda _, v: v['name'] == 'AreaLimitPanel', 'config', 'is_block', {bool}, any))
+        geo_blocked = traverse_obj(play_info, (
+            'raw', 'data', 'plugins', lambda _, v: v['name'] == 'AreaLimitPanel', 'config', 'is_block', {bool}, any))
         premium_only = play_info.get('code') == -10403
 
         video_info = traverse_obj(play_info, (('result', ('raw', 'data')), 'video_info', {dict}, any)) or {}
