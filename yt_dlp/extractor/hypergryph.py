@@ -41,12 +41,15 @@ class MonsterSirenHypergryphMusicIE(InfoExtractor):
         audio_id = self._match_id(url)
         song = self._download_json(
             f'{self._API_BASE}/song/{audio_id}', audio_id)
-        if song['code'] != 0:
-            raise ExtractorError(song['msg'].replace('‘', '\''), expected=True)
+        if traverse_obj(song, 'code') != 0:
+            msg = traverse_obj(song, ('msg', {str}, filter))
+            raise ExtractorError(
+                msg or 'API returned an error response', expected=bool(msg))
 
-        album_id = song['data']['albumCid']
-        album = self._download_json(
-            f'{self._API_BASE}/album/{album_id}/detail', album_id)
+        album = None
+        if album_id := traverse_obj(song, ('data', 'albumCid', {str})):
+            album = self._download_json(
+                f'{self._API_BASE}/album/{album_id}/detail', album_id, fatal=False)
 
         return {
             'id': audio_id,
