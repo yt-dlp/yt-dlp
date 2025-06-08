@@ -9,9 +9,8 @@ from ..utils.traversal import require, traverse_obj
 
 
 class NTVCoJpCUIE(StreaksBaseIE):
-    IE_NAME = 'ntvjp:cu'
+    IE_NAME = 'cu.ntv.co.jp'
     IE_DESC = '日テレ無料TADA!'
-
     _VALID_URL = r'https?://cu\.ntv\.co\.jp/(?!program-list|search)(?P<id>[\w-]+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://cu.ntv.co.jp/gaki_20250525/',
