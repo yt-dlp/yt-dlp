@@ -324,8 +324,6 @@ class TestUpdate(unittest.TestCase):
             'target_commitish': '',
             'body': '- Implements extra parameter validation\n- Optimizes performance in date parser\n',
         }
-
-        # captura de stderr
         stderr = io.StringIO()
         with redirect_stderr(stderr):
             version, commit = updater._get_version_info('')
