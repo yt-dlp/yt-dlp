@@ -104,20 +104,20 @@ class DWIE(InfoExtractor):
             for dct in traverse_obj(graph_api, ('audios', lambda _, v: v['mp3Src'])):
                 mp3_url = traverse_obj(dct, 'mp3Src', {url_or_none})
 
-                yield from [{
+                yield {
                     'id': url_basename(mp3_url).removesuffix('.mp3'),
                     'ext': 'mp3',
                     'title': dct.get('title'),
                     'url': mp3_url,
                     'vcodec': 'none',
-                }]
+                }
 
     def _real_extract(self, url):
         lang, media_type, media_id = self._match_valid_url(url).group('lang', 'type', 'id')
         webpage = self._download_webpage(url, media_id)
 
         app_state = self._search_json(
-            r'window\.__APP_STATE__\s*=\s*', webpage, 'app state', media_id, default={})
+            r'window\.__APP_STATE__\s*=', webpage, 'app state', media_id, default={})
         if not app_state:
             title = self._html_search_meta('twitter:title', webpage)
             pattern = re.compile(r'<source[^>]+src\s*=\s*(["\'])(?P<url>.+?)\1')
