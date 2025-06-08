@@ -272,6 +272,63 @@ class TestUpdate(unittest.TestCase):
         test('testing', None, current_commit='9' * 40)
         test('testing', UpdateInfo('testing', commit='9' * 40))
 
+    def test_get_version_info(self):
+        updater = FakeUpdater(FakeYDL(), 'stable')
+
+        # CT1 - Tag Already in Required Format
+        updater._identifier = 'zip'
+        updater.requested_repo = 'yt-dlp/yt-dlp'
+        version, commit = updater._get_version_info('2025.04.06', {})
+        self.assertEqual(version, '2025.04.06')
+        self.assertIsNone(commit)
+
+        # CT2 - Fetch Latest Release Without Commit Hash
+        tag = 'latest'
+        updater.requested_repo = 'yt-dlp/yt-dlp'
+        updater._call_api = lambda _: {
+            'tag_name': 'v2025.04.06',
+            'name': 'Release 2025.04.06',
+            'target_commitish': '',
+            'body': '- Adds support for the new URL parser\n- Fixes bug in simultaneous downloads\n',
+        }
+        version, commit = updater._get_version_info(tag, updater._call_api(tag))
+        self.assertEqual(version, 'v2025.04.06')
+        self.assertIsNone(commit)
+
+        # CT3 - Fallback to Commit Hash When Tag Is Empty
+        updater._call_api = lambda _: {
+            'tag_name': 'v2024.02.01',
+            'name': 'Release candidate',
+            'target_commitish': 'a1b2c3d4e5f60718293a4b5c6d7e8f9012ab3cd4',
+            'body': '- Implements extra parameter validation\n- Optimizes performance in date parser\n',
+        }
+        version, commit = updater._get_version_info('', updater._call_api(''))
+        self.assertIsNone(version)
+        self.assertEqual(commit, 'a1b2c3d4e5f60718293a4b5c6d7e8f9012ab3cd4')
+
+        # CT4 - Extract Version from Name with Empty Tag and Body Hash
+        updater._call_api = lambda _: {
+            'tag_name': 'v2024.02.01',
+            'name': 'Release 2024.02.01',
+            'target_commitish': '',
+            'body': 'a1b2c3d4e5f60718293a4b5c6d7e8f9012ab3cd4\n- Implements extra parameter validation\n- Optimizes performance in date parser\n',
+        }
+        version, commit = updater._get_version_info('', updater._call_api(''))
+        self.assertEqual(version, '2024.02.01')
+        self.assertIsNone(commit)
+
+        # CT5 - Error on Missing Version and Commit Hash
+        updater._call_api = lambda _: {
+            'tag_name': 'v2024.02.01',
+            'name': 'Release candidate',
+            'target_commitish': '',
+            'body': '- Implements extra parameter validation\n- Optimizes performance in date parser\n',
+        }
+        with self.assertLogs(level='WARNING') as cm:
+            version, commit = updater._get_version_info('', updater._call_api(''))
+            self.assertIsNone(version)
+            self.assertIsNone(commit)
+            self.assertTrue(any('One of either version or commit hash must be available' in m for m in cm.output))
 
 if __name__ == '__main__':
     unittest.main()
