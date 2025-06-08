@@ -277,14 +277,14 @@ class TestUpdate(unittest.TestCase):
     def test_get_version_info(self):
         updater = FakeUpdater(FakeYDL(), 'stable')
 
-        # CT1 – Tag Already in Required Format
+        # CT1  Tag Already in Required Format
         updater._identifier = 'zip'
         updater.requested_repo = 'yt-dlp/yt-dlp'
         version, commit = updater._get_version_info('2025.04.06')
         self.assertEqual(version, '2025.04.06')
         self.assertIsNone(commit)
 
-        # CT2 – Fetch Latest Release Without Commit Hash
+        # CT2 Fetch Latest Release Without Commit Hash
         updater._call_api = lambda _: {
             'tag_name': 'v2025.04.06',
             'name': 'Release 2025.04.06',
@@ -295,7 +295,7 @@ class TestUpdate(unittest.TestCase):
         self.assertEqual(version, 'v2025.04.06')
         self.assertIsNone(commit)
 
-        # CT3 – Fallback to Commit Hash When Tag Is Empty
+        # CT3 Fallback to Commit Hash When Tag Is Empty
         updater._call_api = lambda _: {
             'tag_name': 'v2024.02.01',
             'name': 'Release candidate',
@@ -306,7 +306,7 @@ class TestUpdate(unittest.TestCase):
         self.assertIsNone(version)
         self.assertEqual(commit, 'a1b2c3d4e5f60718293a4b5c6d7e8f9012ab3cd4')
 
-        # CT4 – Extract Version from Name with Empty Tag and Body Hash
+        # CT4 Extract Version from Name with Empty Tag and Body Hash
         updater._call_api = lambda _: {
             'tag_name': 'v2024.02.01',
             'name': 'Release 2024.02.01',
@@ -317,7 +317,7 @@ class TestUpdate(unittest.TestCase):
         self.assertEqual(version, '2024.02.01')
         self.assertIsNone(commit)
 
-        # CT5 – Error on Missing Version and Commit Hash
+        # CT5 Error on Missing Version and Commit Hash
         updater._call_api = lambda _: {
             'tag_name': 'v2024.02.01',
             'name': 'Release candidate',
@@ -329,7 +329,6 @@ class TestUpdate(unittest.TestCase):
             version, commit = updater._get_version_info('')
         self.assertIsNone(version)
         self.assertIsNone(commit)
-
         err = stderr.getvalue()
         self.assertIn(
             "One of either version or commit hash must be available on the release",
