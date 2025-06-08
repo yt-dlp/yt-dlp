@@ -653,6 +653,7 @@ def get_postprocessors(opts):
             'preferredcodec': opts.audioformat,
             'preferredquality': opts.audioquality,
             'nopostoverwrites': opts.nopostoverwrites,
+            'overwrites': opts.overwrites,
         }
     if opts.remuxvideo:
         yield {

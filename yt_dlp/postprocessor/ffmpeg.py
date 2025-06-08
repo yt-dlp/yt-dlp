@@ -441,11 +441,12 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
     SUPPORTED_EXTS = tuple(ACODECS.keys())
     FORMAT_RE = create_mapping_re(('best', *SUPPORTED_EXTS))
 
-    def __init__(self, downloader=None, preferredcodec=None, preferredquality=None, nopostoverwrites=False):
+    def __init__(self, downloader=None, preferredcodec=None, preferredquality=None, nopostoverwrites=False, overwrites=None):
         FFmpegPostProcessor.__init__(self, downloader)
         self.mapping = preferredcodec or 'best'
         self._preferredquality = float_or_none(preferredquality)
         self._nopostoverwrites = nopostoverwrites
+        self._overwrites = overwrites
 
     def _quality_args(self, codec):
         if self._preferredquality is None:
@@ -521,8 +522,13 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
                 return [], information
             orig_path = prepend_extension(path, 'orig')
             temp_path = prepend_extension(path, 'temp')
-        if (self._nopostoverwrites and os.path.exists(new_path)
-                and os.path.exists(orig_path)):
+        # Check if we should skip due to existing file
+        # Respect both --no-overwrites and --no-post-overwrites
+        should_skip_overwrite = (
+            (self._nopostoverwrites or self._overwrites is False)
+            and os.path.exists(new_path)
+        )
+        if should_skip_overwrite:
             self.to_screen(f'Post-process file {new_path} exists, skipping')
             return [], information
 

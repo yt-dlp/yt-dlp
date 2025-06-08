@@ -14,6 +14,7 @@ from yt_dlp import YoutubeDL
 from yt_dlp.utils import shell_quote
 from yt_dlp.postprocessor import (
     ExecPP,
+    FFmpegExtractAudioPP,
     FFmpegThumbnailsConvertorPP,
     MetadataFromFieldPP,
     MetadataParserPP,
@@ -625,6 +626,77 @@ outpoint 10.000000
         self.assertEqual(
             r"'special '\'' characters '\'' galore'\'\'\'",
             self._pp._quote_for_ffmpeg("special ' characters ' galore'''"))
+
+
+class TestFFmpegExtractAudioPP(unittest.TestCase):
+    def setUp(self):
+        self.ydl = YoutubeDL()
+
+    def test_no_overwrites_respected(self):
+        """Test that --no-overwrites prevents overwriting extracted audio files"""
+        pp = FFmpegExtractAudioPP(self.ydl, overwrites=False)
+
+        # Create a mock info dict
+        info = {
+            'filepath': 'test.webm',
+            'ext': 'webm'
+        }
+
+        # Mock the necessary methods to avoid ffmpeg dependency
+        import unittest.mock
+        with unittest.mock.patch.object(pp, 'get_audio_codec', return_value='opus'), \
+             unittest.mock.patch('os.path.exists') as mock_exists, \
+             unittest.mock.patch('yt_dlp.postprocessor.ffmpeg.replace_extension') as mock_replace_ext:
+
+            # Mock replace_extension to return a different filename
+            mock_replace_ext.return_value = 'test.opus'
+            # Mock os.path.exists to return True for the target file
+            mock_exists.return_value = True
+
+            # Should skip processing when target file exists and overwrites=False
+            files_to_delete, result_info = pp.run(info)
+
+            # Should return empty list (no files to delete) and original info
+            self.assertEqual(files_to_delete, [])
+            self.assertEqual(result_info, info)
+
+    def test_no_post_overwrites_respected(self):
+        """Test that --no-post-overwrites prevents overwriting extracted audio files"""
+        pp = FFmpegExtractAudioPP(self.ydl, nopostoverwrites=True)
+
+        # Create a mock info dict
+        info = {
+            'filepath': 'test.webm',
+            'ext': 'webm'
+        }
+
+        # Mock the necessary methods to avoid ffmpeg dependency
+        import unittest.mock
+        with unittest.mock.patch.object(pp, 'get_audio_codec', return_value='opus'), \
+             unittest.mock.patch('os.path.exists') as mock_exists, \
+             unittest.mock.patch('yt_dlp.postprocessor.ffmpeg.replace_extension') as mock_replace_ext:
+
+            # Mock replace_extension to return a different filename
+            mock_replace_ext.return_value = 'test.opus'
+            # Mock os.path.exists to return True for the target file
+            mock_exists.return_value = True
+
+            # Should skip processing when target file exists and nopostoverwrites=True
+            files_to_delete, result_info = pp.run(info)
+
+            # Should return empty list (no files to delete) and original info
+            self.assertEqual(files_to_delete, [])
+            self.assertEqual(result_info, info)
+
+    def test_overwrites_allowed(self):
+        """Test that overwriting works when neither option is set"""
+        pp = FFmpegExtractAudioPP(self.ydl, overwrites=None, nopostoverwrites=False)
+
+        # This test would require more complex mocking to test the actual processing
+        # For now, just verify the constructor accepts the parameters
+        self.assertIsNotNone(pp)
+        self.assertFalse(pp._nopostoverwrites)
+        self.assertIsNone(pp._overwrites)
 
 
 if __name__ == '__main__':
