@@ -274,7 +274,7 @@ class TestUpdate(unittest.TestCase):
         test('testing', None, current_commit='9' * 40)
         test('testing', UpdateInfo('testing', commit='9' * 40))
 
-    def test_get_version_info_custom_cases(self):
+    def test_get_version_info(self):
         updater = FakeUpdater(FakeYDL(), 'stable')
 
         # CT1 – Tag Already in Required Format
