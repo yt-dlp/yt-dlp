@@ -53,7 +53,10 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'(?:beta\.)?crunchyroll\.com',
         r'viki\.com',
         r'deezer\.com',
+        r'bnnbloomberg\.ca',
+        r'cp24\.com',
         r'ctv\.ca',
+        r'tsn\.ca',
     )
 
     _TESTS = [{
