@@ -1979,26 +1979,25 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     ["Set"]
                 ]
             </script>'''
-        DATA = {
-            'podcast': {
-                'podcast': {
-                    'title': 'Series Title',
-                    'id': 'podcast-id-01',
-                },
-                'seasons': [1, 2, 3],
-            },
-            'activeEpisodeData': {
-                'episode': {
-                    'title': 'Episode Title',
-                    'id': 'episode-id-99',
-                },
-                'creators': ['Podcast Creator'],
-                'empty_list': [],
-            },
-        }
-        FULL = {
+        PAYLOAD = {
             'data': {
-                '$abcdef123456': DATA,
+                '$abcdef123456': {
+                    'podcast': {
+                        'podcast': {
+                            'title': 'Series Title',
+                            'id': 'podcast-id-01',
+                        },
+                        'seasons': [1, 2, 3],
+                    },
+                    'activeEpisodeData': {
+                        'episode': {
+                            'title': 'Episode Title',
+                            'id': 'episode-id-99',
+                        },
+                        'creators': ['Podcast Creator'],
+                        'empty_list': [],
+                    },
+                },
             },
             'state': {
                 '$ssite-config': {
@@ -2006,7 +2005,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'name': 'podcast-website',
                 },
             },
-            'once': ['Set'],
+            'once': None,
         }
         BAD_HTML = '''
             <script data-ssr="true" id="__NUXT_DATA__" type="application/json">
@@ -2018,8 +2017,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 ]
             </script>'''
 
-        self.assertEqual(self.ie._search_nuxt_json(HTML, None), DATA)
-        self.assertEqual(self.ie._search_nuxt_json(HTML, None, traverse=None), FULL)
+        self.assertEqual(self.ie._search_nuxt_json(HTML, 'id'), PAYLOAD)
         self.assertEqual(self.ie._search_nuxt_json('', None, fatal=False), {})
         self.assertEqual(self.ie._search_nuxt_json(BAD_HTML, None, fatal=False), {})
 
