@@ -1,10 +1,9 @@
-import time
-
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     jwt_decode_hs256,
+    jwt_is_expired,
     parse_codecs,
     try_get,
     url_or_none,
@@ -84,16 +83,14 @@ class DigitalConcertHallIE(InfoExtractor):
         'User-Agent': _USER_AGENT,
     }
     _access_token = None
-    _access_token_expiry = 0
     _refresh_token = None
 
     @property
     def _access_token_is_expired(self):
-        return self._access_token_expiry - 30 <= int(time.time())
+        return jwt_is_expired(self._access_token, 30)
 
     def _set_access_token(self, value):
         self._access_token = value
-        self._access_token_expiry = traverse_obj(value, ({jwt_decode_hs256}, 'exp', {int})) or 0
 
     def _cache_tokens(self, /):
         self.cache.store(self._NETRC_MACHINE, 'tokens', {
