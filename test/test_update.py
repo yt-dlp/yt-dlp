@@ -12,7 +12,6 @@ import io
 
 from test.helper import FakeYDL, report_warning
 from yt_dlp.update import UpdateInfo, Updater
-from contextlib import redirect_stderr
 
 
 # XXX: Keep in sync with yt_dlp.update.UPDATE_SOURCES
