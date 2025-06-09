@@ -199,29 +199,19 @@ def generator(test_case, tname):
 
             if 'playlist_mincount' in test_case:
                 assertGreaterEqual(
-                    self,
-                    len(res_dict['entries']),
-                    test_case['playlist_mincount'],
-                    'Expected at least %d entries in playlist %s, but got only %d' % (
-                        test_case['playlist_mincount'], test_case['url'],
-                        len(res_dict['entries'])))
+                    self, len(res_dict['entries']), test_case['playlist_mincount'],
+                    f'Expected at least {test_case["playlist_mincount"]} entries '
+                    f'in playlist {test_case["url"]}, but got only {len(res_dict["entries"])}')
             if 'playlist_count' in test_case:
                 self.assertEqual(
-                    len(res_dict['entries']),
-                    test_case['playlist_count'],
-                    'Expected exactly %d entries in playlist %s, but got %d.' % (
-                        test_case['playlist_count'],
-                        test_case['url'],
-                        len(res_dict['entries']),
-                    ))
+                    len(res_dict['entries']), test_case['playlist_count'],
+                    f'Expected exactly {test_case["playlist_count"]} entries '
+                    f'in playlist {test_case["url"]}, but got {len(res_dict["entries"])}')
             if 'playlist_maxcount' in test_case:
                 assertLessEqual(
-                    self,
-                    len(res_dict['entries']),
-                    test_case['playlist_maxcount'],
-                    'Expected at most %d entries in playlist %s, but got %d' % (
-                        test_case['playlist_maxcount'], test_case['url'],
-                        len(res_dict['entries'])))
+                    self, len(res_dict['entries']), test_case['playlist_maxcount'],
+                    f'Expected at most {test_case["playlist_maxcount"]} entries '
+                    f'in playlist {test_case["url"]}, but got {len(res_dict["entries"])}')
             if 'playlist_duration_sum' in test_case:
                 got_duration = sum(e['duration'] for e in res_dict['entries'])
                 self.assertEqual(
