@@ -197,21 +197,23 @@ def generator(test_case, tname):
                 self.assertTrue('entries' in res_dict)
                 expect_info_dict(self, res_dict, test_case.get('info_dict', {}))
 
+            num_entries = len(res_dict['entries'])
             if 'playlist_mincount' in test_case:
                 assertGreaterEqual(
-                    self, len(res_dict['entries']), test_case['playlist_mincount'],
+                    self, num_entries, test_case['playlist_mincount'],
                     f'Expected at least {test_case["playlist_mincount"]} entries '
-                    f'in playlist {test_case["url"]}, but got only {len(res_dict["entries"])}')
+                    f'in playlist {test_case["url"]}, but got only {num_entries}')
             if 'playlist_count' in test_case:
+                got_text = num_entries if num_entries <= test_case['playlist_count'] else 'more'
                 self.assertEqual(
-                    len(res_dict['entries']), test_case['playlist_count'],
+                    num_entries, test_case['playlist_count'],
                     f'Expected exactly {test_case["playlist_count"]} entries '
-                    f'in playlist {test_case["url"]}, but got {len(res_dict["entries"])}')
+                    f'in playlist {test_case["url"]}, but got {got_text}')
             if 'playlist_maxcount' in test_case:
                 assertLessEqual(
-                    self, len(res_dict['entries']), test_case['playlist_maxcount'],
+                    self, num_entries, test_case['playlist_maxcount'],
                     f'Expected at most {test_case["playlist_maxcount"]} entries '
-                    f'in playlist {test_case["url"]}, but got {len(res_dict["entries"])}')
+                    f'in playlist {test_case["url"]}, but got more')
 
             # Generalize both playlists and single videos to unified format for
             # simplicity
