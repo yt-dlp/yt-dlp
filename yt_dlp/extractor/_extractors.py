@@ -228,7 +228,6 @@ from .beatbump import (
 from .beatport import BeatportIE
 from .beeg import BeegIE
 from .behindkink import BehindKinkIE
-from .bellmedia import BellMediaIE
 from .berufetv import BerufeTVIE
 from .bet import BetIE
 from .bfi import BFIPlayerIE
