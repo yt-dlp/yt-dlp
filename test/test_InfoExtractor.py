@@ -1952,7 +1952,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
             <script data-ssr="true" id="__NUXT_DATA__" type="application/json">
                 [
                     ["ShallowReactive",1],
-                    {"data":2,"state":21,"once":25},
+                    {"data":2,"state":21,"once":25,"_errors":28},
                     ["ShallowReactive",3],
                     {"$abcdef123456":4},
                     {"podcast":5,"activeEpisodeData":7},
@@ -1973,10 +1973,14 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     "Podcast Creator",
                     [],
                     {"$ssite-config":22},
-                    {"env":23,"name":24},
+                    {"env":23,"name":24,"map":26},
                     "production",
                     "podcast-website",
-                    ["Set"]
+                    ["Set"],
+                    ["Reactive",27],
+                    ["Map"],
+                    ["ShallowReactive",29],
+                    {}
                 ]
             </script>'''
         PAYLOAD = {
@@ -2003,9 +2007,11 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 '$ssite-config': {
                     'env': 'production',
                     'name': 'podcast-website',
+                    'map': {},
                 },
             },
-            'once': None,
+            'once': [],
+            '_errors': {},
         }
         BAD_HTML = '''
             <script data-ssr="true" id="__NUXT_DATA__" type="application/json">

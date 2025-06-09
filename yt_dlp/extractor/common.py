@@ -1795,19 +1795,11 @@ class InfoExtractor:
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
 
-    def _search_nuxt_json(self, webpage, video_id, *, fatal=True, default=NO_DEFAULT):
-        """Parses metadata from Nuxt rich JSON payload arrays"""
+    def _resolve_nuxt_array(self, array, video_id, *, fatal=True, default=NO_DEFAULT):
+        """Resolves Nuxt rich JSON payload arrays"""
         # Ref: https://github.com/nuxt/nuxt/commit/9e503be0f2a24f4df72a3ccab2db4d3e63511f57
         #      https://github.com/nuxt/nuxt/pull/19205
-        IGNORED_TYPES = ('Map', 'Set', 'EmptyRef', 'EmptyShallowRef', 'NuxtError')
         ERROR_MSG = 'Unable to extract Nuxt JSON data'
-
-        if default is not NO_DEFAULT:
-            fatal = False
-
-        array = self._search_json(
-            r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage, 'Nuxt JSON data', video_id,
-            contains_pattern=r'\[(?s:.+)\]', default=NO_DEFAULT if fatal else [])
 
         result = [None]
         stack = [(result, 0, 0)]
@@ -1815,9 +1807,9 @@ class InfoExtractor:
             target, index, source = stack.pop()
             if 0 <= source < len(array):
                 element = array[source]
-            elif fatal:
-                raise ExtractorError(ERROR_MSG, video_id=video_id)
             elif default is NO_DEFAULT:
+                if fatal:
+                    raise ExtractorError(ERROR_MSG, video_id=video_id)
                 self.report_warning(ERROR_MSG, video_id=video_id)
                 return {}
             else:
@@ -1827,11 +1819,16 @@ class InfoExtractor:
                 if element[0] in ('ShallowReactive', 'Reactive', 'ShallowRef', 'Ref'):
                     stack.append((target, index, element[1]))
                     continue
-                if element[0] not in IGNORED_TYPES:
-                    self.write_debug(
-                        f'{video_id}: Discarding unsupported type in Nuxt payload: {element[0]}',
-                        only_once=True)
-                target[index] = None
+                if element[0] == 'Map':
+                    target[index] = {}
+                elif element[0] == 'Set':
+                    target[index] = []
+                else:
+                    target[index] = None
+                    if element[0] not in ('EmptyRef', 'EmptyShallowRef', 'NuxtError'):
+                        self.write_debug(
+                            f'{video_id}: Discarding unsupported type in Nuxt payload: {element[0]}',
+                            only_once=True)
                 continue
 
             if isinstance(element, list):
@@ -1849,6 +1846,17 @@ class InfoExtractor:
                 target[index] = element
 
         return result[0]
+
+    def _search_nuxt_json(self, webpage, video_id, *, fatal=True, default=NO_DEFAULT):
+        """Parses metadata from Nuxt rich JSON payloads embedded in HTML"""
+        if default is not NO_DEFAULT:
+            fatal = False
+
+        array = self._search_json(
+            r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage, 'Nuxt JSON data', video_id,
+            contains_pattern=r'\[(?s:.+)\]', default=NO_DEFAULT if fatal else [])
+
+        return self._resolve_nuxt_array(array, video_id, fatal=fatal, default=default)
 
     @staticmethod
     def _hidden_inputs(html):
