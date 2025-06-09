@@ -1799,18 +1799,6 @@ class InfoExtractor:
         """Parses metadata from Nuxt rich JSON payload arrays"""
         # Ref: https://github.com/nuxt/nuxt/commit/9e503be0f2a24f4df72a3ccab2db4d3e63511f57
         #      https://github.com/nuxt/nuxt/pull/19205
-        try:
-            array = self._search_json(
-                r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage,
-                'Nuxt JSON data', video_id, contains_pattern=r'\[(?s:.+)\]')
-        except ExtractorError as e:
-            if fatal:
-                raise
-            if default is NO_DEFAULT:
-                self.report_warning(e.orig_msg)
-                return {}
-            return default
-
         IGNORED_TYPES = ('Map', 'Set', 'Ref', 'ShallowRef', 'EmptyRef', 'EmptyShallowRef', 'NuxtError')
 
         def extract_element(element):
@@ -1831,21 +1819,23 @@ class InfoExtractor:
                 return ret
             return element
 
+        if default is not NO_DEFAULT:
+            fatal = False
+
+        array = self._search_json(
+            r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage, 'Nuxt JSON data', video_id,
+            contains_pattern=r'\[(?s:.+)\]', default=NO_DEFAULT if fatal else [])
+
         try:
-            payload = extract_element(array[0])
-        except IndexError as e:
-            error_msg = f'Unable to extract Nuxt JSON data: {e}'
+            return extract_element(array[0])
+        except IndexError:
+            error_msg = 'Unable to extract Nuxt JSON data'
             if fatal:
-                raise ExtractorError(error_msg)
+                raise ExtractorError(error_msg, video_id=video_id)
             if default is NO_DEFAULT:
                 self.report_warning(error_msg, video_id=video_id)
                 return {}
             return default
-
-        if default is NO_DEFAULT:
-            default = {}
-
-        return payload or default
 
     @staticmethod
     def _hidden_inputs(html):
