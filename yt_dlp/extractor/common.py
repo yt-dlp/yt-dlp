@@ -1818,8 +1818,7 @@ class InfoExtractor:
             if isinstance(element, list) and element and isinstance(element[0], str):
                 if element[0] in ('ShallowReactive', 'Reactive', 'ShallowRef', 'Ref'):
                     stack.append((target, index, element[1]))
-                    continue
-                if element[0] == 'Map':
+                elif element[0] == 'Map':
                     target[index] = {}
                 elif element[0] == 'Set':
                     target[index] = []
