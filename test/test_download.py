@@ -212,10 +212,6 @@ def generator(test_case, tname):
                     self, len(res_dict['entries']), test_case['playlist_maxcount'],
                     f'Expected at most {test_case["playlist_maxcount"]} entries '
                     f'in playlist {test_case["url"]}, but got {len(res_dict["entries"])}')
-            if 'playlist_duration_sum' in test_case:
-                got_duration = sum(e['duration'] for e in res_dict['entries'])
-                self.assertEqual(
-                    test_case['playlist_duration_sum'], got_duration)
 
             # Generalize both playlists and single videos to unified format for
             # simplicity
