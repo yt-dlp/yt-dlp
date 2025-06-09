@@ -202,14 +202,14 @@ def generator(test_case, tname):
                     self,
                     len(res_dict['entries']),
                     test_case['playlist_mincount'],
-                    'Expected at least %d in playlist %s, but got only %d' % (
+                    'Expected at least %d entries in playlist %s, but got only %d' % (
                         test_case['playlist_mincount'], test_case['url'],
                         len(res_dict['entries'])))
             if 'playlist_count' in test_case:
                 self.assertEqual(
                     len(res_dict['entries']),
                     test_case['playlist_count'],
-                    'Expected %d entries in playlist %s, but got %d.' % (
+                    'Expected exactly %d entries in playlist %s, but got %d.' % (
                         test_case['playlist_count'],
                         test_case['url'],
                         len(res_dict['entries']),
@@ -219,7 +219,7 @@ def generator(test_case, tname):
                     self,
                     len(res_dict['entries']),
                     test_case['playlist_maxcount'],
-                    'Expected at most %d in playlist %s, but got %d' % (
+                    'Expected at most %d entries in playlist %s, but got %d' % (
                         test_case['playlist_maxcount'], test_case['url'],
                         len(res_dict['entries'])))
             if 'playlist_duration_sum' in test_case:
