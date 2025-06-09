@@ -1795,45 +1795,39 @@ class InfoExtractor:
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
 
-    def _search_nuxt_json(self, webpage, video_id, *, fatal=True, traverse=('data', ..., {dict}, any), allow_recursion=100):
-        """Parses Nuxt.js metadata when it has already been rendered into a JSON array"""
-
-        ERROR_MSG = 'Unable to extract NUXT JSON data'
+    def _search_nuxt_json(self, webpage, video_id, *, fatal=True, traverse=('data', ..., {dict}, any)):
+        """Parses metadata from Nuxt rich JSON payload arrays"""
+        # Ref: https://github.com/nuxt/nuxt/commit/9e503be0f2a24f4df72a3ccab2db4d3e63511f57
+        #      https://github.com/nuxt/nuxt/pull/19205
         array = self._search_json(
             r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage, 'nuxt data', video_id,
             contains_pattern=r'\[(?s:.+)\]', default=NO_DEFAULT if fatal else [{}])
 
-        def extract_element(element, allow_recursion):
-            if allow_recursion < 0:
-                msg = f'{ERROR_MSG}: recursion limit reached'
-                if fatal:
-                    raise ExtractorError(msg)
-                self.report_warning(msg, video_id=video_id, only_once=True)
-                return None
-            allow_recursion -= 1
-
+        def extract_element(element):
             try:
                 if isinstance(element, list) and element:
                     if element[0] in ('ShallowReactive', 'Reactive') and isinstance(element[1], int):
-                        return extract_element(array[element[1]], allow_recursion)
+                        return extract_element(array[element[1]])
                     if all(isinstance(ele, int) for ele in element):
-                        return [extract_element(array[ele], allow_recursion) for ele in element]
+                        return [extract_element(array[ele]) for ele in element]
                 if isinstance(element, dict):
                     ret = {}
                     for k, v in element.items():
                         if isinstance(v, int):
-                            ret[k] = extract_element(array[v], allow_recursion)
+                            ret[k] = extract_element(array[v])
                         else:
                             ret[k] = v
                     return ret
             except IndexError as e:
+                error_msg = f'Unable to extract NUXT JSON data: {e}'
                 if not fatal:
+                    self.report_warning(error_msg, video_id=video_id, only_once=True)
                     return None
-                raise ExtractorError(f'{ERROR_MSG}: {e}')
+                raise ExtractorError(error_msg)
 
             return element
 
-        return traverse_obj(extract_element(array[0], allow_recursion), traverse) or {}
+        return traverse_obj(extract_element(array[0]), traverse) or {}
 
     @staticmethod
     def _hidden_inputs(html):

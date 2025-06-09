@@ -1952,14 +1952,14 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
             <script data-ssr="true" id="__NUXT_DATA__" type="application/json">
                 [
                     ["ShallowReactive",1],
-                    {"data":2,"state":22,"once":26},
+                    {"data":2,"state":21,"once":25},
                     ["ShallowReactive",3],
                     {"$abcdef123456":4},
                     {"podcast":5,"activeEpisodeData":7},
                     {"podcast":6,"seasons":14},
                     {"title":10,"id":11},
                     ["Reactive",8],
-                    {"episode":9,"creators":18,"trick_data":19,"empty_list":21},
+                    {"episode":9,"creators":18,"empty_list":20},
                     {"title":12,"id":13},
                     "Series Title",
                     "podcast-id-01",
@@ -1969,12 +1969,11 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     1,
                     2,
                     3,
-                    [20],
-                    [99,"gotcha"],
+                    [19],
                     "Podcast Creator",
                     [],
-                    {"$ssite-config":23},
-                    {"env":24,"name":25},
+                    {"$ssite-config":22},
+                    {"env":23,"name":24},
                     "production",
                     "podcast-website",
                     ["Set"]
@@ -1994,7 +1993,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'id': 'episode-id-99',
                 },
                 'creators': ['Podcast Creator'],
-                'trick_data': [99, 'gotcha'],
                 'empty_list': [],
             },
         }
@@ -2024,9 +2022,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         self.assertEqual(self.ie._search_nuxt_json(HTML, None, traverse=None), FULL)
         self.assertEqual(self.ie._search_nuxt_json('', None, fatal=False), {})
         self.assertEqual(self.ie._search_nuxt_json(BAD_HTML, None, fatal=False), {})
-        self.assertEqual(self.ie._search_nuxt_json(HTML, None, fatal=False, allow_recursion=1), {})
-        with self.assertRaisesRegex(ExtractorError, r'recursion limit reached'):
-            self.ie._search_nuxt_json(HTML, None, allow_recursion=1)
 
 
 if __name__ == '__main__':
