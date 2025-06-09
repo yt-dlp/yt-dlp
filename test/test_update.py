@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # Allow direct execution
+import io
 import os
 import sys
 import unittest
@@ -10,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import FakeYDL, report_warning
 from yt_dlp.update import UpdateInfo, Updater
+from contextlib import redirect_stderr
 
 
 # XXX: Keep in sync with yt_dlp.update.UPDATE_SOURCES
@@ -235,16 +237,32 @@ class TestUpdate(unittest.TestCase):
     def test_query_update(self):
         ydl = FakeYDL()
 
-        def test(target, expected, current_version=None, current_commit=None, identifier=None):
-            updater = FakeUpdater(ydl, target)
+        def make_updater(target, *, current_version=None,
+                         current_commit=None, identifier=None,
+                         api_response=None):
+            upd = FakeUpdater(ydl, target)
             if current_version:
-                updater.current_version = current_version
+                upd.current_version = current_version
             if current_commit:
-                updater.current_commit = current_commit
-            updater._identifier = identifier or 'zip'
+                upd.current_commit = current_commit
+            upd._identifier = identifier or 'zip'
+            if api_response is not None:
+                upd._call_api = lambda _: api_response
+            return upd
+        
+        def test(target, expected, current_version=None, current_commit=None, identifier=None):
+            updater = make_updater(target, current_version=current_version, current_commit=current_commit, identifier=identifier)
             update_info = updater.query_update(_output=True)
-            self.assertDictEqual(
-                update_info.__dict__ if update_info else {}, expected.__dict__ if expected else {})
+            self.assertDictEqual(update_info.__dict__ if update_info else {}, expected.__dict__ if expected else {})
+        
+        def test_version_info_error(api_response, expected_msg):
+            updater = make_updater('stable', api_response=api_response)
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                version, commit = updater._get_version_info('')
+            self.assertIsNone(version)
+            self.assertIsNone(commit)
+            self.assertIn(expected_msg, stderr.getvalue())
 
         test('yt-dlp/yt-dlp@latest', UpdateInfo(
             '2023.12.31', version='2023.12.31', requested_version='2023.12.31', commit='b' * 40))
@@ -272,6 +290,16 @@ class TestUpdate(unittest.TestCase):
         test('testing', None, current_commit='9' * 40)
         test('testing', UpdateInfo('testing', commit='9' * 40))
 
+        test_version_info_error(
+            api_response={
+                'tag_name': 'v2024.02.01',
+                'name': 'Release candidate',
+                'target_commitish': '',
+                'body': '- Implements extra parameter validation\n'
+                        '- Optimizes performance in date parser\n',
+            },
+            expected_msg="One of either version or commit hash must be available on the release"
+        )
 
 if __name__ == '__main__':
     unittest.main()
