@@ -53,8 +53,6 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'(?:beta\.)?crunchyroll\.com',
         r'viki\.com',
         r'deezer\.com',
-        r'bnnbloomberg\.ca',
-        r'cp24\.com',
         r'ctv\.ca',
         r'tsn\.ca',
     )
@@ -174,6 +172,9 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.ctv.ca/shows/masterchef-53506/the-audition-battles-s15e1',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tsn.ca/video/relaxed-oilers-look-to-put-emotional-game-2-loss-in-the-rearview%7E3148747',
         'only_matching': True,
     }]
 
