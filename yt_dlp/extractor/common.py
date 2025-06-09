@@ -1801,6 +1801,13 @@ class InfoExtractor:
         #      https://github.com/nuxt/nuxt/pull/19205
         IGNORED_TYPES = ('Map', 'Set', 'Ref', 'ShallowRef', 'EmptyRef', 'EmptyShallowRef', 'NuxtError')
 
+        if default is not NO_DEFAULT:
+            fatal = False
+
+        array = self._search_json(
+            r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage, 'Nuxt JSON data', video_id,
+            contains_pattern=r'\[(?s:.+)\]', default=NO_DEFAULT if fatal else [])
+
         def extract_element(element):
             if isinstance(element, list):
                 if element and isinstance(element[0], str):
@@ -1818,13 +1825,6 @@ class InfoExtractor:
                     ret[k] = extract_element(array[v])
                 return ret
             return element
-
-        if default is not NO_DEFAULT:
-            fatal = False
-
-        array = self._search_json(
-            r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage, 'Nuxt JSON data', video_id,
-            contains_pattern=r'\[(?s:.+)\]', default=NO_DEFAULT if fatal else [])
 
         try:
             return extract_element(array[0])
