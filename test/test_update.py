@@ -301,5 +301,6 @@ class TestUpdate(unittest.TestCase):
             expected_msg='One of either version or commit hash must be available on the release',
         )
 
+
 if __name__ == '__main__':
     unittest.main()
