@@ -1799,7 +1799,8 @@ class InfoExtractor:
         """Parses metadata from Nuxt rich JSON payload arrays"""
         # Ref: https://github.com/nuxt/nuxt/commit/9e503be0f2a24f4df72a3ccab2db4d3e63511f57
         #      https://github.com/nuxt/nuxt/pull/19205
-        IGNORED_TYPES = ('Map', 'Set', 'Ref', 'ShallowRef', 'EmptyRef', 'EmptyShallowRef', 'NuxtError')
+        IGNORED_TYPES = ('Map', 'Set', 'EmptyRef', 'EmptyShallowRef', 'NuxtError')
+        ERROR_MSG = 'Unable to extract Nuxt JSON data'
 
         if default is not NO_DEFAULT:
             fatal = False
@@ -1808,34 +1809,46 @@ class InfoExtractor:
             r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage, 'Nuxt JSON data', video_id,
             contains_pattern=r'\[(?s:.+)\]', default=NO_DEFAULT if fatal else [])
 
-        def extract_element(element):
-            if isinstance(element, list):
-                if element and isinstance(element[0], str):
-                    if element[0] in ('ShallowReactive', 'Reactive') and isinstance(element[1], int):
-                        return extract_element(array[element[1]])
-                    if element[0] not in IGNORED_TYPES:
-                        self.write_debug(
-                            f'{video_id}: Discarding unsupported type in Nuxt payload: {element[0]}',
-                            only_once=True)
-                    return None
-                return [extract_element(array[ele]) for ele in element]
-            if isinstance(element, dict):
-                ret = {}
-                for k, v in element.items():
-                    ret[k] = extract_element(array[v])
-                return ret
-            return element
-
-        try:
-            return extract_element(array[0])
-        except IndexError:
-            error_msg = 'Unable to extract Nuxt JSON data'
-            if fatal:
-                raise ExtractorError(error_msg, video_id=video_id)
-            if default is NO_DEFAULT:
-                self.report_warning(error_msg, video_id=video_id)
+        result = [None]
+        stack = [(result, 0, 0)]
+        while stack:
+            target, index, source = stack.pop()
+            if 0 <= source < len(array):
+                element = array[source]
+            elif fatal:
+                raise ExtractorError(ERROR_MSG, video_id=video_id)
+            elif default is NO_DEFAULT:
+                self.report_warning(ERROR_MSG, video_id=video_id)
                 return {}
-            return default
+            else:
+                return default
+
+            if isinstance(element, list) and element and isinstance(element[0], str):
+                if element[0] in ('ShallowReactive', 'Reactive', 'ShallowRef', 'Ref'):
+                    stack.append((target, index, element[1]))
+                    continue
+                if element[0] not in IGNORED_TYPES:
+                    self.write_debug(
+                        f'{video_id}: Discarding unsupported type in Nuxt payload: {element[0]}',
+                        only_once=True)
+                target[index] = None
+                continue
+
+            if isinstance(element, list):
+                target[index] = element.copy()
+                for offset, val in enumerate(element):
+                    stack.append((target[index], offset, val))
+
+            elif isinstance(element, dict):
+                target[index] = element.copy()
+                for key, val in element.items():
+                    if isinstance(val, int):
+                        stack.append((target[index], key, val))
+
+            else:
+                target[index] = element
+
+        return result[0]
 
     @staticmethod
     def _hidden_inputs(html):
