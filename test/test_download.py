@@ -14,6 +14,7 @@ import json
 
 from test.helper import (
     assertGreaterEqual,
+    assertLessEqual,
     expect_info_dict,
     expect_warnings,
     get_params,
@@ -122,8 +123,10 @@ def generator(test_case, tname):
         params['outtmpl'] = tname + '_' + params['outtmpl']
         if is_playlist and 'playlist' not in test_case:
             params.setdefault('extract_flat', 'in_playlist')
-            params.setdefault('playlistend', test_case.get(
-                'playlist_mincount', test_case.get('playlist_count', -2) + 1))
+            params.setdefault('playlistend', max(
+                test_case.get('playlist_mincount') or -1,
+                (test_case.get('playlist_count') or -2) + 1,
+                (test_case.get('playlist_maxcount') or -2) + 1))
             params.setdefault('skip_download', True)
 
         ydl = YoutubeDL(params, auto_init=False)
@@ -211,6 +214,14 @@ def generator(test_case, tname):
                         test_case['url'],
                         len(res_dict['entries']),
                     ))
+            if 'playlist_maxcount' in test_case:
+                assertLessEqual(
+                    self,
+                    len(res_dict['entries']),
+                    test_case['playlist_maxcount'],
+                    'Expected at most %d in playlist %s, but got %d' % (
+                        test_case['playlist_maxcount'], test_case['url'],
+                        len(res_dict['entries'])))
             if 'playlist_duration_sum' in test_case:
                 got_duration = sum(e['duration'] for e in res_dict['entries'])
                 self.assertEqual(
