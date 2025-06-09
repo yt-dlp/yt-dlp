@@ -1795,14 +1795,13 @@ class InfoExtractor:
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
 
-    def _search_nuxt_json(self, webpage, video_id, script_id='__NUXT_DATA__', *, fatal=True,
-                          traverse=('data', ..., {dict}, any), allow_recursion=100):
+    def _search_nuxt_json(self, webpage, video_id, *, fatal=True, traverse=('data', ..., {dict}, any), allow_recursion=100):
         """Parses Nuxt.js metadata when it has already been rendered into a JSON array"""
 
         ERROR_MSG = 'Unable to extract NUXT JSON data'
         array = self._search_json(
-            fr'<script\b[^>]+\bid="{re.escape(script_id)}"[^>]*>', webpage, script_id,
-            video_id, contains_pattern=r'\[(?s:.+)\]', default=NO_DEFAULT if fatal else [{}])
+            r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage, 'nuxt data', video_id,
+            contains_pattern=r'\[(?s:.+)\]', default=NO_DEFAULT if fatal else [{}])
 
         def extract_element(element, allow_recursion):
             if allow_recursion < 0:
