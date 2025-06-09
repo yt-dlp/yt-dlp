@@ -53,6 +53,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'(?:beta\.)?crunchyroll\.com',
         r'viki\.com',
         r'deezer\.com',
+        r'ctv\.ca',
     )
 
     _TESTS = [{
@@ -167,6 +168,9 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'http://www.deezer.com/playlist/176747451',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.ctv.ca/shows/masterchef-53506/the-audition-battles-s15e1',
         'only_matching': True,
     }]
 
