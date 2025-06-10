@@ -1374,7 +1374,6 @@ from .nobelprize import NobelPrizeIE
 from .noice import NoicePodcastIE
 from .nonktube import NonkTubeIE
 from .noodlemagazine import NoodleMagazineIE
-from .noovo import NoovoIE
 from .nosnl import NOSNLArticleIE
 from .nova import (
     NovaEmbedIE,
