@@ -5,7 +5,7 @@ import operator
 import re
 
 from .common import InfoExtractor
-from .openload import PhantomJSwrapper
+from ..jsinterp import PhantomJSwrapper
 from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
