@@ -7,6 +7,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
 import contextlib
 import io
 
@@ -284,6 +285,7 @@ class TestUpdate(unittest.TestCase):
         with contextlib.redirect_stderr(stderr):
             test('fork/yt-dlp@broken', UpdateInfo('broken'))
         self.assertIn('One of either version or commit hash must be available on the release', stderr.getvalue())
+
 
 if __name__ == '__main__':
     unittest.main()
