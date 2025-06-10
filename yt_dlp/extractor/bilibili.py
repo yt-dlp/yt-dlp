@@ -817,6 +817,26 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
     }, {
+        'note': 'new playurlSSRData scheme',
+        'url': 'https://www.bilibili.com/bangumi/play/ep678060',
+        'info_dict': {
+            'id': '678060',
+            'ext': 'mp4',
+            'series': '去你家吃饭好吗',
+            'series_id': '6198',
+            'season': '第二季',
+            'season_id': '42542',
+            'season_number': 2,
+            'episode': '吴老二：你家大公鸡养不熟，能煮熟吗…',
+            'episode_id': '678060',
+            'episode_number': 61,
+            'title': '一只小九九丫 吴老二：你家大公鸡养不熟，能煮熟吗…',
+            'duration': 266.123,
+            'timestamp': 1663315904,
+            'upload_date': '20220916',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+    }, {
         'url': 'https://www.bilibili.com/bangumi/play/ep267851',
         'info_dict': {
             'id': '267851',
@@ -879,12 +899,26 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 'Extracting episode', query={'fnval': 12240, 'ep_id': episode_id},
                 headers=headers))
 
+        geo_blocked = traverse_obj(play_info, (
+            'raw', 'data', 'plugins', lambda _, v: v['name'] == 'AreaLimitPanel', 'config', 'is_block', {bool}, any))
         premium_only = play_info.get('code') == -10403
-        play_info = traverse_obj(play_info, ('result', 'video_info', {dict})) or {}
 
-        formats = self.extract_formats(play_info)
-        if not formats and (premium_only or '成为大会员抢先看' in webpage or '开通大会员观看' in webpage):
-            self.raise_login_required('This video is for premium members only')
+        video_info = traverse_obj(play_info, (('result', ('raw', 'data')), 'video_info', {dict}, any)) or {}
+        formats = self.extract_formats(video_info)
+
+        if not formats:
+            if geo_blocked:
+                self.raise_geo_restricted()
+            elif premium_only or '成为大会员抢先看' in webpage or '开通大会员观看' in webpage:
+                self.raise_login_required('This video is for premium members only')
+
+        if traverse_obj(play_info, ((
+            ('result', 'play_check', 'play_detail'),  # 'PLAY_PREVIEW' vs 'PLAY_WHOLE'
+            ('raw', 'data', 'play_video_type'),  # 'preview' vs 'whole'
+        ), any, {lambda x: x in ('PLAY_PREVIEW', 'preview')})):
+            self.report_warning(
+                'Only preview format is available, '
+                f'you have to become a premium member to access full video. {self._login_hint()}')
 
         bangumi_info = self._download_json(
             'https://api.bilibili.com/pgc/view/web/season', episode_id, 'Get episode details',
@@ -922,7 +956,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'season': str_or_none(season_title),
             'season_id': str_or_none(season_id),
             'season_number': season_number,
-            'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            'duration': float_or_none(video_info.get('timelength'), scale=1000),
             'subtitles': self.extract_subtitles(episode_id, episode_info.get('cid'), aid=aid),
             '__post_extractor': self.extract_comments(aid),
             'http_headers': {'Referer': url},
