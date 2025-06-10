@@ -117,7 +117,7 @@ class IEContentProvider(abc.ABC):
         val = traverse_obj(self.settings, key)
         if val is None:
             return [] if default is NO_DEFAULT else default
-        return list(val) if casesense else [x.lower() for x in val]
+        return list(val) if casesense else [x.casefold() for x in val]
 
 
 class BuiltinIEContentProvider(IEContentProvider, abc.ABC):
