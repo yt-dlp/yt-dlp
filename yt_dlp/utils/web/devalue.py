@@ -41,7 +41,6 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
         -5: -math.inf,
         -6: -0.0,
     }
-    lowest_valid_index = min(resolved.keys())
 
     if isinstance(parsed, int):
         if parsed == -2:
@@ -70,7 +69,7 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
             target[index] = resolved[source]
             continue
 
-        if source < lowest_valid_index:
+        if source < 0:
             yield IndexError(f'invalid index: {source!r}')
             continue
 
