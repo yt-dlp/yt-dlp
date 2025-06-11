@@ -2007,7 +2007,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 '$ssite-config': {
                     'env': 'production',
                     'name': 'podcast-website',
-                    'map': {},
+                    'map': [],
                     'numbers': [1, 2, 3],
                 },
             },
@@ -2026,7 +2026,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
 
         self.assertEqual(self.ie._search_nuxt_json(HTML, 'id'), PAYLOAD)
         self.assertEqual(self.ie._search_nuxt_json('', None, fatal=False), {})
-        self.assertEqual(self.ie._search_nuxt_json(BAD_HTML, None, fatal=False), {})
+        self.assertEqual(self.ie._search_nuxt_json(BAD_HTML, None, default={}), {})
 
 
 if __name__ == '__main__':
