@@ -79,7 +79,7 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
                 # TODO: implement zips `strict=True`
                 if reviver := revivers.get(value[0]):
                     if value[1] == source:
-                        yield IndexError('custom types cannot point to themselves')
+                        yield IndexError(f'{value[0]!r} cannot point to itself (index: {source})')
                         continue
                     # inverse order: resolve index, revive value
                     stack.append((target, index, (value[0], value[1], reviver)))
