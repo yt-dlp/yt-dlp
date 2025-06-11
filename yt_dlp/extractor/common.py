@@ -101,7 +101,7 @@ from ..utils import (
     xpath_with_ns,
 )
 from ..utils._utils import _request_dump_filename
-from ..utils.web import devalue
+from ..utils.jslib import devalue
 
 
 class InfoExtractor:
