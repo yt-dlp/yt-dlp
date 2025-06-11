@@ -171,6 +171,11 @@ TEST_CASES_INVALID = [{
     'unparsed': [],
     'error': IndexError,
     'pattern': r'list index out of range',
+}, {
+    'name': 'Python negative indexing',
+    'unparsed': [[1, 2, 3, 4, 5, 6, 7, -7], 1, 2, 3, 4, 5, 6, 7],
+    'error': IndexError,
+    'pattern': r'invalid index: -7',
 }]
 
 
