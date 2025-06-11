@@ -32,6 +32,14 @@ TEST_CASES_EQUALS = [{
     'unparsed': [['Object', 'yar']],
     'parsed': 'yar',
 }, {
+    'name': 'Infinity',
+    'unparsed': -4,
+    'parsed': math.inf,
+}, {
+    'name': 'negative Infinity',
+    'unparsed': -5,
+    'parsed': -math.inf,
+}, {
     'name': 'negative zero',
     'unparsed': -6,
     'parsed': -0.0,
@@ -42,7 +50,7 @@ TEST_CASES_EQUALS = [{
 }, {
     'name': 'Date',
     'unparsed': [['Date', '2001-09-09T01:46:40.000Z']],
-    'parsed': dt.datetime.fromtimestamp(1000000000, tz=dt.timezone.utc),
+    'parsed': dt.datetime.fromtimestamp(1e9, tz=dt.timezone.utc),
 }, {
     'name': 'Array',
     'unparsed': [[1, 2, 3], 'a', 'b', 'c'],
@@ -99,14 +107,6 @@ TEST_CASES_EQUALS = [{
     'name': 'cross-realm POJO',
     'unparsed': [{}],
     'parsed': {},
-}, {
-    'name': 'Infinity',
-    'unparsed': -4,
-    'parsed': math.inf,
-}, {
-    'name': 'negative Infinity',
-    'unparsed': -5,
-    'parsed': -math.inf,
 }]
 
 TEST_CASES_IS = [{
@@ -134,27 +134,43 @@ TEST_CASES_IS = [{
 TEST_CASES_INVALID = [{
     'name': 'empty string',
     'unparsed': '',
+    'error': ValueError,
+    'pattern': r'expected int or list as input',
 }, {
     'name': 'hole',
-    'unparsed': '-2',
+    'unparsed': -2,
+    'error': ValueError,
+    'pattern': r'invalid input',
 }, {
     'name': 'string',
     'unparsed': 'hello',
+    'error': ValueError,
+    'pattern': r'expected int or list as input',
 }, {
     'name': 'number',
     'unparsed': 42,
+    'error': KeyError,
+    'pattern': r'42',
 }, {
     'name': 'boolean',
     'unparsed': True,
+    'error': KeyError,
+    'pattern': r'True',
 }, {
     'name': 'null',
     'unparsed': None,
+    'error': ValueError,
+    'pattern': r'expected int or list as input',
 }, {
     'name': 'object',
     'unparsed': {},
+    'error': ValueError,
+    'pattern': r'expected int or list as input',
 }, {
     'name': 'empty array',
     'unparsed': [],
+    'error': IndexError,
+    'pattern': r'list index out of range',
 }]
 
 
@@ -168,9 +184,9 @@ class TestDevalue(unittest.TestCase):
             self.assertIs(devalue.parse(tc['unparsed']), tc['parsed'], tc['name'])
 
     def test_devalue_parse_invalid(self):
-        pass
-        # for tc in TEST_CASES_INVALID:
-        #     pass  # XXX: Not sure how to write this without seeing the impl
+        for tc in TEST_CASES_INVALID:
+            with self.assertRaisesRegex(tc['error'], tc['pattern'], msg=tc['name']):
+                devalue.parse(tc['unparsed'])
 
     def test_devalue_parse_cyclical(self):
         name = 'Map (cyclical)'
@@ -199,7 +215,10 @@ class TestDevalue(unittest.TestCase):
         self.assertIs(result[0], result[1]['first'], name)
         self.assertIs(result[1], result[0]['second'], name)
 
-# XXX: add custom revivers test / or will this be tested by the InfoExtractor._search_nuxt_json tests?
+    def test_devalue_parse_revivers(self):
+        self.assertEqual(
+            devalue.parse([['Custom', 1], {'a': 2}, 'b'], revivers={'Custom': lambda x: x}),
+            {'a': 'b'}, 'revivers')
 
 
 if __name__ == '__main__':
