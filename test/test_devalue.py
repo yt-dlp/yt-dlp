@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 import datetime as dt
+import json
 import math
 import re
 import unittest
@@ -222,8 +223,12 @@ class TestDevalue(unittest.TestCase):
 
     def test_devalue_parse_revivers(self):
         self.assertEqual(
-            devalue.parse([['Custom', 1], {'a': 2}, 'b'], revivers={'Custom': lambda x: x}),
-            {'a': 'b'}, 'revivers')
+            devalue.parse([['indirect', 1], {'a': 2}, 'b'], revivers={'indirect': lambda x: x}),
+            {'a': 'b'}, 'revivers (indirect)')
+
+        self.assertEqual(
+            devalue.parse([['parse', 1], '{"a":0}'], revivers={'parse': lambda x: json.loads(x)}),
+            {'a': 0}, 'revivers (parse)')
 
 
 if __name__ == '__main__':
