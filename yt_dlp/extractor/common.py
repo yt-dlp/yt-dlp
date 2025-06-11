@@ -101,6 +101,7 @@ from ..utils import (
     xpath_with_ns,
 )
 from ..utils._utils import _request_dump_filename
+from ..utils.web import devalue
 
 
 class InfoExtractor:
@@ -1797,63 +1798,47 @@ class InfoExtractor:
 
     def _resolve_nuxt_array(self, array, video_id, *, fatal=True, default=NO_DEFAULT):
         """Resolves Nuxt rich JSON payload arrays"""
-        # Ref: https://github.com/nuxt/nuxt/commit/9e503be0f2a24f4df72a3ccab2db4d3e63511f57
-        #      https://github.com/nuxt/nuxt/pull/19205
-        ERROR_MSG = 'Unable to extract Nuxt JSON data'
-
-        result = [None]
-        stack = [(result, 0, 0)]
-        while stack:
-            target, index, source = stack.pop()
-            if 0 <= source < len(array):
-                element = array[source]
-            elif default is NO_DEFAULT:
-                if fatal:
-                    raise ExtractorError(ERROR_MSG, video_id=video_id)
-                self.report_warning(ERROR_MSG, video_id=video_id)
-                return {}
-            else:
-                return default
-
-            if isinstance(element, list) and element and isinstance(element[0], str):
-                if element[0] in ('ShallowReactive', 'Reactive', 'ShallowRef', 'Ref'):
-                    stack.append((target, index, element[1]))
-                elif element[0] == 'Map':
-                    target[index] = {}
-                elif element[0] == 'Set':
-                    target[index] = []
-                else:
-                    target[index] = None
-                    if element[0] not in ('EmptyRef', 'EmptyShallowRef', 'NuxtError'):
-                        self.write_debug(
-                            f'{video_id}: Discarding unsupported type in Nuxt payload: {element[0]}',
-                            only_once=True)
-                continue
-
-            if isinstance(element, list):
-                target[index] = element.copy()
-                for offset, val in enumerate(element):
-                    stack.append((target[index], offset, val))
-
-            elif isinstance(element, dict):
-                target[index] = element.copy()
-                for key, val in element.items():
-                    if isinstance(val, int):
-                        stack.append((target[index], key, val))
-
-            else:
-                target[index] = element
-
-        return result[0]
-
-    def _search_nuxt_json(self, webpage, video_id, *, fatal=True, default=NO_DEFAULT):
-        """Parses metadata from Nuxt rich JSON payloads embedded in HTML"""
         if default is not NO_DEFAULT:
             fatal = False
 
+        # Ref: https://github.com/nuxt/nuxt/commit/9e503be0f2a24f4df72a3ccab2db4d3e63511f57
+        #      https://github.com/nuxt/nuxt/pull/19205
+        def simple_reviver(data):
+            return data
+
+        def empty_reviver(data):
+            return self._parse_json(data, video_id, fatal=fatal, errnote=None if fatal else False)
+
+        try:
+            return devalue.parse(array, revivers={
+                'NuxtError': simple_reviver,
+                'EmptyShallowRef': empty_reviver,
+                'EmptyRef': empty_reviver,
+                'ShallowRef': simple_reviver,
+                'ShallowReactive': simple_reviver,
+                'Ref': simple_reviver,
+                'Reactive': simple_reviver,
+            })
+        except (IndexError, TypeError, ValueError) as e:
+            if default is not NO_DEFAULT:
+                return default
+            error_msg = f'Unable to resolve Nuxt JSON data: {e}'
+            if fatal:
+                raise ExtractorError(error_msg, video_id=video_id)
+            self.report_warning(error_msg, video_id=video_id)
+            return {}
+
+    def _search_nuxt_json(self, webpage, video_id, *, fatal=True, default=NO_DEFAULT):
+        """Parses metadata from Nuxt rich JSON payloads embedded in HTML"""
+        passed_default = default is not NO_DEFAULT
+
         array = self._search_json(
-            r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage, 'Nuxt JSON data', video_id,
-            contains_pattern=r'\[(?s:.+)\]', default=NO_DEFAULT if fatal else [])
+            r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage,
+            'Nuxt JSON data', video_id, contains_pattern=r'\[(?s:.+)\]',
+            fatal=fatal, default=NO_DEFAULT if not passed_default else None)
+
+        if not array:
+            return default if passed_default else {}
 
         return self._resolve_nuxt_array(array, video_id, fatal=fatal, default=default)
 
