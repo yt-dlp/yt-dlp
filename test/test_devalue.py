@@ -141,7 +141,7 @@ TEST_CASES_INVALID = [{
     'name': 'hole',
     'unparsed': -2,
     'error': ValueError,
-    'pattern': r'invalid input',
+    'pattern': r'invalid integer input',
 }, {
     'name': 'string',
     'unparsed': 'hello',
@@ -150,13 +150,13 @@ TEST_CASES_INVALID = [{
 }, {
     'name': 'number',
     'unparsed': 42,
-    'error': KeyError,
-    'pattern': r'42',
+    'error': ValueError,
+    'pattern': r'invalid integer input',
 }, {
     'name': 'boolean',
     'unparsed': True,
-    'error': KeyError,
-    'pattern': r'True',
+    'error': ValueError,
+    'pattern': r'expected int or list as input',
 }, {
     'name': 'null',
     'unparsed': None,
@@ -170,8 +170,8 @@ TEST_CASES_INVALID = [{
 }, {
     'name': 'empty array',
     'unparsed': [],
-    'error': IndexError,
-    'pattern': r'list index out of range',
+    'error': ValueError,
+    'pattern': r'expected a non-empty list as input',
 }, {
     'name': 'Python negative indexing',
     'unparsed': [[1, 2, 3, 4, 5, 6, 7, -7], 1, 2, 3, 4, 5, 6, 7],

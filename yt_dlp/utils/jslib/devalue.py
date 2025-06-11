@@ -43,12 +43,14 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
         -6: -0.0,
     }
 
-    if isinstance(parsed, int):
-        if parsed == -2:
-            raise ValueError('invalid input')
+    if isinstance(parsed, int) and not isinstance(parsed, bool):
+        if parsed not in resolved or parsed == -2:
+            raise ValueError('invalid integer input')
         return resolved[parsed]
     elif not isinstance(parsed, list):
         raise ValueError('expected int or list as input')
+    elif not parsed:
+        raise ValueError('expected a non-empty list as input')
 
     if revivers is None:
         revivers = {}
