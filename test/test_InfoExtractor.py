@@ -2032,38 +2032,51 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 'message': 'Service Unavailable',
             },
         }
-        INVALID_LIST = [
+        PARTIALLY_INVALID = [(
             '''
-                {"data":1},
-                {"invalid_raw_list":2},
-                [15,16,17]
+            {"data":1},
+            {"invalid_raw_list":2},
+            [15,16,17]
+            ''',
+            {'data': {'invalid_raw_list': [None, None, None]}},
+        ), (
+            '''
+            {"data":1},
+            ["EmptyRef",2],
+            "not valid JSON"
+            ''',
+            {'data': None},
+        ), (
+            '''
+            {"data":1},
+            ["EmptyShallowRef",2],
+            "not valid JSON"
+            ''',
+            {'data': None},
+        )]
+        INVALID = [
+            '''
+                []
             ''',
             '''
-                {"data":1},
-                ["EmptyRef",2],
-                "not valid JSON"
-            ''',
-            '''
-                {"data":1},
-                ["EmptyShallowRef",2],
-                "not valid JSON"
-            ''',
-            '''
-                {"data":1},
-                ["unsupported",2],
+                ["unsupported",1],
+                {"data":2},
                 {}
             ''',
         ]
-        DEFAULT = {'default': 'works'}
+        DEFAULT = object()
 
         self.assertEqual(self.ie._search_nuxt_json(HTML_TMPL.format(VALID_DATA), None), PAYLOAD)
         self.assertEqual(self.ie._search_nuxt_json('', None, fatal=False), {})
-        self.assertEqual(self.ie._search_nuxt_json('', None, default=DEFAULT), DEFAULT)
-        self.assertEqual(self.ie._search_nuxt_json(HTML_TMPL.format(INVALID_LIST[0]), None, fatal=False), {})
-        for invalid_data in INVALID_LIST[1:]:
+        self.assertIs(self.ie._search_nuxt_json('', None, default=DEFAULT), DEFAULT)
+
+        for data, expected in PARTIALLY_INVALID:
             self.assertEqual(
-                self.ie._search_nuxt_json(HTML_TMPL.format(invalid_data), None, default=DEFAULT),
-                DEFAULT)
+                self.ie._search_nuxt_json(HTML_TMPL.format(data), None, fatal=False), expected)
+
+        for data in INVALID:
+            self.assertIs(
+                self.ie._search_nuxt_json(HTML_TMPL.format(data), None, default=DEFAULT), DEFAULT)
 
 
 if __name__ == '__main__':
