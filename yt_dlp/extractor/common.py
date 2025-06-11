@@ -1801,23 +1801,23 @@ class InfoExtractor:
         if default is not NO_DEFAULT:
             fatal = False
 
-        # Ref: https://github.com/nuxt/nuxt/commit/9e503be0f2a24f4df72a3ccab2db4d3e63511f57
-        #      https://github.com/nuxt/nuxt/pull/19205
-        def simple_reviver(data):
+        def indirect_reviver(data):
             return data
 
-        def empty_reviver(data):
-            return self._parse_json(data, video_id, fatal=fatal, errnote=None if fatal else False)
+        def json_reviver(data):
+            return json.loads(data)
 
+        # Ref: https://github.com/nuxt/nuxt/commit/9e503be0f2a24f4df72a3ccab2db4d3e63511f57
+        #      https://github.com/nuxt/nuxt/pull/19205
         try:
             return devalue.parse(array, revivers={
-                'NuxtError': simple_reviver,
-                'EmptyShallowRef': empty_reviver,
-                'EmptyRef': empty_reviver,
-                'ShallowRef': simple_reviver,
-                'ShallowReactive': simple_reviver,
-                'Ref': simple_reviver,
-                'Reactive': simple_reviver,
+                'NuxtError': indirect_reviver,
+                'EmptyShallowRef': json_reviver,
+                'EmptyRef': json_reviver,
+                'ShallowRef': indirect_reviver,
+                'ShallowReactive': indirect_reviver,
+                'Ref': indirect_reviver,
+                'Reactive': indirect_reviver,
             })
         except (IndexError, TypeError, ValueError) as e:
             if default is not NO_DEFAULT:
