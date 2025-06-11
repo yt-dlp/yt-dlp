@@ -77,7 +77,12 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
             yield IndexError(f'invalid index: {source!r}')
             continue
 
-        value = parsed[source]
+        try:
+            value = parsed[source]
+        except IndexError as error:
+            yield error
+            continue
+
         if isinstance(value, list):
             if value and isinstance(value[0], str):
                 # TODO: implement zips `strict=True`
