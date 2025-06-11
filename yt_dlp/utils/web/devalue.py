@@ -33,6 +33,7 @@ _ARRAY_TYPE_LOOKUP = {
 
 
 def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Callable[[list], typing.Any]] | None = None):
+    # based on https://github.com/Rich-Harris/devalue/blob/f3fd2aa93d79f21746555671f955a897335edb1b/src/parse.js
     resolved = {
         -1: None,
         -2: None,
@@ -69,6 +70,7 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
             target[index] = resolved[source]
             continue
 
+        # guard against Python negative indexing
         if source < 0:
             yield IndexError(f'invalid index: {source!r}')
             continue
@@ -79,6 +81,7 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
                 # TODO: implement zips `strict=True`
                 if reviver := revivers.get(value[0]):
                     if value[1] == source:
+                        # XXX: avoid infinite loop
                         yield IndexError(f'{value[0]!r} cannot point to itself (index: {source})')
                         continue
                     # inverse order: resolve index, revive value
