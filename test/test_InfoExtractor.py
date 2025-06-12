@@ -1947,6 +1947,137 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(self.ie._search_nextjs_data('', None, default='{}'), {})
 
+    def test_search_nuxt_json(self):
+        HTML_TMPL = '<script data-ssr="true" id="__NUXT_DATA__" type="application/json">[{}]</script>'
+        VALID_DATA = '''
+            ["ShallowReactive",1],
+            {"data":2,"state":21,"once":25,"_errors":28,"_server_errors":30},
+            ["ShallowReactive",3],
+            {"$abcdef123456":4},
+            {"podcast":5,"activeEpisodeData":7},
+            {"podcast":6,"seasons":14},
+            {"title":10,"id":11},
+            ["Reactive",8],
+            {"episode":9,"creators":18,"empty_list":20},
+            {"title":12,"id":13,"refs":34,"empty_refs":35},
+            "Series Title",
+            "podcast-id-01",
+            "Episode Title",
+            "episode-id-99",
+            [15,16,17],
+            1,
+            2,
+            3,
+            [19],
+            "Podcast Creator",
+            [],
+            {"$ssite-config":22},
+            {"env":23,"name":24,"map":26,"numbers":14},
+            "production",
+            "podcast-website",
+            ["Set"],
+            ["Reactive",27],
+            ["Map"],
+            ["ShallowReactive",29],
+            {},
+            ["NuxtError",31],
+            {"status":32,"message":33},
+            503,
+            "Service Unavailable",
+            [36,37],
+            [38,39],
+            ["Ref",40],
+            ["ShallowRef",41],
+            ["EmptyRef",42],
+            ["EmptyShallowRef",43],
+            "ref",
+            "shallow_ref",
+            "{\\"ref\\":1}",
+            "{\\"shallow_ref\\":2}"
+        '''
+        PAYLOAD = {
+            'data': {
+                '$abcdef123456': {
+                    'podcast': {
+                        'podcast': {
+                            'title': 'Series Title',
+                            'id': 'podcast-id-01',
+                        },
+                        'seasons': [1, 2, 3],
+                    },
+                    'activeEpisodeData': {
+                        'episode': {
+                            'title': 'Episode Title',
+                            'id': 'episode-id-99',
+                            'refs': ['ref', 'shallow_ref'],
+                            'empty_refs': [{'ref': 1}, {'shallow_ref': 2}],
+                        },
+                        'creators': ['Podcast Creator'],
+                        'empty_list': [],
+                    },
+                },
+            },
+            'state': {
+                '$ssite-config': {
+                    'env': 'production',
+                    'name': 'podcast-website',
+                    'map': [],
+                    'numbers': [1, 2, 3],
+                },
+            },
+            'once': [],
+            '_errors': {},
+            '_server_errors': {
+                'status': 503,
+                'message': 'Service Unavailable',
+            },
+        }
+        PARTIALLY_INVALID = [(
+            '''
+            {"data":1},
+            {"invalid_raw_list":2},
+            [15,16,17]
+            ''',
+            {'data': {'invalid_raw_list': [None, None, None]}},
+        ), (
+            '''
+            {"data":1},
+            ["EmptyRef",2],
+            "not valid JSON"
+            ''',
+            {'data': None},
+        ), (
+            '''
+            {"data":1},
+            ["EmptyShallowRef",2],
+            "not valid JSON"
+            ''',
+            {'data': None},
+        )]
+        INVALID = [
+            '''
+                []
+            ''',
+            '''
+                ["unsupported",1],
+                {"data":2},
+                {}
+            ''',
+        ]
+        DEFAULT = object()
+
+        self.assertEqual(self.ie._search_nuxt_json(HTML_TMPL.format(VALID_DATA), None), PAYLOAD)
+        self.assertEqual(self.ie._search_nuxt_json('', None, fatal=False), {})
+        self.assertIs(self.ie._search_nuxt_json('', None, default=DEFAULT), DEFAULT)
+
+        for data, expected in PARTIALLY_INVALID:
+            self.assertEqual(
+                self.ie._search_nuxt_json(HTML_TMPL.format(data), None, fatal=False), expected)
+
+        for data in INVALID:
+            self.assertIs(
+                self.ie._search_nuxt_json(HTML_TMPL.format(data), None, default=DEFAULT), DEFAULT)
+
 
 if __name__ == '__main__':
     unittest.main()
