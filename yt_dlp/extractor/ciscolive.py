@@ -2,6 +2,7 @@ import itertools
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     int_or_none,
     parse_qs,
@@ -25,13 +26,19 @@ class CiscoLiveBaseIE(InfoExtractor):
         if endpoint != 'search':
             payload = {'id': some_id}
 
-        return self._download_json(
+        api_resp = self._download_json(
             f'https://events.rainfocus.com/api/{endpoint}', some_id, headers={
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Rfapiprofileid': 'HEedDIRblcZk7Ld3KHm1T0VUtZog9eG9',
                 'Rfauthtoken': self._TOKEN,
                 'Rfwidgetid': 'M7n14I8sz0pklW1vybwVRdKrgdREj8sR',
             }, data=urlencode_postdata(payload, doseq=doseq), **kwargs)
+        if traverse_obj(api_resp, 'responseCode') != '0':
+            msg = traverse_obj(api_resp, ('responseMessage', {str}, filter))
+            raise ExtractorError(
+                msg or 'API returned an error response', expected=bool(msg))
+
+        return api_resp
 
 
 class CiscoLiveSessionIE(CiscoLiveBaseIE):
@@ -149,6 +156,8 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
                     **payload,
                     'from': from_val,
                 }, True, note=f'Downloading page {page}')
+            if not traverse_obj(search, 'sectionList'):
+                return
 
             yield from [self.url_result(
                 f'{self._BASE_URL}/on-demand/on-demand-library.html#/session/{session_id}', CiscoLiveSessionIE)
