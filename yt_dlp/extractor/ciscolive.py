@@ -126,7 +126,7 @@ class CiscoLiveSessionIE(CiscoLiveBaseIE):
 class CiscoLiveSearchIE(CiscoLiveBaseIE):
     IE_NAME = 'ciscolive:search'
 
-    _VALID_URL = r'https?://(?:www\.)?ciscolive\.com/on-demand/on-demand-library\.html'
+    _VALID_URL = r'https?://(?:www\.)?ciscolive\.com/on-demand/on-demand-library\.html\?[^#]+#/(?!session|video)[^/?#]*$'
     _TESTS = [{
         'url': 'https://www.ciscolive.com/on-demand/on-demand-library.html?search.event=1737762187215001jsy4#/',
         'info_dict': {
@@ -140,10 +140,6 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
         },
         'playlist_count': 34,
     }]
-
-    @classmethod
-    def suitable(cls, url):
-        return False if CiscoLiveSessionIE.suitable(url) else super().suitable(url)
 
     def _entries(self, payload):
         from_val = 0
