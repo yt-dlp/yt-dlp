@@ -1,4 +1,5 @@
 from .mtv import MTVServicesInfoExtractor
+from .viacomcbs import ViacomcbsIE
 
 
 class SouthParkIE(MTVServicesInfoExtractor):
@@ -50,7 +51,7 @@ class SouthParkEsIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
     }]
 
 
-class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
+class SouthParkDeIE(ViacomcbsIE):
     IE_NAME = 'southpark.de'
     _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.de/(?:(en/(videoclip|collections|episodes|video-clips))|(videoclip|collections|folgen))/(?P<id>(?P<unique_id>.+?)/.+?)(?:\?|#|$))'
     _TESTS = [{
