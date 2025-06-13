@@ -14,6 +14,7 @@ import json
 
 from test.helper import (
     assertGreaterEqual,
+    assertLessEqual,
     expect_info_dict,
     expect_warnings,
     get_params,
@@ -122,8 +123,10 @@ def generator(test_case, tname):
         params['outtmpl'] = tname + '_' + params['outtmpl']
         if is_playlist and 'playlist' not in test_case:
             params.setdefault('extract_flat', 'in_playlist')
-            params.setdefault('playlistend', test_case.get(
-                'playlist_mincount', test_case.get('playlist_count', -2) + 1))
+            params.setdefault('playlistend', max(
+                test_case.get('playlist_mincount') or -1,
+                (test_case.get('playlist_count') or -2) + 1,
+                (test_case.get('playlist_maxcount') or -2) + 1))
             params.setdefault('skip_download', True)
 
         ydl = YoutubeDL(params, auto_init=False)
@@ -194,27 +197,23 @@ def generator(test_case, tname):
                 self.assertTrue('entries' in res_dict)
                 expect_info_dict(self, res_dict, test_case.get('info_dict', {}))
 
+            num_entries = len(res_dict['entries'])
             if 'playlist_mincount' in test_case:
                 assertGreaterEqual(
-                    self,
-                    len(res_dict['entries']),
-                    test_case['playlist_mincount'],
-                    'Expected at least %d in playlist %s, but got only %d' % (
-                        test_case['playlist_mincount'], test_case['url'],
-                        len(res_dict['entries'])))
+                    self, num_entries, test_case['playlist_mincount'],
+                    f'Expected at least {test_case["playlist_mincount"]} entries '
+                    f'in playlist {test_case["url"]}, but got only {num_entries}')
             if 'playlist_count' in test_case:
+                got_text = num_entries if num_entries <= test_case['playlist_count'] else 'more'
                 self.assertEqual(
-                    len(res_dict['entries']),
-                    test_case['playlist_count'],
-                    'Expected %d entries in playlist %s, but got %d.' % (
-                        test_case['playlist_count'],
-                        test_case['url'],
-                        len(res_dict['entries']),
-                    ))
-            if 'playlist_duration_sum' in test_case:
-                got_duration = sum(e['duration'] for e in res_dict['entries'])
-                self.assertEqual(
-                    test_case['playlist_duration_sum'], got_duration)
+                    num_entries, test_case['playlist_count'],
+                    f'Expected exactly {test_case["playlist_count"]} entries '
+                    f'in playlist {test_case["url"]}, but got {got_text}')
+            if 'playlist_maxcount' in test_case:
+                assertLessEqual(
+                    self, num_entries, test_case['playlist_maxcount'],
+                    f'Expected at most {test_case["playlist_maxcount"]} entries '
+                    f'in playlist {test_case["url"]}, but got more')
 
             # Generalize both playlists and single videos to unified format for
             # simplicity
