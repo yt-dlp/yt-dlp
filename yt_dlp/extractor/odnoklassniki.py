@@ -273,6 +273,8 @@ class OdnoklassnikiIE(InfoExtractor):
             return self._extract_desktop(smuggle_url(url, {'referrer': 'https://boosty.to'}))
         elif error:
             raise ExtractorError(error, expected=True)
+        elif '>Access to this video is restricted</div>' in webpage:
+            self.raise_login_required()
 
         player = self._parse_json(
             unescapeHTML(self._search_regex(
@@ -429,7 +431,7 @@ class OdnoklassnikiIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            f'http://m.ok.ru/video/{video_id}', video_id,
+            f'https://m.ok.ru/video/{video_id}', video_id,
             note='Downloading mobile webpage')
 
         error = self._search_regex(
