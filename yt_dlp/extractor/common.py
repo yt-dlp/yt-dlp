@@ -1744,6 +1744,7 @@ class InfoExtractor:
                 elif is_type(e, 'Article', 'NewsArticle'):
                     info.update(**traverse_obj(e, {
                         'title': ('headline', {str}, {unescapeHTML}),
+                        'alt_title': ('alternativeHeadline', {str}, {unescapeHTML}),
                         'categories': ('articleSection', {str}, {unescapeHTML}, filter, all, filter),
                         'creators': ('author', (None, 'name'), {str}, {unescapeHTML}, filter, all, filter),
                         'description': (('description', 'articleBody'), {str}, {unescapeHTML}, any),
