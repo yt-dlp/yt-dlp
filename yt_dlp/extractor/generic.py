@@ -1010,38 +1010,6 @@ class GenericIE(InfoExtractor):
             },
             'add_ie': ['Kaltura'],
         },
-        # referrer protected EaglePlatform embed
-        {
-            'url': 'https://tvrain.ru/lite/teleshow/kak_vse_nachinalos/namin-418921/',
-            'info_dict': {
-                'id': '582306',
-                'ext': 'mp4',
-                'title': 'Стас Намин: «Мы нарушили девственность Кремля»',
-                'thumbnail': r're:^https?://.*\.jpg$',
-                'duration': 3382,
-                'view_count': int,
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        # ClipYou (EaglePlatform) embed (custom URL)
-        {
-            'url': 'http://muz-tv.ru/play/7129/',
-            # Not checking MD5 as sometimes the direct HTTP link results in 404 and HLS is used
-            'info_dict': {
-                'id': '12820',
-                'ext': 'mp4',
-                'title': "'O Sole Mio",
-                'thumbnail': r're:^https?://.*\.jpg$',
-                'duration': 216,
-                'view_count': int,
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'skip': 'This video is unavailable.',
-        },
         # Pladform embed
         {
             'url': 'http://muz-tv.ru/kinozal/view/7400/',
