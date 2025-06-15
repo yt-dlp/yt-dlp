@@ -1,3 +1,5 @@
+import re
+
 from .common import InfoExtractor
 from ..utils import clean_html, int_or_none, parse_iso8601, urljoin
 from ..utils.traversal import require, traverse_obj
@@ -22,7 +24,7 @@ class MaveIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'duration': 3744,
-            'thumbnail': 'https://api.mave.digital/storage/podcasts/2e0c3749-6df2-4946-82f4-50691419c065/images/f37be842-b1d8-425c-818c-21ebddf16032.jpg',
+            'thumbnail': r're:https://.*/storage/podcasts/2e0c3749-6df2-4946-82f4-50691419c065/images/f37be842-b1d8-425c-818c-21ebddf16032.jpg',
             'series': 'Очень личное',
             'series_id': '2e0c3749-6df2-4946-82f4-50691419c065',
             'season': 'Season 3',
@@ -50,7 +52,7 @@ class MaveIE(InfoExtractor):
             'dislike_count': int,
             'age_limit': 18,
             'duration': 3664,
-            'thumbnail': 'https://api.mave.digital/storage/podcasts/fe9347bf-c009-4ebd-87e8-b06f2f324746/images/985679d7-ccd7-4232-8fe4-5eafca1be190.jpg',
+            'thumbnail': r're:https://.*/storage/podcasts/fe9347bf-c009-4ebd-87e8-b06f2f324746/images/985679d7-ccd7-4232-8fe4-5eafca1be190.jpg',
             'series': 'Все там будем',
             'series_id': 'fe9347bf-c009-4ebd-87e8-b06f2f324746',
             'season': 'Season 2',
@@ -77,12 +79,12 @@ class MaveIE(InfoExtractor):
             'channel_id': channel_id,
             'channel_url': f'https://{channel_id}.mave.digital/',
             'vcodec': 'none',
+            'thumbnail': self._extract_thumbnail(webpage),
             **traverse_obj(data, ('activeEpisodeData', {
                 'url': ('audio', {urljoin(self._API_BASE_URL)}),
                 'id': ('id', {str}),
                 'title': ('title', {str}),
                 'description': ('description', {clean_html}),
-                'thumbnail': ('image', {urljoin(self._API_BASE_URL)}),
                 'duration': ('duration', {int_or_none}),
                 'season_number': ('season', {int_or_none}),
                 'episode_number': ('number', {int_or_none}),
@@ -99,3 +101,12 @@ class MaveIE(InfoExtractor):
                 'uploader': ('author', {str}),
             })),
         }
+
+    def _extract_thumbnail(self, webpage):
+        # _API_BASE_URL could be used only to download mp3 file itself, not thumbnail.
+        # To get link to thumbnail we should use URL resolved to specific server
+        # E.g. https://ru-msk-dr3-1.store.cloud.mts.ru/, which could be loaded from og tags.
+        trimmed_thumbnail = self._og_search_thumbnail(webpage)
+        # To get link to base image, not trimmed one, remove postfix with resolution.
+        # E.g 123456789_600.jpg -> 123456789.jpg
+        return re.sub(r'_\d+(?=\.)', '', trimmed_thumbnail)
