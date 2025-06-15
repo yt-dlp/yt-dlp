@@ -570,10 +570,6 @@ from .dw import (
     DWIE,
     DWArticleIE,
 )
-from .eagleplatform import (
-    ClipYouEmbedIE,
-    EaglePlatformIE,
-)
 from .ebaumsworld import EbaumsWorldIE
 from .ebay import EbayIE
 from .egghead import (
