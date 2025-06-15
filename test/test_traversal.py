@@ -416,18 +416,8 @@ class TestTraversal:
             '`any` should allow further branching'
 
     def test_traversal_morsel(self):
-        values = {
-            'expires': 'a',
-            'path': 'b',
-            'comment': 'c',
-            'domain': 'd',
-            'max-age': 'e',
-            'secure': 'f',
-            'httponly': 'g',
-            'version': 'h',
-            'samesite': 'i',
-        }
         morsel = http.cookies.Morsel()
+        values = dict(zip(morsel, 'abcdefghijklmnop'))
         morsel.set('item_key', 'item_value', 'coded_value')
         morsel.update(values)
         values['key'] = 'item_key'
