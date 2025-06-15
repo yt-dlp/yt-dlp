@@ -35,6 +35,7 @@ from ...utils import (
 class _PoTokenContext(enum.Enum):
     PLAYER = 'player'
     GVS = 'gvs'
+    SUBS = 'subs'
 
 
 # any clients starting with _ cannot be explicitly requested by the user
@@ -173,6 +174,15 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
         'SUPPORTS_COOKIES': True,
+    },
+    'tv_simply': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5_SIMPLY',
+                'clientVersion': '1.0',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 75,
     },
     # This client now requires sign-in for every video
     # It was previously an age-gate workaround for videos that were `playable_in_embed`
@@ -417,6 +427,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _NETRC_MACHINE = 'youtube'
 
+    _COOKIE_HOWTO_WIKI_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies'
+
     def ucid_or_none(self, ucid):
         return self._search_regex(rf'^({self._YT_CHANNEL_UCID_RE})$', ucid, 'UC-id', default=None)
 
@@ -451,17 +463,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return preferred_lang
 
     def _initialize_consent(self):
-        cookies = self._get_cookies('https://www.youtube.com/')
-        if cookies.get('__Secure-3PSID'):
+        if self._has_auth_cookies:
             return
-        socs = cookies.get('SOCS')
+        socs = self._youtube_cookies.get('SOCS')
         if socs and not socs.value.startswith('CAA'):  # not consented
             return
         self._set_cookie('.youtube.com', 'SOCS', 'CAI', secure=True)  # accept all (required for mixes)
 
     def _initialize_pref(self):
-        cookies = self._get_cookies('https://www.youtube.com/')
-        pref_cookie = cookies.get('PREF')
+        pref_cookie = self._youtube_cookies.get('PREF')
         pref = {}
         if pref_cookie:
             try:
@@ -472,8 +482,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         self._set_cookie('.youtube.com', name='PREF', value=urllib.parse.urlencode(pref))
 
     def _initialize_cookie_auth(self):
-        yt_sapisid, yt_1psapisid, yt_3psapisid = self._get_sid_cookies()
-        if yt_sapisid or yt_1psapisid or yt_3psapisid:
+        self._passed_auth_cookies = False
+        if self._has_auth_cookies:
+            self._passed_auth_cookies = True
             self.write_debug('Found YouTube account cookies')
 
     def _real_initialize(self):
@@ -492,8 +503,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     @property
     def _youtube_login_hint(self):
-        return (f'{self._login_hint(method="cookies")}. Also see  '
-                'https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  '
+        return (f'{self._login_hint(method="cookies")}. Also see  {self._COOKIE_HOWTO_WIKI_URL}  '
                 'for tips on effectively exporting YouTube cookies')
 
     def _check_login_required(self):
@@ -553,12 +563,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         return f'{scheme} {"_".join(parts)}'
 
+    @property
+    def _youtube_cookies(self):
+        return self._get_cookies('https://www.youtube.com')
+
     def _get_sid_cookies(self):
         """
         Get SAPISID, 1PSAPISID, 3PSAPISID cookie values
         @returns sapisid, 1psapisid, 3psapisid
         """
-        yt_cookies = self._get_cookies('https://www.youtube.com')
+        yt_cookies = self._youtube_cookies
         yt_sapisid = try_call(lambda: yt_cookies['SAPISID'].value)
         yt_3papisid = try_call(lambda: yt_cookies['__Secure-3PAPISID'].value)
         yt_1papisid = try_call(lambda: yt_cookies['__Secure-1PAPISID'].value)
@@ -594,6 +608,31 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return None
 
         return ' '.join(authorizations)
+
+    @property
+    def is_authenticated(self):
+        return self._has_auth_cookies
+
+    @property
+    def _has_auth_cookies(self):
+        yt_sapisid, yt_1psapisid, yt_3psapisid = self._get_sid_cookies()
+        # YouTube doesn't appear to clear 3PSAPISID when rotating cookies (as of 2025-04-26)
+        # But LOGIN_INFO is cleared and should exist if logged in
+        has_login_info = 'LOGIN_INFO' in self._youtube_cookies
+        return bool(has_login_info and (yt_sapisid or yt_1psapisid or yt_3psapisid))
+
+    def _request_webpage(self, *args, **kwargs):
+        response = super()._request_webpage(*args, **kwargs)
+
+        # Check that we are still logged-in and cookies have not rotated after every request
+        if getattr(self, '_passed_auth_cookies', None) and not self._has_auth_cookies:
+            self.report_warning(
+                'The provided YouTube account cookies are no longer valid. '
+                'They have likely been rotated in the browser as a security measure. '
+                f'For tips on how to effectively export YouTube cookies, refer to  {self._COOKIE_HOWTO_WIKI_URL} .',
+                only_once=False)
+
+        return response
 
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
                   note='Downloading API JSON', errnote='Unable to download API page',
@@ -695,10 +734,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             args, [('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))],
             expected_type=str)
 
-    @functools.cached_property
-    def is_authenticated(self):
-        return bool(self._get_sid_authorization_header())
-
     def extract_ytcfg(self, video_id, webpage):
         if not webpage:
             return {}
@@ -762,6 +797,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _download_ytcfg(self, client, video_id):
         url = {
+            'mweb': 'https://m.youtube.com',
             'web': 'https://www.youtube.com',
             'web_music': 'https://music.youtube.com',
             'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1',

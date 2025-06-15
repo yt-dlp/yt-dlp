@@ -20,6 +20,7 @@ class TruTVIE(TurnerBaseIE):
             'skip_download': True,
         },
     }
+    _SOFTWARE_STATEMENT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJhYzQyOTkwMi0xMDYzLTQyNTQtYWJlYS1iZTY2ODM4MTVmZGIiLCJuYmYiOjE1MzcxOTA4NjgsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTM3MTkwODY4fQ.ewXl5LDMDvvx3nDXV4jCdSwUq_sOluKoOVsIjznAo6Zo4zrGe9rjlZ9DOmQKW66g6VRMexJsJ5vM1EkY8TC5-YcQw_BclK1FPGO1rH3Wf7tX_l0b1BVbSJQKIj9UgqDp_QbGcBXz24kN4So3U22mhs6di9PYyyfG68ccKL2iRprcVKWCslIHwUF-T7FaEqb0K57auilxeW1PONG2m-lIAcZ62DUwqXDWvw0CRoWI08aVVqkkhnXaSsQfLs5Ph1Pfh9Oq3g_epUm9Ss45mq6XM7gbOb5omTcKLADRKK-PJVB_JXnZnlsXbG0ttKE1cTKJ738qu7j4aipYTf-W0nKF5Q'
 
     def _real_extract(self, url):
         series_slug, clip_slug, video_id = self._match_valid_url(url).groups()
@@ -39,7 +40,7 @@ class TruTVIE(TurnerBaseIE):
         title = video_data['title'].strip()
 
         info = self._extract_ngtv_info(
-            media_id, {}, {
+            media_id, {}, self._SOFTWARE_STATEMENT, {
                 'url': url,
                 'site_name': 'truTV',
                 'auth_required': video_data.get('isAuthRequired'),

@@ -490,7 +490,7 @@ class YoutubeDL:
                        The template is mapped on a dictionary with keys 'progress' and 'info'
     retry_sleep_functions: Dictionary of functions that takes the number of attempts
                        as argument and returns the time to sleep in seconds.
-                       Allowed keys are 'http', 'fragment', 'file_access'
+                       Allowed keys are 'http', 'fragment', 'file_access', 'extractor'
     download_ranges:   A callback function that gets called for every video with
                        the signature (info_dict, ydl) -> Iterable[Section].
                        Only the returned sections will be downloaded.
@@ -640,6 +640,7 @@ class YoutubeDL:
         self._printed_messages = set()
         self._first_webpage_request = True
         self._post_hooks = []
+        self._close_hooks = []
         self._progress_hooks = []
         self._postprocessor_hooks = []
         self._download_retcode = 0
@@ -908,6 +909,11 @@ class YoutubeDL:
         """Add the post hook"""
         self._post_hooks.append(ph)
 
+    def add_close_hook(self, ch):
+        """Add a close hook, called when YoutubeDL.close() is called"""
+        assert callable(ch), 'Close hook must be callable'
+        self._close_hooks.append(ch)
+
     def add_progress_hook(self, ph):
         """Add the download progress hook"""
         self._progress_hooks.append(ph)
@@ -1015,6 +1021,9 @@ class YoutubeDL:
         if '_request_director' in self.__dict__:
             self._request_director.close()
             del self._request_director
+
+        for close_hook in self._close_hooks:
+            close_hook()
 
     def trouble(self, message=None, tb=None, is_error=True):
         """Determine action to take when a download problem appears.

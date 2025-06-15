@@ -300,7 +300,6 @@ from .brainpop import (
     BrainPOPIlIE,
     BrainPOPJrIE,
 )
-from .bravotv import BravoTVIE
 from .breitbart import BreitBartIE
 from .brightcove import (
     BrightcoveLegacyIE,
@@ -338,7 +337,6 @@ from .canalc2 import Canalc2IE
 from .canalplus import CanalplusIE
 from .canalsurmas import CanalsurmasIE
 from .caracoltv import CaracolTvPlayIE
-from .cartoonnetwork import CartoonNetworkIE
 from .cbc import (
     CBCIE,
     CBCGemIE,
@@ -929,7 +927,10 @@ from .jiocinema import (
 )
 from .jiosaavn import (
     JioSaavnAlbumIE,
+    JioSaavnArtistIE,
     JioSaavnPlaylistIE,
+    JioSaavnShowIE,
+    JioSaavnShowPlaylistIE,
     JioSaavnSongIE,
 )
 from .joj import JojIE
@@ -1042,6 +1043,7 @@ from .limelight import (
     LimelightMediaIE,
 )
 from .linkedin import (
+    LinkedInEventsIE,
     LinkedInIE,
     LinkedInLearningCourseIE,
     LinkedInLearningIE,
@@ -1259,6 +1261,7 @@ from .nba import (
 )
 from .nbc import (
     NBCIE,
+    BravoTVIE,
     NBCNewsIE,
     NBCOlympicsIE,
     NBCOlympicsStreamIE,
@@ -1266,6 +1269,7 @@ from .nbc import (
     NBCSportsStreamIE,
     NBCSportsVPlayerIE,
     NBCStationsIE,
+    SyfyIE,
 )
 from .ndr import (
     NDRIE,
@@ -1783,7 +1787,6 @@ from .rtvcplay import (
 from .rtve import (
     RTVEALaCartaIE,
     RTVEAudioIE,
-    RTVEInfantilIE,
     RTVELiveIE,
     RTVETelevisionIE,
 )
@@ -1964,7 +1967,6 @@ from .spreaker import (
     SpreakerShowIE,
 )
 from .springboardplatform import SpringboardPlatformIE
-from .sprout import SproutIE
 from .sproutvideo import (
     SproutVideoIE,
     VidsIoIE,
@@ -2015,13 +2017,11 @@ from .sverigesradio import (
     SverigesRadioPublicationIE,
 )
 from .svt import (
-    SVTIE,
     SVTPageIE,
     SVTPlayIE,
     SVTSeriesIE,
 )
 from .swearnet import SwearnetEpisodeIE
-from .syfy import SyfyIE
 from .syvdk import SYVDKIE
 from .sztvhu import SztvHuIE
 from .tagesschau import TagesschauIE
@@ -2146,6 +2146,7 @@ from .toggle import (
 from .toggo import ToggoIE
 from .tonline import TOnlineIE
 from .toongoggles import ToonGogglesIE
+from .toutiao import ToutiaoIE
 from .toutv import TouTvIE
 from .toypics import (
     ToypicsIE,
@@ -2237,7 +2238,10 @@ from .tvplay import (
     TVPlayIE,
 )
 from .tvplayer import TVPlayerIE
-from .tvw import TvwIE
+from .tvw import (
+    TvwIE,
+    TvwTvChannelsIE,
+)
 from .tweakers import TweakersIE
 from .twentymin import TwentyMinutenIE
 from .twentythreevideo import TwentyThreeVideoIE
@@ -2365,6 +2369,7 @@ from .vimeo import (
     VHXEmbedIE,
     VimeoAlbumIE,
     VimeoChannelIE,
+    VimeoEventIE,
     VimeoGroupsIE,
     VimeoIE,
     VimeoLikesIE,

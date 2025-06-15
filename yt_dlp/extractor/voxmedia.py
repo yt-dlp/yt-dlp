@@ -1,7 +1,6 @@
 import urllib.parse
 
 from .common import InfoExtractor
-from .once import OnceIE
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -10,7 +9,7 @@ from ..utils import (
 )
 
 
-class VoxMediaVolumeIE(OnceIE):
+class VoxMediaVolumeIE(InfoExtractor):
     _VALID_URL = r'https?://volume\.vox-cdn\.com/embed/(?P<id>[0-9a-f]{9})'
 
     def _real_extract(self, url):
@@ -57,7 +56,8 @@ class VoxMediaVolumeIE(OnceIE):
             if not provider_video_id:
                 continue
             if provider_video_type == 'brightcove':
-                info['formats'] = self._extract_once_formats(provider_video_id)
+                # TODO: Find embed example or confirm that Vox has stopped using Brightcove
+                raise ExtractorError('Vox Brightcove embeds are currently unsupported')
             else:
                 info.update({
                     '_type': 'url_transparent',
@@ -155,20 +155,6 @@ class VoxMediaIE(InfoExtractor):
             },
         }],
         'skip': 'Page no longer contain videos',
-    }, {
-        # volume embed, Brightcove Once
-        'url': 'https://www.recode.net/2014/6/17/11628066/post-post-pc-ceo-the-full-code-conference-video-of-microsofts-satya',
-        'md5': '2dbc77b8b0bff1894c2fce16eded637d',
-        'info_dict': {
-            'id': '1231c973d',
-            'ext': 'mp4',
-            'title': 'Post-Post-PC CEO: The Full Code Conference Video of Microsoft\'s Satya Nadella',
-            'description': 'The longtime veteran was chosen earlier this year as the software giant\'s third leader in its history.',
-            'timestamp': 1402938000,
-            'upload_date': '20140616',
-            'duration': 4114,
-        },
-        'add_ie': ['VoxMediaVolume'],
     }]
 
     def _real_extract(self, url):
