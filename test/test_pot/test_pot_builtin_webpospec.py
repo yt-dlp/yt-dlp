@@ -49,7 +49,7 @@ class TestWebPoPCSP:
 
     @pytest.mark.parametrize('client_name, context, is_authenticated, remote_host, source_address, request_proxy, expected', [
         *[(client, context, is_authenticated, remote_host, source_address, request_proxy, expected) for client in [
-            'WEB', 'MWEB', 'TVHTML5', 'WEB_EMBEDDED_PLAYER', 'WEB_CREATOR', 'TVHTML5_SIMPLY_EMBEDDED_PLAYER']
+            'WEB', 'MWEB', 'TVHTML5', 'WEB_EMBEDDED_PLAYER', 'WEB_CREATOR', 'TVHTML5_SIMPLY_EMBEDDED_PLAYER', 'TVHTML5_SIMPLY']
           for context, is_authenticated, remote_host, source_address, request_proxy, expected in [
             (PoTokenContext.GVS, False, 'example-remote-host', 'example-source-address', 'example-request-proxy', {'t': 'webpo', 'ip': 'example-remote-host', 'sa': 'example-source-address', 'px': 'example-request-proxy', 'cb': '123abcXYZ_-', 'cbt': 'visitor_id'}),
             (PoTokenContext.PLAYER, False, 'example-remote-host', 'example-source-address', 'example-request-proxy', {'t': 'webpo', 'ip': 'example-remote-host', 'sa': 'example-source-address', 'px': 'example-request-proxy', 'cb': '123abcXYZ_-', 'cbt': 'video_id'}),
