@@ -1,7 +1,7 @@
-from ..compat.compat_utils import passthrough_module
-from ..globals import extractors as _extractors_context
-from ..globals import plugin_ies as _plugin_ies_context
-from ..plugins import PluginSpec, register_plugin_spec
+from yt_dlp.compat.compat_utils import passthrough_module
+from yt_dlp.globals import extractors as _extractors_context
+from yt_dlp.globals  import plugin_ies as _plugin_ies_context
+from yt_dlp.plugins import PluginSpec, register_plugin_spec
 
 passthrough_module(__name__, '.extractors')
 del passthrough_module
