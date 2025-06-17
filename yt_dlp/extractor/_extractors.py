@@ -646,6 +646,7 @@ from .fc2 import (
     FC2LiveIE,
 )
 from .fczenit import FczenitIE
+from .fenomiostream import FenomioStreamIE
 from .fifa import FifaIE
 from .filmon import (
     FilmOnChannelIE,
