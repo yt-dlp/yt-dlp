@@ -9,18 +9,18 @@ from ..utils import (
     int_or_none,
     parse_qs,
     traverse_obj,
-    try_get,  
-    write_string,
+    try_get,
     urlencode_postdata,
+    write_string,
 )
 
 
 class CiscoLiveBaseIE(InfoExtractor):
     # These appear to be constant across all Cisco Live presentations
     # and are not tied to any user session or event
-    RAINFOCUS_API_URL = 'https://events.rainfocus.com/api/%s' 
-    RAINFOCUS_API_PROFILE_ID = 'HEedDIRblcZk7Ld3KHm1T0VUtZog9eG9' 
-    RAINFOCUS_WIDGET_ID = 'M7n14I8sz0pklW1vybwVRdKrgdREj8sR'      
+    RAINFOCUS_API_URL = 'https://events.rainfocus.com/api/%s'
+    RAINFOCUS_API_PROFILE_ID = 'HEedDIRblcZk7Ld3KHm1T0VUtZog9eG9'
+    RAINFOCUS_WIDGET_ID = 'M7n14I8sz0pklW1vybwVRdKrgdREj8sR'
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/5647924234001/SyK2FdqjM_default/index.html?videoId=%s'
     # Origin header will be set dynamically in _call_api
     HEADERS = {
@@ -56,7 +56,7 @@ class CiscoLiveBaseIE(InfoExtractor):
             duration = duration * 60
 
         return {
-            '_type': 'url_transparent',  
+            '_type': 'url_transparent',
             'url': bc_url,
             'ie_key': 'BrightcoveNew',
             'title': title,
@@ -137,7 +137,7 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
         current_page_query['from'] = 0
 
         for page_num in itertools.count(1):
-            self.write_debug(f"Querying API page {page_num} with params: {current_page_query}")
+            self.write_debug(f'Querying API page {page_num} with params: {current_page_query}')
             results = self._call_api(
                 'search', None, current_page_query, url,
                 f'Downloading search JSON page {page_num}')
@@ -148,11 +148,11 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
 
             sl = traverse_obj(results, ('sectionList', 0, {dict}))
 
-           
-            items_data_source = results  
+
+            items_data_source = results
             source_name_for_debug = 'root of results'
 
-            if sl: 
+            if sl:
                 if isinstance(sl.get('items'), list):
                     self.write_debug('Using items, total, and size from sectionList[0]')
                     items_data_source = sl
@@ -161,12 +161,8 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
                     self.write_debug(
                         'sectionList[0] exists but has no "items" key. '
                         'Using items, total, and size from root of results (if available).')
-                  
-                  
             else:
                 self.write_debug('No sectionList found. Using items, total, and size from root of results.')
-                
-                
 
             items = items_data_source.get('items')
             if not items or not isinstance(items, list):
@@ -192,12 +188,12 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
                     f'current "from": {current_page_query["from"]}, "size": {current_page_size}.')
                 break
 
-            if not items and page_num > 1: 
+            if not items and page_num > 1:
                 self.write_debug('No items found on subsequent page, stopping pagination.')
                 break
 
             current_page_query['from'] += current_page_size
-            if page_size_from_response is not None: 
+            if page_size_from_response is not None:
                 current_page_query['size'] = page_size_from_response
 
     def _real_extract(self, url):
