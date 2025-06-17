@@ -1,4 +1,3 @@
-from .common import InfoExtractor
 from .streaks import StreaksBaseIE
 from ..utils import (
     clean_html,
@@ -9,7 +8,12 @@ from ..utils import (
 from ..utils.traversal import find_element, traverse_obj
 
 
-class TBSJPEpisodeIE(StreaksBaseIE):
+class TBSJPBaseIE(StreaksBaseIE):
+    def _window_app(self, webpage, name, item_id, fatal=True):
+        return self._search_json(r'window\.app\s*=', webpage, f'{name} info', item_id, fatal=fatal)
+
+
+class TBSJPEpisodeIE(TBSJPBaseIE):
     _VALID_URL = r'https?://cu\.tbs\.co\.jp/episode/(?P<id>[\d_]+)'
     _GEO_BYPASS = False
     _TESTS = [{
@@ -41,7 +45,7 @@ class TBSJPEpisodeIE(StreaksBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        meta = self._search_json(r'window\.app\s*=', webpage, 'episode info', video_id, fatal=False)
+        meta = self._window_app(webpage, 'episode', video_id)
         episode = traverse_obj(meta, ('falcorCache', 'catalog', 'episode', video_id, 'value'))
 
         return {
@@ -62,7 +66,7 @@ class TBSJPEpisodeIE(StreaksBaseIE):
         }
 
 
-class TBSJPProgramIE(InfoExtractor):
+class TBSJPProgramIE(TBSJPBaseIE):
     _VALID_URL = r'https?://cu\.tbs\.co\.jp/program/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://cu.tbs.co.jp/program/14694',
@@ -79,8 +83,7 @@ class TBSJPProgramIE(InfoExtractor):
     def _real_extract(self, url):
         programme_id = self._match_id(url)
         webpage = self._download_webpage(url, programme_id)
-        meta = self._search_json(r'window\.app\s*=', webpage, 'programme info', programme_id)
-
+        meta = self._window_app(webpage, 'programme', programme_id)
         programme = traverse_obj(meta, ('falcorCache', 'catalog', 'program', programme_id, 'false', 'value'))
 
         return {
@@ -98,7 +101,7 @@ class TBSJPProgramIE(InfoExtractor):
         }
 
 
-class TBSJPPlaylistIE(InfoExtractor):
+class TBSJPPlaylistIE(TBSJPBaseIE):
     _VALID_URL = r'https?://cu\.tbs\.co\.jp/playlist/(?P<id>[\da-f]+)'
     _TESTS = [{
         'url': 'https://cu.tbs.co.jp/playlist/184f9970e7ba48e4915f1b252c55015e',
@@ -111,8 +114,8 @@ class TBSJPPlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        page = self._download_webpage(url, playlist_id)
-        meta = self._search_json(r'window\.app\s*=', page, 'playlist info', playlist_id)
+        webpage = self._download_webpage(url, playlist_id)
+        meta = self._window_app(webpage, 'playlist', playlist_id)
         playlist = traverse_obj(meta, ('falcorCache', 'playList', playlist_id))
 
         def entries():
