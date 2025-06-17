@@ -16,7 +16,6 @@ class TBSJPBaseIE(StreaksBaseIE):
 
 class TBSJPEpisodeIE(TBSJPBaseIE):
     _VALID_URL = r'https?://cu\.tbs\.co\.jp/episode/(?P<id>[\d_]+)'
-    _GEO_BYPASS = False
     _TESTS = [{
         'url': 'https://cu.tbs.co.jp/episode/14694_2090934_1000117476',
         'skip': 'geo-blocked to japan + 7-day expiry',
