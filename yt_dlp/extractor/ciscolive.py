@@ -120,7 +120,7 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
     def suitable(cls, url):
         return False if CiscoLiveSessionIE.suitable(url) else super().suitable(url)
 
-    def _check_bc_id_exists(self, rf_item):
+    def _check_bc_id_exists(self, rf_item):  # noqa: B027
         if not isinstance(rf_item, dict) or not isinstance(rf_item.get('videos'), list) or not rf_item['videos']:
             self.write_debug(f'Item missing "videos" list or "videos" is not a list/empty: {rf_item.get("title", rf_item.get("id", "Unknown item"))}')
             return False
@@ -145,8 +145,7 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
                 write_string(json.dumps(results, indent=2) + '\n\n')
 
             sl = traverse_obj(results, ('sectionList', 0, {dict}))
-
-
+            
             items_data_source = results
             source_name_for_debug = 'root of results'
 
@@ -158,7 +157,7 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
                 else:
                     self.write_debug(
                         'sectionList[0] exists but has no "items" key. '
-                        'Using items, total, and size from root of results (if available).') # noqa: Q000
+                        'Using items, total, and size from root of results (if available).')  # noqa: Q000
             else:
                 self.write_debug('No sectionList found. Using items, total, and size from root of results.')
 
