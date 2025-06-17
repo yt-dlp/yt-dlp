@@ -1,17 +1,15 @@
 from .common import InfoExtractor
-from ..networking.exceptions import HTTPError
+from .streaks import StreaksBaseIE
 from ..utils import (
-    ExtractorError,
     clean_html,
     int_or_none,
     str_or_none,
     unified_timestamp,
-    urljoin,
 )
 from ..utils.traversal import find_element, traverse_obj
 
 
-class TBSJPEpisodeIE(InfoExtractor):
+class TBSJPEpisodeIE(StreaksBaseIE):
     _VALID_URL = r'https?://cu\.tbs\.co\.jp/episode/(?P<id>[\d_]+)'
     _GEO_BYPASS = False
     _TESTS = [{
@@ -40,28 +38,8 @@ class TBSJPEpisodeIE(InfoExtractor):
         meta = self._search_json(r'window\.app\s*=', webpage, 'episode info', video_id, fatal=False)
         episode = traverse_obj(meta, ('falcorCache', 'catalog', 'episode', video_id, 'value'))
 
-        tf_path = self._search_regex(
-            r'<script[^>]+src=["\'](/assets/tf\.[^"\']+\.js)["\']', webpage, 'stream API config')
-        tf_js = self._download_webpage(urljoin(url, tf_path), video_id, note='Downloading stream API config')
-        video_url = self._search_regex(r'videoPlaybackUrl:\s*[\'"]([^\'"]+)[\'"]', tf_js, 'stream API url')
-        api_key = self._search_regex(r'api_key:\s*[\'"]([^\'"]+)[\'"]', tf_js, 'stream API key')
-
-        try:
-            source_meta = self._download_json(f'{video_url}ref:{video_id}', video_id,
-                                              headers={'X-Streaks-Api-Key': api_key},
-                                              note='Downloading stream metadata')
-        except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
-                self.raise_geo_restricted(countries=['JP'])
-            raise
-
-        formats, subtitles = [], {}
-        for src in traverse_obj(source_meta, ('sources', ..., 'src')):
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(src, video_id, fatal=False)
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
-
         return {
+            **self._extract_from_streaks_api('tbs', f'ref:{video_id}', headers={'Referer': 'https://cu.tbs.co.jp/'}),
             'title': traverse_obj(webpage, ({find_element(tag='h3')}, {clean_html})),
             'id': video_id,
             **traverse_obj(episode, {
@@ -75,8 +53,6 @@ class TBSJPEpisodeIE(InfoExtractor):
                 'episode': ('title', lambda _, v: not v.get('is_phonetic'), 'value'),
                 'series': ('custom_data', 'program_name'),
             }, get_all=False),
-            'formats': formats,
-            'subtitles': subtitles,
         }
 
 
