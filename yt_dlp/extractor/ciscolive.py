@@ -3,10 +3,12 @@ import itertools
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
+    urllib,  # Add this import
     float_or_none,
     int_or_none,
     parse_qs,
     try_get,
+    write_string,
     urlencode_postdata,
 )
 
@@ -14,13 +16,12 @@ from ..utils import (
 class CiscoLiveBaseIE(InfoExtractor):
     # These appear to be constant across all Cisco Live presentations
     # and are not tied to any user session or event
-    RAINFOCUS_API_URL = 'https://events.rainfocus.com/api/%s'
-    RAINFOCUS_API_PROFILE_ID = 'Na3vqYdAlJFSxhYTYQGuMbpafMqftalz'
-    RAINFOCUS_WIDGET_ID = 'n6l4Lo05R8fiy3RpUBm447dZN8uNWoye'
+    RAINFOCUS_API_URL = 'https://events.rainfocus.com/api/%s' # Keep this as is
+    RAINFOCUS_API_PROFILE_ID = 'HEedDIRblcZk7Ld3KHm1T0VUtZog9eG9' # Updated from browser
+    RAINFOCUS_WIDGET_ID = 'M7n14I8sz0pklW1vybwVRdKrgdREj8sR'      # Updated from browser
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/5647924234001/SyK2FdqjM_default/index.html?videoId=%s'
-
+    # Origin header will be set dynamically in _call_api
     HEADERS = {
-        'Origin': 'https://ciscolive.cisco.com',
         'rfApiProfileId': RAINFOCUS_API_PROFILE_ID,
         'rfWidgetId': RAINFOCUS_WIDGET_ID,
     }
@@ -28,6 +29,13 @@ class CiscoLiveBaseIE(InfoExtractor):
     def _call_api(self, ep, rf_id, query, referrer, note=None):
         headers = self.HEADERS.copy()
         headers['Referer'] = referrer
+        # Dynamically set Origin based on the referrer URL's scheme and hostname
+        parsed_referrer = urllib.parse.urlparse(referrer)
+        if parsed_referrer.scheme and parsed_referrer.hostname:
+            headers['Origin'] = f'{parsed_referrer.scheme}://{parsed_referrer.hostname}'
+        else:
+            # Fallback, though referrer should always be a full URL here
+            headers['Origin'] = 'https://www.ciscolive.com'
         return self._download_json(
             self.RAINFOCUS_API_URL % ep, rf_id, note=note,
             data=urlencode_postdata(query), headers=headers)
@@ -88,7 +96,7 @@ class CiscoLiveSessionIE(CiscoLiveBaseIE):
 
 
 class CiscoLiveSearchIE(CiscoLiveBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?ciscolive(?:\.cisco)?\.com/(?:global/)?on-demand-library(?:\.html|/)'
+    _VALID_URL = r'https?://(?:www\.)?ciscolive(?:\.cisco)?\.com/(?:(?:global|on-demand)/)?on-demand-library(?:\.html|/)'
     _TESTS = [{
         'url': 'https://ciscolive.cisco.com/on-demand-library/?search.event=ciscoliveus2018&search.technicallevel=scpsSkillLevel_aintroductory&search.focus=scpsSessionFocus_designAndDeployment#/',
         'info_dict': {
@@ -101,45 +109,126 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
     }, {
         'url': 'https://www.ciscolive.com/global/on-demand-library.html?search.technicallevel=scpsSkillLevel_aintroductory&search.event=ciscoliveemea2019&search.technology=scpsTechnology_dataCenter&search.focus=scpsSessionFocus_bestPractices#/',
         'only_matching': True,
+    }, {
+        'url': 'https://www.ciscolive.com/on-demand/on-demand-library.html?search.technology=1604969230267001eE2f',
+        'only_matching': True,
     }]
 
     @classmethod
     def suitable(cls, url):
         return False if CiscoLiveSessionIE.suitable(url) else super().suitable(url)
 
-    @staticmethod
-    def _check_bc_id_exists(rf_item):
+    def _check_bc_id_exists(self, rf_item):
+        # Ensure rf_item is a dictionary and 'videos' key exists and is a list
+        if not isinstance(rf_item, dict) or not isinstance(rf_item.get('videos'), list) or not rf_item['videos']:
+            self.write_debug(f"Item missing 'videos' list or 'videos' is not a list/empty: {rf_item.get('title', rf_item.get('id', 'Unknown item'))}")
+            return False
+        # Ensure the first video entry has a 'url'
+        if not isinstance(rf_item['videos'][0], dict) or 'url' not in rf_item['videos'][0]:
+            self.write_debug(f"Item's first video entry missing 'url': {rf_item.get('title', rf_item.get('id', 'Unknown item'))}")
+            return False
         return int_or_none(try_get(rf_item, lambda x: x['videos'][0]['url'])) is not None
 
     def _entries(self, query, url):
-        query['size'] = 50
-        query['from'] = 0
+        # query is the processed query from _real_extract
+        # It should contain parameters like 'technology', 'event', 'type'
+        current_page_query = query.copy()
+        current_page_query['size'] = 50
+        current_page_query['from'] = 0
+
         for page_num in itertools.count(1):
+            self.write_debug(f"Querying API page {page_num} with params: {current_page_query}")
             results = self._call_api(
-                'search', None, query, url,
+                'search', None, current_page_query, url,
                 f'Downloading search JSON page {page_num}')
+
+            if self.get_param('verbose'):
+                write_string(f"\n\n[debug] API response for page {page_num}:\n")
+                import json
+                write_string(json.dumps(results, indent=2) + "\n\n")
+
             sl = try_get(results, lambda x: x['sectionList'][0], dict)
-            if sl:
-                results = sl
-            items = results.get('items')
+
+            # Determine the source of items and pagination data
+            items_data_source = results  # Default to root
+            source_name_for_debug = "root of results"
+
+            if sl: # if sectionList[0] exists
+                # Check if this first section itself contains an 'items' list
+                if isinstance(sl.get('items'), list):
+                    self.write_debug("Using items, total, and size from sectionList[0]")
+                    items_data_source = sl
+                    source_name_for_debug = "sectionList[0]"
+                else:
+                    self.write_debug(
+                        "sectionList[0] exists but has no 'items' key. "
+                        "Using items, total, and size from root of results (if available).")
+                    # items_data_source remains 'results' (root)
+            else:
+                self.write_debug("No sectionList found. Using items, total, and size from root of results.")
+                # items_data_source remains 'results' (root)
+
+            items = items_data_source.get('items')
             if not items or not isinstance(items, list):
+                self.write_debug(f"No 'items' list found in {source_name_for_debug}.")
                 break
+
             for item in items:
                 if not isinstance(item, dict):
                     continue
                 if not self._check_bc_id_exists(item):
+                    self.write_debug(f"Skipping item without Brightcove ID: {item.get('title', item.get('id', 'Unknown item'))}")
                     continue
                 yield self._parse_rf_item(item)
-            size = int_or_none(results.get('size'))
-            if size is not None:
-                query['size'] = size
-            total = int_or_none(results.get('total'))
-            if total is not None and query['from'] + query['size'] > total:
+
+            # Pagination logic using items_data_source for total and size
+            page_size_from_response = int_or_none(items_data_source.get('size'))
+            current_page_size = page_size_from_response or current_page_query['size']
+
+            total = int_or_none(items_data_source.get('total'))
+            if total is not None and (current_page_query['from'] + current_page_size) >= total:
+                self.write_debug(
+                    f"Reached end of results based on 'total': {total} from {source_name_for_debug}, "
+                    f"current 'from': {current_page_query['from']}, 'size': {current_page_size}.")
                 break
-            query['from'] += query['size']
+
+            if not items and page_num > 1: # No items on a subsequent page
+                self.write_debug("No items found on subsequent page, stopping pagination.")
+                break
+
+            current_page_query['from'] += current_page_size
+            if page_size_from_response is not None: # API might dictate a different page size
+                current_page_query['size'] = page_size_from_response
 
     def _real_extract(self, url):
-        query = parse_qs(url)
-        query['type'] = 'session'
+        raw_query_params = parse_qs(url)
+        self.write_debug(f"Raw query parameters from URL: {raw_query_params}")
+
+        # Initialize api_query with parameters that are always sent or have defaults,
+        # based on browser inspection.
+        api_query = {
+            'type': 'session',
+            'search': '',  # Static parameter from browser payload
+            'browserTimezone': 'America/New_York',  # Default, as seen in browser
+            'catalogDisplay': 'grid',  # Default, as seen in browser
+        }
+
+        # Add/override with parameters from the input URL's query string
+        for key, value_list in raw_query_params.items():
+            if not value_list:
+                continue
+
+            # The key 'search' from the URL (e.g. search=#/...) is a fragment for client-side,
+            # and is different from the 'search: ""' payload parameter.
+            # The 'search: ""' is added above.
+            # We only care about actual filter parameters like 'search.technology', 'search.event'.
+            if key == 'search' and value_list[0].startswith('#'):
+                self.write_debug(f"Skipping fragment query parameter: {key}={value_list[0]}")
+                continue
+
+            api_query[key] = value_list[0]  # Keep original key name, e.g., 'search.technology'
+
+        self.write_debug(f"Processed API query parameters (before size/from): {api_query}")
+
         return self.playlist_result(
-            self._entries(query, url), playlist_title='Search query')
+            self._entries(api_query, url), playlist_title='Search query')
