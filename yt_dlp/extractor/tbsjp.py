@@ -4,8 +4,9 @@ from ..utils import (
     int_or_none,
     str_or_none,
     unified_timestamp,
+    url_or_none,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import traverse_obj
 
 
 class TBSJPBaseIE(StreaksBaseIE):
@@ -49,20 +50,31 @@ class TBSJPEpisodeIE(TBSJPBaseIE):
         episode = traverse_obj(meta, ('falcorCache', 'catalog', 'episode', video_id, 'value'))
 
         return {
-            **self._extract_from_streaks_api('tbs', f'ref:{video_id}', headers={'Referer': 'https://cu.tbs.co.jp/'}),
-            'title': traverse_obj(webpage, ({find_element(tag='h3')}, {clean_html})),
-            'id': video_id,
+            **self._extract_from_streaks_api(
+                'tbs', f'ref:{video_id}', headers={'Referer': 'https://cu.tbs.co.jp/'}),
             **traverse_obj(episode, {
-                'categories': ('keywords', {list}),
-                'id': ('content_id', {str}),
-                'description': ('description', 0, 'value'),
-                'timestamp': ('created_at', {unified_timestamp}),
-                'release_timestamp': ('pub_date', {unified_timestamp}),
+                'title': ('title', ..., 'value', {str}, any),
+                'cast': ('credit', ..., 'name', ..., 'value', {str}, any, {lambda x: x.split(',')}, filter),
+                'categories': ('keywords', ..., {str}, filter, all, filter),
+                'description': ('description', ..., 'value', {clean_html}, any),
                 'duration': ('tv_episode_info', 'duration', {int_or_none}),
+                'episode': ('title', lambda _, v: not v.get('is_phonetic'), 'value', {str}, any),
+                'episode_id': ('content_id', {str}),
                 'episode_number': ('tv_episode_info', 'episode_number', {int_or_none}),
-                'episode': ('title', lambda _, v: not v.get('is_phonetic'), 'value'),
-                'series': ('custom_data', 'program_name'),
-            }, get_all=False),
+                'genres': ('genre', ..., {str}, filter, all, filter),
+                'release_timestamp': ('pub_date', {unified_timestamp}),
+                'series': ('custom_data', 'program_name', {str}),
+                'tags': ('tags', ..., {str}, filter, all, filter),
+                'thumbnail': ('artwork', ..., 'url', {url_or_none}, any),
+                'timestamp': ('created_at', {unified_timestamp}),
+                'uploader': ('tv_show_info', 'networks', ..., {str}, any),
+            }),
+            **traverse_obj(episode, ('tv_episode_info', {
+                'duration': ('duration', {int_or_none}),
+                'episode_number': ('episode_number', {int_or_none}),
+                'series_id': ('show_content_id', {str}),
+            })),
+            'id': video_id,
         }
 
 
