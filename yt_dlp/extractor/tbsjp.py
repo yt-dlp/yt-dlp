@@ -11,7 +11,7 @@ from ..utils.traversal import traverse_obj
 
 class TBSJPBaseIE(StreaksBaseIE):
     def _window_app(self, webpage, name, item_id, fatal=True):
-        return self._search_json(r'window\.app\s*=', webpage, f'{name} info', item_id, fatal=fatal)
+        return self._search_json(r'window\.app\s*=', webpage, f'{name} info', item_id, fatal=fatal, default={})
 
 
 class TBSJPEpisodeIE(TBSJPBaseIE):
@@ -50,7 +50,7 @@ class TBSJPEpisodeIE(TBSJPBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        meta = self._window_app(webpage, 'episode', video_id)
+        meta = self._window_app(webpage, 'episode', video_id, fatal=False)
         episode = traverse_obj(meta, ('falcorCache', 'catalog', 'episode', video_id, 'value'))
 
         return {
