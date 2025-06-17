@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..utils import determine_ext
 
 
 class FilmArchivIE(InfoExtractor):
@@ -14,12 +13,12 @@ class FilmArchivIE(InfoExtractor):
             'title': 'Der Wurstelprater zur Kaiserzeit',
             'description': 'md5:9843f92df5cc9a4975cee7aabcf6e3b2',
             'thumbnail': 'https://img.filmarchiv.at/unsafe/1024x1024/videostatic/f_0305/p7xKrXUPBwoNE9x6mh_v1/poster.jpg',
-        }
+        },
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        media_id = self._match_id(url)
+        webpage = self._download_webpage(url, media_id)
 
         title = self._html_search_regex(
             r'<title-div [^>]+>\s*(.+?)\s*</title-div>',
@@ -34,10 +33,10 @@ class FilmArchivIE(InfoExtractor):
             webpage, 'bucket, video_id, version', group=('bucket', 'video_id', 'version'))
 
         playlist_url = f'https://cdn.filmarchiv.at/{bucket}/{video_id}_{version}_sv1/playlist.m3u8'
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(playlist_url, id, fatal=False)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(playlist_url, media_id, fatal=False)
 
         return {
-            'id': id,
+            'id': media_id,
             'title': title,
             'description': description,
             'thumbnail': f'https://img.filmarchiv.at/unsafe/1024x1024/videostatic/{bucket}/{video_id}/poster.jpg',
