@@ -120,12 +120,10 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
     def suitable(cls, url):
         return False if CiscoLiveSessionIE.suitable(url) else super().suitable(url)
 
-    def _check_bc_id_exists(self, rf_item):
-        
+    def _check_bc_id_exists(self, rf_item): 
         if not isinstance(rf_item, dict) or not isinstance(rf_item.get('videos'), list) or not rf_item['videos']:
             self.write_debug(f'Item missing "videos" list or "videos" is not a list/empty: {rf_item.get("title", rf_item.get("id", "Unknown item"))}')
-            return False
-     
+            return False   
         if not isinstance(rf_item['videos'][0], dict) or 'url' not in rf_item['videos'][0]:
             self.write_debug(f'Item\'s first video entry missing "url": {rf_item.get("title", rf_item.get("id", "Unknown item"))}')
             return False
