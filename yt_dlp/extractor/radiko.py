@@ -1,9 +1,11 @@
 import base64
+import datetime
 import random
 import re
 import urllib.parse
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -12,12 +14,14 @@ from ..utils import (
     try_call,
     unified_timestamp,
     update_url_query,
+    urlencode_postdata,
 )
 from ..utils.traversal import traverse_obj
 
 
 class RadikoBaseIE(InfoExtractor):
     _GEO_BYPASS = False
+    _NETRC_MACHINE = 'radiko'
     _FULL_KEY = None
     _HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED = (
         'https://c-rpaa.smartstream.ne.jp',
@@ -26,6 +30,7 @@ class RadikoBaseIE(InfoExtractor):
         'https://tf-c-rpaa-radiko.smartstream.ne.jp',
         'https://si-f-radiko.smartstream.ne.jp',
         'https://rpaa.smartstream.ne.jp',
+        'https://alliance-stream-radiko.smartstream.ne.jp',
     )
     _HOSTS_FOR_TIME_FREE_FFMPEG_SUPPORTED = (
         'https://rd-wowza-radiko.radiko-cf.com',
@@ -36,6 +41,41 @@ class RadikoBaseIE(InfoExtractor):
     _HOSTS_FOR_LIVE = (
         'https://c-radiko.smartstream.ne.jp',
     )
+
+    _JST = datetime.timezone(datetime.timedelta(hours=9))
+    _account_privileges = None
+
+    def _perform_login(self, username, password):
+        try:
+            login_info = self._download_json('https://radiko.jp/ap/member/webapi/member/login', None, note='Logging in',
+                                             data=urlencode_postdata({'mail': username, 'pass': password}))
+            privileges_list = login_info.get('privileges', [])
+            self._account_privileges = {
+                'areafree': '1' in privileges_list,
+                'tf30': '2' in privileges_list,
+            }  # areafree = 1, timefree30 = 2, double plan = both
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 401:
+                raise ExtractorError('Invalid username and/or password', expected=True)
+            raise
+
+    def _check_privileges(self):
+        if self._account_privileges is not None:
+            # if already checked via perform_login
+            return self._account_privileges
+
+        if self._get_cookies('https://radiko.jp').get('radiko_session') is None:
+            # if no account at all
+            return {'areafree': False, 'tf30': False}
+
+        # if passed cookies
+        account_info = self._download_json('https://radiko.jp/ap/member/webapi/v2/member/login/check',
+                                           None, note='Checking account status from cookies', expected_status=400) or {}
+        self._account_privileges = {
+            'areafree': account_info.get('areafree') == '1',
+            'tf30': account_info.get('timefreeplus') == '1',
+        }
+        return self._account_privileges
 
     def _negotiate_token(self):
         _, auth1_handle = self._download_webpage_handle(
@@ -99,17 +139,39 @@ class RadikoBaseIE(InfoExtractor):
         self._FULL_KEY = full_key
         return full_key
 
+    def _get_broadcast_day(self, timestring):
+        dt = datetime.datetime.strptime(timestring, '%Y%m%d%H%M%S')
+        if dt.hour < 5:
+            dt -= datetime.timedelta(days=1)
+        return dt
+
+    def _get_broadcast_day_end(self, dt):
+        dt += datetime.timedelta(days=1)
+        return datetime.datetime(dt.year, dt.month, dt.day, 5, 0, 0, tzinfo=self._JST)
+
     def _find_program(self, video_id, station, cursor):
+        broadcast_day = self._get_broadcast_day(cursor)
+        broadcast_day_str = broadcast_day.strftime('%Y%m%d')
+
+        broadcast_day_end = self._get_broadcast_day_end(broadcast_day)
+        now = datetime.datetime.now(tz=self._JST)
+
+        if broadcast_day_end + datetime.timedelta(days=30) < now:
+            self.raise_no_formats('Programme is no longer available.', video_id=video_id, expected=True)
+        elif broadcast_day_end + datetime.timedelta(days=7) < now and not self._check_privileges()['tf30']:
+            self.raise_login_required('Programme is only available with a Timefree 30 subscription',
+                                      metadata_available=True)
+
         station_program = self._download_xml(
-            f'https://radiko.jp/v3/program/station/weekly/{station}.xml', video_id,
-            note=f'Downloading radio program for {station} station')
+            f'https://api.radiko.jp/program/v3/date/{broadcast_day_str}/station/{station}.xml', station,
+            note=f'Downloading programme information for {broadcast_day_str}')
 
         prog = None
         for p in station_program.findall('.//prog'):
             ft_str, to_str = p.attrib['ft'], p.attrib['to']
             ft = unified_timestamp(ft_str, False)
             to = unified_timestamp(to_str, False)
-            if ft <= cursor and cursor < to:
+            if ft_str <= cursor and cursor < to_str:
                 prog = p
                 break
         if not prog:
@@ -122,10 +184,19 @@ class RadikoBaseIE(InfoExtractor):
             f'https://radiko.jp/v3/station/stream/pc_html5/{station}.xml', video_id,
             note='Downloading stream information')
 
+        station_info = self._download_json(
+            f'https://radiko.jp/api/stations/batchGetStations?stationId={station}', video_id,
+            note='Checking station broadcast areas')
+        station_areas = traverse_obj(station_info, ('stationList', ..., 'prefecturesList'), get_all=False)
+
         formats = []
         found = set()
 
         timefree_int = 0 if is_onair else 1
+        stream_type = 'b' if area_id in station_areas else 'c'
+
+        if stream_type == 'c' and not self._check_privileges()['areafree']:
+            self.raise_login_required('Programme is only available with an Areafree subscription')
 
         for element in m3u8_playlist_data.findall(f'.//url[@timefree="{timefree_int}"]/playlist_create_url'):
             pcu = element.text
@@ -137,7 +208,7 @@ class RadikoBaseIE(InfoExtractor):
                 **query,
                 'l': '15',
                 'lsid': ''.join(random.choices('0123456789abcdef', k=32)),
-                'type': 'b',
+                'type': stream_type,
             })
 
             time_to_skip = None if is_onair else cursor - ft
@@ -187,7 +258,7 @@ class RadikoIE(RadikoBaseIE):
         station, timestring = self._match_valid_url(url).group('station', 'timestring')
         video_id = join_nonempty(station, timestring)
         vid_int = unified_timestamp(timestring, False)
-        prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, vid_int)
+        prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, timestring)
 
         auth_token, area_id = self._auth_client()
 
