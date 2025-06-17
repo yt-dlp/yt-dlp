@@ -145,7 +145,6 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
                 write_string(json.dumps(results, indent=2) + '\n\n')
 
             sl = traverse_obj(results, ('sectionList', 0, {dict}))
-            
             items_data_source = results
             source_name_for_debug = 'root of results'
 
