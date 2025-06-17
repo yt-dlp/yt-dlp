@@ -160,7 +160,7 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
                 else:
                     self.write_debug(
                         'sectionList[0] exists but has no "items" key. '
-                        'Using items, total, and size from root of results (if available).')
+                        'Using items, total, and size from root of results (if available).') # noqa: Q000
             else:
                 self.write_debug('No sectionList found. Using items, total, and size from root of results.')
 
