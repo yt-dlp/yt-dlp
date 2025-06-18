@@ -8,6 +8,15 @@ class DzsecurityLiveIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(echoroukonline\.com/live(?:-news)?|ennaharonline\.com/live(?:-news)?|elhayat\.dz/%D8%A7%D9%84%D8%A8%D8%AB-%D8%A7%D9%84%D8%AD%D9%8A)'
 
     _TESTS = [{
+        'url': 'https://www.ennaharonline.com/live',
+        'info_dict': {
+            'id': 'ennahartv',
+            'title': r're:البث الحي لقناة النهار &#8211; النهار أونلاين',
+            'ext': 'mp4',
+            'live_status': 'is_live',
+        },
+        'skip': 'Geo-restricted to Algeria',
+    }, {
         'url': 'https://www.echoroukonline.com/live',
         'info_dict': {
             'id': 'echorouktv',
