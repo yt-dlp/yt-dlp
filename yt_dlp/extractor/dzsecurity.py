@@ -1,8 +1,7 @@
+import re
+
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import ExtractorError
-import re
-from urllib.parse import urlparse
-
 
 class DzsecurityLiveIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(echoroukonline|ennaharonline)\.com/live(?:-news)?'
@@ -41,8 +40,11 @@ class DzsecurityLiveIE(InfoExtractor):
         player_url = player_url_match.group(0)
         stream_id = player_url_match.group(1)
 
-        parsed = urlparse(url)
-        base_url = f'{parsed.scheme}://{parsed.netloc}'
+        base_url_match = re.match(r'(https?://[^/]+)', url)
+        if not base_url_match:
+            raise ExtractorError("Failed to extract base URL from input URL")
+
+        base_url = base_url_match.group(1)
 
         headers = {
             'Referer': base_url,
@@ -57,7 +59,7 @@ class DzsecurityLiveIE(InfoExtractor):
         if not m3u8_match:
             raise ExtractorError("M3U8 stream URL not found in player page")
 
-        m3u8_url = parsed.scheme + ':' + m3u8_match.group('url')
+        m3u8_url = 'https:' + m3u8_match.group('url')
 
         return {
             'id': stream_id,
