@@ -5,7 +5,7 @@ from yt_dlp.utils import ExtractorError
 
 
 class DzsecurityLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?(echoroukonline|ennaharonline)\.com/live(?:-news)?'
+    _VALID_URL = r'https?://(?:www\.)?(echoroukonline\.com/live(?:-news)?|ennaharonline\.com/live(?:-news)?|elhayat\.dz/%D8%A7%D9%84%D8%A8%D8%AB-%D8%A7%D9%84%D8%AD%D9%8A)'
 
     _TESTS = [{
         'url': 'https://www.echoroukonline.com/live',
@@ -20,6 +20,14 @@ class DzsecurityLiveIE(InfoExtractor):
         'info_dict': {
             'id': 'echorouknews',
             'title': r're:البث الحي لقناة الشروق نيوز - آخر أخبار الجزائر \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'ext': 'mp4',
+            'live_status': 'is_live',
+        },
+    }, {
+        'url': 'https://elhayat.dz/%D8%A7%D9%84%D8%A8%D8%AB-%D8%A7%D9%84%D8%AD%D9%8A',
+        'info_dict': {
+            'id': 'elhayattv',
+            'title': r're:البث الحي - الحياة \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             'ext': 'mp4',
             'live_status': 'is_live',
         },
