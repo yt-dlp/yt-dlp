@@ -19,7 +19,7 @@ class ThreeSpeakIE(InfoExtractor):
             'uploader': 'dannyshine',
             'description': 'md5:181aa7ccb304afafa089b5af3bca7a10',
             'tags': ['sex', 'covid', 'antinatalism', 'comedy', 'vaccines'],
-            'thumbnail': 'https://img.3speakcontent.co/wjgoxyfy/thumbnails/default.png',
+            'thumbnail': 'https://media.3speak.tv/wjgoxyfy/thumbnails/default.png',
             'upload_date': '20211021',
             'duration': 2703.867833,
             'filesize': 1620054781,
@@ -46,17 +46,6 @@ class ThreeSpeakIE(InfoExtractor):
                 f'https://ipfs.3speak.tv/ipfs/{ipfs_m3u8}', video_id, fatal=False, m3u8_id='ipfs')
             formats.extend(ipfs_frmts)
             subtitles = self._merge_subtitles(subtitles, ipfs_subs)
-        mp4_file = try_get(video_json, lambda x: x['video']['info']['file'])
-        if mp4_file:
-            formats.append({
-                'url': f'https://threespeakvideo.b-cdn.net/{video_id}/{mp4_file}',
-                'ext': 'mp4',
-                'format_id': 'https-mp4',
-                'duration': try_get(video_json, lambda x: x['video']['info']['duration']),
-                'filesize': try_get(video_json, lambda x: x['video']['info']['filesize']),
-                'quality': 11,
-                'format_note': 'Original file',
-            })
         return {
             'id': video_id,
             'title': data_json.get('title') or data_json.get('root_title'),
