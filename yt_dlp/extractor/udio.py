@@ -92,7 +92,7 @@ class UdioIE(InfoExtractor):
 
 
 class UdioListIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?udio\.com/(?P<list_type>(?!songs)[^/?#&]+)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?udio\.com/(?P<list_type>(?!songs)[^/]+)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.udio.com/tags/flute',
         'info_dict': {
