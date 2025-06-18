@@ -1757,7 +1757,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': '8047tcn3o5U',
                 'ext': 'mp4',
                 'title': 'Rooting: Layering and Cuttings in Pots',
-                'description': r're:^➤When making new plants,',
+                'description': r're:➤When making new plants,',
                 'uploader': 'MiradasBiologicas in English',
                 'uploader_id': '@Miradasbiologicas',
                 'uploader_url': 'https://www.youtube.com/@Miradasbiologicas',
