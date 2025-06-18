@@ -5,7 +5,7 @@ from ..utils.traversal import find_elements, traverse_obj
 
 class FilmArchivIE(InfoExtractor):
     IE_NAME = 'FILMARCHIV ON'
-    _VALID_URL = r'https?://(?:www\.)?filmarchiv\.at/(?:de|en)/filmarchiv-on/video/(?P<id>[0-9a-zA-Z_]+)'
+    _VALID_URL = r'https?://(?:www\.)?filmarchiv\.at/de/filmarchiv-on/video/(?P<id>[0-9a-zA-Z_]+)'
     _TESTS = [{
         'url': 'https://www.filmarchiv.at/de/filmarchiv-on/video/f_0305p7xKrXUPBwoNE9x6mh',
         'md5': '54a6596f6a84624531866008a77fa27a',
