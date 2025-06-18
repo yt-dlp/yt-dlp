@@ -66,14 +66,11 @@ class DzsecurityLiveIE(InfoExtractor):
 
         player_page = self._download_webpage(player_url, player_url, headers=headers)
 
-        m3u8_match = re.search(
-            r'src:\s*location\.protocol\s*\+\s*"(?P<url>//[^"]+\.m3u8\?[^"]+)"',
+        m3u8_url = 'https:' + self._search_regex(
+            r'src:\s*location\.protocol\s*\+\s*"(//[^"]+\.m3u8\?[^"]+)"',
             player_page,
+            'm3u8 URL',
         )
-        if not m3u8_match:
-            raise ExtractorError('M3U8 stream URL not found in player page')
-
-        m3u8_url = 'https:' + m3u8_match.group('url')
 
         return {
             'id': stream_id,
