@@ -314,6 +314,20 @@ class TestInfoExtractor(unittest.TestCase):
                 },
                 {},
             ),
+            (
+                # test thumbnail_url key without URL scheme
+                r'''
+<script type="application/ld+json">
+{
+"@context": "https://schema.org",
+"@type": "VideoObject",
+"thumbnail_url": "//www.nobelprize.org/images/12693-landscape-medium-gallery.jpg"
+}</script>''',
+                {
+                    'thumbnails': [{'url': 'https://www.nobelprize.org/images/12693-landscape-medium-gallery.jpg'}],
+                },
+                {},
+            ),
         ]
         for html, expected_dict, search_json_ld_kwargs in _TESTS:
             expect_dict(
@@ -638,6 +652,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 'img_bipbop_adv_example_fmp4',
                 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
                 [{
+                    # 60kbps (bitrate not provided in m3u8); sorted as worst because it's grouped with lowest bitrate video track
                     'format_id': 'aud1-English',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -645,15 +660,9 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                     'audio_ext': 'mp4',
+                    'source_preference': 0,
                 }, {
-                    'format_id': 'aud2-English',
-                    'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a2/prog_index.m3u8',
-                    'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
-                    'language': 'en',
-                    'ext': 'mp4',
-                    'protocol': 'm3u8_native',
-                    'audio_ext': 'mp4',
-                }, {
+                    # 192kbps (bitrate not provided in m3u8)
                     'format_id': 'aud3-English',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a3/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -661,6 +670,17 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                     'audio_ext': 'mp4',
+                    'source_preference': 1,
+                }, {
+                    # 384kbps (bitrate not provided in m3u8); sorted as best because it's grouped with the highest bitrate video track
+                    'format_id': 'aud2-English',
+                    'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a2/prog_index.m3u8',
+                    'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
+                    'language': 'en',
+                    'ext': 'mp4',
+                    'protocol': 'm3u8_native',
+                    'audio_ext': 'mp4',
+                    'source_preference': 2,
                 }, {
                     'format_id': '530',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/prog_index.m3u8',
@@ -1926,6 +1946,137 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         self.assertEqual(self.ie._search_nextjs_data('', None, default={}), {})
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(self.ie._search_nextjs_data('', None, default='{}'), {})
+
+    def test_search_nuxt_json(self):
+        HTML_TMPL = '<script data-ssr="true" id="__NUXT_DATA__" type="application/json">[{}]</script>'
+        VALID_DATA = '''
+            ["ShallowReactive",1],
+            {"data":2,"state":21,"once":25,"_errors":28,"_server_errors":30},
+            ["ShallowReactive",3],
+            {"$abcdef123456":4},
+            {"podcast":5,"activeEpisodeData":7},
+            {"podcast":6,"seasons":14},
+            {"title":10,"id":11},
+            ["Reactive",8],
+            {"episode":9,"creators":18,"empty_list":20},
+            {"title":12,"id":13,"refs":34,"empty_refs":35},
+            "Series Title",
+            "podcast-id-01",
+            "Episode Title",
+            "episode-id-99",
+            [15,16,17],
+            1,
+            2,
+            3,
+            [19],
+            "Podcast Creator",
+            [],
+            {"$ssite-config":22},
+            {"env":23,"name":24,"map":26,"numbers":14},
+            "production",
+            "podcast-website",
+            ["Set"],
+            ["Reactive",27],
+            ["Map"],
+            ["ShallowReactive",29],
+            {},
+            ["NuxtError",31],
+            {"status":32,"message":33},
+            503,
+            "Service Unavailable",
+            [36,37],
+            [38,39],
+            ["Ref",40],
+            ["ShallowRef",41],
+            ["EmptyRef",42],
+            ["EmptyShallowRef",43],
+            "ref",
+            "shallow_ref",
+            "{\\"ref\\":1}",
+            "{\\"shallow_ref\\":2}"
+        '''
+        PAYLOAD = {
+            'data': {
+                '$abcdef123456': {
+                    'podcast': {
+                        'podcast': {
+                            'title': 'Series Title',
+                            'id': 'podcast-id-01',
+                        },
+                        'seasons': [1, 2, 3],
+                    },
+                    'activeEpisodeData': {
+                        'episode': {
+                            'title': 'Episode Title',
+                            'id': 'episode-id-99',
+                            'refs': ['ref', 'shallow_ref'],
+                            'empty_refs': [{'ref': 1}, {'shallow_ref': 2}],
+                        },
+                        'creators': ['Podcast Creator'],
+                        'empty_list': [],
+                    },
+                },
+            },
+            'state': {
+                '$ssite-config': {
+                    'env': 'production',
+                    'name': 'podcast-website',
+                    'map': [],
+                    'numbers': [1, 2, 3],
+                },
+            },
+            'once': [],
+            '_errors': {},
+            '_server_errors': {
+                'status': 503,
+                'message': 'Service Unavailable',
+            },
+        }
+        PARTIALLY_INVALID = [(
+            '''
+            {"data":1},
+            {"invalid_raw_list":2},
+            [15,16,17]
+            ''',
+            {'data': {'invalid_raw_list': [None, None, None]}},
+        ), (
+            '''
+            {"data":1},
+            ["EmptyRef",2],
+            "not valid JSON"
+            ''',
+            {'data': None},
+        ), (
+            '''
+            {"data":1},
+            ["EmptyShallowRef",2],
+            "not valid JSON"
+            ''',
+            {'data': None},
+        )]
+        INVALID = [
+            '''
+                []
+            ''',
+            '''
+                ["unsupported",1],
+                {"data":2},
+                {}
+            ''',
+        ]
+        DEFAULT = object()
+
+        self.assertEqual(self.ie._search_nuxt_json(HTML_TMPL.format(VALID_DATA), None), PAYLOAD)
+        self.assertEqual(self.ie._search_nuxt_json('', None, fatal=False), {})
+        self.assertIs(self.ie._search_nuxt_json('', None, default=DEFAULT), DEFAULT)
+
+        for data, expected in PARTIALLY_INVALID:
+            self.assertEqual(
+                self.ie._search_nuxt_json(HTML_TMPL.format(data), None, fatal=False), expected)
+
+        for data in INVALID:
+            self.assertIs(
+                self.ie._search_nuxt_json(HTML_TMPL.format(data), None, default=DEFAULT), DEFAULT)
 
 
 if __name__ == '__main__':

@@ -2,7 +2,6 @@ import base64
 import collections
 import functools
 import getpass
-import hashlib
 import http.client
 import http.cookiejar
 import http.cookies
@@ -30,6 +29,7 @@ from ..compat import (
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..downloader.hls import HlsFD
+from ..globals import plugin_ies_overrides
 from ..networking import HEADRequest, Request
 from ..networking.exceptions import (
     HTTPError,
@@ -78,7 +78,7 @@ from ..utils import (
     parse_iso8601,
     parse_m3u8_attributes,
     parse_resolution,
-    sanitize_filename,
+    qualities,
     sanitize_url,
     smuggle_url,
     str_or_none,
@@ -100,6 +100,8 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
+from ..utils._utils import _request_dump_filename
+from ..utils.jslib import devalue
 
 
 class InfoExtractor:
@@ -201,6 +203,11 @@ class InfoExtractor:
                                             fragment_base_url
                                  * "duration" (optional, int or float)
                                  * "filesize" (optional, int)
+                    * hls_media_playlist_data
+                                 The M3U8 media playlist data as a string.
+                                 Only use if the data must be modified during extraction and
+                                 the native HLS downloader should bypass requesting the URL.
+                                 Does not apply if ffmpeg is used as external downloader
                     * is_from_start  Is a live format that can be downloaded
                                 from the start. Boolean
                     * preference Order number of this format. If this field is
@@ -1017,23 +1024,6 @@ class InfoExtractor:
                 'Visit http://blocklist.rkn.gov.ru/ for a block reason.',
                 expected=True)
 
-    def _request_dump_filename(self, url, video_id, data=None):
-        if data is not None:
-            data = hashlib.md5(data).hexdigest()
-        basen = join_nonempty(video_id, data, url, delim='_')
-        trim_length = self.get_param('trim_file_name') or 240
-        if len(basen) > trim_length:
-            h = '___' + hashlib.md5(basen.encode()).hexdigest()
-            basen = basen[:trim_length - len(h)] + h
-        filename = sanitize_filename(f'{basen}.dump', restricted=True)
-        # Working around MAX_PATH limitation on Windows (see
-        # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
-        if os.name == 'nt':
-            absfilepath = os.path.abspath(filename)
-            if len(absfilepath) > 259:
-                filename = fR'\\?\{absfilepath}'
-        return filename
-
     def __decode_webpage(self, webpage_bytes, encoding, headers):
         if not encoding:
             encoding = self._guess_encoding_from_content(headers.get('Content-Type', ''), webpage_bytes)
@@ -1062,7 +1052,9 @@ class InfoExtractor:
         if self.get_param('write_pages'):
             if isinstance(url_or_request, Request):
                 data = self._create_request(url_or_request, data).data
-            filename = self._request_dump_filename(urlh.url, video_id, data)
+            filename = _request_dump_filename(
+                urlh.url, video_id, data,
+                trim_length=self.get_param('trim_file_name'))
             self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
@@ -1123,7 +1115,9 @@ class InfoExtractor:
                              impersonate=None, require_impersonation=False):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
-                filename = self._request_dump_filename(url_or_request.url, video_id, url_or_request.data)
+                filename = _request_dump_filename(
+                    url_or_request.url, video_id, url_or_request.data,
+                    trim_length=self.get_param('trim_file_name'))
                 self.to_screen(f'Loading request from {filename}')
                 try:
                     with open(filename, 'rb') as dumpf:
@@ -1577,6 +1571,8 @@ class InfoExtractor:
         """Yield all json ld objects in the html"""
         if default is not NO_DEFAULT:
             fatal = False
+        if not fatal and not isinstance(html, str):
+            return
         for mobj in re.finditer(JSON_LD_RE, html):
             json_ld_item = self._parse_json(
                 mobj.group('json_ld'), video_id, fatal=fatal,
@@ -1680,9 +1676,9 @@ class InfoExtractor:
                 'ext': mimetype2ext(e.get('encodingFormat')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
-                'thumbnails': [{'url': unescapeHTML(url)}
-                               for url in variadic(traverse_obj(e, 'thumbnailUrl', 'thumbnailURL'))
-                               if url_or_none(url)],
+                'thumbnails': traverse_obj(e, (('thumbnailUrl', 'thumbnailURL', 'thumbnail_url'), (None, ...), {
+                    'url': ({str}, {unescapeHTML}, {self._proto_relative_url}, {url_or_none}),
+                })),
                 'duration': parse_duration(e.get('duration')),
                 'timestamp': unified_timestamp(e.get('uploadDate')),
                 # author can be an instance of 'Organization' or 'Person' types.
@@ -1799,6 +1795,63 @@ class InfoExtractor:
 
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
+
+    def _resolve_nuxt_array(self, array, video_id, *, fatal=True, default=NO_DEFAULT):
+        """Resolves Nuxt rich JSON payload arrays"""
+        # Ref: https://github.com/nuxt/nuxt/commit/9e503be0f2a24f4df72a3ccab2db4d3e63511f57
+        #      https://github.com/nuxt/nuxt/pull/19205
+        if default is not NO_DEFAULT:
+            fatal = False
+
+        if not isinstance(array, list) or not array:
+            error_msg = 'Unable to resolve Nuxt JSON data: invalid input'
+            if fatal:
+                raise ExtractorError(error_msg, video_id=video_id)
+            elif default is NO_DEFAULT:
+                self.report_warning(error_msg, video_id=video_id)
+            return {} if default is NO_DEFAULT else default
+
+        def indirect_reviver(data):
+            return data
+
+        def json_reviver(data):
+            return json.loads(data)
+
+        gen = devalue.parse_iter(array, revivers={
+            'NuxtError': indirect_reviver,
+            'EmptyShallowRef': json_reviver,
+            'EmptyRef': json_reviver,
+            'ShallowRef': indirect_reviver,
+            'ShallowReactive': indirect_reviver,
+            'Ref': indirect_reviver,
+            'Reactive': indirect_reviver,
+        })
+
+        while True:
+            try:
+                error_msg = f'Error resolving Nuxt JSON: {gen.send(None)}'
+                if fatal:
+                    raise ExtractorError(error_msg, video_id=video_id)
+                elif default is NO_DEFAULT:
+                    self.report_warning(error_msg, video_id=video_id, only_once=True)
+                else:
+                    self.write_debug(f'{video_id}: {error_msg}', only_once=True)
+            except StopIteration as error:
+                return error.value or ({} if default is NO_DEFAULT else default)
+
+    def _search_nuxt_json(self, webpage, video_id, *, fatal=True, default=NO_DEFAULT):
+        """Parses metadata from Nuxt rich JSON payloads embedded in HTML"""
+        passed_default = default is not NO_DEFAULT
+
+        array = self._search_json(
+            r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage,
+            'Nuxt JSON data', video_id, contains_pattern=r'\[(?s:.+)\]',
+            fatal=fatal, default=NO_DEFAULT if not passed_default else None)
+
+        if not array:
+            return default if passed_default else {}
+
+        return self._resolve_nuxt_array(array, video_id, fatal=fatal, default=default)
 
     @staticmethod
     def _hidden_inputs(html):
@@ -2185,6 +2238,8 @@ class InfoExtractor:
             media_url = media.get('URI')
             if media_url:
                 manifest_url = format_url(media_url)
+                is_audio = media_type == 'AUDIO'
+                is_alternate = media.get('DEFAULT') == 'NO' or media.get('AUTOSELECT') == 'NO'
                 formats.extend({
                     'format_id': join_nonempty(m3u8_id, group_id, name, idx),
                     'format_note': name,
@@ -2197,7 +2252,11 @@ class InfoExtractor:
                     'preference': preference,
                     'quality': quality,
                     'has_drm': has_drm,
-                    'vcodec': 'none' if media_type == 'AUDIO' else None,
+                    'vcodec': 'none' if is_audio else None,
+                    # Alternate audio formats (e.g. audio description) should be deprioritized
+                    'source_preference': -2 if is_audio and is_alternate else None,
+                    # Save this to assign source_preference based on associated video stream
+                    '_audio_group_id': group_id if is_audio and not is_alternate else None,
                 } for idx in _extract_m3u8_playlist_indices(manifest_url))
 
         def build_stream_name():
@@ -2292,6 +2351,8 @@ class InfoExtractor:
                     # ignore references to rendition groups and treat them
                     # as complete formats.
                     if audio_group_id and codecs and f.get('vcodec') != 'none':
+                        # Save this to determine quality of audio formats that only have a GROUP-ID
+                        f['_audio_group_id'] = audio_group_id
                         audio_group = groups.get(audio_group_id)
                         if audio_group and audio_group[0].get('URI'):
                             # TODO: update acodec for audio only formats with
@@ -2314,6 +2375,28 @@ class InfoExtractor:
                         formats.append(http_f)
 
                 last_stream_inf = {}
+
+        # Some audio-only formats only have a GROUP-ID without any other quality/bitrate/codec info
+        # Each audio GROUP-ID corresponds with one or more video formats' AUDIO attribute
+        # For sorting purposes, set source_preference based on the quality of the video formats they are grouped with
+        # See https://github.com/yt-dlp/yt-dlp/issues/11178
+        audio_groups_by_quality = orderedSet(f['_audio_group_id'] for f in sorted(
+            traverse_obj(formats, lambda _, v: v.get('vcodec') != 'none' and v['_audio_group_id']),
+            key=lambda x: (x.get('tbr') or 0, x.get('width') or 0)))
+        audio_quality_map = {
+            audio_groups_by_quality[0]: 'low',
+            audio_groups_by_quality[-1]: 'high',
+        } if len(audio_groups_by_quality) > 1 else None
+        audio_preference = qualities(audio_groups_by_quality)
+        for fmt in formats:
+            audio_group_id = fmt.pop('_audio_group_id', None)
+            if not audio_quality_map or not audio_group_id or fmt.get('vcodec') != 'none':
+                continue
+            # Use source_preference since quality and preference are set by params
+            fmt['source_preference'] = audio_preference(audio_group_id)
+            fmt['format_note'] = join_nonempty(
+                fmt.get('format_note'), audio_quality_map.get(audio_group_id), delim=', ')
+
         return formats, subtitles
 
     def _extract_m3u8_vod_duration(
@@ -2943,8 +3026,7 @@ class InfoExtractor:
                             segment_duration = None
                             if 'total_number' not in representation_ms_info and 'segment_duration' in representation_ms_info:
                                 segment_duration = float_or_none(representation_ms_info['segment_duration'], representation_ms_info['timescale'])
-                                representation_ms_info['total_number'] = int(math.ceil(
-                                    float_or_none(period_duration, segment_duration, default=0)))
+                                representation_ms_info['total_number'] = math.ceil(float_or_none(period_duration, segment_duration, default=0))
                             representation_ms_info['fragments'] = [{
                                 media_location_key: media_template % {
                                     'Number': segment_number,
@@ -3963,14 +4045,18 @@ class InfoExtractor:
     def __init_subclass__(cls, *, plugin_name=None, **kwargs):
         if plugin_name:
             mro = inspect.getmro(cls)
-            super_class = cls.__wrapped__ = mro[mro.index(cls) + 1]
-            cls.PLUGIN_NAME, cls.ie_key = plugin_name, super_class.ie_key
-            cls.IE_NAME = f'{super_class.IE_NAME}+{plugin_name}'
+            next_mro_class = super_class = mro[mro.index(cls) + 1]
+
             while getattr(super_class, '__wrapped__', None):
                 super_class = super_class.__wrapped__
-            setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
-            _PLUGIN_OVERRIDES[super_class].append(cls)
 
+            if not any(override.PLUGIN_NAME == plugin_name for override in plugin_ies_overrides.value[super_class]):
+                cls.__wrapped__ = next_mro_class
+                cls.PLUGIN_NAME, cls.ie_key = plugin_name, next_mro_class.ie_key
+                cls.IE_NAME = f'{next_mro_class.IE_NAME}+{plugin_name}'
+
+                setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
+                plugin_ies_overrides.value[super_class].append(cls)
         return super().__init_subclass__(**kwargs)
 
 
@@ -4026,6 +4112,3 @@ class UnsupportedURLIE(InfoExtractor):
 
     def _real_extract(self, url):
         raise UnsupportedError(url)
-
-
-_PLUGIN_OVERRIDES = collections.defaultdict(list)

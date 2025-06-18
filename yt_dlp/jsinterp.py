@@ -25,7 +25,7 @@ def _js_bit_op(op):
         with contextlib.suppress(TypeError):
             if math.isnan(x):  # NB: NaN cannot be checked by membership
                 return 0
-        return x
+        return int(float(x))
 
     def wrapped(a, b):
         return op(zeroise(a), zeroise(b)) & 0xffffffff
@@ -95,6 +95,61 @@ def _js_ternary(cndn, if_true=True, if_false=False):
     return if_true
 
 
+# Ref: https://es5.github.io/#x9.8.1
+def js_number_to_string(val: float, radix: int = 10):
+    if radix in (JS_Undefined, None):
+        radix = 10
+    assert radix in range(2, 37), 'radix must be an integer at least 2 and no greater than 36'
+
+    if math.isnan(val):
+        return 'NaN'
+    if val == 0:
+        return '0'
+    if math.isinf(val):
+        return '-Infinity' if val < 0 else 'Infinity'
+    if radix == 10:
+        # TODO: implement special cases
+        ...
+
+    ALPHABET = b'0123456789abcdefghijklmnopqrstuvwxyz.-'
+
+    result = collections.deque()
+    sign = val < 0
+    val = abs(val)
+    fraction, integer = math.modf(val)
+    delta = max(math.nextafter(.0, math.inf), math.ulp(val) / 2)
+
+    if fraction >= delta:
+        result.append(-2)  # `.`
+    while fraction >= delta:
+        delta *= radix
+        fraction, digit = math.modf(fraction * radix)
+        result.append(int(digit))
+        # if we need to round, propagate potential carry through fractional part
+        needs_rounding = fraction > 0.5 or (fraction == 0.5 and int(digit) & 1)
+        if needs_rounding and fraction + delta > 1:
+            for index in reversed(range(1, len(result))):
+                if result[index] + 1 < radix:
+                    result[index] += 1
+                    break
+                result.pop()
+
+            else:
+                integer += 1
+            break
+
+    integer, digit = divmod(int(integer), radix)
+    result.appendleft(digit)
+    while integer > 0:
+        integer, digit = divmod(integer, radix)
+        result.appendleft(digit)
+
+    if sign:
+        result.appendleft(-1)  # `-`
+
+    return bytes(ALPHABET[digit] for digit in result).decode('ascii')
+
+
 # Ref: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
 _OPERATORS = {  # None => Defined in JSInterpreter._operator
     '?': None,
@@ -133,6 +188,7 @@ _COMP_OPERATORS = {'===', '!==', '==', '!=', '<=', '>=', '<', '>'}
 _NAME_RE = r'[a-zA-Z_$][\w$]*'
 _MATCHING_PARENS = dict(zip(*zip('()', '{}', '[]')))
 _QUOTES = '\'"/'
+_NESTED_BRACKETS = r'[^[\]]+(?:\[[^[\]]+(?:\[[^\]]+\])?\])?'
 
 
 class JS_Undefined:
@@ -246,7 +302,7 @@ class JSInterpreter:
         OP_CHARS = '+-*/%&|^=<>!,;{}:['
         if not expr:
             return
-        counters = {k: 0 for k in _MATCHING_PARENS.values()}
+        counters = dict.fromkeys(_MATCHING_PARENS.values(), 0)
         start, splits, pos, delim_len = 0, 0, 0, len(delim) - 1
         in_quote, escaping, after_op, in_regex_char_group = None, False, True, False
         for idx, char in enumerate(expr):
@@ -534,36 +590,12 @@ class JSInterpreter:
                     return ret, True
             return ret, False
 
-        for m in re.finditer(rf'''(?x)
-                (?P<pre_sign>\+\+|--)(?P<var1>{_NAME_RE})|
-                (?P<var2>{_NAME_RE})(?P<post_sign>\+\+|--)''', expr):
-            var = m.group('var1') or m.group('var2')
-            start, end = m.span()
-            sign = m.group('pre_sign') or m.group('post_sign')
-            ret = local_vars[var]
-            local_vars[var] += 1 if sign[0] == '+' else -1
-            if m.group('pre_sign'):
-                ret = local_vars[var]
-            expr = expr[:start] + self._dump(ret, local_vars) + expr[end:]
-
-        if not expr:
-            return None, should_return
-
         m = re.match(fr'''(?x)
-            (?P<assign>
-                (?P<out>{_NAME_RE})(?:\[(?P<index>[^\]]+?)\])?\s*
+                (?P<out>{_NAME_RE})(?:\[(?P<index>{_NESTED_BRACKETS})\])?\s*
                 (?P<op>{"|".join(map(re.escape, set(_OPERATORS) - _COMP_OPERATORS))})?
                 =(?!=)(?P<expr>.*)$
-            )|(?P<return>
-                (?!if|return|true|false|null|undefined|NaN)(?P<name>{_NAME_RE})$
-            )|(?P<indexing>
-                (?P<in>{_NAME_RE})\[(?P<idx>.+)\]$
-            )|(?P<attribute>
-                (?P<var>{_NAME_RE})(?:(?P<nullish>\?)?\.(?P<member>[^(]+)|\[(?P<member2>[^\]]+)\])\s*
-            )|(?P<function>
-                (?P<fname>{_NAME_RE})\((?P<args>.*)\)$
-            )''', expr)
-        if m and m.group('assign'):
+            ''', expr)
+        if m:  # We are assigning a value to a variable
             left_val = local_vars.get(m.group('out'))
 
             if not m.group('index'):
@@ -581,7 +613,35 @@ class JSInterpreter:
                 m.group('op'), self._index(left_val, idx), m.group('expr'), expr, local_vars, allow_recursion)
             return left_val[idx], should_return
 
-        elif expr.isdigit():
+        for m in re.finditer(rf'''(?x)
+                (?P<pre_sign>\+\+|--)(?P<var1>{_NAME_RE})|
+                (?P<var2>{_NAME_RE})(?P<post_sign>\+\+|--)''', expr):
+            var = m.group('var1') or m.group('var2')
+            start, end = m.span()
+            sign = m.group('pre_sign') or m.group('post_sign')
+            ret = local_vars[var]
+            local_vars[var] += 1 if sign[0] == '+' else -1
+            if m.group('pre_sign'):
+                ret = local_vars[var]
+            expr = expr[:start] + self._dump(ret, local_vars) + expr[end:]
+
+        if not expr:
+            return None, should_return
+
+        m = re.match(fr'''(?x)
+            (?P<return>
+                (?!if|return|true|false|null|undefined|NaN)(?P<name>{_NAME_RE})$
+            )|(?P<attribute>
+                (?P<var>{_NAME_RE})(?:
+                    (?P<nullish>\?)?\.(?P<member>[^(]+)|
+                    \[(?P<member2>{_NESTED_BRACKETS})\]
+                )\s*
+            )|(?P<indexing>
+                (?P<in>{_NAME_RE})\[(?P<idx>.+)\]$
+            )|(?P<function>
+                (?P<fname>{_NAME_RE})\((?P<args>.*)\)$
+            )''', expr)
+        if expr.isdigit():
             return int(expr), should_return
 
         elif expr == 'break':
@@ -652,7 +712,7 @@ class JSInterpreter:
                 if obj is NO_DEFAULT:
                     if variable not in self._objects:
                         try:
-                            self._objects[variable] = self.extract_object(variable)
+                            self._objects[variable] = self.extract_object(variable, local_vars)
                         except self.Exception:
                             if not nullish:
                                 raise
@@ -792,7 +852,7 @@ class JSInterpreter:
             raise self.Exception('Cannot return from an expression', expr)
         return ret
 
-    def extract_object(self, objname):
+    def extract_object(self, objname, *global_stack):
         _FUNC_NAME_RE = r'''(?:[a-zA-Z$0-9]+|"[a-zA-Z$0-9]+"|'[a-zA-Z$0-9]+')'''
         obj = {}
         obj_m = re.search(
@@ -814,7 +874,8 @@ class JSInterpreter:
         for f in fields_m:
             argnames = f.group('args').split(',')
             name = remove_quotes(f.group('key'))
-            obj[name] = function_with_repr(self.build_function(argnames, f.group('code')), f'F<{name}>')
+            obj[name] = function_with_repr(
+                self.build_function(argnames, f.group('code'), *global_stack), f'F<{name}>')
 
         return obj
 
@@ -835,9 +896,9 @@ class JSInterpreter:
         code, _ = self._separate_at_paren(func_m.group('code'))
         return [x.strip() for x in func_m.group('args').split(',')], code
 
-    def extract_function(self, funcname):
+    def extract_function(self, funcname, *global_stack):
         return function_with_repr(
-            self.extract_function_from_code(*self.extract_function_code(funcname)),
+            self.extract_function_from_code(*self.extract_function_code(funcname), *global_stack),
             f'F<{funcname}>')
 
     def extract_function_from_code(self, argnames, code, *global_stack):

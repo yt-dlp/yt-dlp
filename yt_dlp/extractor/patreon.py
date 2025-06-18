@@ -63,6 +63,7 @@ class PatreonIE(PatreonBaseIE):
         'info_dict': {
             'id': '743933',
             'ext': 'mp3',
+            'alt_title': 'cd166.mp3',
             'title': 'Episode 166: David Smalley of Dogma Debate',
             'description': 'md5:34d207dd29aa90e24f1b3f58841b81c7',
             'uploader': 'Cognitive Dissonance Podcast',
@@ -280,7 +281,7 @@ class PatreonIE(PatreonBaseIE):
         video_id = self._match_id(url)
         post = self._call_api(
             f'posts/{video_id}', video_id, query={
-                'fields[media]': 'download_url,mimetype,size_bytes',
+                'fields[media]': 'download_url,mimetype,size_bytes,file_name',
                 'fields[post]': 'comment_count,content,embed,image,like_count,post_file,published_at,title,current_user_can_view',
                 'fields[user]': 'full_name,url',
                 'fields[post_tag]': 'value',
@@ -317,6 +318,7 @@ class PatreonIE(PatreonBaseIE):
                         'ext': ext,
                         'filesize': size_bytes,
                         'url': download_url,
+                        'alt_title': traverse_obj(media_attributes, ('file_name', {str})),
                     })
 
             elif include_type == 'user':
@@ -338,8 +340,9 @@ class PatreonIE(PatreonBaseIE):
                     'channel_follower_count': ('attributes', 'patron_count', {int_or_none}),
                 }))
 
-        # all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, Vimeo
-        headers = {'referer': 'https://patreon.com/'}
+        # Must be all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, and Vimeo.
+        # patreon.com URLs redirect to www.patreon.com; this matters when requesting mux.com m3u8s
+        headers = {'referer': 'https://www.patreon.com/'}
 
         # handle Vimeo embeds
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
@@ -350,7 +353,7 @@ class PatreonIE(PatreonBaseIE):
                     v_url, video_id, 'Checking Vimeo embed URL', headers=headers,
                     fatal=False, errnote=False, expected_status=429):  # 429 is TLS fingerprint rejection
                 entries.append(self.url_result(
-                    VimeoIE._smuggle_referrer(v_url, 'https://patreon.com/'),
+                    VimeoIE._smuggle_referrer(v_url, headers['referer']),
                     VimeoIE, url_transparent=True))
 
         embed_url = traverse_obj(attributes, ('embed', 'url', {url_or_none}))
@@ -377,11 +380,13 @@ class PatreonIE(PatreonBaseIE):
                     'url': post_file['url'],
                 })
             elif name == 'video' or determine_ext(post_file.get('url')) == 'm3u8':
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(post_file['url'], video_id)
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                    post_file['url'], video_id, headers=headers)
                 entries.append({
                     'id': video_id,
                     'formats': formats,
                     'subtitles': subtitles,
+                    'http_headers': headers,
                 })
 
         can_view_post = traverse_obj(attributes, 'current_user_can_view')

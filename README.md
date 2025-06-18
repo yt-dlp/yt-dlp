@@ -6,7 +6,6 @@
 [![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Download&style=for-the-badge)](#installation "Installation")
 [![PyPI](https://img.shields.io/badge/-PyPI-blue.svg?logo=pypi&labelColor=555555&style=for-the-badge)](https://pypi.org/project/yt-dlp "PyPI")
 [![Donate](https://img.shields.io/badge/_-Donate-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)](Collaborators.md#collaborators "Donate")
-[![Matrix](https://img.shields.io/matrix/yt-dlp:matrix.org?color=brightgreen&labelColor=555555&label=&logo=element&style=for-the-badge)](https://matrix.to/#/#yt-dlp:matrix.org "Matrix")
 [![Discord](https://img.shields.io/discord/807245652072857610?color=blue&labelColor=555555&label=&logo=discord&style=for-the-badge)](https://discord.gg/H5MNcFW63r "Discord")
 [![Supported Sites](https://img.shields.io/badge/-Supported_Sites-brightgreen.svg?style=for-the-badge)](supportedsites.md "Supported Sites")
 [![License: Unlicense](https://img.shields.io/badge/-Unlicense-blue.svg?style=for-the-badge)](LICENSE "License")
@@ -45,6 +44,7 @@ yt-dlp is a feature-rich command-line audio/video downloader with support for [t
     * [Post-processing Options](#post-processing-options)
     * [SponsorBlock Options](#sponsorblock-options)
     * [Extractor Options](#extractor-options)
+    * [Preset Aliases](#preset-aliases)
 * [CONFIGURATION](#configuration)
     * [Configuration file encoding](#configuration-file-encoding)
     * [Authentication with netrc](#authentication-with-netrc)
@@ -338,18 +338,19 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --plugin-dirs PATH              Path to an additional directory to search
                                     for plugins. This option can be used
                                     multiple times to add multiple directories.
-                                    Note that this currently only works for
-                                    extractor plugins; postprocessor plugins can
-                                    only be loaded from the default plugin
-                                    directories
+                                    Use "default" to search the default plugin
+                                    directories (default)
+    --no-plugin-dirs                Clear plugin directories to search,
+                                    including defaults and those provided by
+                                    previous --plugin-dirs
     --flat-playlist                 Do not extract a playlist's URL result
                                     entries; some entry metadata may be missing
                                     and downloading may be bypassed
     --no-flat-playlist              Fully extract the videos of a playlist
                                     (default)
     --live-from-start               Download livestreams from the start.
-                                    Currently only supported for YouTube
-                                    (Experimental)
+                                    Currently experimental and only supported
+                                    for YouTube and Twitch
     --no-live-from-start            Download livestreams from the current time
                                     (default)
     --wait-for-video MIN[-MAX]      Wait for scheduled streams to become
@@ -375,17 +376,23 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     an alias starts with a dash "-", it is
                                     prefixed with "--". Arguments are parsed
                                     according to the Python string formatting
-                                    mini-language. E.g. --alias get-audio,-X
-                                    "-S=aext:{0},abr -x --audio-format {0}"
-                                    creates options "--get-audio" and "-X" that
-                                    takes an argument (ARG0) and expands to
-                                    "-S=aext:ARG0,abr -x --audio-format ARG0".
-                                    All defined aliases are listed in the --help
+                                    mini-language. E.g. --alias get-audio,-X "-S
+                                    aext:{0},abr -x --audio-format {0}" creates
+                                    options "--get-audio" and "-X" that takes an
+                                    argument (ARG0) and expands to "-S
+                                    aext:ARG0,abr -x --audio-format ARG0". All
+                                    defined aliases are listed in the --help
                                     output. Alias options can trigger more
                                     aliases; so be careful to avoid defining
                                     recursive options. As a safety measure, each
                                     alias may be triggered a maximum of 100
                                     times. This option can be used multiple times
+    -t, --preset-alias PRESET       Applies a predefined set of options. e.g.
+                                    --preset-alias mp3. The following presets
+                                    are available: mp3, aac, mp4, mkv, sleep.
+                                    See the "Preset Aliases" section at the end
+                                    for more info. This option can be used
+                                    multiple times
 
 ## Network Options:
     --proxy URL                     Use the specified HTTP/HTTPS/SOCKS proxy. To
@@ -1098,6 +1105,27 @@ Make chapter entries for, or remove various segments (sponsor,
                                     can use this option multiple times to give
                                     arguments for different extractors
 
+## Preset Aliases:
+Predefined aliases for convenience and ease of use. Note that future
+    versions of yt-dlp may add or adjust presets, but the existing preset
+    names will not be changed or removed
+
+    -t mp3                          -f 'ba[acodec^=mp3]/ba/b' -x --audio-format
+                                    mp3
+
+    -t aac                          -f
+                                    'ba[acodec^=aac]/ba[acodec^=mp4a.40.]/ba/b'
+                                    -x --audio-format aac
+
+    -t mp4                          --merge-output-format mp4 --remux-video mp4
+                                    -S vcodec:h264,lang,quality,res,fps,hdr:12,a
+                                    codec:aac
+
+    -t mkv                          --merge-output-format mkv --remux-video mkv
+
+    -t sleep                        --sleep-subtitles 5 --sleep-requests 0.75
+                                    --sleep-interval 10 --max-sleep-interval 20
+
 # CONFIGURATION
 
 You can configure yt-dlp by placing any supported command line option in a configuration file. The configuration is loaded from the following locations:
@@ -1526,7 +1554,7 @@ The available fields are:
  - `hasvid`: Gives priority to formats that have a video stream
  - `hasaud`: Gives priority to formats that have an audio stream
  - `ie_pref`: The format preference
- - `lang`: The language preference
+ - `lang`: The language preference as determined by the extractor (e.g. original language preferred over audio description)
  - `quality`: The quality of the format
  - `source`: The preference of the source
  - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `mms`/`rtsp` > `f4f`/`f4m`)
@@ -1760,18 +1788,19 @@ $ yt-dlp --replace-in-metadata "title,uploader" "[ _]" "-"
 
 # EXTRACTOR ARGUMENTS
 
-Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. E.g. `--extractor-args "youtube:player-client=tv,mweb;formats=incomplete" --extractor-args "funimation:version=uncut"`
+Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. E.g. `--extractor-args "youtube:player-client=tv,mweb;formats=incomplete" --extractor-args "twitter:api=syndication"`
 
 Note: In CLI, `ARG` can use `-` instead of `_`; e.g. `youtube:player-client"` becomes `youtube:player_client"`
 
 The following extractors use this feature:
 
 #### youtube
-* `lang`: Prefer translated metadata (`title`, `description` etc) of this language code (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube.py](https://github.com/yt-dlp/yt-dlp/blob/c26f9b991a0681fd3ea548d535919cec1fbbd430/yt_dlp/extractor/youtube.py#L381-L390) for list of supported content language codes
+* `lang`: Prefer translated metadata (`title`, `description` etc) of this language code (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube/_base.py](https://github.com/yt-dlp/yt-dlp/blob/415b4c9f955b1a0391204bd24a7132590e7b3bdb/yt_dlp/extractor/youtube/_base.py#L402-L409) for the list of supported content language codes
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
-* `player_client`: Clients to extract video data from. The main clients are `web`, `ios` and `android`, with variants `_music` and `_creator` (e.g. `ios_creator`); and `mweb`, `android_vr`, `web_safari`, `web_embedded`, `tv` and `tv_embedded` with no variants. By default, `tv,ios,web` is used, or `tv,web` is used when authenticating with cookies. The `_music` variants may be added for `music.youtube.com` URLs. Some clients, such as `web` and `android`, require a `po_token` for their formats to be downloadable. Some clients, such as the `_creator` variants, will only work with authentication. Not all clients support authentication via cookies. You can use `default` for the default clients, or you can use `all` for all clients (not recommended). You can prefix a client with `-` to exclude it, e.g. `youtube:player_client=default,-ios`
-* `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
+* `player_client`: Clients to extract video data from. The currently available clients are `web`, `web_safari`, `web_embedded`, `web_music`, `web_creator`, `mweb`, `ios`, `android`, `android_vr`, `tv`, `tv_simply` and `tv_embedded`. By default, `tv,ios,web` is used, or `tv,web` is used when authenticating with cookies. The `web_music` client is added for `music.youtube.com` URLs when logged-in cookies are used. The `web_embedded` client is added for age-restricted videos but only works if the video is embeddable. The `tv_embedded` and `web_creator` clients are added for age-restricted videos if account age-verification is required. Some clients, such as `web` and `web_music`, require a `po_token` for their formats to be downloadable. Some clients, such as `web_creator`, will only work with authentication. Not all clients support authentication via cookies. You can use `default` for the default clients, or you can use `all` for all clients (not recommended). You can prefix a client with `-` to exclude it, e.g. `youtube:player_client=default,-ios`
+* `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player), `initial_data` (skip initial data/next ep request). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause issues such as missing formats or metadata.  See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) and [#12826](https://github.com/yt-dlp/yt-dlp/issues/12826) for more details
 * `player_params`: YouTube player parameters to use for player requests. Will overwrite any default ones set by yt-dlp.
+* `player_js_variant`: The player javascript variant to use for signature and nsig deciphering. The known variants are: `main`, `tce`, `tv`, `tv_es6`, `phone`, `tablet`. Only `main` is recommended as a possible workaround; the others are for debugging purposes. The default is to use what is prescribed by the site, and can be selected with `actual`
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
@@ -1781,7 +1810,12 @@ The following extractors use this feature:
 * `raise_incomplete_data`: `Incomplete Data Received` raises an error instead of reporting a warning
 * `data_sync_id`: Overrides the account Data Sync ID used in Innertube API requests. This may be needed if you are using an account with `youtube:player_skip=webpage,configs` or `youtubetab:skip=webpage`
 * `visitor_data`: Overrides the Visitor Data used in Innertube API requests. This should be used with `player_skip=webpage,configs` and without cookies. Note: this may have adverse effects if used improperly. If a session from a browser is wanted, you should pass cookies instead (which contain the Visitor ID)
-* `po_token`:  Proof of Origin (PO) Token(s) to use for requesting video playback. Comma seperated list of PO Tokens in the format `CLIENT+PO_TOKEN`, e.g. `youtube:po_token=web+XXX,android+YYY`
+* `po_token`:  Proof of Origin (PO) Token(s) to use. Comma seperated list of PO Tokens in the format `CLIENT.CONTEXT+PO_TOKEN`, e.g. `youtube:po_token=web.gvs+XXX,web.player=XXX,web_safari.gvs+YYY`. Context can be any of `gvs` (Google Video Server URLs), `player` (Innertube player request) or `subs` (Subtitles)
+* `pot_trace`: Enable debug logging for PO Token fetching. Either `true` or `false` (default)
+* `fetch_pot`: Policy to use for fetching a PO Token from providers. One of `always` (always try fetch a PO Token regardless if the client requires one for the given context), `never` (never fetch a PO Token), or `auto` (default; only fetch a PO Token if the client requires one for the given context)
+
+#### youtubepot-webpo
+* `bind_to_visitor_id`: Whether to use the Visitor ID instead of Visitor Data for caching WebPO tokens. Either `true` (default) or `false`
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
 * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
@@ -1795,18 +1829,8 @@ The following extractors use this feature:
 * `is_live`: Bypass live HLS detection and manually set `live_status` - a value of `false` will set `not_live`, any other value (or no value) will set `is_live`
 * `impersonate`: Target(s) to try and impersonate with the initial webpage request; e.g. `generic:impersonate=safari,chrome-110`. Use `generic:impersonate` to impersonate any available target, and use `generic:impersonate=false` to disable impersonation (default)
 
-#### funimation
-* `language`: Audio languages to extract, e.g. `funimation:language=english,japanese`
-* `version`: The video version to extract - `uncut` or `simulcast`
-
-#### crunchyrollbeta (Crunchyroll)
-* `hardsub`: One or more hardsub versions to extract (in order of preference), or `all` (default: `None` = no hardsubs will be extracted), e.g. `crunchyrollbeta:hardsub=en-US,de-DE`
-
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
-
-#### niconico
-* `segment_duration`: Segment duration in milliseconds for HLS-DMC formats. Use it at your own risk since this feature **may result in your account termination.**
 
 #### youtubewebarchive
 * `check_all`: Try to check more at the cost of more requests. One or more of `thumbnails`, `captures`
@@ -1818,6 +1842,9 @@ The following extractors use this feature:
 * `res`: resolution to ignore - one or more of `sd`, `hd`, `fhd`
 * `vcodec`: vcodec to ignore - one or more of `h264`, `h265`, `dvh265`
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
+
+#### instagram
+* `app_id`: The value of the `X-IG-App-ID` header used for API requests. Default is the web app ID, `936619743392459`
 
 #### niconicochannelplus
 * `max_comments`: Maximum number of comments to extract - default is `120`
@@ -1869,6 +1896,9 @@ The following extractors use this feature:
 
 #### sonylivseries
 * `sort_order`: Episode sort order for series extraction - one of `asc` (ascending, oldest first) or `desc` (descending, newest first). Default is `asc`
+
+#### tver
+* `backend`: Backend API to use for extraction - one of `streaks` (default) or `brightcove` (deprecated)
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
@@ -2153,7 +2183,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection than what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that NicoNico livestreams are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
+* **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
 * **YouTube improvements**:
     * Supports Clips, Stories (`ytstories:<channel UCID>`), Search (including filters)**\***, YouTube Music Search, Channel-specific search, Search prefixes (`ytsearch:`, `ytsearchdate:`)**\***, Mixes, and Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`, `:ytnotif`)
@@ -2219,7 +2249,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * Live chats (if available) are considered as subtitles. Use `--sub-langs all,-live_chat` to download all subtitles except live chat. You can also use `--compat-options no-live-chat` to prevent any live chat/danmaku from downloading
 * YouTube channel URLs download all uploads of the channel. To download only the videos in a specific tab, pass the tab's URL. If the channel does not show the requested tab, an error will be raised. Also, `/live` URLs raise an error if there are no live videos instead of silently downloading the entire channel. You may use `--compat-options no-youtube-channel-redirect` to revert all these redirections
 * Unavailable videos are also listed for YouTube playlists. Use `--compat-options no-youtube-unavailable-videos` to remove this
-* The upload dates extracted from YouTube are in UTC [when available](https://github.com/yt-dlp/yt-dlp/blob/89e4d86171c7b7c997c77d4714542e0383bf0db0/yt_dlp/extractor/youtube.py#L3898-L3900). Use `--compat-options no-youtube-prefer-utc-upload-date` to prefer the non-UTC upload date.
+* The upload dates extracted from YouTube are in UTC.
 * If `ffmpeg` is used as the downloader, the downloading and merging of formats happen in a single step when possible. Use `--compat-options no-direct-merge` to revert this
 * Thumbnail embedding in `mp4` is done with mutagen if possible. Use `--compat-options embed-thumbnail-atomicparsley` to force the use of AtomicParsley instead
 * Some internal metadata such as filenames are removed by default from the infojson. Use `--no-clean-infojson` or `--compat-options no-clean-infojson` to revert this
@@ -2238,9 +2268,10 @@ For ease of use, a few more compat options are available:
 * `--compat-options all`: Use all compat options (**Do NOT use this!**)
 * `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext,-prefer-vp9-sort`
 * `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext,-prefer-vp9-sort`
-* `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
+* `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization`
 * `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
-* `--compat-options 2023`: Same as `--compat-options prefer-vp9-sort`. Use this to enable all future compat options
+* `--compat-options 2023`: Same as `--compat-options 2024,prefer-vp9-sort`
+* `--compat-options 2024`: Currently does nothing. Use this to enable all future compat options
 
 The following compat options restore vulnerable behavior from before security patches:
 

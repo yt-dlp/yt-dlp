@@ -26,7 +26,6 @@ from ._helper import (
     create_socks_proxy_socket,
     get_redirect_method,
     make_socks_proxy_opts,
-    select_proxy,
 )
 from .common import Features, RequestHandler, Response, register_rh
 from .exceptions import (
@@ -41,7 +40,7 @@ from .exceptions import (
 from ..dependencies import brotli
 from ..socks import ProxyError as SocksProxyError
 from ..utils import update_url_query
-from ..utils.networking import normalize_url
+from ..utils.networking import normalize_url, select_proxy
 
 SUPPORTED_ENCODINGS = ['gzip', 'deflate']
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
@@ -379,13 +378,15 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         opener.addheaders = []
         return opener
 
-    def _send(self, request):
-        headers = self._merge_headers(request.headers)
+    def _prepare_headers(self, _, headers):
         add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
+
+    def _send(self, request):
+        headers = self._get_headers(request)
         urllib_req = urllib.request.Request(
             url=request.url,
             data=request.data,
-            headers=dict(headers),
+            headers=headers,
             method=request.method,
         )
 

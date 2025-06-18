@@ -116,6 +116,7 @@ class VKIE(VKBaseIE):
                 'id': '-77521_162222515',
                 'ext': 'mp4',
                 'title': 'ProtivoGunz - Хуёвая песня',
+                'description': 'Видео из официальной группы Noize MC\nhttp://vk.com/noizemc',
                 'uploader': 're:(?:Noize MC|Alexander Ilyashenko).*',
                 'uploader_id': '39545378',
                 'duration': 195,
@@ -165,6 +166,7 @@ class VKIE(VKBaseIE):
                 'id': '-93049196_456239755',
                 'ext': 'mp4',
                 'title': '8 серия (озвучка)',
+                'description': 'Видео из официальной группы Noize MC\nhttp://vk.com/noizemc',
                 'duration': 8383,
                 'comment_count': int,
                 'uploader': 'Dizi2021',
@@ -240,6 +242,7 @@ class VKIE(VKBaseIE):
                 'upload_date': '20221005',
                 'uploader': 'Шальная Императрица',
                 'uploader_id': '-74006511',
+                'description': 'md5:f9315f7786fa0e84e75e4f824a48b056',
             },
         },
         {
@@ -277,6 +280,43 @@ class VKIE(VKBaseIE):
                 'skip_download': True,
             },
             'skip': 'No formats found',
+        },
+        {
+            'note': 'video has chapters',
+            'url': 'https://vkvideo.ru/video-18403220_456239696',
+            'info_dict': {
+                'id': '-18403220_456239696',
+                'ext': 'mp4',
+                'title': 'Трамп отменяет гранты // DeepSeek - Революция в ИИ // Илон Маск читер',
+                'description': 'md5:b112ea9de53683b6d03d29076f62eec2',
+                'uploader': 'Руслан Усачев',
+                'uploader_id': '-18403220',
+                'comment_count': int,
+                'like_count': int,
+                'duration': 1983,
+                'thumbnail': r're:https?://.+\.jpg',
+                'chapters': 'count:21',
+                'timestamp': 1738252883,
+                'upload_date': '20250130',
+            },
+        },
+        {
+            'url': 'https://vkvideo.ru/video-50883936_456244102',
+            'info_dict': {
+                'id': '-50883936_456244102',
+                'ext': 'mp4',
+                'title': 'Добивание Украины // Техник в коме // МОЯ ЗЛОСТЬ №140',
+                'description': 'md5:a9bc46181e9ebd0fdd82cef6c0191140',
+                'uploader': 'Стас Ай, Как Просто!',
+                'uploader_id': '-50883936',
+                'comment_count': int,
+                'like_count': int,
+                'duration': 4651,
+                'thumbnail': r're:https?://.+\.jpg',
+                'chapters': 'count:59',
+                'timestamp': 1743333869,
+                'upload_date': '20250330',
+            },
         },
         {
             # live stream, hls and rtmp links, most likely already finished live
@@ -449,7 +489,6 @@ class VKIE(VKBaseIE):
                 return self.url_result(opts_url)
 
         data = player['params'][0]
-        title = unescapeHTML(data['md_title'])
 
         # 2 = live
         # 3 = post live (finished live)
@@ -507,17 +546,29 @@ class VKIE(VKBaseIE):
         return {
             'id': video_id,
             'formats': formats,
-            'title': title,
-            'thumbnail': data.get('jpg'),
-            'uploader': data.get('md_author'),
-            'uploader_id': str_or_none(data.get('author_id') or mv_data.get('authorId')),
-            'duration': int_or_none(data.get('duration') or mv_data.get('duration')),
+            'subtitles': subtitles,
+            **traverse_obj(mv_data, {
+                'title': ('title', {str}, {unescapeHTML}),
+                'description': ('desc', {clean_html}, filter),
+                'duration': ('duration', {int_or_none}),
+                'like_count': ('likes', {int_or_none}),
+                'comment_count': ('commcount', {int_or_none}),
+            }),
+            **traverse_obj(data, {
+                'title': ('md_title', {str}, {unescapeHTML}),
+                'description': ('description', {clean_html}, filter),
+                'thumbnail': ('jpg', {url_or_none}),
+                'uploader': ('md_author', {str}, {unescapeHTML}),
+                'uploader_id': (('author_id', 'authorId'), {str_or_none}, any),
+                'duration': ('duration', {int_or_none}),
+                'chapters': ('time_codes', lambda _, v: isinstance(v['time'], int), {
+                    'title': ('text', {str}, {unescapeHTML}),
+                    'start_time': 'time',
+                }),
+            }),
             'timestamp': timestamp,
             'view_count': view_count,
-            'like_count': int_or_none(mv_data.get('likes')),
-            'comment_count': int_or_none(mv_data.get('commcount')),
             'is_live': is_live,
-            'subtitles': subtitles,
             '_format_sort_fields': ('res', 'source'),
         }
 

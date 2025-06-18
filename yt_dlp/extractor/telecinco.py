@@ -46,7 +46,7 @@ class TelecincoBaseIE(InfoExtractor):
                 error_code = traverse_obj(
                     self._webpage_read_content(error.cause.response, caronte['cerbero'], video_id, fatal=False),
                     ({json.loads}, 'code', {int}))
-                if error_code == 4038:
+                if error_code in (4038, 40313):
                     self.raise_geo_restricted(countries=['ES'])
             raise
 
@@ -62,6 +62,17 @@ class TelecincoBaseIE(InfoExtractor):
             'duration': traverse_obj(content, ('dataDuration', {int_or_none})),
             'http_headers': headers,
         }
+
+    def _download_akamai_webpage(self, url, display_id):
+        try:  # yt-dlp's default user-agents are too old and blocked by akamai
+            return self._download_webpage(url, display_id, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:136.0) Gecko/20100101 Firefox/136.0',
+            })
+        except ExtractorError as e:
+            if not isinstance(e.cause, HTTPError) or e.cause.status != 403:
+                raise
+            # Retry with impersonation if hardcoded UA is insufficient to bypass akamai
+            return self._download_webpage(url, display_id, impersonate=True)
 
 
 class TelecincoIE(TelecincoBaseIE):
@@ -140,7 +151,7 @@ class TelecincoIE(TelecincoBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        webpage = self._download_akamai_webpage(url, display_id)
         article = self._search_json(
             r'window\.\$REACTBASE_STATE\.article(?:_multisite)?\s*=',
             webpage, 'article', display_id)['article']

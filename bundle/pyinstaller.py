@@ -36,6 +36,9 @@ def main():
         f'--name={name}',
         '--icon=devscripts/logo.ico',
         '--upx-exclude=vcruntime140.dll',
+        # Ref: https://github.com/yt-dlp/yt-dlp/issues/13311
+        #      https://github.com/pyinstaller/pyinstaller/issues/9149
+        '--exclude-module=pkg_resources',
         '--noconfirm',
         '--additional-hooks-dir=yt_dlp/__pyinstaller',
         *opts,

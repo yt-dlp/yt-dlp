@@ -55,8 +55,7 @@ default = [
     "websockets>=13.0",
 ]
 curl-cffi = [
-    "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
-    "curl-cffi>=0.5.10,!=0.6.*,<0.7.2; os_name!='nt' and implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.11; implementation_name=='cpython'",
 ]
 secretstorage = [
     "cffi",
@@ -66,7 +65,7 @@ build = [
     "build",
     "hatchling",
     "pip",
-    "setuptools>=71.0.2",  # 71.0.0 broke pyinstaller
+    "setuptools>=71.0.2,<81",  # See https://github.com/pyinstaller/pyinstaller/issues/9149
     "wheel",
 ]
 dev = [
@@ -76,14 +75,14 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.9.0",
+    "ruff~=0.11.0",
 ]
 test = [
     "pytest~=8.1",
     "pytest-rerunfailures~=14.0",
 ]
 pyinstaller = [
-    "pyinstaller>=6.11.1",  # Windows temp cleanup fixed in 6.11.1
+    "pyinstaller>=6.13.0",  # Windows temp cleanup fixed in 6.13.0
 ]
 
 [project.urls]
@@ -384,9 +383,14 @@ select = [
     "W391",
     "W504",
 ]
+exclude = "*/extractor/lazy_extractors.py,*venv*,*/test/testdata/sigs/player-*.js,.idea,.vscode"
 
 [tool.pytest.ini_options]
-addopts = "-ra -v --strict-markers"
+addopts = [
+    "-ra",  # summary: all except passed
+    "--verbose",
+    "--strict-markers",
+]
 markers = [
     "download",
 ]
