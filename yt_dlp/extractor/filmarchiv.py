@@ -1,4 +1,6 @@
 from .common import InfoExtractor
+from ..utils import clean_html
+from ..utils.traversal import find_elements, traverse_obj
 
 
 class FilmArchivIE(InfoExtractor):
@@ -24,9 +26,17 @@ class FilmArchivIE(InfoExtractor):
             r'<title-div[^>]*>\s*(.+?)\s*</title-div>',
             webpage, 'title')
 
-        description = self._html_search_regex(
-            r'<div class="(?:.+?)?border-base-content[^"]*">\s*<div class="(?:.+?)?prose[^"]*">\s*<p>\s*(.+?)\s*</p>',
-            webpage, 'description')
+        description = traverse_obj(webpage, (
+            {find_elements(
+                tag='div',
+                attr='class', value=r'[^\'"]*(?<=[\'"\s])border-base-content(?=[\'"\s])[^\'"]*',
+                html=False, regex=True)}, ...,
+            {find_elements(
+                tag='div',
+                attr='class', value=r'[^\'"]*(?<=[\'"\s])prose(?=[\'"\s])[^\'"]*',
+                html=False, regex=True)}, ...,
+            {clean_html}, any,
+        ))
 
         og_img = self._html_search_meta('og:image', webpage, 'image URL', fatal=True)
         prefix = self._search_regex(
