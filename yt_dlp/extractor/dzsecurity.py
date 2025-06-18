@@ -3,6 +3,7 @@ import re
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import ExtractorError
 
+
 class DzsecurityLiveIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(echoroukonline|ennaharonline)\.com/live(?:-news)?'
 
@@ -13,7 +14,7 @@ class DzsecurityLiveIE(InfoExtractor):
             'title': r're:البث الحي لقناة الشروق تي في \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             'ext': 'mp4',
             'live_status': 'is_live',
-        }
+        },
     }, {
         'url': 'https://www.echoroukonline.com/live-news',
         'info_dict': {
@@ -21,7 +22,7 @@ class DzsecurityLiveIE(InfoExtractor):
             'title': r're:البث الحي لقناة الشروق نيوز - آخر أخبار الجزائر \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             'ext': 'mp4',
             'live_status': 'is_live',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -32,17 +33,17 @@ class DzsecurityLiveIE(InfoExtractor):
 
         player_url_match = re.search(
             r'https://live\.dzsecurity\.net/live/player/([a-zA-Z0-9_-]+)',
-            webpage
+            webpage,
         )
         if not player_url_match:
-            raise ExtractorError("Player URL not found in the page")
+            raise ExtractorError('Player URL not found in the page')
 
         player_url = player_url_match.group(0)
         stream_id = player_url_match.group(1)
 
         base_url_match = re.match(r'(https?://[^/]+)', url)
         if not base_url_match:
-            raise ExtractorError("Failed to extract base URL from input URL")
+            raise ExtractorError('Failed to extract base URL from input URL')
 
         base_url = base_url_match.group(1)
 
@@ -54,10 +55,10 @@ class DzsecurityLiveIE(InfoExtractor):
 
         m3u8_match = re.search(
             r'src:\s*location\.protocol\s*\+\s*"(?P<url>//[^"]+\.m3u8\?[^"]+)"',
-            player_page
+            player_page,
         )
         if not m3u8_match:
-            raise ExtractorError("M3U8 stream URL not found in player page")
+            raise ExtractorError('M3U8 stream URL not found in player page')
 
         m3u8_url = 'https:' + m3u8_match.group('url')
 
@@ -66,7 +67,7 @@ class DzsecurityLiveIE(InfoExtractor):
             'title': title,
             'formats': self._extract_m3u8_formats(
                 m3u8_url, stream_id, ext='mp4', entry_protocol='m3u8',
-                m3u8_id='hls', fatal=True
+                m3u8_id='hls', fatal=True,
             ),
             'is_live': True,
         }
