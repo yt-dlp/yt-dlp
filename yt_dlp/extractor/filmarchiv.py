@@ -6,13 +6,13 @@ class FilmArchivIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?filmarchiv\.at/(?:de|en)/filmarchiv-on/video/(?P<id>[0-9a-zA-Z_]+)'
     _TESTS = [{
         'url': 'https://www.filmarchiv.at/de/filmarchiv-on/video/f_0305p7xKrXUPBwoNE9x6mh',
-        'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
+        'md5': '54a6596f6a84624531866008a77fa27a',
         'info_dict': {
             'id': 'f_0305p7xKrXUPBwoNE9x6mh',
-            'ext': 'mkv',
+            'ext': 'mp4',
             'title': 'Der Wurstelprater zur Kaiserzeit',
             'description': 'md5:9843f92df5cc9a4975cee7aabcf6e3b2',
-            'thumbnail': 'https://img.filmarchiv.at/unsafe/1024x1024/videostatic/f_0305/p7xKrXUPBwoNE9x6mh_v1/poster.jpg',
+            'thumbnail': r're:https://cdn.filmarchiv.at/f_0305/p7xKrXUPBwoNE9x6mh[^/]*/poster.jpg$',
         },
     }]
 
