@@ -250,7 +250,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '400': {'ext': 'mp4', 'height': 1440, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
-    _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
+    _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
     _DEFAULT_CLIENTS = ('tv', 'ios', 'web')
     _DEFAULT_AUTHED_CLIENTS = ('tv', 'web')
 
@@ -2229,20 +2229,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_n_function_name(self, jscode, player_url=None):
         varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
         if debug_str := traverse_obj(global_list, (lambda _, v: v.endswith('-_w8_'), any)):
-            funcname = self._search_regex(
-                r'''(?xs)
-                    [;\n](?:
-                        (?P<f>function\s+)|
-                        (?:var\s+)?
-                    )(?P<funcname>[a-zA-Z0-9_$]+)\s*(?(f)|=\s*function\s*)
-                    \((?P<argname>[a-zA-Z0-9_$]+)\)\s*\{
-                    (?:(?!\}[;\n]).)+
-                    \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
-                    \{\s*return\s+%s\[%d\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
-                ''' % (re.escape(varname), global_list.index(debug_str)),
-                jscode, 'nsig function name', group='funcname', default=None)
-            if funcname:
-                return funcname
+            pattern = r'''(?x)
+                \{\s*return\s+%s\[%d\]\s*\+\s*(?P<argname>[a-zA-Z0-9_$]+)\s*\}
+            ''' % (re.escape(varname), global_list.index(debug_str))
+            if match := re.search(pattern, jscode):
+                pattern = r'''(?x)
+                    \{\s*\)%s\(\s*
+                    (?:
+                        (?P<funcname_a>[a-zA-Z0-9_$]+)\s*noitcnuf\s*
+                        |noitcnuf\s*=\s*(?P<funcname_b>[a-zA-Z0-9_$]+)(?:\s+rav)?
+                    )[;\n]
+                ''' % re.escape(match.group('argname')[::-1])
+                if match := re.search(pattern, jscode[match.start()::-1]):
+                    a, b = match.group('funcname_a', 'funcname_b')
+                    return (a or b)[::-1]
             self.write_debug(join_nonempty(
                 'Initial search was unable to find nsig function name',
                 player_url and f'        player = {player_url}', delim='\n'), only_once=True)
