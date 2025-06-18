@@ -9,7 +9,7 @@ from yt_dlp.utils import (
 
 class FaulioLiveIE(InfoExtractor):
     _VALID_URL = (
-        r'https?://(?P<domain>aloula\.sba\.sa|maraya\.sba\.net\.ae)/'
+        r'https?://(?P<domain>aloula\.sba\.sa|maraya\.sba\.net\.ae|sat7plus\.org)/'
         r'(?:en/)?live/(?P<faulio_url>[a-zA-Z0-9\-]+)'
     )
 
