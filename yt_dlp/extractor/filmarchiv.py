@@ -32,8 +32,8 @@ class FilmArchivIE(InfoExtractor):
         prefix = self._search_regex(
             r'/videostatic/([^/]+/[^_]+_[^/]+)/poster.jpg', og_img, 'prefix')
 
-        playlist_url = f'https://cdn.filmarchiv.at/{bucket}/{video_id}_{version}_sv1/playlist.m3u8'
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(playlist_url, media_id, fatal=False)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            f'https://cdn.filmarchiv.at/{prefix}_sv1/playlist.m3u8', media_id)
 
         return {
             'id': media_id,
