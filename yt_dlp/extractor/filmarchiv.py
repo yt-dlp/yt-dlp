@@ -28,9 +28,9 @@ class FilmArchivIE(InfoExtractor):
             r'<div class="(?:.+?)?border-base-content[^"]*">\s*<div class="(?:.+?)?prose[^"]*">\s*<p>\s*(.+?)\s*</p>',
             webpage, 'description')
 
-        bucket, video_id, version = self._html_search_regex(
-            r'<meta property="og:image" content="https://.+?videostatic/(?P<bucket>[^/]+)/(?P<video_id>[^_]+)_(?P<version>[^/]+)/poster.jpg[^"]+">',
-            webpage, 'bucket, video_id, version', group=('bucket', 'video_id', 'version'))
+        og_img = self._html_search_meta('og:image', webpage, 'image URL', fatal=True)
+        prefix = self._search_regex(
+            r'/videostatic/([^/]+/[^_]+_[^/]+)/poster.jpg', og_img, 'prefix')
 
         playlist_url = f'https://cdn.filmarchiv.at/{bucket}/{video_id}_{version}_sv1/playlist.m3u8'
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(playlist_url, media_id, fatal=False)
