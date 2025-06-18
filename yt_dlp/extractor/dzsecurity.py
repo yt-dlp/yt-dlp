@@ -45,8 +45,7 @@ class DzsecurityLiveIE(InfoExtractor):
     def _real_extract(self, url):
         webpage = self._download_webpage(url, url)
 
-        title_match = re.search(r'<title>(.*?)</title>', webpage, re.IGNORECASE | re.DOTALL)
-        title = title_match.group(1).strip() if title_match else 'Live Stream'
+        title = self._html_extract_title(webpage, default='Live Stream')
 
         player_url_match = re.search(
             r'https://live\.dzsecurity\.net/live/player/([a-zA-Z0-9_-]+)',
