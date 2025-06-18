@@ -295,7 +295,7 @@ class RedditOnionIE(InfoExtractor):
 
     def _get_subtitles(self, video_id):
         # Fallback if there were no subtitles provided by DASH or HLS manifests
-        caption_url = f'https://v.redd.it/{video_id}/wh_ben_en.vtt'
+        caption_url = f'https://v.reddittorjg6rue252oqsxryoxengawnmo46qy4kyii5wtqnwfj4ooad.onion/{video_id}/wh_ben_en.vtt'
         if self._is_valid_url(caption_url, video_id, item='subtitles'):
             return {'en': [{'url': caption_url}]}
 
@@ -406,8 +406,8 @@ class RedditOnionIE(InfoExtractor):
                 r'https?://v\.redd\.it/(?P<id>[^/?#&]+)', reddit_video['fallback_url'],
                 'video_id', default=display_id)
 
-            dash_playlist_url = playlist_urls[0] or f'https://v.redd.it/{video_id}/DASHPlaylist.mpd'
-            hls_playlist_url = playlist_urls[1] or f'https://v.redd.it/{video_id}/HLSPlaylist.m3u8'
+            dash_playlist_url = playlist_urls[0] or f'https://v.reddittorjg6rue252oqsxryoxengawnmo46qy4kyii5wtqnwfj4ooad.onion/{video_id}/DASHPlaylist.mpd'
+            hls_playlist_url = playlist_urls[1] or f'https://v.reddittorjg6rue252oqsxryoxengawnmo46qy4kyii5wtqnwfj4ooad.onion/{video_id}/HLSPlaylist.m3u8'
             qs = traverse_obj(parse_qs(hls_playlist_url), {
                 'f': ('f', 0, {lambda x: ','.join([x, 'subsAll']) if x else 'hd,subsAll'}),
             })
@@ -441,7 +441,7 @@ class RedditOnionIE(InfoExtractor):
                 'duration': int_or_none(reddit_video.get('duration')),
             }
 
-        if parsed_url.netloc == 'v.redd.it':
+        if parsed_url.netloc == 'v.reddittorjg6rue252oqsxryoxengawnmo46qy4kyii5wtqnwfj4ooad.onion':
             self.raise_no_formats('This video is processing', expected=True, video_id=video_id)
             return {
                 **info,
