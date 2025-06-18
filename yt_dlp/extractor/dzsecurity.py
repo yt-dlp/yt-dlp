@@ -47,15 +47,12 @@ class DzsecurityLiveIE(InfoExtractor):
 
         title = self._html_extract_title(webpage, default='Live Stream')
 
-        player_url_match = re.search(
+        player_url, stream_id = self._html_search_regex(
             r'https://live\.dzsecurity\.net/live/player/([a-zA-Z0-9_-]+)',
             webpage,
+            'player URL',
+            group=(0, 1)
         )
-        if not player_url_match:
-            raise ExtractorError('Player URL not found in the page')
-
-        player_url = player_url_match.group(0)
-        stream_id = player_url_match.group(1)
 
         base_url_match = re.match(r'(https?://[^/]+)', url)
         if not base_url_match:
