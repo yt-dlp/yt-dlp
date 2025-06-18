@@ -43,7 +43,7 @@ class DzsecurityLiveIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        webpage = self._download_webpage(url, url)
+        webpage = self._download_webpage(url, url, impersonate=True)
 
         title = self._html_extract_title(webpage, default='Live Stream')
 
