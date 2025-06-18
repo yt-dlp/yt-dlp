@@ -75,9 +75,6 @@ class DzsecurityLiveIE(InfoExtractor):
         return {
             'id': stream_id,
             'title': title,
-            'formats': self._extract_m3u8_formats(
-                m3u8_url, stream_id, ext='mp4', entry_protocol='m3u8',
-                m3u8_id='hls', fatal=True,
-            ),
+            'formats': self._extract_m3u8_formats(m3u8_url, stream_id),
             'is_live': True,
         }
