@@ -81,23 +81,13 @@ class UdioIE(InfoExtractor):
             default=None,
         )
 
-        # If found, add lyrics to the entry
-        entry = {
-            'id': artist_id,
-            'title': title.strip(),
-            'url': audio_src,
-        }
-        if lyrics:
-            entry['lyrics'] = lyrics
-
         return {
-            '_type': 'playlist',
             'id': artist_id,
             'title': title.strip(),
-            'description': description,
+            'description': lyrics,
             'uploader': artist_name.strip(),
             'uploader_url': f'https://udio.com/artist/{artist_name.strip()}',
-            'entries': [entry],  # Put the entry in an entries list
+            'url': audio_src,
         }
 
 
