@@ -39,7 +39,7 @@ class FilmArchivIE(InfoExtractor):
             'id': media_id,
             'title': title,
             'description': description,
-            'thumbnail': f'https://img.filmarchiv.at/unsafe/1024x1024/videostatic/{bucket}/{video_id}/poster.jpg',
+            'thumbnail': f'https://cdn.filmarchiv.at/{prefix}/poster.jpg',
             'formats': formats,
             'subtitles': subtitles,
         }
