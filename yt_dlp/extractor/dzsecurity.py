@@ -51,7 +51,7 @@ class DzsecurityLiveIE(InfoExtractor):
             r'https://live\.dzsecurity\.net/live/player/([a-zA-Z0-9_-]+)',
             webpage,
             'player URL',
-            group=(0, 1)
+            group=(0, 1),
         )
 
         base_url_match = re.match(r'(https?://[^/]+)', url)
