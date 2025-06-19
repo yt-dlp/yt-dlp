@@ -2100,6 +2100,7 @@ from .theguardian import (
     TheGuardianPodcastIE,
     TheGuardianPodcastPlaylistIE,
 )
+from .thehighwire import TheHighWireIE
 from .theholetv import TheHoleTvIE
 from .theintercept import TheInterceptIE
 from .theplatform import (
