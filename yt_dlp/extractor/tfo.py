@@ -3,14 +3,13 @@ import urllib.parse
 from .common import InfoExtractor
 from .uplynk import UplynkBaseIE
 from ..utils import (
-    ExtractorError,
     clean_html,
     int_or_none,
     parse_iso8601,
     str_or_none,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
 class TFOIE(UplynkBaseIE):
@@ -22,13 +21,12 @@ class TFOIE(UplynkBaseIE):
     _TESTS = [{
         'url': 'https://www.tfo.org/regarder/bardot-la-meprise/GP701766',
         'info_dict': {
-            'id': '02a8e473f171403184a0a8cddc36845a',
+            'id': 'GP701766',
             'ext': 'mp4',
             'title': 'Bardot, la Méprise',
             'age_limit': 13,
             'alt_title': 'bardot-la-meprise',
             'description': 'md5:16ca832101b6c3838bb61cd8fa06aa9e',
-            'display_id': 'GP701766',
             'duration': 3134.8480000000022,
             'genres': ['Biographie et portraits'],
             'release_timestamp': 1747875610,
@@ -43,13 +41,12 @@ class TFOIE(UplynkBaseIE):
     }, {
         'url': 'https://www.tfo.org/regarder/pouletosaure-rex-partie-1-2/GP639511',
         'info_dict': {
-            'id': 'e19eea3f3f604cd79a34293906cc5147',
+            'id': 'GP639511',
             'ext': 'mp4',
             'title': 'Pouletosaure Rex - Partie 1 & 2',
             'age_limit': 6,
             'alt_title': 'pouletosaure-rex-partie-1-2',
             'description': 'md5:24e1b629fab54d537eb40a0ef6630afa',
-            'display_id': 'GP639511',
             'duration': 1321.216000000001,
             'episode': 'Pouletosaure Rex - Partie 1 & 2',
             'episode_id': 'episode-1',
@@ -71,13 +68,12 @@ class TFOIE(UplynkBaseIE):
     }, {
         'url': 'https://www.tfo.org/episode/passeport-pour-le-monde/saison-2/episode-1/vietnam-dans-loeil-du-dragon/GP938523',
         'info_dict': {
-            'id': 'aeaf612919794960b3bfb1a0c45e70bd',
+            'id': 'GP938523',
             'ext': 'mp4',
             'title': 'VIETNAM : Dans l\'oeil du dragon',
             'age_limit': 18,
             'alt_title': 'vietnam-dans-loeil-du-dragon',
             'description': 'md5:ca182241d021ba832680ccbc09dc70fd',
-            'display_id': 'GP938523',
             'duration': 3120.0000000000023,
             'episode': 'VIETNAM : Dans l\'oeil du dragon',
             'episode_id': 'episode-1',
@@ -99,12 +95,11 @@ class TFOIE(UplynkBaseIE):
     }, {
         'url': 'https://www.tfo.org/titre/entre-les-lignes/GP704192',
         'info_dict': {
-            'id': '160c720e2dea43eba1171a3e4fdf2042',
+            'id': 'GP704192',
             'ext': 'mp4',
             'title': 'Entre les lignes',
             'age_limit': 0,
             'alt_title': 'entre-les-lignes',
-            'display_id': 'GP704192',
             'duration': 2042.8800000000015,
             'genres': ['Société'],
             'release_date': '20231105',
@@ -117,22 +112,21 @@ class TFOIE(UplynkBaseIE):
         },
         'skip': True,
     }, {
-        'url': 'https://www.tfo.org/film/pouic-pouic/498034',
+        'url': 'https://www.tfo.org/film/le-chat/498047',
         'info_dict': {
-            'id': 'e942d3bf41fa437380d5a1529c049ee8',
+            'id': '498047',
             'ext': 'mp4',
-            'title': 'Pouic-Pouic',
-            'age_limit': 0,
-            'alt_title': 'pouic-pouic',
-            'description': 'md5:ec68140f0050fc854def36643058a9fe',
-            'display_id': '498034',
-            'duration': 5219.3279999998795,
-            'genres': ['Comédie', 'Satirique'],
-            'release_date': '20250516',
-            'release_timestamp': 1747357215,
-            'release_year': 1963,
-            'series': 'Pouic-Pouic',
-            'tags': ['G'],
+            'title': 'Le Chat',
+            'age_limit': 16,
+            'alt_title': 'le-chat',
+            'description': 'md5:1e19c39fff1a48e3875feb73a52146b7',
+            'duration': 5257.7279999998755,
+            'genres': ['Drame', 'Psychologique'],
+            'release_date': '20250617',
+            'release_timestamp': 1750122010,
+            'release_year': 1971,
+            'series': 'Le Chat',
+            'tags': ['16+'],
             'thumbnail': r're:https?://.+\.jpg',
             'uploader_id': '872295f75a144bcf880cf68f4ad35db1',
         },
@@ -155,15 +149,10 @@ class TFOIE(UplynkBaseIE):
         video_data = self._download_json(
             f'{self._BASE_URL}/_next/data/{build_id}/{locale}{path}.json',
             video_id, expected_status=404)
-
-        if not (product := traverse_obj(video_data, (
-            'pageProps', 'product', {dict}), default={},
-        )):
-            raise ExtractorError(
-                'Failed to fetch video information, try again', expected=True)
+        product = traverse_obj(video_data, (
+            'pageProps', 'product', {require('video information')}))
 
         return {
-            'display_id': video_id,
             **self._extract_uplynk_info(traverse_obj(page_props, (
                 'metadata', 'video', {url_or_none},
             ))),
@@ -206,6 +195,7 @@ class TFOIE(UplynkBaseIE):
                     'season_number': ('seasonNumber', {int_or_none}),
                 },
             )),
+            'id': video_id,
         }
 
 
@@ -226,7 +216,7 @@ class TFOSeriesIE(InfoExtractor):
             'id': '002981471',
             'title': 'Chacun son île | Saison 2',
         },
-        'playlist_count': 7,
+        'playlist_mincount': 8,
     }]
 
     def _real_extract(self, url):
