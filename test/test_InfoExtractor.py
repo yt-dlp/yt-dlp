@@ -373,7 +373,7 @@ class TestInfoExtractor(unittest.TestCase):
                     'title': 'md5:3f077843a74f01f768bbf0853c210855',
                     'categories': ['Reportages'],
                     'creators': ['Sabine Dupont'],
-                    'description': 'md5:40eaf402631e0a77d8d74f66574bb978',
+                    'description': 'md5:1dc04a3aa56c5228503071baa8b4cc97',
                     'modified_timestamp': 1747319520,
                     'release_timestamp': 1747319520,
                     'tags': 'count:1',
