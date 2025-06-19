@@ -58,7 +58,7 @@ class TBSJPEpisodeIE(TBSJPBaseIE):
                 'tbs', f'ref:{video_id}', headers={'Referer': 'https://cu.tbs.co.jp/'}),
             **traverse_obj(episode, {
                 'title': ('title', ..., 'value', {str}, any),
-                'cast': ('credit', ..., 'name', ..., 'value', {str}, any, {lambda x: x.split(',')}, filter),
+                'cast': ('credit', ..., 'name', ..., 'value', {clean_html}, any, {lambda x: x.split(',')}, ..., {str.strip}, filter, all, filter),
                 'categories': ('keywords', ..., {str}, filter, all, filter),
                 'description': ('description', ..., 'value', {clean_html}, any),
                 'duration': ('tv_episode_info', 'duration', {int_or_none}),
