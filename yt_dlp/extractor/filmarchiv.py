@@ -22,8 +22,7 @@ class FilmArchivIE(InfoExtractor):
         media_id = self._match_id(url)
         webpage = self._download_webpage(url, media_id)
 
-        title = self._html_search_regex(
-            r'<title-div[^>]*>\s*(.+?)\s*</title-div>', webpage, 'title')
+        title = traverse_obj(webpage, ({find_element(tag='title-div')}, {clean_html}))
 
         description = traverse_obj(webpage, (
             {find_elements(
