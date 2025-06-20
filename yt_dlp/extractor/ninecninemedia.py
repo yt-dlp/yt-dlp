@@ -29,8 +29,7 @@ class NineCNineMediaIE(InfoExtractor):
                 '$include': '[HasClosedCaptions]',
             })
 
-        if (not self.get_param('allow_unplayable_formats')
-                and try_get(content_package, lambda x: x['Constraints']['Security']['Type'])):
+        if try_get(content_package, lambda x: x['Constraints']['Security']['Type']):
             self.report_drm(content_id)
 
         manifest_base_url = content_package_url + 'manifest.'

@@ -464,6 +464,7 @@ class KalturaIE(InfoExtractor):
 
         formats = []
         subtitles = {}
+        has_drm = False
         for f in flavor_assets:
             # Continue if asset is not ready
             if f.get('status') != 2:
@@ -473,7 +474,8 @@ class KalturaIE(InfoExtractor):
             if f.get('fileExt') == 'chun':
                 continue
             # DRM-protected video, cannot be decrypted
-            if not self.get_param('allow_unplayable_formats') and f.get('fileExt') == 'wvm':
+            if f.get('fileExt') == 'wvm':
+                has_drm = True
                 continue
             if not f.get('fileExt'):
                 # QT indicates QuickTime; some videos have broken fileExt
@@ -512,6 +514,9 @@ class KalturaIE(InfoExtractor):
                 m3u8_id='hls', fatal=False)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
+
+        if not formats and has_drm:
+            self.report_drm(entry_id)
 
         if captions:
             for caption in captions.get('objects', []):

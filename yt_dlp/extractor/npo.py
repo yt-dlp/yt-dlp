@@ -275,9 +275,8 @@ class NPOIE(InfoExtractor):
                     'url': stream_url,
                 })
 
-        if not formats:
-            if not self.get_param('allow_unplayable_formats') and drm:
-                self.report_drm(video_id)
+        if not formats and drm:
+            self.report_drm(video_id)
 
         info = {
             'id': video_id,
