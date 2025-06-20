@@ -16,11 +16,12 @@ class TheHighWireIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://thehighwire.com/ark-videos/the-deposition-of-stanley-plotkin/',
         'info_dict': {
-            'id': 'clllgcra301z4ik01x8cwhfu2',
-            'title': 'THE DEPOSITION OF STANLEY PLOTKIN',
+            'id': 'the-deposition-of-stanley-plotkin',
             'ext': 'mp4',
+            'title': 'THE DEPOSITION OF STANLEY PLOTKIN',
+            'description': 'md5:6d0be4f1181daaa10430fd8b945a5e54',
+            'thumbnail': r're:https?://static\.arkengine\.com/video/.+\.jpg',
         },
-        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
