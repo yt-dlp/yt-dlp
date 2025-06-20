@@ -1,6 +1,10 @@
 from .common import InfoExtractor
 from ..utils import clean_html
-from ..utils.traversal import find_elements, traverse_obj
+from ..utils.traversal import (
+    find_element,
+    find_elements,
+    traverse_obj,
+)
 
 
 class FilmArchivIE(InfoExtractor):
@@ -21,8 +25,6 @@ class FilmArchivIE(InfoExtractor):
     def _real_extract(self, url):
         media_id = self._match_id(url)
         webpage = self._download_webpage(url, media_id)
-
-        title = traverse_obj(webpage, ({find_elements(tag='title-div')}, {clean_html}))
 
         description = traverse_obj(webpage, (
             {find_elements(
@@ -45,7 +47,7 @@ class FilmArchivIE(InfoExtractor):
 
         return {
             'id': media_id,
-            'title': title,
+            'title': traverse_obj(webpage, ({find_element(tag='title-div')}, {clean_html})),
             'description': description,
             'thumbnail': f'https://cdn.filmarchiv.at/{prefix}/poster.jpg',
             'formats': formats,
