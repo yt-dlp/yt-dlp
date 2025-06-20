@@ -1,4 +1,15 @@
 from .common import InfoExtractor
+from ..utils import (
+    clean_html,
+    extract_attributes,
+    url_or_none,
+)
+from ..utils.traversal import (
+    find_element,
+    require,
+    traverse_obj,
+)
+
 
 class TheHighWireIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?thehighwire\.com/ark-videos/(?P<id>[^/?#]+)'
