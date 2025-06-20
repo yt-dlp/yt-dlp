@@ -22,7 +22,7 @@ class FilmArchivIE(InfoExtractor):
         media_id = self._match_id(url)
         webpage = self._download_webpage(url, media_id)
 
-        title = traverse_obj(webpage, ({find_element(tag='title-div')}, {clean_html}))
+        title = traverse_obj(webpage, ({find_elements(tag='title-div')}, {clean_html}))
 
         description = traverse_obj(webpage, (
             {find_elements(
