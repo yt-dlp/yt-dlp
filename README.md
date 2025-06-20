@@ -277,7 +277,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
     yt-dlp [OPTIONS] [--] URL [URL...]
 
-`Ctrl+F` is your friend :D
+Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 <!-- Auto generated -->
