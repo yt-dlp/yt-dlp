@@ -41,4 +41,3 @@ class TheHighWireIE(InfoExtractor):
             }),
             **self._parse_html5_media_entries(embed_url, embed_page, display_id, m3u8_id='hls')[0],
         }
-
