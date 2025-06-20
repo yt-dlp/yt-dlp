@@ -22,16 +22,12 @@ class TheHighWireIE(InfoExtractor):
             {extract_attributes}, 'src', {url_or_none}, {require('embed URL')}))
         embed_page = self._download_webpage(embed_url, display_id)
 
-        m3u8_url = self._search_regex(
-            r'<source[^>]+src=["\']([^"\']+\.m3u8)',
-            player_page, 'm3u8 URL')
-
-        title = self._og_search_title(webpage, default=None) or self._html_search_meta(
-            'og:title', webpage, 'title', default=video_id)
-
         return {
-            'id': video_id,
-            'display_id': display_id,
-            'title': title,
-            'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4'),
+            'id': display_id,
+            **traverse_obj(webpage, {
+                'title': ({find_element(cls='section-header')}, {clean_html}),
+                'description': ({find_element(cls='episode-description__copy')}, {clean_html}),
+            }),
+            **self._parse_html5_media_entries(embed_url, embed_page, display_id, m3u8_id='hls')[0],
         }
+
