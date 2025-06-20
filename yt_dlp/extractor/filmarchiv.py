@@ -32,7 +32,7 @@ class FilmArchivIE(InfoExtractor):
             'description': 'md5:b2a2e4230923cd1969d471c552e62811',
             'thumbnail': r're:https://cdn.filmarchiv.at/f_0306/vI3wO0tJIsfrqYFQXF[^/]*/poster.jpg$',
         },
-    }
+    },
     ]
 
     def _real_extract(self, url):
