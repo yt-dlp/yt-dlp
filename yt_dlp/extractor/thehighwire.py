@@ -13,7 +13,6 @@ from ..utils.traversal import (
 
 class TheHighWireIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?thehighwire\.com/ark-videos/(?P<id>[^/?#]+)'
-    _EMBED_URL = 'https://app.arkengine.com/embed/{id}'
     _TESTS = [{
         'url': 'https://thehighwire.com/ark-videos/the-deposition-of-stanley-plotkin/',
         'info_dict': {
