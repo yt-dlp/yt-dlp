@@ -17,15 +17,10 @@ class TheHighWireIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        iframe_url = self._search_regex(
-            r'<iframe[^>]+src=["\'](https?://app\.arkengine\.com/embed/[^"\']+)',
-            webpage, 'iframe URL')
-        video_id = self._search_regex(
-            r'embed/([a-zA-Z0-9]+)', iframe_url, 'video ID')
-
-        player_page = self._download_webpage(
-            self._EMBED_URL.format(id=video_id), video_id,
-            note='Downloading player page')
+        embed_url = traverse_obj(webpage, (
+            {find_element(cls='ark-video-embed', html=True)},
+            {extract_attributes}, 'src', {url_or_none}, {require('embed URL')}))
+        embed_page = self._download_webpage(embed_url, display_id)
 
         m3u8_url = self._search_regex(
             r'<source[^>]+src=["\']([^"\']+\.m3u8)',
