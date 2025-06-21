@@ -55,12 +55,12 @@ class SabrStateFile:
 
     def update(self, sabr_document):
         # Attempt to write progress document somewhat atomically to avoid corruption
-        tf = tempfile.NamedTemporaryFile(delete=False, dir=os.path.dirname(self.filename))
+        with tempfile.NamedTemporaryFile('wb', delete=False, dir=os.path.dirname(self.filename)) as tf:
+            tf.write(self.serialize(sabr_document))
+            tf.flush()
+            os.fsync(tf.fileno())
+
         try:
-            with open(tf.name, 'wb') as f:
-                f.write(self.serialize(sabr_document))
-                f.flush()
-                os.fsync(f.fileno())
             os.replace(tf.name, self.filename)
         finally:
             if os.path.exists(tf.name):
