@@ -3697,6 +3697,8 @@ class YoutubeDL:
                 return list(map(filter_fn, obj))
             elif obj is None or isinstance(obj, (str, int, float, bool)):
                 return obj
+            elif callable(obj):
+                return None
             else:
                 return repr(obj)
 
