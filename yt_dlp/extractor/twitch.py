@@ -26,6 +26,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urljoin,
+    time_seconds,
 )
 from ..utils.traversal import traverse_obj, value
 
@@ -505,7 +506,7 @@ class TwitchVodIE(TwitchBaseIE):
             'thumbnails': self._get_thumbnails(thumbnail),
             'uploader': try_get(info, lambda x: x['owner']['displayName'], str),
             'uploader_id': try_get(info, lambda x: x['owner']['login'], str),
-            'timestamp': unified_timestamp(info.get('publishedAt')),
+            'timestamp': unified_timestamp(info.get('publishedAt')) or 0,
             'view_count': int_or_none(info.get('viewCount')),
             'chapters': list(self._extract_chapters(info, item_id)),
             'is_live': is_live,
@@ -547,14 +548,81 @@ class TwitchVodIE(TwitchBaseIE):
 
     def _real_extract(self, url):
         vod_id = self._match_id(url)
+        if vod_id.startswith('v'):
+            vod_id = vod_id[1:]
 
         video = self._download_info(vod_id)
         info = self._extract_info_gql(video, vod_id)
-        access_token = self._download_access_token(vod_id, 'video', 'id')
 
-        formats = self._extract_twitch_m3u8_formats(
-            'vod', vod_id, access_token['value'], access_token['signature'],
-            live_from_start=self.get_param('live_from_start'))
+        formats = []
+        try:
+            access_token = self._download_access_token(vod_id, 'video', 'id')
+            formats = self._extract_twitch_m3u8_formats(
+                'vod', vod_id, access_token['value'], access_token['signature'],
+                live_from_start=self.get_param('live_from_start'))
+        except ExtractorError as e:
+            if '403' not in str(e) and '401' not in str(e):
+                raise
+
+            self.to_screen(f'VOD {vod_id} may be subscriber-only. Attempting to bypass restriction.')
+            
+            gql_query = {
+                'query': 'query { video(id: "' + vod_id + '") { broadcastType, createdAt, seekPreviewsURL, owner { login } }}'
+            }
+            gql_data = self._download_base_gql(vod_id, gql_query, 'Downloading VOD metadata for fallback', fatal=False)
+            video_data = traverse_obj(gql_data, ('data', 'video'))
+
+            if not video_data:
+                self.to_screen('Could not extract VOD metadata for fallback. The VOD may be deleted or truly inaccessible.')
+            else:
+                seek_previews_url = url_or_none(video_data.get('seekPreviewsURL'))
+                if not seek_previews_url:
+                    raise ExtractorError('Could not get seekPreviewsURL for fallback')
+
+                parsed_url = urllib.parse.urlparse(seek_previews_url)
+                domain = parsed_url.netloc
+                path_segments = parsed_url.path.strip('/').split('/')
+                
+                try:
+                    vod_special_id_index = next(i for i, segment in enumerate(path_segments) if 'storyboards' in segment) - 1
+                    vod_special_id = path_segments[vod_special_id_index]
+                except (StopIteration, IndexError):
+                    raise ExtractorError('Could not find VOD special ID')
+
+                resolutions = {
+                    "1080p60": {"res": "1920x1080", "fps": 60},
+                    "720p60": {"res": "1280x720", "fps": 60},
+                    "480p30": {"res": "854x480", "fps": 30},
+                    "360p30": {"res": "640x360", "fps": 30},
+                    "160p30": {"res": "284x160", "fps": 30},
+                    "chunked": {"res": "1920x1080", "fps": 60}
+                }
+                
+                broadcast_type = (video_data.get('broadcastType') or '').lower()
+                owner_login = traverse_obj(video_data, ('owner', 'login'))
+                created_at_str = video_data.get('createdAt')
+                created_at = parse_iso8601(created_at_str)
+
+                # Ensure both are numeric before subtraction
+                current_timestamp = time_seconds()
+                created_at_timestamp = created_at or 0
+
+                days_difference = (current_timestamp - created_at_timestamp) / (3600 * 24)
+
+                for res_key in resolutions.keys():
+                    playlist_url = None
+                    if broadcast_type == "highlight":
+                        playlist_url = f'https://{domain}/{vod_special_id}/{res_key}/highlight-{vod_id}.m3u8'
+                    elif broadcast_type == "upload" and days_difference > 7 and owner_login:
+                        playlist_url = f'https://{domain}/{owner_login}/{vod_id}/{vod_special_id}/{res_key}/index-dvr.m3u8'
+                    else:
+                        playlist_url = f'https://{domain}/{vod_special_id}/{res_key}/index-dvr.m3u8'
+                    
+                    m3u8_formats = self._extract_m3u8_formats(
+                        playlist_url, vod_id, 'mp4',
+                        entry_protocol='m3u8_native', m3u8_id=res_key, fatal=False)
+                    formats.extend(m3u8_formats)
+
         formats.extend(self._extract_storyboard(vod_id, video.get('storyboard'), info.get('duration')))
 
         self._prefer_source(formats)
@@ -563,7 +631,7 @@ class TwitchVodIE(TwitchBaseIE):
         parsed_url = urllib.parse.urlparse(url)
         query = urllib.parse.parse_qs(parsed_url.query)
         if 't' in query:
-            info['start_time'] = parse_duration(query['t'][0])
+            info['start_time'] = float_or_none(parse_duration(query['t'][0]))
 
         if info.get('timestamp') is not None:
             info['subtitles'] = {
