@@ -1,8 +1,5 @@
-
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import (
-    ExtractorError,
-)
+from .common import InfoExtractor
+from ..utils import ExtractorError
 
 
 class EasyBroadcastLiveIE(InfoExtractor):
