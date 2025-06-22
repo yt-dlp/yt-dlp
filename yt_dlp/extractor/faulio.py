@@ -22,6 +22,9 @@ class FaulioLiveIE(InfoExtractor):
             'ext': 'mp4',
             'live_status': 'is_live',
         },
+        'params': {
+            'skip_download': 'Livestream',
+        },
     }, {
         'url': 'https://aloula.sba.sa/live/sbc-channel',
         'info_dict': {
@@ -30,6 +33,9 @@ class FaulioLiveIE(InfoExtractor):
             'description': str,
             'ext': 'mp4',
             'live_status': 'is_live',
+        },
+        'params': {
+            'skip_download': 'Livestream',
         },
     }, {
         'url': 'https://maraya.sba.net.ae/live/1',
@@ -40,6 +46,9 @@ class FaulioLiveIE(InfoExtractor):
             'ext': 'mp4',
             'live_status': 'is_live',
         },
+        'params': {
+            'skip_download': 'Livestream',
+        },
     }, {
         'url': 'https://maraya.sba.net.ae/live/14',
         'info_dict': {
@@ -48,6 +57,9 @@ class FaulioLiveIE(InfoExtractor):
             'description': str,
             'ext': 'mp4',
             'live_status': 'is_live',
+        },
+        'params': {
+            'skip_download': 'Livestream',
         },
     }]
 
