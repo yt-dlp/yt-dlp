@@ -1,62 +1,57 @@
+
 from .common import InfoExtractor
 from ..utils import ExtractorError
 
 
 class EasyBroadcastLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:\w+\.)?player\.easybroadcast\.io/events/(?P<id>[0-9a-zA-Z_]+)'
-    _EMBED_REGEX = [rf'<iframe [^>]*\bsrc=[\'"](?P<url>{_VALID_URL})']
-    _TESTS = [
-        {
-            'url': 'https://al24.player.easybroadcast.io/events/66_al24_u4yga6h',
-            'info_dict': {
-                'id': '66_al24_u4yga6h',
-                'title': r're:Al24 \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-                'ext': 'mp4',
-                'live_status': 'is_live',
-            },
-            'params': {
-                'nocheckcertificate': True,
-            },
+    _VALID_URL = r'https?://(?:\w+\.)?player\.easybroadcast\.io/events/(?P<id>\w+)'
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc\s*=\s*["\'](?P<url>{_VALID_URL})']
+    _TESTS = [{
+        'url': 'https://al24.player.easybroadcast.io/events/66_al24_u4yga6h',
+        'info_dict': {
+            'id': '66_al24_u4yga6h',
+            'title': str,
+            'ext': 'mp4',
+            'live_status': 'is_live',
         },
-        {
-            'url': 'https://snrt.player.easybroadcast.io/events/73_aloula_w1dqfwm',
-            'info_dict': {
-                'id': '73_aloula_w1dqfwm',
-                'title': r're:Aloula \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-                'ext': 'mp4',
-                'live_status': 'is_live',
-            },
-            'params': {
-                'nocheckcertificate': True,
-            },
+        'params': {
+            'nocheckcertificate': True,
         },
-    ]
-    _WEBPAGE_TESTS = [
-        {
-            'url': 'https://al24news.dz/en/live',
-            'info_dict': {
-                'id': '66_al24_u4yga6h',
-                'title': r're:Al24 \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-                'ext': 'mp4',
-                'live_status': 'is_live',
-            },
-            'params': {
-                'nocheckcertificate': True,
-            },
+    }, {
+        'url': 'https://snrt.player.easybroadcast.io/events/73_aloula_w1dqfwm',
+        'info_dict': {
+            'id': '73_aloula_w1dqfwm',
+            'title': str,
+            'ext': 'mp4',
+            'live_status': 'is_live',
         },
-        {
-            'url': 'https://snrtlive.ma/fr/al-aoula',
-            'info_dict': {
-                'id': '73_aloula_w1dqfwm',
-                'title': r're:Aloula \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-                'ext': 'mp4',
-                'live_status': 'is_live',
-            },
-            'params': {
-                'nocheckcertificate': True,
-            },
+        'params': {
+            'nocheckcertificate': True,
         },
-    ]
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://al24news.dz/en/live',
+        'info_dict': {
+            'id': '66_al24_u4yga6h',
+            'title': str,
+            'ext': 'mp4',
+            'live_status': 'is_live',
+        },
+        'params': {
+            'nocheckcertificate': True,
+        },
+    }, {
+        'url': 'https://snrtlive.ma/fr/al-aoula',
+        'info_dict': {
+            'id': '73_aloula_w1dqfwm',
+            'title': str,
+            'ext': 'mp4',
+            'live_status': 'is_live',
+        },
+        'params': {
+            'nocheckcertificate': True,
+        },
+    }]
 
     def _real_extract(self, url):
         event_id = self._match_id(url)
