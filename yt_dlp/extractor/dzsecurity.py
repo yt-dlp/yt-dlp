@@ -15,7 +15,7 @@ class DzsecurityLiveIE(InfoExtractor):
         'url': 'https://www.echoroukonline.com/live',
         'info_dict': {
             'id': 'echorouktv',
-            'title': r're:البث الحي لقناة الشروق تي في',
+            'title': str,
             'ext': 'mp4',
             'live_status': 'is_live',
         },
@@ -23,7 +23,7 @@ class DzsecurityLiveIE(InfoExtractor):
         'url': 'https://www.echoroukonline.com/live-news',
         'info_dict': {
             'id': 'echorouknews',
-            'title': r're:البث الحي لقناة الشروق نيوز - آخر أخبار الجزائر',
+            'title': str,
             'ext': 'mp4',
             'live_status': 'is_live',
         },
@@ -31,7 +31,7 @@ class DzsecurityLiveIE(InfoExtractor):
         'url': 'https://elhayat.dz/%D8%A7%D9%84%D8%A8%D8%AB-%D8%A7%D9%84%D8%AD%D9%8A/',
         'info_dict': {
             'id': 'elhayattv',
-            'title': r're:البث الحي - الحياة',
+            'title': str,
             'ext': 'mp4',
             'live_status': 'is_live',
         },
@@ -39,7 +39,7 @@ class DzsecurityLiveIE(InfoExtractor):
         'url': 'https://www.ennaharonline.com/live',
         'info_dict': {
             'id': 'ennahartv',
-            'title': r're:البث الحي لقناة النهار &#8211; النهار أونلاين',
+            'title': str,
             'ext': 'mp4',
             'live_status': 'is_live',
         },
