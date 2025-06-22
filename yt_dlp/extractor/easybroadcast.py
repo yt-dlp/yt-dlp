@@ -7,32 +7,56 @@ from yt_dlp.utils import (
 
 class EasyBroadcastLiveIE(InfoExtractor):
     _VALID_URL = r'https?://(?:\w+\.)?player\.easybroadcast\.io/events/(?P<id>[0-9a-zA-Z_]+)'
+    _EMBED_REGEX = [rf'<iframe [^>]*\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [
         {
             'url': 'https://al24.player.easybroadcast.io/events/66_al24_u4yga6h',
             'info_dict': {
                 'id': '66_al24_u4yga6h',
-                'title': 'Al24',
+                'title': r're:Al24 \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
                 'ext': 'mp4',
                 'live_status': 'is_live',
+            },
+            'params': {
+                'nocheckcertificate': True,
             },
         },
         {
             'url': 'https://snrt.player.easybroadcast.io/events/73_aloula_w1dqfwm',
             'info_dict': {
                 'id': '73_aloula_w1dqfwm',
-                'title': 'Aloula',
+                'title': r're:Aloula \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
                 'ext': 'mp4',
                 'live_status': 'is_live',
             },
+            'params': {
+                'nocheckcertificate': True,
+            },
         },
+    ]
+    _WEBPAGE_TESTS = [
         {
-            'url': 'https://captaprod.player.easybroadcast.io/events/54_tvr_vtucuxt',
+            'url': 'https://al24news.dz/en/live',
             'info_dict': {
-                'id': '54_tvr_vtucuxt',
-                'title': 'TVR',
+                'id': '66_al24_u4yga6h',
+                'title': r're:Al24 \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
                 'ext': 'mp4',
                 'live_status': 'is_live',
+            },
+            'params': {
+                'nocheckcertificate': True,
+            },
+        },
+        {
+            'url': 'https://snrtlive.ma/fr/al-aoula',
+            'info_dict': {
+                'id': '73_aloula_w1dqfwm',
+                'title': r're:Aloula \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+                'ext': 'mp4',
+                'live_status': 'is_live',
+            },
+            'params': {
+                'nocheckcertificate': True,
             },
         },
     ]
