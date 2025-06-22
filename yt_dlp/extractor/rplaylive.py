@@ -222,9 +222,13 @@ class RPlayVideoIE(RPlayBaseIE):
                 msg += f'. {self._login_hint()}'
             raise ExtractorError(msg, expected=True)
 
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, headers=self.butter_header)
-        for fmt in formats:
-            m3u8_doc = self._download_webpage(fmt['url'], video_id, 'getting m3u8 contents', headers=self.butter_header)
+        raw_formats = self._extract_m3u8_formats(m3u8_url, video_id, headers=self.butter_header)
+        formats = []
+        for fmt in raw_formats:
+            m3u8_doc = self._download_webpage(fmt['url'], video_id, f'getting m3u8 for {fmt["format_id"]}',
+                                              headers=self.butter_header, fatal=False)
+            if not m3u8_doc:
+                continue  # skip invalid format
             fmt['url'] = encode_data_uri(m3u8_doc.encode(), 'application/x-mpegurl')
             match = re.search(r'^#EXT-X-KEY.*?URI="([^"]+)"', m3u8_doc, flags=re.M)
             if match:
@@ -235,6 +239,7 @@ class RPlayVideoIE(RPlayBaseIE):
                     'age': random.randint(1, 4999),
                 })
                 fmt['hls_aes'] = {'key': urlh.read().hex()}
+            formats.append(fmt)
 
         return {
             'id': video_id,
