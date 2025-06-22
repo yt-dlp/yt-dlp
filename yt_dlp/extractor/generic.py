@@ -6,6 +6,7 @@ import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from .commonprotocols import RtmpIE
+from .easybroadcast import EasyBroadcastLiveIE
 from .youtube import YoutubeIE
 from ..compat import compat_etree_fromstring
 from ..cookies import LenientSimpleCookie
@@ -803,6 +804,16 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20150220',
             },
             'skip': 'All The Daily Show URLs now redirect to http://www.cc.com/shows/',
+        },
+        # EasyBroadcast embed
+        {
+            'url': 'https://al24news.dz/en/live',
+            'info_dict': {
+                'id': '66_al24_u4yga6h',
+                'title': 'Al24',
+                'ext': 'mp4',
+                'live_status': 'is_live',
+            },
         },
         # jwplayer YouTube
         {
@@ -2611,6 +2622,13 @@ class GenericIE(InfoExtractor):
 
         if embeds:
             return embeds
+
+        # EasyBroadcast embed
+        mobj = re.search(
+            EasyBroadcastLiveIE._VALID_URL,
+            webpage)
+        if mobj is not None:
+            return [self.url_result(mobj.group(0), ie=EasyBroadcastLiveIE)]
 
         jwplayer_data = self._find_jwplayer_data(
             webpage, video_id, transform_source=js_to_json)
