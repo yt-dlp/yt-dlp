@@ -1794,7 +1794,7 @@ class InfoExtractor:
                 if not isinstance(data, dict):
                     return
                 children = data.pop('children', None)
-                if data and name and name[0] == '$':
+                if data and isinstance(name, str) and name[:1] == '$':
                     # It is useful hydration JSON data
                     nextjs_data.append(data)
                 flatten(children)
