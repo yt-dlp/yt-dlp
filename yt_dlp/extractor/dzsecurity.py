@@ -1,52 +1,50 @@
 
-from yt_dlp import traverse_obj
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import smuggle_url, unsmuggle_url
+from .common import InfoExtractor
+from ..utils import (
+    smuggle_url,
+    unsmuggle_url,
+)
+from ..utils.traversal import traverse_obj
 
 
 class DzsecurityLiveIE(InfoExtractor):
     _VALID_URL = r'https?://live\.dzsecurity\.net/live/player/(?P<id>[\w-]+)'
-    _EMBED_REGEX = [rf'<iframe [^>]*\bsrc\s*=\s*[\'"](?P<url>{_VALID_URL})']
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc\s*=\s*["\'](?P<url>{_VALID_URL})']
 
-    _WEBPAGE_TESTS = [
-        {
-            'url': 'https://www.echoroukonline.com/live',
-            'info_dict': {
-                'id': 'echorouktv',
-                'title': r're:البث الحي لقناة الشروق تي في',
-                'ext': 'mp4',
-                'live_status': 'is_live',
-            },
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.echoroukonline.com/live',
+        'info_dict': {
+            'id': 'echorouktv',
+            'title': r're:البث الحي لقناة الشروق تي في',
+            'ext': 'mp4',
+            'live_status': 'is_live',
         },
-        {
-            'url': 'https://www.echoroukonline.com/live-news',
-            'info_dict': {
-                'id': 'echorouknews',
-                'title': r're:البث الحي لقناة الشروق نيوز - آخر أخبار الجزائر',
-                'ext': 'mp4',
-                'live_status': 'is_live',
-            },
+    }, {
+        'url': 'https://www.echoroukonline.com/live-news',
+        'info_dict': {
+            'id': 'echorouknews',
+            'title': r're:البث الحي لقناة الشروق نيوز - آخر أخبار الجزائر',
+            'ext': 'mp4',
+            'live_status': 'is_live',
         },
-        {
-            'url': 'https://elhayat.dz/%D8%A7%D9%84%D8%A8%D8%AB-%D8%A7%D9%84%D8%AD%D9%8A/',
-            'info_dict': {
-                'id': 'elhayattv',
-                'title': r're:البث الحي - الحياة',
-                'ext': 'mp4',
-                'live_status': 'is_live',
-            },
+    }, {
+        'url': 'https://elhayat.dz/%D8%A7%D9%84%D8%A8%D8%AB-%D8%A7%D9%84%D8%AD%D9%8A/',
+        'info_dict': {
+            'id': 'elhayattv',
+            'title': r're:البث الحي - الحياة',
+            'ext': 'mp4',
+            'live_status': 'is_live',
         },
-        {
-            'url': 'https://www.ennaharonline.com/live',
-            'info_dict': {
-                'id': 'ennahartv',
-                'title': r're:البث الحي لقناة النهار &#8211; النهار أونلاين',
-                'ext': 'mp4',
-                'live_status': 'is_live',
-            },
-            'skip': 'Geo-restricted to Algeria',
+    }, {
+        'url': 'https://www.ennaharonline.com/live',
+        'info_dict': {
+            'id': 'ennahartv',
+            'title': r're:البث الحي لقناة النهار &#8211; النهار أونلاين',
+            'ext': 'mp4',
+            'live_status': 'is_live',
         },
-    ]
+        'skip': 'Geo-restricted to Algeria',
+    }]
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
