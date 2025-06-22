@@ -1787,7 +1787,7 @@ class InfoExtractor:
             return nextjs_data
 
         def flatten(flight_data):
-            if not isinstance(flight_data, list) or not flight_data:
+            if not isinstance(flight_data, list):
                 return
             if len(flight_data) == 4 and flight_data[0] == '$':
                 _, name, _, data = flight_data
