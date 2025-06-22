@@ -19,6 +19,9 @@ class DzsecurityLiveIE(InfoExtractor):
             'ext': 'mp4',
             'live_status': 'is_live',
         },
+        'params': {
+            'skip_download': 'Livestream',
+        },
     }, {
         'url': 'https://www.echoroukonline.com/live-news',
         'info_dict': {
@@ -26,6 +29,9 @@ class DzsecurityLiveIE(InfoExtractor):
             'title': str,
             'ext': 'mp4',
             'live_status': 'is_live',
+        },
+        'params': {
+            'skip_download': 'Livestream',
         },
     }, {
         'url': 'https://elhayat.dz/%D8%A7%D9%84%D8%A8%D8%AB-%D8%A7%D9%84%D8%AD%D9%8A/',
@@ -35,6 +41,9 @@ class DzsecurityLiveIE(InfoExtractor):
             'ext': 'mp4',
             'live_status': 'is_live',
         },
+        'params': {
+            'skip_download': 'Livestream',
+        },
     }, {
         'url': 'https://www.ennaharonline.com/live',
         'info_dict': {
@@ -42,6 +51,9 @@ class DzsecurityLiveIE(InfoExtractor):
             'title': str,
             'ext': 'mp4',
             'live_status': 'is_live',
+        },
+        'params': {
+            'skip_download': 'Livestream',
         },
         'skip': 'Geo-restricted to Algeria',
     }]
