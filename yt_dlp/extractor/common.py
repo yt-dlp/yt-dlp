@@ -1784,10 +1784,6 @@ class InfoExtractor:
         nextjs_data = []
         if not fatal and not isinstance(webpage, str):
             return nextjs_data
-        # This regex pattern can afford to be and should be strict
-        # Ref: https://github.com/vercel/next.js/commit/5a4a08fdce91a038f2ed3a70568d3ed040403150
-        #      /packages/next/src/server/app-render/use-flight-response.tsx
-        flight_segments = re.findall(r'<script[^>]*>self\.__next_f\.push\((\[.+?\])\)</script>', webpage)
 
         def flatten(flight_data):
             if not isinstance(flight_data, list) or not flight_data:
@@ -1805,7 +1801,10 @@ class InfoExtractor:
             for f in flight_data:
                 flatten(f)
 
-        for flight_segment in flight_segments:
+        # The flight segments regex pattern can afford to be (and should be) strict
+        # Ref: https://github.com/vercel/next.js/commit/5a4a08fdce91a038f2ed3a70568d3ed040403150
+        #      /packages/next/src/server/app-render/use-flight-response.tsx
+        for flight_segment in re.findall(r'<script[^>]*>self\.__next_f\.push\((\[.+?\])\)</script>', webpage):
             segment = self._parse_json(flight_segment, video_id, fatal=fatal, errnote=None if fatal else False)
             # Some earlier versions of next.js "optimized" away this array structure; this is unsupported
             # Ref: https://github.com/vercel/next.js/commit/0123a9d5c9a9a77a86f135b7ae30b46ca986d761
