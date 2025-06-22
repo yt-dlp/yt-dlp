@@ -21,10 +21,9 @@ from ..utils.traversal import traverse_obj
 
 
 class HuyaLiveIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.|m\.)?huya\.com/(?!(?:video/play/))(?P<id>[^/#?&]+)(?:\D|$)'
     IE_NAME = 'huya:live'
     IE_DESC = '虎牙直播'
-
-    _VALID_URL = r'https?://(?:(?:m|www)\.)?huya\.com/(?!(?:video/play/))(?P<id>[^/#?&]+)(?:\D|$)'
     _TESTS = [{
         'url': 'https://www.huya.com/572329',
         'info_dict': {
@@ -141,10 +140,10 @@ class HuyaLiveIE(InfoExtractor):
 
 
 class HuyaVideoIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?huya\.com/video/play/(?P<id>\d+)\.html'
     IE_NAME = 'huya:video'
     IE_DESC = '虎牙视频'
 
-    _VALID_URL = r'https?://(?:www\.)?huya\.com/video/play/(?P<id>\d+)\.html'
     _TESTS = [{
         'url': 'https://www.huya.com/video/play/1002412640.html',
         'info_dict': {
@@ -221,8 +220,6 @@ class HuyaVideoIE(InfoExtractor):
                     'width': ('width', {int_or_none}),
                 }))
             formats.extend(fmts)
-        if not formats:
-            self.raise_no_formats('No video found')
 
         return {
             'id': video_id,
