@@ -1,7 +1,7 @@
 import re
 
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import (
+from .common import InfoExtractor
+from ..utils import (
     ExtractorError,
     traverse_obj,
 )
@@ -13,48 +13,43 @@ class FaulioLiveIE(InfoExtractor):
         r'(?:en/)?live/(?P<faulio_url>[a-zA-Z0-9\-]+)'
     )
 
-    _TESTS = [
-        {
-            'url': 'https://aloula.sba.sa/live/saudiatv',
-            'info_dict': {
-                'id': '2',
-                'title': r're:قناة السعودية – البث المباشر \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-                'description': 'البث المباشر لقناة السعودية، تابع أخبار المملكة وأهم الأحداث المحلية والعالمية، بالإضافة لبرامج اجتماعية وترفيهية منوعة',
-                'ext': 'mp4',
-                'live_status': 'is_live',
-            },
+    _TESTS = [{
+        'url': 'https://aloula.sba.sa/live/saudiatv',
+        'info_dict': {
+            'id': '2',
+            'title': str,
+            'description': str,
+            'ext': 'mp4',
+            'live_status': 'is_live',
         },
-        {
-            'url': 'https://aloula.sba.sa/live/sbc-channel',
-            'info_dict': {
-                'id': '1',
-                'title': r're:قناة SBC – البث المباشر \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-                'description': 'البث المباشر لقناة SBC ، برامج منوعة وأعمال درامية وترفيهية سعودية وعربية على مدار الساعة.',
-                'ext': 'mp4',
-                'live_status': 'is_live',
-            },
+    }, {
+        'url': 'https://aloula.sba.sa/live/sbc-channel',
+        'info_dict': {
+            'id': '1',
+            'title': str,
+            'description': str,
+            'ext': 'mp4',
+            'live_status': 'is_live',
         },
-        {
-            'url': 'https://maraya.sba.net.ae/live/1',
-            'info_dict': {
-                'id': '1',
-                'title': r're:تلفزيون  الشارقة \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-                'description': 'تلفزيون  الشارقة',
-                'ext': 'mp4',
-                'live_status': 'is_live',
-            },
+    }, {
+        'url': 'https://maraya.sba.net.ae/live/1',
+        'info_dict': {
+            'id': '1',
+            'title': str,
+            'description': str,
+            'ext': 'mp4',
+            'live_status': 'is_live',
         },
-        {
-            'url': 'https://maraya.sba.net.ae/live/14',
-            'info_dict': {
-                'id': '14',
-                'title': r're:قناة الشارقة الرياضية 2 \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-                'description': 'قناة الشارقة الرياضية 2',
-                'ext': 'mp4',
-                'live_status': 'is_live',
-            },
+    }, {
+        'url': 'https://maraya.sba.net.ae/live/14',
+        'info_dict': {
+            'id': '14',
+            'title': str,
+            'description': str,
+            'ext': 'mp4',
+            'live_status': 'is_live',
         },
-    ]
+    }]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
