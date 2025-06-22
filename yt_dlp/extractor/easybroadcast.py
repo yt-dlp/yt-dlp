@@ -16,6 +16,7 @@ class EasyBroadcastLiveIE(InfoExtractor):
         },
         'params': {
             'nocheckcertificate': True,
+            'skip_download': 'Livestream',
         },
     }, {
         'url': 'https://snrt.player.easybroadcast.io/events/73_aloula_w1dqfwm',
@@ -27,6 +28,7 @@ class EasyBroadcastLiveIE(InfoExtractor):
         },
         'params': {
             'nocheckcertificate': True,
+            'skip_download': 'Livestream',
         },
     }]
     _WEBPAGE_TESTS = [{
@@ -39,6 +41,7 @@ class EasyBroadcastLiveIE(InfoExtractor):
         },
         'params': {
             'nocheckcertificate': True,
+            'skip_download': 'Livestream',
         },
     }, {
         'url': 'https://snrtlive.ma/fr/al-aoula',
@@ -50,6 +53,7 @@ class EasyBroadcastLiveIE(InfoExtractor):
         },
         'params': {
             'nocheckcertificate': True,
+            'skip_download': 'Livestream',
         },
     }]
 
