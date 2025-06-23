@@ -22,7 +22,7 @@ class _MatchParser:
 
     def __init__(self, string):
         if not isinstance(string, str):
-            raise TypeError("Expected string input to _MatchParser")
+            raise TypeError('Expected string input to _MatchParser')
         self._data = string
         self._pos = 0
 
@@ -33,7 +33,7 @@ class _MatchParser:
             if self._data.startswith(r, self._pos):
                 return len(r)
             return None
-        raise ValueError(f"Expected regex or string, got {type(r).__name__}")
+        raise ValueError(f'Expected regex or string, got {type(r).__name__}')
 
     def advance(self, by):
         if by is None:
@@ -45,7 +45,7 @@ class _MatchParser:
         elif isinstance(by, int):
             amt = by
         else:
-            raise ValueError(f"Unsupported advance type: {type(by).__name__}")
+            raise ValueError(f'Unsupported advance type: {type(by).__name__}')
         self._pos += amt
         return by
 
@@ -105,7 +105,7 @@ def _parse_ts(ts):
     into an MPEG PES timestamp: a tick counter at 90 kHz resolution.
     """
     if ts is None or not isinstance(ts, re.Match):
-        raise ValueError("Invalid timestamp match for _parse_ts")
+        raise ValueError('Invalid timestamp match for _parse_ts')
     return 90 * sum(
         int(part or 0) * mult for part, mult in zip(ts.groups(), (3600_000, 60_000, 1000, 1)))
 
@@ -300,9 +300,9 @@ def parse_fragment(frag_content):
     a bytes object containing the raw contents of a WebVTT file.
     """
     if not isinstance(frag_content, (bytes, bytearray)):
-        raise TypeError("Expected bytes for frag_content")
+        raise TypeError('Expected bytes for frag_content')
 
-    parser = _MatchParser(frag_content.decode(errors="replace"))
+    parser = _MatchParser(frag_content.decode(errors='replace'))
 
     yield Magic.parse(parser)
 
