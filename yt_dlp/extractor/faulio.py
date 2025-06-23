@@ -1,10 +1,8 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    traverse_obj,
-)
+from ..utils import ExtractorError
+from ..utils.traversal import traverse_obj
 
 
 class FaulioLiveIE(InfoExtractor):
