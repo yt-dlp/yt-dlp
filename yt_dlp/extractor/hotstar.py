@@ -21,6 +21,7 @@ from ..utils import (
 class HotStarBaseIE(InfoExtractor):
     _BASE_URL = 'https://www.hotstar.com'
     _API_URL = 'https://api.hotstar.com'
+    _API_URL_V2 = 'https://apix.hotstar.com'
     _AKAMAI_ENCRYPTION_KEY = b'\x05\xfc\x1a\x01\xca\xc9\x4b\xc4\x12\xfc\x53\x12\x07\x75\xf9\xee'
 
     def _call_api_v1(self, path, *args, **kwargs):
@@ -34,41 +35,53 @@ class HotStarBaseIE(InfoExtractor):
         auth = f'st={st}~exp={exp}~acl=/*'
         auth += '~hmac=' + hmac.new(self._AKAMAI_ENCRYPTION_KEY, auth.encode(), hashlib.sha256).hexdigest()
 
-        if cookies and cookies.get('userUP'):
-            token = cookies.get('userUP').value
-        else:
-            token = self._download_json(
-                f'{self._API_URL}/um/v3/users',
-                video_id, note='Downloading token',
-                data=json.dumps({'device_ids': [{'id': str(uuid.uuid4()), 'type': 'device_id'}]}).encode(),
-                headers={
-                    'hotstarauth': auth,
-                    'x-hs-platform': 'PCTV',  # or 'web'
-                    'Content-Type': 'application/json',
-                })['user_identity']
+        if cookies:
+            if cookies.get('userUP'):
+                token = cookies.get('userUP').value
+            else:
+                token = self._download_json(
+                    f'{self._API_URL}/um/v3/users',
+                    video_id, note='Downloading token',
+                    data=json.dumps({'device_ids': [{'id': str(uuid.uuid4()), 'type': 'device_id'}]}).encode(),
+                    headers={
+                        'hotstarauth': auth,
+                        'x-hs-platform': 'PCTV',  # or 'web'
+                        'Content-Type': 'application/json',
+                    })['user_identity']
+            
+            if cookies.get('deviceId'):
+                device_id = cookies.get('deviceId').value
+            else:
+                device_id = str(uuid.uuid4())
 
         response = self._download_json(
-            f'{self._API_URL}/{path}', video_id, query=query,
+            f'{self._API_URL_V2}/{path}', video_id, query=query,
             headers={
-                'hotstarauth': auth,
-                'x-hs-appversion': '6.72.2',
-                'x-hs-platform': 'web',
-                'x-hs-usertoken': token,
+                "user-agent": "Disney+;in.startv.hotstar.dplus.tv/23.08.14.4.2915 (Android/13)",
+                "hotstarauth": auth,
+                "x-hs-usertoken": token,
+                "x-hs-device-id": device_id,
+                "x-hs-client": "platform:androidtv;app_id:in.startv.hotstar.dplus.tv;app_version:23.08.14.4;os:Android;os_version:13;schema_version:0.0.970",
+                "x-hs-platform": "androidtv",
+                "content-type": "application/json",
             })
 
-        if response['message'] != "Playback URL's fetched successfully":
+        if not response['success']:
             raise ExtractorError(
-                response['message'], expected=True)
-        return response['data']
+                'Unintended response! Try again later or report this issue if problem persist', expected=True)
+        return response['success']
 
-    def _call_api_v2(self, path, video_id, st=None, cookies=None):
+    def _call_api_v2(self, path, video_id, st=None, cookies=None, 
+                content_type=None, video_codec='h264', resolution='hd', range='sdr'):
+    
         return self._call_api_impl(
-            f'{path}/content/{video_id}', video_id, st=st, cookies=cookies, query={
-                'desired-config': 'audio_channel:stereo|container:fmp4|dynamic_range:hdr|encryption:plain|ladder:tv|package:dash|resolution:fhd|subs-tag:HotstarVIP|video_codec:h265',
-                'device-id': cookies.get('device_id').value if cookies.get('device_id') else str(uuid.uuid4()),
-                'os-name': 'Windows',
-                'os-version': '10',
-            })
+            f'{path}', video_id, st=st, cookies=cookies, 
+                query={
+                "content_id": video_id,
+                "filters": f"content_type={content_type}",
+                "client_capabilities": "{\"package\":[\"dash\",\"hls\"],\"container\":[\"fmp4br\",\"fmp4\"],\"ads\":[\"non_ssai\",\"ssai\"],\"audio_channel\":[\"atmos\",\"dolby51\",\"stereo\"],\"encryption\":[\"plain\",\"widevine\"],\"video_codec\":[\"" + video_codec + "\"],\"ladder\":[\"tv\",\"full\"],\"resolution\":[\"" + resolution + "\"],\"true_resolution\":[\"" + resolution + "\"],\"dynamic_range\":[\"" + range + "\"]}",
+                "drm_parameters": "{\"widevine_security_level\":[\"SW_SECURE_DECODE\",\"SW_SECURE_CRYPTO\"],\"hdcp_version\":[\"HDCP_V2_2\",\"HDCP_V2_1\",\"HDCP_V2\",\"HDCP_V1\"]}"
+                })
 
     def _playlist_entries(self, path, item_id, root=None, **kwargs):
         results = self._call_api_v1(path, item_id, **kwargs)['body']['results']
@@ -208,6 +221,13 @@ class HotStarIE(HotStarBaseIE):
         None: 'content',
     }
 
+    _CONTENT_TYPE = {
+        'movie': 'MOVIE',
+        'episode': 'SHOW',
+        'match': 'SPORTS',
+        None: 'content'
+    }
+
     _IGNORE_MAP = {
         'res': 'resolution',
         'vcodec': 'video_codec',
@@ -230,6 +250,7 @@ class HotStarIE(HotStarBaseIE):
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
         video_type = self._TYPE.get(video_type, video_type)
+        content_type = self._CONTENT_TYPE.get(video_type, video_type)
         cookies = self._get_cookies(url)  # Cookies before any request
 
         video_data = traverse_obj(
@@ -239,25 +260,37 @@ class HotStarIE(HotStarBaseIE):
         if not self.get_param('allow_unplayable_formats') and video_data.get('drmProtected'):
             self.report_drm(video_id)
 
+        content_type = video_data.get('assetType') or video_data.get('contentType') or content_type
+
         # See https://github.com/yt-dlp/yt-dlp/issues/396
         st = self._download_webpage_handle(f'{self._BASE_URL}/in', video_id)[1].headers.get('x-origin-date')
 
         geo_restricted = False
         formats, subs = [], {}
         headers = {'Referer': f'{self._BASE_URL}/in'}
+        
+        _resp = traverse_obj(
+            self._call_api_v2(
+                '/v2/pages/watch', video_id, st=st, cookies=cookies,
+                content_type=content_type, video_codec='h265', resolution='4k', range='hdr'), 
+            ('page','spaces','player','widget_wrappers',0,'widget','data','player_config', {dict})) or {}
 
-        # change to v2 in the future
-        playback_sets = self._call_api_v2('play/v1/playback', video_id, st=st, cookies=cookies)['playBackSets']
+        playback_sets = [
+            traverse_obj(_resp, (path1, path2, {dict}))
+            for path1 in ('media_asset', 'media_asset_v2')
+            for path2 in ('primary', 'fallback')
+        ]
+
         for playback_set in playback_sets:
             if not isinstance(playback_set, dict):
                 continue
-            tags = str_or_none(playback_set.get('tagsCombination')) or ''
+            tags = str_or_none(playback_set.get('playback_tags')) or ''
             if any(f'{prefix}:{ignore}' in tags
                    for key, prefix in self._IGNORE_MAP.items()
                    for ignore in self._configuration_arg(key)):
                 continue
 
-            format_url = url_or_none(playback_set.get('playbackUrl'))
+            format_url = url_or_none(playback_set.get('content_url'))
             if not format_url:
                 continue
             format_url = re.sub(r'(?<=//staragvod)(\d)', r'web\1', format_url)
