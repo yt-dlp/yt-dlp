@@ -48,7 +48,7 @@ class HotStarBaseIE(InfoExtractor):
                         'x-hs-platform': 'PCTV',  # or 'web'
                         'Content-Type': 'application/json',
                     })['user_identity']
-            
+
             if cookies.get('deviceId'):
                 device_id = cookies.get('deviceId').value
             else:
@@ -57,13 +57,13 @@ class HotStarBaseIE(InfoExtractor):
         response = self._download_json(
             f'{self._API_URL_V2}/{path}', video_id, query=query,
             headers={
-                "user-agent": "Disney+;in.startv.hotstar.dplus.tv/23.08.14.4.2915 (Android/13)",
-                "hotstarauth": auth,
-                "x-hs-usertoken": token,
-                "x-hs-device-id": device_id,
-                "x-hs-client": "platform:androidtv;app_id:in.startv.hotstar.dplus.tv;app_version:23.08.14.4;os:Android;os_version:13;schema_version:0.0.970",
-                "x-hs-platform": "androidtv",
-                "content-type": "application/json",
+                'user-agent': 'Disney+;in.startv.hotstar.dplus.tv/23.08.14.4.2915 (Android/13)',
+                'hotstarauth': auth,
+                'x-hs-usertoken': token,
+                'x-hs-device-id': device_id,
+                'x-hs-client': 'platform:androidtv;app_id:in.startv.hotstar.dplus.tv;app_version:23.08.14.4;os:Android;os_version:13;schema_version:0.0.970',
+                'x-hs-platform': 'androidtv',
+                'content-type': 'application/json',
             })
 
         if not response['success']:
@@ -71,17 +71,17 @@ class HotStarBaseIE(InfoExtractor):
                 'Unintended response! Try again later or report this issue if problem persist', expected=True)
         return response['success']
 
-    def _call_api_v2(self, path, video_id, st=None, cookies=None, 
-                content_type=None, video_codec='h264', resolution='hd', range='sdr'):
-    
+    def _call_api_v2(self, path, video_id, st=None, cookies=None,
+                     content_type=None, video_codec='h264', resolution='hd', dynamic_range='sdr'):
+
         return self._call_api_impl(
-            f'{path}', video_id, st=st, cookies=cookies, 
-                query={
-                "content_id": video_id,
-                "filters": f"content_type={content_type}",
-                "client_capabilities": "{\"package\":[\"dash\",\"hls\"],\"container\":[\"fmp4br\",\"fmp4\"],\"ads\":[\"non_ssai\",\"ssai\"],\"audio_channel\":[\"atmos\",\"dolby51\",\"stereo\"],\"encryption\":[\"plain\",\"widevine\"],\"video_codec\":[\"" + video_codec + "\"],\"ladder\":[\"tv\",\"full\"],\"resolution\":[\"" + resolution + "\"],\"true_resolution\":[\"" + resolution + "\"],\"dynamic_range\":[\"" + range + "\"]}",
-                "drm_parameters": "{\"widevine_security_level\":[\"SW_SECURE_DECODE\",\"SW_SECURE_CRYPTO\"],\"hdcp_version\":[\"HDCP_V2_2\",\"HDCP_V2_1\",\"HDCP_V2\",\"HDCP_V1\"]}"
-                })
+            f'{path}', video_id, st=st, cookies=cookies,
+            query={
+                'content_id': video_id,
+                'filters': f'content_type={content_type}',
+                'client_capabilities': '{"package":["dash","hls"],"container":["fmp4br","fmp4"],"ads":["non_ssai","ssai"],"audio_channel":["atmos","dolby51","stereo"],"encryption":["plain","widevine"],"video_codec":["' + video_codec + '"],"ladder":["tv","full"],"resolution":["' + resolution + '"],"true_resolution":["' + resolution + '"],"dynamic_range":["' + dynamic_range + '"]}',
+                'drm_parameters': '{"widevine_security_level":["SW_SECURE_DECODE","SW_SECURE_CRYPTO"],"hdcp_version":["HDCP_V2_2","HDCP_V2_1","HDCP_V2","HDCP_V1"]}',
+            })
 
     def _playlist_entries(self, path, item_id, root=None, **kwargs):
         results = self._call_api_v1(path, item_id, **kwargs)['body']['results']
@@ -225,7 +225,7 @@ class HotStarIE(HotStarBaseIE):
         'movie': 'MOVIE',
         'episode': 'SHOW',
         'match': 'SPORTS',
-        None: 'content'
+        None: 'content',
     }
 
     _IGNORE_MAP = {
@@ -268,12 +268,12 @@ class HotStarIE(HotStarBaseIE):
         geo_restricted = False
         formats, subs = [], {}
         headers = {'Referer': f'{self._BASE_URL}/in'}
-        
+
         _resp = traverse_obj(
             self._call_api_v2(
                 '/v2/pages/watch', video_id, st=st, cookies=cookies,
-                content_type=content_type, video_codec='h265', resolution='4k', range='hdr'), 
-            ('page','spaces','player','widget_wrappers',0,'widget','data','player_config', {dict})) or {}
+                content_type=content_type, video_codec='h265', resolution='4k', dynamic_range='hdr'),
+            ('page', 'spaces', 'player', 'widget_wrappers', 0, 'widget', 'data', 'player_config', {dict})) or {}
 
         playback_sets = [
             traverse_obj(_resp, (path1, path2, {dict}))
