@@ -119,6 +119,7 @@ class SabrProcessor:
         if self.start_time_ms < 0:
             raise ValueError('start_time_ms must be greater than or equal to 0')
 
+        # TODO: move to SabrStream
         self.live_end_wait_sec = live_end_wait_sec or max(10, 3 * self.live_segment_target_duration_sec)
         self.live_end_segment_tolerance = live_end_segment_tolerance or 10
         self.post_live = post_live
@@ -157,24 +158,27 @@ class SabrProcessor:
         self._is_live = value
 
     def _initialize_cabr_state(self):
-        enabled_track_types_bitfield = 0  # Audio+Video
+        # SABR supports: audio+video, audio+video+captions or audio-only.
+        # For the other cases, we'll mark the tracks to be discarded (and fully buffered on initialization)
+
         if not self._video_format_selector:
-            enabled_track_types_bitfield = 1  # Audio only
             self._video_format_selector = VideoSelector(display_name='video_ignore', discard_media=True)
 
-        if self._caption_format_selector:
-            # SABR does not support caption-only or audio+captions only - can only get audio+video with captions
-            # If audio or video is not selected, the tracks will be initialized but marked as buffered.
-            enabled_track_types_bitfield = 7
-
-        # SABR does not support video-only, so we need to discard the audio track received.
-        # We need a selector as the server sometimes does not like it
-        # if we haven't initialized an audio format (e.g. livestreams).
         if not self._audio_format_selector:
             self._audio_format_selector = AudioSelector(display_name='audio_ignore', discard_media=True)
 
         if not self._caption_format_selector:
             self._caption_format_selector = CaptionSelector(display_name='caption_ignore', discard_media=True)
+
+        enabled_track_types_bitfield = 0  # Audio+Video
+
+        if self._video_format_selector.discard_media:
+            enabled_track_types_bitfield = 1  # Audio only
+
+        if not self._caption_format_selector.discard_media:
+            # SABR does not support caption-only or audio+captions only - can only get audio+video with captions
+            # If audio or video is not selected, the tracks will be initialized but marked as buffered.
+            enabled_track_types_bitfield = 7
 
         self.selected_audio_format_ids = self._audio_format_selector.format_ids
         self.selected_video_format_ids = self._video_format_selector.format_ids
