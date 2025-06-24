@@ -1226,6 +1226,25 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             'id': '313580179',
         },
         'playlist_mincount': 92,
+    }, {
+        'url': 'https://space.bilibili.com/3669403/video',
+        'info_dict': {
+            'id': '3669403',
+        },
+        'playlist': [{
+            'info_dict': {
+                '_type': 'playlist',
+                'id': '3669403_3958082',
+                'title': '合集·直播回放',
+                'description': '',
+                'uploader': '月路Yuel',
+                'uploader_id': '3669403',
+                'timestamp': int,
+                'upload_date': str,
+                'thumbnail': str,
+            },
+        }],
+        'params': {'playlist_items': '7'},
     }]
 
     def _real_extract(self, url):
@@ -1283,7 +1302,13 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
 
         def get_entries(page_data):
             for entry in traverse_obj(page_data, ('list', 'vlist')) or []:
-                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}', BiliBiliIE, entry['bvid'])
+                if traverse_obj(entry, ('meta', 'attribute')) == 156:
+                    # hidden-mode collection do not show its videos in uploads, extract as playlist instead
+                    yield self.url_result(
+                        f'https://space.bilibili.com/{entry["mid"]}/lists/{entry["meta"]["id"]}?type=season',
+                        BilibiliCollectionListIE, f'{entry["mid"]}_{entry["meta"]["id"]}')
+                else:
+                    yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}', BiliBiliIE, entry['bvid'])
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id)
