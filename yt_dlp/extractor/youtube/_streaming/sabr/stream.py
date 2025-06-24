@@ -141,8 +141,6 @@ class SabrStream:
             live_segment_target_duration_tolerance_ms=live_segment_target_duration_tolerance_ms,
             start_time_ms=start_time_ms,
             po_token=po_token,
-            live_end_wait_sec=live_end_wait_sec,
-            live_end_segment_tolerance=live_end_segment_tolerance,
             post_live=post_live,
             video_id=video_id,
         )
@@ -151,6 +149,8 @@ class SabrStream:
         self.pot_retries = pot_retries or 5
         self.host_fallback_threshold = host_fallback_threshold or 8
         self.max_empty_requests = max_empty_requests or 3
+        self.live_end_wait_sec = live_end_wait_sec or max(10, self.max_empty_requests * self.processor.live_segment_target_duration_sec)
+        self.live_end_segment_tolerance = live_end_segment_tolerance or 10
         self.expiry_threshold_sec = expiry_threshold_sec or 60  # 60 seconds
         if self.expiry_threshold_sec <= 0:
             raise ValueError('expiry_threshold_sec must be greater than 0')
@@ -346,7 +346,7 @@ class SabrStream:
                 self.processor.live_metadata
                 # TODO: generalize
                 and self.processor.client_abr_state.player_time_ms >= (
-                    self.processor.live_metadata.head_sequence_time_ms - (self.processor.live_segment_target_duration_sec * 1000 * self.processor.live_end_segment_tolerance))
+                    self.processor.live_metadata.head_sequence_time_ms - (self.processor.live_segment_target_duration_sec * 1000 * self.live_end_segment_tolerance))
             ):
                 # Only log a warning if we are not near the head of a stream
                 self.logger.debug(msg)
@@ -469,9 +469,9 @@ class SabrStream:
                 if (
                     self._no_new_segments_tracker.consecutive_requests > self.max_empty_requests
                     and not self._is_retry
-                    and self._no_new_segments_tracker.timestamp_started < time.time() + self.processor.live_end_wait_sec
+                    and self._no_new_segments_tracker.timestamp_started < time.time() + self.live_end_wait_sec
                 ):
-                    self.logger.debug(f'No new segments received for at least {self.processor.live_end_wait_sec} seconds, assuming end of live stream')
+                    self.logger.debug(f'No new segments received for at least {self.live_end_wait_sec} seconds, assuming end of live stream')
                     self._consumed = True
                 else:
                     wait_seconds = max(next_request_backoff_ms / 1000, self.processor.live_segment_target_duration_sec)
@@ -499,7 +499,7 @@ class SabrStream:
                                 initialized_format.consumed_ranges,
                                 key=lambda cr: cr.end_sequence_number,
                             )[-1].end_sequence_number
-                            >= initialized_format.total_segments - self.processor.live_end_segment_tolerance
+                            >= initialized_format.total_segments - self.live_end_segment_tolerance
                         )
                         for initialized_format in enabled_initialized_formats
                     )
@@ -515,16 +515,16 @@ class SabrStream:
                     # Because of this, we should also check the player time against
                     # the head segment time using the estimated segment duration.
                     # xxx: consider also taking into account the max seekable timestamp
-                    request_player_time >= self.processor.live_metadata.head_sequence_time_ms - (self.processor.live_segment_target_duration_sec * 1000 * self.processor.live_end_segment_tolerance)
+                    request_player_time >= self.processor.live_metadata.head_sequence_time_ms - (self.processor.live_segment_target_duration_sec * 1000 * self.live_end_segment_tolerance)
                 )
             )
         ):
             if (
                 not self._is_retry  # allow us to sleep on a retry
                 and self._no_new_segments_tracker.consecutive_requests > self.max_empty_requests
-                and self._no_new_segments_tracker.timestamp_started < time.time() + self.processor.live_end_wait_sec
+                and self._no_new_segments_tracker.timestamp_started < time.time() + self.live_end_wait_sec
             ):
-                self.logger.debug(f'No new segments received for at least {self.processor.live_end_wait_sec} seconds; assuming end of live stream')
+                self.logger.debug(f'No new segments received for at least {self.live_end_wait_sec} seconds; assuming end of live stream')
                 self._consumed = True
             elif self._no_new_segments_tracker.consecutive_requests >= 1:
                 # Sometimes we can't get the head segment - rather tend to sit behind the head segment for the duration of the livestream

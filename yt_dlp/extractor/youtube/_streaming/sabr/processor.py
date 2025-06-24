@@ -97,8 +97,6 @@ class SabrProcessor:
         live_segment_target_duration_tolerance_ms: int | None = None,
         start_time_ms: int | None = None,
         po_token: str | None = None,
-        live_end_wait_sec: int | None = None,
-        live_end_segment_tolerance: int | None = None,
         post_live: bool = False,
         video_id: str | None = None,
     ):
@@ -119,9 +117,6 @@ class SabrProcessor:
         if self.start_time_ms < 0:
             raise ValueError('start_time_ms must be greater than or equal to 0')
 
-        # TODO: move to SabrStream
-        self.live_end_wait_sec = live_end_wait_sec or max(10, 3 * self.live_segment_target_duration_sec)
-        self.live_end_segment_tolerance = live_end_segment_tolerance or 10
         self.post_live = post_live
         self._is_live = False
         self.video_id = video_id
@@ -498,6 +493,7 @@ class SabrProcessor:
                 else PoTokenStatusSabrPart.PoTokenStatus.MISSING
             )
         else:
+            self.logger.warning(f'Received an unknown StreamProtectionStatus: {stream_protection_status}')
             result_status = None
 
         sabr_part = PoTokenStatusSabrPart(status=result_status) if result_status is not None else None
