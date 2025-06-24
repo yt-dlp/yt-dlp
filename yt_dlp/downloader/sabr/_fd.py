@@ -178,6 +178,11 @@ class SabrFD(FileDownloader):
                 self, caption_format.get('filename'),
                 caption_format['info_dict'], len(writers), resume=resume)
 
+        # Report the destination files before we start downloading instead of when we initialize the writers,
+        # as the formats may not all start at the same time (leading to messy output)
+        for writer in writers.values():
+            self.report_destination(writer.filename)
+
         stream = SabrStream(
             urlopen=self.ydl.urlopen,
             logger=create_sabrfd_logger(self.ydl, prefix='sabr:stream'),
