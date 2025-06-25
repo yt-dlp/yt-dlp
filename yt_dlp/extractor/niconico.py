@@ -754,7 +754,6 @@ class NiconicoUserIE(InfoExtractor):
 class NiconicoLiveIE(NiconicoBaseIE):
     IE_NAME = 'niconico:live'
     IE_DESC = 'ニコニコ生放送'
-
     _VALID_URL = r'https?://(?:sp\.)?live2?\.nicovideo\.jp/(?:watch|gate)/(?P<id>lv\d+)'
     _TESTS = [{
         'note': 'this test case includes invisible characters for title, pasting them as-is',
@@ -787,17 +786,13 @@ class NiconicoLiveIE(NiconicoBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id, expected_status=404)
-        if err_msg := traverse_obj(webpage, (
-            {find_element(cls='message')}, {clean_html},
-        )):
+        if err_msg := traverse_obj(webpage, ({find_element(cls='message')}, {clean_html})):
             raise ExtractorError(err_msg, expected=True)
 
         embedded_data = traverse_obj(webpage, (
             {find_element(tag='script', id='embedded-data', html=True)},
-            {extract_attributes}, 'data-props', {json.loads},
-        ))
-        frontend_id = traverse_obj(embedded_data, (
-            'site', 'frontendId', {str_or_none}), default='9')
+            {extract_attributes}, 'data-props', {json.loads}))
+        frontend_id = traverse_obj(embedded_data, ('site', 'frontendId', {str_or_none}), default='9')
 
         if not (ws_url := traverse_obj(embedded_data, (
             'site', 'relive', 'webSocketUrl', {url_or_none},
@@ -853,7 +848,7 @@ class NiconicoLiveIE(NiconicoBaseIE):
         title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(
             ('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
 
-        raw_thumbs = traverse_obj(embedded_data, ('program', 'thumbnail', {dict}), default={})
+        raw_thumbs = traverse_obj(embedded_data, ('program', 'thumbnail', {dict})) or {}
         thumbnails = []
         for name, value in raw_thumbs.items():
             if not isinstance(value, dict):

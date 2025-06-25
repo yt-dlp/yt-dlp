@@ -14,8 +14,8 @@ class NiconicoLiveFD(FileDownloader):
 
     def real_download(self, filename, info_dict):
         video_id = info_dict['id']
-        quality, ws_extractor, ws_url = map(
-            info_dict['downloader_options'].get, ('max_quality', 'ws', 'ws_url'))
+        opts = info_dict['downloader_options']
+        quality, ws_extractor, ws_url = opts['max_quality'], opts['ws'], opts['ws_url']
         dl = FFmpegFD(self.ydl, self.params or {})
 
         new_info_dict = info_dict.copy()
@@ -76,7 +76,7 @@ class NiconicoLiveFD(FileDownloader):
                         return
                 except BaseException as e:
                     self.to_screen(
-                        f'[niconico:live] {video_id}: Connection error occured, reconnecting after 10 seconds: {str_or_none(e)}')
+                        f'[niconico:live] {video_id}: Connection error occured, reconnecting after 10 seconds: {e}')
                     time.sleep(10)
                     continue
                 finally:
