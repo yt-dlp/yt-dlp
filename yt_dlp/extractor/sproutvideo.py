@@ -79,7 +79,6 @@ class SproutVideoIE(InfoExtractor):
     }]
     _M3U8_URL_TMPL = 'https://{base}.videos.sproutvideo.com/{s3_user_hash}/{s3_video_hash}/video/index.m3u8'
     _QUALITIES = ('hd', 'uhd', 'source')  # Exclude 'sd' to prioritize hls formats above it
-    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; rv:140.0) Gecko/20100101 Firefox/140.0'  # TODO: remove
 
     @staticmethod
     def _policy_to_qs(policy, signature_key, as_string=False):
@@ -99,12 +98,10 @@ class SproutVideoIE(InfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
-        # TODO: replace with _download_firefox_webpage()
-        # webpage = self._download_firefox_webpage(
-        #     url, video_id, headers=traverse_obj(smuggled_data, {'Referer': 'referer'}))
         webpage = self._download_webpage(url, video_id, headers={
             **traverse_obj(smuggled_data, {'Referer': 'referer'}),
-            'User-Agent': self._USER_AGENT,
+            # yt-dlp's default Chrome user-agents are too old
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:140.0) Gecko/20100101 Firefox/140.0',
         })
         data = self._search_json(
             r'var\s+(?:dat|playerInfo)\s*=\s*["\']', webpage, 'player info', video_id,
