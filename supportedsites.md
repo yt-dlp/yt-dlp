@@ -590,7 +590,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Hungama**
  - **HungamaAlbumPlaylist**
  - **HungamaSong**
- - **huya:live**: huya.com
+ - **huya:live**: 虎牙直播
  - **huya:video**: 虎牙视频
  - **Hypem**
  - **Hytale**
@@ -776,6 +776,7 @@ The only reliable way to check if a site is supported is to try it.
  - **massengeschmack.tv**
  - **Masters**
  - **MatchTV**
+ - **Mave**
  - **MBN**: mbn.co.kr (매일방송)
  - **MDR**: MDR.DE
  - **MedalTV**
@@ -832,7 +833,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Mojevideo**: mojevideo.sk
  - **Mojvideo**
  - **Monstercat**
- - **MonsterSirenHypergryphMusic**
+ - **monstersiren**: 塞壬唱片
  - **Motherless**
  - **MotherlessGallery**
  - **MotherlessGroup**
