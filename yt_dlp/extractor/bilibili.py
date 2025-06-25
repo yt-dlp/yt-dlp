@@ -1227,6 +1227,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
         },
         'playlist_mincount': 92,
     }, {
+        # Hidden-mode collection
         'url': 'https://space.bilibili.com/3669403/video',
         'info_dict': {
             'id': '3669403',
@@ -1301,9 +1302,9 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             }
 
         def get_entries(page_data):
-            for entry in traverse_obj(page_data, ('list', 'vlist')) or []:
+            for entry in traverse_obj(page_data, ('list', 'vlist', ..., {dict})):
                 if traverse_obj(entry, ('meta', 'attribute')) == 156:
-                    # hidden-mode collection do not show its videos in uploads, extract as playlist instead
+                    # hidden-mode collection doesn't show its videos in uploads; extract as playlist instead
                     yield self.url_result(
                         f'https://space.bilibili.com/{entry["mid"]}/lists/{entry["meta"]["id"]}?type=season',
                         BilibiliCollectionListIE, f'{entry["mid"]}_{entry["meta"]["id"]}')
