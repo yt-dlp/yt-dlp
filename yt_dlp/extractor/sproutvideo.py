@@ -41,6 +41,7 @@ class SproutVideoIE(InfoExtractor):
             'duration': 703,
             'thumbnail': r're:https?://images\.sproutvideo\.com/.+\.jpg',
         },
+        'skip': 'Account Disabled',
     }, {
         # http formats 'sd' and 'hd' are available
         'url': 'https://videos.sproutvideo.com/embed/119cd6bc1a18e6cd98/30751a1761ae5b90',
@@ -78,6 +79,7 @@ class SproutVideoIE(InfoExtractor):
     }]
     _M3U8_URL_TMPL = 'https://{base}.videos.sproutvideo.com/{s3_user_hash}/{s3_video_hash}/video/index.m3u8'
     _QUALITIES = ('hd', 'uhd', 'source')  # Exclude 'sd' to prioritize hls formats above it
+    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; rv:140.0) Gecko/20100101 Firefox/140.0'  # TODO: remove
 
     @staticmethod
     def _policy_to_qs(policy, signature_key, as_string=False):
@@ -97,11 +99,23 @@ class SproutVideoIE(InfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
-        webpage = self._download_webpage(
-            url, video_id, headers=traverse_obj(smuggled_data, {'Referer': 'referer'}))
+        # TODO: replace with _download_firefox_webpage()
+        # webpage = self._download_firefox_webpage(
+        #     url, video_id, headers=traverse_obj(smuggled_data, {'Referer': 'referer'}))
+        webpage = self._download_webpage(url, video_id, headers={
+            **traverse_obj(smuggled_data, {'Referer': 'referer'}),
+            'User-Agent': self._USER_AGENT,
+        })
         data = self._search_json(
-            r'var\s+dat\s*=\s*["\']', webpage, 'data', video_id, contains_pattern=r'[A-Za-z0-9+/=]+',
-            end_pattern=r'["\'];', transform_source=lambda x: base64.b64decode(x).decode())
+            r'var\s+(?:dat|playerInfo)\s*=\s*["\']', webpage, 'player info', video_id,
+            contains_pattern=r'[A-Za-z0-9+/=]+', end_pattern=r'["\'];',
+            transform_source=lambda x: base64.b64decode(x).decode())
+
+        # SproutVideo may send player info for 'SMPTE Color Monitor Test' [a791d7b71b12ecc52e]
+        # e.g. if the user-agent we used with the webpage request is too old
+        video_uid = data['videoUid']
+        if video_id != video_uid:
+            raise ExtractorError(f'{self.IE_NAME} sent the wrong video data ({video_uid})')
 
         formats, subtitles = [], {}
         headers = {
