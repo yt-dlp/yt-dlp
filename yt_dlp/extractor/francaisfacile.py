@@ -56,7 +56,7 @@ class FrancaisFacileIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = urllib.parse.unquote(self._match_id(url))
-        # yt-dlp's default Chrome user-agents are too old and blocked by akamai
+        # yt-dlp's default Chrome user-agents are too old and blocked by the website
         webpage = self._download_firefox_webpage(url, display_id, impersonate=True)
 
         data = self._search_json(
