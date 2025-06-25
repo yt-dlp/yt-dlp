@@ -53,7 +53,7 @@ class CloudyCDNIE(InfoExtractor):
         'params': {'format': 'bv'},
     }, {
         'url': 'https://embed.backscreen.com/ltv/media/32j_z25-0600-127?',
-        'md5': '0e14ed052ae6aeba925fbd35dc48b3c1',
+        'md5': '9b6fa09ac1a4de53d4f42b94affc3b42',
         'info_dict': {
             'id': '32j_z25-0600-127',
             'ext': 'mp4',
