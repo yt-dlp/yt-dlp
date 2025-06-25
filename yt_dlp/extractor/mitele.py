@@ -79,7 +79,8 @@ class MiTeleIE(TelecincoBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_akamai_webpage(url, display_id)
+        # yt-dlp's default Chrome user-agents are too old and blocked by akamai
+        webpage = self._download_firefox_webpage(url, display_id, impersonate=True)
         pre_player = self._search_json(
             r'window\.\$REACTBASE_STATE\.prePlayer_mtweb\s*=',
             webpage, 'Pre Player', display_id)['prePlayer']

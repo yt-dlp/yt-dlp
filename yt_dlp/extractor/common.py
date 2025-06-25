@@ -30,7 +30,7 @@ from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..downloader.hls import HlsFD
 from ..globals import plugin_ies_overrides
-from ..networking import HEADRequest, Request
+from ..networking import HEADRequest, Request, Response
 from ..networking.exceptions import (
     HTTPError,
     IncompleteRead,
@@ -102,6 +102,7 @@ from ..utils import (
 )
 from ..utils._utils import _request_dump_filename
 from ..utils.jslib import devalue
+from ..utils.networking import HTTPHeaderDict
 
 
 class InfoExtractor:
@@ -568,6 +569,7 @@ class InfoExtractor:
     _ready = False
     _downloader = None
     _x_forwarded_for_ip = None
+    _latest_firefox_user_agent = None
     _GEO_BYPASS = True
     _GEO_COUNTRIES = None
     _GEO_IP_BLOCKS = None
@@ -1198,6 +1200,52 @@ class InfoExtractor:
                 if try_count >= tries:
                     raise e
                 self._sleep(timeout, video_id)
+
+    def _get_latest_firefox_user_agent(self, fatal=False):
+        if InfoExtractor._latest_firefox_user_agent:
+            return InfoExtractor._latest_firefox_user_agent
+
+        USER_AGENT_TMPL = 'Mozilla/5.0 (Windows NT 10.0; rv:{0}.0) Gecko/20100101 Firefox/{0}.0'
+        DEFAULT_VERSION = '140'  # If not fatal, default to latest major version as of 2025.06.24
+        ff_version = None
+
+        # Ref: https://ftp.mozilla.org/pub/firefox/releases/latest/README.txt
+        urlh = self._request_webpage(
+            HEADRequest('https://download.mozilla.org/'), None,
+            'Fetching latest Firefox version number', 'Unable to fetch latest Firefox version number',
+            fatal=fatal, query={'product': 'firefox-latest', 'os': 'linux64', 'lang': 'en-US'})
+        if isinstance(urlh, Response):
+            ff_version = self._search_regex(
+                r'/releases/(\d{3})', urlh.url, 'latest Firefox version number', fatal=fatal)
+
+        if ff_version:
+            InfoExtractor._latest_firefox_user_agent = USER_AGENT_TMPL.format(ff_version)
+            return InfoExtractor._latest_firefox_user_agent
+
+        self.write_debug(f'Using default Firefox {DEFAULT_VERSION} user-agent instead of latest')
+        return USER_AGENT_TMPL.format(DEFAULT_VERSION)
+
+    def _download_firefox_webpage(self, url, video_id, *args, **kwargs):
+        impersonate = kwargs.pop('impersonate', None)
+        require_impersonation = kwargs.pop('require_impersonation', False)
+        headers = HTTPHeaderDict(kwargs.pop('headers', None))
+        headers.update({'User-Agent': self._get_latest_firefox_user_agent()})
+        kwargs.update({'headers': headers})
+
+        try:
+            return self._download_webpage(url, video_id, *args, **kwargs)
+        except ExtractorError as e:
+            if not isinstance(e.cause, HTTPError) or e.cause.status != 403:
+                raise
+            self.write_debug(f'{video_id}: Got HTTP Error 403, retrying with impersonation')
+
+        # Retry with impersonation if user-agent alone is insufficient
+        headers.pop('User-Agent')
+        kwargs.update({
+            'impersonate': impersonate if impersonate is not None else 'firefox',
+            'require_impersonation': require_impersonation,
+        })
+        return self._download_webpage(url, video_id, *args, **kwargs)
 
     def report_warning(self, msg, video_id=None, *args, only_once=False, **kwargs):
         idstr = format_field(video_id, None, '%s: ')
