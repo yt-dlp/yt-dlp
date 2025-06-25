@@ -1,7 +1,12 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import clean_html, int_or_none, parse_iso8601, urljoin
+from ..utils import (
+    clean_html,
+    int_or_none,
+    parse_iso8601,
+    urljoin,
+)
 from ..utils.traversal import require, traverse_obj
 
 
@@ -63,7 +68,6 @@ class MaveIE(InfoExtractor):
             'upload_date': '20241230',
         },
     }]
-
     _API_BASE_URL = 'https://api.mave.digital/'
 
     def _real_extract(self, url):
@@ -79,7 +83,7 @@ class MaveIE(InfoExtractor):
             'channel_id': channel_id,
             'channel_url': f'https://{channel_id}.mave.digital/',
             'vcodec': 'none',
-            'thumbnail': self._extract_thumbnail(webpage),
+            'thumbnail': re.sub(r'_\d+(?=\.(?:jpg|png))', '', self._og_search_thumbnail(webpage, default='')) or None,
             **traverse_obj(data, ('activeEpisodeData', {
                 'url': ('audio', {urljoin(self._API_BASE_URL)}),
                 'id': ('id', {str}),
@@ -101,12 +105,3 @@ class MaveIE(InfoExtractor):
                 'uploader': ('author', {str}),
             })),
         }
-
-    def _extract_thumbnail(self, webpage):
-        # _API_BASE_URL could be used only to download mp3 file itself, not thumbnail.
-        # To get link to thumbnail we should use URL resolved to specific server
-        # E.g. https://ru-msk-dr3-1.store.cloud.mts.ru/, which could be loaded from og tags.
-        trimmed_thumbnail = self._og_search_thumbnail(webpage)
-        # To get link to base image, not trimmed one, remove postfix with resolution.
-        # E.g 123456789_600.jpg -> 123456789.jpg
-        return re.sub(r'_\d+(?=\.)', '', trimmed_thumbnail)
