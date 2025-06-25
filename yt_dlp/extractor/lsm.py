@@ -284,7 +284,7 @@ class LSMReplayIE(InfoExtractor):
                 'url': data['playback']['service']['url'],
             }
         else:
-            raise ExtractorError(f'Unsupported playback type {playback_type!r}')
+            raise ExtractorError(f'Unsupported playback type "{playback_type}")
 
         return {
             'id': video_id,
