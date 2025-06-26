@@ -1,4 +1,6 @@
 
+from urllib import parse
+
 from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
@@ -19,13 +21,12 @@ class KickBaseIE(InfoExtractor):
     def _real_initialize(self):
         self._request_webpage(
             HEADRequest('https://kick.com/'), None, 'Setting up session', fatal=False, impersonate=True)
-        xsrf_token = self._get_cookies('https://kick.com/').get('XSRF-TOKEN')
-        if not xsrf_token:
-            self.write_debug('kick.com did not set XSRF-TOKEN cookie')
+        session_token = self._get_cookies('https://kick.com/').get('session_token')
+        if not session_token:
+            self.write_debug('kick.com did not set session_token cookie')
         KickBaseIE._API_HEADERS = {
-            'Authorization': f'Bearer {xsrf_token.value}',
-            'X-XSRF-TOKEN': xsrf_token.value,
-        } if xsrf_token else {}
+            'Authorization': f'Bearer {parse.unquote(session_token.value)}',
+        } if session_token else {}
 
     def _call_api(self, path, display_id, note='Downloading API JSON', headers={}, **kwargs):
         return self._download_json(
