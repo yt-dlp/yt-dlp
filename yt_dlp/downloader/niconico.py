@@ -23,6 +23,7 @@ class NiconicoLiveFD(FileDownloader):
         new_info_dict['protocol'] = 'm3u8'
 
         def communicate_ws(reconnect):
+            # Support --load-info-json as if it is a reconnect attempt
             if reconnect or not isinstance(ws_extractor, WebSocketResponse):
                 ws = self.ydl.urlopen(Request(
                     ws_url, headers={'Origin': 'https://live.nicovideo.jp'}))

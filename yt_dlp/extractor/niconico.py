@@ -817,7 +817,8 @@ class NiconicoLiveIE(NiconicoBaseIE):
             {extract_attributes}, 'data-props', {json.loads}))
         frontend_id = traverse_obj(embedded_data, ('site', 'frontendId', {str_or_none}), default='9')
 
-        ws_url = traverse_obj(embedded_data, ('site', 'relive', 'webSocketUrl', {url_or_none}, {require('websocket URL')}))
+        ws_url = traverse_obj(embedded_data, (
+            'site', 'relive', 'webSocketUrl', {url_or_none}, {require('websocket URL')}))
         ws_url = update_url_query(ws_url, {'frontend_id': frontend_id})
         ws = self._request_webpage(
             ws_url, video_id, 'Connecting to WebSocket server',
