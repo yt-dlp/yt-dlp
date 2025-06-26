@@ -906,6 +906,7 @@ class NiconicoLiveIE(NiconicoBaseIE):
                 abr = parse_bitrate(fmt['url'].lower())
                 fmt.update({
                     'abr': abr,
+                    'acodec': 'mp4a.40.2',
                     'format_id': a_map.get(abr, fmt['format_id']),
                 })
 
