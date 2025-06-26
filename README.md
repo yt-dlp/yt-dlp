@@ -2232,7 +2232,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * yt-dlp uses modern http client backends such as `requests`. Use `--compat-options prefer-legacy-http-handler` to prefer the legacy http handler (`urllib`) to be used for standard http requests.
 * The sub-modules `swfinterp`, `casefold` are removed.
 * Passing `--simulate` (or calling `extract_info` with `download=False`) no longer alters the default format selection. See [#9843](https://github.com/yt-dlp/yt-dlp/issues/9843) for details.
-* yt-dlp no longer sets `mtime` for files by default. Use `--mtime` or `--compat-options mtime-by-default` to revert this.
+* yt-dlp no longer applies the server modified time to downloaded files by default. Use `--mtime` or `--compat-options mtime-by-default` to revert this.
 
 For ease of use, a few more compat options are available:
 
