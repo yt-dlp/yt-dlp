@@ -263,6 +263,9 @@ class InfoExtractor:
                                  * http_chunk_size Chunk size for HTTP downloads
                                  * ffmpeg_args     Extra arguments for ffmpeg downloader (input)
                                  * ffmpeg_args_out Extra arguments for ffmpeg downloader (output)
+                                 * ws              (NiconicoLiveFD only) WebSocketResponse
+                                 * ws_url          (NiconicoLiveFD only) Websockets URL
+                                 * max_quality     (NiconicoLiveFD only) Max stream quality string
                     * is_dash_periods  Whether the format is a result of merging
                                  multiple DASH periods.
                     RTMP formats can also have the additional fields: page_url,
