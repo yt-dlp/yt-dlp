@@ -3,7 +3,6 @@ import functools
 import itertools
 import json
 import re
-import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..networking.exceptions import HTTPError
@@ -26,6 +25,7 @@ from ..utils import (
     unified_timestamp,
     update_url_query,
     url_basename,
+    url_or_none,
     urlencode_postdata,
     urljoin,
 )
