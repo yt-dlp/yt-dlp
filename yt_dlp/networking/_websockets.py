@@ -11,8 +11,8 @@ from ._helper import (
     create_connection,
     create_socks_proxy_socket,
     make_socks_proxy_opts,
-    select_proxy,
 )
+from ..utils.networking import select_proxy
 from .common import Features, Response, register_rh
 from .exceptions import (
     CertificateVerifyError,
