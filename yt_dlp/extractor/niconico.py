@@ -30,7 +30,11 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import (
+    find_element,
+    require,
+    traverse_obj,
+)
 
 
 class NiconicoBaseIE(InfoExtractor):
@@ -890,8 +894,7 @@ class NiconicoLiveIE(NiconicoBaseIE):
             'id': video_id,
             'title': title,
             'downloader_options': {
-                'max_quality': traverse_obj(embedded_data, (
-                    'program', 'stream', 'maxQuality', {str})),
+                'max_quality': traverse_obj(embedded_data, ('program', 'stream', 'maxQuality', {str})) or 'normal',
                 'ws': ws,
                 'ws_url': ws_url,
             },
