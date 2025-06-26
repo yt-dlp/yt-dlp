@@ -84,6 +84,8 @@ class AdultSwimIE(TurnerBaseIE):
         'skip': '404 Not Found',
     }]
 
+    _SOFTWARE_STATEMENT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIwNjg5ZmU2My00OTc5LTQxZmQtYWYxNC1hYjVlNmJjNWVkZWIiLCJuYmYiOjE1MzcxOTA2NzQsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTM3MTkwNjc0fQ.Xl3AEduM0s1TxDQ6-XssdKIiLm261hhsEv1C1yo_nitIajZThSI9rXILqtIzO0aujoHhdzUnu_dUCq9ffiSBzEG632tTa1la-5tegHtce80cMhewBN4n2t8n9O5tiaPx8MPY8ALdm5wS7QzWE6DO_LTJKgE8Bl7Yv-CWJT4q4SywtNiQWLVOuhBRnDyfsRezxRwptw8qTn9dv5ZzUrVJaby5fDZ_nOncMKvegOgaKd5KEuCAGQ-mg-PSuValMjGuf6FwDguGaK7IyI5Y2oOrzXmD4Dj7q4WBg8w9QoZhtLeAU56mcsGILolku2R5FHlVLO9xhjResyt-pfmegOkpSw'
+
     def _real_extract(self, url):
         show_path, episode_path = self._match_valid_url(url).groups()
         display_id = episode_path or show_path
@@ -152,7 +154,7 @@ class AdultSwimIE(TurnerBaseIE):
                     # CDN_TOKEN_APP_ID from:
                     # https://d2gg02c3xr550i.cloudfront.net/assets/asvp.e9c8bef24322d060ef87.bundle.js
                     'appId': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBJZCI6ImFzLXR2ZS1kZXNrdG9wLXB0enQ2bSIsInByb2R1Y3QiOiJ0dmUiLCJuZXR3b3JrIjoiYXMiLCJwbGF0Zm9ybSI6ImRlc2t0b3AiLCJpYXQiOjE1MzI3MDIyNzl9.BzSCk-WYOZ2GMCIaeVb8zWnzhlgnXuJTCu0jGp_VaZE',
-                }, {
+                }, self._SOFTWARE_STATEMENT, {
                     'url': url,
                     'site_name': 'AdultSwim',
                     'auth_required': auth,

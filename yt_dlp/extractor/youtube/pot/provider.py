@@ -39,6 +39,7 @@ __all__ = [
 class PoTokenContext(enum.Enum):
     GVS = 'gvs'
     PLAYER = 'player'
+    SUBS = 'subs'
 
 
 @dataclasses.dataclass

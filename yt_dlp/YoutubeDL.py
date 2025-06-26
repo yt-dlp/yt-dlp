@@ -490,7 +490,7 @@ class YoutubeDL:
                        The template is mapped on a dictionary with keys 'progress' and 'info'
     retry_sleep_functions: Dictionary of functions that takes the number of attempts
                        as argument and returns the time to sleep in seconds.
-                       Allowed keys are 'http', 'fragment', 'file_access'
+                       Allowed keys are 'http', 'fragment', 'file_access', 'extractor'
     download_ranges:   A callback function that gets called for every video with
                        the signature (info_dict, ydl) -> Iterable[Section].
                        Only the returned sections will be downloaded.
@@ -2219,6 +2219,7 @@ class YoutubeDL:
                         self.report_warning(f'Unable to delete temporary file "{temp_file.name}"')
             f['__working'] = success
             if success:
+                f.pop('__needs_testing', None)
                 yield f
             else:
                 self.to_screen('[info] Unable to download format {}. Skipping...'.format(f['format_id']))
@@ -3963,6 +3964,7 @@ class YoutubeDL:
                     self._format_out('UNSUPPORTED', self.Styles.BAD_FORMAT) if f.get('ext') in ('f4f', 'f4m') else None,
                     (self._format_out('Maybe DRM', self.Styles.WARNING) if f.get('has_drm') == 'maybe'
                      else self._format_out('DRM', self.Styles.BAD_FORMAT) if f.get('has_drm') else None),
+                    self._format_out('Untested', self.Styles.WARNING) if f.get('__needs_testing') else None,
                     format_field(f, 'format_note'),
                     format_field(f, 'container', ignore=(None, f.get('ext'))),
                     delim=', '), delim=' '),

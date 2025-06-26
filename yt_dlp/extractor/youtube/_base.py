@@ -35,6 +35,7 @@ from ...utils import (
 class _PoTokenContext(enum.Enum):
     PLAYER = 'player'
     GVS = 'gvs'
+    SUBS = 'subs'
 
 
 # any clients starting with _ cannot be explicitly requested by the user
@@ -173,6 +174,15 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
         'SUPPORTS_COOKIES': True,
+    },
+    'tv_simply': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5_SIMPLY',
+                'clientVersion': '1.0',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 75,
     },
     # This client now requires sign-in for every video
     # It was previously an age-gate workaround for videos that were `playable_in_embed`
@@ -787,6 +797,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _download_ytcfg(self, client, video_id):
         url = {
+            'mweb': 'https://m.youtube.com',
             'web': 'https://www.youtube.com',
             'web_music': 'https://music.youtube.com',
             'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1',
