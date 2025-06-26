@@ -30,7 +30,11 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
-from ..utils.traversal import find_element, require, traverse_obj
+from ..utils.traversal import (
+    find_element,
+    require,
+    traverse_obj,
+)
 
 
 class NiconicoBaseIE(InfoExtractor):
