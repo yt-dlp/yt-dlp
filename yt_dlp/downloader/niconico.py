@@ -5,6 +5,7 @@ import time
 from .common import FileDownloader
 from .external import FFmpegFD
 from ..networking import Request
+from ..networking.websocket import WebSocketResponse
 from ..utils import DownloadError, str_or_none, truncate_string
 from ..utils.traversal import traverse_obj
 
@@ -22,7 +23,7 @@ class NiconicoLiveFD(FileDownloader):
         new_info_dict['protocol'] = 'm3u8'
 
         def communicate_ws(reconnect):
-            if reconnect:
+            if reconnect or not isinstance(ws_extractor, WebSocketResponse):
                 ws = self.ydl.urlopen(Request(
                     ws_url, headers={'Origin': 'https://live.nicovideo.jp'}))
                 if self.ydl.params.get('verbose', False):
