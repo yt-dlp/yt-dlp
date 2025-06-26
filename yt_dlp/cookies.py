@@ -1,6 +1,7 @@
 import base64
 import collections
 import contextlib
+from dataclasses import dataclass
 import datetime as dt
 import functools
 import glob
@@ -47,7 +48,8 @@ from .utils._utils import _YDLLogger
 from .utils.networking import normalize_url
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi', 'whale'}
-SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
+FIREFOX_BASED_BROWSERS = {'firefox', 'librewolf'}
+SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | FIREFOX_BASED_BROWSERS | {'safari'}
 
 
 class YDLLogger(_YDLLogger):
@@ -114,8 +116,8 @@ def load_cookies(cookie_file, browser_specification, ydl):
 
 
 def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None, container=None):
-    if browser_name == 'firefox':
-        return _extract_firefox_cookies(profile, container, logger)
+    if browser_name in FIREFOX_BASED_BROWSERS:
+        return _extract_firefox_cookies(browser_name, profile, container, logger)
     elif browser_name == 'safari':
         return _extract_safari_cookies(profile, logger)
     elif browser_name in CHROMIUM_BASED_BROWSERS:
@@ -124,19 +126,20 @@ def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(),
         raise ValueError(f'unknown browser: {browser_name}')
 
 
-def _extract_firefox_cookies(profile, container, logger):
-    logger.info('Extracting cookies from firefox')
+def _extract_firefox_cookies(browser_name, profile, container, logger):
+    logger.info(f'Extracting cookies from {browser_name}')
     if not sqlite3:
         logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
                        'Please use a Python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
 
+    config = _firefox_based_browser_settings(browser_name)
     if profile is None:
-        search_roots = list(_firefox_browser_dirs())
+        search_roots = config.browser_dirs
     elif _is_path(profile):
         search_roots = [profile]
     else:
-        search_roots = [os.path.join(path, profile) for path in _firefox_browser_dirs()]
+        search_roots = [os.path.join(path, profile) for path in config.browser_dirs]
     search_root = ', '.join(map(repr, search_roots))
 
     cookie_database_path = _newest(_firefox_cookie_dbs(search_roots))
@@ -193,22 +196,53 @@ def _extract_firefox_cookies(profile, container, logger):
                 cursor.connection.close()
 
 
-def _firefox_browser_dirs():
+@dataclass
+class _FirefoxBrowserSettings:
+    browser_dirs: list[str]
+
+
+def _firefox_based_browser_settings(browser_name):
     if sys.platform in ('cygwin', 'win32'):
-        yield from map(os.path.expandvars, (
-            R'%APPDATA%\Mozilla\Firefox\Profiles',
-            R'%LOCALAPPDATA%\Packages\Mozilla.Firefox_n80bbvh6b1yt2\LocalCache\Roaming\Mozilla\Firefox\Profiles',
-        ))
+        appdata = os.path.expandvars(R'%APPDATA%')
+        appdata_local = os.path.expandvars(R'%LOCALAPPDATA%')
+        browser_dirs = {
+            'firefox': [
+                os.path.join(appdata, R'Mozilla\Firefox\Profiles'),
+                # from microsoft store
+                os.path.join(appdata_local, R'Packages\Mozilla.Firefox_n80bbvh6b1yt2\LocalCache\Roaming\Mozilla\Firefox\Profiles'),
+            ],
+            'librewolf': [
+                os.path.join(appdata, R'librewolf\Profiles'),
+                # from microsoft store
+                os.path.join(appdata_local, R'Packages\31856maltejur.LibreWolf_ssmwz6s360tct\LocalCache\Roaming\librewolf\Profiles'),
+            ],
+        }[browser_name]
 
     elif sys.platform == 'darwin':
-        yield os.path.expanduser('~/Library/Application Support/Firefox/Profiles')
+        browser_dirs = {
+            'firefox': [os.path.expanduser('~/Library/Application Support/Firefox/Profiles')],
+            'librewolf': [os.path.expanduser('~/Library/Application Support/librewolf/Profiles')],
+        }[browser_name]
 
     else:
-        yield from map(os.path.expanduser, (
-            '~/.mozilla/firefox',
-            '~/snap/firefox/common/.mozilla/firefox',
-            '~/.var/app/org.mozilla.firefox/.mozilla/firefox',
-        ))
+        flatpak_root = os.path.expanduser('~/.var/app')
+        snap_root = os.path.expanduser('~/snap')
+        browser_dirs = {
+            'firefox': [
+                os.path.expanduser('~/.mozilla/firefox'),
+                os.path.join(flatpak_root, 'org.mozilla.firefox/.mozilla/firefox'),
+                os.path.join(snap_root, 'firefox/common/.mozilla/firefox'),
+            ],
+            'librewolf': [
+                os.path.expanduser('~/.librewolf'),
+                os.path.join(flatpak_root, 'io.gitlab.librewolf-community/.librewolf'),
+                # not published on snapcraft
+            ],
+        }[browser_name]
+
+    return _FirefoxBrowserSettings(
+        browser_dirs=browser_dirs,
+    )
 
 
 def _firefox_cookie_dbs(roots):
@@ -217,43 +251,105 @@ def _firefox_cookie_dbs(roots):
             yield from glob.iglob(os.path.join(root, pattern, 'cookies.sqlite'))
 
 
+@dataclass
+class _ChromiumBrowserSettings:
+    browser_dirs: list[str]
+    keyring_name: str
+    keyring_application_name: str
+    supports_profiles: bool
+
+    @property
+    def mac_keyring_account(self) -> str:
+        return self.keyring_name
+
+    @property
+    def mac_keyring_service(self) -> str:
+        return f'{self.keyring_name} Safe Storage'
+
+    @property
+    def kwallet_password(self) -> str:
+        return f'{self.keyring_name} Safe Storage'
+
+    @property
+    def kwallet_folder(self) -> str:
+        return f'{self.keyring_name} Keys'
+
+    @property
+    def gnome_keyring_application_name(self) -> str:
+        return self.keyring_application_name
+
+    @property
+    def gnome_keyring_label(self) -> str:
+        return f'{self.keyring_name} Safe Storage'
+
+
 def _get_chromium_based_browser_settings(browser_name):
     # https://chromium.googlesource.com/chromium/src/+/HEAD/docs/user_data_dir.md
     if sys.platform in ('cygwin', 'win32'):
         appdata_local = os.path.expandvars('%LOCALAPPDATA%')
         appdata_roaming = os.path.expandvars('%APPDATA%')
-        browser_dir = {
-            'brave': os.path.join(appdata_local, R'BraveSoftware\Brave-Browser\User Data'),
-            'chrome': os.path.join(appdata_local, R'Google\Chrome\User Data'),
-            'chromium': os.path.join(appdata_local, R'Chromium\User Data'),
-            'edge': os.path.join(appdata_local, R'Microsoft\Edge\User Data'),
-            'opera': os.path.join(appdata_roaming, R'Opera Software\Opera Stable'),
-            'vivaldi': os.path.join(appdata_local, R'Vivaldi\User Data'),
-            'whale': os.path.join(appdata_local, R'Naver\Naver Whale\User Data'),
+        browser_dirs = {
+            'brave': [os.path.join(appdata_local, R'BraveSoftware\Brave-Browser\User Data')],
+            'chrome': [os.path.join(appdata_local, R'Google\Chrome\User Data')],
+            'chromium': [os.path.join(appdata_local, R'Chromium\User Data')],
+            'edge': [os.path.join(appdata_local, R'Microsoft\Edge\User Data')],
+            'opera': [os.path.join(appdata_roaming, R'Opera Software\Opera Stable')],
+            'vivaldi': [os.path.join(appdata_local, R'Vivaldi\User Data')],
+            'whale': [os.path.join(appdata_local, R'Naver\Naver Whale\User Data')],
         }[browser_name]
 
     elif sys.platform == 'darwin':
         appdata = os.path.expanduser('~/Library/Application Support')
-        browser_dir = {
-            'brave': os.path.join(appdata, 'BraveSoftware/Brave-Browser'),
-            'chrome': os.path.join(appdata, 'Google/Chrome'),
-            'chromium': os.path.join(appdata, 'Chromium'),
-            'edge': os.path.join(appdata, 'Microsoft Edge'),
-            'opera': os.path.join(appdata, 'com.operasoftware.Opera'),
-            'vivaldi': os.path.join(appdata, 'Vivaldi'),
-            'whale': os.path.join(appdata, 'Naver/Whale'),
+        browser_dirs = {
+            'brave': [os.path.join(appdata, 'BraveSoftware/Brave-Browser')],
+            'chrome': [os.path.join(appdata, 'Google/Chrome')],
+            'chromium': [os.path.join(appdata, 'Chromium')],
+            'edge': [os.path.join(appdata, 'Microsoft Edge')],
+            'opera': [os.path.join(appdata, 'com.operasoftware.Opera')],
+            'vivaldi': [os.path.join(appdata, 'Vivaldi')],
+            'whale': [os.path.join(appdata, 'Naver/Whale')],
         }[browser_name]
 
     else:
         config = _config_home()
-        browser_dir = {
-            'brave': os.path.join(config, 'BraveSoftware/Brave-Browser'),
-            'chrome': os.path.join(config, 'google-chrome'),
-            'chromium': os.path.join(config, 'chromium'),
-            'edge': os.path.join(config, 'microsoft-edge'),
-            'opera': os.path.join(config, 'opera'),
-            'vivaldi': os.path.join(config, 'vivaldi'),
-            'whale': os.path.join(config, 'naver-whale'),
+        flatpak_root = os.path.expanduser('~/.var/app')
+        snap_root = os.path.expanduser('~/snap')
+        browser_dirs = {
+            'brave': [
+                os.path.join(config, 'BraveSoftware/Brave-Browser'),
+                os.path.join(flatpak_root, 'com.brave.Browser/config/BraveSoftware/Brave-Browser'),
+                # cookies only stored in version specific location: `snap/brave/<SPECIFIC_VERSION>/.config/BraveSoftware/Brave-Browser`
+            ],
+            'chrome': [
+                os.path.join(config, 'google-chrome'),
+                os.path.join(flatpak_root, 'com.google.Chrome/config/google-chrome'),
+                # not published on snapcraft
+            ],
+            'chromium': [
+                os.path.join(config, 'chromium'),
+                os.path.join(flatpak_root, 'org.chromium.Chromium/config/chromium'),
+                # note: the chromium snap uses basictext instead of gnome keyring.
+                os.path.join(snap_root, 'chromium/common/chromium'),
+            ],
+            'edge': [
+                os.path.join(config, 'microsoft-edge'),
+                os.path.join(flatpak_root, 'com.microsoft.Edge/config/microsoft-edge'),
+                # not published on snapcraft
+            ],
+            'opera': [
+                os.path.join(config, 'opera'),
+                os.path.join(flatpak_root, 'com.opera.Opera/config/opera'),
+            ],
+            'vivaldi': [
+                os.path.join(config, 'vivaldi'),
+                os.path.join(flatpak_root, 'com.vivaldi.Vivaldi/config/vivaldi'),
+                # cookies only stored in version specific location: `snap/vivaldi/<SPECIFIC_VERSION>/.config/vivaldi`
+            ],
+            'whale': [
+                os.path.join(config, 'naver-whale'),
+                # not published on flathub
+                # not published on snapcraft
+            ],
         }[browser_name]
 
     # Linux keyring names can be determined by snooping on dbus while opening the browser in KDE:
@@ -268,13 +364,52 @@ def _get_chromium_based_browser_settings(browser_name):
         'whale': 'Whale',
     }[browser_name]
 
+    # the attribute set in gnome keyring to distinguish between different entries with the same name/description.
+    # Electron applications such as Discord and VSCode use entries named 'Chromium Safe Storage' but with
+    # a different 'application' value.
+    keyring_application_name = {
+        'brave': 'chromium',
+        'chrome': 'chrome',
+        'chromium': 'chromium',
+        'edge': 'chromium',
+        'opera': 'chromium',
+        'vivaldi': 'chrome',
+        'whale': 'whale',
+    }[browser_name]
+
     browsers_without_profiles = {'opera'}
 
-    return {
-        'browser_dir': browser_dir,
-        'keyring_name': keyring_name,
-        'supports_profiles': browser_name not in browsers_without_profiles,
-    }
+    return _ChromiumBrowserSettings(
+        browser_dirs=browser_dirs,
+        keyring_name=keyring_name,
+        keyring_application_name=keyring_application_name,
+        supports_profiles=browser_name not in browsers_without_profiles,
+    )
+
+
+def _choose_chromium_based_browser_dir(browser_name, config, profile, logger):
+    if profile is not None and _is_path(profile):
+        cookie_search_root = profile
+        browser_dir = os.path.dirname(profile) if config.supports_profiles else profile
+    else:
+        existing_browser_dirs = [path for path in config.browser_dirs if os.path.isdir(path)]
+        if len(existing_browser_dirs) == 1:
+            browser_dir = existing_browser_dirs[0]
+        elif len(existing_browser_dirs) > 1:
+            logger.debug(f'multiple installations of {browser_name} were found. Taking the most recently modified.')
+            browser_dir = _newest(existing_browser_dirs)
+            assert browser_dir is not None
+        else:
+            raise FileNotFoundError(f'no directories for {browser_name} were found to exist: {config.browser_dirs}')
+
+        if profile is None:
+            cookie_search_root = browser_dir
+        elif config.supports_profiles:
+            cookie_search_root = os.path.join(browser_dir, profile)
+        else:
+            logger.error(f'{browser_name} does not support profiles')
+            cookie_search_root = browser_dir
+    return browser_dir, cookie_search_root
 
 
 def _extract_chrome_cookies(browser_name, profile, keyring, logger):
@@ -286,22 +421,11 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
         return YoutubeDLCookieJar()
 
     config = _get_chromium_based_browser_settings(browser_name)
+    browser_dir, cookie_search_root = _choose_chromium_based_browser_dir(browser_name, config, profile, logger)
 
-    if profile is None:
-        search_root = config['browser_dir']
-    elif _is_path(profile):
-        search_root = profile
-        config['browser_dir'] = os.path.dirname(profile) if config['supports_profiles'] else profile
-    else:
-        if config['supports_profiles']:
-            search_root = os.path.join(config['browser_dir'], profile)
-        else:
-            logger.error(f'{browser_name} does not support profiles')
-            search_root = config['browser_dir']
-
-    cookie_database_path = _newest(_find_files(search_root, 'Cookies', logger))
+    cookie_database_path = _newest(_find_files(cookie_search_root, 'Cookies', logger))
     if cookie_database_path is None:
-        raise FileNotFoundError(f'could not find {browser_name} cookies database in "{search_root}"')
+        raise FileNotFoundError(f'could not find {browser_name} cookies database in "{cookie_search_root}"')
     logger.debug(f'Extracting cookies from: "{cookie_database_path}"')
 
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
@@ -312,9 +436,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
             # meta_version is necessary to determine if we need to trim the hash prefix from the cookies
             # Ref: https://chromium.googlesource.com/chromium/src/+/b02dcebd7cafab92770734dc2bc317bd07f1d891/net/extras/sqlite/sqlite_persistent_cookie_store.cc#223
             meta_version = int(cursor.execute('SELECT value FROM meta WHERE key = "version"').fetchone()[0])
-            decryptor = get_cookie_decryptor(
-                config['browser_dir'], config['keyring_name'], logger,
-                keyring=keyring, meta_version=meta_version)
+            decryptor = get_cookie_decryptor(browser_dir, config, logger, keyring=keyring, meta_version=meta_version)
 
             cursor.connection.text_factory = bytes
             column_names = _get_column_names(cursor, 'cookies')
@@ -413,27 +535,28 @@ class ChromeCookieDecryptor:
         raise NotImplementedError('Must be implemented by sub classes')
 
 
-def get_cookie_decryptor(browser_root, browser_keyring_name, logger, *, keyring=None, meta_version=None):
+def get_cookie_decryptor(browser_root, browser_config, logger, *, keyring=None, meta_version=None):
     if sys.platform == 'darwin':
-        return MacChromeCookieDecryptor(browser_keyring_name, logger, meta_version=meta_version)
+        return MacChromeCookieDecryptor(browser_config, logger, meta_version=meta_version)
     elif sys.platform in ('win32', 'cygwin'):
         return WindowsChromeCookieDecryptor(browser_root, logger, meta_version=meta_version)
-    return LinuxChromeCookieDecryptor(browser_keyring_name, logger, keyring=keyring, meta_version=meta_version)
+    return LinuxChromeCookieDecryptor(browser_config, browser_root, logger, keyring=keyring, meta_version=meta_version)
 
 
 class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
-    def __init__(self, browser_keyring_name, logger, *, keyring=None, meta_version=None):
+    def __init__(self, browser_config, browser_root, logger, *, keyring=None, meta_version=None):
         self._logger = logger
         self._v10_key = self.derive_key(b'peanuts')
         self._empty_key = self.derive_key(b'')
         self._cookie_counts = {'v10': 0, 'v11': 0, 'other': 0}
-        self._browser_keyring_name = browser_keyring_name
+        self._browser_config = browser_config
+        self._browser_root = browser_root
         self._keyring = keyring
         self._meta_version = meta_version or 0
 
     @functools.cached_property
     def _v11_key(self):
-        password = _get_linux_keyring_password(self._browser_keyring_name, self._keyring, self._logger)
+        password = _get_linux_keyring_password(self._browser_config, self._browser_root, self._keyring, self._logger)
         return None if password is None else self.derive_key(password)
 
     @staticmethod
@@ -478,9 +601,9 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
 
 
 class MacChromeCookieDecryptor(ChromeCookieDecryptor):
-    def __init__(self, browser_keyring_name, logger, meta_version=None):
+    def __init__(self, browser_config, logger, meta_version=None):
         self._logger = logger
-        password = _get_mac_keyring_password(browser_keyring_name, logger)
+        password = _get_mac_keyring_password(browser_config, logger)
         self._v10_key = None if password is None else self.derive_key(password)
         self._cookie_counts = {'v10': 0, 'other': 0}
         self._meta_version = meta_version or 0
@@ -828,7 +951,7 @@ def _get_linux_desktop_environment(env, logger):
     return _LinuxDesktopEnvironment.OTHER
 
 
-def _choose_linux_keyring(logger):
+def _choose_linux_keyring(browser_root, logger):
     """
     SelectBackend in [1]
 
@@ -898,7 +1021,7 @@ def _get_kwallet_network_wallet(keyring, logger):
         return default_wallet
 
 
-def _get_kwallet_password(browser_keyring_name, keyring, logger):
+def _get_kwallet_password(browser_config, keyring, logger):
     logger.debug(f'using kwallet-query to obtain password from {keyring.name}')
 
     if shutil.which('kwallet-query') is None:
@@ -910,10 +1033,11 @@ def _get_kwallet_password(browser_keyring_name, keyring, logger):
     network_wallet = _get_kwallet_network_wallet(keyring, logger)
 
     try:
+        logger.debug(f'query kwallet: wallet="{network_wallet}", password="{browser_config.kwallet_password}", folder="{browser_config.kwallet_folder}"')
         stdout, _, returncode = Popen.run([
             'kwallet-query',
-            '--read-password', f'{browser_keyring_name} Safe Storage',
-            '--folder', f'{browser_keyring_name} Keys',
+            '--read-password', browser_config.kwallet_password,
+            '--folder', browser_config.kwallet_folder,
             network_wallet,
         ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
@@ -941,7 +1065,8 @@ def _get_kwallet_password(browser_keyring_name, keyring, logger):
         return b''
 
 
-def _get_gnome_keyring_password(browser_keyring_name, logger):
+def _get_gnome_keyring_password(browser_config, logger):
+    logger.debug(f'obtaining password for "{browser_config.gnome_keyring_application_name}" from gnome keyring')
     if not secretstorage:
         logger.error(f'secretstorage not available {_SECRETSTORAGE_UNAVAILABLE_REASON}')
         return b''
@@ -952,40 +1077,51 @@ def _get_gnome_keyring_password(browser_keyring_name, logger):
     with contextlib.closing(secretstorage.dbus_init()) as con:
         col = secretstorage.get_default_collection(con)
         for item in col.get_all_items():
-            if item.get_label() == f'{browser_keyring_name} Safe Storage':
-                return item.get_secret()
+            if item.is_locked():
+                logger.debug('unlocking item')
+                item.unlock()
+
+            label = item.get_label()
+            if label == browser_config.gnome_keyring_label:
+                attributes = item.get_attributes()
+                application = attributes.get('application')
+                if application == browser_config.gnome_keyring_application_name:
+                    logger.debug('password found')
+                    return item.get_secret()
+                else:
+                    logger.debug(f"skipping '{label}' entry with application='{application}'")
         logger.error('failed to read from keyring')
         return b''
 
 
-def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
+def _get_linux_keyring_password(browser_config, browser_root, keyring, logger):
     # note: chrome/chromium can be run with the following flags to determine which keyring backend
     # it has chosen to use
     # chromium --enable-logging=stderr --v=1 2>&1 | grep key_storage_
     # Chromium supports a flag: --password-store=<basic|gnome|kwallet> so the automatic detection
     # will not be sufficient in all cases.
 
-    keyring = _LinuxKeyring[keyring] if keyring else _choose_linux_keyring(logger)
+    keyring = _LinuxKeyring[keyring] if keyring else _choose_linux_keyring(browser_root, logger)
     logger.debug(f'Chosen keyring: {keyring.name}')
 
     if keyring in (_LinuxKeyring.KWALLET, _LinuxKeyring.KWALLET5, _LinuxKeyring.KWALLET6):
-        return _get_kwallet_password(browser_keyring_name, keyring, logger)
+        return _get_kwallet_password(browser_config, keyring, logger)
     elif keyring == _LinuxKeyring.GNOMEKEYRING:
-        return _get_gnome_keyring_password(browser_keyring_name, logger)
+        return _get_gnome_keyring_password(browser_config, logger)
     elif keyring == _LinuxKeyring.BASICTEXT:
         # when basic text is chosen, all cookies are stored as v10 (so no keyring password is required)
         return None
     assert False, f'Unknown keyring {keyring}'
 
 
-def _get_mac_keyring_password(browser_keyring_name, logger):
+def _get_mac_keyring_password(browser_config, logger):
     logger.debug('using find-generic-password to obtain password from OSX keychain')
     try:
         stdout, _, returncode = Popen.run(
             ['security', 'find-generic-password',
              '-w',  # write password to stdout
-             '-a', browser_keyring_name,  # match 'account'
-             '-s', f'{browser_keyring_name} Safe Storage'],  # match 'service'
+             '-a', browser_config.mac_keyring_account,  # match 'account'
+             '-s', browser_config.mac_keyring_service],  # match 'service'
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         if returncode:
             logger.warning('find-generic-password failed')
@@ -1113,7 +1249,6 @@ def _newest(files):
 
 
 def _find_files(root, filename, logger):
-    # if there are multiple browser profiles, take the most recently used one
     i = 0
     with _create_progress_bar(logger) as progress_bar:
         for curr_root, _, files in os.walk(root):
