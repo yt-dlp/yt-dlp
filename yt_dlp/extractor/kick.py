@@ -1,14 +1,13 @@
 
-from urllib import parse
+import functools
+import urllib.parse
 
 from .common import InfoExtractor
-from ..networking import HEADRequest
 from ..utils import (
     UserNotLive,
     determine_ext,
     float_or_none,
     int_or_none,
-    merge_dicts,
     parse_iso8601,
     str_or_none,
     traverse_obj,
@@ -18,20 +17,18 @@ from ..utils import (
 
 
 class KickBaseIE(InfoExtractor):
-    def _real_initialize(self):
-        self._request_webpage(
-            HEADRequest('https://kick.com/'), None, 'Setting up session', fatal=False, impersonate=True)
-        session_token = self._get_cookies('https://kick.com/').get('session_token')
-        if not session_token:
-            self.write_debug('kick.com did not set session_token cookie')
-        KickBaseIE._API_HEADERS = {
-            'Authorization': f'Bearer {parse.unquote(session_token.value)}',
-        } if session_token else {}
+    @functools.cached_property
+    def _api_headers(self):
+        token = traverse_obj(
+            self._get_cookies('https://kick.com/'),
+            ('session_token', 'value', {urllib.parse.unquote}),
+        )
+        return {'Authorization': f'Bearer {token}'} if token else {}
 
     def _call_api(self, path, display_id, note='Downloading API JSON', headers={}, **kwargs):
         return self._download_json(
             f'https://kick.com/api/{path}', display_id, note=note,
-            headers=merge_dicts(headers, self._API_HEADERS), impersonate=True, **kwargs)
+            headers={**self._api_headers, **headers}, impersonate=True, **kwargs)
 
 
 class KickIE(KickBaseIE):
