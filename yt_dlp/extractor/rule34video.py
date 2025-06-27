@@ -88,8 +88,9 @@ class Rule34VideoIE(InfoExtractor):
             elif label == 'Artist':
                 creators = list(map(clean_html, get_elements_by_class('item', col)))
             elif label == 'Uploaded by':
-                uploader = clean_html(get_element_by_class('name', col))
-                uploader_url = extract_attributes(get_element_html_by_class('name', col) or '').get('href')
+                uploader_link = get_element_html_by_class('btn_link', col)
+                uploader = clean_html(uploader_link)
+                uploader_url = extract_attributes(uploader_link or '').get('href')
 
         return {
             **traverse_obj(self._search_json_ld(webpage, video_id, default={}), ({
