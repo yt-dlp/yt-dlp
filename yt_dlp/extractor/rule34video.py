@@ -93,6 +93,10 @@ class Rule34VideoIE(InfoExtractor):
                 uploader = clean_html(uploader_link)
                 uploader_url = extract_attributes(uploader_link or '').get('href')
 
+        like_count = None
+        if like_count_text := re.search(r'\(([\d,]+)\)', get_element_by_class('voters count', webpage)):
+            like_count = parse_count(like_count_text.group(1))
+
         json_ld = traverse_obj(self._search_json_ld(webpage, video_id, default={}), ({
             'title': 'title',
             'view_count': 'view_count',
@@ -113,7 +117,7 @@ class Rule34VideoIE(InfoExtractor):
                 r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)),
             'view_count': int_or_none(self._html_search_regex(
                 r'"icon-eye"></i>\s+<span>([ \d]+)', webpage, 'views', default='').replace(' ', '')),
-            'like_count': parse_count(get_element_by_class('voters count', webpage)),
+            'like_count': like_count,
             'comment_count': int_or_none(self._search_regex(
                 r'[^(]+\((\d+)\)', get_element_by_attribute('href', '#tab_comments', webpage), 'comment count', fatal=False)),
             'age_limit': 18,
