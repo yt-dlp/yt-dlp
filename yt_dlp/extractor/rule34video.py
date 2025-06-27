@@ -9,6 +9,7 @@ from ..utils import (
     get_element_html_by_class,
     get_elements_by_class,
     int_or_none,
+    merge_dicts,
     parse_count,
     parse_duration,
     unescapeHTML,
@@ -92,16 +93,17 @@ class Rule34VideoIE(InfoExtractor):
                 uploader = clean_html(uploader_link)
                 uploader_url = extract_attributes(uploader_link or '').get('href')
 
-        return {
-            **traverse_obj(self._search_json_ld(webpage, video_id, default={}), ({
-                'title': 'title',
-                'view_count': 'view_count',
-                'like_count': 'like_count',
-                'duration': 'duration',
-                'timestamp': 'timestamp',
-                'description': 'description',
-                'thumbnail': ('thumbnails', 0, 'url'),
-            })),
+        json_ld = traverse_obj(self._search_json_ld(webpage, video_id, default={}), ({
+            'title': 'title',
+            'view_count': 'view_count',
+            'like_count': 'like_count',
+            'duration': 'duration',
+            'timestamp': 'timestamp',
+            'description': 'description',
+            'thumbnail': ('thumbnails', 0, 'url'),
+        }))
+
+        return merge_dicts({
             'id': video_id,
             'formats': formats,
             'title': self._html_extract_title(webpage),
@@ -121,4 +123,4 @@ class Rule34VideoIE(InfoExtractor):
             'categories': categories,
             'tags': list(map(unescapeHTML, re.findall(
                 r'<a class="tag_item"[^>]+\bhref="https://rule34video\.com/tags/\d+/"[^>]*>(?P<tag>[^>]*)</a>', webpage))),
-        }
+        }, json_ld)
