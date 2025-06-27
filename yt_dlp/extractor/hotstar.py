@@ -258,7 +258,7 @@ class HotStarIE(HotStarBaseIE):
             if video_data:
                 break
 
-        if not self.get_param('allow_unplayable_formats') and video_data.get('drmProtected'):
+        if video_data.get('drmProtected'):
             self.report_drm(video_id)
 
         content_type = video_data.get('assetType') or video_data.get('contentType') or content_type
