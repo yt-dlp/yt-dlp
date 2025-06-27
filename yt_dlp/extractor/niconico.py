@@ -104,6 +104,7 @@ class NiconicoIE(NiconicoBaseIE):
     IE_NAME = 'niconico'
     IE_DESC = 'ニコニコ動画'
 
+    _VALID_URL = r'https?://(?:(?:embed|sp|www)\.)?nicovideo\.jp/watch/(?P<id>(?:[a-z]{2})?\d+)'
     _ERROR_MAP = {
         'FORBIDDEN': {
             'ADMINISTRATOR_DELETE_VIDEO': 'Video unavailable, possibly removed by admins',
@@ -139,7 +140,6 @@ class NiconicoIE(NiconicoBaseIE):
         'premium_only': 'Premium members only',
         'subscriber_only': 'Channel members only',
     }
-    _VALID_URL = r'https?://(?:(?:embed|sp|www)\.)?nicovideo\.jp/watch/(?P<id>(?:[a-z]{2})?\d+)'
     _TESTS = [{
         'url': 'http://www.nicovideo.jp/watch/sm22312215',
         'info_dict': {
@@ -159,7 +159,7 @@ class NiconicoIE(NiconicoBaseIE):
             'tags': [],
         },
         'params': {'skip_download': 'm3u8'},
-        'skip': True,
+        'skip': 'temporarily skip to keep the diff small',
     }, {
         # File downloaded with and without credentials are different, so omit
         # the md5 field
@@ -181,7 +181,7 @@ class NiconicoIE(NiconicoBaseIE):
             'tags': ['Translation_Request', 'Kagamine_Rin', 'Rin_Original'],
         },
         'params': {'skip_download': 'm3u8'},
-        'skip': True,
+        'skip': 'temporarily skip to keep the diff small',
     }, {
         # 'video exists but is marked as "deleted"
         # md5 is unstable
@@ -232,7 +232,7 @@ class NiconicoIE(NiconicoBaseIE):
             'tags': [],
         },
         'params': {'skip_download': 'm3u8'},
-        'skip': True,
+        'skip': 'temporarily skip to keep the diff small',
     }, {
         # "New" HTML5 video
         'url': 'http://www.nicovideo.jp/watch/sm31464864',
@@ -253,7 +253,7 @@ class NiconicoIE(NiconicoBaseIE):
             'tags': [],
         },
         'params': {'skip_download': 'm3u8'},
-        'skip': True,
+        'skip': 'temporarily skip to keep the diff small',
     }, {
         # Video without owner
         'url': 'http://www.nicovideo.jp/watch/sm18238488',
@@ -272,7 +272,7 @@ class NiconicoIE(NiconicoBaseIE):
             'tags': [],
         },
         'params': {'skip_download': 'm3u8'},
-        'skip': True,
+        'skip': 'temporarily skip to keep the diff small',
     }, {
         'url': 'http://sp.nicovideo.jp/watch/sm28964488?ss_pos=1&cp_in=wt_tg',
         'only_matching': True,
@@ -392,10 +392,10 @@ class NiconicoIE(NiconicoBaseIE):
             'availability': availability,
             'display_id': video_id,
             'formats': formats,
-            'genre': traverse_obj(api_data, ('genre', 'label', {str})),
+            'genres': traverse_obj(api_data, ('genre', 'label', {str}, filter, all, filter)),
             'release_timestamp': release_timestamp,
             'subtitles': self.extract_subtitles(video_id, api_data),
-            'tags': traverse_obj(api_data, ('tag', 'items', ..., 'name', {str})),
+            'tags': traverse_obj(api_data, ('tag', 'items', ..., 'name', {str}, filter, all, filter)),
             'thumbnails': [{
                 'ext': 'jpg',
                 'id': key,
@@ -413,7 +413,7 @@ class NiconicoIE(NiconicoBaseIE):
             **traverse_obj(api_data, ('video', {
                 'id': ('id', {str_or_none}),
                 'title': ('title', {str}),
-                'description': ('description', {clean_html}),
+                'description': ('description', {clean_html}, filter),
                 'duration': ('duration', {int_or_none}),
                 'timestamp': ('registeredAt', {parse_iso8601}),
             })),
@@ -425,7 +425,7 @@ class NiconicoIE(NiconicoBaseIE):
         }
 
     def _get_subtitles(self, video_id, api_data):
-        comments_info = traverse_obj(api_data, ('comment', 'nvComment', {dict}), default={})
+        comments_info = traverse_obj(api_data, ('comment', 'nvComment', {dict})) or {}
         if not comments_info.get('server'):
             return
 
