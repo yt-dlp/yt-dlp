@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import json
 import re
 import time
 import uuid
@@ -12,15 +13,15 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     str_or_none,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class HotStarBaseIE(InfoExtractor):
     _BASE_URL = 'https://www.hotstar.com'
     _API_URL = 'https://api.hotstar.com'
-    _API_URL_V2 = 'https://apix.hotstar.com'
+    _API_URL_V2 = 'https://apix.hotstar.com/v2'
     _AKAMAI_ENCRYPTION_KEY = b'\x05\xfc\x1a\x01\xca\xc9\x4b\xc4\x12\xfc\x53\x12\x07\x75\xf9\xee'
 
     def _call_api_v1(self, path, *args, **kwargs):
@@ -54,16 +55,32 @@ class HotStarBaseIE(InfoExtractor):
                 'Unintended response! Try again later or report this issue if problem persist', expected=True)
         return response['success']
 
-    def _call_api_v2(self, path, video_id, st=None, cookies=None,
-                     content_type=None, video_codec='h264', resolution='hd', dynamic_range='sdr'):
-
+    def _call_api_v2(self, path, video_id, content_type, cookies=None, st=None):
+        # 'video_codec': ['h265'] or ['h264']
+        # 'resolution': ['4k'] or ['hd']
+        # 'true_resolution': ['4k'] or ['hd']
+        # 'dynamic_range': ['hdr'] or ['sdr']
         return self._call_api_impl(
             f'{path}', video_id, st=st, cookies=cookies,
             query={
                 'content_id': video_id,
                 'filters': f'content_type={content_type}',
-                'client_capabilities': '{"package":["dash","hls"],"container":["fmp4br","fmp4"],"ads":["non_ssai","ssai"],"audio_channel":["atmos","dolby51","stereo"],"encryption":["plain","widevine"],"video_codec":["' + video_codec + '"],"ladder":["tv","full"],"resolution":["' + resolution + '"],"true_resolution":["' + resolution + '"],"dynamic_range":["' + dynamic_range + '"]}',
-                'drm_parameters': '{"widevine_security_level":["SW_SECURE_DECODE","SW_SECURE_CRYPTO"],"hdcp_version":["HDCP_V2_2","HDCP_V2_1","HDCP_V2","HDCP_V1"]}',
+                'client_capabilities': json.dumps({
+                    'package': ['dash', 'hls'],
+                    'container': ['fmp4br', 'fmp4'],
+                    'ads': ['non_ssai', 'ssai'],
+                    'audio_channel': ['atmos', 'dolby51', 'stereo'],
+                    'encryption': ['plain', 'widevine'],
+                    'video_codec': ['h265'],
+                    'ladder': ['tv', 'full'],
+                    'resolution': ['4k'],
+                    'true_resolution': ['4k'],
+                    'dynamic_range': ['hdr'],
+                }, separators=(',', ':')),
+                'drm_parameters': json.dumps({
+                    'widevine_security_level': ['SW_SECURE_DECODE', 'SW_SECURE_CRYPTO'],
+                    'hdcp_version': ['HDCP_V2_2', 'HDCP_V2_1', 'HDCP_V2', 'HDCP_V1'],
+                }, separators=(',', ':')),
             })
 
     def _playlist_entries(self, path, item_id, root=None, **kwargs):
@@ -257,19 +274,16 @@ class HotStarIE(HotStarBaseIE):
         formats, subs = [], {}
         headers = {'Referer': f'{self._BASE_URL}/in'}
 
-        _resp = traverse_obj(
-            self._call_api_v2(
-                '/v2/pages/watch', video_id, st=st, cookies=cookies,
-                content_type=content_type, video_codec='h265', resolution='4k', dynamic_range='hdr'),
-            ('page', 'spaces', 'player', 'widget_wrappers', 0, 'widget', 'data', 'player_config', {dict})) or {}
+        watch = self._call_api_v2('pages/watch', video_id, content_type, cookies=cookies, st=st)
+        player_config = traverse_obj(watch, (
+            'page', 'spaces', 'player', 'widget_wrappers', lambda _, v: v['template'] == 'PlayerWidget',
+            'widget', 'data', 'player_config', {dict}, any, {require('player config')}))
 
-        playback_sets = [
-            traverse_obj(_resp, (path1, path2, {dict}))
-            for path1 in ('media_asset', 'media_asset_v2')
-            for path2 in ('primary', 'fallback')
-        ]
-
-        for playback_set in playback_sets:
+        for playback_set in traverse_obj(player_config, (
+            ('media_asset', 'media_asset_v2'),
+            ('primary', 'fallback'),
+            {dict},
+        )):
             if not isinstance(playback_set, dict):
                 continue
             tags = str_or_none(playback_set.get('playback_tags')) or ''
