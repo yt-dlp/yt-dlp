@@ -21,8 +21,7 @@ class KickBaseIE(InfoExtractor):
     def _api_headers(self):
         token = traverse_obj(
             self._get_cookies('https://kick.com/'),
-            ('session_token', 'value', {urllib.parse.unquote}),
-        )
+            ('session_token', 'value', {urllib.parse.unquote}))
         return {'Authorization': f'Bearer {token}'} if token else {}
 
     def _call_api(self, path, display_id, note='Downloading API JSON', headers={}, **kwargs):
