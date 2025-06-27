@@ -73,12 +73,12 @@ class Rule34VideoIE(InfoExtractor):
 
         formats = []
 
-        for mobj in re.finditer(r'<a[^>]+href="(?P<video_url>[^"]+download=true[^"]+)".*>(?P<ext>[^\s]+) (?P<quality>[^<]+)p</a>', webpage):
-            url, ext, quality = mobj.groups()
+        for mobj in re.finditer(r'<a[^>]+href="(?P<video_url>[^"]+download=true[^"]+)".*>(?P<ext>[^\s]+) (?P<height>[^<]+)p</a>', webpage):
+            url, ext, height = mobj.groups()
             formats.append({
                 'url': url,
                 'ext': ext.lower(),
-                'quality': quality,
+                'height': int_or_none(height),
             })
 
         categories, creators, uploader, uploader_url = [None] * 4
