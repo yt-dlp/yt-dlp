@@ -70,16 +70,12 @@ class HotStarBaseIE(InfoExtractor):
                     'container': ['fmp4br', 'fmp4'],
                     'ads': ['non_ssai', 'ssai'],
                     'audio_channel': ['atmos', 'dolby51', 'stereo'],
-                    'encryption': ['plain', 'widevine'],
+                    'encryption': ['plain'],
                     'video_codec': ['h265'],
                     'ladder': ['tv', 'full'],
                     'resolution': ['4k'],
                     'true_resolution': ['4k'],
                     'dynamic_range': ['hdr'],
-                }, separators=(',', ':')),
-                'drm_parameters': json.dumps({
-                    'widevine_security_level': ['SW_SECURE_DECODE', 'SW_SECURE_CRYPTO'],
-                    'hdcp_version': ['HDCP_V2_2', 'HDCP_V2_1', 'HDCP_V2', 'HDCP_V1'],
                 }, separators=(',', ':')),
             })
 
