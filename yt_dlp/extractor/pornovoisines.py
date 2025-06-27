@@ -29,9 +29,9 @@ class PornoVoisinesIE(InfoExtractor):
             'subtitles': {
                 'fr': [{
                     'ext': 'vtt',
-                }]
+                }],
             },
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -40,7 +40,7 @@ class PornoVoisinesIE(InfoExtractor):
         display_id = mobj.group('display_id')
 
         settings_url = self._download_json(
-            'http://www.pornovoisines.com/api/video/%s/getsettingsurl/' % video_id,
+            f'http://www.pornovoisines.com/api/video/{video_id}/getsettingsurl/',
             video_id, note='Getting settings URL')['video_settings_url']
         settings = self._download_json(settings_url, video_id)['data']
 

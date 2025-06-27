@@ -1,7 +1,6 @@
 import itertools
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     smuggle_url,
@@ -14,14 +13,14 @@ from ..utils import (
 
 class VoicyBaseIE(InfoExtractor):
     def _extract_from_playlist_data(self, value):
-        voice_id = compat_str(value.get('PlaylistId'))
+        voice_id = str(value.get('PlaylistId'))
         upload_date = unified_strdate(value.get('Published'), False)
         items = [self._extract_single_article(voice_data) for voice_data in value['VoiceData']]
         return {
             '_type': 'multi_video',
             'entries': items,
             'id': voice_id,
-            'title': compat_str(value.get('PlaylistName')),
+            'title': str(value.get('PlaylistName')),
             'uploader': value.get('SpeakerName'),
             'uploader_id': str_or_none(value.get('SpeakerId')),
             'channel': value.get('ChannelName'),
@@ -45,7 +44,7 @@ class VoicyBaseIE(InfoExtractor):
             'vcodec': 'none',
         }]
         return {
-            'id': compat_str(entry.get('ArticleId')),
+            'id': str(entry.get('ArticleId')),
             'title': entry.get('ArticleTitle'),
             'description': entry.get('MediaName'),
             'formats': formats,
@@ -54,7 +53,7 @@ class VoicyBaseIE(InfoExtractor):
     def _call_api(self, url, video_id, **kwargs):
         response = self._download_json(url, video_id, **kwargs)
         if response.get('Status') != 0:
-            message = traverse_obj(response, ('Value', 'Error', 'Message'), expected_type=compat_str)
+            message = traverse_obj(response, ('Value', 'Error', 'Message'), expected_type=str)
             if not message:
                 message = 'There was a error in the response: %d' % response.get('Status')
             raise ExtractorError(message, expected=False)
@@ -111,7 +110,7 @@ class VoicyChannelIE(VoicyBaseIE):
     def _entries(self, channel_id):
         pager = ''
         for count in itertools.count(1):
-            article_list = self._call_api(self.PROGRAM_LIST_API_URL % (channel_id, pager), channel_id, note='Paging #%d' % count)
+            article_list = self._call_api(self.PROGRAM_LIST_API_URL % (channel_id, pager), channel_id, note=f'Paging #{count}')
             playlist_data = article_list.get('PlaylistData')
             if not playlist_data:
                 break
@@ -124,12 +123,12 @@ class VoicyChannelIE(VoicyBaseIE):
         articles = self._entries(channel_id)
 
         first_article = next(articles, None)
-        title = traverse_obj(first_article, ('ChannelName', ), expected_type=compat_str)
-        speaker_name = traverse_obj(first_article, ('SpeakerName', ), expected_type=compat_str)
+        title = traverse_obj(first_article, ('ChannelName', ), expected_type=str)
+        speaker_name = traverse_obj(first_article, ('SpeakerName', ), expected_type=str)
         if not title and speaker_name:
-            title = 'Uploads from %s' % speaker_name
+            title = f'Uploads from {speaker_name}'
         if not title:
-            title = 'Uploads from channel ID %s' % channel_id
+            title = f'Uploads from channel ID {channel_id}'
 
         articles = itertools.chain([first_article], articles) if first_article else articles
 

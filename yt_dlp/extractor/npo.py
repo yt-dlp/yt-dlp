@@ -200,7 +200,7 @@ class NPOIE(InfoExtractor):
     def suitable(cls, url):
         return (False if any(ie.suitable(url)
                 for ie in (NPOLiveIE, NPORadioIE, NPORadioFragmentIE))
-                else super(NPOIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -228,7 +228,7 @@ class NPOIE(InfoExtractor):
                     'hasAdConsent': 0,
                 }), headers={
                     'x-xsrf-token': try_call(lambda: urllib.parse.unquote(
-                        self._get_cookies('https://www.npostart.nl')['XSRF-TOKEN'].value))
+                        self._get_cookies('https://www.npostart.nl')['XSRF-TOKEN'].value)),
                 })
 
         player_token = player['token']
@@ -238,8 +238,8 @@ class NPOIE(InfoExtractor):
         formats = []
         for profile in ('hls', 'dash-widevine', 'dash-playready', 'smooth'):
             streams = self._download_json(
-                'https://start-player.npo.nl/video/%s/streams' % video_id,
-                video_id, 'Downloading %s profile JSON' % profile, fatal=False,
+                f'https://start-player.npo.nl/video/{video_id}/streams',
+                video_id, f'Downloading {profile} profile JSON', fatal=False,
                 query={
                     'profile': profile,
                     'quality': 'npoplus',
@@ -339,7 +339,7 @@ class NPOLiveIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'http://www.npo.nl/live',
         'only_matching': True,
@@ -358,7 +358,7 @@ class NPOLiveIE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
-            'url': 'npo:%s' % live_id,
+            'url': f'npo:{live_id}',
             'ie_key': NPOIE.ie_key(),
             'id': live_id,
             'display_id': display_id,
@@ -379,16 +379,16 @@ class NPORadioIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }
 
     @classmethod
     def suitable(cls, url):
-        return False if NPORadioFragmentIE.suitable(url) else super(NPORadioIE, cls).suitable(url)
+        return False if NPORadioFragmentIE.suitable(url) else super().suitable(url)
 
     @staticmethod
     def _html_get_attribute_regex(attribute):
-        return r'{0}\s*=\s*\'([^\']+)\''.format(attribute)
+        return rf'{attribute}\s*=\s*\'([^\']+)\''
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -434,7 +434,7 @@ class NPORadioFragmentIE(InfoExtractor):
         webpage = self._download_webpage(url, audio_id)
 
         title = self._html_search_regex(
-            r'href="/radio/[^/]+/fragment/%s" title="([^"]+)"' % audio_id,
+            rf'href="/radio/[^/]+/fragment/{audio_id}" title="([^"]+)"',
             webpage, 'title')
 
         audio_url = self._search_regex(
@@ -456,8 +456,8 @@ class NPODataMidEmbedIE(InfoExtractor):  # XXX: Conventionally, base classes sho
         return {
             '_type': 'url_transparent',
             'ie_key': 'NPO',
-            'url': 'npo:%s' % video_id,
-            'display_id': display_id
+            'url': f'npo:{video_id}',
+            'display_id': display_id,
         }
 
 
@@ -472,12 +472,12 @@ class SchoolTVIE(NPODataMidEmbedIE):
             'display_id': 'ademhaling-de-hele-dag-haal-je-adem-maar-wat-gebeurt-er-dan-eigenlijk-in-je-lichaam',
             'title': 'Ademhaling: De hele dag haal je adem. Maar wat gebeurt er dan eigenlijk in je lichaam?',
             'ext': 'mp4',
-            'description': 'md5:abfa0ff690adb73fd0297fd033aaa631'
+            'description': 'md5:abfa0ff690adb73fd0297fd033aaa631',
         },
         'params': {
             # Skip because of m3u8 download
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }
 
 
@@ -496,8 +496,8 @@ class HetKlokhuisIE(NPODataMidEmbedIE):
             'upload_date': '20170223',
         },
         'params': {
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }
 
 
@@ -508,7 +508,7 @@ class NPOPlaylistBaseIE(NPOIE):  # XXX: Do not subclass from concrete IE
         webpage = self._download_webpage(url, playlist_id)
 
         entries = [
-            self.url_result('npo:%s' % video_id if not video_id.startswith('http') else video_id)
+            self.url_result(f'npo:{video_id}' if not video_id.startswith('http') else video_id)
             for video_id in orderedSet(re.findall(self._PLAYLIST_ENTRY_RE, webpage))
         ]
 
@@ -574,9 +574,9 @@ class VPROIE(NPOPlaylistBaseIE):
             },
             'params': {
                 # Skip because of m3u8 download
-                'skip_download': True
+                'skip_download': True,
             },
-        }
+        },
     ]
 
 

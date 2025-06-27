@@ -23,7 +23,7 @@ class UtreonIE(InfoExtractor):
             'thumbnail': r're:^https?://.+\.jpg',
             'release_date': '20210723',
             'duration': 586,
-        }
+        },
     }, {
         'url': 'https://utreon.com/v/jerJw5EOOVU',
         'info_dict': {
@@ -35,7 +35,7 @@ class UtreonIE(InfoExtractor):
             'thumbnail': r're:^https?://.+\.jpg',
             'release_date': '20210723',
             'duration': 60,
-        }
+        },
     }, {
         'url': 'https://utreon.com/v/C4ZxXhYBBmE',
         'info_dict': {
@@ -47,7 +47,7 @@ class UtreonIE(InfoExtractor):
             'thumbnail': r're:^https?://.+\.jpg',
             'release_date': '20210723',
             'duration': 884,
-        }
+        },
     }, {
         'url': 'https://utreon.com/v/Y-stEH-FBm8',
         'info_dict': {
@@ -59,7 +59,7 @@ class UtreonIE(InfoExtractor):
             'thumbnail': r're:^https?://.+\.jpg',
             'release_date': '20210718',
             'duration': 151,
-        }
+        },
     }, {
         'url': 'https://playeur.com/v/Wzqp-UrxSeu',
         'info_dict': {
@@ -71,7 +71,7 @@ class UtreonIE(InfoExtractor):
             'release_date': '20240208',
             'thumbnail': r're:^https?://.+\.jpg',
             'duration': 262,
-        }
+        },
     }]
 
     def _real_extract(self, url):

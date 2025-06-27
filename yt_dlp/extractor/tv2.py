@@ -52,10 +52,10 @@ class TV2IE(InfoExtractor):
         format_urls = []
         for protocol in self._PROTOCOLS:
             try:
-                data = self._download_json('https://api.sumo.tv2.no/play/%s?stream=%s' % (video_id, protocol),
+                data = self._download_json(f'https://api.sumo.tv2.no/play/{video_id}?stream={protocol}',
                                            video_id, 'Downloading playabck JSON',
                                            headers={'content-type': 'application/json'},
-                                           data='{"device":{"id":"1-1-1","name":"Nettleser (HTML)"}}'.encode())['playback']
+                                           data=b'{"device":{"id":"1-1-1","name":"Nettleser (HTML)"}}')['playback']
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     error = self._parse_json(e.cause.response.read().decode(), video_id)['error']
@@ -71,7 +71,7 @@ class TV2IE(InfoExtractor):
                 video_url = item.get('url')
                 if not video_url or video_url in format_urls:
                     continue
-                format_id = '%s-%s' % (protocol.lower(), item.get('type'))
+                format_id = '{}-{}'.format(protocol.lower(), item.get('type'))
                 if not self._is_valid_url(video_url, video_id, format_id):
                     continue
                 format_urls.append(video_url)
@@ -97,9 +97,9 @@ class TV2IE(InfoExtractor):
             self.report_drm(video_id)
 
         thumbnails = [{
-            'id': type,
+            'id': thumb_type,
             'url': thumb_url,
-        } for type, thumb_url in (asset.get('images') or {}).items()]
+        } for thumb_type, thumb_url in (asset.get('images') or {}).items()]
 
         return {
             'id': video_id,
@@ -151,7 +151,7 @@ class TV2ArticleIE(InfoExtractor):
                     assets.append(asset)
 
         entries = [
-            self.url_result('http://www.tv2.no/v/%s' % asset_id, 'TV2')
+            self.url_result(f'http://www.tv2.no/v/{asset_id}', 'TV2')
             for asset_id in assets]
 
         title = remove_end(self._og_search_title(webpage), ' - TV2.no')
@@ -196,7 +196,7 @@ class KatsomoIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        api_base = 'http://%s/api/web/asset/%s' % (self._API_DOMAIN, video_id)
+        api_base = f'http://{self._API_DOMAIN}/api/web/asset/{video_id}'
 
         asset = self._download_json(
             api_base + '.json', video_id,
@@ -209,7 +209,7 @@ class KatsomoIE(InfoExtractor):
         for protocol in self._PROTOCOLS:
             try:
                 data = self._download_json(
-                    api_base + '/play.json?protocol=%s&videoFormat=SMIL+ISMUSP' % protocol,
+                    api_base + f'/play.json?protocol={protocol}&videoFormat=SMIL+ISMUSP',
                     video_id, 'Downloading play JSON')['playback']
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 401:
@@ -232,7 +232,7 @@ class KatsomoIE(InfoExtractor):
                 video_url = item.get('url')
                 if not video_url or video_url in format_urls:
                     continue
-                format_id = '%s-%s' % (protocol.lower(), item.get('mediaFormat'))
+                format_id = '{}-{}'.format(protocol.lower(), item.get('mediaFormat'))
                 if not self._is_valid_url(video_url, video_id, format_id):
                     continue
                 format_urls.append(video_url)

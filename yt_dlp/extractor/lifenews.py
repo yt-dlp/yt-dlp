@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -31,7 +28,7 @@ class LifeNewsIE(InfoExtractor):
             'timestamp': 1344154740,
             'upload_date': '20120805',
             'view_count': int,
-        }
+        },
     }, {
         # single video embedded via iframe
         'url': 'https://life.ru/t/новости/152125',
@@ -44,7 +41,7 @@ class LifeNewsIE(InfoExtractor):
             'timestamp': 1427961840,
             'upload_date': '20150402',
             'view_count': int,
-        }
+        },
     }, {
         # two videos embedded via iframe
         'url': 'https://life.ru/t/новости/153461',
@@ -100,7 +97,7 @@ class LifeNewsIE(InfoExtractor):
             webpage)
 
         if not video_urls and not iframe_links:
-            raise ExtractorError('No media links available for %s' % video_id)
+            raise ExtractorError(f'No media links available for {video_id}')
 
         title = remove_end(
             self._og_search_title(webpage),
@@ -125,14 +122,14 @@ class LifeNewsIE(InfoExtractor):
         def make_entry(video_id, video_url, index=None):
             cur_info = dict(common_info)
             cur_info.update({
-                'id': video_id if not index else '%s-video%s' % (video_id, index),
+                'id': video_id if not index else f'{video_id}-video{index}',
                 'url': video_url,
-                'title': title if not index else '%s (Видео %s)' % (title, index),
+                'title': title if not index else f'{title} (Видео {index})',
             })
             return cur_info
 
         def make_video_entry(video_id, video_url, index=None):
-            video_url = compat_urlparse.urljoin(url, video_url)
+            video_url = urllib.parse.urljoin(url, video_url)
             return make_entry(video_id, video_url, index)
 
         def make_iframe_entry(video_id, video_url, index=None):
@@ -174,7 +171,7 @@ class LifeEmbedIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'e50c2dec2867350528e2574c899b8291',
             'thumbnail': r're:http://.*\.jpg',
-        }
+        },
     }, {
         # with 1080p
         'url': 'https://embed.life.ru/video/e50c2dec2867350528e2574c899b8291',
@@ -207,17 +204,17 @@ class LifeEmbedIE(InfoExtractor):
             video_id).get('playlist', {})
         if playlist:
             master = playlist.get('master')
-            if isinstance(master, compat_str) and determine_ext(master) == 'm3u8':
-                extract_m3u8(compat_urlparse.urljoin(url, master))
+            if isinstance(master, str) and determine_ext(master) == 'm3u8':
+                extract_m3u8(urllib.parse.urljoin(url, master))
             original = playlist.get('original')
-            if isinstance(original, compat_str):
+            if isinstance(original, str):
                 extract_original(original)
             thumbnail = playlist.get('image')
 
         # Old rendition fallback
         if not formats:
             for video_url in re.findall(r'"file"\s*:\s*"([^"]+)', webpage):
-                video_url = compat_urlparse.urljoin(url, video_url)
+                video_url = urllib.parse.urljoin(url, video_url)
                 if determine_ext(video_url) == 'm3u8':
                     extract_m3u8(video_url)
                 else:

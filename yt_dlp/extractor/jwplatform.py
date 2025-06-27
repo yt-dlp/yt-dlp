@@ -18,7 +18,7 @@ class JWPlatformIE(InfoExtractor):
             'timestamp': 1227796140,
             'duration': 32.0,
             'thumbnail': 'https://cdn.jwplayer.com/v2/media/nPripu9l/poster.jpg?width=720',
-        }
+        },
     }, {
         'url': 'https://cdn.jwplayer.com/players/nPripu9l-ALJ3XQCI.js',
         'only_matching': True,
@@ -72,7 +72,7 @@ class JWPlatformIE(InfoExtractor):
             # <input value=URL> is used by hyland.com
             # if we find <iframe>, dont look for <input>
             ret = re.findall(
-                r'<%s[^>]+?%s=\\?["\']?((?:https?:)?//(?:content\.jwplatform|cdn\.jwplayer)\.com/players/[a-zA-Z0-9]{8})' % (tag, key),
+                rf'<{tag}[^>]+?{key}=\\?["\']?((?:https?:)?//(?:content\.jwplatform|cdn\.jwplayer)\.com/players/[a-zA-Z0-9]{{8}})',
                 webpage)
             if ret:
                 return ret

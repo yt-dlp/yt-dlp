@@ -48,7 +48,7 @@ class GooglePodcastsIE(GooglePodcastsBaseIE):
             'timestamp': 1609606800,
             'duration': 2901,
             'series': "Wait Wait... Don't Tell Me!",
-        }
+        },
     }
 
     def _real_extract(self, url):

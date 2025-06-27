@@ -7,7 +7,6 @@ import time
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -28,11 +27,12 @@ class ViceBaseIE(InfoExtractor):
   %s(locale: "%s", %s: "%s"%s) {
     %s
   }
-}''' % (resource, locale, resource_key, resource_id, args, fields),
+}''' % (resource, locale, resource_key, resource_id, args, fields),  # noqa: UP031
             })['data'][resource]
 
 
 class ViceIE(ViceBaseIE, AdobePassIE):
+    _WORKING = False
     IE_NAME = 'vice'
     _VALID_URL = r'https?://(?:(?:video|vms)\.vice|(?:www\.)?vice(?:land|tv))\.com/(?P<locale>[^/]+)/(?:video/[^/]+|embed)/(?P<id>[\da-f]{24})'
     _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>(?:https?:)?//video\.vice\.com/[^/]+/embed/[\da-f]{24})']
@@ -100,6 +100,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
         'url': 'https://www.viceland.com/en_us/video/thursday-march-1-2018/5a8f2d7ff1cdb332dd446ec1',
         'only_matching': True,
     }]
+    _SOFTWARE_STATEMENT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIwMTVjODBlZC04ZDcxLTQ4ZGEtOTZkZi00NzU5NjIwNzJlYTQiLCJuYmYiOjE2NjgwMTM0ODQsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNjY4MDEzNDg0fQ.CjhUnTrlh-bmYnEFHyC2Y4it5Y_Zfza1x66O4-ki5gBR7JT6aUunYI_YflXomQPACriMpObkITFz4grVaDwdd8Xp9hrQ2R0SwRBdaklkdy1_j68RqSP5PnexJIa0q_ThtOwfRBd5uGcb33nMJ9Qs92W4kVXuca0Ta-i7SJyWgXUaPDlRDdgyCL3hKj5wuM7qUIwrd9A5CMm-j3dMIBCDgw7X6TwRK65eUQe6gTWqcvL2yONHHTpmIfeOTUxGwwKFr29COOTBowm0VJ6HE08xjXCShP08Neusu-JsgkjzhkEbiDE2531EKgfAki_7WCd2JUZVsAsCusv4a1maokk6NA'
 
     def _real_extract(self, url):
         locale, video_id = self._match_valid_url(url).groups()
@@ -117,7 +118,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
             resource = self._get_mvpd_resource(
                 'VICELAND', title, video_id, rating)
             query['tvetoken'] = self._extract_mvpd_auth(
-                url, video_id, 'VICELAND', resource)
+                url, video_id, 'VICELAND', resource, self._SOFTWARE_STATEMENT)
 
         # signature generation algorithm is reverse engineered from signatureGenerator in
         # webpack:///../shared/~/vice-player/dist/js/vice-player.js in
@@ -127,7 +128,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
 
         query.update({
             'exp': exp,
-            'sign': hashlib.sha512(('%s:GET:%d' % (video_id, exp)).encode()).hexdigest(),
+            'sign': hashlib.sha512(f'{video_id}:GET:{exp}'.encode()).hexdigest(),
             'skipadstitching': 1,
             'platform': 'desktop',
             'rn': random.randint(10000, 100000),
@@ -135,14 +136,13 @@ class ViceIE(ViceBaseIE, AdobePassIE):
 
         try:
             preplay = self._download_json(
-                'https://vms.vice.com/%s/video/preplay/%s' % (locale, video_id),
+                f'https://vms.vice.com/{locale}/video/preplay/{video_id}',
                 video_id, query=query)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status in (400, 401):
                 error = json.loads(e.cause.response.read().decode())
                 error_message = error.get('error_description') or error['details']
-                raise ExtractorError('%s said: %s' % (
-                    self.IE_NAME, error_message), expected=True)
+                raise ExtractorError(f'{self.IE_NAME} said: {error_message}', expected=True)
             raise
 
         video_data = preplay['video']
@@ -157,7 +157,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
             cc_url = subtitle.get('url')
             if not cc_url:
                 continue
-            language_code = try_get(subtitle, lambda x: x['languages'][0]['language_code'], compat_str) or 'en'
+            language_code = try_get(subtitle, lambda x: x['languages'][0]['language_code'], str) or 'en'
             subtitles.setdefault(language_code, []).append({
                 'url': cc_url,
             })
@@ -171,7 +171,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
             'duration': int_or_none(video_data.get('video_duration')),
             'timestamp': int_or_none(video_data.get('created_at'), 1000),
             'age_limit': parse_age_limit(video_data.get('video_rating') or rating),
-            'series': try_get(video_data, lambda x: x['show']['base']['display_title'], compat_str),
+            'series': try_get(video_data, lambda x: x['show']['base']['display_title'], str),
             'episode_number': int_or_none(episode.get('episode_number')),
             'episode_id': str_or_none(episode.get('id') or video_data.get('episode_id')),
             'season_number': int_or_none(season.get('season_number')),
@@ -183,6 +183,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
 
 
 class ViceShowIE(ViceBaseIE):
+    _WORKING = False
     IE_NAME = 'vice:show'
     _VALID_URL = r'https?://(?:video\.vice|(?:www\.)?vice(?:land|tv))\.com/(?P<locale>[^/]+)/show/(?P<id>[^/?#&]+)'
     _PAGE_SIZE = 25
@@ -202,7 +203,7 @@ class ViceShowIE(ViceBaseIE):
     def _fetch_page(self, locale, show_id, page):
         videos = self._call_api('videos', 'show_id', show_id, locale, '''body
     id
-    url''', ', page: %d, per_page: %d' % (page + 1, self._PAGE_SIZE))
+    url''', f', page: {page + 1}, per_page: {self._PAGE_SIZE}')
         for video in videos:
             yield self.url_result(
                 video['url'], ViceIE.ie_key(), video.get('id'))
@@ -223,6 +224,7 @@ class ViceShowIE(ViceBaseIE):
 
 
 class ViceArticleIE(ViceBaseIE):
+    _WORKING = False
     IE_NAME = 'vice:article'
     _VALID_URL = r'https?://(?:www\.)?vice\.com/(?P<locale>[^/]+)/article/(?:[0-9a-z]{6}/)?(?P<id>[^?#]+)'
 

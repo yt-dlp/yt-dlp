@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     traverse_obj,
@@ -81,7 +82,7 @@ class PixivSketchIE(PixivSketchBaseIE):
             'channel_id': str(traverse_obj(data, ('user', 'pixiv_user_id'), ('owner', 'user', 'pixiv_user_id'))),
             'age_limit': 18 if data.get('is_r18') else 15 if data.get('is_r15') else 0,
             'timestamp': unified_timestamp(data.get('created_at')),
-            'is_live': True
+            'is_live': True,
         }
 
 
@@ -101,7 +102,7 @@ class PixivSketchUserIE(PixivSketchBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return super(PixivSketchUserIE, cls).suitable(url) and not PixivSketchIE.suitable(url)
+        return super().suitable(url) and not PixivSketchIE.suitable(url)
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
@@ -110,8 +111,8 @@ class PixivSketchUserIE(PixivSketchBaseIE):
         if not traverse_obj(data, 'is_broadcasting'):
             try:
                 self._call_api(user_id, 'users/current.json', url, 'Investigating reason for request failure')
-            except ExtractorError as ex:
-                if ex.cause and ex.cause.code == 401:
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     self.raise_login_required(f'Please log in, or use direct link like https://sketch.pixiv.net/@{user_id}/1234567890', method='cookies')
             raise ExtractorError('This user is offline', expected=True)
 

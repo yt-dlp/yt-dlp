@@ -211,7 +211,7 @@ class FloatplaneIE(InfoExtractor):
             stream = self._download_json(
                 'https://www.floatplane.com/api/v2/cdn/delivery', media_id, query={
                     'type': 'vod' if media_typ == 'video' else 'aod',
-                    'guid': metadata['guid']
+                    'guid': metadata['guid'],
                 }, note=f'Downloading {media_typ} stream data')
 
             path_template = traverse_obj(stream, ('resource', 'uri', {str}))

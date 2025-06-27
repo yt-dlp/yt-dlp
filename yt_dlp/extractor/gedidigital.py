@@ -109,7 +109,7 @@ class GediDigitalIE(InfoExtractor):
         # add protocol if missing
         for i, e in enumerate(urls):
             if e.startswith('//'):
-                urls[i] = 'https:%s' % e
+                urls[i] = f'https:{e}'
         # clean iframes urls
         for i, e in enumerate(urls):
             urls[i] = urljoin(base_url(e), url_basename(e))
@@ -166,7 +166,7 @@ class GediDigitalIE(InfoExtractor):
                             'abr': abr,
                             'tbr': abr,
                             'acodec': ext,
-                            'vcodec': 'none'
+                            'vcodec': 'none',
                         })
                     else:
                         mobj = re.match(r'^video-rrtv-(\d+)(?:-(\d+))?$', n)

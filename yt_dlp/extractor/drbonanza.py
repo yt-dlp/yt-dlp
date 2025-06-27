@@ -40,7 +40,7 @@ class DRBonanzaIE(InfoExtractor):
 
         def extract(field):
             return self._search_regex(
-                r'<div[^>]+>\s*<p>%s:<p>\s*</div>\s*<div[^>]+>\s*<p>([^<]+)</p>' % field,
+                rf'<div[^>]+>\s*<p>{field}:<p>\s*</div>\s*<div[^>]+>\s*<p>([^<]+)</p>',
                 webpage, field, default=None)
 
         info.update({

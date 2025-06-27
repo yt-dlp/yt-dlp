@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     js_to_json,
     parse_duration,
@@ -24,7 +23,7 @@ class RDSIE(InfoExtractor):
             'timestamp': 1606129030,
             'upload_date': '20201123',
             'duration': 773.039,
-        }
+        },
     }, {
         'url': 'http://www.rds.ca/vid%C3%A9os/un-voyage-positif-3.877934',
         'only_matching': True,
@@ -36,7 +35,7 @@ class RDSIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         item = self._parse_json(self._search_regex(r'(?s)itemToPush\s*=\s*({.+?});', webpage, 'item'), display_id, js_to_json)
-        video_id = compat_str(item['id'])
+        video_id = str(item['id'])
         title = item.get('title') or self._og_search_title(webpage) or self._html_search_meta(
             'title', webpage, 'title', fatal=True)
         description = self._og_search_description(webpage) or self._html_search_meta(
@@ -57,7 +56,7 @@ class RDSIE(InfoExtractor):
             '_type': 'url_transparent',
             'id': video_id,
             'display_id': display_id,
-            'url': '9c9media:rds_web:%s' % video_id,
+            'url': f'9c9media:rds_web:{video_id}',
             'title': title,
             'description': description,
             'thumbnail': thumbnail,

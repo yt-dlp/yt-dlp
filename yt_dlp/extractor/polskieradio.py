@@ -5,7 +5,6 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     InAdvancePagedList,
@@ -23,7 +22,7 @@ from ..utils import (
 )
 
 
-class PolskieRadioBaseExtractor(InfoExtractor):
+class PolskieRadioBaseIE(InfoExtractor):
     def _extract_webpage_player_entries(self, webpage, playlist_id, base_data):
         media_urls = set()
 
@@ -37,7 +36,7 @@ class PolskieRadioBaseExtractor(InfoExtractor):
             media_urls.add(media_url)
             entry = base_data.copy()
             entry.update({
-                'id': compat_str(media['id']),
+                'id': str(media['id']),
                 'url': media_url,
                 'duration': int_or_none(media.get('length')),
                 'vcodec': 'none' if media.get('provider') == 'audio' else None,
@@ -48,7 +47,7 @@ class PolskieRadioBaseExtractor(InfoExtractor):
             yield entry
 
 
-class PolskieRadioLegacyIE(PolskieRadioBaseExtractor):
+class PolskieRadioLegacyIE(PolskieRadioBaseIE):
     # legacy sites
     IE_NAME = 'polskieradio:legacy'
     _VALID_URL = r'https?://(?:www\.)?polskieradio(?:24)?\.pl/\d+/\d+/[Aa]rtykul/(?P<id>\d+)'
@@ -68,7 +67,7 @@ class PolskieRadioLegacyIE(PolskieRadioBaseExtractor):
                 'timestamp': 1592654400,
                 'upload_date': '20200620',
                 'duration': 1430,
-                'thumbnail': r're:^https?://static\.prsa\.pl/images/.*\.jpg$'
+                'thumbnail': r're:^https?://static\.prsa\.pl/images/.*\.jpg$',
             },
         }],
     }, {
@@ -128,7 +127,7 @@ class PolskieRadioLegacyIE(PolskieRadioBaseExtractor):
         return self.playlist_result(entries, playlist_id, title, description)
 
 
-class PolskieRadioIE(PolskieRadioBaseExtractor):
+class PolskieRadioIE(PolskieRadioBaseIE):
     # new next.js sites
     _VALID_URL = r'https?://(?:[^/]+\.)?(?:polskieradio(?:24)?|radiokierowcow)\.pl/artykul/(?P<id>\d+)'
     _TESTS = [{
@@ -328,14 +327,14 @@ class PolskieRadioCategoryIE(InfoExtractor):
             'id': '4143',
             'title': 'Kierunek Kraków',
         },
-        'playlist_mincount': 61
+        'playlist_mincount': 61,
     }, {
         'url': 'http://www.polskieradio.pl/10,czworka/214,muzyka',
         'info_dict': {
             'id': '214',
             'title': 'Muzyka',
         },
-        'playlist_mincount': 61
+        'playlist_mincount': 61,
     }, {
         # billennium tabs
         'url': 'https://www.polskieradio.pl/8/2385',
@@ -400,7 +399,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
                 params = self._search_json(
                     r'<div[^>]+class=["\']next["\'][^>]*>\s*<a[^>]+onclick=["\']TB_LoadTab\(',
                     pagination, 'next page params', category_id, default=None, close_objects=1,
-                    contains_pattern='.+', transform_source=lambda x: '[%s' % js_to_json(unescapeHTML(x)))
+                    contains_pattern='.+', transform_source=lambda x: f'[{js_to_json(unescapeHTML(x))}')
                 if not params:
                     break
                 tab_content = self._download_json(
@@ -409,7 +408,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
                     data=json.dumps(dict(zip((
                         'boxInstanceId', 'tabId', 'categoryType', 'sectionId', 'categoryId', 'pagerMode',
                         'subjectIds', 'tagIndexId', 'queryString', 'name', 'openArticlesInParentTemplate',
-                        'idSectionFromUrl', 'maxDocumentAge', 'showCategoryForArticle', 'pageNumber'
+                        'idSectionFromUrl', 'maxDocumentAge', 'showCategoryForArticle', 'pageNumber',
                     ), params))).encode())['d']
                 content, pagination = tab_content['Content'], tab_content.get('PagerContent')
             elif is_post_back:
@@ -511,7 +510,7 @@ class PolskieRadioPlayerIE(InfoExtractor):
                 })
 
         return {
-            'id': compat_str(channel['id']),
+            'id': str(channel['id']),
             'formats': formats,
             'title': channel.get('name') or channel.get('streamName'),
             'display_id': channel_url,
@@ -520,7 +519,7 @@ class PolskieRadioPlayerIE(InfoExtractor):
         }
 
 
-class PolskieRadioPodcastBaseExtractor(InfoExtractor):
+class PolskieRadioPodcastBaseIE(InfoExtractor):
     _API_BASE = 'https://apipodcasts.polskieradio.pl/api'
 
     def _parse_episode(self, data):
@@ -540,7 +539,7 @@ class PolskieRadioPodcastBaseExtractor(InfoExtractor):
         }
 
 
-class PolskieRadioPodcastListIE(PolskieRadioPodcastBaseExtractor):
+class PolskieRadioPodcastListIE(PolskieRadioPodcastBaseIE):
     IE_NAME = 'polskieradio:podcast:list'
     _VALID_URL = r'https?://podcasty\.polskieradio\.pl/podcast/(?P<id>\d+)'
     _TESTS = [{
@@ -579,7 +578,7 @@ class PolskieRadioPodcastListIE(PolskieRadioPodcastBaseExtractor):
         }
 
 
-class PolskieRadioPodcastIE(PolskieRadioPodcastBaseExtractor):
+class PolskieRadioPodcastIE(PolskieRadioPodcastBaseIE):
     IE_NAME = 'polskieradio:podcast'
     _VALID_URL = r'https?://podcasty\.polskieradio\.pl/track/(?P<id>[a-f\d]{8}(?:-[a-f\d]{4}){4}[a-f\d]{8})'
     _TESTS = [{
@@ -603,7 +602,7 @@ class PolskieRadioPodcastIE(PolskieRadioPodcastBaseExtractor):
             podcast_id, 'Downloading podcast metadata',
             data=json.dumps({
                 'guids': [podcast_id],
-            }).encode('utf-8'),
+            }).encode(),
             headers={
                 'Content-Type': 'application/json',
             })

@@ -20,8 +20,8 @@ class SkebIE(InfoExtractor):
             'subtitles': {
                 'jpn': [{
                     'url': r're:https://skeb.+',
-                    'ext': 'vtt'
-                }]
+                    'ext': 'vtt',
+                }],
             },
             'width': 720,
             'height': 405,
@@ -48,8 +48,8 @@ class SkebIE(InfoExtractor):
             'subtitles': {
                 'jpn': [{
                     'url': r're:https://skeb.+',
-                    'ext': 'vtt'
-                }]
+                    'ext': 'vtt',
+                }],
             },
             'duration': 98,
             'ext': 'mp3',
@@ -70,8 +70,8 @@ class SkebIE(InfoExtractor):
             }, {
                 'id': '486431',
                 'title': 'ヒロ。\n\n私のキャラク... by 諸々',
-            }]
-        }
+            }],
+        },
     }]
 
     def _real_extract(self, url):
@@ -106,7 +106,7 @@ class SkebIE(InfoExtractor):
             if width is not None and height is not None:
                 # the longest side is at most 720px for non-client viewers
                 max_size = max(width, height)
-                width, height = list(x * 720 // max_size for x in (width, height))
+                width, height = (x * 720 // max_size for x in (width, height))
             entries.append({
                 **parent,
                 'id': str(item['id']),
@@ -116,7 +116,7 @@ class SkebIE(InfoExtractor):
                     'jpn': [{
                         'url': item.get('vtt_url'),
                         'ext': 'vtt',
-                    }]
+                    }],
                 } if item.get('vtt_url') else None,
                 'width': width,
                 'height': height,

@@ -66,7 +66,7 @@ class LcpIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         play_url = self._search_regex(
-            r'<iframe[^>]+src=(["\'])(?P<url>%s?(?:(?!\1).)*)\1' % LcpPlayIE._VALID_URL,
+            rf'<iframe[^>]+src=(["\'])(?P<url>{LcpPlayIE._VALID_URL}?(?:(?!\1).)*)\1',
             webpage, 'play iframe', default=None, group='url')
 
         if not play_url:

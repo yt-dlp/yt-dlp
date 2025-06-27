@@ -2,7 +2,6 @@ import functools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     OnDemandPagedList,
     format_field,
@@ -1316,13 +1315,13 @@ class PeerTubeIE(InfoExtractor):
                         )'''
     _UUID_RE = r'[\da-zA-Z]{22}|[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}'
     _API_BASE = 'https://%s/api/v1/videos/%s/%s'
-    _VALID_URL = r'''(?x)
+    _VALID_URL = rf'''(?x)
                     (?:
                         peertube:(?P<host>[^:]+):|
-                        https?://(?P<host_2>%s)/(?:videos/(?:watch|embed)|api/v\d/videos|w)/
+                        https?://(?P<host_2>{_INSTANCES_RE})/(?:videos/(?:watch|embed)|api/v\d/videos|w)/
                     )
-                    (?P<id>%s)
-                    ''' % (_INSTANCES_RE, _UUID_RE)
+                    (?P<id>{_UUID_RE})
+                    '''
     _EMBED_REGEX = [r'''(?x)<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//{_INSTANCES_RE}/videos/embed/{cls._UUID_RE})''']
     _TESTS = [{
         'url': 'https://framatube.org/videos/watch/9c9de5e8-0a1e-484a-b099-e80766180a6d',
@@ -1349,7 +1348,7 @@ class PeerTubeIE(InfoExtractor):
             'dislike_count': int,
             'tags': ['framasoft', 'peertube'],
             'categories': ['Science & Technology'],
-        }
+        },
     }, {
         'url': 'https://peertube2.cpy.re/w/122d093a-1ede-43bd-bd34-59d2931ffc5e',
         'info_dict': {
@@ -1360,7 +1359,7 @@ class PeerTubeIE(InfoExtractor):
             'timestamp': 1589276219,
             'upload_date': '20200512',
             'uploader': 'chocobozzz',
-        }
+        },
     }, {
         'url': 'https://peertube2.cpy.re/w/3fbif9S3WmtTP8gGsC5HBd',
         'info_dict': {
@@ -1394,7 +1393,7 @@ class PeerTubeIE(InfoExtractor):
             'timestamp': 1587401293,
             'upload_date': '20200420',
             'uploader': 'Drew DeVault',
-        }
+        },
     }, {
         'url': 'https://peertube.debian.social/videos/watch/0b04f13d-1e18-4f1d-814e-4979aa7c9c44',
         'only_matching': True,
@@ -1416,14 +1415,13 @@ class PeerTubeIE(InfoExtractor):
     @staticmethod
     def _extract_peertube_url(webpage, source_url):
         mobj = re.match(
-            r'https?://(?P<host>[^/]+)/(?:videos/(?:watch|embed)|w)/(?P<id>%s)'
-            % PeerTubeIE._UUID_RE, source_url)
+            rf'https?://(?P<host>[^/]+)/(?:videos/(?:watch|embed)|w)/(?P<id>{PeerTubeIE._UUID_RE})', source_url)
         if mobj and any(p in webpage for p in (
                 'meta property="og:platform" content="PeerTube"',
                 '<title>PeerTube<',
                 'There will be other non JS-based clients to access PeerTube',
                 '>We are sorry but it seems that PeerTube is not compatible with your web browser.<')):
-            return 'peertube:%s:%s' % mobj.group('host', 'id')
+            return 'peertube:{}:{}'.format(*mobj.group('host', 'id'))
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -1451,8 +1449,8 @@ class PeerTubeIE(InfoExtractor):
             return
         subtitles = {}
         for e in data:
-            language_id = try_get(e, lambda x: x['language']['id'], compat_str)
-            caption_url = urljoin('https://%s' % host, e.get('captionPath'))
+            language_id = try_get(e, lambda x: x['language']['id'], str)
+            caption_url = urljoin(f'https://{host}', e.get('captionPath'))
             if not caption_url:
                 continue
             subtitles.setdefault(language_id or 'en', []).append({
@@ -1491,7 +1489,7 @@ class PeerTubeIE(InfoExtractor):
                 continue
             file_size = int_or_none(file_.get('size'))
             format_id = try_get(
-                file_, lambda x: x['resolution']['label'], compat_str)
+                file_, lambda x: x['resolution']['label'], str)
             f = parse_resolution(format_id)
             f.update({
                 'url': file_url,
@@ -1526,7 +1524,7 @@ class PeerTubeIE(InfoExtractor):
         def channel_data(field, type_):
             return data('channel', field, type_)
 
-        category = data('category', 'label', compat_str)
+        category = data('category', 'label', str)
         categories = [category] if category else None
 
         nsfw = video.get('nsfw')
@@ -1535,7 +1533,7 @@ class PeerTubeIE(InfoExtractor):
         else:
             age_limit = None
 
-        webpage_url = 'https://%s/videos/watch/%s' % (host, video_id)
+        webpage_url = f'https://{host}/videos/watch/{video_id}'
 
         return {
             'id': video_id,
@@ -1543,14 +1541,14 @@ class PeerTubeIE(InfoExtractor):
             'description': description,
             'thumbnail': urljoin(webpage_url, video.get('thumbnailPath')),
             'timestamp': unified_timestamp(video.get('publishedAt')),
-            'uploader': account_data('displayName', compat_str),
+            'uploader': account_data('displayName', str),
             'uploader_id': str_or_none(account_data('id', int)),
-            'uploader_url': url_or_none(account_data('url', compat_str)),
-            'channel': channel_data('displayName', compat_str),
+            'uploader_url': url_or_none(account_data('url', str)),
+            'channel': channel_data('displayName', str),
             'channel_id': str_or_none(channel_data('id', int)),
-            'channel_url': url_or_none(channel_data('url', compat_str)),
-            'language': data('language', 'id', compat_str),
-            'license': data('licence', 'label', compat_str),
+            'channel_url': url_or_none(channel_data('url', str)),
+            'language': data('language', 'id', str),
+            'license': data('licence', 'label', str),
             'duration': int_or_none(video.get('duration')),
             'view_count': int_or_none(video.get('views')),
             'like_count': int_or_none(video.get('likes')),
@@ -1573,9 +1571,9 @@ class PeerTubePlaylistIE(InfoExtractor):
         'w/p': 'video-playlists',
     }
     _VALID_URL = r'''(?x)
-                        https?://(?P<host>%s)/(?P<type>(?:%s))/
+                        https?://(?P<host>{})/(?P<type>(?:{}))/
                     (?P<id>[^/]+)
-                    ''' % (PeerTubeIE._INSTANCES_RE, '|'.join(_TYPES.keys()))
+                    '''.format(PeerTubeIE._INSTANCES_RE, '|'.join(_TYPES.keys()))
     _TESTS = [{
         'url': 'https://peertube.debian.social/w/p/hFdJoTuyhNJVa1cDWd1d12',
         'info_dict': {
@@ -1617,21 +1615,21 @@ class PeerTubePlaylistIE(InfoExtractor):
         return self._download_json(
             self._API_BASE % (host, base, name, path), name, **kwargs)
 
-    def fetch_page(self, host, id, type, page):
+    def fetch_page(self, host, playlist_id, playlist_type, page):
         page += 1
         video_data = self.call_api(
-            host, id,
+            host, playlist_id,
             f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}&nsfw=both',
-            type, note=f'Downloading page {page}').get('data', [])
+            playlist_type, note=f'Downloading page {page}').get('data', [])
         for video in video_data:
-            shortUUID = video.get('shortUUID') or try_get(video, lambda x: x['video']['shortUUID'])
+            short_uuid = video.get('shortUUID') or try_get(video, lambda x: x['video']['shortUUID'])
             video_title = video.get('name') or try_get(video, lambda x: x['video']['name'])
             yield self.url_result(
-                f'https://{host}/w/{shortUUID}', PeerTubeIE.ie_key(),
-                video_id=shortUUID, video_title=video_title)
+                f'https://{host}/w/{short_uuid}', PeerTubeIE.ie_key(),
+                video_id=short_uuid, video_title=video_title)
 
-    def _extract_playlist(self, host, type, id):
-        info = self.call_api(host, id, '', type, note='Downloading playlist information', fatal=False)
+    def _extract_playlist(self, host, playlist_type, playlist_id):
+        info = self.call_api(host, playlist_id, '', playlist_type, note='Downloading playlist information', fatal=False)
 
         playlist_title = info.get('displayName')
         playlist_description = info.get('description')
@@ -1641,13 +1639,12 @@ class PeerTubePlaylistIE(InfoExtractor):
         thumbnail = format_field(info, 'thumbnailPath', f'https://{host}%s')
 
         entries = OnDemandPagedList(functools.partial(
-            self.fetch_page, host, id, type), self._PAGE_SIZE)
+            self.fetch_page, host, playlist_id, playlist_type), self._PAGE_SIZE)
 
         return self.playlist_result(
-            entries, id, playlist_title, playlist_description,
+            entries, playlist_id, playlist_title, playlist_description,
             timestamp=playlist_timestamp, channel=channel, channel_id=channel_id, thumbnail=thumbnail)
 
     def _real_extract(self, url):
-        type, host, id = self._match_valid_url(url).group('type', 'host', 'id')
-        type = self._TYPES[type]
-        return self._extract_playlist(host, type, id)
+        playlist_type, host, playlist_id = self._match_valid_url(url).group('type', 'host', 'id')
+        return self._extract_playlist(host, self._TYPES[playlist_type], playlist_id)

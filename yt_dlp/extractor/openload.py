@@ -4,8 +4,8 @@ import json
 import os
 import subprocess
 import tempfile
+import urllib.parse
 
-from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
     Popen,
@@ -121,7 +121,7 @@ class PhantomJSwrapper:
             if is_outdated_version(version, required_version):
                 self.extractor._downloader.report_warning(
                     'Your copy of PhantomJS is outdated, update it to version '
-                    '%s or newer if you encounter any errors.' % required_version)
+                    f'{required_version} or newer if you encounter any errors.')
 
         for name in self._TMP_FILE_NAMES:
             tmp = tempfile.NamedTemporaryFile(delete=False)
@@ -146,9 +146,9 @@ class PhantomJSwrapper:
             if 'path' not in cookie:
                 cookie['path'] = '/'
             if 'domain' not in cookie:
-                cookie['domain'] = compat_urlparse.urlparse(url).netloc
+                cookie['domain'] = urllib.parse.urlparse(url).netloc
         with open(self._TMP_FILES['cookies'].name, 'wb') as f:
-            f.write(json.dumps(cookies).encode('utf-8'))
+            f.write(json.dumps(cookies).encode())
 
     def _load_cookies(self):
         with open(self._TMP_FILES['cookies'].name, 'rb') as f:
@@ -201,7 +201,7 @@ class PhantomJSwrapper:
         if not html:
             html = self.extractor._download_webpage(url, video_id, note=note, headers=headers)
         with open(self._TMP_FILES['html'].name, 'wb') as f:
-            f.write(html.encode('utf-8'))
+            f.write(html.encode())
 
         self._save_cookies(url)
 

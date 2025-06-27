@@ -17,16 +17,16 @@ class EuropeanTourIE(InfoExtractor):
             'uploader_id': '5136026580001',
             'tags': ['prod-imported'],
             'thumbnail': 'md5:fdac52bc826548860edf8145ee74e71a',
-            'upload_date': '20211220'
+            'upload_date': '20211220',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         vid, aid = re.search(r'(?s)brightcove-player\s?video-id="([^"]+)".*"ACCOUNT_ID":"([^"]+)"', webpage).groups()
         if not aid:
             aid = '5136026580001'

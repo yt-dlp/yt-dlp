@@ -45,7 +45,7 @@ class PikselIE(InfoExtractor):
                 'upload_date': '20161210',
                 'description': '',
                 'thumbnail': 'https://thumbs.piksel.tech/thumbs/aid/t1488331553/3238987.jpg?w=640&h=480',
-            }
+            },
         },
         {
             # Original source: http://www.uscourts.gov/cameras-courts/state-washington-vs-donald-j-trump-et-al
@@ -59,13 +59,13 @@ class PikselIE(InfoExtractor):
                 'timestamp': 1486171129,
                 'upload_date': '20170204',
                 'thumbnail': 'https://thumbs.piksel.tech/thumbs/aid/t1495569155/3279887.jpg?w=640&h=360',
-            }
+            },
         },
         {
             # https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2019240/
             'url': 'http://player.piksel.com/v/refid/nhkworld/prefid/nw_vod_v_en_2019_240_20190823233000_02_1566873477',
             'only_matching': True,
-        }
+        },
     ]
 
     def _call_api(self, app_token, resource, display_id, query, host='https://player.piksel.tech', fatal=True):
@@ -84,7 +84,7 @@ class PikselIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         app_token = self._search_regex([
             r'clientAPI\s*:\s*"([^"]+)"',
-            r'data-de-api-key\s*=\s*"([^"]+)"'
+            r'data-de-api-key\s*=\s*"([^"]+)"',
         ], webpage, 'app token')
         query = {'refid': ref_id, 'prefid': display_id} if ref_id else {'v': display_id}
         program = self._call_api(

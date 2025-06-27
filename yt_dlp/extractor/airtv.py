@@ -26,7 +26,7 @@ class AirTVIE(InfoExtractor):
             'view_count': int,
             'thumbnail': 'https://cdn-sp-gcs.air.tv/videos/W/8/W87jcWleSn2hXZN47zJZsQ/b13fc56464f47d9d62a36d110b9b5a72-4096x2160_9.jpg',
             'timestamp': 1664792603,
-        }
+        },
     }, {
         # with youtube_id
         'url': 'https://www.air.tv/watch?v=sv57EC8tRXG6h8dNXFUU1Q',
@@ -54,7 +54,7 @@ class AirTVIE(InfoExtractor):
             'channel': 'Newsflare',
             'duration': 37,
             'upload_date': '20180511',
-        }
+        },
     }]
 
     def _get_formats_and_subtitle(self, json_data, video_id):

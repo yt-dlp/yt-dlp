@@ -23,7 +23,6 @@ from yt_dlp.extractor import (
     TedTalkIE,
     ThePlatformFeedIE,
     ThePlatformIE,
-    VikiIE,
     VimeoIE,
     WallaIE,
     YoutubeIE,
@@ -40,12 +39,11 @@ class BaseTestSubtitles(unittest.TestCase):
         self.ie = self.IE()
         self.DL.add_info_extractor(self.ie)
         if not self.IE.working():
-            print('Skipping: %s marked as not _WORKING' % self.IE.ie_key())
+            print(f'Skipping: {self.IE.ie_key()} marked as not _WORKING')
             self.skipTest('IE marked as not _WORKING')
 
     def getInfoDict(self):
-        info_dict = self.DL.extract_info(self.url, download=False)
-        return info_dict
+        return self.DL.extract_info(self.url, download=False)
 
     def getSubtitles(self):
         info_dict = self.getInfoDict()
@@ -87,7 +85,7 @@ class TestYoutubeSubtitles(BaseTestSubtitles):
         self.assertEqual(md5(subtitles['en']), 'ae1bd34126571a77aabd4d276b28044d')
         self.assertEqual(md5(subtitles['it']), '0e0b667ba68411d88fd1c5f4f4eab2f9')
         for lang in ['fr', 'de']:
-            self.assertTrue(subtitles.get(lang) is not None, 'Subtitles for \'%s\' not extracted' % lang)
+            self.assertTrue(subtitles.get(lang) is not None, f'Subtitles for \'{lang}\' not extracted')
 
     def _test_subtitles_format(self, fmt, md5_hash, lang='en'):
         self.DL.params['writesubtitles'] = True
@@ -157,7 +155,7 @@ class TestDailymotionSubtitles(BaseTestSubtitles):
         self.assertEqual(md5(subtitles['en']), '976553874490cba125086bbfea3ff76f')
         self.assertEqual(md5(subtitles['fr']), '594564ec7d588942e384e920e5341792')
         for lang in ['es', 'fr', 'de']:
-            self.assertTrue(subtitles.get(lang) is not None, 'Subtitles for \'%s\' not extracted' % lang)
+            self.assertTrue(subtitles.get(lang) is not None, f'Subtitles for \'{lang}\' not extracted')
 
     def test_nosubtitles(self):
         self.DL.expect_warning('video doesn\'t have subtitles')
@@ -182,7 +180,7 @@ class TestTedSubtitles(BaseTestSubtitles):
         self.assertEqual(md5(subtitles['en']), '4262c1665ff928a2dada178f62cb8d14')
         self.assertEqual(md5(subtitles['fr']), '66a63f7f42c97a50f8c0e90bc7797bb5')
         for lang in ['es', 'fr', 'de']:
-            self.assertTrue(subtitles.get(lang) is not None, 'Subtitles for \'%s\' not extracted' % lang)
+            self.assertTrue(subtitles.get(lang) is not None, f'Subtitles for \'{lang}\' not extracted')
 
 
 @is_download_test
@@ -330,20 +328,6 @@ class TestRaiPlaySubtitles(BaseTestSubtitles):
         subtitles = self.getSubtitles()
         self.assertEqual(set(subtitles.keys()), {'it'})
         self.assertEqual(md5(subtitles['it']), '4b3264186fbb103508abe5311cfcb9cd')
-
-
-@is_download_test
-@unittest.skip('IE broken - DRM only')
-class TestVikiSubtitles(BaseTestSubtitles):
-    url = 'http://www.viki.com/videos/1060846v-punch-episode-18'
-    IE = VikiIE
-
-    def test_allsubtitles(self):
-        self.DL.params['writesubtitles'] = True
-        self.DL.params['allsubtitles'] = True
-        subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), {'en'})
-        self.assertEqual(md5(subtitles['en']), '53cb083a5914b2d84ef1ab67b880d18a')
 
 
 @is_download_test

@@ -124,18 +124,18 @@ class RUTVIE(InfoExtractor):
         is_live = video_type == 'live'
 
         json_data = self._download_json(
-            'http://player.vgtrk.com/iframe/data%s/id/%s' % ('live' if is_live else 'video', video_id),
+            'http://player.vgtrk.com/iframe/data{}/id/{}'.format('live' if is_live else 'video', video_id),
             video_id, 'Downloading JSON')
 
         if json_data['errors']:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, json_data['errors']), expected=True)
+            raise ExtractorError('{} said: {}'.format(self.IE_NAME, json_data['errors']), expected=True)
 
         playlist = json_data['data']['playlist']
         medialist = playlist['medialist']
         media = medialist[0]
 
         if media['errors']:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, media['errors']), expected=True)
+            raise ExtractorError('{} said: {}'.format(self.IE_NAME, media['errors']), expected=True)
 
         view_count = int_or_none(playlist.get('count_views'))
         priority_transport = playlist['priority_transport']
@@ -175,12 +175,12 @@ class RUTVIE(InfoExtractor):
                     continue
                 else:
                     fmt = {
-                        'url': url
+                        'url': url,
                     }
                 fmt.update({
                     'width': int_or_none(quality, default=height, invscale=width, scale=height),
                     'height': int_or_none(quality, default=height),
-                    'format_id': '%s-%s' % (transport, quality),
+                    'format_id': f'{transport}-{quality}',
                     'source_preference': preference,
                 })
                 formats.append(fmt)

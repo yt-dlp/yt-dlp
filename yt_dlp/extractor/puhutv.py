@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -48,25 +47,25 @@ class PuhuTVIE(InfoExtractor):
     _SUBTITLE_LANGS = {
         'English': 'en',
         'Deutsch': 'de',
-        'عربى': 'ar'
+        'عربى': 'ar',
     }
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
         info = self._download_json(
-            urljoin(url, '/api/slug/%s-izle' % display_id),
+            urljoin(url, f'/api/slug/{display_id}-izle'),
             display_id)['data']
 
-        video_id = compat_str(info['id'])
+        video_id = str(info['id'])
         show = info.get('title') or {}
         title = info.get('name') or show['name']
         if info.get('display_name'):
-            title = '%s %s' % (title, info['display_name'])
+            title = '{} {}'.format(title, info['display_name'])
 
         try:
             videos = self._download_json(
-                'https://puhutv.com/api/assets/%s/videos' % video_id,
+                f'https://puhutv.com/api/assets/{video_id}/videos',
                 display_id, 'Downloading video JSON',
                 headers=self.geo_verification_headers())
         except ExtractorError as e:
@@ -94,7 +93,7 @@ class PuhuTVIE(InfoExtractor):
             f = {
                 'url': media_url,
                 'ext': 'mp4',
-                'height': quality
+                'height': quality,
             }
             video_format = video.get('video_format')
             is_hls = (video_format == 'hls' or '/hls/' in media_url or '/chunklist.m3u8' in media_url) and playlist is False
@@ -106,12 +105,12 @@ class PuhuTVIE(InfoExtractor):
             else:
                 continue
             if quality:
-                format_id += '-%sp' % quality
+                format_id += f'-{quality}p'
             f['format_id'] = format_id
             formats.append(f)
 
         creator = try_get(
-            show, lambda x: x['producer']['name'], compat_str)
+            show, lambda x: x['producer']['name'], str)
 
         content = info.get('content') or {}
 
@@ -119,14 +118,14 @@ class PuhuTVIE(InfoExtractor):
             content, lambda x: x['images']['wide'], dict) or {}
         thumbnails = []
         for image_id, image_url in images.items():
-            if not isinstance(image_url, compat_str):
+            if not isinstance(image_url, str):
                 continue
             if not image_url.startswith(('http', '//')):
-                image_url = 'https://%s' % image_url
+                image_url = f'https://{image_url}'
             t = parse_resolution(image_id)
             t.update({
                 'id': image_id,
-                'url': image_url
+                'url': image_url,
             })
             thumbnails.append(t)
 
@@ -135,7 +134,7 @@ class PuhuTVIE(InfoExtractor):
             if not isinstance(genre, dict):
                 continue
             genre_name = genre.get('name')
-            if genre_name and isinstance(genre_name, compat_str):
+            if genre_name and isinstance(genre_name, str):
                 tags.append(genre_name)
 
         subtitles = {}
@@ -144,10 +143,10 @@ class PuhuTVIE(InfoExtractor):
                 continue
             lang = subtitle.get('language')
             sub_url = url_or_none(subtitle.get('url') or subtitle.get('file'))
-            if not lang or not isinstance(lang, compat_str) or not sub_url:
+            if not lang or not isinstance(lang, str) or not sub_url:
                 continue
             subtitles[self._SUBTITLE_LANGS.get(lang, lang)] = [{
-                'url': sub_url
+                'url': sub_url,
             }]
 
         return {
@@ -166,7 +165,7 @@ class PuhuTVIE(InfoExtractor):
             'tags': tags,
             'subtitles': subtitles,
             'thumbnails': thumbnails,
-            'formats': formats
+            'formats': formats,
         }
 
 
@@ -195,8 +194,8 @@ class PuhuTVSerieIE(InfoExtractor):
             has_more = True
             while has_more is True:
                 season = self._download_json(
-                    'https://galadriel.puhutv.com/seasons/%s' % season_id,
-                    season_id, 'Downloading page %s' % page, query={
+                    f'https://galadriel.puhutv.com/seasons/{season_id}',
+                    season_id, f'Downloading page {page}', query={
                         'page': page,
                         'per': 40,
                     })
@@ -208,7 +207,7 @@ class PuhuTVSerieIE(InfoExtractor):
                             continue
                         video_id = str_or_none(int_or_none(ep.get('id')))
                         yield self.url_result(
-                            'https://puhutv.com/%s' % slug_path,
+                            f'https://puhutv.com/{slug_path}',
                             ie=PuhuTVIE.ie_key(), video_id=video_id,
                             video_title=ep.get('name') or ep.get('eventLabel'))
                 page += 1
@@ -218,7 +217,7 @@ class PuhuTVSerieIE(InfoExtractor):
         playlist_id = self._match_id(url)
 
         info = self._download_json(
-            urljoin(url, '/api/slug/%s-detay' % playlist_id),
+            urljoin(url, f'/api/slug/{playlist_id}-detay'),
             playlist_id)['data']
 
         seasons = info.get('seasons')
@@ -229,5 +228,5 @@ class PuhuTVSerieIE(InfoExtractor):
         # For films, these are using same url with series
         video_id = info.get('slug') or info['assets'][0]['slug']
         return self.url_result(
-            'https://puhutv.com/%s-izle' % video_id,
+            f'https://puhutv.com/{video_id}-izle',
             PuhuTVIE.ie_key(), video_id)

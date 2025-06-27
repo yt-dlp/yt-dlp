@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlencode,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -27,7 +25,7 @@ class PlaytvakIE(InfoExtractor):
             'timestamp': 1438732860,
             'upload_date': '20150805',
             'is_live': False,
-        }
+        },
     }, {  # live video test
         'url': 'http://slowtv.playtvak.cz/planespotting-0pr-/planespotting.aspx?c=A150624_164934_planespotting_cat',
         'info_dict': {
@@ -64,7 +62,7 @@ class PlaytvakIE(InfoExtractor):
             'timestamp': 1438969140,
             'upload_date': '20150807',
             'is_live': False,
-        }
+        },
     }, {  # lidovky.cz
         'url': 'http://www.lidovky.cz/dalsi-demonstrace-v-praze-o-migraci-duq-/video.aspx?c=A150808_214044_ln-video_ELE',
         'md5': 'c7209ac4ba9d234d4ad5bab7485bcee8',
@@ -77,7 +75,7 @@ class PlaytvakIE(InfoExtractor):
             'timestamp': 1439052180,
             'upload_date': '20150808',
             'is_live': False,
-        }
+        },
     }, {  # metro.cz
         'url': 'http://www.metro.cz/video-pod-billboardem-se-na-vltavske-roztocil-kolotoc-deti-vozil-jen-par-hodin-1hx-/metro-extra.aspx?c=A141111_173251_metro-extra_row',
         'md5': '84fc1deedcac37b7d4a6ccae7c716668',
@@ -90,7 +88,7 @@ class PlaytvakIE(InfoExtractor):
             'timestamp': 1415725500,
             'upload_date': '20141111',
             'is_live': False,
-        }
+        },
     }, {
         'url': 'http://www.playtvak.cz/embed.aspx?idvideo=V150729_141549_play-porad_kuko',
         'only_matching': True,
@@ -104,16 +102,16 @@ class PlaytvakIE(InfoExtractor):
         info_url = self._html_search_regex(
             r'Misc\.video(?:FLV)?\(\s*{\s*data\s*:\s*"([^"]+)"', webpage, 'info url')
 
-        parsed_url = compat_urlparse.urlparse(info_url)
+        parsed_url = urllib.parse.urlparse(info_url)
 
-        qs = compat_urlparse.parse_qs(parsed_url.query)
+        qs = urllib.parse.parse_qs(parsed_url.query)
         qs.update({
             'reklama': ['0'],
             'type': ['js'],
         })
 
-        info_url = compat_urlparse.urlunparse(
-            parsed_url._replace(query=compat_urllib_parse_urlencode(qs, True)))
+        info_url = urllib.parse.urlunparse(
+            parsed_url._replace(query=urllib.parse.urlencode(qs, True)))
 
         json_info = self._download_json(
             info_url, video_id,
@@ -136,7 +134,7 @@ class PlaytvakIE(InfoExtractor):
                 continue
 
             format_ = fmt['format']
-            format_id = '%s_%s' % (format_, fmt['quality'])
+            format_id = '{}_{}'.format(format_, fmt['quality'])
             preference = None
 
             if format_ in ('mp4', 'webm'):

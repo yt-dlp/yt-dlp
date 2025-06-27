@@ -36,6 +36,9 @@ def main():
         f'--name={name}',
         '--icon=devscripts/logo.ico',
         '--upx-exclude=vcruntime140.dll',
+        # Ref: https://github.com/yt-dlp/yt-dlp/issues/13311
+        #      https://github.com/pyinstaller/pyinstaller/issues/9149
+        '--exclude-module=pkg_resources',
         '--noconfirm',
         '--additional-hooks-dir=yt_dlp/__pyinstaller',
         *opts,
@@ -68,7 +71,7 @@ def exe(onedir):
         'dist/',
         onedir and f'{name}/',
         name,
-        OS_NAME == 'win32' and '.exe'
+        OS_NAME == 'win32' and '.exe',
     )))
 
 
@@ -113,7 +116,7 @@ def windows_set_version(exe, version):
         ),
         kids=[
             StringFileInfo([StringTable('040904B0', [
-                StringStruct('Comments', 'yt-dlp%s Command Line Interface' % suffix),
+                StringStruct('Comments', f'yt-dlp{suffix} Command Line Interface'),
                 StringStruct('CompanyName', 'https://github.com/yt-dlp'),
                 StringStruct('FileDescription', 'yt-dlp%s' % (MACHINE and f' ({MACHINE})')),
                 StringStruct('FileVersion', version),
@@ -123,8 +126,8 @@ def windows_set_version(exe, version):
                 StringStruct('ProductName', f'yt-dlp{suffix}'),
                 StringStruct(
                     'ProductVersion', f'{version}{suffix} on Python {platform.python_version()}'),
-            ])]), VarFileInfo([VarStruct('Translation', [0, 1200])])
-        ]
+            ])]), VarFileInfo([VarStruct('Translation', [0, 1200])]),
+        ],
     ))
 
 

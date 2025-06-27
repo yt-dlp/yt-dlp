@@ -24,7 +24,7 @@ class GodResourceIE(InfoExtractor):
             'channel': 'Stedfast Baptist Church',
             'upload_date': '20240320',
             'title': 'GodResource video #A01mTKjyf6w',
-        }
+        },
     }, {
         # mp4 link
         'url': 'https://new.godresource.com/video/01DXmBbQv_X',
@@ -39,7 +39,7 @@ class GodResourceIE(InfoExtractor):
             'channel': 'Documentaries',
             'title': 'The Sodomite Deception',
             'upload_date': '20230629',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -56,7 +56,7 @@ class GodResourceIE(InfoExtractor):
         elif ext == 'mp4':
             formats, subtitles = [{
                 'url': video_url,
-                'ext': ext
+                'ext': ext,
             }], {}
         else:
             raise ExtractorError(f'Unexpected video format {ext}')
@@ -74,6 +74,6 @@ class GodResourceIE(InfoExtractor):
                 'channel': ('channelName', {str}),
                 'channel_id': ('channelId', {str_or_none}),
                 'timestamp': ('streamDateCreated', {unified_timestamp}),
-                'modified_timestamp': ('streamDataModified', {unified_timestamp})
-            })
+                'modified_timestamp': ('streamDataModified', {unified_timestamp}),
+            }),
         }

@@ -13,7 +13,7 @@ class MuseScoreIE(InfoExtractor):
             'thumbnail': r're:https?://(?:www\.)?musescore\.com/.*\.png[^$]+',
             'uploader': 'PapyPiano',
             'creator': 'Wolfgang Amadeus Mozart',
-        }
+        },
     }, {
         'url': 'https://musescore.com/user/36164500/scores/6837638',
         'info_dict': {
@@ -24,7 +24,7 @@ class MuseScoreIE(InfoExtractor):
             'thumbnail': r're:https?://(?:www\.)?musescore\.com/.*\.png[^$]+',
             'uploader': 'roxbelviolin',
             'creator': 'Guns N´Roses Arr. Roxbel Violin',
-        }
+        },
     }, {
         'url': 'https://musescore.com/classicman/fur-elise',
         'info_dict': {
@@ -35,7 +35,7 @@ class MuseScoreIE(InfoExtractor):
             'thumbnail': r're:https?://(?:www\.)?musescore\.com/.*\.png[^$]+',
             'uploader': 'ClassicMan',
             'creator': 'Ludwig van Beethoven (1770–1827)',
-        }
+        },
     }, {
         'url': 'https://musescore.com/minh_cuteee/scores/6555384',
         'only_matching': True,
@@ -44,8 +44,8 @@ class MuseScoreIE(InfoExtractor):
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None)
         url = self._og_search_url(webpage) or url
-        id = self._match_id(url)
-        mp3_url = self._download_json(f'https://musescore.com/api/jmuse?id={id}&index=0&type=mp3&v2=1', id,
+        video_id = self._match_id(url)
+        mp3_url = self._download_json(f'https://musescore.com/api/jmuse?id={video_id}&index=0&type=mp3&v2=1', video_id,
                                       headers={'authorization': '63794e5461e4cfa046edfbdddfccc1ac16daffd2'})['info']['url']
         formats = [{
             'url': mp3_url,
@@ -54,7 +54,7 @@ class MuseScoreIE(InfoExtractor):
         }]
 
         return {
-            'id': id,
+            'id': video_id,
             'formats': formats,
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),

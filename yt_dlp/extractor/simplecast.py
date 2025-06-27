@@ -19,7 +19,7 @@ class SimplecastBaseIE(InfoExtractor):
 
     def _call_search_api(self, resource, resource_id, resource_url):
         return self._download_json(
-            'https://api.simplecast.com/%ss/search' % resource, resource_id,
+            f'https://api.simplecast.com/{resource}s/search', resource_id,
             data=urlencode_postdata({'url': resource_url}))
 
     def _parse_episode(self, episode):
@@ -33,7 +33,7 @@ class SimplecastBaseIE(InfoExtractor):
         season_id = None
         if season_href:
             season_id = self._search_regex(
-                r'https?://api.simplecast.com/seasons/(%s)' % self._UUID_REGEX,
+                rf'https?://api.simplecast.com/seasons/({self._UUID_REGEX})',
                 season_href, 'season id', default=None)
 
         webpage_url = episode.get('episode_url')
@@ -65,7 +65,7 @@ class SimplecastBaseIE(InfoExtractor):
 
 class SimplecastIE(SimplecastBaseIE):
     IE_NAME = 'simplecast'
-    _VALID_URL = r'https?://(?:api\.simplecast\.com/episodes|player\.simplecast\.com)/(?P<id>%s)' % SimplecastBaseIE._UUID_REGEX
+    _VALID_URL = rf'https?://(?:api\.simplecast\.com/episodes|player\.simplecast\.com)/(?P<id>{SimplecastBaseIE._UUID_REGEX})'
     _EMBED_REGEX = [rf'''(?x)<iframe[^>]+src=["\']
         (?P<url>https?://(?:
             embed\.simplecast\.com/[0-9a-f]{8}|

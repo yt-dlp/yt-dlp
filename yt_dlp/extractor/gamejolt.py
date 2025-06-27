@@ -1,9 +1,9 @@
 import itertools
 import json
 import math
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     determine_ext,
     format_field,
@@ -45,7 +45,7 @@ class GameJoltBaseIE(InfoExtractor):
                 'comments/Fireside_Post/%s/%s?%s=%d' % (
                     post_num_id, sort_by,
                     'scroll_id' if is_scrolled else 'page', scroll_id if is_scrolled else page),
-                post_hash_id, note='Downloading comments list page %d' % page)
+                post_hash_id, note=f'Downloading comments list page {page}')
             if not comments_data.get('comments'):
                 break
             for comment in traverse_obj(comments_data, (('comments', 'childComments'), ...), expected_type=dict):
@@ -87,7 +87,7 @@ class GameJoltBaseIE(InfoExtractor):
             'uploader': user_data.get('display_name') or user_data.get('name'),
             'uploader_id': user_data.get('username'),
             'uploader_url': format_field(user_data, 'url', 'https://gamejolt.com%s'),
-            'categories': [try_get(category, lambda x: '%s - %s' % (x['community']['name'], x['channel'].get('display_title') or x['channel']['title']))
+            'categories': [try_get(category, lambda x: '{} - {}'.format(x['community']['name'], x['channel'].get('display_title') or x['channel']['title']))
                            for category in post_data.get('communities') or []],
             'tags': traverse_obj(
                 lead_content, ('content', ..., 'content', ..., 'marks', ..., 'attrs', 'tag'), expected_type=str_or_none),
@@ -95,7 +95,7 @@ class GameJoltBaseIE(InfoExtractor):
             'comment_count': int_or_none(post_data.get('comment_count'), default=0),
             'timestamp': int_or_none(post_data.get('added_on'), scale=1000),
             'release_timestamp': int_or_none(post_data.get('published_on'), scale=1000),
-            '__post_extractor': self.extract_comments(post_data.get('id'), post_id)
+            '__post_extractor': self.extract_comments(post_data.get('id'), post_id),
         }
 
         # TODO: Handle multiple videos/embeds?
@@ -152,7 +152,7 @@ class GameJoltBaseIE(InfoExtractor):
                     'height': media.get('height') if url_key == 'img_url' else None,
                     'filesize': media.get('filesize') if url_key == 'img_url' else None,
                     'acodec': 'none',
-                } for url_key in ('img_url', 'mediaserver_url', 'mediaserver_url_mp4', 'mediaserver_url_webm') if media.get(url_key)]
+                } for url_key in ('img_url', 'mediaserver_url', 'mediaserver_url_mp4', 'mediaserver_url_webm') if media.get(url_key)],
             })
         if gif_entries:
             return {
@@ -192,7 +192,7 @@ class GameJoltIE(GameJoltBaseIE):
             'like_count': int,
             'comment_count': int,
             'view_count': int,
-        }
+        },
     }, {
         # YouTube embed
         'url': 'https://gamejolt.com/p/hey-hey-if-there-s-anyone-who-s-looking-to-get-into-learning-a-n6g4jzpq',
@@ -220,7 +220,7 @@ class GameJoltIE(GameJoltBaseIE):
             'upload_date': '20211015',
             'view_count': int,
             'chapters': 'count:18',
-        }
+        },
     }, {
         # Article
         'url': 'https://gamejolt.com/p/i-fuckin-broke-chaos-d56h3eue',
@@ -243,7 +243,7 @@ class GameJoltIE(GameJoltBaseIE):
             'like_count': int,
             'comment_count': int,
             'view_count': int,
-        }
+        },
     }, {
         # Single GIF
         'url': 'https://gamejolt.com/p/hello-everyone-i-m-developing-a-pixel-art-style-mod-for-fnf-and-i-vs4gdrd8',
@@ -267,7 +267,7 @@ class GameJoltIE(GameJoltBaseIE):
                 'id': 'dszyjnwi',
                 'ext': 'webm',
                 'title': 'gif-presentacion-mejorado-dszyjnwi',
-            }
+            },
         }],
         'playlist_count': 1,
     }, {
@@ -310,7 +310,7 @@ class GameJoltPostListBaseIE(GameJoltBaseIE):
                 endpoint, list_id, note=f'{note} page {page_num}', errnote=errnote, data=json.dumps({
                     'scrollDirection': 'from',
                     'scrollId': scroll_id,
-                }).encode('utf-8')).get('items')
+                }).encode()).get('items')
 
 
 class GameJoltUserIE(GameJoltPostListBaseIE):
@@ -348,7 +348,7 @@ class GameJoltGameIE(GameJoltPostListBaseIE):
         'info_dict': {
             'id': '655124',
             'title': 'Friday Night Funkin\': Friday 4 Fun',
-            'description': 'md5:576a7dd87912a2dcf33c50d2bd3966d3'
+            'description': 'md5:576a7dd87912a2dcf33c50d2bd3966d3',
         },
         'params': {
             'ignore_no_formats_error': True,
@@ -383,7 +383,7 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
                 'url': r're:^https://.+vs-oswald-menu-music\.mp3$',
                 'release_timestamp': 1635190816,
                 'release_date': '20211025',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '184435',
@@ -392,7 +392,7 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
                 'url': r're:^https://.+rabbit-s-luck--full-version-\.mp3$',
                 'release_timestamp': 1635190841,
                 'release_date': '20211025',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '185228',
@@ -401,7 +401,7 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
                 'url': r're:^https://.+last-straw\.mp3$',
                 'release_timestamp': 1635881104,
                 'release_date': '20211102',
-            }
+            },
         }],
         'playlist_count': 3,
     }]
@@ -427,7 +427,7 @@ class GameJoltCommunityIE(GameJoltPostListBaseIE):
         'info_dict': {
             'id': 'fnf/videos',
             'title': 'Friday Night Funkin\' - Videos',
-            'description': 'md5:6d8c06f27460f7d35c1554757ffe53c8'
+            'description': 'md5:6d8c06f27460f7d35c1554757ffe53c8',
         },
         'params': {
             'playlistend': 50,
@@ -440,7 +440,7 @@ class GameJoltCommunityIE(GameJoltPostListBaseIE):
         'info_dict': {
             'id': 'youtubers/featured',
             'title': 'Youtubers - featured',
-            'description': 'md5:53e5582c93dcc467ab597bfca4db17d4'
+            'description': 'md5:53e5582c93dcc467ab597bfca4db17d4',
         },
         'params': {
             'playlistend': 50,
@@ -528,7 +528,7 @@ class GameJoltSearchIE(GameJoltPostListBaseIE):
 
     def _real_extract(self, url):
         filter_mode, query = self._match_valid_url(url).group('filter', 'id')
-        display_query = compat_urllib_parse_unquote(query)
+        display_query = urllib.parse.unquote(query)
         return self.playlist_result(
             self._search_entries(query, filter_mode, display_query) if filter_mode else self._entries(
                 f'web/posts/fetch/search/{query}', display_query, initial_items=self._call_api(

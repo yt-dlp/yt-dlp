@@ -1,8 +1,8 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_urlparse
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -164,7 +164,7 @@ class RuutuIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video_xml = self._download_xml(
-            '%s/media-xml-cache' % self._API_BASE, video_id,
+            f'{self._API_BASE}/media-xml-cache', video_id,
             query={'id': video_id})
 
         formats = []
@@ -182,8 +182,8 @@ class RuutuIE(InfoExtractor):
                     processed_urls.append(video_url)
                     ext = determine_ext(video_url)
                     auth_video_url = url_or_none(self._download_webpage(
-                        '%s/auth/access/v2' % self._API_BASE, video_id,
-                        note='Downloading authenticated %s stream URL' % ext,
+                        f'{self._API_BASE}/auth/access/v2', video_id,
+                        note=f'Downloading authenticated {ext} stream URL',
                         fatal=False, query={'stream': video_url}))
                     if auth_video_url:
                         processed_urls.append(auth_video_url)
@@ -209,16 +209,16 @@ class RuutuIE(InfoExtractor):
                             'vcodec': 'none',
                         })
                     else:
-                        proto = compat_urllib_parse_urlparse(video_url).scheme
+                        proto = urllib.parse.urlparse(video_url).scheme
                         if not child.tag.startswith('HTTP') and proto != 'rtmp':
                             continue
                         preference = -1 if proto == 'rtmp' else 1
                         label = child.get('label')
                         tbr = int_or_none(child.get('bitrate'))
-                        format_id = '%s-%s' % (proto, label if label else tbr) if label or tbr else proto
+                        format_id = f'{proto}-{label if label else tbr}' if label or tbr else proto
                         if not self._is_valid_url(video_url, video_id, format_id):
                             continue
-                        width, height = [int_or_none(x) for x in child.get('resolution', 'x').split('x')[:2]]
+                        width, height = (int_or_none(x) for x in child.get('resolution', 'x').split('x')[:2])
                         formats.append({
                             'format_id': format_id,
                             'url': video_url,
@@ -242,7 +242,7 @@ class RuutuIE(InfoExtractor):
                 self.report_drm(video_id)
             ns_st_cds = pv('ns_st_cds')
             if ns_st_cds != 'free':
-                raise ExtractorError('This video is %s.' % ns_st_cds, expected=True)
+                raise ExtractorError(f'This video is {ns_st_cds}.', expected=True)
 
         themes = pv('themes')
 

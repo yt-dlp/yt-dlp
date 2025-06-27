@@ -49,15 +49,15 @@ class GlomexBaseIE(InfoExtractor):
         video_id_type = self._get_videoid_type(video_id)
         return self._download_json(
             self._API_URL,
-            video_id, 'Downloading %s JSON' % video_id_type,
-            'Unable to download %s JSON' % video_id_type,
+            video_id, f'Downloading {video_id_type} JSON',
+            f'Unable to download {video_id_type} JSON',
             query=query)
 
     def _download_and_extract_api_data(self, video_id, integration, current_url):
         api_data = self._download_api_data(video_id, integration, current_url)
         videos = api_data['videos']
         if not videos:
-            raise ExtractorError('no videos found for %s' % video_id)
+            raise ExtractorError(f'no videos found for {video_id}')
         videos = [self._extract_api_data(video, video_id) for video in videos]
         return videos[0] if len(videos) == 1 else self.playlist_result(videos, video_id)
 

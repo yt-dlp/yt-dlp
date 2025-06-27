@@ -1,11 +1,8 @@
 import base64
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -51,7 +48,7 @@ class SohuIE(InfoExtractor):
             'upload_date': '20150305',
             'thumbnail': 'http://e3f49eaa46b57.cdn.sohucs.com//group1/M10/83/FA/MTAuMTAuODguODA=/6_14cbccdde5eg104SysCutcloud_78693464_7_0b.jpg',
             'tags': ['爱范儿', '爱范品', 'MWC', '手机'],
-        }
+        },
     }, {
         'note': 'Multipart video',
         'url': 'http://my.tv.sohu.com/pl/8384802/78910339.shtml',
@@ -71,22 +68,22 @@ class SohuIE(InfoExtractor):
                 'ext': 'mp4',
                 'duration': 294,
                 'title': '【神探苍实战秘籍】第13期 战争之影 赫卡里姆',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '78910339_part2',
                 'ext': 'mp4',
                 'duration': 300,
                 'title': '【神探苍实战秘籍】第13期 战争之影 赫卡里姆',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '78910339_part3',
                 'ext': 'mp4',
                 'duration': 150,
                 'title': '【神探苍实战秘籍】第13期 战争之影 赫卡里姆',
-            }
-        }]
+            },
+        }],
     }, {
         'note': 'Video with title containing dash',
         'url': 'http://my.tv.sohu.com/us/249884221/78932792.shtml',
@@ -101,8 +98,8 @@ class SohuIE(InfoExtractor):
             'tags': [],
         },
         'params': {
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
@@ -115,7 +112,7 @@ class SohuIE(InfoExtractor):
 
             return self._download_json(
                 base_data_url + vid_id, video_id,
-                'Downloading JSON data for %s' % vid_id,
+                f'Downloading JSON data for {vid_id}',
                 headers=self.geo_verification_headers())
 
         mobj = self._match_valid_url(url)
@@ -133,18 +130,18 @@ class SohuIE(InfoExtractor):
         if vid_data['play'] != 1:
             if vid_data.get('status') == 12:
                 raise ExtractorError(
-                    '%s said: There\'s something wrong in the video.' % self.IE_NAME,
+                    f'{self.IE_NAME} said: There\'s something wrong in the video.',
                     expected=True)
             else:
                 self.raise_geo_restricted(
-                    '%s said: The video is only licensed to users in Mainland China.' % self.IE_NAME)
+                    f'{self.IE_NAME} said: The video is only licensed to users in Mainland China.')
 
         formats_json = {}
         for format_id in ('nor', 'high', 'super', 'ori', 'h2644k', 'h2654k'):
-            vid_id = vid_data['data'].get('%sVid' % format_id)
+            vid_id = vid_data['data'].get(f'{format_id}Vid')
             if not vid_id:
                 continue
-            vid_id = compat_str(vid_id)
+            vid_id = str(vid_id)
             formats_json[format_id] = vid_data if vid == vid_id else _fetch_data(vid_id, mytv)
 
         part_count = vid_data['data']['totalBlocks']
@@ -162,7 +159,7 @@ class SohuIE(InfoExtractor):
                 su = data['su']
 
                 video_url = 'newflv.sohu.ccgslb.net'
-                cdnId = None
+                cdn_id = None
                 retries = 0
 
                 while 'newflv.sohu.ccgslb.net' in video_url:
@@ -174,20 +171,19 @@ class SohuIE(InfoExtractor):
                         'rb': 1,
                     }
 
-                    if cdnId is not None:
-                        params['idc'] = cdnId
+                    if cdn_id is not None:
+                        params['idc'] = cdn_id
 
-                    download_note = 'Downloading %s video URL part %d of %d' % (
-                        format_id, i + 1, part_count)
+                    download_note = f'Downloading {format_id} video URL part {i + 1} of {part_count}'
 
                     if retries > 0:
-                        download_note += ' (retry #%d)' % retries
+                        download_note += f' (retry #{retries})'
                     part_info = self._parse_json(self._download_webpage(
-                        'http://%s/?%s' % (allot, compat_urllib_parse_urlencode(params)),
+                        f'http://{allot}/?{urllib.parse.urlencode(params)}',
                         video_id, download_note), video_id)
 
                     video_url = part_info['url']
-                    cdnId = part_info.get('nid')
+                    cdn_id = part_info.get('nid')
 
                     retries += 1
                     if retries > 5:
@@ -204,7 +200,7 @@ class SohuIE(InfoExtractor):
                 })
 
             playlist.append({
-                'id': '%s_part%d' % (video_id, i + 1),
+                'id': f'{video_id}_part{i + 1}',
                 'title': title,
                 'duration': vid_data['data']['clipsDuration'][i],
                 'formats': formats,
@@ -269,7 +265,7 @@ class SohuVIE(InfoExtractor):
             'upload_date': '20150305',
             'thumbnail': 'http://e3f49eaa46b57.cdn.sohucs.com//group1/M10/83/FA/MTAuMTAuODguODA=/6_14cbccdde5eg104SysCutcloud_78693464_7_0b.jpg',
             'tags': ['爱范儿', '爱范品', 'MWC', '手机'],
-        }
+        },
     }, {
         'note': 'Multipart video',
         'url': 'https://tv.sohu.com/v/dXMvMjQyNTYyMTYzLzc4OTEwMzM5LnNodG1s.html?src=pl',

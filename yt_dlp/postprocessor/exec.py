@@ -1,6 +1,5 @@
 from .common import PostProcessor
-from ..compat import compat_shlex_quote
-from ..utils import Popen, PostProcessingError, variadic
+from ..utils import Popen, PostProcessingError, shell_quote, variadic
 
 
 class ExecPP(PostProcessor):
@@ -19,7 +18,7 @@ class ExecPP(PostProcessor):
         if filepath:
             if '{}' not in cmd:
                 cmd += ' {}'
-            cmd = cmd.replace('{}', compat_shlex_quote(filepath))
+            cmd = cmd.replace('{}', shell_quote(filepath))
         return cmd
 
     def run(self, info):

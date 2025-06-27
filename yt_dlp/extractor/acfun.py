@@ -25,7 +25,7 @@ class AcFunVideoBaseIE(InfoExtractor):
                     'width': int_or_none(video.get('width')),
                     'height': int_or_none(video.get('height')),
                     'tbr': float_or_none(video.get('avgBitrate')),
-                    **parse_codecs(video.get('codecs', ''))
+                    **parse_codecs(video.get('codecs', '')),
                 })
 
         return {
@@ -77,7 +77,7 @@ class AcFunVideoIE(AcFunVideoBaseIE):
             'comment_count': int,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg)',
             'description': 'md5:67583aaf3a0f933bd606bc8a2d3ebb17',
-        }
+        },
     }]
 
     def _real_extract(self, url):

@@ -18,7 +18,7 @@ class DBTVIE(InfoExtractor):
             'uploader_id': 'UCk5pvsyZJoYJBd7_oFPTlRQ',
             'uploader': 'Dagbladet',
         },
-        'add_ie': ['Youtube']
+        'add_ie': ['Youtube'],
     }, {
         'url': 'https://www.dagbladet.no/video/embed/xlGmyIeN9Jo/?autoplay=false',
         'only_matching': True,

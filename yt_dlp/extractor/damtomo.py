@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import ExtractorError, clean_html, int_or_none, try_get, unified_strdate
 
 
@@ -32,7 +31,7 @@ class DamtomoBaseIE(InfoExtractor):
             # and never likely to happen in the future
             transform_source=lambda x: re.sub(r'\s*encoding="[^"]+?"', '', x))
         m3u8_url = try_get(stream_tree, lambda x: x.find(
-            './/d:streamingUrl', {'d': self._DKML_XML_NS}).text.strip(), compat_str)
+            './/d:streamingUrl', {'d': self._DKML_XML_NS}).text.strip(), str)
         if not m3u8_url:
             raise ExtractorError('Failed to obtain m3u8 URL')
         formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4')
@@ -68,7 +67,7 @@ class DamtomoVideoIE(DamtomoBaseIE):
             'track': 'Get Wild',
             'artist': 'TM NETWORK(TMN)',
             'upload_date': '20201226',
-        }
+        },
     }]
 
 
@@ -90,7 +89,7 @@ class DamtomoRecordIE(DamtomoBaseIE):
             'like_count': 1,
             'track': 'イカSUMMER [良音]',
             'artist': 'ORANGE RANGE',
-        }
+        },
     }, {
         'url': 'https://www.clubdam.com/app/damtomo/karaokePost/StreamingKrk.do?karaokeContributeId=27489418',
         'info_dict': {
@@ -104,5 +103,5 @@ class DamtomoRecordIE(DamtomoBaseIE):
             'like_count': 3,
             'track': '心みだれて〜say it with flowers〜(生音)',
             'artist': '小林明子',
-        }
+        },
     }]

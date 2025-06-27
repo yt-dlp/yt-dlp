@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     int_or_none,
     try_get,
@@ -24,7 +23,7 @@ class ParlviewIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://parlview.aph.gov.au/mediaPlayer.php?videoID=539936',
         'only_matching': True,
@@ -36,13 +35,13 @@ class ParlviewIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         media = self._download_json(self._API_URL % video_id, video_id).get('media')
-        timestamp = try_get(media, lambda x: x['timeMap']['source']['timecode_offsets'][0], compat_str) or '/'
+        timestamp = try_get(media, lambda x: x['timeMap']['source']['timecode_offsets'][0], str) or '/'
 
         stream = try_get(media, lambda x: x['renditions'][0], dict)
         if not stream:
             self.raise_no_formats('No streams were detected')
         elif stream.get('streamType') != 'VOD':
-            self.raise_no_formats('Unknown type of stream was detected: "%s"' % str(stream.get('streamType')))
+            self.raise_no_formats('Unknown type of stream was detected: "{}"'.format(str(stream.get('streamType'))))
         formats = self._extract_m3u8_formats(stream['url'], video_id, 'mp4', 'm3u8_native')
 
         media_info = self._download_webpage(

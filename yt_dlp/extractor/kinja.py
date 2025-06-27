@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
 from ..utils import (
     int_or_none,
     parse_iso8601,
@@ -32,7 +30,7 @@ class KinjaEmbedIE(InfoExtractor):
             ajax/inset|
             embed/video
         )/iframe\?.*?\bid='''
-    _VALID_URL = r'''(?x)https?://%s%s
+    _VALID_URL = rf'''(?x)https?://{_DOMAIN_REGEX}{_COMMON_REGEX}
         (?P<type>
             fb|
             imgur|
@@ -49,7 +47,7 @@ class KinjaEmbedIE(InfoExtractor):
             vimeo|
             vine|
             youtube-(?:list|video)
-        )-(?P<id>[^&]+)''' % (_DOMAIN_REGEX, _COMMON_REGEX)
+        )-(?P<id>[^&]+)'''
     _EMBED_REGEX = [rf'(?x)<iframe[^>]+?src=(?P<q>["\'])(?P<url>(?:(?:https?:)?//{_DOMAIN_REGEX})?{_COMMON_REGEX}(?:(?!\1).)+)\1']
     _TESTS = [{
         'url': 'https://kinja.com/ajax/inset/iframe?id=fb-10103303356633621',
@@ -116,7 +114,7 @@ class KinjaEmbedIE(InfoExtractor):
 
         provider = self._PROVIDER_MAP.get(video_type)
         if provider:
-            video_id = compat_urllib_parse_unquote(video_id)
+            video_id = urllib.parse.unquote(video_id)
             if video_type == 'tumblr-post':
                 video_id, blog = video_id.split('-', 1)
                 result_url = provider[0] % (blog, video_id)
@@ -145,7 +143,7 @@ class KinjaEmbedIE(InfoExtractor):
             poster = data.get('poster') or {}
             poster_id = poster.get('id')
             if poster_id:
-                thumbnail = 'https://i.kinja-img.com/gawker-media/image/upload/%s.%s' % (poster_id, poster.get('format') or 'jpg')
+                thumbnail = 'https://i.kinja-img.com/gawker-media/image/upload/{}.{}'.format(poster_id, poster.get('format') or 'jpg')
 
             return {
                 'id': video_id,
@@ -190,10 +188,10 @@ class KinjaEmbedIE(InfoExtractor):
             return {
                 'id': video_id,
                 'title': title,
-                'thumbnail': try_get(iptc, lambda x: x['cloudinaryLink']['link'], compat_str),
+                'thumbnail': try_get(iptc, lambda x: x['cloudinaryLink']['link'], str),
                 'uploader': fmg.get('network'),
                 'duration': int_or_none(iptc.get('fileDuration')),
                 'formats': formats,
-                'description': try_get(iptc, lambda x: x['description']['en'], compat_str),
+                'description': try_get(iptc, lambda x: x['description']['en'], str),
                 'timestamp': parse_iso8601(iptc.get('dateReleased')),
             }

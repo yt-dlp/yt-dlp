@@ -1,16 +1,22 @@
-tests = {
-    'webp': lambda h: h[0:4] == b'RIFF' and h[8:] == b'WEBP',
-    'png': lambda h: h[:8] == b'\211PNG\r\n\032\n',
-    'jpeg': lambda h: h[6:10] in (b'JFIF', b'Exif'),
-    'gif': lambda h: h[:6] in (b'GIF87a', b'GIF89a'),
-}
-
-
 def what(file=None, h=None):
     """Detect format of image (Currently supports jpeg, png, webp, gif only)
-    Ref: https://github.com/python/cpython/blob/3.10/Lib/imghdr.py
+    Ref: https://github.com/python/cpython/blob/3.11/Lib/imghdr.py
+    Ref: https://www.w3.org/Graphics/JPEG/itu-t81.pdf
     """
     if h is None:
         with open(file, 'rb') as f:
             h = f.read(12)
-    return next((type_ for type_, test in tests.items() if test(h)), None)
+
+    if h.startswith(b'RIFF') and h.startswith(b'WEBP', 8):
+        return 'webp'
+
+    if h.startswith(b'\x89PNG'):
+        return 'png'
+
+    if h.startswith(b'\xFF\xD8\xFF'):
+        return 'jpeg'
+
+    if h.startswith(b'GIF'):
+        return 'gif'
+
+    return None

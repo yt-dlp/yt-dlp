@@ -45,7 +45,7 @@ class VidlyIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'w8p5b0',
             'thumbnail': r're:https://\w+\.cloudfront\.net/',
-        }
+        },
     }]
 
     def _real_extract(self, url):

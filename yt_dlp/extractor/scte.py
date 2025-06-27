@@ -41,7 +41,7 @@ class SCTEBaseIE(InfoExtractor):
                 r'(?s)<[^>]+class=["\']AsiError["\'][^>]*>(.+?)</',
                 response, 'error message', default=None)
             if error:
-                raise ExtractorError('Unable to login: %s' % error, expected=True)
+                raise ExtractorError(f'Unable to login: {error}', expected=True)
             raise ExtractorError('Unable to log in')
 
 
@@ -66,9 +66,9 @@ class SCTEIE(SCTEBaseIE):
         title = self._search_regex(r'<h1>(.+?)</h1>', webpage, 'title')
 
         context_id = self._search_regex(r'context-(\d+)', webpage, video_id)
-        content_base = 'https://learning.scte.org/pluginfile.php/%s/mod_scorm/content/8/' % context_id
+        content_base = f'https://learning.scte.org/pluginfile.php/{context_id}/mod_scorm/content/8/'
         context = decode_packed_codes(self._download_webpage(
-            '%smobile/data.js' % content_base, video_id))
+            f'{content_base}mobile/data.js', video_id))
 
         data = self._parse_xml(
             self._search_regex(

@@ -16,7 +16,7 @@ class TFOIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Video Game Hackathon',
             'description': 'md5:558afeba217c6c8d96c60e5421795c07',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -31,7 +31,7 @@ class TFOIE(InfoExtractor):
         if infos.get('success') == 0:
             if infos.get('code') == 'ErrGeoBlocked':
                 self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, clean_html(infos['msg'])), expected=True)
+            raise ExtractorError('{} said: {}'.format(self.IE_NAME, clean_html(infos['msg'])), expected=True)
         video_data = infos['data']
 
         return {

@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     int_or_none,
     str_or_none,
@@ -30,7 +29,7 @@ class PalcoMP3BaseIE(InfoExtractor):
             })['data']
 
     def _parse_music(self, music):
-        music_id = compat_str(music['musicID'])
+        music_id = str(music['musicID'])
         title = music['title']
 
         formats = []
@@ -77,12 +76,12 @@ class PalcoMP3IE(PalcoMP3BaseIE):
             'title': 'Nossas Composições - CUIDA BEM DELA',
             'duration': 210,
             'view_count': int,
-        }
+        },
     }]
 
     @classmethod
     def suitable(cls, url):
-        return False if PalcoMP3VideoIE.suitable(url) else super(PalcoMP3IE, cls).suitable(url)
+        return False if PalcoMP3VideoIE.suitable(url) else super().suitable(url)
 
 
 class PalcoMP3ArtistIE(PalcoMP3BaseIE):
@@ -106,7 +105,7 @@ class PalcoMP3ArtistIE(PalcoMP3BaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if PalcoMP3IE._match_valid_url(url) else super(PalcoMP3ArtistIE, cls).suitable(url)
+        return False if PalcoMP3IE._match_valid_url(url) else super().suitable(url)
 
     def _real_extract(self, url):
         artist_slug = self._match_id(url)
@@ -134,7 +133,7 @@ class PalcoMP3VideoIE(PalcoMP3BaseIE):
             'upload_date': '20161107',
             'uploader_id': 'maiaramaraisaoficial',
             'uploader': 'Maiara e Maraisa',
-        }
+        },
     }]
     _MUSIC_FIELDS = 'youtubeID'
 

@@ -47,7 +47,7 @@ class BlackboardCollaborateIE(InfoExtractor):
         region = mobj.group('region')
         video_id = mobj.group('id')
         info = self._download_json(
-            'https://{}.bbcollab.com/collab/api/csa/recordings/{}/data'.format(region, video_id), video_id)
+            f'https://{region}.bbcollab.com/collab/api/csa/recordings/{video_id}/data', video_id)
         duration = info.get('duration')
         title = info['name']
         upload_date = info.get('created')

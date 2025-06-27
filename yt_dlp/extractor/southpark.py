@@ -87,7 +87,7 @@ class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
             'id': 'e99d45ea-ed00-11e0-aca6-0026b9414f30',
             'ext': 'mp4',
             'title': 'Zahnfee Cartman',
-            'description': 'md5:b917eec991d388811d911fd1377671ac'
+            'description': 'md5:b917eec991d388811d911fd1377671ac',
         },
     }, {
         # episode
@@ -102,7 +102,7 @@ class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
     def _get_feed_url(self, uri, url=None):
         video_id = self._id_from_uri(uri)
         config = self._download_json(
-            'http://media.mtvnservices.com/pmt/e1/access/index.html?uri=%s&configtype=edge&ref=%s' % (uri, url), video_id)
+            f'http://media.mtvnservices.com/pmt/e1/access/index.html?uri={uri}&configtype=edge&ref={url}', video_id)
         return self._remove_template_parameter(config['feedWithQueryParams'])
 
     def _get_feed_query(self, uri):

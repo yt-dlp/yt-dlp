@@ -55,7 +55,7 @@ class RideHomeIE(InfoExtractor):
                 'release_date': '20220108',
                 'release_timestamp': 1641672000,
                 'duration': 2789.38122,
-                'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com/images/.*\.jpeg$'
+                'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com/images/.*\.jpeg$',
             },
         }],
     }, {
@@ -81,7 +81,7 @@ class RideHomeIE(InfoExtractor):
                 'release_date': '20211026',
                 'release_timestamp': 1635272124,
                 'duration': 2266.30531,
-                'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com/images/.*\.jpeg$'
+                'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com/images/.*\.jpeg$',
             },
         }],
     }]

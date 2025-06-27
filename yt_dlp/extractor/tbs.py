@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .turner import TurnerBaseIE
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
     float_or_none,
     int_or_none,
@@ -27,7 +24,7 @@ class TBSIE(TurnerBaseIE):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'http://www.tbs.com/shows/search-party/season-1/episode-1/explicit-the-mysterious-disappearance-of-the-girl-no-one-knew',
         'only_matching': True,
@@ -35,6 +32,10 @@ class TBSIE(TurnerBaseIE):
         'url': 'http://www.tntdrama.com/movies/star-wars-a-new-hope',
         'only_matching': True,
     }]
+    _SOFTWARE_STATEMENT_MAP = {
+        'tbs': 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJkZTA0NTYxZS1iMTFhLTRlYTgtYTg5NC01NjI3MGM1NmM2MWIiLCJuYmYiOjE1MzcxODkzOTAsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTM3MTg5MzkwfQ.Z7ny66kaqNDdCHf9Y9KsV12LrBxrLkGGxlYe2XGm6qsw2T-k1OCKC1TMzeqiZP735292MMRAQkcJDKrMIzNbAuf9nCdIcv4kE1E2nqUnjPMBduC1bHffZp8zlllyrN2ElDwM8Vhwv_5nElLRwWGEt0Kaq6KJAMZA__WDxKWC18T-wVtsOZWXQpDqO7nByhfj2t-Z8c3TUNVsA_wHgNXlkzJCZ16F2b7yGLT5ZhLPupOScd3MXC5iPh19HSVIok22h8_F_noTmGzmMnIRQi6bWYWK2zC7TQ_MsYHfv7V6EaG5m1RKZTV6JAwwoJQF_9ByzarLV1DGwZxD9-eQdqswvg',
+        'tntdrama': 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIwOTMxYTU4OS1jZjEzLTRmNjMtYTJmYy03MzhjMjE1NWU5NjEiLCJuYmYiOjE1MzcxOTA4MjcsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTM3MTkwODI3fQ.AucKvtws7oekTXi80_zX4-BlgJD9GLvlOI9FlBCjdlx7Pa3eJ0AqbogynKMiatMbnLOTMHGjd7tTiq422unmZjBz70dhePAe9BbW0dIo7oQ57vZ-VBYw_tWYRPmON61MwAbLVlqROD3n_zURs85S8TlkQx9aNx9x_riGGELjd8l05CVa_pOluNhYvuIFn6wmrASOKI1hNEblBDWh468UWP571-fe4zzi0rlYeeHd-cjvtWvOB3bQsWrUVbK4pRmqvzEH59j0vNF-ihJF9HncmUicYONe47Mib3elfMok23v4dB1_UAlQY_oawfNcynmEnJQCcqFmbHdEwTW6gMiYsA',
+    }
 
     def _real_extract(self, url):
         site, path, display_id = self._match_valid_url(url).groups()
@@ -42,20 +43,20 @@ class TBSIE(TurnerBaseIE):
         drupal_settings = self._parse_json(self._search_regex(
             r'<script[^>]+?data-drupal-selector="drupal-settings-json"[^>]*?>({.+?})</script>',
             webpage, 'drupal setting'), display_id)
-        isLive = 'watchtnt' in path or 'watchtbs' in path
-        video_data = next(v for v in drupal_settings['turner_playlist'] if isLive or v.get('url') == path)
+        is_live = 'watchtnt' in path or 'watchtbs' in path
+        video_data = next(v for v in drupal_settings['turner_playlist'] if is_live or v.get('url') == path)
 
         media_id = video_data['mediaID']
         title = video_data['title']
-        tokenizer_query = compat_parse_qs(compat_urllib_parse_urlparse(
+        tokenizer_query = urllib.parse.parse_qs(urllib.parse.urlparse(
             drupal_settings['ngtv_token_url']).query)
 
         info = self._extract_ngtv_info(
-            media_id, tokenizer_query, {
+            media_id, tokenizer_query, self._SOFTWARE_STATEMENT_MAP[site], {
                 'url': url,
                 'site_name': site[:3].upper(),
-                'auth_required': video_data.get('authRequired') == '1' or isLive,
-                'is_live': isLive
+                'auth_required': video_data.get('authRequired') == '1' or is_live,
+                'is_live': is_live,
             })
 
         thumbnails = []
@@ -84,6 +85,6 @@ class TBSIE(TurnerBaseIE):
             'season_number': int_or_none(video_data.get('season')),
             'episode_number': int_or_none(video_data.get('episode')),
             'thumbnails': thumbnails,
-            'is_live': isLive
+            'is_live': is_live,
         })
         return info

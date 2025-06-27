@@ -24,7 +24,8 @@ class SportDeutschlandIE(InfoExtractor):
             'duration': 32447,
             'upload_date': '20230114',
             'timestamp': 1673733618,
-        }
+        },
+        'skip': 'not found',
     }, {
         'url': 'https://sportdeutschland.tv/deutscherbadmintonverband/bwf-tour-1-runde-feld-1-yonex-gainward-german-open-2022-0',
         'info_dict': {
@@ -40,7 +41,8 @@ class SportDeutschlandIE(InfoExtractor):
             'duration': 41097,
             'upload_date': '20220309',
             'timestamp': 1646860727.0,
-        }
+        },
+        'skip': 'not found',
     }, {
         'url': 'https://sportdeutschland.tv/ggcbremen/formationswochenende-latein-2023',
         'info_dict': {
@@ -66,8 +68,9 @@ class SportDeutschlandIE(InfoExtractor):
                 'upload_date': '20230225',
                 'timestamp': 1677349909,
                 'live_status': 'was_live',
-            }
-        }]
+            },
+        }],
+        'skip': 'not found',
     }, {
         'url': 'https://sportdeutschland.tv/dtb/gymnastik-international-tag-1',
         'info_dict': {
@@ -82,13 +85,30 @@ class SportDeutschlandIE(InfoExtractor):
             'live_status': 'is_live',
         },
         'skip': 'live',
+    }, {
+        'url': 'https://sportdeutschland.tv/rostock-griffins/gfl2-rostock-griffins-vs-elmshorn-fighting-pirates',
+        'md5': '35c11a19395c938cdd076b93bda54cde',
+        'info_dict': {
+            'id': '9f27a97d-1544-4d0b-aa03-48d92d17a03a',
+            'ext': 'mp4',
+            'title': 'GFL2: Rostock Griffins vs. Elmshorn Fighting Pirates',
+            'display_id': 'rostock-griffins/gfl2-rostock-griffins-vs-elmshorn-fighting-pirates',
+            'channel': 'Rostock Griffins',
+            'channel_url': 'https://sportdeutschland.tv/rostock-griffins',
+            'live_status': 'was_live',
+            'description': 'md5:60cb00067e55dafa27b0933a43d72862',
+            'channel_id': '9635f21c-3f67-4584-9ce4-796e9a47276b',
+            'timestamp': 1749913117,
+            'upload_date': '20250614',
+        },
     }]
 
     def _process_video(self, asset_id, video):
         is_live = video['type'] == 'mux_live'
         token = self._download_json(
-            f'https://api.sportdeutschland.tv/api/frontend/asset-token/{asset_id}',
-            video['id'], query={'type': video['type'], 'playback_id': video['src']})['token']
+            f'https://api.sportdeutschland.tv/api/web/personal/asset-token/{asset_id}',
+            video['id'], query={'type': video['type'], 'playback_id': video['src']},
+            headers={'Referer': 'https://sportdeutschland.tv/'})['token']
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'https://stream.mux.com/{video["src"]}.m3u8?token={token}', video['id'], live=is_live)
 
@@ -99,7 +119,7 @@ class SportDeutschlandIE(InfoExtractor):
             **traverse_obj(video, {
                 'id': 'id',
                 'duration': ('duration', {lambda x: float(x) > 0 and float(x)}),
-                'timestamp': ('created_at', {unified_timestamp})
+                'timestamp': ('created_at', {unified_timestamp}),
             }),
         }
 
@@ -120,7 +140,7 @@ class SportDeutschlandIE(InfoExtractor):
                 'is_live': 'currently_live',
                 'was_live': 'was_live',
                 'channel_url': ('profile', 'slug', {lambda x: f'https://sportdeutschland.tv/{x}'}),
-            }, get_all=False)
+            }, get_all=False),
         }
 
         parts = traverse_obj(meta, (('livestream', ('videos', ...)), ))

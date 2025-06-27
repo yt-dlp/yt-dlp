@@ -1,5 +1,4 @@
 import base64
-import functools
 import re
 
 from .common import InfoExtractor
@@ -65,8 +64,8 @@ class ORFRadioIE(InfoExtractor):
                 'duration': 18000,
                 'timestamp': 1659322789,
                 'description': 'md5:a3f6083399ef92b8cbe2d421b180835a',
-            }
-        }]
+            },
+        }],
     }, {
         'url': 'https://ooe.orf.at/player/20220801/OGMO',
         'info_dict': {
@@ -84,8 +83,8 @@ class ORFRadioIE(InfoExtractor):
                 'duration': 18000,
                 'timestamp': 1659322789,
                 'description': 'md5:a3f6083399ef92b8cbe2d421b180835a',
-            }
-        }]
+            },
+        }],
     }, {
         'url': 'http://fm4.orf.at/player/20170107/4CC',
         'only_matching': True,
@@ -127,7 +126,7 @@ class ORFRadioIE(InfoExtractor):
             'timestamp': 1483858796,
             'upload_date': '20170108',
         },
-        'skip': 'Shows from ORF radios are only available for 7 days.'
+        'skip': 'Shows from ORF radios are only available for 7 days.',
     }]
 
     def _entries(self, data, station):
@@ -175,7 +174,7 @@ class ORFPodcastIE(InfoExtractor):
             'duration': 3396.0,
             'series': 'Frühstück bei mir',
         },
-        'skip': 'ORF podcasts are only available for a limited time'
+        'skip': 'ORF podcasts are only available for a limited time',
     }]
 
     def _real_extract(self, url):
@@ -192,7 +191,7 @@ class ORFPodcastIE(InfoExtractor):
                 'ext': ('enclosures', 0, 'type', {mimetype2ext}),
                 'title': 'title',
                 'description': ('description', {clean_html}),
-                'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
+                'duration': ('duration', {float_or_none(scale=1000)}),
                 'series': ('podcast', 'title'),
             })),
         }
@@ -221,13 +220,13 @@ class ORFIPTVIE(InfoExtractor):
         story_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://iptv.orf.at/stories/%s' % story_id, story_id)
+            f'http://iptv.orf.at/stories/{story_id}', story_id)
 
         video_id = self._search_regex(
             r'data-video(?:id)?="(\d+)"', webpage, 'video id')
 
         data = self._download_json(
-            'http://bits.orf.at/filehandler/static-api/json/current/data.json?file=%s' % video_id,
+            f'http://bits.orf.at/filehandler/static-api/json/current/data.json?file={video_id}',
             video_id)[0]
 
         duration = float_or_none(data['duration'], 1000)
@@ -326,7 +325,7 @@ class ORFFM4StoryIE(InfoExtractor):
         all_ids = orderedSet(re.findall(r'data-video(?:id)?="(\d+)"', webpage))
         for idx, video_id in enumerate(all_ids):
             data = self._download_json(
-                'http://bits.orf.at/filehandler/static-api/json/current/data.json?file=%s' % video_id,
+                f'http://bits.orf.at/filehandler/static-api/json/current/data.json?file={video_id}',
                 video_id)[0]
 
             duration = float_or_none(data['duration'], 1000)
@@ -494,7 +493,7 @@ class ORFONIE(InfoExtractor):
         return traverse_obj(api_json, {
             'id': ('id', {int}, {str_or_none}),
             'age_limit': ('age_classification', {parse_age_limit}),
-            'duration': ('exact_duration', {functools.partial(float_or_none, scale=1000)}),
+            'duration': ('exact_duration', {float_or_none(scale=1000)}),
             'title': (('title', 'headline'), {str}),
             'description': (('description', 'teaser_text'), {str}),
             'media_type': ('video_type', {str}),
@@ -550,7 +549,8 @@ class ORFONIE(InfoExtractor):
             return self._extract_video_info(segment_id, selected_segment)
 
         # Even some segmented videos have an unsegmented version available in API response root
-        if not traverse_obj(api_json, ('sources', ..., ..., 'src', {url_or_none})):
+        if (self._configuration_arg('prefer_segments_playlist')
+                or not traverse_obj(api_json, ('sources', ..., ..., 'src', {url_or_none}))):
             return self.playlist_result(
                 (self._extract_video_info(str(segment['id']), segment) for segment in segments),
                 video_id, **self._parse_metadata(api_json), multi_video=True)

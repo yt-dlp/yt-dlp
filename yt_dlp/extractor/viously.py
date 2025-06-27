@@ -25,7 +25,7 @@ class ViouslyIE(InfoExtractor):
             'timestamp': 1680037507,
             'duration': 3716,
             'categories': ['motors'],
-        }
+        },
     }]
 
     def _extract_from_webpage(self, url, webpage):

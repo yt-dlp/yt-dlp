@@ -29,7 +29,7 @@ class NineGagIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'comment_count': int,
-        }
+        },
     }, {
         # HTML escaped title
         'url': 'https://9gag.com/gag/av5nvyb',
@@ -53,14 +53,14 @@ class NineGagIE(InfoExtractor):
             'uploader': 'Peter Klaus',
             'uploader_id': 'peterklaus12',
             'uploader_url': 'https://9gag.com/u/peterklaus12',
-        }
+        },
     }]
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
         post = self._download_json(
             'https://9gag.com/v1/post', post_id, query={
-                'id': post_id
+                'id': post_id,
             })['data']['post']
 
         if post.get('type') != 'Animated':

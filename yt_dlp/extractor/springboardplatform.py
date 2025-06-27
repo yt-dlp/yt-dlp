@@ -52,8 +52,7 @@ class SpringboardPlatformIE(InfoExtractor):
         index = mobj.group('index') or mobj.group('index_2')
 
         video = self._download_xml(
-            'http://cms.springboardplatform.com/xml_feeds_advanced/index/%s/rss3/%s'
-            % (index, video_id), video_id)
+            f'http://cms.springboardplatform.com/xml_feeds_advanced/index/{index}/rss3/{video_id}', video_id)
 
         item = xpath_element(video, './/item', 'item', fatal=True)
 
@@ -66,7 +65,7 @@ class SpringboardPlatformIE(InfoExtractor):
 
         if 'error_video.mp4' in video_url:
             raise ExtractorError(
-                'Video %s no longer exists' % video_id, expected=True)
+                f'Video {video_id} no longer exists', expected=True)
 
         duration = int_or_none(content.get('duration'))
         tbr = int_or_none(content.get('bitrate'))

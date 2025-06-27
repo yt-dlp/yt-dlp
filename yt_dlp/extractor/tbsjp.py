@@ -3,14 +3,12 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
-    get_element_text_and_html_by_tag,
     int_or_none,
     str_or_none,
-    traverse_obj,
-    try_call,
     unified_timestamp,
     urljoin,
 )
+from ..utils.traversal import find_element, traverse_obj
 
 
 class TBSJPEpisodeIE(InfoExtractor):
@@ -64,7 +62,7 @@ class TBSJPEpisodeIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
 
         return {
-            'title': try_call(lambda: clean_html(get_element_text_and_html_by_tag('h3', webpage)[0])),
+            'title': traverse_obj(webpage, ({find_element(tag='h3')}, {clean_html})),
             'id': video_id,
             **traverse_obj(episode, {
                 'categories': ('keywords', {list}),
@@ -92,8 +90,8 @@ class TBSJPProgramIE(InfoExtractor):
             'categories': ['エンタメ', 'ミライカプセル', '会社', '働く', 'バラエティ', '動画'],
             'description': '幼少期の夢は大人になって、どう成長したのだろうか？\nそしてその夢は今後、どのように広がっていくのか？\nいま話題の会社で働く人の「夢の成長」を描く',
             'series': 'ミライカプセル　-I have a dream-',
-            'title': 'ミライカプセル　-I have a dream-'
-        }
+            'title': 'ミライカプセル　-I have a dream-',
+        },
     }]
 
     def _real_extract(self, url):
@@ -126,7 +124,7 @@ class TBSJPPlaylistIE(InfoExtractor):
         'info_dict': {
             'title': 'まもなく配信終了',
             'id': '184f9970e7ba48e4915f1b252c55015e',
-        }
+        },
     }]
 
     def _real_extract(self, url):

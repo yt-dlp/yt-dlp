@@ -15,8 +15,8 @@ class AngelIE(InfoExtractor):
             'title': 'Tuttle Twins Season 1, Episode 1: When Laws Give You Lemons',
             'description': 'md5:73b704897c20ab59c433a9c0a8202d5e',
             'thumbnail': r're:^https?://images.angelstudios.com/image/upload/angel-app/.*$',
-            'duration': 1359.0
-        }
+            'duration': 1359.0,
+        },
     }, {
         'url': 'https://www.angel.com/watch/the-chosen/episode/8dfb714d-bca5-4812-8125-24fb9514cd10/season-1/episode-1/i-have-called-you-by-name',
         'md5': 'e4774bad0a5f0ad2e90d175cafdb797d',
@@ -26,8 +26,8 @@ class AngelIE(InfoExtractor):
             'title': 'The Chosen Season 1, Episode 1: I Have Called You By Name',
             'description': 'md5:aadfb4827a94415de5ff6426e6dee3be',
             'thumbnail': r're:^https?://images.angelstudios.com/image/upload/angel-app/.*$',
-            'duration': 3276.0
-        }
+            'duration': 3276.0,
+        },
     }]
 
     def _real_extract(self, url):
@@ -44,7 +44,7 @@ class AngelIE(InfoExtractor):
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),
             'formats': formats,
-            'subtitles': subtitles
+            'subtitles': subtitles,
         }
 
         # Angel uses cloudinary in the background and supports image transformations.

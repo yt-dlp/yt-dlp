@@ -1,8 +1,8 @@
 import os.path
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     remove_start,
     url_basename,
@@ -52,7 +52,7 @@ class DemocracynowIE(InfoExtractor):
             media_url = json_data.get(key, '')
             if not media_url:
                 continue
-            media_url = re.sub(r'\?.*', '', compat_urlparse.urljoin(url, media_url))
+            media_url = re.sub(r'\?.*', '', urllib.parse.urljoin(url, media_url))
             video_id = video_id or remove_start(os.path.splitext(url_basename(media_url))[0], 'dn')
             formats.append({
                 'url': media_url,
@@ -70,13 +70,13 @@ class DemocracynowIE(InfoExtractor):
         # chapter_file are not subtitles
         if 'caption_file' in json_data:
             add_subtitle_item(default_lang, {
-                'url': compat_urlparse.urljoin(url, json_data['caption_file']),
+                'url': urllib.parse.urljoin(url, json_data['caption_file']),
             })
 
         for subtitle_item in json_data.get('captions', []):
             lang = subtitle_item.get('language', '').lower() or default_lang
             add_subtitle_item(lang, {
-                'url': compat_urlparse.urljoin(url, subtitle_item['url']),
+                'url': urllib.parse.urljoin(url, subtitle_item['url']),
             })
 
         description = self._og_search_description(webpage, default=None)

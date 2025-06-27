@@ -26,7 +26,7 @@ class XMinusIE(InfoExtractor):
             'filesize_approx': 5900000,
             'view_count': int,
             'description': 'md5:03238c5b663810bc79cf42ef3c03e371',
-        }
+        },
     }
 
     def _real_extract(self, url):

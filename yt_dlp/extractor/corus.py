@@ -69,16 +69,16 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
         'only_matching': True,
     }, {
         'url': 'http://www.bigbrothercanada.ca/video/1457812035894/',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.bigbrothercanada.ca/video/big-brother-canada-704/1457812035894/',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.seriesplus.com/emissions/dre-mary-mort-sur-ordonnance/videos/deux-coeurs-battant/SERP0055626330000200/',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.disneychannel.ca/shows/gabby-duran-the-unsittables/video/crybaby-duran-clip/2f557eec-0588-11ea-ae2b-e2c6776b770e/',
-        'only_matching': True
+        'only_matching': True,
     }]
     _GEO_BYPASS = False
     _SITE_MAP = {
@@ -97,7 +97,7 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
         if path != 'series':
             path = 'migration/' + path
         video = self._download_json(
-            'https://globalcontent.corusappservices.com/templates/%s/playlist/' % path,
+            f'https://globalcontent.corusappservices.com/templates/{path}/playlist/',
             video_id, query={'byId': video_id},
             headers={'Accept': 'application/json'})[0]
         title = video['title']
@@ -108,7 +108,7 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
             if not smil_url:
                 continue
             source_type = source.get('type')
-            note = 'Downloading%s smil file' % (' ' + source_type if source_type else '')
+            note = 'Downloading{} smil file'.format(' ' + source_type if source_type else '')
             resp = self._download_webpage(
                 smil_url, video_id, note, fatal=False,
                 headers=self.geo_verification_headers())

@@ -2,6 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     float_or_none,
     int_or_none,
+    join_nonempty,
     orderedSet,
     parse_iso8601,
     parse_qs,
@@ -13,7 +14,7 @@ from ..utils import (
 
 
 class EpidemicSoundIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?epidemicsound\.com/track/(?P<id>[0-9a-zA-Z]+)'
+    _VALID_URL = r'https?://(?:www\.)?epidemicsound\.com/(?:(?P<sfx>sound-effects/tracks)|track)/(?P<id>[0-9a-zA-Z-]+)'
     _TESTS = [{
         'url': 'https://www.epidemicsound.com/track/yFfQVRpSPz/',
         'md5': 'd98ff2ddb49e8acab9716541cbc9dfac',
@@ -47,6 +48,20 @@ class EpidemicSoundIE(InfoExtractor):
             'release_timestamp': 1700535606,
             'release_date': '20231121',
         },
+    }, {
+        'url': 'https://www.epidemicsound.com/sound-effects/tracks/2f02f54b-9faa-4daf-abac-1cfe9e9cef69/',
+        'md5': '35d7cf05bd8b614a84f0495a05de9388',
+        'info_dict': {
+            'id': '208931',
+            'ext': 'mp3',
+            'upload_date': '20240603',
+            'timestamp': 1717436529,
+            'categories': ['appliance'],
+            'display_id': '6b2NXLURPr',
+            'duration': 1.0,
+            'title': 'Oven, Grill, Door Open 01',
+            'thumbnail': 'https://cdn.epidemicsound.com/curation-assets/commercial-release-cover-images/default-sfx/3000x3000.jpg',
+        },
     }]
 
     @staticmethod
@@ -77,8 +92,10 @@ class EpidemicSoundIE(InfoExtractor):
         return f
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        json_data = self._download_json(f'https://www.epidemicsound.com/json/track/{video_id}', video_id)
+        video_id, is_sfx = self._match_valid_url(url).group('id', 'sfx')
+        json_data = self._download_json(join_nonempty(
+            'https://www.epidemicsound.com/json/track',
+            is_sfx and 'kosmos-id', video_id, delim='/'), video_id)
 
         thumbnails = traverse_obj(json_data, [('imageUrl', 'cover')])
         thumb_base_url = traverse_obj(json_data, ('coverArt', 'baseUrl', {url_or_none}))

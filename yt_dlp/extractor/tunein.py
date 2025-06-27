@@ -117,7 +117,7 @@ class TuneInPodcastIE(TuneInBaseIE):
         'playlist_mincount': 200,
     }, {
         'url': 'https://tunein.com/embed/player/p191660/',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://tunein.com/podcasts/World-News/BBC-News-p14/',
         'info_dict': {
@@ -230,5 +230,5 @@ class TuneInShortenerIE(InfoExtractor):
         if url_parsed.port == 443:
             url = url_parsed._replace(netloc=url_parsed.hostname).url
 
-        self.to_screen('Following redirect: %s' % url)
+        self.to_screen(f'Following redirect: {url}')
         return self.url_result(url)

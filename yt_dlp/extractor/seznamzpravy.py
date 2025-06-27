@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
     int_or_none,
     parse_codecs,
@@ -13,7 +11,7 @@ from ..utils import (
 
 
 def _raw_id(src_url):
-    return compat_urllib_parse_urlparse(src_url).path.split('/')[-1]
+    return urllib.parse.urlparse(src_url).path.split('/')[-1]
 
 
 class SeznamZpravyIE(InfoExtractor):
@@ -68,7 +66,7 @@ class SeznamZpravyIE(InfoExtractor):
 
             f = {
                 'url': urljoin(sdn_url, relative_url),
-                'format_id': 'http-%s' % format_id,
+                'format_id': f'http-{format_id}',
                 'tbr': int_or_none(format_data.get('bandwidth'), scale=1000),
                 'width': int_or_none(width),
                 'height': int_or_none(height),
@@ -79,7 +77,7 @@ class SeznamZpravyIE(InfoExtractor):
         pls = sdn_data.get('pls', {})
 
         def get_url(format_id):
-            return try_get(pls, lambda x: x[format_id]['url'], compat_str)
+            return try_get(pls, lambda x: x[format_id]['url'], str)
 
         dash_rel_url = get_url('dash')
         if dash_rel_url:

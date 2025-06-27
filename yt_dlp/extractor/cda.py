@@ -6,21 +6,24 @@ import hmac
 import json
 import random
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_ord, compat_urllib_parse_unquote
+from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
+    determine_ext,
     float_or_none,
     int_or_none,
     merge_dicts,
     multipart_encode,
     parse_duration,
-    traverse_obj,
     try_call,
-    try_get,
+    url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class CDAIE(InfoExtractor):
@@ -51,7 +54,7 @@ class CDAIE(InfoExtractor):
             'age_limit': 0,
             'upload_date': '20160221',
             'timestamp': 1456078244,
-        }
+        },
     }, {
         'url': 'http://www.cda.pl/video/57413289',
         'md5': 'a88828770a8310fc00be6c95faf7f4d5',
@@ -67,7 +70,7 @@ class CDAIE(InfoExtractor):
             'age_limit': 0,
             'upload_date': '20160220',
             'timestamp': 1455968218,
-        }
+        },
     }, {
         # Age-restricted with vfilm redirection
         'url': 'https://www.cda.pl/video/8753244c4',
@@ -85,7 +88,7 @@ class CDAIE(InfoExtractor):
             'average_rating': float,
             'timestamp': 1633888264,
             'upload_date': '20211010',
-        }
+        },
     }, {
         # Age-restricted without vfilm redirection
         'url': 'https://www.cda.pl/video/17028157b8',
@@ -103,7 +106,7 @@ class CDAIE(InfoExtractor):
             'average_rating': float,
             'timestamp': 1699705901,
             'upload_date': '20231111',
-        }
+        },
     }, {
         'url': 'http://ebd.cda.pl/0x0/5749950c',
         'only_matching': True,
@@ -119,10 +122,7 @@ class CDAIE(InfoExtractor):
             }, **kwargs)
 
     def _perform_login(self, username, password):
-        app_version = random.choice((
-            '1.2.88 build 15306',
-            '1.2.174 build 18469',
-        ))
+        app_version = '1.2.255 build 21541'
         android_version = random.randrange(8, 14)
         phone_model = random.choice((
             # x-kom.pl top selling Android smartphones, as of 2022-12-26
@@ -188,7 +188,7 @@ class CDAIE(InfoExtractor):
         meta = self._download_json(
             f'{self._BASE_API_URL}/video/{video_id}', video_id, headers=self._API_HEADERS)['video']
 
-        uploader = traverse_obj(meta, 'author', 'login')
+        uploader = traverse_obj(meta, ('author', 'login', {str}))
 
         formats = [{
             'url': quality['file'],
@@ -263,7 +263,7 @@ class CDAIE(InfoExtractor):
         def decrypt_file(a):
             for p in ('_XDDD', '_CDA', '_ADC', '_CXD', '_QWE', '_Q5', '_IKSDE'):
                 a = a.replace(p, '')
-            a = compat_urllib_parse_unquote(a)
+            a = urllib.parse.unquote(a)
             b = []
             for c in a:
                 f = compat_ord(c)
@@ -280,49 +280,62 @@ class CDAIE(InfoExtractor):
         def extract_format(page, version):
             json_str = self._html_search_regex(
                 r'player_data=(\\?["\'])(?P<player_data>.+?)\1', page,
-                '%s player_json' % version, fatal=False, group='player_data')
+                f'{version} player_json', fatal=False, group='player_data')
             if not json_str:
                 return
             player_data = self._parse_json(
-                json_str, '%s player_data' % version, fatal=False)
+                json_str, f'{version} player_data', fatal=False)
             if not player_data:
                 return
             video = player_data.get('video')
             if not video or 'file' not in video:
-                self.report_warning('Unable to extract %s version information' % version)
+                self.report_warning(f'Unable to extract {version} version information')
                 return
-            if video['file'].startswith('uggc'):
-                video['file'] = codecs.decode(video['file'], 'rot_13')
-                if video['file'].endswith('adc.mp4'):
-                    video['file'] = video['file'].replace('adc.mp4', '.mp4')
-            elif not video['file'].startswith('http'):
-                video['file'] = decrypt_file(video['file'])
             video_quality = video.get('quality')
             qualities = video.get('qualities', {})
             video_quality = next((k for k, v in qualities.items() if v == video_quality), video_quality)
-            info_dict['formats'].append({
-                'url': video['file'],
-                'format_id': video_quality,
-                'height': int_or_none(video_quality[:-1]),
-            })
+            if video.get('file'):
+                if video['file'].startswith('uggc'):
+                    video['file'] = codecs.decode(video['file'], 'rot_13')
+                    if video['file'].endswith('adc.mp4'):
+                        video['file'] = video['file'].replace('adc.mp4', '.mp4')
+                elif not video['file'].startswith('http'):
+                    video['file'] = decrypt_file(video['file'])
+                info_dict['formats'].append({
+                    'url': video['file'],
+                    'format_id': video_quality,
+                    'height': int_or_none(video_quality[:-1]),
+                })
             for quality, cda_quality in qualities.items():
                 if quality == video_quality:
                     continue
                 data = {'jsonrpc': '2.0', 'method': 'videoGetLink', 'id': 2,
                         'params': [video_id, cda_quality, video.get('ts'), video.get('hash2'), {}]}
-                data = json.dumps(data).encode('utf-8')
-                video_url = self._download_json(
+                data = json.dumps(data).encode()
+                response = self._download_json(
                     f'https://www.cda.pl/video/{video_id}', video_id, headers={
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
                     }, data=data, note=f'Fetching {quality} url',
                     errnote=f'Failed to fetch {quality} url', fatal=False)
-                if try_get(video_url, lambda x: x['result']['status']) == 'ok':
-                    video_url = try_get(video_url, lambda x: x['result']['resp'])
+                if (
+                    traverse_obj(response, ('result', 'status')) != 'ok'
+                    or not traverse_obj(response, ('result', 'resp', {url_or_none}))
+                ):
+                    continue
+                video_url = response['result']['resp']
+                ext = determine_ext(video_url)
+                if ext == 'mpd':
+                    info_dict['formats'].extend(self._extract_mpd_formats(
+                        video_url, video_id, mpd_id='dash', fatal=False))
+                elif ext == 'm3u8':
+                    info_dict['formats'].extend(self._extract_m3u8_formats(
+                        video_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
+                else:
                     info_dict['formats'].append({
                         'url': video_url,
                         'format_id': quality,
-                        'height': int_or_none(quality[:-1])
+                        'height': int_or_none(quality[:-1]),
                     })
 
             if not info_dict['duration']:
@@ -340,13 +353,63 @@ class CDAIE(InfoExtractor):
 
             webpage = handler(
                 urljoin(self._BASE_URL, href), video_id,
-                'Downloading %s version information' % resolution, fatal=False)
+                f'Downloading {resolution} version information', fatal=False)
             if not webpage:
                 # Manually report warning because empty page is returned when
                 # invalid version is requested.
-                self.report_warning('Unable to download %s version information' % resolution)
+                self.report_warning(f'Unable to download {resolution} version information')
                 continue
 
             extract_format(webpage, resolution)
 
         return merge_dicts(info_dict, info)
+
+
+class CDAFolderIE(InfoExtractor):
+    _MAX_PAGE_SIZE = 36
+    _VALID_URL = r'https?://(?:www\.)?cda\.pl/(?P<channel>[\w-]+)/folder/(?P<id>\d+)'
+    _TESTS = [
+        {
+            'url': 'https://www.cda.pl/domino264/folder/31188385',
+            'info_dict': {
+                'id': '31188385',
+                'title': 'SERIA DRUGA',
+            },
+            'playlist_mincount': 13,
+        },
+        {
+            'url': 'https://www.cda.pl/smiechawaTV/folder/2664592/vfilm',
+            'info_dict': {
+                'id': '2664592',
+                'title': 'VideoDowcipy - wszystkie odcinki',
+            },
+            'playlist_mincount': 71,
+        },
+        {
+            'url': 'https://www.cda.pl/DeliciousBeauty/folder/19129979/vfilm',
+            'info_dict': {
+                'id': '19129979',
+                'title': 'TESTY KOSMETYKÓW',
+            },
+            'playlist_mincount': 139,
+        }, {
+            'url': 'https://www.cda.pl/FILMY-SERIALE-ANIME-KRESKOWKI-BAJKI/folder/18493422',
+            'only_matching': True,
+        }]
+
+    def _real_extract(self, url):
+        folder_id, channel = self._match_valid_url(url).group('id', 'channel')
+
+        webpage = self._download_webpage(url, folder_id)
+
+        def extract_page_entries(page):
+            webpage = self._download_webpage(
+                f'https://www.cda.pl/{channel}/folder/{folder_id}/vfilm/{page + 1}', folder_id,
+                f'Downloading page {page + 1}', expected_status=404)
+            items = re.findall(r'<a[^>]+href="/video/([0-9a-z]+)"', webpage)
+            for video_id in items:
+                yield self.url_result(f'https://www.cda.pl/video/{video_id}', CDAIE, video_id)
+
+        return self.playlist_result(
+            OnDemandPagedList(extract_page_entries, self._MAX_PAGE_SIZE),
+            folder_id, self._og_search_title(webpage))

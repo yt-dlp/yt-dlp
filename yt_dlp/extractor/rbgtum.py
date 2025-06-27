@@ -15,7 +15,7 @@ class RbgTumIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Lecture: October 18. 2022',
             'series': 'Concepts of C++ programming (IN2377)',
-        }
+        },
     }, {
         # Presentation only
         'url': 'https://live.rbg.tum.de/w/I2DL/12349/PRES',
@@ -25,7 +25,7 @@ class RbgTumIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Lecture 3: Introduction to Neural Networks',
             'series': 'Introduction to Deep Learning (IN2346)',
-        }
+        },
     }, {
         # Camera only
         'url': 'https://live.rbg.tum.de/w/fvv-info/16130/CAM',
@@ -35,11 +35,11 @@ class RbgTumIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Fachschaftsvollversammlung',
             'series': 'Fachschaftsvollversammlung Informatik',
-        }
+        },
     }, {
         'url': 'https://tum.live/w/linalginfo/27102',
         'only_matching': True,
-    }, ]
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -84,7 +84,7 @@ class RbgTumCourseIE(InfoExtractor):
     }, {
         'url': 'https://tum.live/old/course/2023/S/linalginfo',
         'only_matching': True,
-    }, ]
+    }]
 
     def _real_extract(self, url):
         course_id, hostname, year, term, slug = self._match_valid_url(url).group('id', 'hostname', 'year', 'term', 'slug')

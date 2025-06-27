@@ -3,6 +3,7 @@ import json
 
 from .art19 import Art19IE
 from .common import InfoExtractor
+from ..networking import PATCHRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -74,7 +75,7 @@ class NebulaBaseIE(InfoExtractor):
                         'app_version': '23.10.0',
                         'platform': 'ios',
                     })
-                return {'formats': fmts, 'subtitles': subs}
+                break
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     self.raise_login_required()
@@ -84,9 +85,12 @@ class NebulaBaseIE(InfoExtractor):
                     continue
                 raise
 
+        self.mark_watched(content_id, slug)
+        return {'formats': fmts, 'subtitles': subs}
+
     def _extract_video_metadata(self, episode):
         channel_url = traverse_obj(
-            episode, (('channel_slug', 'class_slug'), {lambda x: urljoin('https://nebula.tv/', x)}), get_all=False)
+            episode, (('channel_slug', 'class_slug'), {urljoin('https://nebula.tv/')}), get_all=False)
         return {
             'id': episode['id'].partition(':')[2],
             **traverse_obj(episode, {
@@ -110,6 +114,13 @@ class NebulaBaseIE(InfoExtractor):
             'channel_url': channel_url,
             'uploader_url': channel_url,
         }
+
+    def _mark_watched(self, content_id, slug):
+        self._call_api(
+            PATCHRequest(f'https://content.api.nebula.app/{content_id.split(":")[0]}s/{content_id}/progress/'),
+            slug, 'Marking watched', 'Unable to mark watched', fatal=False,
+            data=json.dumps({'completed': True}).encode(),
+            headers={'content-type': 'application/json'})
 
 
 class NebulaIE(NebulaBaseIE):
@@ -322,6 +333,7 @@ class NebulaClassIE(NebulaBaseIE):
             if not episode_url and metadata.get('premium'):
                 self.raise_login_required()
 
+            self.mark_watched(metadata['id'], slug)
             if Art19IE.suitable(episode_url):
                 return self.url_result(episode_url, Art19IE)
             return traverse_obj(metadata, {

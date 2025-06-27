@@ -34,7 +34,7 @@ class AltCensoredIE(InfoExtractor):
             'thumbnail': 'https://archive.org/download/youtube-k0srjLSkga8/youtube-k0srjLSkga8.thumbs/k0srjLSkga8_000925.jpg',
             'view_count': int,
             'categories': ['News & Politics'],
-        }
+        },
     }]
 
     def _real_extract(self, url):

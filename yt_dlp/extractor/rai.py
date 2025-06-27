@@ -143,7 +143,7 @@ class RaiBaseIE(InfoExtractor):
         }
 
         def percentage(number, target, pc=20, roof=125):
-            '''check if the target is in the range of number +/- percent'''
+            """check if the target is in the range of number +/- percent"""
             if not number or number < 0:
                 return False
             return abs(target - number) < min(float(number) * float(pc) / 100.0, roof)
@@ -199,7 +199,7 @@ class RaiBaseIE(InfoExtractor):
 
         # filter out single-stream formats
         fmts = [f for f in fmts
-                if not f.get('vcodec') == 'none' and not f.get('acodec') == 'none']
+                if f.get('vcodec') != 'none' and f.get('acodec') != 'none']
 
         mobj = re.search(_MANIFEST_REG, manifest_url)
         if not mobj:
@@ -213,7 +213,7 @@ class RaiBaseIE(InfoExtractor):
                 'url': _MP4_TMPL % (relinker_url, q),
                 'protocol': 'https',
                 'ext': 'mp4',
-                **get_format_info(q)
+                **get_format_info(q),
             })
         return formats
 
@@ -299,7 +299,7 @@ class RaiPlayIE(RaiBaseIE):
             'formats': 'count:7',
         },
         'params': {'skip_download': True},
-        'expected_warnings': ['Video not available. Likely due to geo-restriction.']
+        'expected_warnings': ['Video not available. Likely due to geo-restriction.'],
     }, {
         # 1500 quality
         'url': 'https://www.raiplay.it/video/2012/09/S1E11---Tutto-cio-che-luccica-0cab3323-732e-45d6-8e86-7704acab6598.html',
@@ -322,6 +322,27 @@ class RaiPlayIE(RaiBaseIE):
             'upload_date': '20120924',
         },
     }, {
+        # checking program_info gives false positive for DRM
+        'url': 'https://www.raiplay.it/video/2022/10/Ad-ogni-costo---Un-giorno-in-Pretura---Puntata-del-15102022-1dfd1295-ea38-4bac-b51e-f87e2881693b.html',
+        'md5': '572c6f711b7c5f2d670ba419b4ae3b08',
+        'info_dict': {
+            'id': '1dfd1295-ea38-4bac-b51e-f87e2881693b',
+            'ext': 'mp4',
+            'title': 'Ad ogni costo - Un giorno in Pretura - Puntata del 15/10/2022',
+            'alt_title': 'St 2022/23 - Un giorno in pretura - Ad ogni costo',
+            'description': 'md5:4046d97b2687f74f06a8b8270ba5599f',
+            'uploader': 'Rai 3',
+            'duration': 3773.0,
+            'thumbnail': 'https://www.raiplay.it/dl/img/2022/10/12/1665586539957_2048x2048.png',
+            'creators': ['Rai 3'],
+            'series': 'Un giorno in pretura',
+            'season': '2022/23',
+            'episode': 'Ad ogni costo',
+            'timestamp': 1665507240,
+            'upload_date': '20221011',
+            'release_year': 2025,
+        },
+    }, {
         'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
         'only_matching': True,
     }, {
@@ -340,9 +361,8 @@ class RaiPlayIE(RaiBaseIE):
         media = self._download_json(
             f'{base}.json', video_id, 'Downloading video JSON')
 
-        if not self.get_param('allow_unplayable_formats'):
-            if traverse_obj(media, (('program_info', None), 'rights_management', 'rights', 'drm')):
-                self.report_drm(video_id)
+        if traverse_obj(media, ('rights_management', 'rights', 'drm')):
+            self.report_drm(video_id)
 
         video = media['video']
         relinker_info = self._extract_relinker_info(video['content_url'], video_id)
@@ -373,7 +393,7 @@ class RaiPlayIE(RaiBaseIE):
             'episode_number': int_or_none(media.get('episode')),
             'subtitles': self._extract_subtitles(url, video),
             'release_year': int_or_none(traverse_obj(media, ('track_info', 'edit_year'))),
-            **relinker_info
+            **relinker_info,
         }
 
 
@@ -596,7 +616,7 @@ class RaiIE(RaiBaseIE):
             'upload_date': '20140612',
         },
         'params': {'skip_download': True},
-        'expected_warnings': ['Video not available. Likely due to geo-restriction.']
+        'expected_warnings': ['Video not available. Likely due to geo-restriction.'],
     }, {
         'url': 'https://www.rai.it/dl/RaiTV/programmi/media/ContentItem-efb17665-691c-45d5-a60c-5301333cbb0c.html',
         'info_dict': {
@@ -606,7 +626,7 @@ class RaiIE(RaiBaseIE):
             'description': 'TG1 edizione integrale ore 20:00 del giorno 03/11/2016',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 2214,
-            'upload_date': '20161103'
+            'upload_date': '20161103',
         },
         'params': {'skip_download': True},
     }, {
@@ -632,7 +652,7 @@ class RaiIE(RaiBaseIE):
                     'ext': media.get('formatoAudio'),
                     'vcodec': 'none',
                     'acodec': media.get('formatoAudio'),
-                }]
+                }],
             }
         elif 'Video' in media['type']:
             relinker_info = self._extract_relinker_info(media['mediaUri'], content_id)
@@ -652,7 +672,7 @@ class RaiIE(RaiBaseIE):
             'upload_date': unified_strdate(media.get('date')),
             'duration': parse_duration(media.get('length')),
             'subtitles': self._extract_subtitles(url, media),
-            **relinker_info
+            **relinker_info,
         }
 
 
@@ -721,7 +741,7 @@ class RaiNewsIE(RaiBaseIE):
             'title': player_data.get('title') or track_info.get('title') or self._og_search_title(webpage),
             'upload_date': unified_strdate(track_info.get('date')),
             'uploader': strip_or_none(track_info.get('editor') or None),
-            **relinker_info
+            **relinker_info,
         }
 
 

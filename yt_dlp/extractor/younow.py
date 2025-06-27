@@ -1,7 +1,6 @@
 import itertools
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     format_field,
@@ -11,7 +10,7 @@ from ..utils import (
 )
 
 CDN_API_BASE = 'https://cdn.younow.com/php/api'
-MOMENT_URL_FORMAT = '%s/moment/fetch/id=%%s' % CDN_API_BASE
+MOMENT_URL_FORMAT = f'{CDN_API_BASE}/moment/fetch/id=%s'
 
 
 class YouNowLiveIE(InfoExtractor):
@@ -38,21 +37,20 @@ class YouNowLiveIE(InfoExtractor):
     def suitable(cls, url):
         return (False
                 if YouNowChannelIE.suitable(url) or YouNowMomentIE.suitable(url)
-                else super(YouNowLiveIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         username = self._match_id(url)
 
         data = self._download_json(
-            'https://api.younow.com/php/api/broadcast/info/curId=0/user=%s'
-            % username, username)
+            f'https://api.younow.com/php/api/broadcast/info/curId=0/user={username}', username)
 
         if data.get('errorCode') != 0:
             raise ExtractorError(data['errorMsg'], expected=True)
 
         uploader = try_get(
             data, lambda x: x['user']['profileUrlString'],
-            compat_str) or username
+            str) or username
 
         return {
             'id': uploader,
@@ -63,13 +61,12 @@ class YouNowLiveIE(InfoExtractor):
             'categories': data.get('tags'),
             'uploader': uploader,
             'uploader_id': data.get('userId'),
-            'uploader_url': 'https://www.younow.com/%s' % username,
+            'uploader_url': f'https://www.younow.com/{username}',
             'creator': uploader,
             'view_count': int_or_none(data.get('viewers')),
             'like_count': int_or_none(data.get('likes')),
             'formats': [{
-                'url': '%s/broadcast/videoPath/hls=1/broadcastId=%s/channelId=%s'
-                       % (CDN_API_BASE, data['broadcastId'], data['userId']),
+                'url': '{}/broadcast/videoPath/hls=1/broadcastId={}/channelId={}'.format(CDN_API_BASE, data['broadcastId'], data['userId']),
                 'ext': 'mp4',
                 'protocol': 'm3u8',
             }],
@@ -83,18 +80,18 @@ def _extract_moment(item, fatal=True):
             return
         raise ExtractorError('Unable to extract moment id')
 
-    moment_id = compat_str(moment_id)
+    moment_id = str(moment_id)
 
     title = item.get('text')
     if not title:
         title = 'YouNow %s' % (
             item.get('momentType') or item.get('titleType') or 'moment')
 
-    uploader = try_get(item, lambda x: x['owner']['name'], compat_str)
+    uploader = try_get(item, lambda x: x['owner']['name'], str)
     uploader_id = try_get(item, lambda x: x['owner']['userId'])
     uploader_url = format_field(uploader, None, 'https://www.younow.com/%s')
 
-    entry = {
+    return {
         'extractor_key': 'YouNowMoment',
         'id': moment_id,
         'title': title,
@@ -106,14 +103,11 @@ def _extract_moment(item, fatal=True):
         'uploader_id': str_or_none(uploader_id),
         'uploader_url': uploader_url,
         'formats': [{
-            'url': 'https://hls.younow.com/momentsplaylists/live/%s/%s.m3u8'
-                   % (moment_id, moment_id),
+            'url': f'https://hls.younow.com/momentsplaylists/live/{moment_id}/{moment_id}.m3u8',
             'ext': 'mp4',
             'protocol': 'm3u8_native',
         }],
     }
-
-    return entry
 
 
 class YouNowChannelIE(InfoExtractor):
@@ -122,7 +116,7 @@ class YouNowChannelIE(InfoExtractor):
         'url': 'https://www.younow.com/its_Kateee_/channel',
         'info_dict': {
             'id': '14629760',
-            'title': 'its_Kateee_ moments'
+            'title': 'its_Kateee_ moments',
         },
         'playlist_mincount': 8,
     }
@@ -133,9 +127,8 @@ class YouNowChannelIE(InfoExtractor):
             if created_before is None:
                 break
             info = self._download_json(
-                '%s/moment/profile/channelId=%s/createdBefore=%d/records=20'
-                % (CDN_API_BASE, channel_id, created_before), username,
-                note='Downloading moments page %d' % page_num)
+                f'{CDN_API_BASE}/moment/profile/channelId={channel_id}/createdBefore={created_before}/records=20',
+                username, note=f'Downloading moments page {page_num}')
             items = info.get('items')
             if not items or not isinstance(items, list):
                 break
@@ -153,7 +146,7 @@ class YouNowChannelIE(InfoExtractor):
                         for moment_id in moments:
                             m = self._download_json(
                                 MOMENT_URL_FORMAT % moment_id, username,
-                                note='Downloading %s moment JSON' % moment_id,
+                                note=f'Downloading {moment_id} moment JSON',
                                 fatal=False)
                             if m and isinstance(m, dict) and m.get('item'):
                                 entry = _extract_moment(m['item'])
@@ -163,12 +156,12 @@ class YouNowChannelIE(InfoExtractor):
 
     def _real_extract(self, url):
         username = self._match_id(url)
-        channel_id = compat_str(self._download_json(
-            'https://api.younow.com/php/api/broadcast/info/curId=0/user=%s'
-            % username, username, note='Downloading user information')['userId'])
+        channel_id = str(self._download_json(
+            f'https://api.younow.com/php/api/broadcast/info/curId=0/user={username}',
+            username, note='Downloading user information')['userId'])
         return self.playlist_result(
             self._entries(username, channel_id), channel_id,
-            '%s moments' % username)
+            f'{username} moments')
 
 
 class YouNowMomentIE(InfoExtractor):
@@ -193,7 +186,7 @@ class YouNowMomentIE(InfoExtractor):
     def suitable(cls, url):
         return (False
                 if YouNowChannelIE.suitable(url)
-                else super(YouNowMomentIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

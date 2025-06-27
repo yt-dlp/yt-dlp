@@ -9,15 +9,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import yt_dlp
 
-ZSH_COMPLETION_FILE = "completions/zsh/_yt-dlp"
-ZSH_COMPLETION_TEMPLATE = "devscripts/zsh-completion.in"
+ZSH_COMPLETION_FILE = 'completions/zsh/_yt-dlp'
+ZSH_COMPLETION_TEMPLATE = 'devscripts/zsh-completion.in'
 
 
 def build_completion(opt_parser):
     opts = [opt for group in opt_parser.option_groups
             for opt in group.option_list]
-    opts_file = [opt for opt in opts if opt.metavar == "FILE"]
-    opts_dir = [opt for opt in opts if opt.metavar == "DIR"]
+    opts_file = [opt for opt in opts if opt.metavar == 'FILE']
+    opts_dir = [opt for opt in opts if opt.metavar == 'DIR']
 
     fileopts = []
     for opt in opts_file:
@@ -38,11 +38,11 @@ def build_completion(opt_parser):
     with open(ZSH_COMPLETION_TEMPLATE) as f:
         template = f.read()
 
-    template = template.replace("{{fileopts}}", "|".join(fileopts))
-    template = template.replace("{{diropts}}", "|".join(diropts))
-    template = template.replace("{{flags}}", " ".join(flags))
+    template = template.replace('{{fileopts}}', '|'.join(fileopts))
+    template = template.replace('{{diropts}}', '|'.join(diropts))
+    template = template.replace('{{flags}}', ' '.join(flags))
 
-    with open(ZSH_COMPLETION_FILE, "w") as f:
+    with open(ZSH_COMPLETION_FILE, 'w') as f:
         f.write(template)
 
 

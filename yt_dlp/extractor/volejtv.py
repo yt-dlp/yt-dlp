@@ -11,7 +11,7 @@ class VolejTVIE(InfoExtractor):
             'description': 'Zápas VK Královo Pole vs VK Prostějov 10.12.2022 v 19:00 na Volej.TV',
             'thumbnail': 'https://volej.tv/images/og/16/17186/og.png',
             'title': 'VK Královo Pole vs VK Prostějov',
-        }
+        },
     }, {
         'url': 'https://volej.tv/video/725605/',
         'info_dict': {
@@ -20,7 +20,7 @@ class VolejTVIE(InfoExtractor):
             'thumbnail': 'https://volej.tv/images/og/15/17185/og.png',
             'title': 'VK Lvi Praha vs VK Euro Sitex Příbram',
             'description': 'Zápas VK Lvi Praha vs VK Euro Sitex Příbram 11.12.2022 v 19:00 na Volej.TV',
-        }
+        },
     }]
 
     def _real_extract(self, url):

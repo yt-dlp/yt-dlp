@@ -38,7 +38,7 @@ class PRXBaseIE(InfoExtractor):
             'filesize': image_response.get('size'),
             'width': image_response.get('width'),
             'height': image_response.get('height'),
-            'url': cls._extract_file_link(image_response)
+            'url': cls._extract_file_link(image_response),
         }
 
     @classmethod
@@ -63,7 +63,7 @@ class PRXBaseIE(InfoExtractor):
             'duration': int_or_none(response.get('duration')),
             'tags': response.get('tags'),
             'episode_number': int_or_none(response.get('episodeIdentifier')),
-            'season_number': int_or_none(response.get('seasonIdentifier'))
+            'season_number': int_or_none(response.get('seasonIdentifier')),
         }
 
     @classmethod
@@ -92,7 +92,7 @@ class PRXBaseIE(InfoExtractor):
             **base_info,
             'title': name,
             'channel_id': base_info.get('id'),
-            'channel_url': 'https://beta.prx.org/accounts/%s' % base_info.get('id'),
+            'channel_url': 'https://beta.prx.org/accounts/{}'.format(base_info.get('id')),
             'channel': name,
         }
 
@@ -111,7 +111,7 @@ class PRXBaseIE(InfoExtractor):
             'series_id': series.get('series_id'),
             'channel_id': account.get('channel_id'),
             'channel_url': account.get('channel_url'),
-            'channel': account.get('channel')
+            'channel': account.get('channel'),
         }
 
     def _entries(self, item_id, endpoint, entry_func, query=None):
@@ -124,7 +124,7 @@ class PRXBaseIE(InfoExtractor):
             response = self._call_api(f'{item_id}: page {page}', endpoint, query={
                 **(query or {}),
                 'page': page,
-                'per': 100
+                'per': 100,
             })
             items = self._get_prx_embed_response(response, 'items')
             if not response or not items:
@@ -142,8 +142,8 @@ class PRXBaseIE(InfoExtractor):
             return
         story.update({
             '_type': 'url',
-            'url': 'https://beta.prx.org/stories/%s' % story['id'],
-            'ie_key': PRXStoryIE.ie_key()
+            'url': 'https://beta.prx.org/stories/{}'.format(story['id']),
+            'ie_key': PRXStoryIE.ie_key(),
         })
         return story
 
@@ -153,8 +153,8 @@ class PRXBaseIE(InfoExtractor):
             return
         series.update({
             '_type': 'url',
-            'url': 'https://beta.prx.org/series/%s' % series['id'],
-            'ie_key': PRXSeriesIE.ie_key()
+            'url': 'https://beta.prx.org/series/{}'.format(series['id']),
+            'ie_key': PRXSeriesIE.ie_key(),
         })
         return series
 
@@ -205,8 +205,8 @@ class PRXStoryIE(PRXBaseIE):
                     'episode': 'Episode 8',
                     'release_date': '20211223',
                     'season': 'Season 5',
-                    'modified_date': '20220104'
-                }
+                    'modified_date': '20220104',
+                },
             }, {
                 'info_dict': {
                     'id': '399200_part2',
@@ -229,11 +229,11 @@ class PRXStoryIE(PRXBaseIE):
                     'episode': 'Episode 8',
                     'release_date': '20211223',
                     'season': 'Season 5',
-                    'modified_date': '20220104'
-                }
-            }
+                    'modified_date': '20220104',
+                },
+            },
 
-            ]
+            ],
         }, {
             # Story with only split audio
             'url': 'https://beta.prx.org/stories/326414',
@@ -251,7 +251,7 @@ class PRXStoryIE(PRXBaseIE):
                 'channel_url': 'https://beta.prx.org/accounts/206',
                 'channel': 'New Hampshire Public Radio',
             },
-            'playlist_count': 4
+            'playlist_count': 4,
         }, {
             # Story with single combined audio
             'url': 'https://beta.prx.org/stories/400404',
@@ -272,12 +272,12 @@ class PRXStoryIE(PRXBaseIE):
                 'tags': 'count:0',
                 'thumbnail': r're:https?://cms\.prx\.org/pub/\w+/0/web/story_image/767965/medium/Aurora_Over_Trees\.jpg',
                 'upload_date': '20220103',
-                'modified_date': '20220103'
-            }
+                'modified_date': '20220103',
+            },
         }, {
             'url': 'https://listen.prx.org/stories/399200',
-            'only_matching': True
-        }
+            'only_matching': True,
+        },
     ]
 
     def _extract_audio_pieces(self, audio_response):
@@ -290,7 +290,7 @@ class PRXStoryIE(PRXBaseIE):
             'asr': int_or_none(piece_response.get('frequency'), scale=1000),
             'abr': int_or_none(piece_response.get('bitRate')),
             'url': self._extract_file_link(piece_response),
-            'vcodec': 'none'
+            'vcodec': 'none',
         } for piece_response in sorted(
             self._get_prx_embed_response(audio_response, 'items') or [],
             key=lambda p: int_or_none(p.get('position')))]
@@ -304,18 +304,18 @@ class PRXStoryIE(PRXBaseIE):
         if len(audio_pieces) == 1:
             return {
                 'formats': audio_pieces,
-                **info
+                **info,
             }
 
         entries = [{
             **info,
-            'id': '%s_part%d' % (info['id'], (idx + 1)),
+            'id': '{}_part{}'.format(info['id'], (idx + 1)),
             'formats': [fmt],
         } for idx, fmt in enumerate(audio_pieces)]
         return {
             '_type': 'multi_video',
             'entries': entries,
-            **info
+            **info,
         }
 
     def _real_extract(self, url):
@@ -340,9 +340,9 @@ class PRXSeriesIE(PRXBaseIE):
                 'channel_url': 'https://beta.prx.org/accounts/206',
                 'channel': 'New Hampshire Public Radio',
                 'series': 'Outside/In',
-                'series_id': '36252'
+                'series_id': '36252',
             },
-            'playlist_mincount': 39
+            'playlist_mincount': 39,
         }, {
             # Blank series
             'url': 'https://beta.prx.org/series/25038',
@@ -355,18 +355,18 @@ class PRXSeriesIE(PRXBaseIE):
                 'channel_url': 'https://beta.prx.org/accounts/206',
                 'channel': 'New Hampshire Public Radio',
                 'series': '25038',
-                'series_id': '25038'
+                'series_id': '25038',
             },
-            'playlist_count': 0
-        }
+            'playlist_count': 0,
+        },
     ]
 
     def _extract_series(self, series_response):
         info = self._extract_series_info(series_response)
         return {
             '_type': 'playlist',
-            'entries': self._entries(info['id'], 'series/%s/stories' % info['id'], self._story_playlist_entry),
-            **info
+            'entries': self._entries(info['id'], 'series/{}/stories'.format(info['id']), self._story_playlist_entry),
+            **info,
         }
 
     def _real_extract(self, url):
@@ -386,9 +386,9 @@ class PRXAccountIE(PRXBaseIE):
             'channel_id': '206',
             'channel_url': 'https://beta.prx.org/accounts/206',
             'channel': 'New Hampshire Public Radio',
-            'thumbnails': 'count:1'
+            'thumbnails': 'count:1',
         },
-        'playlist_mincount': 380
+        'playlist_mincount': 380,
     }]
 
     def _extract_account(self, account_response):
@@ -400,7 +400,7 @@ class PRXAccountIE(PRXBaseIE):
         return {
             '_type': 'playlist',
             'entries': itertools.chain(series, stories),
-            **info
+            **info,
         }
 
     def _real_extract(self, url):

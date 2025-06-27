@@ -11,7 +11,7 @@ class MirrativBaseIE(InfoExtractor):
     def assert_error(self, response):
         error_message = traverse_obj(response, ('status', 'error'))
         if error_message:
-            raise ExtractorError('Mirrativ says: %s' % error_message, expected=True)
+            raise ExtractorError(f'Mirrativ says: {error_message}', expected=True)
 
 
 class MirrativIE(MirrativBaseIE):
@@ -42,7 +42,7 @@ class MirrativIE(MirrativBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage('https://www.mirrativ.com/live/%s' % video_id, video_id)
+        webpage = self._download_webpage(f'https://www.mirrativ.com/live/{video_id}', video_id)
         live_response = self._download_json(f'https://www.mirrativ.com/api/live/live?live_id={video_id}', video_id)
         self.assert_error(live_response)
 
@@ -102,7 +102,7 @@ class MirrativUserIE(MirrativBaseIE):
                     # or the service will ban your IP address for a while
                     continue
                 live_id = live.get('live_id')
-                url = 'https://www.mirrativ.com/live/%s' % live_id
+                url = f'https://www.mirrativ.com/live/{live_id}'
                 yield self.url_result(url, video_id=live_id, video_title=live.get('title'))
             page = api_response.get('next_page')
 

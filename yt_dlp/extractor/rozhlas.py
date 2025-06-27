@@ -23,8 +23,8 @@ class RozhlasIE(InfoExtractor):
             'id': '3421320',
             'ext': 'mp3',
             'title': 'Echo Pavla Klusáka (30.06.2015 21:00)',
-            'description': 'Osmdesátiny Terryho Rileyho jsou skvělou příležitostí proletět se elektronickými i akustickými díly zakladatatele minimalismu, který je aktivní už přes padesát let'
-        }
+            'description': 'Osmdesátiny Terryho Rileyho jsou skvělou příležitostí proletět se elektronickými i akustickými díly zakladatatele minimalismu, který je aktivní už přes padesát let',
+        },
     }, {
         'url': 'http://prehravac.rozhlas.cz/audio/3421320/embed',
         'only_matching': True,
@@ -34,7 +34,7 @@ class RozhlasIE(InfoExtractor):
         audio_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://prehravac.rozhlas.cz/audio/%s' % audio_id, audio_id)
+            f'http://prehravac.rozhlas.cz/audio/{audio_id}', audio_id)
 
         title = self._html_search_regex(
             r'<h3>(.+?)</h3>\s*<p[^>]*>.*?</p>\s*<div[^>]+id=["\']player-track',
@@ -48,7 +48,7 @@ class RozhlasIE(InfoExtractor):
 
         return {
             'id': audio_id,
-            'url': 'http://media.rozhlas.cz/_audio/%s.mp3' % audio_id,
+            'url': f'http://media.rozhlas.cz/_audio/{audio_id}.mp3',
             'title': title,
             'description': description,
             'duration': duration,
@@ -110,7 +110,7 @@ class RozhlasVltavaIE(RozhlasBaseIE):
                 'artist': 'Aleš Stuchlý',
                 'channel_id': 'radio-wave',
             },
-        }]
+        }],
     }, {
         'url': 'https://wave.rozhlas.cz/poslechnete-si-neklid-podcastovy-thriller-o-vine-strachu-a-vztahu-ktery-zasel-8554744',
         'info_dict': {
@@ -183,7 +183,7 @@ class RozhlasVltavaIE(RozhlasBaseIE):
                 'chapter': 'Neklid #5',
                 'chapter_number': 5,
             },
-        }]
+        }],
     }, {
         'url': 'https://dvojka.rozhlas.cz/karel-siktanc-cerny-jezdec-bily-kun-napinava-pohadka-o-tajemnem-prizraku-8946969',
         'info_dict': {
@@ -220,7 +220,7 @@ class RozhlasVltavaIE(RozhlasBaseIE):
                 'duration': ('duration', {int_or_none}),
                 'artist': ('meta', 'ga', 'contentAuthor'),
                 'channel_id': ('meta', 'ga', 'contentCreator'),
-            })
+            }),
         }
 
     def _real_extract(self, url):
@@ -321,7 +321,7 @@ class MujRozhlasIE(RozhlasBaseIE):
                 'timestamp': ('attributes', 'since', {unified_timestamp}),
                 'modified_timestamp': ('attributes', 'updated', {unified_timestamp}),
                 'thumbnail': ('attributes', 'asset', 'url', {url_or_none}),
-            })
+            }),
         }
 
     def _entries(self, api_url, playlist_id):

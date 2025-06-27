@@ -7,7 +7,7 @@ class IsraelNationalNewsIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.israelnationalnews.com/news/354520',
         'info_dict': {
-            'id': '354520'
+            'id': '354520',
         },
         'playlist': [{
             'info_dict': {
@@ -34,8 +34,8 @@ class IsraelNationalNewsIE(InfoExtractor):
                 'channel_url': 'https://www.youtube.com/channel/UCJdKr0Bgd_5saZYqLCa9mng',
                 'upload_date': '20220606',
                 'uploader': 'The Rubin Report',
-            }
-        }]
+            },
+        }],
     }]
 
     def _real_extract(self, url):

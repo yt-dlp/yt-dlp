@@ -21,7 +21,7 @@ class CrooksAndLiarsIE(InfoExtractor):
             'upload_date': '20150405',
             'uploader': 'Heather',
             'duration': 236,
-        }
+        },
     }, {
         'url': 'http://embed.crooksandliars.com/v/MTE3MjUtMzQ2MzA',
         'only_matching': True,
@@ -31,7 +31,7 @@ class CrooksAndLiarsIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://embed.crooksandliars.com/embed/%s' % video_id, video_id)
+            f'http://embed.crooksandliars.com/embed/{video_id}', video_id)
 
         manifest = self._search_json(r'var\s+manifest\s*=', webpage, 'manifest JSON', video_id)
 

@@ -22,8 +22,8 @@ def handler(request):
     class HandlerWrapper(handler):
         RH_KEY = handler.RH_KEY
 
-        def __init__(self, *args, **kwargs):
-            super().__init__(logger=FakeLogger, *args, **kwargs)
+        def __init__(self, **kwargs):
+            super().__init__(logger=FakeLogger, **kwargs)
 
     return HandlerWrapper
 
@@ -54,11 +54,11 @@ def skip_handlers_if(request, handler):
 
 def pytest_configure(config):
     config.addinivalue_line(
-        "markers", "skip_handler(handler): skip test for the given handler",
+        'markers', 'skip_handler(handler): skip test for the given handler',
     )
     config.addinivalue_line(
-        "markers", "skip_handler_if(handler): skip test for the given handler if condition is true"
+        'markers', 'skip_handler_if(handler): skip test for the given handler if condition is true',
     )
     config.addinivalue_line(
-        "markers", "skip_handlers_if(handler): skip test for handlers when the condition is true"
+        'markers', 'skip_handlers_if(handler): skip test for handlers when the condition is true',
     )

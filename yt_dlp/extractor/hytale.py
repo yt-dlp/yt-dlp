@@ -21,8 +21,8 @@ class HytaleIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Avatar Personalization',
                 'thumbnail': r're:https://videodelivery\.net/\w+/thumbnails/thumbnail\.jpg',
-            }
-        }]
+            },
+        }],
     }, {
         'url': 'https://www.hytale.com/news/2019/11/hytale-graphics-update',
         'info_dict': {
