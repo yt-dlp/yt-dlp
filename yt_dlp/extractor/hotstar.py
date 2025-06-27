@@ -330,6 +330,11 @@ class HotStarIE(HotStarBaseIE):
                     tag_dict.get('audio_channel') if f.get('acodec') != 'none' else None,
                     f.get('format_note'),
                     delim=', ')
+                if f.get('vcodec') == 'none' and f.get('acodec') != 'none':
+                    if f.get('ext') == 'm3u8':
+                        f['ext'] = 'm4a'
+                    if 'Audio_Description' in f['format_id'] or 'Audio Description' in f['format_note']:
+                        f['source_preference'] = -100
 
             formats.extend(current_formats)
             subs = self._merge_subtitles(subs, current_subs)
