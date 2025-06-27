@@ -93,6 +93,15 @@ class Rule34VideoIE(InfoExtractor):
                 uploader = clean_html(uploader_link)
                 uploader_url = extract_attributes(uploader_link or '').get('href')
 
+        view_count, duration = [None] * 2
+        for item_info in get_elements_by_class('item_info', webpage):
+            item_info_text = clean_html(item_info)
+            if get_element_by_class('custom-eye', item_info) is not None:
+                precise_view_count = re.search(r'\(([\d,]+)\)', item_info_text)
+                view_count = parse_count(precise_view_count.group(1) if precise_view_count is not None else item_info_text)
+            elif get_element_by_class('custom-time', item_info) is not None:
+                duration = parse_duration(clean_html(item_info))
+
         like_count = None
         if like_count_text := re.search(r'\(([\d,]+)\)', get_element_by_class('voters count', webpage)):
             like_count = parse_count(like_count_text.group(1))
@@ -113,10 +122,8 @@ class Rule34VideoIE(InfoExtractor):
             'title': self._html_extract_title(webpage),
             'thumbnail': self._html_search_regex(
                 r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None),
-            'duration': parse_duration(self._html_search_regex(
-                r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)),
-            'view_count': int_or_none(self._html_search_regex(
-                r'"icon-eye"></i>\s+<span>([ \d]+)', webpage, 'views', default='').replace(' ', '')),
+            'duration': duration,
+            'view_count': view_count,
             'like_count': like_count,
             'comment_count': int_or_none(self._search_regex(
                 r'[^(]+\((\d+)\)', get_element_by_attribute('href', '#tab_comments', webpage), 'comment count', fatal=False)),
