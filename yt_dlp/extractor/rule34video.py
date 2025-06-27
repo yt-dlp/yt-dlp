@@ -83,11 +83,11 @@ class Rule34VideoIE(InfoExtractor):
         categories, creators, uploader, uploader_url = [None] * 4
         for col in get_elements_by_class('col', webpage):
             label = clean_html(get_element_by_class('label', col))
-            if label == 'Categories:':
+            if label == 'Categories':
                 categories = list(map(clean_html, get_elements_by_class('item', col)))
-            elif label == 'Artist:':
+            elif label == 'Artist':
                 creators = list(map(clean_html, get_elements_by_class('item', col)))
-            elif label == 'Uploaded By:':
+            elif label == 'Uploaded by':
                 uploader = clean_html(get_element_by_class('name', col))
                 uploader_url = extract_attributes(get_element_html_by_class('name', col) or '').get('href')
 
