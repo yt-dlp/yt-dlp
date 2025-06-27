@@ -278,20 +278,15 @@ class HotStarIE(HotStarBaseIE):
         for playback_set in traverse_obj(player_config, (
             ('media_asset', 'media_asset_v2'),
             ('primary', 'fallback'),
-            {dict},
+            all, lambda _, v: url_or_none(v['content_url']),
         )):
-            if not isinstance(playback_set, dict):
-                continue
             tags = str_or_none(playback_set.get('playback_tags')) or ''
             if any(f'{prefix}:{ignore}' in tags
                    for key, prefix in self._IGNORE_MAP.items()
                    for ignore in self._configuration_arg(key)):
                 continue
 
-            format_url = url_or_none(playback_set.get('content_url'))
-            if not format_url:
-                continue
-            format_url = re.sub(r'(?<=//staragvod)(\d)', r'web\1', format_url)
+            format_url = re.sub(r'(?<=//staragvod)(\d)', r'web\1', playback_set['content_url'])
             ext = determine_ext(format_url)
 
             current_formats, current_subs = [], {}
