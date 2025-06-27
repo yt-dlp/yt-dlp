@@ -4,6 +4,25 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.06.25
+
+#### Extractor changes
+- [Add `_search_nuxt_json` helper](https://github.com/yt-dlp/yt-dlp/commit/51887484e46ab6015c041cb1ab626a55f25a03bd) ([#13386](https://github.com/yt-dlp/yt-dlp/issues/13386)) by [bashonly](https://github.com/bashonly), [Grub4K](https://github.com/Grub4K)
+- **brightcove**: new: [Improve metadata extraction](https://github.com/yt-dlp/yt-dlp/commit/e6bd4a3da295b760ab20b39c18ce8934d312c2bf) ([#13461](https://github.com/yt-dlp/yt-dlp/issues/13461)) by [doe1080](https://github.com/doe1080)
+- **huya**: live: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/2600849badb0d08c55b58dcc77a13af6ba423da6) ([#13520](https://github.com/yt-dlp/yt-dlp/issues/13520)) by [doe1080](https://github.com/doe1080)
+- **hypergryph**: [Improve metadata extraction](https://github.com/yt-dlp/yt-dlp/commit/1722c55400ff30bb5aee5dd7a262f0b7e9ce2f0e) ([#13415](https://github.com/yt-dlp/yt-dlp/issues/13415)) by [doe1080](https://github.com/doe1080), [eason1478](https://github.com/eason1478)
+- **lsm**: [Fix extractors](https://github.com/yt-dlp/yt-dlp/commit/c57412d1f9cf0124adc972a47858ac42b740c61d) ([#13126](https://github.com/yt-dlp/yt-dlp/issues/13126)) by [Caesim404](https://github.com/Caesim404)
+- **mave**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/1838a1ce5d4ade80770ba9162eaffc9a1607dc70) ([#13380](https://github.com/yt-dlp/yt-dlp/issues/13380)) by [anlar](https://github.com/anlar)
+- **sportdeutschland**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/a4ce4327c9836691d3b6b00e44a90b6741601ed8) ([#13519](https://github.com/yt-dlp/yt-dlp/issues/13519)) by [DTrombett](https://github.com/DTrombett)
+- **sproutvideo**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/5b559d0072b7164daf06bacdc41c6f11283452c8) ([#13544](https://github.com/yt-dlp/yt-dlp/issues/13544)) by [bashonly](https://github.com/bashonly)
+- **tv8.it**: [Support slugless URLs](https://github.com/yt-dlp/yt-dlp/commit/3bd30291601c47fa4a257983473884103ecab0c7) ([#13478](https://github.com/yt-dlp/yt-dlp/issues/13478)) by [DTrombett](https://github.com/DTrombett)
+- **youtube**
+    - [Check any `ios` m3u8 formats prior to download](https://github.com/yt-dlp/yt-dlp/commit/8f94b76cbf7bbd9dfd8762c63cdea04f90f1297f) ([#13524](https://github.com/yt-dlp/yt-dlp/issues/13524)) by [bashonly](https://github.com/bashonly)
+    - [Improve player context payloads](https://github.com/yt-dlp/yt-dlp/commit/ff6f94041aeee19c5559e1c1cd693960a1c1dd14) ([#13539](https://github.com/yt-dlp/yt-dlp/issues/13539)) by [bashonly](https://github.com/bashonly)
+
+#### Misc. changes
+- **test**: `traversal`: [Fix morsel tests for Python 3.14](https://github.com/yt-dlp/yt-dlp/commit/73bf10211668e4a59ccafd790e06ee82d9fea9ea) ([#13471](https://github.com/yt-dlp/yt-dlp/issues/13471)) by [Grub4K](https://github.com/Grub4K)
+
 ### 2025.06.09
 
 #### Extractor changes
