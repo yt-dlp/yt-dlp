@@ -1,6 +1,5 @@
 import hashlib
 import hmac
-import json
 import re
 import time
 import uuid
@@ -29,31 +28,20 @@ class HotStarBaseIE(InfoExtractor):
             headers={'x-country-code': 'IN', 'x-platform-code': 'PCTV'})
 
     def _call_api_impl(self, path, video_id, query, st=None, cookies=None):
+        if not cookies or not cookies.get('userUP'):
+            self.raise_login_required()
+
         st = int_or_none(st) or int(time.time())
         exp = st + 6000
         auth = f'st={st}~exp={exp}~acl=/*'
         auth += '~hmac=' + hmac.new(self._AKAMAI_ENCRYPTION_KEY, auth.encode(), hashlib.sha256).hexdigest()
-
-        if cookies and cookies.get('userUP'):
-            token = cookies.get('userUP').value
-        else:
-            token = self._download_json(
-                f'{self._API_URL}/um/v3/users',
-                video_id, note='Downloading token',
-                data=json.dumps({'device_ids': [{'id': str(uuid.uuid4()), 'type': 'device_id'}]}).encode(),
-                headers={
-                    'hotstarauth': auth,
-                    'x-hs-platform': 'PCTV',  # or 'web'
-                    'Content-Type': 'application/json',
-                })['user_identity']
-
         response = self._download_json(
             f'{self._API_URL}/{path}', video_id, query=query,
             headers={
                 'hotstarauth': auth,
                 'x-hs-appversion': '6.72.2',
                 'x-hs-platform': 'web',
-                'x-hs-usertoken': token,
+                'x-hs-usertoken': cookies['userUP'].value,
             })
 
         if response['message'] != "Playback URL's fetched successfully":
