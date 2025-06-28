@@ -104,13 +104,6 @@ class HotStarBaseIE(InfoExtractor):
             yield self.url_result(
                 HotStarIE._video_url(video['contentId'], root=root), HotStarIE, **self._parse_metadata_v1(video))
 
-    def _playlist_entries(self, path, item_id, root=None, **kwargs):
-        results = self._call_api_v1(path, item_id, **kwargs)['body']['results']
-        for video in traverse_obj(results, (('assets', None), 'items', ...)):
-            if video.get('contentId'):
-                yield self.url_result(
-                    HotStarIE._video_url(video['contentId'], root=root), HotStarIE, video['contentId'])
-
 
 class HotStarIE(HotStarBaseIE):
     IE_NAME = 'hotstar'
@@ -418,67 +411,6 @@ class HotStarPrefixIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
         return self.url_result(HotStarIE._video_url(video_id, video_type), HotStarIE, video_id)
-
-
-class HotStarPlaylistIE(HotStarBaseIE):
-    _WORKING = False
-    IE_NAME = 'hotstar:playlist'
-    _VALID_URL = r'https?://(?:www\.)?hotstar\.com(?:/in)?/(?:tv|shows)(?:/[^/]+){2}/list/[^/]+/t-(?P<id>\w+)'
-    _TESTS = [{
-        'url': 'https://www.hotstar.com/tv/savdhaan-india/s-26/list/popular-clips/t-3_2_26',
-        'info_dict': {
-            'id': '3_2_26',
-        },
-        'playlist_mincount': 20,
-    }, {
-        'url': 'https://www.hotstar.com/shows/savdhaan-india/s-26/list/popular-clips/t-3_2_26',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.hotstar.com/tv/savdhaan-india/s-26/list/extras/t-2480',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.hotstar.com/in/tv/karthika-deepam/15457/list/popular-clips/t-3_2_1272',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        id_ = self._match_id(url)
-        return self.playlist_result(
-            # XXX: If receiving HTTP Error 504, try with tas=0
-            self._playlist_entries('tray/find', id_, query={'tas': 10000, 'uqId': id_}), id_)
-
-
-class HotStarSeasonIE(HotStarBaseIE):
-    _WORKING = False
-    IE_NAME = 'hotstar:season'
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/(?:tv|shows)/[^/]+/\w+)/seasons/[^/]+/ss-(?P<id>\w+)'
-    _TESTS = [{
-        'url': 'https://www.hotstar.com/tv/radhakrishn/1260000646/seasons/season-2/ss-8028',
-        'info_dict': {
-            'id': '8028',
-        },
-        'playlist_mincount': 35,
-    }, {
-        'url': 'https://www.hotstar.com/in/tv/ishqbaaz/9567/seasons/season-2/ss-4357',
-        'info_dict': {
-            'id': '4357',
-        },
-        'playlist_mincount': 30,
-    }, {
-        'url': 'https://www.hotstar.com/in/tv/bigg-boss/14714/seasons/season-4/ss-8208/',
-        'info_dict': {
-            'id': '8208',
-        },
-        'playlist_mincount': 19,
-    }, {
-        'url': 'https://www.hotstar.com/in/shows/bigg-boss/14714/seasons/season-4/ss-8208/',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        url, season_id = self._match_valid_url(url).groups()
-        return self.playlist_result(self._playlist_entries(
-            'season/asset', season_id, url, query={'tao': 0, 'tas': 0, 'size': 10000, 'id': season_id}), season_id)
 
 
 class HotStarSeriesIE(HotStarBaseIE):
