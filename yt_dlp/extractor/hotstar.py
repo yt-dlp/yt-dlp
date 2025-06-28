@@ -50,9 +50,8 @@ class HotStarBaseIE(InfoExtractor):
                 'content-type': 'application/json',
             })
 
-        if not response['success']:
-            raise ExtractorError(
-                'Unintended response! Try again later or report this issue if problem persist', expected=True)
+        if not traverse_obj(response, ('success', {dict})):
+            raise ExtractorError('API call was unsuccessful')
         return response['success']
 
     def _call_api_v2(self, path, video_id, content_type, cookies=None, st=None):
