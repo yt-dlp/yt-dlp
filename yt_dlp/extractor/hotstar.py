@@ -37,7 +37,6 @@ class HotStarBaseIE(InfoExtractor):
         exp = st + 6000
         auth = f'st={st}~exp={exp}~acl=/*'
         auth += '~hmac=' + hmac.new(self._AKAMAI_ENCRYPTION_KEY, auth.encode(), hashlib.sha256).hexdigest()
-
         response = self._download_json(
             f'{self._API_URL_V2}/{path}', video_id, query=query,
             headers={
