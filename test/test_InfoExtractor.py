@@ -36,6 +36,11 @@ class InfoExtractorTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.end_headers()
             self.wfile.write(TEAPOT_RESPONSE_BODY.encode())
+        elif self.path == '/fake.m3u8':
+            self.send_response(200)
+            self.send_header('Content-Length', '1024')
+            self.end_headers()
+            self.wfile.write(1024 * b'\x00')
         else:
             assert False
 
@@ -2077,6 +2082,39 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         for data in INVALID:
             self.assertIs(
                 self.ie._search_nuxt_json(HTML_TMPL.format(data), None, default=DEFAULT), DEFAULT)
+
+
+class TestInfoExtractorNetwork2(unittest.TestCase):
+    def setUp(self, /):
+        self.httpd = http.server.HTTPServer(
+            ('127.0.0.1', 0), InfoExtractorTestRequestHandler)
+        self.port = http_server_port(self.httpd)
+
+        self.server_thread = threading.Thread(target=self.httpd.serve_forever)
+        self.server_thread.daemon = True
+        self.server_thread.start()
+
+        self.called = False
+
+        def require_warning(*args, **kwargs):
+            self.called = True
+
+        self.ydl = FakeYDL()
+        self.ydl.report_warning = require_warning
+        self.ie = DummyIE(self.ydl)
+
+    def tearDown(self, /):
+        self.ydl.close()
+        self.httpd.shutdown()
+        self.httpd.server_close()
+        self.server_thread.join(1)
+
+    def test_extract_m3u8_formats(self):
+        formats, subtitles = self.ie._extract_m3u8_formats_and_subtitles(
+            f'http://127.0.0.1:{self.port}/fake.m3u8', None, fatal=False)
+        self.assertTrue(self.called, 'Warning was not issued for binary m3u8 file')
+        self.assertEqual(formats, [])
+        self.assertEqual(subtitles, {})
 
 
 if __name__ == '__main__':
