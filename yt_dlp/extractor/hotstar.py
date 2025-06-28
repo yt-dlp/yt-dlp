@@ -178,6 +178,7 @@ class HotStarIE(HotStarBaseIE):
             'duration': 5395,
         },
         'expected_warnings': ['HTTP Error 504'],
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.hotstar.com/in/movies/premam/1000091195',
         'info_dict': {
