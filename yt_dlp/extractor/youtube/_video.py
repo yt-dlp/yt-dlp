@@ -2865,7 +2865,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     only_once=True)
                 continue
 
-    def fetch_po_token(self, client='web', context=_PoTokenContext.GVS, ytcfg=None, visitor_data=None,
+    def fetch_po_token(self, client='web', context: _PoTokenContext = _PoTokenContext.GVS, ytcfg=None, visitor_data=None,
                        data_sync_id=None, session_index=None, player_url=None, video_id=None, webpage=None,
                        required=False, **kwargs):
         """
@@ -3009,19 +3009,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token):
+    def _extract_player_response(self, client, video_id, webpage_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token):
         headers = self.generate_api_headers(
             ytcfg=player_ytcfg,
             default_client=client,
             visitor_data=visitor_data,
-            session_index=self._extract_session_index(master_ytcfg, player_ytcfg),
+            session_index=self._extract_session_index(webpage_ytcfg, player_ytcfg),
             delegated_session_id=(
                 self._parse_data_sync_id(data_sync_id)[0]
-                or self._extract_delegated_session_id(master_ytcfg, initial_pr, player_ytcfg)
+                or self._extract_delegated_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
             ),
             user_session_id=(
                 self._parse_data_sync_id(data_sync_id)[1]
-                or self._extract_user_session_id(master_ytcfg, initial_pr, player_ytcfg)
+                or self._extract_user_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
             ),
         )
 
@@ -3037,7 +3037,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if po_token:
             yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}
 
-        sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False) if player_url else None
+        sts = self._extract_signature_timestamp(video_id, player_url, webpage_ytcfg, fatal=False) if player_url else None
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -3091,11 +3091,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if (pr_id := traverse_obj(pr, ('videoDetails', 'videoId'))) != video_id:
             return pr_id
 
-    def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
+    def _extract_player_responses(self, clients, video_id, webpage, webpage_client, webpage_ytcfg):
         initial_pr = None
         if webpage:
             initial_pr = self._search_json(
-                self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
+                self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage,
+                f'{webpage_client} client initial player response', video_id, fatal=False)
 
         prs = []
         deprioritized_prs = []
@@ -3126,11 +3127,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         while clients:
             deprioritize_pr = False
             client, base_client, variant = _split_innertube_client(clients.pop())
-            player_ytcfg = master_ytcfg if client == 'web' else {}
-            if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
+            player_ytcfg = webpage_ytcfg if client == webpage_client else {}
+            if 'configs' not in self._configuration_arg('player_skip') and client != webpage_client:
                 player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
 
-            player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
+            player_url = player_url or self._extract_player_url(webpage_ytcfg, player_ytcfg, webpage=webpage)
             require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
             if 'js' in self._configuration_arg('player_skip'):
                 require_js_player = False
@@ -3140,10 +3141,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_url = self._download_player_url(video_id)
                 tried_iframe_fallback = True
 
-            pr = initial_pr if client == 'web' else None
+            pr = None
+            if client == webpage_client and 'webpage_pr' not in self._configuration_arg('player_skip'):
+                pr = initial_pr
 
-            visitor_data = visitor_data or self._extract_visitor_data(master_ytcfg, initial_pr, player_ytcfg)
-            data_sync_id = data_sync_id or self._extract_data_sync_id(master_ytcfg, initial_pr, player_ytcfg)
+            visitor_data = visitor_data or self._extract_visitor_data(webpage_ytcfg, initial_pr, player_ytcfg)
+            data_sync_id = data_sync_id or self._extract_data_sync_id(webpage_ytcfg, initial_pr, player_ytcfg)
 
             fetch_po_token_args = {
                 'client': client,
@@ -3152,7 +3155,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'data_sync_id': data_sync_id if self.is_authenticated else None,
                 'player_url': player_url if require_js_player else None,
                 'webpage': webpage,
-                'session_index': self._extract_session_index(master_ytcfg, player_ytcfg),
+                'session_index': self._extract_session_index(webpage_ytcfg, player_ytcfg),
                 'ytcfg': player_ytcfg or self._get_default_ytcfg(client),
             }
 
@@ -3198,7 +3201,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             try:
                 pr = pr or self._extract_player_response(
                     client, video_id,
-                    master_ytcfg=player_ytcfg or master_ytcfg,
+                    webpage_ytcfg=player_ytcfg or webpage_ytcfg,
                     player_ytcfg=player_ytcfg,
                     player_url=player_url,
                     initial_pr=initial_pr,
@@ -3668,7 +3671,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 } for j in range(math.ceil(fragment_count))],
             }
 
-    def _download_player_responses(self, url, smuggled_data, video_id, webpage_url):
+    def _download_initial_webpage(self, video_id, webpage_url, client):
+        if client != 'web':
+            raise NotImplementedError('only web client supported for initial webpage request')
         webpage = None
         if 'webpage' not in self._configuration_arg('player_skip'):
             query = {'bpctr': '9999999999', 'has_verified': '1'}
@@ -3676,14 +3681,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if pp:
                 query['pp'] = pp
             webpage = self._download_webpage_with_retries(webpage_url, video_id, query=query)
-
-        master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
-
-        player_responses, player_url = self._extract_player_responses(
-            self._get_requested_clients(url, smuggled_data),
-            video_id, webpage, master_ytcfg, smuggled_data)
-
-        return webpage, master_ytcfg, player_responses, player_url
+        return webpage
 
     def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
@@ -3714,8 +3712,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
+        webpage_client = 'web'
+        webpage = self._download_initial_webpage(video_id, webpage_url, webpage_client)
+        webpage_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg(webpage_client)
 
-        webpage, master_ytcfg, player_responses, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
+        player_responses, player_url = self._extract_player_responses(
+            self._get_requested_clients(url, smuggled_data),
+            video_id, webpage, webpage_client, webpage_ytcfg)
 
         playability_statuses = traverse_obj(
             player_responses, (..., 'playabilityStatus'), expected_type=dict)
@@ -4119,9 +4122,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             query.update(self._get_checkok_params())
             initial_data = self._extract_response(
                 item_id=video_id, ep='next', fatal=False,
-                ytcfg=master_ytcfg, query=query, check_get_keys='contents',
-                headers=self.generate_api_headers(ytcfg=master_ytcfg),
-                note='Downloading initial data API JSON')
+                ytcfg=webpage_ytcfg, query=query, check_get_keys='contents',
+                note='Downloading initial data API JSON', default_client=webpage_client)
 
         COMMENTS_SECTION_IDS = ('comment-item-section', 'engagement-panel-comments-section')
         info['comment_count'] = traverse_obj(initial_data, (
@@ -4321,7 +4323,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED)
                     or get_first(microformats, 'isUnlisted', expected_type=bool))))
 
-        info['__post_extractor'] = self.extract_comments(master_ytcfg, video_id, contents, webpage)
+        info['__post_extractor'] = self.extract_comments(webpage_ytcfg, video_id, contents, webpage)
 
         self.mark_watched(video_id, player_responses)
 
