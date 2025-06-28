@@ -267,7 +267,8 @@ class HotStarIE(HotStarBaseIE):
             video_data, (('assetType', 'contentType'), {str}, any)) or self._CONTENT_TYPE[video_type]
 
         # See https://github.com/yt-dlp/yt-dlp/issues/396
-        st = self._request_webpage(f'{self._BASE_URL}/in', video_id).get_header('x-origin-date')
+        st = self._request_webpage(
+            f'{self._BASE_URL}/in', video_id, 'Fetching server time').get_header('x-origin-date')
         watch = self._call_api_v2('pages/watch', video_id, content_type, cookies=cookies, st=st)
         player_config = traverse_obj(watch, (
             'page', 'spaces', 'player', 'widget_wrappers', lambda _, v: v['template'] == 'PlayerWidget',
