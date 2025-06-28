@@ -81,6 +81,7 @@ class HotStarBaseIE(InfoExtractor):
 
 class HotStarIE(HotStarBaseIE):
     IE_NAME = 'hotstar'
+    IE_DESC = 'JioHotstar'
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?hotstar\.com(?:/in)?/(?!in/)
         (?:
