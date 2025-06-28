@@ -329,7 +329,7 @@ class HotStarIE(HotStarBaseIE):
                         'Audio_Description' in f['format_id']
                         or 'Audio Description' in (f.get('format_note') or '')
                     ):
-                        f['source_preference'] = -100
+                        f['source_preference'] = -99 + (f.get('source_preference') or -1)
                 f['format_note'] = join_nonempty(
                     tag_dict.get('ladder'),
                     tag_dict.get('audio_channel') if f.get('acodec') != 'none' else None,
