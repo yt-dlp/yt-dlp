@@ -55,28 +55,22 @@ class HotStarBaseIE(InfoExtractor):
         return response['success']
 
     def _call_api_v2(self, path, video_id, content_type, cookies=None, st=None):
-        # 'video_codec': ['h265'] or ['h264']
-        # 'resolution': ['4k'] or ['hd']
-        # 'true_resolution': ['4k'] or ['hd']
-        # 'dynamic_range': ['hdr'] or ['sdr']
-        return self._call_api_impl(
-            f'{path}', video_id, st=st, cookies=cookies,
-            query={
-                'content_id': video_id,
-                'filters': f'content_type={content_type}',
-                'client_capabilities': json.dumps({
-                    'package': ['dash', 'hls'],
-                    'container': ['fmp4br', 'fmp4'],
-                    'ads': ['non_ssai', 'ssai'],
-                    'audio_channel': ['atmos', 'dolby51', 'stereo'],
-                    'encryption': ['plain'],
-                    'video_codec': ['h265'],
-                    'ladder': ['tv', 'full'],
-                    'resolution': ['4k'],
-                    'true_resolution': ['4k'],
-                    'dynamic_range': ['hdr'],
-                }, separators=(',', ':')),
-            })
+        return self._call_api_impl(f'{path}', video_id, query={
+            'content_id': video_id,
+            'filters': f'content_type={content_type}',
+            'client_capabilities': json.dumps({
+                'package': ['dash', 'hls'],
+                'container': ['fmp4br', 'fmp4'],
+                'ads': ['non_ssai', 'ssai'],
+                'audio_channel': ['atmos', 'dolby51', 'stereo'],
+                'encryption': ['plain'],
+                'video_codec': ['h265'],    # or ['h264']
+                'ladder': ['tv', 'full'],
+                'resolution': ['4k'],       # or ['hd']
+                'true_resolution': ['4k'],  # or ['hd']
+                'dynamic_range': ['hdr'],   # or ['sdr']
+            }, separators=(',', ':')),
+        }, st=st, cookies=cookies)
 
     def _playlist_entries(self, path, item_id, root=None, **kwargs):
         results = self._call_api_v1(path, item_id, **kwargs)['body']['results']
