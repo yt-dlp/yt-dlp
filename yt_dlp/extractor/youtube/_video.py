@@ -253,6 +253,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
     _DEFAULT_CLIENTS = ('tv', 'ios', 'web')
     _DEFAULT_AUTHED_CLIENTS = ('tv', 'web')
+    _DEFAULT_WEBPAGE_CLIENT = 'web'
 
     _GEO_BYPASS = False
 
@@ -3389,7 +3390,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 encrypted_sig = try_get(sc, lambda x: x['s'][0])
                 if not all((sc, fmt_url, player_url, encrypted_sig)):
                     msg = f'Some {client_name} client https formats have been skipped as they are missing a url. '
-                    if client_name == 'web':
+                    if client_name in ('web', 'web_safari'):
                         msg += 'YouTube is forcing SABR streaming for this client. '
                     else:
                         msg += (
@@ -3671,16 +3672,34 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 } for j in range(math.ceil(fragment_count))],
             }
 
-    def _download_initial_webpage(self, video_id, webpage_url, client):
-        if client != 'web':
-            raise NotImplementedError('only web client supported for initial webpage request')
+    def _video_webpage_url(self, video_id, client):
+        base = {
+            'mweb': f'm.youtube.com/watch?v={video_id}',
+            'web': f'www.youtube.com/watch?v={video_id}',
+            'web_safari': f'www.youtube.com/watch?v={video_id}',
+            'web_music': f'music.youtube.com?v={video_id}',
+            'web_embedded': f'www.youtube.com/embed/{video_id}?html5=1',
+        }.get(client)
+        if not base:
+            return None
+        return self.http_scheme() + '//' + base
+
+    def _download_initial_webpage(self, video_id, client):
         webpage = None
-        if 'webpage' not in self._configuration_arg('player_skip'):
+        webpage_url = self._video_webpage_url(video_id, client)
+        if webpage_url and 'webpage' not in self._configuration_arg('player_skip'):
             query = {'bpctr': '9999999999', 'has_verified': '1'}
-            pp = self._configuration_arg('player_params', [None], casesense=True)[0]
+            pp = (
+                self._configuration_arg('player_params', [None], casesense=True)[0]
+                or traverse_obj(INNERTUBE_CLIENTS, (client, 'PLAYER_PARAMS', {str}))
+            )
             if pp:
                 query['pp'] = pp
-            webpage = self._download_webpage_with_retries(webpage_url, video_id, query=query)
+            webpage = self._download_webpage_with_retries(
+                webpage_url, video_id, query=query,
+                headers=traverse_obj(self._get_default_ytcfg(client), {
+                    'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
+                }))
         return webpage
 
     def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
@@ -3712,8 +3731,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
-        webpage_client = 'web'
-        webpage = self._download_initial_webpage(video_id, webpage_url, webpage_client)
+        webpage_client = self._DEFAULT_WEBPAGE_CLIENT
+        webpage = self._download_initial_webpage(video_id, webpage_client)
         webpage_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg(webpage_client)
 
         player_responses, player_url = self._extract_player_responses(
