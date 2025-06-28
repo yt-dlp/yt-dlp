@@ -423,6 +423,7 @@ class HotStarPlaylistIE(HotStarBaseIE):
     def _real_extract(self, url):
         id_ = self._match_id(url)
         return self.playlist_result(
+            # XXX: If receiving HTTP Error 504, try with tas=0
             self._playlist_entries('tray/find', id_, query={'tas': 10000, 'uqId': id_}), id_)
 
 
@@ -493,4 +494,5 @@ class HotStarSeriesIE(HotStarBaseIE):
             'show/detail', series_id, query={'contentId': series_id})['body']['results']['item']['id']
 
         return self.playlist_result(self._playlist_entries(
+            # XXX: If receiving HTTP Error 504, try with tas=0
             'tray/g/1/items', series_id, url, query={'tao': 0, 'tas': 10000, 'etid': 0, 'eid': id_}), series_id)
