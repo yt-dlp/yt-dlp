@@ -299,6 +299,8 @@ class HotStarIE(HotStarBaseIE):
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     geo_restricted = True
+                else:
+                    self.write_debug(e)
                 continue
 
             tag_dict = dict((*t.split(':', 1), None)[:2] for t in tags.split(';'))
