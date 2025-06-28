@@ -297,7 +297,7 @@ class HotStarIE(HotStarBaseIE):
                         'height': int_or_none(playback_set.get('height')),
                     }]
             except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                if isinstance(e.cause, HTTPError) and e.cause.status in (403, 474):
                     geo_restricted = True
                 else:
                     self.write_debug(e)
