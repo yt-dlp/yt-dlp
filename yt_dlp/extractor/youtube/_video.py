@@ -3741,6 +3741,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 note='Downloading initial data API JSON', default_client=webpage_client)
         return initial_data
 
+    def _is_premium_subscriber(self, webpage_ytcfg=None, initial_data=None):
+        if not self.is_authenticated or not (webpage_ytcfg or initial_data):
+            return False
+
+        tlr = (False and traverse_obj(initial_data, ('topbar', 'desktopTopbarRenderer', 'logo', 'topbarLogoRenderer'))) or {}
+        if (
+            (tlr and traverse_obj(tlr, ('iconImage', 'iconType')) == 'YOUTUBE_PREMIUM_LOGO')
+            or 'premium' in (self._get_text(tlr, 'tooltipText') or '').lower()
+        ):
+            return True
+
+        return any(
+            (flag or '').startswith('PremiumClientSharedConfig_')
+            for flag in traverse_obj(webpage_ytcfg, 'EXPERIMENT_FLAGS', default=[]))
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
@@ -3752,6 +3767,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg(webpage_client)
 
         initial_data = self._download_initial_data(video_id, webpage, webpage_client, webpage_ytcfg)
+
+        is_premium_subscriber = self._is_premium_subscriber(webpage_ytcfg, initial_data)
+        if is_premium_subscriber:
+            self.write_debug('Detected YouTube Premium subscription')
 
         player_responses, player_url = self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
