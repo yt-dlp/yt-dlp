@@ -256,8 +256,7 @@ class HotStarIE(HotStarBaseIE):
         geo_restricted = False
         formats, subs = [], {}
         headers = {'Referer': f'{self._BASE_URL}/in'}
-        content_type = traverse_obj(
-            video_data, (('assetType', 'contentType'), {str}, any)) or self._CONTENT_TYPE[video_type]
+        content_type = traverse_obj(video_data, ('contentType', {str})) or self._CONTENT_TYPE[video_type]
 
         # See https://github.com/yt-dlp/yt-dlp/issues/396
         st = self._request_webpage(
