@@ -123,7 +123,7 @@ class HotStarIE(HotStarBaseIE):
             'episode': 'Janhvi Targets Suman',
             'episode_number': 8,
         },
-        'skip': 'Does not like my VPN',
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/anupama-anuj-share-a-moment/1000282843',
         'info_dict': {
