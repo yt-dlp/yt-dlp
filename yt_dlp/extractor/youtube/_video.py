@@ -3143,7 +3143,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 tried_iframe_fallback = True
 
             pr = None
-            if client == webpage_client and 'webpage_pr' not in self._configuration_arg('player_skip'):
+            if client == webpage_client and 'player_response' not in self._configuration_arg('webpage_skip'):
                 pr = initial_pr
 
             visitor_data = visitor_data or self._extract_visitor_data(webpage_ytcfg, initial_pr, player_ytcfg)
@@ -3725,6 +3725,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return live_broadcast_details, live_status, streaming_data, formats, subtitles
 
+    def _download_initial_data(self, video_id, webpage, webpage_client, webpage_ytcfg):
+        initial_data = None
+        if webpage and 'initial_data' not in self._configuration_arg('webpage_skip'):
+            initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
+            if not traverse_obj(initial_data, 'contents'):
+                self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
+                initial_data = None
+        if not initial_data and 'initial_data' not in self._configuration_arg('player_skip'):
+            query = {'videoId': video_id}
+            query.update(self._get_checkok_params())
+            initial_data = self._extract_response(
+                item_id=video_id, ep='next', fatal=False,
+                ytcfg=webpage_ytcfg, query=query, check_get_keys='contents',
+                note='Downloading initial data API JSON', default_client=webpage_client)
+        return initial_data
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
@@ -3734,6 +3750,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage_client = self._DEFAULT_WEBPAGE_CLIENT
         webpage = self._download_initial_webpage(video_id, webpage_client)
         webpage_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg(webpage_client)
+
+        initial_data = self._download_initial_data(video_id, webpage, webpage_client, webpage_ytcfg)
 
         player_responses, player_url = self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
@@ -4129,20 +4147,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'release_date': release_date,
                     'release_year': int_or_none(release_year),
                 })
-
-        initial_data = None
-        if webpage:
-            initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
-            if not traverse_obj(initial_data, 'contents'):
-                self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
-                initial_data = None
-        if not initial_data and 'initial_data' not in self._configuration_arg('player_skip'):
-            query = {'videoId': video_id}
-            query.update(self._get_checkok_params())
-            initial_data = self._extract_response(
-                item_id=video_id, ep='next', fatal=False,
-                ytcfg=webpage_ytcfg, query=query, check_get_keys='contents',
-                note='Downloading initial data API JSON', default_client=webpage_client)
 
         COMMENTS_SECTION_IDS = ('comment-item-section', 'engagement-panel-comments-section')
         info['comment_count'] = traverse_obj(initial_data, (
