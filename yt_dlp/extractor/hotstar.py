@@ -212,8 +212,8 @@ class HotStarIE(HotStarBaseIE):
 
     _CONTENT_TYPE = {
         'movie': 'MOVIE',
-        'episode': 'SHOW',  # 'EPISODE'?
-        'match': 'SPORTS',
+        'episode': 'EPISODE',
+        'match': 'SPORT',
         'content': 'CLIPS',
     }
 
