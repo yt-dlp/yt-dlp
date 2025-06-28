@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import hmac
 import json
@@ -9,6 +10,7 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
     determine_ext,
     int_or_none,
     join_nonempty,
@@ -71,12 +73,36 @@ class HotStarBaseIE(InfoExtractor):
             }, separators=(',', ':')),
         }, st=st, cookies=cookies)
 
-    def _playlist_entries(self, path, item_id, root=None, **kwargs):
-        results = self._call_api_v1(path, item_id, **kwargs)['body']['results']
-        for video in traverse_obj(results, (('assets', None), 'items', ...)):
-            if video.get('contentId'):
-                yield self.url_result(
-                    HotStarIE._video_url(video['contentId'], root=root), HotStarIE, video['contentId'])
+    @staticmethod
+    def _parse_metadata_v1(video_data):
+        return traverse_obj(video_data, {
+            'id': ('contentId', {str}),
+            'title': ('title', {str}),
+            'description': ('description', {str}),
+            'duration': ('duration', {int_or_none}),
+            'timestamp': (('broadcastDate', 'startDate'), {int_or_none}, any),
+            'release_year': ('year', {int_or_none}),
+            'channel': ('channelName', {str}),
+            'channel_id': ('channelId', {int}, {str_or_none}),
+            'series': ('showName', {str}),
+            'season': ('seasonName', {str}),
+            'season_number': ('seasonNo', {int_or_none}),
+            'season_id': ('seasonId', {int}, {str_or_none}),
+            'episode': ('title', {str}),
+            'episode_number': ('episodeNo', {int_or_none}),
+        })
+
+    def _fetch_page(self, path, item_id, name, query, root, page):
+        results = self._call_api_v1(
+            path, item_id, note=f'Downloading {name} page {page + 1} JSON', query={
+                **query,
+                'tao': page * self._PAGE_SIZE,
+                'tas': self._PAGE_SIZE,
+            })['body']['results']
+
+        for video in traverse_obj(results, (('assets', None), 'items', lambda _, v: v['contentId'])):
+            yield self.url_result(
+                HotStarIE._video_url(video['contentId'], root=root), HotStarIE, **self._parse_metadata_v1(video))
 
 
 class HotStarIE(HotStarBaseIE):
@@ -245,14 +271,11 @@ class HotStarIE(HotStarBaseIE):
         video_type = self._TYPE[video_type]
         cookies = self._get_cookies(url)  # Cookies before any request
 
-        # tas=10000 can cause HTTP Error 504, see https://github.com/yt-dlp/yt-dlp/issues/7946
-        for tas, err in [(10000, False), (0, None)]:
-            query = {'tas': tas, 'contentId': video_id}
-            video_data = traverse_obj(
-                self._call_api_v1(f'{video_type}/detail', video_id, fatal=False, errnote=err, query=query),
-                ('body', 'results', 'item', {dict})) or {}
-            if video_data:
-                break
+        video_data = traverse_obj(
+            self._call_api_v1(f'{video_type}/detail', video_id, fatal=False, query={
+                'tas': 5,  # See https://github.com/yt-dlp/yt-dlp/issues/7946
+                'contentId': video_id,
+            }), ('body', 'results', 'item', {dict})) or {}
 
         if video_data.get('drmProtected'):
             self.report_drm(video_id)
@@ -343,22 +366,10 @@ class HotStarIE(HotStarBaseIE):
             f.setdefault('http_headers', {}).update(headers)
 
         return {
+            **self._parse_metadata_v1(video_data),
             'id': video_id,
-            'title': video_data.get('title'),
-            'description': video_data.get('description'),
-            'duration': int_or_none(video_data.get('duration')),
-            'timestamp': int_or_none(traverse_obj(video_data, 'broadcastDate', 'startDate')),
-            'release_year': int_or_none(video_data.get('year')),
             'formats': formats,
             'subtitles': subs,
-            'channel': video_data.get('channelName'),
-            'channel_id': str_or_none(video_data.get('channelId')),
-            'series': video_data.get('showName'),
-            'season': video_data.get('seasonName'),
-            'season_number': int_or_none(video_data.get('seasonNo')),
-            'season_id': str_or_none(video_data.get('seasonId')),
-            'episode': video_data.get('title'),
-            'episode_number': int_or_none(video_data.get('episodeNo')),
         }
 
 
@@ -399,65 +410,6 @@ class HotStarPrefixIE(InfoExtractor):
         return self.url_result(HotStarIE._video_url(video_id, video_type), HotStarIE, video_id)
 
 
-class HotStarPlaylistIE(HotStarBaseIE):
-    IE_NAME = 'hotstar:playlist'
-    _VALID_URL = r'https?://(?:www\.)?hotstar\.com(?:/in)?/(?:tv|shows)(?:/[^/]+){2}/list/[^/]+/t-(?P<id>\w+)'
-    _TESTS = [{
-        'url': 'https://www.hotstar.com/tv/savdhaan-india/s-26/list/popular-clips/t-3_2_26',
-        'info_dict': {
-            'id': '3_2_26',
-        },
-        'playlist_mincount': 20,
-    }, {
-        'url': 'https://www.hotstar.com/shows/savdhaan-india/s-26/list/popular-clips/t-3_2_26',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.hotstar.com/tv/savdhaan-india/s-26/list/extras/t-2480',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.hotstar.com/in/tv/karthika-deepam/15457/list/popular-clips/t-3_2_1272',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        id_ = self._match_id(url)
-        return self.playlist_result(
-            # XXX: If receiving HTTP Error 504, try with tas=0
-            self._playlist_entries('tray/find', id_, query={'tas': 10000, 'uqId': id_}), id_)
-
-
-class HotStarSeasonIE(HotStarBaseIE):
-    IE_NAME = 'hotstar:season'
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/(?:tv|shows)/[^/]+/\w+)/seasons/[^/]+/ss-(?P<id>\w+)'
-    _TESTS = [{
-        'url': 'https://www.hotstar.com/tv/radhakrishn/1260000646/seasons/season-2/ss-8028',
-        'info_dict': {
-            'id': '8028',
-        },
-        'playlist_mincount': 35,
-    }, {
-        'url': 'https://www.hotstar.com/in/tv/ishqbaaz/9567/seasons/season-2/ss-4357',
-        'info_dict': {
-            'id': '4357',
-        },
-        'playlist_mincount': 30,
-    }, {
-        'url': 'https://www.hotstar.com/in/tv/bigg-boss/14714/seasons/season-4/ss-8208/',
-        'info_dict': {
-            'id': '8208',
-        },
-        'playlist_mincount': 19,
-    }, {
-        'url': 'https://www.hotstar.com/in/shows/bigg-boss/14714/seasons/season-4/ss-8208/',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        url, season_id = self._match_valid_url(url).groups()
-        return self.playlist_result(self._playlist_entries(
-            'season/asset', season_id, url, query={'tao': 0, 'tas': 0, 'size': 10000, 'id': season_id}), season_id)
-
-
 class HotStarSeriesIE(HotStarBaseIE):
     IE_NAME = 'hotstar:series'
     _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/(?:tv|shows)/[^/]+/(?P<id>\d+))/?(?:[#?]|$)'
@@ -472,26 +424,29 @@ class HotStarSeriesIE(HotStarBaseIE):
         'info_dict': {
             'id': '1260050431',
         },
-        'playlist_mincount': 43,
+        'playlist_mincount': 42,
     }, {
         'url': 'https://www.hotstar.com/in/tv/mahabharat/435/',
         'info_dict': {
             'id': '435',
         },
         'playlist_mincount': 267,
-    }, {
+    }, {  # HTTP Error 504 with tas=10000 (possibly because total size is over 1000 items?)
         'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/',
         'info_dict': {
             'id': '1260022017',
         },
-        'playlist_mincount': 940,
+        'playlist_mincount': 1601,
     }]
+    _PAGE_SIZE = 100
 
     def _real_extract(self, url):
-        url, series_id = self._match_valid_url(url).groups()
-        id_ = self._call_api_v1(
+        url, series_id = self._match_valid_url(url).group('url', 'id')
+        eid = self._call_api_v1(
             'show/detail', series_id, query={'contentId': series_id})['body']['results']['item']['id']
 
-        return self.playlist_result(self._playlist_entries(
-            # XXX: If receiving HTTP Error 504, try with tas=0
-            'tray/g/1/items', series_id, url, query={'tao': 0, 'tas': 10000, 'etid': 0, 'eid': id_}), series_id)
+        entries = OnDemandPagedList(functools.partial(
+            self._fetch_page, 'tray/g/1/items', series_id,
+            'series', {'etid': 0, 'eid': eid}, url), self._PAGE_SIZE)
+
+        return self.playlist_result(entries, series_id)
