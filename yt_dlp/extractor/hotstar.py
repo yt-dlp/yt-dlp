@@ -144,6 +144,7 @@ class HotStarIE(HotStarBaseIE):
             'channel_id': '821',
         },
         'expected_warnings': ['HTTP Error 504'],
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.hotstar.com/in/shows/kana-kaanum-kaalangal/1260097087/back-to-school/1260097320',
         'info_dict': {
@@ -163,6 +164,7 @@ class HotStarIE(HotStarBaseIE):
             'duration': 1810,
             'channel_id': '1260003991',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.hotstar.com/in/clips/e3-sairat-kahani-pyaar-ki/1000262286',
         'info_dict': {
@@ -189,6 +191,7 @@ class HotStarIE(HotStarBaseIE):
             'episode': 'Premam',
             'duration': 8994,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.hotstar.com/movies/radha-gopalam/1000057157',
         'only_matching': True,
