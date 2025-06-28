@@ -125,7 +125,7 @@ class HotStarIE(HotStarBaseIE):
             'episode_number': 8,
         },
         'params': {'skip_download': 'm3u8'},
-    }, {
+    }, {  # Metadata call gets HTTP Error 504 with tas=10000
         'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/anupama-anuj-share-a-moment/1000282843',
         'info_dict': {
             'id': '1000282843',
@@ -144,7 +144,6 @@ class HotStarIE(HotStarBaseIE):
             'duration': 1266,
             'channel_id': '821',
         },
-        'expected_warnings': ['HTTP Error 504'],
         'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.hotstar.com/in/shows/kana-kaanum-kaalangal/1260097087/back-to-school/1260097320',
@@ -166,7 +165,7 @@ class HotStarIE(HotStarBaseIE):
             'channel_id': '1260003991',
         },
         'params': {'skip_download': 'm3u8'},
-    }, {
+    }, {  # Metadata call gets HTTP Error 504 with tas=10000
         'url': 'https://www.hotstar.com/in/clips/e3-sairat-kahani-pyaar-ki/1000262286',
         'info_dict': {
             'id': '1000262286',
@@ -178,7 +177,6 @@ class HotStarIE(HotStarBaseIE):
             'timestamp': 1622943900,
             'duration': 5395,
         },
-        'expected_warnings': ['HTTP Error 504'],
         'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.hotstar.com/in/movies/premam/1000091195',
@@ -248,10 +246,10 @@ class HotStarIE(HotStarBaseIE):
         cookies = self._get_cookies(url)  # Cookies before any request
 
         # tas=10000 can cause HTTP Error 504, see https://github.com/yt-dlp/yt-dlp/issues/7946
-        for tas in (10000, 0):
+        for tas, err in [(10000, False), (0, None)]:
             query = {'tas': tas, 'contentId': video_id}
             video_data = traverse_obj(
-                self._call_api_v1(f'{video_type}/detail', video_id, fatal=False, query=query),
+                self._call_api_v1(f'{video_type}/detail', video_id, fatal=False, errnote=err, query=query),
                 ('body', 'results', 'item', {dict})) or {}
             if video_data:
                 break
