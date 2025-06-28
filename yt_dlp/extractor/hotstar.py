@@ -221,7 +221,7 @@ class HotStarIE(HotStarBaseIE):
         'movie': 'MOVIE',
         'episode': 'SHOW',
         'match': 'SPORTS',
-        None: 'content',
+        'content': 'content',
     }
 
     _IGNORE_MAP = {
@@ -245,8 +245,7 @@ class HotStarIE(HotStarBaseIE):
 
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
-        video_type = self._TYPE.get(video_type, video_type)
-        content_type = self._CONTENT_TYPE.get(video_type, video_type)
+        video_type = self._TYPE[video_type]
         cookies = self._get_cookies(url)  # Cookies before any request
 
         # tas=10000 can cause HTTP Error 504, see https://github.com/yt-dlp/yt-dlp/issues/7946
@@ -261,7 +260,8 @@ class HotStarIE(HotStarBaseIE):
         if video_data.get('drmProtected'):
             self.report_drm(video_id)
 
-        content_type = video_data.get('assetType') or video_data.get('contentType') or content_type
+        content_type = traverse_obj(
+            video_data, (('assetType', 'contentType'), {str}, any)) or self._CONTENT_TYPE[video_type]
 
         # See https://github.com/yt-dlp/yt-dlp/issues/396
         st = self._download_webpage_handle(f'{self._BASE_URL}/in', video_id)[1].headers.get('x-origin-date')
