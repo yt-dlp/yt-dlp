@@ -3745,7 +3745,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not self.is_authenticated or not (webpage_ytcfg or initial_data):
             return False
 
-        tlr = (False and traverse_obj(initial_data, ('topbar', 'desktopTopbarRenderer', 'logo', 'topbarLogoRenderer'))) or {}
+        tlr = traverse_obj(
+            initial_data, ('topbar', 'desktopTopbarRenderer', 'logo', 'topbarLogoRenderer')) or {}
         if (
             (tlr and traverse_obj(tlr, ('iconImage', 'iconType')) == 'YOUTUBE_PREMIUM_LOGO')
             or 'premium' in (self._get_text(tlr, 'tooltipText') or '').lower()
