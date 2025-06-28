@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import json
 import re
 import time
 import uuid
@@ -12,14 +13,15 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     str_or_none,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class HotStarBaseIE(InfoExtractor):
     _BASE_URL = 'https://www.hotstar.com'
     _API_URL = 'https://api.hotstar.com'
+    _API_URL_V2 = 'https://apix.hotstar.com/v2'
     _AKAMAI_ENCRYPTION_KEY = b'\x05\xfc\x1a\x01\xca\xc9\x4b\xc4\x12\xfc\x53\x12\x07\x75\xf9\xee'
 
     def _call_api_v1(self, path, *args, **kwargs):
@@ -36,27 +38,38 @@ class HotStarBaseIE(InfoExtractor):
         auth = f'st={st}~exp={exp}~acl=/*'
         auth += '~hmac=' + hmac.new(self._AKAMAI_ENCRYPTION_KEY, auth.encode(), hashlib.sha256).hexdigest()
         response = self._download_json(
-            f'{self._API_URL}/{path}', video_id, query=query,
+            f'{self._API_URL_V2}/{path}', video_id, query=query,
             headers={
+                'user-agent': 'Disney+;in.startv.hotstar.dplus.tv/23.08.14.4.2915 (Android/13)',
                 'hotstarauth': auth,
-                'x-hs-appversion': '6.72.2',
-                'x-hs-platform': 'web',
                 'x-hs-usertoken': cookies['userUP'].value,
+                'x-hs-device-id': traverse_obj(cookies, ('deviceId', 'value')) or str(uuid.uuid4()),
+                'x-hs-client': 'platform:androidtv;app_id:in.startv.hotstar.dplus.tv;app_version:23.08.14.4;os:Android;os_version:13;schema_version:0.0.970',
+                'x-hs-platform': 'androidtv',
+                'content-type': 'application/json',
             })
 
-        if response['message'] != "Playback URL's fetched successfully":
-            raise ExtractorError(
-                response['message'], expected=True)
-        return response['data']
+        if not traverse_obj(response, ('success', {dict})):
+            raise ExtractorError('API call was unsuccessful')
+        return response['success']
 
-    def _call_api_v2(self, path, video_id, st=None, cookies=None):
-        return self._call_api_impl(
-            f'{path}/content/{video_id}', video_id, st=st, cookies=cookies, query={
-                'desired-config': 'audio_channel:stereo|container:fmp4|dynamic_range:hdr|encryption:plain|ladder:tv|package:dash|resolution:fhd|subs-tag:HotstarVIP|video_codec:h265',
-                'device-id': cookies.get('device_id').value if cookies.get('device_id') else str(uuid.uuid4()),
-                'os-name': 'Windows',
-                'os-version': '10',
-            })
+    def _call_api_v2(self, path, video_id, content_type, cookies=None, st=None):
+        return self._call_api_impl(f'{path}', video_id, query={
+            'content_id': video_id,
+            'filters': f'content_type={content_type}',
+            'client_capabilities': json.dumps({
+                'package': ['dash', 'hls'],
+                'container': ['fmp4br', 'fmp4'],
+                'ads': ['non_ssai', 'ssai'],
+                'audio_channel': ['atmos', 'dolby51', 'stereo'],
+                'encryption': ['plain'],
+                'video_codec': ['h265'],    # or ['h264']
+                'ladder': ['tv', 'full'],
+                'resolution': ['4k'],       # or ['hd']
+                'true_resolution': ['4k'],  # or ['hd']
+                'dynamic_range': ['hdr'],   # or ['sdr']
+            }, separators=(',', ':')),
+        }, st=st, cookies=cookies)
 
     def _playlist_entries(self, path, item_id, root=None, **kwargs):
         results = self._call_api_v1(path, item_id, **kwargs)['body']['results']
@@ -68,6 +81,7 @@ class HotStarBaseIE(InfoExtractor):
 
 class HotStarIE(HotStarBaseIE):
     IE_NAME = 'hotstar'
+    IE_DESC = 'JioHotstar'
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?hotstar\.com(?:/in)?/(?!in/)
         (?:
@@ -102,15 +116,16 @@ class HotStarIE(HotStarBaseIE):
             'upload_date': '20190501',
             'duration': 1219,
             'channel': 'StarPlus',
-            'channel_id': '3',
+            'channel_id': '821',
             'series': 'Ek Bhram - Sarvagun Sampanna',
             'season': 'Chapter 1',
             'season_number': 1,
-            'season_id': '6771',
+            'season_id': '1260004607',
             'episode': 'Janhvi Targets Suman',
             'episode_number': 8,
         },
-    }, {
+        'params': {'skip_download': 'm3u8'},
+    }, {  # Metadata call gets HTTP Error 504 with tas=10000
         'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/anupama-anuj-share-a-moment/1000282843',
         'info_dict': {
             'id': '1000282843',
@@ -122,14 +137,14 @@ class HotStarIE(HotStarBaseIE):
             'channel': 'StarPlus',
             'series': 'Anupama',
             'season_number': 1,
-            'season_id': '7399',
+            'season_id': '1260022018',
             'upload_date': '20230307',
             'episode': 'Anupama, Anuj Share a Moment',
             'episode_number': 853,
-            'duration': 1272,
-            'channel_id': '3',
+            'duration': 1266,
+            'channel_id': '821',
         },
-        'skip': 'HTTP Error 504: Gateway Time-out',  # XXX: Investigate 504 errors on some episodes
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.hotstar.com/in/shows/kana-kaanum-kaalangal/1260097087/back-to-school/1260097320',
         'info_dict': {
@@ -142,14 +157,15 @@ class HotStarIE(HotStarBaseIE):
             'channel': 'Hotstar Specials',
             'series': 'Kana Kaanum Kaalangal',
             'season_number': 1,
-            'season_id': '9441',
+            'season_id': '1260097089',
             'upload_date': '20220421',
             'episode': 'Back To School',
             'episode_number': 1,
             'duration': 1810,
-            'channel_id': '54',
+            'channel_id': '1260003991',
         },
-    }, {
+        'params': {'skip_download': 'm3u8'},
+    }, {  # Metadata call gets HTTP Error 504 with tas=10000
         'url': 'https://www.hotstar.com/in/clips/e3-sairat-kahani-pyaar-ki/1000262286',
         'info_dict': {
             'id': '1000262286',
@@ -161,6 +177,7 @@ class HotStarIE(HotStarBaseIE):
             'timestamp': 1622943900,
             'duration': 5395,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.hotstar.com/in/movies/premam/1000091195',
         'info_dict': {
@@ -168,12 +185,13 @@ class HotStarIE(HotStarBaseIE):
             'ext': 'mp4',
             'title': 'Premam',
             'release_year': 2015,
-            'description': 'md5:d833c654e4187b5e34757eafb5b72d7f',
+            'description': 'md5:096cd8aaae8dab56524823dc19dfa9f7',
             'timestamp': 1462149000,
             'upload_date': '20160502',
             'episode': 'Premam',
             'duration': 8994,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.hotstar.com/movies/radha-gopalam/1000057157',
         'only_matching': True,
@@ -194,6 +212,13 @@ class HotStarIE(HotStarBaseIE):
         'shows': 'episode',
         'clips': 'content',
         None: 'content',
+    }
+
+    _CONTENT_TYPE = {
+        'movie': 'MOVIE',
+        'episode': 'EPISODE',
+        'match': 'SPORT',
+        'content': 'CLIPS',
     }
 
     _IGNORE_MAP = {
@@ -217,43 +242,46 @@ class HotStarIE(HotStarBaseIE):
 
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
-        video_type = self._TYPE.get(video_type, video_type)
+        video_type = self._TYPE[video_type]
         cookies = self._get_cookies(url)  # Cookies before any request
 
         # tas=10000 can cause HTTP Error 504, see https://github.com/yt-dlp/yt-dlp/issues/7946
-        for tas in (10000, 0):
+        for tas, err in [(10000, False), (0, None)]:
             query = {'tas': tas, 'contentId': video_id}
             video_data = traverse_obj(
-                self._call_api_v1(f'{video_type}/detail', video_id, fatal=False, query=query),
+                self._call_api_v1(f'{video_type}/detail', video_id, fatal=False, errnote=err, query=query),
                 ('body', 'results', 'item', {dict})) or {}
             if video_data:
                 break
 
-        if not self.get_param('allow_unplayable_formats') and video_data.get('drmProtected'):
+        if video_data.get('drmProtected'):
             self.report_drm(video_id)
-
-        # See https://github.com/yt-dlp/yt-dlp/issues/396
-        st = self._download_webpage_handle(f'{self._BASE_URL}/in', video_id)[1].headers.get('x-origin-date')
 
         geo_restricted = False
         formats, subs = [], {}
         headers = {'Referer': f'{self._BASE_URL}/in'}
+        content_type = traverse_obj(video_data, ('contentType', {str})) or self._CONTENT_TYPE[video_type]
 
-        # change to v2 in the future
-        playback_sets = self._call_api_v2('play/v1/playback', video_id, st=st, cookies=cookies)['playBackSets']
-        for playback_set in playback_sets:
-            if not isinstance(playback_set, dict):
-                continue
-            tags = str_or_none(playback_set.get('tagsCombination')) or ''
+        # See https://github.com/yt-dlp/yt-dlp/issues/396
+        st = self._request_webpage(
+            f'{self._BASE_URL}/in', video_id, 'Fetching server time').get_header('x-origin-date')
+        watch = self._call_api_v2('pages/watch', video_id, content_type, cookies=cookies, st=st)
+        player_config = traverse_obj(watch, (
+            'page', 'spaces', 'player', 'widget_wrappers', lambda _, v: v['template'] == 'PlayerWidget',
+            'widget', 'data', 'player_config', {dict}, any, {require('player config')}))
+
+        for playback_set in traverse_obj(player_config, (
+            ('media_asset', 'media_asset_v2'),
+            ('primary', 'fallback'),
+            all, lambda _, v: url_or_none(v['content_url']),
+        )):
+            tags = str_or_none(playback_set.get('playback_tags')) or ''
             if any(f'{prefix}:{ignore}' in tags
                    for key, prefix in self._IGNORE_MAP.items()
                    for ignore in self._configuration_arg(key)):
                 continue
 
-            format_url = url_or_none(playback_set.get('playbackUrl'))
-            if not format_url:
-                continue
-            format_url = re.sub(r'(?<=//staragvod)(\d)', r'web\1', format_url)
+            format_url = re.sub(r'(?<=//staragvod)(\d)', r'web\1', playback_set['content_url'])
             ext = determine_ext(format_url)
 
             current_formats, current_subs = [], {}
@@ -273,8 +301,10 @@ class HotStarIE(HotStarBaseIE):
                         'height': int_or_none(playback_set.get('height')),
                     }]
             except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                if isinstance(e.cause, HTTPError) and e.cause.status in (403, 474):
                     geo_restricted = True
+                else:
+                    self.write_debug(e)
                 continue
 
             tag_dict = dict((*t.split(':', 1), None)[:2] for t in tags.split(';'))
@@ -292,6 +322,11 @@ class HotStarIE(HotStarBaseIE):
                         'stereo': 2,
                         'dolby51': 6,
                     }.get(tag_dict.get('audio_channel'))
+                    if (
+                        'Audio_Description' in f['format_id']
+                        or 'Audio Description' in (f.get('format_note') or '')
+                    ):
+                        f['source_preference'] = -99 + (f.get('source_preference') or -1)
                 f['format_note'] = join_nonempty(
                     tag_dict.get('ladder'),
                     tag_dict.get('audio_channel') if f.get('acodec') != 'none' else None,
@@ -387,6 +422,7 @@ class HotStarPlaylistIE(HotStarBaseIE):
     def _real_extract(self, url):
         id_ = self._match_id(url)
         return self.playlist_result(
+            # XXX: If receiving HTTP Error 504, try with tas=0
             self._playlist_entries('tray/find', id_, query={'tas': 10000, 'uqId': id_}), id_)
 
 
@@ -457,4 +493,5 @@ class HotStarSeriesIE(HotStarBaseIE):
             'show/detail', series_id, query={'contentId': series_id})['body']['results']['item']['id']
 
         return self.playlist_result(self._playlist_entries(
+            # XXX: If receiving HTTP Error 504, try with tas=0
             'tray/g/1/items', series_id, url, query={'tao': 0, 'tas': 10000, 'etid': 0, 'eid': id_}), series_id)
