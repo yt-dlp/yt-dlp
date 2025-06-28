@@ -273,7 +273,7 @@ class HotStarIE(HotStarBaseIE):
 
         video_data = traverse_obj(
             self._call_api_v1(f'{video_type}/detail', video_id, fatal=False, query={
-                'tas': 5,
+                'tas': 5,  # See https://github.com/yt-dlp/yt-dlp/issues/7946
                 'contentId': video_id,
             }), ('body', 'results', 'item', {dict})) or {}
 
