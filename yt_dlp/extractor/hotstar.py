@@ -142,7 +142,7 @@ class HotStarIE(HotStarBaseIE):
             'duration': 1272,
             'channel_id': '3',
         },
-        'skip': 'HTTP Error 504: Gateway Time-out',  # XXX: Investigate 504 errors on some episodes
+        'expected_warnings': ['HTTP Error 504'],
     }, {
         'url': 'https://www.hotstar.com/in/shows/kana-kaanum-kaalangal/1260097087/back-to-school/1260097320',
         'info_dict': {
