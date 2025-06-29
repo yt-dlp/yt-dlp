@@ -1683,6 +1683,7 @@ from .rai import (
     RaiPlaySoundPlaylistIE,
     RaiSudtirolIE,
 )
+from .rambler import RamblerIE
 from .raywenderlich import (
     RayWenderlichCourseIE,
     RayWenderlichIE,
