@@ -18,7 +18,7 @@ from ..utils.traversal import traverse_obj
 
 
 class FloatplaneBaseIE(InfoExtractor):
-    def _real_extract(self, url, video_id):
+    def _real_extract(self, url):
         post_id = self._match_id(url)
 
         post_data = self._download_json(
@@ -108,6 +108,7 @@ class FloatplaneBaseIE(InfoExtractor):
                 'comment_count': ('comments', {int_or_none}),
                 'thumbnail': ('thumbnail', 'path', {url_or_none}),
             }),
+            'http_headers': self._HEADERS,
         }
 
         if len(items) > 1:
@@ -121,6 +122,7 @@ class FloatplaneIE(FloatplaneBaseIE):
     _VALID_URL = r'https?://(?:(?:www|beta)\.)?floatplane\.com/post/(?P<id>\w+)'
     _BASE_URL = 'https://www.floatplane.com'
     _IMPERSONATE_TARGET = None
+    _HEADERS = None
     _TESTS = [{
         'url': 'https://www.floatplane.com/post/2Yf3UedF7C',
         'info_dict': {
@@ -274,6 +276,7 @@ class FloatplaneIE(FloatplaneBaseIE):
     def _real_initialize(self):
         if not self._get_cookies(self._BASE_URL).get('sails.sid'):
             self.raise_login_required()
+
 
 class FloatplaneChannelIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:www|beta)\.)?floatplane\.com/channel/(?P<id>[\w-]+)/home(?:/(?P<channel>[\w-]+))?'

@@ -6,6 +6,7 @@ class SauceplusIE(FloatplaneBaseIE):
     _BASE_URL = 'https://www.sauceplus.com'
     _HEADERS = {'Origin': _BASE_URL,
                 'Referer': _BASE_URL + '/'}
+    _IMPERSONATE_TARGET = 'chrome'
     _TESTS = [{
         'url': 'https://www.sauceplus.com/post/YbBwIa2A5g',
         'info_dict': {
