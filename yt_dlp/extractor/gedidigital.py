@@ -1,7 +1,5 @@
-import json
-
 from .common import InfoExtractor
-from ..utils import int_or_none, js_to_json
+from ..utils import int_or_none, join_nonempty, js_to_json, mimetype2ext
 
 
 class GediDigitalIE(InfoExtractor):
@@ -54,41 +52,44 @@ class GediDigitalIE(InfoExtractor):
         video_id, slug = self._match_valid_url(url).group('id', 'slug')
         webpage = self._download_webpage(url, video_id)
         data = self._search_json(
-            r'BrightcoveVideoPlayerOptions\s*=', webpage, 'Brightcove video player options', video_id, transform_source=js_to_json,
-        )
-        streams = json.loads(data['videoSrc'])
+            r'BrightcoveVideoPlayerOptions\s*=', webpage, 'Brightcove params',
+            video_id, transform_source=js_to_json)
+        streams = self._parse_json(data['videoSrc'], video_id)
         formats = []
         for stream in streams:
             if isinstance(stream, str):
                 continue
-            if stream['type'] == 'video/mp4':
+            ext = mimetype2ext(stream.get('type'))
+            if ext == 'mp4':
                 bitrate = self._search_regex(r'video-rrtv-(\d+)', stream['src'], 'vbr', None)
                 formats.append({
-                    'format_id': f'mp4-{bitrate}' if bitrate else 'mp4',
+                    'format_id': join_nonempty('http', ext, bitrate),
                     'url': stream['src'],
-                    'ext': 'mp4',
+                    'ext': ext,
                     'vcodec': 'avc1',
                     'acodec': 'mp4a',
                     'vbr': int_or_none(bitrate),
                 })
-            elif stream['type'] == 'application/x-mpegURL':
-                new_formats = self._extract_m3u8_formats(stream['src'], video_id)
-                for fmt in new_formats:
-                    fmt.setdefault('vbr', int_or_none(self._search_regex(r'/hls/_(\d+)/', fmt['url'], 'vbr', None)))
-                formats.extend(new_formats)
-            elif stream['type'] == 'audio/mp3':
+            elif ext == 'm3u8':
+                fmts = self._extract_m3u8_formats(stream['src'], video_id, 'mp4', m3u8_id='hls', fatal=False)
+                for fmt in fmts:
+                    fmt.setdefault('vbr', int_or_none(
+                        self._search_regex(r'/hls/_(\d+)/', fmt['url'], 'vbr', default=None)))
+                formats.extend(fmts)
+            elif ext == 'mp3':
                 bitrate = self._search_regex(r'mp3-audio-(\d+)', stream['src'], 'vbr', None)
                 formats.append({
-                    'format_id': f'mp3-{bitrate}' if bitrate else 'mp3',
+                    'format_id': join_nonempty('http', ext, bitrate),
                     'url': stream['src'],
-                    'ext': 'mp3',
-                    'acodec': 'mp3',
+                    'ext': ext,
+                    'acodec': ext,
+                    'vcodec': 'none',
                     'abr': int_or_none(bitrate),
                     'tbr': int_or_none(bitrate),
                 })
             else:
                 formats.append({
-                    'format_id': stream['type'],
+                    'format_id': ext,
                     'url': stream['src'],
                 })
 
