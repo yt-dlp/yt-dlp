@@ -81,9 +81,7 @@ class RaiBaseIE(InfoExtractor):
         # geo flag is a bit unreliable and not properly set all the time
         geoprotection = xpath_text(relinker, './geoprotection', default='N') == 'Y'
 
-        ext = determine_ext(media_url)
-        if ext:
-            ext = ext.lower()
+        ext = determine_ext(media_url).lower()
         formats = []
 
         if ext == 'mp3':
