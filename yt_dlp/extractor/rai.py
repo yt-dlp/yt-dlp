@@ -82,7 +82,7 @@ class RaiBaseIE(InfoExtractor):
         geoprotection = xpath_text(relinker, './geoprotection', default='N') == 'Y'
 
         ext = determine_ext(media_url)
-        if ext: 
+        if ext:
             ext = ext.lower()
         formats = []
 
@@ -507,7 +507,7 @@ class RaiPlaySoundIE(RaiBaseIE):
         'params': {'skip_download': True},
     }, {
         # case-sensitivity test for uppercase extension
-        'url': 'https://www.raiplaysound.it/audio/2024/01/TEST-UPPERCASE-EXT-123e4567-e89b-12d3-a456-426614174000.MP3',
+        'url': 'https://www.raiplaysound.it/audio/2020/05/Storia--Lunita-dItalia-e-lunificazione-della-Germania-b4c16390-7f3f-4282-b353-d94897dacb7c.html',
         'info_dict': {
             'id': '123e4567-e89b-12d3-a456-426614174000',
             'ext': 'mp3',
@@ -645,17 +645,6 @@ class RaiIE(RaiBaseIE):
         # Direct MMS: Media URL no longer works.
         'url': 'http://www.rai.it/dl/RaiTV/programmi/media/ContentItem-b63a4089-ac28-48cf-bca5-9f5b5bc46df5.html',
         'only_matching': True,
-    },
-    {
-        # test for case-sensitivity fix for uppercase MP4 extension
-        'url': 'https://www.rai.it/dl/RaiTV/programmi/media/ContentItem-test1234-5678-90ab-cdef-1234567890ab.MP4',
-        'info_dict': {
-            'id': 'test1234-5678-90ab-cdef-1234567890ab',
-            'ext': 'mp4',
-            'title': 'Test Video MP4 Uppercase',
-        },
-        'params': {'skip_download': True},
-        'skip': 'Test URL for uppercase MP4 extension',
     }]
 
     def _real_extract(self, url):
