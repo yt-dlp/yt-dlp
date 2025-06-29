@@ -512,7 +512,6 @@ class RaiPlaySoundIE(RaiBaseIE):
             'title': 'Test Audio with Uppercase Extension',
         },
         'params': {'skip_download': True},
-        'skip': 'Test URL for case-sensitivity fix',
     }]
 
     def _real_extract(self, url):
