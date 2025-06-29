@@ -82,7 +82,8 @@ class RaiBaseIE(InfoExtractor):
         geoprotection = xpath_text(relinker, './geoprotection', default='N') == 'Y'
 
         ext = determine_ext(media_url)
-        if ext: ext = ext.lower()
+        if ext: 
+            ext = ext.lower()
         formats = []
 
         if ext == 'mp3':
@@ -655,7 +656,7 @@ class RaiIE(RaiBaseIE):
         },
         'params': {'skip_download': True},
         'skip': 'Test URL for uppercase MP4 extension',
-    },]
+    }]
 
     def _real_extract(self, url):
         content_id = self._match_id(url)
