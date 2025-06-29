@@ -525,7 +525,7 @@ class SabrProcessor:
             if izf.format_selector is format_selector:
                 raise SabrStreamError('Server changed format. Changing formats is not currently supported')
 
-        duration_ms = ticks_to_ms(format_init_metadata.duration_timescale, format_init_metadata.duration_ticks)
+        duration_ms = ticks_to_ms(format_init_metadata.duration_ticks, format_init_metadata.duration_timescale)
 
         total_segments = format_init_metadata.total_segments
         if not total_segments and self.live_metadata and self.live_metadata.head_sequence_number:
