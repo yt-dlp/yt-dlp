@@ -2143,7 +2143,10 @@ class InfoExtractor:
         with contextlib.closing(response):
             prefix = response.read(512)
             if not prefix.startswith(b'#EXTM3U'):
-                self.report_warning(f'{video_id}: Trying to parse m3u8 without header{bug_reports_message()}')
+                msg = 'Response data has no m3u header'
+                if fatal:
+                    raise ExtractorError(msg, video_id=video_id)
+                self.report_warning(f'{msg}{bug_reports_message()}', video_id=video_id)
                 return [], {}
 
             content = self._webpage_read_content(
