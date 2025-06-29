@@ -15,6 +15,7 @@ from ..utils import (
     int_or_none,
     shell_quote,
     unified_timestamp,
+    version_tuple,
 )
 from ._helper import TempFileWrapper, random_string, override_navigator_js, extract_script_tags
 from .common import ExternalJSI
@@ -25,7 +26,7 @@ class DenoJSI(ExternalJSI):
     _BASE_PREFERENCE = 5
     _EXE_NAME = 'deno'
     _DENO_FLAGS = ['--cached-only', '--no-prompt', '--no-check']
-    _INIT_SCRIPT = 'localStorage.clear(); delete window.Deno; global = window = globalThis;\n'
+    _INIT_SCRIPT = 'localStorage.clear(); delete globalThis.Deno; global = window = globalThis;\n'
 
     def __init__(self, *args, flags=[], replace_flags=False, init_script=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -144,7 +145,7 @@ class DenoJSDomJSI(DenoJSI):
             Object.keys(dom.window).filter(key => !['atob', 'btoa', 'crypto', 'location'].includes(key))
             .filter(key => !(window.location? [] : ['sessionStorage', 'localStorage']).includes(key))
             .forEach((key) => {{
-                try {{window[key] = dom.window[key]}} catch (e) {{ console.error(e) }}
+                try {{globalThis[key] = dom.window[key]}} catch (e) {{ console.error(e) }}
             }});
             {self._override_navigator_js};
 
@@ -185,12 +186,17 @@ class DenoJSDomJSI(DenoJSI):
 
         # https://github.com/prebuild/node-gyp-build/blob/6822ec5/node-gyp-build.js#L196-L198
         # This jsdom dependency raises fatal error on linux unless read for this file is allowed
-        read_flag = ['--allow-read=/etc/alpine-release'] if platform.system() == 'Linux' else []
+        additional_flags = ['--allow-read=/etc/alpine-release'] if platform.system() == 'Linux' else []
 
         location_args = ['--location', self._url] if self._url else []
 
+        if version_tuple(self.exe_version) >= (2, 3, 0):
+            self.report_warning('`--allow-env` flag is enabled for deno >= 2.3.0 to avoid import panic, '
+                                'use `deno upgrade` to downgrade to a lower version to avoid this', only_once=True)
+            additional_flags.append('--allow-env')
+
         with TempFileWrapper(script, suffix='.js') as js_file:
-            cmd = [self.exe, 'run', *self._flags, *read_flag, *location_args, js_file.name]
+            cmd = [self.exe, 'run', *self._flags, *additional_flags, *location_args, js_file.name]
             result = self._run_deno(cmd)
             try:
                 data = json.loads(result)
