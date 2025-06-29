@@ -18,18 +18,19 @@ from ..utils.traversal import traverse_obj
 
 
 class FloatplaneBaseIE(InfoExtractor):
-    def _base_extract(self, url, base_url, do_impersonate):
+    def _real_extract(self, url, video_id):
         post_id = self._match_id(url)
 
         post_data = self._download_json(
-            f'{base_url}/api/v3/content/post', post_id, query={'id': post_id},
-            note='Downloading post data', errnote='Unable to download post data', impersonate=do_impersonate)
+            f'{self._BASE_URL}/api/v3/content/post', post_id, query={'id': post_id},
+            note='Downloading post data', errnote='Unable to download post data',
+            impersonate=self._IMPERSONATE_TARGET)
 
         if not any(traverse_obj(post_data, ('metadata', ('hasVideo', 'hasAudio')))):
             raise ExtractorError('Post does not contain a video or audio track', expected=True)
 
         uploader_url = format_field(
-            post_data, [('creator', 'urlname')], f'{base_url}/channel/%s/home') or None
+            post_data, [('creator', 'urlname')], f'{self._BASE_URL}/channel/%s/home') or None
 
         common_info = {
             'uploader_url': uploader_url,
@@ -50,14 +51,15 @@ class FloatplaneBaseIE(InfoExtractor):
             media_typ = media.get('type') or 'video'
 
             metadata = self._download_json(
-                f'{base_url}/api/v3/content/{media_typ}', media_id, query={'id': media_id},
-                note=f'Downloading {media_typ} metadata', impersonate=do_impersonate)
+                f'{self._BASE_URL}/api/v3/content/{media_typ}', media_id, query={'id': media_id},
+                note=f'Downloading {media_typ} metadata', impersonate=self._IMPERSONATE_TARGET)
 
             stream = self._download_json(
-                f'{base_url}/api/v2/cdn/delivery', media_id, query={
+                f'{self._BASE_URL}/api/v2/cdn/delivery', media_id, query={
                     'type': 'vod' if media_typ == 'video' else 'aod',
                     'guid': metadata['guid'],
-                }, note=f'Downloading {media_typ} stream data', impersonate=do_impersonate)
+                }, note=f'Downloading {media_typ} stream data',
+                impersonate=self._IMPERSONATE_TARGET)
 
             path_template = traverse_obj(stream, ('resource', 'uri', {str}))
 
@@ -118,6 +120,7 @@ class FloatplaneBaseIE(InfoExtractor):
 class FloatplaneIE(FloatplaneBaseIE):
     _VALID_URL = r'https?://(?:(?:www|beta)\.)?floatplane\.com/post/(?P<id>\w+)'
     _BASE_URL = 'https://www.floatplane.com'
+    _IMPERSONATE_TARGET = None
     _TESTS = [{
         'url': 'https://www.floatplane.com/post/2Yf3UedF7C',
         'info_dict': {
@@ -271,10 +274,6 @@ class FloatplaneIE(FloatplaneBaseIE):
     def _real_initialize(self):
         if not self._get_cookies(self._BASE_URL).get('sails.sid'):
             self.raise_login_required()
-
-    def _real_extract(self, url):
-        return self._base_extract(self, url, self._BASE_URL, do_impersonate=False)
-
 
 class FloatplaneChannelIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:www|beta)\.)?floatplane\.com/channel/(?P<id>[\w-]+)/home(?:/(?P<channel>[\w-]+))?'

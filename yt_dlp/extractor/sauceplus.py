@@ -35,6 +35,3 @@ class SauceplusIE(FloatplaneBaseIE):
     def _real_initialize(self):
         if not self._get_cookies(self._BASE_URL).get('__Host-sp-sess'):
             self.raise_login_required()
-
-    def _real_extract(self, url):
-        return self._base_extract(url, self._BASE_URL, do_impersonate=True)
