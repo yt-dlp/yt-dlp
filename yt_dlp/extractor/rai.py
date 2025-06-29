@@ -507,9 +507,9 @@ class RaiPlaySoundIE(RaiBaseIE):
         # case-sensitivity test for uppercase extension
         'url': 'https://www.raiplaysound.it/audio/2020/05/Storia--Lunita-dItalia-e-lunificazione-della-Germania-b4c16390-7f3f-4282-b353-d94897dacb7c.html',
         'info_dict': {
-            'id': '123e4567-e89b-12d3-a456-426614174000',
+            'id': 'b4c16390-7f3f-4282-b353-d94897dacb7c',
             'ext': 'mp3',
-            'title': 'Test Audio with Uppercase Extension',
+            'title': "Storia | 01 L'unità d'Italia e l'unificazione della Germania",
         },
         'params': {'skip_download': True},
     }]
