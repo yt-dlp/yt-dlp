@@ -1,5 +1,10 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, join_nonempty, js_to_json, mimetype2ext
+from ..utils import (
+    int_or_none,
+    join_nonempty,
+    js_to_json,
+    mimetype2ext,
+)
 
 
 class GediDigitalIE(InfoExtractor):
