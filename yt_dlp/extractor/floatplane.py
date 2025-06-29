@@ -17,8 +17,107 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-class FloatplaneIE(InfoExtractor):
+class FloatplaneBaseIE(InfoExtractor):
+    def _base_extract(self, url, base_url, do_impersonate):
+        post_id = self._match_id(url)
+
+        post_data = self._download_json(
+            f'{base_url}/api/v3/content/post', post_id, query={'id': post_id},
+            note='Downloading post data', errnote='Unable to download post data', impersonate=do_impersonate)
+
+        if not any(traverse_obj(post_data, ('metadata', ('hasVideo', 'hasAudio')))):
+            raise ExtractorError('Post does not contain a video or audio track', expected=True)
+
+        uploader_url = format_field(
+            post_data, [('creator', 'urlname')], f'{base_url}/channel/%s/home') or None
+
+        common_info = {
+            'uploader_url': uploader_url,
+            'channel_url': urljoin(f'{uploader_url}/', traverse_obj(post_data, ('channel', 'urlname'))),
+            'availability': self._availability(needs_subscription=True),
+            **traverse_obj(post_data, {
+                'uploader': ('creator', 'title', {str}),
+                'uploader_id': ('creator', 'id', {str}),
+                'channel': ('channel', 'title', {str}),
+                'channel_id': ('channel', 'id', {str}),
+                'release_timestamp': ('releaseDate', {parse_iso8601}),
+            }),
+        }
+
+        items = []
+        for media in traverse_obj(post_data, (('videoAttachments', 'audioAttachments'), ...)):
+            media_id = media['id']
+            media_typ = media.get('type') or 'video'
+
+            metadata = self._download_json(
+                f'{base_url}/api/v3/content/{media_typ}', media_id, query={'id': media_id},
+                note=f'Downloading {media_typ} metadata', impersonate=do_impersonate)
+
+            stream = self._download_json(
+                f'{base_url}/api/v2/cdn/delivery', media_id, query={
+                    'type': 'vod' if media_typ == 'video' else 'aod',
+                    'guid': metadata['guid'],
+                }, note=f'Downloading {media_typ} stream data', impersonate=do_impersonate)
+
+            path_template = traverse_obj(stream, ('resource', 'uri', {str}))
+
+            def format_path(params):
+                path = path_template
+                for i, val in (params or {}).items():
+                    path = path.replace(f'{{qualityLevelParams.{i}}}', val)
+                return path
+
+            formats = []
+            for quality in traverse_obj(stream, ('resource', 'data', 'qualityLevels', ...)):
+                url = urljoin(stream['cdn'], format_path(traverse_obj(
+                    stream, ('resource', 'data', 'qualityLevelParams', quality['name'], {dict}))))
+                formats.append({
+                    **traverse_obj(quality, {
+                        'format_id': ('name', {str}),
+                        'format_note': ('label', {str}),
+                        'width': ('width', {int}),
+                        'height': ('height', {int}),
+                    }),
+                    **parse_codecs(quality.get('codecs')),
+                    'url': url,
+                    'ext': determine_ext(url.partition('/chunk.m3u8')[0], 'mp4'),
+                })
+
+            items.append({
+                **common_info,
+                'id': media_id,
+                **traverse_obj(metadata, {
+                    'title': ('title', {str}),
+                    'duration': ('duration', {int_or_none}),
+                    'thumbnail': ('thumbnail', 'path', {url_or_none}),
+                }),
+                'formats': formats,
+            })
+
+        post_info = {
+            **common_info,
+            'id': post_id,
+            'display_id': post_id,
+            **traverse_obj(post_data, {
+                'title': ('title', {str}),
+                'description': ('text', {clean_html}),
+                'like_count': ('likes', {int_or_none}),
+                'dislike_count': ('dislikes', {int_or_none}),
+                'comment_count': ('comments', {int_or_none}),
+                'thumbnail': ('thumbnail', 'path', {url_or_none}),
+            }),
+        }
+
+        if len(items) > 1:
+            return self.playlist_result(items, **post_info)
+
+        post_info.update(items[0])
+        return post_info
+
+
+class FloatplaneIE(FloatplaneBaseIE):
     _VALID_URL = r'https?://(?:(?:www|beta)\.)?floatplane\.com/post/(?P<id>\w+)'
+    _BASE_URL = 'https://www.floatplane.com'
     _TESTS = [{
         'url': 'https://www.floatplane.com/post/2Yf3UedF7C',
         'info_dict': {
@@ -170,104 +269,11 @@ class FloatplaneIE(InfoExtractor):
     }]
 
     def _real_initialize(self):
-        if not self._get_cookies('https://www.floatplane.com').get('sails.sid'):
+        if not self._get_cookies(self._BASE_URL).get('sails.sid'):
             self.raise_login_required()
 
     def _real_extract(self, url):
-        post_id = self._match_id(url)
-
-        post_data = self._download_json(
-            'https://www.floatplane.com/api/v3/content/post', post_id, query={'id': post_id},
-            note='Downloading post data', errnote='Unable to download post data')
-
-        if not any(traverse_obj(post_data, ('metadata', ('hasVideo', 'hasAudio')))):
-            raise ExtractorError('Post does not contain a video or audio track', expected=True)
-
-        uploader_url = format_field(
-            post_data, [('creator', 'urlname')], 'https://www.floatplane.com/channel/%s/home') or None
-
-        common_info = {
-            'uploader_url': uploader_url,
-            'channel_url': urljoin(f'{uploader_url}/', traverse_obj(post_data, ('channel', 'urlname'))),
-            'availability': self._availability(needs_subscription=True),
-            **traverse_obj(post_data, {
-                'uploader': ('creator', 'title', {str}),
-                'uploader_id': ('creator', 'id', {str}),
-                'channel': ('channel', 'title', {str}),
-                'channel_id': ('channel', 'id', {str}),
-                'release_timestamp': ('releaseDate', {parse_iso8601}),
-            }),
-        }
-
-        items = []
-        for media in traverse_obj(post_data, (('videoAttachments', 'audioAttachments'), ...)):
-            media_id = media['id']
-            media_typ = media.get('type') or 'video'
-
-            metadata = self._download_json(
-                f'https://www.floatplane.com/api/v3/content/{media_typ}', media_id, query={'id': media_id},
-                note=f'Downloading {media_typ} metadata')
-
-            stream = self._download_json(
-                'https://www.floatplane.com/api/v2/cdn/delivery', media_id, query={
-                    'type': 'vod' if media_typ == 'video' else 'aod',
-                    'guid': metadata['guid'],
-                }, note=f'Downloading {media_typ} stream data')
-
-            path_template = traverse_obj(stream, ('resource', 'uri', {str}))
-
-            def format_path(params):
-                path = path_template
-                for i, val in (params or {}).items():
-                    path = path.replace(f'{{qualityLevelParams.{i}}}', val)
-                return path
-
-            formats = []
-            for quality in traverse_obj(stream, ('resource', 'data', 'qualityLevels', ...)):
-                url = urljoin(stream['cdn'], format_path(traverse_obj(
-                    stream, ('resource', 'data', 'qualityLevelParams', quality['name'], {dict}))))
-                formats.append({
-                    **traverse_obj(quality, {
-                        'format_id': ('name', {str}),
-                        'format_note': ('label', {str}),
-                        'width': ('width', {int}),
-                        'height': ('height', {int}),
-                    }),
-                    **parse_codecs(quality.get('codecs')),
-                    'url': url,
-                    'ext': determine_ext(url.partition('/chunk.m3u8')[0], 'mp4'),
-                })
-
-            items.append({
-                **common_info,
-                'id': media_id,
-                **traverse_obj(metadata, {
-                    'title': ('title', {str}),
-                    'duration': ('duration', {int_or_none}),
-                    'thumbnail': ('thumbnail', 'path', {url_or_none}),
-                }),
-                'formats': formats,
-            })
-
-        post_info = {
-            **common_info,
-            'id': post_id,
-            'display_id': post_id,
-            **traverse_obj(post_data, {
-                'title': ('title', {str}),
-                'description': ('text', {clean_html}),
-                'like_count': ('likes', {int_or_none}),
-                'dislike_count': ('dislikes', {int_or_none}),
-                'comment_count': ('comments', {int_or_none}),
-                'thumbnail': ('thumbnail', 'path', {url_or_none}),
-            }),
-        }
-
-        if len(items) > 1:
-            return self.playlist_result(items, **post_info)
-
-        post_info.update(items[0])
-        return post_info
+        return self._base_extract(self, url, self._BASE_URL, do_impersonate=False)
 
 
 class FloatplaneChannelIE(InfoExtractor):
