@@ -51,23 +51,7 @@ class MotherlessIE(InfoExtractor):
         'skip': '404',
     }, {
         'url': 'http://motherless.com/g/cosplay/633979F',
-        'md5': '0b2a43f447a49c3e649c93ad1fafa4a0',
-        'info_dict': {
-            'id': '633979F',
-            'ext': 'mp4',
-            'title': 'Turtlette',
-            'categories': ['superheroine heroine superher'],
-            'upload_date': '20140827',
-            'uploader_id': 'shade0230',
-            'thumbnail': r're:https?://.*\.jpg',
-            'age_limit': 18,
-            'like_count': int,
-            'comment_count': int,
-            'view_count': int,
-        },
-        'params': {
-            'nocheckcertificate': True,
-        },
+        'expected_exception': 'ExtractorError',
     }, {
         'url': 'http://motherless.com/8B4BBC1',
         'info_dict': {
@@ -106,6 +90,9 @@ class MotherlessIE(InfoExtractor):
         'params': {
             'nocheckcertificate': True,
         },
+    }, {
+        'url': 'https://motherless.com/8850983',
+        'expected_exception': 'ExtractorError',
     }]
 
     def _real_extract(self, url):
@@ -113,8 +100,10 @@ class MotherlessIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         if any(p in webpage for p in (
-                '<title>404 - MOTHERLESS.COM<',
-                ">The page you're looking for cannot be found.<")):
+                '<title>404 - MOTHERLESS.COM',
+                '<title>404 | MOTHERLESS.COM',
+                ">The page you're looking for cannot be found.<",
+                'File not found. Nothing to see here!')):
             raise ExtractorError(f'Video {video_id} does not exist', expected=True)
 
         if '>The content you are trying to view is for friends only.' in webpage:
@@ -197,6 +186,13 @@ class MotherlessPaginatedIE(InfoExtractor):
         real_url = self._correct_path(url, item_id)
         webpage = self._download_webpage(real_url, item_id, 'Downloading page 1')
 
+        if any(p in webpage for p in (
+            '<title>404 - MOTHERLESS.COM',
+            '<title>404 | MOTHERLESS.COM',
+            ">The page you're looking for cannot be found.<",
+                'File not found. Nothing to see here!')):
+            raise ExtractorError(f'Gallery {item_id} does not exist', expected=True)
+
         def get_page(idx):
             page = idx + 1
             current_page = webpage if not idx else self._download_webpage(
@@ -221,16 +217,19 @@ class MotherlessGroupIE(MotherlessPaginatedIE):
         'url': 'http://motherless.com/g/sex_must_be_funny',
         'info_dict': {
             'id': 'sex_must_be_funny',
-            'title': 'Sex must be funny',
+            'title': 'Sex must be funny - Videos - Sex can be funny. Wide smiles,laugh, games, fun of any kind!',
         },
         'playlist_count': 0,
     }, {
         'url': 'https://motherless.com/gv/beautiful_cock',
         'info_dict': {
             'id': 'beautiful_cock',
-            'title': 'Beautiful Cock',
+            'title': 'Beautiful Cock - Videos - DO NOT DUMP CONTENT HERE. You will be removed if you do. No garbage co',
         },
-        'playlist_mincount': 2040,
+        'playlist_mincount': 500,
+    }, {
+        'url': 'https://motherless.com/g/beautiful_coc',
+        'expected_exception': 'ExtractorError',
     }]
 
     def _correct_path(self, url, item_id):
@@ -245,14 +244,14 @@ class MotherlessGalleryIE(MotherlessPaginatedIE):
             'id': '338999F',
             'title': 'Random',
         },
-        'playlist_mincount': 171,
+        'playlist_mincount': 100,
     }, {
         'url': 'https://motherless.com/GVABD6213',
         'info_dict': {
             'id': 'ABD6213',
             'title': 'Cuties',
         },
-        'playlist_mincount': 2,
+        'playlist_mincount': 1,
     }, {
         'url': 'https://motherless.com/GVBCF7622',
         'info_dict': {
@@ -266,7 +265,10 @@ class MotherlessGalleryIE(MotherlessPaginatedIE):
             'id': '035DE2F',
             'title': 'General',
         },
-        'playlist_mincount': 420,
+        'playlist_mincount': 240,
+    }, {
+        'url': 'https://motherless.com/G466D59F',
+        'expected_exception': 'ExtractorError',
     }]
 
     def _correct_path(self, url, item_id):
@@ -289,6 +291,9 @@ class MotherlessUploaderIE(MotherlessPaginatedIE):
             'title': "Happy_couple's Uploads - Videos",
         },
         'playlist_mincount': 8,
+    }, {
+        'url': 'https://motherless.com/u/Happy_coupl',
+        'expected_exception': 'ExtractorError',
     }]
 
     _EXTRA_QUERY = {'t': 'v'}
