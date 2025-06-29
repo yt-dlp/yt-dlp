@@ -2162,6 +2162,10 @@ from .trovo import (
 from .trtcocuk import TrtCocukVideoIE
 from .trtworld import TrtWorldIE
 from .trueid import TrueIDIE
+from .trueidnet import (
+    TrueidnetMovieIE,
+    TrueidnetSeriesIE,
+)
 from .trunews import TruNewsIE
 from .truth import TruthIE
 from .trutv import TruTVIE
