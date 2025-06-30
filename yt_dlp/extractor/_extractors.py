@@ -1824,6 +1824,7 @@ from .safari import (
 from .saitosan import SaitosanIE
 from .samplefocus import SampleFocusIE
 from .sapo import SapoIE
+from .sauceplus import SaucePlusIE
 from .sbs import SBSIE
 from .sbscokr import (
     SBSCoKrAllvodProgramIE,
