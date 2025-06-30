@@ -1,7 +1,8 @@
 from .floatplane import FloatplaneBaseIE
 
 
-class SauceplusIE(FloatplaneBaseIE):
+class SaucePlusIE(FloatplaneBaseIE):
+    IE_DESC = 'Sauce+'
     _VALID_URL = r'https?://(?:(?:www|beta)\.)?sauceplus\.com/post/(?P<id>\w+)'
     _BASE_URL = 'https://www.sauceplus.com'
     _HEADERS = {
