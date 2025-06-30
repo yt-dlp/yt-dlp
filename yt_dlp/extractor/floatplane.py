@@ -73,9 +73,28 @@ class FloatplaneBaseIE(InfoExtractor):
             for quality in traverse_obj(stream, ('resource', 'data', 'qualityLevels', ...)):
                 url = urljoin(stream['cdn'], format_path(traverse_obj(
                     stream, ('resource', 'data', 'qualityLevelParams', quality['name'], {dict}))))
+                format_id = traverse_obj(quality, ('name', {str}))
+
+                m3u8_data = self._download_webpage(
+                    url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET,
+                    note=join_nonempty('Downloading', format_id, 'm3u8 information', delim=' '),
+                    errnote=join_nonempty('Failed to download', format_id, 'm3u8 information', delim=' '), headers=self._HEADERS)
+                if not m3u8_data:
+                    continue
+                hls_aes = {}
+                key_url = self._search_regex(
+                    r'#EXT-X-KEY:METHOD=AES-128,URI="(https?://[^"]+)"',
+                    m3u8_data, 'HLS AES key URI', default=None)
+                if key_url:
+                    urlh = self._request_webpage(
+                        key_url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET,
+                        note=join_nonempty('Downloading', format_id, 'HLS AES key', delim=' '),
+                        errnote=join_nonempty('Failed to download', format_id, 'HLS AES key', delim=' '),
+                    )
+                    if urlh:
+                        hls_aes['key'] = urlh.read().hex()
                 formats.append({
                     **traverse_obj(quality, {
-                        'format_id': ('name', {str}),
                         'format_note': ('label', {str}),
                         'width': ('width', {int}),
                         'height': ('height', {int}),
@@ -83,8 +102,10 @@ class FloatplaneBaseIE(InfoExtractor):
                     **parse_codecs(quality.get('codecs')),
                     'url': url,
                     'ext': determine_ext(url.partition('/chunk.m3u8')[0], 'mp4'),
+                    'format_id': format_id,
+                    'hls_media_playlist_data': m3u8_data,
+                    'hls_aes': hls_aes or None,
                 })
-
             items.append({
                 **common_info,
                 'id': media_id,
