@@ -89,6 +89,7 @@ class FloatplaneBaseIE(InfoExtractor):
                 if key_url:
                     urlh = self._request_webpage(
                         key_url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET,
+                        headers=self._HEADERS,
                         note=join_nonempty('Downloading', format_id, 'HLS AES key', delim=' '),
                         errnote=join_nonempty('Failed to download', format_id, 'HLS AES key', delim=' '),
                     )
@@ -145,7 +146,10 @@ class FloatplaneIE(FloatplaneBaseIE):
     _VALID_URL = r'https?://(?:(?:www|beta)\.)?floatplane\.com/post/(?P<id>\w+)'
     _BASE_URL = 'https://www.floatplane.com'
     _IMPERSONATE_TARGET = None
-    _HEADERS = None
+    _HEADERS = {
+        'Origin': _BASE_URL,
+        'Referer': f'{_BASE_URL}/',
+    }
     _TESTS = [{
         'url': 'https://www.floatplane.com/post/2Yf3UedF7C',
         'info_dict': {
