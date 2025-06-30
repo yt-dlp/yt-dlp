@@ -4,9 +4,11 @@ from .floatplane import FloatplaneBaseIE
 class SauceplusIE(FloatplaneBaseIE):
     _VALID_URL = r'https?://(?:(?:www|beta)\.)?sauceplus\.com/post/(?P<id>\w+)'
     _BASE_URL = 'https://www.sauceplus.com'
-    _HEADERS = {'Origin': _BASE_URL,
-                'Referer': _BASE_URL + '/'}
-    _IMPERSONATE_TARGET = 'chrome'  # Doesn't need to be chrome specifically
+    _HEADERS = {
+        'Origin': _BASE_URL,
+        'Referer': f'{_BASE_URL}/',
+    }
+    _IMPERSONATE_TARGET = True
     _TESTS = [{
         'url': 'https://www.sauceplus.com/post/YbBwIa2A5g',
         'info_dict': {

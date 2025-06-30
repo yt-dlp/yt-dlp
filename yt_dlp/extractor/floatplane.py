@@ -76,11 +76,12 @@ class FloatplaneBaseIE(InfoExtractor):
                 format_id = traverse_obj(quality, ('name', {str}))
 
                 m3u8_data = self._download_webpage(
-                    url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET,
+                    url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET, headers=self._HEADERS,
                     note=join_nonempty('Downloading', format_id, 'm3u8 information', delim=' '),
-                    errnote=join_nonempty('Failed to download', format_id, 'm3u8 information', delim=' '), headers=self._HEADERS)
+                    errnote=join_nonempty('Failed to download', format_id, 'm3u8 information', delim=' '))
                 if not m3u8_data:
                     continue
+
                 hls_aes = {}
                 key_url = self._search_regex(
                     r'#EXT-X-KEY:METHOD=AES-128,URI="(https?://[^"]+)"',
@@ -93,6 +94,7 @@ class FloatplaneBaseIE(InfoExtractor):
                     )
                     if urlh:
                         hls_aes['key'] = urlh.read().hex()
+
                 formats.append({
                     **traverse_obj(quality, {
                         'format_note': ('label', {str}),
