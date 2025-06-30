@@ -105,7 +105,6 @@ class FloatplaneBaseIE(InfoExtractor):
                     'url': url,
                     'ext': determine_ext(url.partition('/chunk.m3u8')[0], 'mp4'),
                     'format_id': format_id,
-                    'hls_media_playlist_data': m3u8_data,
                     'hls_aes': hls_aes or None,
                 })
             items.append({
