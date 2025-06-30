@@ -64,12 +64,16 @@ class HotStarBaseIE(InfoExtractor):
                 'container': ['fmp4br', 'fmp4'],
                 'ads': ['non_ssai', 'ssai'],
                 'audio_channel': ['atmos', 'dolby51', 'stereo'],
-                'encryption': ['plain'],
-                'video_codec': ['h265'],    # or ['h264']
+                'encryption': ['plain', 'widevine'],  # wv only so we can raise appropriate error
+                'video_codec': ['h265', 'h264'],
                 'ladder': ['tv', 'full'],
-                'resolution': ['4k'],       # or ['hd']
-                'true_resolution': ['4k'],  # or ['hd']
-                'dynamic_range': ['hdr'],   # or ['sdr']
+                'resolution': ['4k', 'hd'],
+                'true_resolution': ['4k', 'hd'],
+                'dynamic_range': ['hdr', 'sdr'],
+            }, separators=(',', ':')),
+            'drm_parameters': json.dumps({
+                'widevine_security_level': ['SW_SECURE_DECODE', 'SW_SECURE_CRYPTO'],
+                'hdcp_version': ['HDCP_V2_2', 'HDCP_V2_1', 'HDCP_V2', 'HDCP_V1'],
             }, separators=(',', ':')),
         }, st=st, cookies=cookies)
 
@@ -281,7 +285,7 @@ class HotStarIE(HotStarBaseIE):
             self.report_drm(video_id)
 
         geo_restricted = False
-        formats, subs = [], {}
+        formats, subs, has_drm = [], {}, False
         headers = {'Referer': f'{self._BASE_URL}/in'}
         content_type = traverse_obj(video_data, ('contentType', {str})) or self._CONTENT_TYPE[video_type]
 
@@ -302,6 +306,11 @@ class HotStarIE(HotStarBaseIE):
             if any(f'{prefix}:{ignore}' in tags
                    for key, prefix in self._IGNORE_MAP.items()
                    for ignore in self._configuration_arg(key)):
+                continue
+
+            tag_dict = dict((*t.split(':', 1), None)[:2] for t in tags.split(';'))
+            if tag_dict.get('encryption') not in ('plain', None):
+                has_drm = True
                 continue
 
             format_url = re.sub(r'(?<=//staragvod)(\d)', r'web\1', playback_set['content_url'])
@@ -330,10 +339,6 @@ class HotStarIE(HotStarBaseIE):
                     self.write_debug(e)
                 continue
 
-            tag_dict = dict((*t.split(':', 1), None)[:2] for t in tags.split(';'))
-            if tag_dict.get('encryption') not in ('plain', None):
-                for f in current_formats:
-                    f['has_drm'] = True
             for f in current_formats:
                 for k, v in self._TAG_FIELDS.items():
                     if not f.get(k):
@@ -361,6 +366,8 @@ class HotStarIE(HotStarBaseIE):
 
         if not formats and geo_restricted:
             self.raise_geo_restricted(countries=['IN'], metadata_available=True)
+        elif not formats and has_drm:
+            self.report_drm(video_id)
         self._remove_duplicate_formats(formats)
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
