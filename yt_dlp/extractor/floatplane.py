@@ -74,27 +74,28 @@ class FloatplaneBaseIE(InfoExtractor):
                 url = urljoin(stream['cdn'], format_path(traverse_obj(
                     stream, ('resource', 'data', 'qualityLevelParams', quality['name'], {dict}))))
                 format_id = traverse_obj(quality, ('name', {str}))
-
-                m3u8_data = self._download_webpage(
-                    url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET, headers=self._HEADERS,
-                    note=join_nonempty('Downloading', format_id, 'm3u8 information', delim=' '),
-                    errnote=join_nonempty('Failed to download', format_id, 'm3u8 information', delim=' '))
-                if not m3u8_data:
-                    continue
-
                 hls_aes = {}
-                key_url = self._search_regex(
-                    r'#EXT-X-KEY:METHOD=AES-128,URI="(https?://[^"]+)"',
-                    m3u8_data, 'HLS AES key URI', default=None)
-                if key_url:
-                    urlh = self._request_webpage(
-                        key_url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET,
-                        headers=self._HEADERS,
-                        note=join_nonempty('Downloading', format_id, 'HLS AES key', delim=' '),
-                        errnote=join_nonempty('Failed to download', format_id, 'HLS AES key', delim=' '),
-                    )
-                    if urlh:
-                        hls_aes['key'] = urlh.read().hex()
+                m3u8_data = None
+
+                # If we need impersonation for the API, then we need it for HLS keys too: extract in advance
+                if self._IMPERSONATE_TARGET is not None:
+                    m3u8_data = self._download_webpage(
+                        url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET, headers=self._HEADERS,
+                        note=join_nonempty('Downloading', format_id, 'm3u8 information', delim=' '),
+                        errnote=join_nonempty('Failed to download', format_id, 'm3u8 information', delim=' '))
+                    if not m3u8_data:
+                        continue
+
+                    key_url = self._search_regex(
+                        r'#EXT-X-KEY:METHOD=AES-128,URI="(https?://[^"]+)"',
+                        m3u8_data, 'HLS AES key URI', default=None)
+                    if key_url:
+                        urlh = self._request_webpage(
+                            key_url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET, headers=self._HEADERS,
+                            note=join_nonempty('Downloading', format_id, 'HLS AES key', delim=' '),
+                            errnote=join_nonempty('Failed to download', format_id, 'HLS AES key', delim=' '))
+                        if urlh:
+                            hls_aes['key'] = urlh.read().hex()
 
                 formats.append({
                     **traverse_obj(quality, {
