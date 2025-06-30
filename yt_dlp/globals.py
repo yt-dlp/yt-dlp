@@ -15,6 +15,7 @@ class Indirect:
 
 postprocessors = Indirect({})
 extractors = Indirect({})
+jsi_runtimes = Indirect({})
 
 # Plugins
 all_plugins_loaded = Indirect(False)
@@ -23,7 +24,9 @@ plugin_dirs = Indirect(['default'])
 
 plugin_ies = Indirect({})
 plugin_pps = Indirect({})
+plugin_jsis = Indirect({})
 plugin_ies_overrides = Indirect(defaultdict(list))
+plugin_jsis_overrides = Indirect(defaultdict(list))
 
 # Misc
 IN_CLI = Indirect(False)

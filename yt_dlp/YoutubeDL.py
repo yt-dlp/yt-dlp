@@ -32,13 +32,15 @@ from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
 from .extractor import gen_extractor_classes, get_info_extractor, import_extractors
 from .extractor.common import UnsupportedURLIE
-from .extractor.openload import PhantomJSwrapper
+from .jsinterp import PhantomJSwrapper
 from .globals import (
     IN_CLI,
     LAZY_EXTRACTORS,
     plugin_ies,
     plugin_ies_overrides,
     plugin_pps,
+    plugin_jsis,
+    plugin_jsis_overrides,
     all_plugins_loaded,
     plugin_dirs,
 )
@@ -445,6 +447,8 @@ class YoutubeDL:
                        Actual sleep time will be a random float from range
                        [sleep_interval; max_sleep_interval].
     sleep_interval_subtitles: Number of seconds to sleep before each subtitle download
+    jsi_preference:    Preferred JS interpreters to use during extraction. Can be
+                       given as comma-separated values.
     listformats:       Print an overview of available video formats and exit.
     list_thumbnails:   Print a table of all thumbnails and exit.
     match_filter:      A function that gets called for every video with the signature
@@ -4099,13 +4103,17 @@ class YoutubeDL:
         write_debug(f'Proxy map: {self.proxies}')
         write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
 
-        for plugin_type, plugins in (('Extractor', plugin_ies), ('Post-Processor', plugin_pps)):
+        for plugin_type, plugins in (('Extractor', plugin_ies), ('Post-Processor', plugin_pps),
+                                     ('JSI-Runtime', plugin_jsis)):
             display_list = [
                 klass.__name__ if klass.__name__ == name else f'{klass.__name__} as {name}'
                 for name, klass in plugins.value.items()]
             if plugin_type == 'Extractor':
                 display_list.extend(f'{plugins[-1].IE_NAME.partition("+")[2]} ({parent.__name__})'
                                     for parent, plugins in plugin_ies_overrides.value.items())
+            elif plugin_type == 'JSI-Runtime':
+                display_list.extend(f'{plugins[-1].JSI_NAME.partition("+")[2]} ({parent.__name__})'
+                                    for parent, plugins in plugin_jsis_overrides.value.items())
             if not display_list:
                 continue
             write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')

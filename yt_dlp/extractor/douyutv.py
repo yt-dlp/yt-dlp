@@ -4,7 +4,7 @@ import urllib
 import uuid
 
 from .common import InfoExtractor
-from .openload import PhantomJSwrapper
+from ..jsinterp import PhantomJSwrapper
 from ..utils import (
     ExtractorError,
     UserNotLive,

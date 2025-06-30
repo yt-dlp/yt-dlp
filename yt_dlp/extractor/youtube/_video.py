@@ -25,8 +25,7 @@ from ._base import (
 )
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
-from ..openload import PhantomJSwrapper
-from ...jsinterp import JSInterpreter
+from ...jsinterp import JSInterpreter, PhantomJSwrapper
 from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
