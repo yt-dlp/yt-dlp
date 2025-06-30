@@ -614,7 +614,7 @@ class SabrProcessor:
 
     def process_sabr_context_sending_policy(self, sabr_ctx_sending_policy: SabrContextSendingPolicy):
         for start_type in sabr_ctx_sending_policy.start_policy:
-            if start_type not in self.sabr_context_updates:
+            if start_type not in self.sabr_contexts_to_send:
                 self.logger.debug(f'Server requested to enable SABR Context Update for type {start_type}')
                 self.sabr_contexts_to_send.add(start_type)
 
