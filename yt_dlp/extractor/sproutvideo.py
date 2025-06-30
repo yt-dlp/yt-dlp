@@ -98,11 +98,8 @@ class SproutVideoIE(InfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id, headers={
-            **traverse_obj(smuggled_data, {'Referer': 'referer'}),
-            # yt-dlp's default Chrome user-agents are too old
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:140.0) Gecko/20100101 Firefox/140.0',
-        })
+        webpage = self._download_webpage(
+            url, video_id, headers=traverse_obj(smuggled_data, {'Referer': 'referer'}), impersonate=True)
         data = self._search_json(
             r'var\s+(?:dat|playerInfo)\s*=\s*["\']', webpage, 'player info', video_id,
             contains_pattern=r'[A-Za-z0-9+/=]+', end_pattern=r'["\'];',
