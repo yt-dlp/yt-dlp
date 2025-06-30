@@ -28,13 +28,13 @@ class UnitedNationWebTVExtractorIE(KalturaIE):
             'partner_id',
         )
         entry_id = self._html_search_regex(
-            r'const kentryID = \'([0-9A-z]+)\';',
+            r'const kentryID = \'([0-9A-z]{10})\';',
             webpage,
             'kentry_id',
         )
         kaltura_api_response = self._get_video_info(entry_id, partner_id)
         kaltura_id = self._search_regex(
-            r'http://cdnapi.kaltura.com/p/[0-9]+/sp/[0-9]+/playManifest/entryId/([0-9A-z]+)/format/url/protocol/http',
+            r'http://cdnapi.kaltura.com/p/[0-9]+/sp/[0-9]+/playManifest/entryId/([0-9A-z]{10})/format/url/protocol/http',
             kaltura_api_response[1].get('dataUrl'),
             'kaltura_id',
         )
