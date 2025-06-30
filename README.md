@@ -1156,15 +1156,15 @@ You can configure yt-dlp by placing any supported command line option in a confi
     * `/etc/yt-dlp/config`
     * `/etc/yt-dlp/config.txt`
 
-E.g. with the following configuration file, yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
+E.g. with the following configuration file, yt-dlp will always extract the audio, copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
 ```
 # Lines starting with # are comments
 
 # Always extract audio
 -x
 
-# Do not copy the mtime
---no-mtime
+# Copy the mtime
+--mtime
 
 # Use this proxy
 --proxy 127.0.0.1:3128
@@ -2262,6 +2262,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * yt-dlp uses modern http client backends such as `requests`. Use `--compat-options prefer-legacy-http-handler` to prefer the legacy http handler (`urllib`) to be used for standard http requests.
 * The sub-modules `swfinterp`, `casefold` are removed.
 * Passing `--simulate` (or calling `extract_info` with `download=False`) no longer alters the default format selection. See [#9843](https://github.com/yt-dlp/yt-dlp/issues/9843) for details.
+* yt-dlp no longer applies the server modified time to downloaded files by default. Use `--mtime` or `--compat-options mtime-by-default` to revert this.
 
 For ease of use, a few more compat options are available:
 
@@ -2271,7 +2272,7 @@ For ease of use, a few more compat options are available:
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization`
 * `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
 * `--compat-options 2023`: Same as `--compat-options 2024,prefer-vp9-sort`
-* `--compat-options 2024`: Currently does nothing. Use this to enable all future compat options
+* `--compat-options 2024`: Same as `--compat-options mtime-by-default`. Use this to enable all future compat options
 
 The following compat options restore vulnerable behavior from before security patches:
 
