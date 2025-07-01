@@ -262,5 +262,10 @@
     {
         "action": "remove",
         "when": "500761e41acb96953a5064e951d41d190c287e46"
+    },
+    {
+        "action": "add",
+        "when": "f3008bc5f89d2691f2f8dfc51b406ef4e25281c3",
+        "short": "[priority] **Default behaviour changed from `--mtime` to `--no-mtime`**\nyt-dlp no longer applies the server modified time to downloaded files by default. [Read more](https://github.com/yt-dlp/yt-dlp/issues/12780)"
     }
 ]
