@@ -733,6 +733,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     headers={'ytdl-encoding': encoding}))
                 assert res.headers.get('Content-Encoding') == encoding
                 assert res.read(6) == b'<html>'
+                assert res.read(0) == b''
                 assert res.read() == b'<video src="/vid.mp4" /></html>'
 
 
