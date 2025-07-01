@@ -435,7 +435,7 @@ def sub_bytes_inv(data):
 
 
 def rotate(data):
-    return data[1:] + [data[0]]
+    return [*data[1:], data[0]]
 
 
 def key_schedule_core(data, rcon_iteration):
