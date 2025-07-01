@@ -130,6 +130,9 @@ if urllib3_version < (2, 0, 0):
 requests.adapters.select_proxy = select_proxy
 
 
+FULL_READ = (1 << 31) - 1
+
+
 class RequestsResponseAdapter(Response):
     def __init__(self, res: requests.models.Response):
         super().__init__(
@@ -141,7 +144,7 @@ class RequestsResponseAdapter(Response):
     def read(self, amt: int | None = None):
         try:
             # Interact with urllib3 response directly.
-            return self.fp.read(amt, decode_content=True)
+            return self.fp.read(amt or FULL_READ, decode_content=True)
 
         # See urllib3.response.HTTPResponse.read() for exceptions raised on read
         except urllib3.exceptions.SSLError as e:
