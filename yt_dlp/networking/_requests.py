@@ -140,6 +140,10 @@ class RequestsResponseAdapter(Response):
 
     def read(self, amt: int | None = None):
         try:
+            # Work around issue with `.read(amt)` then `.read()`
+            # See: https://github.com/urllib3/urllib3/issues/3636
+            if amt is None:
+                amt = (1 << 31) - 1
             # Interact with urllib3 response directly.
             return self.fp.read(amt, decode_content=True)
 
