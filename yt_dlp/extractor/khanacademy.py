@@ -33,7 +33,7 @@ class KhanAcademyBaseIE(InfoExtractor):
             r'return\s*""\+e\+"\."\+\(', runtime_js, 'js resources', None, end_pattern=r'\)\[e\]\+"\.js"',
             transform_source=lambda s: re.sub(r'([\da-f]+):', r'"\1":', s))
 
-        # traverse all lazy-loaded js to find query-containing js file
+        # iterate all lazy-loaded js to find query-containing js file
         main_js = self._download_webpage(self._MAIN_JS_URL, None, 'Downloading khanacademy.js')
         for lazy_load in re.finditer(r'lazy\(function\(\)\{return Promise\.all\(\[(.+?)\]\)\.then', main_js):
             for js_name in re.finditer(r'X.e\("([0-9a-f]+)"\)', lazy_load[1]):
@@ -68,6 +68,8 @@ class KhanAcademyBaseIE(InfoExtractor):
             if not line or line.startswith('#'):
                 continue
             if line == '}':
+                # unlike fragment, query has no __typename at its ends
+                # only object inside query has tailing __typename
                 if indent > 2 or outlines[0].startswith('fragment'):
                     outlines.append(f'{" " * indent}__typename')
                 indent -= 2
@@ -79,29 +81,31 @@ class KhanAcademyBaseIE(InfoExtractor):
     def _compose_query(self, queries, key):
         def _get_fragments(key):
             fragments = [self._sanitize_query(queries[key]['query'])]
-            for key in queries[key]['embeds']:
-                fragments.extend(_get_fragments(key))
+            for sub in queries[key]['embeds']:
+                fragments.extend(_get_fragments(sub))
             return fragments
 
-        # recursively find all fragments then sort them
+        # recursively find and combine all fragments then sort them
         queries = _get_fragments(key)
         if not (query := next((q for q in queries if q.startswith('query ')), None)):
             raise ExtractorError(f'Failed to get query for {key}')
         fragments = sorted(set(q for q in queries if q.startswith('fragment ')))
         return '\n\n'.join([query, *fragments])
 
-    def _string_hash(self, input):
-        hash = 5381
-        for char in input[::-1]:
-            hash = ((hash * 33) ^ ord(char)) & 0xFFFFFFFF
-        return hash
+    def _string_hash(self, input_str):
+        str_hash = 5381
+        for char in input_str[::-1]:
+            str_hash = ((str_hash * 33) ^ ord(char)) & 0xFFFFFFFF
+        return str_hash
 
     def _get_query_hash(self, query_name):
         if cache := self.cache.load('khanacademy', f'{query_name}-hash'):
-            # change in hash of runtime.js may indicate change of website version
+            # change in hash of runtime.js may indicate change of graph query schema
+            #   consider cached hash as invalidated upon such change
             if cache['runtime_js'] == self._RUNTIME_JS_URL:
                 return cache['hash']
 
+        # iterate all query objects to find matching query
         queries = self._parse_query_src(self._search_query_js(query_name))
         for key, query_obj in queries.items():
             if f'query {query_name}' in query_obj['query']:
@@ -200,7 +204,7 @@ class KhanAcademyIE(KhanAcademyBaseIE):
             'ext': 'mp4',
             'title': 'Doodling in math: Spirals, Fibonacci, and being a plant [1 of 3]',
             'description': 'md5:4098102420babcf909097ec1633a52e7',
-            "upload_date": "20120131",
+            'upload_date': '20120131',
             'timestamp': 1327972656,
             'thumbnail': r're:https://cdn.kastatic.org/.*',
             'duration': 355,
@@ -232,7 +236,7 @@ class KhanAcademyIE(KhanAcademyBaseIE):
                     'creators': ('authorNames', ..., {str}),
                     'timestamp': ('dateAdded', {parse_iso8601}),
                     'license': ('kaUserLicense', {str}),
-                })
+                }),
             }
 
 
