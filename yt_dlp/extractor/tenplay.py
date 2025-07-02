@@ -7,7 +7,7 @@ from ..utils import int_or_none, traverse_obj, url_or_none, urljoin
 
 class TenPlayIE(InfoExtractor):
     IE_NAME = '10play'
-    _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?:[^/?#]+/)+(?P<id>tpv\d{6}[a-z]{5})'
+    _VALID_URL = r'https?://(?:www\.)?10(play)?\.com\.au/(?:[^/?#]+/)+(?P<id>tpv\d{6}[a-z]{5})'
     _NETRC_MACHINE = '10play'
     _TESTS = [{
         # Geo-restricted to Australia
@@ -78,7 +78,7 @@ class TenPlayIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Failed to download m3u8 information: HTTP Error 502'],
     }, {
-        'url': 'https://10play.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
+        'url': 'https://10.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
         'only_matching': True,
     }]
     _GEO_BYPASS = False
@@ -96,7 +96,7 @@ class TenPlayIE(InfoExtractor):
     def _real_extract(self, url):
         content_id = self._match_id(url)
         data = self._download_json(
-            'https://10play.com.au/api/v1/videos/' + content_id, content_id)
+            'https://10.com.au/api/v1/videos/' + content_id, content_id)
 
         video_data = self._download_json(
             f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
@@ -137,7 +137,7 @@ class TenPlayIE(InfoExtractor):
 
 class TenPlaySeasonIE(InfoExtractor):
     IE_NAME = '10play:season'
-    _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?P<show>[^/?#]+)/episodes/(?P<season>[^/?#]+)/?(?:$|[?#])'
+    _VALID_URL = r'https?://(?:www\.)?10(play)?\.com\.au/(?P<show>[^/?#]+)/episodes/(?P<season>[^/?#]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://10play.com.au/masterchef/episodes/season-15',
         'info_dict': {
@@ -146,7 +146,7 @@ class TenPlaySeasonIE(InfoExtractor):
         },
         'playlist_mincount': 50,
     }, {
-        'url': 'https://10play.com.au/the-bold-and-the-beautiful-fast-tracked/episodes/season-2024',
+        'url': 'https://10.com.au/the-bold-and-the-beautiful-fast-tracked/episodes/season-2024',
         'info_dict': {
             'title': 'Season 2024',
             'id': 'Mjc0OTIw',
@@ -172,7 +172,7 @@ class TenPlaySeasonIE(InfoExtractor):
     def _real_extract(self, url):
         show, season = self._match_valid_url(url).group('show', 'season')
         season_info = self._download_json(
-            f'https://10play.com.au/api/shows/{show}/episodes/{season}', f'{show}/{season}')
+            f'https://10.com.au/api/shows/{show}/episodes/{season}', f'{show}/{season}')
 
         episodes_carousel = traverse_obj(season_info, (
             'content', 0, 'components', (
