@@ -133,7 +133,7 @@ class KhanAcademyBaseIE(InfoExtractor):
         self._parse_js_urls(webpage)
 
         ka_data = self._search_json(r'__KA_DATA__ \s*=', webpage, 'initial state', display_id)
-        content = self._download_json(
+        data = self._download_json(
             'https://www.khanacademy.org/api/internal/graphql/ContentForPath', display_id,
             query={
                 'fastly_cacheable': 'persist_until_publish',
@@ -145,16 +145,20 @@ class KhanAcademyBaseIE(InfoExtractor):
                 }),
                 'lang': 'en',
                 'app': 'khanacademy',
-            })['data']['contentRoute']['listedPathData']
-        return self._parse_component_props(content, display_id)
+            })['data']['contentRoute']
+
+        if data.get('listedPathData'):
+            return self._parse_component_props(data['listedPathData'], display_id, listed=True)
+        else:
+            return self._parse_component_props(data['unlistedPathData'], display_id, listed=False)
 
 
 class KhanAcademyIE(KhanAcademyBaseIE):
     IE_NAME = 'khanacademy'
     _VALID_URL = KhanAcademyBaseIE._VALID_URL_TEMPL % ('4', 'v/')
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.khanacademy.org/computing/computer-science/cryptography/crypt/v/one-time-pad',
-        'md5': '1d5c2e70fa6aa29c38eca419f12515ce',
+        'md5': '2bd84e22fa3feea2e2a21352185a96bd',
         'info_dict': {
             'id': 'FlIG3TvQCBQ',
             'ext': 'mp4',
@@ -185,20 +189,51 @@ class KhanAcademyIE(KhanAcademyBaseIE):
             'view_count': int,
             'like_count': int,
             'heatmap': list,
+            'media_type': 'video',
         },
         'add_ie': ['Youtube'],
-    }
+    }, {
+        'note': 'unlisted path video',
+        'url': 'https://www.khanacademy.org/math/math-for-fun-and-glory/vi-hart/spirals-fibonacci/v/doodling-in-math-spirals-fibonacci-and-being-a-plant-1-of-3',
+        'info_dict': {
+            'id': '537957955',
+            'ext': 'mp4',
+            'title': 'Doodling in math: Spirals, Fibonacci, and being a plant [1 of 3]',
+            'description': 'md5:4098102420babcf909097ec1633a52e7',
+            "upload_date": "20120131",
+            'timestamp': 1327972656,
+            'thumbnail': r're:https://cdn.kastatic.org/.*',
+            'duration': 355,
+            'creators': ['Vi Hart'],
+            'license': 'cc-by-nc-sa',
+        },
+    }]
 
-    def _parse_component_props(self, component_props, display_id):
+    def _parse_component_props(self, component_props, display_id, listed=True):
         video = component_props['content']
-        return {
-            **self._parse_video(video),
-            **traverse_obj(video, {
-                'creators': ('authorNames', ..., {str}),
-                'timestamp': ('dateAdded', {parse_iso8601}),
-                'license': ('kaUserLicense', {str}),
-            }),
-        }
+        if listed:
+            return {
+                **self._parse_video(video),
+                **traverse_obj(video, {
+                    'creators': ('authorNames', ..., {str}),
+                    'timestamp': ('dateAdded', {parse_iso8601}),
+                    'license': ('kaUserLicense', {str}),
+                }),
+            }
+        else:
+            return {
+                'id': str(video['id']),
+                'formats': self._extract_m3u8_formats(json.loads(video['downloadUrls'])['m3u8'], display_id),
+                **traverse_obj(video, {
+                    'title': ('translatedTitle', {str}),
+                    'description': ('description', {str}),
+                    'thumbnail': ('thumbnailUrls', ..., 'url', {url_or_none}, any),
+                    'duration': ('duration', {int}),
+                    'creators': ('authorNames', ..., {str}),
+                    'timestamp': ('dateAdded', {parse_iso8601}),
+                    'license': ('kaUserLicense', {str}),
+                })
+            }
 
 
 class KhanAcademyUnitIE(KhanAcademyBaseIE):
@@ -224,9 +259,20 @@ class KhanAcademyUnitIE(KhanAcademyBaseIE):
             '_old_archive_ids': ['khanacademyunit computer-science'],
         },
         'playlist_mincount': 50,
+    }, {
+        'note': 'unlisted path unit',
+        'url': 'https://www.khanacademy.org/math/math-for-fun-and-glory/vi-hart',
+        'info_dict': {
+            'id': 'xf48ec4ac',
+            'title': 'Doodling in Math and more',
+            'description': 'md5:81ca50417783334a27e48d687a346f14',
+            'display_id': 'math/math-for-fun-and-glory/vi-hart',
+            '_old_archive_ids': ['khanacademyunit vi-hart'],
+        },
+        'playlist_mincount': 50,
     }]
 
-    def _parse_component_props(self, component_props, display_id):
+    def _parse_component_props(self, component_props, display_id, listed=True):
         course = component_props['course']
         selected_unit = traverse_obj(course, (
             'unitChildren', lambda _, v: v['relativeUrl'] == f'/{display_id}', any)) or course
