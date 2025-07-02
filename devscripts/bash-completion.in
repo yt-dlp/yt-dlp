@@ -10,9 +10,13 @@ __yt_dlp()
     diropts="--cache-dir"
 
     if [[ ${prev} =~ ${fileopts} ]]; then
+        local IFS=$'\n'
+        compopt -o filenames
         COMPREPLY=( $(compgen -f -- ${cur}) )
         return 0
     elif [[ ${prev} =~ ${diropts} ]]; then
+        local IFS=$'\n'
+        compopt -o filenames
         COMPREPLY=( $(compgen -d -- ${cur}) )
         return 0
     fi
