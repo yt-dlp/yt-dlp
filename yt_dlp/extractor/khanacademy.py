@@ -31,7 +31,7 @@ class KhanAcademyBaseIE(InfoExtractor):
         runtime_js = self._download_webpage(self._RUNTIME_JS_URL, None, 'Downloading runtime.js')
         version_hashes = self._search_json(
             r'return\s*""\+e\+"\."\+\(', runtime_js, 'js resources', None, end_pattern=r'\)\[e\]\+"\.js"',
-            transform_source=lambda s: re.sub(r'([\da-f]+):', r'"\1":', s))
+            transform_source=lambda s: re.sub(r'([\da-f]+):', r'"\1":', s))  # cannot use js_to_json, due to #13621
 
         # iterate all lazy-loaded js to find query-containing js file
         main_js = self._download_webpage(self._MAIN_JS_URL, None, 'Downloading khanacademy.js')
