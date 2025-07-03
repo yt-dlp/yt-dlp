@@ -1,3 +1,5 @@
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -7,8 +9,6 @@ from ..utils import (
     unified_strdate,
 )
 from ..utils.traversal import traverse_obj
-
-import re
 
 
 class WatIE(InfoExtractor):
@@ -56,10 +56,22 @@ class WatIE(InfoExtractor):
                 'ext': 'mp4',
             },
             'params': {'skip_download': 'm3u8'},
+            'expected_warnings': ["Ce contenu n'est pas disponible"],
+            'skip': 'This content is no longer available',
         },
         {
             'url': 'wat:f0550853-c949-4e0e-8ba4-8237cbb512af',
-            'only_matching': True,
+            'info_dict': {
+                'id': 'f0550853-c949-4e0e-8ba4-8237cbb512af',
+                'ext': 'mp4',
+                'title': '24H Pujadas du mercredi 2 juillet 2025',
+                'thumbnail': 'https://photos.tf1.fr/1280/720/24h-pujadas-du-mercredi-2-juillet-2025-394752-0@1x.jpg',
+                'upload_date': '20250702',
+                'duration': 5866,
+            },
+            'params': {
+                'skip_download': True,
+            },
         },
     ]
     _GEO_BYPASS = False
