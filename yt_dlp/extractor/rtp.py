@@ -65,7 +65,7 @@ class RTPIE(InfoExtractor):
             'modified_timestamp': 1735766883,
             'series': 'Telejornal',
             'modified_date': '20250101',
-            'season': '2025'
+            'season': '2025',
         },
     }, {
         # Episode not accessible through API
@@ -164,7 +164,7 @@ class RTPIE(InfoExtractor):
             })
 
         return {
-            'id': f"{episode_id}_{asset_index + 1}" if asset_index > 0 else episode_id,
+            'id': f'{episode_id}_{asset_index + 1}' if asset_index > 0 else episode_id,
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': traverse_obj(episode_data, ('assets', asset_index, 'asset_thumbnail', {url_or_none})),
