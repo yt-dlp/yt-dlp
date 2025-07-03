@@ -610,3 +610,54 @@ class PatreonCampaignIE(PatreonBaseIE):
             'age_limit': 18 if traverse_obj(campaign_info, ('attributes', 'is_nsfw')) else 0,
             'thumbnail': url_or_none(traverse_obj(campaign_info, ('attributes', 'avatar_photo_url'))),
         }
+
+
+class PatreonCollectionIE(PatreonBaseIE):
+    IE_NAME = 'patreon:collection'
+    _VALID_URL = r'''(?x)https?://(?:www\.)?patreon\.com/collection/(?P<id>\d+)'''
+    _TESTS = [{
+        'url': 'https://www.patreon.com/collection/15764',
+        'info_dict': {
+            'title': "JoJo's Bizarre Adventure",
+            'id': '15764',
+            'age_limit': 0,
+            'description': '',
+            'thumbnail': 're:^https?://.*$',
+        },
+        'playlist_mincount': 200,
+    }, {
+        'url': 'https://www.patreon.com/collection/15769?view=expanded',
+        'only_matching': True,
+    }]
+
+    def _entries(self, collection_id, post_ids):
+        for post_id in post_ids:
+            yield self.url_result(
+                f'https://www.patreon.com/posts/{post_id}?collection={collection_id}', PatreonIE)
+
+    def _real_extract(self, url):
+        collection_id = self._match_id(url)
+        params = {
+            'include': 'campaign',
+            'fields[collection]': 'description,id,num_posts,post_ids,thumbnail,title',
+            'json-api-use-default-includes': 'false',
+            'fields[campaign]': 'is_nsfw',
+        }
+        response = self._call_api(
+            f'collection/{collection_id}', collection_id,
+            note='Downloading collection info', fatal=True, query=params)
+
+        return {
+            '_type': 'playlist',
+            'id': collection_id,
+            'age_limit': 18 if traverse_obj(
+                response, ('included', 0, 'attributes', 'is_nsfw', {bool})) else 0,
+            **traverse_obj(response, ('data', 'attributes', {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'playlist_count': ('num_posts', {int_or_none}),
+                'thumbnail': ('thumbnail', 'url', {url_or_none}),
+            })),
+            'entries': self._entries(collection_id, traverse_obj(
+                response, ('data', 'attributes', 'post_ids', {list[int]}))),
+        }
