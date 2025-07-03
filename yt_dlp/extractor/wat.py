@@ -66,7 +66,7 @@ class WatIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_id = video_id if re.match(self._WAT_ID_RE, video_id) or re.match(r'\d{7,}', video_id) else str(int(video_id, 36))
+        video_id = video_id if re.fullmatch(fr'({self._UUID_RE}|\d{{7,}})', video_id) else str(int(video_id, 36))
 
         # 'contentv4' is used in the website, but it also returns the related
         # videos, we don't need them
