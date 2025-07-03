@@ -8,9 +8,12 @@ from ..utils import (
 )
 from ..utils.traversal import traverse_obj
 
+import re
+
 
 class WatIE(InfoExtractor):
-    _VALID_URL = r'(?:wat:|https?://(?:www\.)?wat\.tv/video/.*-)(?P<id>[0-9a-z]+)'
+    _WAT_ID_RE = r'[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}'
+    _VALID_URL = rf'(?:wat:|https?://(?:www\.)?wat\.tv/video/.*-)(?P<id>({_WAT_ID_RE}|[0-9a-z]+))'
     IE_NAME = 'wat.tv'
     _TESTS = [
         {
@@ -54,12 +57,16 @@ class WatIE(InfoExtractor):
             },
             'params': {'skip_download': 'm3u8'},
         },
+        {
+            'url': 'wat:f0550853-c949-4e0e-8ba4-8237cbb512af',
+            'only_matching': True,
+        },
     ]
     _GEO_BYPASS = False
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_id = video_id if video_id.isdigit() and len(video_id) > 6 else str(int(video_id, 36))
+        video_id = video_id if re.match(self._WAT_ID_RE, video_id) or re.match(r'\d{7,}', video_id) else str(int(video_id, 36))
 
         # 'contentv4' is used in the website, but it also returns the related
         # videos, we don't need them

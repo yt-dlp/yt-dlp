@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from .wat import WatIE
-from ..utils import ExtractorError, int_or_none
+from ..utils import ExtractorError, str_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -35,6 +35,9 @@ class LCIIE(InfoExtractor):
     }, {
         'url': 'https://www.lci.fr/politique/election-presidentielle-2022-second-tour-j-2-marine-le-pen-et-emmanuel-macron-en-interview-de-lci-vendredi-soir-2217486.html',
         'only_matching': True,
+    }, {
+        'url': 'https://www.tf1info.fr/replay-lci/videos/video-24h-pujadas-du-mercredi-2-juillet-2025-73777-2380589.html',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -42,7 +45,7 @@ class LCIIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         next_data = self._search_nextjs_data(webpage, video_id)
         wat_id = traverse_obj(next_data, (
-            'props', 'pageProps', 'page', 'tms', 'videos', {dict.keys}, ..., {int_or_none}, any))
+            'props', 'pageProps', 'page', 'tms', 'videos', {dict.keys}, ..., {str_or_none}, any))
         if wat_id is None:
             raise ExtractorError('Could not find wat_id')
 
