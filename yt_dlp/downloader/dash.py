@@ -1,9 +1,14 @@
+import base64
+import binascii
+import json
 import time
 import urllib.parse
 
 from . import get_suitable_downloader
 from .fragment import FragmentFD
-from ..utils import update_url_query, urljoin
+from ..networking import Request
+from ..networking.exceptions import RequestError
+from ..utils import remove_start, traverse_obj, update_url_query, urljoin
 
 
 class DashSegmentsFD(FragmentFD):
@@ -49,6 +54,25 @@ class DashSegmentsFD(FragmentFD):
             if extra_param_to_segment_url:
                 extra_query = urllib.parse.parse_qs(extra_param_to_segment_url)
 
+            hls_aes = fmt.get('hls_aes', {})
+            if hls_aes:
+                decrypt_info = {'METHOD', 'AES-128'}
+                key = hls_aes.get('key')
+                if key:
+                    key = binascii.unhexlify(remove_start(key, '0x'))
+                    assert len(key) in (16, 24, 32), 'Invalid length for HLS AES-128 key'
+                    decrypt_info['KEY'] = key
+                iv = hls_aes.get('iv')
+                if iv:
+                    iv = binascii.unhexlify(remove_start(iv, '0x').zfill(32))
+                    decrypt_info['IV'] = iv
+                uri = hls_aes.get('uri')
+                if uri:
+                    if extra_query:
+                        uri = update_url_query(uri, extra_query)
+                    decrypt_info['URI'] = uri
+                ctx['decrypt_info'] = decrypt_info
+
             fragments_to_download = self._get_fragments(fmt, ctx, extra_query)
 
             if real_downloader:
@@ -59,6 +83,12 @@ class DashSegmentsFD(FragmentFD):
                 return fd.real_download(filename, info_dict)
 
             args.append([ctx, fragments_to_download, fmt])
+
+        cenc_key = traverse_obj(info_dict, ('dash_cenc', 'key'))
+        cenc_key_ids = traverse_obj(info_dict, ('dash_cenc', 'key_ids'))
+        clearkey_laurl = traverse_obj(info_dict, ('dash_cenc', 'laurl'))
+        if not cenc_key and cenc_key_ids and clearkey_laurl:
+            self._get_clearkey_cenc(info_dict, clearkey_laurl, cenc_key_ids)
 
         return self.download_and_append_fragments_multiple(*args, is_fatal=lambda idx: idx == 0)
 
@@ -87,4 +117,35 @@ class DashSegmentsFD(FragmentFD):
                 'fragment_count': fragment.get('fragment_count'),
                 'index': i,
                 'url': fragment_url,
+                'decrypt_info': ctx.get('decrypt_info', {'METHOD': 'NONE'}),
             }
+
+    def _get_clearkey_cenc(self, info_dict, laurl, key_ids):
+        dash_cenc = info_dict.get('dash_cenc', {})
+        payload = json.dumps({
+            'kids': [
+                base64.urlsafe_b64encode(bytes.fromhex(k)).decode().rstrip('=')
+                for k in key_ids
+            ],
+            'type': 'temporary',
+        }).encode()
+        try:
+            response = self.ydl.urlopen(Request(
+                laurl, data=payload, headers={'Content-Type': 'application/json'}))
+            data = json.loads(response.read())
+        except (RequestError, json.JSONDecodeError) as err:
+            self.report_error(f'Failed to retrieve key from Clear Key license server: {err}')
+            return
+        keys = data.get('keys', [])
+        if len(keys) > 1:
+            self.report_warning('Clear Key license server returned multiple keys but only single key CENC is supported')
+        for key in keys:
+            k = key.get('k')
+            if k:
+                try:
+                    dash_cenc.update({'key': base64.urlsafe_b64decode(f'{k}==').hex()})
+                    info_dict['dash_cenc'] = dash_cenc
+                    return
+                except (ValueError, binascii.Error):
+                    pass
+        self.report_error('Clear key license server did not return any valid CENC keys')
