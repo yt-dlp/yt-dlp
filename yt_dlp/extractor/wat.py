@@ -12,8 +12,8 @@ import re
 
 
 class WatIE(InfoExtractor):
-    _WAT_ID_RE = r'[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}'
-    _VALID_URL = rf'(?:wat:|https?://(?:www\.)?wat\.tv/video/.*-)(?P<id>({_WAT_ID_RE}|[0-9a-z]+))'
+    _UUID_RE = r'[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}'
+    _VALID_URL = rf'(?:wat:|https?://(?:www\.)?wat\.tv/video/.*-)(?P<id>({_UUID_RE}|[0-9a-z]+))'
     IE_NAME = 'wat.tv'
     _TESTS = [
         {
