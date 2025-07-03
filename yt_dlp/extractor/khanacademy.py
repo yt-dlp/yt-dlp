@@ -20,16 +20,16 @@ class KhanAcademyBaseIE(InfoExtractor):
     _MAIN_JS_URL = None
     _VALID_URL_TEMPL = r'https?://(?:www\.)?khanacademy\.org/(?P<id>(?:[^/]+/){%s}%s[^?#/&]+)'
 
-    def _parse_js_urls(self, webpage):
+    def _load_script_src_urls(self, webpage):
         search = lambda name: self._search_regex(
             rf'<script src="(https://cdn\.kastatic\.org/khanacademy/{name}\.[0-9a-f]+\.js)">', webpage, name)
         self._RUNTIME_JS_URL = search('runtime')
         self._MAIN_JS_URL = search('khanacademy')
 
-    def _search_query_js(self, query_name):
+    def _extract_graphql(self, query_name):
         # runtime.js contains hash version for each js file, which is needed for building js src url
         runtime_js = self._download_webpage(self._RUNTIME_JS_URL, None, 'Downloading runtime.js')
-        js_hashes = self._search_json(
+        version_hashes = self._search_json(
             r'return\s*""\+e\+"\."\+\(', runtime_js, 'js resources', None, end_pattern=r'\)\[e\]\+"\.js"',
             transform_source=lambda s: re.sub(r'([\da-f]+):', r'"\1":', s))
 
@@ -37,19 +37,20 @@ class KhanAcademyBaseIE(InfoExtractor):
         main_js = self._download_webpage(self._MAIN_JS_URL, None, 'Downloading khanacademy.js')
         for lazy_load in re.finditer(r'lazy\(function\(\)\{return Promise\.all\(\[(.+?)\]\)\.then', main_js):
             for js_name in re.finditer(r'X.e\("([0-9a-f]+)"\)', lazy_load[1]):
-                if not (js_hash := js_hashes.get(js_name[1])):
+                if not (js_hash := version_hashes.get(js_name[1])):
                     self.report_warning(f'{js_name[1]} has no hash record for it, skip')
                     continue
                 url = f'https://cdn.kastatic.org/khanacademy/{js_name[1]}.{js_hash}.js'
                 js_src = self._download_webpage(url, None, f'Downloading {js_name[1]}.js')
                 if f'query {query_name}' in js_src:
-                    return js_src
+                    return self._parse_graphql_js(js_src)
         raise ExtractorError('Failed to find query js')
 
-    def _parse_query_src(self, src):
+    def _parse_graphql_js(self, src):
         # extract gql strings for each object
         queries = {match['obj_id']: json.loads(js_to_json(match['body'])) for match in re.finditer(
             r'function (?P<obj_id>_templateObject\d*)\(\)\{var n=\(0,r\._\)\((?P<body>\[.+?\])\);return', src)}
+
         # extract variable name to object query map at end: `x=o()(_templateObject00(), m, n, k)`
         return {
             match['name']: {
@@ -78,18 +79,16 @@ class KhanAcademyBaseIE(InfoExtractor):
                 indent += 2
         return '\n'.join(outlines)
 
-    def _compose_query(self, queries, key):
+    def _compose_query(self, query_objs, key):
         def _get_fragments(key):
-            fragments = [self._sanitize_query(queries[key]['query'])]
-            for sub in queries[key]['embeds']:
-                fragments.extend(_get_fragments(sub))
-            return fragments
+            yield self._sanitize_query(query_objs[key]['query'])
+            for sub in query_objs[key]['embeds']:
+                yield from _get_fragments(sub)
 
-        # recursively find and combine all fragments then sort them
-        queries = _get_fragments(key)
+        queries = set(_get_fragments(key))
         if not (query := next((q for q in queries if q.startswith('query ')), None)):
-            raise ExtractorError(f'Failed to get query for {key}')
-        fragments = sorted(set(q for q in queries if q.startswith('fragment ')))
+            raise ExtractorError(f'Failed to find "{key}" query from query objects')
+        fragments = sorted(q for q in queries if q.startswith('fragment '))
         return '\n\n'.join([query, *fragments])
 
     def _string_hash(self, input_str):
@@ -100,20 +99,19 @@ class KhanAcademyBaseIE(InfoExtractor):
 
     def _get_query_hash(self, query_name):
         if cache := self.cache.load('khanacademy', f'{query_name}-hash'):
-            # change in hash of runtime.js may indicate change of graph query schema
+            # change in hash of runtime.js may indicate change of graphql schema
             #   consider cached hash as invalidated upon such change
             if cache['runtime_js'] == self._RUNTIME_JS_URL:
                 return cache['hash']
 
         # iterate all query objects to find matching query
-        queries = self._parse_query_src(self._search_query_js(query_name))
-        for key, query_obj in queries.items():
+        query_objs = self._extract_graphql(query_name)
+        for key, query_obj in query_objs.items():
             if f'query {query_name}' in query_obj['query']:
-                query_hash = self._string_hash(self._compose_query(queries, key))
+                query_hash = self._string_hash(self._compose_query(query_objs, key))
                 self.cache.store('khanacademy', f'{query_name}-hash', {
                     'hash': query_hash, 'runtime_js': self._RUNTIME_JS_URL})
                 return query_hash
-
         raise ExtractorError(f'Failed to find query object for {query_name}')
 
     def _parse_video(self, video):
@@ -134,7 +132,7 @@ class KhanAcademyBaseIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        self._parse_js_urls(webpage)
+        self._load_script_src_urls(webpage)
 
         ka_data = self._search_json(r'__KA_DATA__ \s*=', webpage, 'initial state', display_id)
         data = self._download_json(
@@ -195,6 +193,7 @@ class KhanAcademyIE(KhanAcademyBaseIE):
             'heatmap': list,
             'media_type': 'video',
         },
+        'expected_warnings': ['[0-9a-f]+ has no hash record for it, skip'],
         'add_ie': ['Youtube'],
     }, {
         'note': 'unlisted path video',
@@ -211,6 +210,7 @@ class KhanAcademyIE(KhanAcademyBaseIE):
             'creators': ['Vi Hart'],
             'license': 'cc-by-nc-sa',
         },
+        'expected_warnings': ['[0-9a-f]+ has no hash record for it, skip'],
     }]
 
     def _parse_component_props(self, component_props, display_id, listed=True):
@@ -253,6 +253,7 @@ class KhanAcademyUnitIE(KhanAcademyBaseIE):
             '_old_archive_ids': ['khanacademyunit cryptography'],
         },
         'playlist_mincount': 31,
+        'expected_warnings': ['[0-9a-f]+ has no hash record for it, skip'],
     }, {
         'url': 'https://www.khanacademy.org/computing/computer-science',
         'info_dict': {
@@ -263,6 +264,7 @@ class KhanAcademyUnitIE(KhanAcademyBaseIE):
             '_old_archive_ids': ['khanacademyunit computer-science'],
         },
         'playlist_mincount': 50,
+        'expected_warnings': ['[0-9a-f]+ has no hash record for it, skip'],
     }, {
         'note': 'unlisted path unit',
         'url': 'https://www.khanacademy.org/math/math-for-fun-and-glory/vi-hart',
@@ -274,6 +276,7 @@ class KhanAcademyUnitIE(KhanAcademyBaseIE):
             '_old_archive_ids': ['khanacademyunit vi-hart'],
         },
         'playlist_mincount': 50,
+        'expected_warnings': ['[0-9a-f]+ has no hash record for it, skip'],
     }]
 
     def _parse_component_props(self, component_props, display_id, listed=True):
