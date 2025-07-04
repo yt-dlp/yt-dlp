@@ -1,9 +1,12 @@
 from .common import InfoExtractor
 from ..utils import (
+    base_url,
     int_or_none,
     join_nonempty,
     js_to_json,
     mimetype2ext,
+    url_basename,
+    urljoin,
 )
 
 
@@ -14,7 +17,13 @@ class GediDigitalIE(InfoExtractor):
             |lastampa
             |ilsecoloxix
             |huffingtonpost
-        )\.it/[^?]+(?:/video/(?P<slug>[a-z0-9_-]+)-|/)(?P<id>\d+))'''
+        )\.it/[^?]+(?:/video/(?P<slug>[a-z0-9_-]+)-|/)(?P<id>\d+)[?&]?.*)'''
+    _EMBED_REGEX = [rf'''(?x)
+            (?:
+                data-frame-src=|
+                <iframe[^\n]+src=
+            )
+            (["'])(?P<url>{_VALID_URL})\1''']
     _TESTS = [{
         'url': 'https://video.lastampa.it/politica/il-paradosso-delle-regionali-la-lega-vince-ma-sembra-aver-perso/121559/121683',
         'md5': '6d1238ab5f4753b6f3d9eb396bff8ea3',
@@ -52,6 +61,21 @@ class GediDigitalIE(InfoExtractor):
         'url': 'https://video.ilsecoloxix.it/sport/cassani-e-i-brividi-azzurri-ai-mondiali-di-imola-qui-mi-sono-innamorato-del-ciclismo-da-ragazzino-incredibile-tornarci-da-ct/66184/66267',
         'only_matching': True,
     }]
+
+    @staticmethod
+    def _sanitize_urls(urls):
+        # add protocol if missing
+        for i, e in enumerate(urls):
+            if e.startswith('//'):
+                urls[i] = f'https:{e}'
+        # clean iframes urls
+        for i, e in enumerate(urls):
+            urls[i] = urljoin(base_url(e), url_basename(e))
+        return urls
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        return cls._sanitize_urls(tuple(super()._extract_embed_urls(url, webpage)))
 
     def _real_extract(self, url):
         video_id, slug = self._match_valid_url(url).group('id', 'slug')
