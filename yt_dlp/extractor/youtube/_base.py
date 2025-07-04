@@ -63,6 +63,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
         'SUPPORTS_COOKIES': True,
+        'PLAYER_PARAMS': '8AEB',
     },
     'web_embedded': {
         'INNERTUBE_CONTEXT': {
@@ -174,6 +175,16 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
         'SUPPORTS_COOKIES': True,
+        'PLAYER_PARAMS': '8AEB',
+    },
+    'tv_simply': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5_SIMPLY',
+                'clientVersion': '1.0',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 75,
     },
     # This client now requires sign-in for every video
     # It was previously an age-gate workaround for videos that were `playable_in_embed`

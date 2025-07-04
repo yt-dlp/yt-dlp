@@ -6,7 +6,7 @@ import xml.etree.ElementTree
 
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
-from .theplatform import ThePlatformIE, default_ns
+from .theplatform import ThePlatformBaseIE, ThePlatformIE, default_ns
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
@@ -14,26 +14,130 @@ from ..utils import (
     UserNotLive,
     clean_html,
     determine_ext,
+    extract_attributes,
     float_or_none,
+    get_element_html_by_class,
     int_or_none,
     join_nonempty,
+    make_archive_id,
     mimetype2ext,
     parse_age_limit,
     parse_duration,
+    parse_iso8601,
     remove_end,
-    smuggle_url,
-    traverse_obj,
     try_get,
     unescapeHTML,
     unified_timestamp,
     update_url_query,
     url_basename,
+    url_or_none,
 )
+from ..utils.traversal import require, traverse_obj
 
 
-class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
-    _VALID_URL = r'https?(?P<permalink>://(?:www\.)?nbc\.com/(?:classic-tv/)?[^/]+/video/[^/]+/(?P<id>(?:NBCE|n)?\d+))'
+class NBCUniversalBaseIE(ThePlatformBaseIE):
+    _GEO_COUNTRIES = ['US']
+    _GEO_BYPASS = False
+    _M3U8_RE = r'https?://[^/?#]+/prod/[\w-]+/(?P<folders>[^?#]+/)cmaf/mpeg_(?:cbcs|cenc)\w*/master_cmaf\w*\.m3u8'
 
+    def _download_nbcu_smil_and_extract_m3u8_url(self, tp_path, video_id, query):
+        smil = self._download_xml(
+            f'https://link.theplatform.com/s/{tp_path}', video_id,
+            'Downloading SMIL manifest', 'Failed to download SMIL manifest', query={
+                **query,
+                'format': 'SMIL',  # XXX: Do not confuse "format" with "formats"
+                'manifest': 'm3u',
+                'switch': 'HLSServiceSecure',  # Or else we get broken mp4 http URLs instead of HLS
+            }, headers=self.geo_verification_headers())
+
+        ns = f'//{{{default_ns}}}'
+        if url := traverse_obj(smil, (f'{ns}video/@src', lambda _, v: determine_ext(v) == 'm3u8', any)):
+            return url
+
+        exc = traverse_obj(smil, (f'{ns}param', lambda _, v: v.get('name') == 'exception', '@value', any))
+        if exc == 'GeoLocationBlocked':
+            self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+        raise ExtractorError(traverse_obj(smil, (f'{ns}ref/@abstract', ..., any)), expected=exc == 'Expired')
+
+    def _extract_nbcu_formats_and_subtitles(self, tp_path, video_id, query):
+        # formats='mpeg4' will return either a working m3u8 URL or an m3u8 template for non-DRM HLS
+        # formats='m3u+none,mpeg4' may return DRM HLS but w/the "folders" needed for non-DRM template
+        query['formats'] = 'm3u+none,mpeg4'
+        m3u8_url = self._download_nbcu_smil_and_extract_m3u8_url(tp_path, video_id, query)
+
+        if mobj := re.fullmatch(self._M3U8_RE, m3u8_url):
+            query['formats'] = 'mpeg4'
+            m3u8_tmpl = self._download_nbcu_smil_and_extract_m3u8_url(tp_path, video_id, query)
+            # Example: https://vod-lf-oneapp-prd.akamaized.net/prod/video/{folders}master_hls.m3u8
+            if '{folders}' in m3u8_tmpl:
+                self.write_debug('Found m3u8 URL template, formatting URL path')
+            m3u8_url = m3u8_tmpl.format(folders=mobj.group('folders'))
+
+        if '/mpeg_cenc' in m3u8_url or '/mpeg_cbcs' in m3u8_url:
+            self.report_drm(video_id)
+
+        return self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id='hls')
+
+    def _extract_nbcu_video(self, url, display_id, old_ie_key=None):
+        webpage = self._download_webpage(url, display_id)
+        settings = self._search_json(
+            r'<script[^>]+data-drupal-selector="drupal-settings-json"[^>]*>',
+            webpage, 'settings', display_id)
+
+        query = {}
+        tve = extract_attributes(get_element_html_by_class('tve-video-deck-app', webpage) or '')
+        if tve:
+            account_pid = tve.get('data-mpx-media-account-pid') or tve['data-mpx-account-pid']
+            account_id = tve['data-mpx-media-account-id']
+            metadata = self._parse_json(
+                tve.get('data-normalized-video') or '', display_id, fatal=False, transform_source=unescapeHTML)
+            video_id = tve.get('data-guid') or metadata['guid']
+            if tve.get('data-entitlement') == 'auth':
+                auth = settings['tve_adobe_auth']
+                release_pid = tve['data-release-pid']
+                resource = self._get_mvpd_resource(
+                    tve.get('data-adobe-pass-resource-id') or auth['adobePassResourceId'],
+                    tve['data-title'], release_pid, tve.get('data-rating'))
+                query['auth'] = self._extract_mvpd_auth(
+                    url, release_pid, auth['adobePassRequestorId'],
+                    resource, auth['adobePassSoftwareStatement'])
+        else:
+            ls_playlist = traverse_obj(settings, (
+                'ls_playlist', lambda _, v: v['defaultGuid'], any, {require('LS playlist')}))
+            video_id = ls_playlist['defaultGuid']
+            account_pid = ls_playlist.get('mpxMediaAccountPid') or ls_playlist['mpxAccountPid']
+            account_id = ls_playlist['mpxMediaAccountId']
+            metadata = traverse_obj(ls_playlist, ('videos', lambda _, v: v['guid'] == video_id, any)) or {}
+
+        tp_path = f'{account_pid}/media/guid/{account_id}/{video_id}'
+        formats, subtitles = self._extract_nbcu_formats_and_subtitles(tp_path, video_id, query)
+        tp_metadata = self._download_theplatform_metadata(tp_path, video_id, fatal=False)
+        parsed_info = self._parse_theplatform_metadata(tp_metadata)
+        self._merge_subtitles(parsed_info['subtitles'], target=subtitles)
+
+        return {
+            **parsed_info,
+            **traverse_obj(metadata, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'duration': ('durationInSeconds', {int_or_none}),
+                'timestamp': ('airDate', {parse_iso8601}),
+                'thumbnail': ('thumbnailUrl', {url_or_none}),
+                'season_number': ('seasonNumber', {int_or_none}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'episode': ('episodeTitle', {str}),
+                'series': ('show', {str}),
+            }),
+            'id': video_id,
+            'display_id': display_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            '_old_archive_ids': [make_archive_id(old_ie_key, video_id)] if old_ie_key else None,
+        }
+
+
+class NBCIE(NBCUniversalBaseIE):
+    _VALID_URL = r'https?(?P<permalink>://(?:www\.)?nbc\.com/(?:classic-tv/)?[^/?#]+/video/[^/?#]+/(?P<id>\w+))'
     _TESTS = [
         {
             'url': 'http://www.nbc.com/the-tonight-show/video/jimmy-fallon-surprises-fans-at-ben-jerrys/2848237',
@@ -49,47 +153,20 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'episode_number': 86,
                 'season': 'Season 2',
                 'season_number': 2,
-                'series': 'Tonight Show: Jimmy Fallon',
-                'duration': 237.0,
-                'chapters': 'count:1',
-                'tags': 'count:4',
+                'series': 'Tonight',
+                'duration': 236.504,
+                'tags': 'count:2',
                 'thumbnail': r're:https?://.+\.jpg',
                 'categories': ['Series/The Tonight Show Starring Jimmy Fallon'],
                 'media_type': 'Full Episode',
+                'age_limit': 14,
+                '_old_archive_ids': ['theplatform 2848237'],
             },
             'params': {
                 'skip_download': 'm3u8',
             },
         },
         {
-            'url': 'http://www.nbc.com/saturday-night-live/video/star-wars-teaser/2832821',
-            'info_dict': {
-                'id': '2832821',
-                'ext': 'mp4',
-                'title': 'Star Wars Teaser',
-                'description': 'md5:0b40f9cbde5b671a7ff62fceccc4f442',
-                'timestamp': 1417852800,
-                'upload_date': '20141206',
-                'uploader': 'NBCU-COM',
-            },
-            'skip': 'page not found',
-        },
-        {
-            # HLS streams requires the 'hdnea3' cookie
-            'url': 'http://www.nbc.com/Kings/video/goliath/n1806',
-            'info_dict': {
-                'id': '101528f5a9e8127b107e98c5e6ce4638',
-                'ext': 'mp4',
-                'title': 'Goliath',
-                'description': 'When an unknown soldier saves the life of the King\'s son in battle, he\'s thrust into the limelight and politics of the kingdom.',
-                'timestamp': 1237100400,
-                'upload_date': '20090315',
-                'uploader': 'NBCU-COM',
-            },
-            'skip': 'page not found',
-        },
-        {
-            # manifest url does not have extension
             'url': 'https://www.nbc.com/the-golden-globe-awards/video/oprah-winfrey-receives-cecil-b-de-mille-award-at-the-2018-golden-globes/3646439',
             'info_dict': {
                 'id': '3646439',
@@ -99,47 +176,46 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'episode_number': 1,
                 'season': 'Season 75',
                 'season_number': 75,
-                'series': 'The Golden Globe Awards',
+                'series': 'Golden Globes',
                 'description': 'Oprah Winfrey receives the Cecil B. de Mille Award at the 75th Annual Golden Globe Awards.',
                 'uploader': 'NBCU-COM',
                 'upload_date': '20180107',
                 'timestamp': 1515312000,
-                'duration': 570.0,
+                'duration': 569.703,
                 'tags': 'count:8',
                 'thumbnail': r're:https?://.+\.jpg',
-                'chapters': 'count:1',
+                'media_type': 'Highlight',
+                'age_limit': 0,
+                'categories': ['Series/The Golden Globe Awards'],
+                '_old_archive_ids': ['theplatform 3646439'],
             },
             'params': {
                 'skip_download': 'm3u8',
             },
         },
         {
-            # new video_id format
-            'url': 'https://www.nbc.com/quantum-leap/video/bens-first-leap-nbcs-quantum-leap/NBCE125189978',
+            # Needs to be extracted from webpage instead of GraphQL
+            'url': 'https://www.nbc.com/paris2024/video/ali-truwit-found-purpose-pool-after-her-life-changed/para24_sww_alitruwittodayshow_240823',
             'info_dict': {
-                'id': 'NBCE125189978',
+                'id': 'para24_sww_alitruwittodayshow_240823',
                 'ext': 'mp4',
-                'title': 'Ben\'s First Leap | NBC\'s Quantum Leap',
-                'description': 'md5:a82762449b7ec4bb83291a7b355ebf8e',
-                'uploader': 'NBCU-COM',
-                'series': 'Quantum Leap',
-                'season': 'Season 1',
-                'season_number': 1,
-                'episode': 'Ben\'s First Leap | NBC\'s Quantum Leap',
-                'episode_number': 1,
-                'duration': 170.171,
-                'chapters': [],
-                'timestamp': 1663956155,
-                'upload_date': '20220923',
-                'tags': 'count:10',
-                'age_limit': 0,
+                'title': 'Ali Truwit found purpose in the pool after her life changed',
+                'description': 'md5:c16d7489e1516593de1cc5d3f39b9bdb',
+                'uploader': 'NBCU-SPORTS',
+                'duration': 311.077,
                 'thumbnail': r're:https?://.+\.jpg',
-                'categories': ['Series/Quantum Leap 2022'],
-                'media_type': 'Highlight',
+                'episode': 'Ali Truwit found purpose in the pool after her life changed',
+                'timestamp': 1724435902.0,
+                'upload_date': '20240823',
+                '_old_archive_ids': ['theplatform para24_sww_alitruwittodayshow_240823'],
             },
             'params': {
                 'skip_download': 'm3u8',
             },
+        },
+        {
+            'url': 'https://www.nbc.com/quantum-leap/video/bens-first-leap-nbcs-quantum-leap/NBCE125189978',
+            'only_matching': True,
         },
         {
             'url': 'https://www.nbc.com/classic-tv/charles-in-charge/video/charles-in-charge-pilot/n3310',
@@ -151,6 +227,7 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
             'only_matching': True,
         },
     ]
+    _SOFTWARE_STATEMENT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI1Yzg2YjdkYy04NDI3LTRjNDUtOGQwZi1iNDkzYmE3MmQwYjQiLCJuYmYiOjE1Nzg3MDM2MzEsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTc4NzAzNjMxfQ.QQKIsBhAjGQTMdAqRTqhcz2Cddr4Y2hEjnSiOeKKki4nLrkDOsjQMmqeTR0hSRarraxH54wBgLvsxI7LHwKMvr7G8QpynNAxylHlQD3yhN9tFhxt4KR5wW3as02B-W2TznK9bhNWPKIyHND95Uo2Mi6rEQoq8tM9O09WPWaanE5BX_-r6Llr6dPq5F0Lpx2QOn2xYRb1T4nFxdFTNoss8GBds8OvChTiKpXMLHegLTc1OS4H_1a8tO_37jDwSdJuZ8iTyRLV4kZ2cpL6OL5JPMObD4-HQiec_dfcYgMKPiIfP9ZqdXpec2SVaCLsWEk86ZYvD97hLIQrK5rrKd1y-A'
 
     def _real_extract(self, url):
         permalink, video_id = self._match_valid_url(url).groups()
@@ -196,62 +273,50 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                     'userId': '0',
                 }),
             })['data']['bonanzaPage']['metadata']
-        query = {
-            'mbr': 'true',
-            'manifest': 'm3u',
-            'switch': 'HLSServiceSecure',
-        }
+
+        if not video_data:
+            # Some videos are not available via GraphQL API
+            webpage = self._download_webpage(url, video_id)
+            video_data = self._search_json(
+                r'<script>\s*PRELOAD\s*=', webpage, 'video data',
+                video_id)['pages'][urllib.parse.urlparse(url).path]['base']['metadata']
+
         video_id = video_data['mpxGuid']
-        tp_path = 'NnzsPC/media/guid/{}/{}'.format(video_data.get('mpxAccountId') or '2410887629', video_id)
-        tpm = self._download_theplatform_metadata(tp_path, video_id)
-        title = tpm.get('title') or video_data.get('secondaryTitle')
+        tp_path = f'NnzsPC/media/guid/{video_data["mpxAccountId"]}/{video_id}'
+        tpm = self._download_theplatform_metadata(tp_path, video_id, fatal=False)
+        title = traverse_obj(tpm, ('title', {str})) or video_data.get('secondaryTitle')
+        query = {}
         if video_data.get('locked'):
             resource = self._get_mvpd_resource(
-                video_data.get('resourceId') or 'nbcentertainment',
-                title, video_id, video_data.get('rating'))
+                video_data['resourceId'], title, video_id, video_data.get('rating'))
             query['auth'] = self._extract_mvpd_auth(
-                url, video_id, 'nbcentertainment', resource)
-        theplatform_url = smuggle_url(update_url_query(
-            'http://link.theplatform.com/s/NnzsPC/media/guid/{}/{}'.format(video_data.get('mpxAccountId') or '2410887629', video_id),
-            query), {'force_smil_url': True})
+                url, video_id, 'nbcentertainment', resource, self._SOFTWARE_STATEMENT)
 
-        # Empty string or 0 can be valid values for these. So the check must be `is None`
-        description = video_data.get('description')
-        if description is None:
-            description = tpm.get('description')
-        episode_number = int_or_none(video_data.get('episodeNumber'))
-        if episode_number is None:
-            episode_number = int_or_none(tpm.get('nbcu$airOrder'))
-        rating = video_data.get('rating')
-        if rating is None:
-            try_get(tpm, lambda x: x['ratings'][0]['rating'])
-        season_number = int_or_none(video_data.get('seasonNumber'))
-        if season_number is None:
-            season_number = int_or_none(tpm.get('nbcu$seasonNumber'))
-        series = video_data.get('seriesShortTitle')
-        if series is None:
-            series = tpm.get('nbcu$seriesShortTitle')
-        tags = video_data.get('keywords')
-        if tags is None or len(tags) == 0:
-            tags = tpm.get('keywords')
+        formats, subtitles = self._extract_nbcu_formats_and_subtitles(tp_path, video_id, query)
+        parsed_info = self._parse_theplatform_metadata(tpm)
+        self._merge_subtitles(parsed_info['subtitles'], target=subtitles)
 
         return {
-            '_type': 'url_transparent',
-            'age_limit': parse_age_limit(rating),
-            'description': description,
-            'episode': title,
-            'episode_number': episode_number,
+            **traverse_obj(video_data, {
+                'description': ('description', {str}, filter),
+                'episode': ('secondaryTitle', {str}, filter),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'season_number': ('seasonNumber', {int_or_none}),
+                'age_limit': ('rating', {parse_age_limit}),
+                'tags': ('keywords', ..., {str}, filter, all, filter),
+                'series': ('seriesShortTitle', {str}),
+            }),
+            **parsed_info,
             'id': video_id,
-            'ie_key': 'ThePlatform',
-            'season_number': season_number,
-            'series': series,
-            'tags': tags,
             'title': title,
-            'url': theplatform_url,
+            'formats': formats,
+            'subtitles': subtitles,
+            '_old_archive_ids': [make_archive_id('ThePlatform', video_id)],
         }
 
 
 class NBCSportsVPlayerIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL_BASE = r'https?://(?:vplayer\.nbcsports\.com|(?:www\.)?nbcsports\.com/vplayer)/'
     _VALID_URL = _VALID_URL_BASE + r'(?:[^/]+/)+(?P<id>[0-9a-zA-Z_]+)'
     _EMBED_REGEX = [rf'(?:iframe[^>]+|var video|div[^>]+data-(?:mpx-)?)[sS]rc\s?=\s?"(?P<url>{_VALID_URL_BASE}[^\"]+)']
@@ -286,6 +351,7 @@ class NBCSportsVPlayerIE(InfoExtractor):
 
 
 class NBCSportsIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?nbcsports\.com//?(?!vplayer/)(?:[^/]+/)+(?P<id>[0-9a-z-]+)'
 
     _TESTS = [{
@@ -321,6 +387,7 @@ class NBCSportsIE(InfoExtractor):
 
 
 class NBCSportsStreamIE(AdobePassIE):
+    _WORKING = False
     _VALID_URL = r'https?://stream\.nbcsports\.com/.+?\bpid=(?P<id>\d+)'
     _TEST = {
         'url': 'http://stream.nbcsports.com/nbcsn/generic?pid=206559',
@@ -354,7 +421,7 @@ class NBCSportsStreamIE(AdobePassIE):
             source_url = video_source['ottStreamUrl']
         is_live = video_source.get('type') == 'live' or video_source.get('status') == 'Live'
         resource = self._get_mvpd_resource('nbcsports', title, video_id, '')
-        token = self._extract_mvpd_auth(url, video_id, 'nbcsports', resource)
+        token = self._extract_mvpd_auth(url, video_id, 'nbcsports', resource, None)  # XXX: None arg needs to be software_statement
         tokenized_url = self._download_json(
             'https://token.playmakerservices.com/cdn',
             video_id, data=json.dumps({
@@ -534,22 +601,26 @@ class NBCOlympicsIE(InfoExtractor):
     IE_NAME = 'nbcolympics'
     _VALID_URL = r'https?://www\.nbcolympics\.com/videos?/(?P<id>[0-9a-z-]+)'
 
-    _TEST = {
+    _TESTS = [{
         # Geo-restricted to US
-        'url': 'http://www.nbcolympics.com/video/justin-roses-son-leo-was-tears-after-his-dad-won-gold',
-        'md5': '54fecf846d05429fbaa18af557ee523a',
+        'url': 'https://www.nbcolympics.com/videos/watch-final-minutes-team-usas-mens-basketball-gold',
         'info_dict': {
-            'id': 'WjTBzDXx5AUq',
-            'display_id': 'justin-roses-son-leo-was-tears-after-his-dad-won-gold',
+            'id': 'SAwGfPlQ1q01',
             'ext': 'mp4',
-            'title': 'Rose\'s son Leo was in tears after his dad won gold',
-            'description': 'Olympic gold medalist Justin Rose gets emotional talking to the impact his win in men\'s golf has already had on his children.',
-            'timestamp': 1471274964,
-            'upload_date': '20160815',
+            'display_id': 'watch-final-minutes-team-usas-mens-basketball-gold',
+            'title': 'Watch the final minutes of Team USA\'s men\'s basketball gold',
+            'description': 'md5:f704f591217305c9559b23b877aa8d31',
             'uploader': 'NBCU-SPORTS',
+            'duration': 387.053,
+            'thumbnail': r're:https://.+/.+\.jpg',
+            'chapters': [],
+            'timestamp': 1723346984,
+            'upload_date': '20240811',
         },
-        'skip': '404 Not Found',
-    }
+    }, {
+        'url': 'http://www.nbcolympics.com/video/justin-roses-son-leo-was-tears-after-his-dad-won-gold',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -578,6 +649,7 @@ class NBCOlympicsIE(InfoExtractor):
 
 
 class NBCOlympicsStreamIE(AdobePassIE):
+    _WORKING = False
     IE_NAME = 'nbcolympics:stream'
     _VALID_URL = r'https?://stream\.nbcolympics\.com/(?P<id>[0-9a-z-]+)'
     _TESTS = [
@@ -630,7 +702,8 @@ class NBCOlympicsStreamIE(AdobePassIE):
                 event_config.get('resourceId', 'NBCOlympics'),
                 re.sub(r'[^\w\d ]+', '', event_config['eventTitle']), pid,
                 event_config.get('ratingId', 'NO VALUE'))
-            media_token = self._extract_mvpd_auth(url, pid, event_config.get('requestorId', 'NBCOlympics'), ap_resource)
+            # XXX: The None arg below needs to be the software_statement for this requestor
+            media_token = self._extract_mvpd_auth(url, pid, event_config.get('requestorId', 'NBCOlympics'), ap_resource, None)
 
             source_url = self._download_json(
                 'https://tokens.playmakerservices.com/', pid, 'Retrieving tokenized URL',
@@ -848,3 +921,178 @@ class NBCStationsIE(InfoExtractor):
             'is_live': is_live,
             **info,
         }
+
+
+class BravoTVIE(NBCUniversalBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?(?:bravotv|oxygen)\.com/(?:[^/?#]+/)+(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://www.bravotv.com/top-chef/season-16/episode-15/videos/the-top-chef-season-16-winner-is',
+        'info_dict': {
+            'id': '3923059',
+            'ext': 'mp4',
+            'title': 'The Top Chef Season 16 Winner Is...',
+            'display_id': 'the-top-chef-season-16-winner-is',
+            'description': 'Find out who takes the title of Top Chef!',
+            'upload_date': '20190315',
+            'timestamp': 1552618860,
+            'season_number': 16,
+            'episode_number': 15,
+            'series': 'Top Chef',
+            'episode': 'Finale',
+            'duration': 190,
+            'season': 'Season 16',
+            'thumbnail': r're:^https://.+\.jpg',
+            'uploader': 'NBCU-BRAV',
+            'categories': ['Series', 'Series/Top Chef'],
+            'tags': 'count:10',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.bravotv.com/top-chef/season-20/episode-1/london-calling',
+        'info_dict': {
+            'id': '9000234570',
+            'ext': 'mp4',
+            'title': 'London Calling',
+            'display_id': 'london-calling',
+            'description': 'md5:5af95a8cbac1856bd10e7562f86bb759',
+            'upload_date': '20230310',
+            'timestamp': 1678418100,
+            'season_number': 20,
+            'episode_number': 1,
+            'series': 'Top Chef',
+            'episode': 'London Calling',
+            'duration': 3266,
+            'season': 'Season 20',
+            'chapters': 'count:7',
+            'thumbnail': r're:^https://.+\.jpg',
+            'age_limit': 14,
+            'media_type': 'Full Episode',
+            'uploader': 'NBCU-MPAT',
+            'categories': ['Series/Top Chef'],
+            'tags': 'count:10',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': 'This video requires AdobePass MSO credentials',
+    }, {
+        'url': 'https://www.oxygen.com/in-ice-cold-blood/season-1/closing-night',
+        'info_dict': {
+            'id': '3692045',
+            'ext': 'mp4',
+            'title': 'Closing Night',
+            'display_id': 'closing-night',
+            'description': 'md5:c8a5bb523c8ef381f3328c6d9f1e4632',
+            'upload_date': '20230126',
+            'timestamp': 1674709200,
+            'season_number': 1,
+            'episode_number': 1,
+            'series': 'In Ice Cold Blood',
+            'episode': 'Closing Night',
+            'duration': 2629,
+            'season': 'Season 1',
+            'chapters': 'count:6',
+            'thumbnail': r're:^https://.+\.jpg',
+            'age_limit': 14,
+            'media_type': 'Full Episode',
+            'uploader': 'NBCU-MPAT',
+            'categories': ['Series/In Ice Cold Blood'],
+            'tags': ['ice-t', 'in ice cold blood', 'law and order', 'oxygen', 'true crime'],
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': 'This video requires AdobePass MSO credentials',
+    }, {
+        'url': 'https://www.oxygen.com/in-ice-cold-blood/season-2/episode-16/videos/handling-the-horwitz-house-after-the-murder-season-2',
+        'info_dict': {
+            'id': '3974019',
+            'ext': 'mp4',
+            'title': '\'Handling The Horwitz House After The Murder (Season 2, Episode 16)',
+            'display_id': 'handling-the-horwitz-house-after-the-murder-season-2',
+            'description': 'md5:f9d638dd6946a1c1c0533a9c6100eae5',
+            'upload_date': '20190618',
+            'timestamp': 1560819600,
+            'season_number': 2,
+            'episode_number': 16,
+            'series': 'In Ice Cold Blood',
+            'episode': 'Mother Vs Son',
+            'duration': 68,
+            'season': 'Season 2',
+            'thumbnail': r're:^https://.+\.jpg',
+            'age_limit': 14,
+            'uploader': 'NBCU-OXY',
+            'categories': ['Series/In Ice Cold Blood'],
+            'tags': ['in ice cold blood', 'ice-t', 'law and order', 'true crime', 'oxygen'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.bravotv.com/below-deck/season-3/ep-14-reunion-part-1',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        return self._extract_nbcu_video(url, display_id)
+
+
+class SyfyIE(NBCUniversalBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?syfy\.com/[^/?#]+/(?:season-\d+/episode-\d+/(?:videos/)?|videos/)(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://www.syfy.com/face-off/season-13/episode-10/videos/keyed-up',
+        'info_dict': {
+            'id': '3774403',
+            'ext': 'mp4',
+            'display_id': 'keyed-up',
+            'title': 'Keyed Up',
+            'description': 'md5:feafd15bee449f212dcd3065bbe9a755',
+            'age_limit': 14,
+            'duration': 169,
+            'thumbnail': r're:https://www\.syfy\.com/.+/.+\.jpg',
+            'series': 'Face Off',
+            'season': 'Season 13',
+            'season_number': 13,
+            'episode': 'Through the Looking Glass Part 2',
+            'episode_number': 10,
+            'timestamp': 1533711618,
+            'upload_date': '20180808',
+            'media_type': 'Excerpt',
+            'uploader': 'NBCU-MPAT',
+            'categories': ['Series/Face Off'],
+            'tags': 'count:15',
+            '_old_archive_ids': ['theplatform 3774403'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.syfy.com/face-off/season-13/episode-10/through-the-looking-glass-part-2',
+        'info_dict': {
+            'id': '3772391',
+            'ext': 'mp4',
+            'display_id': 'through-the-looking-glass-part-2',
+            'title': 'Through the Looking Glass Pt.2',
+            'description': 'md5:90bd5dcbf1059fe3296c263599af41d2',
+            'age_limit': 0,
+            'duration': 2599,
+            'thumbnail': r're:https://www\.syfy\.com/.+/.+\.jpg',
+            'chapters': [{'start_time': 0.0, 'end_time': 679.0, 'title': '<Untitled Chapter 1>'},
+                         {'start_time': 679.0, 'end_time': 1040.967, 'title': '<Untitled Chapter 2>'},
+                         {'start_time': 1040.967, 'end_time': 1403.0, 'title': '<Untitled Chapter 3>'},
+                         {'start_time': 1403.0, 'end_time': 1870.0, 'title': '<Untitled Chapter 4>'},
+                         {'start_time': 1870.0, 'end_time': 2496.967, 'title': '<Untitled Chapter 5>'},
+                         {'start_time': 2496.967, 'end_time': 2599, 'title': '<Untitled Chapter 6>'}],
+            'series': 'Face Off',
+            'season': 'Season 13',
+            'season_number': 13,
+            'episode': 'Through the Looking Glass Part 2',
+            'episode_number': 10,
+            'timestamp': 1672570800,
+            'upload_date': '20230101',
+            'media_type': 'Full Episode',
+            'uploader': 'NBCU-MPAT',
+            'categories': ['Series/Face Off'],
+            'tags': 'count:15',
+            '_old_archive_ids': ['theplatform 3772391'],
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': 'This video requires AdobePass MSO credentials',
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        return self._extract_nbcu_video(url, display_id, old_ie_key='ThePlatform')

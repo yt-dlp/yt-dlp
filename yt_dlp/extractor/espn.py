@@ -329,6 +329,7 @@ class WatchESPNIE(AdobePassIE):
     }]
 
     _API_KEY = 'ZXNwbiZicm93c2VyJjEuMC4w.ptUt7QxsteaRruuPmGZFaJByOoqKvDP2a5YkInHrc7c'
+    _SOFTWARE_STATEMENT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIyZGJmZWM4My03OWE1LTQyNzEtYTVmZC04NTZjYTMxMjRjNjMiLCJuYmYiOjE1NDAyMTI3NjEsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTQwMjEyNzYxfQ.yaK3r4AI2uLVvsyN1GLzqzgzRlxMPtasSaiYYBV0wIstqih5tvjTmeoLmi8Xy9Kp_U7Md-bOffwiyK3srHkpUkhhwXLH2x6RPjmS1tPmhaG7-3LBcHTf2ySPvXhVf7cN4ngldawK4tdtLtsw6rF_JoZE2yaC6XbS2F51nXSFEDDnOQWIHEQRG3aYAj-38P2CLGf7g-Yfhbp5cKXeksHHQ90u3eOO4WH0EAjc9oO47h33U8KMEXxJbvjV5J8Va2G2fQSgLDZ013NBI3kQnE313qgqQh2feQILkyCENpB7g-TVBreAjOaH1fU471htSoGGYepcAXv-UDtpgitDiLy7CQ'
 
     def _call_bamgrid_api(self, path, video_id, payload=None, headers={}):
         if 'Authorization' not in headers:
@@ -405,8 +406,8 @@ class WatchESPNIE(AdobePassIE):
 
         # TV Provider required
         else:
-            resource = self._get_mvpd_resource('ESPN', video_data['name'], video_id, None)
-            auth = self._extract_mvpd_auth(url, video_id, 'ESPN', resource).encode()
+            resource = self._get_mvpd_resource('espn1', video_data['name'], video_id, None)
+            auth = self._extract_mvpd_auth(url, video_id, 'ESPN', resource, self._SOFTWARE_STATEMENT).encode()
 
             asset = self._download_json(
                 f'https://watch.auth.api.espn.com/video/auth/media/{video_id}/asset?apikey=uiqlbgzdwuru14v627vdusswb',
