@@ -80,7 +80,6 @@ class WatIE(InfoExtractor):
         if b36_id:
             video_id = str(int(video_id, 36))
 
-
         # 'contentv4' is used in the website, but it also returns the related
         # videos, we don't need them
         # video_data = self._download_json(
