@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -13,7 +11,7 @@ from ..utils.traversal import traverse_obj
 
 class WatIE(InfoExtractor):
     _UUID_RE = r'[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}'
-    _VALID_URL = rf'(?:wat:|https?://(?:www\.)?wat\.tv/video/.*-)(?P<id>({_UUID_RE}|[0-9a-z]+))'
+    _VALID_URL = rf'(?:wat:|https?://(?:www\.)?wat\.tv/video/.*-)(?P<id>{_UUID_RE}|[0-9]{{7,}}|(?:[a-z0-9]+_){{2}}|(?P<b36>[0-9a-z]+))(?:$|\.html|[#?/])'
     IE_NAME = 'wat.tv'
     _TESTS = [
         {
@@ -78,7 +76,10 @@ class WatIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_id = video_id if re.fullmatch(fr'({self._UUID_RE}|\d{{7,}})', video_id) else str(int(video_id, 36))
+        video_id, b36_id = self._match_valid_url(url).group('id', 'b36')
+        if b36_id:
+            video_id = str(int(video_id, 36))
+
 
         # 'contentv4' is used in the website, but it also returns the related
         # videos, we don't need them
