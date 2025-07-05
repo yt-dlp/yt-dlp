@@ -1147,6 +1147,7 @@ from .minds import (
     MindsIE,
 )
 from .minoto import MinotoIE
+from .mir24tv import Mir24tvIE
 from .mirrativ import (
     MirrativIE,
     MirrativUserIE,
@@ -2096,6 +2097,7 @@ from .theguardian import (
     TheGuardianPodcastIE,
     TheGuardianPodcastPlaylistIE,
 )
+from .thehighwire import TheHighWireIE
 from .theholetv import TheHoleTvIE
 from .theintercept import TheInterceptIE
 from .theplatform import (
