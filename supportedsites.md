@@ -575,9 +575,7 @@ The only reliable way to check if a site is supported is to try it.
  - **HollywoodReporterPlaylist**
  - **Holodex**
  - **HotNewHipHop**: (**Currently broken**)
- - **hotstar**
- - **hotstar:playlist**
- - **hotstar:season**
+ - **hotstar**: JioHotstar
  - **hotstar:series**
  - **hrfernsehen**
  - **HRTi**: [*hrti*](## "netrc machine")
@@ -590,7 +588,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Hungama**
  - **HungamaAlbumPlaylist**
  - **HungamaSong**
- - **huya:live**: huya.com
+ - **huya:live**: 虎牙直播
  - **huya:video**: 虎牙视频
  - **Hypem**
  - **Hytale**
@@ -647,8 +645,6 @@ The only reliable way to check if a site is supported is to try it.
  - **Jamendo**
  - **JamendoAlbum**
  - **JeuxVideo**: (**Currently broken**)
- - **jiocinema**: [*jiocinema*](## "netrc machine")
- - **jiocinema:series**: [*jiocinema*](## "netrc machine")
  - **jiosaavn:album**
  - **jiosaavn:artist**
  - **jiosaavn:playlist**
@@ -776,6 +772,7 @@ The only reliable way to check if a site is supported is to try it.
  - **massengeschmack.tv**
  - **Masters**
  - **MatchTV**
+ - **Mave**
  - **MBN**: mbn.co.kr (매일방송)
  - **MDR**: MDR.DE
  - **MedalTV**
@@ -832,7 +829,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Mojevideo**: mojevideo.sk
  - **Mojvideo**
  - **Monstercat**
- - **MonsterSirenHypergryphMusic**
+ - **monstersiren**: 塞壬唱片
  - **Motherless**
  - **MotherlessGallery**
  - **MotherlessGroup**
@@ -1298,6 +1295,7 @@ The only reliable way to check if a site is supported is to try it.
  - **SampleFocus**
  - **Sangiin**: 参議院インターネット審議中継 (archive)
  - **Sapo**: SAPO Vídeos
+ - **SaucePlus**: Sauce+
  - **SBS**: sbs.com.au
  - **sbs.co.kr**
  - **sbs.co.kr:allvod_program**

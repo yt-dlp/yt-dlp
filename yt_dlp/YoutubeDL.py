@@ -482,7 +482,8 @@ class YoutubeDL:
                        The following options do not work when used through the API:
                        filename, abort-on-error, multistreams, no-live-chat,
                        format-sort, no-clean-infojson, no-playlist-metafiles,
-                       no-keep-subs, no-attach-info-json, allow-unsafe-ext, prefer-vp9-sort.
+                       no-keep-subs, no-attach-info-json, allow-unsafe-ext, prefer-vp9-sort,
+                       mtime-by-default.
                        Refer __init__.py for their implementation
     progress_template: Dictionary of templates for progress outputs.
                        Allowed keys are 'download', 'postprocess',
@@ -2219,6 +2220,7 @@ class YoutubeDL:
                         self.report_warning(f'Unable to delete temporary file "{temp_file.name}"')
             f['__working'] = success
             if success:
+                f.pop('__needs_testing', None)
                 yield f
             else:
                 self.to_screen('[info] Unable to download format {}. Skipping...'.format(f['format_id']))
@@ -3963,6 +3965,7 @@ class YoutubeDL:
                     self._format_out('UNSUPPORTED', self.Styles.BAD_FORMAT) if f.get('ext') in ('f4f', 'f4m') else None,
                     (self._format_out('Maybe DRM', self.Styles.WARNING) if f.get('has_drm') == 'maybe'
                      else self._format_out('DRM', self.Styles.BAD_FORMAT) if f.get('has_drm') else None),
+                    self._format_out('Untested', self.Styles.WARNING) if f.get('__needs_testing') else None,
                     format_field(f, 'format_note'),
                     format_field(f, 'container', ignore=(None, f.get('ext'))),
                     delim=', '), delim=' '),
