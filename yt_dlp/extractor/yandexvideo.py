@@ -19,7 +19,7 @@ class YandexVideoIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            yandex\.ru(?:/(?:portal/(?:video|efir)|efir))?/?\?.*?stream_id=|
+                            ya(?:ndex)?\.(ru|com)(?:/(?:portal/(?:video|efir)|efir))?/?\?.*?stream_id=|
                             frontend\.vh\.yandex\.ru/player/
                         )
                         (?P<id>(?:[\da-f]{32}|[\w-]{12}))
@@ -46,6 +46,12 @@ class YandexVideoIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://yandex.ru/?stream_id=4dbb262b4fe5cf15a215de4f34eee34d',
+        'only_matching': True,
+    }, {
+        'url': 'https://ya.ru/?stream_id=4dbb262b4fe5cf15a215de4f34eee34d',
+        'only_matching': True,
+    }, {
+        'url': 'https://yandex.com/?stream_id=4dbb262b4fe5cf15a215de4f34eee34d',
         'only_matching': True,
     }, {
         'url': 'https://frontend.vh.yandex.ru/player/4dbb262b4fe5cf15a215de4f34eee34d?from=morda',
@@ -148,7 +154,7 @@ class YandexVideoIE(InfoExtractor):
 
 
 class YandexVideoPreviewIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?yandex\.\w{2,3}(?:\.(?:am|ge|il|tr))?/video/preview(?:/?\?.*?filmId=|/)(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:\w+\.)?ya(?:ndex)?\.\w{2,3}(?:\.(?:am|ge|il|tr))?/video/preview(?:/?\?.*?filmId=|/)(?P<id>\d+)'
     _TESTS = [{  # Odnoklassniki
         'url': 'https://yandex.ru/video/preview/?filmId=10682852472978372885&text=summer',
         'info_dict': {
@@ -177,6 +183,9 @@ class YandexVideoPreviewIE(InfoExtractor):
         'only_matching': True,
     }, {  # Odnoklassniki
         'url': 'https://yandex.com/video/preview/?text=dossier%2051%20film%201978&path=yandex_search&parent-reqid=1664361087754492-8727541069609384458-sas2-0340-sas-l7-balancer-8080-BAL-8045&noreask=1&from_type=vast&filmId=5794987234584444632',
+        'only_matching': True,
+    }, {  # Shorter domain
+        'url': 'https://ya.ru/video/preview/5275069442094787341',
         'only_matching': True,
     }]
 
