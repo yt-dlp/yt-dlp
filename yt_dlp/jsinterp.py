@@ -279,6 +279,7 @@ class JSInterpreter:
     def __init__(self, code, objects=None):
         self.code, self._functions = code, {}
         self._objects = {} if objects is None else objects
+        self._undefined_varnames = set()
 
     class Exception(ExtractorError):  # noqa: A001
         def __init__(self, msg, expr=None, *args, **kwargs):
@@ -677,6 +678,8 @@ class JSInterpreter:
                 local_vars.set_local(var, ret)
             else:
                 ret = local_vars.get(var, JS_Undefined)
+                if ret is JS_Undefined:
+                    self._undefined_varnames.add(var)
             return ret, should_return
 
         with contextlib.suppress(ValueError):
