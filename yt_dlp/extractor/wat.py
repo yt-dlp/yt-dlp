@@ -75,7 +75,6 @@ class WatIE(InfoExtractor):
     _GEO_BYPASS = False
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
         video_id, b36_id = self._match_valid_url(url).group('id', 'b36')
         if b36_id:
             video_id = str(int(video_id, 36))
