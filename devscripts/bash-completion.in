@@ -11,12 +11,12 @@ __yt_dlp()
 
     if [[ ${prev} =~ ${fileopts} ]]; then
         local IFS=$'\n'
-        compopt -o filenames
+        type compopt &>/dev/null && compopt -o filenames
         COMPREPLY=( $(compgen -f -- ${cur}) )
         return 0
     elif [[ ${prev} =~ ${diropts} ]]; then
         local IFS=$'\n'
-        compopt -o filenames
+        type compopt &>/dev/null && compopt -o dirnames
         COMPREPLY=( $(compgen -d -- ${cur}) )
         return 0
     fi
