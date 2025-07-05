@@ -495,7 +495,7 @@ class NhkForSchoolBangumiIE(InfoExtractor):
         chapters = None
         if chapter_durations and chapter_titles and len(chapter_durations) == len(chapter_titles):
             start_time = chapter_durations
-            end_time = chapter_durations[1:] + [duration]
+            end_time = [*chapter_durations[1:], duration]
             chapters = [{
                 'start_time': s,
                 'end_time': e,

@@ -2823,10 +2823,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             context['signatureTimestamp'] = sts
         return {
             'playbackContext': {
-                'adPlaybackContext': {
-                    'pyv': True,
-                    'adType': 'AD_TYPE_INSTREAM',
-                },
                 'contentPlaybackContext': context,
             },
             **cls._get_checkok_params(),

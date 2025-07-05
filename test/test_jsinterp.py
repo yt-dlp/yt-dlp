@@ -478,6 +478,10 @@ class TestJSInterpreter(unittest.TestCase):
         func = jsi.extract_function('c', {'e': 10}, {'f': 100, 'g': 1000})
         self.assertEqual(func([1]), 1111)
 
+    def test_extract_object(self):
+        jsi = JSInterpreter('var a={};a.xy={};var xy;var zxy={};xy={z:function(){return "abc"}};')
+        self.assertTrue('z' in jsi.extract_object('xy', None))
+
     def test_increment_decrement(self):
         self._test('function f() { var x = 1; return ++x; }', 2)
         self._test('function f() { var x = 1; return x++; }', 1)
