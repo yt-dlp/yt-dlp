@@ -6,6 +6,7 @@ from ..utils import ExtractorError, clean_html, int_or_none
 
 
 class TFOIE(InfoExtractor):
+    _WORKING = False
     _GEO_COUNTRIES = ['CA']
     _VALID_URL = r'https?://(?:www\.)?tfo\.org/(?:en|fr)/(?:[^/]+/){2}(?P<id>\d+)'
     _TEST = {
