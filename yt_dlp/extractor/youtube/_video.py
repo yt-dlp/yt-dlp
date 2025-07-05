@@ -26,7 +26,7 @@ from ._base import (
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
 from ..openload import PhantomJSwrapper
-from ...jsinterp import JSInterpreter
+from ...jsinterp import JSInterpreter, LocalNameSpace
 from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
@@ -1801,6 +1801,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',
     }
     _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
+    _NSIG_FUNC_CACHE_ID = 'nsig func'
+    _DUMMY_STRING = 'dlp_wins'
 
     @classmethod
     def suitable(cls, url):
@@ -2204,7 +2206,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.to_screen(f'Extracted nsig function from {player_id}:\n{func_code[1]}\n')
 
         try:
-            extract_nsig = self._cached(self._extract_n_function_from_code, 'nsig func', player_url)
+            extract_nsig = self._cached(self._extract_n_function_from_code, self._NSIG_FUNC_CACHE_ID, player_url)
             ret = extract_nsig(jsi, func_code)(s)
         except JSInterpreter.Exception as e:
             try:
@@ -2312,16 +2314,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         jsi = JSInterpreter(varcode)
         interpret_global_var = self._cached(jsi.interpret_expression, 'js global list', player_url)
-        return varname, interpret_global_var(varvalue, {}, allow_recursion=10)
+        return varname, interpret_global_var(varvalue, LocalNameSpace(), allow_recursion=10)
 
     def _fixup_n_function_code(self, argnames, nsig_code, jscode, player_url):
+        # Fixup global array
         varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
         if varname and global_list:
             nsig_code = f'var {varname}={json.dumps(global_list)}; {nsig_code}'
         else:
-            varname = 'dlp_wins'
+            varname = self._DUMMY_STRING
             global_list = []
 
+        # Fixup typeof check
         undefined_idx = global_list.index('undefined') if 'undefined' in global_list else r'\d+'
         fixed_code = re.sub(
             fr'''(?x)
@@ -2334,6 +2338,32 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.write_debug(join_nonempty(
                 'No typeof statement found in nsig function code',
                 player_url and f'        player = {player_url}', delim='\n'), only_once=True)
+
+        # Fixup global funcs
+        jsi = JSInterpreter(fixed_code)
+        cache_id = (self._NSIG_FUNC_CACHE_ID, player_url)
+        try:
+            self._cached(
+                self._extract_n_function_from_code, *cache_id)(jsi, (argnames, fixed_code))(self._DUMMY_STRING)
+        except JSInterpreter.Exception:
+            self._player_cache.pop(cache_id, None)
+
+        global_funcnames = jsi._undefined_varnames
+        debug_names = []
+        jsi = JSInterpreter(jscode)
+        for func_name in global_funcnames:
+            try:
+                func_args, func_code = jsi.extract_function_code(func_name)
+                fixed_code = f'var {func_name} = function({", ".join(func_args)}) {{ {func_code} }}; {fixed_code}'
+                debug_names.append(func_name)
+            except Exception:
+                self.report_warning(join_nonempty(
+                    f'Unable to extract global nsig function {func_name} from player JS',
+                    player_url and f'        player = {player_url}', delim='\n'), only_once=True)
+
+        if debug_names:
+            self.write_debug(f'Extracted global nsig functions: {", ".join(debug_names)}')
+
         return argnames, fixed_code
 
     def _extract_n_function_code(self, video_id, player_url):
@@ -2347,7 +2377,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         func_name = self._extract_n_function_name(jscode, player_url=player_url)
 
-        # XXX: Workaround for the global array variable and lack of `typeof` implementation
+        # XXX: Work around (a) global array variable, (b) `typeof` short-circuit, (c) global functions
         func_code = self._fixup_n_function_code(*jsi.extract_function_code(func_name), jscode, player_url)
 
         return jsi, player_id, func_code
