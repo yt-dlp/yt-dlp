@@ -490,6 +490,52 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f() { var a = "test--"; return a; }', 'test--')
         self._test('function f() { var b = 1; var a = "b--"; return a; }', 'b--')
 
+    def test_nested_function_scoping(self):
+        self._test(R'''
+            function f() {
+                var g = function() {
+                    var P = 2;
+                    return P;
+                };
+                var P = 1;
+                g();
+                return P;
+            }
+        ''', 1)
+        self._test(R'''
+            function f() {
+                var x = function() {
+                    for (var w = 1, M = []; w < 2; w++) switch (w) {
+                        case 1:
+                            M.push("a");
+                        case 2:
+                            M.push("b");
+                    }
+                    return M
+                };
+                var w = "c";
+                var M = "d";
+                var y = x();
+                y.push(w);
+                y.push(M);
+                return y;
+            }
+        ''', ['a', 'b', 'c', 'd'])
+        self._test(R'''
+            function f() {
+                var P, Q;
+                var z = 100;
+                var g = function() {
+                    var P, Q; P = 2; Q = 15;
+                    z = 0;
+                    return P+Q;
+                };
+                P = 1; Q = 10;
+                var x = g(), y = 3;
+                return P+Q+x+y+z;
+            }
+        ''', 31)
+
 
 if __name__ == '__main__':
     unittest.main()
