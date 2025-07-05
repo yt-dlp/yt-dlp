@@ -208,6 +208,7 @@ def _firefox_browser_dirs():
             '~/.mozilla/firefox',
             '~/snap/firefox/common/.mozilla/firefox',
             '~/.var/app/org.mozilla.firefox/.mozilla/firefox',
+            '~/.librewolf/'
         ))
 
 
