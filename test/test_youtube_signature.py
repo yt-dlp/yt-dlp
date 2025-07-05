@@ -333,6 +333,46 @@ _NSIG_TESTS = [
         'https://www.youtube.com/s/player/fc2a56a5/tv-player-ias.vflset/tv-player-ias.js',
         'qTKWg_Il804jd2kAC', 'OtUAm2W6gyzJjB9u',
     ),
+    (
+        'https://www.youtube.com/s/player/a74bf670/player_ias_tce.vflset/en_US/base.js',
+        'kM5r52fugSZRAKHfo3', 'hQP7k1hA22OrNTnq',
+    ),
+    (
+        'https://www.youtube.com/s/player/6275f73c/player_ias_tce.vflset/en_US/base.js',
+        'kM5r52fugSZRAKHfo3', '-I03XF0iyf6I_X0A',
+    ),
+    (
+        'https://www.youtube.com/s/player/20c72c18/player_ias_tce.vflset/en_US/base.js',
+        'kM5r52fugSZRAKHfo3', '-I03XF0iyf6I_X0A',
+    ),
+    (
+        'https://www.youtube.com/s/player/9fe2e06e/player_ias_tce.vflset/en_US/base.js',
+        'kM5r52fugSZRAKHfo3', '6r5ekNIiEMPutZy',
+    ),
+    (
+        'https://www.youtube.com/s/player/680f8c75/player_ias_tce.vflset/en_US/base.js',
+        'kM5r52fugSZRAKHfo3', '0ml9caTwpa55Jf',
+    ),
+    (
+        'https://www.youtube.com/s/player/14397202/player_ias_tce.vflset/en_US/base.js',
+        'kM5r52fugSZRAKHfo3', 'ozZFAN21okDdJTa',
+    ),
+    (
+        'https://www.youtube.com/s/player/5dcb2c1f/player_ias_tce.vflset/en_US/base.js',
+        'kM5r52fugSZRAKHfo3', 'p7iTbRZDYAF',
+    ),
+    (
+        'https://www.youtube.com/s/player/a10d7fcc/player_ias_tce.vflset/en_US/base.js',
+        'kM5r52fugSZRAKHfo3', '9Zue7DDHJSD',
+    ),
+    (
+        'https://www.youtube.com/s/player/8e20cb06/player_ias_tce.vflset/en_US/base.js',
+        'kM5r52fugSZRAKHfo3', '5-4tTneTROTpMzba',
+    ),
+    (
+        'https://www.youtube.com/s/player/e12fbea4/player_ias_tce.vflset/en_US/base.js',
+        'kM5r52fugSZRAKHfo3', 'XkeRfXIPOkSwfg',
+    ),
 ]
 
 
