@@ -309,6 +309,7 @@ from .brilliantpala import (
     BrilliantpalaClassesIE,
     BrilliantpalaElearnIE,
 )
+from .btvplus import BTVPlusIE
 from .bundesliga import BundesligaIE
 from .bundestag import BundestagIE
 from .bunnycdn import BunnyCdnIE
