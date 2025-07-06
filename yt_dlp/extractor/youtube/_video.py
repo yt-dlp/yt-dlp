@@ -3978,7 +3978,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def process_language(container, base_url, lang_code, sub_name, client_name, query):
             lang_subs = container.setdefault(lang_code, [])
             for fmt in self._SUBTITLE_FORMATS:
-                query = {**query, 'fmt': fmt}
+                # xosf=1 results in undesirable text position data for vtt, json3 & srv* subtitles
+                # See: https://github.com/yt-dlp/yt-dlp/issues/13654
+                query = {**query, 'fmt': fmt, 'xosf': []}
                 lang_subs.append({
                     'ext': fmt,
                     'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
