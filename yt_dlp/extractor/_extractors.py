@@ -2236,6 +2236,7 @@ from .tvplay import (
 from .tvplayer import TVPlayerIE
 from .tvw import (
     TvwIE,
+    TvwNewsIE,
     TvwTvChannelsIE,
 )
 from .tweakers import TweakersIE
