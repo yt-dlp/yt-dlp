@@ -1147,6 +1147,7 @@ from .minds import (
     MindsIE,
 )
 from .minoto import MinotoIE
+from .mir24tv import Mir24tvIE
 from .mirrativ import (
     MirrativIE,
     MirrativUserIE,
