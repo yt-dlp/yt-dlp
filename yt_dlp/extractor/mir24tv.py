@@ -1,10 +1,10 @@
+import urllib
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     filter_dict,
     unsmuggle_url,
 )
-import urllib
 
 class Mir24tvIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?mir24\.tv/news/(?P<id>[0-9]+)/[^/?#]+'
