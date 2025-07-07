@@ -348,7 +348,7 @@ class HttpFD(FileDownloader):
             self.try_rename(ctx.tmpfilename, ctx.filename)
 
             # Update file modification time
-            if self.params.get('updatetime', True):
+            if self.params.get('updatetime'):
                 info_dict['filetime'] = self.try_utime(ctx.filename, ctx.data.headers.get('last-modified', None))
 
             self._hook_progress({
