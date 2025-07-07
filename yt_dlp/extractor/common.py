@@ -1,5 +1,6 @@
 import base64
 import collections
+import contextlib
 import functools
 import getpass
 import http.client
@@ -102,6 +103,7 @@ from ..utils import (
     xpath_with_ns,
 )
 from ..utils._utils import _request_dump_filename
+from ..utils.jslib import devalue
 
 
 class InfoExtractor:
@@ -263,6 +265,9 @@ class InfoExtractor:
                                  * http_chunk_size Chunk size for HTTP downloads
                                  * ffmpeg_args     Extra arguments for ffmpeg downloader (input)
                                  * ffmpeg_args_out Extra arguments for ffmpeg downloader (output)
+                                 * ws              (NiconicoLiveFD only) WebSocketResponse
+                                 * ws_url          (NiconicoLiveFD only) Websockets URL
+                                 * max_quality     (NiconicoLiveFD only) Max stream quality string
                     * is_dash_periods  Whether the format is a result of merging
                                  multiple DASH periods.
                     RTMP formats can also have the additional fields: page_url,
@@ -1812,6 +1817,63 @@ class InfoExtractor:
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
 
+    def _resolve_nuxt_array(self, array, video_id, *, fatal=True, default=NO_DEFAULT):
+        """Resolves Nuxt rich JSON payload arrays"""
+        # Ref: https://github.com/nuxt/nuxt/commit/9e503be0f2a24f4df72a3ccab2db4d3e63511f57
+        #      https://github.com/nuxt/nuxt/pull/19205
+        if default is not NO_DEFAULT:
+            fatal = False
+
+        if not isinstance(array, list) or not array:
+            error_msg = 'Unable to resolve Nuxt JSON data: invalid input'
+            if fatal:
+                raise ExtractorError(error_msg, video_id=video_id)
+            elif default is NO_DEFAULT:
+                self.report_warning(error_msg, video_id=video_id)
+            return {} if default is NO_DEFAULT else default
+
+        def indirect_reviver(data):
+            return data
+
+        def json_reviver(data):
+            return json.loads(data)
+
+        gen = devalue.parse_iter(array, revivers={
+            'NuxtError': indirect_reviver,
+            'EmptyShallowRef': json_reviver,
+            'EmptyRef': json_reviver,
+            'ShallowRef': indirect_reviver,
+            'ShallowReactive': indirect_reviver,
+            'Ref': indirect_reviver,
+            'Reactive': indirect_reviver,
+        })
+
+        while True:
+            try:
+                error_msg = f'Error resolving Nuxt JSON: {gen.send(None)}'
+                if fatal:
+                    raise ExtractorError(error_msg, video_id=video_id)
+                elif default is NO_DEFAULT:
+                    self.report_warning(error_msg, video_id=video_id, only_once=True)
+                else:
+                    self.write_debug(f'{video_id}: {error_msg}', only_once=True)
+            except StopIteration as error:
+                return error.value or ({} if default is NO_DEFAULT else default)
+
+    def _search_nuxt_json(self, webpage, video_id, *, fatal=True, default=NO_DEFAULT):
+        """Parses metadata from Nuxt rich JSON payloads embedded in HTML"""
+        passed_default = default is not NO_DEFAULT
+
+        array = self._search_json(
+            r'<script\b[^>]+\bid="__NUXT_DATA__"[^>]*>', webpage,
+            'Nuxt JSON data', video_id, contains_pattern=r'\[(?s:.+)\]',
+            fatal=fatal, default=NO_DEFAULT if not passed_default else None)
+
+        if not array:
+            return default if passed_default else {}
+
+        return self._resolve_nuxt_array(array, video_id, fatal=fatal, default=default)
+
     @staticmethod
     def _hidden_inputs(html):
         html = re.sub(r'<!--(?:(?!<!--).)*-->', '', html)
@@ -2085,21 +2147,33 @@ class InfoExtractor:
                     raise ExtractorError(errnote, video_id=video_id)
                 self.report_warning(f'{errnote}{bug_reports_message()}')
             return [], {}
-
-        res = self._download_webpage_handle(
-            m3u8_url, video_id,
-            note='Downloading m3u8 information' if note is None else note,
-            errnote='Failed to download m3u8 information' if errnote is None else errnote,
+        if note is None:
+            note = 'Downloading m3u8 information'
+        if errnote is None:
+            errnote = 'Failed to download m3u8 information'
+        response = self._request_webpage(
+            m3u8_url, video_id, note=note, errnote=errnote,
             fatal=fatal, data=data, headers=headers, query=query)
-
-        if res is False:
+        if response is False:
             return [], {}
 
-        m3u8_doc, urlh = res
-        m3u8_url = urlh.url
+        with contextlib.closing(response):
+            prefix = response.read(512)
+            if not prefix.startswith(b'#EXTM3U'):
+                msg = 'Response data has no m3u header'
+                if fatal:
+                    raise ExtractorError(msg, video_id=video_id)
+                self.report_warning(f'{msg}{bug_reports_message()}', video_id=video_id)
+                return [], {}
+
+            content = self._webpage_read_content(
+                response, m3u8_url, video_id, note=note, errnote=errnote,
+                fatal=fatal, prefix=prefix, data=data)
+        if content is False:
+            return [], {}
 
         return self._parse_m3u8_formats_and_subtitles(
-            m3u8_doc, m3u8_url, ext=ext, entry_protocol=entry_protocol,
+            content, response.url, ext=ext, entry_protocol=entry_protocol,
             preference=preference, quality=quality, m3u8_id=m3u8_id,
             note=note, errnote=errnote, fatal=fatal, live=live, data=data,
             headers=headers, query=query, video_id=video_id)
