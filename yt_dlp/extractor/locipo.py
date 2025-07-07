@@ -1,9 +1,8 @@
 from typing import Literal
 
-from yt_dlp.utils._utils import classproperty
-
 from .common import InfoExtractor
 from ..utils import (
+    classproperty,
     filter_dict,
     int_or_none,
     parse_iso8601,
