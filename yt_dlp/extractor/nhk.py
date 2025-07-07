@@ -949,7 +949,7 @@ class NhkRadiruLiveIE(InfoExtractor):
             'ext': 'm4a',
             'thumbnail': 'https://www.nhk.jp/assets/images/broadcastservice/bs/r1/r1-logo.svg',
             'live_status': 'is_live',
-            '_old_archive_ids': ['r1-tokyo'],
+            '_old_archive_ids': ['nhkradirulive r1-tokyo'],
         },
     }, {
         # radio 2, area specified
@@ -962,7 +962,7 @@ class NhkRadiruLiveIE(InfoExtractor):
             'ext': 'm4a',
             'thumbnail': 'https://www.nhk.jp/assets/images/broadcastservice/bs/r2/r2-logo.svg',
             'live_status': 'is_live',
-            '_old_archive_ids': ['r2-fukuoka'],
+            '_old_archive_ids': ['nhkradirulive r2-fukuoka'],
         },
     }, {
         # fm, area specified
@@ -974,7 +974,7 @@ class NhkRadiruLiveIE(InfoExtractor):
             'ext': 'm4a',
             'thumbnail': 'https://www.nhk.jp/assets/images/broadcastservice/bs/r3/r3-logo.svg',
             'live_status': 'is_live',
-            '_old_archive_ids': ['fm-sapporo'],
+            '_old_archive_ids': ['nhkradirulive fm-sapporo'],
         },
     }]
 
