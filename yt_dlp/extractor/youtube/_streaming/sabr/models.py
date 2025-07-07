@@ -13,7 +13,7 @@ class Segment:
     duration_ms: int = 0
     start_ms: int = 0
     start_data_range: int = 0
-    sequence_number: int = 0
+    sequence_number: int | None = 0
     content_length: int | None = None
     content_length_estimated: bool = False
     initialized_format: InitializedFormat = None
@@ -62,36 +62,29 @@ class FormatSelector:
     display_name: str
     format_ids: list[FormatId] = dataclasses.field(default_factory=list)
     discard_media: bool = False
+    mime_prefix: str | None = None
 
-    def match(self, format_id: FormatId = None, **kwargs) -> bool:
-        return format_id in self.format_ids
+    def match(self, format_id: FormatId = None, mime_type: str | None = None, **kwargs) -> bool:
+        return (
+            format_id in self.format_ids
+            or (
+                not self.format_ids
+                and self.mime_prefix
+                and mime_type and mime_type.lower().startswith(self.mime_prefix)
+            )
+        )
 
 
 @dataclasses.dataclass
 class AudioSelector(FormatSelector):
-
-    def match(self, format_id: FormatId = None, mime_type: str | None = None, **kwargs) -> bool:
-        return (
-            super().match(format_id, mime_type=mime_type, **kwargs)
-            or (not self.format_ids and mime_type and mime_type.lower().startswith('audio'))
-        )
+    mime_prefix: str = dataclasses.field(default='audio')
 
 
 @dataclasses.dataclass
 class VideoSelector(FormatSelector):
-
-    def match(self, format_id: FormatId = None, mime_type: str | None = None, **kwargs) -> bool:
-        return (
-            super().match(format_id, mime_type=mime_type, **kwargs)
-            or (not self.format_ids and mime_type and mime_type.lower().startswith('video'))
-        )
+    mime_prefix: str = dataclasses.field(default='video')
 
 
 @dataclasses.dataclass
 class CaptionSelector(FormatSelector):
-
-    def match(self, format_id: FormatId = None, mime_type: str | None = None, **kwargs) -> bool:
-        return (
-            super().match(format_id, mime_type=mime_type, **kwargs)
-            or (not self.format_ids and mime_type and mime_type.lower().startswith('text'))
-        )
+    mime_prefix: str = dataclasses.field(default='text')

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import enum
 
@@ -15,7 +17,7 @@ class SabrPart:
 class MediaSegmentInitSabrPart(SabrPart):
     format_selector: FormatSelector
     format_id: FormatId
-    sequence_number: int = None
+    sequence_number: int | None = None
     is_init_segment: bool = False
     total_segments: int = None
     start_time_ms: int = None
@@ -31,7 +33,7 @@ class MediaSegmentInitSabrPart(SabrPart):
 class MediaSegmentDataSabrPart(SabrPart):
     format_selector: FormatSelector
     format_id: FormatId
-    sequence_number: int = None
+    sequence_number: int | None = None
     is_init_segment: bool = False
     total_segments: int = None
     data: bytes = b''
@@ -43,7 +45,7 @@ class MediaSegmentDataSabrPart(SabrPart):
 class MediaSegmentEndSabrPart(SabrPart):
     format_selector: FormatSelector
     format_id: FormatId
-    sequence_number: int = None
+    sequence_number: int | None = None
     is_init_segment: bool = False
     total_segments: int = None
 

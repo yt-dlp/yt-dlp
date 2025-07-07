@@ -8,13 +8,16 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
     PoTokenStatusSabrPart,
     FormatInitializedSabrPart,
     MediaSeekSabrPart,
+    MediaSegmentInitSabrPart,
 )
 
 from yt_dlp.extractor.youtube._streaming.sabr.processor import (
     SabrProcessor,
     ProcessStreamProtectionStatusResult,
     ProcessFormatInitializationMetadataResult,
-    ProcessLiveMetadataResult, ProcessSabrSeekResult,
+    ProcessLiveMetadataResult,
+    ProcessSabrSeekResult,
+    ProcessMediaHeaderResult,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.models import (
     AudioSelector,
@@ -29,7 +32,9 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     FormatInitializationMetadata,
     LiveMetadata,
     SabrContextUpdate,
-    SabrContextSendingPolicy, SabrSeek,
+    SabrContextSendingPolicy,
+    SabrSeek,
+    MediaHeader,
 )
 from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, NextRequestPolicy
 
@@ -82,6 +87,43 @@ def selector_factory(selector_type, *, discard_media=False, format_ids=None):
     def factory():
         return make_selector(selector_type, discard_media=discard_media, format_ids=format_ids)
     return factory
+
+
+def make_format_im(selector=None, video_id=None):
+    return FormatInitializationMetadata(
+        video_id=video_id or example_video_id,
+        format_id=selector.format_ids[0] if selector else FormatId(itag=140),
+        end_time_ms=10000,
+        total_segments=5,
+        mime_type=(selector.mime_prefix + '/mp4') if selector else 'audio/mp4',
+        duration_ticks=10000,
+        duration_timescale=1000,
+    )
+
+
+def make_init_header(selector=None, video_id=None):
+    return MediaHeader(
+        video_id=video_id or example_video_id,
+        format_id=selector.format_ids[0] if selector else FormatId(itag=140),
+        header_id=0,
+        is_init_segment=True,
+        start_data_range=0,
+        content_length=501,
+    )
+
+
+def make_media_header(selector=None, video_id=None, sequence_no=None, header_id=0):
+    return MediaHeader(
+        video_id=video_id or example_video_id,
+        format_id=selector.format_ids[0] if selector else FormatId(itag=140),
+        header_id=header_id,
+        start_data_range=502,
+        content_length=10000,
+        sequence_number=sequence_no,
+        is_init_segment=False,
+        duration_ms=2300,
+        start_ms=0,
+    )
 
 
 class TestSabrProcessorInitialization:
@@ -1120,8 +1162,6 @@ class TestSabrContextUpdate:
             'Received a SABR Context Update with write_policy=KEEP_EXISTING'
             'matching an existing SABR Context Update. Ignoring update')
 
-
-class TestSabrContextUpdateSendingPolicy:
     def test_set_sabr_context_update_sending_policy(self, base_args, logger):
         processor = SabrProcessor(**base_args)
 
@@ -1232,3 +1272,107 @@ class TestSabrSeek:
             assert izf.current_segment is None
 
         logger.debug.assert_called_with('Seeking to 5600ms')
+
+
+class TestMediaHeader:
+    def test_media_header_init_segment(self, base_args):
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+
+        media_header = make_init_header(selector)
+
+        result = processor.process_media_header(media_header)
+
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+
+        part = result.sabr_part
+
+        # TODO: confirm expected duration/start_ms settings for init segments
+        assert part == MediaSegmentInitSabrPart(
+            format_selector=selector,
+            format_id=selector.format_ids[0],
+            player_time_ms=0,
+            sequence_number=None,
+            total_segments=5,
+            is_init_segment=True,
+            content_length=501,
+            start_time_ms=0,
+            duration_ms=0,
+            start_bytes=0,
+        )
+        assert media_header.header_id in processor.partial_segments
+
+        segment = processor.partial_segments[media_header.header_id]
+
+        # TODO: confirm expected duration/start_ms settings for init segments
+        assert segment == Segment(
+            format_id=selector.format_ids[0],
+            is_init_segment=True,
+            duration_ms=0,
+            start_ms=0,
+            start_data_range=0,
+            sequence_number=None,
+            content_length=501,
+            content_length_estimated=False,
+            initialized_format=processor.initialized_formats[str(selector.format_ids[0])],
+            duration_estimated=True,
+            discard=False,
+            consumed=False,
+            received_data_length=0,
+        )
+
+    def test_media_header_segment(self, base_args):
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+
+        media_header = make_media_header(selector, sequence_no=1)
+
+        result = processor.process_media_header(media_header)
+
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+
+        part = result.sabr_part
+
+        assert part == MediaSegmentInitSabrPart(
+            format_selector=selector,
+            format_id=selector.format_ids[0],
+            player_time_ms=0,
+            sequence_number=1,
+            total_segments=5,
+            is_init_segment=False,
+            content_length=10000,
+            start_time_ms=0,
+            duration_ms=2300,
+            start_bytes=502,
+        )
+        assert media_header.header_id in processor.partial_segments
+
+        segment = processor.partial_segments[media_header.header_id]
+
+        assert segment == Segment(
+            format_id=selector.format_ids[0],
+            is_init_segment=False,
+            duration_ms=2300,
+            start_ms=0,
+            start_data_range=502,
+            sequence_number=1,
+            content_length=10000,
+            content_length_estimated=False,
+            initialized_format=processor.initialized_formats[str(selector.format_ids[0])],
+            duration_estimated=False,
+            discard=False,
+            consumed=False,
+            received_data_length=0,
+        )
