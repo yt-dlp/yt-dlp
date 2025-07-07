@@ -694,21 +694,13 @@ class NhkRadiruIE(InfoExtractor):
     def _make_artists(self, track, key):
         artists = []
         for artist in traverse_obj(track, (key, ..., {dict})):
-            res = ''
-            name = artist.get('name')
-            role = artist.get('role')
-            part = artist.get('part')
-
-            if role != '':
-                res += f'{role}…'
-            if part != '':
-                res += f'（{part}）'
-            res += name
-
-            if res != '':
+            if res := join_nonempty(*traverse_obj(artist, ((
+                ('role', filter, {'{}…'.format}),
+                ('part', filter, {'（{}）'.format}),
+                ('name', filter),
+            ), {str})), delim=''):
                 artists.append(res)
-        if len(artists) == 0:
-            return None
+
         return '、'.join(artists) or None
 
     def _make_duration(self, track, key):
@@ -728,15 +720,12 @@ class NhkRadiruIE(InfoExtractor):
     def _format_music_list(self, music_list):
         tracks = []
         for track in traverse_obj(music_list, (..., {dict})):
-            track_details = []
-            if name := track.get('name'):
-                track_details.append(f'「{name}」')
-            if lyricist := track.get('lyricist'):
-                track_details.append(f'{lyricist}:作詞')
-            if composer := track.get('composer'):
-                track_details.append(f'{composer}:作曲')
-            if arranger := track.get('arranger'):
-                track_details.append(f'{arranger}:編曲')
+            track_details = traverse_obj(track, ((
+                ('name', filter, {'「{}」'.format}),
+                ('lyricist', filter, {'{}:作詞'.format}),
+                ('composer', filter, {'{}:作曲'.format}),
+                ('arranger', filter, {'{}:編曲'.format}),
+            ), {str}))
 
             track_details.append(self._make_artists(track, 'byArtist'))
             track_details.append(self._make_duration(track, 'duration'))
