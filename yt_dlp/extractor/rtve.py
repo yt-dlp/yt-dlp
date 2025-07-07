@@ -371,3 +371,55 @@ class RTVETelevisionIE(InfoExtractor):
             raise ExtractorError('The webpage doesn\'t contain any video', expected=True)
 
         return self.url_result(play_url, ie=RTVEALaCartaIE.ie_key())
+
+
+class RTVEProgramIE(RTVEBaseIE):
+    IE_NAME = 'rtve.es:program'
+    IE_DESC = 'RTVE.es program'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/play/videos/(?P<program_slug>[a-z\d_-]+)/?$'
+
+    def _real_extract(self, url):
+        entries = []
+
+        program_slug = self._match_valid_url(url).group('program_slug')
+        program_page = self._download_webpage(url, program_slug, f'Downloading {program_slug} web page')
+
+        playlist_title = self._html_extract_title(program_page)
+        program_id = self._html_search_meta('DC.identifier', program_page)
+
+        if program_id:
+            total_page_count = 1
+            current_page = 1
+            while current_page <= total_page_count:
+                params = {
+                    'type': 39816,
+                    'page': current_page,
+                    'size': 60,
+                }
+                videos_data = self._download_json(
+                    f'https://www.rtve.es/api/programas/{program_id}/videos?{urllib.parse.urlencode(params)}',
+                    program_slug,
+                )
+                current_page += 1
+                total_page_count = traverse_obj(videos_data, ('page', 'totalPages'), default=1)
+                entries.extend(
+                    {
+                        '_type': 'url_transparent',
+                        **traverse_obj(video, {
+                            'url': ('htmlUrl', {url_or_none}),
+                            'id': ('id', {str.strip}),
+                            'title': ('longTitle', {str.strip}),
+                            'description': ('shortDescription', {str.strip}),
+                            'duration': ('duration', {float_or_none(scale=1000)}),
+                            'series': (('programInfo', 'title'), {str.strip}),
+                            'season_number': ('temporadaOrden', {int}),
+                            'season_id': ('temporadaId', {str.strip}),
+                            'season': ('temporada', {str.strip}),
+                            'episode_number': ('episode', {int}),
+                            'episode': ('title', {str.strip}),
+                            'thumbnail': ('thumbnail', {url_or_none}),
+                        }),
+                    } for video in traverse_obj(videos_data, ('page', 'items'))
+                )
+
+        return self.playlist_result(entries, program_slug, playlist_title)
