@@ -3243,7 +3243,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # web_creator may work around age-verification for all videos but requires PO token
                 append_client('tv_embedded', 'web_creator')
 
-            status = traverse_obj(pr, ('playabilityStatus', 'status'))
+            status = traverse_obj(pr, ('playabilityStatus', 'status', {str}))
             if status not in ('OK', 'LIVE_STREAM_OFFLINE', 'AGE_CHECK_REQUIRED', 'AGE_VERIFICATION_REQUIRED'):
                 self.write_debug(f'{video_id}: {client} player response playability status: {status}')
 
