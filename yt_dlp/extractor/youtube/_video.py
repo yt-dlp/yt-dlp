@@ -3442,7 +3442,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.report_warning(
                     'Some formats are possibly damaged. They will be deprioritized', video_id, only_once=True)
 
-            fetch_po_token_func = fmt.get(STREAMING_DATA_FETCH_GVS_PO_TOKEN)
+            fetch_po_token_func = fmt[STREAMING_DATA_FETCH_GVS_PO_TOKEN]
             pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name).get('GVS_PO_TOKEN_POLICY')[StreamingProtocol.HTTPS]
 
             require_po_token = (
