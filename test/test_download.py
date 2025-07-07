@@ -215,6 +215,10 @@ def generator(test_case, tname):
                 assertLessEqual(
                     self, num_entries, maxcount,
                     f'Expected at most {maxcount} entries in playlist {test_url}, but got more')
+            if 'playlist_duration_sum' in test_case:
+                got_duration = sum(e['duration'] for e in res_dict['entries'])
+                self.assertEqual(
+                    test_case['playlist_duration_sum'], got_duration)
 
             # Generalize both playlists and single videos to unified format for
             # simplicity
