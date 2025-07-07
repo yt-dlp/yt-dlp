@@ -3448,10 +3448,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             require_po_token = (
                 itag not in ['18']
                 and pot_required(
-                    pot_policy, fmt.get(STREAMING_DATA_IS_PREMIUM_SUBSCRIBER),
-                    fmt.get(STREAMING_DATA_PLAYER_TOKEN_PROVIDED)))
+                    pot_policy, fmt[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER],
+                    fmt[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]))
 
-            po_token = gvs_pots.get(client_name) or fetch_po_token_func(required=require_po_token or pot_policy.recommended)
+            po_token = (
+                gvs_pots.get(client_name)
+                or fetch_po_token_func(required=require_po_token or pot_policy.recommended))
 
             if po_token:
                 fmt_url = update_url_query(fmt_url, {'pot': po_token})
@@ -3588,17 +3590,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for sd in streaming_data:
             client_name = sd[STREAMING_DATA_CLIENT_NAME]
             fetch_pot_func = sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN]
-            is_premium_subscriber = sd.get(STREAMING_DATA_IS_PREMIUM_SUBSCRIBER)
-            has_player_token = sd.get(STREAMING_DATA_PLAYER_TOKEN_PROVIDED)
+            is_premium_subscriber = sd[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER]
+            has_player_token = sd[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]
 
             hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
-                pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name).get('GVS_PO_TOKEN_POLICY')[StreamingProtocol.HLS]
+                pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(
+                    client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.HLS]
                 require_po_token = pot_required(pot_policy, is_premium_subscriber, has_player_token)
                 po_token = gvs_pots.get(client_name, fetch_pot_func(required=require_po_token or pot_policy.recommended))
                 if po_token:
                     hls_manifest_url = hls_manifest_url.rstrip('/') + f'/pot/{po_token}'
-                    gvs_pots[client_name] = po_token
+                    if client_name not in gvs_pots:
+                        gvs_pots[client_name] = po_token
                 if require_po_token and not po_token and 'missing_pot' not in self._configuration_arg('formats'):
                     self._report_pot_format_skipped(video_id, client_name, 'hls')
                 else:
@@ -3616,7 +3620,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             dash_manifest_url = 'dash' not in skip_manifests and sd.get('dashManifestUrl')
             if dash_manifest_url:
-                pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name).get('GVS_PO_TOKEN_POLICY')[StreamingProtocol.DASH]
+                pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(
+                    client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.DASH]
                 require_po_token = pot_required(pot_policy, is_premium_subscriber, has_player_token)
                 po_token = gvs_pots.get(client_name, fetch_pot_func(required=require_po_token or pot_policy.recommended))
                 if po_token:
@@ -3741,9 +3746,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return False
 
         tlr = traverse_obj(
-            initial_data, ('topbar', 'desktopTopbarRenderer', 'logo', 'topbarLogoRenderer')) or {}
+            initial_data, ('topbar', 'desktopTopbarRenderer', 'logo', 'topbarLogoRenderer'))
         return (
-            (tlr and traverse_obj(tlr, ('iconImage', 'iconType')) == 'YOUTUBE_PREMIUM_LOGO')
+            traverse_obj(tlr, ('iconImage', 'iconType')) == 'YOUTUBE_PREMIUM_LOGO'
             or 'premium' in (self._get_text(tlr, 'tooltipText') or '').lower()
         )
 
@@ -4046,7 +4051,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pctr = pr['captions']['playerCaptionsTracklistRenderer']
             client_name = pr['streamingData'][STREAMING_DATA_CLIENT_NAME]
             innertube_client_name = pr['streamingData'][STREAMING_DATA_INNERTUBE_CONTEXT]['client']['clientName']
-            pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name).get('SUBS_PO_TOKEN_POLICY')
+            pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name)['SUBS_PO_TOKEN_POLICY']
             fetch_subs_po_token_func = pr['streamingData'][STREAMING_DATA_FETCH_SUBS_PO_TOKEN]
 
             pot_params = {}
