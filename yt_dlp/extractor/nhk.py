@@ -863,7 +863,9 @@ class NhkRadiruIE(InfoExtractor):
         site_id, corner_id, headline_id = self._match_valid_url(url).group('site', 'corner', 'headline')
         programme_id = f'{site_id}_{corner_id}'
 
-        if site_id == '18439M2W42':  # XXX: News programmes use old API (for now?)
+        # XXX: News programmes use the old API
+        # Can't move this to NhkRadioNewsPageIE because news items still use the normal URL format
+        if site_id == '18439M2W42':
             meta = self._download_json(
                 'https://www.nhk.or.jp/s-media/news/news-site/list/v1/all.json', programme_id)['main']
             series_meta = traverse_obj(meta, {
