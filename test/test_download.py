@@ -197,7 +197,7 @@ def generator(test_case, tname):
                 self.assertTrue('entries' in res_dict)
                 expect_info_dict(self, res_dict, test_case.get('info_dict', {}))
 
-            num_entries = len(res_dict['entries'])
+            num_entries = len(res_dict.get('entries', []))
             if 'playlist_mincount' in test_case:
                 assertGreaterEqual(
                     self, num_entries, test_case['playlist_mincount'],
