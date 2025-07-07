@@ -48,7 +48,7 @@ class StreamingProtocol(enum.Enum):
 @dataclasses.dataclass
 class BasePoTokenPolicy:
     required: bool = False
-    # Try fetch a PO Token even if it is not required.
+    # Try to fetch a PO Token even if it is not required.
     recommended: bool = False
     not_required_for_premium: bool = False
 
