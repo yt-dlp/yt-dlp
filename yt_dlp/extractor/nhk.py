@@ -8,6 +8,7 @@ from ..utils import (
     get_element_by_class,
     int_or_none,
     join_nonempty,
+    make_archive_id,
     orderedSet,
     parse_duration,
     remove_end,
@@ -17,6 +18,7 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
     urljoin,
+    variadic,
 )
 
 
@@ -670,11 +672,11 @@ class NhkRadiruIE(InfoExtractor):
 
     _API_URL_TMPL = None
 
-    # the following few functions are ported from https://www.nhk.or.jp/radio/assets/js/timetable_detail_new.js
+    # The `_format_*` and `_make_*` functions are ported from: https://www.nhk.or.jp/radio/assets/js/timetable_detail_new.js
 
-    def _format_actlist(self, act_list):
+    def _format_act_list(self, act_list):
         role_groups = {}
-        for act in act_list:
+        for act in traverse_obj(act_list, (..., {dict})):
             role = act.get('role')
             if role not in role_groups:
                 role_groups[role] = []
@@ -686,17 +688,13 @@ class NhkRadiruIE(InfoExtractor):
                 res = f'【{role}】' if i == 0 and role is not None else ''
                 if title := act.get('title'):
                     res += f'{title}…'
-                res += act.get('name')
-                formatted_roles.append(res)
+                formatted_roles.append(join_nonempty(res, act.get('name'), delim=''))
         return join_nonempty(*formatted_roles, delim='，')
 
-    def _fetch_artists(self, by_artist):
-        if not by_artist or len(by_artist) == 0:
-            return None
+    def _make_artists(self, track, key):
         artists = []
-        for artist in by_artist:
+        for artist in traverse_obj(track, (key, ..., {dict})):
             res = ''
-
             name = artist.get('name')
             role = artist.get('role')
             part = artist.get('part')
@@ -711,10 +709,10 @@ class NhkRadiruIE(InfoExtractor):
                 artists.append(res)
         if len(artists) == 0:
             return None
-        return '、'.join(artists)
+        return '、'.join(artists) or None
 
-    def _fetch_duration(self, duration):
-        d = parse_duration(duration)
+    def _make_duration(self, track, key):
+        d = traverse_obj(track, (key, {parse_duration}))
         if d is None:
             return None
         hours, remainder = divmod(d, 3600)
@@ -727,15 +725,10 @@ class NhkRadiruIE(InfoExtractor):
         res += f'{int(seconds):02}秒）'
         return res
 
-    def _format_musiclist(self, music_list):
-        if not music_list or len(music_list) == 0:
-            return None
-
+    def _format_music_list(self, music_list):
         tracks = []
-
-        for track in music_list:
+        for track in traverse_obj(music_list, (..., {dict})):
             track_details = []
-
             if name := track.get('name'):
                 track_details.append(f'「{name}」')
             if lyricist := track.get('lyricist'):
@@ -744,46 +737,47 @@ class NhkRadiruIE(InfoExtractor):
                 track_details.append(f'{composer}:作曲')
             if arranger := track.get('arranger'):
                 track_details.append(f'{arranger}:編曲')
-            track_details.append(self._fetch_artists(track.get('byArtist')))
-            track_details.append(self._fetch_duration(track.get('duration')))
 
-            if track.get('label') or track.get('code'):
-                track_details.append('＜' + join_nonempty('label', 'code', delim=' ', from_dict=track) + '＞')
+            track_details.append(self._make_artists(track, 'byArtist'))
+            track_details.append(self._make_duration(track, 'duration'))
 
-            if location := track.get('location'):
+            if label := join_nonempty('label', 'code', delim=' ', from_dict=track):
+                track_details.append(f'＜{label}＞')
+            if location := traverse_obj(track, ('location', {str})):
                 track_details.append(f'～{location}～')
-
             tracks.append(join_nonempty(*track_details, delim='\n'))
-
         return '\n\n'.join(tracks)
 
     def _format_description(self, response):
-        act = traverse_obj(response, ('misc', 'actList', {self._format_actlist}))
-        music = traverse_obj(response, ('misc', 'musicList', {self._format_musiclist}))
-        desc = join_nonempty('epg80', 'epg200', delim='\n\n', from_dict=traverse_obj(response, 'detailedDescription'))
+        detailed_description = traverse_obj(response, ('detailedDescription', {dict})) or {}
+        return join_nonempty(
+            join_nonempty('epg80', 'epg200', delim='\n\n', from_dict=detailed_description),
+            traverse_obj(response, ('misc', 'actList', {self._format_act_list})),
+            traverse_obj(response, ('misc', 'musicList', {self._format_music_list})),
+            delim='\n\n')
 
-        return join_nonempty(desc, act, music, delim='\n\n')
-
-    def _get_thumbnails(self, thumbs, name, preference=-1):
+    def _get_thumbnails(self, data, keys, name=None, preference=-1):
         thumbnails = []
-        if thumbs is None or len(thumbs) == 0:
-            return []
-        for size, thumb in thumbs:
-            if size == 'copyright' or not isinstance(thumb, dict):
-                continue
-            thumbnails.append({**thumb,
-                               'preference': preference,
-                               'id': join_nonempty(name, size),
-                               })
+        for size, thumb in traverse_obj(data, (
+            *variadic(keys, (str, bytes, dict, set)), {dict.items},
+            lambda _, v: v[0] != 'copyright' and url_or_none(v[1]['url']),
+        )):
+            thumbnails.append({
+                'url': thumb['url'],
+                'width': int_or_none(thumb.get('width')),
+                'height': int_or_none(thumb.get('height')),
+                'preference': preference,
+                'id': join_nonempty(name, size),
+            })
             preference -= 1
         return thumbnails
 
     def _extract_extended_metadata(self, episode_id, aa_vinfo):
         service, _, area = traverse_obj(aa_vinfo, (2, {str}, {lambda x: (x or '').partition(',')}))
-        dateid = aa_vinfo[3]
+        date_id = aa_vinfo[3]
 
         detail_url = try_call(
-            lambda: self._API_URL_TMPL.format(broadcastEventId=join_nonempty(service, area, dateid, delim='-')))
+            lambda: self._API_URL_TMPL.format(broadcastEventId=join_nonempty(service, area, date_id)))
         if not detail_url:
             return {}
 
@@ -799,19 +793,18 @@ class NhkRadiruIE(InfoExtractor):
                 f'Error {join_nonempty("statuscode", "message", from_dict=error, delim=": ")}')
             return {}
 
-        station = traverse_obj(response, ('publishedOn', 'broadcastDisplayName'))
+        station = traverse_obj(response, ('publishedOn', 'broadcastDisplayName', {str}))
 
-        about = response.get('about')
         thumbnails = []
-        thumbnails.extend(self._get_thumbnails(traverse_obj(about, ('eyecatch', {dict.items})), ''))
-        if eyecatch_list := about.get('eyecatchList'):
-            for num, v in enumerate(eyecatch_list):
-                thumbnails.extend(self._get_thumbnails(v.items(), join_nonempty('list', num), preference=-2))
-        thumbnails.extend(self._get_thumbnails(traverse_obj(about, ('partOfSeries', 'eyecatch', {dict.items})), 'series', preference=-3))
+        thumbnails.extend(self._get_thumbnails(response, ('about', 'eyecatch')))
+        for num, dct in enumerate(traverse_obj(response, ('about', 'eyecatchList', ...))):
+            thumbnails.extend(self._get_thumbnails(dct, None, join_nonempty('list', num), -2))
+        thumbnails.extend(
+            self._get_thumbnails(response, ('about', 'partOfSeries', 'eyecatch'), 'series', -3))
 
         return filter_dict({
             'description': self._format_description(response),
-            'cast': traverse_obj(response, ('misc', 'actList', ..., 'name')),
+            'cast': traverse_obj(response, ('misc', 'actList', ..., 'name', {str})),
             'thumbnails': thumbnails,
             **traverse_obj(response, {
                 'title': ('name', {str}),
@@ -820,11 +813,11 @@ class NhkRadiruIE(InfoExtractor):
                 'duration': ('duration', {parse_duration}),
             }),
             **traverse_obj(response, ('identifierGroup', {
-                'series': 'radioSeriesName',
-                'series_id': 'radioSeriesId',
-                'episode': 'radioEpisodeName',
-                'episode_id': 'radioEpisodeId',
-                'categories': ('genre', ..., ['name1', 'name2'], all, {orderedSet}),
+                'series': ('radioSeriesName', {str}),
+                'series_id': ('radioSeriesId', {str}),
+                'episode': ('radioEpisodeName', {str}),
+                'episode_id': ('radioEpisodeId', {str}),
+                'categories': ('genre', ..., ['name1', 'name2'], {str}, all, {orderedSet}),
             })),
             'channel': station,
             'uploader': station,
@@ -1014,14 +1007,13 @@ class NhkRadiruLiveIE(InfoExtractor):
             f'https:{config.find(".//url_program_noa").text}'.format(area=data.find('areakey').text),
             station, note=f'Downloading {area} station metadata', fatal=False)
         broadcast_service = traverse_obj(noa_info, (self._NOA_STATION_IDS.get(station), 'publishedOn'))
-        # alternatively can do like https://api.nhk.jp/r7/t/broadcastservice/bs/r3-130.json (given in the `url` key)
 
         return {
             **traverse_obj(broadcast_service, {
-                'title': 'broadcastDisplayName',
-                'id': 'id',
+                'title': ('broadcastDisplayName', {str}),
+                'id': ('id', {str}),
             }),
-            '_old_archive_ids': [join_nonempty(station, area)],
+            '_old_archive_ids': [make_archive_id(self, join_nonempty(station, area))],
             'thumbnails': traverse_obj(broadcast_service, ('logo', ..., {
                 'url': 'url',
                 'width': ('width', {int_or_none}),
