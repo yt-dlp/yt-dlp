@@ -924,8 +924,8 @@ class NhkRadioNewsPageIE(InfoExtractor):
         'url': 'https://www.nhk.or.jp/radionews/',
         'playlist_mincount': 5,
         'info_dict': {
-            'id': 'F261_01',
-            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F261/img/RADIONEWS_640.jpg',
+            'id': '18439M2W42_01',
+            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/18439M2W42/img/series_945_thumbnail.jpg',
             'description': 'md5:bf2c5b397e44bc7eb26de98d8f15d79d',
             'channel': 'NHKラジオ第1',
             'uploader': 'NHKラジオ第1',
@@ -934,7 +934,7 @@ class NhkRadioNewsPageIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        return self.url_result('https://www.nhk.or.jp/radio/ondemand/detail.html?p=F261_01', NhkRadiruIE)
+        return self.url_result('https://www.nhk.or.jp/radio/ondemand/detail.html?p=18439M2W42_01', NhkRadiruIE)
 
 
 class NhkRadiruLiveIE(InfoExtractor):
