@@ -124,9 +124,9 @@ def generator(test_case, tname):
         if is_playlist and 'playlist' not in test_case:
             params.setdefault('extract_flat', 'in_playlist')
             params.setdefault('playlistend', max(
-                test_case.get('playlist_mincount') or -1,
-                (test_case.get('playlist_count') or -2) + 1,
-                (test_case.get('playlist_maxcount') or -2) + 1))
+                test_case.get('playlist_mincount', -1),
+                test_case.get('playlist_count', -2) + 1,
+                test_case.get('playlist_maxcount', -2) + 1))
             params.setdefault('skip_download', True)
 
         ydl = YoutubeDL(params, auto_init=False)
