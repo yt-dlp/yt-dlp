@@ -88,7 +88,6 @@ class LocipoIE(InfoExtractor):
             )
 
             return {
-                # traverse_obj(creative_data, ('video', 'hls', {str})) is used to extract the HLS URL
                 'formats': self._extract_m3u8_formats(m3u8_url=traverse_obj(creative_data, ('video', 'hls', {str})), video_id=creative_id),  # type: ignore
                 'id': creative_id,
                 **traverse_obj(
