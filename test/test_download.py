@@ -122,12 +122,13 @@ def generator(test_case, tname):
         params = get_params(test_case.get('params', {}))
         params['outtmpl'] = tname + '_' + params['outtmpl']
         if is_playlist and 'playlist' not in test_case:
-            params.setdefault('extract_flat', 'in_playlist')
             params.setdefault('playlistend', max(
                 test_case.get('playlist_mincount', -1),
                 test_case.get('playlist_count', -2) + 1,
                 test_case.get('playlist_maxcount', -2) + 1))
             params.setdefault('skip_download', True)
+            if 'playlist_duration_sum' not in test_case:
+                params.setdefault('extract_flat', 'in_playlist')
 
         ydl = YoutubeDL(params, auto_init=False)
         ydl.add_default_info_extractors()
