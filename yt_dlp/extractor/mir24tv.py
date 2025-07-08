@@ -25,15 +25,7 @@ class Mir24tvIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        impersonate = self._configuration_arg('impersonate', [''])
-        try:
-            webpage = self._request_webpage(url, video_id, headers=filter_dict({
-                'Accept-Encoding': 'identity',
-                'Referer': smuggled_data.get('referer'),
-            }), impersonate=impersonate)
-        except ExtractorError:
-            raise ExtractorError('try again with  --extractor-args "generic:impersonate"', expected=True)
-        webpage = webpage.read().decode()
+        webpage = self._download_webpage(url, video_id, impersonate=True)
 
         iframe_url = self._search_regex(
             r'<iframe[^>]+src=["\'](https?://mir24\.tv/players/[^"\']+)',
