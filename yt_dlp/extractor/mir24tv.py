@@ -25,7 +25,6 @@ class Mir24tvIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        url, smuggled_data = unsmuggle_url(url, {})
         impersonate = self._configuration_arg('impersonate', [''])
         try:
             webpage = self._request_webpage(url, video_id, headers=filter_dict({
