@@ -4,11 +4,6 @@ from ..utils.traversal import require, traverse_obj
 
 class Mir24tvIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?mir24\.tv/news/(?P<id>[0-9]+)/[^/?#]+'
-    _BASE_URL = 'https://mir24.tv'
-    _HEADERS = {
-        'Origin': _BASE_URL,
-        'Referer': f'{_BASE_URL}/',
-    }
     _TESTS = [{
         'url': 'https://mir24.tv/news/16635210/dni-kultury-rossii-otkrylis-v-uzbekistane.-na-prazdnichnom-koncerte-vystupili-zvezdy-rossijskoj-estrada',
         'info_dict': {
