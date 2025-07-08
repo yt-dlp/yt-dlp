@@ -31,14 +31,8 @@ class Mir24tvIE(InfoExtractor):
             r'<iframe\b[^>]+\bsrc=["\'](https?://mir24\.tv/players/[^"\']+)',
             webpage, 'iframe URL')
 
-        parsed_url = urllib.parse.urlparse(iframe_url)
-        query_params = urllib.parse.parse_qs(parsed_url.query)
-
-        m3u8_url_encoded = query_params.get('source', [''])[0]
-        if not m3u8_url_encoded:
-            raise self.raise_no_formats('Не удалось найти параметр source в iframe')
-
-        m3u8_url = urllib.parse.unquote(m3u8_url_encoded).replace('///', '//')
+        m3u8_url = traverse_obj(iframe_url, (
+            {parse_qs}, 'source', -1, {self._proto_relative_url}, {url_or_none}, {require('m3u8 URL')}))
 
         title = self._og_search_title(webpage, default=None) or self._html_search_meta(
             'og:title', webpage, 'title', default=video_id)
