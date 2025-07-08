@@ -900,7 +900,9 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 headers=headers))
 
         geo_blocked = traverse_obj(play_info, (
-            'raw', 'data', 'plugins', lambda _, v: v['name'] == 'AreaLimitPanel', 'config', 'is_block', {bool}, any))
+            ('result', ('raw', 'data')), 'plugins',
+            lambda _, v: v['name'] == 'AreaLimitPanel',
+            'config', 'is_block', {bool}, any))
         premium_only = play_info.get('code') == -10403
 
         video_info = traverse_obj(play_info, (('result', ('raw', 'data')), 'video_info', {dict}, any)) or {}
@@ -914,7 +916,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
         if traverse_obj(play_info, ((
             ('result', 'play_check', 'play_detail'),  # 'PLAY_PREVIEW' vs 'PLAY_WHOLE'
-            ('raw', 'data', 'play_video_type'),  # 'preview' vs 'whole'
+            (('result', ('raw', 'data')), 'play_video_type'),  # 'preview' vs 'whole' vs 'none'
         ), any, {lambda x: x in ('PLAY_PREVIEW', 'preview')})):
             self.report_warning(
                 'Only preview format is available, '
