@@ -1,9 +1,6 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    filter_dict,
-    unsmuggle_url,
-)
+from ..utils import parse_qs, url_or_none
+from ..utils.traversal import require, traverse_obj
 
 class Mir24tvIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?mir24\.tv/news/(?P<id>[0-9]+)/[^/?#]+'
