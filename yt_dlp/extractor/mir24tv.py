@@ -28,7 +28,7 @@ class Mir24tvIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id, impersonate=True)
 
         iframe_url = self._search_regex(
-            r'<iframe[^>]+src=["\'](https?://mir24\.tv/players/[^"\']+)',
+            r'<iframe\b[^>]+\bsrc=["\'](https?://mir24\.tv/players/[^"\']+)',
             webpage, 'iframe URL')
 
         parsed_url = urllib.parse.urlparse(iframe_url)
