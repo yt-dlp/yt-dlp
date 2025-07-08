@@ -133,6 +133,9 @@ class RPlayVideoIE(RPlayBaseIE):
             'uploader': '杏都める',
             'uploader_id': '667adc9e9aa7f739a2158ff3',
             'tags': ['杏都める', 'めいどるーちぇ', '無料', '耳舐め', 'ASMR'],
+            'like_count': int,
+            'view_count': int,
+            'location': 'JP',
         },
     }, {
         'url': 'https://rplay.live/play/66783c65dcd1c768a8a69f24/',
@@ -152,7 +155,31 @@ class RPlayVideoIE(RPlayBaseIE):
             'tags': 'count:4',
             'age_limit': 18,
             'live_status': 'was_live',
+            'like_count': int,
+            'view_count': int,
+            'location': 'JP',
         },
+    }, {
+        'url': 'https://rplay.live/play/682065da13ed2c564c77d8f7',
+        'info_dict': {
+            'id': '682065da13ed2c564c77d8f7',
+            'ext': 'mp4',
+            'title': 'md5:9551c4c0ffe610ef57a87fd1e8941073',
+            'description': 'md5:eb03a6c7200022d1554ba67feb6043e0',
+            'timestamp': 1746953690,
+            'upload_date': '20250511',
+            'release_timestamp': 1746953805,
+            'release_date': '20250511',
+            'duration': 11.483,
+            'thumbnail': 'https://pb.rplay.live/thumbnail/682065da13ed2c564c77d8f7',
+            'uploader': 'Seldea',
+            'uploader_id': '64d483add2c96306099ef734',
+            'tags': ['셀데아', '무료', 'Free', '無料'],
+            'like_count': int,
+            'view_count': int,
+            'location': 'KR',
+        },
+        'params': {'extractor_args': {'rplaylive': {'lang': ['en']}}},
     }, {
         'url': 'https://rplay.live/play/664f6dbe8ff72ac8bb0aecfc',
         'info_dict': {
@@ -170,6 +197,9 @@ class RPlayVideoIE(RPlayBaseIE):
             'uploader_id': '6640ce9db293d7d82bf76cfd',
             'tags': 'count:3',
             'age_limit': 18,
+            'like_count': int,
+            'view_count': int,
+            'location': 'JP',
         },
         'skip': 'subscribe required',
     }]
@@ -210,8 +240,22 @@ class RPlayVideoIE(RPlayBaseIE):
             'uploader_id': ('creatorOid', {str}),
             'tags': ('hashtags', lambda _, v: v[0] != '_'),
             'age_limit': (('hideContent', 'isAdultContent'), {lambda x: 18 if x else None}, any),
+            'location': ('location', {str}),
+            'view_count': ('views', {int}),
+            'like_count': ('likes', {int}),
             'live_status': ('isReplayContent', {lambda x: 'was_live' if x else None}),
         })
+        if preferred_lang := self._configuration_arg('lang', ie_key='rplaylive', default=[None])[0]:
+            translated_metainfo = traverse_obj(video_info, {
+                'title': ('multiLangTitle', preferred_lang, {str}),
+                'description': ('multiLangIntroText', preferred_lang, {str}),
+                'uploader': ('creatorInfo', 'multiLangNick', preferred_lang, {str}),
+            })
+            if missing := [k for k in ['title', 'description', 'uploader'] if k not in translated_metainfo]:
+                self.report_warning(
+                    f'Did not find translations for {preferred_lang} for fields: {", ".join(missing)}; '
+                    'will use original language for these field(s)', video_id)
+            metainfo.update(translated_metainfo)
 
         m3u8_url = traverse_obj(video_info, ('canView', 'url', {url_or_none}))
         if not m3u8_url:
