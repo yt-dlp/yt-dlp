@@ -25,11 +25,8 @@ class Mir24tvIE(InfoExtractor):
         m3u8_url = traverse_obj(iframe_url, (
             {parse_qs}, 'source', -1, {self._proto_relative_url}, {url_or_none}, {require('m3u8 URL')}))
 
-        title = self._og_search_title(webpage, default=None) or self._html_search_meta(
-            'og:title', webpage, 'title', default=video_id)
-
         return {
             'id': video_id,
-            'title': title,
+            'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
             'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4'),
         }
