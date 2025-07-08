@@ -12,7 +12,6 @@ class Mir24tvIE(InfoExtractor):
             'title': 'Дни культуры России открылись в Узбекистане. На праздничном концерте выступили звезды российской эстрады',
             'ext': 'mp4',
         },
-        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
