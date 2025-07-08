@@ -13,7 +13,6 @@ class Mir24tvIE(InfoExtractor):
         },
         'params': {'skip_download': True},
     }]
-    _IMPERSONATE_TARGET = True
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
