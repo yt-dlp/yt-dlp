@@ -61,15 +61,13 @@ class LocipoIE(InfoExtractor):
 
         if not playlist_id:
             creative_data = self._download_json(
-                url_or_request=f'https://api.locipo.jp/api/v1/creatives/{creative_id}',
-                video_id=creative_id,
-                headers=filter_dict(
-                    {
-                        'accept': 'application/json, text/plain, */*',
-                        'origin': 'https://locipo.jp',
-                        'referer': 'https://locipo.jp/',
-                    },
-                ),
+                f'https://api.locipo.jp/api/v1/creatives/{creative_id}',
+                creative_id,
+                headers={
+                    'accept': 'application/json, text/plain, */*',
+                    'origin': 'https://locipo.jp',
+                    'referer': 'https://locipo.jp/',
+                },
             )
 
             return {
@@ -93,28 +91,24 @@ class LocipoIE(InfoExtractor):
             }
 
         playlist_data = self._download_json(
-            url_or_request=f'https://api.locipo.jp/api/v1/playlists/{playlist_id}',
-            video_id=playlist_id,
-            headers=filter_dict(
-                {
-                    'accept': 'application/json, text/plain, */*',
-                    'origin': 'https://locipo.jp',
-                    'referer': 'https://locipo.jp/',
-                },
-            ),
+            f'https://api.locipo.jp/api/v1/playlists/{playlist_id}',
+            playlist_id,
+            headers={
+                'accept': 'application/json, text/plain, */*',
+                'origin': 'https://locipo.jp',
+                'referer': 'https://locipo.jp/',
+            },
         )
 
         # NOTE: This API can return up to 1000 videos. Since there doesn't seem to be any playlist with more than 1000 items at the moment, pagination is currently not implemented.
         playlist_creatives_data = self._download_json(
-            url_or_request=f'https://api.locipo.jp/api/v1/playlists/{playlist_id}/creatives',
-            video_id=None,
-            headers=filter_dict(
-                {
-                    'accept': 'application/json, text/plain, */*',
-                    'origin': 'https://locipo.jp',
-                    'referer': 'https://locipo.jp/',
-                },
-            ),
+            f'https://api.locipo.jp/api/v1/playlists/{playlist_id}/creatives',
+            None,
+            headers={
+                'accept': 'application/json, text/plain, */*',
+                'origin': 'https://locipo.jp',
+                'referer': 'https://locipo.jp/',
+            },
         )
 
         entries = []
