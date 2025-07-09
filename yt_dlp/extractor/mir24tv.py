@@ -28,6 +28,6 @@ class Mir24tvIE(InfoExtractor):
         return {
             'id': video_id,
             'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
-            'thumbnail': self._html_search_meta('og:image', webpage),
+            'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4'),
         }
