@@ -1728,6 +1728,7 @@ from .rentv import (
 from .restudy import RestudyIE
 from .reuters import ReutersIE
 from .reverbnation import ReverbNationIE
+from .revry import RevryIE
 from .rheinmaintv import RheinMainTVIE
 from .ridehome import RideHomeIE
 from .rinsefm import (
