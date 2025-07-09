@@ -11,7 +11,7 @@ class Mir24tvIE(InfoExtractor):
             'id': '16635210',
             'title': 'Дни культуры России открылись в Узбекистане. На праздничном концерте выступили звезды российской эстрады',
             'ext': 'mp4',
-            'thumbnail': 'https://images.mir24.tv/7ccONWCkXAOdwu64Wyk3JjGdrj67BTmszwf8860pWpU/q:95/w:865/h:500/c:1836:1080:nowe:84:0/rt:fill-down/czM6Ly9taXIyNC10di9tZWRpYS9BcnRpY2xlL2ltYWdlL2I0MGFhOThiLThlYjQtNDYxOC04MjA0LTE4NGI0NGNjY2NjOS9NSVIyNC0xMC4wMy4wN180N180M18wNC5TdGlsbDQ1My1jb3B5LnBuZw.jpg'
+            'thumbnail': 'https://images.mir24.tv/7ccONWCkXAOdwu64Wyk3JjGdrj67BTmszwf8860pWpU/q:95/w:865/h:500/c:1836:1080:nowe:84:0/rt:fill-down/czM6Ly9taXIyNC10di9tZWRpYS9BcnRpY2xlL2ltYWdlL2I0MGFhOThiLThlYjQtNDYxOC04MjA0LTE4NGI0NGNjY2NjOS9NSVIyNC0xMC4wMy4wN180N180M18wNC5TdGlsbDQ1My1jb3B5LnBuZw.jpg',
         },
     }]
 
