@@ -57,17 +57,7 @@ class LocipoIE(InfoExtractor):
     ]
 
     def _real_extract(self, url: str):
-        creative_id = self._match_valid_url(url).group('creative_id')  # type: ignore
-        try:
-            playlist_id = self._match_valid_url(url).group('playlist_id')  # type: ignore
-        except AttributeError:
-            playlist_id = ''
-
-        if playlist_id and self.get_param('noplaylist'):
-            self.to_screen(f'--no-playlist option specified. Processing only video {creative_id}')
-            playlist_id = ''
-        elif playlist_id:
-            self.to_screen(f'Processing playlist ID {playlist_id}. if you want to process only the video {creative_id}, use --no-playlist option')
+        creative_id, playlist_id = self._match_valid_url(url).group('creative_id', 'playlist_id')
 
         if not playlist_id:
             creative_data = self._download_json(
