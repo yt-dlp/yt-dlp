@@ -1693,7 +1693,12 @@ $ yt-dlp -S "codec:h264"
 # or the best video with best codec if there is no such video
 $ yt-dlp -S "+codec:h264"
 
-
+# Youtube added Dynamic Range Compression (DRC aka "Stable Volume")
+# as a separate audio track. To avoid these altered tracks, you must
+# exclude audio format IDs which end with "-drc": "251-drc" vs "251".
+# Download audio only that's not .mp4 and does not end in "-drc":
+# Note, you must use single-quotes in POSIX shell due to special characters.
+$ yt-dlp -f 'bestaudio[ext!=mp4][format_id!$=-drc]'
 
 # More complex examples
 
