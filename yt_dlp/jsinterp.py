@@ -677,8 +677,9 @@ class JSInterpreter:
                 # Set value as JS_Undefined or its pre-existing value
                 local_vars.set_local(var, ret)
             else:
-                ret = local_vars.get(var, JS_Undefined)
-                if ret is JS_Undefined:
+                ret = local_vars.get(var, NO_DEFAULT)
+                if ret is NO_DEFAULT:
+                    ret = JS_Undefined
                     self._undefined_varnames.add(var)
             return ret, should_return
 
