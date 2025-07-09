@@ -3314,7 +3314,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 }),
             } for range_start in range(0, f['filesize'], CHUNK_SIZE))
 
-        def pot_required(policy, is_premium_subscriber, has_player_token):
+        def gvs_pot_required(policy, is_premium_subscriber, has_player_token):
             return (
                 policy.required
                 and not (policy.not_required_with_player_token and has_player_token)
@@ -3447,7 +3447,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             require_po_token = (
                 itag not in ['18']
-                and pot_required(
+                and gvs_pot_required(
                     pot_policy, fmt[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER],
                     fmt[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]))
 
@@ -3597,7 +3597,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if hls_manifest_url:
                 pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(
                     client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.HLS]
-                require_po_token = pot_required(pot_policy, is_premium_subscriber, has_player_token)
+                require_po_token = gvs_pot_required(pot_policy, is_premium_subscriber, has_player_token)
                 po_token = gvs_pots.get(client_name, fetch_pot_func(required=require_po_token or pot_policy.recommended))
                 if po_token:
                     hls_manifest_url = hls_manifest_url.rstrip('/') + f'/pot/{po_token}'
@@ -3622,7 +3622,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if dash_manifest_url:
                 pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(
                     client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.DASH]
-                require_po_token = pot_required(pot_policy, is_premium_subscriber, has_player_token)
+                require_po_token = gvs_pot_required(pot_policy, is_premium_subscriber, has_player_token)
                 po_token = gvs_pots.get(client_name, fetch_pot_func(required=require_po_token or pot_policy.recommended))
                 if po_token:
                     dash_manifest_url = dash_manifest_url.rstrip('/') + f'/pot/{po_token}'
@@ -3741,8 +3741,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 note='Downloading initial data API JSON', default_client=webpage_client)
         return initial_data
 
-    def _is_premium_subscriber(self, webpage_ytcfg=None, initial_data=None):
-        if not self.is_authenticated or not (webpage_ytcfg or initial_data):
+    def _is_premium_subscriber(self, initial_data=None):
+        if not self.is_authenticated or not initial_data:
             return False
 
         tlr = traverse_obj(
