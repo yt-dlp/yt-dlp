@@ -56,6 +56,19 @@ class LocipoIE(InfoExtractor):
         },
     ]
 
+    def _get_creative_metadata(self, creative_data):
+        return traverse_obj(creative_data, {
+            'id': ('id', {str}),
+            'duration': ('video', 'duration', {int_or_none}),
+            'title': ('title', {str}),
+            'description': ('description', {str}),
+            'uploader': ('station_cd', {str}),
+            'uploader_id': ('station_id', {str}),
+            'thumbnail': ('thumb', {url_or_none}),
+            'timestamp': ('broadcast_started_at', {parse_iso8601}),
+            'modified_timestamp': ('updated_at', {parse_iso8601}),
+        })
+
     def _real_extract(self, url: str):
         creative_id, playlist_id = self._match_valid_url(url).group('creative_id', 'playlist_id')  # type: ignore
 
@@ -73,19 +86,12 @@ class LocipoIE(InfoExtractor):
             return {
                 'formats': self._extract_m3u8_formats(m3u8_url=traverse_obj(creative_data, ('video', 'hls', {str})), video_id=creative_id),  # type: ignore
                 'id': creative_id,
+                **self._get_creative_metadata(creative_data),  # type: ignore
                 **traverse_obj(
                     creative_data,
                     {
                         'series': ('playlist', 'title', {str}),
                         'series_id': ('playlist', 'id', {str}),
-                        'duration': ('video', 'duration', {int_or_none}),
-                        'title': ('title', {str}),
-                        'description': ('description', {str}),
-                        'uploader': ('station_cd', {str}),
-                        'uploader_id': ('station_id', {str}),
-                        'thumbnail': ('thumb', {url_or_none}),
-                        'timestamp': ('broadcast_started_at', {parse_iso8601}),
-                        'modified_timestamp': ('updated_at', {parse_iso8601}),
                     },
                 ),  # type: ignore
             }
@@ -115,20 +121,11 @@ class LocipoIE(InfoExtractor):
         for creative in playlist_creatives_data.get('items', []):  # type: ignore
             entries.append(
                 {
-                    **traverse_obj(
-                        creative,
-                        {
-                            'id': ('id', {str}),
-                            'duration': ('video', 'duration', {int_or_none}),
-                            'title': ('title', {str}),
-                            'description': ('description', {str_or_none}),
-                            'uploader': ('station_cd', {str_or_none}),
-                            'uploader_id': ('station_id', {str_or_none}),
-                            'thumbnail': ('thumb', {url_or_none}),
-                            'timestamp': ('broadcast_started_at', {parse_iso8601}),
-                            'modified_timestamp': ('updated_at', {parse_iso8601}),
-                        },
-                    ),  # type: ignore
+                    'formats': self._extract_m3u8_formats(
+                        m3u8_url=traverse_obj(creative, ('video', 'hls', {str})),  # type: ignore
+                        video_id=traverse_obj(creative, ('id', {str})),  # type: ignore
+                    ),
+                    **self._get_creative_metadata(creative),  # type: ignore
                     **traverse_obj(
                         playlist_data,
                         {
@@ -136,10 +133,6 @@ class LocipoIE(InfoExtractor):
                             'series_id': ('id', {str}),
                         },
                     ),  # type: ignore
-                    'formats': self._extract_m3u8_formats(
-                        m3u8_url=traverse_obj(creative, ('video', 'hls', {str})),  # type: ignore
-                        video_id=traverse_obj(creative, ('id', {str})),  # type: ignore
-                    ),
                 },
             )
 
