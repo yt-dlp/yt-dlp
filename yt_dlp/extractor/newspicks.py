@@ -66,7 +66,6 @@ class NewsPicksIE(InfoExtractor):
                 'title': ('title', {str}),
                 'cast': ('relatedUsers', ..., 'displayName', {str}, filter, all, filter),
                 'description': ('explanation', {clean_html}),
-                'duration': ('duration', {int_or_none(invscale=60)}),
                 'release_timestamp': ('onAirStartDate', {parse_iso8601}),
                 'thumbnail': (('image', 'coverImageUrl'), {url_or_none}, any),
                 'timestamp': ('published', {parse_iso8601}),
