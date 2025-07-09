@@ -1,9 +1,6 @@
-from typing import Literal
 
 from .common import InfoExtractor
 from ..utils import (
-    classproperty,
-    filter_dict,
     int_or_none,
     parse_iso8601,
     str_or_none,
