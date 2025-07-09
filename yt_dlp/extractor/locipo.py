@@ -13,11 +13,6 @@ from ..utils import (
 
 
 class LocipoIE(InfoExtractor):
-
-    @classproperty
-    def IE_NAME(cls) -> Literal['locipo']:
-        return 'locipo'
-
     IE_DESC = 'Locipo (ロキポ) Video/Playlist'
 
     _VALID_URL = r'https?://locipo\.jp/creative/(?P<creative_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(\?.*list=(?P<playlist_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}))?'
