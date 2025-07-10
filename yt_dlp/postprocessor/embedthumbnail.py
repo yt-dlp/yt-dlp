@@ -86,14 +86,39 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         mtime = os.stat(filename).st_mtime
 
+        avoid_mutagen = any(
+            opt in self.get_param('compat_opts', [])
+            for opt in ('avoid-mutagen', 'embed-thumbnail-atomicparsley'))
         success = True
         if info['ext'] == 'mp3':
-            options = [
-                '-c', 'copy', '-map', '0:0', '-map', '1:0', '-write_id3v1', '1', '-id3v2_version', '3',
-                '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment=Cover (front)']
+            # Method 1: Use mutagen
+            if avoid_mutagen:
+                success = False
+            elif not mutagen:
+                self.to_screen('mutagen not was found. Falling back to ffmpeg. Lyrics may be corrupted')
+                success = False
+            else:
+                try:
+                    self._report_run('mutagen', filename)
+                    audio = mutagen.id3.ID3(filename)
+                    with open(thumbnail_filename, 'rb') as thumbfile:
+                        audio['APIC'] = mutagen.id3.APIC(
+                            encoding=mutagen.id3.Encoding.UTF8, mime=f'image/{thumbnail_ext}',
+                            type=mutagen.id3.PictureType.COVER_FRONT, desc='Cover (front)', data=thumbfile.read())
+                    audio.save()
+                    temp_filename = filename
+                except Exception as err:
+                    self.report_warning(f'unable to embed using mutagen; {err}')
+                    success = False
 
-            self._report_run('ffmpeg', filename)
-            self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
+            # Method 2: Use ffmpeg
+            if not success:
+                options = [
+                    '-c', 'copy', '-map', '0:0', '-map', '1:0', '-write_id3v1', '1', '-id3v2_version', '3',
+                    '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment=Cover (front)']
+
+                self._report_run('ffmpeg', filename)
+                self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
         elif info['ext'] in ['mkv', 'mka']:
             options = list(self.stream_copy_opts())
@@ -113,9 +138,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.run_ffmpeg(filename, temp_filename, options)
 
         elif info['ext'] in ['m4a', 'mp4', 'm4v', 'mov']:
-            prefer_atomicparsley = 'embed-thumbnail-atomicparsley' in self.get_param('compat_opts', [])
             # Method 1: Use mutagen
-            if not mutagen or prefer_atomicparsley:
+            if avoid_mutagen or not mutagen:
                 success = False
             else:
                 self._report_run('mutagen', filename)
@@ -151,7 +175,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     self.to_screen('Neither mutagen nor AtomicParsley was found. Falling back to ffmpeg')
                     success = False
                 else:
-                    if not prefer_atomicparsley:
+                    if not avoid_mutagen:
                         self.to_screen('mutagen was not found. Falling back to AtomicParsley')
                     cmd = [atomicparsley,
                            filename,
