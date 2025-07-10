@@ -785,6 +785,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --add-headers FIELD:VALUE       Specify a custom HTTP header and its value,
                                     separated by a colon ":". You can use this
                                     option multiple times
+    --no-std-headers                Suppress standard headers
     --bidi-workaround               Work around terminals that lack
                                     bidirectional text support. Requires bidiv
                                     or fribidi executable in PATH

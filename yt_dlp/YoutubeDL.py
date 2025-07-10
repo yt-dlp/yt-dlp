@@ -359,6 +359,7 @@ class YoutubeDL:
                        (Only supported by some extractors)
     enable_file_urls:  Enable file:// URLs. This is disabled by default for security reasons.
     http_headers:      A dictionary of custom headers to be used for all requests
+    no_std_headers:    Suppress standard headers
     proxy:             URL of the proxy server to use
     geo_verification_proxy:  URL of the proxy to use for IP address verification
                        on geo-restricted sites.
@@ -730,7 +731,8 @@ class YoutubeDL:
                     raise
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
-        self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
+        headers = HTTPHeaderDict({}) if self.params.get('no_std_headers') else std_headers
+        self.params['http_headers'] = HTTPHeaderDict(headers, self.params.get('http_headers'))
         self._load_cookies(self.params['http_headers'].get('Cookie'))  # compat
         self.params['http_headers'].pop('Cookie', None)
 
