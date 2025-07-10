@@ -267,6 +267,27 @@ class PornHubIE(PornHubBaseIE):
     def _extract_count(self, pattern, webpage, name):
         return str_to_int(self._search_regex(pattern, webpage, f'{name} count', default=None))
 
+    def _extract_chapters_from_action_tags(self, action_tags, duration):
+        if not action_tags:
+            return None
+
+        chapter_list = []
+        for entry in action_tags.split(','):
+            if ':' not in entry:
+                continue
+            title, start_str = entry.split(':', 1)
+            start_time = int_or_none(start_str)
+            if start_time is not None:
+                chapter_list.append({'title': title.strip(), 'start_time': start_time})
+
+        for i, chapter in enumerate(chapter_list):
+            if i + 1 < len(chapter_list):
+                chapter['end_time'] = chapter_list[i + 1]['start_time']
+            elif duration is not None:
+                chapter['end_time'] = duration
+
+        return chapter_list or None
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         host = mobj.group('host') or 'pornhub.com'
@@ -325,6 +346,7 @@ class PornHubIE(PornHubBaseIE):
                 })
             thumbnail = flashvars.get('image_url')
             duration = int_or_none(flashvars.get('video_duration'))
+            chapters = self._extract_chapters_from_action_tags(flashvars.get('actionTags'), duration)
             media_definitions = flashvars.get('mediaDefinitions')
             if isinstance(media_definitions, list):
                 for definition in media_definitions:
@@ -339,7 +361,7 @@ class PornHubIE(PornHubBaseIE):
                     video_urls.append(
                         (video_url, int_or_none(definition.get('quality'))))
         else:
-            thumbnail, duration = [None] * 2
+            thumbnail, duration, chapters = [None] * 3
 
         def extract_js_vars(webpage, pattern, default=NO_DEFAULT):
             assignments = self._search_regex(
@@ -499,6 +521,7 @@ class PornHubIE(PornHubBaseIE):
             'title': title,
             'thumbnail': thumbnail,
             'duration': duration,
+            'chapters': chapters,
             'view_count': view_count,
             'like_count': like_count,
             'dislike_count': dislike_count,
