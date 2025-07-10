@@ -20,6 +20,7 @@ from ..utils import (
     remove_quotes,
     remove_start,
     str_to_int,
+    traverse_obj,
     update_url_query,
     url_or_none,
     urlencode_postdata,
@@ -267,27 +268,6 @@ class PornHubIE(PornHubBaseIE):
     def _extract_count(self, pattern, webpage, name):
         return str_to_int(self._search_regex(pattern, webpage, f'{name} count', default=None))
 
-    def _extract_chapters_from_action_tags(self, action_tags, duration):
-        if not action_tags:
-            return None
-
-        chapter_list = []
-        for entry in action_tags.split(','):
-            if ':' not in entry:
-                continue
-            title, start_str = entry.split(':', 1)
-            start_time = int_or_none(start_str)
-            if start_time is not None:
-                chapter_list.append({'title': title.strip(), 'start_time': start_time})
-
-        for i, chapter in enumerate(chapter_list):
-            if i + 1 < len(chapter_list):
-                chapter['end_time'] = chapter_list[i + 1]['start_time']
-            elif duration is not None:
-                chapter['end_time'] = duration
-
-        return chapter_list or None
-
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         host = mobj.group('host') or 'pornhub.com'
@@ -346,7 +326,12 @@ class PornHubIE(PornHubBaseIE):
                 })
             thumbnail = flashvars.get('image_url')
             duration = int_or_none(flashvars.get('video_duration'))
-            chapters = self._extract_chapters_from_action_tags(flashvars.get('actionTags'), duration)
+            chapters = traverse_obj(flashvars, (
+                'actionTags', {lambda x: x.split(',')}, ..., {lambda x: x.split(':', 1)},
+                all, lambda _, v: int_or_none(v[1]) is not None, {
+                    'title': (0, {str.strip}),
+                    'start_time': (1, {int_or_none}),
+                })) or None
             media_definitions = flashvars.get('mediaDefinitions')
             if isinstance(media_definitions, list):
                 for definition in media_definitions:
