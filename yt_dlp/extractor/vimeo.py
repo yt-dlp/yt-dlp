@@ -430,8 +430,14 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             self.write_debug(f'Unable to download privacy info: {error.cause}')
             privacy_info = None
 
-        if policy != 'always' and not traverse_obj(privacy_info, ('privacy', 'download', {bool})):
-            return None
+        if not traverse_obj(privacy_info, ('privacy', 'download', {bool})):
+            msg = f'{video_id}: Vimeo says this video is not downloadable'
+            if policy != 'always':
+                self.write_debug(
+                    f'{msg}, so yt-dlp is not attempting to extract the original/source format. '
+                    f'To try anyways, use --extractor-args "vimeo:original_format_policy=always"')
+                return None
+            self.write_debug(f'{msg}; attempting to extract original/source format anyways')
 
         original_response = self._call_videos_api(
             video_id, unlisted_hash, force_client='web', query={'fields': 'download'}, fatal=False)
