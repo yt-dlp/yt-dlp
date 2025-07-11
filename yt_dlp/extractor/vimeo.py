@@ -382,7 +382,11 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     def _extract_original_format(self, url, video_id, unlisted_hash=None):
         # Original/source formats are only available when logged in
         if not self._get_cookies('https://vimeo.com/').get('vimeo'):
-            return
+            return None
+
+        policy = self._configuration_arg('original_format_policy', ['auto'], ie_key=VimeoIE)[0]
+        if policy == 'never':
+            return None
 
         query = {'action': 'load_download_config'}
         if unlisted_hash:
@@ -427,10 +431,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             self.write_debug(f'Unable to download privacy info: {error.cause}')
             privacy_info = None
 
-        if not (
-            traverse_obj(privacy_info, ('privacy', 'download', {bool}))
-            or self._configuration_arg('original_format_policy', ['auto'], ie_key=VimeoIE)[0] == 'always'
-        ):
+        if policy != 'always' and not traverse_obj(privacy_info, ('privacy', 'download', {bool})):
             return None
 
         original_response = self._call_videos_api(
