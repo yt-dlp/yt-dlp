@@ -388,13 +388,12 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         if policy == 'never':
             return None
 
-        query = {'action': 'load_download_config'}
-        if unlisted_hash:
-            query['unlisted_hash'] = unlisted_hash
-
         try:
             download_data = self._download_json(
-                url, video_id, 'Loading download config JSON', query=query, headers={
+                url, video_id, 'Loading download config JSON', query=filter_dict({
+                    'action': 'load_download_config',
+                    'unlisted_hash': unlisted_hash,
+                }), headers={
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                 })
