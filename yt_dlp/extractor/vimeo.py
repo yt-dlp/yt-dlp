@@ -353,8 +353,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
         return f'Bearer {self._oauth_tokens[cache_key]}'
 
-    def _call_videos_api(self, video_id, unlisted_hash=None, path=None, **kwargs):
-        client = self._configuration_arg('client', ['android'], ie_key=VimeoIE)[0]
+    def _call_videos_api(self, video_id, unlisted_hash=None, path=None, force_client=None, **kwargs):
+        client = force_client or self._configuration_arg('client', ['android'], ie_key=VimeoIE)[0]
         if client not in self._CLIENT_CONFIGS:
             raise ExtractorError(
                 f'Unsupported API client "{client}" requested. '
@@ -377,7 +377,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'fields': ','.join(client_config['VIDEOS_FIELDS']),
             } if path is None else None, **kwargs)
 
-    def _extract_original_format(self, url, video_id, unlisted_hash=None, api_data=None):
+    def _extract_original_format(self, url, video_id, unlisted_hash=None):
         # Original/source formats are only available when logged in
         if not self._get_cookies('https://vimeo.com/').get('vimeo'):
             return
@@ -408,8 +408,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'quality': 1,
                 }
 
-        original_response = api_data or self._call_videos_api(
-            video_id, unlisted_hash, fatal=False, expected_status=(403, 404))
+        original_response = self._call_videos_api(
+            video_id, unlisted_hash, force_client='web', fatal=False, expected_status=(403, 404))
         for download_data in traverse_obj(original_response, ('download', ..., {dict})):
             download_url = download_data.get('link')
             if not download_url or download_data.get('quality') != 'source':
@@ -1089,7 +1089,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             info = self._parse_api_response(video, video_id, unlisted_hash)
 
         source_format = self._extract_original_format(
-            f'https://vimeo.com/{video_id}', video_id, unlisted_hash, api_data=video)
+            f'https://vimeo.com/{video_id}', video_id, unlisted_hash)
         if source_format:
             info['formats'].append(source_format)
 
