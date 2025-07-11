@@ -425,7 +425,10 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             self.write_debug(f'Unable to download privacy info: {error.cause}')
             privacy_info = None
 
-        if not traverse_obj(privacy_info, ('privacy', 'download', {bool})):
+        if not (
+            traverse_obj(privacy_info, ('privacy', 'download', {bool}))
+            or self._configuration_arg('original_format_policy', ['auto'], ie_key=VimeoIE)[0] == 'always'
+        ):
             return None
 
         original_response = self._call_videos_api(

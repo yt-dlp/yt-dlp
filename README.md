@@ -1902,6 +1902,7 @@ The following extractors use this feature:
 
 #### vimeo
 * `client`: Client to extract video data from. One of `android` (default), `ios` or `web`. The `ios` client only works with previously cached OAuth tokens. The `web` client only works when authenticated with credentials or account cookies
+* `original_format_policy`: Policy for when to try extracting original formats. One of `auto` (default) or `always`. The default behavior only makes an extra request when Vimeo says the video is downloadable, with the intent to avoid exceeding the API rate-limit
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
