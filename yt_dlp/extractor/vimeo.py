@@ -90,7 +90,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'REQUIRES_AUTH': True,
             'USER_AGENT': None,
             'VIDEOS_FIELDS': (
-                'config_url', 'created_time', 'description', 'download', 'license',
+                'config_url', 'created_time', 'description', 'license',
                 'metadata.connections.comments.total', 'metadata.connections.likes.total',
                 'release_time', 'stats.plays',
             ),
@@ -353,7 +353,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
         return f'Bearer {self._oauth_tokens[cache_key]}'
 
-    def _call_videos_api(self, video_id, unlisted_hash=None, path=None, force_client=None, **kwargs):
+    def _call_videos_api(self, video_id, unlisted_hash=None, path=None, *, force_client=None, query=None, **kwargs):
         client = force_client or self._configuration_arg('client', ['android'], ie_key=VimeoIE)[0]
         if client not in self._CLIENT_CONFIGS:
             raise ExtractorError(
@@ -376,7 +376,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 **self._CLIENT_HEADERS,
             }), query={
                 'fields': ','.join(client_config['VIDEOS_FIELDS']),
-            } if path is None else None, **kwargs)
+                **(query or {}),
+            }, **kwargs)
 
     def _extract_original_format(self, url, video_id, unlisted_hash=None):
         # Original/source formats are only available when logged in
@@ -409,8 +410,13 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'quality': 1,
                 }
 
+        privacy_info = self._call_videos_api(
+            video_id, unlisted_hash, force_client='web', query={'fields': 'privacy'}, fatal=False)
+        if not traverse_obj(privacy_info, ('privacy', 'download', {bool})):
+            return None
+
         original_response = self._call_videos_api(
-            video_id, unlisted_hash, force_client='web', fatal=False, expected_status=(403, 404))
+            video_id, unlisted_hash, force_client='web', query={'fields': 'download'}, fatal=False)
         for download_data in traverse_obj(original_response, ('download', ..., {dict})):
             download_url = download_data.get('link')
             if not download_url or download_data.get('quality') != 'source':
@@ -990,8 +996,13 @@ class VimeoIE(VimeoBaseInfoExtractor):
 
     def _get_subtitles(self, video_id, unlisted_hash):
         subs = {}
-        # TODO: query: include_transcript=true&fields=active,display_language,id,language,link,name,type,uri
-        text_tracks = self._call_videos_api(video_id, unlisted_hash, path='texttracks', fatal=False)
+        text_tracks = self._call_videos_api(
+            video_id, unlisted_hash, path='texttracks', query={
+                'include_transcript': 'true',
+                'fields': ','.join((
+                    'active', 'display_language', 'id', 'language', 'link', 'name', 'type', 'uri',
+                )),
+            }, fatal=False)
         for tt in traverse_obj(text_tracks, ('data', lambda _, v: url_or_none(v['link']))):
             subs.setdefault(tt.get('language'), []).append({
                 'url': tt['link'],
