@@ -387,12 +387,17 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         query = {'action': 'load_download_config'}
         if unlisted_hash:
             query['unlisted_hash'] = unlisted_hash
-        download_data = self._download_json(
-            url, video_id, 'Loading download config JSON', fatal=False,
-            query=query, headers={'X-Requested-With': 'XMLHttpRequest'},
-            expected_status=(403, 404)) or {}
-        source_file = download_data.get('source_file')
-        download_url = try_get(source_file, lambda x: x['download_url'])
+
+        try:
+            download_data = self._download_json(
+                url, video_id, 'Loading download config JSON', 'Unable to load download config JSON',
+                query=query, headers={'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'})
+        except ExtractorError as error:
+            self.write_debug(error.orig_msg)
+            download_data = None
+
+        source_file = traverse_obj(download_data, ('source_file', {dict})) or {}
+        download_url = traverse_obj(source_file, ('download_url', {url_or_none}))
         if download_url and not source_file.get('is_cold') and not source_file.get('is_defrosting'):
             source_name = source_file.get('public_name', 'Original')
             if self._is_valid_url(download_url, video_id, f'{source_name} video'):
@@ -413,8 +418,13 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         # Most web client API requests are subject to rate-limiting (429) when logged-in.
         # Requesting only the 'privacy' field is NOT rate-limited,
         # so first we should check if video even has 'download' formats available
-        privacy_info = self._call_videos_api(
-            video_id, unlisted_hash, force_client='web', query={'fields': 'privacy'}, fatal=False)
+        try:
+            privacy_info = self._call_videos_api(
+                video_id, unlisted_hash, force_client='web', query={'fields': 'privacy'})
+        except ExtractorError as error:
+            self.write_debug(f'Unable to download privacy info: {error.cause}')
+            privacy_info = None
+
         if not traverse_obj(privacy_info, ('privacy', 'download', {bool})):
             return None
 
