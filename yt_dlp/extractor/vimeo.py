@@ -987,9 +987,10 @@ class VimeoIE(VimeoBaseInfoExtractor):
             raise ExtractorError('Wrong video password', expected=True)
         return checked
 
-    def _get_subtitles(self, video_id):
+    def _get_subtitles(self, video_id, unlisted_hash):
         subs = {}
-        text_tracks = self._call_videos_api(video_id, path='texttracks', fatal=False)
+        # TODO: query: include_transcript=true&fields=active,display_language,id,language,link,name,type,uri
+        text_tracks = self._call_videos_api(video_id, unlisted_hash, path='texttracks', fatal=False)
         for tt in traverse_obj(text_tracks, ('data', lambda _, v: url_or_none(v['link']))):
             subs.setdefault(tt.get('language'), []).append({
                 'url': tt['link'],
@@ -998,7 +999,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             })
         return subs
 
-    def _parse_api_response(self, video, video_id):
+    def _parse_api_response(self, video, video_id, unlisted_hash=None):
         formats, subtitles = [], {}
         seen_urls = set()
         duration = traverse_obj(video, ('duration', {int_or_none}))
@@ -1042,7 +1043,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
 
         if traverse_obj(video, ('metadata', 'connections', 'texttracks', 'total', {int})):
-            self._merge_subtitles(self.extract_subtitles(video_id), target=subtitles)
+            self._merge_subtitles(self.extract_subtitles(video_id, unlisted_hash), target=subtitles)
 
         return {
             **traverse_obj(video, {
@@ -1085,7 +1086,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         if config_url := traverse_obj(video, ('config_url', {url_or_none})):
             info = self._parse_config(self._download_json(config_url, video_id), video_id)
         else:
-            info = self._parse_api_response(video, video_id)
+            info = self._parse_api_response(video, video_id, unlisted_hash)
 
         source_format = self._extract_original_format(
             f'https://vimeo.com/{video_id}', video_id, unlisted_hash, api_data=video)
