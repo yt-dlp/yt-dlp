@@ -305,7 +305,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             '_format_sort_fields': ('quality', 'res', 'fps', 'hdr:12', 'source'),
         }
 
-    def _fetch_oauth_token(self, client='android'):
+    def _fetch_oauth_token(self, client):
         cache_key = self._CLIENT_CONFIGS[client]['CACHE_KEY']
 
         if not self._oauth_tokens.get(cache_key):
