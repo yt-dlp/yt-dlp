@@ -21,6 +21,7 @@ from ..utils import (
     js_to_json,
     jwt_decode_hs256,
     merge_dicts,
+    mimetype2ext,
     parse_filesize,
     parse_iso8601,
     parse_qs,
@@ -28,9 +29,11 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     traverse_obj,
+    try_call,
     try_get,
     unified_timestamp,
     unsmuggle_url,
+    url_basename,
     url_or_none,
     urlencode_postdata,
     urlhandle_detect_ext,
@@ -45,14 +48,39 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     _REFERER_HINT = (
         'Cannot download embed-only video without embedding URL. Please call yt-dlp '
         'with the URL of the page that embeds this video.')
-    _IOS_CLIENT_AUTH = 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw=='
-    _IOS_CLIENT_HEADERS = {
+
+    _CLIENT_HEADERS = {
         'Accept': 'application/vnd.vimeo.*+json; version=3.4.10',
         'Accept-Language': 'en',
-        'User-Agent': 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0',
     }
-    _IOS_OAUTH_CACHE_KEY = 'oauth-token-ios'
-    _ios_oauth_token = None
+    _CLIENT_CONFIGS = {
+        'android': {
+            'CACHE_KEY': 'oauth-token-android',
+            'AUTH': 'NzRmYTg5YjgxMWExY2JiNzUwZDg1MjhkMTYzZjQ4YWYyOGEyZGJlMTp4OGx2NFd3QnNvY1lkamI2UVZsdjdDYlNwSDUrdm50YzdNNThvWDcwN1JrenJGZC9tR1lReUNlRjRSVklZeWhYZVpRS0tBcU9YYzRoTGY2Z1dlVkJFYkdJc0dMRHpoZWFZbU0reDRqZ1dkZ1diZmdIdGUrNUM5RVBySlM0VG1qcw==',
+            'USER_AGENT': 'com.vimeo.android.videoapp (OnePlus, ONEPLUS A6003, OnePlus, Android 14/34 Version 11.5.1) Kotlin VimeoNetworking/3.12.0',
+            'VIDEOS_FIELDS': (
+                'uri', 'name', 'description', 'type', 'link', 'player_embed_url', 'duration', 'width',
+                'language', 'height', 'embed', 'created_time', 'modified_time', 'release_time', 'content_rating',
+                'content_rating_class', 'rating_mod_locked', 'license', 'privacy', 'pictures', 'tags', 'stats',
+                'categories', 'uploader', 'metadata', 'user', 'files', 'download', 'app', 'play', 'status',
+                'resource_key', 'badge', 'upload', 'transcode', 'is_playable', 'has_audio',
+            ),
+        },
+        'ios': {
+            'CACHE_KEY': 'oauth-token-ios',
+            'AUTH': 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw==',
+            'USER_AGENT': 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0',
+            'VIDEOS_FIELDS': (
+                'uri', 'name', 'description', 'type', 'link', 'player_embed_url', 'duration',
+                'width', 'language', 'height', 'embed', 'created_time', 'modified_time', 'release_time',
+                'content_rating', 'content_rating_class', 'rating_mod_locked', 'license', 'config_url',
+                'embed_player_config_url', 'privacy', 'pictures', 'tags', 'stats', 'categories', 'uploader',
+                'metadata', 'user', 'files', 'download', 'app', 'play', 'status', 'resource_key', 'badge',
+                'upload', 'transcode', 'is_playable', 'has_audio',
+            ),
+        },
+    }
+    _oauth_tokens = {}
     _viewer_info = None
 
     @staticmethod
@@ -277,37 +305,46 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             '_format_sort_fields': ('quality', 'res', 'fps', 'hdr:12', 'source'),
         }
 
-    def _fetch_oauth_token(self):
-        if not self._ios_oauth_token:
-            self._ios_oauth_token = self.cache.load(self._NETRC_MACHINE, self._IOS_OAUTH_CACHE_KEY)
+    def _fetch_oauth_token(self, client='android'):
+        cache_key = self._CLIENT_CONFIGS[client]['CACHE_KEY']
 
-        if not self._ios_oauth_token:
-            self._ios_oauth_token = self._download_json(
+        if not self._oauth_tokens.get(cache_key):
+            self._oauth_tokens[cache_key] = self.cache.load(self._NETRC_MACHINE, cache_key)
+
+        if not self._oauth_tokens.get(cache_key):
+            self._oauth_tokens[cache_key] = self._download_json(
                 'https://api.vimeo.com/oauth/authorize/client', None,
-                'Fetching OAuth token', 'Failed to fetch OAuth token',
+                f'Fetching {client} OAuth token', f'Failed to fetch {client} OAuth token',
                 headers={
-                    'Authorization': f'Basic {self._IOS_CLIENT_AUTH}',
-                    **self._IOS_CLIENT_HEADERS,
+                    'Authorization': f'Basic {self._CLIENT_CONFIGS[client]["AUTH"]}',
+                    'User-Agent': self._CLIENT_CONFIGS[client]['USER_AGENT'],
+                    **self._CLIENT_HEADERS,
                 }, data=urlencode_postdata({
                     'grant_type': 'client_credentials',
-                    'scope': 'private public create edit delete interact upload purchased stats',
+                    'scope': 'private public create edit delete interact upload purchased stats video_files',
                 }, quote_via=urllib.parse.quote))['access_token']
-            self.cache.store(self._NETRC_MACHINE, self._IOS_OAUTH_CACHE_KEY, self._ios_oauth_token)
+            self.cache.store(self._NETRC_MACHINE, cache_key, self._oauth_tokens[cache_key])
 
-        return self._ios_oauth_token
+        return self._oauth_tokens[cache_key]
 
-    def _call_videos_api(self, video_id, unlisted_hash=None, **kwargs):
+    def _call_videos_api(self, video_id, unlisted_hash=None, path=None, **kwargs):
+        client = self._configuration_arg('client', ['android'], ie_key=VimeoIE)[0]
+        if client not in self._CLIENT_CONFIGS:
+            raise ExtractorError(
+                f'Unsupported API client "{client}" requested. '
+                f'Supported clients are: {", ".join(self._CLIENT_CONFIGS)}', expected=True)
+
         return self._download_json(
-            join_nonempty(f'https://api.vimeo.com/videos/{video_id}', unlisted_hash, delim=':'),
-            video_id, 'Downloading API JSON', headers={
-                'Authorization': f'Bearer {self._fetch_oauth_token()}',
-                **self._IOS_CLIENT_HEADERS,
+            join_nonempty(
+                join_nonempty(f'https://api.vimeo.com/videos/{video_id}', unlisted_hash, delim=':'),
+                path, delim='/'),
+            video_id, f'Downloading {client} API JSON', headers={
+                'Authorization': f'Bearer {self._fetch_oauth_token(client)}',
+                'User-Agent': self._CLIENT_CONFIGS[client]['USER_AGENT'],
+                **self._CLIENT_HEADERS,
             }, query={
-                'fields': ','.join((
-                    'config_url', 'embed_player_config_url', 'player_embed_url', 'download', 'play',
-                    'files', 'description', 'license', 'release_time', 'created_time', 'stats.plays',
-                    'metadata.connections.comments.total', 'metadata.connections.likes.total')),
-            }, **kwargs)
+                'fields': ','.join(self._CLIENT_CONFIGS[client]['VIDEOS_FIELDS']),
+            } if path is None else None, **kwargs)
 
     def _extract_original_format(self, url, video_id, unlisted_hash=None, api_data=None):
         # Original/source formats are only available when logged in
@@ -919,6 +956,86 @@ class VimeoIE(VimeoBaseInfoExtractor):
             raise ExtractorError('Wrong video password', expected=True)
         return checked
 
+    def _get_subtitles(self, video_id):
+        subs = {}
+        text_tracks = self._call_videos_api(video_id, path='texttracks', fatal=False)
+        for tt in traverse_obj(text_tracks, ('data', lambda _, v: url_or_none(v['link']))):
+            subs.setdefault(tt.get('language'), []).append({
+                'url': tt['link'],
+                'ext': 'vtt',
+                'name': tt.get('display_language'),
+            })
+        return subs
+
+    def _parse_api_response(self, video, video_id):
+        formats, subtitles = [], {}
+        seen_urls = set()
+        duration = traverse_obj(video, ('duration', {int_or_none}))
+
+        for file in traverse_obj(video, (
+            (('play', (None, 'progressive')), 'files', 'download'), lambda _, v: url_or_none(v['link']),
+        )):
+            format_url = file['link']
+            if format_url in seen_urls:
+                continue
+            seen_urls.add(format_url)
+            quality = file.get('quality')
+            ext = determine_ext(format_url)
+            if quality == 'hls' or ext == 'm3u8':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    format_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+            elif quality == 'dash' or ext == 'mpd':
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    format_url, video_id, mpd_id='dash', fatal=False)
+                for fmt in fmts:
+                    fmt['format_id'] = join_nonempty(
+                        *fmt['format_id'].split('-', 2)[:2], int_or_none(fmt.get('tbr')))
+            else:
+                fmt = traverse_obj(file, {
+                    'ext': ('type', {mimetype2ext(default='mp4')}),
+                    'vcodec': ('codec', {str.lower}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                    'filesize': ('size', {int_or_none}),
+                    'fps': ('fps', {int_or_none}),
+                })
+                fmt.update({
+                    'url': format_url,
+                    'format_id': join_nonempty(
+                        'http', traverse_obj(file, 'public_name', 'rendition'), quality),
+                    'tbr': try_call(lambda: fmt['filesize'] * 8 / duration / 1024),
+                })
+                formats.append(fmt)
+                continue
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+
+        if traverse_obj(video, ('metadata', 'connections', 'texttracks', 'total', {int})):
+            self._merge_subtitles(self.extract_subtitles(video_id), target=subtitles)
+
+        return {
+            **traverse_obj(video, {
+                'title': ('name', {str}),
+                'uploader': ('user', 'name', {str}),
+                'uploader_id': ('user', 'link', {url_basename}),
+                'uploader_url': ('user', 'link', {url_or_none}),
+                'release_timestamp': ('live', 'scheduled_start_time', {int_or_none}),
+                'thumbnails': ('pictures', 'sizes', lambda _, v: url_or_none(v['link']), {
+                    'url': 'link',
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+            }),
+            'id': video_id,
+            'duration': duration,
+            'formats': formats,
+            'subtitles': subtitles,
+            'live_status': {
+                'streaming': 'is_live',
+                'done': 'was_live',
+            }.get(traverse_obj(video, ('live', 'status', {str}))),
+        }
+
     def _extract_from_api(self, video_id, unlisted_hash=None):
         for retry in (False, True):
             try:
@@ -934,8 +1051,11 @@ class VimeoIE(VimeoBaseInfoExtractor):
                     continue
                 raise
 
-        info = self._parse_config(self._download_json(
-            video['config_url'], video_id), video_id)
+        if config_url := traverse_obj(video, ('config_url', {url_or_none})):
+            info = self._parse_config(self._download_json(config_url, video_id), video_id)
+        else:
+            info = self._parse_api_response(video, video_id)
+
         source_format = self._extract_original_format(
             f'https://vimeo.com/{video_id}', video_id, unlisted_hash, api_data=video)
         if source_format:
