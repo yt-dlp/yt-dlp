@@ -390,10 +390,12 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
         try:
             download_data = self._download_json(
-                url, video_id, 'Loading download config JSON', 'Unable to load download config JSON',
-                query=query, headers={'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'})
+                url, video_id, 'Loading download config JSON', query=query, headers={
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                })
         except ExtractorError as error:
-            self.write_debug(error.orig_msg)
+            self.write_debug(f'Unable to load download config JSON: {error.cause}')
             download_data = None
 
         source_file = traverse_obj(download_data, ('source_file', {dict})) or {}
