@@ -428,7 +428,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 video_id, unlisted_hash, force_client='web', query={'fields': 'privacy'})
         except ExtractorError as error:
             self.write_debug(f'Unable to download privacy info: {error.cause}')
-            privacy_info = None
+            return None
 
         if not traverse_obj(privacy_info, ('privacy', 'download', {bool})):
             msg = f'{video_id}: Vimeo says this video is not downloadable'
