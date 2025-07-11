@@ -57,6 +57,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         'android': {
             'CACHE_KEY': 'oauth-token-android',
             'CACHE_ONLY': False,
+            'VIEWER_JWT': False,
+            'REQUIRES_AUTH': False,
             'AUTH': 'NzRmYTg5YjgxMWExY2JiNzUwZDg1MjhkMTYzZjQ4YWYyOGEyZGJlMTp4OGx2NFd3QnNvY1lkamI2UVZsdjdDYlNwSDUrdm50YzdNNThvWDcwN1JrenJGZC9tR1lReUNlRjRSVklZeWhYZVpRS0tBcU9YYzRoTGY2Z1dlVkJFYkdJc0dMRHpoZWFZbU0reDRqZ1dkZ1diZmdIdGUrNUM5RVBySlM0VG1qcw==',
             'USER_AGENT': 'com.vimeo.android.videoapp (OnePlus, ONEPLUS A6003, OnePlus, Android 14/34 Version 11.5.1) Kotlin VimeoNetworking/3.12.0',
             'VIDEOS_FIELDS': (
@@ -70,6 +72,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         'ios': {
             'CACHE_KEY': 'oauth-token-ios',
             'CACHE_ONLY': True,
+            'VIEWER_JWT': False,
+            'REQUIRES_AUTH': False,
             'AUTH': 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw==',
             'USER_AGENT': 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0',
             'VIDEOS_FIELDS': (
@@ -79,6 +83,16 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'embed_player_config_url', 'privacy', 'pictures', 'tags', 'stats', 'categories', 'uploader',
                 'metadata', 'user', 'files', 'download', 'app', 'play', 'status', 'resource_key', 'badge',
                 'upload', 'transcode', 'is_playable', 'has_audio',
+            ),
+        },
+        'web': {
+            'VIEWER_JWT': True,
+            'REQUIRES_AUTH': True,
+            'USER_AGENT': None,
+            'VIDEOS_FIELDS': (
+                'config_url', 'created_time', 'description', 'download', 'license',
+                'metadata.connections.comments.total', 'metadata.connections.likes.total',
+                'release_time', 'stats.plays',
             ),
         },
     }
@@ -135,8 +149,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             raise ExtractorError('Unable to log in')
 
     def _real_initialize(self):
-        if self._LOGIN_REQUIRED and not self._get_cookies('https://vimeo.com').get('vuid'):
-            self._raise_login_required()
+        if self._LOGIN_REQUIRED and not self._get_cookies('https://vimeo.com').get('vimeo'):
+            self.raise_login_required()
 
     def _get_video_password(self):
         password = self.get_param('videopassword')
@@ -308,13 +322,18 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         }
 
     def _fetch_oauth_token(self, client):
-        cache_key = self._CLIENT_CONFIGS[client]['CACHE_KEY']
+        client_config = self._CLIENT_CONFIGS[client]
+
+        if client_config['VIEWER_JWT']:
+            return f'jwt {self._fetch_viewer_info()["jwt"]}'
+
+        cache_key = client_config['CACHE_KEY']
 
         if not self._oauth_tokens.get(cache_key):
             self._oauth_tokens[cache_key] = self.cache.load(self._NETRC_MACHINE, cache_key)
 
         if not self._oauth_tokens.get(cache_key):
-            if self._CLIENT_CONFIGS[client]['CACHE_ONLY']:
+            if client_config['CACHE_ONLY']:
                 raise ExtractorError(
                     f'The {client} client is unable to fetch new OAuth tokens '
                     f'and is only intended for use with previously cached tokens', expected=True)
@@ -323,8 +342,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'https://api.vimeo.com/oauth/authorize/client', None,
                 f'Fetching {client} OAuth token', f'Failed to fetch {client} OAuth token',
                 headers={
-                    'Authorization': f'Basic {self._CLIENT_CONFIGS[client]["AUTH"]}',
-                    'User-Agent': self._CLIENT_CONFIGS[client]['USER_AGENT'],
+                    'Authorization': f'Basic {client_config["AUTH"]}',
+                    'User-Agent': client_config['USER_AGENT'],
                     **self._CLIENT_HEADERS,
                 }, data=urlencode_postdata({
                     'grant_type': 'client_credentials',
@@ -332,7 +351,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 }, quote_via=urllib.parse.quote))['access_token']
             self.cache.store(self._NETRC_MACHINE, cache_key, self._oauth_tokens[cache_key])
 
-        return self._oauth_tokens[cache_key]
+        return f'Bearer {self._oauth_tokens[cache_key]}'
 
     def _call_videos_api(self, video_id, unlisted_hash=None, path=None, **kwargs):
         client = self._configuration_arg('client', ['android'], ie_key=VimeoIE)[0]
@@ -341,17 +360,21 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 f'Unsupported API client "{client}" requested. '
                 f'Supported clients are: {", ".join(self._CLIENT_CONFIGS)}', expected=True)
 
+        client_config = self._CLIENT_CONFIGS[client]
+        if client_config['REQUIRES_AUTH'] and not self._get_cookies('https://vimeo.com').get('vimeo'):
+            self.raise_login_required(f'The {client} client requires authentication')
+
         return self._download_json(
             join_nonempty(
                 'https://api.vimeo.com/videos',
                 join_nonempty(video_id, unlisted_hash, delim=':'),
                 path, delim='/'),
-            video_id, f'Downloading {client} API JSON', headers={
-                'Authorization': f'Bearer {self._fetch_oauth_token(client)}',
-                'User-Agent': self._CLIENT_CONFIGS[client]['USER_AGENT'],
+            video_id, f'Downloading {client} API JSON', headers=filter_dict({
+                'Authorization': self._fetch_oauth_token(client),
+                'User-Agent': client_config['USER_AGENT'],
                 **self._CLIENT_HEADERS,
-            }, query={
-                'fields': ','.join(self._CLIENT_CONFIGS[client]['VIDEOS_FIELDS']),
+            }), query={
+                'fields': ','.join(client_config['VIDEOS_FIELDS']),
             } if path is None else None, **kwargs)
 
     def _extract_original_format(self, url, video_id, unlisted_hash=None, api_data=None):

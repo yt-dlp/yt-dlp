@@ -1901,7 +1901,7 @@ The following extractors use this feature:
 * `backend`: Backend API to use for extraction - one of `streaks` (default) or `brightcove` (deprecated)
 
 #### vimeo
-* `client`: Client to extract video data from. One of `android` (default) or `ios`. The `ios` client only works with previously cached OAuth tokens
+* `client`: Client to extract video data from. One of `android` (default), `ios` or `web`. The `ios` client only works with previously cached OAuth tokens. The `web` client only works when authenticated with credentials or logged-in cookies
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
