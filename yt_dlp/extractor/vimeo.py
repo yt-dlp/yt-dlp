@@ -410,6 +410,9 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'quality': 1,
                 }
 
+        # Most web client API requests are subject to rate-limiting (429) when logged-in.
+        # Requesting only the 'privacy' field is NOT rate-limited,
+        # so first we should check if video even has 'download' formats available
         privacy_info = self._call_videos_api(
             video_id, unlisted_hash, force_client='web', query={'fields': 'privacy'}, fatal=False)
         if not traverse_obj(privacy_info, ('privacy', 'download', {bool})):
