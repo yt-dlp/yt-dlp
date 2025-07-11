@@ -369,7 +369,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'https://api.vimeo.com/videos',
                 join_nonempty(video_id, unlisted_hash, delim=':'),
                 path, delim='/'),
-            video_id, f'Downloading {client} API JSON', headers=filter_dict({
+            video_id, f'Downloading {client} API JSON', f'Unable to download {client} API JSON',
+            headers=filter_dict({
                 'Authorization': self._fetch_oauth_token(client),
                 'User-Agent': client_config['USER_AGENT'],
                 **self._CLIENT_HEADERS,
