@@ -105,6 +105,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
         **WEB_PO_TOKEN_POLICIES,
+        'PLAYER_PARAMS': '8AEB',
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
     'web_safari': {
