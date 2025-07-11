@@ -56,6 +56,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     _CLIENT_CONFIGS = {
         'android': {
             'CACHE_KEY': 'oauth-token-android',
+            'CACHE_ONLY': False,
             'AUTH': 'NzRmYTg5YjgxMWExY2JiNzUwZDg1MjhkMTYzZjQ4YWYyOGEyZGJlMTp4OGx2NFd3QnNvY1lkamI2UVZsdjdDYlNwSDUrdm50YzdNNThvWDcwN1JrenJGZC9tR1lReUNlRjRSVklZeWhYZVpRS0tBcU9YYzRoTGY2Z1dlVkJFYkdJc0dMRHpoZWFZbU0reDRqZ1dkZ1diZmdIdGUrNUM5RVBySlM0VG1qcw==',
             'USER_AGENT': 'com.vimeo.android.videoapp (OnePlus, ONEPLUS A6003, OnePlus, Android 14/34 Version 11.5.1) Kotlin VimeoNetworking/3.12.0',
             'VIDEOS_FIELDS': (
@@ -68,6 +69,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         },
         'ios': {
             'CACHE_KEY': 'oauth-token-ios',
+            'CACHE_ONLY': True,
             'AUTH': 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw==',
             'USER_AGENT': 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0',
             'VIDEOS_FIELDS': (
@@ -312,6 +314,11 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             self._oauth_tokens[cache_key] = self.cache.load(self._NETRC_MACHINE, cache_key)
 
         if not self._oauth_tokens.get(cache_key):
+            if self._CLIENT_CONFIGS[client]['CACHE_ONLY']:
+                raise ExtractorError(
+                    f'The {client} client is unable to fetch new OAuth tokens '
+                    f'and is only intended for use with previously cached tokens', expected=True)
+
             self._oauth_tokens[cache_key] = self._download_json(
                 'https://api.vimeo.com/oauth/authorize/client', None,
                 f'Fetching {client} OAuth token', f'Failed to fetch {client} OAuth token',
