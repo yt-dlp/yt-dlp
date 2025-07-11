@@ -3741,7 +3741,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 note='Downloading initial data API JSON', default_client=webpage_client)
         return initial_data
 
-    def _is_premium_subscriber(self, initial_data=None):
+    def _is_premium_subscriber(self, initial_data):
         if not self.is_authenticated or not initial_data:
             return False
 
@@ -3759,7 +3759,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         initial_data = self._download_initial_data(video_id, webpage, webpage_client, webpage_ytcfg)
 
-        is_premium_subscriber = self._is_premium_subscriber(webpage_ytcfg, initial_data)
+        is_premium_subscriber = self._is_premium_subscriber(initial_data)
         if is_premium_subscriber:
             self.write_debug('Detected YouTube Premium subscription')
 
