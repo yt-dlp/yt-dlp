@@ -46,8 +46,8 @@ class HotStarBaseIE(InfoExtractor):
                 'hotstarauth': auth,
                 'x-hs-usertoken': cookies['userUP'].value,
                 'x-hs-device-id': traverse_obj(cookies, ('deviceId', 'value')) or str(uuid.uuid4()),
-                'x-hs-client': 'platform:androidtv;app_id:in.startv.hotstar.dplus.tv;app_version:23.08.14.4;os:Android;os_version:13;schema_version:0.0.970',
-                'x-hs-platform': 'androidtv',
+                'x-hs-client': 'platform:android;app_id:in.startv.hotstar.dplus.tv;app_version:23.08.14.4;os:Android;os_version:13;schema_version:0.0.970',
+                'x-hs-platform': 'android',
                 'content-type': 'application/json',
             })
 
@@ -61,15 +61,16 @@ class HotStarBaseIE(InfoExtractor):
             'filters': f'content_type={content_type}',
             'client_capabilities': json.dumps({
                 'package': ['dash', 'hls'],
-                'container': ['fmp4br', 'fmp4'],
+                'container': ['fmp4', 'fmp4br', 'ts'],
                 'ads': ['non_ssai', 'ssai'],
-                'audio_channel': ['atmos', 'dolby51', 'stereo'],
+                'audio_channel': ['stereo', 'dolby51', 'atmos'],
                 'encryption': ['plain', 'widevine'],  # wv only so we can raise appropriate error
-                'video_codec': ['h265', 'h264'],
-                'ladder': ['tv', 'full'],
-                'resolution': ['4k', 'hd'],
-                'true_resolution': ['4k', 'hd'],
-                'dynamic_range': ['hdr', 'sdr'],
+                'video_codec': ['h264', 'h265'],
+                'video_codec_non_secure': ['h264', 'h265', 'vp9'],
+                'ladder': ['phone', 'tv', 'full'],
+                'resolution': ['hd', '4k'],
+                'true_resolution': ['hd', '4k'],
+                'dynamic_range': ['sdr', 'hdr'],
             }, separators=(',', ':')),
             'drm_parameters': json.dumps({
                 'widevine_security_level': ['SW_SECURE_DECODE', 'SW_SECURE_CRYPTO'],
