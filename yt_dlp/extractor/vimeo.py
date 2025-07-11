@@ -343,7 +343,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
         return self._download_json(
             join_nonempty(
-                join_nonempty(f'https://api.vimeo.com/videos/{video_id}', unlisted_hash, delim=':'),
+                'https://api.vimeo.com/videos',
+                join_nonempty(video_id, unlisted_hash, delim=':'),
                 path, delim='/'),
             video_id, f'Downloading {client} API JSON', headers={
                 'Authorization': f'Bearer {self._fetch_oauth_token(client)}',
