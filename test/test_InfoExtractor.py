@@ -1964,7 +1964,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
             <script>(self.__next_f=self.__next_f||[]).push([0])</script>
             <script>self.__next_f.push([2,"0:[\"$\",\"$L0\",null,{\"do_not_add_this\":\"fail\"}]\n"])</script>
             <script>self.__next_f.push([1,"1:I[46975,[],\"HTTPAccessFallbackBoundary\"]\n2:I[32630,[\"8183\",\"static/chunks/8183-768193f6a9e33cdd.js\"]]\n"])</script>
-            <script nonce="abc123">self.__next_f.push([1,"e:[false,[\"$\",\"div\",null,{\"children\":[\"$\",\"$L18\",null,{\"foo\":\"bar\"}]}],false]\n"])</script>
+            <script nonce="abc123">self.__next_f.push([1,"e:[false,[\"$\",\"div\",null,{\"children\":[\"$\",\"$L18\",null,{\"foo\":\"bar\"}]}],false]\n    "])</script>
             <script>self.__next_f.push([1,"2a:[[\"$\",\"div\",null,{\"className\":\"flex flex-col\",\"children\":[]}],[\"$\",\"$L16\",null,{\"meta\":{\"dateCreated\":1730489700,\"uuid\":\"40cac41d-8d29-4ef5-aa11-75047b9f0907\"}}]]\n"])</script>
             <script>self.__next_f.push([1,"df:[\"$undefined\",[\"$\",\"div\",null,{\"children\":[\"$\",\"$L17\",null,{}],\"do_not_include_this_field\":\"fail\"}],[\"$\",\"div\",null,{\"children\":[[\"$\",\"$L19\",null,{\"duplicated_field_name\":{\"x\":1}}],[\"$\",\"$L20\",null,{\"duplicated_field_name\":{\"y\":2}}]]}],\"$undefined\"]\n"])</script>
             <script>self.__next_f.push([3,"MzM6WyIkIiwiJEwzMiIsbnVsbCx7ImRlY29kZWQiOiJzdWNjZXNzIn1d"])</script>

@@ -1824,7 +1824,7 @@ class InfoExtractor:
 
         for f in flight_text.splitlines():
             prefix, _, body = f.partition(':')
-            if body.startswith('[') and body.endswith(']') and re.fullmatch(r'[0-9a-f]{1,3}', prefix):
+            if body.startswith('[') and body.endswith(']') and re.fullmatch(r'[0-9a-f]{1,3}', prefix.strip()):
                 # The body isn't necessarily valid JSON, so this should always be non-fatal
                 flatten(self._parse_json(body, video_id, fatal=False, errnote=False))
 
