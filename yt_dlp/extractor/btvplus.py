@@ -65,8 +65,8 @@ class BTVPlusIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
-            'title': strip_or_none(
-                self._og_search_title(webpage, default=None)
+            'title': (
+                strip_or_none(self._og_search_title(webpage, default=None))
                 or clean_html(get_element_by_class('product-title', webpage))),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'description': self._og_search_description(webpage, default=None),
