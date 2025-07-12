@@ -1,73 +1,130 @@
-import re
-
 from .common import InfoExtractor
+from ..networking import HEADRequest
+from ..utils import int_or_none, parse_iso8601, url_or_none, urlhandle_detect_ext
+from ..utils.traversal import traverse_obj
 
 
 class MixlrIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?P<username>[\w-]+)\.mixlr\.com/events/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://suncity-104-9fm.mixlr.com/events/4261962',
+        'url': 'https://suncity-104-9fm.mixlr.com/events/4387115',
         'info_dict': {
-            'id': '4261962',
-            'title': re.compile(r'.+'),
-            'description': re.compile(r'.+'),
+            'id': '4387115',
             'ext': 'mp3',
-            'is_live': True,
+            'title': r're:SUNCITY 104.9FM\'s live audio \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             'uploader': 'suncity-104-9fm',
+            'like_count': int,
+            'thumbnail': r're:https://imagecdn\.mixlr\.com/cdn-cgi/image/[^/?#]+/cd5b34d05fa2cee72d80477724a2f02e.png',
+            'timestamp': 1751943773,
+            'upload_date': '20250708',
+            'release_timestamp': 1751943764,
+            'release_date': '20250708',
+            'live_status': 'is_live',
         },
-        'skip': 'Live broadcast may not be available',
+    }, {
+        'url': 'https://brcountdown.mixlr.com/events/4395480',
+        'info_dict': {
+            'id': '4395480',
+            'ext': 'aac',
+            'title': r're:Beats Revolution Countdown Episodio 461 \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'description': 'md5:5cacd089723f7add3f266bd588315bb3',
+            'uploader': 'brcountdown',
+            'like_count': int,
+            'thumbnail': r're:https://imagecdn\.mixlr\.com/cdn-cgi/image/[^/?#]+/c48727a59f690b87a55d47d123ba0d6d.jpg',
+            'timestamp': 1752354007,
+            'upload_date': '20250712',
+            'release_timestamp': 1752354000,
+            'release_date': '20250712',
+            'live_status': 'is_live',
+        },
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        username = mobj.group('username')
-        event_id = mobj.group('id')
+        username, event_id = self._match_valid_url(url).group('username', 'id')
 
-        api_url = f'https://apicdn.mixlr.com/v3/channel_view/{username}'
-        channel_info = self._download_json(api_url, event_id)
-        user_data = channel_info.get('data', {}).get('attributes', {})
-
-        broadcast_data = None
-        event_data = None
-        included = channel_info.get('included', [])
-        for item in included:
-            if item.get('type') == 'broadcast':
-                broadcast_data = item.get('attributes', {})
-            elif item.get('type') == 'event' and item.get('id') == event_id:
-                event_data = item.get('attributes', {})
-
-            if broadcast_data and event_data:
-                break
-
-        if not broadcast_data or not broadcast_data.get('live', False):
-            self.raise_no_formats('No active broadcast found', expected=True)
-        if not event_data:
-            self.raise_no_formats('No event data found', expected=True)
-
-        streaming_url = broadcast_data.get('progressive_stream_url')
-        title = event_data.get('title') or f'Mixlr broadcast by {username}'
-        description = event_data.get('description') or broadcast_data.get('description') or ''
+        broadcast_info = self._download_json(
+            f'https://api.mixlr.com/v3/channels/{username}/events/{event_id}', event_id)
 
         formats = []
-        if streaming_url:
-            formats.append({
-                'url': streaming_url,
-                'format_id': 'http',
-                'ext': 'mp3',
-                'vcodec': 'none',
-            })
+        format_url = traverse_obj(
+            broadcast_info, ('included', 0, 'attributes', 'progressive_stream_url', {url_or_none}))
+        if format_url:
+            urlh = self._request_webpage(
+                HEADRequest(format_url), event_id, fatal=False, note='Checking stream')
+            ext = urlhandle_detect_ext(urlh)
+            if ext == 'octet-stream':
+                self.report_warning(
+                    'The server did not return a valid file extension for the stream URL, '
+                    'defaulting to "mp3". Please ensure that the downloaded audio is actually mp3.')
+                ext = 'mp3'
+            if urlh and urlh.status == 200:
+                formats.append({
+                    'url': format_url,
+                    'ext': urlhandle_detect_ext(urlh),
+                    'vcodec': 'none',
+                })
 
         if not formats:
             self.raise_no_formats('No formats found', expected=True)
 
         return {
             'id': event_id,
-            'title': title,
-            'description': description,
             'uploader': username,
-            'uploader_id': user_data.get('id'),
-            'uploader_url': f'https://{username}.mixlr.com',
-            'thumbnail': user_data.get('avatar_full_url') or user_data.get('avatar_url'),
-            'is_live': broadcast_data.get('live', True),
             'formats': formats,
+            **traverse_obj(broadcast_info, ('included', 0, 'attributes', {
+                'title': ('title', {str}),
+                'timestamp': ('started_at', {parse_iso8601}),
+                'concurrent_view_count': ('concurrent_view_count', {int_or_none}),
+                'like_count': ('heart_count', {int_or_none}),
+                'is_live': ('live', {bool}),
+            })),
+            **traverse_obj(broadcast_info, ('data', 'attributes', {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'timestamp': ('started_at', {parse_iso8601}),
+                'release_timestamp': ('starts_at', {parse_iso8601}),
+                'concurrent_view_count': ('concurrent_view_count', {int_or_none}),
+                'like_count': ('heart_count', {int_or_none}),
+                'thumbnail': ('artwork_url', {url_or_none}),
+                'uploader_id': ('broadcaster_id', {str}),
+            })),
+        }
+
+
+class MixlrRecoringIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?(?P<username>[\w-]+)\.mixlr\.com/recordings/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://biblewayng.mixlr.com/recordings/2375193',
+        'info_dict': {
+            'id': '2375193',
+            'ext': 'mp3',
+            'title': "God's Jewels and Their Resting Place Bro. Adeniji",
+            'description': 'Preached February 21, 2024 in the evening',
+            'uploader_id': '8659190',
+            'duration': 10968,
+            'thumbnail': r're:https://imagecdn\.mixlr\.com/cdn-cgi/image/[^/?#]+/ceca120ef707f642abeea6e29cd74238.jpg',
+            'timestamp': 1708544542,
+            'upload_date': '20240221',
+        },
+    }]
+
+    def _real_extract(self, url):
+        username, recording_id = self._match_valid_url(url).group('username', 'id')
+
+        recording_info = self._download_json(
+            f'https://api.mixlr.com/v3/channels/{username}/recordings/{recording_id}', recording_id)
+
+        return {
+            'id': recording_id,
+            'is_live': False,
+            **traverse_obj(recording_info, ('data', 'attributes', {
+                'ext': ('file_format', {str}),
+                'url': ('url', {url_or_none}),
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'timestamp': ('created_at', {parse_iso8601}),
+                'duration': ('duration', {int_or_none}),
+                'thumbnail': ('artwork_url', {url_or_none}),
+                'uploader_id': ('user_id', {str}),
+            })),
         }

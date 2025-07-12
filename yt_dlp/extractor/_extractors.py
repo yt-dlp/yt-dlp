@@ -1173,7 +1173,10 @@ from .mixcloud import (
     MixcloudPlaylistIE,
     MixcloudUserIE,
 )
-from .mixlr import MixlrIE
+from .mixlr import (
+    MixlrIE,
+    MixlrRecoringIE,
+)
 from .mlb import (
     MLBIE,
     MLBTVIE,
