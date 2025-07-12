@@ -1817,7 +1817,7 @@ class InfoExtractor:
                     f'{video_id}: Unsupported next.js flight data structure detected', only_once=True)
                 continue
             # Only use the relevant payload type (1 == data)
-            # Ref: https://github.com/vercel/next.js/blob/5a4a08fdc/packages/next/src/server/app-render/use-flight-response.tsx#L11-#L14
+            # Ref: https://github.com/vercel/next.js/blob/5a4a08fdc/packages/next/src/server/app-render/use-flight-response.tsx#L11-L14
             payload_type, chunk = segment
             if payload_type == 1:
                 flight_text += chunk
