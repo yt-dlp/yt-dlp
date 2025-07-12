@@ -59,8 +59,7 @@ class BTVPlusIE(InfoExtractor):
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             else:
-                self.report_warning(
-                    f'Unknown format type {ext}{bug_reports_message()}')
+                self.report_warning(f'Unknown format type {ext}{bug_reports_message()}')
 
         return {
             'id': video_id,
