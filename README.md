@@ -1901,6 +1901,10 @@ The following extractors use this feature:
 #### tver
 * `backend`: Backend API to use for extraction - one of `streaks` (default) or `brightcove` (deprecated)
 
+#### vimeo
+* `client`: Client to extract video data from. One of `android` (default), `ios` or `web`. The `ios` client only works with previously cached OAuth tokens. The `web` client only works when authenticated with credentials or account cookies
+* `original_format_policy`: Policy for when to try extracting original formats. One of `always`, `never`, or `auto`. The default `auto` policy tries to avoid exceeding the API rate-limit by only making an extra request when Vimeo publicizes the video's downloadability
+
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
