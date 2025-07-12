@@ -1797,7 +1797,7 @@ class InfoExtractor:
                 if not isinstance(data, dict):
                     return
                 children = data.pop('children', None)
-                if data and isinstance(name, str) and name.startswith('$L'):
+                if data and isinstance(name, str) and re.fullmatch(r'\$L[0-9a-f]+', name):
                     # It is useful hydration JSON data
                     nextjs_data[name[2:]] = data
                 flatten(children)
