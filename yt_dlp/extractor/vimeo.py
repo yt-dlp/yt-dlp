@@ -61,7 +61,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'VIEWER_JWT': False,
             'REQUIRES_AUTH': False,
             'AUTH': 'NzRmYTg5YjgxMWExY2JiNzUwZDg1MjhkMTYzZjQ4YWYyOGEyZGJlMTp4OGx2NFd3QnNvY1lkamI2UVZsdjdDYlNwSDUrdm50YzdNNThvWDcwN1JrenJGZC9tR1lReUNlRjRSVklZeWhYZVpRS0tBcU9YYzRoTGY2Z1dlVkJFYkdJc0dMRHpoZWFZbU0reDRqZ1dkZ1diZmdIdGUrNUM5RVBySlM0VG1qcw==',
-            'USER_AGENT': 'com.vimeo.android.videoapp (OnePlus, ONEPLUS A6003, OnePlus, Android 14/34 Version 11.5.1) Kotlin VimeoNetworking/3.12.0',
+            'USER_AGENT': 'com.vimeo.android.videoapp (OnePlus, ONEPLUS A6003, OnePlus, Android 14/34 Version 11.8.1) Kotlin VimeoNetworking/3.12.0',
             'VIDEOS_FIELDS': (
                 'uri', 'name', 'description', 'type', 'link', 'player_embed_url', 'duration', 'width',
                 'language', 'height', 'embed', 'created_time', 'modified_time', 'release_time', 'content_rating',
