@@ -3626,6 +3626,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     po_token = (
                         gvs_pots.get(client_name)
                         or fetch_po_token_func(required=require_po_token or pot_policy.recommended))
+                    if po_token:
+                        if client_name not in gvs_pots:
+                            gvs_pots[client_name] = po_token
 
                     fmt = process_format_stream(fmt_stream, proto, missing_pot=require_po_token and not po_token)
                     if not fmt:
@@ -3662,8 +3665,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     if po_token:
                         fmt_url = update_url_query(fmt_url, {'pot': po_token})
-                        if client_name not in gvs_pots:
-                            gvs_pots[client_name] = po_token
 
                     fmt['url'] = fmt_url
 
