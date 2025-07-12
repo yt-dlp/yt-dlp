@@ -1806,8 +1806,8 @@ class InfoExtractor:
                 flatten(f)
 
         flight_text = ''
-        # The script part is written as a string in the next.js source and should be matched strictly
-        # Ref: https://github.com/vercel/next.js/blob/5a4a08fdce91a038f2ed3a70568d3ed040403150/packages/next/src/server/app-render/use-flight-response.tsx#L189
+        # The pattern for the surrounding JS/tag should be strict as it's a hardcoded string in the next.js source
+        # Ref: https://github.com/vercel/next.js/blob/5a4a08fdc/packages/next/src/server/app-render/use-flight-response.tsx#L189
         for flight_segment in re.findall(r'<script[^>]*>self\.__next_f\.push\((\[.+?\])\)</script>', webpage):
             segment = self._parse_json(flight_segment, video_id, fatal=fatal, errnote=None if fatal else False)
             # Some earlier versions of next.js "optimized" away this array structure; this is unsupported
@@ -1816,8 +1816,8 @@ class InfoExtractor:
                 self.write_debug(
                     f'{video_id}: Unsupported next.js flight data structure detected', only_once=True)
                 continue
-            # Use only relevant payload type (1 == data)
-            # Ref: https://github.com/vercel/next.js/blob/5a4a08fdce91a038f2ed3a70568d3ed040403150/packages/next/src/server/app-render/use-flight-response.tsx#L11-#L14
+            # Only use the relevant payload type (1 == data)
+            # Ref: https://github.com/vercel/next.js/blob/5a4a08fdc/packages/next/src/server/app-render/use-flight-response.tsx#L11-#L14
             payload_type, chunk = segment
             if payload_type == 1:
                 flight_text += chunk
@@ -1825,7 +1825,7 @@ class InfoExtractor:
         for f in flight_text.splitlines():
             prefix, _, body = f.partition(':')
             if body.startswith('[') and body.endswith(']') and re.fullmatch(r'[0-9a-f]{1,3}', prefix):
-                # The body isn't necessarily valid JSON; this should always be non-fatal
+                # The body isn't necessarily valid JSON, so this should always be non-fatal
                 flatten(self._parse_json(body, video_id, fatal=False, errnote=False))
 
         return nextjs_data
