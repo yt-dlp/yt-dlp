@@ -236,8 +236,15 @@ class TestInfoExtractor(unittest.TestCase):
       }
                 </script>''',
                 {
-                    'timestamp': 1636523400,
                     'title': 'md5:91fe569e952e4d146485740ae927662b',
+                    'categories': ['Κοινωνία'],
+                    'creators': ['Ant1news'],
+                    'description': 'md5:16756d0a18f33bf550e683d134a72f3c',
+                    'modified_timestamp': 1636523573,
+                    'release_timestamp': 1636523400,
+                    'tags': 'count:6',
+                    'thumbnails': [{'url': 'https://ant1media.azureedge.net/imgHandler/1100/a635c968-be71-447c-bf9c-80d843ece21e.jpg'}],
+                    'uploader': 'Ant1news',
                 },
                 {'expected_type': 'NewsArticle'},
             ),
@@ -337,6 +344,54 @@ class TestInfoExtractor(unittest.TestCase):
 }</script>''',
                 {
                     'thumbnails': [{'url': 'https://www.nobelprize.org/images/12693-landscape-medium-gallery.jpg'}],
+                },
+                {},
+            ),
+            (
+                r'''
+<script type="application/ld+json">
+{"@context":"https://schema.org",
+"@type":"NewsArticle",
+"mainEntityOfPage":{
+"@type":"WebPage",
+"@id":"https://www.telemb.be/actu/frameries-un-concours-pour-conducteurs-dengins-de-chantier/37879"
+},
+"headline":"Frameries - Un concours pour conducteurs d'engins de chantier",
+"image":[
+"//www.telemb.be/cdn/ff/pKwkkhB7a5GqSf98QdDUcn9WlvGTYyilvXisHO3fHpI/1747320854/public/2025-05/00006554_avc-tmb-093031.jpeg"
+],
+"articleSection":"Reportages",
+"keywords":"enseignement secondaire",
+"datePublished":"2025-05-15T16:32:00+02:00",
+"dateCreated":"2025-05-15T16:32:00+02:00",
+"dateModified":"2025-05-15T16:32:00+02:00",
+"author":{
+"@type":"Person",
+"name":"Sabine Dupont"
+},
+"publisher":{
+"@type":"Organization",
+"name":"Tele MB",
+"logo":{
+"@type":"ImageObject",
+"url":"https://www.telemb.be/modules/custom/local_tvs/modules/tele_mb/assets/logoTLMB_BE_2022.svg"
+}
+},
+"description":"Conduire des engins de chantier c'est un métier! Ce métier s'apprend dans 7 écoles techniques en Wallonie. 6 d’entre elles se sont retrouvées au centre de compétence du Forem à Sars-la-Bruyère pour une première édition d'un concours baptisé Engin Défi. ",
+"articleBody":"Creuser une tranchée, charger un camion, niveler un terrain, quelques-uns des défis proposés aux écoles techniques de Wallonie qui participent à ce premier concours Engin Défi. Par binôme, les 26 élèves sélectionnés doivent réaliser différentes tâches et démontrer ainsi leur savoir-faire en matière de manipulation d’engins de chantier.« On devait charger le gros dumper. Ca s’est bien passé mais je ne sais pas encore ce que le jury en pense » explique Clément Hennuy, Elève en 6ème conducteur d’engins de chantier aux Instituts Saint-Luc.Car Engin Defi est un concours ! A chaque épreuve, des professionnels sont là pour coter individuellement les élèves mais surtout pour les encadrer.« Ils sont évalués par poste de travail. Il y a des cotes de 5 à 20 mais on n’est pas là pour les casser. On est là pour leur donner des conseils avant et pendant l’épreuve » sourit Guy Laidoum, Conseiller en prévention et jury d’Engin Défi.Les professeurs des élèves choisis sont également présents pour les coacher.« Ils sont à l’épreuve de la tranchée qu’ils doivent faire bien plate, bien propre avec des bords bien tranchants. Quelque chose de nickel comme on leur a appris » insiste Loïc Cimino, professeur au Lycée Technique Hornu-Colfontaine. Engin Défi est une première organisation mise sur pied par plusieurs partenaires du secteur de la construction. Tous n’ont qu’un but, valoriser des métiers très recherchés et demandés.« On veut leur montrer que derrière l’école, il y a un secteur d’activités à la recherche de main d’œuvre qualifiée. Ils seront bientôt qualifiés, on veut leur montrer qu’on a besoin d’eux » insiste Xavier Maes, Manager chez Constructiv. Et pour susciter des vocations, une centaine d’élèves de deuxième secondaire viennent aussi découvrir, de manière plus ludique, ces métiers du secteur de la construction. Certains sont plus intéressés que d’autres…« Je ne ferais pas ces métiers là, non. Ce n’est pas dans mes délires ! » sourit Alissa, élève de 2ème secondaire à la Sainte-Union.« Moi j’aime les métiers manuels. Travailler dans la mécanique, c’est ce qui me passionne » souligne Mohamed, un autre élève. Des passionnés, c’est ce que le secteur recherche. Clément en tout cas semble avoir trouvé sa voie.« Je suis en 6ème. Je vais faire une 7ème pour mon diplôme et ma gestion, puis je vais travailler dans une entreprise. Plus tard, j’aimerais créer ma propre entreprise »"
+}</script>
+''',
+                {
+                    'title': 'md5:3f077843a74f01f768bbf0853c210855',
+                    'categories': ['Reportages'],
+                    'creators': ['Sabine Dupont'],
+                    'description': 'md5:1dc04a3aa56c5228503071baa8b4cc97',
+                    'modified_timestamp': 1747319520,
+                    'release_timestamp': 1747319520,
+                    'tags': 'count:1',
+                    'timestamp': 1747319520,
+                    'thumbnails': [{'url': 'https://www.telemb.be/cdn/ff/pKwkkhB7a5GqSf98QdDUcn9WlvGTYyilvXisHO3fHpI/1747320854/public/2025-05/00006554_avc-tmb-093031.jpeg'}],
+                    'uploader': 'Tele MB',
                 },
                 {},
             ),
