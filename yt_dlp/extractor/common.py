@@ -1798,7 +1798,7 @@ class InfoExtractor:
                 if not isinstance(data, dict):
                     return
                 children = data.pop('children', None)
-                if data and isinstance(name, str) and name[:1] == '$':
+                if data and isinstance(name, str) and name.startswith('$'):
                     # It is useful hydration JSON data
                     nextjs_data.append(data)
                 flatten(children)
@@ -1806,6 +1806,7 @@ class InfoExtractor:
             for f in flight_data:
                 flatten(f)
 
+        flight_text = ''
         # The flight segments regex pattern can afford to be (and should be) strict
         # Ref: https://github.com/vercel/next.js/commit/5a4a08fdce91a038f2ed3a70568d3ed040403150
         #      /packages/next/src/server/app-render/use-flight-response.tsx
@@ -1830,10 +1831,14 @@ class InfoExtractor:
             elif payload_type != 1:
                 # Ignore useless payload types (0: bootstrap, 2: form state)
                 continue
-            # Not all chunks are complete JSON data; this should always be non-fatal
-            flatten(self._search_json(
-                r'^[\da-f]+:', chunk, 'flight data', video_id,
-                default=None, contains_pattern=r'\[.+\]'))
+            flight_text += chunk
+
+        for f in flight_text.splitlines():
+            prefix, _, body = f.partition(':')
+            if not (body.startswith('[') and body.endswith(']') and re.fullmatch(r'[0-9a-f]{1,3}', prefix)):
+                continue
+            # The body isn't necessarily valid JSON; this should always be non-fatal
+            flatten(self._parse_json(body, video_id, fatal=False, errnote=False))
 
         return nextjs_data
 
