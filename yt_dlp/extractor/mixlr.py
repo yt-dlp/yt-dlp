@@ -51,16 +51,16 @@ class MixlrIE(InfoExtractor):
         if format_url:
             urlh = self._request_webpage(
                 HEADRequest(format_url), event_id, fatal=False, note='Checking stream')
-            ext = urlhandle_detect_ext(urlh)
-            if ext == 'octet-stream':
-                self.report_warning(
-                    'The server did not return a valid file extension for the stream URL, '
-                    'defaulting to "mp3". Please ensure that the downloaded audio is actually mp3.')
-                ext = 'mp3'
-            if urlh and urlh.status == 200:
+            if not urlh or urlh.status != 200:
+                ext = urlhandle_detect_ext(urlh)
+                if ext == 'octet-stream':
+                    self.report_warning(
+                        'The server did not return a valid file extension for the stream URL, '
+                        'defaulting to "mp3". Please ensure that the downloaded audio is actually mp3.')
+                    ext = 'mp3'
                 formats.append({
                     'url': format_url,
-                    'ext': urlhandle_detect_ext(urlh),
+                    'ext': ext,
                     'vcodec': 'none',
                 })
 
