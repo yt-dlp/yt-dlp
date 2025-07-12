@@ -51,12 +51,12 @@ class MixlrIE(InfoExtractor):
         if format_url:
             urlh = self._request_webpage(
                 HEADRequest(format_url), event_id, fatal=False, note='Checking stream')
-            if not urlh or urlh.status != 200:
+            if urlh and urlh.status == 200:
                 ext = urlhandle_detect_ext(urlh)
                 if ext == 'octet-stream':
                     self.report_warning(
-                        'The server did not return a valid file extension for the stream URL, '
-                        'defaulting to "mp3". Please ensure that the downloaded audio is actually mp3.')
+                        'The server did not return a valid file extension for the stream URL. '
+                        'Assuming an mp3 stream; postprocessing may fail if this is incorrect')
                     ext = 'mp3'
                 formats.append({
                     'url': format_url,
@@ -116,7 +116,6 @@ class MixlrRecoringIE(InfoExtractor):
 
         return {
             'id': recording_id,
-            'is_live': False,
             **traverse_obj(recording_info, ('data', 'attributes', {
                 'ext': ('file_format', {str}),
                 'url': ('url', {url_or_none}),
