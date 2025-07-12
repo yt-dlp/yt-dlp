@@ -1808,7 +1808,7 @@ class InfoExtractor:
         flight_text = ''
         # The pattern for the surrounding JS/tag should be strict as it's a hardcoded string in the next.js source
         # Ref: https://github.com/vercel/next.js/blob/5a4a08fdc/packages/next/src/server/app-render/use-flight-response.tsx#L189
-        for flight_segment in re.findall(r'<script[^>]*>self\.__next_f\.push\((\[.+?\])\)</script>', webpage):
+        for flight_segment in re.findall(r'<script\b[^>]*>self\.__next_f\.push\((\[.+?\])\)</script>', webpage):
             segment = self._parse_json(flight_segment, video_id, fatal=fatal, errnote=None if fatal else False)
             # Some earlier versions of next.js "optimized" away this array structure; this is unsupported
             # Ref: https://github.com/vercel/next.js/commit/0123a9d5c9a9a77a86f135b7ae30b46ca986d761
