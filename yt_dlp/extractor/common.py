@@ -1785,7 +1785,7 @@ class InfoExtractor:
 
     def _search_nextjs_v13_data(self, webpage, video_id, fatal=True):
         """Parses Next.js app router flight data that was introduced in Next.js v13"""
-        nextjs_data = []
+        nextjs_data = {}
         if not fatal and not isinstance(webpage, str):
             return nextjs_data
 
@@ -1797,9 +1797,9 @@ class InfoExtractor:
                 if not isinstance(data, dict):
                     return
                 children = data.pop('children', None)
-                if data and isinstance(name, str) and name.startswith('$'):
+                if data and isinstance(name, str) and re.fullmatch(r'\$L[0-9a-f]+', name):
                     # It is useful hydration JSON data
-                    nextjs_data.append(data)
+                    nextjs_data[name[2:]] = data
                 flatten(children)
                 return
             for f in flight_data:
@@ -1823,10 +1823,16 @@ class InfoExtractor:
                 flight_text += chunk
 
         for f in flight_text.splitlines():
-            prefix, _, body = f.partition(':')
-            if body.startswith('[') and body.endswith(']') and re.fullmatch(r'[0-9a-f]{1,3}', prefix.lstrip()):
-                # The body isn't necessarily valid JSON, so this should always be non-fatal
+            prefix, _, body = f.lstrip().partition(':')
+            if not re.fullmatch(r'[0-9a-f]+', prefix):
+                continue
+            # The body still isn't guaranteed to be valid JSON, so parsing should always be non-fatal
+            if body.startswith('[') and body.endswith(']'):
                 flatten(self._parse_json(body, video_id, fatal=False, errnote=False))
+            elif body.startswith('{') and body.endswith('}'):
+                data = self._parse_json(body, video_id, fatal=False, errnote=False)
+                if data is not None:
+                    nextjs_data[prefix] = data
 
         return nextjs_data
 

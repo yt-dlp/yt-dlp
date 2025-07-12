@@ -1969,21 +1969,26 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
             <script>self.__next_f.push([1,"df:[\"$undefined\",[\"$\",\"div\",null,{\"children\":[\"$\",\"$L17\",null,{}],\"do_not_include_this_field\":\"fail\"}],[\"$\",\"div\",null,{\"children\":[[\"$\",\"$L19\",null,{\"duplicated_field_name\":{\"x\":1}}],[\"$\",\"$L20\",null,{\"duplicated_field_name\":{\"y\":2}}]]}],\"$undefined\"]\n"])</script>
             <script>self.__next_f.push([3,"MzM6WyIkIiwiJEwzMiIsbnVsbCx7ImRlY29kZWQiOiJzdWNjZXNzIn1d"])</script>
             '''
-        EXPECTED = [{
-            'foo': 'bar',
-        }, {
-            'meta': {
-                'dateCreated': 1730489700,
-                'uuid': '40cac41d-8d29-4ef5-aa11-75047b9f0907',
+        EXPECTED = {
+            '18': {
+                'foo': 'bar',
             },
-        }, {
-            'duplicated_field_name': {'x': 1},
-        }, {
-            'duplicated_field_name': {'y': 2},
-        }]
+            '16': {
+                'meta': {
+                    'dateCreated': 1730489700,
+                    'uuid': '40cac41d-8d29-4ef5-aa11-75047b9f0907',
+                },
+            },
+            '19': {
+                'duplicated_field_name': {'x': 1},
+            },
+            '20': {
+                'duplicated_field_name': {'y': 2},
+            },
+        }
         self.assertEqual(self.ie._search_nextjs_v13_data(HTML, None), EXPECTED)
-        self.assertEqual(self.ie._search_nextjs_v13_data('', None, fatal=False), [])
-        self.assertEqual(self.ie._search_nextjs_v13_data(None, None, fatal=False), [])
+        self.assertEqual(self.ie._search_nextjs_v13_data('', None, fatal=False), {})
+        self.assertEqual(self.ie._search_nextjs_v13_data(None, None, fatal=False), {})
 
     def test_search_nuxt_json(self):
         HTML_TMPL = '<script data-ssr="true" id="__NUXT_DATA__" type="application/json">[{}]</script>'
