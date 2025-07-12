@@ -571,6 +571,7 @@ from .dw import (
     DWIE,
     DWArticleIE,
 )
+from .dzsecurity import DzsecurityLiveIE
 from .eagleplatform import (
     ClipYouEmbedIE,
     EaglePlatformIE,
