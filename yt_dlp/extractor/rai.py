@@ -81,7 +81,7 @@ class RaiBaseIE(InfoExtractor):
         # geo flag is a bit unreliable and not properly set all the time
         geoprotection = xpath_text(relinker, './geoprotection', default='N') == 'Y'
 
-        ext = determine_ext(media_url)
+        ext = determine_ext(media_url).lower()
         formats = []
 
         if ext == 'mp3':
@@ -501,6 +501,15 @@ class RaiPlaySoundIE(RaiBaseIE):
             'creator': 'rai radio 2',
             'timestamp': 1638346620,
             'upload_date': '20211201',
+        },
+        'params': {'skip_download': True},
+    }, {
+        # case-sensitivity test for uppercase extension
+        'url': 'https://www.raiplaysound.it/audio/2020/05/Storia--Lunita-dItalia-e-lunificazione-della-Germania-b4c16390-7f3f-4282-b353-d94897dacb7c.html',
+        'info_dict': {
+            'id': 'b4c16390-7f3f-4282-b353-d94897dacb7c',
+            'ext': 'mp3',
+            'title': "Storia | 01 L'unità d'Italia e l'unificazione della Germania",
         },
         'params': {'skip_download': True},
     }]
