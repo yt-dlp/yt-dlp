@@ -64,13 +64,16 @@ class MixlrIE(InfoExtractor):
                     'vcodec': 'none',
                 })
 
-        if not formats:
-            self.raise_no_formats('No formats found', expected=True)
+        release_timestamp = traverse_obj(
+            broadcast_info, ('data', 'attributes', 'starts_at', {str}))
+        if not formats and release_timestamp:
+            self.raise_no_formats(f'This event will start at {release_timestamp}', expected=True)
 
         return {
             'id': event_id,
             'uploader': username,
             'formats': formats,
+            'release_timestamp': parse_iso8601(release_timestamp),
             **traverse_obj(broadcast_info, ('included', 0, 'attributes', {
                 'title': ('title', {str}),
                 'timestamp': ('started_at', {parse_iso8601}),
@@ -82,7 +85,6 @@ class MixlrIE(InfoExtractor):
                 'title': ('title', {str}),
                 'description': ('description', {str}),
                 'timestamp': ('started_at', {parse_iso8601}),
-                'release_timestamp': ('starts_at', {parse_iso8601}),
                 'concurrent_view_count': ('concurrent_view_count', {int_or_none}),
                 'like_count': ('heart_count', {int_or_none}),
                 'thumbnail': ('artwork_url', {url_or_none}),
