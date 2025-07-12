@@ -4366,7 +4366,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
-            # XXX: This is redundant for as long as we are already checking all IOS HLS formats
             upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.timezone.utc)
             if upload_datetime >= datetime_from_str('today-2days'):
                 for fmt in info['formats']:
