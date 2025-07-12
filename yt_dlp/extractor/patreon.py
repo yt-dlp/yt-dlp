@@ -533,6 +533,7 @@ class PatreonCampaignIE(PatreonBaseIE):
         'playlist_mincount': 331,
         'skip': 'Channel removed',
     }, {
+        # next.js v13 data, see https://github.com/yt-dlp/yt-dlp/issues/13622
         'url': 'https://www.patreon.com/c/anythingelse/posts',
         'info_dict': {
             'id': '9631148',
