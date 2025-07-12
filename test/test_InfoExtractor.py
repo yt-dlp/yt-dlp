@@ -1980,8 +1980,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
             'duplicated_field_name': {'x': 1},
         }, {
             'duplicated_field_name': {'y': 2},
-        }, {
-            'decoded': 'success',
         }]
         self.assertEqual(self.ie._search_nextjs_v13_data(HTML, None), EXPECTED)
         self.assertEqual(self.ie._search_nextjs_v13_data('', None, fatal=False), [])

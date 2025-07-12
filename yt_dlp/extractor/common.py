@@ -1,5 +1,4 @@
 import base64
-import binascii
 import collections
 import contextlib
 import functools
@@ -1807,9 +1806,8 @@ class InfoExtractor:
                 flatten(f)
 
         flight_text = ''
-        # The flight segments regex pattern can afford to be (and should be) strict
-        # Ref: https://github.com/vercel/next.js/commit/5a4a08fdce91a038f2ed3a70568d3ed040403150
-        #      /packages/next/src/server/app-render/use-flight-response.tsx
+        # The script part is written as a string in the next.js source and should be matched strictly
+        # Ref: https://github.com/vercel/next.js/blob/5a4a08fdce91a038f2ed3a70568d3ed040403150/packages/next/src/server/app-render/use-flight-response.tsx#L189
         for flight_segment in re.findall(r'<script[^>]*>self\.__next_f\.push\((\[.+?\])\)</script>', webpage):
             segment = self._parse_json(flight_segment, video_id, fatal=fatal, errnote=None if fatal else False)
             # Some earlier versions of next.js "optimized" away this array structure; this is unsupported
@@ -1818,27 +1816,17 @@ class InfoExtractor:
                 self.write_debug(
                     f'{video_id}: Unsupported next.js flight data structure detected', only_once=True)
                 continue
+            # Use only relevant payload type (1 == data)
+            # Ref: https://github.com/vercel/next.js/blob/5a4a08fdce91a038f2ed3a70568d3ed040403150/packages/next/src/server/app-render/use-flight-response.tsx#L11-#L14
             payload_type, chunk = segment
-            if payload_type == 3:
-                try:
-                    chunk = base64.b64decode(chunk).decode()
-                except (ValueError, binascii.Error):
-                    msg = 'Unable to parse next.js data: unable to decode flight data'
-                    if not fatal:
-                        self.report_warning(msg, video_id=video_id, only_once=True)
-                        continue
-                    raise ExtractorError(msg)
-            elif payload_type != 1:
-                # Ignore useless payload types (0: bootstrap, 2: form state)
-                continue
-            flight_text += chunk
+            if payload_type == 1:
+                flight_text += chunk
 
         for f in flight_text.splitlines():
             prefix, _, body = f.partition(':')
-            if not (body.startswith('[') and body.endswith(']') and re.fullmatch(r'[0-9a-f]{1,3}', prefix)):
-                continue
-            # The body isn't necessarily valid JSON; this should always be non-fatal
-            flatten(self._parse_json(body, video_id, fatal=False, errnote=False))
+            if body.startswith('[') and body.endswith(']') and re.fullmatch(r'[0-9a-f]{1,3}', prefix):
+                # The body isn't necessarily valid JSON; this should always be non-fatal
+                flatten(self._parse_json(body, video_id, fatal=False, errnote=False))
 
         return nextjs_data
 
