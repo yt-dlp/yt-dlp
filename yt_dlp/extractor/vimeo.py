@@ -49,6 +49,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         'Cannot download embed-only video without embedding URL. Please call yt-dlp '
         'with the URL of the page that embeds this video.')
 
+    _DEFAULT_CLIENT = 'android'
     _CLIENT_HEADERS = {
         'Accept': 'application/vnd.vimeo.*+json; version=3.4.10',
         'Accept-Language': 'en',
@@ -354,7 +355,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         return f'Bearer {self._oauth_tokens[cache_key]}'
 
     def _call_videos_api(self, video_id, unlisted_hash=None, path=None, *, force_client=None, query=None, **kwargs):
-        client = force_client or self._configuration_arg('client', ['android'], ie_key=VimeoIE)[0]
+        client = force_client or self._configuration_arg('client', [self._DEFAULT_CLIENT], ie_key=VimeoIE)[0]
         if client not in self._CLIENT_CONFIGS:
             raise ExtractorError(
                 f'Unsupported API client "{client}" requested. '
