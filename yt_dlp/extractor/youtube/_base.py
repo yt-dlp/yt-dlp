@@ -458,6 +458,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?invidious\.epicsite\.xyz',
         r'(?:www\.)?invidious\.lidarshield\.cloud',
         r'(?:www\.)?yt\.funami\.tech',
+        r'(?:www\.)?inv\.nadeko\.net',
         r'(?:www\.)?invidious\.3o7z6yfxhbw7n3za4rss6l434kmv55cgw2vuziwuigpwegswvwzqipyd\.onion',
         r'(?:www\.)?osbivz6guyeahrwp2lnwyjk2xos342h4ocsxyqrlaopqjuhwn2djiiyd\.onion',
         r'(?:www\.)?u2cvlit75owumwpy4dj2hsmvkq7nvrclkpht7xgyye2pyoxhpmclkrad\.onion',
