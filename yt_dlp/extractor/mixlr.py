@@ -37,6 +37,9 @@ class MixlrIE(InfoExtractor):
             'release_date': '20250712',
             'live_status': 'is_live',
         },
+    }, {
+        'url': 'https://www.brcountdown.mixlr.com/events/4395480',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
