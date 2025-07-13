@@ -29,13 +29,29 @@ class HotStarBaseIE(InfoExtractor):
     _API_URL_V2 = 'https://apix.hotstar.com/v2'
     _AKAMAI_ENCRYPTION_KEY = b'\x05\xfc\x1a\x01\xca\xc9\x4b\xc4\x12\xfc\x53\x12\x07\x75\xf9\xee'
 
+    _FREE_HEADERS = {
+        'user-agent': 'Hotstar;in.startv.hotstar/25.06.30.0.11580 (Android/12)',
+        'x-hs-client': 'platform:android;app_id:in.startv.hotstar;app_version:25.06.30.0;os:Android;os_version:12;schema_version:0.0.1523',
+        'x-hs-platform': 'android',
+    }
+    _SUB_HEADERS = {
+        'user-agent': 'Disney+;in.startv.hotstar.dplus.tv/23.08.14.4.2915 (Android/13)',
+        'x-hs-client': 'platform:androidtv;app_id:in.startv.hotstar.dplus.tv;app_version:23.08.14.4;os:Android;os_version:13;schema_version:0.0.970',
+        'x-hs-platform': 'androidtv',
+    }
+
+    def _has_active_subscription(self, cookies):
+        expiry = traverse_obj(cookies, (
+            self._TOKEN_NAME, 'value', {jwt_decode_hs256}, 'sub', {json.loads},
+            'subscriptions', 'in', ..., 'expiry', {parse_iso8601}, all, {max})) or 0
+        return expiry > time.time()
+
     def _call_api_v1(self, path, *args, **kwargs):
         return self._download_json(
             f'{self._API_URL}/o/v1/{path}', *args, **kwargs,
             headers={'x-country-code': 'IN', 'x-platform-code': 'PCTV'})
 
-    def _call_api_impl(self, path, video_id, query, acc_static_values, cookies=None, st=None):
-
+    def _call_api_impl(self, path, video_id, query, cookies=None, st=None):
         st = int_or_none(st) or int(time.time())
         exp = st + 6000
         auth = f'st={st}~exp={exp}~acl=/*'
@@ -43,12 +59,10 @@ class HotStarBaseIE(InfoExtractor):
         response = self._download_json(
             f'{self._API_URL_V2}/{path}', video_id, query=query,
             headers={
-                'user-agent': traverse_obj(acc_static_values, ('HEADERS', 'user-agent', {str})),
+                **(self._SUB_HEADERS if self._has_active_subscription(cookies) else self._FREE_HEADERS),
                 'hotstarauth': auth,
                 'x-hs-usertoken': traverse_obj(cookies, (self._TOKEN_NAME, 'value')),
                 'x-hs-device-id': traverse_obj(cookies, ('deviceId', 'value')) or str(uuid.uuid4()),
-                'x-hs-client': traverse_obj(acc_static_values, ('HEADERS', 'x-hs-client', {str})),
-                'x-hs-platform': traverse_obj(acc_static_values, ('HEADERS', 'x-hs-platform', {str})),
                 'content-type': 'application/json',
             })
 
@@ -56,7 +70,7 @@ class HotStarBaseIE(InfoExtractor):
             raise ExtractorError('API call was unsuccessful')
         return response['success']
 
-    def _call_api_v2(self, path, video_id, content_type, acc_static_values, cookies=None, st=None):
+    def _call_api_v2(self, path, video_id, content_type, cookies=None, st=None):
         return self._call_api_impl(f'{path}', video_id, query={
             'content_id': video_id,
             'filters': f'content_type={content_type}',
@@ -77,7 +91,7 @@ class HotStarBaseIE(InfoExtractor):
                 'widevine_security_level': ['SW_SECURE_DECODE', 'SW_SECURE_CRYPTO'],
                 'hdcp_version': ['HDCP_V2_2', 'HDCP_V2_1', 'HDCP_V2', 'HDCP_V1'],
             }, separators=(',', ':')),
-        }, acc_static_values=acc_static_values, cookies=cookies, st=st)
+        }, cookies=cookies, st=st)
 
     @staticmethod
     def _parse_metadata_v1(video_data):
@@ -265,21 +279,6 @@ class HotStarIE(HotStarBaseIE):
         'vcodec': 'video_codec',
     }
 
-    _FREE_ACC_STATIC_VALUES = {
-        'HEADERS': {
-            'user-agent': 'Hotstar;in.startv.hotstar/25.06.30.0.11580 (Android/12)',
-            'x-hs-client': 'platform:android;app_id:in.startv.hotstar;app_version:25.06.30.0;os:Android;os_version:12;schema_version:0.0.1523',
-            'x-hs-platform': 'android',
-        },
-    }
-    _PREMIUM_ACC_STATIC_VALUES = {
-        'HEADERS': {
-            'user-agent': 'Disney+;in.startv.hotstar.dplus.tv/23.08.14.4.2915 (Android/13)',
-            'x-hs-client': 'platform:androidtv;app_id:in.startv.hotstar.dplus.tv;app_version:23.08.14.4;os:Android;os_version:13;schema_version:0.0.970',
-            'x-hs-platform': 'androidtv',
-        },
-    }
-
     @classmethod
     def _video_url(cls, video_id, video_type=None, *, slug='ignore_me', root=None):
         assert None in (video_type, root)
@@ -287,23 +286,12 @@ class HotStarIE(HotStarBaseIE):
             root = join_nonempty(cls._BASE_URL, video_type, delim='/')
         return f'{root}/{slug}/{video_id}'
 
-    def _has_active_subscription(self, cookies):
-        expiry = traverse_obj(cookies, (
-            self._TOKEN_NAME, 'value', {jwt_decode_hs256}, 'sub', {json.loads},
-            'subscriptions', 'in', ..., 'expiry', {parse_iso8601}, all, {max})) or 0
-        return expiry > time.time()
-
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
         video_type = self._TYPE[video_type]
         cookies = self._get_cookies(url)  # Cookies before any request
         if not cookies or not cookies.get(self._TOKEN_NAME):
             self.raise_login_required()
-
-        if self._has_active_subscription(cookies):
-            acc_static_values = self._PREMIUM_ACC_STATIC_VALUES
-        else:
-            acc_static_values = self._FREE_ACC_STATIC_VALUES
 
         video_data = traverse_obj(
             self._call_api_v1(f'{video_type}/detail', video_id, fatal=False, query={
@@ -322,7 +310,7 @@ class HotStarIE(HotStarBaseIE):
         # See https://github.com/yt-dlp/yt-dlp/issues/396
         st = self._request_webpage(
             f'{self._BASE_URL}/in', video_id, 'Fetching server time').get_header('x-origin-date')
-        watch = self._call_api_v2('pages/watch', video_id, content_type, acc_static_values, cookies, st)
+        watch = self._call_api_v2('pages/watch', video_id, content_type, cookies, st)
         player_config = traverse_obj(watch, (
             'page', 'spaces', 'player', 'widget_wrappers', lambda _, v: v['template'] == 'PlayerWidget',
             'widget', 'data', 'player_config', {dict}, any, {require('player config')}))
