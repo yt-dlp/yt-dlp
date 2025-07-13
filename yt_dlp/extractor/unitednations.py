@@ -1,7 +1,8 @@
+from .common import InfoExtractor
 from .kaltura import KalturaIE
 
 
-class UnitedNationWebTVExtractorIE(KalturaIE):
+class UnitedNationsWebTVIE(InfoExtractor):
     _VALID_URL = r'https?://webtv.un.org/(ar|zh|en|fr|ru|es)/asset/\w+/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://webtv.un.org/en/asset/k1o/k1o7stmi6p',
@@ -22,33 +23,10 @@ class UnitedNationWebTVExtractorIE(KalturaIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
+
         partner_id = self._html_search_regex(
-            r'partnerId:\s*(\w+)',
-            webpage,
-            'partner_id',
-        )
+            r'partnerId:\s*(\d+)', webpage, 'partner_id')
         entry_id = self._html_search_regex(
-            r'const\s+kentryID\s*=\s*["\'](\w+)["\'];',
-            webpage,
-            'kentry_id',
-        )
-        kaltura_api_response = self._get_video_info(entry_id, partner_id)
+            r'const\s+kentryID\s*=\s*["\'](\w+)["\']', webpage, 'kentry_id')
 
-        try:
-            kaltura_url = kaltura_api_response[1].get('dataUrl', None)
-        except IndexError:
-            return self.url_result(
-                f'kaltura:{partner_id}:{entry_id}',
-                KalturaIE.ie_key(),
-            )
-
-        kaltura_id = self._search_regex(
-            r'http://cdnapi.kaltura.com/p/\w+/sp/\w+/playManifest/entryId/(\w+)/format/url/protocol/http',
-            kaltura_url,
-            'kaltura_id',
-        )
-
-        return self.url_result(
-            f'kaltura:{partner_id}:{kaltura_id}',
-            KalturaIE.ie_key(),
-        )
+        return self.url_result(f'kaltura:{partner_id}:{entry_id}', KalturaIE)
