@@ -2,7 +2,7 @@ from .common import InfoExtractor
 from .kaltura import KalturaIE
 
 
-class UnitedNationsWebTVIE(InfoExtractor):
+class UnitedNationsWebTvIE(InfoExtractor):
     _VALID_URL = r'https?://webtv.un.org/(ar|zh|en|fr|ru|es)/asset/\w+/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://webtv.un.org/en/asset/k1o/k1o7stmi6p',

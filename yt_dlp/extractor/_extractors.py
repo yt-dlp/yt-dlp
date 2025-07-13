@@ -2288,7 +2288,7 @@ from .uliza import (
 )
 from .umg import UMGDeIE
 from .unistra import UnistraIE
-from .unitednations import UnitedNationsWebTVIE
+from .unitednations import UnitedNationsWebTvIE
 from .unity import UnityIE
 from .unsupported import (
     KnownDRMIE,
