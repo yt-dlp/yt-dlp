@@ -18,6 +18,9 @@ import urllib.parse
 from ._base import (
     INNERTUBE_CLIENTS,
     BadgeType,
+    GvsPoTokenPolicy,
+    PlayerPoTokenPolicy,
+    StreamingProtocol,
     YoutubeBaseInfoExtractor,
     _PoTokenContext,
     _split_innertube_client,
@@ -71,9 +74,11 @@ from ...utils import (
 from ...utils.networking import clean_headers, clean_proxies, select_proxy
 
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
-STREAMING_DATA_INITIAL_PO_TOKEN = '__yt_dlp_po_token'
 STREAMING_DATA_FETCH_SUBS_PO_TOKEN = '__yt_dlp_fetch_subs_po_token'
+STREAMING_DATA_FETCH_GVS_PO_TOKEN = '__yt_dlp_fetch_gvs_po_token'
+STREAMING_DATA_PLAYER_TOKEN_PROVIDED = '__yt_dlp_player_token_provided'
 STREAMING_DATA_INNERTUBE_CONTEXT = '__yt_dlp_innertube_context'
+STREAMING_DATA_IS_PREMIUM_SUBSCRIBER = '__yt_dlp_is_premium_subscriber'
 
 PO_TOKEN_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide'
 
@@ -253,6 +258,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
     _DEFAULT_CLIENTS = ('tv', 'ios', 'web')
     _DEFAULT_AUTHED_CLIENTS = ('tv', 'web')
+    # Premium does not require POT (except for subtitles)
+    _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web')
 
     _GEO_BYPASS = False
 
@@ -1833,7 +1840,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if time.time() <= start_time + delay:
                 return
 
-            _, _, prs, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
+            _, _, _, _, prs, player_url = self._initial_extract(
+                url, smuggled_data, webpage_url, 'web', video_id)
             video_details = traverse_obj(prs, (..., 'videoDetails'), expected_type=dict)
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
@@ -2891,7 +2899,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     only_once=True)
                 continue
 
-    def fetch_po_token(self, client='web', context=_PoTokenContext.GVS, ytcfg=None, visitor_data=None,
+    def fetch_po_token(self, client='web', context: _PoTokenContext = _PoTokenContext.GVS, ytcfg=None, visitor_data=None,
                        data_sync_id=None, session_index=None, player_url=None, video_id=None, webpage=None,
                        required=False, **kwargs):
         """
@@ -2976,7 +2984,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             fetch_pot_policy == 'never'
             or (
                 fetch_pot_policy == 'auto'
-                and _PoTokenContext(context) not in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
                 and not kwargs.get('required', False)
             )
         ):
@@ -3035,19 +3042,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token):
+    def _extract_player_response(self, client, video_id, webpage_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token):
         headers = self.generate_api_headers(
             ytcfg=player_ytcfg,
             default_client=client,
             visitor_data=visitor_data,
-            session_index=self._extract_session_index(master_ytcfg, player_ytcfg),
+            session_index=self._extract_session_index(webpage_ytcfg, player_ytcfg),
             delegated_session_id=(
                 self._parse_data_sync_id(data_sync_id)[0]
-                or self._extract_delegated_session_id(master_ytcfg, initial_pr, player_ytcfg)
+                or self._extract_delegated_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
             ),
             user_session_id=(
                 self._parse_data_sync_id(data_sync_id)[1]
-                or self._extract_user_session_id(master_ytcfg, initial_pr, player_ytcfg)
+                or self._extract_user_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
             ),
         )
 
@@ -3063,7 +3070,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if po_token:
             yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}
 
-        sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False) if player_url else None
+        sts = self._extract_signature_timestamp(video_id, player_url, webpage_ytcfg, fatal=False) if player_url else None
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -3072,10 +3079,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             note='Downloading {} player API JSON'.format(client.replace('_', ' ').strip()),
         ) or None
 
-    def _get_requested_clients(self, url, smuggled_data):
+    def _get_requested_clients(self, url, smuggled_data, is_premium_subscriber):
         requested_clients = []
         excluded_clients = []
-        default_clients = self._DEFAULT_AUTHED_CLIENTS if self.is_authenticated else self._DEFAULT_CLIENTS
+        default_clients = (
+            self._DEFAULT_PREMIUM_CLIENTS if is_premium_subscriber
+            else self._DEFAULT_AUTHED_CLIENTS if self.is_authenticated
+            else self._DEFAULT_CLIENTS
+        )
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
@@ -3117,11 +3128,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if (pr_id := traverse_obj(pr, ('videoDetails', 'videoId'))) != video_id:
             return pr_id
 
-    def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
+    def _extract_player_responses(self, clients, video_id, webpage, webpage_client, webpage_ytcfg, is_premium_subscriber):
         initial_pr = None
         if webpage:
             initial_pr = self._search_json(
-                self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
+                self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage,
+                f'{webpage_client} client initial player response', video_id, fatal=False)
 
         prs = []
         deprioritized_prs = []
@@ -3152,11 +3164,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         while clients:
             deprioritize_pr = False
             client, base_client, variant = _split_innertube_client(clients.pop())
-            player_ytcfg = master_ytcfg if client == 'web' else {}
-            if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
+            player_ytcfg = webpage_ytcfg if client == webpage_client else {}
+            if 'configs' not in self._configuration_arg('player_skip') and client != webpage_client:
                 player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
 
-            player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
+            player_url = player_url or self._extract_player_url(webpage_ytcfg, player_ytcfg, webpage=webpage)
             require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
             if 'js' in self._configuration_arg('player_skip'):
                 require_js_player = False
@@ -3166,10 +3178,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_url = self._download_player_url(video_id)
                 tried_iframe_fallback = True
 
-            pr = initial_pr if client == 'web' else None
+            pr = None
+            if client == webpage_client and 'player_response' not in self._configuration_arg('webpage_skip'):
+                pr = initial_pr
 
-            visitor_data = visitor_data or self._extract_visitor_data(master_ytcfg, initial_pr, player_ytcfg)
-            data_sync_id = data_sync_id or self._extract_data_sync_id(master_ytcfg, initial_pr, player_ytcfg)
+            visitor_data = visitor_data or self._extract_visitor_data(webpage_ytcfg, initial_pr, player_ytcfg)
+            data_sync_id = data_sync_id or self._extract_data_sync_id(webpage_ytcfg, initial_pr, player_ytcfg)
 
             fetch_po_token_args = {
                 'client': client,
@@ -3178,53 +3192,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'data_sync_id': data_sync_id if self.is_authenticated else None,
                 'player_url': player_url if require_js_player else None,
                 'webpage': webpage,
-                'session_index': self._extract_session_index(master_ytcfg, player_ytcfg),
+                'session_index': self._extract_session_index(webpage_ytcfg, player_ytcfg),
                 'ytcfg': player_ytcfg or self._get_default_ytcfg(client),
             }
 
             # Don't need a player PO token for WEB if using player response from webpage
+            player_pot_policy: PlayerPoTokenPolicy = self._get_default_ytcfg(client)['PLAYER_PO_TOKEN_POLICY']
             player_po_token = None if pr else self.fetch_po_token(
-                context=_PoTokenContext.PLAYER, **fetch_po_token_args)
+                context=_PoTokenContext.PLAYER, **fetch_po_token_args,
+                required=player_pot_policy.required or player_pot_policy.recommended)
 
-            gvs_po_token = self.fetch_po_token(
-                context=_PoTokenContext.GVS, **fetch_po_token_args)
+            fetch_gvs_po_token_func = functools.partial(
+                self.fetch_po_token, context=_PoTokenContext.GVS, **fetch_po_token_args)
 
             fetch_subs_po_token_func = functools.partial(
-                self.fetch_po_token,
-                context=_PoTokenContext.SUBS,
-                **fetch_po_token_args,
-            )
-
-            required_pot_contexts = self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
-
-            if (
-                not player_po_token
-                and _PoTokenContext.PLAYER in required_pot_contexts
-            ):
-                # TODO: may need to skip player response request. Unsure yet..
-                self.report_warning(
-                    f'No Player PO Token provided for {client} client, '
-                    f'which may be required for working {client} formats. This client will be deprioritized'
-                    f'You can manually pass a Player PO Token for this client with --extractor-args "youtube:po_token={client}.player+XXX". '
-                    f'For more information, refer to {PO_TOKEN_GUIDE_URL} .', only_once=True)
-                deprioritize_pr = True
-
-            if (
-                not gvs_po_token
-                and _PoTokenContext.GVS in required_pot_contexts
-                and 'missing_pot' in self._configuration_arg('formats')
-            ):
-                # note: warning with help message is provided later during format processing
-                self.report_warning(
-                    f'No GVS PO Token provided for {client} client, '
-                    f'which may be required for working {client} formats. This client will be deprioritized',
-                    only_once=True)
-                deprioritize_pr = True
+                self.fetch_po_token, context=_PoTokenContext.SUBS, **fetch_po_token_args)
 
             try:
                 pr = pr or self._extract_player_response(
                     client, video_id,
-                    master_ytcfg=player_ytcfg or master_ytcfg,
+                    webpage_ytcfg=player_ytcfg or webpage_ytcfg,
                     player_ytcfg=player_ytcfg,
                     player_url=player_url,
                     initial_pr=initial_pr,
@@ -3242,12 +3229,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 innertube_context = traverse_obj(player_ytcfg or self._get_default_ytcfg(client), 'INNERTUBE_CONTEXT')
                 sd = pr.setdefault('streamingData', {})
                 sd[STREAMING_DATA_CLIENT_NAME] = client
-                sd[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
+                sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
+                sd[STREAMING_DATA_PLAYER_TOKEN_PROVIDED] = bool(player_po_token)
                 sd[STREAMING_DATA_INNERTUBE_CONTEXT] = innertube_context
                 sd[STREAMING_DATA_FETCH_SUBS_PO_TOKEN] = fetch_subs_po_token_func
+                sd[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER] = is_premium_subscriber
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
-                    f[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
+                    f[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
+                    f[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER] = is_premium_subscriber
+                    f[STREAMING_DATA_PLAYER_TOKEN_PROVIDED] = bool(player_po_token)
                 if deprioritize_pr:
                     deprioritized_prs.append(pr)
                 else:
@@ -3357,6 +3348,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 }),
             } for range_start in range(0, f['filesize'], CHUNK_SIZE))
 
+        def gvs_pot_required(policy, is_premium_subscriber, has_player_token):
+            return (
+                policy.required
+                and not (policy.not_required_with_player_token and has_player_token)
+                and not (policy.not_required_for_premium and is_premium_subscriber))
+
+        # save pots per client to avoid fetching again
+        gvs_pots = {}
+
         for fmt in streaming_formats:
             client_name = fmt[STREAMING_DATA_CLIENT_NAME]
             if fmt.get('targetDurationSec'):
@@ -3416,7 +3416,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 encrypted_sig = try_get(sc, lambda x: x['s'][0])
                 if not all((sc, fmt_url, player_url, encrypted_sig)):
                     msg = f'Some {client_name} client https formats have been skipped as they are missing a url. '
-                    if client_name == 'web':
+                    if client_name in ('web', 'web_safari'):
                         msg += 'YouTube is forcing SABR streaming for this client. '
                     else:
                         msg += (
@@ -3476,18 +3476,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.report_warning(
                     'Some formats are possibly damaged. They will be deprioritized', video_id, only_once=True)
 
-            po_token = fmt.get(STREAMING_DATA_INITIAL_PO_TOKEN)
+            fetch_po_token_func = fmt[STREAMING_DATA_FETCH_GVS_PO_TOKEN]
+            pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.HTTPS]
+
+            require_po_token = (
+                itag not in ['18']
+                and gvs_pot_required(
+                    pot_policy, fmt[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER],
+                    fmt[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]))
+
+            po_token = (
+                gvs_pots.get(client_name)
+                or fetch_po_token_func(required=require_po_token or pot_policy.recommended))
 
             if po_token:
                 fmt_url = update_url_query(fmt_url, {'pot': po_token})
+                if client_name not in gvs_pots:
+                    gvs_pots[client_name] = po_token
 
-            # Clients that require PO Token return videoplayback URLs that may return 403
-            require_po_token = (
-                not po_token
-                and _PoTokenContext.GVS in self._get_default_ytcfg(client_name)['PO_TOKEN_REQUIRED_CONTEXTS']
-                and itag not in ['18'])  # these formats do not require PO Token
-
-            if require_po_token and 'missing_pot' not in self._configuration_arg('formats'):
+            if not po_token and require_po_token and 'missing_pot' not in self._configuration_arg('formats'):
                 self._report_pot_format_skipped(video_id, client_name, 'https')
                 continue
 
@@ -3502,7 +3509,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     name, fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
-                    is_damaged and 'DAMAGED', require_po_token and 'MISSING POT',
+                    is_damaged and 'DAMAGED', require_po_token and not po_token and 'MISSING POT',
                     (self.get_param('verbose') or all_formats) and short_client_name(client_name),
                     delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
@@ -3565,7 +3572,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         elif skip_bad_formats and live_status == 'is_live' and needs_live_processing != 'is_live':
             skip_manifests.add('dash')
 
-        def process_manifest_format(f, proto, client_name, itag, po_token):
+        def process_manifest_format(f, proto, client_name, itag, missing_pot):
             key = (proto, f.get('language'))
             if not all_formats and key in itags[itag]:
                 return False
@@ -3573,20 +3580,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if f.get('source_preference') is None:
                 f['source_preference'] = -1
 
-            # Clients that require PO Token return videoplayback URLs that may return 403
-            # hls does not currently require PO Token
-            if (
-                not po_token
-                and _PoTokenContext.GVS in self._get_default_ytcfg(client_name)['PO_TOKEN_REQUIRED_CONTEXTS']
-                and proto != 'hls'
-            ):
-                if 'missing_pot' not in self._configuration_arg('formats'):
-                    self._report_pot_format_skipped(video_id, client_name, proto)
-                    return False
+            if missing_pot:
                 f['format_note'] = join_nonempty(f.get('format_note'), 'MISSING POT', delim=' ')
                 f['source_preference'] -= 20
 
-            # XXX: Check if IOS HLS formats are affected by player PO token enforcement; temporary
+            # XXX: Check if IOS HLS formats are affected by PO token enforcement; temporary
             # See https://github.com/yt-dlp/yt-dlp/issues/13511
             if proto == 'hls' and client_name == 'ios':
                 f['__needs_testing'] = True
@@ -3625,39 +3623,62 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         subtitles = {}
         for sd in streaming_data:
             client_name = sd[STREAMING_DATA_CLIENT_NAME]
-            po_token = sd.get(STREAMING_DATA_INITIAL_PO_TOKEN)
+            fetch_pot_func = sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN]
+            is_premium_subscriber = sd[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER]
+            has_player_token = sd[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]
+
             hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
+                pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(
+                    client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.HLS]
+                require_po_token = gvs_pot_required(pot_policy, is_premium_subscriber, has_player_token)
+                po_token = gvs_pots.get(client_name, fetch_pot_func(required=require_po_token or pot_policy.recommended))
                 if po_token:
                     hls_manifest_url = hls_manifest_url.rstrip('/') + f'/pot/{po_token}'
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
-                for sub in traverse_obj(subs, (..., ..., {dict})):
-                    # HLS subs (m3u8) do not need a PO token; save client name for debugging
-                    sub[STREAMING_DATA_CLIENT_NAME] = client_name
-                subtitles = self._merge_subtitles(subs, subtitles)
-                for f in fmts:
-                    if process_manifest_format(f, 'hls', client_name, self._search_regex(
-                            r'/itag/(\d+)', f['url'], 'itag', default=None), po_token):
-                        yield f
+                    if client_name not in gvs_pots:
+                        gvs_pots[client_name] = po_token
+                if require_po_token and not po_token and 'missing_pot' not in self._configuration_arg('formats'):
+                    self._report_pot_format_skipped(video_id, client_name, 'hls')
+                else:
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                        hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
+                    for sub in traverse_obj(subs, (..., ..., {dict})):
+                        # TODO: If HLS video requires a PO Token, do the subs also require pot?
+                        # Save client name for debugging
+                        sub[STREAMING_DATA_CLIENT_NAME] = client_name
+                    subtitles = self._merge_subtitles(subs, subtitles)
+                    for f in fmts:
+                        if process_manifest_format(f, 'hls', client_name, self._search_regex(
+                                r'/itag/(\d+)', f['url'], 'itag', default=None), require_po_token and not po_token):
+                            yield f
 
             dash_manifest_url = 'dash' not in skip_manifests and sd.get('dashManifestUrl')
             if dash_manifest_url:
+                pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(
+                    client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.DASH]
+                require_po_token = gvs_pot_required(pot_policy, is_premium_subscriber, has_player_token)
+                po_token = gvs_pots.get(client_name, fetch_pot_func(required=require_po_token or pot_policy.recommended))
                 if po_token:
                     dash_manifest_url = dash_manifest_url.rstrip('/') + f'/pot/{po_token}'
-                formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
-                for sub in traverse_obj(subs, (..., ..., {dict})):
-                    # TODO: Investigate if DASH subs ever need a PO token; save client name for debugging
-                    sub[STREAMING_DATA_CLIENT_NAME] = client_name
-                subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
-                for f in formats:
-                    if process_manifest_format(f, 'dash', client_name, f['format_id'], po_token):
-                        f['filesize'] = int_or_none(self._search_regex(
-                            r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
-                        if needs_live_processing:
-                            f['is_from_start'] = True
+                    if client_name not in gvs_pots:
+                        gvs_pots[client_name] = po_token
+                if require_po_token and not po_token and 'missing_pot' not in self._configuration_arg('formats'):
+                    self._report_pot_format_skipped(video_id, client_name, 'dash')
+                else:
+                    formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
+                    for sub in traverse_obj(subs, (..., ..., {dict})):
+                        # TODO: If DASH video requires a PO Token, do the subs also require pot?
+                        # Save client name for debugging
+                        sub[STREAMING_DATA_CLIENT_NAME] = client_name
+                    subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
+                    for f in formats:
+                        if process_manifest_format(f, 'dash', client_name, f['format_id'], require_po_token and not po_token):
+                            f['filesize'] = int_or_none(self._search_regex(
+                                r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
+                            if needs_live_processing:
+                                f['is_from_start'] = True
 
-                        yield f
+                            yield f
         yield subtitles
 
     def _extract_storyboard(self, player_responses, duration):
@@ -3698,22 +3719,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 } for j in range(math.ceil(fragment_count))],
             }
 
-    def _download_player_responses(self, url, smuggled_data, video_id, webpage_url):
+    def _download_initial_webpage(self, webpage_url, webpage_client, video_id):
         webpage = None
-        if 'webpage' not in self._configuration_arg('player_skip'):
+        if webpage_url and 'webpage' not in self._configuration_arg('player_skip'):
             query = {'bpctr': '9999999999', 'has_verified': '1'}
-            pp = self._configuration_arg('player_params', [None], casesense=True)[0]
+            pp = (
+                self._configuration_arg('player_params', [None], casesense=True)[0]
+                or traverse_obj(INNERTUBE_CLIENTS, (webpage_client, 'PLAYER_PARAMS', {str}))
+            )
             if pp:
                 query['pp'] = pp
-            webpage = self._download_webpage_with_retries(webpage_url, video_id, query=query)
-
-        master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
-
-        player_responses, player_url = self._extract_player_responses(
-            self._get_requested_clients(url, smuggled_data),
-            video_id, webpage, master_ytcfg, smuggled_data)
-
-        return webpage, master_ytcfg, player_responses, player_url
+            webpage = self._download_webpage_with_retries(
+                webpage_url, video_id, query=query,
+                headers=traverse_obj(self._get_default_ytcfg(webpage_client), {
+                    'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
+                }))
+        return webpage
 
     def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
@@ -3738,14 +3759,60 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return live_broadcast_details, live_status, streaming_data, formats, subtitles
 
+    def _download_initial_data(self, video_id, webpage, webpage_client, webpage_ytcfg):
+        initial_data = None
+        if webpage and 'initial_data' not in self._configuration_arg('webpage_skip'):
+            initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
+            if not traverse_obj(initial_data, 'contents'):
+                self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
+                initial_data = None
+        if not initial_data and 'initial_data' not in self._configuration_arg('player_skip'):
+            query = {'videoId': video_id}
+            query.update(self._get_checkok_params())
+            initial_data = self._extract_response(
+                item_id=video_id, ep='next', fatal=False,
+                ytcfg=webpage_ytcfg, query=query, check_get_keys='contents',
+                note='Downloading initial data API JSON', default_client=webpage_client)
+        return initial_data
+
+    def _is_premium_subscriber(self, initial_data):
+        if not self.is_authenticated or not initial_data:
+            return False
+
+        tlr = traverse_obj(
+            initial_data, ('topbar', 'desktopTopbarRenderer', 'logo', 'topbarLogoRenderer'))
+        return (
+            traverse_obj(tlr, ('iconImage', 'iconType')) == 'YOUTUBE_PREMIUM_LOGO'
+            or 'premium' in (self._get_text(tlr, 'tooltipText') or '').lower()
+        )
+
+    def _initial_extract(self, url, smuggled_data, webpage_url, webpage_client, video_id):
+        # This function is also used by live-from-start refresh
+        webpage = self._download_initial_webpage(webpage_url, webpage_client, video_id)
+        webpage_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg(webpage_client)
+
+        initial_data = self._download_initial_data(video_id, webpage, webpage_client, webpage_ytcfg)
+
+        is_premium_subscriber = self._is_premium_subscriber(initial_data)
+        if is_premium_subscriber:
+            self.write_debug('Detected YouTube Premium subscription')
+
+        player_responses, player_url = self._extract_player_responses(
+            self._get_requested_clients(url, smuggled_data, is_premium_subscriber),
+            video_id, webpage, webpage_client, webpage_ytcfg, is_premium_subscriber)
+
+        return webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
+        webpage_client = 'web'
 
-        webpage, master_ytcfg, player_responses, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
+        webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
+            url, smuggled_data, webpage_url, webpage_client, video_id)
 
         playability_statuses = traverse_obj(
             player_responses, (..., 'playabilityStatus'), expected_type=dict)
@@ -4020,7 +4087,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pctr = pr['captions']['playerCaptionsTracklistRenderer']
             client_name = pr['streamingData'][STREAMING_DATA_CLIENT_NAME]
             innertube_client_name = pr['streamingData'][STREAMING_DATA_INNERTUBE_CONTEXT]['client']['clientName']
-            required_contexts = self._get_default_ytcfg(client_name)['PO_TOKEN_REQUIRED_CONTEXTS']
+            pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name)['SUBS_PO_TOKEN_POLICY']
             fetch_subs_po_token_func = pr['streamingData'][STREAMING_DATA_FETCH_SUBS_PO_TOKEN]
 
             pot_params = {}
@@ -4033,11 +4100,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requires_pot = (
                     # We can detect the experiment for now
                     any(e in traverse_obj(qs, ('exp', ...)) for e in ('xpe', 'xpv'))
-                    or _PoTokenContext.SUBS in required_contexts)
+                    or (pot_policy.required and not (pot_policy.not_required_for_premium and is_premium_subscriber)))
 
                 if not already_fetched_pot:
                     already_fetched_pot = True
-                    if subs_po_token := fetch_subs_po_token_func(required=requires_pot):
+                    if subs_po_token := fetch_subs_po_token_func(required=requires_pot or pot_policy.recommended):
                         pot_params.update({
                             'pot': subs_po_token,
                             'potc': '1',
@@ -4139,21 +4206,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'release_date': release_date,
                     'release_year': int_or_none(release_year),
                 })
-
-        initial_data = None
-        if webpage:
-            initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
-            if not traverse_obj(initial_data, 'contents'):
-                self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
-                initial_data = None
-        if not initial_data and 'initial_data' not in self._configuration_arg('player_skip'):
-            query = {'videoId': video_id}
-            query.update(self._get_checkok_params())
-            initial_data = self._extract_response(
-                item_id=video_id, ep='next', fatal=False,
-                ytcfg=master_ytcfg, query=query, check_get_keys='contents',
-                headers=self.generate_api_headers(ytcfg=master_ytcfg),
-                note='Downloading initial data API JSON')
 
         COMMENTS_SECTION_IDS = ('comment-item-section', 'engagement-panel-comments-section')
         info['comment_count'] = traverse_obj(initial_data, (
@@ -4353,7 +4405,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED)
                     or get_first(microformats, 'isUnlisted', expected_type=bool))))
 
-        info['__post_extractor'] = self.extract_comments(master_ytcfg, video_id, contents, webpage)
+        info['__post_extractor'] = self.extract_comments(webpage_ytcfg, video_id, contents, webpage)
 
         self.mark_watched(video_id, player_responses)
 
