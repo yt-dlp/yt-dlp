@@ -1030,11 +1030,6 @@ from .likee import (
     LikeeIE,
     LikeeUserIE,
 )
-from .limelight import (
-    LimelightChannelIE,
-    LimelightChannelListIE,
-    LimelightMediaIE,
-)
 from .linkedin import (
     LinkedInEventsIE,
     LinkedInIE,
