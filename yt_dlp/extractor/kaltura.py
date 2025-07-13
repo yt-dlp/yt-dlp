@@ -264,9 +264,15 @@ class KalturaIE(InfoExtractor):
     def _get_video_info(self, video_id, partner_id, service_url=None, player_type='html5'):
         assert player_type in ('html5', 'kwidget')
         if player_type == 'kwidget':
-            return self._get_video_info_kwidget(video_id, partner_id, service_url)
+            response, info, flavor_assets, captions = self._get_video_info_kwidget(video_id, partner_id, service_url)
+        else:
+            response, info, flavor_assets, captions = self._get_video_info_html5(video_id, partner_id, service_url)
 
-        return self._get_video_info_html5(video_id, partner_id, service_url)
+        real_video_id = self._search_regex(r'http://cfvod.kaltura.com/p/\d+/sp/\d+/thumbnail/entry_id/(\w+)/version/\d+', info.get('thumbnailUrl'), 'entry_id')
+        if video_id != real_video_id:
+            return self._get_video_info(real_video_id, partner_id, service_url=service_url, player_type=player_type)
+
+        return response, info, flavor_assets, captions
 
     def _get_video_info_html5(self, video_id, partner_id, service_url=None):
         actions = [
