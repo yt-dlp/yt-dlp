@@ -3,7 +3,7 @@ from .kaltura import KalturaIE
 
 
 class UnitedNationsWebTvIE(InfoExtractor):
-    _VALID_URL = r'https?://webtv.un.org/(?:ar|zh|en|fr|ru|es)/asset/\w+/(?P<id>\w+)'
+    _VALID_URL = r'https?://webtv\.un\.org/(?:ar|zh|en|fr|ru|es)/asset/\w+/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://webtv.un.org/en/asset/k1o/k1o7stmi6p',
         'md5': 'b2f8b3030063298ae841b4b7ddc01477',
