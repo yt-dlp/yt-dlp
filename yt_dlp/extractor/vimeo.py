@@ -50,6 +50,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         'with the URL of the page that embeds this video.')
 
     _DEFAULT_CLIENT = 'android'
+    _DEFAULT_AUTHED_CLIENT = 'web'
     _CLIENT_HEADERS = {
         'Accept': 'application/vnd.vimeo.*+json; version=3.4.10',
         'Accept-Language': 'en',
@@ -125,7 +126,14 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
         return self._viewer_info
 
+    @property
+    def _is_logged_in(self):
+        return 'vimeo' in self._get_cookies('https://vimeo.com')
+
     def _perform_login(self, username, password):
+        if self._is_logged_in:
+            return
+
         viewer = self._fetch_viewer_info()
         data = {
             'action': 'login',
@@ -150,7 +158,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             raise ExtractorError('Unable to log in')
 
     def _real_initialize(self):
-        if self._LOGIN_REQUIRED and not self._get_cookies('https://vimeo.com').get('vimeo'):
+        if self._LOGIN_REQUIRED and not self._is_logged_in:
             self.raise_login_required()
 
     def _get_video_password(self):
@@ -354,15 +362,22 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
         return f'Bearer {self._oauth_tokens[cache_key]}'
 
-    def _call_videos_api(self, video_id, unlisted_hash=None, path=None, *, force_client=None, query=None, **kwargs):
-        client = force_client or self._configuration_arg('client', [self._DEFAULT_CLIENT], ie_key=VimeoIE)[0]
+    def _get_requested_client(self):
+        default_client = self._DEFAULT_AUTHED_CLIENT if self._is_logged_in else self._DEFAULT_CLIENT
+
+        client = self._configuration_arg('client', [default_client], ie_key=VimeoIE)[0]
         if client not in self._CLIENT_CONFIGS:
             raise ExtractorError(
                 f'Unsupported API client "{client}" requested. '
                 f'Supported clients are: {", ".join(self._CLIENT_CONFIGS)}', expected=True)
 
+        return client
+
+    def _call_videos_api(self, video_id, unlisted_hash=None, path=None, *, force_client=None, query=None, **kwargs):
+        client = force_client or self._get_requested_client()
+
         client_config = self._CLIENT_CONFIGS[client]
-        if client_config['REQUIRES_AUTH'] and not self._get_cookies('https://vimeo.com').get('vimeo'):
+        if client_config['REQUIRES_AUTH'] and not self._is_logged_in:
             self.raise_login_required(f'The {client} client requires authentication')
 
         return self._download_json(
@@ -382,7 +397,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
     def _extract_original_format(self, url, video_id, unlisted_hash=None):
         # Original/source formats are only available when logged in
-        if not self._get_cookies('https://vimeo.com/').get('vimeo'):
+        if not self._is_logged_in:
             return None
 
         policy = self._configuration_arg('original_format_policy', ['auto'], ie_key=VimeoIE)[0]
@@ -1111,14 +1126,25 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 video = self._call_videos_api(video_id, unlisted_hash)
                 break
             except ExtractorError as e:
-                if (not retry and isinstance(e.cause, HTTPError) and e.cause.status == 400
-                    and 'password' in traverse_obj(
-                        self._webpage_read_content(e.cause.response, e.cause.response.url, video_id, fatal=False),
-                        ({json.loads}, 'invalid_parameters', ..., 'field'),
-                )):
+                if not isinstance(e.cause, HTTPError):
+                    raise
+                response = traverse_obj(
+                    self._webpage_read_content(e.cause.response, e.cause.response.url, video_id, fatal=False),
+                    ({json.loads}, {dict})) or {}
+                if (
+                    not retry and e.cause.status == 400
+                    and 'password' in traverse_obj(response, ('invalid_parameters', ..., 'field'))
+                ):
                     self._verify_video_password(video_id)
-                    continue
-                raise
+                elif e.cause.status == 404 and response.get('error_code') == 5460:
+                    self.raise_login_required(join_nonempty(
+                        traverse_obj(response, ('error', {str.strip})),
+                        'Authentication may be needed due to your location.',
+                        'If your IP address is located in Europe you could try using a VPN/proxy,',
+                        f'or else u{self._login_hint()[1:]}',
+                        delim=' '), method=None)
+                else:
+                    raise
 
         if config_url := traverse_obj(video, ('config_url', {url_or_none})):
             info = self._parse_config(self._download_json(config_url, video_id), video_id)
