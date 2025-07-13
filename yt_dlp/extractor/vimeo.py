@@ -1142,7 +1142,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                         'Authentication may be needed due to your location.',
                         'If your IP address is located in Europe you could try using a VPN/proxy,',
                         f'or else u{self._login_hint()[1:]}',
-                        delim=' '))
+                        delim=' '), method=None)
                 else:
                     raise
 
