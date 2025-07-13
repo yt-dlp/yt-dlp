@@ -201,7 +201,6 @@ from .banbye import (
     BanByeChannelIE,
     BanByeIE,
 )
-from .bandaichannel import BandaiChannelIE
 from .bandcamp import (
     BandcampAlbumIE,
     BandcampIE,
