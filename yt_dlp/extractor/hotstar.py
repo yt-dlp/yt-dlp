@@ -41,11 +41,11 @@ class HotStarBaseIE(InfoExtractor):
         'x-hs-platform': 'androidtv',
     }
 
-    def _has_active_subscription(self, cookies):
+    def _has_active_subscription(self, cookies, server_time):
         expiry = traverse_obj(cookies, (
             self._TOKEN_NAME, 'value', {jwt_decode_hs256}, 'sub', {json.loads},
             'subscriptions', 'in', ..., 'expiry', {parse_iso8601}, all, {max})) or 0
-        return expiry > time.time()
+        return expiry > server_time
 
     def _call_api_v1(self, path, *args, **kwargs):
         return self._download_json(
@@ -60,7 +60,7 @@ class HotStarBaseIE(InfoExtractor):
         response = self._download_json(
             f'{self._API_URL_V2}/{path}', video_id, query=query,
             headers=filter_dict({
-                **(self._SUB_HEADERS if self._has_active_subscription(cookies) else self._FREE_HEADERS),
+                **(self._SUB_HEADERS if self._has_active_subscription(cookies, st) else self._FREE_HEADERS),
                 'hotstarauth': auth,
                 'x-hs-usertoken': traverse_obj(cookies, (self._TOKEN_NAME, 'value')),
                 'x-hs-device-id': traverse_obj(cookies, ('deviceId', 'value')) or str(uuid.uuid4()),
