@@ -12,6 +12,7 @@ from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     determine_ext,
+    filter_dict,
     int_or_none,
     join_nonempty,
     jwt_decode_hs256,
@@ -58,13 +59,13 @@ class HotStarBaseIE(InfoExtractor):
         auth += '~hmac=' + hmac.new(self._AKAMAI_ENCRYPTION_KEY, auth.encode(), hashlib.sha256).hexdigest()
         response = self._download_json(
             f'{self._API_URL_V2}/{path}', video_id, query=query,
-            headers={
+            headers=filter_dict({
                 **(self._SUB_HEADERS if self._has_active_subscription(cookies) else self._FREE_HEADERS),
                 'hotstarauth': auth,
                 'x-hs-usertoken': traverse_obj(cookies, (self._TOKEN_NAME, 'value')),
                 'x-hs-device-id': traverse_obj(cookies, ('deviceId', 'value')) or str(uuid.uuid4()),
                 'content-type': 'application/json',
-            })
+            }))
 
         if not traverse_obj(response, ('success', {dict})):
             raise ExtractorError('API call was unsuccessful')
