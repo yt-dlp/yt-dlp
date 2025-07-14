@@ -720,13 +720,15 @@ class BiliBiliIE(BilibiliBaseIE):
                 duration=traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
                 __post_extractor=self.extract_comments(aid))
 
-        play_info = None
-        if self.is_logged_in:
-            play_info = traverse_obj(
-                self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
-                ('data', {dict}))
-        if not play_info:
-            play_info = self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1})
+        play_info = traverse_obj(
+            self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
+            ('data', {dict}))
+        if not self.is_logged_in or not play_info:
+            dl_play_info = self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1})
+            if not dl_play_info.get('v_voucher'):
+                play_info = dl_play_info
+            else:
+                self.report_warning('Failed to download play info, falling back to the playinfo embedded in the webpage.', video_id=video_id)
         formats = self.extract_formats(play_info)
 
         if video_data.get('is_upower_exclusive'):
