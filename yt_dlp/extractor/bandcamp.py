@@ -368,12 +368,17 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         if not track_info:
             raise ExtractorError('The page doesn\'t contain any tracks')
         # Only tracks with duration info have songs
-        entries = [
-            self.url_result(
-                smuggle_url(urljoin(url, t['title_link']), t), BandcampIE.ie_key(),
-                str_or_none(t.get('track_id') or t.get('id')), t.get('title'))
-            for t in track_info
-            if t.get('duration')]
+        entries = []
+        for t in track_info:
+            if t.get('duration'):
+                url = urljoin(url, t['title_link'])
+                if t.get('track_license_id'):
+                    # tracks with this set don't have a usable tralbum on their pages
+                    url = smuggle_url(url, t)
+                entries.append(self.url_result(
+                    url, BandcampIE.ie_key(),
+                    str_or_none(t.get('track_id') or t.get('id')), t.get('title'),
+                ))
 
         current = tralbum.get('current') or {}
 
