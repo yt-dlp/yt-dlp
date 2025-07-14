@@ -351,6 +351,15 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             'description': 'md5:b3cf845ee41b2b1141dc7bde9237255f',
         },
         'playlist_count': 2,
+    }, {
+        # tracks need track_info smuggled because they don't have a usable one on the pages
+        'url': 'https://wetleg.bandcamp.com/album/wet-leg',
+        'info_dict': {
+            'id': 'wet-leg',
+            'title': 'Wet Leg',
+            'uploader_id': 'wetleg',
+        },
+        'playlist_count': 12,
     }]
 
     @classmethod
