@@ -124,9 +124,10 @@ class FranceTVIE(InfoExtractor):
             elif code := traverse_obj(dinfo, ('code', {int})):
                 if code == 2009:
                     self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
-                elif code in (2015, 2017):
+                elif code in (2015, 2017, 2019):
                     # 2015: L'accès à cette vidéo est impossible. (DRM-only)
                     # 2017: Cette vidéo n'est pas disponible depuis le site web mobile (b/c DRM)
+                    # 2019: L'accès à cette vidéo est incompatible avec votre configuration. (DRM-only)
                     drm_formats = True
                     continue
                 self.report_warning(
