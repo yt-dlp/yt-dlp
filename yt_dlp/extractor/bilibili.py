@@ -175,9 +175,14 @@ class BilibiliBaseIE(InfoExtractor):
         else:
             note = f'Downloading video formats for cid {cid}'
 
-        return self._download_json(
+        playurl_raw = self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
-            query=self._sign_wbi(params, bvid), headers=headers, note=note)['data']
+            query=self._sign_wbi(params, bvid), headers=headers, note=note)
+        if playurl_raw.get('v_voucher'):
+            return playurl_raw['data']
+        else:
+            self.report_warning('Received a captcha from Bilibili while downloading play info')
+            return None
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -724,11 +729,10 @@ class BiliBiliIE(BilibiliBaseIE):
             self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
             ('data', {dict}))
         if not self.is_logged_in or not play_info:
-            dl_play_info = self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1})
-            if not dl_play_info.get('v_voucher'):
+            if dl_play_info := self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1}):
                 play_info = dl_play_info
-            else:
-                self.report_warning('Failed to download play info, falling back to the playinfo embedded in the webpage.', video_id=video_id)
+        if not play_info:
+            raise ExtractorError('Unable to download play info')
         formats = self.extract_formats(play_info)
 
         if video_data.get('is_upower_exclusive'):
