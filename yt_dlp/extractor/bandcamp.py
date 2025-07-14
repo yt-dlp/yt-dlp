@@ -11,10 +11,12 @@ from ..utils import (
     float_or_none,
     int_or_none,
     parse_filesize,
+    smuggle_url,
     str_or_none,
     try_get,
     unified_strdate,
     unified_timestamp,
+    unsmuggle_url,
     update_url_query,
     url_or_none,
     urljoin,
@@ -127,6 +129,8 @@ class BandcampIE(InfoExtractor):
             attr + ' data', group=2), video_id, fatal=fatal)
 
     def _real_extract(self, url):
+        url, smuggled_track_info = unsmuggle_url(url, None)
+
         title, uploader = self._match_valid_url(url).group('id', 'uploader')
         webpage = self._download_webpage(url, title)
         tralbum = self._extract_data_attr(webpage, title)
@@ -138,7 +142,7 @@ class BandcampIE(InfoExtractor):
         duration = None
 
         formats = []
-        track_info = try_get(tralbum, lambda x: x['trackinfo'][0], dict)
+        track_info = try_get(tralbum, lambda x: x['trackinfo'][0], dict) or smuggled_track_info
         if track_info:
             file_ = track_info.get('file')
             if isinstance(file_, dict):
@@ -366,7 +370,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         # Only tracks with duration info have songs
         entries = [
             self.url_result(
-                urljoin(url, t['title_link']), BandcampIE.ie_key(),
+                smuggle_url(urljoin(url, t['title_link']), t), BandcampIE.ie_key(),
                 str_or_none(t.get('track_id') or t.get('id')), t.get('title'))
             for t in track_info
             if t.get('duration')]
