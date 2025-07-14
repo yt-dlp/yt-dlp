@@ -383,10 +383,13 @@ class HotStarIE(HotStarBaseIE):
             formats.extend(current_formats)
             subs = self._merge_subtitles(subs, current_subs)
 
-        if not formats and geo_restricted:
-            self.raise_geo_restricted(countries=['IN'], metadata_available=True)
-        elif not formats and has_drm:
-            self.report_drm(video_id)
+        if not formats:
+            if geo_restricted:
+                self.raise_geo_restricted(countries=['IN'], metadata_available=True)
+            elif has_drm:
+                self.report_drm(video_id)
+            elif not self._has_active_subscription(cookies, st):
+                self.raise_no_formats('Your account does not have access to this content', expected=True)
         self._remove_duplicate_formats(formats)
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
