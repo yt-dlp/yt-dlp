@@ -169,7 +169,7 @@ class BilibiliBaseIE(InfoExtractor):
     @staticmethod
     @functools.cache
     def __screen_dimensions():
-        DIMENSIONS = [
+        DIMS_AND_PREFS = [
             ((1920, 1080), 18),
             ((1366, 768), 18),
             ((1536, 864), 17),
@@ -178,8 +178,8 @@ class BilibiliBaseIE(InfoExtractor):
             ((1440, 900), 5),
             ((1600, 900), 5),
         ]
-        dims = [dim for dim, _ in DIMENSIONS]
-        prefs = [pref for _, pref in DIMENSIONS]
+        dims = [dim for dim, _ in DIMS_AND_PREFS]
+        prefs = [pref for _, pref in DIMS_AND_PREFS]
         return random.choices(dims, weights=prefs)[0]
 
     @property
