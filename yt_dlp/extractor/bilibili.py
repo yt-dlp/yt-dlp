@@ -166,6 +166,48 @@ class BilibiliBaseIE(InfoExtractor):
         params['w_rid'] = hashlib.md5(f'{query}{self._get_wbi_key(video_id)}'.encode()).hexdigest()
         return params
 
+    @staticmethod
+    @functools.cache
+    def __screen_dimensions():
+        DIMENSIONS = [
+            ((1920, 1080), 18),
+            ((1366, 768), 18),
+            ((1536, 864), 17),
+            ((1280, 720), 8),
+            ((2560, 1440), 7),
+            ((1440, 900), 5),
+            ((1600, 900), 5),
+        ]
+        dims = [dim for dim, _ in DIMENSIONS]
+        prefs = [pref for _, pref in DIMENSIONS]
+        return random.choices(dims, weights=prefs)[0]
+
+    @property
+    def _dm_params(self):
+        def get_wh(width=1920, height=1080):
+            # return [6093, 6631, 31]
+            res0, res1 = width, height
+            rnd = math.floor(114 * random.random())
+            return [2 * res0 + 2 * res1 + 3 * rnd, 4 * res0 - res1 + rnd, rnd]
+
+        def get_of(scroll_top=10, scroll_left=10):
+            # return [430, 760, 380]
+            res0, res1 = scroll_top, scroll_left
+            rnd = math.floor(514 * random.random())
+            return [3 * res0 + 2 * res1 + rnd, 4 * res0 - 4 * res1 + 2 * rnd, rnd]
+
+        # .dm_img_list and .dm_img_inter.ds are more troublesome as user interactions are involved.
+        # Leave them empty for now as the site isn't checking them yet.
+        # Reference: https://github.com/SocialSisterYi/bilibili-API-collect/issues/868#issuecomment-1908690516
+        return {
+            'dm_img_list': '[]',
+            'dm_img_str': base64.b64encode(
+                ''.join(random.choices(string.printable, k=random.randint(16, 64))).encode())[:-2].decode(),
+            'dm_cover_img_str': base64.b64encode(
+                ''.join(random.choices(string.printable, k=random.randint(32, 128))).encode())[:-2].decode(),
+            'dm_img_inter': {'ds': [], 'wh': get_wh(*self.__screen_dimensions()), 'of': get_of(random.randint(0, 100), 0)},
+        }
+
     def _download_playinfo(self, bvid, cid, headers=None, query=None):
         params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **(query or {})}
         if self.is_logged_in:
@@ -175,14 +217,15 @@ class BilibiliBaseIE(InfoExtractor):
         else:
             note = f'Downloading video formats for cid {cid}'
 
-        playurl_raw = self._download_json(
+        playurl_data = self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
-            query=self._sign_wbi(params, bvid), headers=headers, note=note)
-        if playurl_raw.get('v_voucher'):
-            return playurl_raw['data']
-        else:
+            query=self._sign_wbi(merge_dicts(params, self._dm_params), bvid), headers=headers, note=note)['data']
+        if playurl_data.get('v_voucher'):
             self.report_warning('Received a captcha from Bilibili while downloading play info')
+            self.write_debug(playurl_data)
             return None
+        else:
+            return playurl_data
 
     def json2srt(self, json_data):
         srt_data = ''
