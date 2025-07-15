@@ -205,7 +205,7 @@ class BilibiliBaseIE(InfoExtractor):
             'dm_img_inter': json.dumps({'ds': [], 'wh': get_wh(*self.__screen_dimensions()), 'of': get_of(random.randint(0, 100), 0)}).replace(' ', ''),
         }
 
-    def _download_playinfo(self, bvid, cid, headers=None, query=None):
+    def _download_playinfo(self, bvid, cid, headers=None, query=None, fatal=True):
         params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **(query or {})}
         if self.is_logged_in:
             params.pop('try_look', None)
@@ -214,14 +214,23 @@ class BilibiliBaseIE(InfoExtractor):
         else:
             note = f'Downloading video formats for cid {cid}'
 
-        playurl_data = self._download_json(
+        playurl_raw = self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
-            query=self._sign_wbi(merge_dicts(params, self._dm_params), bvid), headers=headers, note=note)['data']
-        if playurl_data.get('v_voucher'):
-            self.report_warning('Received a captcha from Bilibili while downloading play info')
-            return None
+            query=self._sign_wbi(merge_dicts(params, self._dm_params), bvid), headers=headers, note=note)
+        code = -playurl_raw['code']
+        if code == 0:
+            return playurl_raw['data']
         else:
-            return playurl_data
+            breakpoint()
+            err_desc = playurl_raw['message']
+            msg = f'Unable to download video info({code}: {err_desc})'
+            expected = code in (401, 352)
+            if expected:
+                msg += ', please wait and try later'
+            if fatal:
+                raise ExtractorError(msg, expected=expected)
+            else:
+                self.report_warning(msg)
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -768,7 +777,7 @@ class BiliBiliIE(BilibiliBaseIE):
             self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
             ('data', {dict}))
         if not self.is_logged_in or not play_info:
-            if dl_play_info := self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1}):
+            if dl_play_info := self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1}, fatal=False):
                 play_info = dl_play_info
         if not play_info:
             raise ExtractorError('Unable to download play info')
