@@ -169,7 +169,7 @@ class BilibiliBaseIE(InfoExtractor):
     @staticmethod
     @functools.cache
     def __screen_dimensions():
-        DIMS_AND_PREFS = [
+        dims, prefs = zip(
             ((1920, 1080), 18),
             ((1366, 768), 18),
             ((1536, 864), 17),
@@ -177,21 +177,17 @@ class BilibiliBaseIE(InfoExtractor):
             ((2560, 1440), 7),
             ((1440, 900), 5),
             ((1600, 900), 5),
-        ]
-        dims = [dim for dim, _ in DIMS_AND_PREFS]
-        prefs = [pref for _, pref in DIMS_AND_PREFS]
+        )
         return random.choices(dims, weights=prefs)[0]
 
     @property
     def _dm_params(self):
         def get_wh(width=1920, height=1080):
-            # return [6093, 6631, 31]
             res0, res1 = width, height
             rnd = math.floor(114 * random.random())
             return [2 * res0 + 2 * res1 + 3 * rnd, 4 * res0 - res1 + rnd, rnd]
 
         def get_of(scroll_top=10, scroll_left=10):
-            # return [430, 760, 380]
             res0, res1 = scroll_top, scroll_left
             rnd = math.floor(514 * random.random())
             return [3 * res0 + 2 * res1 + rnd, 4 * res0 - 4 * res1 + 2 * rnd, rnd]
@@ -205,7 +201,8 @@ class BilibiliBaseIE(InfoExtractor):
                 ''.join(random.choices(string.printable, k=random.randint(16, 64))).encode())[:-2].decode(),
             'dm_cover_img_str': base64.b64encode(
                 ''.join(random.choices(string.printable, k=random.randint(32, 128))).encode())[:-2].decode(),
-            'dm_img_inter': {'ds': [], 'wh': get_wh(*self.__screen_dimensions()), 'of': get_of(random.randint(0, 100), 0)},
+            # Bilibili expects dm_img_inter to be a compact JSON (without spaces)
+            'dm_img_inter': json.dumps({'ds': [], 'wh': get_wh(*self.__screen_dimensions()), 'of': get_of(random.randint(0, 100), 0)}).replace(' ', ''),
         }
 
     def _download_playinfo(self, bvid, cid, headers=None, query=None):
@@ -1314,13 +1311,8 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                 'pn': page_idx + 1,
                 'ps': 30,
                 'tid': 0,
-                'web_location': 1550101,
-                'dm_img_list': '[]',
-                'dm_img_str': base64.b64encode(
-                    ''.join(random.choices(string.printable, k=random.randint(16, 64))).encode())[:-2].decode(),
-                'dm_cover_img_str': base64.b64encode(
-                    ''.join(random.choices(string.printable, k=random.randint(32, 128))).encode())[:-2].decode(),
-                'dm_img_inter': '{"ds":[],"wh":[6093,6631,31],"of":[430,760,380]}',
+                'web_location': '333.1387',
+                **self._dm_params,
             }
 
             try:
