@@ -222,7 +222,6 @@ class BilibiliBaseIE(InfoExtractor):
             query=self._sign_wbi(merge_dicts(params, self._dm_params), bvid), headers=headers, note=note)['data']
         if playurl_data.get('v_voucher'):
             self.report_warning('Received a captcha from Bilibili while downloading play info')
-            self.write_debug(playurl_data)
             return None
         else:
             return playurl_data
