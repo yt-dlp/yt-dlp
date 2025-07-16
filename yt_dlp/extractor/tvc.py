@@ -8,17 +8,26 @@ from ..utils import (
 class TVCIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?tvc\.ru/video/iframe/id/(?P<id>\d+)'
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:http:)?//(?:www\.)?tvc\.ru/video/iframe/id/[^"]+)\1']
-    _TEST = {
+    _TESTS = [{
         'url': 'http://www.tvc.ru/video/iframe/id/74622/isPlay/false/id_stat/channel/?acc_video_id=/channel/brand/id/17/show/episodes/episode_id/39702',
-        'md5': 'bbc5ff531d1e90e856f60fc4b3afd708',
+        'md5': 'aa6fb3cf384e18a0ad3b30ee2898beba',
         'info_dict': {
             'id': '74622',
             'ext': 'mp4',
-            'title': 'События. "События". Эфир от 22.05.2015 14:30',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'title': 'TVC video #74622',
+            'thumbnail': r're:https?://.+\.jpg',
             'duration': 1122,
         },
-    }
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'http://sch1298sz.mskobr.ru/dou_edu/karamel_ki/filial_galleries/video/iframe_src_http_tvc_ru_video_iframe_id_55304_isplay_false_acc_video_id_channel_brand_id_11_show_episodes_episode_id_32307_frameb/',
+        'info_dict': {
+            'id': '55304',
+            'ext': 'mp4',
+            'title': 'Дошкольное воспитание',
+        },
+        'skip': 'Invalid URL',
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
