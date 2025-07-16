@@ -1455,16 +1455,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'IE fix required; update _VALID_URL',
     }, {
-        # 🔧108
-        # UDNEmbedIE
-        'url': 'https://video.udn.com/news/1308561',
-        'info_dict': {
-            'id': '300346',
-            'ext': 'mp4',
-            'title': '中一中男師變性 全校師生力挺',
-        },
-        'skip': 'IE fix required; embed detection',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
