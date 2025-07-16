@@ -1062,16 +1062,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Site changed',
     }, {
-        # 🔍90
-        # RutubeIE
-        'url': 'https://magazzino.friday.ru/videos/vipuski/kazan-2',
-        'info_dict': {
-            'id': '9b3d5bee0a8740bf70dfd29d3ea43541',
-            'ext': 'flv',
-            'title': 'Магаззино: Казань 2',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
