@@ -982,26 +982,6 @@ class GenericIE(InfoExtractor):
         },
         'playlist_count': 3,
     }, {
-        # 🔍85
-        # NBCNewsIE
-        'url': 'http://www.vulture.com/2016/06/letterman-couldnt-care-less-about-late-night.html',
-        'info_dict': {
-            'id': 'x_dtl_oa_LettermanliftPR_160608',
-            'ext': 'mp4',
-            'title': 'David Letterman: A Preview',
-        },
-        'skip': 'Site changed',
-    }, {
-        # 🔍86
-        # NBCSportsIE
-        'url': 'http://www.riderfans.com/forum/showthread.php?121827-Freeman&s=e98fa1ea6dc08e886b1678d35212494a',
-        'info_dict': {
-            'id': 'ln7x1qSThw4k',
-            'ext': 'flv',
-            'title': "PFT Live: New leader in the 'new-look' defense",
-        },
-        'skip': 'Invalid URL',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
