@@ -1761,19 +1761,8 @@ class GenericIE(InfoExtractor):
             'thumbnail': r're:https?://zpks\.com/.+\.jpg',
         },
     }, {
-        # 🆑130
-        # embed.ly redirect
-        # https://github.com/yt-dlp/yt-dlp/pull/4307
-        'url': 'http://www.tested.com/science/weird/460206-tested-grinding-coffee-2000-frames-second/',
-        'info_dict': {
-            'id': '9ODmcdjQcHQ',
-            'ext': 'mp4',
-            'title': 'Tested: Grinding Coffee at 2000 Frames Per Second',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # ✅131
-        # YoutubeIE; redirect
+        # Redirect
         # https://github.com/ytdl-org/youtube-dl/issues/413
         'url': 'https://www.google.com/url?rct=j&url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DcmQHVoWB5FY',
         'info_dict': {
@@ -1803,89 +1792,6 @@ class GenericIE(InfoExtractor):
             'uploader_id': '@TheVerge',
             'uploader_url': 'https://www.youtube.com/@TheVerge',
             'view_count': int,
-        },
-    }, {
-        # 🆑132
-        # YoutubeIE; redirect
-        # https://github.com/ytdl-org/youtube-dl/commit/6c91a5a7f5408cf666f3ee40b53c0d9e42521b88
-        'url': 'https://www.facebook.com/l.php?u=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DYbJOTdZBX1g',
-        'info_dict': {
-            'id': 'YbJOTdZBX1g',
-            'ext': 'mp4',
-            'title': 'YouTube Rewind 2018: Everyone Controls Rewind | #YouTubeRewind',
-            'age_limit': 0,
-            'availability': 'public',
-            'categories': ['Entertainment'],
-            'channel': 'YouTube',
-            'channel_follower_count': int,
-            'channel_id': 'UCBR8-60-B28hp2BmDPdntcQ',
-            'channel_is_verified': True,
-            'channel_url': 'https://www.youtube.com/channel/UCBR8-60-B28hp2BmDPdntcQ',
-            'chapters': 'count:6',
-            'comment_count': int,
-            'description': 'md5:c6db40017da318093f77b6f15d3b6223',
-            'duration': 493,
-            'heatmap': 'count:100',
-            'like_count': int,
-            'live_status': 'not_live',
-            'media_type': 'video',
-            'playable_in_embed': True,
-            'release_date': '20181206',
-            'release_timestamp': 1544119212,
-            'tags': 'count:32',
-            'thumbnail': 'https://i.ytimg.com/vi_webp/YbJOTdZBX1g/maxresdefault.webp',
-            'timestamp': 1544119109,
-            'upload_date': '20181206',
-            'uploader': 'YouTube',
-            'uploader_id': '@YouTube',
-            'uploader_url': 'https://www.youtube.com/@YouTube',
-            'view_count': int,
-        },
-    }, {
-        # 🆑133
-        # RedditIE; redirect
-        # https://github.com/yt-dlp/yt-dlp/pull/1682
-        'url': 'https://v.redd.it/zv89llsvexdz',
-        'md5': '08c73ce574288b7fd8d98f7a5f77ec81',
-        'info_dict': {
-            'id': 'zv89llsvexdz',
-            'ext': 'mp4',
-            'title': 'That small heart attack.',
-            'age_limit': 0,
-            'alt_title': 'That small heart attack.',
-            'channel_id': 'videos',
-            'comment_count': int,
-            'dislike_count': int,
-            'display_id': '6rrwyj',
-            'duration': 12,
-            'like_count': int,
-            'thumbnail': r're:https?://external-preview\.redd\.it/.+',
-            'timestamp': 1501941939.0,
-            'upload_date': '20170805',
-            'uploader': 'Antw87',
-        },
-    }, {
-        # 🆑134
-        # RedditIE; redirect
-        # https://github.com/yt-dlp/yt-dlp/pull/1682
-        'url': 'https://v.redd.it/33hgok7dfbz71/',
-        'md5': '7a1d587940242c9bb3bd6eb320b39258',
-        'info_dict': {
-            'id': '33hgok7dfbz71',
-            'ext': 'mp4',
-            'title': 'The game Didn\'t want me to Knife that Guy I guess',
-            'age_limit': 0,
-            'alt_title': 'The game Didn\'t want me to Knife that Guy I guess',
-            'channel_id': 'battlefield2042',
-            'comment_count': int,
-            'dislike_count': int,
-            'display_id': 'qsw48i',
-            'duration': 23,
-            'like_count': int,
-            'thumbnail': r're:https?://external-preview\.redd\.it/.+',
-            'timestamp': 1636788683.0,
-            'upload_date': '20211113',
-            'uploader': 'paraf1ve',
         },
     }]
 
