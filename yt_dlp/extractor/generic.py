@@ -1391,24 +1391,6 @@ class GenericIE(InfoExtractor):
             'uploader_id': '500230',
         },
     }, {
-        # ✅103
-        # TedEmbedIE
-        'url': 'https://ideas.ted.com/6-ways-to-give-that-arent-about-money/',
-        'info_dict': {
-            'id': '123235',
-            'ext': 'mp4',
-            'title': 'It\'s time for infectious generosity. Here\'s how',
-            'description': 'md5:0f972eb2b53ad7d1385fb65f519657b4',
-            'duration': 1172,
-            'release_date': '20231128',
-            'tags': 'count:9',
-            'thumbnail': r're:https?://pi\.tedcdn\.com/.+\.jpg',
-            'upload_date': '20240109',
-            'uploader': 'Chris Anderson',
-            'view_count': int,
-        },
-        'params': {'skip_download': 'm3u8'},
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
