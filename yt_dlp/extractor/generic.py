@@ -1761,29 +1761,6 @@ class GenericIE(InfoExtractor):
             'thumbnail': r're:https?://zpks\.com/.+\.jpg',
         },
     }, {
-        # ✅129
-        # ZypeIE
-        'url': 'https://www.cookscountry.com/episode/554-smoky-barbecue-favorites',
-        'info_dict': {
-            'id': '5b400b834b32992a310622b9',
-            'ext': 'mp4',
-            'title': 'Smoky Barbecue Favorites',
-            'average_rating': 0,
-            'description': 'md5:380c4d0f578647654f0d855c0f6bb49a',
-            'display_id': 'smoky-barbecue-favorites',
-            'duration': 1366,
-            'episode': 'Smoky Barbecue Favorites',
-            'episode_number': 3,
-            'release_date': '20170808',
-            'season': 'Season 10',
-            'season_number': 10,
-            'series': 'Cook\'s Country',
-            'thumbnail': r're:https?://image\.cdn\.zype\.com/.+',
-            'upload_date': '20170808',
-            'timestamp': 1502207820,
-            'view_count': int,
-        },
-    }, {
         # 🆑130
         # embed.ly redirect
         # https://github.com/yt-dlp/yt-dlp/pull/4307
