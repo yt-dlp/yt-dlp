@@ -1072,16 +1072,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # 🔍91
-        # RUTVIE
-        'url': 'http://www.rg.ru/2014/03/15/reg-dfo/anklav-anons.html',
-        'info_dict': {
-            'id': '776940',
-            'ext': 'mp4',
-            'title': 'Охотское море стало целиком российским',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
