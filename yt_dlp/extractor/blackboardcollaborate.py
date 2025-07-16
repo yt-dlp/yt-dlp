@@ -1,8 +1,6 @@
-import base64
-import json
-
 from .common import InfoExtractor
 from ..utils import (
+    UnsupportedError,
     int_or_none,
     float_or_none,
     join_nonempty,
@@ -166,7 +164,7 @@ class BlackboardCollaborateLaunchIE(InfoExtractor):
 
     def _real_extract(self, url):
         token = self._match_id(url)
-        video_id = jwt_decode_hs256(token)['resourceAccessTicket']['resourceId'] 
+        video_id = jwt_decode_hs256(token)['resourceAccessTicket']['resourceId']
 
         redirect_url = self._request_webpage(url, video_id).url
         if self.suitable(redirect_url):
