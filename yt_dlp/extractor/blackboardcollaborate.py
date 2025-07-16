@@ -130,11 +130,10 @@ class BlackboardCollaborateIE(InfoExtractor):
                 fmt['filesize'] = filesize
 
         subtitles = {}
-        for current_subs in video_info.get('subtitles'):
-            lang_code = current_subs.get('lang')
-            subtitles.setdefault(lang_code, []).append({
-                'name': str_or_none(current_subs.get('label')),
-                'url': url_or_none(current_subs['url']),
+        for subs in traverse_obj(video_info, ('subtitles', lambda _, v: url_or_none(v['url']))):
+            subtitles.setdefault(subs.get('lang') or 'und', []).append({
+                'name': traverse_obj(subs, ('label', {str})),
+                'url': subs['url'],
             })
 
         for current_chat in video_info.get('chats'):
