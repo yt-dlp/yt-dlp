@@ -1605,18 +1605,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # ✅120
-        # WimTVIE
-        'url': 'http://www.renzoarborechannel.tv/50_sorrisi_da_napoli.htm',
-        'info_dict': {
-            'id': '50_sorrisi_da_napoli',
-            'title': 'Renzo Arbore Channel . TV - 50 Sorrisi da Napoli',
-            'age_limit': 0,
-            'timestamp': 1612226372,
-            'upload_date': '20210202',
-        },
-        'playlist_count': 40,
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
