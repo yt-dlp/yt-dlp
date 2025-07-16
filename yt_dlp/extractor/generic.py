@@ -1052,16 +1052,6 @@ class GenericIE(InfoExtractor):
         'expected_warnings': ['HTTP Error 400: Bad Request', 'Ignoring subtitle tracks found in the HLS manifest'],
         'params': {'skip_download': True},
     }, {
-        # 🔍89
-        # PlaywireIE
-        'url': 'https://www.cinemablend.com/new/First-Joe-Dirt-2-Trailer-Teaser-Stupid-Greatness-70874.html',
-        'info_dict': {
-            'id': '3519514',
-            'ext': 'mp4',
-            'title': 'Joe Dirt 2 Beautiful Loser Teaser Trailer',
-        },
-        'skip': 'Site changed',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
