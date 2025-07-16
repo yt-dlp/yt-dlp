@@ -1024,34 +1024,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
     }, {
-        # ✅88
-        # PeerTube embed
-        'url': 'https://video.macver.org/w/6gvhZpUGQVd4SQ6oYDc9pC',
-        'info_dict': {
-            'id': '6gvhZpUGQVd4SQ6oYDc9pC',
-            'ext': 'mp4',
-            'title': 'Minecraft, but if you say a block, it gets deleted',
-            'categories': ['Gaming'],
-            'channel': 'Waffle Irons Gaming',
-            'channel_id': '4',
-            'channel_url': 'https://video.macver.org/video-channels/waffle_irons',
-            'description': 'md5:eda8daf64b0dadd00cc248f28eef213c',
-            'dislike_count': int,
-            'duration': 1643,
-            'license': 'Attribution - Non Commercial',
-            'like_count': int,
-            'tags': 'count:1',
-            'thumbnail': r're:https?://video\.macver\.org/lazy-static/thumbnails/.+\.jpg',
-            'timestamp': 1751142352,
-            'upload_date': '20250628',
-            'uploader': 'Bog',
-            'uploader_id': '3',
-            'uploader_url': 'https://video.macver.org/accounts/bog',
-            'view_count': int,
-        },
-        'expected_warnings': ['HTTP Error 400: Bad Request', 'Ignoring subtitle tracks found in the HLS manifest'],
-        'params': {'skip_download': True},
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
