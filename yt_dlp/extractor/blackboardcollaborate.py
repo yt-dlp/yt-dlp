@@ -119,10 +119,10 @@ class BlackboardCollaborateIE(InfoExtractor):
             video_info = self._call_api(region, video_id, 'data', note='Trying fallback', fatal=True)
             video_extra = {}
 
-        formats = traverse_obj(video_info, ('extStreams', ..., {
-            'url': ('streamUrl', {url_or_none}),
-            'container': ('contentType', {mimetype2ext}),
-            'aspect_ratio': ('aspectRatio'),
+        formats = traverse_obj(video_info, ('extStreams', lambda _, v: url_or_none(v['streamUrl']), {
+            'url': 'streamUrl',
+            'ext': ('contentType', {mimetype2ext}),
+            'aspect_ratio': ('aspectRatio', {float_or_none}),
         }))
 
         for cur_format in formats:
