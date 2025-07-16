@@ -1444,17 +1444,6 @@ class GenericIE(InfoExtractor):
             'upload_date': '20220110',
         },
     }, {
-        # 🔧107
-        # TwentyMinutenIE; should be supported by _VALID_URL
-        'url': 'https://www.20min.ch/story/so-kommen-sie-bei-eis-und-schnee-sicher-an-557858045456',
-        'info_dict': {
-            'id': '523629',
-            'ext': 'mp4',
-            'title': 'So kommen Sie bei Eis und Schnee sicher an',
-            'description': 'md5:117c212f64b25e3d95747e5276863f7d',
-        },
-        'skip': 'IE fix required; update _VALID_URL',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
