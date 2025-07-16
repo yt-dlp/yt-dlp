@@ -166,6 +166,7 @@ class BlackboardCollaborateLaunchIE(InfoExtractor):
         token = self._match_id(url)
         video_id = jwt_decode_hs256(token)['resourceAccessTicket']['resourceId'] 
 
-        redirect_url = self._request_webpage(url, video_id=video_id).url
-        return self.url_result(redirect_url,
-                               ie=BlackboardCollaborateIE.ie_key(), video_id=video_id)
+        redirect_url = self._request_webpage(url, video_id).url
+        if self.suitable(redirect_url):
+            raise UnsupportedError(redirect_url)
+        return self.url_result(redirect_url, BlackboardCollaborateIE, video_id)
