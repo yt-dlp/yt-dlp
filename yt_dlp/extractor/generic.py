@@ -1365,32 +1365,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # ✅101
-        # SubstackIE
-        'url': 'https://www.mollymovieclub.com/p/interstellar',
-        'info_dict': {
-            'id': '53602801',
-            'ext': 'mpga',
-            'title': 'Interstellar',
-            'description': 'md5:6f6a458df735853f40fb3892156e4144',
-            'thumbnail': r're:https?://.+\.jpeg',
-            'uploader': 'Molly Movie Club',
-            'uploader_id': '839621',
-        },
-    }, {
-        # ✅102
-        # SubstackIE
-        'url': 'https://www.blockedandreported.org/p/episode-117-lets-talk-about-depp',
-        'info_dict': {
-            'id': '57962052',
-            'ext': 'mpga',
-            'title': 'md5:855b2756f0ee10f6723fa00b16266f8d',
-            'description': 'md5:fe512a5e94136ad260c80bde00ea4eef',
-            'thumbnail': r're:https?://.+\.jpeg',
-            'uploader': 'Blocked and Reported',
-            'uploader_id': '500230',
-        },
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
