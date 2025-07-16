@@ -1595,16 +1595,6 @@ class GenericIE(InfoExtractor):
         },
         'playlist_count': 3,
     }, {
-        # 🔍119
-        # VoxMediaIE
-        'url': 'http://www.theguardian.com/world/2014/mar/11/obama-zach-galifianakis-between-two-ferns',
-        'info_dict': {
-            'id': '18e820ec3f',
-            'ext': 'mp4',
-            'title': 'Between Two Ferns with Zach Galifianakis: President Barack Obama',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',

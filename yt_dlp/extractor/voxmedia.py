@@ -84,6 +84,7 @@ class VoxMediaIE(InfoExtractor):
             'uploader': 'The Verge',
         },
         'add_ie': ['Youtube'],
+        'skip': 'Site changed',
     }, {
         # Volume embed, Youtube
         'url': 'http://www.theverge.com/2014/10/21/7025853/google-nexus-6-hands-on-photos-video-android-phablet',
@@ -155,6 +156,15 @@ class VoxMediaIE(InfoExtractor):
             },
         }],
         'skip': 'Page no longer contain videos',
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'http://www.theguardian.com/world/2014/mar/11/obama-zach-galifianakis-between-two-ferns',
+        'info_dict': {
+            'id': '18e820ec3f',
+            'ext': 'mp4',
+            'title': 'Between Two Ferns with Zach Galifianakis: President Barack Obama',
+        },
+        'skip': 'Invalid URL',
     }]
 
     def _real_extract(self, url):
