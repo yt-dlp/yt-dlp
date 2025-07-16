@@ -1092,18 +1092,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'IE fix required',
     }, {
-        # 🔧95
-        # SenateISVPIE
-        'url': 'https://www.hsgac.senate.gov/subcommittees/bmfwra/hearings/match-ready-oversight-of-the-federal-governments-border-management-and-personnel-readiness-efforts-for-the-decade-of-sports/',
-        'info_dict': {
-            'id': 'govtaff061025',
-            'ext': 'mp4',
-            'title': 'ISVP',
-            'thumbnail': 'https://www.hsgac.senate.gov/wp-content/uploads/HSGAC_VideoPoster_WatchVideo.jpeg',
-            '_old_archive_ids': ['senategov govtaff061025'],
-        },
-        'skip': 'IE fix required; embed detection',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
