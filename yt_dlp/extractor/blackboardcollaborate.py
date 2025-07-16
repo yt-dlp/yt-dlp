@@ -12,8 +12,6 @@ from ..utils import (
 )
 from ..utils.traversal import traverse_obj
 
-'''APIs references - Blackboard Learn: https://developer.blackboard.com/portal/displayApi
-                   - Blackboard Collaborate: https://github.com/blackboard/BBDN-Collab-Postman-REST'''
 
 
 class BlackboardCollaborateIE(InfoExtractor):
@@ -103,6 +101,7 @@ class BlackboardCollaborateIE(InfoExtractor):
         },
     ]
 
+    # API Reference: https://github.com/blackboard/BBDN-Collab-Postman-REST
     def _call_api(self, region, video_id, api_call='', token=None, note='Downloading JSON metadata', fatal=False):
         return self._download_json(f'https://{region}.bbcollab.com/collab/api/csa/recordings/{video_id}/{api_call}',
                                    video_id, note=note,
