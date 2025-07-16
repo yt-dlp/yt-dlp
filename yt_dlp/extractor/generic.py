@@ -960,16 +960,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
     }, {
-        # 🔧83
-        # MegaTVComEmbedIE
-        'url': 'https://www.in.gr/2021/12/18/greece/apokalypsi-mega-poios-parelave-tin-ereyna-tsiodra-ek-merous-tis-kyvernisis-o-prothypourgos-telika-gnorize/',
-        'info_dict': {
-            'id': 'apokalypsi-mega-poios-parelave-tin-ereyna-tsiodra-ek-merous-tis-kyvernisis-o-prothypourgos-telika-gnorize',
-            'title': 'md5:5e569cf996ec111057c2764ec272848f',
-        },
-        'playlist_count': 2,
-        'skip': 'IE fix required; embed detection',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
