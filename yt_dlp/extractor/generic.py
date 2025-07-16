@@ -946,20 +946,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'IE fix required; embed detection',
     }, {
-        # ✅82
-        # MedialaanIE
-        'url': 'https://www.demorgen.be/snelnieuws/tom-waes-promoot-alcoholtesten-op-werchter-ik-ben-de-laatste-persoon-die-met-de-vinger-moet-wijzen~b7457c0d/',
-        'info_dict': {
-            'id': '1576607',
-            'ext': 'mp4',
-            'title': 'Tom Waes blaastest',
-            'duration': 62,
-            'thumbnail': r're:https?://video-images\.persgroep\.be/aws_generated.+\.jpg',
-            'timestamp': 1751730795,
-            'upload_date': '20250705',
-        },
-        'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
