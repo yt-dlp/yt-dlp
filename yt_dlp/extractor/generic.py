@@ -1482,21 +1482,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': True},
     }, {
-        # ✅110
-        # VHXEmbedIE
-        'url': 'https://demo.vhx.tv/packages/behind-the-scenes-with-sasha/videos/hard-work',
-        'info_dict': {
-            'id': '2251259',
-            'ext': 'mp4',
-            'title': 'Untitled',
-            'duration': 30,
-            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
-            'uploader': 'OTT Videos',
-            'uploader_id': 'user80538407',
-            'uploader_url': 'https://vimeo.com/user80538407',
-        },
-        'expected_warnings': ['Failed to parse XML'],
-    }, {
         # 🔍111
         # ViddlerIE
         'url': 'https://deadspin.com/i-cant-stop-watching-john-wall-chop-the-nuggets-with-th-1681801597/',
@@ -1539,45 +1524,6 @@ class GenericIE(InfoExtractor):
             'id': '74849a00-85a9-11e1-9660-123139220831',
             'ext': 'mp4',
             'title': '#whilewewatch',
-        },
-        'skip': 'Invalid URL',
-    }, {
-        # ✅115
-        # VimeoIE
-        'url': 'https://www.gsd.harvard.edu/event/i-m-pei-a-centennial-celebration/',
-        'info_dict': {
-            'id': '855172304',
-            'ext': 'mp4',
-            'title': 'I. M. Pei: A Centennial Celebration',
-            'duration': 6073,
-            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
-            'uploader': 'Harvard GSD',
-            'uploader_id': 'harvardgsd',
-            'uploader_url': 'https://vimeo.com/harvardgsd',
-        },
-        'expected_warnings': ['Failed to parse XML'],
-        'params': {
-            'extractor_args': {'generic': {'impersonate': ['chrome']}},
-            'skip_download': 'm3u8',
-        },
-    }, {
-        # 🆑116; duplicate of 115
-        # VimeoIE
-        'url': 'https://openclassrooms.com/en/courses/3314571-understanding-the-web',
-        'info_dict': {
-            'id': '148867247',
-            'ext': 'mp4',
-            'title': 'Understanding the web - Teaser',
-        },
-        'skip': 'Site changed',
-    }, {
-        # 🆑117; duplicate of 115
-        # VimeoIE
-        'url': 'http://www.esa.int/Our_Activities/Space_Science/Rosetta/Philae_comet_touch-down_webcast',
-        'info_dict': {
-            'id': '67864563',
-            'ext': 'flv',
-            'title': 'Rosetta #CometLanding webcast HL 10',
         },
         'skip': 'Invalid URL',
     }, {
