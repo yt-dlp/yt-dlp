@@ -1517,16 +1517,6 @@ class GenericIE(InfoExtractor):
             'upload_date': '20250603',
         },
     }, {
-        # 🔍114
-        # ViewLiftEmbedIE
-        'url': 'http://whilewewatch.blogspot.ru/2012/06/whilewewatch-whilewewatch-gripping.html',
-        'info_dict': {
-            'id': '74849a00-85a9-11e1-9660-123139220831',
-            'ext': 'mp4',
-            'title': '#whilewewatch',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
