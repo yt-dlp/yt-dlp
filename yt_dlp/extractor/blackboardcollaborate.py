@@ -9,6 +9,7 @@ from ..utils import (
     parse_qs,
     str_or_none,
     url_or_none,
+    jwt_decode_hs256,
 )
 from ..utils.traversal import traverse_obj
 
