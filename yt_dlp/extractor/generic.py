@@ -758,7 +758,7 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'IE fix required; embed detection',
     }, {
-        # ✅53
+        # 🆑53
         # CondeNastIE
         'url': 'https://www.wired.com/video/watch/the-wired-reviews-teams-amazon-prime-day-picks',
         'info_dict': {
@@ -774,6 +774,7 @@ class GenericIE(InfoExtractor):
             'upload_date': '20250708',
             'uploader': 'wired',
         },
+        'skip': 'Already supported by _VALID_URL',
     }, {
         # 🔧54
         # CondeNastIE
