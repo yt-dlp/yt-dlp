@@ -907,30 +907,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # ✅79
-        # LibsynIE
-        'url': 'https://html5-player.libsyn.com/',
-        'info_dict': {
-            'id': '2378831',
-            'ext': 'mp3',
-            'title': 'md5:54108b15f98e1b4056612c10b50106b2',
-            'duration': 3561.0,
-            'thumbnail': r're:https?://assets\.libsyn\.com/secure/content/.+',
-            'upload_date': '20130630',
-        },
-    }, {
-        # ✅80
-        # LibsynIE
-        'url': 'https://undergroundwellness.com/podcasts/306-5-steps-to-permanent-gut-healing/',
-        'info_dict': {
-            'id': '3793998',
-            'ext': 'mp3',
-            'title': 'Underground Wellness Radio - Jack Tips: 5 Steps to Permanent Gut Healing',
-            'duration': 3989.0,
-            'thumbnail': 'https://assets.libsyn.com/secure/item/3793998/?height=90&width=90',
-            'upload_date': '20141126',
-        },
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
