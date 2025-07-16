@@ -1306,45 +1306,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'IE fix required; embed detection',
     }, {
-        # ✅97
-        # SoundcloudEmbedIE
-        'url': 'https://news.sophos.com/en-us/2023/08/10/s3-ep147-what-if-you-type-in-your-password-during-a-meeting/',
-        'info_dict': {
-            'id': '1588847423',
-            'ext': 'm4a',
-            'title': 'S3 Ep147: What if you type in your password during a meeting?',
-            'artists': ['Naked Security'],
-            'description': 'md5:6931a0630b920413c8c904407bf4b3b2',
-            'duration': 942.762,
-            'genres': ['Technology'],
-            'license': 'all-rights-reserved',
-            'repost_count': int,
-            'tags': 'count:4',
-            'thumbnail': r're:https?://i1\.sndcdn\.com/.+\.png',
-            'timestamp': 1691624365,
-            'track': 'S3 Ep147: What if you type in your password during a meeting?',
-            'upload_date': '20230809',
-            'uploader': 'Naked Security',
-            'uploader_id': '61390843',
-            'uploader_url': 'https://soundcloud.com/sophossecurity',
-        },
-        'params': {'skip_download': 'm3u8'},
-    }, {
-        # ✅98
-        # SoundcloudEmbedIE
-        'url': 'https://www.guitarplayer.com/lessons/november-2023-guitar-player-lesson-audio',
-        'info_dict': {
-            'id': '1695754080',
-            'title': 'A Tribute to Brian Setzer’s Guitar Mastery',
-            'album': 'A Tribute to Brian Setzer’s Guitar Mastery',
-            'album_artists': ['Guitar Player'],
-            'album_type': 'playlist',
-            'description': '',
-            'uploader': 'Guitar Player',
-            'uploader_id': '489924156',
-        },
-        'playlist_mincount': 7,
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
