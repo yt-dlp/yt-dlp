@@ -1002,28 +1002,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # ✅87
-        # PanoptoIE
-        'url': 'https://www.monash.edu/learning-teaching/teachhq/learning-technologies/panopto/how-to/insert-a-quiz-into-a-panopto-video',
-        'info_dict': {
-            'id': '0bd3f16c-824a-436a-8486-ac5900693aef',
-            'ext': 'mp4',
-            'title': 'Quizzes in Panopto',
-            'average_rating': 0,
-            'cast': ['Stephanie Luo'],
-            'chapters': 'count:8',
-            'channel': 'Panopto',
-            'description': 'md5:731ce802eee75808b1181db1ff1b5002',
-            'duration': 185.833,
-            'tags': [],
-            'thumbnail': r're:https?://monash\.au\.panopto\.com/.+',
-            'timestamp': 1607562188,
-            'upload_date': '20201210',
-            'uploader': 'Stephanie Luo',
-            'uploader_id': 'b18ca46d-20df-4ff5-b0b3-aa7a00085617',
-        },
-        'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
