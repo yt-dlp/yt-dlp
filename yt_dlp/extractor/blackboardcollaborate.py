@@ -102,8 +102,8 @@ class BlackboardCollaborateIE(InfoExtractor):
         },
     ]
 
-    # API Reference: https://github.com/blackboard/BBDN-Collab-Postman-REST
     def _call_api(self, region, video_id, api_call='', token=None, note='Downloading JSON metadata', fatal=False):
+        # Ref: https://github.com/blackboard/BBDN-Collab-Postman-REST
         return self._download_json(f'https://{region}.bbcollab.com/collab/api/csa/recordings/{video_id}/{api_call}',
                                    video_id, note=note,
                                    headers={'Authorization': f'Bearer {token}'} if token else '', fatal=fatal)
