@@ -1482,16 +1482,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': True},
     }, {
-        # 🔍111
-        # ViddlerIE
-        'url': 'https://deadspin.com/i-cant-stop-watching-john-wall-chop-the-nuggets-with-th-1681801597/',
-        'info_dict': {
-            'id': '4d03aad9',
-            'ext': 'mp4',
-            'title': 'WALL-TO-GORTAT',
-        },
-        'skip': 'Site changed',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
