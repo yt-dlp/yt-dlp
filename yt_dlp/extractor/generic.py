@@ -1941,67 +1941,6 @@ class GenericIE(InfoExtractor):
             'title': 'Тайны перевала Дятлова • 1 серия 2 часть',
         },
         'skip': 'Invalid URL',
-    }, {
-        # 🆑140
-        # GfycatIE; removed IE
-        'url': 'https://www.gezip.net/bbs/board.php?bo_table=entertaine&wr_id=613422',
-        'info_dict': {
-            'id': 'board',
-            'title': '재이, 윤, 세은 황금 드레스를 입고 빛난다',
-        },
-        'playlist_count': 8,
-        'skip': 'Invalid URL',
-    }, {
-        # 🆑141
-        # GfycatIE; removed IE
-        'url': 'https://www.gezip.net/bbs/board.php?bo_table=entertaine&wr_id=612199',
-        'info_dict': {
-            'id': 'board',
-            'title': '옳게 된 크롭 니트 스테이씨 아이사',
-        },
-        'playlist_count': 6,
-        'skip': 'Invalid URL',
-    }, {
-        # 🆑142
-        # GfycatIE; removed IE
-        'url': 'https://kkzz.kr/?vid=2295',
-        'info_dict': {
-            'id': '?vid=2295',
-            'title': '지방시 앰버서더 에스파 카리나 움짤',
-        },
-        'playlist_count': 9,
-        'skip': 'Invalid URL',
-    }, {
-        # 🆑143
-        # MyviIE; removed IE
-        'url': 'http://www.kinomyvi.tv/news/detail/Pervij-dublirovannij-trejler--Uzhastikov-_nOw1',
-        'info_dict': {
-            'id': 'f4dafcad-ff21-423d-89b5-146cfd89fa1e',
-            'ext': 'mp4',
-            'title': 'Ужастики, русский трейлер (2015)',
-        },
-        'skip': 'Invalid URL',
-    }, {
-        # 🆑144
-        # NowVideoIE; removed IE
-        'url': 'http://www.waoanime.tv/the-super-dimension-fortress-macross-episode-1/',
-        'info_dict': {
-            'id': '06e53103ca9aa',
-            'ext': 'flv',
-            'title': 'Macross Episode 001  Watch Macross Episode 001 onl',
-        },
-        'skip': 'Invalid URL',
-    }, {
-        # 🆑145
-        # VShareIE; removed IE
-        'url': 'https://youtube-dl-demo.neocities.org/vshare.html',
-        'md5': '17b39f55b5497ae8b59f5fbce8e35886',
-        'info_dict': {
-            'id': '0f64ce6',
-            'title': 'vl14062007715967',
-            'ext': 'mp4',
-        },
-        'skip': 'Invalid URL',
     }]
 
     def report_following_redirect(self, new_url):
