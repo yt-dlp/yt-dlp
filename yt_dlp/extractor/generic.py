@@ -1887,60 +1887,6 @@ class GenericIE(InfoExtractor):
             'upload_date': '20211113',
             'uploader': 'paraf1ve',
         },
-    }, {
-        # 🆑135
-        # ArkenaIE; Arkena discontinued
-        'url': 'https://support.arkena.com/display/PLAY/Ways+to+embed+your+video',
-        'info_dict': {
-            'id': 'b41dda37-d8e7-4d3f-b1b5-9a9db578bdfe',
-            'ext': 'mp4',
-            'title': 'Big Buck Bunny',
-        },
-        'skip': 'Invalid URL',
-    }, {
-        # 🆑136
-        # ClipYouEmbedIE; Eagle Platform discontinued
-        'url': 'http://muz-tv.ru/play/7129/',
-        'info_dict': {
-            'id': '12820',
-            'ext': 'mp4',
-            'title': "'O Sole Mio",
-        },
-        'skip': 'Invalid URL',
-    }, {
-        # 🆑137
-        # EaglePlatformIE; Eagle Platform discontinued
-        'url': 'https://tvrain.ru/lite/teleshow/kak_vse_nachinalos/namin-418921/',
-        'info_dict': {
-            'id': '582306',
-            'ext': 'mp4',
-            'title': 'Стас Намин: «Мы нарушили девственность Кремля»',
-        },
-        'skip': 'Site changed',
-    }, {
-        # 🆑138
-        # MTVServicesEmbeddedIE; dead IE
-        'url': 'http://www.vulture.com/2016/06/new-key-peele-sketches-released.html',
-        'md5': 'ca1aef97695ef2c1d6973256a57e5252',
-        'info_dict': {
-            'id': '769f7ec0-0692-4d62-9b45-0d88074bffc1',
-            'ext': 'mp4',
-            'title': 'Key and Peele|October 10, 2012|2|203|Liam Neesons - Uncensored',
-            'description': 'Two valets share their love for movie star Liam Neesons.',
-            'timestamp': 1349922600,
-            'upload_date': '20121011',
-        },
-        'skip': 'Invalid URL',
-    }, {
-        # 🆑139
-        # PladformIE; Pladform discontinued
-        'url': 'http://muz-tv.ru/kinozal/view/7400/',
-        'info_dict': {
-            'id': '100183293',
-            'ext': 'mp4',
-            'title': 'Тайны перевала Дятлова • 1 серия 2 часть',
-        },
-        'skip': 'Invalid URL',
     }]
 
     def report_following_redirect(self, new_url):
