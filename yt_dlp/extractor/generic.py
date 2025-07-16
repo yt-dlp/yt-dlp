@@ -1492,16 +1492,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Site changed',
     }, {
-        # 🔧112
-        # VideaIE
-        'url': 'https://videa.hu/',
-        'info_dict': {
-            'id': '623756-deleted-magic-star-wars-ot-deleted-alt-scenes-docu-style',
-            'title': 'Deleted Magic - Star Wars: OT Deleted / Alt. Scenes Docu. Style - DVD Talk Forum',
-        },
-        'playlist_mincount': 2,
-        'skip': 'IE fix required; embed detection',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
