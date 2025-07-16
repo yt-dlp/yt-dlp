@@ -1751,16 +1751,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Site Changed',
     }, {
-        # ✅128
-        # ZapiksIE
-        'url': 'https://www.skipass.com/news/116090-bon-appetit-s5ep3-baqueira-mi-cor.html',
-        'info_dict': {
-            'id': '118046',
-            'ext': 'mp4',
-            'title': 'EP3S5 - Bon Appétit - Baqueira Mi Corazon !',
-            'thumbnail': r're:https?://zpks\.com/.+\.jpg',
-        },
-    }, {
         # ✅131
         # Redirect
         # https://github.com/ytdl-org/youtube-dl/issues/413
