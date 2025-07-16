@@ -4,12 +4,12 @@ import json
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
+    float_or_none,
+    jwt_decode_hs256,
     mimetype2ext,
     parse_iso8601,
     parse_qs,
-    str_or_none,
     url_or_none,
-    jwt_decode_hs256,
 )
 from ..utils.traversal import traverse_obj
 
@@ -125,7 +125,7 @@ class BlackboardCollaborateIE(InfoExtractor):
             'aspect_ratio': ('aspectRatio', {float_or_none}),
         }))
 
-        if filesize := traverse_obj(video_extract, ('storageSize', {int_or_none})):
+        if filesize := traverse_obj(video_extra, ('storageSize', {int_or_none})):
             for fmt in formats:
                 fmt['filesize'] = filesize
 
