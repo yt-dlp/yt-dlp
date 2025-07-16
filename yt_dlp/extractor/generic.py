@@ -1345,16 +1345,6 @@ class GenericIE(InfoExtractor):
         },
         'playlist_mincount': 7,
     }, {
-        # 🔍99
-        # SportBoxIE
-        'url': 'http://www.vestifinance.ru/articles/25753',
-        'info_dict': {
-            'id': '25753',
-            'title': 'Прямые трансляции с Форума-выставки "Госзаказ-2013"',
-        },
-        'playlist_count': 3,
-        'skip': 'Invalid URL',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
