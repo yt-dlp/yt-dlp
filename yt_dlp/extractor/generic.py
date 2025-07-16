@@ -2002,16 +2002,6 @@ class GenericIE(InfoExtractor):
             'ext': 'mp4',
         },
         'skip': 'Invalid URL',
-    }, {
-        # 🆑146
-        # RtlNlIE; Widevine protected
-        'url': 'http://www.rtlnieuws.nl/nieuws/buitenland/aanslagen-kopenhagen',
-        'playlist_mincount': 5,
-        'info_dict': {
-            'id': 'aanslagen-kopenhagen',
-            'title': 'Aanslagen Kopenhagen',
-        },
-        'skip': 'Invalid URL',
     }]
 
     def report_following_redirect(self, new_url):
