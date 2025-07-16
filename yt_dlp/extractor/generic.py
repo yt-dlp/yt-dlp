@@ -1465,23 +1465,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'IE fix required; embed detection',
     }, {
-        # ✅109
-        # Vbox7IE
-        'url': 'http://nova.bg/news/view/2016/08/16/156543/%D0%BD%D0%B0-%D0%BA%D0%BE%D1%81%D1%8A%D0%BC-%D0%BE%D1%82-%D0%B2%D0%B7%D1%80%D0%B8%D0%B2-%D0%BE%D1%82%D1%86%D0%B5%D0%BF%D0%B8%D1%85%D0%B0-%D1%86%D1%8F%D0%BB-%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B0%D0%BB-%D0%B7%D0%B0%D1%80%D0%B0%D0%B4%D0%B8-%D0%B8%D0%B7%D1%82%D0%B8%D1%87%D0%B0%D0%BD%D0%B5-%D0%BD%D0%B0-%D0%B3%D0%B0%D0%B7-%D0%B2-%D0%BF%D0%BB%D0%BE%D0%B2%D0%B4%D0%B8%D0%B2/',
-        'info_dict': {
-            'id': '5a4d12166d',
-            'ext': 'mp4',
-            'title': 'НА КОСЪМ ОТ ВЗРИВ: Отцепиха цял квартал заради изтичане на газ в Пловдив',
-            'description': 'md5:7d29497934a0340dc5b5598454d406bc',
-            'duration': 200,
-            'thumbnail': r're:https?://.+\.jpg',
-            'timestamp': 1471353501,
-            'upload_date': '20160816',
-            'uploader': 'novinitenanova',
-            'view_count': int,
-        },
-        'params': {'skip_download': True},
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
