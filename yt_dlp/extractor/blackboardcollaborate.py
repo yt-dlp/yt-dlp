@@ -23,8 +23,7 @@ class BlackboardCollaborateIE(InfoExtractor):
                             collab/ui/session/playback/load|
                             recording
                         )/
-                        (?P<id>[^/\?]+)
-                        \??(authToken=(?P<token>[\w\.\-]+))?'''
+                        (?P<id>[^/?#]+)'''
     _TESTS = [
         {
             'url': 'https://us-lti.bbcollab.com/collab/ui/session/playback/load/0a633b6a88824deb8c918f470b22b256',
@@ -112,7 +111,7 @@ class BlackboardCollaborateIE(InfoExtractor):
         mobj = self._match_valid_url(url)
         region = mobj.group('region')
         video_id = mobj.group('id')
-        token = mobj.group('token') or parse_qs(url).get('authToken')
+        token = parse_qs(url).get('authToken', [None])[-1]
 
         if video_info := self._call_api(region, video_id, 'data/secure', token, 'Trying auth token'):
             video_extra = self._call_api(region, video_id, token=token, note='Retrieving extra attributes')
