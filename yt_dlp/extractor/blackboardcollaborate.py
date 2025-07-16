@@ -119,10 +119,6 @@ class BlackboardCollaborateIE(InfoExtractor):
             video_info = self._call_api(region, video_id, 'data', note='Trying fallback', fatal=True)
             video_extra = {}
 
-        duration = int_or_none(video_info.get('duration'), 1000)
-        title = video_info.get('name')
-        upload_date = video_info.get('created')
-
         formats = traverse_obj(video_info, ('extStreams', ..., {
             'url': ('streamUrl', {url_or_none}),
             'container': ('contentType', {mimetype2ext}),
@@ -144,12 +140,14 @@ class BlackboardCollaborateIE(InfoExtractor):
             subtitles.setdefault('live_chat', []).append({'url': url_or_none(current_chat['url'])})
 
         return {
-            'duration': duration,
+            **traverse_obj(video_info, {
+                'title': ('name', {str}),
+                'timestamp': ('created', {parse_iso8601}),
+                'duration': ('duration', {int_or_none(scale=1000)}),
+            }),
             'formats': formats,
             'id': video_id,
-            'timestamp': parse_iso8601(upload_date),
             'subtitles': subtitles,
-            'title': title,
         }
 
 
