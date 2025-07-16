@@ -1355,16 +1355,6 @@ class GenericIE(InfoExtractor):
         'playlist_count': 3,
         'skip': 'Invalid URL',
     }, {
-        # 🔍100
-        # SpringboardPlatformIE
-        'url': 'https://www.kidzworld.com/article/30935-trolls-the-beat-goes-on-interview-skylar-astin-and-amanda-leighton',
-        'info_dict': {
-            'id': '1731611',
-            'ext': 'mp4',
-            'title': 'Official Trailer | TROLLS: THE BEAT GOES ON!',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
