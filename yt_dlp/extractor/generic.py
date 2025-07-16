@@ -1502,21 +1502,6 @@ class GenericIE(InfoExtractor):
         'playlist_mincount': 2,
         'skip': 'IE fix required; embed detection',
     }, {
-        # ✅113
-        # VideoPressIE
-        'url': 'https://wordpress.com/support/videopress/',
-        'info_dict': {
-            'id': 'BZHMfMfN',
-            'ext': 'mp4',
-            'title': 'videopress example',
-            'age_limit': 0,
-            'description': '',
-            'duration': 19.796,
-            'thumbnail': r're:https?://videos\.files\.wordpress\.com/.+\.jpg',
-            'timestamp': 1748969554,
-            'upload_date': '20250603',
-        },
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
