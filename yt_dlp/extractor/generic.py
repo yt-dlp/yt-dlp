@@ -1082,16 +1082,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # 🔧92
-        # RuutuIE
-        'url': 'https://www.hs.fi/maailma/art-2000011353059.html',
-        'info_dict': {
-            'id': '4746675',
-            'ext': 'mp4',
-            'title': 'Yhdysvaltojen Texasin osavaltiota ovat koetelleet tuhoisat tulvat',
-        },
-        'skip': 'IE fix required',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
