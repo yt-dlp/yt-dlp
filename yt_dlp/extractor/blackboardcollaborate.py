@@ -136,8 +136,8 @@ class BlackboardCollaborateIE(InfoExtractor):
                 'url': subs['url'],
             })
 
-        for current_chat in video_info.get('chats'):
-            subtitles.setdefault('live_chat', []).append({'url': url_or_none(current_chat['url'])})
+        for live_chat_url in traverse_obj(video_info, ('chats', ..., 'url', {url_or_none})):
+            subtitles.setdefault('live_chat', []).append({'url': live_chat_url})
 
         return {
             **traverse_obj(video_info, {
