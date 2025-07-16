@@ -165,8 +165,8 @@ class BlackboardCollaborateLaunchIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        token = self._match_valid_url(url)['token']
-        video_id = traverse_obj(json.loads(base64.b64decode(token.split('.')[1] + '===')), ('resourceAccessTicket', 'resourceId'))
+        token = self._match_id(url)
+        video_id = jwt_decode_hs256(token)['resourceAccessTicket']['resourceId'] 
 
         redirect_url = self._request_webpage(url, video_id=video_id).url
         return self.url_result(redirect_url,
