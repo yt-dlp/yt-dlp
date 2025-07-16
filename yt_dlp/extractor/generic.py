@@ -1629,29 +1629,6 @@ class GenericIE(InfoExtractor):
         },
         'playlist_count': 2,
     }, {
-        # 🔧122
-        # XHamsterEmbedIE
-        'url': 'https://xhamster.com/awards/2023',
-        'info_dict': {
-            'id': 'xh2VnYn',
-            'ext': 'mp4',
-            'title': 'xHamster Awards 2023 - The Winners',
-            'age_limit': 18,
-            'comment_count': int,
-            'description': '',
-            'display_id': 'xhamster-awards-2023-the-winners',
-            'duration': 292,
-            'thumbnail': r're:https?://ic-vt-nss\.xhcdn\.com/.+',
-            'timestamp': 1700122082,
-            'upload_date': '20231116',
-            'uploader': 'xHamster',
-            'uploader_id': 'xhamster',
-            'uploader_url': 'https://xhamster.com/users/xhamster',
-            'view_count': int,
-        },
-        'params': {'skip_download': 'm3u8'},
-        'skip': 'IE fix required; embed detection',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
