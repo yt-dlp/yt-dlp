@@ -24,6 +24,11 @@ class YapFilesIE(InfoExtractor):
             'duration': 72,
         },
     }, {
+        # without hd
+        'url': 'https://api.yapfiles.ru/get_player/?uid=video_player_1872528&plroll=1&adv=1&v=vMDE4NzI1Mjgt690b',
+        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
         'url': 'https://www.yapfiles.ru/show/3397030/e34b69aa03829d513d7dc3ace6ec9631.mp4.html',
         'info_dict': {
             'id': 'vMDE4NzI1Mjgt690b',
@@ -31,10 +36,6 @@ class YapFilesIE(InfoExtractor):
             'title': 'Котята',
         },
         'skip': 'IE fix required; update _VALID_URL',
-    }, {
-        # without hd
-        'url': 'https://api.yapfiles.ru/get_player/?uid=video_player_1872528&plroll=1&adv=1&v=vMDE4NzI1Mjgt690b',
-        'only_matching': True,
     }]
 
     def _real_extract(self, url):
