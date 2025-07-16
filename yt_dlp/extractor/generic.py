@@ -2083,16 +2083,6 @@ class GenericIE(InfoExtractor):
             'ext': 'mp4',
         },
         'skip': 'Script:SNH-gen [Trj]',
-    }, {
-        # 🆑
-        # ThePlatformIE; Embed URLs contain spaces
-        'url': 'http://www.golfchannel.com/topics/shows/golftalkcentral.htm',
-        'only_matching': True,
-    }, {
-        # 🆑
-        # VimeoIE; Referrer required
-        'url': 'http://racing4everyone.eu/2016/07/30/formula-1-2016-round12-germany/',
-        'only_matching': True,
     }]
 
     def report_following_redirect(self, new_url):
