@@ -155,7 +155,7 @@ class BlackboardCollaborateIE(InfoExtractor):
 
 
 class BlackboardCollaborateLaunchIE(InfoExtractor):
-    _VALID_URL = r'https?://[a-z]+\.bbcollab\.com/launch/(?P<token>[\w\.\-]+)'
+    _VALID_URL = r'https?://[a-z]+\.bbcollab\.com/launch/(?P<id>[^/?#]+)'
 
     _TESTS = [
         {
