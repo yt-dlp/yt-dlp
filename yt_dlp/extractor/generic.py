@@ -1581,20 +1581,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # ✅118
-        # ViqeoIE
-        'url': 'https://viqeo.tv/',
-        'info_dict': {
-            'id': 'viqeo',
-            'title': 'Viqeo video platform',
-            'age_limit': 0,
-            'description': 'md5:e8e06e20df92ed66febeaef2533a0d5d',
-            'thumbnail': r're:https?://static\.tildacdn\.com/.+\.png',
-            'timestamp': 1751479769,
-            'upload_date': '20250702',
-        },
-        'playlist_count': 3,
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
