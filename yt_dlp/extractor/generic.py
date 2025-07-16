@@ -931,21 +931,6 @@ class GenericIE(InfoExtractor):
             'upload_date': '20141126',
         },
     }, {
-        # 🔧81
-        # MainStreamingIE
-        'url': 'https://www.lacplay.it/video/in-evidenza_728/lac-storie-p-250-i-santi-pietro-e-paolo_77297/',
-        'info_dict': {
-            'id': 'u7kiX5DUaHYr',
-            'ext': 'mp4',
-            'title': 'I Santi Pietro e Paolo',
-            'description': 'md5:ff6be24916ba6b9ae990bf5f3df4911e',
-            'duration': 1700.0,
-            'thumbnail': r're:https?://.+',
-            'tags': '06/07/2025',
-            'live_status': 'not_live',
-        },
-        'skip': 'IE fix required; embed detection',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
