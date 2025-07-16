@@ -1409,16 +1409,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        # 🔍104
-        # TuneInStationIE
-        'url': 'http://radiocnrv.com/promouvoir-radio-cnrv/',
-        'info_dict': {
-            'id': '204146',
-            'ext': 'mp3',
-            'title': 'CNRV',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
