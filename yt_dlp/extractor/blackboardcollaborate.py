@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     float_or_none,
+    join_nonempty,
     jwt_decode_hs256,
     mimetype2ext,
     parse_iso8601,
@@ -101,11 +102,12 @@ class BlackboardCollaborateIE(InfoExtractor):
         },
     ]
 
-    def _call_api(self, region, video_id, api_call='', token=None, note='Downloading JSON metadata', fatal=False):
+    def _call_api(self, region, video_id, path=None, token=None, note=None, fatal=False):
         # Ref: https://github.com/blackboard/BBDN-Collab-Postman-REST
-        return self._download_json(f'https://{region}.bbcollab.com/collab/api/csa/recordings/{video_id}/{api_call}',
-                                   video_id, note=note,
-                                   headers={'Authorization': f'Bearer {token}'} if token else '', fatal=fatal)
+        return self._download_json(
+            join_nonempty(f'https://{region}.bbcollab.com/collab/api/csa/recordings', video_id, path, delim='/'),
+            video_id, note or 'Downloading JSON metadata', fatal=fatal,
+            headers={'Authorization': f'Bearer {token}'} if token else None)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -113,10 +115,11 @@ class BlackboardCollaborateIE(InfoExtractor):
         video_id = mobj.group('id')
         token = parse_qs(url).get('authToken', [None])[-1]
 
-        if video_info := self._call_api(region, video_id, 'data/secure', token, 'Trying auth token'):
+        video_info = self._call_api(region, video_id, path='data/secure', token=token, note='Trying auth token')
+        if video_info:
             video_extra = self._call_api(region, video_id, token=token, note='Retrieving extra attributes')
         else:
-            video_info = self._call_api(region, video_id, 'data', note='Trying fallback', fatal=True)
+            video_info = self._call_api(region, video_id, path='data', note='Trying fallback', fatal=True)
             video_extra = {}
 
         formats = traverse_obj(video_info, ('extStreams', lambda _, v: url_or_none(v['streamUrl']), {
