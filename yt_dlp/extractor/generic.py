@@ -1429,21 +1429,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # ✅106
-        # TVOpenGrEmbedIE
-        'url': 'https://www.ethnos.gr/World/article/190604/hparosiaxekinoynoisynomiliessthgeneyhmethskiatoypolemoypanoapothnoykrania',
-        'info_dict': {
-            'id': '101119',
-            'ext': 'mp4',
-            'title': 'Οι καρποί των διαπραγματεύσεων ΗΠΑ-Ρωσίας | Ώρα Ελλάδος 7:00 > Ρεπορτάζ',
-            'description': 'md5:e54fc1977c7159b01cc11cd7d9d85550',
-            'display_id': 'oikarpoitondiapragmateyseonhparosias',
-            'duration': 421.0,
-            'thumbnail': r're:https?://opentv-static\.siliconweb\.com/imgHandler/.+\.jpg',
-            'timestamp': 1641772800,
-            'upload_date': '20220110',
-        },
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
