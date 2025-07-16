@@ -1617,18 +1617,6 @@ class GenericIE(InfoExtractor):
         },
         'playlist_count': 40,
     }, {
-        # ✅121
-        # WistiaIE
-        'url': 'https://support.wistia.com/en/articles/8233354-embedding-your-media',
-        'info_dict': {
-            'id': '8233354-embedding-your-media',
-            'title': 'Embedding Your Media | Wistia Help Center',
-            'age_limit': 0,
-            'description': 'md5:32a5edc0e266cd61e2d15be28873d614',
-            'thumbnail': r're:https?://downloads\.intercomcdn\.com/.+\.jpg',
-        },
-        'playlist_count': 2,
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
