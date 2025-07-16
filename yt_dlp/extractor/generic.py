@@ -1652,16 +1652,6 @@ class GenericIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
         'skip': 'IE fix required; embed detection',
     }, {
-        # 🔧123
-        # YapFilesIE; should be supported by _VALID_URL
-        'url': 'https://www.yapfiles.ru/show/3397030/e34b69aa03829d513d7dc3ace6ec9631.mp4.html',
-        'info_dict': {
-            'id': 'vMDE4NzI1Mjgt690b',
-            'ext': 'mp4',
-            'title': 'Котята',
-        },
-        'skip': 'IE fix required; update _VALID_URL',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
