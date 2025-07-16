@@ -125,8 +125,9 @@ class BlackboardCollaborateIE(InfoExtractor):
             'aspect_ratio': ('aspectRatio', {float_or_none}),
         }))
 
-        for cur_format in formats:
-            cur_format['filesize'] = int_or_none(video_extra.get('storageSize'))
+        if filesize := traverse_obj(video_extract, ('storageSize', {int_or_none})):
+            for fmt in formats:
+                fmt['filesize'] = filesize
 
         subtitles = {}
         for current_subs in video_info.get('subtitles'):
