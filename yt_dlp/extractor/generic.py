@@ -1104,30 +1104,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'IE fix required; embed detection',
     }, {
-        # 🔧96
-        # SimplecastIE
-        'url': 'https://poddtoppen.se/podcast/1498417306/the-rebindio-podcast/errant-signal-chris-franklin-new-wave-video-essays',
-        'md5': '8c93be7be54251bf29ee97464eabe61c',
-        'info_dict': {
-            'id': 'b6dc49a2-9404-4853-9aa9-9cfc097be876',
-            'ext': 'mp3',
-            'title': 'Errant Signal - Chris Franklin & New Wave Video Essays',
-            'channel_url': 'https://the-re-bind-io-podcast.simplecast.com',
-            'description': 'md5:34752789d3d2702e2d2c975fbd14f357',
-            'display_id': 'errant-signal-chris-franklin-new-wave-video-essays',
-            'duration': 5343,
-            'episode': 'Episode 1',
-            'episode_id': 'b6dc49a2-9404-4853-9aa9-9cfc097be876',
-            'episode_number': 1,
-            'season': 'Season 1',
-            'season_id': 'e23df0da-bae4-4531-8bbf-71364a88dc13',
-            'season_number': 1,
-            'series': 'The RE:BIND.io Podcast',
-            'timestamp': 1580979475,
-            'upload_date': '20200206',
-        },
-        'skip': 'IE fix required; embed detection',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
