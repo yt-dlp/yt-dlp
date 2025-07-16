@@ -13,7 +13,6 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-
 class BlackboardCollaborateIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                         https?://
