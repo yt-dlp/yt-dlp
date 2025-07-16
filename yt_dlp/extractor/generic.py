@@ -758,24 +758,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'IE fix required; embed detection',
     }, {
-        # 🆑53
-        # CondeNastIE
-        'url': 'https://www.wired.com/video/watch/the-wired-reviews-teams-amazon-prime-day-picks',
-        'info_dict': {
-            'id': '686d4037777e2b6c4273cf26',
-            'ext': 'mp4',
-            'title': 'The WIRED Reviews Team’s Amazon Prime Day Picks',
-            'categories': ['Promotion'],
-            'description': 'md5:6ca43d82dbfba04751327dd0ceee4e31',
-            'duration': 103,
-            'tags': 'count:2',
-            'thumbnail': r're:https?://dwgyu36up6iuz\.cloudfront\.net/.+\.jpg',
-            'timestamp': 1751976000,
-            'upload_date': '20250708',
-            'uploader': 'wired',
-        },
-        'skip': 'Already supported by _VALID_URL',
-    }, {
         # 🔧54
         # CondeNastIE
         'url': 'https://www.vanityfair.com/video/watch/vf-quiz-show-squid-game-s3',
