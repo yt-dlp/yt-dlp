@@ -196,46 +196,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': 'smil'},
     }, {
-        # 🆑11; duplicate of 10
-        # SMIL
-        'url': 'http://metafilegenerator.de/WDR/WDR_FS/hds/hds.smil',
-        'info_dict': {
-            'id': 'hds',
-            'ext': 'flv',
-            'title': 'hds',
-        },
-        'skip': 'Site changed',
-    }, {
-        # 🆑12; duplicate of 10
-        # SMIL
-        'url': 'https://www.restudy.dk/awsmedia/SmilDirectory/video_1637.xml',
-        'info_dict': {
-            'id': 'video_1637',
-            'ext': 'flv',
-            'title': 'video_1637',
-        },
-        'skip': 'Invalid URL',
-    }, {
-        # 🆑13; duplicate of 10
-        # SMIL
-        'url': 'http://services.media.howstuffworks.com/videos/450221/smil-service.smil',
-        'info_dict': {
-            'id': 'smil-service',
-            'ext': 'flv',
-            'title': 'smil-service',
-        },
-        'skip': 'Invalid URL',
-    }, {
-        # 🆑14; duplicate of 10
-        # SMIL
-        'url': 'http://api.new.livestream.com/accounts/1570303/events/1585861/videos/4719370.smil',
-        'info_dict': {
-            'id': '4719370',
-            'ext': 'mp4',
-            'title': '571de1fd-47bc-48db-abf9-238872a58d1f',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # ✅15
         # XSPF playlist; https://shellac-archive.ch/de/index.html
         # https://github.com/ytdl-org/youtube-dl/commit/1de5cd3ba51ce67d9a1cd3b40157058e78e46692
@@ -290,16 +250,6 @@ class GenericIE(InfoExtractor):
         'playlist_mincount': 100,
         'skip': 'Alternative required',
     }, {
-        # 🆑20; duplicate of 19
-        # RSS feed: includes enclosure
-        'url': 'http://podcastfeeds.nbcnews.com/audio/podcast/MSNBC-MADDOW-NETCAST-M4V.xml',
-        'info_dict': {
-            'id': 'http://podcastfeeds.nbcnews.com/nbcnews/video/podcast/MSNBC-MADDOW-NETCAST-M4V.xml',
-            'title': 'MSNBC Rachel Maddow (video)',
-        },
-        'playlist_count': 1,
-        'skip': 'Invalid URL',
-    }, {
         # ✅21
         # Webpage starts with a duplicate UTF-8 BOM
         # https://github.com/yt-dlp/yt-dlp/commit/80e8493ee7c3083f4e215794e4a67ba5265f24f7
@@ -326,18 +276,6 @@ class GenericIE(InfoExtractor):
             'thumbnail': r're:https?://www\.dagbladet\.no/images/.+',
         },
         'playlist_count': 2,
-    }, {
-        # 🆑23
-        # Duplicated embedded video URLs
-        # https://github.com/ytdl-org/youtube-dl/issues/6562
-        'url': 'https://www.hudl.com/video/3/2538180/5721b8f70428ae20e4abe221',
-        'info_dict': {
-            'id': '149298443_480_16c25b74_2',
-            'ext': 'mp4',
-            'title': 'vs. Blue Orange Spring Game',
-            'uploader': 'www.hudl.com',
-        },
-        'skip': 'Site changed',
     }, {
         # ✅24
         # Cinerama Player
@@ -459,21 +397,6 @@ class GenericIE(InfoExtractor):
             'id': '18485',
             'ext': 'mp4',
             'title': 'Клип: Ленинград - ЗОЖ скачать, смотреть онлайн | Youix.com',
-            'age_limit': 0,
-            'display_id': 'leningrad-zoj',
-            'thumbnail': r're:https?://youix\.com/contents/videos_screenshots/.+\.jpg',
-        },
-    }, {
-        # 🆑32; duplicate of 31
-        # KVS Player v7.7.11
-        # kt_player.js?v=5.5.1
-        # https://github.com/yt-dlp/yt-dlp/commit/a318f59d14792d25b2206c3f50181e03e8716db7
-        'url': 'https://youix.com/embed/18485',
-        'md5': '94f96ba95706dc3880812b27b7d8a2b8',
-        'info_dict': {
-            'id': '18485',
-            'ext': 'mp4',
-            'title': 'Ленинград - ЗОЖ',
             'age_limit': 0,
             'display_id': 'leningrad-zoj',
             'thumbnail': r're:https?://youix\.com/contents/videos_screenshots/.+\.jpg',
@@ -637,18 +560,6 @@ class GenericIE(InfoExtractor):
         },
         'add_ie': ['Youtube'],
     }, {
-        # 🆑43; duplicate of 42
-        # Video.js: YouTube
-        # https://github.com/ytdl-org/youtube-dl/issues/14371
-        'url': 'https://www.vooplayer.com/v3/watch/watch.php?v=NzgwNTg=',
-        'info_dict': {
-            'id': 'watch',
-            'ext': 'mp4',
-            'title': 'Step 1 -  Good Foundation',
-            'description': 'md5:d1e7ff33a29fc3eb1673d6c270d344f4',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # 🔧44
         # AdobeTVEmbedIE
         'url': 'https://www.adobe.com/learn/acrobat/web/customize-toolbar',
@@ -773,17 +684,6 @@ class GenericIE(InfoExtractor):
             'upload_date': '20150405',
         },
     }, {
-        # 🆑56; duplicate of 55
-        # CrooksAndLiarsIE
-        # https://github.com/ytdl-org/youtube-dl/commit/a4257017ef2ee665d35dd71905db03ca3913c92e
-        'url': 'https://theothermccain.com/2010/02/02/video-proves-that-bill-kristol-has-been-watching-glenn-beck/comment-page-1/',
-        'info_dict': {
-            'id': 'MTE3MjUtMzQ2MzA',
-            'ext': 'mp4',
-            'title': 'md5:5e3662a81a4014d24c250d76d41a08d5',
-        },
-        'skip': 'Site changed',
-    }, {
         # 🔍57
         # DailyMailIE
         'url': 'http://www.bumm.sk/krimi/2017/07/05/biztonsagi-kamera-buktatta-le-az-agg-ferfit-utlegelo-apolot',
@@ -813,16 +713,6 @@ class GenericIE(InfoExtractor):
             'uploader_id': 'x19qlwr',
             'view_count': int,
         },
-    }, {
-        # 🆑59; duplicate of 58
-        # DailymotionIE
-        'url': 'http://www.spi0n.com/zap-spi0n-com-n216/',
-        'info_dict': {
-            'id': 'k2mm4bCdJ6CQ2i7c8o2',
-            'ext': 'mp4',
-            'title': 'Le Zap de Spi0n n°216 - Zapping du Web',
-        },
-        'skip': 'Invalid URL',
     }, {
         # 🔧60
         # DBTVIE
@@ -1006,54 +896,6 @@ class GenericIE(InfoExtractor):
             'uploader_id': 'eps2',
             'view_count': int,
         },
-    }, {
-        # 🆑74; duplicate of 70
-        # KalturaIE
-        # https://github.com/ytdl-org/youtube-dl/issues/16201
-        'url': 'https://thechive.com/video/all-i-want-for-christmas-is-more-twerk/',
-        'md5': 'f7d14a82b1c91e63779c96fb861cb635',
-        'info_dict': {
-            'id': 'all-i-want-for-christmas-is-more-twerk-1',
-            'ext': 'mp4',
-            'title': 'All I want for Christmas is more twerk (Video) (1)',
-            'description': 'md5:c248081302047bc0e186c862a8ac5090',
-            'thumbnail': r're:https?://thechive\.com/wp-content/uploads/.+',
-            '_old_archive_ids': ['generic all-i-want-for-christmas-is-more-twerk'],
-        },
-        'skip': 'Site changed',
-    }, {
-        # 🆑75; duplicate of 70
-        # KalturaIE
-        # https://github.com/ytdl-org/youtube-dl/issues/6137
-        'url': 'http://www.premierchristianradio.com/Shows/Saturday/Unbelievable/Conference-Videos/Os-Guinness-Is-It-Fools-Talk-Unbelievable-Conference-2014',
-        'info_dict': {
-            'id': '1_a52wc67y',
-            'ext': 'flv',
-            'title': 'Os Guinness // Is It Fools Talk? // Unbelievable? Conference 2014',
-        },
-        'skip': 'Site changed',
-    }, {
-        # 🆑76; duplicate of 70
-        # KalturaIE
-        # https://github.com/ytdl-org/youtube-dl/issues/5557
-        'url': 'https://www.expansion.com/multimedia/videos.html?media=EQcM30NHIPv',
-        'info_dict': {
-            'id': '0_1iotm5bh',
-            'ext': 'mp4',
-            'title': 'Elecciones británicas: 5 lecciones para Rajoy',
-        },
-        'skip': 'Site changed',
-    }, {
-        # 🆑77; duplicate of 70
-        # KalturaIE
-        # https://github.com/ytdl-org/youtube-dl/commit/562de77f41d0c08df9dbb08cfa86ba6c7d239c5a
-        'url': 'https://www.quartier-rouge.be/prive/trans/chambre-avec-climatisation.html',
-        'info_dict': {
-            'id': 'chambre-avec-climatisation',
-            'title': 'chambre-avec-climatisation',
-        },
-        'playlist_count': 12,
-        'skip': 'Site changed',
     }, {
         # 🔍78
         # KinjaEmbedIE
@@ -1247,26 +1089,6 @@ class GenericIE(InfoExtractor):
             'id': '4746675',
             'ext': 'mp4',
             'title': 'Yhdysvaltojen Texasin osavaltiota ovat koetelleet tuhoisat tulvat',
-        },
-        'skip': 'IE fix required',
-    }, {
-        # 🆑93; duplicate of 92
-        # RuutuIE
-        'url': 'https://www.hs.fi/kotimaa/art-2000008762560.html',
-        'info_dict': {
-            'id': 'art-2000008762560',
-            'title': 'Koronavirus | Epidemiahuippu voi olla Suomessa ohi, mutta koronaviruksen poistamista yleisvaarallisten tautien joukosta harkitaan vasta syksyllä',
-        },
-        'playlist_count': 3,
-        'skip': 'IE fix required',
-    }, {
-        # 🆑94; duplicate of 92
-        # RuutuIE
-        'url': 'https://www.hs.fi/kotimaa/art-2000008793421.html',
-        'info_dict': {
-            'id': '4081841',
-            'ext': 'mp4',
-            'title': 'Puolustusvoimat siirsi panssariajoneuvoja harjoituksiin Niinisaloon 2.5.2022',
         },
         'skip': 'IE fix required',
     }, {
