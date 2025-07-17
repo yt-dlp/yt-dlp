@@ -694,26 +694,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # ✅58
-        # DailymotionIE
-        'url': 'https://forum.ionicframework.com/t/ionic-2-jw-player-dailymotion-player/83248',
-        'info_dict': {
-            'id': 'xwr14q',
-            'ext': 'mp4',
-            'title': 'Macklemore & Ryan Lewis - Thrift Shop (feat. Wanz)',
-            'age_limit': 0,
-            'description': 'md5:47fbe168b5a6ddc4a205e20dd6c841b2',
-            'duration': 234,
-            'like_count': int,
-            'tags': 'count:5',
-            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
-            'timestamp': 1358177670,
-            'upload_date': '20130114',
-            'uploader': 'Macklemore Official',
-            'uploader_id': 'x19qlwr',
-            'view_count': int,
-        },
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
