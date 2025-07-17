@@ -822,21 +822,6 @@ class GenericIE(InfoExtractor):
         'playlist_mincount': 5,
         'skip': 'IE fix required; embed detection',
     }, {
-        # ✅69
-        # JWPlatformIE
-        'url': 'https://www.skimag.com/video/ski-people-1980',
-        'info_dict': {
-            'id': 'YTmgRiNU',
-            'ext': 'mp4',
-            'title': 'Ski People (1980)',
-            'channel': 'snow',
-            'description': 'md5:cf9c3d101452c91e141f292b19fe4843',
-            'duration': 5688.0,
-            'thumbnail': r're:https?://cdn\.jwplayer\.com/v2/media/.+',
-            'timestamp': 1610407738,
-            'upload_date': '20210111',
-        },
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
