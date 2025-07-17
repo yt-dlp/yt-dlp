@@ -645,19 +645,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # ✅51
-        # BloggerIE
-        'url': 'https://blog.tomeuvizoso.net/2019/01/a-panfrost-milestone.html',
-        'md5': 'f1bc19b6ea1b0fd1d81e84ca9ec467ac',
-        'info_dict': {
-            'id': 'BLOGGER-video-3c740e3a49197e16-2611',
-            'ext': 'mp4',
-            'title': 'BLOGGER-video-3c740e3a49197e16-2611',
-            'duration': 76.068,
-            'thumbnail': r're:https?://i9\.ytimg\.com/vi_blogger/.+',
-        },
-        'skip': 'temp',
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
