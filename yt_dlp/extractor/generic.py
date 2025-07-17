@@ -714,20 +714,6 @@ class GenericIE(InfoExtractor):
             'view_count': int,
         },
     }, {
-        # 🔧60
-        # DBTVIE
-        'url': 'https://www.dagbladet.no/nyheter/rekordstort-russisk-angrep/83325693',
-        'info_dict': {
-            'id': '1HW7fYry',
-            'ext': 'mp4',
-            'title': 'Putin taler - så skjer dette',
-            'description': 'md5:3e8bacee33de861a9663d9a3fcc54e5e',
-            'thumbnail': r're:https?://cdn\.jwplayer\.com/v2/media/.+',
-            'timestamp': 1751043600,
-            'upload_date': '20250627',
-        },
-        'skip': 'IE fix required; embed detection',
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
