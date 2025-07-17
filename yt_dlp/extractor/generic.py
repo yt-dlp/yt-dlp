@@ -669,21 +669,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'IE fix required; embed detection',
     }, {
-        # ✅55
-        # CrooksAndLiarsIE
-        'url': 'https://crooksandliars.com/2015/04/fox-friends-says-protecting-atheists',
-        'info_dict': {
-            'id': '8RUoRhRi',
-            'ext': 'mp4',
-            'title': 'Fox & Friends Says Protecting Atheists From Discrimination Is Anti-Christian!',
-            'description': 'md5:e1a46ad1650e3a5ec7196d432799127f',
-            'uploader': 'Heather',
-            'duration': 236,
-            'thumbnail': r're:https?://crooksandliars\.com/files/.+',
-            'timestamp': 1428207000,
-            'upload_date': '20150405',
-        },
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
