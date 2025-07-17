@@ -769,16 +769,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Site changed',
     }, {
-        # 🔍65
-        # FranceTVIE
-        'url': 'http://www.tsprod.com/replay-du-concert-alcaline-de-calogero',
-        'info_dict': {
-            'id': 'EV_30231',
-            'ext': 'mp4',
-            'title': 'Alcaline, le concert avec Calogero',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
