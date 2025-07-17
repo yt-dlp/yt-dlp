@@ -634,17 +634,6 @@ class GenericIE(InfoExtractor):
         'playlist_count': 4,
         'skip': 'IE fix required; embed detection',
     }, {
-        # 🔍50
-        # BandcampIE
-        'url': 'http://bronyrock.com/track/the-pony-mash',
-        'info_dict': {
-            'id': '3235767654',
-            'ext': 'mp3',
-            'title': 'The Pony Mash',
-            'uploader': 'M_Pallante',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
