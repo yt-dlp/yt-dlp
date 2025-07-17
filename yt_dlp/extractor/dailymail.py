@@ -19,10 +19,20 @@ class DailyMailIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'The Mountain appears in sparkling water ad for \'Heavy Bubbles\'',
             'description': 'md5:a93d74b6da172dd5dc4d973e0b766a84',
+            'thumbnail': r're:https?://i\.dailymail\.co\.uk/.+\.jpg',
         },
     }, {
         'url': 'http://www.dailymail.co.uk/embed/video/1295863.html',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'http://www.bumm.sk/krimi/2017/07/05/biztonsagi-kamera-buktatta-le-az-agg-ferfit-utlegelo-apolot',
+        'info_dict': {
+            'id': '1495629',
+            'ext': 'mp4',
+            'title': 'Care worker punches elderly dementia patient in head 11 times',
+        },
+        'skip': 'Invalid URL',
     }]
 
     def _real_extract(self, url):

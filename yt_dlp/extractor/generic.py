@@ -684,16 +684,6 @@ class GenericIE(InfoExtractor):
             'upload_date': '20150405',
         },
     }, {
-        # 🔍57
-        # DailyMailIE
-        'url': 'http://www.bumm.sk/krimi/2017/07/05/biztonsagi-kamera-buktatta-le-az-agg-ferfit-utlegelo-apolot',
-        'info_dict': {
-            'id': '1495629',
-            'ext': 'mp4',
-            'title': 'Care worker punches elderly dementia patient in head 11 times',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
