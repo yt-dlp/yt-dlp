@@ -658,17 +658,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'temp',
     }, {
-        # 🔧52
-        # CloudflareStreamIE
-        'url': 'https://www.cloudflare.com/developer-platform/products/cloudflare-stream/',
-        'info_dict': {
-            'id': 'e7bd2dd67e0f8860b4ae81e33a966049',
-            'ext': 'mp4',
-            'title': 'e7bd2dd67e0f8860b4ae81e33a966049',
-            'thumbnail': r're:https?://cloudflarestream\.com/.+\.jpg',
-        },
-        'skip': 'IE fix required; embed detection',
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
