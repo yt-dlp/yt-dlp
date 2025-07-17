@@ -812,16 +812,6 @@ class GenericIE(InfoExtractor):
             'uploader_id': '1628496',
         },
     }, {
-        # 🔧68
-        # JojIE
-        'url': 'https://www.noviny.sk/slovensko/238543-slovenskom-sa-prehnala-vlna-silnych-burok',
-        'info_dict': {
-            'id': '238543-slovenskom-sa-prehnala-vlna-silnych-burok',
-            'title': 'Slovenskom sa prehnala vlna silných búrok',
-        },
-        'playlist_mincount': 5,
-        'skip': 'IE fix required; embed detection',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
