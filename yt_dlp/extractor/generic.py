@@ -897,16 +897,6 @@ class GenericIE(InfoExtractor):
             'view_count': int,
         },
     }, {
-        # 🔍78
-        # KinjaEmbedIE
-        'url': 'http://www.clickhole.com/video/dont-understand-bitcoin-man-will-mumble-explanatio-2537',
-        'info_dict': {
-            'id': '106351',
-            'ext': 'mp4',
-            'title': 'Don’t Understand Bitcoin? This Man Will Mumble An Explanation At You',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
