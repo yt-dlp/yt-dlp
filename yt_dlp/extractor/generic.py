@@ -560,16 +560,6 @@ class GenericIE(InfoExtractor):
         },
         'add_ie': ['Youtube'],
     }, {
-        # 🔧44
-        # AdobeTVEmbedIE
-        'url': 'https://www.adobe.com/learn/acrobat/web/customize-toolbar',
-        'info_dict': {
-            'id': '3463980',
-            'ext': 'mp4',
-            'title': 'Adobe Acrobat: How to Customize the Toolbar for Faster PDF Editing',
-        },
-        'skip': 'IE fix required; invalid extension',
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
