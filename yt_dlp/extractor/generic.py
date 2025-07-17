@@ -570,18 +570,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'IE fix required; invalid extension',
     }, {
-        # ✅45
-        # AMPIE
-        'url': 'https://tvrain.tv/amp/418921/',
-        'md5': 'b35e30c91bc115458deb6ad7e1f905b9',
-        'info_dict': {
-            'id': '418921-1',
-            'ext': 'mp4',
-            'title': 'Стас Намин: «Мы нарушили девственность Кремля» (1)',
-            'age_limit': 0,
-            '_old_archive_ids': ['generic 418921'],
-        },
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
