@@ -607,33 +607,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'IE fix required; embed detection',
     }, {
-        # 🔧48
-        # ArteTVEmbedIE
-        'url': 'https://timesofmalta.com/article/watch-sunken-warships-north-sea-arte.1108358',
-        'info_dict': {
-            'id': '110288-000-A',
-            'ext': 'mp4',
-            'title': 'Danger on the Seabed',
-            'alt_title': 'Sunken Warships in the North Sea',
-            'description': 'md5:a2c84cbad37d280bddb6484087120add',
-            'duration': 3148,
-            'thumbnail': r're:https?://api-cdn\.arte\.tv/img/v2/image/.+',
-            'timestamp': 1741686820,
-            'upload_date': '20250311',
-        },
-        'params': {'skip_download': 'm3u8'},
-        'skip': 'IE fix required; embed detection',
-    }, {
-        # 🔧49
-        # ArteTVEmbedIE
-        'url': 'https://www.eurockeennes.fr/en-live/',
-        'info_dict': {
-            'id': 'en-live',
-            'title': 'Les Eurocks en live | Les Eurockéennes de Belfort – 3-4-5-6 juillet 2025 sur la Presqu&#039;Île du Malsaucy',
-        },
-        'playlist_count': 4,
-        'skip': 'IE fix required; embed detection',
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
