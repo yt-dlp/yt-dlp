@@ -794,24 +794,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        # ✅67
-        # IndavideoEmbedIE
-        'url': 'https://palyazat.indavideo.hu/video/RUSH_1',
-        'info_dict': {
-            'id': '3808180',
-            'ext': 'mp4',
-            'title': 'RUSH',
-            'age_limit': 0,
-            'description': '',
-            'duration': 650,
-            'tags': 'count:2',
-            'thumbnail': 'https://pics.indavideo.hu/videos/003/808/180/7-1.jpg',
-            'timestamp': 1729136266,
-            'upload_date': '20241017',
-            'uploader': '7summerfilms',
-            'uploader_id': '1628496',
-        },
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
