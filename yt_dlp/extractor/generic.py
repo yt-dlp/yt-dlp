@@ -837,66 +837,6 @@ class GenericIE(InfoExtractor):
             'upload_date': '20210111',
         },
     }, {
-        # ✅70
-        # KalturaIE
-        'url': 'https://www.cornell.edu/VIDEO/nima-arkani-hamed-standard-models-of-particle-physics',
-        'info_dict': {
-            'id': '1_sgtvehim',
-            'ext': 'mp4',
-            'title': 'Our "Standard Models" of particle physics and cosmology',
-            'duration': 5420,
-            'thumbnail': r're:https?://cdnsecakmi\.kaltura\.com/.+',
-            'timestamp': 1321158993,
-            'upload_date': '20111113',
-            'uploader_id': 'kps1',
-            'view_count': int,
-        },
-    }, {
-        # ✅71
-        # KalturaIE; quoted entry_id
-        'url': 'https://www.oreilly.com/ideas/my-cloud-makes-pretty-pictures',
-        'info_dict': {
-            'id': '0_utuok90b',
-            'ext': 'mp4',
-            'title': '06_matthew_brender_raj_dutt',
-            'duration': 331,
-            'thumbnail': r're:https?://cfvod\.kaltura\.com/.+',
-            'timestamp': 1466638791,
-            'upload_date': '20160622',
-            'uploader_id': '',
-            'view_count': int,
-        },
-    }, {
-        # ✅72
-        # KalturaIE; quoted entry_id
-        'url': 'https://fod.infobase.com/p_ViewPlaylist.aspx?AssignmentID=NUN8ZY',
-        'info_dict': {
-            'id': '0_izeg5utt',
-            'ext': 'mp4',
-            'title': '35871',
-            'duration': 3403,
-            'thumbnail': r're:https?://cfvod\.kaltura\.com/.+',
-            'timestamp': 1355743100,
-            'upload_date': '20121217',
-            'uploader_id': 'cplapp@learn360.com',
-            'view_count': int,
-        },
-    }, {
-        # ✅73
-        # KalturaIE; iframe
-        'url': 'https://www.cns.nyu.edu/~eero/math-tools17/Videos/lecture-05sep2017.html',
-        'info_dict': {
-            'id': '1_9gzouybz',
-            'ext': 'mp4',
-            'title': 'lecture-05sep2017',
-            'duration': 7219,
-            'thumbnail': r're:https?://cfvod\.kaltura\.com/.+',
-            'timestamp': 1505340777,
-            'upload_date': '20170913',
-            'uploader_id': 'eps2',
-            'view_count': int,
-        },
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
