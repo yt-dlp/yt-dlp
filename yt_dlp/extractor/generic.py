@@ -728,16 +728,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'IE fix required; embed detection',
     }, {
-        # ✅61
-        # ERTWebtvEmbedIE
-        'url': 'https://www.ertnews.gr/video/manolis-goyalles-o-anthropos-piso-apo-ti-diadiktyaki-vasilopita/',
-        'info_dict': {
-            'id': '2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
-            'ext': 'mp4',
-            'title': 'VOD - 2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
-            'thumbnail': r're:https?://www\.ert\.gr/themata/photos/.+\.jpg',
-        },
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
