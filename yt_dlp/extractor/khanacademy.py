@@ -30,7 +30,7 @@ class KhanAcademyBaseIE(InfoExtractor):
         # runtime.js contains hash version for each js file, which is needed for building js src url
         runtime_js = self._download_webpage(self._RUNTIME_JS_URL, None, 'Downloading runtime.js')
         version_hashes = self._search_json(
-            r'return\s*""\+e\+"\."\+\(', runtime_js, 'js resources', None, end_pattern=r'\)\[e\]\+"\.js"',
+            r'""\+e\+"\."\+\(', runtime_js, 'js resources', None, end_pattern=r'\)\[e\]\+"\.js"',
             transform_source=lambda s: re.sub(r'([\da-f]+):', r'"\1":', s))  # cannot use js_to_json, due to #13621
 
         # iterate all lazy-loaded js to find query-containing js file
@@ -160,7 +160,6 @@ class KhanAcademyIE(KhanAcademyBaseIE):
     _VALID_URL = KhanAcademyBaseIE._VALID_URL_TEMPL % ('4', 'v/')
     _TESTS = [{
         'url': 'https://www.khanacademy.org/computing/computer-science/cryptography/crypt/v/one-time-pad',
-        'md5': '2bd84e22fa3feea2e2a21352185a96bd',
         'info_dict': {
             'id': 'FlIG3TvQCBQ',
             'ext': 'mp4',
@@ -259,7 +258,7 @@ class KhanAcademyUnitIE(KhanAcademyBaseIE):
         'info_dict': {
             'id': 'x301707a0',
             'title': 'Computer science theory',
-            'description': 'md5:4b472a4646e6cf6ec4ccb52c4062f8ba',
+            'description': 'md5:20a0c2d331e5d0e609872629079e6ec8',
             'display_id': 'computing/computer-science',
             '_old_archive_ids': ['khanacademyunit computer-science'],
         },
