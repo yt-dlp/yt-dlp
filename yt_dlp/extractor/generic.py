@@ -779,21 +779,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # ✅66
-        # GlomexEmbedIE
-        'url': 'https://www.skai.gr/news/world/iatrikos-syllogos-tourkias-to-turkovac-aplo-dialyma-erntogan-eiste-apateones-kai-pseytes',
-        'info_dict': {
-            'id': 'v-ch2nkhcirwc9-sf',
-            'ext': 'mp4',
-            'title': 'Ιατρικός Σύλλογος Τουρκίας: Το Turkovac είναι ένα απλό διάλυμα –Ερντογάν: Είστε απατεώνες και ψεύτες',
-            'description': 'md5:8b517a61d577efe7e36fde72fd535995',
-            'duration': 460000,
-            'thumbnail': r're:https?://i3thumbs\.glomex\.com/.+',
-            'timestamp': 1641885019,
-            'upload_date': '20220111',
-        },
-        'params': {'skip_download': 'm3u8'},
-    }, {
         # ✅124
         # YoutubeIE
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
