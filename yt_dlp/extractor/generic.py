@@ -592,21 +592,6 @@ class GenericIE(InfoExtractor):
             'thumbnail': r're:https?://kf-vn\.sf\.apa\.at/vn/.+\.jpg',
         },
     }, {
-        # 🔧47
-        # ArcPublishingIE
-        'url': 'https://www.adn.com/politics/2020/11/02/video-senate-candidates-campaign-in-anchorage-on-eve-of-election-day/',
-        'info_dict': {
-            'id': '8c99cb6e-b29c-4bc9-9173-7bf9979225ab',
-            'ext': 'mp4',
-            'title': 'Senate candidates wave to voters on Anchorage streets',
-            'description': 'md5:91f51a6511f090617353dc720318b20e',
-            'duration': 1581,
-            'thumbnail': r're:https?://dbntw0xoukshs\.cloudfront\.net/.+\.jpg',
-            'timestamp': 1604378735,
-            'upload_date': '20201103',
-        },
-        'skip': 'IE fix required; embed detection',
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
