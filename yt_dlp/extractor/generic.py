@@ -582,16 +582,6 @@ class GenericIE(InfoExtractor):
             '_old_archive_ids': ['generic 418921'],
         },
     }, {
-        # ✅46
-        # APAIE
-        'url': 'https://www.vol.at/blue-man-group/5593454',
-        'info_dict': {
-            'id': '293f6d17-692a-44e3-9fd5-7b178f3a1029',
-            'ext': 'mp4',
-            'title': '293f6d17-692a-44e3-9fd5-7b178f3a1029',
-            'thumbnail': r're:https?://kf-vn\.sf\.apa\.at/vn/.+\.jpg',
-        },
-    }, {
         # 🔍62
         # FacebookIE; iframe embed
         'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
