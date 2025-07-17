@@ -107,7 +107,9 @@ class SubstackIE(InfoExtractor):
 
         post_type = webpage_info['post']['type']
         formats, subtitles = [], {}
-        if post_type == 'podcast':
+        if webpage_info['post'].get('videoUpload'):
+            formats, subtitles = self._extract_video_formats(webpage_info['post']['videoUpload']['id'], canonical_url)
+        if webpage_info['post'].get('podcast_url'):
             fmt = {'url': webpage_info['post']['podcast_url']}
             if not determine_ext(fmt['url'], default_ext=None):
                 # The redirected format URL expires but the original URL doesn't,
@@ -117,9 +119,7 @@ class SubstackIE(InfoExtractor):
                     'Resolving podcast file extension',
                     'Podcast URL is invalid').url)
             formats.append(fmt)
-        elif post_type == 'video':
-            formats, subtitles = self._extract_video_formats(webpage_info['post']['videoUpload']['id'], canonical_url)
-        else:
+        if not formats:
             self.raise_no_formats(f'Page type "{post_type}" is not supported')
 
         return {
