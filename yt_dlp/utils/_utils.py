@@ -3024,7 +3024,7 @@ def parse_codecs(codecs_str):
         return {}
     split_codecs = list(filter(None, map(
         str.strip, codecs_str.strip().strip(',').split(','))))
-    vcodec, acodec, scodec, hdr = None, None, None, None
+    vcodec, acodec, scodec, hdr, container = None, None, None, None, None
     for full_codec in split_codecs:
         full_codec = re.sub(r'^([^.]+)', lambda m: m.group(1).lower(), full_codec)
         parts = re.sub(r'0+(?=\d)', '', full_codec).split('.')
@@ -3042,6 +3042,8 @@ def parse_codecs(codecs_str):
         elif parts[0] in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-4',
                           'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl', 'iamf'):
             acodec = acodec or full_codec
+            if parts[0] == 'iamf':
+                container = 'iamf'
         elif parts[0] in ('stpp', 'wvtt'):
             scodec = scodec or full_codec
         else:
@@ -3052,6 +3054,7 @@ def parse_codecs(codecs_str):
             'acodec': acodec or 'none',
             'dynamic_range': hdr,
             **({'scodec': scodec} if scodec is not None else {}),
+            **({'container': container} if container is not None else {}),
         }
     elif len(split_codecs) == 2:
         return {

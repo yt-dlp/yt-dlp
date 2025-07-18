@@ -3489,7 +3489,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 itags[itag].add(('https', dct.get('language')))
                 stream_ids.append(stream_id)
             single_stream = 'none' in (dct.get('acodec'), dct.get('vcodec'))
-            if single_stream and dct.get('ext'):
+            if single_stream and dct.get('ext') and not dct.get('container'):
                 dct['container'] = dct['ext'] + '_dash'
 
             if (all_formats or 'dashy' in format_types) and dct['filesize']:
