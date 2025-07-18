@@ -2961,6 +2961,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'audio/x-matroska': 'mka',
         'audio/x-mpegurl': 'm3u',
         'aacp': 'aac',
+        'flac': 'flac',
         'midi': 'mid',
         'ogg': 'ogg',
         'wav': 'wav',
