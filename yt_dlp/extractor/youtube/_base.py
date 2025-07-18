@@ -261,9 +261,8 @@ INNERTUBE_CLIENTS = {
                 not_required_with_player_token=True,
             ),
             # HLS Livestreams require POT 30 seconds in
-            # TODO: Rolling out
             StreamingProtocol.HLS: GvsPoTokenPolicy(
-                required=False,
+                required=True,
                 recommended=True,
                 not_required_with_player_token=True,
             ),
