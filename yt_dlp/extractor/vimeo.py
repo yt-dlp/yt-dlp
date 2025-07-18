@@ -518,6 +518,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         r'<embed[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?vimeo\.com/moogaloop\.swf.+?)\1',
         # Non-standard embedded Vimeo player
         r'<video[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?vimeo\.com/[0-9]+)\1',
+        r'iframe src=\\&quot;(?P<url>(https?://player\.vimeo\.com/video/[^\\&]+))',
     ]
     _TESTS = [
         {
