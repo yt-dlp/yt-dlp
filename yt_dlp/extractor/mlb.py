@@ -457,12 +457,9 @@ mutation initPlaybackSession(
                 self.report_warning(f'No formats available for {format_id} broadcast; skipping')
             return [], {}
 
-        cdn_headers = {'x-cdn-token': token}
         fmts, subs = self._extract_m3u8_formats_and_subtitles(
-            m3u8_url.replace(f'/{token}/', '/'), video_id, 'mp4',
-            m3u8_id=format_id, fatal=False, headers=cdn_headers)
+            m3u8_url, video_id, 'mp4', m3u8_id=format_id, fatal=False)
         for fmt in fmts:
-            fmt['http_headers'] = cdn_headers
             fmt.setdefault('format_note', join_nonempty(feed, medium, delim=' '))
             fmt.setdefault('language', language)
             if fmt.get('vcodec') == 'none' and fmt['language'] == 'en':
