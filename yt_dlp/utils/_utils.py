@@ -3110,13 +3110,10 @@ def urlhandle_detect_ext(url_handle, default=NO_DEFAULT):
             if ext := determine_ext(m.group('filename'), default_ext=None):
                 return ext
 
-    if ext := determine_ext(getheader('x-amz-meta-name'), default_ext=None):
-        return ext
-
-    if ext := getheader('x-amz-meta-file-type'):
-        return ext
-
-    return mimetype2ext(getheader('Content-Type'), default=default)
+    return (
+        determine_ext(getheader('x-amz-meta-name'), default_ext=None)
+        or getheader('x-amz-meta-file-type')
+        or mimetype2ext(getheader('Content-Type'), default=default))
 
 
 def encode_data_uri(data, mime_type):
