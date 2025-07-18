@@ -5,6 +5,8 @@ If a site is not listed here, it might still be supported by yt-dlp's embed extr
 Not all sites listed here are guaranteed to work; websites are constantly changing and sometimes this breaks yt-dlp's support for them.
 The only reliable way to check if a site is supported is to try it.
 
+ - **10play**: [*10play*](## "netrc machine")
+ - **10play:season**
  - **17live**
  - **17live:clip**
  - **17live:vod**
@@ -246,7 +248,6 @@ The only reliable way to check if a site is supported is to try it.
  - **Canalplus**: mycanal.fr and piwiplus.fr
  - **Canalsurmas**
  - **CaracolTvPlay**: [*caracoltv-play*](## "netrc machine")
- - **CartoonNetwork**
  - **cbc.ca**
  - **cbc.ca:player**
  - **cbc.ca:​player:playlist**
@@ -296,7 +297,7 @@ The only reliable way to check if a site is supported is to try it.
  - **CNNIndonesia**
  - **ComedyCentral**
  - **ComedyCentralTV**
- - **ConanClassic**
+ - **ConanClassic**: (**Currently broken**)
  - **CondeNast**: Condé Nast media group: Allure, Architectural Digest, Ars Technica, Bon Appétit, Brides, Condé Nast, Condé Nast Traveler, Details, Epicurious, GQ, Glamour, Golf Digest, SELF, Teen Vogue, The New Yorker, Vanity Fair, Vogue, W Magazine, WIRED
  - **CONtv**
  - **CookingChannel**
@@ -318,7 +319,7 @@ The only reliable way to check if a site is supported is to try it.
  - **CtsNews**: 華視新聞
  - **CTV**
  - **CTVNews**
- - **cu.ntv.co.jp**: Nippon Television Network
+ - **cu.ntv.co.jp**: 日テレ無料TADA!
  - **CultureUnplugged**
  - **curiositystream**: [*curiositystream*](## "netrc machine")
  - **curiositystream:collections**: [*curiositystream*](## "netrc machine")
@@ -574,9 +575,7 @@ The only reliable way to check if a site is supported is to try it.
  - **HollywoodReporterPlaylist**
  - **Holodex**
  - **HotNewHipHop**: (**Currently broken**)
- - **hotstar**
- - **hotstar:playlist**
- - **hotstar:season**
+ - **hotstar**: JioHotstar
  - **hotstar:series**
  - **hrfernsehen**
  - **HRTi**: [*hrti*](## "netrc machine")
@@ -589,7 +588,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Hungama**
  - **HungamaAlbumPlaylist**
  - **HungamaSong**
- - **huya:live**: huya.com
+ - **huya:live**: 虎牙直播
  - **huya:video**: 虎牙视频
  - **Hypem**
  - **Hytale**
@@ -646,10 +645,11 @@ The only reliable way to check if a site is supported is to try it.
  - **Jamendo**
  - **JamendoAlbum**
  - **JeuxVideo**: (**Currently broken**)
- - **jiocinema**: [*jiocinema*](## "netrc machine")
- - **jiocinema:series**: [*jiocinema*](## "netrc machine")
  - **jiosaavn:album**
+ - **jiosaavn:artist**
  - **jiosaavn:playlist**
+ - **jiosaavn:show**
+ - **jiosaavn:​show:playlist**
  - **jiosaavn:song**
  - **Joj**
  - **JoqrAg**: 超!A&G+ 文化放送 (f.k.a. AGQR) Nippon Cultural Broadcasting, Inc. (JOQR)
@@ -772,6 +772,7 @@ The only reliable way to check if a site is supported is to try it.
  - **massengeschmack.tv**
  - **Masters**
  - **MatchTV**
+ - **Mave**
  - **MBN**: mbn.co.kr (매일방송)
  - **MDR**: MDR.DE
  - **MedalTV**
@@ -828,7 +829,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Mojevideo**: mojevideo.sk
  - **Mojvideo**
  - **Monstercat**
- - **MonsterSirenHypergryphMusic**
+ - **monstersiren**: 塞壬唱片
  - **Motherless**
  - **MotherlessGallery**
  - **MotherlessGroup**
@@ -880,19 +881,19 @@ The only reliable way to check if a site is supported is to try it.
  - **Naver**
  - **Naver:live**
  - **navernow**
- - **nba**
- - **nba:channel**
- - **nba:embed**
- - **nba:watch**
- - **nba:​watch:collection**
- - **nba:​watch:embed**
+ - **nba**: (**Currently broken**)
+ - **nba:channel**: (**Currently broken**)
+ - **nba:embed**: (**Currently broken**)
+ - **nba:watch**: (**Currently broken**)
+ - **nba:​watch:collection**: (**Currently broken**)
+ - **nba:​watch:embed**: (**Currently broken**)
  - **NBC**
  - **NBCNews**
  - **nbcolympics**
- - **nbcolympics:stream**
- - **NBCSports**
- - **NBCSportsStream**
- - **NBCSportsVPlayer**
+ - **nbcolympics:stream**: (**Currently broken**)
+ - **NBCSports**: (**Currently broken**)
+ - **NBCSportsStream**: (**Currently broken**)
+ - **NBCSportsVPlayer**: (**Currently broken**)
  - **NBCStations**
  - **ndr**: NDR.de - Norddeutscher Rundfunk
  - **ndr:embed**
@@ -968,7 +969,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Nitter**
  - **njoy**: N-JOY
  - **njoy:embed**
- - **NobelPrize**: (**Currently broken**)
+ - **NobelPrize**
  - **NoicePodcast**
  - **NonkTube**
  - **NoodleMagazine**
@@ -1081,8 +1082,8 @@ The only reliable way to check if a site is supported is to try it.
  - **Photobucket**
  - **PiaLive**
  - **Piapro**: [*piapro*](## "netrc machine")
- - **Picarto**
- - **PicartoVod**
+ - **picarto**
+ - **picarto:vod**
  - **Piksel**
  - **Pinkbike**
  - **Pinterest**
@@ -1294,6 +1295,7 @@ The only reliable way to check if a site is supported is to try it.
  - **SampleFocus**
  - **Sangiin**: 参議院インターネット審議中継 (archive)
  - **Sapo**: SAPO Vídeos
+ - **SaucePlus**: Sauce+
  - **SBS**: sbs.com.au
  - **sbs.co.kr**
  - **sbs.co.kr:allvod_program**
@@ -1390,16 +1392,15 @@ The only reliable way to check if a site is supported is to try it.
  - **Spreaker**
  - **SpreakerShow**
  - **SpringboardPlatform**
- - **Sprout**
  - **SproutVideo**
- - **sr:mediathek**: Saarländischer Rundfunk (**Currently broken**)
+ - **sr:mediathek**: Saarländischer Rundfunk
  - **SRGSSR**
  - **SRGSSRPlay**: srf.ch, rts.ch, rsi.ch, rtr.ch and swissinfo.ch play sites
  - **StacommuLive**: [*stacommu*](## "netrc machine")
  - **StacommuVOD**: [*stacommu*](## "netrc machine")
  - **StagePlusVODConcert**: [*stageplus*](## "netrc machine")
  - **stanfordoc**: Stanford Open ClassRoom
- - **StarTrek**: (**Currently broken**)
+ - **startrek**: STAR TREK
  - **startv**
  - **Steam**
  - **SteamCommunityBroadcast**
@@ -1422,12 +1423,11 @@ The only reliable way to check if a site is supported is to try it.
  - **SunPorno**
  - **sverigesradio:episode**
  - **sverigesradio:publication**
- - **SVT**
- - **SVTPage**
- - **SVTPlay**: SVT Play and Öppet arkiv
- - **SVTSeries**
+ - **svt:page**
+ - **svt:play**: SVT Play and Öppet arkiv
+ - **svt:​play:series**
  - **SwearnetEpisode**
- - **Syfy**: (**Currently broken**)
+ - **Syfy**
  - **SYVDK**
  - **SztvHu**
  - **t-online.de**: (**Currently broken**)
@@ -1471,8 +1471,6 @@ The only reliable way to check if a site is supported is to try it.
  - **Telewebion**: (**Currently broken**)
  - **Tempo**
  - **TennisTV**: [*tennistv*](## "netrc machine")
- - **TenPlay**: [*10play*](## "netrc machine")
- - **TenPlaySeason**
  - **TF1**
  - **TFO**
  - **theatercomplextown:ppv**: [*theatercomplextown*](## "netrc machine")
@@ -1510,6 +1508,7 @@ The only reliable way to check if a site is supported is to try it.
  - **tokfm:podcast**
  - **ToonGoggles**
  - **tou.tv**: [*toutv*](## "netrc machine")
+ - **toutiao**: 今日头条
  - **Toypics**: Toypics video (**Currently broken**)
  - **ToypicsUser**: Toypics user profile (**Currently broken**)
  - **TrailerAddict**: (**Currently broken**)
@@ -1599,7 +1598,7 @@ The only reliable way to check if a site is supported is to try it.
  - **UKTVPlay**
  - **UlizaPlayer**
  - **UlizaPortal**: ulizaportal.jp
- - **umg:de**: Universal Music Deutschland (**Currently broken**)
+ - **umg:de**: Universal Music Deutschland
  - **Unistra**
  - **Unity**: (**Currently broken**)
  - **uol.com.br**
@@ -1622,9 +1621,9 @@ The only reliable way to check if a site is supported is to try it.
  - **VGTV**: VGTV, BTTV, FTV, Aftenposten and Aftonbladet
  - **vh1.com**
  - **vhx:embed**: [*vimeo*](## "netrc machine")
- - **vice**
- - **vice:article**
- - **vice:show**
+ - **vice**: (**Currently broken**)
+ - **vice:article**: (**Currently broken**)
+ - **vice:show**: (**Currently broken**)
  - **Viddler**
  - **Videa**
  - **video.arnes.si**: Arnes Video
@@ -1656,6 +1655,7 @@ The only reliable way to check if a site is supported is to try it.
  - **vimeo**: [*vimeo*](## "netrc machine")
  - **vimeo:album**: [*vimeo*](## "netrc machine")
  - **vimeo:channel**: [*vimeo*](## "netrc machine")
+ - **vimeo:event**: [*vimeo*](## "netrc machine")
  - **vimeo:group**: [*vimeo*](## "netrc machine")
  - **vimeo:likes**: [*vimeo*](## "netrc machine") Vimeo user likes
  - **vimeo:ondemand**: [*vimeo*](## "netrc machine")

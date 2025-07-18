@@ -1,5 +1,6 @@
 import calendar
 import copy
+import dataclasses
 import datetime as dt
 import enum
 import functools
@@ -35,7 +36,62 @@ from ...utils import (
 class _PoTokenContext(enum.Enum):
     PLAYER = 'player'
     GVS = 'gvs'
+    SUBS = 'subs'
 
+
+class StreamingProtocol(enum.Enum):
+    HTTPS = 'https'
+    DASH = 'dash'
+    HLS = 'hls'
+
+
+@dataclasses.dataclass
+class BasePoTokenPolicy:
+    required: bool = False
+    # Try to fetch a PO Token even if it is not required.
+    recommended: bool = False
+    not_required_for_premium: bool = False
+
+
+@dataclasses.dataclass
+class GvsPoTokenPolicy(BasePoTokenPolicy):
+    not_required_with_player_token: bool = False
+
+
+@dataclasses.dataclass
+class PlayerPoTokenPolicy(BasePoTokenPolicy):
+    pass
+
+
+@dataclasses.dataclass
+class SubsPoTokenPolicy(BasePoTokenPolicy):
+    pass
+
+
+WEB_PO_TOKEN_POLICIES = {
+    'GVS_PO_TOKEN_POLICY': {
+        StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+            required=True,
+            recommended=True,
+            not_required_for_premium=True,
+            not_required_with_player_token=False,
+        ),
+        StreamingProtocol.DASH: GvsPoTokenPolicy(
+            required=True,
+            recommended=True,
+            not_required_for_premium=True,
+            not_required_with_player_token=False,
+        ),
+        StreamingProtocol.HLS: GvsPoTokenPolicy(
+            required=False,
+            recommended=True,
+        ),
+    },
+    'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False),
+    # In rollout, currently detected via experiment
+    # Premium users DO require a PO Token for subtitles
+    'SUBS_PO_TOKEN_POLICY': SubsPoTokenPolicy(required=False),
+}
 
 # any clients starting with _ cannot be explicitly requested by the user
 INNERTUBE_CLIENTS = {
@@ -47,8 +103,9 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
         'SUPPORTS_COOKIES': True,
+        **WEB_PO_TOKEN_POLICIES,
+        'PLAYER_PARAMS': '8AEB',
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
     'web_safari': {
@@ -60,8 +117,9 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
         'SUPPORTS_COOKIES': True,
+        **WEB_PO_TOKEN_POLICIES,
+        'PLAYER_PARAMS': '8AEB',
     },
     'web_embedded': {
         'INNERTUBE_CONTEXT': {
@@ -82,7 +140,24 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_for_premium=True,
+                not_required_with_player_token=False,
+            ),
+            StreamingProtocol.DASH: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_for_premium=True,
+                not_required_with_player_token=False,
+            ),
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
+                recommended=True,
+            ),
+        },
         'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
@@ -94,7 +169,24 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_for_premium=True,
+                not_required_with_player_token=False,
+            ),
+            StreamingProtocol.DASH: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_for_premium=True,
+                not_required_with_player_token=False,
+            ),
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
+                recommended=True,
+            ),
+        },
         'REQUIRE_AUTH': True,
         'SUPPORTS_COOKIES': True,
     },
@@ -111,7 +203,24 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
         'REQUIRE_JS_PLAYER': False,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+            StreamingProtocol.DASH: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+        },
+        'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
     },
     # YouTube Kids videos aren't returned on this client for some reason
     'android_vr': {
@@ -145,7 +254,21 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+            # HLS Livestreams require POT 30 seconds in
+            # TODO: Rolling out
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+        },
+        'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
         'REQUIRE_JS_PLAYER': False,
     },
     # mweb has 'ultralow' formats
@@ -160,7 +283,24 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
-        'PO_TOKEN_REQUIRED_CONTEXTS': [_PoTokenContext.GVS],
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_for_premium=True,
+                not_required_with_player_token=False,
+            ),
+            StreamingProtocol.DASH: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_for_premium=True,
+                not_required_with_player_token=False,
+            ),
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
+                recommended=True,
+            ),
+        },
         'SUPPORTS_COOKIES': True,
     },
     'tv': {
@@ -173,6 +313,16 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
         'SUPPORTS_COOKIES': True,
+        'PLAYER_PARAMS': '8AEB',
+    },
+    'tv_simply': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5_SIMPLY',
+                'clientVersion': '1.0',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 75,
     },
     # This client now requires sign-in for every video
     # It was previously an age-gate workaround for videos that were `playable_in_embed`
@@ -214,7 +364,11 @@ def build_innertube_clients():
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
         ytcfg.setdefault('INNERTUBE_HOST', 'www.youtube.com')
         ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
-        ytcfg.setdefault('PO_TOKEN_REQUIRED_CONTEXTS', [])
+        ytcfg.setdefault('GVS_PO_TOKEN_POLICY', {})
+        for protocol in StreamingProtocol:
+            ytcfg['GVS_PO_TOKEN_POLICY'].setdefault(protocol, GvsPoTokenPolicy())
+        ytcfg.setdefault('PLAYER_PO_TOKEN_POLICY', PlayerPoTokenPolicy())
+        ytcfg.setdefault('SUBS_PO_TOKEN_POLICY', SubsPoTokenPolicy())
         ytcfg.setdefault('REQUIRE_AUTH', False)
         ytcfg.setdefault('SUPPORTS_COOKIES', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
@@ -787,6 +941,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _download_ytcfg(self, client, video_id):
         url = {
+            'mweb': 'https://m.youtube.com',
             'web': 'https://www.youtube.com',
             'web_music': 'https://music.youtube.com',
             'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1',

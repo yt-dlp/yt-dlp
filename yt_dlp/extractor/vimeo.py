@@ -3,6 +3,7 @@ import functools
 import itertools
 import json
 import re
+import time
 import urllib.parse
 
 from .common import InfoExtractor
@@ -13,11 +14,14 @@ from ..utils import (
     OnDemandPagedList,
     clean_html,
     determine_ext,
+    filter_dict,
     get_element_by_class,
     int_or_none,
     join_nonempty,
     js_to_json,
+    jwt_decode_hs256,
     merge_dicts,
+    mimetype2ext,
     parse_filesize,
     parse_iso8601,
     parse_qs,
@@ -25,9 +29,11 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     traverse_obj,
+    try_call,
     try_get,
     unified_timestamp,
     unsmuggle_url,
+    url_basename,
     url_or_none,
     urlencode_postdata,
     urlhandle_detect_ext,
@@ -39,14 +45,61 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     _NETRC_MACHINE = 'vimeo'
     _LOGIN_REQUIRED = False
     _LOGIN_URL = 'https://vimeo.com/log_in'
-    _IOS_CLIENT_AUTH = 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw=='
-    _IOS_CLIENT_HEADERS = {
+    _REFERER_HINT = (
+        'Cannot download embed-only video without embedding URL. Please call yt-dlp '
+        'with the URL of the page that embeds this video.')
+
+    _DEFAULT_CLIENT = 'android'
+    _DEFAULT_AUTHED_CLIENT = 'web'
+    _CLIENT_HEADERS = {
         'Accept': 'application/vnd.vimeo.*+json; version=3.4.10',
         'Accept-Language': 'en',
-        'User-Agent': 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0',
     }
-    _IOS_OAUTH_CACHE_KEY = 'oauth-token-ios'
-    _ios_oauth_token = None
+    _CLIENT_CONFIGS = {
+        'android': {
+            'CACHE_KEY': 'oauth-token-android',
+            'CACHE_ONLY': False,
+            'VIEWER_JWT': False,
+            'REQUIRES_AUTH': False,
+            'AUTH': 'NzRmYTg5YjgxMWExY2JiNzUwZDg1MjhkMTYzZjQ4YWYyOGEyZGJlMTp4OGx2NFd3QnNvY1lkamI2UVZsdjdDYlNwSDUrdm50YzdNNThvWDcwN1JrenJGZC9tR1lReUNlRjRSVklZeWhYZVpRS0tBcU9YYzRoTGY2Z1dlVkJFYkdJc0dMRHpoZWFZbU0reDRqZ1dkZ1diZmdIdGUrNUM5RVBySlM0VG1qcw==',
+            'USER_AGENT': 'com.vimeo.android.videoapp (OnePlus, ONEPLUS A6003, OnePlus, Android 14/34 Version 11.8.1) Kotlin VimeoNetworking/3.12.0',
+            'VIDEOS_FIELDS': (
+                'uri', 'name', 'description', 'type', 'link', 'player_embed_url', 'duration', 'width',
+                'language', 'height', 'embed', 'created_time', 'modified_time', 'release_time', 'content_rating',
+                'content_rating_class', 'rating_mod_locked', 'license', 'privacy', 'pictures', 'tags', 'stats',
+                'categories', 'uploader', 'metadata', 'user', 'files', 'download', 'app', 'play', 'status',
+                'resource_key', 'badge', 'upload', 'transcode', 'is_playable', 'has_audio',
+            ),
+        },
+        'ios': {
+            'CACHE_KEY': 'oauth-token-ios',
+            'CACHE_ONLY': True,
+            'VIEWER_JWT': False,
+            'REQUIRES_AUTH': False,
+            'AUTH': 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw==',
+            'USER_AGENT': 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0',
+            'VIDEOS_FIELDS': (
+                'uri', 'name', 'description', 'type', 'link', 'player_embed_url', 'duration',
+                'width', 'language', 'height', 'embed', 'created_time', 'modified_time', 'release_time',
+                'content_rating', 'content_rating_class', 'rating_mod_locked', 'license', 'config_url',
+                'embed_player_config_url', 'privacy', 'pictures', 'tags', 'stats', 'categories', 'uploader',
+                'metadata', 'user', 'files', 'download', 'app', 'play', 'status', 'resource_key', 'badge',
+                'upload', 'transcode', 'is_playable', 'has_audio',
+            ),
+        },
+        'web': {
+            'VIEWER_JWT': True,
+            'REQUIRES_AUTH': True,
+            'USER_AGENT': None,
+            'VIDEOS_FIELDS': (
+                'config_url', 'created_time', 'description', 'license',
+                'metadata.connections.comments.total', 'metadata.connections.likes.total',
+                'release_time', 'stats.plays',
+            ),
+        },
+    }
+    _oauth_tokens = {}
+    _viewer_info = None
 
     @staticmethod
     def _smuggle_referrer(url, referrer_url):
@@ -60,8 +113,28 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             headers['Referer'] = data['referer']
         return url, data, headers
 
+    def _jwt_is_expired(self, token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 120
+
+    def _fetch_viewer_info(self, display_id=None, fatal=True):
+        if self._viewer_info and not self._jwt_is_expired(self._viewer_info['jwt']):
+            return self._viewer_info
+
+        self._viewer_info = self._download_json(
+            'https://vimeo.com/_next/viewer', display_id, 'Downloading web token info',
+            'Failed to download web token info', fatal=fatal, headers={'Accept': 'application/json'})
+
+        return self._viewer_info
+
+    @property
+    def _is_logged_in(self):
+        return 'vimeo' in self._get_cookies('https://vimeo.com')
+
     def _perform_login(self, username, password):
-        viewer = self._download_json('https://vimeo.com/_next/viewer', None, 'Downloading login token')
+        if self._is_logged_in:
+            return
+
+        viewer = self._fetch_viewer_info()
         data = {
             'action': 'login',
             'email': username,
@@ -85,8 +158,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             raise ExtractorError('Unable to log in')
 
     def _real_initialize(self):
-        if self._LOGIN_REQUIRED and not self._get_cookies('https://vimeo.com').get('vuid'):
-            self._raise_login_required()
+        if self._LOGIN_REQUIRED and not self._is_logged_in:
+            self.raise_login_required()
 
     def _get_video_password(self):
         password = self.get_param('videopassword')
@@ -96,11 +169,10 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 expected=True)
         return password
 
-    def _verify_video_password(self, video_id):
+    def _verify_video_password(self, video_id, path=None):
         video_password = self._get_video_password()
-        token = self._download_json(
-            'https://vimeo.com/_next/viewer', video_id, 'Downloading viewer info')['xsrft']
-        url = f'https://vimeo.com/{video_id}'
+        token = self._fetch_viewer_info(video_id)['xsrft']
+        url = join_nonempty('https://vimeo.com', path, video_id, delim='/')
         try:
             self._request_webpage(
                 f'{url}/password', video_id,
@@ -116,6 +188,10 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             if isinstance(error.cause, HTTPError) and error.cause.status == 418:
                 raise ExtractorError('Wrong password', expected=True)
             raise
+
+    def _extract_config_url(self, webpage, **kwargs):
+        return self._html_search_regex(
+            r'\bdata-config-url="([^"]+)"', webpage, 'config URL', **kwargs)
 
     def _extract_vimeo_config(self, webpage, video_id, *args, **kwargs):
         vimeo_config = self._search_regex(
@@ -164,6 +240,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         sep_pattern = r'/sep/video/'
         for files_type in ('hls', 'dash'):
             for cdn_name, cdn_data in (try_get(config_files, lambda x: x[files_type]['cdns']) or {}).items():
+                # TODO: Also extract 'avc_url'? Investigate if there are 'hevc_url', 'av1_url'?
                 manifest_url = cdn_data.get('url')
                 if not manifest_url:
                     continue
@@ -212,7 +289,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         for tt in (request.get('text_tracks') or []):
             subtitles.setdefault(tt['lang'], []).append({
                 'ext': 'vtt',
-                'url': urljoin('https://vimeo.com', tt['url']),
+                'url': urljoin('https://player.vimeo.com/', tt['url']),
             })
 
         thumbnails = []
@@ -244,58 +321,104 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'live_status': live_status,
-            'release_timestamp': traverse_obj(live_event, ('ingest', 'scheduled_start_time', {parse_iso8601})),
+            'release_timestamp': traverse_obj(live_event, ('ingest', (
+                ('scheduled_start_time', {parse_iso8601}),
+                ('start_time', {int_or_none}),
+            ), any)),
             # Note: Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
             # at the same time without actual units specified.
             '_format_sort_fields': ('quality', 'res', 'fps', 'hdr:12', 'source'),
         }
 
-    def _fetch_oauth_token(self):
-        if not self._ios_oauth_token:
-            self._ios_oauth_token = self.cache.load(self._NETRC_MACHINE, self._IOS_OAUTH_CACHE_KEY)
+    def _fetch_oauth_token(self, client):
+        client_config = self._CLIENT_CONFIGS[client]
 
-        if not self._ios_oauth_token:
-            self._ios_oauth_token = self._download_json(
+        if client_config['VIEWER_JWT']:
+            return f'jwt {self._fetch_viewer_info()["jwt"]}'
+
+        cache_key = client_config['CACHE_KEY']
+
+        if not self._oauth_tokens.get(cache_key):
+            self._oauth_tokens[cache_key] = self.cache.load(self._NETRC_MACHINE, cache_key)
+
+        if not self._oauth_tokens.get(cache_key):
+            if client_config['CACHE_ONLY']:
+                raise ExtractorError(
+                    f'The {client} client is unable to fetch new OAuth tokens '
+                    f'and is only intended for use with previously cached tokens', expected=True)
+
+            self._oauth_tokens[cache_key] = self._download_json(
                 'https://api.vimeo.com/oauth/authorize/client', None,
-                'Fetching OAuth token', 'Failed to fetch OAuth token',
+                f'Fetching {client} OAuth token', f'Failed to fetch {client} OAuth token',
                 headers={
-                    'Authorization': f'Basic {self._IOS_CLIENT_AUTH}',
-                    **self._IOS_CLIENT_HEADERS,
+                    'Authorization': f'Basic {client_config["AUTH"]}',
+                    'User-Agent': client_config['USER_AGENT'],
+                    **self._CLIENT_HEADERS,
                 }, data=urlencode_postdata({
                     'grant_type': 'client_credentials',
-                    'scope': 'private public create edit delete interact upload purchased stats',
+                    'scope': 'private public create edit delete interact upload purchased stats video_files',
                 }, quote_via=urllib.parse.quote))['access_token']
-            self.cache.store(self._NETRC_MACHINE, self._IOS_OAUTH_CACHE_KEY, self._ios_oauth_token)
+            self.cache.store(self._NETRC_MACHINE, cache_key, self._oauth_tokens[cache_key])
 
-        return self._ios_oauth_token
+        return f'Bearer {self._oauth_tokens[cache_key]}'
 
-    def _call_videos_api(self, video_id, unlisted_hash=None, **kwargs):
+    def _get_requested_client(self):
+        default_client = self._DEFAULT_AUTHED_CLIENT if self._is_logged_in else self._DEFAULT_CLIENT
+
+        client = self._configuration_arg('client', [default_client], ie_key=VimeoIE)[0]
+        if client not in self._CLIENT_CONFIGS:
+            raise ExtractorError(
+                f'Unsupported API client "{client}" requested. '
+                f'Supported clients are: {", ".join(self._CLIENT_CONFIGS)}', expected=True)
+
+        return client
+
+    def _call_videos_api(self, video_id, unlisted_hash=None, path=None, *, force_client=None, query=None, **kwargs):
+        client = force_client or self._get_requested_client()
+
+        client_config = self._CLIENT_CONFIGS[client]
+        if client_config['REQUIRES_AUTH'] and not self._is_logged_in:
+            self.raise_login_required(f'The {client} client requires authentication')
+
         return self._download_json(
-            join_nonempty(f'https://api.vimeo.com/videos/{video_id}', unlisted_hash, delim=':'),
-            video_id, 'Downloading API JSON', headers={
-                'Authorization': f'Bearer {self._fetch_oauth_token()}',
-                **self._IOS_CLIENT_HEADERS,
-            }, query={
-                'fields': ','.join((
-                    'config_url', 'embed_player_config_url', 'player_embed_url', 'download', 'play',
-                    'files', 'description', 'license', 'release_time', 'created_time', 'stats.plays',
-                    'metadata.connections.comments.total', 'metadata.connections.likes.total')),
+            join_nonempty(
+                'https://api.vimeo.com/videos',
+                join_nonempty(video_id, unlisted_hash, delim=':'),
+                path, delim='/'),
+            video_id, f'Downloading {client} API JSON', f'Unable to download {client} API JSON',
+            headers=filter_dict({
+                'Authorization': self._fetch_oauth_token(client),
+                'User-Agent': client_config['USER_AGENT'],
+                **self._CLIENT_HEADERS,
+            }), query={
+                'fields': ','.join(client_config['VIDEOS_FIELDS']),
+                **(query or {}),
             }, **kwargs)
 
-    def _extract_original_format(self, url, video_id, unlisted_hash=None, api_data=None):
+    def _extract_original_format(self, url, video_id, unlisted_hash=None):
         # Original/source formats are only available when logged in
-        if not self._get_cookies('https://vimeo.com/').get('vimeo'):
-            return
+        if not self._is_logged_in:
+            return None
 
-        query = {'action': 'load_download_config'}
-        if unlisted_hash:
-            query['unlisted_hash'] = unlisted_hash
-        download_data = self._download_json(
-            url, video_id, 'Loading download config JSON', fatal=False,
-            query=query, headers={'X-Requested-With': 'XMLHttpRequest'},
-            expected_status=(403, 404)) or {}
-        source_file = download_data.get('source_file')
-        download_url = try_get(source_file, lambda x: x['download_url'])
+        policy = self._configuration_arg('original_format_policy', ['auto'], ie_key=VimeoIE)[0]
+        if policy == 'never':
+            return None
+
+        try:
+            download_data = self._download_json(
+                url, video_id, 'Loading download config JSON', query=filter_dict({
+                    'action': 'load_download_config',
+                    'unlisted_hash': unlisted_hash,
+                }), headers={
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                })
+        except ExtractorError as error:
+            self.write_debug(f'Unable to load download config JSON: {error.cause}')
+            download_data = None
+
+        source_file = traverse_obj(download_data, ('source_file', {dict})) or {}
+        download_url = traverse_obj(source_file, ('download_url', {url_or_none}))
         if download_url and not source_file.get('is_cold') and not source_file.get('is_defrosting'):
             source_name = source_file.get('public_name', 'Original')
             if self._is_valid_url(download_url, video_id, f'{source_name} video'):
@@ -313,8 +436,27 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'quality': 1,
                 }
 
-        original_response = api_data or self._call_videos_api(
-            video_id, unlisted_hash, fatal=False, expected_status=(403, 404))
+        # Most web client API requests are subject to rate-limiting (429) when logged-in.
+        # Requesting only the 'privacy' field is NOT rate-limited,
+        # so first we should check if video even has 'download' formats available
+        try:
+            privacy_info = self._call_videos_api(
+                video_id, unlisted_hash, force_client='web', query={'fields': 'privacy'})
+        except ExtractorError as error:
+            self.write_debug(f'Unable to download privacy info: {error.cause}')
+            return None
+
+        if not traverse_obj(privacy_info, ('privacy', 'download', {bool})):
+            msg = f'{video_id}: Vimeo says this video is not downloadable'
+            if policy != 'always':
+                self.write_debug(
+                    f'{msg}, so yt-dlp is not attempting to extract the original/source format. '
+                    f'To try anyways, use --extractor-args "vimeo:original_format_policy=always"')
+                return None
+            self.write_debug(f'{msg}; attempting to extract original/source format anyways')
+
+        original_response = self._call_videos_api(
+            video_id, unlisted_hash, force_client='web', query={'fields': 'download'}, fatal=False)
         for download_data in traverse_obj(original_response, ('download', ..., {dict})):
             download_url = download_data.get('link')
             if not download_url or download_data.get('quality') != 'source':
@@ -353,7 +495,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                          (?:
                              (?P<u>user)|
                              (?!(?:channels|album|showcase)/[^/?#]+/?(?:$|[?#])|[^/]+/review/|ondemand/)
-                             (?:.*?/)??
+                             (?:(?!event/).*?/)??
                              (?P<q>
                                  (?:
                                      play_redirect_hls|
@@ -892,25 +1034,125 @@ class VimeoIE(VimeoBaseInfoExtractor):
             raise ExtractorError('Wrong video password', expected=True)
         return checked
 
+    def _get_subtitles(self, video_id, unlisted_hash):
+        subs = {}
+        text_tracks = self._call_videos_api(
+            video_id, unlisted_hash, path='texttracks', query={
+                'include_transcript': 'true',
+                'fields': ','.join((
+                    'active', 'display_language', 'id', 'language', 'link', 'name', 'type', 'uri',
+                )),
+            }, fatal=False)
+        for tt in traverse_obj(text_tracks, ('data', lambda _, v: url_or_none(v['link']))):
+            subs.setdefault(tt.get('language'), []).append({
+                'url': tt['link'],
+                'ext': 'vtt',
+                'name': tt.get('display_language'),
+            })
+        return subs
+
+    def _parse_api_response(self, video, video_id, unlisted_hash=None):
+        formats, subtitles = [], {}
+        seen_urls = set()
+        duration = traverse_obj(video, ('duration', {int_or_none}))
+
+        for file in traverse_obj(video, (
+            (('play', (None, 'progressive')), 'files', 'download'), lambda _, v: url_or_none(v['link']),
+        )):
+            format_url = file['link']
+            if format_url in seen_urls:
+                continue
+            seen_urls.add(format_url)
+            quality = file.get('quality')
+            ext = determine_ext(format_url)
+            if quality == 'hls' or ext == 'm3u8':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    format_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+            elif quality == 'dash' or ext == 'mpd':
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    format_url, video_id, mpd_id='dash', fatal=False)
+                for fmt in fmts:
+                    fmt['format_id'] = join_nonempty(
+                        *fmt['format_id'].split('-', 2)[:2], int_or_none(fmt.get('tbr')))
+            else:
+                fmt = traverse_obj(file, {
+                    'ext': ('type', {mimetype2ext(default='mp4')}),
+                    'vcodec': ('codec', {str.lower}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                    'filesize': ('size', {int_or_none}),
+                    'fps': ('fps', {int_or_none}),
+                })
+                fmt.update({
+                    'url': format_url,
+                    'format_id': join_nonempty(
+                        'http', traverse_obj(file, 'public_name', 'rendition'), quality),
+                    'tbr': try_call(lambda: fmt['filesize'] * 8 / duration / 1024),
+                })
+                formats.append(fmt)
+                continue
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+
+        if traverse_obj(video, ('metadata', 'connections', 'texttracks', 'total', {int})):
+            self._merge_subtitles(self.extract_subtitles(video_id, unlisted_hash), target=subtitles)
+
+        return {
+            **traverse_obj(video, {
+                'title': ('name', {str}),
+                'uploader': ('user', 'name', {str}),
+                'uploader_id': ('user', 'link', {url_basename}),
+                'uploader_url': ('user', 'link', {url_or_none}),
+                'release_timestamp': ('live', 'scheduled_start_time', {int_or_none}),
+                'thumbnails': ('pictures', 'sizes', lambda _, v: url_or_none(v['link']), {
+                    'url': 'link',
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+            }),
+            'id': video_id,
+            'duration': duration,
+            'formats': formats,
+            'subtitles': subtitles,
+            'live_status': {
+                'streaming': 'is_live',
+                'done': 'was_live',
+            }.get(traverse_obj(video, ('live', 'status', {str}))),
+        }
+
     def _extract_from_api(self, video_id, unlisted_hash=None):
         for retry in (False, True):
             try:
                 video = self._call_videos_api(video_id, unlisted_hash)
                 break
             except ExtractorError as e:
-                if (not retry and isinstance(e.cause, HTTPError) and e.cause.status == 400
-                    and 'password' in traverse_obj(
-                        self._webpage_read_content(e.cause.response, e.cause.response.url, video_id, fatal=False),
-                        ({json.loads}, 'invalid_parameters', ..., 'field'),
-                )):
+                if not isinstance(e.cause, HTTPError):
+                    raise
+                response = traverse_obj(
+                    self._webpage_read_content(e.cause.response, e.cause.response.url, video_id, fatal=False),
+                    ({json.loads}, {dict})) or {}
+                if (
+                    not retry and e.cause.status == 400
+                    and 'password' in traverse_obj(response, ('invalid_parameters', ..., 'field'))
+                ):
                     self._verify_video_password(video_id)
-                    continue
-                raise
+                elif e.cause.status == 404 and response.get('error_code') == 5460:
+                    self.raise_login_required(join_nonempty(
+                        traverse_obj(response, ('error', {str.strip})),
+                        'Authentication may be needed due to your location.',
+                        'If your IP address is located in Europe you could try using a VPN/proxy,',
+                        f'or else u{self._login_hint()[1:]}',
+                        delim=' '), method=None)
+                else:
+                    raise
 
-        info = self._parse_config(self._download_json(
-            video['config_url'], video_id), video_id)
+        if config_url := traverse_obj(video, ('config_url', {url_or_none})):
+            info = self._parse_config(self._download_json(config_url, video_id), video_id)
+        else:
+            info = self._parse_api_response(video, video_id, unlisted_hash)
+
         source_format = self._extract_original_format(
-            f'https://vimeo.com/{video_id}', video_id, unlisted_hash, api_data=video)
+            f'https://vimeo.com/{video_id}', video_id, unlisted_hash)
         if source_format:
             info['formats'].append(source_format)
 
@@ -933,8 +1175,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             r'vimeo\.com/(?:album|showcase)/([^/]+)', url, 'album id', default=None)
         if not album_id:
             return
-        viewer = self._download_json(
-            'https://vimeo.com/_rv/viewer', album_id, fatal=False)
+        viewer = self._fetch_viewer_info(album_id, fatal=False)
         if not viewer:
             webpage = self._download_webpage(url, album_id)
             viewer = self._parse_json(self._search_regex(
@@ -992,9 +1233,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 raise
             errmsg = error.cause.response.read()
             if b'Because of its privacy settings, this video cannot be played here' in errmsg:
-                raise ExtractorError(
-                    'Cannot download embed-only video without embedding URL. Please call yt-dlp '
-                    'with the URL of the page that embeds this video.', expected=True)
+                raise ExtractorError(self._REFERER_HINT, expected=True)
             # 403 == vimeo.com TLS fingerprint or DC IP block; 429 == player.vimeo.com TLS FP block
             status = error.cause.status
             dcip_msg = 'If you are using a data center IP or VPN/proxy, your IP may be blocked'
@@ -1039,8 +1278,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         channel_id = self._search_regex(
             r'vimeo\.com/channels/([^/]+)', url, 'channel id', default=None)
         if channel_id:
-            config_url = self._html_search_regex(
-                r'\bdata-config-url="([^"]+)"', webpage, 'config URL', default=None)
+            config_url = self._extract_config_url(webpage, default=None)
             video_description = clean_html(get_element_by_class('description', webpage))
             info_dict.update({
                 'channel_id': channel_id,
@@ -1333,8 +1571,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
 
     def _real_extract(self, url):
         album_id = self._match_id(url)
-        viewer = self._download_json(
-            'https://vimeo.com/_rv/viewer', album_id, fatal=False)
+        viewer = self._fetch_viewer_info(album_id, fatal=False)
         if not viewer:
             webpage = self._download_webpage(url, album_id)
             viewer = self._parse_json(self._search_regex(
@@ -1626,3 +1863,377 @@ class VimeoProIE(VimeoBaseInfoExtractor):
 
         return self.url_result(vimeo_url, VimeoIE, video_id, url_transparent=True,
                                description=description)
+
+
+class VimeoEventIE(VimeoBaseInfoExtractor):
+    IE_NAME = 'vimeo:event'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?vimeo\.com/event/(?P<id>\d+)(?:/
+            (?:
+                (?:embed/)?(?P<unlisted_hash>[\da-f]{10})|
+                videos/(?P<video_id>\d+)
+            )
+        )?'''
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>https?://vimeo\.com/event/\d+/embed(?:[/?][^"\']*)?)["\'][^>]*>']
+    _TESTS = [{
+        # stream_privacy.view: 'anybody'
+        'url': 'https://vimeo.com/event/5116195',
+        'info_dict': {
+            'id': '1082194134',
+            'ext': 'mp4',
+            'display_id': '5116195',
+            'title': 'Skidmore College Commencement 2025',
+            'description': 'md5:1902dd5165d21f98aa198297cc729d23',
+            'uploader': 'Skidmore College',
+            'uploader_id': 'user116066434',
+            'uploader_url': 'https://vimeo.com/user116066434',
+            'comment_count': int,
+            'like_count': int,
+            'duration': 9810,
+            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'timestamp': 1747502974,
+            'upload_date': '20250517',
+            'release_timestamp': 1747502998,
+            'release_date': '20250517',
+            'live_status': 'was_live',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # stream_privacy.view: 'embed_only'
+        'url': 'https://vimeo.com/event/5034253/embed',
+        'info_dict': {
+            'id': '1071439154',
+            'ext': 'mp4',
+            'display_id': '5034253',
+            'title': 'Advancing Humans with AI',
+            'description': r're:AI is here to stay, but how do we ensure that people flourish in a world of pervasive AI use.{322}$',
+            'uploader': 'MIT Media Lab',
+            'uploader_id': 'mitmedialab',
+            'uploader_url': 'https://vimeo.com/mitmedialab',
+            'duration': 23235,
+            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'chapters': 'count:37',
+            'release_timestamp': 1744290000,
+            'release_date': '20250410',
+            'live_status': 'was_live',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+            'http_headers': {'Referer': 'https://www.media.mit.edu/events/aha-symposium/'},
+        },
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # Last entry on 2nd page of the 37 video playlist, but use clip_to_play_id API param shortcut
+        'url': 'https://vimeo.com/event/4753126/videos/1046153257',
+        'info_dict': {
+            'id': '1046153257',
+            'ext': 'mp4',
+            'display_id': '4753126',
+            'title': 'January 12, 2025 The True Vine (Pastor John Mindrup)',
+            'description': 'The True Vine (Pastor \tJohn Mindrup)',
+            'uploader': 'Salem United Church of Christ',
+            'uploader_id': 'user230181094',
+            'uploader_url': 'https://vimeo.com/user230181094',
+            'comment_count': int,
+            'like_count': int,
+            'duration': 4962,
+            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'timestamp': 1736702464,
+            'upload_date': '20250112',
+            'release_timestamp': 1736702543,
+            'release_date': '20250112',
+            'live_status': 'was_live',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # "24/7" livestream
+        'url': 'https://vimeo.com/event/4768062',
+        'info_dict': {
+            'id': '1079901414',
+            'ext': 'mp4',
+            'display_id': '4768062',
+            'title': r're:GRACELAND CAM \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+            'description': '24/7 camera at Graceland Mansion',
+            'uploader': 'Elvis Presley\'s Graceland',
+            'uploader_id': 'visitgraceland',
+            'uploader_url': 'https://vimeo.com/visitgraceland',
+            'release_timestamp': 1745975450,
+            'release_date': '20250430',
+            'live_status': 'is_live',
+        },
+        'params': {'skip_download': 'livestream'},
+    }, {
+        # stream_privacy.view: 'unlisted' with unlisted_hash in URL path (stream_privacy.embed: 'whitelist')
+        'url': 'https://vimeo.com/event/4259978/3db517c479',
+        'info_dict': {
+            'id': '939104114',
+            'ext': 'mp4',
+            'display_id': '4259978',
+            'title': 'Enhancing Credibility in Your Community Science Project',
+            'description': 'md5:eab953341168b9c146bc3cfe3f716070',
+            'uploader': 'NOAA Research',
+            'uploader_id': 'noaaresearch',
+            'uploader_url': 'https://vimeo.com/noaaresearch',
+            'comment_count': int,
+            'like_count': int,
+            'duration': 3961,
+            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'timestamp': 1716408008,
+            'upload_date': '20240522',
+            'release_timestamp': 1716408062,
+            'release_date': '20240522',
+            'live_status': 'was_live',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # "done" event with video_id in URL and unlisted_hash in VimeoIE URL
+        'url': 'https://vimeo.com/event/595460/videos/498149131/',
+        'info_dict': {
+            'id': '498149131',
+            'ext': 'mp4',
+            'display_id': '595460',
+            'title': '2021 Eighth Annual John Cardinal Foley Lecture on Social Communications',
+            'description': 'Replay: https://vimeo.com/catholicphilly/review/498149131/544f26a12f',
+            'uploader': 'Kearns Media Consulting LLC',
+            'uploader_id': 'kearnsmediaconsulting',
+            'uploader_url': 'https://vimeo.com/kearnsmediaconsulting',
+            'comment_count': int,
+            'like_count': int,
+            'duration': 4466,
+            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'timestamp': 1612228466,
+            'upload_date': '20210202',
+            'release_timestamp': 1612228538,
+            'release_date': '20210202',
+            'live_status': 'was_live',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # stream_privacy.view: 'password'; stream_privacy.embed: 'public'
+        'url': 'https://vimeo.com/event/4940578',
+        'info_dict': {
+            'id': '1059263570',
+            'ext': 'mp4',
+            'display_id': '4940578',
+            'title': 'TMAC AKC AGILITY 2-22-2025',
+            'uploader': 'Paws \'N Effect',
+            'uploader_id': 'pawsneffect',
+            'uploader_url': 'https://vimeo.com/pawsneffect',
+            'comment_count': int,
+            'like_count': int,
+            'duration': 33115,
+            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'timestamp': 1740261836,
+            'upload_date': '20250222',
+            'release_timestamp': 1740261873,
+            'release_date': '20250222',
+            'live_status': 'was_live',
+        },
+        'params': {
+            'videopassword': '22',
+            'skip_download': 'm3u8',
+        },
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # API serves a playlist of 37 videos, but the site only streams the newest one (changes every Sunday)
+        'url': 'https://vimeo.com/event/4753126',
+        'only_matching': True,
+    }, {
+        # Scheduled for 2025.05.15 but never started; "unavailable"; stream_privacy.view: "anybody"
+        'url': 'https://vimeo.com/event/5120811/embed',
+        'only_matching': True,
+    }, {
+        'url': 'https://vimeo.com/event/5112969/embed?muted=1',
+        'only_matching': True,
+    }, {
+        'url': 'https://vimeo.com/event/5097437/embed/interaction?muted=1',
+        'only_matching': True,
+    }, {
+        'url': 'https://vimeo.com/event/5113032/embed?autoplay=1&muted=1',
+        'only_matching': True,
+    }, {
+        # Ended livestream with video_id
+        'url': 'https://vimeo.com/event/595460/videos/507329569/',
+        'only_matching': True,
+    }, {
+        # stream_privacy.view: 'unlisted' with unlisted_hash in URL path (stream_privacy.embed: 'public')
+        'url': 'https://vimeo.com/event/4606123/embed/358d60ce2e',
+        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # Same result as https://vimeo.com/event/5034253/embed
+        'url': 'https://www.media.mit.edu/events/aha-symposium/',
+        'info_dict': {
+            'id': '1071439154',
+            'ext': 'mp4',
+            'display_id': '5034253',
+            'title': 'Advancing Humans with AI',
+            'description': r're:AI is here to stay, but how do we ensure that people flourish in a world of pervasive AI use.{322}$',
+            'uploader': 'MIT Media Lab',
+            'uploader_id': 'mitmedialab',
+            'uploader_url': 'https://vimeo.com/mitmedialab',
+            'duration': 23235,
+            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'chapters': 'count:37',
+            'release_timestamp': 1744290000,
+            'release_date': '20250410',
+            'live_status': 'was_live',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }]
+
+    _EVENT_FIELDS = (
+        'title', 'uri', 'schedule', 'stream_description', 'stream_privacy.embed', 'stream_privacy.view',
+        'clip_to_play.name', 'clip_to_play.uri', 'clip_to_play.config_url', 'clip_to_play.live.status',
+        'clip_to_play.privacy.embed', 'clip_to_play.privacy.view', 'clip_to_play.password',
+        'streamable_clip.name', 'streamable_clip.uri', 'streamable_clip.config_url', 'streamable_clip.live.status',
+    )
+    _VIDEOS_FIELDS = ('items', 'uri', 'name', 'config_url', 'duration', 'live.status')
+
+    def _call_events_api(
+        self, event_id, ep=None, unlisted_hash=None, note=None,
+        fields=(), referrer=None, query=None, headers=None,
+    ):
+        resource = join_nonempty('event', ep, note, 'API JSON', delim=' ')
+
+        return self._download_json(
+            join_nonempty(
+                'https://api.vimeo.com/live_events',
+                join_nonempty(event_id, unlisted_hash, delim=':'), ep, delim='/'),
+            event_id, f'Downloading {resource}', f'Failed to download {resource}',
+            query=filter_dict({
+                'fields': ','.join(fields) or [],
+                # Correct spelling with 4 R's is deliberate
+                'referrer': referrer,
+                **(query or {}),
+            }), headers=filter_dict({
+                'Accept': 'application/json',
+                'Authorization': f'jwt {self._fetch_viewer_info(event_id)["jwt"]}',
+                'Referer': referrer,
+                **(headers or {}),
+            }))
+
+    @staticmethod
+    def _extract_video_id_and_unlisted_hash(video):
+        if not traverse_obj(video, ('uri', {lambda x: x.startswith('/videos/')})):
+            return None, None
+        video_id, _, unlisted_hash = video['uri'][8:].partition(':')
+        return video_id, unlisted_hash or None
+
+    def _vimeo_url_result(self, video_id, unlisted_hash=None, event_id=None):
+        # VimeoIE can extract more metadata and formats for was_live event videos
+        return self.url_result(
+            join_nonempty('https://vimeo.com', video_id, unlisted_hash, delim='/'), VimeoIE,
+            video_id, display_id=event_id, live_status='was_live', url_transparent=True)
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        for embed_url in super()._extract_embed_urls(url, webpage):
+            yield cls._smuggle_referrer(embed_url, url)
+
+    def _real_extract(self, url):
+        url, _, headers = self._unsmuggle_headers(url)
+        # XXX: Keep key name in sync with _unsmuggle_headers
+        referrer = headers.get('Referer')
+        event_id, unlisted_hash, video_id = self._match_valid_url(url).group('id', 'unlisted_hash', 'video_id')
+
+        for retry in (False, True):
+            try:
+                live_event_data = self._call_events_api(
+                    event_id, unlisted_hash=unlisted_hash, fields=self._EVENT_FIELDS,
+                    referrer=referrer, query={'clip_to_play_id': video_id or '0'},
+                    headers={'Accept': 'application/vnd.vimeo.*+json;version=3.4.9'})
+                break
+            except ExtractorError as e:
+                if retry or not isinstance(e.cause, HTTPError) or e.cause.status not in (400, 403):
+                    raise
+                response = traverse_obj(e.cause.response.read(), ({json.loads}, {dict})) or {}
+                error_code = response.get('error_code')
+                if error_code == 2204:
+                    self._verify_video_password(event_id, path='event')
+                    continue
+                if error_code == 3200:
+                    raise ExtractorError(self._REFERER_HINT, expected=True)
+                if error_msg := response.get('error'):
+                    raise ExtractorError(f'Vimeo says: {error_msg}', expected=True)
+                raise
+
+        # stream_privacy.view can be: 'anybody', 'embed_only', 'nobody', 'password', 'unlisted'
+        view_policy = live_event_data['stream_privacy']['view']
+        if view_policy == 'nobody':
+            raise ExtractorError('This event has not been made available to anyone', expected=True)
+
+        clip_data = traverse_obj(live_event_data, ('clip_to_play', {dict})) or {}
+        # live.status can be: 'streaming' (is_live), 'done' (was_live), 'unavailable' (is_upcoming OR dead)
+        clip_status = traverse_obj(clip_data, ('live', 'status', {str}))
+        start_time = traverse_obj(live_event_data, ('schedule', 'start_time', {str}))
+        release_timestamp = parse_iso8601(start_time)
+
+        if clip_status == 'unavailable' and release_timestamp and release_timestamp > time.time():
+            self.raise_no_formats(f'This live event is scheduled for {start_time}', expected=True)
+            live_status = 'is_upcoming'
+            config_url = None
+
+        elif view_policy == 'embed_only':
+            webpage = self._download_webpage(
+                join_nonempty('https://vimeo.com/event', event_id, 'embed', unlisted_hash, delim='/'),
+                event_id, 'Downloading embed iframe webpage', impersonate=True, headers=headers)
+            # The _parse_config result will overwrite live_status w/ 'is_live' if livestream is active
+            live_status = 'was_live'
+            config_url = self._extract_config_url(webpage)
+
+        else:  # view_policy in ('anybody', 'password', 'unlisted')
+            if video_id:
+                clip_id, clip_hash = self._extract_video_id_and_unlisted_hash(clip_data)
+                if video_id == clip_id and clip_status == 'done' and (clip_hash or view_policy != 'unlisted'):
+                    return self._vimeo_url_result(clip_id, clip_hash, event_id)
+
+                video_filter = lambda _, v: self._extract_video_id_and_unlisted_hash(v)[0] == video_id
+            else:
+                video_filter = lambda _, v: v['live']['status'] in ('streaming', 'done')
+
+            for page in itertools.count(1):
+                videos_data = self._call_events_api(
+                    event_id, 'videos', unlisted_hash=unlisted_hash, note=f'page {page}',
+                    fields=self._VIDEOS_FIELDS, referrer=referrer, query={'page': page},
+                    headers={'Accept': 'application/vnd.vimeo.*;version=3.4.1'})
+
+                video = traverse_obj(videos_data, ('data', video_filter, any))
+                if video or not traverse_obj(videos_data, ('paging', 'next', {str})):
+                    break
+
+            live_status = {
+                'streaming': 'is_live',
+                'done': 'was_live',
+            }.get(traverse_obj(video, ('live', 'status', {str})))
+
+            if not live_status:  # requested video_id is unavailable or no videos are available
+                raise ExtractorError('This event video is unavailable', expected=True)
+            elif live_status == 'was_live':
+                return self._vimeo_url_result(*self._extract_video_id_and_unlisted_hash(video), event_id)
+            config_url = video['config_url']
+
+        if config_url:  # view_policy == 'embed_only' or live_status == 'is_live'
+            info = filter_dict(self._parse_config(
+                self._download_json(config_url, event_id, 'Downloading config JSON'), event_id))
+        else:  # live_status == 'is_upcoming'
+            info = {'id': event_id}
+
+        if info.get('live_status') == 'post_live':
+            self.report_warning('This live event recently ended and some formats may not yet be available')
+
+        return {
+            **traverse_obj(live_event_data, {
+                'title': ('title', {str}),
+                'description': ('stream_description', {str}),
+            }),
+            'display_id': event_id,
+            'live_status': live_status,
+            'release_timestamp': release_timestamp,
+            **info,
+        }

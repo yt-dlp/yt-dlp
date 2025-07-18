@@ -4,27 +4,25 @@ import itertools
 import json
 import re
 import time
-import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     clean_html,
     determine_ext,
+    extract_attributes,
     float_or_none,
     int_or_none,
+    parse_bitrate,
     parse_duration,
     parse_iso8601,
     parse_qs,
     parse_resolution,
     qualities,
-    remove_start,
     str_or_none,
-    try_get,
-    unescapeHTML,
+    truncate_string,
     unified_timestamp,
     update_url_query,
     url_basename,
@@ -32,7 +30,11 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import (
+    find_element,
+    require,
+    traverse_obj,
+)
 
 
 class NiconicoBaseIE(InfoExtractor):
@@ -283,35 +285,54 @@ class NiconicoIE(NiconicoBaseIE):
                 lambda _, v: v['id'] == video_fmt['format_id'], 'qualityLevel', {int_or_none}, any)) or -1
             yield video_fmt
 
+    def _extract_server_response(self, webpage, video_id, fatal=True):
+        try:
+            return traverse_obj(
+                self._parse_json(self._html_search_meta('server-response', webpage) or '', video_id),
+                ('data', 'response', {dict}, {require('server response')}))
+        except ExtractorError:
+            if not fatal:
+                return {}
+            raise
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         try:
             webpage, handle = self._download_webpage_handle(
-                'https://www.nicovideo.jp/watch/' + video_id, video_id)
+                f'https://www.nicovideo.jp/watch/{video_id}', video_id,
+                headers=self.geo_verification_headers())
             if video_id.startswith('so'):
                 video_id = self._match_id(handle.url)
 
-            api_data = traverse_obj(
-                self._parse_json(self._html_search_meta('server-response', webpage) or '', video_id),
-                ('data', 'response', {dict}))
-            if not api_data:
-                raise ExtractorError('Server response data not found')
+            api_data = self._extract_server_response(webpage, video_id)
         except ExtractorError as e:
             try:
                 api_data = self._download_json(
-                    f'https://www.nicovideo.jp/api/watch/v3/{video_id}?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_{round(time.time() * 1000)}', video_id,
-                    note='Downloading API JSON', errnote='Unable to fetch data')['data']
+                    f'https://www.nicovideo.jp/api/watch/v3/{video_id}', video_id,
+                    'Downloading API JSON', 'Unable to fetch data', query={
+                        '_frontendId': '6',
+                        '_frontendVersion': '0',
+                        'actionTrackId': f'AAAAAAAAAA_{round(time.time() * 1000)}',
+                    }, headers=self.geo_verification_headers())['data']
             except ExtractorError:
                 if not isinstance(e.cause, HTTPError):
+                    # Raise if original exception was from _parse_json or utils.traversal.require
                     raise
+                # The webpage server response has more detailed error info than the API response
                 webpage = e.cause.response.read().decode('utf-8', 'replace')
-                error_msg = self._html_search_regex(
-                    r'(?s)<section\s+class="(?:(?:ErrorMessage|WatchExceptionPage-message)\s*)+">(.+?)</section>',
-                    webpage, 'error reason', default=None)
-                if not error_msg:
+                reason_code = self._extract_server_response(
+                    webpage, video_id, fatal=False).get('reasonCode')
+                if not reason_code:
                     raise
-                raise ExtractorError(clean_html(error_msg), expected=True)
+                if reason_code in ('DOMESTIC_VIDEO', 'HIGH_RISK_COUNTRY_VIDEO'):
+                    self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+                elif reason_code == 'HIDDEN_VIDEO':
+                    raise ExtractorError(
+                        'The viewing period of this video has expired', expected=True)
+                elif reason_code == 'DELETED_VIDEO':
+                    raise ExtractorError('This video has been deleted', expected=True)
+                raise ExtractorError(f'Niconico says: {reason_code}')
 
         availability = self._availability(**(traverse_obj(api_data, ('payment', 'video', {
             'needs_premium': ('isPremium', {bool}),
@@ -785,48 +806,41 @@ class NiconicoLiveIE(NiconicoBaseIE):
         'only_matching': True,
     }]
 
-    _KNOWN_LATENCY = ('high', 'low')
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
+        webpage = self._download_webpage(url, video_id, expected_status=404)
+        if err_msg := traverse_obj(webpage, ({find_element(cls='message')}, {clean_html})):
+            raise ExtractorError(err_msg, expected=True)
 
-        embedded_data = self._parse_json(unescapeHTML(self._search_regex(
-            r'<script\s+id="embedded-data"\s*data-props="(.+?)"', webpage, 'embedded data')), video_id)
+        embedded_data = traverse_obj(webpage, (
+            {find_element(tag='script', id='embedded-data', html=True)},
+            {extract_attributes}, 'data-props', {json.loads}))
+        frontend_id = traverse_obj(embedded_data, ('site', 'frontendId', {str_or_none}), default='9')
 
-        ws_url = traverse_obj(embedded_data, ('site', 'relive', 'webSocketUrl'))
-        if not ws_url:
-            raise ExtractorError('The live hasn\'t started yet or already ended.', expected=True)
-        ws_url = update_url_query(ws_url, {
-            'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
-        })
-
-        hostname = remove_start(urllib.parse.urlparse(urlh.url).hostname, 'sp.')
-        latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
-        if latency not in self._KNOWN_LATENCY:
-            latency = 'high'
-
+        ws_url = traverse_obj(embedded_data, (
+            'site', 'relive', 'webSocketUrl', {url_or_none}, {require('websocket URL')}))
+        ws_url = update_url_query(ws_url, {'frontend_id': frontend_id})
         ws = self._request_webpage(
-            Request(ws_url, headers={'Origin': f'https://{hostname}'}),
-            video_id=video_id, note='Connecting to WebSocket server')
+            ws_url, video_id, 'Connecting to WebSocket server',
+            headers={'Origin': 'https://live.nicovideo.jp'})
 
-        self.write_debug('[debug] Sending HLS server request')
+        self.write_debug('Sending HLS server request')
         ws.send(json.dumps({
-            'type': 'startWatching',
             'data': {
+                'reconnect': False,
+                'room': {
+                    'commentable': True,
+                    'protocol': 'webSocket',
+                },
                 'stream': {
-                    'quality': 'abr',
-                    'protocol': 'hls+fmp4',
-                    'latency': latency,
                     'accessRightMethod': 'single_cookie',
                     'chasePlay': False,
+                    'latency': 'high',
+                    'protocol': 'hls',
+                    'quality': 'abr',
                 },
-                'room': {
-                    'protocol': 'webSocket',
-                    'commentable': True,
-                },
-                'reconnect': False,
             },
+            'type': 'startWatching',
         }))
 
         while True:
@@ -846,17 +860,15 @@ class NiconicoLiveIE(NiconicoBaseIE):
                 raise ExtractorError('Disconnected at middle of extraction')
             elif data.get('type') == 'error':
                 self.write_debug(recv)
-                message = traverse_obj(data, ('body', 'code')) or recv
+                message = traverse_obj(data, ('body', 'code', {str_or_none}), default=recv)
                 raise ExtractorError(message)
             elif self.get_param('verbose', False):
-                if len(recv) > 100:
-                    recv = recv[:100] + '...'
-                self.write_debug(f'Server said: {recv}')
+                self.write_debug(f'Server response: {truncate_string(recv, 100)}')
 
         title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(
             ('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
 
-        raw_thumbs = traverse_obj(embedded_data, ('program', 'thumbnail')) or {}
+        raw_thumbs = traverse_obj(embedded_data, ('program', 'thumbnail', {dict})) or {}
         thumbnails = []
         for name, value in raw_thumbs.items():
             if not isinstance(value, dict):
@@ -881,22 +893,32 @@ class NiconicoLiveIE(NiconicoBaseIE):
         for cookie in cookies:
             self._set_cookie(
                 cookie['domain'], cookie['name'], cookie['value'],
-                expire_time=unified_timestamp(cookie['expires']), path=cookie['path'], secure=cookie['secure'])
+                expire_time=unified_timestamp(cookie.get('expires')), path=cookie['path'], secure=cookie['secure'])
+
+        q_iter = (q for q in qualities[1:] if not q.startswith('audio_'))  # ignore initial 'abr'
+        a_map = {96: 'audio_low', 192: 'audio_high'}
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
-        for fmt, q in zip(formats, reversed(qualities[1:])):
-            fmt.update({
-                'format_id': q,
-                'protocol': 'niconico_live',
-                'ws': ws,
-                'video_id': video_id,
-                'live_latency': latency,
-                'origin': hostname,
-            })
+        for fmt in formats:
+            fmt['protocol'] = 'niconico_live'
+            if fmt.get('acodec') == 'none':
+                fmt['format_id'] = next(q_iter, fmt['format_id'])
+            elif fmt.get('vcodec') == 'none':
+                abr = parse_bitrate(fmt['url'].lower())
+                fmt.update({
+                    'abr': abr,
+                    'acodec': 'mp4a.40.2',
+                    'format_id': a_map.get(abr, fmt['format_id']),
+                })
 
         return {
             'id': video_id,
             'title': title,
+            'downloader_options': {
+                'max_quality': traverse_obj(embedded_data, ('program', 'stream', 'maxQuality', {str})) or 'normal',
+                'ws': ws,
+                'ws_url': ws_url,
+            },
             **traverse_obj(embedded_data, {
                 'view_count': ('program', 'statistics', 'watchCount'),
                 'comment_count': ('program', 'statistics', 'commentCount'),
