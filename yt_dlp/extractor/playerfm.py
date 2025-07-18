@@ -50,9 +50,8 @@ class PlayerFmIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        # podcast url is always after last backlash
         display_id, url = self._match_valid_url(url).group('id', 'url')
-        data = self._download_json(url + '.json', display_id)
+        data = self._download_json(f'{url}.json', display_id)
 
         return {
             'display_id': display_id,
