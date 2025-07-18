@@ -617,56 +617,6 @@ class GenericIE(InfoExtractor):
         },
         'add_ie': ['Youtube'],
     }, {
-        # ✅37
-        # FacebookIE; <iframe> embed
-        'url': 'http://www.unique-almeria.com/mini-hollywood.html',
-        'md5': 'cba5d8c5021e9340dcefe925255e2c3e',
-        'info_dict': {
-            'id': '1529066599879',
-            'ext': 'mp4',
-            'title': 'Facebook video #1529066599879',
-        },
-        'expected_warnings': ['unable to extract uploader'],
-    }, {
-        # 🔧38
-        # FacebookIE; <iframe> embed, plugin video
-        'url': 'https://www.newsmemory.com/eedition/e-publishing-solutions/2-in-one-app/',
-        'md5': 'ae97d4a44f8cc9a8b1a4c03b9ed793af',
-        'info_dict': {
-            'id': '10155710648695814',
-            'ext': 'mp4',
-            'title': 'Download the all new and improved Trinidad Express App',
-            'concurrent_view_count': int,
-            'description': 'md5:4806195c99908e4189b45b1c23bd4f89',
-            'duration': 69.408,
-            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
-            'timestamp': 1533919195,
-            'upload_date': '20180810',
-            'uploader': 'Trinidad Express Newspapers',
-            'uploader_id': '100064446413648',
-            'view_count': int,
-        },
-        'skip': 'IE fix required: embed detection, Cannot parse data',
-    }, {
-        # ✅39
-        # FacebookIE; API embed
-        'url': 'https://www.curs.md/ro',
-        'md5': '090bae53b9bff2be993c896edc2ea205',
-        'info_dict': {
-            'id': '334484292523563',
-            'ext': 'mp4',
-            'title': 'md5:9abffe1c86cdd967ffa224e1ccc13b90',
-            'concurrent_view_count': int,
-            'description': 'md5:0ba98567a61c640f9fabf1882235b33d',
-            'duration': 8789.891,
-            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
-            'timestamp': 1700603114,
-            'upload_date': '20231121',
-            'uploader': 'Istoria Moldovei',
-            'uploader_id': '100063529778592',
-            'view_count': int,
-        },
-    }, {
         # ✅40
         # YoutubeIE; embed
         'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',

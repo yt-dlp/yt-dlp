@@ -81,14 +81,16 @@ class FacebookIE(InfoExtractor):
             'description': 'md5:34675bda53336b1d16400265c2bb9b3b',
             'uploader': 'RADIO KICKS FM',
             'upload_date': '20230818',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1692346159,
-            'thumbnail': r're:^https?://.*',
             'uploader_id': '100063551323670',
             'duration': 3133.583,
             'view_count': int,
             'concurrent_view_count': 0,
         },
+        'expected_warnings': ['Cannot parse data'],
     }, {
+        # Requires logging in
         'url': 'https://www.facebook.com/video.php?v=637842556329505&fref=nf',
         'md5': '6a40d33c0eccbb1af76cf0485a052659',
         'info_dict': {
@@ -99,25 +101,27 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20140908',
             'timestamp': 1410199200,
         },
-        'skip': 'Requires logging in',
+        'skip': 'Invalid URL',
     }, {
         # data.video
         'url': 'https://www.facebook.com/video.php?v=274175099429670',
         'info_dict': {
             'id': '274175099429670',
             'ext': 'mp4',
-            'title': 'Asif',
+            'title': '119 reactions · 1.4K shares | Asif Nawab Butt on Reels',
             'description': '',
             'uploader': 'Asif Nawab Butt',
             'upload_date': '20140506',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1399398998,
-            'thumbnail': r're:^https?://.*',
-            'uploader_id': 'pfbid05AzrFTXgY37tqwaSgbFTTEpCLBjjEJHkigogwGiRPtKEpAsJYJpzE94H1RxYXWEtl',
+            'uploader_id': 'pfbid05CUuW21Nwp7H8FZ5Puzo5Lfd2HTssofHm5mqcu7PyeBmAAnxirSKax4DjR1eoFdXl',
             'duration': 131.03,
             'concurrent_view_count': int,
             'view_count': int,
         },
+        'expected_warnings': ['Cannot parse data'],
     }, {
+        # Requires logging in
         'note': 'Video with DASH manifest',
         'url': 'https://www.facebook.com/video.php?v=957955867617029',
         'md5': 'b2c28d528273b323abe5c6ab59f0f030',
@@ -129,7 +133,7 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20160110',
             'timestamp': 1452431627,
         },
-        'skip': 'Requires logging in',
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://www.facebook.com/maxlayn/posts/10153807558977570',
         'md5': '037b1fa7f3c2d02b7a0d7bc16031ecc6',
@@ -158,7 +162,7 @@ class FacebookIE(InfoExtractor):
             'id': '10153664894881749',
             'ext': 'mp4',
             'title': 'Average time to confirm recent Supreme Court nominees: 67 days Longest it\'s t...',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1456259628,
             'upload_date': '20160223',
             'uploader': 'Barack Obama',
@@ -168,16 +172,16 @@ class FacebookIE(InfoExtractor):
         # have 1080P, but only up to 720p in swf params
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/cnn/videos/10155529876156509/',
-        'md5': '1659aa21fb3dd1585874f668e81a72c8',
+        'md5': '70b82ebf5f0e9b91b2a49d3db3563611',
         'info_dict': {
             'id': '10155529876156509',
             'ext': 'mp4',
             'title': 'Holocaust survivor becomes US citizen',
-            'description': 'She survived the holocaust — and years later, she’s getting her citizenship so she can vote for Hillary Clinton http://cnn.it/2eERh5f',
+            'description': 'md5:798175f8f0141d3a0c82756940137c23',
             'timestamp': 1477818095,
             'upload_date': '20161030',
             'uploader': 'CNN',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'view_count': int,
             'uploader_id': '100059479812265',
             'concurrent_view_count': int,
@@ -192,19 +196,17 @@ class FacebookIE(InfoExtractor):
             'id': '1417995061575415',
             'ext': 'mp4',
             'title': 'Довгоочікуване відео | By Yaroslav - Facebook',
-            'description': 'Довгоочікуване відео',
+            'description': 'md5:288361ce8444d43e6e2322b9371dad02',
             'timestamp': 1486648217,
             'upload_date': '20170209',
             'uploader': 'Yaroslav Korpan',
             'uploader_id': 'pfbid06AScABAWcW91qpiuGrLt99Ef9tvwHoXP6t8KeFYEqkSfreMtfa9nTveh8b2ZEVSWl',
             'concurrent_view_count': int,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'view_count': int,
             'duration': 11736.446,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Invalid URL',
     }, {
         # FIXME: Cannot parse data error
         'url': 'https://www.facebook.com/LaGuiaDelVaron/posts/1072691702860471',
@@ -215,7 +217,7 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1477305000,
             'upload_date': '20161024',
             'uploader': 'La Guía Del Varón',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
         },
         'skip': 'Requires logging in',
     }, {
@@ -225,7 +227,7 @@ class FacebookIE(InfoExtractor):
             'id': '202882990186699',
             'ext': 'mp4',
             'title': 'birb (O v O") | Hello? Yes your uber ride is here',
-            'description': 'Hello? Yes your uber ride is here * Jukin Media Verified * Find this video and others like it by visiting...',
+            'description': 'md5:f122681cf504d04be12bb2bdc66c81fd',
             'timestamp': 1486035513,
             'upload_date': '20170202',
             'uploader': 'Elisabeth Ahtn',
@@ -239,14 +241,15 @@ class FacebookIE(InfoExtractor):
             'id': '1569199726448814',
             'ext': 'mp4',
             'title': 'Pence MUST GO!',
-            'description': 'Vickie Gentry shared a memory.',
+            'description': 'md5:ec55d73e8f82876196d2ad44f7aebc73',
             'timestamp': 1511548260,
             'upload_date': '20171124',
             'uploader': 'Vickie Gentry',
             'uploader_id': 'pfbid0FkkycT95ySNNyfCw4Cho6u5G7WbbZEcxT496Hq8rtx1K3LcTCATpR3wnyYhmyGC5l',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'duration': 148.224,
         },
+        'skip': 'Invalid URL',
     }, {
         # data.node.comet_sections.content.story.attachments[].styles.attachment.media
         'url': 'https://www.facebook.com/attn/posts/pfbid0j1Czf2gGDVqeQ8KiMLFm3pWN8GxsQmeRrVhimWDzMuKQoR8r4b1knNsejELmUgyhl',
@@ -260,7 +263,7 @@ class FacebookIE(InfoExtractor):
             'duration': 132.675,
             'uploader_id': '100064451419378',
             'view_count': int,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1701975646,
         },
     }, {
@@ -270,10 +273,10 @@ class FacebookIE(InfoExtractor):
             'id': '270103405756416',
             'ext': 'mp4',
             'title': 'Lela Evans',
-            'description': 'Today Makkovik\'s own Pilot Mandy Smith made her inaugural landing on the airstrip in her hometown. What a proud moment as we all cheered and...',
-            'thumbnail': r're:^https?://.*',
+            'description': 'md5:bf2cdd1a73f256c9be4f9ab6f150a336',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'uploader': 'Lela Evans',
-            'uploader_id': 'pfbid0swT2y7t6TAsZVBvcyeYPdhTMefGaS26mzUwML3vd1ma6ndGZKxsyS4Ssu3jitZLXl',
+            'uploader_id': 'pfbid0sxw6DgMnruDw4gES56Yef88PzBeMW9MoedKqmxsecL2GZ2kJXyErpi8GVwqeBzU4l',
             'upload_date': '20231228',
             'timestamp': 1703804085,
             'duration': 394.347,
@@ -319,35 +322,34 @@ class FacebookIE(InfoExtractor):
             'id': '359649331226507',
             'ext': 'mp4',
             'title': 'Fnatic vs. EG - Group A - Opening Match - ESL One Birmingham Day 1',
-            'description': '#ESLOne VoD - Birmingham Finals Day#1 Fnatic vs. @Evil Geniuses',
+            'description': 'md5:564ee4deb51d0bf77e95330beb6e0d13',
             'timestamp': 1527084179,
             'upload_date': '20180523',
             'uploader': 'ESL One Dota 2',
             'uploader_id': '100066514874195',
             'duration': 4524.001,
             'view_count': int,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'concurrent_view_count': int,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': True},
     }, {
         # data.node.comet_sections.content.story.attachments[].style_type_renderer.attachment.all_subattachments.nodes[].media
         'url': 'https://www.facebook.com/100033620354545/videos/106560053808006/',
         'info_dict': {
             'id': '106560053808006',
             'ext': 'mp4',
-            'title': 'Josef',
-            'thumbnail': r're:^https?://.*',
+            'title': 'Josef Novak on Reels',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'concurrent_view_count': int,
-            'uploader_id': 'pfbid02gpfwRM2XvdEJfsERupwQiNmBiDArc38RMRYZnap372q6Vs7MtFTVy72mmFWpJBTKl',
+            'uploader_id': 'pfbid02gr9zfuWELKgiyQuPCAQP9o4PBvB7SncuSpFPpKLCPYrbxcDdfTwGvWX9y4JUM5V3l',
             'timestamp': 1549275572,
             'duration': 3.283,
             'uploader': 'Josef Novak',
             'description': '',
             'upload_date': '20190204',
         },
+        'expected_warnings': ['Cannot parse data'],
     }, {
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/watch/?v=647537299265662',
@@ -373,7 +375,7 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20201123',
             'timestamp': 1606162592,
         },
-        'skip': 'Requires logging in',
+        'skip': 'Invalid URL',
     }, {
         # node.comet_sections.content.story.attached_story.attachments.style_type_renderer.attachment.media
         'url': 'https://www.facebook.com/groups/ateistiskselskab/permalink/10154930137678856/',
@@ -405,14 +407,63 @@ class FacebookIE(InfoExtractor):
             'id': '637246984455045',
             'ext': 'mp4',
             'title': 'ANALISI IN CAMPO OSCURO " Coaguli nel sangue dei vaccinati"',
-            'description': 'Other event by Comitato Liberi Pensatori on Tuesday, October 18 2022',
-            'thumbnail': r're:^https?://.*',
+            'description': 'md5:2e9f3f15e39de9adb2fe9e8e8a22fe3e',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'uploader': 'Comitato Liberi Pensatori',
             'uploader_id': '100065709540881',
         },
     }, {
         'url': 'https://www.facebook.com/groups/1513990329015294/posts/d41d8cd9/2013209885760000/?app=fbl',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # <iframe> embed
+        'url': 'http://www.unique-almeria.com/mini-hollywood.html',
+        'md5': 'cba5d8c5021e9340dcefe925255e2c3e',
+        'info_dict': {
+            'id': '1529066599879',
+            'ext': 'mp4',
+            'title': 'Facebook video #1529066599879',
+        },
+        'expected_warnings': ['unable to extract uploader'],
+    }, {
+        # <iframe> embed, plugin video
+        'url': 'https://www.newsmemory.com/eedition/e-publishing-solutions/2-in-one-app/',
+        'md5': 'ae97d4a44f8cc9a8b1a4c03b9ed793af',
+        'info_dict': {
+            'id': '10155710648695814',
+            'ext': 'mp4',
+            'title': 'Download the all new and improved Trinidad Express App',
+            'concurrent_view_count': int,
+            'description': 'md5:4806195c99908e4189b45b1c23bd4f89',
+            'duration': 69.408,
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
+            'timestamp': 1533919195,
+            'upload_date': '20180810',
+            'uploader': 'Trinidad Express Newspapers',
+            'uploader_id': '100064446413648',
+            'view_count': int,
+        },
+        'expected_warnings': ['Cannot parse data'],
+        'skip': 'IE fix required: embed detection',
+    }, {
+        # API embed
+        'url': 'https://www.curs.md/ro',
+        'md5': '090bae53b9bff2be993c896edc2ea205',
+        'info_dict': {
+            'id': '334484292523563',
+            'ext': 'mp4',
+            'title': 'md5:9abffe1c86cdd967ffa224e1ccc13b90',
+            'concurrent_view_count': int,
+            'description': 'md5:0ba98567a61c640f9fabf1882235b33d',
+            'duration': 8789.891,
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
+            'timestamp': 1700603114,
+            'upload_date': '20231121',
+            'uploader': 'Istoria Moldovei',
+            'uploader_id': '100063529778592',
+            'view_count': int,
+        },
     }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
@@ -898,20 +949,24 @@ class FacebookIE(InfoExtractor):
 
 class FacebookPluginsVideoIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/plugins/video\.php\?.*?\bhref=(?P<id>https.+)'
-
     _TESTS = [{
         'url': 'https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fgov.sg%2Fvideos%2F10154383743583686%2F&show_text=0&width=560',
-        'md5': '5954e92cdfe51fe5782ae9bda7058a07',
+        'md5': 'af83aeae1d595f377c6e47a450828155',
         'info_dict': {
             'id': '10154383743583686',
             'ext': 'mp4',
-            # TODO: Fix title, uploader
             'title': 'What to do during the haze?',
-            'uploader': 'Gov.sg',
-            'upload_date': '20160826',
+            'concurrent_view_count': int,
+            'description': 'md5:81839c0979803a014b20798df255ed0b',
+            'duration': 65.087,
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1472184808,
+            'upload_date': '20160826',
+            'uploader': 'gov.sg',
+            'uploader_id': '100064718678925',
+            'view_count': int,
         },
-        'add_ie': [FacebookIE.ie_key()],
+        'expected_warnings': ['Cannot parse data'],
     }, {
         'url': 'https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fvideo.php%3Fv%3D10204634152394104',
         'only_matching': True,
@@ -945,7 +1000,7 @@ class FacebookRedirectURLIE(InfoExtractor):
             'tags': 'count:11',
             'duration': 3332,
             'live_status': 'not_live',
-            'thumbnail': 'https://i.ytimg.com/vi/pO8h3EaFRdo/maxresdefault.jpg',
+            'thumbnail': r're:https?://i\.ytimg\.com/vi/.+',
             'channel_url': 'https://www.youtube.com/channel/UCGBpxWJr9FNOcFYA5GkKrMg',
             'availability': 'public',
             'uploader_url': 'http://www.youtube.com/user/brtvofficial',
@@ -954,8 +1009,7 @@ class FacebookRedirectURLIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
         },
-        'add_ie': ['Youtube'],
-        'params': {'skip_download': 'Youtube'},
+        'skip': 'Invalid URL',
     }]
 
     def _real_extract(self, url):
@@ -968,22 +1022,20 @@ class FacebookRedirectURLIE(InfoExtractor):
 class FacebookReelIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/reel/(?P<id>\d+)'
     IE_NAME = 'facebook:reel'
-
     _TESTS = [{
         'url': 'https://www.facebook.com/reel/1195289147628387',
-        'md5': 'a53256d10fc2105441fe0c4212ed8cea',
+        'md5': 'aeb0153ecb2eaacdf2dc2bf88f593fef',
         'info_dict': {
             'id': '1195289147628387',
             'ext': 'mp4',
-            'title': r're:9\.6K views · 355 reactions .+ Let the “Slapathon” commence!! .+ LL COOL J · Mama Said Knock You Out$',
-            'description': r're:When your trying to help your partner .+ LL COOL J · Mama Said Knock You Out$',
-            'uploader': 'Beast Camp Training',
+            'title': '9.7K views · 352 reactions | When your trying to help your partner out with an arrest and #FAAFO games begin. Let the “Slapathon” commence!! 👊👋 | Beast Camp Training',
+            'description': 'md5:5a767dc7e78718667b150a7facc4a34f',
+            'uploader': '9.7K views &#xb7; 352 reactions | When your trying to help your partner out with an arrest and #FAAFO games begin. Let the &#x201c;Slapathon&#x201d; commence!! &#x1f44a;&#x1f44b; | Beast Camp Training',
             'uploader_id': '100040874179269',
             'duration': 9.579,
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1637502609,
             'upload_date': '20211121',
-            'thumbnail': r're:^https?://.*',
-            'like_count': int,
             'comment_count': int,
             'repost_count': int,
         },
@@ -998,7 +1050,6 @@ class FacebookReelIE(InfoExtractor):
 class FacebookAdsIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/ads/library/?\?(?:[^#]+&)?id=(?P<id>\d+)'
     IE_NAME = 'facebook:ads'
-
     _TESTS = [{
         'url': 'https://www.facebook.com/ads/library/?id=899206155126718',
         'info_dict': {
@@ -1008,12 +1059,13 @@ class FacebookAdsIE(InfoExtractor):
             'description': 'md5:0822724069e3aca97cbed5dabbab282e',
             'uploader': 'Kandao',
             'uploader_id': '774114102743284',
-            'uploader_url': r're:^https?://.*',
+            'uploader_url': 'https://facebook.com/KandaoVR',
             'timestamp': 1702548330,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'upload_date': '20231214',
             'like_count': int,
         },
+        'skip': 'Invalid URL',
     }, {
         # key 'watermarked_video_sd_url' missing
         'url': 'https://www.facebook.com/ads/library/?id=501152689226254',
@@ -1024,9 +1076,9 @@ class FacebookAdsIE(InfoExtractor):
             'description': 'md5:02a446ace7ff8c3c37a2892922492490',
             'uploader': 'mat.nawrocki',
             'uploader_id': '148586968341456',
-            'uploader_url': r're:^https?://.*',
+            'uploader_url': 'https://www.instagram.com/_u/mat.nawrocki',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1723452305,
-            'thumbnail': r're:^https?://.*',
             'upload_date': '20240812',
             'like_count': int,
         },
@@ -1037,12 +1089,13 @@ class FacebookAdsIE(InfoExtractor):
             'title': 'Jusqu\u2019\u00e0 -25% sur une s\u00e9lection de vins p\u00e9tillants italiens ',
             'uploader': 'Eataly Paris Marais',
             'uploader_id': '2086668958314152',
-            'uploader_url': r're:^https?://.*',
+            'uploader_url': 'https://facebook.com/EatalyParisMarais',
             'timestamp': 1703571529,
             'upload_date': '20231226',
             'like_count': int,
         },
         'playlist_count': 3,
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://es-la.facebook.com/ads/library/?id=901230958115569',
         'only_matching': True,
