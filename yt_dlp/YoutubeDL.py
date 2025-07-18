@@ -2208,6 +2208,9 @@ class YoutubeDL:
                 continue
             temp_file = tempfile.NamedTemporaryFile(suffix='.tmp', delete=False, dir=path or None)
             temp_file.close()
+            # If FragmentFD fails when testing a fragment, it will wrongly set a non-zero return code.
+            # Save the actual return code for later. See https://github.com/yt-dlp/yt-dlp/issues/13750
+            original_retcode = self._download_retcode
             try:
                 success, _ = self.dl(temp_file.name, f, test=True)
             except (DownloadError, OSError, ValueError, *network_exceptions):
@@ -2218,6 +2221,8 @@ class YoutubeDL:
                         os.remove(temp_file.name)
                     except OSError:
                         self.report_warning(f'Unable to delete temporary file "{temp_file.name}"')
+            # Restore the actual return code
+            self._download_retcode = original_retcode
             f['__working'] = success
             if success:
                 f.pop('__needs_testing', None)
