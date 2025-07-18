@@ -108,7 +108,7 @@ class RaiBaseIE(InfoExtractor):
                 'format_id': join_nonempty('https', bitrate, delim='-'),
             })
         else:
-            raise ExtractorError('Unrecognized media file found')
+            raise ExtractorError(f'Unrecognized media extension "{ext}"')
 
         if (not formats and geoprotection is True) or '/video_no_available.mp4' in media_url:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
