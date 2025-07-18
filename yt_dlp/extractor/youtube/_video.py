@@ -3525,8 +3525,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'width': int_or_none(fmt.get('width')),
                 'language': join_nonempty(language_code, 'desc' if is_descriptive else '') or None,
                 'language_preference': PREFERRED_LANG_VALUE if is_original else 5 if is_default else -10 if is_descriptive else -1,
-                # Strictly de-prioritize damaged and 3gp formats
-                'preference': -10 if is_damaged else -2 if itag == '17' else None,
+                # Strictly de-prioritize damaged, 3gp and iamf formats
+                'preference': -10 if is_damaged else -2 if itag in ('17', '773') else None,
             }
             mime_mobj = re.match(
                 r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt.get('mimeType') or '')
@@ -3537,7 +3537,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 itags[itag].add(('https', dct.get('language')))
                 stream_ids.append(stream_id)
             single_stream = 'none' in (dct.get('acodec'), dct.get('vcodec'))
-            if single_stream and dct.get('ext'):
+            if single_stream and dct.get('ext') and not dct.get('container'):
                 dct['container'] = dct['ext'] + '_dash'
 
             if (all_formats or 'dashy' in format_types) and dct['filesize']:
