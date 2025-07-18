@@ -2195,7 +2195,7 @@ class YoutubeDL:
             return op(actual_value, comparison_value)
         return _filter
 
-    def _check_formats(self, formats):
+    def _check_formats(self, formats, warning=True):
         for f in formats:
             working = f.get('__working')
             if working is not None:
@@ -2228,7 +2228,11 @@ class YoutubeDL:
                 f.pop('__needs_testing', None)
                 yield f
             else:
-                self.to_screen('[info] Unable to download format {}. Skipping...'.format(f['format_id']))
+                msg = f'Unable to download format {f["format_id"]}. Skipping...'
+                if warning:
+                    self.report_warning(msg)
+                else:
+                    self.to_screen(f'[info] {msg}')
 
     def _select_formats(self, formats, selector):
         return list(selector({
@@ -2954,7 +2958,7 @@ class YoutubeDL:
                     )
 
         if self.params.get('check_formats') is True:
-            formats = LazyList(self._check_formats(formats[::-1]), reverse=True)
+            formats = LazyList(self._check_formats(formats[::-1], warning=False), reverse=True)
 
         if not formats or formats[0] is not info_dict:
             # only set the 'formats' fields if the original info_dict list them
