@@ -506,12 +506,25 @@ class RaiPlaySoundIE(RaiBaseIE):
     }, {
         # case-sensitivity test for uppercase extension
         'url': 'https://www.raiplaysound.it/audio/2020/05/Storia--Lunita-dItalia-e-lunificazione-della-Germania-b4c16390-7f3f-4282-b353-d94897dacb7c.html',
+        'md5': 'c69ebd69282f0effd7ef67b7e2f6c7d8',
         'info_dict': {
             'id': 'b4c16390-7f3f-4282-b353-d94897dacb7c',
             'ext': 'mp3',
             'title': "Storia | 01 L'unità d'Italia e l'unificazione della Germania",
+            'alt_title': 'md5:ed4ed82585c52057b71b43994a59b705',
+            'description': 'md5:92818b6f31b2c150567d56b75db2ea7f',
+            'uploader': 'rai radio 3',
+            'duration': 2439.0,
+            'thumbnail': 'https://www.raiplaysound.it/dl/img/2023/09/07/1694084898279_Maturadio-LOGO-2048x1152.jpg',
+            'creators': ['rai radio 3'],
+            'series': 'Maturadio',
+            'season': 'Season 9',
+            'season_number': 9,
+            'episode': "01. L'unità d'Italia e l'unificazione della Germania",
+            'episode_number': 1,
+            'timestamp': 1590400740,
+            'upload_date': '20200525',
         },
-        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
