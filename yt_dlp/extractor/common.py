@@ -1746,11 +1746,21 @@ class InfoExtractor:
                         'timestamp': unified_timestamp(e.get('dateCreated')),
                     })
                 elif is_type(e, 'Article', 'NewsArticle'):
-                    info.update({
-                        'timestamp': parse_iso8601(e.get('datePublished')),
-                        'title': unescapeHTML(e.get('headline')),
-                        'description': unescapeHTML(e.get('articleBody') or e.get('description')),
-                    })
+                    info.update(**traverse_obj(e, {
+                        'title': ('headline', {clean_html}, filter),
+                        'alt_title': ('alternativeHeadline', {clean_html}, filter),
+                        'categories': ('articleSection', {clean_html}, filter, all, filter),
+                        'creators': ('author', (None, 'name'), {clean_html}, filter, all, filter),
+                        'description': (('description', 'articleBody'), {clean_html}, filter, any),
+                        'modified_timestamp': ('dateModified', {parse_iso8601}),
+                        'release_timestamp': ('datePublished', {parse_iso8601}),
+                        'tags': ('keywords', {clean_html}, {lambda x: x.split(',')}, ..., {str.strip}, filter, all, filter),
+                        'thumbnails': ('image', ..., {
+                            'url': ({str}, {unescapeHTML}, {self._proto_relative_url}, {url_or_none}),
+                        }),
+                        'timestamp': ('dateCreated', {parse_iso8601}),
+                        'uploader': ('publisher', 'name', {clean_html}, filter),
+                    }))
                     if is_type(traverse_obj(e, ('video', 0)), 'VideoObject'):
                         extract_video_object(e['video'][0])
                     elif is_type(traverse_obj(e, ('subjectOf', 0)), 'VideoObject'):
