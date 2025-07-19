@@ -1,4 +1,4 @@
-import urllib
+import urllib.parse
 
 from .common import InfoExtractor
 
@@ -38,7 +38,7 @@ class StripchatIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        is_vr = urllib.urlparse(url).hostname == 'vr.stripchat.com'
+        is_vr = urllib.parse.urlparse(url).hostname == 'vr.stripchat.com'
 
         # The API is the same for both VR and non-VR
         # f'https://vr.stripchat.com/api/vr/v2/models/username/{video_id}'
