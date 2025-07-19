@@ -30,7 +30,7 @@ class SpringboardPlatformIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Redman "BUD like YOU" "Usher Good Kisser" REMIX',
             'description': 'Redman "BUD like YOU" "Usher Good Kisser" REMIX',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'timestamp': 1409132328,
             'upload_date': '20140827',
             'duration': 193,
