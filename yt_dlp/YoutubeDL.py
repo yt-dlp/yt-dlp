@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 import contextlib
 import copy
@@ -52,7 +54,7 @@ from .networking.exceptions import (
     SSLError,
     network_exceptions,
 )
-from .networking.impersonate import ImpersonateRequestHandler
+from .networking.impersonate import ImpersonateRequestHandler, ImpersonateTarget
 from .plugins import directories as plugin_directories, load_all_plugins
 from .postprocessor import (
     EmbedThumbnailPP,
@@ -3231,6 +3233,25 @@ class YoutubeDL:
             }
         else:
             params = self.params
+
+        impersonate = info.pop('impersonate', None)
+        # Do not override --impersonate with extractor-specified impersonation
+        if params.get('impersonate') is None:
+            requested_targets = self._parse_impersonate_targets(impersonate)
+            available_target = next(filter(self._impersonate_target_available, requested_targets), None)
+            if available_target:
+                info['impersonate'] = available_target
+            elif requested_targets:
+                message = (
+                    'no impersonate target is available' if not str(requested_targets[0])
+                    else f'none of these impersonate targets are available: "{", ".join(map(str, requested_targets))}"')
+                self.report_warning(
+                    'The extractor specified to use impersonation for this download, but '
+                    f'{message}; if you encounter errors, then see  '
+                    'https://github.com/yt-dlp/yt-dlp#impersonation  '
+                    'for information on installing the required dependencies',
+                    only_once=True)
+
         fd = get_suitable_downloader(info, params, to_stdout=(name == '-'))(self, params)
         if not test:
             for ph in self._progress_hooks:
@@ -4182,6 +4203,15 @@ class YoutubeDL:
             rh.is_supported_target(target)
             for rh in self._request_director.handlers.values()
             if isinstance(rh, ImpersonateRequestHandler))
+
+    @staticmethod
+    def _parse_impersonate_targets(impersonate: ImpersonateTarget | list | tuple | str | bool | None) -> list[ImpersonateTarget]:
+        if impersonate in (True, ''):
+            impersonate = ImpersonateTarget()
+        return [
+            t if isinstance(t, ImpersonateTarget) else ImpersonateTarget.from_str(t)
+            for t in variadic(impersonate)
+        ] if impersonate else []
 
     def urlopen(self, req):
         """ Start an HTTP download """
