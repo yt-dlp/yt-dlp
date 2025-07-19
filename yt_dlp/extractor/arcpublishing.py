@@ -63,18 +63,18 @@ class ArcPublishingIE(InfoExtractor):
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
-        'url': 'https://www.adn.com/politics/2020/11/02/video-senate-candidates-campaign-in-anchorage-on-eve-of-election-day/',
+        'url': 'https://www.uppermichiganssource.com/2025/07/18/scattered-showers-storms-bring-heavy-rain-potential/',
         'info_dict': {
-            'id': '8c99cb6e-b29c-4bc9-9173-7bf9979225ab',
+            'id': '508116f7-e999-48db-b7c2-60a04842679b',
             'ext': 'mp4',
-            'title': 'Senate candidates wave to voters on Anchorage streets',
-            'description': 'md5:91f51a6511f090617353dc720318b20e',
-            'duration': 1581,
-            'thumbnail': r're:https?://dbntw0xoukshs\.cloudfront\.net/.+\.jpg',
-            'timestamp': 1604378735,
-            'upload_date': '20201103',
+            'title': 'Scattered showers & storms bring heavy rain potential',
+            'description': 'md5:c86a616ea013842ed7db9faa6a414bb9',
+            'duration': 2016,
+            'thumbnail': r're:https?://.+\.jpg',
+            'timestamp': 1752881287,
+            'upload_date': '20250718',
         },
-        'skip': 'IE fix required; embed detection',
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
     }]
     _POWA_DEFAULTS = [
         (['cmg', 'prisa'], '%s-config-prod.api.cdn.arcpublishing.com/video'),
