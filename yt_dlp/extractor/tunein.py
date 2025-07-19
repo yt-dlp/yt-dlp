@@ -80,13 +80,13 @@ class TuneInStationIE(TuneInBaseIE):
         },
     }]
     _WEBPAGE_TESTS = [{
-        'url': 'http://radiocnrv.com/promouvoir-radio-cnrv/',
+        'url': 'https://www.martiniinthemorning.com/',
         'info_dict': {
-            'id': '204146',
+            'id': 's55412',
             'ext': 'mp3',
-            'title': 'CNRV',
+            'title': 'TuneInStation video #s55412',
         },
-        'skip': 'Invalid URL',
+        'expected_warnings': ['unable to extract hydration', 'Extractor failed to obtain "title"'],
     }]
 
     def _real_extract(self, url):
