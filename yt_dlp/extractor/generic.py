@@ -56,7 +56,6 @@ class GenericIE(InfoExtractor):
     IE_NAME = 'generic'
     _NETRC_MACHINE = False  # Suppress username warning
     _TESTS = [{
-        # ✅0
         # Direct link
         # https://github.com/ytdl-org/youtube-dl/commit/c5fa81fe81ce05cd81c20ff4ea6dac3dccdcbf9d
         'url': 'https://media.w3.org/2010/05/sintel/trailer.mp4',
@@ -70,7 +69,6 @@ class GenericIE(InfoExtractor):
             'upload_date': '20100513',
         },
     }, {
-        # 🔍1
         # Direct link: No HEAD support
         # https://github.com/ytdl-org/youtube-dl/issues/4032
         'url': 'http://ai-radio.org:8000/radio.opus',
@@ -81,7 +79,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # ✅2
         # Direct link: Incorrect MIME type
         # https://github.com/ytdl-org/youtube-dl/commit/c5fa81fe81ce05cd81c20ff4ea6dac3dccdcbf9d
         'url': 'https://ftp.nluug.nl/video/nluug/2014-11-20_nj14/zaal-2/5_Lennart_Poettering_-_Systemd.webm',
@@ -95,7 +92,6 @@ class GenericIE(InfoExtractor):
             'upload_date': '20141120',
         },
     }, {
-        # ✅3
         # Direct link: Live HLS; https://castr.com/hlsplayer/
         # https://github.com/yt-dlp/yt-dlp/pull/6775
         'url': 'https://stream-akamai.castr.com/5b9352dbda7b8c769937e459/live_2361c920455111ea85db6911fe397b9e/index.fmp4.m3u8',
@@ -107,7 +103,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        # 🔍4
         # Compressed when `Accept-Encoding: *`
         # https://github.com/ytdl-org/youtube-dl/commit/a074e922967fa571d4f1abb1773c711747060f00
         'url': 'http://calimero.tk/muzik/FictionJunction-Parallel_Hearts.flac',
@@ -118,7 +113,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # ✅5
         # `Content-Encoding: br` when `Accept-Encoding: *`
         # https://github.com/yt-dlp/yt-dlp/commit/3e01ce744a981d8f19ae77ec695005e7000f4703
         'url': 'https://www.extra.cz/cauky-lidi-70-dil-babis-predstavil-pohadky-prymulanek-nebo-andrejovy-nove-saty-ac867',
@@ -137,7 +131,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
     }, {
-        # ✅6
         # HLS: `Content-Type: audio/mpegurl`; https://bitmovin.com/demos/stream-test
         # https://github.com/ytdl-org/youtube-dl/commit/20938f768b16c945c6041ba3c0a7ae1a4e790881
         'url': 'https://cdn.bitmovin.com/content/assets/art-of-motion-dash-hls-progressive/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8',
@@ -151,7 +144,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        # ✅7
         # HLS: `Content-Type: text/plain`; https://github.com/grafov/m3u8
         # https://github.com/ytdl-org/youtube-dl/commit/edd9b71c2cca7e5a0df8799710d9ad410ec77d29
         'url': 'https://raw.githubusercontent.com/grafov/m3u8/refs/heads/master/sample-playlists/master.m3u8',
@@ -162,7 +154,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        # ✅8
         # MPEG-DASH; https://bitmovin.com/demos/stream-test
         # https://github.com/ytdl-org/youtube-dl/commit/9d939cec48f06a401fb79eb078c1fc50b2aefbe1
         'url': 'https://cdn.bitmovin.com/content/assets/art-of-motion-dash-hls-progressive/mpds/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.mpd',
@@ -175,7 +166,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': True},
     }, {
-        # ✅9
         # Live MPEG-DASH; https://livesim2.dashif.org/urlgen/create
         # https://github.com/yt-dlp/yt-dlp/pull/12256
         'url': 'https://livesim2.dashif.org/livesim2/ato_10/testpic_2s/Manifest.mpd',
@@ -187,7 +177,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': 'livestream'},
     }, {
-        # ✅10
         # SMIL
         # https://github.com/ytdl-org/youtube-dl/pull/6428
         'url': 'https://api.new.livestream.com/accounts/21/events/7954027/videos/166558123.secure.smil',
@@ -198,7 +187,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': 'smil'},
     }, {
-        # ✅11
         # XSPF playlist; https://shellac-archive.ch/de/index.html
         # https://github.com/ytdl-org/youtube-dl/commit/1de5cd3ba51ce67d9a1cd3b40157058e78e46692
         'url': 'https://shellac-archive.ch/repository/xspf/22-AL0019Z.xspf',
@@ -208,7 +196,6 @@ class GenericIE(InfoExtractor):
         'playlist_count': 12,
         'params': {'skip_download': True},
     }, {
-        # ✅12
         # RSS feed
         # https://github.com/ytdl-org/youtube-dl/commit/c5fa81fe81ce05cd81c20ff4ea6dac3dccdcbf9d
         'url': 'http://phihag.de/2014/youtube-dl/rss2.xml',
@@ -219,7 +206,6 @@ class GenericIE(InfoExtractor):
         },
         'playlist_mincount': 11,
     }, {
-        # ✅13
         # RSS feed: Includes enclosure, description, and thumbnails
         # https://github.com/ytdl-org/youtube-dl/pull/27405
         'url': 'https://anchor.fm/s/dd00e14/podcast/rss',
@@ -231,7 +217,6 @@ class GenericIE(InfoExtractor):
         'playlist_count': 1,
         'params': {'skip_download': True},
     }, {
-        # ✅14
         # RSS feed: Includes guid
         'url': 'https://www.omnycontent.com/d/playlist/a7b4f8fe-59d9-4afc-a79a-a90101378abf/bf2c1d80-3656-4449-9d00-a903004e8f84/efbff746-e7c1-463a-9d80-a903004e8f8f/podcast.rss',
         'info_dict': {
@@ -241,7 +226,6 @@ class GenericIE(InfoExtractor):
         },
         'playlist_mincount': 76,
     }, {
-        # ✅15
         # RSS feed: Includes enclosure and unsupported URLs
         # https://github.com/ytdl-org/youtube-dl/pull/16189
         'url': 'https://www.interfax.ru/rss.asp',
@@ -252,7 +236,6 @@ class GenericIE(InfoExtractor):
         },
         'playlist_mincount': 25,
     }, {
-        # ✅16
         # Webpage starts with a duplicate UTF-8 BOM
         # https://github.com/yt-dlp/yt-dlp/commit/80e8493ee7c3083f4e215794e4a67ba5265f24f7
         'url': 'https://www.filmarkivet.se/movies/paris-d-moll/',
@@ -266,7 +249,6 @@ class GenericIE(InfoExtractor):
             'thumbnail': r're:https?://www\.filmarkivet\.se/wp-content/uploads/.+\.jpg',
         },
     }, {
-        # ✅17
         # Multiple HTML5 videos
         # https://github.com/ytdl-org/youtube-dl/pull/14107
         'url': 'https://www.dagbladet.no/nyheter/etter-ett-ars-planlegging-klaffet-endelig-alt---jeg-matte-ta-en-liten-dans/60413035',
@@ -279,7 +261,6 @@ class GenericIE(InfoExtractor):
         },
         'playlist_count': 2,
     }, {
-        # ✅18
         # Cinerama Player
         # https://github.com/ytdl-org/youtube-dl/commit/501f13fbf3d1f7225f91e3e0ad008df2cd3219f1
         'url': 'https://www.abc.net.au/res/libraries/cinerama2/examples/single_clip.htm',
@@ -290,7 +271,6 @@ class GenericIE(InfoExtractor):
         },
         'playlist_count': 3,
     }, {
-        # 🔧19
         # Flowplayer
         # https://github.com/ytdl-org/youtube-dl/commit/4d805e063c6c4ffd557d7c7cb905a3ed9c926b08
         'url': 'https://flowplayer.com/resources/demos/standard-setup',
@@ -305,7 +285,6 @@ class GenericIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
         'skip': 'Extraction needs improvement',
     }, {
-        # ✅20
         # JW Player: YouTube
         # https://github.com/ytdl-org/youtube-dl/commit/a0f719854463c6f4226e4042dfa80c1b17154e1d
         'url': 'https://media.nationalarchives.gov.uk/index.php/webinar-using-discovery-national-archives-online-catalogue/',
@@ -338,7 +317,6 @@ class GenericIE(InfoExtractor):
         },
         'add_ie': ['Youtube'],
     }, {
-        # ✅21
         # JW Player: Complex
         # https://github.com/ytdl-org/youtube-dl/commit/a4a554a79354981fcab55de8eaab7b95a40bbb48
         'url': 'https://www.indiedb.com/games/king-machine/videos',
@@ -352,7 +330,6 @@ class GenericIE(InfoExtractor):
             '_old_archive_ids': ['generic videos'],
         },
     }, {
-        # ✅22
         # JW Player: JSON Feed URL
         # https://github.com/yt-dlp/yt-dlp/issues/1476
         'url': 'https://foodschmooze.org/',
@@ -368,7 +345,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        # 🔍23
         # JW Player: RTMP
         # https://github.com/ytdl-org/youtube-dl/issues/11993
         'url': 'http://www.suffolk.edu/sjc/live.php',
@@ -379,7 +355,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
-        # ✅24
         # KVS Player v7.3.3
         # kt_player.js?v=5.1.1
         'url': 'https://bogmedia.org/videos/21217/40-nochey-2016/',
@@ -394,7 +369,6 @@ class GenericIE(InfoExtractor):
             'thumbnail': r're:https?://bogmedia\.org/contents/videos_screenshots/.+\.jpg',
         },
     }, {
-        # ✅25
         # KVS Player v7.7.11
         # kt_player.js?v=5.5.1
         # https://github.com/yt-dlp/yt-dlp/commit/a318f59d14792d25b2206c3f50181e03e8716db7
@@ -409,7 +383,6 @@ class GenericIE(InfoExtractor):
             'thumbnail': r're:https?://youix\.com/contents/videos_screenshots/.+\.jpg',
         },
     }, {
-        # ✅26
         # KVS Player v7.10.3
         # kt_player.js?v=12
         # https://github.com/ytdl-org/youtube-dl/commit/fc2beab0e701c497a003f11fef5c0df54fba1da3
@@ -426,7 +399,6 @@ class GenericIE(InfoExtractor):
         },
         'expected_warnings': ['Untested major version'],
     }, {
-        # 🔧27
         # KVS Player v7.11.4
         # kt_player.js?v=2.11.5.1
         # https://github.com/yt-dlp/yt-dlp/commit/a318f59d14792d25b2206c3f50181e03e8716db7
@@ -438,7 +410,6 @@ class GenericIE(InfoExtractor):
         },
         'skip': 'Unable to extract flashvars',
     }, {
-        # ✅28
         # KVS Player v7.11.4
         # kt_player.js?v=6.3.2
         # https://github.com/yt-dlp/yt-dlp/commit/a318f59d14792d25b2206c3f50181e03e8716db7
@@ -453,7 +424,6 @@ class GenericIE(InfoExtractor):
             'thumbnail': r're:https?://www\.kvs-demo\.com/contents/videos_screenshots/.+\.jpg',
         },
     }, {
-        # ✅29
         # twitter:player:stream
         # https://github.com/ytdl-org/youtube-dl/commit/371ddb14fe651d4a1e5a8310d6d7c0e395cd92b0
         'url': 'https://beltzlaw.com/',
@@ -468,8 +438,8 @@ class GenericIE(InfoExtractor):
             'upload_date': '20250718',
             '_old_archive_ids': ['generic beltzlaw'],
         },
+        'skip': 'timestamp varies',
     }, {
-        # ✅30
         # twitter:player
         # https://github.com/ytdl-org/youtube-dl/commit/329179073b93e37ab76e759d1fe96d8f984367f3
         'url': 'https://cine.ar/',
@@ -485,7 +455,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'format': 'webm'},
     }, {
-        # ✅31
         # JSON-LD: multiple @type
         # https://github.com/yt-dlp/yt-dlp/commit/f3c0c77304bc0e5614a65c45629de22f067685ac
         'url': 'https://www.nu.nl/280161/video/hoe-een-bladvlo-dit-verwoestende-japanse-onkruid-moet-vernietigen.html',
@@ -502,7 +471,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
     }, {
-        # ✅32
         # JSON-LD: unexpected @type
         # https://github.com/yt-dlp/yt-dlp/pull/5145
         'url': 'https://www.autoweek.nl/autotests/artikel/porsche-911-gt3-rs-rij-impressie-2/',
@@ -519,7 +487,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
     }, {
-        # ✅33
         # JSON-LD: VideoObject
         # https://github.com/ytdl-org/youtube-dl/commit/6e6b70d65f0681317c425bfe1e157f3474afbbe8
         'url': 'https://www.polleverywhere.com/',
@@ -536,7 +503,6 @@ class GenericIE(InfoExtractor):
             'upload_date': '20250502',
         },
     }, {
-        # ✅34
         # Video.js: VOD HLS
         # https://github.com/yt-dlp/yt-dlp/pull/6775
         'url': 'https://gist.githubusercontent.com/bashonly/2aae0862c50f4a4b84f220c315767208/raw/e3380d413749dabbe804c9c2d8fd9a45142475c7/videojs_hls_test.html',
@@ -549,7 +515,6 @@ class GenericIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        # ✅35
         # Video.js: YouTube
         # https://github.com/ytdl-org/youtube-dl/commit/63d990d2859d0e981da2e416097655798334431b
         'url': 'https://ortcam.com/solidworks-%d1%83%d1%80%d0%be%d0%ba-6-%d0%bd%d0%b0%d1%81%d1%82%d1%80%d0%be%d0%b9%d0%ba%d0%b0-%d1%87%d0%b5%d1%80%d1%82%d0%b5%d0%b6%d0%b0_33f9b7351.html?vid=33f9b7351',
@@ -583,7 +548,6 @@ class GenericIE(InfoExtractor):
         },
         'add_ie': ['Youtube'],
     }, {
-        # ✅36
         # Redirect
         # https://github.com/ytdl-org/youtube-dl/issues/413
         'url': 'https://www.google.com/url?rct=j&url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DcmQHVoWB5FY',
