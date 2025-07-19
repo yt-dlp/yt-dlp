@@ -1,9 +1,7 @@
 import hashlib
 import time
-
-from .common import InfoExtractor
 from yt_dlp.utils import ExtractorError
-
+from .common import InfoExtractor
 
 class AiyifanIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(yfsp|iyf|aiyifan)\.tv/play/(?P<id>[^/?#]+)(?:\?id=(?P<alt_id>[^&#]+))?'
