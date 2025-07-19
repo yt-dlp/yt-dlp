@@ -1,6 +1,5 @@
 from .common import InfoExtractor
 
-
 class StripchatIE(InfoExtractor):
     _VALID_URL = r'https?://(?:vr\.)?stripchat\.com/(?:cam/)?(?P<id>[^/?&#]+)'
     _TESTS = [
@@ -31,12 +30,12 @@ class StripchatIE(InfoExtractor):
                 'skip_download': True,
             },
             'skip': 'Stream might be offline',
-        }
+        },
     ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        is_vr = 'vr.stripchat.com' in url
+        is_vr = url.startswith('http://vr.stripchat.com') or url.startswith('https://vr.stripchat.com')
 
         # The API is the same for both VR and non-VR
         # f'https://vr.stripchat.com/api/vr/v2/models/username/{video_id}'
@@ -74,7 +73,7 @@ class StripchatIE(InfoExtractor):
             'protocol': 'm3u8_native',
             'format_id': 'source',
             'quality': 10,
-            'is_live': True
+            'is_live': True,
         })
 
         # Add all other available presets
