@@ -49,8 +49,9 @@ class StripchatIE(InfoExtractor):
         model_id = api_json.get('streamName')
 
         # Contains 'eu23', for example, with server '20' as the fallback
-        host_str = api_json.get('model', {}).get('broadcastServer', '')
-        host = ''.join([c for c in host_str if c.isdigit()]) or 20
+        # host_str = api_json.get('model', {}).get('broadcastServer', '')
+        # host = ''.join([c for c in host_str if c.isdigit()]) or 20
+        host = 20
 
         if is_vr:
             base_url = f'https://media-hls.doppiocdn.net/b-hls-{host}/{model_id}_vr/{model_id}_vr'
