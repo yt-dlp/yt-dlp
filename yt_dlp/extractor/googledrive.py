@@ -3,6 +3,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from .youtube import YoutubeIE
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     bug_reports_message,
@@ -12,6 +13,7 @@ from ..utils import (
     get_element_html_by_id,
     int_or_none,
     lowercase_escape,
+    traverse_obj,
     try_get,
     update_url_query,
 )
@@ -50,6 +52,17 @@ class GoogleDriveIE(InfoExtractor):
             'title': 'My Buddy - Henry Burr - Gus Kahn - Walter Donaldson.mp3',
             'duration': 184,
             'thumbnail': 'https://drive.google.com/thumbnail?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
+        },
+    }, {
+        # shortcut url
+        'url': 'https://drive.google.com/file/d/1_n3-8ZwEUV4OniMsLAJ_C1JEjuT2u5Pk/view?usp=drivesdk',
+        'md5': '43d34f7be1acc0262f337a039d1ad12d',
+        'info_dict': {
+            'id': '1J1RCw2jcgUngrZRdpza-IHXYkardZ-4l',
+            'ext': 'webm',
+            'title': 'Forrest walk with Best Mind Refresh Music Mithran [tEvJKrE4cS0].webm',
+            'duration': 512,
+            'thumbnail': 'https://drive.google.com/thumbnail?id=1J1RCw2jcgUngrZRdpza-IHXYkardZ-4l',
         },
     }, {
         # video can't be watched anonymously due to view count limit reached,
@@ -166,6 +179,17 @@ class GoogleDriveIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        try:
+            _, webpage_urlh = self._download_webpage_handle(url, video_id)
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError):
+                if e.cause.status in (401, 403):
+                    self.raise_login_required('Access Denied')
+                raise
+        if webpage_urlh.url != url:
+            url = webpage_urlh.url
+            video_id = self._match_id(url)
+
         video_info = urllib.parse.parse_qs(self._download_webpage(
             'https://drive.google.com/get_video_info',
             video_id, 'Downloading video webpage', query={'docid': video_id}))
@@ -289,7 +313,7 @@ class GoogleDriveIE(InfoExtractor):
 
 class GoogleDriveFolderIE(InfoExtractor):
     IE_NAME = 'GoogleDrive:Folder'
-    _VALID_URL = r'https?://(?:docs|drive)\.google\.com/drive/folders/(?P<id>[\w-]{28,})'
+    _VALID_URL = r'https?://(?:docs|drive)\.google\.com/drive/(?:folders/(?P<id>[\w-]{19,})|my-drive)'
     _TESTS = [{
         'url': 'https://drive.google.com/drive/folders/1dQ4sx0-__Nvg65rxTSgQrl7VyW_FZ9QI',
         'info_dict': {
@@ -297,47 +321,83 @@ class GoogleDriveFolderIE(InfoExtractor):
             'title': 'Forrest',
         },
         'playlist_count': 3,
+    }, {
+        'note': 'Contains various formats and a subfolder, folder name was formerly mismatched.'
+                'also contains loop shortcut, shortcut to non-downloadable files, etc.',
+        'url': 'https://docs.google.com/drive/folders/1jjrhqi94d8TSHSVMSdBjD49MOiHYpHfF',
+        'info_dict': {
+            'id': '1jjrhqi94d8TSHSVMSdBjD49MOiHYpHfF',
+            'title': '], sideChannel: {}});',
+        },
+        'playlist_count': 8,
     }]
-    _BOUNDARY = '=====vc17a3rwnndj====='
-    _REQUEST = "/drive/v2beta/files?openDrive=true&reason=102&syncType=0&errorRecovery=false&q=trashed%20%3D%20false%20and%20'{folder_id}'%20in%20parents&fields=kind%2CnextPageToken%2Citems(kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed))%2CincompleteSearch&appDataFilter=NO_APP_DATA&spaces=drive&pageToken={page_token}&maxResults=50&supportsTeamDrives=true&includeItemsFromAllDrives=true&corpora=default&orderBy=folder%2Ctitle_natural%20asc&retryCount=0&key={key} HTTP/1.1"
-    _DATA = f'''--{_BOUNDARY}
-content-type: application/http
-content-transfer-encoding: binary
 
-GET %s
-
---{_BOUNDARY}
-'''
-
-    def _call_api(self, folder_id, key, data, **kwargs):
-        response = self._download_webpage(
-            'https://clients6.google.com/batch/drive/v2beta',
-            folder_id, data=data.encode(),
-            headers={
-                'Content-Type': 'text/plain;charset=UTF-8;',
-                'Origin': 'https://drive.google.com',
-            }, query={
-                '$ct': f'multipart/mixed; boundary="{self._BOUNDARY}"',
-                'key': key,
-            }, **kwargs)
-        return self._search_json('', response, 'api response', folder_id, **kwargs) or {}
-
-    def _get_folder_items(self, folder_id, key):
-        page_token = ''
-        while page_token is not None:
-            request = self._REQUEST.format(folder_id=folder_id, page_token=page_token, key=key)
-            page = self._call_api(folder_id, key, self._DATA % request)
-            yield from page['items']
-            page_token = page.get('nextPageToken')
+    def _extract_json_meta(self, webpage, video_id, dsval=None, hashval=None, name=None, **kwargs):
+        """
+        Uses regex to search for json metadata with 'ds' value(0-5) or 'hash' value(1-6)
+        from the webpage.
+            logged out  folder info:ds0hash1;          items:ds4hash6
+            logged in   folder info:ds0hash1;          items:ds5hash6
+            my-drive    folder info:ds0hash1/ds0hash4; items:ds5hash6
+        For example, if the webpage contains the line below, the empty data array
+        can be got by passing dsval=3 or hashval=2 to this method.
+            AF_initDataCallback({key: 'ds:3', hash: '2', data:[], sideChannel: {}});
+        """
+        _ARRAY_RE = r'\[(?s:.+)\]'
+        _META_END_RE = r', sideChannel: \{\}\}\);'  # greedy match to deal with the 2nd test case
+        if dsval is not None:
+            if not name:
+                name = f'webpage JSON metadata ds:{dsval}'
+            return self._search_json(
+                rf'''key\s*?:\s*?(['"])ds:\s*?{dsval}\1,[^\[]*?data:''', webpage, name, video_id,
+                end_pattern=_META_END_RE, contains_pattern=_ARRAY_RE, **kwargs)
+        elif hashval is not None:
+            if not name:
+                name = f'webpage JSON metadata hash:{hashval}'
+            return self._search_json(
+                rf'''hash\s*?:\s*?(['"]){hashval}\1,[^\[]*?data:''', webpage, name, video_id,
+                end_pattern=_META_END_RE, contains_pattern=_ARRAY_RE, **kwargs)
 
     def _real_extract(self, url):
-        folder_id = self._match_id(url)
+        def item_url_getter(item, video_id):
+            if not isinstance(item, list):
+                return None
+            available_IEs = (GoogleDriveFolderIE, GoogleDriveIE)  # subfolder or item
+            if 'application/vnd.google-apps.shortcut' in item:  # extract real link
+                entry_url = traverse_obj(
+                    item,
+                    (..., ..., lambda _, v: any(ie.suitable(v) for ie in available_IEs), any))
+            else:
+                entry_url = traverse_obj(
+                    item,
+                    (lambda _, v: any(ie.suitable(v) for ie in available_IEs), any))
+            if not entry_url:
+                return None
+            return self.url_result(entry_url, video_id=video_id, video_title=item[2])
 
-        webpage = self._download_webpage(url, folder_id)
-        key = self._search_regex(r'"(\w{39})"', webpage, 'key')
+        folder_id = self._match_id(url) or 'my-drive'
+        headers = self.geo_verification_headers()
 
-        folder_info = self._call_api(folder_id, key, self._DATA % f'/drive/v2beta/files/{folder_id} HTTP/1.1', fatal=False)
+        try:
+            webpage, urlh = self._download_webpage_handle(url, folder_id, headers=headers)
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError):
+                if e.cause.status == 404:
+                    self.raise_no_formats(e.cause.msg, expected=True)
+                elif e.cause.status == 403:
+                    # logged in with an account without access
+                    self.raise_login_required('Access Denied')
+            raise
+        if urllib.parse.urlparse(urlh.url).netloc == 'accounts.google.com':
+            # not logged in when visiting a private folder
+            self.raise_login_required('Access Denied')
 
-        return self.playlist_from_matches(
-            self._get_folder_items(folder_id, key), folder_id, folder_info.get('title'),
-            ie=GoogleDriveIE, getter=lambda item: f'https://drive.google.com/file/d/{item["id"]}')
+        title = self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info')[1][2]
+        items = self._extract_json_meta(webpage, folder_id, hashval=6, name='folder items')[-1]
+
+        if items is False:  # empty folder
+            return self.playlist_result([], folder_id, title)
+
+        return self.playlist_result(
+            (entry for item in items if (entry := item_url_getter(item, folder_id))),
+            folder_id, title)
