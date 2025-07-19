@@ -567,10 +567,7 @@ from .duboku import (
 from .dumpert import DumpertIE
 from .duoplay import DuoplayIE
 from .dvtv import DVTVIE
-from .dw import (
-    DWIE,
-    DWArticleIE,
-)
+from .dw import DWIE
 from .eagleplatform import (
     ClipYouEmbedIE,
     EaglePlatformIE,
