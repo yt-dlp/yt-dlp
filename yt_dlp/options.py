@@ -526,11 +526,12 @@ def create_parser():
             'allowed_values': {
                 'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge', 'playlist-match-filter',
-                'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
+                'no-attach-info-json', 'avoid-mutagen', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
                 'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext', 'prefer-vp9-sort', 'mtime-by-default',
             }, 'aliases': {
+                'embed-thumbnail-atomicparsley': ['avoid-mutagen'],  # compat
                 'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization'],
@@ -1676,7 +1677,9 @@ def create_parser():
     postproc.add_option(
         '--embed-subs',
         action='store_true', dest='embedsubtitles', default=False,
-        help='Embed subtitles in the video (only for mp4, webm and mkv videos)')
+        help=(
+            'Embed subtitles in downloaded media. '
+            'Available for video (mp4, webm, mkv) and "lrc" in audio (m4a, mp3, ogg, flac)'))
     postproc.add_option(
         '--no-embed-subs',
         action='store_false', dest='embedsubtitles',
