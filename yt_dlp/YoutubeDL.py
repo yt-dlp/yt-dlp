@@ -2195,7 +2195,7 @@ class YoutubeDL:
             return op(actual_value, comparison_value)
         return _filter
 
-    def _check_formats(self, formats):
+    def _check_formats(self, formats, warning=True):
         for f in formats:
             working = f.get('__working')
             if working is not None:
@@ -2208,6 +2208,9 @@ class YoutubeDL:
                 continue
             temp_file = tempfile.NamedTemporaryFile(suffix='.tmp', delete=False, dir=path or None)
             temp_file.close()
+            # If FragmentFD fails when testing a fragment, it will wrongly set a non-zero return code.
+            # Save the actual return code for later. See https://github.com/yt-dlp/yt-dlp/issues/13750
+            original_retcode = self._download_retcode
             try:
                 success, _ = self.dl(temp_file.name, f, test=True)
             except (DownloadError, OSError, ValueError, *network_exceptions):
@@ -2218,12 +2221,18 @@ class YoutubeDL:
                         os.remove(temp_file.name)
                     except OSError:
                         self.report_warning(f'Unable to delete temporary file "{temp_file.name}"')
+            # Restore the actual return code
+            self._download_retcode = original_retcode
             f['__working'] = success
             if success:
                 f.pop('__needs_testing', None)
                 yield f
             else:
-                self.to_screen('[info] Unable to download format {}. Skipping...'.format(f['format_id']))
+                msg = f'Unable to download format {f["format_id"]}. Skipping...'
+                if warning:
+                    self.report_warning(msg)
+                else:
+                    self.to_screen(f'[info] {msg}')
 
     def _select_formats(self, formats, selector):
         return list(selector({
@@ -2949,7 +2958,7 @@ class YoutubeDL:
                     )
 
         if self.params.get('check_formats') is True:
-            formats = LazyList(self._check_formats(formats[::-1]), reverse=True)
+            formats = LazyList(self._check_formats(formats[::-1], warning=False), reverse=True)
 
         if not formats or formats[0] is not info_dict:
             # only set the 'formats' fields if the original info_dict list them
