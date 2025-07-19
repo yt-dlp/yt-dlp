@@ -2122,7 +2122,7 @@ def parse_duration(s):
         (days, 86400), (hours, 3600), (mins, 60), (secs, 1), (ms, 1)))
 
 
-def _change_extension(prepend, filename, ext, expected_real_ext=None):
+def _change_extension(prepend, filename, ext, expected_real_ext=None, must_have_ext=False):
     name, real_ext = os.path.splitext(filename)
 
     if not expected_real_ext or real_ext[1:] == expected_real_ext:
@@ -2130,6 +2130,11 @@ def _change_extension(prepend, filename, ext, expected_real_ext=None):
         if prepend and real_ext:
             _UnsafeExtensionError.sanitize_extension(ext, prepend=True)
             return f'{filename}.{ext}{real_ext}'
+
+    if not real_ext and must_have_ext and expected_real_ext and prepend:
+        _UnsafeExtensionError.sanitize_extension(ext, prepend=True)
+        _UnsafeExtensionError.sanitize_extension(expected_real_ext)
+        return f'{filename}.{ext}.{expected_real_ext}'
 
     return f'{filename}.{_UnsafeExtensionError.sanitize_extension(ext)}'
 
