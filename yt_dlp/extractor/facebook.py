@@ -70,7 +70,6 @@ class FacebookIE(InfoExtractor):
     IE_NAME = 'facebook'
 
     _VIDEO_PAGE_TEMPLATE = 'https://www.facebook.com/video/video.php?v=%s'
-    _VIDEO_PAGE_TAHOE_TEMPLATE = 'https://www.facebook.com/video/tahoe/async/%s/?chain=true&isvideo=true&payloadtype=primary'
 
     _TESTS = [{
         'url': 'https://www.facebook.com/radiokicksfm/videos/3676516585958356/',
@@ -238,7 +237,7 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '1569199726448814',
             'ext': 'mp4',
-            'title': 'Pence MUST GO!',
+            'title': 'Trump/Musk & Vance MUST GO!',
             'description': 'Vickie Gentry shared a memory.',
             'timestamp': 1511548260,
             'upload_date': '20171124',
@@ -413,6 +412,13 @@ class FacebookIE(InfoExtractor):
     }, {
         'url': 'https://www.facebook.com/groups/1513990329015294/posts/d41d8cd9/2013209885760000/?app=fbl',
         'only_matching': True,
+    }, {
+        'url': 'https://www.facebook.com/WatchESLOne/videos/297860117405429/',
+        'info_dict': {
+            'id': '297860117405429',
+        },
+        'playlist_count': 1,
+        'skip': 'URL that previously required tahoe player, but currently not working. More info: https://github.com/ytdl-org/youtube-dl/issues/15441',
     }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
@@ -478,248 +484,246 @@ class FacebookIE(InfoExtractor):
             self.report_warning(f'unable to log in: {err}')
             return
 
+    def _extract_metadata(self, webpage, video_id):
+        post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
+            r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
+        post = traverse_obj(post_data, (
+            ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
+        media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
+            k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
+        title = get_first(media, ('title', 'text'))
+        description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
+        page_title = title or self._html_search_regex((
+            r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
+            r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(?P<content>.*?)</span>',
+            self._meta_regex('og:title'), self._meta_regex('twitter:title'), r'<title>(?P<content>.+?)</title>',
+        ), webpage, 'title', default=None, group='content')
+        description = description or self._html_search_meta(
+            ['description', 'og:description', 'twitter:description'],
+            webpage, 'description', default=None)
+        uploader_data = (
+            get_first(media, ('owner', {dict}))
+            or get_first(post, ('video', 'creation_story', 'attachments', ..., 'media', lambda k, v: k == 'owner' and v['name']))
+            or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
+            or get_first(post, ('node', 'actors', ..., {dict}))
+            or get_first(post, ('event', 'event_creator', {dict}))
+            or get_first(post, ('video', 'creation_story', 'short_form_video_context', 'video_owner', {dict})) or {})
+        uploader = uploader_data.get('name') or (
+            clean_html(get_element_by_id('fbPhotoPageAuthorName', webpage))
+            or self._search_regex(
+                (r'ownerName\s*:\s*"([^"]+)"', *self._og_regexes('title')), webpage, 'uploader', fatal=False))
+        timestamp = int_or_none(self._search_regex(
+            r'<abbr[^>]+data-utime=["\'](\d+)', webpage,
+            'timestamp', default=None))
+        thumbnail = self._html_search_meta(
+            ['og:image', 'twitter:image'], webpage, 'thumbnail', default=None)
+        # some webpages contain unretrievable thumbnail urls
+        # like https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=10155168902769113&get_thumbnail=1
+        # in https://www.facebook.com/yaroslav.korpan/videos/1417995061575415/
+        if thumbnail and not re.search(r'\.(?:jpg|png)', thumbnail):
+            thumbnail = None
+        info_dict = {
+            'description': description,
+            'uploader': uploader,
+            'uploader_id': uploader_data.get('id'),
+            'timestamp': timestamp,
+            'thumbnail': thumbnail,
+            'view_count': parse_count(self._search_regex(
+                (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)'),
+                webpage, 'view count', default=None)),
+            'concurrent_view_count': get_first(post, (
+                ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
+            **traverse_obj(post, (lambda _, v: video_id in v['url'], 'feedback', {
+                'like_count': ('likers', 'count', {int}),
+                'comment_count': ('total_comment_count', {int}),
+                'repost_count': ('share_count_reduced', {parse_count}),
+            }), get_all=False),
+        }
+
+        info_json_ld = self._search_json_ld(webpage, video_id, default={})
+        info_json_ld['title'] = (re.sub(r'\s*\|\s*Facebook$', '', title or info_json_ld.get('title') or page_title or '')
+                                 or (description or '').replace('\n', ' ') or f'Facebook video #{video_id}')
+        return merge_dicts(info_json_ld, info_dict)
+
+    def _extract_video_data(self, instances: list) -> list:
+        video_data = []
+        for item in instances:
+            if try_get(item, lambda x: x[1][0]) == 'VideoConfig':
+                video_item = item[2][0]
+                if video_item.get('video_id'):
+                    video_data.append(video_item['videoData'])
+        return video_data
+
+    def _parse_graphql_video(self, video, video_id, webpage) -> dict:
+        v_id = video.get('videoId') or video.get('id') or video_id
+        reel_info = traverse_obj(
+            video, ('creation_story', 'short_form_video_context', 'playback_video', {dict}))
+        if reel_info:
+            video = video['creation_story']
+            video['owner'] = traverse_obj(video, ('short_form_video_context', 'video_owner'))
+            video.update(reel_info)
+
+        formats = []
+        q = qualities(['sd', 'hd'])
+
+        # Legacy formats extraction
+        fmt_data = traverse_obj(video, ('videoDeliveryLegacyFields', {dict})) or video
+        for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
+                               ('playable_url_dash', ''), ('browser_native_hd_url', 'hd'),
+                               ('browser_native_sd_url', 'sd')):
+            playable_url = fmt_data.get(key)
+            if not playable_url:
+                continue
+            if determine_ext(playable_url) == 'mpd':
+                formats.extend(self._extract_mpd_formats(playable_url, video_id, fatal=False))
+            else:
+                formats.append({
+                    'format_id': format_id,
+                    # sd, hd formats w/o resolution info should be deprioritized below DASH
+                    'quality': q(format_id) - 3,
+                    'url': playable_url,
+                })
+        self._extract_dash_manifest(fmt_data, formats)
+
+        # New videoDeliveryResponse formats extraction
+        fmt_data = traverse_obj(video, ('videoDeliveryResponseFragment', 'videoDeliveryResponseResult'))
+        mpd_urls = traverse_obj(fmt_data, ('dash_manifest_urls', ..., 'manifest_url', {url_or_none}))
+        dash_manifests = traverse_obj(fmt_data, ('dash_manifests', lambda _, v: v['manifest_xml']))
+        for idx, dash_manifest in enumerate(dash_manifests):
+            self._extract_dash_manifest(dash_manifest, formats, mpd_url=traverse_obj(mpd_urls, idx))
+        if not dash_manifests:
+            # Only extract from MPD URLs if the manifests are not already provided
+            for mpd_url in mpd_urls:
+                formats.extend(self._extract_mpd_formats(mpd_url, video_id, fatal=False))
+        for prog_fmt in traverse_obj(fmt_data, ('progressive_urls', lambda _, v: v['progressive_url'])):
+            format_id = traverse_obj(prog_fmt, ('metadata', 'quality', {str.lower}))
+            formats.append({
+                'format_id': format_id,
+                # sd, hd formats w/o resolution info should be deprioritized below DASH
+                'quality': q(format_id) - 3,
+                'url': prog_fmt['progressive_url'],
+            })
+        for m3u8_url in traverse_obj(fmt_data, ('hls_playlist_urls', ..., 'hls_playlist_url', {url_or_none})):
+            formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', fatal=False, m3u8_id='hls'))
+
+        if not formats:
+            # Do not append false positive entry w/o any formats
+            return
+
+        automatic_captions, subtitles = {}, {}
+        is_broadcast = traverse_obj(video, ('is_video_broadcast', {bool}))
+        for caption in traverse_obj(video, (
+            'video_available_captions_locales',
+            {lambda x: sorted(x, key=lambda c: c['locale'])},
+            lambda _, v: url_or_none(v['captions_url']),
+        )):
+            lang = caption.get('localized_language') or 'und'
+            subs = {
+                'url': caption['captions_url'],
+                'name': format_field(caption, 'localized_country', f'{lang} (%s)', default=lang),
+            }
+            if caption.get('localized_creation_method') or is_broadcast:
+                automatic_captions.setdefault(caption['locale'], []).append(subs)
+            else:
+                subtitles.setdefault(caption['locale'], []).append(subs)
+        captions_url = traverse_obj(video, ('captions_url', {url_or_none}))
+        if captions_url and not automatic_captions and not subtitles:
+            locale = self._html_search_meta(
+                ['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
+            (automatic_captions if is_broadcast else subtitles)[locale] = [{'url': captions_url}]
+
+        info = {
+            'id': v_id,
+            'formats': formats,
+            'thumbnail': traverse_obj(
+                video, ('thumbnailImage', 'uri'), ('preferred_thumbnail', 'image', 'uri')),
+            'uploader_id': traverse_obj(video, ('owner', 'id', {str_or_none})),
+            'timestamp': traverse_obj(video, 'publish_time', 'creation_time', expected_type=int_or_none),
+            'duration': (float_or_none(video.get('playable_duration_in_ms'), 1000)
+                         or float_or_none(video.get('length_in_second'))),
+            'automatic_captions': automatic_captions,
+            'subtitles': subtitles,
+        }
+        self._process_formats(info)
+        description = try_get(video, lambda x: x['savable_description']['text'])
+        title = video.get('name')
+        if title:
+            info.update({
+                'title': title,
+                'description': description,
+            })
+        else:
+            info['title'] = description or f'Facebook video #{v_id}'
+        return info
+
+    def _extract_dash_manifest(self, vid_data, formats, mpd_url=None):
+        dash_manifest = traverse_obj(
+            vid_data, 'dash_manifest', 'playlist', 'dash_manifest_xml_string', 'manifest_xml', expected_type=str)
+        if dash_manifest:
+            formats.extend(self._parse_mpd_formats(
+                compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest)),
+                mpd_url=url_or_none(vid_data.get('dash_manifest_url')) or mpd_url))
+
+    def _process_formats(self, info: dict) -> None:
+        # Downloads with browser's User-Agent are rate limited. Working around
+        # with non-browser User-Agent.
+        for f in info['formats']:
+            # Downloads with browser's User-Agent are rate limited. Working around
+            # with non-browser User-Agent.
+            f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
+            # Formats larger than ~500MB will return error 403 unless chunk size is regulated
+            f.setdefault('downloader_options', {})['http_chunk_size'] = 250 << 20
+
+    def _extract_from_jsmods_instances(self, js_data):
+        if js_data:
+            return self._extract_video_data(try_get(
+                js_data, lambda x: x['jsmods']['instances'], list) or [])
+
+    def _yield_all_relay_data(self, _filter, webpage):
+        for relay_data in re.findall(rf'data-sjs>({{.*?{_filter}.*?}})</script>', webpage):
+            yield self._parse_json(relay_data, None, fatal=False) or {}
+
+    def _extract_relay_prefetched_data(self, _filter, webpage, target_keys=None):
+        path = 'data'
+        if target_keys is not None:
+            path = lambda k, v: k == 'data' and any(target in v for target in variadic(target_keys))
+        return traverse_obj(self._yield_all_relay_data(_filter, webpage), (
+            ..., 'require', (None, (..., ..., ..., '__bbox', 'require')),
+            lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v),
+            ..., ..., '__bbox', 'result', path, {dict}), get_all=False) or {}
+
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
 
-        def extract_metadata(webpage):
-            post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
-                r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
-            post = traverse_obj(post_data, (
-                ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
-            media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
-                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
-            title = get_first(media, ('title', 'text'))
-            description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
-            page_title = title or self._html_search_regex((
-                r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
-                r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(?P<content>.*?)</span>',
-                self._meta_regex('og:title'), self._meta_regex('twitter:title'), r'<title>(?P<content>.+?)</title>',
-            ), webpage, 'title', default=None, group='content')
-            description = description or self._html_search_meta(
-                ['description', 'og:description', 'twitter:description'],
-                webpage, 'description', default=None)
-            uploader_data = (
-                get_first(media, ('owner', {dict}))
-                or get_first(post, ('video', 'creation_story', 'attachments', ..., 'media', lambda k, v: k == 'owner' and v['name']))
-                or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
-                or get_first(post, ('node', 'actors', ..., {dict}))
-                or get_first(post, ('event', 'event_creator', {dict}))
-                or get_first(post, ('video', 'creation_story', 'short_form_video_context', 'video_owner', {dict})) or {})
-            uploader = uploader_data.get('name') or (
-                clean_html(get_element_by_id('fbPhotoPageAuthorName', webpage))
-                or self._search_regex(
-                    (r'ownerName\s*:\s*"([^"]+)"', *self._og_regexes('title')), webpage, 'uploader', fatal=False))
-            timestamp = int_or_none(self._search_regex(
-                r'<abbr[^>]+data-utime=["\'](\d+)', webpage,
-                'timestamp', default=None))
-            thumbnail = self._html_search_meta(
-                ['og:image', 'twitter:image'], webpage, 'thumbnail', default=None)
-            # some webpages contain unretrievable thumbnail urls
-            # like https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=10155168902769113&get_thumbnail=1
-            # in https://www.facebook.com/yaroslav.korpan/videos/1417995061575415/
-            if thumbnail and not re.search(r'\.(?:jpg|png)', thumbnail):
-                thumbnail = None
-            info_dict = {
-                'description': description,
-                'uploader': uploader,
-                'uploader_id': uploader_data.get('id'),
-                'timestamp': timestamp,
-                'thumbnail': thumbnail,
-                'view_count': parse_count(self._search_regex(
-                    (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)'),
-                    webpage, 'view count', default=None)),
-                'concurrent_view_count': get_first(post, (
-                    ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
-                **traverse_obj(post, (lambda _, v: video_id in v['url'], 'feedback', {
-                    'like_count': ('likers', 'count', {int}),
-                    'comment_count': ('total_comment_count', {int}),
-                    'repost_count': ('share_count_reduced', {parse_count}),
-                }), get_all=False),
-            }
-
-            info_json_ld = self._search_json_ld(webpage, video_id, default={})
-            info_json_ld['title'] = (re.sub(r'\s*\|\s*Facebook$', '', title or info_json_ld.get('title') or page_title or '')
-                                     or (description or '').replace('\n', ' ') or f'Facebook video #{video_id}')
-            return merge_dicts(info_json_ld, info_dict)
-
         video_data = None
-
-        def extract_video_data(instances):
-            video_data = []
-            for item in instances:
-                if try_get(item, lambda x: x[1][0]) == 'VideoConfig':
-                    video_item = item[2][0]
-                    if video_item.get('video_id'):
-                        video_data.append(video_item['videoData'])
-            return video_data
 
         server_js_data = self._parse_json(self._search_regex(
             [r'handleServerJS\(({.+})(?:\);|,")', r'\bs\.handle\(({.+?})\);'],
             webpage, 'server js data', default='{}'), video_id, fatal=False)
 
         if server_js_data:
-            video_data = extract_video_data(server_js_data.get('instances', []))
-
-        def extract_from_jsmods_instances(js_data):
-            if js_data:
-                return extract_video_data(try_get(
-                    js_data, lambda x: x['jsmods']['instances'], list) or [])
-
-        def extract_dash_manifest(vid_data, formats, mpd_url=None):
-            dash_manifest = traverse_obj(
-                vid_data, 'dash_manifest', 'playlist', 'dash_manifest_xml_string', 'manifest_xml', expected_type=str)
-            if dash_manifest:
-                formats.extend(self._parse_mpd_formats(
-                    compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest)),
-                    mpd_url=url_or_none(vid_data.get('dash_manifest_url')) or mpd_url))
-
-        def process_formats(info):
-            # Downloads with browser's User-Agent are rate limited. Working around
-            # with non-browser User-Agent.
-            for f in info['formats']:
-                # Downloads with browser's User-Agent are rate limited. Working around
-                # with non-browser User-Agent.
-                f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
-                # Formats larger than ~500MB will return error 403 unless chunk size is regulated
-                f.setdefault('downloader_options', {})['http_chunk_size'] = 250 << 20
-
-        def yield_all_relay_data(_filter):
-            for relay_data in re.findall(rf'data-sjs>({{.*?{_filter}.*?}})</script>', webpage):
-                yield self._parse_json(relay_data, video_id, fatal=False) or {}
-
-        def extract_relay_data(_filter):
-            return next(filter(None, yield_all_relay_data(_filter)), {})
-
-        def extract_relay_prefetched_data(_filter, target_keys=None):
-            path = 'data'
-            if target_keys is not None:
-                path = lambda k, v: k == 'data' and any(target in v for target in variadic(target_keys))
-            return traverse_obj(yield_all_relay_data(_filter), (
-                ..., 'require', (None, (..., ..., ..., '__bbox', 'require')),
-                lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v),
-                ..., ..., '__bbox', 'result', path, {dict}), get_all=False) or {}
+            video_data = self._extract_video_data(server_js_data.get('instances', []))
 
         if not video_data:
             server_js_data = self._parse_json(self._search_regex([
                 r'bigPipe\.onPageletArrive\(({.+?})\)\s*;\s*}\s*\)\s*,\s*["\']onPageletArrive\s+' + self._SUPPORTED_PAGLETS_REGEX,
                 rf'bigPipe\.onPageletArrive\(({{.*?id\s*:\s*"{self._SUPPORTED_PAGLETS_REGEX}".*?}})\);',
             ], webpage, 'js data', default='{}'), video_id, js_to_json, False)
-            video_data = extract_from_jsmods_instances(server_js_data)
+            video_data = self._extract_from_jsmods_instances(server_js_data)
 
         if not video_data:
-            data = extract_relay_prefetched_data(
+            data = self._extract_relay_prefetched_data(
                 r'"(?:dash_manifest|playable_url(?:_quality_hd)?)',
+                webpage,
                 target_keys=('video', 'event', 'nodes', 'node', 'mediaset'))
             if data:
                 entries = []
 
-                def parse_graphql_video(video):
-                    v_id = video.get('videoId') or video.get('id') or video_id
-                    reel_info = traverse_obj(
-                        video, ('creation_story', 'short_form_video_context', 'playback_video', {dict}))
-                    if reel_info:
-                        video = video['creation_story']
-                        video['owner'] = traverse_obj(video, ('short_form_video_context', 'video_owner'))
-                        video.update(reel_info)
-
-                    formats = []
-                    q = qualities(['sd', 'hd'])
-
-                    # Legacy formats extraction
-                    fmt_data = traverse_obj(video, ('videoDeliveryLegacyFields', {dict})) or video
-                    for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
-                                           ('playable_url_dash', ''), ('browser_native_hd_url', 'hd'),
-                                           ('browser_native_sd_url', 'sd')):
-                        playable_url = fmt_data.get(key)
-                        if not playable_url:
-                            continue
-                        if determine_ext(playable_url) == 'mpd':
-                            formats.extend(self._extract_mpd_formats(playable_url, video_id, fatal=False))
-                        else:
-                            formats.append({
-                                'format_id': format_id,
-                                # sd, hd formats w/o resolution info should be deprioritized below DASH
-                                'quality': q(format_id) - 3,
-                                'url': playable_url,
-                            })
-                    extract_dash_manifest(fmt_data, formats)
-
-                    # New videoDeliveryResponse formats extraction
-                    fmt_data = traverse_obj(video, ('videoDeliveryResponseFragment', 'videoDeliveryResponseResult'))
-                    mpd_urls = traverse_obj(fmt_data, ('dash_manifest_urls', ..., 'manifest_url', {url_or_none}))
-                    dash_manifests = traverse_obj(fmt_data, ('dash_manifests', lambda _, v: v['manifest_xml']))
-                    for idx, dash_manifest in enumerate(dash_manifests):
-                        extract_dash_manifest(dash_manifest, formats, mpd_url=traverse_obj(mpd_urls, idx))
-                    if not dash_manifests:
-                        # Only extract from MPD URLs if the manifests are not already provided
-                        for mpd_url in mpd_urls:
-                            formats.extend(self._extract_mpd_formats(mpd_url, video_id, fatal=False))
-                    for prog_fmt in traverse_obj(fmt_data, ('progressive_urls', lambda _, v: v['progressive_url'])):
-                        format_id = traverse_obj(prog_fmt, ('metadata', 'quality', {str.lower}))
-                        formats.append({
-                            'format_id': format_id,
-                            # sd, hd formats w/o resolution info should be deprioritized below DASH
-                            'quality': q(format_id) - 3,
-                            'url': prog_fmt['progressive_url'],
-                        })
-                    for m3u8_url in traverse_obj(fmt_data, ('hls_playlist_urls', ..., 'hls_playlist_url', {url_or_none})):
-                        formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', fatal=False, m3u8_id='hls'))
-
-                    if not formats:
-                        # Do not append false positive entry w/o any formats
-                        return
-
-                    automatic_captions, subtitles = {}, {}
-                    is_broadcast = traverse_obj(video, ('is_video_broadcast', {bool}))
-                    for caption in traverse_obj(video, (
-                        'video_available_captions_locales',
-                        {lambda x: sorted(x, key=lambda c: c['locale'])},
-                        lambda _, v: url_or_none(v['captions_url']),
-                    )):
-                        lang = caption.get('localized_language') or 'und'
-                        subs = {
-                            'url': caption['captions_url'],
-                            'name': format_field(caption, 'localized_country', f'{lang} (%s)', default=lang),
-                        }
-                        if caption.get('localized_creation_method') or is_broadcast:
-                            automatic_captions.setdefault(caption['locale'], []).append(subs)
-                        else:
-                            subtitles.setdefault(caption['locale'], []).append(subs)
-                    captions_url = traverse_obj(video, ('captions_url', {url_or_none}))
-                    if captions_url and not automatic_captions and not subtitles:
-                        locale = self._html_search_meta(
-                            ['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
-                        (automatic_captions if is_broadcast else subtitles)[locale] = [{'url': captions_url}]
-
-                    info = {
-                        'id': v_id,
-                        'formats': formats,
-                        'thumbnail': traverse_obj(
-                            video, ('thumbnailImage', 'uri'), ('preferred_thumbnail', 'image', 'uri')),
-                        'uploader_id': traverse_obj(video, ('owner', 'id', {str_or_none})),
-                        'timestamp': traverse_obj(video, 'publish_time', 'creation_time', expected_type=int_or_none),
-                        'duration': (float_or_none(video.get('playable_duration_in_ms'), 1000)
-                                     or float_or_none(video.get('length_in_second'))),
-                        'automatic_captions': automatic_captions,
-                        'subtitles': subtitles,
-                    }
-                    process_formats(info)
-                    description = try_get(video, lambda x: x['savable_description']['text'])
-                    title = video.get('name')
-                    if title:
-                        info.update({
-                            'title': title,
-                            'description': description,
-                        })
-                    else:
-                        info['title'] = description or f'Facebook video #{v_id}'
-                    entries.append(info)
-
                 def parse_attachment(attachment, key='media'):
                     media = attachment.get(key) or {}
                     if media.get('__typename') == 'Video':
-                        return parse_graphql_video(media)
+                        entries.append(self._parse_graphql_video(media, video_id, webpage))
 
                 nodes = variadic(traverse_obj(data, 'nodes', 'node') or [])
                 attachments = traverse_obj(nodes, (
@@ -747,13 +751,13 @@ class FacebookIE(InfoExtractor):
                     for attachment in attachments:
                         parse_attachment(attachment)
                     if not entries:
-                        parse_graphql_video(video)
+                        entries.append(self._parse_graphql_video(video, video_id, webpage))
 
                 if len(entries) > 1:
                     return self.playlist_result(entries, video_id)
 
                 video_info = entries[0] if entries else {'id': video_id}
-                webpage_info = extract_metadata(webpage)
+                webpage_info = self._extract_metadata(webpage, video_id)
                 # honor precise duration in video info
                 if video_info.get('duration'):
                     webpage_info['duration'] = video_info['duration']
@@ -782,13 +786,14 @@ class FacebookIE(InfoExtractor):
                 }),
             }
 
-            prefetched_data = extract_relay_prefetched_data(r'"login_data"\s*:\s*{')
+            prefetched_data = self._extract_relay_prefetched_data(r'"login_data"\s*:\s*{', webpage)
             if prefetched_data:
                 lsd = try_get(prefetched_data, lambda x: x['login_data']['lsd'], dict)
                 if lsd:
                     post_data[lsd['name']] = lsd['value']
 
-            relay_data = extract_relay_data(r'\[\s*"RelayAPIConfigDefaults"\s*,')
+            relay_data = next(filter(None, self._yield_all_relay_data(r'\[\s*"RelayAPIConfigDefaults"\s*,', webpage)), {})
+
             for define in (relay_data.get('define') or []):
                 if define[0] == 'RelayAPIConfigDefaults':
                     self._api_config = define[2]
@@ -809,33 +814,6 @@ class FacebookIE(InfoExtractor):
                     self.ie_key(), v_id, video.get('name')))
 
             return self.playlist_result(entries, video_id)
-
-        if not video_data:
-            # Video info not in first request, do a secondary request using
-            # tahoe player specific URL
-            tahoe_data = self._download_webpage(
-                self._VIDEO_PAGE_TAHOE_TEMPLATE % video_id, video_id,
-                data=urlencode_postdata({
-                    '__a': 1,
-                    '__pc': self._search_regex(
-                        r'pkg_cohort["\']\s*:\s*["\'](.+?)["\']', webpage,
-                        'pkg cohort', default='PHASED:DEFAULT'),
-                    '__rev': self._search_regex(
-                        r'client_revision["\']\s*:\s*(\d+),', webpage,
-                        'client revision', default='3944515'),
-                    'fb_dtsg': self._search_regex(
-                        r'"DTSGInitialData"\s*,\s*\[\]\s*,\s*{\s*"token"\s*:\s*"([^"]+)"',
-                        webpage, 'dtsg token', default=''),
-                }),
-                headers={
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                })
-            tahoe_js_data = self._parse_json(
-                self._search_regex(
-                    r'for\s+\(\s*;\s*;\s*\)\s*;(.+)', tahoe_data,
-                    'tahoe js data', default='{}'),
-                video_id, fatal=False)
-            video_data = extract_from_jsmods_instances(tahoe_js_data)
 
         if not video_data:
             raise ExtractorError('Cannot parse data')
@@ -874,7 +852,7 @@ class FacebookIE(InfoExtractor):
                             'quality': preference,
                             'height': 720 if quality == 'hd' else None,
                         })
-            extract_dash_manifest(f[0], formats)
+            self._extract_dash_manifest(f[0], formats)
             subtitles_src = f[0].get('subtitles_src')
             if subtitles_src:
                 subtitles.setdefault('en', []).append({'url': subtitles_src})
@@ -884,8 +862,8 @@ class FacebookIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         }
-        process_formats(info_dict)
-        info_dict.update(extract_metadata(webpage))
+        self._process_formats(info_dict)
+        info_dict.update(self._extract_metadata(webpage, video_id))
 
         return info_dict
 
