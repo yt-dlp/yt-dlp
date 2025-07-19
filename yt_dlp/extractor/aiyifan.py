@@ -1,8 +1,8 @@
 import hashlib
-import re
 import time
 
 from .common import InfoExtractor
+from yt_dlp.utils import ExtractorError
 
 
 class AiyifanIE(InfoExtractor):
@@ -58,28 +58,54 @@ class AiyifanIE(InfoExtractor):
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        video_id = mobj.group('id')
-        alt_id = mobj.group('alt_id') or video_id
+        collection_id = mobj.group('id')
+        video_key = mobj.group('alt_id')
 
-        detail_query = f'tech=HLS&id={video_id}'
+        if not video_key:
+            vv, pub = self.compute_vv(f'vid={collection_id}&cid=0,')
+            playlist_data = self._download_json(
+                'https://m10.yfsp.tv/v3/video/languagesplaylist',
+                collection_id, query={
+                    'vid': collection_id,
+                    'cid':'0,',
+                    'vv': vv,
+                    'pub': pub,
+                }, note='Downloading playlist info')
+            play_list = playlist_data['data']['info'][0]['playList']
+            if not play_list:
+                raise ExtractorError('No videos found in playlist')
+
+            if self._yes_playlist(url, collection_id):
+                entries = []
+                for video in play_list:
+                    key = video['key']
+                    entries.append(self.url_result(
+                        f'https://www.yfsp.tv/play/{collection_id}?id={key}',
+                        ie=self.ie_key(), video_id=key))
+                return self.playlist_result(entries, collection_id)
+
+            video_key = play_list[0]['key']
+
+        detail_query = f'tech=HLS&id={collection_id}'
         detail_vv, detail_pub = self.compute_vv(detail_query)
         detail_params = {
             'tech': 'HLS',
-            'id': video_id,
+            'id': collection_id,
             'vv': detail_vv,
             'pub': detail_pub,
         }
 
         detail_json = self._download_json(
-            'https://m10.yfsp.tv/v3/video/detail', video_id, note='Downloading detail info',
-            query=detail_params)
+            'https://m10.yfsp.tv/v3/video/detail', collection_id,
+            note='Downloading detail info', query=detail_params)
+
         title = detail_json['data']['info'][0]['title']
 
-        a = 1 if video_id == alt_id else 0
-        download_query = f'id={alt_id}&a={a}&usersign=1'
+        a = 1 if collection_id == video_key else 0
+        download_query = f'id={video_key}&a={a}&usersign=1'
         download_vv, download_pub = self.compute_vv(download_query)
         download_params = {
-            'id': alt_id,
+            'id': video_key,
             'a': a,
             'usersign': 1,
             'vv': download_vv,
@@ -87,22 +113,26 @@ class AiyifanIE(InfoExtractor):
         }
 
         info = self._download_webpage(
-            'https://m10.yfsp.tv/v3/video/play', video_id, note='Downloading playback info',
-            query=download_params)
+            'https://m10.yfsp.tv/v3/video/play', video_key,
+            note='Downloading playback info', query=download_params)
 
-        info_json = self._parse_json(info, video_id)
+        info_json = self._parse_json(info, video_key)
         m3u8_url = info_json['data']['info'][0]['clarity'][-1]['path']['rtmp']
 
-        episode = re.search(r'[A-Za-z0-9]+-[A-Za-z0-9]+-([A-Za-z0-9]*)-[A-Za-z0-9]+\.', m3u8_url).group(1)
-        title = f'{title}_{episode}'
+        episode = self._search_regex(
+            r'[A-Za-z0-9]+-[A-Za-z0-9]+-([A-Za-z0-9]*)-[A-Za-z0-9]+\.',
+            m3u8_url, 'episode', default=None)
+        if episode:
+            title = f'{title}_{episode}'
 
         formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4',
+            m3u8_url, video_key, 'mp4',
             entry_protocol='m3u8_native',
             m3u8_id='hls', fatal=True)
 
         return {
-            'id': video_id,
+            'id': video_key,
             'title': title,
             'formats': formats,
         }
+
