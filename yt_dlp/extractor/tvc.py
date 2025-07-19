@@ -15,18 +15,21 @@ class TVCIE(InfoExtractor):
             'id': '74622',
             'ext': 'mp4',
             'title': 'TVC video #74622',
-            'thumbnail': r're:https?://.+\.jpg',
             'duration': 1122,
+            'thumbnail': r're:https?://cdn\.tvc\.ru/pictures/.+\.jpg',
         },
     }]
     _WEBPAGE_TESTS = [{
-        'url': 'http://sch1298sz.mskobr.ru/dou_edu/karamel_ki/filial_galleries/video/iframe_src_http_tvc_ru_video_iframe_id_55304_isplay_false_acc_video_id_channel_brand_id_11_show_episodes_episode_id_32307_frameb/',
+        'url': 'https://krizis-centr.ru/informatsiya/smi-o-tsentre/liniya-zashchity-bitye-zhjony-tv-tsentr',
+        'md5': '43b8eee579a5cd2b85c9ed5b73d1c671',
         'info_dict': {
-            'id': '55304',
+            'id': '123378',
             'ext': 'mp4',
-            'title': 'Дошкольное воспитание',
+            'title': 'TVC video #123378',
+            'duration': 1526,
+            'thumbnail': r're:https?://cdn\.tvc\.ru/pictures/.+\.jpg',
         },
-        'skip': 'Invalid URL',
+        'skip': 'IE fix required; embed detection',
     }]
 
     def _real_extract(self, url):
