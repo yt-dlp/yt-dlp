@@ -1,61 +1,102 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    UserNotLive,
-    lowercase_escape,
-    traverse_obj,
-)
 
 
 class StripchatIE(InfoExtractor):
-    _VALID_URL = r'https?://stripchat\.com/(?P<id>[^/?#]+)'
-    _TESTS = [{
-        'url': 'https://stripchat.com/Joselin_Flower',
-        'info_dict': {
-            'id': 'Joselin_Flower',
-            'ext': 'mp4',
-            'title': 're:^Joselin_Flower [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
-            'description': str,
-            'is_live': True,
-            'age_limit': 18,
+    _VALID_URL = r'https?://(?:vr\.)?stripchat\.com/(?:cam/)?(?P<id>[^/?&#]+)'
+    _TESTS = [
+        {
+            'url': 'https://vr.stripchat.com/cam/Heather_Ivy',
+            'info_dict': {
+                'id': 'Heather_Ivy',
+                'ext': 'mp4',
+                'title': 're:^Heather_Ivy [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+                'age_limit': 18,
+                'is_live': True,
+            },
+            'params': {
+                'skip_download': True,
+            },
+            'skip': 'Stream might be offline',
         },
-        'skip': 'Room is offline',
-    }, {
-        'url': 'https://stripchat.com/Rakhijaan@xh',
-        'only_matching': True,
-    }]
+        {
+            'url': 'https://stripchat.com/Heather_Ivy',
+            'info_dict': {
+                'id': 'Heather_Ivy',
+                'ext': 'mp4',
+                'title': 're:^Heather_Ivy [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+                'age_limit': 18,
+                'is_live': True,
+            },
+            'params': {
+                'skip_download': True,
+            },
+            'skip': 'Stream might be offline',
+        }
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id, headers=self.geo_verification_headers())
-        data = self._search_json(
-            r'<script\b[^>]*>\s*window\.__PRELOADED_STATE__\s*=',
-            webpage, 'data', video_id, transform_source=lowercase_escape)
+        is_vr = 'vr.stripchat.com' in url
 
-        if traverse_obj(data, ('viewCam', 'show', {dict})):
-            raise ExtractorError('Model is in a private show', expected=True)
-        if not traverse_obj(data, ('viewCam', 'model', 'isLive', {bool})):
-            raise UserNotLive(video_id=video_id)
+        # The API is the same for both VR and non-VR
+        # f'https://vr.stripchat.com/api/vr/v2/models/username/{video_id}'
+        api_url = f'https://stripchat.com/api/vr/v2/models/username/{video_id}'
+        api_json = self._download_json(api_url, video_id)
 
-        model_id = data['viewCam']['model']['id']
+        # You can retrieve this value from "model.id," "streamName," or "cam.streamName"
+        model_id = api_json.get('streamName')
+
+        # Contains 'eu23', for example, with server '20' as the fallback
+        host_str = api_json.get('model', {}).get('broadcastServer', '')
+        host = ''.join([c for c in host_str if c.isdigit()]) or 20
+
+        if is_vr:
+            base_url = f'https://media-hls.doppiocdn.net/b-hls-{host}/{model_id}_vr/{model_id}_vr'
+            # e.g. ['2160p60', '1440p60']
+            video_presets = api_json.get('broadcastSettings', {}).get('presets', {}).get('vr', {})
+        else:
+            base_url = f'https://media-hls.doppiocdn.net/b-hls-{host}/{model_id}/{model_id}'
+            # e.g. ['960p', '480p', '240p', '160p', '160p_blurred']
+            video_presets = api_json.get('broadcastSettings', {}).get('presets', {}).get('default', {})
 
         formats = []
-        # HLS hosts are currently found in .configV3.static.features.hlsFallback.fallbackDomains[]
-        # The rest of the path is for backwards compatibility and to guard against A/B testing
-        for host in traverse_obj(data, ((('config', 'data'), ('configV3', 'static')), (
-                (('features', 'featuresV2'), 'hlsFallback', 'fallbackDomains', ...), 'hlsStreamHost'))):
-            formats = self._extract_m3u8_formats(
-                f'https://edge-hls.{host}/hls/{model_id}/master/{model_id}_auto.m3u8',
-                video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
-            if formats:
-                break
-        if not formats:
-            self.raise_no_formats('Unable to extract stream host', video_id=video_id)
+
+        # This does not work because the m3u8 url is incorrect
+        # formats = self._extract_m3u8_formats(
+        #        f'{base_url}_auto.m3u8',
+        #        video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True
+        # )
+
+        # The resolution should be omitted for best quality (source) that is often much higher than 2160p60 on VR
+        formats.append({
+            'url': f'{base_url}.m3u8',
+            'ext': 'mp4',
+            'protocol': 'm3u8_native',
+            'format_id': 'source',
+            'quality': 10,
+            'is_live': True
+        })
+
+        # Add all other available presets
+        for index, resolution in enumerate(video_presets):
+            if isinstance(resolution, str):
+                formats.append({
+                    'url': f'{base_url}_{resolution}.m3u8',
+                    'ext': 'mp4',
+                    'protocol': 'm3u8_native',
+                    'format_id': f'hls_{resolution}',
+                    # The qualities are already sorted by entry point
+                    'quality': 9 - index,
+                    'is_live': True,
+                })
+
+        # You can also use previewUrlThumbBig and previewUrlThumbSmall
+        preview_url = api_json.get('model', {}).get('previewUrl', {})
 
         return {
             'id': video_id,
             'title': video_id,
-            'description': self._og_search_description(webpage),
+            'thumbnail': preview_url,
             'is_live': True,
             'formats': formats,
             # Stripchat declares the RTA meta-tag, but in an non-standard format so _rta_search() can't be used
