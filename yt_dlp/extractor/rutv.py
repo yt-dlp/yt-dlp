@@ -16,7 +16,7 @@ class RUTVIE(InfoExtractor):
                         )
                         (?P<id>\d+)
                     '''
-    _EMBED_URLS = [
+    _EMBED_REGEX = [
         r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/(?:iframe/(?:swf|video|live)/id|index/iframe/cast_id)/.+?)\1',
         r'<meta[^>]+?property=(["\'])og:video\1[^>]+?content=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/flash\d+v/container\.swf\?id=.+?\2)',
     ]
@@ -29,7 +29,7 @@ class RUTVIE(InfoExtractor):
             'title': 'Монологи на все времена. Концерт',
             'description': 'md5:18d8b5e6a41fb1faa53819471852d5d5',
             'duration': 2906,
-            'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/b/304/982/1.jpg',
+            'thumbnail': r're:https?://cdn-st2\.smotrim\.ru/.+\.jpg',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -50,7 +50,7 @@ class RUTVIE(InfoExtractor):
             'title': 'Вести.net: интернет-гиганты начали перетягивание программных "одеял"',
             'description': 'md5:65ddd47f9830c4f42ed6475f8730c995',
             'duration': 279,
-            'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/b/523/221.jpg',
+            'thumbnail': r're:https?://cdn-st2\.smotrim\.ru/.+\.jpg',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -61,7 +61,7 @@ class RUTVIE(InfoExtractor):
             'title': 'Прямой эфир. Жертвы загадочной болезни: смерть от старости в 17 лет',
             'description': 'md5:b81c8c55247a4bd996b43ce17395b2d8',
             'duration': 3096,
-            'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/b/528/156.jpg',
+            'thumbnail': r're:https?://cdn-st2\.smotrim\.ru/.+\.jpg',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -87,13 +87,16 @@ class RUTVIE(InfoExtractor):
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
-        'url': 'http://www.rg.ru/2014/03/15/reg-dfo/anklav-anons.html',
+        'url': 'http://istoriya-teatra.ru/news/item/f00/s05/n0000545/index.shtml',
         'info_dict': {
-            'id': '776940',
+            'id': '1952012',
             'ext': 'mp4',
-            'title': 'Охотское море стало целиком российским',
+            'title': 'Новости культуры. Эфир от 10.10.2019 (23:30). Театр Сатиры отмечает день рождения премьерой',
+            'description': 'md5:fced27112ff01ff8fc4a452fc088bad6',
+            'duration': 191,
+            'thumbnail': r're:https?://cdn-st2\.smotrim\.ru/.+\.jpg',
         },
-        'skip': 'Invalid URL',
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
