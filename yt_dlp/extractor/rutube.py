@@ -227,13 +227,24 @@ class RutubeIE(RutubeBaseIE):
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
-        'url': 'https://magazzino.friday.ru/videos/vipuski/kazan-2',
+        'url': 'https://novate.ru/blogs/170625/73644/',
         'info_dict': {
-            'id': '9b3d5bee0a8740bf70dfd29d3ea43541',
-            'ext': 'flv',
-            'title': 'Магаззино: Казань 2',
+            'id': 'b0c96c75a4e5b274721bbced6ed8fb64',
+            'ext': 'mp4',
+            'title': 'Где в России находится единственная в своем роде скальная торпедная батарея',
+            'age_limit': 0,
+            'categories': ['Наука'],
+            'chapters': [],
+            'description': 'md5:2ed82e6b81958a43da6fb4d56f949e1f',
+            'duration': 182,
+            'thumbnail': r're:https?://pic\.rutubelist\.ru/video/.+\.(?:jpg|png)',
+            'timestamp': 1749950158,
+            'upload_date': '20250615',
+            'uploader': 'Novate',
+            'uploader_id': '24044809',
+            'view_count': int,
         },
-        'skip': 'Invalid URL',
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
