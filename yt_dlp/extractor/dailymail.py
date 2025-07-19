@@ -26,13 +26,14 @@ class DailyMailIE(InfoExtractor):
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
-        'url': 'http://www.bumm.sk/krimi/2017/07/05/biztonsagi-kamera-buktatta-le-az-agg-ferfit-utlegelo-apolot',
+        'url': 'https://www.daily-news.gr/lifestyle/%ce%b7-%cf%84%cf%81%ce%b1%ce%b3%ce%bf%cf%85%ce%b4%ce%af%cf%83%cf%84%cf%81%ce%b9%ce%b1-jessie-j-%ce%bc%ce%bf%ce%b9%cf%81%ce%ac%cf%83%cf%84%ce%b7%ce%ba%ce%b5-%cf%83%cf%85%ce%b3%ce%ba%ce%bb%ce%bf%ce%bd/',
         'info_dict': {
-            'id': '1495629',
+            'id': '3463585',
             'ext': 'mp4',
-            'title': 'Care worker punches elderly dementia patient in head 11 times',
+            'title': 'Jessie J reveals she has undergone surgery as she shares clips',
+            'description': 'md5:9fa9a25feca5b656b0b4a39c922fad1e',
+            'thumbnail': r're:https?://i\.dailymail\.co\.uk/.+\.jpg',
         },
-        'skip': 'Invalid URL',
     }]
 
     def _real_extract(self, url):
