@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class TBSIE(TurnerBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?P<site>tbs|tntdrama)\.com(?P<path>/(?:movies|watchtnt|watchtbs|shows/[^/]+/(?:clips|season-\d+/episode-\d+))/(?P<id>[^/?#]+))'
+    _VALID_URL = r'https?://(?:www\.)?(?P<site>tbs|tntdrama|trutv)\.com(?P<path>/(?:movies|watchtnt|watchtbs|watchtrutv|shows/[^/]+/(?:clips|season-\d+/episode-\d+))/(?P<id>[^/?#]+))'
     _TESTS = [{
         'url': 'http://www.tntdrama.com/shows/the-alienist/clips/monster',
         'info_dict': {
@@ -31,6 +31,12 @@ class TBSIE(TurnerBaseIE):
     }, {
         'url': 'http://www.tntdrama.com/movies/star-wars-a-new-hope',
         'only_matching': True,
+    }, {
+        'url': 'https://www.trutv.com/shows/impractical-jokers/season-9/episode-1/you-dirty-dog',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.trutv.com/watchtrutv/east',
+        'only_matching': True,
     }]
     _SOFTWARE_STATEMENT_MAP = {
         'tbs': 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJkZTA0NTYxZS1iMTFhLTRlYTgtYTg5NC01NjI3MGM1NmM2MWIiLCJuYmYiOjE1MzcxODkzOTAsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTM3MTg5MzkwfQ.Z7ny66kaqNDdCHf9Y9KsV12LrBxrLkGGxlYe2XGm6qsw2T-k1OCKC1TMzeqiZP735292MMRAQkcJDKrMIzNbAuf9nCdIcv4kE1E2nqUnjPMBduC1bHffZp8zlllyrN2ElDwM8Vhwv_5nElLRwWGEt0Kaq6KJAMZA__WDxKWC18T-wVtsOZWXQpDqO7nByhfj2t-Z8c3TUNVsA_wHgNXlkzJCZ16F2b7yGLT5ZhLPupOScd3MXC5iPh19HSVIok22h8_F_noTmGzmMnIRQi6bWYWK2zC7TQ_MsYHfv7V6EaG5m1RKZTV6JAwwoJQF_9ByzarLV1DGwZxD9-eQdqswvg',
@@ -43,7 +49,7 @@ class TBSIE(TurnerBaseIE):
         drupal_settings = self._parse_json(self._search_regex(
             r'<script[^>]+?data-drupal-selector="drupal-settings-json"[^>]*?>({.+?})</script>',
             webpage, 'drupal setting'), display_id)
-        is_live = 'watchtnt' in path or 'watchtbs' in path
+        is_live = 'watchtnt' in path or 'watchtbs' in path or 'watchtrutv' in path
         video_data = next(v for v in drupal_settings['turner_playlist'] if is_live or v.get('url') == path)
 
         media_id = video_data['mediaID']
@@ -54,7 +60,7 @@ class TBSIE(TurnerBaseIE):
         info = self._extract_ngtv_info(
             media_id, tokenizer_query, self._SOFTWARE_STATEMENT_MAP[site], {
                 'url': url,
-                'site_name': site[:3].upper(),
+                'site_name': {'tbs': 'TBS', 'tnt': 'TNT', 'trutv': 'truTV'}[site],
                 'auth_required': video_data.get('authRequired') == '1' or is_live,
                 'is_live': is_live,
             })
