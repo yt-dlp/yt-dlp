@@ -68,7 +68,7 @@ class AiyifanIE(InfoExtractor):
                 'https://m10.yfsp.tv/v3/video/languagesplaylist',
                 collection_id, query={
                     'vid': collection_id,
-                    'cid':'0,',
+                    'cid': '0,',
                     'vv': vv,
                     'pub': pub,
                 }, note='Downloading playlist info')
@@ -136,4 +136,3 @@ class AiyifanIE(InfoExtractor):
             'title': title,
             'formats': formats,
         }
-
