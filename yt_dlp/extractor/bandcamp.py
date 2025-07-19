@@ -118,13 +118,29 @@ class BandcampIE(InfoExtractor):
         },
     }]
     _WEBPAGE_TESTS = [{
-        'url': 'http://bronyrock.com/track/the-pony-mash',
+        'url': 'https://www.punknews.org/article/85809/stay-inside-super-sonic',
         'info_dict': {
-            'id': '3235767654',
+            'id': '2475540375',
             'ext': 'mp3',
-            'title': 'The Pony Mash',
+            'title': 'Stay Inside - Super Sonic',
+            'album': 'Lunger',
+            'album_artists': ['Stay Inside'],
+            'artists': ['Stay Inside'],
+            'duration': 166.157,
+            'release_date': '20251003',
+            'release_timestamp': 1759449600.0,
+            'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
+            'timestamp': 1749473029.0,
+            'track': 'Super Sonic',
+            'track_id': '2475540375',
+            'track_number': 3,
+            'upload_date': '20250609',
+            'uploader': 'Stay Inside',
+            'uploader_id': 'stayinside',
+            'uploader_url': 'https://stayinside.bandcamp.com',
+
         },
-        'skip': 'Invalid URL',
+        'skip': 'IE fix required; embed detection',
     }]
 
     def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):
