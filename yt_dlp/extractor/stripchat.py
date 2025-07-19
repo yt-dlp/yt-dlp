@@ -1,5 +1,11 @@
 from .common import InfoExtractor
-from ..utils import base_url as get_base_url
+from ..utils import (
+    ExtractorError,
+    UserNotLive,
+)
+from ..utils import (
+    base_url as get_base_url,
+)
 
 
 class StripchatIE(InfoExtractor):
@@ -44,11 +50,19 @@ class StripchatIE(InfoExtractor):
         api_url = f'https://stripchat.com/api/vr/v2/models/username/{video_id}'
         api_json = self._download_json(api_url, video_id)
 
+        model = api_json.get('model', {})
+
+        if model.get('status', {}) == 'off':
+            raise UserNotLive(video_id=video_id)
+
+        if api_json.get('cam', {}).get('show', {}).get('details', {}).get('startMode', {}) == 'private':
+            raise ExtractorError('Room is currently in a private show', expected=True)
+
         # You can retrieve this value from "model.id," "streamName," or "cam.streamName"
         model_id = api_json.get('streamName')
 
         # Contains 'eu23', for example, with server '20' as the fallback
-        # host_str = api_json.get('model', {}).get('broadcastServer', '')
+        # host_str = model.get('broadcastServer', '')
         # host = ''.join([c for c in host_str if c.isdigit()]) or 20
         host = 20
 
@@ -62,12 +76,6 @@ class StripchatIE(InfoExtractor):
             video_presets = api_json.get('broadcastSettings', {}).get('presets', {}).get('default', {})
 
         formats = []
-
-        # This does not work because the m3u8 url is incorrect
-        # formats = self._extract_m3u8_formats(
-        #        f'{base_url}_auto.m3u8',
-        #        video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True
-        # )
 
         # The resolution should be omitted for best quality (source) that is often much higher than 2160p60 on VR
         formats.append({
@@ -93,7 +101,7 @@ class StripchatIE(InfoExtractor):
                 })
 
         # You can also use previewUrlThumbBig and previewUrlThumbSmall
-        preview_url = api_json.get('model', {}).get('previewUrl', {})
+        preview_url = model.get('previewUrl', {})
 
         return {
             'id': video_id,
