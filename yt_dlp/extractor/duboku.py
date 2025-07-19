@@ -136,6 +136,13 @@ class DubokuIE(InfoExtractor):
         elif player_encrypt == 2:
             data_url = urllib.parse.unquote(base64.b64decode(data_url).decode('ascii'))
 
+        sign_url = 'https://w.duboku.io/static/player/vidjs25.php'
+        sign_html = self._download_webpage(sign_url, video_id)
+        sign = re.search(r'encodeURIComponent\(\'(.*)\'\);', sign_html)
+        if not sign:
+            raise ExtractorError('Cannot find sign in player')
+        sign = sign.group(1)
+
         # if it is an embedded iframe, maybe it's an external source
         headers = {'Referer': webpage_url}
         if player_data.get('from') == 'iframe':
@@ -153,7 +160,7 @@ class DubokuIE(InfoExtractor):
                 'episode_id': episode_id,
             }
 
-        formats = self._extract_m3u8_formats(data_url, video_id, 'mp4', headers=headers)
+        formats = self._extract_m3u8_formats(data_url, video_id, 'mp4', query={'sign': sign}, headers=headers)
 
         return {
             'id': video_id,
