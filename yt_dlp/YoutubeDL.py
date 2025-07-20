@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import collections
 import contextlib
 import copy
@@ -3237,14 +3235,14 @@ class YoutubeDL:
         impersonate = info.pop('impersonate', None)
         # Do not override --impersonate with extractor-specified impersonation
         if params.get('impersonate') is None:
-            requested_targets = self._parse_impersonate_targets(impersonate)
-            available_target = next(filter(self._impersonate_target_available, requested_targets), None)
+            available_target, requested_targets = self._parse_impersonate_targets(impersonate)
             if available_target:
                 info['impersonate'] = available_target
             elif requested_targets:
+                specific_targets = ', '.join(filter(None, map(str, requested_targets)))
                 message = (
-                    'no impersonate target is available' if not str(requested_targets[0])
-                    else f'none of these impersonate targets are available: "{", ".join(map(str, requested_targets))}"')
+                    'no impersonate target is available' if not specific_targets
+                    else f'none of these impersonate targets are available: "{specific_targets}"')
                 self.report_warning(
                     'The extractor specified to use impersonation for this download, but '
                     f'{message}; if you encounter errors, then see  '
@@ -4204,14 +4202,18 @@ class YoutubeDL:
             for rh in self._request_director.handlers.values()
             if isinstance(rh, ImpersonateRequestHandler))
 
-    @staticmethod
-    def _parse_impersonate_targets(impersonate: ImpersonateTarget | list | tuple | str | bool | None) -> list[ImpersonateTarget]:
+    def _parse_impersonate_targets(self, impersonate):
         if impersonate in (True, ''):
             impersonate = ImpersonateTarget()
-        return [
+
+        requested_targets = [
             t if isinstance(t, ImpersonateTarget) else ImpersonateTarget.from_str(t)
             for t in variadic(impersonate)
         ] if impersonate else []
+
+        available_target = next(filter(self._impersonate_target_available, requested_targets), None)
+
+        return available_target, requested_targets
 
     def urlopen(self, req):
         """ Start an HTTP download """
