@@ -58,52 +58,21 @@ class StripchatIE(InfoExtractor):
         cam = api_json.get('cam') or {}
         show = cam.get('show') or {}
         details = show.get('details') or {}
-        start_mode = details.get('startMode')
 
-        if start_mode == 'private':
+        if details.get('startMode') == 'private':
             raise ExtractorError('Room is currently in a private show', expected=True)
 
         # You can retrieve this value from "model.id," "streamName," or "cam.streamName"
         model_id = api_json.get('streamName')
 
-        # Contains 'eu23', for example, with server '20' as the fallback
-        # host_str = model.get('broadcastServer', '')
-        # host = ''.join([c for c in host_str if c.isdigit()]) or 20
-        host = 20
-
         if is_vr:
-            base_url = f'https://media-hls.doppiocdn.net/b-hls-{host}/{model_id}_vr/{model_id}_vr'
-            # e.g. ['2160p60', '1440p60']
-            video_presets = api_json.get('broadcastSettings', {}).get('presets', {}).get('vr', {})
+            m3u8_url = f'https://edge-hls.doppiocdn.net/hls/{model_id}_vr/master/{model_id}_vr_auto.m3u8'
         else:
-            base_url = f'https://media-hls.doppiocdn.net/b-hls-{host}/{model_id}/{model_id}'
-            # e.g. ['960p', '480p', '240p', '160p', '160p_blurred']
-            video_presets = api_json.get('broadcastSettings', {}).get('presets', {}).get('default', {})
+            m3u8_url = f'https://edge-hls.doppiocdn.net/hls/{model_id}/master/{model_id}_auto.m3u8'
 
-        formats = []
-
-        # The resolution should be omitted for best quality (source) that is often much higher than 2160p60 on VR
-        formats.append({
-            'url': f'{base_url}.m3u8',
-            'ext': 'mp4',
-            'protocol': 'm3u8_native',
-            'format_id': 'source',
-            'quality': 10,
-            'is_live': True,
-        })
-
-        # Add all other available presets
-        for index, resolution in enumerate(video_presets):
-            if isinstance(resolution, str):
-                formats.append({
-                    'url': f'{base_url}_{resolution}.m3u8',
-                    'ext': 'mp4',
-                    'protocol': 'm3u8_native',
-                    'format_id': f'hls_{resolution}',
-                    # The qualities are already sorted by entry point
-                    'quality': 9 - index,
-                    'is_live': True,
-                })
+        formats = self._extract_m3u8_formats(
+            m3u8_url, video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True,
+        )
 
         # You can also use previewUrlThumbBig and previewUrlThumbSmall
         preview_url = model.get('previewUrl', {})
