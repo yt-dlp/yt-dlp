@@ -7,11 +7,11 @@ from ..utils import int_or_none, traverse_obj, url_or_none, urljoin
 
 class TenPlayIE(InfoExtractor):
     IE_NAME = '10play'
-    _VALID_URL = r'https?://(?:www\.)?10(play)?\.com\.au/(?:[^/?#]+/)+(?P<id>tpv\d{6}[a-z]{5})'
+    _VALID_URL = r'https?://(?:www\.)?10(?:play)?\.com\.au/(?:[^/?#]+/)+(?P<id>tpv\d{6}[a-z]{5})'
     _NETRC_MACHINE = '10play'
     _TESTS = [{
         # Geo-restricted to Australia
-        'url': 'https://10play.com.au/australian-survivor/web-extras/season-10-brains-v-brawn-ii/myless-journey/tpv250414jdmtf',
+        'url': 'https://10.com.au/australian-survivor/web-extras/season-10-brains-v-brawn-ii/myless-journey/tpv250414jdmtf',
         'info_dict': {
             'id': '7440980000013868',
             'ext': 'mp4',
@@ -32,7 +32,7 @@ class TenPlayIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
     }, {
         # Geo-restricted to Australia
-        'url': 'https://10play.com.au/neighbours/episodes/season-42/episode-9107/tpv240902nzqyp',
+        'url': 'https://10.com.au/neighbours/episodes/season-42/episode-9107/tpv240902nzqyp',
         'info_dict': {
             'id': '9000000000091177',
             'ext': 'mp4',
@@ -55,7 +55,7 @@ class TenPlayIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
     }, {
         # Geo-restricted to Australia; upgrading the m3u8 quality fails and we need the fallback
-        'url': 'https://10play.com.au/tiny-chef-show/episodes/season-1/episode-2/tpv240228pofvt',
+        'url': 'https://10.com.au/tiny-chef-show/episodes/season-1/episode-2/tpv240228pofvt',
         'info_dict': {
             'id': '9000000000084116',
             'ext': 'mp4',
@@ -77,8 +77,9 @@ class TenPlayIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Failed to download m3u8 information: HTTP Error 502'],
+        'skip': 'video unavailable',
     }, {
-        'url': 'https://10.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
+        'url': 'https://10play.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
         'only_matching': True,
     }]
     _GEO_BYPASS = False
@@ -137,9 +138,9 @@ class TenPlayIE(InfoExtractor):
 
 class TenPlaySeasonIE(InfoExtractor):
     IE_NAME = '10play:season'
-    _VALID_URL = r'https?://(?:www\.)?10(play)?\.com\.au/(?P<show>[^/?#]+)/episodes/(?P<season>[^/?#]+)/?(?:$|[?#])'
+    _VALID_URL = r'https?://(?:www\.)?10(?:play)?\.com\.au/(?P<show>[^/?#]+)/episodes/(?P<season>[^/?#]+)/?(?:$|[?#])'
     _TESTS = [{
-        'url': 'https://10play.com.au/masterchef/episodes/season-15',
+        'url': 'https://10.com.au/masterchef/episodes/season-15',
         'info_dict': {
             'title': 'Season 15',
             'id': 'MTQ2NjMxOQ==',
@@ -152,6 +153,9 @@ class TenPlaySeasonIE(InfoExtractor):
             'id': 'Mjc0OTIw',
         },
         'playlist_mincount': 159,
+    }, {
+        'url': 'https://10play.com.au/the-bold-and-the-beautiful-fast-tracked/episodes/season-2024',
+        'only_matching': True,
     }]
 
     def _entries(self, load_more_url, display_id=None):
