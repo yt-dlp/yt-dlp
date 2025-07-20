@@ -94,12 +94,19 @@ class HlsFD(FragmentFD):
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
         if can_download:
             has_ffmpeg = FFmpegFD.available()
-            no_crypto = not Cryptodome.AES and '#EXT-X-KEY:METHOD=AES-128' in s
-            if no_crypto and has_ffmpeg:
-                can_download, message = False, 'The stream has AES-128 encryption and pycryptodomex is not available'
-            elif no_crypto:
-                message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodomex are available; '
-                           'Decryption will be performed natively, but will be extremely slow')
+            if not Cryptodome.AES and '#EXT-X-KEY:METHOD=AES-128' in s:
+                # Even if pycryptodomex isn't available, force HlsFD for m3u8s that won't work with ffmpeg
+                ffmpeg_can_dl = not traverse_obj(info_dict, ((
+                    'extra_param_to_segment_url', 'extra_param_to_key_url',
+                    'hls_media_playlist_data', ('hls_aes', ('uri', 'key', 'iv')),
+                ), any))
+                message = 'The stream has AES-128 encryption and {} available'.format(
+                    'neither ffmpeg nor pycryptodomex are' if ffmpeg_can_dl and not has_ffmpeg else
+                    'pycryptodomex is not')
+                if has_ffmpeg and ffmpeg_can_dl:
+                    can_download = False
+                else:
+                    message += '; decryption will be performed natively, but will be extremely slow'
             elif info_dict.get('extractor_key') == 'Generic' and re.search(r'(?m)#EXT-X-MEDIA-SEQUENCE:(?!0$)', s):
                 install_ffmpeg = '' if has_ffmpeg else 'install ffmpeg and '
                 message = ('Live HLS streams are not supported by the native downloader. If this is a livestream, '

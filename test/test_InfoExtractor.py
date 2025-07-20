@@ -36,6 +36,18 @@ class InfoExtractorTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.end_headers()
             self.wfile.write(TEAPOT_RESPONSE_BODY.encode())
+        elif self.path == '/fake.m3u8':
+            self.send_response(200)
+            self.send_header('Content-Length', '1024')
+            self.end_headers()
+            self.wfile.write(1024 * b'\x00')
+        elif self.path == '/bipbop.m3u8':
+            with open('test/testdata/m3u8/bipbop_16x9.m3u8', 'rb') as f:
+                data = f.read()
+            self.send_response(200)
+            self.send_header('Content-Length', str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
         else:
             assert False
 
@@ -1947,6 +1959,37 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(self.ie._search_nextjs_data('', None, default='{}'), {})
 
+    def test_search_nextjs_v13_data(self):
+        HTML = R'''
+            <script>(self.__next_f=self.__next_f||[]).push([0])</script>
+            <script>self.__next_f.push([2,"0:[\"$\",\"$L0\",null,{\"do_not_add_this\":\"fail\"}]\n"])</script>
+            <script>self.__next_f.push([1,"1:I[46975,[],\"HTTPAccessFallbackBoundary\"]\n2:I[32630,[\"8183\",\"static/chunks/8183-768193f6a9e33cdd.js\"]]\n"])</script>
+            <script nonce="abc123">self.__next_f.push([1,"e:[false,[\"$\",\"div\",null,{\"children\":[\"$\",\"$L18\",null,{\"foo\":\"bar\"}]}],false]\n    "])</script>
+            <script>self.__next_f.push([1,"2a:[[\"$\",\"div\",null,{\"className\":\"flex flex-col\",\"children\":[]}],[\"$\",\"$L16\",null,{\"meta\":{\"dateCreated\":1730489700,\"uuid\":\"40cac41d-8d29-4ef5-aa11-75047b9f0907\"}}]]\n"])</script>
+            <script>self.__next_f.push([1,"df:[\"$undefined\",[\"$\",\"div\",null,{\"children\":[\"$\",\"$L17\",null,{}],\"do_not_include_this_field\":\"fail\"}],[\"$\",\"div\",null,{\"children\":[[\"$\",\"$L19\",null,{\"duplicated_field_name\":{\"x\":1}}],[\"$\",\"$L20\",null,{\"duplicated_field_name\":{\"y\":2}}]]}],\"$undefined\"]\n"])</script>
+            <script>self.__next_f.push([3,"MzM6WyIkIiwiJEwzMiIsbnVsbCx7ImRlY29kZWQiOiJzdWNjZXNzIn1d"])</script>
+            '''
+        EXPECTED = {
+            '18': {
+                'foo': 'bar',
+            },
+            '16': {
+                'meta': {
+                    'dateCreated': 1730489700,
+                    'uuid': '40cac41d-8d29-4ef5-aa11-75047b9f0907',
+                },
+            },
+            '19': {
+                'duplicated_field_name': {'x': 1},
+            },
+            '20': {
+                'duplicated_field_name': {'y': 2},
+            },
+        }
+        self.assertEqual(self.ie._search_nextjs_v13_data(HTML, None), EXPECTED)
+        self.assertEqual(self.ie._search_nextjs_v13_data('', None, fatal=False), {})
+        self.assertEqual(self.ie._search_nextjs_v13_data(None, None, fatal=False), {})
+
     def test_search_nuxt_json(self):
         HTML_TMPL = '<script data-ssr="true" id="__NUXT_DATA__" type="application/json">[{}]</script>'
         VALID_DATA = '''
@@ -2077,6 +2120,46 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         for data in INVALID:
             self.assertIs(
                 self.ie._search_nuxt_json(HTML_TMPL.format(data), None, default=DEFAULT), DEFAULT)
+
+
+class TestInfoExtractorNetwork(unittest.TestCase):
+    def setUp(self, /):
+        self.httpd = http.server.HTTPServer(
+            ('127.0.0.1', 0), InfoExtractorTestRequestHandler)
+        self.port = http_server_port(self.httpd)
+
+        self.server_thread = threading.Thread(target=self.httpd.serve_forever)
+        self.server_thread.daemon = True
+        self.server_thread.start()
+
+        self.called = False
+
+        def require_warning(*args, **kwargs):
+            self.called = True
+
+        self.ydl = FakeYDL()
+        self.ydl.report_warning = require_warning
+        self.ie = DummyIE(self.ydl)
+
+    def tearDown(self, /):
+        self.ydl.close()
+        self.httpd.shutdown()
+        self.httpd.server_close()
+        self.server_thread.join(1)
+
+    def test_extract_m3u8_formats(self):
+        formats, subtitles = self.ie._extract_m3u8_formats_and_subtitles(
+            f'http://127.0.0.1:{self.port}/bipbop.m3u8', None, fatal=False)
+        self.assertFalse(self.called)
+        self.assertTrue(formats)
+        self.assertTrue(subtitles)
+
+    def test_extract_m3u8_formats_warning(self):
+        formats, subtitles = self.ie._extract_m3u8_formats_and_subtitles(
+            f'http://127.0.0.1:{self.port}/fake.m3u8', None, fatal=False)
+        self.assertTrue(self.called, 'Warning was not issued for binary m3u8 file')
+        self.assertFalse(formats)
+        self.assertFalse(subtitles)
 
 
 if __name__ == '__main__':
