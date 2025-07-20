@@ -7,9 +7,9 @@ from .common import InfoExtractor
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
+    clean_html,
     extract_attributes,
     float_or_none,
-    get_elements_by_class,
     int_or_none,
     parse_filesize,
     str_or_none,
@@ -20,7 +20,7 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
 class BandcampIE(InfoExtractor):
@@ -262,7 +262,7 @@ class BandcampIE(InfoExtractor):
             'album': embed.get('album_title'),
             'album_artist': album_artist,
             'formats': formats,
-            'tags': get_elements_by_class('tag', webpage),
+            'tags': traverse_obj(webpage, ({find_elements(cls='tag')}, ..., {clean_html})),
         }
 
 
