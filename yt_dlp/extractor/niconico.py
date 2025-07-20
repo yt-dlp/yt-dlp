@@ -324,12 +324,11 @@ class NiconicoIE(NiconicoBaseIE):
         v_fmts = sorted((fmt for fmt in raw_fmts if fmt['vcodec'] != 'none'), key=lambda f: f['tbr'])
         self._remove_duplicate_formats(v_fmts)
         # Calculate the true vbr/tbr by subtracting the lowest abr
-        min_abr = traverse_obj(audios, (
-            ..., 'bitRate', {float_or_none(scale=1000)}, all, {min}), default=0)
+        min_abr = traverse_obj(audios, (..., 'bitRate', {float_or_none(scale=1000)}, all, {min})) or 0
         for v_fmt in v_fmts:
             v_fmt['format_id'] = url_basename(v_fmt['url']).rpartition('.')[0]
             v_fmt['quality'] = traverse_obj(videos, (
-                lambda _, v: v['id'] == v_fmt['format_id'], 'qualityLevel', {int_or_none}, any), default=-1)
+                lambda _, v: v['id'] == v_fmt['format_id'], 'qualityLevel', {int_or_none}, any)) or -1
             v_fmt['tbr'] -= min_abr
         formats.extend(v_fmts)
 
