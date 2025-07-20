@@ -893,12 +893,13 @@ class InfoExtractor:
         if available_target:
             extensions['impersonate'] = available_target
         elif requested_targets:
+            msg = 'The extractor is attempting impersonation'
             if require_impersonation:
                 raise ExtractorError(
-                    self._downloader._unavailable_targets_message(requested_targets, note=note, is_error=True),
+                    self._downloader._unavailable_targets_message(requested_targets, note=msg, is_error=True),
                     expected=True)
             self.report_warning(
-                self._downloader._unavailable_targets_message(requested_targets, note=note), only_once=True)
+                self._downloader._unavailable_targets_message(requested_targets, note=msg), only_once=True)
 
         try:
             return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query, extensions))
