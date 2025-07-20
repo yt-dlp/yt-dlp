@@ -55,7 +55,12 @@ class StripchatIE(InfoExtractor):
         if model.get('status', {}) == 'off':
             raise UserNotLive(video_id=video_id)
 
-        if api_json.get('cam', {}).get('show', {}).get('details', {}).get('startMode', {}) == 'private':
+        cam = api_json.get('cam') or {}
+        show = cam.get('show') or {}
+        details = show.get('details') or {}
+        start_mode = details.get('startMode')
+
+        if start_mode == 'private':
             raise ExtractorError('Room is currently in a private show', expected=True)
 
         # You can retrieve this value from "model.id," "streamName," or "cam.streamName"
