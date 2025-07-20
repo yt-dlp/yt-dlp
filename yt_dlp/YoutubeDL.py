@@ -4212,9 +4212,9 @@ class YoutubeDL:
         specific_targets = ', '.join(filter(None, map(str, requested_targets)))
         message = (
             'no impersonate target is available' if not specific_targets
-            else f'none of these impersonate targets are available: "{specific_targets}"')
+            else f'none of these impersonate targets are available: {specific_targets}')
         return (
-            f'{note}, but {message}; {"" if is_error else "if you encounter errors, then"} see'
+            f'{note}, but {message}. {"See" if is_error else "If you encounter errors, then see"}'
             f'  https://github.com/yt-dlp/yt-dlp#impersonation  '
             f'for information on installing the required dependencies')
 
