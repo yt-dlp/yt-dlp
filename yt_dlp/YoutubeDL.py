@@ -3239,16 +3239,7 @@ class YoutubeDL:
             if available_target:
                 info['impersonate'] = available_target
             elif requested_targets:
-                specific_targets = ', '.join(filter(None, map(str, requested_targets)))
-                message = (
-                    'no impersonate target is available' if not specific_targets
-                    else f'none of these impersonate targets are available: "{specific_targets}"')
-                self.report_warning(
-                    'The extractor specified to use impersonation for this download, but '
-                    f'{message}; if you encounter errors, then see  '
-                    'https://github.com/yt-dlp/yt-dlp#impersonation  '
-                    'for information on installing the required dependencies',
-                    only_once=True)
+                self.report_warning(self._unavailable_targets_message(requested_targets), only_once=True)
 
         fd = get_suitable_downloader(info, params, to_stdout=(name == '-'))(self, params)
         if not test:
@@ -4214,6 +4205,18 @@ class YoutubeDL:
         available_target = next(filter(self._impersonate_target_available, requested_targets), None)
 
         return available_target, requested_targets
+
+    @staticmethod
+    def _unavailable_targets_message(requested_targets, note=None, is_error=False):
+        note = note or 'The extractor specified to use impersonation for this download'
+        specific_targets = ', '.join(filter(None, map(str, requested_targets)))
+        message = (
+            'no impersonate target is available' if not specific_targets
+            else f'none of these impersonate targets are available: "{specific_targets}"')
+        return (
+            f'{note}, but {message}; {"" if is_error else "if you encounter errors, then"} see'
+            f'  https://github.com/yt-dlp/yt-dlp#impersonation  '
+            f'for information on installing the required dependencies')
 
     def urlopen(self, req):
         """ Start an HTTP download """

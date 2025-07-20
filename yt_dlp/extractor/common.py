@@ -893,16 +893,12 @@ class InfoExtractor:
         if available_target:
             extensions['impersonate'] = available_target
         elif requested_targets:
-            specific_targets = ', '.join(filter(None, map(str, requested_targets)))
-            message = 'The extractor is attempting impersonation, but '
-            message += (
-                'no impersonate target is available' if not specific_targets
-                else f'none of these impersonate targets are available: "{specific_targets}"')
-            info_msg = ('see  https://github.com/yt-dlp/yt-dlp#impersonation  '
-                        'for information on installing the required dependencies')
             if require_impersonation:
-                raise ExtractorError(f'{message}; {info_msg}', expected=True)
-            self.report_warning(f'{message}; if you encounter errors, then {info_msg}', only_once=True)
+                raise ExtractorError(
+                    self._downloader._unavailable_targets_message(requested_targets, note=note, is_error=True),
+                    expected=True)
+            self.report_warning(
+                self._downloader._unavailable_targets_message(requested_targets, note=note), only_once=True)
 
         try:
             return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query, extensions))
