@@ -114,7 +114,7 @@ class NiconicoIE(NiconicoBaseIE):
             'DEFAULT': 'Page unavailable, check the URL',
             'HARMFUL_VIDEO': 'Sensitive content, login required',
             'HIDDEN_VIDEO': 'Video unavailable, set to private',
-            'NOT_ALLOWED': 'No parmission',
+            'NOT_ALLOWED': 'No permission',
             'PPV_VIDEO': 'PPV video, payment information required',
             'PREMIUM_ONLY': 'Premium members only',
         },
@@ -354,7 +354,8 @@ class NiconicoIE(NiconicoBaseIE):
         if meta.get('status') != 200:
             err_code = meta['errorCode']
             reason_code = traverse_obj(api_data, ('reasonCode', {str_or_none}))
-            err_msg = 'Server busy, service temporarily unavailable'
+            err_msg = traverse_obj(self._ERROR_MAP, (
+                err_code.upper(), (reason_code, 'DEFAULT'), {str}, any))
 
             if reason_code in ('DOMESTIC_VIDEO', 'HIGH_RISK_COUNTRY_VIDEO'):
                 self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
@@ -364,12 +365,11 @@ class NiconicoIE(NiconicoBaseIE):
                 err_msg = 'Sensitive content, adjust display settings to watch'
             elif reason_code == 'HIDDEN_VIDEO' and release_timestamp:
                 err_msg = f'Scheduled release, please wait. Release time: {release_timestamp}'
-            elif msg := traverse_obj(self._ERROR_MAP, (
-                err_code.upper(), (reason_code, 'DEFAULT'), {str}, any,
-            )):
-                err_msg = msg
+            elif reason_code in ('CHANNEL_MEMBER_ONLY', 'HARMFUL_VIDEO', 'HIDDEN_VIDEO', 'PPV_VIDEO', 'PREMIUM_ONLY'):
+                self.raise_login_required(err_msg)
 
-            raise ExtractorError(err_msg, expected=True)
+            raise ExtractorError(
+                err_msg or 'Server busy, service temporarily unavailable', expected=True)
 
         availability = self._availability(**{
             **dict.fromkeys(('is_private', 'is_unlisted'), False),
@@ -381,9 +381,9 @@ class NiconicoIE(NiconicoBaseIE):
         })
 
         formats = self._extract_formats(api_data, video_id)
-        if not formats:
-            if err_msg := self._STATUS_MAP.get(availability):
-                self.raise_login_required(err_msg, metadata_available=True)
+        err_msg = self._STATUS_MAP.get(availability)
+        if not formats and err_msg:
+            self.raise_login_required(err_msg, metadata_available=True)
 
         thumb_prefs = qualities(['url', 'middleUrl', 'largeUrl', 'player', 'ogp'])
 
