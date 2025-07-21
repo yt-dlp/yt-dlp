@@ -43,6 +43,11 @@ class SkebIE(InfoExtractor):
         'url': 'https://skeb.jp/@Rizu_panda_cube/works/626',
         'info_dict': {
             'id': '626',
+            'description': 'md5:834557b39ca56960c5f77dd6ddabe775',
+            'uploader': 'りづ100億%',
+            'uploader_id': 'Rizu_panda_cube',
+            'tags': 'count:57',
+            'genres': ['video'],
         },
         'playlist_count': 2,
         'expected_warnings': ['Skipping unsupported extension'],
@@ -110,4 +115,4 @@ class SkebIE(InfoExtractor):
                 })),
             })
 
-        return self.playlist_result(entries, work_id)
+        return self.playlist_result(entries, work_id, **info)
