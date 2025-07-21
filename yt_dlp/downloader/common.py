@@ -495,3 +495,11 @@ class FileDownloader:
             exe = os.path.basename(args[0])
 
         self.write_debug(f'{exe} command line: {shell_quote(args)}')
+
+    def _get_impersonate_target(self, impersonate):
+        available_target, requested_targets = self.ydl._parse_impersonate_targets(impersonate)
+        if available_target:
+            return available_target
+        elif requested_targets:
+            self.report_warning(self.ydl._unavailable_targets_message(requested_targets), only_once=True)
+        return None
