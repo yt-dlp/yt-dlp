@@ -3232,15 +3232,6 @@ class YoutubeDL:
         else:
             params = self.params
 
-        impersonate = info.pop('impersonate', None)
-        # Do not override --impersonate with extractor-specified impersonation
-        if params.get('impersonate') is None:
-            available_target, requested_targets = self._parse_impersonate_targets(impersonate)
-            if available_target:
-                info['impersonate'] = available_target
-            elif requested_targets:
-                self.report_warning(self._unavailable_targets_message(requested_targets), only_once=True)
-
         fd = get_suitable_downloader(info, params, to_stdout=(name == '-'))(self, params)
         if not test:
             for ph in self._progress_hooks:
@@ -3716,6 +3707,8 @@ class YoutubeDL:
                 return {k: filter_fn(v) for k, v in obj.items() if not reject(k, v)}
             elif isinstance(obj, (list, tuple, set, LazyList)):
                 return list(map(filter_fn, obj))
+            elif isinstance(obj, ImpersonateTarget):
+                return str(obj)
             elif obj is None or isinstance(obj, (str, int, float, bool)):
                 return obj
             else:
