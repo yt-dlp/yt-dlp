@@ -53,7 +53,6 @@ class SkebIE(InfoExtractor):
             f'https://skeb.jp/api/users/{uploader_id}/works/{work_id}', work_id, headers={
                 'Accept': 'application/json',
                 'Authorization': 'Bearer null',
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             })
 
     def _real_extract(self, url):
