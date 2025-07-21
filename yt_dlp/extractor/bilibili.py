@@ -175,6 +175,13 @@ class BilibiliBaseIE(InfoExtractor):
         else:
             note = f'Downloading video formats for cid {cid}'
 
+        # TODO: remove this patch once utils.networking.random_user_agent() is updated, see #13735
+        # playurl requests carrying old UA will be rejected
+        headers = {
+            'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(118,138)}.0.0.0 Safari/537.36',
+            **(headers or {}),
+        }
+
         return self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
             query=self._sign_wbi(params, bvid), headers=headers, note=note)['data']
@@ -353,7 +360,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'id': 'BV1bK411W797',
             'title': '物语中的人物是如何吐槽自己的OP的',
         },
-        'playlist_count': 18,
+        'playlist_count': 23,
         'playlist': [{
             'info_dict': {
                 'id': 'BV1bK411W797_p1',
@@ -373,6 +380,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 '_old_archive_ids': ['bilibili 498159642_part1'],
             },
         }],
+        'params': {'playlist_items': '2'},
     }, {
         'note': 'Specific page of Anthology',
         'url': 'https://www.bilibili.com/video/BV1bK411W797?p=1',
@@ -1002,6 +1010,7 @@ class BiliBiliBangumiMediaIE(BilibiliBaseIE):
                 'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
             },
         }],
+        'params': {'playlist_items': '2'},
     }]
 
     def _real_extract(self, url):
@@ -1057,6 +1066,7 @@ class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
                 'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
             },
         }],
+        'params': {'playlist_items': '2'},
     }]
 
     def _real_extract(self, url):
@@ -1847,7 +1857,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
             'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1564836614,
             'upload_date': '20190803',
-            'uploader': 'tsukimi-つきみぐー',
+            'uploader': '十六夜tsukimiつきみぐ',
             'view_count': int,
         },
     }
@@ -1902,10 +1912,10 @@ class BilibiliAudioAlbumIE(BilibiliAudioBaseIE):
         'url': 'https://www.bilibili.com/audio/am10624',
         'info_dict': {
             'id': '10624',
-            'title': '每日新曲推荐（每日11:00更新）',
+            'title': '新曲推荐',
             'description': '每天11:00更新，为你推送最新音乐',
         },
-        'playlist_count': 19,
+        'playlist_count': 16,
     }
 
     def _real_extract(self, url):
