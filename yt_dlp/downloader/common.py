@@ -504,5 +504,5 @@ class FileDownloader:
         if available_target:
             return available_target
         elif requested_targets:
-            self.report_warning(self.ydl._unavailable_targets_message(requested_targets), only_once=True)
+            self.report_warning(self.ydl._unavailable_targets_message(requested_targets))
         return None
