@@ -529,6 +529,7 @@ class YoutubeDL:
                        discontinuities such as ad breaks (default: False)
     extractor_args:    A dictionary of arguments to be passed to the extractors.
                        See "EXTRACTOR ARGUMENTS" for details.
+                       Argument values must always be a list of string(s).
                        E.g. {'youtube': {'skip': ['dash', 'hls']}}
     mark_watched:      Mark videos watched (even with --simulate). Only for YouTube
 
