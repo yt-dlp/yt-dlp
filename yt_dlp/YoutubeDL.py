@@ -52,7 +52,7 @@ from .networking.exceptions import (
     SSLError,
     network_exceptions,
 )
-from .networking.impersonate import ImpersonateRequestHandler
+from .networking.impersonate import ImpersonateRequestHandler, ImpersonateTarget
 from .plugins import directories as plugin_directories, load_all_plugins
 from .postprocessor import (
     EmbedThumbnailPP,
@@ -3231,6 +3231,16 @@ class YoutubeDL:
             }
         else:
             params = self.params
+
+        impersonate = info.pop('impersonate', None)
+        # Do not override --impersonate with extractor-specified impersonation
+        if params.get('impersonate') is None:
+            available_target, requested_targets = self._parse_impersonate_targets(impersonate)
+            if available_target:
+                info['impersonate'] = available_target
+            elif requested_targets:
+                self.report_warning(self._unavailable_targets_message(requested_targets), only_once=True)
+
         fd = get_suitable_downloader(info, params, to_stdout=(name == '-'))(self, params)
         if not test:
             for ph in self._progress_hooks:
@@ -4182,6 +4192,31 @@ class YoutubeDL:
             rh.is_supported_target(target)
             for rh in self._request_director.handlers.values()
             if isinstance(rh, ImpersonateRequestHandler))
+
+    def _parse_impersonate_targets(self, impersonate):
+        if impersonate in (True, ''):
+            impersonate = ImpersonateTarget()
+
+        requested_targets = [
+            t if isinstance(t, ImpersonateTarget) else ImpersonateTarget.from_str(t)
+            for t in variadic(impersonate)
+        ] if impersonate else []
+
+        available_target = next(filter(self._impersonate_target_available, requested_targets), None)
+
+        return available_target, requested_targets
+
+    @staticmethod
+    def _unavailable_targets_message(requested_targets, note=None, is_error=False):
+        note = note or 'The extractor specified to use impersonation for this download'
+        specific_targets = ', '.join(filter(None, map(str, requested_targets)))
+        message = (
+            'no impersonate target is available' if not specific_targets
+            else f'none of these impersonate targets are available: {specific_targets}')
+        return (
+            f'{note}, but {message}. {"See" if is_error else "If you encounter errors, then see"}'
+            f'  https://github.com/yt-dlp/yt-dlp#impersonation  '
+            f'for information on installing the required dependencies')
 
     def urlopen(self, req):
         """ Start an HTTP download """
