@@ -899,7 +899,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 'Extracting episode', query={'fnval': 12240, 'ep_id': episode_id},
                 headers=headers))
 
-        # play_info can be structured least three different ways, e.g.:
+        # play_info can be structured in at least three different ways, e.g.:
         # 1.) play_info['result']['video_info'] and play_info['code']
         # 2.) play_info['raw']['data']['video_info'] and play_info['code']
         # 3.) play_info['data']['result']['video_info'] and play_info['data']['code']
