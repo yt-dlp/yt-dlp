@@ -907,13 +907,26 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 'Extracting episode', query={'fnval': 12240, 'ep_id': episode_id},
                 headers=headers))
 
-        geo_blocked = traverse_obj(play_info, (
-            ('result', ('raw', 'data')), 'plugins',
-            lambda _, v: v['name'] == 'AreaLimitPanel',
-            'config', 'is_block', {bool}, any))
-        premium_only = play_info.get('code') == -10403
+        # play_info can be structured in at least three different ways, e.g.:
+        # 1.) play_info['result']['video_info'] and play_info['code']
+        # 2.) play_info['raw']['data']['video_info'] and play_info['code']
+        # 3.) play_info['data']['result']['video_info'] and play_info['data']['code']
+        # So we need to transform any of the above into a common structure
+        status_code = play_info.get('code')
+        if 'raw' in play_info:
+            play_info = play_info['raw']
+        if 'data' in play_info:
+            play_info = play_info['data']
+        if status_code is None:
+            status_code = play_info.get('code')
+        if 'result' in play_info:
+            play_info = play_info['result']
 
-        video_info = traverse_obj(play_info, (('result', ('raw', 'data')), 'video_info', {dict}, any)) or {}
+        geo_blocked = traverse_obj(play_info, (
+            'plugins', lambda _, v: v['name'] == 'AreaLimitPanel', 'config', 'is_block', {bool}, any))
+        premium_only = status_code == -10403
+
+        video_info = traverse_obj(play_info, ('video_info', {dict})) or {}
         formats = self.extract_formats(video_info)
 
         if not formats:
@@ -923,8 +936,8 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 self.raise_login_required('This video is for premium members only')
 
         if traverse_obj(play_info, ((
-            ('result', 'play_check', 'play_detail'),  # 'PLAY_PREVIEW' vs 'PLAY_WHOLE'
-            (('result', ('raw', 'data')), 'play_video_type'),  # 'preview' vs 'whole' vs 'none'
+            ('play_check', 'play_detail'),  # 'PLAY_PREVIEW' vs 'PLAY_WHOLE' vs 'PLAY_NONE'
+            'play_video_type',              # 'preview' vs 'whole' vs 'none'
         ), any, {lambda x: x in ('PLAY_PREVIEW', 'preview')})):
             self.report_warning(
                 'Only preview format is available, '
