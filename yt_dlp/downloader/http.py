@@ -28,8 +28,9 @@ class HttpFD(FileDownloader):
         url = info_dict['url']
         request_data = info_dict.get('request_data', None)
         request_extensions = {}
-        if info_dict.get('impersonate') is not None:
-            request_extensions['impersonate'] = info_dict['impersonate']
+        impersonate_target = self._get_impersonate_target(info_dict)
+        if impersonate_target is not None:
+            request_extensions['impersonate'] = impersonate_target
 
         class DownloadContext(dict):
             __getattr__ = dict.get
