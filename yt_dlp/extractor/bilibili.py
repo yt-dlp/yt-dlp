@@ -178,7 +178,7 @@ class BilibiliBaseIE(InfoExtractor):
         # TODO: remove this patch once utils.networking.random_user_agent() is updated, see #13735
         # playurl requests carrying old UA will be rejected
         headers = {
-            'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(118,138)}.0.0.0 Safari/537.36,
+            'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(118,138)}.0.0.0 Safari/537.36',
             **(headers or {}),
         }
 
