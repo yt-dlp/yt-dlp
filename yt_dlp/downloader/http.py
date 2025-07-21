@@ -27,6 +27,9 @@ class HttpFD(FileDownloader):
     def real_download(self, filename, info_dict):
         url = info_dict['url']
         request_data = info_dict.get('request_data', None)
+        request_extensions = {}
+        if info_dict.get('impersonate') is not None:
+            request_extensions['impersonate'] = info_dict['impersonate']
 
         class DownloadContext(dict):
             __getattr__ = dict.get
@@ -109,7 +112,7 @@ class HttpFD(FileDownloader):
             if try_call(lambda: range_end >= ctx.content_len):
                 range_end = ctx.content_len - 1
 
-            request = Request(url, request_data, headers)
+            request = Request(url, request_data, headers, extensions=request_extensions)
             has_range = range_start is not None
             if has_range:
                 request.headers['Range'] = f'bytes={int(range_start)}-{int_or_none(range_end) or ""}'
@@ -348,7 +351,7 @@ class HttpFD(FileDownloader):
             self.try_rename(ctx.tmpfilename, ctx.filename)
 
             # Update file modification time
-            if self.params.get('updatetime', True):
+            if self.params.get('updatetime'):
                 info_dict['filetime'] = self.try_utime(ctx.filename, ctx.data.headers.get('last-modified', None))
 
             self._hook_progress({
