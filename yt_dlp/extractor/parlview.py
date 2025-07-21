@@ -1,6 +1,14 @@
+from yt_dlp.utils.traversal import (
+    traverse_obj,
+)
+
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    join_nonempty,
+    parse_duration,
     unified_timestamp,
+    url_or_none,
 )
 
 
@@ -33,56 +41,23 @@ class ParlviewIE(InfoExtractor):
         if not api_data:
             self.raise_no_formats('Failed to retrieve API data')
 
-        if not api_data.get('wasSuccessful'):
-            self.raise_no_formats('API request was not successful')
-
-        video_details = api_data.get('videoDetails')
+        video_details = traverse_obj(api_data, ('videoDetails', {dict}))
         if not video_details:
-            self.raise_no_formats('No video details found')
+            raise ExtractorError('API request was not successful', expected=traverse_obj(api_data, ('wasSuccessful', {bool})) is False)
 
-        files_data = video_details.get('files')
-        if not files_data:
-            self.raise_no_formats('No files data found')
-
-        file_info = files_data.get('file')
-        if not file_info:
-            self.raise_no_formats('No file information found')
-
-        m3u8_url = file_info.get('url')
-        if not m3u8_url:
-            self.raise_no_formats('No M3U8 URL found')
-
+        m3u8_url = traverse_obj(video_details, ('files', 'file', 'url', {str}))
         formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', 'm3u8_native')
-
-        # Parse duration from duration string (format: "HH:MM:SS:FF")
-        duration_str = file_info.get('duration')
-        duration = None
-        if duration_str:
-            # Convert "HH:MM:SS:FF" to seconds (ignoring frames)
-            try:
-                time_parts = duration_str.split(':')
-                if len(time_parts) >= 3:
-                    hours = int(time_parts[0])
-                    minutes = int(time_parts[1])
-                    seconds = int(time_parts[2])
-                    duration = hours * 3600 + minutes * 60 + seconds
-            except (ValueError, IndexError):
-                pass
-
-        # Parse upload date from recordingFrom
-        upload_date = None
-        recording_from = video_details.get('recordingFrom')
-        if recording_from:
-            upload_date = unified_timestamp(recording_from)
 
         return {
             'id': video_id,
-            'title': video_details.get('parlViewTitle') or video_details.get('title'),
-            'description': video_details.get('parlViewDescription'),
             'formats': formats,
-            'duration': duration,
-            'timestamp': upload_date,
             'uploader': 'Australian Parliament House',
-            'thumbnail': video_details.get('thumbUrl'),
-            'series': f"{video_details.get('eventGroup')} - {video_details.get('eventSubGroup')}" if video_details.get('eventGroup') and video_details.get('eventSubGroup') else None,
+            ** traverse_obj(video_details, {
+                'title': (('parlViewTitle', 'title'), {str}, any),
+                'description': ('parlViewDescription', {str}),
+                'duration': ('files', 'file', 'duration', {lambda s: ':'.join((s or '').split(':')[:3])}, {parse_duration}),
+                'timestamp': ('recordingFrom', {unified_timestamp}),
+                'thumbnail': ('thumbUrl', {url_or_none}),
+                'series': (None, {lambda vd: join_nonempty('eventGroup', 'eventSubGroup', delim=' - ', from_dict=vd)}),
+            }),
         }
