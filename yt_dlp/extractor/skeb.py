@@ -1,5 +1,7 @@
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     clean_html,
     int_or_none,
     str_or_none,
@@ -47,14 +49,26 @@ class SkebIE(InfoExtractor):
         'playlist_count': 2,
     }]
 
-    def _real_extract(self, url):
-        uploader_id, work_id = self._match_valid_url(url).group('uploader_id', 'id')
-        works = self._download_json(
+    def _call_api(self, uploader_id, work_id):
+        return self._download_json(
             f'https://skeb.jp/api/users/{uploader_id}/works/{work_id}', work_id, headers={
-                'Accept': 'application/json, text/plain, */*',
+                'Accept': 'application/json',
                 'Authorization': 'Bearer null',
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             })
+
+    def _real_extract(self, url):
+        uploader_id, work_id = self._match_valid_url(url).group('uploader_id', 'id')
+        try:
+            works = self._call_api(uploader_id, work_id)
+        except ExtractorError as e:
+            if not isinstance(e.cause, HTTPError) or e.cause.status != 429:
+                raise
+            webpage = e.cause.response.read().decode()
+            value = self._search_regex(
+                r'document\.cookie\s*=\s*["\']request_key=([^;"\']+)', webpage, 'request key')
+            self._set_cookie('skeb.jp', 'request_key', value)
+            works = self._call_api(uploader_id, work_id)
 
         info = {
             'title': work_id,
@@ -62,7 +76,7 @@ class SkebIE(InfoExtractor):
             'uploader_id': uploader_id,
             **traverse_obj(works, {
                 'age_limit': ('nsfw', {bool}, {lambda x: 18 if x else None}),
-                'description': (('source_body', 'body'), {clean_html}, any),
+                'description': (('source_body', 'body'), {clean_html}, filter, any),
                 'genres': ('genre', {str}, filter, all, filter),
                 'tags': ('tag_list', ..., {str}, filter, all, filter),
                 'uploader': ('creator', 'name', {str}),
