@@ -496,7 +496,10 @@ class FileDownloader:
 
         self.write_debug(f'{exe} command line: {shell_quote(args)}')
 
-    def _get_impersonate_target(self, impersonate):
+    def _get_impersonate_target(self, info_dict):
+        impersonate = info_dict.get('impersonate')
+        if impersonate is None:
+            return None
         available_target, requested_targets = self.ydl._parse_impersonate_targets(impersonate)
         if available_target:
             return available_target
