@@ -17,7 +17,7 @@ class SkebIE(InfoExtractor):
         'info_dict': {
             'id': '466853',
             'ext': 'mp4',
-            'title': '10-0',
+            'title': '10-1',
             'description': 'md5:1ec50901efc3437cfbfe3790468d532d',
             'duration': 313,
             'genres': ['video'],
@@ -30,7 +30,7 @@ class SkebIE(InfoExtractor):
         'info_dict': {
             'id': '489408',
             'ext': 'mp3',
-            'title': '3-0',
+            'title': '3-1',
             'description': 'md5:6de1f8f876426a6ac321c123848176a8',
             'duration': 98,
             'genres': ['voice'],
@@ -81,25 +81,23 @@ class SkebIE(InfoExtractor):
         }
 
         entries = []
-        for idx, preview in enumerate(works['previews']):
+        for idx, preview in enumerate(traverse_obj(works, ('previews', lambda _, v: url_or_none(v['url']))), 1):
             ext = traverse_obj(preview, ('information', 'extension', {str}))
             if ext not in ('mp3', 'mp4'):
                 self.report_warning(f'Skipping unsupported extension "{ext}"')
                 continue
 
-            mp3_info = {'abr': 128, 'vcodec': 'none'} if ext == 'mp3' else {}
-            subtitles = {}
-            subtitles.setdefault('ja', []).append({
-                'ext': 'vtt',
-                'url': preview['vtt_url'],
-            })
-
             entries.append({
                 'ext': ext,
                 'title': f'{work_id}-{idx}',
-                'subtitles': subtitles,
+                'subtitles': {
+                    'ja': [{
+                        'ext': 'vtt',
+                        'url': preview['vtt_url'],
+                    }],
+                } if url_or_none(preview.get('vtt_url')) else None,
+                'vcodec': 'none' if ext == 'mp3' else None,
                 **info,
-                **mp3_info,
                 **traverse_obj(preview, {
                     'id': ('id', {str_or_none}),
                     'thumbnail': ('poster_url', {url_or_none}),
