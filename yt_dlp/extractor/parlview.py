@@ -1,63 +1,88 @@
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
-    try_get,
     unified_timestamp,
 )
 
 
 class ParlviewIE(InfoExtractor):
-    _WORKING = False
-    _VALID_URL = r'https?://(?:www\.)?parlview\.aph\.gov\.au/(?:[^/]+)?\bvideoID=(?P<id>\d{6})'
+    _WORKING = True
+    _VALID_URL = r'https?://(?:www\.)?aph\.gov\.au/(?:.*/)?video/(?P<id>\d{5,7})'
     _TESTS = [{
-        'url': 'https://parlview.aph.gov.au/mediaPlayer.php?videoID=542661',
+        'url': 'https://www.aph.gov.au/News_and_Events/Watch_Read_Listen/ParlView/video/3406614',
         'info_dict': {
-            'id': '542661',
+            'id': '3406614',
             'ext': 'mp4',
-            'title': "Australia's Family Law System [Part 2]",
-            'duration': 5799,
-            'description': 'md5:7099883b391619dbae435891ca871a62',
-            'timestamp': 1621430700,
-            'upload_date': '20210519',
-            'uploader': 'Joint Committee',
+            'title': 'Senate Chamber',
+            'description': 'Official Recording of Senate Proceedings from the Australian Parliament',
+            'thumbnail': 'https://aphbroadcasting-prod.z01.azurefd.net/vod-storage/vod-logos/SenateParlview06.jpg',
+            'upload_date': '20250326',
+            'uploader': 'Australian Parliament House',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        'url': 'https://parlview.aph.gov.au/mediaPlayer.php?videoID=539936',
+        'url': 'https://www.aph.gov.au/News_and_Events/Watch_Read_Listen/ParlView/video/3406614',
         'only_matching': True,
     }]
-    _API_URL = 'https://parlview.aph.gov.au/api_v3/1/playback/getUniversalPlayerConfig?videoID=%s&format=json'
-    _MEDIA_INFO_URL = 'https://parlview.aph.gov.au/ajaxPlayer.php?videoID=%s&tabNum=4&action=loadTab'
+    _API_URL = 'https://vodapi.aph.gov.au/api/search/parlview/%s'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        media = self._download_json(self._API_URL % video_id, video_id).get('media')
-        timestamp = try_get(media, lambda x: x['timeMap']['source']['timecode_offsets'][0], str) or '/'
+        api_data = self._download_json(self._API_URL % video_id, video_id)
+        if not api_data:
+            self.raise_no_formats('Failed to retrieve API data')
 
-        stream = try_get(media, lambda x: x['renditions'][0], dict)
-        if not stream:
-            self.raise_no_formats('No streams were detected')
-        elif stream.get('streamType') != 'VOD':
-            self.raise_no_formats('Unknown type of stream was detected: "{}"'.format(str(stream.get('streamType'))))
-        formats = self._extract_m3u8_formats(stream['url'], video_id, 'mp4', 'm3u8_native')
+        if not api_data.get('wasSuccessful'):
+            self.raise_no_formats('API request was not successful')
 
-        media_info = self._download_webpage(
-            self._MEDIA_INFO_URL % video_id, video_id, note='Downloading media info', fatal=False)
+        video_details = api_data.get('videoDetails')
+        if not video_details:
+            self.raise_no_formats('No video details found')
+
+        files_data = video_details.get('files')
+        if not files_data:
+            self.raise_no_formats('No files data found')
+
+        file_info = files_data.get('file')
+        if not file_info:
+            self.raise_no_formats('No file information found')
+
+        m3u8_url = file_info.get('url')
+        if not m3u8_url:
+            self.raise_no_formats('No M3U8 URL found')
+
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', 'm3u8_native')
+
+        # Parse duration from duration string (format: "HH:MM:SS:FF")
+        duration_str = file_info.get('duration')
+        duration = None
+        if duration_str:
+            # Convert "HH:MM:SS:FF" to seconds (ignoring frames)
+            try:
+                time_parts = duration_str.split(':')
+                if len(time_parts) >= 3:
+                    hours = int(time_parts[0])
+                    minutes = int(time_parts[1])
+                    seconds = int(time_parts[2])
+                    duration = hours * 3600 + minutes * 60 + seconds
+            except (ValueError, IndexError):
+                pass
+
+        # Parse upload date from recordingFrom
+        upload_date = None
+        recording_from = video_details.get('recordingFrom')
+        if recording_from:
+            upload_date = unified_timestamp(recording_from)
 
         return {
             'id': video_id,
-            'url': url,
-            'title': self._html_search_regex(r'<h2>([^<]+)<', webpage, 'title', fatal=False),
+            'title': video_details.get('parlViewTitle') or video_details.get('title'),
+            'description': video_details.get('parlViewDescription'),
             'formats': formats,
-            'duration': int_or_none(media.get('duration')),
-            'timestamp': unified_timestamp(timestamp.split('/', 1)[1].replace('_', ' ')),
-            'description': self._html_search_regex(
-                r'<div[^>]+class="descripti?on"[^>]*>[^>]+<strong>[^>]+>[^>]+>([^<]+)',
-                webpage, 'description', fatal=False),
-            'uploader': self._html_search_regex(
-                r'<td>[^>]+>Channel:[^>]+>([^<]+)', media_info, 'channel', fatal=False),
-            'thumbnail': media.get('staticImage'),
+            'duration': duration,
+            'timestamp': upload_date,
+            'uploader': 'Australian Parliament House',
+            'thumbnail': video_details.get('thumbUrl'),
+            'series': f"{video_details.get('eventGroup')} - {video_details.get('eventSubGroup')}" if video_details.get('eventGroup') and video_details.get('eventSubGroup') else None,
         }
