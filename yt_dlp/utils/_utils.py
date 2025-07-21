@@ -504,6 +504,11 @@ def extract_attributes(html_element):
         'sq': '"', 'dq': '\''
     }.
     """
+    # gh-135661: Fix for Python 3.14+ where whitespace around '=' in
+    # attributes is no longer ignored to comply with the HTML5 standard.
+    if sys.version_info >= (3, 14):
+        html_element = re.sub(r'\s*=\s*', '=', html_element)
+
     parser = HTMLAttributeParser()
     with contextlib.suppress(compat_HTMLParseError):
         parser.feed(html_element)
