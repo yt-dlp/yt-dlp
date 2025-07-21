@@ -11,15 +11,14 @@ from ..utils.traversal import traverse_obj
 
 
 class SkebIE(InfoExtractor):
-    _VALID_URL = r'https?://skeb\.jp/@(?P<uploader_id>[^/]+)/works/(?P<id>\d+)'
+    _VALID_URL = r'https?://skeb\.jp/@(?P<uploader_id>[^/?#]+)/works/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://skeb.jp/@riiru_wm/works/10',
         'info_dict': {
             'id': '466853',
             'ext': 'mp4',
-            'title': '10',
+            'title': '10-0',
             'description': 'md5:1ec50901efc3437cfbfe3790468d532d',
-            'display_id': '10',
             'duration': 313,
             'genres': ['video'],
             'thumbnail': r're:https?://.+',
@@ -31,9 +30,8 @@ class SkebIE(InfoExtractor):
         'info_dict': {
             'id': '489408',
             'ext': 'mp3',
-            'title': '3',
+            'title': '3-0',
             'description': 'md5:6de1f8f876426a6ac321c123848176a8',
-            'display_id': '3',
             'duration': 98,
             'genres': ['voice'],
             'tags': 'count:11',
@@ -47,6 +45,7 @@ class SkebIE(InfoExtractor):
             'id': '626',
         },
         'playlist_count': 2,
+        'expected_warnings': ['Skipping unsupported extension'],
     }]
 
     def _call_api(self, uploader_id, work_id):
@@ -71,8 +70,6 @@ class SkebIE(InfoExtractor):
             works = self._call_api(uploader_id, work_id)
 
         info = {
-            'title': work_id,
-            'display_id': work_id,
             'uploader_id': uploader_id,
             **traverse_obj(works, {
                 'age_limit': ('nsfw', {bool}, {lambda x: 18 if x else None}),
@@ -84,12 +81,13 @@ class SkebIE(InfoExtractor):
         }
 
         entries = []
-        for preview in works['previews']:
+        for idx, preview in enumerate(works['previews']):
             ext = traverse_obj(preview, ('information', 'extension', {str}))
             if ext not in ('mp3', 'mp4'):
+                self.report_warning(f'Skipping unsupported extension "{ext}"')
                 continue
-            mp3_info = {'abr': 128, 'vcodec': 'none'} if ext == 'mp3' else {}
 
+            mp3_info = {'abr': 128, 'vcodec': 'none'} if ext == 'mp3' else {}
             subtitles = {}
             subtitles.setdefault('ja', []).append({
                 'ext': 'vtt',
@@ -98,6 +96,7 @@ class SkebIE(InfoExtractor):
 
             entries.append({
                 'ext': ext,
+                'title': f'{work_id}-{idx}',
                 'subtitles': subtitles,
                 **info,
                 **mp3_info,
