@@ -52,7 +52,7 @@ from ..compat import (
     compat_HTMLParseError,
 )
 from ..dependencies import xattr
-from ..globals import IN_CLI
+from ..globals import IN_CLI, WINDOWS_VT_MODE
 
 __name__ = __name__.rsplit('.', 1)[0]  # noqa: A001 # Pretend to be the parent module
 
@@ -4759,13 +4759,10 @@ def jwt_decode_hs256(jwt):
     return json.loads(base64.urlsafe_b64decode(f'{payload_b64}==='))
 
 
-WINDOWS_VT_MODE = False if os.name == 'nt' else None
-
-
 @functools.cache
 def supports_terminal_sequences(stream):
     if os.name == 'nt':
-        if not WINDOWS_VT_MODE:
+        if not WINDOWS_VT_MODE.value:
             return False
     elif not os.getenv('TERM'):
         return False
@@ -4802,8 +4799,7 @@ def windows_enable_vt_mode():
     finally:
         os.close(handle)
 
-    global WINDOWS_VT_MODE
-    WINDOWS_VT_MODE = True
+    WINDOWS_VT_MODE.value = True
     supports_terminal_sequences.cache_clear()
 
 
