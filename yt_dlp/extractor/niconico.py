@@ -348,14 +348,13 @@ class NiconicoIE(NiconicoBaseIE):
             }, expected_status=[400, 404])
 
         api_data = api_resp['data']
-        release_timestamp = traverse_obj(api_data, ('publishScheduledAt', {parse_iso8601}))
+        scheduled_time = traverse_obj(api_data, ('publishScheduledAt', {str}))
+        status = traverse_obj(api_resp, ('meta', 'status', {int}))
 
-        meta = api_resp['meta']
-        if meta.get('status') != 200:
-            err_code = meta['errorCode']
+        if status != 200:
+            err_code = traverse_obj(api_resp, ('meta', 'errorCode', {str.upper}))
             reason_code = traverse_obj(api_data, ('reasonCode', {str_or_none}))
-            err_msg = traverse_obj(self._ERROR_MAP, (
-                err_code.upper(), (reason_code, 'DEFAULT'), {str}, any))
+            err_msg = traverse_obj(self._ERROR_MAP, (err_code, (reason_code, 'DEFAULT'), {str}, any))
 
             if reason_code in ('DOMESTIC_VIDEO', 'HIGH_RISK_COUNTRY_VIDEO'):
                 self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
@@ -363,22 +362,22 @@ class NiconicoIE(NiconicoBaseIE):
                 'viewer', 'allowSensitiveContents', {bool},
             )) is False:
                 err_msg = 'Sensitive content, adjust display settings to watch'
-            elif reason_code == 'HIDDEN_VIDEO' and release_timestamp:
-                err_msg = f'Scheduled release, please wait. Release time: {release_timestamp}'
+            elif reason_code == 'HIDDEN_VIDEO' and scheduled_time:
+                err_msg = f'This content is scheduled to be released at {scheduled_time}'
             elif reason_code in ('CHANNEL_MEMBER_ONLY', 'HARMFUL_VIDEO', 'HIDDEN_VIDEO', 'PPV_VIDEO', 'PREMIUM_ONLY'):
                 self.raise_login_required(err_msg)
 
-            raise ExtractorError(
-                err_msg or 'Server busy, service temporarily unavailable', expected=True)
+            if err_msg:
+                raise ExtractorError(err_msg, expected=True)
+            if status and status >= 500:
+                raise ExtractorError('Service temporarily unavailable', expected=True)
+            raise ExtractorError(f'API returned error status {status}')
 
-        availability = self._availability(**{
-            **dict.fromkeys(('is_private', 'is_unlisted'), False),
-            **traverse_obj(api_data, ('payment', 'video', {
-                'needs_auth': (('isContinuationBenefit', 'isPpv'), {bool}, any),
-                'needs_premium': ('isPremium', {bool}),
-                'needs_subscription': ('isAdmission', {bool}),
-            })),
-        })
+        availability = self._availability(**traverse_obj(api_data, ('payment', 'video', {
+            'needs_auth': (('isContinuationBenefit', 'isPpv'), {bool}, any),
+            'needs_subscription': ('isAdmission', {bool}),
+            'needs_premium': ('isPremium', {bool}),
+        }))) or 'public'
 
         formats = self._extract_formats(api_data, video_id)
         err_msg = self._STATUS_MAP.get(availability)
@@ -392,7 +391,7 @@ class NiconicoIE(NiconicoBaseIE):
             'display_id': video_id,
             'formats': formats,
             'genres': traverse_obj(api_data, ('genre', 'label', {str}, filter, all, filter)),
-            'release_timestamp': release_timestamp,
+            'release_timestamp': parse_iso8601(scheduled_time),
             'subtitles': self.extract_subtitles(video_id, api_data),
             'tags': traverse_obj(api_data, ('tag', 'items', ..., 'name', {str}, filter, all, filter)),
             'thumbnails': [{
