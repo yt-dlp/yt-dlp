@@ -133,7 +133,6 @@ The only reliable way to check if a site is supported is to try it.
  - **BaiduVideo**: 百度视频
  - **BanBye**
  - **BanByeChannel**
- - **bandaichannel**
  - **Bandcamp**
  - **Bandcamp:album**
  - **Bandcamp:user**
@@ -157,7 +156,6 @@ The only reliable way to check if a site is supported is to try it.
  - **Beeg**
  - **BehindKink**: (**Currently broken**)
  - **Bellator**
- - **BellMedia**
  - **BerufeTV**
  - **Bet**: (**Currently broken**)
  - **bfi:player**: (**Currently broken**)
@@ -197,6 +195,7 @@ The only reliable way to check if a site is supported is to try it.
  - **BitChute**
  - **BitChuteChannel**
  - **BlackboardCollaborate**
+ - **BlackboardCollaborateLaunch**
  - **BleacherReport**: (**Currently broken**)
  - **BleacherReportCMS**: (**Currently broken**)
  - **blerp**
@@ -225,6 +224,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Brilliantpala:Elearn**: [*brilliantpala*](## "netrc machine") VoD on elearn.brilliantpala.org
  - **bt:article**: Bergens Tidende Articles
  - **bt:vestlendingen**: Bergens Tidende - Vestlendingen
+ - **BTVPlus**
  - **Bundesliga**
  - **Bundestag**
  - **BunnyCdn**
@@ -317,7 +317,6 @@ The only reliable way to check if a site is supported is to try it.
  - **CSpan**: C-SPAN
  - **CSpanCongress**
  - **CtsNews**: 華視新聞
- - **CTV**
  - **CTVNews**
  - **cu.ntv.co.jp**: 日テレ無料TADA!
  - **CultureUnplugged**
@@ -575,9 +574,7 @@ The only reliable way to check if a site is supported is to try it.
  - **HollywoodReporterPlaylist**
  - **Holodex**
  - **HotNewHipHop**: (**Currently broken**)
- - **hotstar**
- - **hotstar:playlist**
- - **hotstar:season**
+ - **hotstar**: JioHotstar
  - **hotstar:series**
  - **hrfernsehen**
  - **HRTi**: [*hrti*](## "netrc machine")
@@ -590,7 +587,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Hungama**
  - **HungamaAlbumPlaylist**
  - **HungamaSong**
- - **huya:live**: huya.com
+ - **huya:live**: 虎牙直播
  - **huya:video**: 虎牙视频
  - **Hypem**
  - **Hytale**
@@ -647,8 +644,6 @@ The only reliable way to check if a site is supported is to try it.
  - **Jamendo**
  - **JamendoAlbum**
  - **JeuxVideo**: (**Currently broken**)
- - **jiocinema**: [*jiocinema*](## "netrc machine")
- - **jiocinema:series**: [*jiocinema*](## "netrc machine")
  - **jiosaavn:album**
  - **jiosaavn:artist**
  - **jiosaavn:playlist**
@@ -656,7 +651,6 @@ The only reliable way to check if a site is supported is to try it.
  - **jiosaavn:​show:playlist**
  - **jiosaavn:song**
  - **Joj**
- - **JoqrAg**: 超!A&G+ 文化放送 (f.k.a. AGQR) Nippon Cultural Broadcasting, Inc. (JOQR)
  - **Jove**
  - **JStream**
  - **JTBC**: jtbc.co.kr
@@ -727,9 +721,6 @@ The only reliable way to check if a site is supported is to try it.
  - **life:embed**
  - **likee**
  - **likee:user**
- - **limelight**
- - **limelight:channel**
- - **limelight:channel_list**
  - **LinkedIn**: [*linkedin*](## "netrc machine")
  - **linkedin:events**: [*linkedin*](## "netrc machine")
  - **linkedin:learning**: [*linkedin*](## "netrc machine")
@@ -776,6 +767,7 @@ The only reliable way to check if a site is supported is to try it.
  - **massengeschmack.tv**
  - **Masters**
  - **MatchTV**
+ - **Mave**
  - **MBN**: mbn.co.kr (매일방송)
  - **MDR**: MDR.DE
  - **MedalTV**
@@ -810,6 +802,7 @@ The only reliable way to check if a site is supported is to try it.
  - **minds:channel**
  - **minds:group**
  - **Minoto**
+ - **mir24.tv**
  - **mirrativ**
  - **mirrativ:user**
  - **MirrorCoUK**
@@ -820,6 +813,8 @@ The only reliable way to check if a site is supported is to try it.
  - **mixcloud**
  - **mixcloud:playlist**
  - **mixcloud:user**
+ - **Mixlr**
+ - **MixlrRecoring**
  - **MLB**
  - **MLBArticle**
  - **MLBTV**: [*mlb*](## "netrc machine")
@@ -832,7 +827,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Mojevideo**: mojevideo.sk
  - **Mojvideo**
  - **Monstercat**
- - **MonsterSirenHypergryphMusic**
+ - **monstersiren**: 塞壬唱片
  - **Motherless**
  - **MotherlessGallery**
  - **MotherlessGroup**
@@ -976,7 +971,6 @@ The only reliable way to check if a site is supported is to try it.
  - **NoicePodcast**
  - **NonkTube**
  - **NoodleMagazine**
- - **Noovo**
  - **NOSNLArticle**
  - **Nova**: TN.cz, Prásk.tv, Nova.cz, Novaplus.cz, FANDA.tv, Krásná.cz and Doma.cz
  - **NovaEmbed**
@@ -1100,6 +1094,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Platzi**: [*platzi*](## "netrc machine")
  - **PlatziCourse**: [*platzi*](## "netrc machine")
  - **player.sky.it**
+ - **PlayerFm**
  - **playeur**
  - **PlayPlusTV**: [*playplustv*](## "netrc machine")
  - **PlaySuisse**: [*playsuisse*](## "netrc machine")
@@ -1298,6 +1293,7 @@ The only reliable way to check if a site is supported is to try it.
  - **SampleFocus**
  - **Sangiin**: 参議院インターネット審議中継 (archive)
  - **Sapo**: SAPO Vídeos
+ - **SaucePlus**: Sauce+
  - **SBS**: sbs.com.au
  - **sbs.co.kr**
  - **sbs.co.kr:allvod_program**
@@ -1474,11 +1470,12 @@ The only reliable way to check if a site is supported is to try it.
  - **Tempo**
  - **TennisTV**: [*tennistv*](## "netrc machine")
  - **TF1**
- - **TFO**
+ - **TFO**: (**Currently broken**)
  - **theatercomplextown:ppv**: [*theatercomplextown*](## "netrc machine")
  - **theatercomplextown:vod**: [*theatercomplextown*](## "netrc machine")
  - **TheGuardianPodcast**
  - **TheGuardianPodcastPlaylist**
+ - **TheHighWire**
  - **TheHoleTv**
  - **TheIntercept**
  - **ThePlatform**
@@ -1546,8 +1543,8 @@ The only reliable way to check if a site is supported is to try it.
  - **tv2playseries.hu**
  - **TV4**: tv4.se and tv4play.se
  - **TV5MONDE**
- - **tv5unis**
- - **tv5unis:video**
+ - **tv5unis**: (**Currently broken**)
+ - **tv5unis:video**: (**Currently broken**)
  - **tv8.it**
  - **tv8.it:live**: TV8 Live
  - **tv8.it:playlist**: TV8 Playlist
@@ -1602,6 +1599,7 @@ The only reliable way to check if a site is supported is to try it.
  - **UlizaPortal**: ulizaportal.jp
  - **umg:de**: Universal Music Deutschland
  - **Unistra**
+ - **UnitedNationsWebTv**
  - **Unity**: (**Currently broken**)
  - **uol.com.br**
  - **uplynk**
