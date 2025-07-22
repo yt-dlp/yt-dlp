@@ -1,0 +1,16 @@
+{
+  "name": "yt-dlp",
+  "image": "mcr.microsoft.com/devcontainers/python:0-3.9",
+  "features": {},
+  "postCreateCommand": "pip3 install --user -e .",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "hbenl.vscode-test-explorer",
+        "ms-python.python",
+        "redhat.vscode-yaml",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  }
+}
