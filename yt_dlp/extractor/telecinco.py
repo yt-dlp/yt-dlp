@@ -140,8 +140,7 @@ class TelecincoIE(TelecincoBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        # yt-dlp's default Chrome user-agents are too old and blocked by akamai
-        webpage = self._download_firefox_webpage(url, display_id, impersonate=True)
+        webpage = self._download_webpage(url, display_id)
         article = self._search_json(
             r'window\.\$REACTBASE_STATE\.article(?:_multisite)?\s*=',
             webpage, 'article', display_id)['article']
