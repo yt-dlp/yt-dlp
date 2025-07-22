@@ -38,8 +38,6 @@ class ParlviewIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         api_data = self._download_json(self._API_URL % video_id, video_id)
-        if not api_data:
-            self.raise_no_formats('Failed to retrieve API data')
 
         video_details = traverse_obj(api_data, ('videoDetails', {dict}))
         if not video_details:
