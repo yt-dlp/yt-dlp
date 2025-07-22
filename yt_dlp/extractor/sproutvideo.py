@@ -99,7 +99,7 @@ class SproutVideoIE(InfoExtractor):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
         webpage = self._download_webpage(
-            url, video_id, headers=traverse_obj(smuggled_data, {'Referer': 'referer'}), impersonate=True)
+            url, video_id, headers=traverse_obj(smuggled_data, {'Referer': 'referer'}))
         data = self._search_json(
             r'(?:var|const|let)\s+(?:dat|playerInfo)\s*=\s*["\']', webpage, 'player info', video_id,
             contains_pattern=r'[A-Za-z0-9+/=]+', end_pattern=r'["\'];',
