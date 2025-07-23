@@ -181,6 +181,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
             if self._oauth_tokens.get(cache_key):
                 self._DEFAULT_CLIENT = client_name
+                self.write_debug(
+                    f'Found cached {client_name} token; using {client_name} as default API client')
                 return
 
         self.raise_login_required('This extractor will only work when logged-in')
@@ -384,15 +386,19 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         return f'Bearer {self._oauth_tokens[cache_key]}'
 
     def _get_requested_client(self):
-        default_client = self._DEFAULT_AUTHED_CLIENT if self._is_logged_in else self._DEFAULT_CLIENT
+        if client := self._configuration_arg('client', [None], ie_key=VimeoIE)[0]:
+            if client not in self._CLIENT_CONFIGS:
+                raise ExtractorError(
+                    f'Unsupported API client "{client}" requested. '
+                    f'Supported clients are: {", ".join(self._CLIENT_CONFIGS)}', expected=True)
+            self.write_debug(
+                f'Using {client} API client as specified by extractor argument', only_once=True)
+            return client
 
-        client = self._configuration_arg('client', [default_client], ie_key=VimeoIE)[0]
-        if client not in self._CLIENT_CONFIGS:
-            raise ExtractorError(
-                f'Unsupported API client "{client}" requested. '
-                f'Supported clients are: {", ".join(self._CLIENT_CONFIGS)}', expected=True)
+        if self._is_logged_in:
+            return self._DEFAULT_AUTHED_CLIENT
 
-        return client
+        return self._DEFAULT_CLIENT
 
     def _call_videos_api(self, video_id, unlisted_hash=None, path=None, *, force_client=None, query=None, **kwargs):
         client = force_client or self._get_requested_client()
