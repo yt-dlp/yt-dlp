@@ -1903,6 +1903,7 @@ def create_parser():
     sponskrub_switches = [
         '--sponskrub', '--no-sponskrub', '--sponskrub-cut', '--sponskrub-force', '--no-sponskrub-force']
     sponskrub_arguments = ['--sponskrub-location', '--sponskrub-args']
+
     def sponskrub_deprecation(option, opt_str, value, parser):
         deprecation_warning(
             f'SponSkrub support has been removed from yt-dlp, but "{opt_str}" was passed.\n'
