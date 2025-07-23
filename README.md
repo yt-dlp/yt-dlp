@@ -2378,6 +2378,18 @@ These are aliases that are no longer documented for various reasons
     --write-srt                      --write-subs
     --yes-overwrites                 --force-overwrites
 
+#### Sponskrub Options
+Support for [SponSkrub](https://github.com/faissaloo/SponSkrub) has been removed in favor of the `--sponsorblock` options
+
+    --sponskrub                      --sponsorblock-mark all
+    --no-sponskrub                   --no-sponsorblock
+    --sponskrub-cut                  --sponsorblock-remove all
+    --no-sponskrub-cut               --sponsorblock-remove -all
+    --sponskrub-force                Not applicable
+    --no-sponskrub-force             Not applicable
+    --sponskrub-location             Not applicable
+    --sponskrub-args                 Not applicable
+
 #### No longer supported
 These options may no longer work as intended
 
