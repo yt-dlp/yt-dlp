@@ -142,7 +142,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'service': 'vimeo',
             'token': viewer['xsrft'],
         }
-        self._set_vimeo_cookie('vuid', viewer['vuid'])
         try:
             self._download_webpage(
                 self._LOGIN_URL, None, 'Logging in',
@@ -151,11 +150,14 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'Referer': self._LOGIN_URL,
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 418:
+            if isinstance(e.cause, HTTPError) and e.cause.status in (405, 418):
                 raise ExtractorError(
                     'Unable to log in: bad username or password',
                     expected=True)
             raise ExtractorError('Unable to log in')
+
+        # Clear unauthenticated viewer info
+        self._viewer_info = None
 
     def _real_initialize(self):
         if self._LOGIN_REQUIRED and not self._is_logged_in:
@@ -199,9 +201,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             webpage, 'vimeo config', *args, **kwargs)
         if vimeo_config:
             return self._parse_json(vimeo_config, video_id)
-
-    def _set_vimeo_cookie(self, name, value):
-        self._set_cookie('vimeo.com', name, value)
 
     def _parse_config(self, config, video_id):
         video_data = config['video']
@@ -1192,7 +1191,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 raise ExtractorError(
                     'This album is protected by a password, use the --video-password option',
                     expected=True)
-            self._set_vimeo_cookie('vuid', viewer['vuid'])
             try:
                 self._download_json(
                     f'https://vimeo.com/showcase/{album_id}/auth',
@@ -1589,7 +1587,6 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
                 raise ExtractorError(
                     'This album is protected by a password, use the --video-password option',
                     expected=True)
-            self._set_vimeo_cookie('vuid', viewer['vuid'])
             try:
                 hashed_pass = self._download_json(
                     f'https://vimeo.com/showcase/{album_id}/auth',
