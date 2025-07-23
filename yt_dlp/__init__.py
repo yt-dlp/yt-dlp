@@ -562,6 +562,14 @@ def validate_options(opts):
             f'{old} is deprecated and may be removed in a future version. Use {new} instead' if new
             else f'{old} is deprecated and may not work as expected')
 
+    if hasattr(opts, 'sponskrub_options'):
+        for opt_str in opts.sponskrub_options:
+            deprecation_warnings.append(
+                f'SponSkrub support has been removed from yt-dlp, but "{opt_str}" was passed.\n'
+                'Please use SponsorBlock instead and remove all SponSkrub-related options from your commands and config files.\n'
+                'These options will be removed in a future version, which will cause errors if not updated.')
+        del opts.sponskrub_options
+
     report_deprecation(not opts.prefer_ffmpeg, '--prefer-avconv', 'ffmpeg')
     # report_deprecation(opts.include_ads, '--include-ads')  # We may re-implement this in future
     # report_deprecation(opts.call_home, '--call-home')  # We may re-implement this in future

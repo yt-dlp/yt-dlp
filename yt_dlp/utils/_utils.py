@@ -1487,15 +1487,14 @@ def write_string(s, out=None, encoding=None):
 
 
 # TODO: Use global logger
-def deprecation_warning(msg, *, printer=None, stacklevel=0, expected=False, **kwargs):
+def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
     if IN_CLI.value:
         if msg in deprecation_warning._cache:
             return
         deprecation_warning._cache.add(msg)
-        full_message = f'{msg}{"" if expected else bug_reports_message()}'
         if printer:
-            return printer(f'{full_message}', **kwargs)
-        return write_string(f'ERROR: {full_message}\n', **kwargs)
+            return printer(f'{msg}{bug_reports_message()}', **kwargs)
+        return write_string(f'ERROR: {msg}{bug_reports_message()}\n', **kwargs)
     else:
         import warnings
         warnings.warn(DeprecationWarning(msg), stacklevel=stacklevel + 3)
