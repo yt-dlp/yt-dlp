@@ -185,8 +185,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     f'Found cached {client_name} token; using {client_name} as default API client')
                 return
 
-        self.raise_login_required('This extractor will only work when logged-in')
-
     def _get_video_password(self):
         password = self.get_param('videopassword')
         if password is None:
@@ -405,7 +403,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
         client_config = self._CLIENT_CONFIGS[client]
         if client_config['REQUIRES_AUTH'] and not self._is_logged_in:
-            self.raise_login_required(f'The {client} client requires authentication')
+            self.raise_login_required(f'The {client} client only works when logged-in')
 
         return self._download_json(
             join_nonempty(
