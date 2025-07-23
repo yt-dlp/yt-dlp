@@ -515,7 +515,6 @@ def validate_options(opts):
 
     if report_args_compat('post-processor', opts.postprocessor_args, 'default-compat', 'default'):
         opts.postprocessor_args['default'] = opts.postprocessor_args.pop('default-compat')
-        opts.postprocessor_args.setdefault('sponskrub', [])
 
     def report_conflict(arg1, opt1, arg2='--allow-unplayable-formats', opt2='allow_unplayable_formats',
                         val1=NO_DEFAULT, val2=NO_DEFAULT, default=False):
@@ -540,11 +539,6 @@ def validate_options(opts):
                     '"--exec before_dl:"', 'exec_cmd', val2=opts.exec_cmd.get('before_dl'))
     report_conflict('--id', 'useid', '--output', 'outtmpl', val2=opts.outtmpl.get('default'))
     report_conflict('--remux-video', 'remuxvideo', '--recode-video', 'recodevideo')
-    report_conflict('--sponskrub', 'sponskrub', '--remove-chapters', 'remove_chapters')
-    report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-mark', 'sponsorblock_mark')
-    report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-remove', 'sponsorblock_remove')
-    report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters',
-                    val1=opts.sponskrub and opts.sponskrub_cut)
 
     # Conflicts with --allow-unplayable-formats
     report_conflict('--embed-metadata', 'addmetadata')
@@ -557,7 +551,6 @@ def validate_options(opts):
     report_conflict('--recode-video', 'recodevideo')
     report_conflict('--remove-chapters', 'remove_chapters', default=[])
     report_conflict('--remux-video', 'remuxvideo')
-    report_conflict('--sponskrub', 'sponskrub')
     report_conflict('--sponsorblock-remove', 'sponsorblock_remove', default=set())
     report_conflict('--xattrs', 'xattrs')
 
@@ -569,7 +562,6 @@ def validate_options(opts):
             f'{old} is deprecated and may be removed in a future version. Use {new} instead' if new
             else f'{old} is deprecated and may not work as expected')
 
-    report_deprecation(opts.sponskrub, '--sponskrub', '--sponsorblock-mark or --sponsorblock-remove')
     report_deprecation(not opts.prefer_ffmpeg, '--prefer-avconv', 'ffmpeg')
     # report_deprecation(opts.include_ads, '--include-ads')  # We may re-implement this in future
     # report_deprecation(opts.call_home, '--call-home')  # We may re-implement this in future
@@ -703,21 +695,6 @@ def get_postprocessors(opts):
             'add_chapters': opts.addchapters,
             'add_metadata': opts.addmetadata,
             'add_infojson': opts.embed_infojson,
-        }
-    # Deprecated
-    # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
-    # but must be below EmbedSubtitle and FFmpegMetadata
-    # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29
-    # If opts.sponskrub is None, sponskrub is used, but it silently fails if the executable can't be found
-    if opts.sponskrub is not False:
-        yield {
-            'key': 'SponSkrub',
-            'path': opts.sponskrub_path,
-            'args': opts.sponskrub_args,
-            'cut': opts.sponskrub_cut,
-            'force': opts.sponskrub_force,
-            'ignoreerror': opts.sponskrub is None,
-            '_from_cli': True,
         }
     if opts.embedthumbnail:
         yield {
