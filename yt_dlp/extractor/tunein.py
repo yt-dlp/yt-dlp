@@ -238,7 +238,7 @@ class TuneInShortenerIE(InfoExtractor):
         url = urlh.url
         url_parsed = urllib.parse.urlparse(url)
         if url_parsed.port == 443:
-            url = url_parsed._replace(netloc=url_parsed.hostname).url  # XXX: should call geturl() here
+            url = url_parsed._replace(netloc=url_parsed.hostname).url
 
         self.to_screen(f'Following redirect: {url}')
         return self.url_result(url)
