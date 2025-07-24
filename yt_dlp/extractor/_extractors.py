@@ -2166,7 +2166,6 @@ from .trtworld import TrtWorldIE
 from .trueid import TrueIDIE
 from .trunews import TruNewsIE
 from .truth import TruthIE
-from .trutv import TruTVIE
 from .tube8 import Tube8IE
 from .tubetugraz import (
     TubeTuGrazIE,
