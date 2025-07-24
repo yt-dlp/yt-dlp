@@ -10,7 +10,7 @@ import warnings
 
 from ..dependencies import brotli, requests, urllib3
 from ..utils import bug_reports_message, int_or_none, variadic
-from ..utils.networking import normalize_url
+from ..utils.networking import normalize_url, select_proxy
 
 if requests is None:
     raise ImportError('requests module is not installed')
@@ -21,9 +21,11 @@ if urllib3 is None:
 urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.split('.'))
 
 if urllib3_version < (1, 26, 17):
+    urllib3._yt_dlp__version = f'{urllib3.__version__} (unsupported)'
     raise ImportError('Only urllib3 >= 1.26.17 is supported')
 
 if requests.__build__ < 0x023202:
+    requests._yt_dlp__version = f'{requests.__version__} (unsupported)'
     raise ImportError('Only requests >= 2.32.2 is supported')
 
 import requests.adapters
@@ -39,7 +41,6 @@ from ._helper import (
     create_socks_proxy_socket,
     get_redirect_method,
     make_socks_proxy_opts,
-    select_proxy,
 )
 from .common import (
     Features,
@@ -139,6 +140,12 @@ class RequestsResponseAdapter(Response):
 
     def read(self, amt: int | None = None):
         try:
+            # Work around issue with `.read(amt)` then `.read()`
+            # See: https://github.com/urllib3/urllib3/issues/3636
+            if amt is None:
+                # Python 3.9 preallocates the whole read buffer, read in chunks
+                read_chunk = functools.partial(self.fp.read, 1 << 20, decode_content=True)
+                return b''.join(iter(read_chunk, b''))
             # Interact with urllib3 response directly.
             return self.fp.read(amt, decode_content=True)
 
@@ -230,9 +237,7 @@ class Urllib3LoggingFilter(logging.Filter):
 
     def filter(self, record):
         # Ignore HTTP request messages since HTTPConnection prints those
-        if record.msg == '%s://%s:%s "%s %s %s" %s %s':
-            return False
-        return True
+        return record.msg != '%s://%s:%s "%s %s %s" %s %s'
 
 
 class Urllib3LoggingHandler(logging.Handler):
@@ -297,30 +302,37 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         super()._check_extensions(extensions)
         extensions.pop('cookiejar', None)
         extensions.pop('timeout', None)
+        extensions.pop('legacy_ssl', None)
+        extensions.pop('keep_header_casing', None)
 
-    def _create_instance(self, cookiejar):
+    def _create_instance(self, cookiejar, legacy_ssl_support=None):
         session = RequestsSession()
         http_adapter = RequestsHTTPAdapter(
-            ssl_context=self._make_sslcontext(),
+            ssl_context=self._make_sslcontext(legacy_ssl_support=legacy_ssl_support),
             source_address=self.source_address,
             max_retries=urllib3.util.retry.Retry(False),
         )
         session.adapters.clear()
-        session.headers = requests.models.CaseInsensitiveDict({'Connection': 'keep-alive'})
+        session.headers = requests.models.CaseInsensitiveDict()
         session.mount('https://', http_adapter)
         session.mount('http://', http_adapter)
         session.cookies = cookiejar
         session.trust_env = False  # no need, we already load proxies from env
         return session
 
+    def _prepare_headers(self, _, headers):
+        add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
+        headers.setdefault('Connection', 'keep-alive')
+
     def _send(self, request):
 
-        headers = self._merge_headers(request.headers)
-        add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
-
+        headers = self._get_headers(request)
         max_redirects_exceeded = False
 
-        session = self._get_instance(cookiejar=self._get_cookiejar(request))
+        session = self._get_instance(
+            cookiejar=self._get_cookiejar(request),
+            legacy_ssl_support=request.extensions.get('legacy_ssl'),
+        )
 
         try:
             requests_res = session.request(

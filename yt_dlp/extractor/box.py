@@ -12,7 +12,7 @@ from ..utils.traversal import traverse_obj
 
 
 class BoxIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^.]+\.)?app\.box\.com/s/(?P<shared_name>[^/?#]+)(?:/file/(?P<id>\d+))?'
+    _VALID_URL = r'https?://(?:[^.]+\.)?(?P<service>app|ent)\.box\.com/s/(?P<shared_name>[^/?#]+)(?:/file/(?P<id>\d+))?'
     _TESTS = [{
         'url': 'https://mlssoccer.app.box.com/s/0evd2o3e08l60lr4ygukepvnkord1o1x/file/510727257538',
         'md5': '1f81b2fd3960f38a40a3b8823e5fcd43',
@@ -38,10 +38,22 @@ class BoxIE(InfoExtractor):
             'uploader_id': '239068974',
         },
         'params': {'skip_download': 'dash fragment too small'},
+    }, {
+        'url': 'https://thejacksonlaboratory.ent.box.com/s/2x09dm6vcg6y28o0oox1so4l0t8wzt6l/file/1536173056065',
+        'info_dict': {
+            'id': '1536173056065',
+            'ext': 'mp4',
+            'uploader_id': '18523128264',
+            'uploader': 'Lexi Hennigan',
+            'title': 'iPSC Symposium recording part 1.mp4',
+            'timestamp': 1716228343,
+            'upload_date': '20240520',
+        },
+        'params': {'skip_download': 'dash fragment too small'},
     }]
 
     def _real_extract(self, url):
-        shared_name, file_id = self._match_valid_url(url).groups()
+        shared_name, file_id, service = self._match_valid_url(url).group('shared_name', 'id', 'service')
         webpage = self._download_webpage(url, file_id or shared_name)
 
         if not file_id:
@@ -57,14 +69,14 @@ class BoxIE(InfoExtractor):
         request_token = self._search_json(
             r'Box\.config\s*=', webpage, 'Box config', file_id)['requestToken']
         access_token = self._download_json(
-            'https://app.box.com/app-api/enduserapp/elements/tokens', file_id,
+            f'https://{service}.box.com/app-api/enduserapp/elements/tokens', file_id,
             'Downloading token JSON metadata',
             data=json.dumps({'fileIDs': [file_id]}).encode(), headers={
                 'Content-Type': 'application/json',
                 'X-Request-Token': request_token,
                 'X-Box-EndUser-API': 'sharedName=' + shared_name,
             })[file_id]['read']
-        shared_link = 'https://app.box.com/s/' + shared_name
+        shared_link = f'https://{service}.box.com/s/{shared_name}'
         f = self._download_json(
             'https://api.box.com/2.0/files/' + file_id, file_id,
             'Downloading file JSON metadata', headers={

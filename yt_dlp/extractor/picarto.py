@@ -5,11 +5,13 @@ from ..utils import (
     ExtractorError,
     str_or_none,
     traverse_obj,
+    update_url,
 )
 
 
 class PicartoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www.)?picarto\.tv/(?P<id>[a-zA-Z0-9]+)'
+    IE_NAME = 'picarto'
+    _VALID_URL = r'https?://(?:www.)?picarto\.tv/(?P<id>[^/#?]+)/?(?:$|[?#])'
     _TEST = {
         'url': 'https://picarto.tv/Setz',
         'info_dict': {
@@ -43,15 +45,16 @@ class PicartoIE(InfoExtractor):
     url
   }
 }''' % (channel_id, channel_id),  # noqa: UP031
-            })['data']
+            }, headers={'Accept': '*/*', 'Content-Type': 'application/json'})['data']
         metadata = data['channel']
 
         if metadata.get('online') == 0:
             raise ExtractorError('Stream is offline', expected=True)
         title = metadata['title']
 
-        cdn_data = self._download_json(
-            data['getLoadBalancerUrl']['url'] + '/stream/json_' + metadata['stream_name'] + '.js',
+        cdn_data = self._download_json(''.join((
+            update_url(data['getLoadBalancerUrl']['url'], scheme='https'),
+            '/stream/json_', metadata['stream_name'], '.js')),
             channel_id, 'Downloading load balancing info')
 
         formats = []
@@ -87,7 +90,8 @@ class PicartoIE(InfoExtractor):
 
 
 class PicartoVodIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?picarto\.tv/(?:videopopout|\w+/videos)/(?P<id>[^/?#&]+)'
+    IE_NAME = 'picarto:vod'
+    _VALID_URL = r'https?://(?:www\.)?picarto\.tv/(?:videopopout|\w+(?:/profile)?/videos)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://picarto.tv/videopopout/ArtofZod_2017.12.12.00.13.23.flv',
         'md5': '3ab45ba4352c52ee841a28fb73f2d9ca',
@@ -99,16 +103,28 @@ class PicartoVodIE(InfoExtractor):
         },
         'skip': 'The VOD does not exist',
     }, {
-        'url': 'https://picarto.tv/ArtofZod/videos/772650',
-        'md5': '00067a0889f1f6869cc512e3e79c521b',
+        'url': 'https://picarto.tv/ArtofZod/videos/771008',
+        'md5': 'abef5322f2700d967720c4c6754b2a34',
         'info_dict': {
-            'id': '772650',
+            'id': '771008',
             'ext': 'mp4',
             'title': 'Art of Zod - Drawing and Painting',
             'thumbnail': r're:^https?://.*\.jpg',
             'channel': 'ArtofZod',
             'age_limit': 18,
         },
+    }, {
+        'url': 'https://picarto.tv/DrechuArt/profile/videos/400347',
+        'md5': 'f9ea54868b1d9dec40eb554b484cc7bf',
+        'info_dict': {
+            'id': '400347',
+            'ext': 'mp4',
+            'title': 'Welcome to the Show',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'channel': 'DrechuArt',
+            'age_limit': 0,
+        },
+
     }, {
         'url': 'https://picarto.tv/videopopout/Plague',
         'only_matching': True,
@@ -131,7 +147,7 @@ class PicartoVodIE(InfoExtractor):
     }}
   }}
 }}''',
-            })['data']['video']
+            }, headers={'Accept': '*/*', 'Content-Type': 'application/json'})['data']['video']
 
         file_name = data['file_name']
         netloc = urllib.parse.urlparse(data['video_recording_image_url']).netloc

@@ -8,6 +8,9 @@ from .common import InfoExtractor
 from .commonprotocols import RtmpIE
 from .youtube import YoutubeIE
 from ..compat import compat_etree_fromstring
+from ..cookies import LenientSimpleCookie
+from ..networking.exceptions import HTTPError
+from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     KNOWN_EXTENSIONS,
     MEDIA_EXTENSIONS,
@@ -34,6 +37,7 @@ from ..utils import (
     unescapeHTML,
     unified_timestamp,
     unsmuggle_url,
+    update_url,
     update_url_query,
     url_or_none,
     urlhandle_detect_ext,
@@ -43,6 +47,7 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
+from ..utils._utils import _UnsafeExtensionError
 
 
 class GenericIE(InfoExtractor):
@@ -287,6 +292,19 @@ class GenericIE(InfoExtractor):
                 'formats': 'mincount:9',
                 'upload_date': '20130904',
                 'timestamp': 1378272859.0,
+            },
+        },
+        # Live DASH MPD
+        {
+            'url': 'https://livesim2.dashif.org/livesim2/ato_10/testpic_2s/Manifest.mpd',
+            'info_dict': {
+                'id': 'Manifest',
+                'ext': 'mp4',
+                'title': r're:Manifest \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+                'live_status': 'is_live',
+            },
+            'params': {
+                'skip_download': 'livestream',
             },
         },
         # m3u8 served with Content-Type: audio/x-mpegURL; charset=utf-8
@@ -1464,30 +1482,6 @@ class GenericIE(InfoExtractor):
             'add_ie': ['SenateISVP'],
         },
         {
-            # Limelight embeds (1 channel embed + 4 media embeds)
-            'url': 'http://www.sedona.com/FacilitatorTraining2017',
-            'info_dict': {
-                'id': 'FacilitatorTraining2017',
-                'title': 'Facilitator Training 2017',
-            },
-            'playlist_mincount': 5,
-        },
-        {
-            # Limelight embed (LimelightPlayerUtil.embed)
-            'url': 'https://tv5.ca/videos?v=xuu8qowr291ri',
-            'info_dict': {
-                'id': '95d035dc5c8a401588e9c0e6bd1e9c92',
-                'ext': 'mp4',
-                'title': '07448641',
-                'timestamp': 1499890639,
-                'upload_date': '20170712',
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'add_ie': ['LimelightMedia'],
-        },
-        {
             'url': 'http://kron4.com/2017/04/28/standoff-with-walnut-creek-murder-suspect-ends-with-arrest/',
             'info_dict': {
                 'id': 'standoff-with-walnut-creek-murder-suspect-ends-with-arrest',
@@ -2167,7 +2161,15 @@ class GenericIE(InfoExtractor):
                 urllib.parse.urlparse(fragment_query).query or fragment_query
                 or urllib.parse.urlparse(manifest_url).query or None)
 
-        hex_or_none = lambda x: x if re.fullmatch(r'(0x)?[\da-f]+', x, re.IGNORECASE) else None
+        key_query = self._configuration_arg('key_query', [None], casesense=True)[0]
+        if key_query is not None:
+            info['extra_param_to_key_url'] = (
+                urllib.parse.urlparse(key_query).query or key_query
+                or urllib.parse.urlparse(manifest_url).query or None)
+
+        def hex_or_none(value):
+            return value if re.fullmatch(r'(0x)?[\da-f]+', value, re.IGNORECASE) else None
+
         info['hls_aes'] = traverse_obj(self._configuration_arg('hls_key', casesense=True), {
             'uri': (0, {url_or_none}), 'key': (0, {hex_or_none}), 'iv': (1, {hex_or_none}),
         }) or None
@@ -2188,10 +2190,21 @@ class GenericIE(InfoExtractor):
             if is_live is not None:
                 info['live_status'] = 'not_live' if is_live == 'false' else 'is_live'
                 return
-            headers = m3u8_format.get('http_headers') or info.get('http_headers')
-            duration = self._extract_m3u8_vod_duration(
-                m3u8_format['url'], info.get('id'), note='Checking m3u8 live status',
-                errnote='Failed to download m3u8 media playlist', headers=headers)
+            headers = m3u8_format.get('http_headers') or info.get('http_headers') or {}
+            display_id = info.get('id')
+            urlh = self._request_webpage(
+                m3u8_format['url'], display_id, 'Checking m3u8 live status', errnote=False,
+                headers={**headers, 'Accept-Encoding': 'identity'}, fatal=False)
+            if urlh is False:
+                return
+            first_bytes = urlh.read(512)
+            if not first_bytes.startswith(b'#EXTM3U'):
+                return
+            m3u8_doc = self._webpage_read_content(
+                urlh, urlh.url, display_id, prefix=first_bytes, fatal=False, errnote=False)
+            if not m3u8_doc:
+                return
+            duration = self._parse_m3u8_vod_duration(m3u8_doc, display_id)
             if not duration:
                 info['live_status'] = 'is_live'
             info['duration'] = info.get('duration') or duration
@@ -2331,7 +2344,7 @@ class GenericIE(InfoExtractor):
                 default_search = 'fixup_error'
 
             if default_search in ('auto', 'auto_warning', 'fixup_error'):
-                if re.match(r'^[^\s/]+\.[^\s/]+/', url):
+                if re.match(r'[^\s/]+\.[^\s/]+/', url):
                     self.report_warning('The url doesn\'t specify the protocol, trying with http')
                     return self.url_result('http://' + url)
                 elif default_search != 'fixup_error':
@@ -2364,6 +2377,11 @@ class GenericIE(InfoExtractor):
         else:
             video_id = self._generic_id(url)
 
+        # Do not impersonate by default; see https://github.com/yt-dlp/yt-dlp/issues/11335
+        impersonate = self._configuration_arg('impersonate', ['false'])
+        if 'false' in impersonate:
+            impersonate = None
+
         # Some webservers may serve compressed content of rather big size (e.g. gzipped flac)
         # making it impossible to download only chunk of the file (yet we need only 512kB to
         # test whether it's HTML or not). According to yt-dlp default Accept-Encoding
@@ -2372,10 +2390,29 @@ class GenericIE(InfoExtractor):
         # to accept raw bytes and being able to download only a chunk.
         # It may probably better to solve this by checking Content-Type for application/octet-stream
         # after a HEAD request, but not sure if we can rely on this.
-        full_response = self._request_webpage(url, video_id, headers=filter_dict({
-            'Accept-Encoding': 'identity',
-            'Referer': smuggled_data.get('referer'),
-        }))
+        try:
+            full_response = self._request_webpage(url, video_id, headers=filter_dict({
+                'Accept-Encoding': 'identity',
+                'Referer': smuggled_data.get('referer'),
+            }), impersonate=impersonate)
+        except ExtractorError as e:
+            if not (isinstance(e.cause, HTTPError) and e.cause.status == 403
+                    and e.cause.response.get_header('cf-mitigated') == 'challenge'
+                    and e.cause.response.extensions.get('impersonate') is None):
+                raise
+            cf_cookie_domain = traverse_obj(
+                LenientSimpleCookie(e.cause.response.get_header('set-cookie')),
+                ('__cf_bm', 'domain'))
+            if cf_cookie_domain:
+                self.write_debug(f'Clearing __cf_bm cookie for {cf_cookie_domain}')
+                self.cookiejar.clear(domain=cf_cookie_domain, path='/', name='__cf_bm')
+            msg = 'Got HTTP Error 403 caused by Cloudflare anti-bot challenge; '
+            if not self._downloader._impersonate_target_available(ImpersonateTarget()):
+                msg += ('see  https://github.com/yt-dlp/yt-dlp#impersonation  for '
+                        'how to install the required impersonation dependency, and ')
+            raise ExtractorError(
+                f'{msg}try again with  --extractor-args "generic:impersonate"', expected=True)
+
         new_url = full_response.url
         if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
@@ -2391,7 +2428,7 @@ class GenericIE(InfoExtractor):
 
         # Check for direct link to a video
         content_type = full_response.headers.get('Content-Type', '').lower()
-        m = re.match(r'^(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
+        m = re.match(r'(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
         if m:
             self.report_detected('direct video link')
             headers = filter_dict({'Referer': smuggled_data.get('referer')})
@@ -2400,10 +2437,9 @@ class GenericIE(InfoExtractor):
             subtitles = {}
             if format_id.endswith('mpegurl') or ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
-            elif format_id.endswith(('mpd', 'dash+xml')) or ext == 'mpd':
-                formats, subtitles = self._extract_mpd_formats_and_subtitles(url, video_id, headers=headers)
             elif format_id == 'f4m' or ext == 'f4m':
                 formats = self._extract_f4m_formats(url, video_id, headers=headers)
+            # Don't check for DASH/mpd here, do it later w/ first_bytes. Same number of requests either way
             else:
                 formats = [{
                     'format_id': format_id,
@@ -2438,9 +2474,13 @@ class GenericIE(InfoExtractor):
         if not is_html(first_bytes):
             self.report_warning(
                 'URL could be a direct video link, returning it as such.')
+            ext = determine_ext(url)
+            if ext not in _UnsafeExtensionError.ALLOWED_EXTENSIONS:
+                ext = 'unknown_video'
             info_dict.update({
                 'direct': True,
                 'url': url,
+                'ext': ext,
             })
             return info_dict
 
@@ -2474,13 +2514,15 @@ class GenericIE(InfoExtractor):
                 return self.playlist_result(
                     self._parse_xspf(
                         doc, video_id, xspf_url=url,
-                        xspf_base_url=full_response.url),
+                        xspf_base_url=new_url),
                     video_id)
             elif re.match(r'(?i)^(?:{[^}]+})?MPD$', doc.tag):
                 info_dict['formats'], info_dict['subtitles'] = self._parse_mpd_formats_and_subtitles(
                     doc,
-                    mpd_base_url=full_response.url.rpartition('/')[0],
+                    # Do not use yt_dlp.utils.base_url here since it will raise on file:// URLs
+                    mpd_base_url=update_url(new_url, query=None, fragment=None).rpartition('/')[0],
                     mpd_url=url)
+                info_dict['live_status'] = 'is_live' if doc.get('type') == 'dynamic' else None
                 self._extra_manifest_info(info_dict, url)
                 self.report_detected('DASH manifest')
                 return info_dict

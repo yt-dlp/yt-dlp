@@ -10,7 +10,9 @@ from ..utils import (
     parse_iso8601,
     strip_or_none,
     try_get,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class MixcloudBaseIE(InfoExtractor):
@@ -37,7 +39,7 @@ class MixcloudIE(MixcloudBaseIE):
             'ext': 'm4a',
             'title': 'Cryptkeeper',
             'description': 'After quite a long silence from myself, finally another Drum\'n\'Bass mix with my favourite current dance floor bangers.',
-            'uploader': 'Daniel Holbach',
+            'uploader': 'dholbach',
             'uploader_id': 'dholbach',
             'thumbnail': r're:https?://.*\.jpg',
             'view_count': int,
@@ -46,10 +48,11 @@ class MixcloudIE(MixcloudBaseIE):
             'uploader_url': 'https://www.mixcloud.com/dholbach/',
             'artist': 'Submorphics & Chino , Telekinesis, Porter Robinson, Enei, Breakage ft Jess Mills',
             'duration': 3723,
-            'tags': [],
+            'tags': ['liquid drum and bass', 'drum and bass'],
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'artists': list,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -67,7 +70,7 @@ class MixcloudIE(MixcloudBaseIE):
             'upload_date': '20150203',
             'uploader_url': 'https://www.mixcloud.com/gillespeterson/',
             'duration': 2992,
-            'tags': [],
+            'tags': ['jazz', 'soul', 'world music', 'funk'],
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
@@ -149,8 +152,6 @@ class MixcloudIE(MixcloudBaseIE):
         elif reason:
             raise ExtractorError('Track is restricted', expected=True)
 
-        title = cloudcast['name']
-
         stream_info = cloudcast['streamInfo']
         formats = []
 
@@ -182,47 +183,39 @@ class MixcloudIE(MixcloudBaseIE):
             self.raise_login_required(metadata_available=True)
 
         comments = []
-        for edge in (try_get(cloudcast, lambda x: x['comments']['edges']) or []):
-            node = edge.get('node') or {}
+        for node in traverse_obj(cloudcast, ('comments', 'edges', ..., 'node', {dict})):
             text = strip_or_none(node.get('comment'))
             if not text:
                 continue
-            user = node.get('user') or {}
             comments.append({
-                'author': user.get('displayName'),
-                'author_id': user.get('username'),
                 'text': text,
-                'timestamp': parse_iso8601(node.get('created')),
+                **traverse_obj(node, {
+                    'author': ('user', 'displayName', {str}),
+                    'author_id': ('user', 'username', {str}),
+                    'timestamp': ('created', {parse_iso8601}),
+                }),
             })
-
-        tags = []
-        for t in cloudcast.get('tags'):
-            tag = try_get(t, lambda x: x['tag']['name'], str)
-            if not tag:
-                tags.append(tag)
-
-        get_count = lambda x: int_or_none(try_get(cloudcast, lambda y: y[x]['totalCount']))
-
-        owner = cloudcast.get('owner') or {}
 
         return {
             'id': track_id,
-            'title': title,
             'formats': formats,
-            'description': cloudcast.get('description'),
-            'thumbnail': try_get(cloudcast, lambda x: x['picture']['url'], str),
-            'uploader': owner.get('displayName'),
-            'timestamp': parse_iso8601(cloudcast.get('publishDate')),
-            'uploader_id': owner.get('username'),
-            'uploader_url': owner.get('url'),
-            'duration': int_or_none(cloudcast.get('audioLength')),
-            'view_count': int_or_none(cloudcast.get('plays')),
-            'like_count': get_count('favorites'),
-            'repost_count': get_count('reposts'),
-            'comment_count': get_count('comments'),
             'comments': comments,
-            'tags': tags,
-            'artist': ', '.join(cloudcast.get('featuringArtistList') or []) or None,
+            **traverse_obj(cloudcast, {
+                'title': ('name', {str}),
+                'description': ('description', {str}),
+                'thumbnail': ('picture', 'url', {url_or_none}),
+                'timestamp': ('publishDate', {parse_iso8601}),
+                'duration': ('audioLength', {int_or_none}),
+                'uploader': ('owner', 'displayName', {str}),
+                'uploader_id': ('owner', 'username', {str}),
+                'uploader_url': ('owner', 'url', {url_or_none}),
+                'view_count': ('plays', {int_or_none}),
+                'like_count': ('favorites', 'totalCount', {int_or_none}),
+                'repost_count': ('reposts', 'totalCount', {int_or_none}),
+                'comment_count': ('comments', 'totalCount', {int_or_none}),
+                'tags': ('tags', ..., 'tag', 'name', {str}, filter, all, filter),
+                'artists': ('featuringArtistList', ..., {str}, filter, all, filter),
+            }),
         }
 
 
@@ -295,7 +288,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
         'url': 'http://www.mixcloud.com/dholbach/',
         'info_dict': {
             'id': 'dholbach_uploads',
-            'title': 'Daniel Holbach (uploads)',
+            'title': 'dholbach (uploads)',
             'description': 'md5:a3f468a60ac8c3e1f8616380fc469b2b',
         },
         'playlist_mincount': 36,
@@ -303,7 +296,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
         'url': 'http://www.mixcloud.com/dholbach/uploads/',
         'info_dict': {
             'id': 'dholbach_uploads',
-            'title': 'Daniel Holbach (uploads)',
+            'title': 'dholbach (uploads)',
             'description': 'md5:a3f468a60ac8c3e1f8616380fc469b2b',
         },
         'playlist_mincount': 36,
@@ -311,7 +304,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
         'url': 'http://www.mixcloud.com/dholbach/favorites/',
         'info_dict': {
             'id': 'dholbach_favorites',
-            'title': 'Daniel Holbach (favorites)',
+            'title': 'dholbach (favorites)',
             'description': 'md5:a3f468a60ac8c3e1f8616380fc469b2b',
         },
         # 'params': {
@@ -337,7 +330,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
             'title': 'First Ear (stream)',
             'description': 'we maraud for ears',
         },
-        'playlist_mincount': 269,
+        'playlist_mincount': 267,
     }]
 
     _TITLE_KEY = 'displayName'
@@ -361,7 +354,7 @@ class MixcloudPlaylistIE(MixcloudPlaylistBaseIE):
             'id': 'maxvibes_jazzcat-on-ness-radio',
             'title': 'Ness Radio sessions',
         },
-        'playlist_mincount': 59,
+        'playlist_mincount': 58,
     }]
     _TITLE_KEY = 'name'
     _DESCRIPTION_KEY = 'description'

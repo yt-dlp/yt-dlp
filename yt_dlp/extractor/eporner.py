@@ -29,9 +29,6 @@ class EpornerIE(InfoExtractor):
             'view_count': int,
             'age_limit': 18,
         },
-        'params': {
-            'proxy': '127.0.0.1:8118',
-        },
     }, {
         # New (May 2016) URL layout
         'url': 'http://www.eporner.com/hd-porn/3YRUtzMcWn0/Star-Wars-XXX-Parody/',

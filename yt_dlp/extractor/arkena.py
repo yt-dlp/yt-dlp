@@ -131,8 +131,8 @@ class ArkenaIE(InfoExtractor):
                             formats.extend(self._extract_f4m_formats(
                                 href, video_id, f4m_id='hds', fatal=False))
                         elif mime_type == 'application/dash+xml':
-                            formats.extend(self._extract_f4m_formats(
-                                href, video_id, f4m_id='hds', fatal=False))
+                            formats.extend(self._extract_mpd_formats(
+                                href, video_id, mpd_id='dash', fatal=False))
                         elif mime_type == 'application/vnd.ms-sstr+xml':
                             formats.extend(self._extract_ism_formats(
                                 href, video_id, ism_id='mss', fatal=False))

@@ -3,6 +3,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
+    join_nonempty,
     parse_duration,
     urljoin,
     xpath_element,
@@ -69,7 +70,7 @@ class HBOBaseIE(InfoExtractor):
                 height = format_info.get('height')
                 fmt = {
                     'url': path,
-                    'format_id': 'http{}'.format(f'-{height}p' if height else ''),
+                    'format_id': join_nonempty('http'. height and f'{height}p'),
                     'width': format_info.get('width'),
                     'height': height,
                 }

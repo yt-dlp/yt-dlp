@@ -2,6 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     determine_protocol,
     int_or_none,
+    join_nonempty,
     try_get,
     unescapeHTML,
 )
@@ -52,7 +53,7 @@ class DailyMailIE(InfoExtractor):
             is_hls = container == 'M2TS'
             protocol = 'm3u8_native' if is_hls else determine_protocol({'url': rendition_url})
             formats.append({
-                'format_id': ('hls' if is_hls else protocol) + (f'-{tbr}' if tbr else ''),
+                'format_id': join_nonempty('hls' if is_hls else protocol, tbr),
                 'url': rendition_url,
                 'width': int_or_none(rendition.get('frameWidth')),
                 'height': int_or_none(rendition.get('frameHeight')),

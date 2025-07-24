@@ -43,14 +43,8 @@ class NoodleMagazineIE(InfoExtractor):
         def build_url(url_or_path):
             return urljoin('https://adult.noodlemagazine.com', url_or_path)
 
-        headers = {'Referer': url}
-        player_path = self._html_search_regex(
-            r'<iframe[^>]+\bid="iplayer"[^>]+\bsrc="([^"]+)"', webpage, 'player path')
-        player_iframe = self._download_webpage(
-            build_url(player_path), video_id, 'Downloading iframe page', headers=headers)
-        playlist_url = self._search_regex(
-            r'window\.playlistUrl\s*=\s*["\']([^"\']+)["\']', player_iframe, 'playlist url')
-        playlist_info = self._download_json(build_url(playlist_url), video_id, headers=headers)
+        playlist_info = self._search_json(
+            r'window\.playlist\s*=', webpage, video_id, 'playlist info')
 
         formats = []
         for source in traverse_obj(playlist_info, ('sources', lambda _, v: v['file'])):

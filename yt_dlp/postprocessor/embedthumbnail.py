@@ -12,7 +12,6 @@ from ..utils import (
     PostProcessingError,
     check_executable,
     encodeArgument,
-    encodeFilename,
     prepend_extension,
     shell_quote,
 )
@@ -68,7 +67,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.to_screen('There are no thumbnails on disk')
             return [], info
         thumbnail_filename = info['thumbnails'][idx]['filepath']
-        if not os.path.exists(encodeFilename(thumbnail_filename)):
+        if not os.path.exists(thumbnail_filename):
             self.report_warning('Skipping embedding the thumbnail because the file is missing.')
             return [], info
 
@@ -85,13 +84,13 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             thumbnail_filename = convertor.convert_thumbnail(thumbnail_filename, 'png')
             thumbnail_ext = 'png'
 
-        mtime = os.stat(encodeFilename(filename)).st_mtime
+        mtime = os.stat(filename).st_mtime
 
         success = True
         if info['ext'] == 'mp3':
             options = [
                 '-c', 'copy', '-map', '0:0', '-map', '1:0', '-write_id3v1', '1', '-id3v2_version', '3',
-                '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment=Cover (front)']
+                '-metadata:s:v', 'title=Album cover', '-metadata:s:v', 'comment=Cover (front)']
 
             self._report_run('ffmpeg', filename)
             self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
@@ -119,15 +118,22 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if not mutagen or prefer_atomicparsley:
                 success = False
             else:
+                self._report_run('mutagen', filename)
+                f = {'jpeg': MP4Cover.FORMAT_JPEG, 'png': MP4Cover.FORMAT_PNG}
                 try:
-                    self._report_run('mutagen', filename)
+                    with open(thumbnail_filename, 'rb') as thumbfile:
+                        thumb_data = thumbfile.read()
+
+                    type_ = imghdr.what(h=thumb_data)
+                    if not type_:
+                        raise ValueError('could not determine image type')
+                    elif type_ not in f:
+                        raise ValueError(f'incompatible image type: {type_}')
+
                     meta = MP4(filename)
                     # NOTE: the 'covr' atom is a non-standard MPEG-4 atom,
                     # Apple iTunes 'M4A' files include the 'moov.udta.meta.ilst' atom.
-                    f = {'jpeg': MP4Cover.FORMAT_JPEG, 'png': MP4Cover.FORMAT_PNG}[imghdr.what(thumbnail_filename)]
-                    with open(thumbnail_filename, 'rb') as thumbfile:
-                        thumb_data = thumbfile.read()
-                    meta.tags['covr'] = [MP4Cover(data=thumb_data, imageformat=f)]
+                    meta.tags['covr'] = [MP4Cover(data=thumb_data, imageformat=f[type_])]
                     meta.save()
                     temp_filename = filename
                 except Exception as err:
@@ -147,12 +153,12 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 else:
                     if not prefer_atomicparsley:
                         self.to_screen('mutagen was not found. Falling back to AtomicParsley')
-                    cmd = [encodeFilename(atomicparsley, True),
-                           encodeFilename(filename, True),
+                    cmd = [atomicparsley,
+                           filename,
                            encodeArgument('--artwork'),
-                           encodeFilename(thumbnail_filename, True),
+                           thumbnail_filename,
                            encodeArgument('-o'),
-                           encodeFilename(temp_filename, True)]
+                           temp_filename]
                     cmd += [encodeArgument(o) for o in self._configuration_args('AtomicParsley')]
 
                     self._report_run('atomicparsley', filename)
@@ -160,9 +166,10 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     stdout, stderr, returncode = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     if returncode:
                         self.report_warning(f'Unable to embed thumbnails using AtomicParsley; {stderr.strip()}')
+                        success = False
                     # for formats that don't support thumbnails (like 3gp) AtomicParsley
                     # won't create to the temporary file
-                    if 'No changes' in stdout:
+                    elif 'No changes' in stdout:
                         self.report_warning('The file format doesn\'t support embedding a thumbnail')
                         success = False
 

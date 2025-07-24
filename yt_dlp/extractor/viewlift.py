@@ -5,6 +5,7 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     parse_age_limit,
     traverse_obj,
 )
@@ -120,7 +121,7 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
                 'height', default=None))
             formats.append({
                 'url': video_asset_url,
-                'format_id': 'http{}'.format(f'-{bitrate}' if bitrate else ''),
+                'format_id': join_nonempty('http', bitrate),
                 'tbr': bitrate,
                 'height': height,
                 'vcodec': video_asset.get('codec'),

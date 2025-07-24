@@ -1,7 +1,9 @@
+import functools
 import itertools
 import urllib.parse
 
 from .common import InfoExtractor
+from .sproutvideo import VidsIoIE
 from .vimeo import VimeoIE
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -12,21 +14,28 @@ from ..utils import (
     int_or_none,
     mimetype2ext,
     parse_iso8601,
+    smuggle_url,
     str_or_none,
-    traverse_obj,
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import require, traverse_obj, value
 
 
 class PatreonBaseIE(InfoExtractor):
-    USER_AGENT = 'Patreon/7.6.28 (Android; Android 11; Scale/2.10)'
+    @functools.cached_property
+    def patreon_user_agent(self):
+        # Patreon mobile UA is needed to avoid triggering Cloudflare anti-bot protection.
+        # Newer UA yields higher res m3u8 formats for locked posts, but gives 401 if not logged-in
+        if self._get_cookies('https://www.patreon.com/').get('session_id'):
+            return 'Patreon/72.2.28 (Android; Android 14; Scale/2.10)'
+        return 'Patreon/7.6.28 (Android; Android 11; Scale/2.10)'
 
     def _call_api(self, ep, item_id, query=None, headers=None, fatal=True, note=None):
         if headers is None:
             headers = {}
         if 'User-Agent' not in headers:
-            headers['User-Agent'] = self.USER_AGENT
+            headers['User-Agent'] = self.patreon_user_agent
         if query:
             query.update({'json-api-version': 1.0})
 
@@ -46,6 +55,7 @@ class PatreonBaseIE(InfoExtractor):
 
 
 class PatreonIE(PatreonBaseIE):
+    IE_NAME = 'patreon'
     _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?:creation\?hid=|posts/(?:[\w-]+-)?)(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://www.patreon.com/creation?hid=743933',
@@ -53,6 +63,7 @@ class PatreonIE(PatreonBaseIE):
         'info_dict': {
             'id': '743933',
             'ext': 'mp3',
+            'alt_title': 'cd166.mp3',
             'title': 'Episode 166: David Smalley of Dogma Debate',
             'description': 'md5:34d207dd29aa90e24f1b3f58841b81c7',
             'uploader': 'Cognitive Dissonance Podcast',
@@ -109,6 +120,7 @@ class PatreonIE(PatreonBaseIE):
             'comment_count': int,
             'channel_is_verified': True,
             'chapters': 'count:4',
+            'timestamp': 1423689666,
         },
         'params': {
             'noplaylist': True,
@@ -219,6 +231,7 @@ class PatreonIE(PatreonBaseIE):
             'thumbnail': r're:^https?://.+',
         },
         'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
     }, {
         # multiple attachments/embeds
         'url': 'https://www.patreon.com/posts/holy-wars-solos-100601977',
@@ -240,6 +253,27 @@ class PatreonIE(PatreonBaseIE):
             'thumbnail': r're:^https?://.+',
         },
         'skip': 'Patron-only content',
+    }, {
+        # Contains a comment reply in the 'included' section
+        'url': 'https://www.patreon.com/posts/114721679',
+        'info_dict': {
+            'id': '114721679',
+            'ext': 'mp4',
+            'upload_date': '20241025',
+            'uploader': 'Japanalysis',
+            'like_count': int,
+            'thumbnail': r're:^https?://.+',
+            'comment_count': int,
+            'title': 'Karasawa Part 2',
+            'description': 'Part 2 of this video https://www.youtube.com/watch?v=Azms2-VTASk',
+            'uploader_url': 'https://www.patreon.com/japanalysis',
+            'uploader_id': '80504268',
+            'channel_url': 'https://www.patreon.com/japanalysis',
+            'channel_follower_count': int,
+            'timestamp': 1729897015,
+            'channel_id': '9346307',
+        },
+        'params': {'getcomments': True},
     }]
     _RETURN_TYPE = 'video'
 
@@ -247,7 +281,7 @@ class PatreonIE(PatreonBaseIE):
         video_id = self._match_id(url)
         post = self._call_api(
             f'posts/{video_id}', video_id, query={
-                'fields[media]': 'download_url,mimetype,size_bytes',
+                'fields[media]': 'download_url,mimetype,size_bytes,file_name',
                 'fields[post]': 'comment_count,content,embed,image,like_count,post_file,published_at,title,current_user_can_view',
                 'fields[user]': 'full_name,url',
                 'fields[post_tag]': 'value',
@@ -284,6 +318,7 @@ class PatreonIE(PatreonBaseIE):
                         'ext': ext,
                         'filesize': size_bytes,
                         'url': download_url,
+                        'alt_title': traverse_obj(media_attributes, ('file_name', {str})),
                     })
 
             elif include_type == 'user':
@@ -305,22 +340,34 @@ class PatreonIE(PatreonBaseIE):
                     'channel_follower_count': ('attributes', 'patron_count', {int_or_none}),
                 }))
 
+        # Must be all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, and Vimeo.
+        # patreon.com URLs redirect to www.patreon.com; this matters when requesting mux.com m3u8s
+        headers = {'referer': 'https://www.patreon.com/'}
+
         # handle Vimeo embeds
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
             v_url = urllib.parse.unquote(self._html_search_regex(
                 r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)',
                 traverse_obj(attributes, ('embed', 'html', {str})), 'vimeo url', fatal=False) or '')
             if url_or_none(v_url) and self._request_webpage(
-                    v_url, video_id, 'Checking Vimeo embed URL',
-                    headers={'Referer': 'https://patreon.com/'},
-                    fatal=False, errnote=False):
+                    v_url, video_id, 'Checking Vimeo embed URL', headers=headers,
+                    fatal=False, errnote=False, expected_status=429):  # 429 is TLS fingerprint rejection
                 entries.append(self.url_result(
-                    VimeoIE._smuggle_referrer(v_url, 'https://patreon.com/'),
+                    VimeoIE._smuggle_referrer(v_url, headers['referer']),
                     VimeoIE, url_transparent=True))
 
         embed_url = traverse_obj(attributes, ('embed', 'url', {url_or_none}))
-        if embed_url and self._request_webpage(embed_url, video_id, 'Checking embed URL', fatal=False, errnote=False):
-            entries.append(self.url_result(embed_url))
+        if embed_url and (urlh := self._request_webpage(
+                embed_url, video_id, 'Checking embed URL', headers=headers,
+                fatal=False, errnote=False, expected_status=403)):
+            # Vimeo's Cloudflare anti-bot protection will return HTTP status 200 for 404, so we need
+            # to check for "Sorry, we couldn&amp;rsquo;t find that page" in the meta description tag
+            meta_description = clean_html(self._html_search_meta(
+                'description', self._webpage_read_content(urlh, embed_url, video_id, fatal=False), default=None))
+            # Password-protected vids.io embeds return 403 errors w/o --video-password or session cookie
+            if ((urlh.status != 403 and meta_description != 'Sorry, we couldn’t find that page')
+                    or VidsIoIE.suitable(embed_url)):
+                entries.append(self.url_result(smuggle_url(embed_url, headers)))
 
         post_file = traverse_obj(attributes, ('post_file', {dict}))
         if post_file:
@@ -333,11 +380,13 @@ class PatreonIE(PatreonBaseIE):
                     'url': post_file['url'],
                 })
             elif name == 'video' or determine_ext(post_file.get('url')) == 'm3u8':
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(post_file['url'], video_id)
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                    post_file['url'], video_id, headers=headers)
                 entries.append({
                     'id': video_id,
                     'formats': formats,
                     'subtitles': subtitles,
+                    'http_headers': headers,
                 })
 
         can_view_post = traverse_obj(attributes, 'current_user_can_view')
@@ -381,26 +430,24 @@ class PatreonIE(PatreonBaseIE):
                 f'posts/{post_id}/comments', post_id, query=params, note=f'Downloading comments page {page}')
 
             cursor = None
-            for comment in traverse_obj(response, (('data', ('included', lambda _, v: v['type'] == 'comment')), ...)):
+            for comment in traverse_obj(response, (('data', 'included'), lambda _, v: v['type'] == 'comment' and v['id'])):
                 count += 1
-                comment_id = comment.get('id')
-                attributes = comment.get('attributes') or {}
-                if comment_id is None:
-                    continue
                 author_id = traverse_obj(comment, ('relationships', 'commenter', 'data', 'id'))
-                author_info = traverse_obj(
-                    response, ('included', lambda _, v: v['id'] == author_id and v['type'] == 'user', 'attributes'),
-                    get_all=False, expected_type=dict, default={})
 
                 yield {
-                    'id': comment_id,
-                    'text': attributes.get('body'),
-                    'timestamp': parse_iso8601(attributes.get('created')),
-                    'parent': traverse_obj(comment, ('relationships', 'parent', 'data', 'id'), default='root'),
-                    'author_is_uploader': attributes.get('is_by_creator'),
+                    **traverse_obj(comment, {
+                        'id': ('id', {str_or_none}),
+                        'text': ('attributes', 'body', {str}),
+                        'timestamp': ('attributes', 'created', {parse_iso8601}),
+                        'parent': ('relationships', 'parent', 'data', ('id', {value('root')}), {str}, any),
+                        'author_is_uploader': ('attributes', 'is_by_creator', {bool}),
+                    }),
+                    **traverse_obj(response, (
+                        'included', lambda _, v: v['id'] == author_id and v['type'] == 'user', 'attributes', {
+                            'author': ('full_name', {str}),
+                            'author_thumbnail': ('image_url', {url_or_none}),
+                        }), get_all=False),
                     'author_id': author_id,
-                    'author': author_info.get('full_name'),
-                    'author_thumbnail': author_info.get('image_url'),
                 }
 
             if count < traverse_obj(response, ('meta', 'count')):
@@ -411,15 +458,19 @@ class PatreonIE(PatreonBaseIE):
 
 
 class PatreonCampaignIE(PatreonBaseIE):
-
-    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?!rss)(?:(?:m/(?P<campaign_id>\d+))|(?P<vanity>[-\w]+))'
+    IE_NAME = 'patreon:campaign'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?patreon\.com/(?:
+            (?:m|api/campaigns)/(?P<campaign_id>\d+)|
+            (?:cw?/)?(?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
+        )(?:/posts)?/?(?:$|[?#])'''
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
         'info_dict': {
             'title': 'Cognitive Dissonance Podcast',
             'channel_url': 'https://www.patreon.com/dissonancepod',
             'id': '80642',
-            'description': 'md5:eb2fa8b83da7ab887adeac34da6b7af7',
+            'description': r're:(?s).*We produce a weekly news podcast focusing on stories that deal with skepticism and religion.*',
             'channel_id': '80642',
             'channel': 'Cognitive Dissonance Podcast',
             'age_limit': 0,
@@ -434,30 +485,87 @@ class PatreonCampaignIE(PatreonBaseIE):
         'url': 'https://www.patreon.com/m/4767637/posts',
         'info_dict': {
             'title': 'Not Just Bikes',
-            'channel_follower_count': int,
             'id': '4767637',
             'channel_id': '4767637',
             'channel_url': 'https://www.patreon.com/notjustbikes',
-            'description': 'md5:595c6e7dca76ae615b1d38c298a287a1',
+            'description': r're:(?s).*Not Just Bikes started as a way to explain why we chose to live in the Netherlands.*',
             'age_limit': 0,
             'channel': 'Not Just Bikes',
             'uploader_url': 'https://www.patreon.com/notjustbikes',
-            'uploader': 'Not Just Bikes',
+            'uploader': 'Jason',
             'uploader_id': '37306634',
             'thumbnail': r're:^https?://.*$',
         },
         'playlist_mincount': 71,
+    }, {
+        'url': 'https://www.patreon.com/api/campaigns/4243769/posts',
+        'info_dict': {
+            'title': 'Second Thought',
+            'channel_follower_count': int,
+            'id': '4243769',
+            'channel_id': '4243769',
+            'channel_url': 'https://www.patreon.com/secondthought',
+            'description': r're:(?s).*Second Thought is an educational YouTube channel.*',
+            'age_limit': 0,
+            'channel': 'Second Thought',
+            'uploader_url': 'https://www.patreon.com/secondthought',
+            'uploader': 'JT Chapman',
+            'uploader_id': '32718287',
+            'thumbnail': r're:^https?://.*$',
+        },
+        'playlist_mincount': 201,
+    }, {
+        'url': 'https://www.patreon.com/c/OgSog',
+        'info_dict': {
+            'id': '8504388',
+            'title': 'OGSoG',
+            'description': r're:(?s)Hello and welcome to our Patreon page. We are Mari, Lasercorn, .+',
+            'channel': 'OGSoG',
+            'channel_id': '8504388',
+            'channel_url': 'https://www.patreon.com/OgSog',
+            'uploader_url': 'https://www.patreon.com/OgSog',
+            'uploader_id': '72323575',
+            'uploader': 'David Moss',
+            'thumbnail': r're:https?://.+/.+',
+            'channel_follower_count': int,
+            'age_limit': 0,
+        },
+        'playlist_mincount': 331,
+        'skip': 'Channel removed',
+    }, {
+        # next.js v13 data, see https://github.com/yt-dlp/yt-dlp/issues/13622
+        'url': 'https://www.patreon.com/c/anythingelse/posts',
+        'info_dict': {
+            'id': '9631148',
+            'title': 'Anything Else?',
+            'description': 'md5:2ee1db4aed2f9460c2b295825a24aa08',
+            'uploader': 'dan ',
+            'uploader_id': '13852412',
+            'uploader_url': 'https://www.patreon.com/anythingelse',
+            'channel': 'Anything Else?',
+            'channel_id': '9631148',
+            'channel_url': 'https://www.patreon.com/anythingelse',
+            'channel_follower_count': int,
+            'age_limit': 0,
+            'thumbnail': r're:https?://.+/.+',
+        },
+        'playlist_mincount': 151,
+    }, {
+        'url': 'https://www.patreon.com/cw/anythingelse',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.patreon.com/c/OgSog/posts',
+        'only_matching': True,
     }, {
         'url': 'https://www.patreon.com/dissonancepod/posts',
         'only_matching': True,
     }, {
         'url': 'https://www.patreon.com/m/5932659',
         'only_matching': True,
+    }, {
+        'url': 'https://www.patreon.com/api/campaigns/4243769',
+        'only_matching': True,
     }]
-
-    @classmethod
-    def suitable(cls, url):
-        return False if PatreonIE.suitable(url) else super().suitable(url)
 
     def _entries(self, campaign_id):
         cursor = None
@@ -485,9 +593,12 @@ class PatreonCampaignIE(PatreonBaseIE):
 
         campaign_id, vanity = self._match_valid_url(url).group('campaign_id', 'vanity')
         if campaign_id is None:
-            webpage = self._download_webpage(url, vanity, headers={'User-Agent': self.USER_AGENT})
-            campaign_id = self._search_nextjs_data(
-                webpage, vanity)['props']['pageProps']['bootstrapEnvelope']['pageBootstrap']['campaign']['data']['id']
+            webpage = self._download_webpage(url, vanity, headers={'User-Agent': self.patreon_user_agent})
+            campaign_id = traverse_obj(self._search_nextjs_data(webpage, vanity, default=None), (
+                'props', 'pageProps', 'bootstrapEnvelope', 'pageBootstrap', 'campaign', 'data', 'id', {str}))
+            if not campaign_id:
+                campaign_id = traverse_obj(self._search_nextjs_v13_data(webpage, vanity), (
+                    lambda _, v: v['type'] == 'campaign', 'id', {str}, any, {require('campaign ID')}))
 
         params = {
             'json-api-use-default-includes': 'false',

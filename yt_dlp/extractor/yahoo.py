@@ -8,6 +8,7 @@ from ..utils import (
     ExtractorError,
     clean_html,
     int_or_none,
+    join_nonempty,
     mimetype2ext,
     parse_iso8601,
     traverse_obj,
@@ -213,7 +214,7 @@ class YahooIE(InfoExtractor):
                 tbr = int_or_none(s.get('bitrate'))
                 formats.append({
                     'url': s_url,
-                    'format_id': fmt + (f'-{tbr}' if tbr else ''),
+                    'format_id': join_nonempty(fmt, tbr),
                     'width': int_or_none(s.get('width')),
                     'height': int_or_none(s.get('height')),
                     'tbr': tbr,
@@ -371,12 +372,13 @@ class YahooJapanNewsIE(InfoExtractor):
                         url, content_id, 'mp4', 'm3u8_native',
                         m3u8_id='hls', fatal=False))
             else:
+                bitrate = int_or_none(vid.get('bitrate'))
                 formats.append({
                     'url': url,
-                    'format_id': f'http-{vid.get("bitrate")}',
+                    'format_id': join_nonempty('http', bitrate),
                     'height': int_or_none(vid.get('height')),
                     'width': int_or_none(vid.get('width')),
-                    'tbr': int_or_none(vid.get('bitrate')),
+                    'tbr': bitrate,
                 })
         self._remove_duplicate_formats(formats)
 

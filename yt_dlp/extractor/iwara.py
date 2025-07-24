@@ -2,7 +2,6 @@ import functools
 import hashlib
 import json
 import time
-import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor

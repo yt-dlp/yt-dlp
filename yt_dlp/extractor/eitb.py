@@ -1,6 +1,11 @@
 from .common import InfoExtractor
 from ..networking import Request
-from ..utils import float_or_none, int_or_none, parse_iso8601
+from ..utils import (
+    float_or_none,
+    int_or_none,
+    join_nonempty,
+    parse_iso8601,
+)
 
 
 class EitbIE(InfoExtractor):
@@ -37,12 +42,9 @@ class EitbIE(InfoExtractor):
             if not video_url:
                 continue
             tbr = float_or_none(rendition.get('ENCODING_RATE'), 1000)
-            format_id = 'http'
-            if tbr:
-                format_id += f'-{int(tbr)}'
             formats.append({
                 'url': rendition['PMD_URL'],
-                'format_id': format_id,
+                'format_id': join_nonempty('http', int_or_none(tbr)),
                 'width': int_or_none(rendition.get('FRAME_WIDTH')),
                 'height': int_or_none(rendition.get('FRAME_HEIGHT')),
                 'tbr': tbr,

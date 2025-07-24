@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
     try_get,
 )
@@ -136,7 +137,7 @@ class ArcPublishingIE(InfoExtractor):
             else:
                 vbr = int_or_none(s.get('bitrate'))
                 formats.append({
-                    'format_id': f'{stream_type}-{vbr}' if vbr else stream_type,
+                    'format_id': join_nonempty(stream_type, vbr),
                     'vbr': vbr,
                     'width': int_or_none(s.get('width')),
                     'height': int_or_none(s.get('height')),

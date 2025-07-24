@@ -2,6 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     int_or_none,
+    join_nonempty,
     parse_duration,
     parse_iso8601,
 )
@@ -41,7 +42,7 @@ class NHLBaseIE(InfoExtractor):
             else:
                 height = int_or_none(playback.get('height'))
                 formats.append({
-                    'format_id': playback.get('name', 'http' + (f'-{height}p' if height else '')),
+                    'format_id': playback.get('name') or join_nonempty('http', height and f'{height}p'),
                     'url': playback_url,
                     'width': int_or_none(playback.get('width')),
                     'height': height,

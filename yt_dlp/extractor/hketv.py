@@ -44,9 +44,6 @@ class HKETVIE(InfoExtractor):
             'duration': 907,
             'subtitles': {},
         },
-        'params': {
-            'geo_verification_proxy': '<HK proxy here>',
-        },
         'skip': 'Geo restricted to HK',
     }]
 

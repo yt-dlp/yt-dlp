@@ -1,0 +1,41 @@
+name: Signature Tests
+on:
+  push:
+    paths:
+      - .github/workflows/signature-tests.yml
+      - test/test_youtube_signature.py
+      - yt_dlp/jsinterp.py
+  pull_request:
+    paths:
+      - .github/workflows/signature-tests.yml
+      - test/test_youtube_signature.py
+      - yt_dlp/jsinterp.py
+permissions:
+  contents: read
+
+concurrency:
+  group: signature-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  tests:
+    name: Signature Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', pypy-3.10, pypy-3.11]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install test requirements
+      run: python3 ./devscripts/install_deps.py --only-optional --include test
+    - name: Run tests
+      timeout-minutes: 15
+      run: |
+        python3 -m yt_dlp -v || true  # Print debug head
+        python3 ./devscripts/run_tests.py test/test_youtube_signature.py

@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, join_nonempty
 
 
 class PerformGroupIE(InfoExtractor):
@@ -50,11 +50,8 @@ class PerformGroupIE(InfoExtractor):
             if not c_url:
                 continue
             tbr = int_or_none(c.get('bitrate'), 1000)
-            format_id = 'http'
-            if tbr:
-                format_id += f'-{tbr}'
             formats.append({
-                'format_id': format_id,
+                'format_id': join_nonempty('http', tbr),
                 'url': c_url,
                 'tbr': tbr,
                 'width': int_or_none(c.get('width')),

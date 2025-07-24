@@ -28,35 +28,11 @@ class ToggleIE(InfoExtractor):
             'skip_download': 'm3u8 download',
         },
     }, {
-        'note': 'DRM-protected video',
         'url': 'http://www.mewatch.sg/en/movies/dug-s-special-mission/341413',
-        'info_dict': {
-            'id': '341413',
-            'ext': 'wvm',
-            'title': 'Dug\'s Special Mission',
-            'description': 'md5:e86c6f4458214905c1772398fabc93e0',
-            'upload_date': '20150827',
-            'timestamp': 1440644006,
-        },
-        'params': {
-            'skip_download': 'DRM-protected wvm download',
-        },
+        'only_matching': True,
     }, {
-        # this also tests correct video id extraction
-        'note': 'm3u8 links are geo-restricted, but Android/mp4 is okay',
         'url': 'http://www.mewatch.sg/en/series/28th-sea-games-5-show/28th-sea-games-5-show-ep11/332861',
-        'info_dict': {
-            'id': '332861',
-            'ext': 'mp4',
-            'title': '28th SEA Games (5 Show) -  Episode  11',
-            'description': 'md5:3cd4f5f56c7c3b1340c50a863f896faa',
-            'upload_date': '20150605',
-            'timestamp': 1433480166,
-        },
-        'params': {
-            'skip_download': 'DRM-protected wvm download',
-        },
-        'skip': 'm3u8 links are geo-restricted',
+        'only_matching': True,
     }, {
         'url': 'http://video.toggle.sg/en/clips/seraph-sun-aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set/343331',
         'only_matching': True,

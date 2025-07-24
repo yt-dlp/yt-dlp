@@ -1,3 +1,4 @@
+import json
 import random
 import re
 import time
@@ -6,6 +7,8 @@ from .common import InfoExtractor
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
+    clean_html,
+    extract_attributes,
     float_or_none,
     int_or_none,
     parse_filesize,
@@ -17,6 +20,7 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
 class BandcampIE(InfoExtractor):
@@ -40,8 +44,10 @@ class BandcampIE(InfoExtractor):
             'uploader_url': 'https://youtube-dl.bandcamp.com',
             'uploader_id': 'youtube-dl',
             'thumbnail': 'https://f4.bcbits.com/img/a3216802731_5.jpg',
+            'artists': ['youtube-dl "\'/\\ä↭'],
+            'album_artists': ['youtube-dl "\'/\\ä↭'],
         },
-        '_skip': 'There is a limit of 200 free downloads / month for the test song',
+        'skip': 'There is a limit of 200 free downloads / month for the test song',
     }, {
         # free download
         'url': 'http://benprunty.bandcamp.com/track/lanius-battle',
@@ -65,6 +71,9 @@ class BandcampIE(InfoExtractor):
             'album': 'FTL: Advanced Edition Soundtrack',
             'uploader_url': 'https://benprunty.bandcamp.com',
             'uploader_id': 'benprunty',
+            'tags': ['soundtrack', 'chiptunes', 'cinematic', 'electronic', 'video game music', 'California'],
+            'artists': ['Ben Prunty'],
+            'album_artists': ['Ben Prunty'],
         },
     }, {
         # no free download, mp3 128
@@ -89,6 +98,9 @@ class BandcampIE(InfoExtractor):
             'album': 'Call of the Mastodon',
             'uploader_url': 'https://relapsealumni.bandcamp.com',
             'uploader_id': 'relapsealumni',
+            'tags': ['Philadelphia'],
+            'artists': ['Mastodon'],
+            'album_artists': ['Mastodon'],
         },
     }, {
         # track from compilation album (artist/album_artist difference)
@@ -113,6 +125,9 @@ class BandcampIE(InfoExtractor):
             'album': 'DSK F/W 2016-2017 Free Compilation',
             'uploader_url': 'https://diskotopia.bandcamp.com',
             'uploader_id': 'diskotopia',
+            'tags': ['Japan'],
+            'artists': ['submerse'],
+            'album_artists': ['Diskotopia'],
         },
     }]
 
@@ -247,6 +262,7 @@ class BandcampIE(InfoExtractor):
             'album': embed.get('album_title'),
             'album_artist': album_artist,
             'formats': formats,
+            'tags': traverse_obj(webpage, ({find_elements(cls='tag')}, ..., {clean_html})),
         }
 
 
@@ -266,6 +282,18 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'timestamp': 1311756226,
                     'upload_date': '20110727',
                     'uploader': 'Blazo',
+                    'thumbnail': 'https://f4.bcbits.com/img/a1721150828_5.jpg',
+                    'album_artists': ['Blazo'],
+                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'release_date': '20110727',
+                    'release_timestamp': 1311724800.0,
+                    'track': 'Intro',
+                    'uploader_id': 'blazo',
+                    'track_number': 1,
+                    'album': 'Jazz Format Mixtape vol.1',
+                    'artists': ['Blazo'],
+                    'duration': 19.335,
+                    'track_id': '1353101989',
                 },
             },
             {
@@ -277,6 +305,18 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'timestamp': 1311757238,
                     'upload_date': '20110727',
                     'uploader': 'Blazo',
+                    'track': 'Kero One - Keep It Alive (Blazo remix)',
+                    'release_date': '20110727',
+                    'track_id': '38097443',
+                    'track_number': 2,
+                    'duration': 181.467,
+                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'album': 'Jazz Format Mixtape vol.1',
+                    'uploader_id': 'blazo',
+                    'album_artists': ['Blazo'],
+                    'artists': ['Blazo'],
+                    'thumbnail': 'https://f4.bcbits.com/img/a1721150828_5.jpg',
+                    'release_timestamp': 1311724800.0,
                 },
             },
         ],
@@ -284,6 +324,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             'title': 'Jazz Format Mixtape vol.1',
             'id': 'jazz-format-mixtape-vol-1',
             'uploader_id': 'blazo',
+            'description': 'md5:38052a93217f3ffdc033cd5dbbce2989',
         },
         'params': {
             'playlistend': 2,
@@ -358,10 +399,10 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/?\?(?:.*?&)?show=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://bandcamp.com/?show=224',
-        'md5': 'b00df799c733cf7e0c567ed187dea0fd',
+        'md5': '61acc9a002bed93986b91168aa3ab433',
         'info_dict': {
             'id': '224',
-            'ext': 'opus',
+            'ext': 'mp3',
             'title': 'BC Weekly April 4th 2017 - Magic Moments',
             'description': 'md5:5d48150916e8e02d030623a48512c874',
             'duration': 5829.77,
@@ -371,7 +412,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             'episode_id': '224',
         },
         'params': {
-            'format': 'opus-lo',
+            'format': 'mp3-128',
         },
     }, {
         'url': 'https://bandcamp.com/?blah/blah@&show=228',
@@ -459,7 +500,7 @@ class BandcampUserIE(InfoExtractor):
         },
     }, {
         'url': 'https://coldworldofficial.bandcamp.com/music',
-        'playlist_mincount': 10,
+        'playlist_mincount': 7,
         'info_dict': {
             'id': 'coldworldofficial',
             'title': 'Discography of coldworldofficial',
@@ -473,12 +514,19 @@ class BandcampUserIE(InfoExtractor):
         },
     }]
 
+    def _yield_items(self, webpage):
+        yield from (
+            re.findall(r'<li data-item-id=["\'][^>]+>\s*<a href=["\'](?![^"\'/]*?/merch)([^"\']+)', webpage)
+            or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage))
+
+        yield from traverse_obj(webpage, (
+            {find_element(id='music-grid', html=True)}, {extract_attributes},
+            'data-client-items', {json.loads}, ..., 'page_url', {str}))
+
     def _real_extract(self, url):
         uploader = self._match_id(url)
         webpage = self._download_webpage(url, uploader)
 
-        discography_data = (re.findall(r'<li data-item-id=["\'][^>]+>\s*<a href=["\'](?![^"\'/]*?/merch)([^"\']+)', webpage)
-                            or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage))
-
         return self.playlist_from_matches(
-            discography_data, uploader, f'Discography of {uploader}', getter=lambda x: urljoin(url, x))
+            self._yield_items(webpage), uploader, f'Discography of {uploader}',
+            getter=urljoin(url))
