@@ -69,7 +69,7 @@ class LocipoIE(InfoExtractor):
     def _real_extract(self, url: str):
         creative_id, playlist_id = self._match_valid_url(url).group('creative_id', 'playlist_id')  # type: ignore
 
-        if not playlist_id:
+        if not playlist_id or self.get_param('noplaylist'):
             creative_data = self._download_json(
                 f'https://api.locipo.jp/api/v1/creatives/{creative_id}',
                 creative_id,
