@@ -1,17 +1,12 @@
 import re
 
-from yt_dlp.utils._utils import parse_iso8601
-
 from .common import InfoExtractor
-from ..utils import (
-    parse_duration,
-    url_or_none,
-)
+from ..utils import parse_duration, parse_iso8601, url_or_none
 from ..utils.traversal import traverse_obj
 
 
 class ParlviewIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?aph\.gov\.au/(?:.*/)?video/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?aph\.gov\.au/News_and_Events/Watch_Read_Listen/ParlView/video/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.aph.gov.au/News_and_Events/Watch_Read_Listen/ParlView/video/3406614',
         'info_dict': {
@@ -46,9 +41,8 @@ class ParlviewIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        api_data = self._download_json(f'https://vodapi.aph.gov.au/api/search/parlview/{video_id}', video_id)
-
-        video_details = traverse_obj(api_data, ('videoDetails', {dict}))
+        video_details = self._download_json(
+            f'https://vodapi.aph.gov.au/api/search/parlview/{video_id}', video_id)['videoDetails']
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             video_details['files']['file']['url'], video_id, 'mp4')
