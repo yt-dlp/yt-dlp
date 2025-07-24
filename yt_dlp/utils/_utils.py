@@ -2010,13 +2010,18 @@ def str_or_none(v, default=None):
     return default if v is None else str(v)
 
 
-def str_to_int(int_str):
+def str_to_int(int_str, *, dot_decimal=False):
     """ A more relaxed version of int_or_none """
     if isinstance(int_str, int):
         return int_str
-    elif isinstance(int_str, str):
-        int_str = re.sub(r'[,\.\+]', '', int_str)
-        return int_or_none(int_str)
+    if not isinstance(int_str, str):
+        return None
+    int_str = re.sub(r'[,+]', '', int_str)
+
+    if dot_decimal:
+        f = float_or_none(int_str)
+        return int(f) if f is not None else None
+    return int_or_none(int_str.replace('.', ''))
 
 
 @partial_application
