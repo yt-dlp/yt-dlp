@@ -7,6 +7,7 @@ from .common import InfoExtractor
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
+    clean_html,
     extract_attributes,
     float_or_none,
     int_or_none,
@@ -19,7 +20,7 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
 class BandcampIE(InfoExtractor):
@@ -67,6 +68,9 @@ class BandcampIE(InfoExtractor):
             'album': 'FTL: Advanced Edition Soundtrack',
             'uploader_url': 'https://benprunty.bandcamp.com',
             'uploader_id': 'benprunty',
+            'tags': ['soundtrack', 'chiptunes', 'cinematic', 'electronic', 'video game music', 'California'],
+            'artists': ['Ben Prunty'],
+            'album_artists': ['Ben Prunty'],
         },
     }, {
         # no free download, mp3 128
@@ -91,6 +95,9 @@ class BandcampIE(InfoExtractor):
             'album': 'Call of the Mastodon',
             'uploader_url': 'https://relapsealumni.bandcamp.com',
             'uploader_id': 'relapsealumni',
+            'tags': ['Philadelphia'],
+            'artists': ['Mastodon'],
+            'album_artists': ['Mastodon'],
         },
     }, {
         # track from compilation album (artist/album_artist difference)
@@ -115,6 +122,9 @@ class BandcampIE(InfoExtractor):
             'album': 'DSK F/W 2016-2017 Free Compilation',
             'uploader_url': 'https://diskotopia.bandcamp.com',
             'uploader_id': 'diskotopia',
+            'tags': ['Japan'],
+            'artists': ['submerse'],
+            'album_artists': ['Diskotopia'],
         },
     }]
     _WEBPAGE_TESTS = [{
@@ -274,6 +284,7 @@ class BandcampIE(InfoExtractor):
             'album': embed.get('album_title'),
             'album_artist': album_artist,
             'formats': formats,
+            'tags': traverse_obj(webpage, ({find_elements(cls='tag')}, ..., {clean_html})),
         }
 
 

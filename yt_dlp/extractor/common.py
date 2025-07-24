@@ -38,7 +38,6 @@ from ..networking.exceptions import (
     TransportError,
     network_exceptions,
 )
-from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,
@@ -259,6 +258,11 @@ class InfoExtractor:
                                  * key  The key (as hex) used to decrypt fragments.
                                         If `key` is given, any key URI will be ignored
                                  * iv   The IV (as hex) used to decrypt fragments
+                    * impersonate  Impersonate target(s). Can be any of the following entities:
+                                * an instance of yt_dlp.networking.impersonate.ImpersonateTarget
+                                * a string in the format of CLIENT[:OS]
+                                * a list or a tuple of CLIENT[:OS] strings or ImpersonateTarget instances
+                                * a boolean value; True means any impersonate target is sufficient
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
@@ -336,6 +340,7 @@ class InfoExtractor:
                         * "name": Name or description of the subtitles
                         * "http_headers": A dictionary of additional HTTP headers
                                   to add to the request.
+                        * "impersonate": Impersonate target(s); same as the "formats" field
                     "ext" will be calculated from URL if missing
     automatic_captions: Like 'subtitles'; contains automatically generated
                     captions instead of normal subtitles
@@ -392,6 +397,8 @@ class InfoExtractor:
     chapters:       A list of dictionaries, with the following entries:
                         * "start_time" - The start time of the chapter in seconds
                         * "end_time" - The end time of the chapter in seconds
+                                       (optional: core code can determine this value from
+                                       the next chapter's start_time or the video's duration)
                         * "title" (optional, string)
     heatmap:        A list of dictionaries, with the following entries:
                         * "start_time" - The start time of the data point in seconds
@@ -406,7 +413,8 @@ class InfoExtractor:
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
                     to set it
     media_type:     The type of media as classified by the site, e.g. "episode", "clip", "trailer"
-    _old_archive_ids: A list of old archive ids needed for backward compatibility
+    _old_archive_ids: A list of old archive ids needed for backward
+                   compatibility. Use yt_dlp.utils.make_archive_id to generate ids
     _format_sort_fields: A list of fields to use for sorting formats
     __post_extractor: A function to be called just before the metadata is
                     written to either disk, logger or console. The function
@@ -884,26 +892,17 @@ class InfoExtractor:
 
         extensions = {}
 
-        if impersonate in (True, ''):
-            impersonate = ImpersonateTarget()
-        requested_targets = [
-            t if isinstance(t, ImpersonateTarget) else ImpersonateTarget.from_str(t)
-            for t in variadic(impersonate)
-        ] if impersonate else []
-
-        available_target = next(filter(self._downloader._impersonate_target_available, requested_targets), None)
+        available_target, requested_targets = self._downloader._parse_impersonate_targets(impersonate)
         if available_target:
             extensions['impersonate'] = available_target
         elif requested_targets:
-            message = 'The extractor is attempting impersonation, but '
-            message += (
-                'no impersonate target is available' if not str(impersonate)
-                else f'none of these impersonate targets are available: "{", ".join(map(str, requested_targets))}"')
-            info_msg = ('see  https://github.com/yt-dlp/yt-dlp#impersonation  '
-                        'for information on installing the required dependencies')
+            msg = 'The extractor is attempting impersonation'
             if require_impersonation:
-                raise ExtractorError(f'{message}; {info_msg}', expected=True)
-            self.report_warning(f'{message}; if you encounter errors, then {info_msg}', only_once=True)
+                raise ExtractorError(
+                    self._downloader._unavailable_targets_message(requested_targets, note=msg, is_error=True),
+                    expected=True)
+            self.report_warning(
+                self._downloader._unavailable_targets_message(requested_targets, note=msg), only_once=True)
 
         try:
             return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query, extensions))
