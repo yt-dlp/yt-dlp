@@ -56,6 +56,11 @@ class ArteTVIE(ArteTVBaseIE):
             'duration': 7599,
             'title': 'La loi de Téhéran',
             'upload_date': '20240424',
+            'subtitles': {
+                'fr': 'mincount:1',
+                'fr-acc': 'mincount:1',
+                'fr-forced': 'mincount:1',
+            },
         },
         'skip': 'Invalid URL',
     }, {
@@ -324,7 +329,7 @@ class ArteTVCategoryIE(ArteTVBaseIE):
         'info_dict': {
             'id': 'politics-and-society',
             'title': 'Politics and society',
-            'description': 'md5:adc79f035861b65563b3c32effbfc681',
+            'description': 'Watch documentaries and reportage about politics, society and current affairs.',
         },
         'playlist_mincount': 3,
     }]
