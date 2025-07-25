@@ -86,11 +86,11 @@ class PlyrEmbedIE(InfoExtractor):
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
-        plyr_embeds = re.finditer(
-            r'<div[^>]+'
-            r'(?:data-plyr-embed-id="(?P<id1>[^"]+)"[^>]+data-plyr-provider="(?P<provider1>[^"]+)"|'
-            r'data-plyr-provider="(?P<provider2>[^"]+)"[^>]+data-plyr-embed-id="(?P<id2>[^"]+)")'
-            r'[^>]*>', webpage)
+        plyr_embeds = re.finditer(r'''(?x)
+            <div[^>]+(?:
+                data-plyr-embed-id="(?P<id1>[^"]+)"[^>]+data-plyr-provider="(?P<provider1>[^"]+)"|
+                data-plyr-provider="(?P<provider2>[^"]+)"[^>]+data-plyr-embed-id="(?P<id2>[^"]+)"
+            )[^>]*>''', webpage)
         for mobj in plyr_embeds:
             embed_id = mobj.group('id1') or mobj.group('id2')
             provider = mobj.group('provider1') or mobj.group('provider2')
