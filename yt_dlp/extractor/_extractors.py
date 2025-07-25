@@ -575,6 +575,7 @@ from .eagleplatform import (
     ClipYouEmbedIE,
     EaglePlatformIE,
 )
+from .easybroadcast import EasyBroadcastLiveIE
 from .ebaumsworld import EbaumsWorldIE
 from .ebay import EbayIE
 from .egghead import (
