@@ -29,7 +29,7 @@ class PlyrEmbedIE(InfoExtractor):
     }, {
         # data-plyr-provider="vimeo" data-plyr-embed-id="803435276"
         'url': 'https://www.inarcassa.it/',
-            'info_dict': {
+        'info_dict': {
             'id': '803435276',
             'ext': 'mp4',
             'title': 'HOME_Moto_Perpetuo',
