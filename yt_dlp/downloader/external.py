@@ -573,7 +573,7 @@ class FFmpegFD(ExternalFD):
                 args += ['-t', str(end_time - start_time)]
 
             url = fmt['url']
-            if self.params.get('enable_file_urls'):
+            if self.params.get('enable_file_urls') and url.startswith('file:'):
                 # The default protocol_whitelist is 'file,crypto,data' when reading local m3u8 URLs,
                 # so only local segments can be read unless we also include 'http,https,tcp,tls'
                 args += ['-protocol_whitelist', 'file,crypto,data,http,https,tcp,tls']
