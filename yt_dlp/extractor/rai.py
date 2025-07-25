@@ -81,7 +81,7 @@ class RaiBaseIE(InfoExtractor):
         # geo flag is a bit unreliable and not properly set all the time
         geoprotection = xpath_text(relinker, './geoprotection', default='N') == 'Y'
 
-        ext = determine_ext(media_url)
+        ext = determine_ext(media_url).lower()
         formats = []
 
         if ext == 'mp3':
@@ -108,7 +108,7 @@ class RaiBaseIE(InfoExtractor):
                 'format_id': join_nonempty('https', bitrate, delim='-'),
             })
         else:
-            raise ExtractorError('Unrecognized media file found')
+            raise ExtractorError(f'Unrecognized media extension "{ext}"')
 
         if (not formats and geoprotection is True) or '/video_no_available.mp4' in media_url:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
@@ -503,6 +503,28 @@ class RaiPlaySoundIE(RaiBaseIE):
             'upload_date': '20211201',
         },
         'params': {'skip_download': True},
+    }, {
+        # case-sensitivity test for uppercase extension
+        'url': 'https://www.raiplaysound.it/audio/2020/05/Storia--Lunita-dItalia-e-lunificazione-della-Germania-b4c16390-7f3f-4282-b353-d94897dacb7c.html',
+        'md5': 'c69ebd69282f0effd7ef67b7e2f6c7d8',
+        'info_dict': {
+            'id': 'b4c16390-7f3f-4282-b353-d94897dacb7c',
+            'ext': 'mp3',
+            'title': "Storia | 01 L'unità d'Italia e l'unificazione della Germania",
+            'alt_title': 'md5:ed4ed82585c52057b71b43994a59b705',
+            'description': 'md5:92818b6f31b2c150567d56b75db2ea7f',
+            'uploader': 'rai radio 3',
+            'duration': 2439.0,
+            'thumbnail': 'https://www.raiplaysound.it/dl/img/2023/09/07/1694084898279_Maturadio-LOGO-2048x1152.jpg',
+            'creators': ['rai radio 3'],
+            'series': 'Maturadio',
+            'season': 'Season 9',
+            'season_number': 9,
+            'episode': "01. L'unità d'Italia e l'unificazione della Germania",
+            'episode_number': 1,
+            'timestamp': 1590400740,
+            'upload_date': '20200525',
+        },
     }]
 
     def _real_extract(self, url):
@@ -765,7 +787,7 @@ class RaiCulturaIE(RaiNewsIE):  # XXX: Do not subclass from concrete IE
 
 
 class RaiSudtirolIE(RaiBaseIE):
-    _VALID_URL = r'https?://raisudtirol\.rai\.it/.+media=(?P<id>\w+)'
+    _VALID_URL = r'https?://rai(?:bz|sudtirol)\.rai\.it/.+media=(?P<id>\w+)'
     _TESTS = [{
         # mp4 file
         'url': 'https://raisudtirol.rai.it/la/index.php?media=Ptv1619729460',
@@ -791,6 +813,9 @@ class RaiSudtirolIE(RaiBaseIE):
             'formats': 'count:6',
         },
         'params': {'skip_download': True},
+    }, {
+        'url': 'https://raibz.rai.it/de/index.php?media=Ptv1751660400',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

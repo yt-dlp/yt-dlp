@@ -536,6 +536,11 @@ class TestJSInterpreter(unittest.TestCase):
             }
         ''', 31)
 
+    def test_undefined_varnames(self):
+        jsi = JSInterpreter('function f(){ var a; return [a, b]; }')
+        self._test(jsi, [JS_Undefined, JS_Undefined])
+        self.assertEqual(jsi._undefined_varnames, {'b'})
+
 
 if __name__ == '__main__':
     unittest.main()

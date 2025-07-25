@@ -36,6 +36,7 @@ from .extractor.openload import PhantomJSwrapper
 from .globals import (
     IN_CLI,
     LAZY_EXTRACTORS,
+    WINDOWS_VT_MODE,
     plugin_ies,
     plugin_ies_overrides,
     plugin_pps,
@@ -52,7 +53,7 @@ from .networking.exceptions import (
     SSLError,
     network_exceptions,
 )
-from .networking.impersonate import ImpersonateRequestHandler
+from .networking.impersonate import ImpersonateRequestHandler, ImpersonateTarget
 from .plugins import directories as plugin_directories, load_all_plugins
 from .postprocessor import (
     EmbedThumbnailPP,
@@ -529,6 +530,7 @@ class YoutubeDL:
                        discontinuities such as ad breaks (default: False)
     extractor_args:    A dictionary of arguments to be passed to the extractors.
                        See "EXTRACTOR ARGUMENTS" for details.
+                       Argument values must always be a list of string(s).
                        E.g. {'youtube': {'skip': ['dash', 'hls']}}
     mark_watched:      Mark videos watched (even with --simulate). Only for YouTube
 
@@ -2195,7 +2197,7 @@ class YoutubeDL:
             return op(actual_value, comparison_value)
         return _filter
 
-    def _check_formats(self, formats):
+    def _check_formats(self, formats, warning=True):
         for f in formats:
             working = f.get('__working')
             if working is not None:
@@ -2208,6 +2210,9 @@ class YoutubeDL:
                 continue
             temp_file = tempfile.NamedTemporaryFile(suffix='.tmp', delete=False, dir=path or None)
             temp_file.close()
+            # If FragmentFD fails when testing a fragment, it will wrongly set a non-zero return code.
+            # Save the actual return code for later. See https://github.com/yt-dlp/yt-dlp/issues/13750
+            original_retcode = self._download_retcode
             try:
                 success, _ = self.dl(temp_file.name, f, test=True)
             except (DownloadError, OSError, ValueError, *network_exceptions):
@@ -2218,12 +2223,18 @@ class YoutubeDL:
                         os.remove(temp_file.name)
                     except OSError:
                         self.report_warning(f'Unable to delete temporary file "{temp_file.name}"')
+            # Restore the actual return code
+            self._download_retcode = original_retcode
             f['__working'] = success
             if success:
                 f.pop('__needs_testing', None)
                 yield f
             else:
-                self.to_screen('[info] Unable to download format {}. Skipping...'.format(f['format_id']))
+                msg = f'Unable to download format {f["format_id"]}. Skipping...'
+                if warning:
+                    self.report_warning(msg)
+                else:
+                    self.to_screen(f'[info] {msg}')
 
     def _select_formats(self, formats, selector):
         return list(selector({
@@ -2949,7 +2960,7 @@ class YoutubeDL:
                     )
 
         if self.params.get('check_formats') is True:
-            formats = LazyList(self._check_formats(formats[::-1]), reverse=True)
+            formats = LazyList(self._check_formats(formats[::-1], warning=False), reverse=True)
 
         if not formats or formats[0] is not info_dict:
             # only set the 'formats' fields if the original info_dict list them
@@ -3222,6 +3233,7 @@ class YoutubeDL:
             }
         else:
             params = self.params
+
         fd = get_suitable_downloader(info, params, to_stdout=(name == '-'))(self, params)
         if not test:
             for ph in self._progress_hooks:
@@ -3697,6 +3709,8 @@ class YoutubeDL:
                 return {k: filter_fn(v) for k, v in obj.items() if not reject(k, v)}
             elif isinstance(obj, (list, tuple, set, LazyList)):
                 return list(map(filter_fn, obj))
+            elif isinstance(obj, ImpersonateTarget):
+                return str(obj)
             elif obj is None or isinstance(obj, (str, int, float, bool)):
                 return obj
             else:
@@ -4027,8 +4041,7 @@ class YoutubeDL:
             if os.environ.get('TERM', '').lower() == 'dumb':
                 additional_info.append('dumb')
             if not supports_terminal_sequences(stream):
-                from .utils import WINDOWS_VT_MODE  # Must be imported locally
-                additional_info.append('No VT' if WINDOWS_VT_MODE is False else 'No ANSI')
+                additional_info.append('No VT' if WINDOWS_VT_MODE.value is False else 'No ANSI')
             if additional_info:
                 ret = f'{ret} ({",".join(additional_info)})'
             return ret
@@ -4173,6 +4186,31 @@ class YoutubeDL:
             rh.is_supported_target(target)
             for rh in self._request_director.handlers.values()
             if isinstance(rh, ImpersonateRequestHandler))
+
+    def _parse_impersonate_targets(self, impersonate):
+        if impersonate in (True, ''):
+            impersonate = ImpersonateTarget()
+
+        requested_targets = [
+            t if isinstance(t, ImpersonateTarget) else ImpersonateTarget.from_str(t)
+            for t in variadic(impersonate)
+        ] if impersonate else []
+
+        available_target = next(filter(self._impersonate_target_available, requested_targets), None)
+
+        return available_target, requested_targets
+
+    @staticmethod
+    def _unavailable_targets_message(requested_targets, note=None, is_error=False):
+        note = note or 'The extractor specified to use impersonation for this download'
+        specific_targets = ', '.join(filter(None, map(str, requested_targets)))
+        message = (
+            'no impersonate target is available' if not specific_targets
+            else f'none of these impersonate targets are available: {specific_targets}')
+        return (
+            f'{note}, but {message}. {"See" if is_error else "If you encounter errors, then see"}'
+            f'  https://github.com/yt-dlp/yt-dlp#impersonation  '
+            f'for information on installing the required dependencies')
 
     def urlopen(self, req):
         """ Start an HTTP download """
