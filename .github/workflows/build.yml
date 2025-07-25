@@ -261,6 +261,7 @@ jobs:
       - name: Install Requirements
         run: |
           brew install coreutils
+          # We need to use system Python in order to roll our own universal2 curl_cffi wheel
           brew uninstall --ignore-dependencies python3
           python3 -m venv ~/yt-dlp-build-venv
           source ~/yt-dlp-build-venv/bin/activate
