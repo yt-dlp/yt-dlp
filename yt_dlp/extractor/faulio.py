@@ -16,7 +16,7 @@ class FaulioLiveIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://aloula.sba.sa/live/saudiatv',
         'info_dict': {
-            'id': 'aloula.faulio.com:saudiatv',
+            'id': 'aloula.faulio.com_saudiatv',
             'title': str,
             'description': str,
             'ext': 'mp4',
@@ -28,7 +28,7 @@ class FaulioLiveIE(InfoExtractor):
     }, {
         'url': 'https://maraya.sba.net.ae/live/1',
         'info_dict': {
-            'id': 'maraya.faulio.com:1',
+            'id': 'maraya.faulio.com_1',
             'title': str,
             'description': str,
             'ext': 'mp4',
@@ -40,7 +40,7 @@ class FaulioLiveIE(InfoExtractor):
     }, {
         'url': 'https://sat7plus.org/live/pars',
         'info_dict': {
-            'id': 'sat7.faulio.com:pars',
+            'id': 'sat7.faulio.com_pars',
             'title': str,
             'description': str,
             'ext': 'mp4',
@@ -81,7 +81,7 @@ class FaulioLiveIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
 
         return {
-            'id': f'{urllib.parse.urlparse(api_base).hostname}:{video_id}',
+            'id': f'{urllib.parse.urlparse(api_base).hostname}_{video_id}',
             **traverse_obj(channel, {
                 'title': ('title', {str}),
                 'description': ('description', {str}),
