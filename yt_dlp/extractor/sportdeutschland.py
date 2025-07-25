@@ -8,7 +8,7 @@ from ..utils import (
 
 
 class SportDeutschlandIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:player\.)?sportdeutschland\.tv/(?P<id>(?:[^/]+/)?[^?#/&]+)'
+    _VALID_URL = r'https?://(?:player\.)?sportdeutschland\.tv/(?P<id>(?:[^/?#]+/)?[^?#/&]+)'
     _TESTS = [{
         # Single-part video, direct link
         'url': 'https://sportdeutschland.tv/rostock-griffins/gfl2-rostock-griffins-vs-elmshorn-fighting-pirates',
