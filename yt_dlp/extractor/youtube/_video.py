@@ -1796,6 +1796,47 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
+        }, {  # Youtube RSS feed
+            'url': 'https://www.youtube.com/feeds/videos.xml?channel_id=UC7_gcs09iThXybpVgjHZ_7g',
+            'md5': '7d66034582204a3ac425c71eb6b7b6e0',
+            'info_dict': {
+                'id': 'videos',
+                'title': 'PBS Space Time',
+                'age_limit': 0,
+            },
+            'playlist_count': 15,
+            'playlist': [{
+                'info_dict': {
+                    'id': str,
+                    'title': str,
+                    'ext': 'mp4',
+                    'upload_date': str,
+                    'description': str,
+                    'age_limit': 0,
+                    'tags': list,
+                    'channel_id': 'UC7_gcs09iThXybpVgjHZ_7g',
+                    'playable_in_embed': True,
+                    'thumbnail': r're:https://.+\.jpg',
+                    'like_count': int,
+                    'comment_count': int,
+                    'channel': 'PBS Space Time',
+                    'live_status': 'not_live',
+                    'channel_url': 'https://www.youtube.com/channel/UC7_gcs09iThXybpVgjHZ_7g',
+                    'availability': 'public',
+                    'duration': int,
+                    'view_count': int,
+                    'categories': list,
+                    'channel_follower_count': int,
+                    'uploader': 'PBS Space Time',
+                    'uploader_url': 'https://www.youtube.com/@pbsspacetime',
+                    'uploader_id': '@pbsspacetime',
+                    'timestamp': int,
+                    'channel_is_verified': True,
+                }
+            }],
+            'params': {
+                'skip_download': True,
+            },
         },
     ]
 
@@ -2481,11 +2522,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Invidious Instances
         # https://github.com/yt-dlp/yt-dlp/issues/195
         # https://github.com/iv-org/invidious/pull/1730
-        mobj = re.search(
+        matches = re.findall(
             r'<link rel="alternate" href="(?P<url>https://www\.youtube\.com/watch\?v=[0-9A-Za-z_-]{11})"',
             webpage)
-        if mobj:
-            yield cls.url_result(mobj.group('url'), cls)
+        if matches:
+            for match_url in matches:
+                yield cls.url_result(match_url, cls)
             raise cls.StopExtraction
 
         yield from super()._extract_from_webpage(url, webpage)
