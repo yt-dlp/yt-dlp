@@ -22,7 +22,7 @@ class StreaksBaseIE(InfoExtractor):
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['JP']
 
-    def _extract_from_streaks_api(self, project_id, media_id, headers=None, query=None, ssai=False):
+    def _extract_from_streaks_api(self, project_id, media_id, headers=None, query=None, ssai=False, metadata_available=False):
         try:
             response = self._download_json(
                 self._API_URL_TEMPLATE.format('playback', project_id, media_id, ''),
@@ -38,14 +38,16 @@ class StreaksBaseIE(InfoExtractor):
                 message = traverse_obj(error, ('message', {str}))
                 code = traverse_obj(error, ('code', {str}))
                 if code == 'REQUEST_FAILED':
-                    self.raise_geo_restricted(message, countries=self._GEO_COUNTRIES)
+                    self.raise_geo_restricted(message, countries=self._GEO_COUNTRIES, metadata_available=metadata_available)
+                    response = {}
                 elif code == 'MEDIA_NOT_FOUND':
                     raise ExtractorError(message, expected=True)
                 elif code or message:
                     raise ExtractorError(join_nonempty(code, message, delim=': '))
-            raise
+            else:
+                raise
 
-        streaks_id = response['id']
+        streaks_id = response.get('id')
         live_status = {
             'clip': 'was_live',
             'file': 'not_live',
