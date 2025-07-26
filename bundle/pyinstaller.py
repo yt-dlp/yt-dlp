@@ -62,17 +62,23 @@ def parse_options():
 
 def exe(onedir):
     """@returns (name, path)"""
-    platform = {'win32': None, 'darwin': 'macos'}.get(OS_NAME, OS_NAME)
+
+    platform_name, machine, extension = {
+        'win32': (None, MACHINE, '.exe'),
+        'darwin': ('macos', None, None),
+    }.get(OS_NAME, (OS_NAME, MACHINE, None))
+
     name = '_'.join(filter(None, (
         'yt-dlp',
-        platform,
-        MACHINE if platform != 'macos' else None,
+        platform_name,
+        machine,
     )))
+
     return name, ''.join(filter(None, (
         'dist/',
         onedir and f'{name}/',
         name,
-        OS_NAME == 'win32' and '.exe',
+        extension,
     )))
 
 
