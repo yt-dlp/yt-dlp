@@ -12,10 +12,12 @@ from ..utils import (
     float_or_none,
     int_or_none,
     parse_filesize,
+    smuggle_url,
     str_or_none,
     try_get,
     unified_strdate,
     unified_timestamp,
+    unsmuggle_url,
     update_url_query,
     url_or_none,
     urljoin,
@@ -137,6 +139,8 @@ class BandcampIE(InfoExtractor):
             attr + ' data', group=2), video_id, fatal=fatal)
 
     def _real_extract(self, url):
+        url, smuggled_track_info = unsmuggle_url(url, None)
+
         title, uploader = self._match_valid_url(url).group('id', 'uploader')
         webpage = self._download_webpage(url, title)
         tralbum = self._extract_data_attr(webpage, title)
@@ -148,7 +152,7 @@ class BandcampIE(InfoExtractor):
         duration = None
 
         formats = []
-        track_info = try_get(tralbum, lambda x: x['trackinfo'][0], dict)
+        track_info = try_get(tralbum, lambda x: x['trackinfo'][0], dict) or smuggled_track_info
         if track_info:
             file_ = track_info.get('file')
             if isinstance(file_, dict):
@@ -358,6 +362,15 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             'description': 'md5:b3cf845ee41b2b1141dc7bde9237255f',
         },
         'playlist_count': 2,
+    }, {
+        # tracks need track_info smuggled because they don't have a usable one on the pages
+        'url': 'https://wetleg.bandcamp.com/album/wet-leg',
+        'info_dict': {
+            'id': 'wet-leg',
+            'title': 'Wet Leg',
+            'uploader_id': 'wetleg',
+        },
+        'playlist_count': 12,
     }]
 
     @classmethod
@@ -375,12 +388,17 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         if not track_info:
             raise ExtractorError('The page doesn\'t contain any tracks')
         # Only tracks with duration info have songs
-        entries = [
-            self.url_result(
-                urljoin(url, t['title_link']), BandcampIE.ie_key(),
-                str_or_none(t.get('track_id') or t.get('id')), t.get('title'))
-            for t in track_info
-            if t.get('duration')]
+        entries = []
+        for t in track_info:
+            if t.get('duration'):
+                url = urljoin(url, t['title_link'])
+                if t.get('track_license_id'):
+                    # tracks with this set don't have a usable tralbum on their pages
+                    url = smuggle_url(url, t)
+                entries.append(self.url_result(
+                    url, BandcampIE.ie_key(),
+                    str_or_none(t.get('track_id') or t.get('id')), t.get('title'),
+                ))
 
         current = tralbum.get('current') or {}
 
