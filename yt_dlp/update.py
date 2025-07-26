@@ -151,18 +151,6 @@ def _get_system_deprecation():
     if sys.version_info < MIN_SUPPORTED:
         return f'Python version {major}.{minor} is no longer supported! {PYTHON_MSG}'
 
-    EXE_MSG_TMPL = ('Support for {} has been deprecated. '
-                    'See  https://github.com/yt-dlp/yt-dlp/{}  for details.\n{}')
-    STOP_MSG = 'You may stop receiving updates on this version at any time!'
-    variant = detect_variant()
-
-    # Temporary until aarch64/armv7l build flow is bumped to Ubuntu 22.04 and Python 3.10
-    if variant in ('linux_aarch64_exe', 'linux_armv7l_exe'):
-        libc_ver = version_tuple(os.confstr('CS_GNU_LIBC_VERSION').partition(' ')[2])
-        if libc_ver < (2, 35):
-            return EXE_MSG_TMPL.format('system glibc version < 2.35', 'issues/13858', STOP_MSG)
-        return None
-
     return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
 
 
