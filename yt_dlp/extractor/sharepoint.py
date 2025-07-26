@@ -2,7 +2,7 @@ import json
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import determine_ext, int_or_none, url_or_none
+from ..utils import ExtractorError, determine_ext, int_or_none, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -48,6 +48,25 @@ class SharePointIE(InfoExtractor):
         },
         'skip': 'Session cookies needed',
     }, {
+        'url': 'https://univpm-my.sharepoint.com/:v:/g/personal/s1069964_studenti_univpm_it/EY2nQ8_zNutLlSVFkBfd9xcBnLOsctIYVFJuO7XrUuwcYQ',
+        'info_dict': {
+            'id': '017RCHWSMNU5B474ZW5NFZKJKFSAL535YX',
+            'display_id': 'EY2nQ8_zNutLlSVFkBfd9xcBnLOsctIYVFJuO7XrUuwcYQ',
+            'ext': 'mkv',
+            'title': 'yt-dlp-chapters',
+            'thumbnail': r're:https://.+/thumbnail',
+            'uploader_id': '26d07756-b85b-4619-8ecf-c4bb22afacd3',
+            'chapters': [
+                {'start_time': 0.0, 'title': 'Introduction'},
+                {'start_time': 2.231, 'title': 'Testing yt-dlp chapters'},
+                {'start_time': 3.058, 'title': 'Chapter 1: foo'},
+                {'start_time': 4.098, 'title': 'Chapter 2: bar'},
+                {'start_time': 5.132, 'title': 'Chapter 3: baz'},
+                {'start_time': 6.12, 'title': 'End'},
+                {'start_time': 7.496, 'title': '...silence!...'},
+            ],
+        },
+    }, {
         'url': 'https://izoobasisschool.sharepoint.com/:v:/g/Eaqleq8COVBIvIPvod0U27oBypC6aWOkk8ptuDpmJ6arHw',
         'only_matching': True,
     }, {
@@ -82,6 +101,25 @@ class SharePointIE(InfoExtractor):
                 'part': 'index',
             }, doseq=True)))
 
+        chapters = []
+        if item_url := video_data.get('.spItemUrl'):
+            parsed_item_url = urllib.parse.urlparse(item_url)
+            chapters_url = urllib.parse.urlunparse(parsed_item_url._replace(
+                path=urllib.parse.urljoin(f'{parsed_item_url.path}/', 'media/timelineeventstream/content'),
+                query='')).replace('/_api/v2.0/', '/_api/v2.1/')
+            try:
+                chapters_data = self._download_json(chapters_url, display_id)
+                chs = chapters_data.get('chapters')
+                for ch in chs:
+                    hh, mm, ss = ch.get('startOffset').split(':')
+                    start_time = float(hh) * 3600 + float(mm) * 60 + float(ss)
+                    chapters.append({
+                        'start_time': start_time,
+                        'title': ch.get('displayName'),
+                    })
+            except ExtractorError as error:
+                self.write_debug(f'Could not fetch chapters: {error.cause}')
+
         # Web player adds more params to the format URLs but we still get all formats without them
         formats = self._extract_mpd_formats(
             base_media_url, video_id, mpd_id='dash', query={'format': 'dash'}, fatal=False)
@@ -104,6 +142,7 @@ class SharePointIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'title': video_data.get('title') or video_data.get('displayName'),
+            'chapters': chapters or None,
             'display_id': display_id,
             'uploader_id': video_data.get('authorId'),
             'duration': traverse_obj(video_data, (
