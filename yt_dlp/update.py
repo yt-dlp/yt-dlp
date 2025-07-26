@@ -141,6 +141,17 @@ def _get_binary_name():
 def _get_system_deprecation():
     MIN_SUPPORTED, MIN_RECOMMENDED = (3, 9), (3, 9)
 
+    EXE_MSG_TMPL = ('Support for {} has been deprecated. '
+                    'See  https://github.com/yt-dlp/yt-dlp/{}  for details.\n{}')
+    STOP_MSG = 'You may stop receiving updates on this version at any time!'
+    variant = detect_variant()
+
+    # Temporary until macos_legacy executable builds are discontinued
+    if variant == 'darwin_legacy_exe':
+        return EXE_MSG_TMPL.format(
+            f'{variant} (the PyInstaller-bundled executable for macOS versions older than 10.15)',
+            'issues/13856', STOP_MSG)
+
     if sys.version_info > MIN_RECOMMENDED:
         return None
 
