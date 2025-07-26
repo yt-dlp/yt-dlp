@@ -1875,6 +1875,11 @@ def parse_resolution(s, *, lenient=False):
     if mobj:
         return {'height': int(mobj.group(1)) * 540}
 
+    if lenient:
+        mobj = re.search(r'(?<!\d)(\d{2,5})w(?![a-zA-Z0-9])', s)
+        if mobj:
+            return {'width': int(mobj.group(1))}
+
     return {}
 
 

@@ -571,10 +571,6 @@ from .dw import (
     DWIE,
     DWArticleIE,
 )
-from .eagleplatform import (
-    ClipYouEmbedIE,
-    EaglePlatformIE,
-)
 from .ebaumsworld import EbaumsWorldIE
 from .ebay import EbayIE
 from .egghead import (
@@ -640,6 +636,7 @@ from .fancode import (
     FancodeVodIE,
 )
 from .fathom import FathomIE
+from .faulio import FaulioLiveIE
 from .faz import FazIE
 from .fc2 import (
     FC2IE,
@@ -1568,6 +1565,7 @@ from .pluralsight import (
 )
 from .plutotv import PlutoTVIE
 from .plvideo import PlVideoIE
+from .plyr import PlyrEmbedIE
 from .podbayfm import (
     PodbayFMChannelIE,
     PodbayFMIE,
@@ -2166,7 +2164,6 @@ from .trtworld import TrtWorldIE
 from .trueid import TrueIDIE
 from .trunews import TruNewsIE
 from .truth import TruthIE
-from .trutv import TruTVIE
 from .tube8 import Tube8IE
 from .tubetugraz import (
     TubeTuGrazIE,
