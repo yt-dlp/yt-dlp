@@ -53,6 +53,7 @@ default = [
     "requests>=2.32.2,<3",
     "urllib3>=1.26.17,<3",
     "websockets>=13.0",
+    "protobug==0.3.0",
 ]
 curl-cffi = [
     "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.11; implementation_name=='cpython'",
