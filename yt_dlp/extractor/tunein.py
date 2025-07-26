@@ -51,9 +51,9 @@ class TuneInStationIE(TuneInBaseIE):
         'url': 'https://tunein.com/radio/Jazz24-885-s34682/',
         'info_dict': {
             'id': 's34682',
-            'title': 're:^Jazz24',
+            'title': str,
             'description': 'md5:d6d0b89063fd68d529fa7058ee98619b',
-            'thumbnail': 're:^https?://[^?&]+/s34682',
+            'thumbnail': r're:https?://cdn-profiles\.tunein\.com/.+',
             'location': 'Seattle-Tacoma, US',
             'ext': 'mp3',
             'live_status': 'is_live',
@@ -68,16 +68,25 @@ class TuneInStationIE(TuneInBaseIE):
         'url': 'https://tunein.com/radio/BBC-Radio-1-988-s24939/',
         'info_dict': {
             'id': 's24939',
-            'title': 're:^BBC Radio 1',
-            'description': 'md5:f3f75f7423398d87119043c26e7bfb84',
-            'thumbnail': 're:^https?://[^?&]+/s24939',
+            'title': str,
+            'description': 'md5:ee2c56794844610d045f8caf5ff34d0c',
+            'thumbnail': r're:https?://cdn-profiles\.tunein\.com/.+',
             'location': 'London, UK',
-            'ext': 'mp3',
+            'ext': 'm4a',
             'live_status': 'is_live',
         },
         'params': {
             'skip_download': True,
         },
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.martiniinthemorning.com/',
+        'info_dict': {
+            'id': 's55412',
+            'ext': 'mp3',
+            'title': 'TuneInStation video #s55412',
+        },
+        'expected_warnings': ['unable to extract hydration', 'Extractor failed to obtain "title"'],
     }]
 
     def _real_extract(self, url):
@@ -123,9 +132,9 @@ class TuneInPodcastIE(TuneInBaseIE):
         'info_dict': {
             'id': 'p14',
             'title': 'BBC News',
-            'description': 'md5:1218e575eeaff75f48ed978261fa2068',
+            'description': 'md5:30b9622bcc4bd101d4acd6f38f284aed',
         },
-        'playlist_mincount': 200,
+        'playlist_mincount': 36,
     }]
 
     _PAGE_SIZE = 30
@@ -164,9 +173,9 @@ class TuneInPodcastEpisodeIE(TuneInBaseIE):
         'url': 'https://tunein.com/podcasts/Technology-Podcasts/Artificial-Intelligence-p1153019/?topicId=236404354',
         'info_dict': {
             'id': 't236404354',
-            'title': '#351 \u2013 MrBeast: Future of YouTube, Twitter, TikTok, and Instagram',
-            'description': 'md5:e1734db6f525e472c0c290d124a2ad77',
-            'thumbnail': 're:^https?://[^?&]+/p1153019',
+            'title': '#351 – MrBeast: Future of YouTube, Twitter, TikTok, and Instagram',
+            'description': 'md5:2784533b98f8ac45c0820b1e4a8d8bb2',
+            'thumbnail': r're:https?://cdn-profiles\.tunein\.com/.+',
             'timestamp': 1673458571,
             'upload_date': '20230111',
             'series_id': 'p1153019',
@@ -198,18 +207,19 @@ class TuneInPodcastEpisodeIE(TuneInBaseIE):
 
 
 class TuneInShortenerIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'tunein:shortener'
     IE_DESC = False  # Do not list
     _VALID_URL = r'https?://tun\.in/(?P<id>[A-Za-z0-9]+)'
 
-    _TEST = {
+    _TESTS = [{
         # test redirection
         'url': 'http://tun.in/ser7s',
         'info_dict': {
             'id': 's34682',
-            'title': 're:^Jazz24',
+            'title': str,
             'description': 'md5:d6d0b89063fd68d529fa7058ee98619b',
-            'thumbnail': 're:^https?://[^?&]+/s34682',
+            'thumbnail': r're:https?://cdn-profiles\.tunein\.com/.+',
             'location': 'Seattle-Tacoma, US',
             'ext': 'mp3',
             'live_status': 'is_live',
@@ -217,7 +227,7 @@ class TuneInShortenerIE(InfoExtractor):
         'params': {
             'skip_download': True,  # live stream
         },
-    }
+    }]
 
     def _real_extract(self, url):
         redirect_id = self._match_id(url)

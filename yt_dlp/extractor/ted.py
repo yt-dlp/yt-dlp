@@ -32,12 +32,12 @@ class TedTalkIE(TedBaseIE):
             'title': 'How to break down barriers and not accept limits',
             'description': 'md5:000707cece219d1e165b11550d612331',
             'view_count': int,
-            'tags': ['personal growth', 'equality', 'activism', 'motivation', 'social change', 'sports'],
+            'tags': 'count:6',
             'uploader': 'Candace Parker',
-            'duration': 676.0,
+            'duration': 679,
+            'thumbnail': r're:https?://pi\.tedcdn\.com/.+\.jpg',
             'upload_date': '20220114',
             'release_date': '20211201',
-            'thumbnail': r're:http.*\.jpg',
         },
     }]
 
@@ -162,7 +162,7 @@ class TedSeriesIE(TedBaseIE):
             'id': '8_2',
             'title': 'The Way We Work Season 2',
             'series': 'The Way We Work',
-            'description': 'md5:59469256e533e1a48c4aa926a382234c',
+            'description': 'md5:36678fe045f6ad7f39da80ea9370cbcd',
             'season_number': 2,
         },
         'playlist_mincount': 8,
@@ -213,7 +213,6 @@ class TedPlaylistIE(TedBaseIE):
 class TedEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://embed(?:-ssl)?\.ted\.com/'
     _EMBED_REGEX = [rf'<iframe[^>]+?src=(["\'])(?P<url>{_VALID_URL}.+?)\1']
-
     _TESTS = [{
         'url': 'https://embed.ted.com/talks/janet_stovall_how_to_get_serious_about_diversity_and_inclusion_in_the_workplace',
         'info_dict': {
@@ -222,13 +221,30 @@ class TedEmbedIE(InfoExtractor):
             'title': 'How to get serious about diversity and inclusion in the workplace',
             'description': 'md5:0978aafe396e05341f8ecc795d22189d',
             'view_count': int,
-            'tags': list,
             'uploader': 'Janet Stovall',
-            'duration': 664.0,
+            'duration': 654,
+            'tags': 'count:10',
+            'thumbnail': r're:https?://pi\.tedcdn\.com/.+\.jpg',
             'upload_date': '20180822',
             'release_date': '20180719',
-            'thumbnail': r're:http.*\.jpg',
         },
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://ideas.ted.com/6-ways-to-give-that-arent-about-money/',
+        'info_dict': {
+            'id': '123235',
+            'ext': 'mp4',
+            'title': 'It\'s time for infectious generosity. Here\'s how',
+            'description': 'md5:0f972eb2b53ad7d1385fb65f519657b4',
+            'duration': 1172,
+            'release_date': '20231128',
+            'tags': 'count:9',
+            'thumbnail': r're:https?://pi\.tedcdn\.com/.+\.jpg',
+            'upload_date': '20240109',
+            'uploader': 'Chris Anderson',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
