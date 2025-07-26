@@ -7,6 +7,8 @@ from ..utils import (
     float_or_none,
     parse_resolution,
     qualities,
+    unified_strdate,
+    update_url,
     url_or_none,
     urljoin,
 )
@@ -23,12 +25,12 @@ class AppleConnectIE(InfoExtractor):
 
     _BASE_URL = 'https://music.apple.com'
     _QUALITIES = {
-        'provisionalUploadVideo': (None, None),
-        'sdVideo': (640, 480),
-        'sdVideoWithPlusAudio': (640, 480),
-        'sd480pVideo': (720, 480),
-        '720pHdVideo': (1280, 720),
-        '1080pHdVideo': (1440, 1080),
+        'provisionalUploadVideo': None,
+        'sdVideo': 480,
+        'sdVideoWithPlusAudio': 480,
+        'sd480pVideo': 480,
+        '720pHdVideo': 720,
+        '1080pHdVideo': 1080,
     }
     _VALID_URL = r'https?://music\.apple\.com/\w{0,2}/post/(?P<id>\d+)'
     _TESTS = [{
@@ -88,27 +90,28 @@ class AppleConnectIE(InfoExtractor):
         for format_id, src_url in traverse_obj(attributes, (
             'assetTokens', {dict.items}, lambda _, v: url_or_none(v[1]),
         )):
-            formats.append({
+            height = self._QUALITIES.get(format_id)
+            fmt = {
                 'ext': 'm4v',
                 'format_id': format_id,
+                'height': height,
                 'quality': quality(format_id),
                 'url': src_url,
-                **parse_resolution(src_url),
-                **traverse_obj(self._QUALITIES, (format_id, {
-                    'height': 1,
-                    'width': 0,
-                })),
-            })
+                **parse_resolution(update_url(src_url, query=None), lenient=True),
+            }
+            if not height:
+                fmt['width'] = None
+            formats.append(fmt)
 
         return {
             'id': video_id,
             'formats': formats,
             'thumbnail': self._html_search_meta(
-                ('og:image', 'og:image:secure_url', 'twitter:image'), webpage),
+                ['og:image', 'og:image:secure_url', 'twitter:image'], webpage),
             **traverse_obj(attributes, {
                 'title': ('name', {str}),
                 'duration': ('durationInMilliseconds', {float_or_none(scale=1000)}),
-                'upload_date': ('uploadDate', {str}, {lambda x: x.replace('-', '')}),
+                'upload_date': ('uploadDate', {unified_strdate}),
                 'uploader': (('artistName', 'uploadingArtistName'), {str}, any),
                 'webpage_url': ('postUrl', {url_or_none}),
             }),
