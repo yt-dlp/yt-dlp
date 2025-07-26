@@ -256,7 +256,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('tv', 'ios', 'web')
+    _DEFAULT_CLIENTS = ('tv', 'web')
     _DEFAULT_AUTHED_CLIENTS = ('tv', 'web')
     # Premium does not require POT (except for subtitles)
     _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web')
@@ -3291,11 +3291,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             f'{video_id}: {client_name} client {proto} formats require a GVS PO Token which was not provided. '
             'They will be skipped as they may yield HTTP Error 403. '
             f'You can manually pass a GVS PO Token for this client with --extractor-args "youtube:po_token={client_name}.gvs+XXX". '
-            f'For more information, refer to  {PO_TOKEN_GUIDE_URL} . '
-            'To enable these broken formats anyway, pass --extractor-args "youtube:formats=missing_pot"')
+            f'For more information, refer to  {PO_TOKEN_GUIDE_URL}')
 
         # Only raise a warning for non-default clients, to not confuse users.
-        # iOS HLS formats still work without PO Token, so we don't need to warn about them.
         if client_name in (*self._DEFAULT_CLIENTS, *self._DEFAULT_AUTHED_CLIENTS):
             self.write_debug(msg, only_once=True)
         else:
@@ -3583,11 +3581,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if missing_pot:
                 f['format_note'] = join_nonempty(f.get('format_note'), 'MISSING POT', delim=' ')
                 f['source_preference'] -= 20
-
-            # XXX: Check if IOS HLS formats are affected by PO token enforcement; temporary
-            # See https://github.com/yt-dlp/yt-dlp/issues/13511
-            if proto == 'hls' and client_name == 'ios':
-                f['__needs_testing'] = True
 
             itags[itag].add(key)
 
@@ -4374,7 +4367,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
-            # XXX: This is redundant for as long as we are already checking all IOS HLS formats
             upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.timezone.utc)
             if upload_datetime >= datetime_from_str('today-2days'):
                 for fmt in info['formats']:
