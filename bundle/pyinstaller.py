@@ -62,7 +62,6 @@ def parse_options():
 
 def exe(onedir):
     """@returns (name, path)"""
-
     platform_name, machine, extension = {
         'win32': (None, MACHINE, '.exe'),
         'darwin': ('macos', None, None),
