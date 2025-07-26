@@ -4289,6 +4289,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'toggleButtonViewModel', 'toggleButtonViewModel', 'defaultButtonViewModel',
                 'buttonViewModel', 'accessibilityText', {parse_count}), get_all=False)
 
+            short_views_type = self._configuration_arg('short_views_type', ['engaged'])[0].lower()
+
             vcr = traverse_obj(vpir, ('viewCount', 'videoViewCountRenderer'))
             if vcr:
                 vc = self._get_count(vcr, 'viewCount')
@@ -4296,6 +4298,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if vcr.get('isLive'):
                     info['concurrent_view_count'] = vc
                 elif info.get('view_count') is None:
+                    info['view_count'] = vc
+                elif get_first(microformats, 'isShortsEligible') and short_views_type == 'seen':
                     info['view_count'] = vc
 
         vsir = get_first(contents, 'videoSecondaryInfoRenderer')
