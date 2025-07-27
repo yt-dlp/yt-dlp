@@ -10,7 +10,7 @@ import warnings
 
 from ..dependencies import brotli, requests, urllib3
 from ..utils import bug_reports_message, int_or_none, variadic
-from ..utils.networking import normalize_url
+from ..utils.networking import normalize_url, select_proxy
 
 if requests is None:
     raise ImportError('requests module is not installed')
@@ -41,7 +41,6 @@ from ._helper import (
     create_socks_proxy_socket,
     get_redirect_method,
     make_socks_proxy_opts,
-    select_proxy,
 )
 from .common import (
     Features,
@@ -141,6 +140,12 @@ class RequestsResponseAdapter(Response):
 
     def read(self, amt: int | None = None):
         try:
+            # Work around issue with `.read(amt)` then `.read()`
+            # See: https://github.com/urllib3/urllib3/issues/3636
+            if amt is None:
+                # Python 3.9 preallocates the whole read buffer, read in chunks
+                read_chunk = functools.partial(self.fp.read, 1 << 20, decode_content=True)
+                return b''.join(iter(read_chunk, b''))
             # Interact with urllib3 response directly.
             return self.fp.read(amt, decode_content=True)
 
@@ -308,7 +313,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
             max_retries=urllib3.util.retry.Retry(False),
         )
         session.adapters.clear()
-        session.headers = requests.models.CaseInsensitiveDict({'Connection': 'keep-alive'})
+        session.headers = requests.models.CaseInsensitiveDict()
         session.mount('https://', http_adapter)
         session.mount('http://', http_adapter)
         session.cookies = cookiejar
@@ -317,6 +322,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
     def _prepare_headers(self, _, headers):
         add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
+        headers.setdefault('Connection', 'keep-alive')
 
     def _send(self, request):
 

@@ -365,13 +365,15 @@ mutation initPlaybackSession(
                 'All videos are only available to registered users', method='password')
 
     def _set_device_id(self, username):
-        if not self._device_id:
-            self._device_id = self.cache.load(
-                self._NETRC_MACHINE, 'device_ids', default={}).get(username)
+        if self._device_id:
+            return
+        device_id_cache = self.cache.load(self._NETRC_MACHINE, 'device_ids', default={})
+        self._device_id = device_id_cache.get(username)
         if self._device_id:
             return
         self._device_id = str(uuid.uuid4())
-        self.cache.store(self._NETRC_MACHINE, 'device_ids', {username: self._device_id})
+        device_id_cache[username] = self._device_id
+        self.cache.store(self._NETRC_MACHINE, 'device_ids', device_id_cache)
 
     def _perform_login(self, username, password):
         try:
@@ -455,12 +457,9 @@ mutation initPlaybackSession(
                 self.report_warning(f'No formats available for {format_id} broadcast; skipping')
             return [], {}
 
-        cdn_headers = {'x-cdn-token': token}
         fmts, subs = self._extract_m3u8_formats_and_subtitles(
-            m3u8_url.replace(f'/{token}/', '/'), video_id, 'mp4',
-            m3u8_id=format_id, fatal=False, headers=cdn_headers)
+            m3u8_url, video_id, 'mp4', m3u8_id=format_id, fatal=False)
         for fmt in fmts:
-            fmt['http_headers'] = cdn_headers
             fmt.setdefault('format_note', join_nonempty(feed, medium, delim=' '))
             fmt.setdefault('language', language)
             if fmt.get('vcodec') == 'none' and fmt['language'] == 'en':

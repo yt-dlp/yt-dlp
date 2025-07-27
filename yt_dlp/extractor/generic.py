@@ -16,7 +16,6 @@ from ..utils import (
     MEDIA_EXTENSIONS,
     ExtractorError,
     UnsupportedError,
-    base_url,
     determine_ext,
     determine_protocol,
     dict_get,
@@ -38,6 +37,7 @@ from ..utils import (
     unescapeHTML,
     unified_timestamp,
     unsmuggle_url,
+    update_url,
     update_url_query,
     url_or_none,
     urlhandle_detect_ext,
@@ -1482,30 +1482,6 @@ class GenericIE(InfoExtractor):
             'add_ie': ['SenateISVP'],
         },
         {
-            # Limelight embeds (1 channel embed + 4 media embeds)
-            'url': 'http://www.sedona.com/FacilitatorTraining2017',
-            'info_dict': {
-                'id': 'FacilitatorTraining2017',
-                'title': 'Facilitator Training 2017',
-            },
-            'playlist_mincount': 5,
-        },
-        {
-            # Limelight embed (LimelightPlayerUtil.embed)
-            'url': 'https://tv5.ca/videos?v=xuu8qowr291ri',
-            'info_dict': {
-                'id': '95d035dc5c8a401588e9c0e6bd1e9c92',
-                'ext': 'mp4',
-                'title': '07448641',
-                'timestamp': 1499890639,
-                'upload_date': '20170712',
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'add_ie': ['LimelightMedia'],
-        },
-        {
             'url': 'http://kron4.com/2017/04/28/standoff-with-walnut-creek-murder-suspect-ends-with-arrest/',
             'info_dict': {
                 'id': 'standoff-with-walnut-creek-murder-suspect-ends-with-arrest',
@@ -2538,12 +2514,13 @@ class GenericIE(InfoExtractor):
                 return self.playlist_result(
                     self._parse_xspf(
                         doc, video_id, xspf_url=url,
-                        xspf_base_url=full_response.url),
+                        xspf_base_url=new_url),
                     video_id)
             elif re.match(r'(?i)^(?:{[^}]+})?MPD$', doc.tag):
                 info_dict['formats'], info_dict['subtitles'] = self._parse_mpd_formats_and_subtitles(
                     doc,
-                    mpd_base_url=base_url(full_response.url),
+                    # Do not use yt_dlp.utils.base_url here since it will raise on file:// URLs
+                    mpd_base_url=update_url(new_url, query=None, fragment=None).rpartition('/')[0],
                     mpd_url=url)
                 info_dict['live_status'] = 'is_live' if doc.get('type') == 'dynamic' else None
                 self._extra_manifest_info(info_dict, url)

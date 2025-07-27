@@ -1,4 +1,3 @@
-import json
 import re
 import urllib.parse
 
@@ -19,7 +18,11 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import (
+    find_element,
+    get_first,
+    traverse_obj,
+)
 
 
 class FranceTVBaseInfoExtractor(InfoExtractor):
@@ -121,9 +124,10 @@ class FranceTVIE(InfoExtractor):
             elif code := traverse_obj(dinfo, ('code', {int})):
                 if code == 2009:
                     self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
-                elif code in (2015, 2017):
+                elif code in (2015, 2017, 2019):
                     # 2015: L'accès à cette vidéo est impossible. (DRM-only)
                     # 2017: Cette vidéo n'est pas disponible depuis le site web mobile (b/c DRM)
+                    # 2019: L'accès à cette vidéo est incompatible avec votre configuration. (DRM-only)
                     drm_formats = True
                     continue
                 self.report_warning(
@@ -258,7 +262,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
     _TESTS = [{
         'url': 'https://www.france.tv/france-2/13h15-le-dimanche/140921-les-mysteres-de-jesus.html',
         'info_dict': {
-            'id': 'ec217ecc-0733-48cf-ac06-af1347b849d1',  # old: c5bda21d-2c6f-4470-8849-3d8327adb2ba'
+            'id': 'b2cf9fd8-e971-4757-8651-848f2772df61',  # old: ec217ecc-0733-48cf-ac06-af1347b849d1
             'ext': 'mp4',
             'title': '13h15, le dimanche... - Les mystères de Jésus',
             'timestamp': 1502623500,
@@ -269,7 +273,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
         'params': {
             'skip_download': True,
         },
-        'add_ie': [FranceTVIE.ie_key()],
+        'skip': 'Unfortunately, this video is no longer available',
     }, {
         # geo-restricted
         'url': 'https://www.france.tv/enfants/six-huit-ans/foot2rue/saison-1/3066387-duel-au-vieux-port.html',
@@ -287,7 +291,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 1441,
         },
-        'skip': 'No longer available',
+        'skip': 'Unfortunately, this video is no longer available',
     }, {
         # geo-restricted livestream (workflow == 'token-akamai')
         'url': 'https://www.france.tv/france-4/direct.html',
@@ -308,6 +312,19 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'live_status': 'is_live',
         },
         'params': {'skip_download': 'livestream'},
+    }, {
+        # Not geo-restricted
+        'url': 'https://www.france.tv/france-2/la-maison-des-maternelles/5574051-nous-sommes-amis-et-nous-avons-fait-un-enfant-ensemble.html',
+        'info_dict': {
+            'id': 'b448bfe4-9fe7-11ee-97d8-2ba3426fa3df',
+            'ext': 'mp4',
+            'title': 'Nous sommes amis et nous avons fait un enfant ensemble - Émission du jeudi 21 décembre 2023',
+            'duration': 1065,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'timestamp': 1703147921,
+            'upload_date': '20231221',
+        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # france3
         'url': 'https://www.france.tv/france-3/des-chiffres-et-des-lettres/139063-emission-du-mardi-9-mai-2017.html',
@@ -342,30 +359,16 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
         'only_matching': True,
     }]
 
-    # XXX: For parsing next.js v15+ data; see also yt_dlp.extractor.goplay
-    def _find_json(self, s):
-        return self._search_json(
-            r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=None)
-
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
+        nextjs_data = self._search_nextjs_v13_data(webpage, display_id)
 
-        nextjs_data = traverse_obj(
-            re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
-            (..., {json.loads}, ..., {self._find_json}, ..., 'children', ..., ..., 'children', ..., ..., 'children'))
-
-        if traverse_obj(nextjs_data, (..., ..., 'children', ..., 'isLive', {bool}, any)):
+        if get_first(nextjs_data, ('isLive', {bool})):
             # For livestreams we need the id of the stream instead of the currently airing episode id
-            video_id = traverse_obj(nextjs_data, (
-                ..., ..., 'children', ..., 'children', ..., 'children', ..., 'children', ..., ...,
-                'children', ..., ..., 'children', ..., ..., 'children', (..., (..., ...)),
-                'options', 'id', {str}, any))
+            video_id = get_first(nextjs_data, ('options', 'id', {str}))
         else:
-            video_id = traverse_obj(nextjs_data, (
-                ..., ..., ..., 'children',
-                lambda _, v: v['video']['url'] == urllib.parse.urlparse(url).path,
-                'video', ('playerReplayId', 'siId'), {str}, any))
+            video_id = get_first(nextjs_data, ('video', ('playerReplayId', 'siId'), {str}))
 
         if not video_id:
             raise ExtractorError('Unable to extract video ID')
