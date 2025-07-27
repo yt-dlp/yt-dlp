@@ -376,50 +376,53 @@ class RTVETelevisionIE(InfoExtractor):
 class RTVEProgramIE(RTVEBaseIE):
     IE_NAME = 'rtve.es:program'
     IE_DESC = 'RTVE.es program'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/play/videos/(?P<program_slug>[a-z\d_-]+)/?$'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/play/videos/(?P<id>[\w-]+)/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://www.rtve.es/play/videos/saber-vivir/',
+        'info_dict': {
+            'id': '111570',
+            'title': 'Saber vivir - Programa de ciencia y futuro en RTVE Play',
+        },
+        'playlist_mincount': 400,
+    }]
 
-    def _real_extract(self, url):
-        entries = []
-
-        program_slug = self._match_valid_url(url).group('program_slug')
-        program_page = self._download_webpage(url, program_slug, f'Downloading {program_slug} web page')
-
-        playlist_title = self._html_extract_title(program_page)
-        program_id = self._html_search_meta('DC.identifier', program_page)
-
-        if program_id:
-            total_page_count = 1
-            current_page = 1
-            while current_page <= total_page_count:
-                params = {
+    def _entries(self, program_id):
+        total_page_count = 1
+        current_page = 1
+        while current_page <= total_page_count:
+            videos_data = self._download_json(
+                f'https://www.rtve.es/api/programas/{program_id}/videos',
+                program_id, note=f'Downloading page {current_page}',
+                query={
                     'type': 39816,
                     'page': current_page,
                     'size': 60,
-                }
-                videos_data = self._download_json(
-                    f'https://www.rtve.es/api/programas/{program_id}/videos?{urllib.parse.urlencode(params)}',
-                    program_slug,
-                )
-                current_page += 1
-                total_page_count = traverse_obj(videos_data, ('page', 'totalPages'), default=1)
-                entries.extend(
-                    {
-                        '_type': 'url_transparent',
-                        **traverse_obj(video, {
-                            'url': ('htmlUrl', {url_or_none}),
-                            'id': ('id', {str.strip}),
-                            'title': ('longTitle', {str.strip}),
-                            'description': ('shortDescription', {str.strip}),
-                            'duration': ('duration', {float_or_none(scale=1000)}),
-                            'series': (('programInfo', 'title'), {str.strip}),
-                            'season_number': ('temporadaOrden', {int}),
-                            'season_id': ('temporadaId', {str.strip}),
-                            'season': ('temporada', {str.strip}),
-                            'episode_number': ('episode', {int}),
-                            'episode': ('title', {str.strip}),
-                            'thumbnail': ('thumbnail', {url_or_none}),
-                        }),
-                    } for video in traverse_obj(videos_data, ('page', 'items'))
+                })
+            current_page += 1
+            total_page_count = traverse_obj(videos_data, ('page', 'totalPages', {int})) or 1
+            for video in traverse_obj(videos_data, ('page', 'items', lambda _, v: url_or_none(v['htmlUrl']))):
+                yield self.url_result(
+                    video['htmlUrl'], RTVEALaCartaIE, url_transparent=True,
+                    **traverse_obj(video, {
+                        'id': ('id', {str}),
+                        'title': ('longTitle', {str}),
+                        'description': ('shortDescription', {str}),
+                        'duration': ('duration', {float_or_none(scale=1000)}),
+                        'series': (('programInfo', 'title'), {str}, any),
+                        'season_number': ('temporadaOrden', {int}),
+                        'season_id': ('temporadaId', {str}),
+                        'season': ('temporada', {str}),
+                        'episode_number': ('episode', {int}),
+                        'episode': ('title', {str}),
+                        'thumbnail': ('thumbnail', {url_or_none}),
+                    }),
                 )
 
-        return self.playlist_result(entries, program_slug, playlist_title)
+    def _real_extract(self, url):
+        program_slug = self._match_id(url)
+        program_page = self._download_webpage(url, program_slug)
+
+        program_id = self._html_search_meta('DC.identifier', program_page, 'Program ID', fatal=False)
+
+        return self.playlist_result(
+            self._entries(program_id), program_id, self._html_extract_title(program_page))
