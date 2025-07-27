@@ -16,6 +16,7 @@ class ApplePodcastsBaseIE(InfoExtractor):
     _BASE_HTML_JSON_LOCATION = r'<script [^>]*\bid=["\']serialized-server-data["\'][^>]*>'
     _BASE_HTML_JSON_PATTERN = r'\[{(?s:.+)}\]'
 
+
 class ApplePodcastsIE(ApplePodcastsBaseIE):
     _VALID_URL = ApplePodcastsBaseIE._BASE_URL_REGEX + r'.*?\bi=(?P<id>\d+)'
     _TESTS = [{
@@ -85,6 +86,7 @@ class ApplePodcastsIE(ApplePodcastsBaseIE):
             'vcodec': 'none',
         }
 
+
 class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
     # Apple podcast items are partially described in the embedded json from main page (last episodes only) therefore API calls are mandatory to get a full list
 
@@ -144,13 +146,13 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
     def _unpaginate_episodes(self, playlist_id, token):
         base_url = 'https://amp-api.podcasts.apple.com/v1/catalog/fr/podcasts/'
         headers = {
-                  'Authorization': f'Bearer {token}',
-                  'Origin': 'https://podcasts.apple.com',
+            'Authorization': f'Bearer {token}',
+            'Origin': 'https://podcasts.apple.com',
         }
 
         all_episodes = []
         offset = 0
-        limit = 25 # Limit in use by website but other values seem to be accepted
+        limit = 25  # Limit in use by website but other values seem to be accepted
 
         while True:
             episodes_url = f'{base_url}{playlist_id}/episodes?l=fr-FR&offset={offset}&limit={limit}'
@@ -162,7 +164,6 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
 
         return all_episodes
 
-
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
         webpage = self._download_webpage(url, playlist_id)
@@ -170,23 +171,23 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
             ApplePodcastsBaseIE._BASE_HTML_JSON_LOCATION, webpage,
             'server data', playlist_id, contains_pattern=ApplePodcastsBaseIE._BASE_HTML_JSON_PATTERN)[0]['data']
         playlist_data = traverse_obj(server_data,
-                (..., lambda _, v: v.get('contentType') == 'showHeaderRegular', 'items', 0),
-                expected_type=dict, get_all=False)
+                                     (..., lambda _, v: v.get('contentType') == 'showHeaderRegular', 'items', 0),
+                                     expected_type=dict, get_all=False)
 
         entries = []
         for e in self._unpaginate_episodes(playlist_id, self._extract_token(webpage)):
             episode_data = traverse_obj(e, {
-                                           'id': ('id', {str}),
-                                           'title': ('attributes', 'name', {str}),
-                                           'uploader': ('attributes', 'artistName', {str}),
-                                           'description': ('attributes', 'description', 'standard', {str}),
-                                           'url': ('attributes', 'url', {clean_podcast_url}),
-                                           'release_timestamp': ('attributes', 'releaseDateTime', {parse_iso8601}),
-                                           'duration': ('attributes', 'durationInMilliseconds', {lambda x: int(x) // 1000}),
-                                           'thumbnail_template': ('artwork', 'url', {str}),
-                                           'thumb_width': ('artwork', 'width', {int}),
-                                           'thumb_height': ('artwork', 'height', {int}),
-                           })
+                'id': ('id', {str}),
+                'title': ('attributes', 'name', {str}),
+                'uploader': ('attributes', 'artistName', {str}),
+                'description': ('attributes', 'description', 'standard', {str}),
+                'url': ('attributes', 'url', {clean_podcast_url}),
+                'release_timestamp': ('attributes', 'releaseDateTime', {parse_iso8601}),
+                'duration': ('attributes', 'durationInMilliseconds', {lambda x: int(x) // 1000}),
+                'thumbnail_template': ('artwork', 'url', {str}),
+                'thumb_width': ('artwork', 'width', {int}),
+                'thumb_height': ('artwork', 'height', {int}),
+            })
 
             if not episode_data.get('url'):
                 continue
@@ -195,12 +196,12 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
                            '_type': 'url',
                            'ie_key': 'ApplePodcasts',
                            **episode_data,
-            })
+                           })
 
         return self.playlist_result(entries,
                                     playlist_id,
                                     **traverse_obj(playlist_data, {
-                                                                  'playlist_title': ('title', {str}),
-                                                                  'playlist_description': ('description', {str}),
-                                                                  'playlist_uploader': ('providerTitle', {str}),
+                                        'playlist_title': ('title', {str}),
+                                        'playlist_description': ('description', {str}),
+                                        'playlist_uploader': ('providerTitle', {str}),
                                     }))
