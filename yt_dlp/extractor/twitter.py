@@ -1853,8 +1853,8 @@ class TwitterSpacesIE(TwitterBaseIE):
             is_audio_space = source and 'audio-space' in source
             formats = self._extract_m3u8_formats(
                 source, metadata['media_key'], 'm4a' if is_audio_space else 'mp4',
-                # XXX: Some audio-only Spaces need ffmpeg as downloader
-                entry_protocol='m3u8' if is_audio_space else 'm3u8_native',
+                # XXX: Some audio-only Spaces need to truncate heads of their fragments, not only ffmpeg as downloader
+                entry_protocol='twitter_spaces' if is_audio_space else 'm3u8_native',
                 live=is_live, headers=headers, fatal=False) if source else []
             if is_audio_space:
                 for fmt in formats:
