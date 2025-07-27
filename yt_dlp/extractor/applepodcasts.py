@@ -1,11 +1,11 @@
 import re
-from urllib.parse import urljoin
 
 from .common import InfoExtractor
 from ..utils import (
     clean_podcast_url,
     int_or_none,
     parse_iso8601,
+    urljoin,
 )
 from ..utils.traversal import traverse_obj
 
