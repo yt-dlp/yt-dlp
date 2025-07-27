@@ -2,6 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_podcast_url,
     int_or_none,
     parse_iso8601,
