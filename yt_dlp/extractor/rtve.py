@@ -6,6 +6,7 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    InAdvancePagedList,
     clean_html,
     determine_ext,
     float_or_none,
@@ -385,38 +386,36 @@ class RTVEProgramIE(RTVEBaseIE):
         },
         'playlist_mincount': 400,
     }]
+    _PAGE_SIZE = 60
 
-    def _entries(self, program_id):
-        total_page_count = 1
-        current_page = 1
-        while current_page <= total_page_count:
-            videos_data = self._download_json(
-                f'https://www.rtve.es/api/programas/{program_id}/videos',
-                program_id, note=f'Downloading page {current_page}',
-                query={
-                    'type': 39816,
-                    'page': current_page,
-                    'size': 60,
-                })
-            current_page += 1
-            total_page_count = traverse_obj(videos_data, ('page', 'totalPages', {int})) or 1
-            for video in traverse_obj(videos_data, ('page', 'items', lambda _, v: url_or_none(v['htmlUrl']))):
-                yield self.url_result(
-                    video['htmlUrl'], RTVEALaCartaIE, url_transparent=True,
-                    **traverse_obj(video, {
-                        'id': ('id', {str}),
-                        'title': ('longTitle', {str}),
-                        'description': ('shortDescription', {str}),
-                        'duration': ('duration', {float_or_none(scale=1000)}),
-                        'series': (('programInfo', 'title'), {str}, any),
-                        'season_number': ('temporadaOrden', {int}),
-                        'season_id': ('temporadaId', {str}),
-                        'season': ('temporada', {str}),
-                        'episode_number': ('episode', {int}),
-                        'episode': ('title', {str}),
-                        'thumbnail': ('thumbnail', {url_or_none}),
-                    }),
-                )
+    def _fetch_page(self, program_id, page_num):
+        return self._download_json(
+            f'https://www.rtve.es/api/programas/{program_id}/videos',
+            program_id, note=f'Downloading page {page_num}',
+            query={
+                'type': 39816,
+                'page': page_num,
+                'size': 60,
+            })
+
+    def _entries(self, page_data):
+        for video in traverse_obj(page_data, ('page', 'items', lambda _, v: url_or_none(v['htmlUrl']))):
+            yield self.url_result(
+                video['htmlUrl'], RTVEALaCartaIE, url_transparent=True,
+                **traverse_obj(video, {
+                    'id': ('id', {str}),
+                    'title': ('longTitle', {str}),
+                    'description': ('shortDescription', {str}),
+                    'duration': ('duration', {float_or_none(scale=1000)}),
+                    'series': (('programInfo', 'title'), {str}, any),
+                    'season_number': ('temporadaOrden', {int}),
+                    'season_id': ('temporadaId', {str}),
+                    'season': ('temporada', {str}),
+                    'episode_number': ('episode', {int}),
+                    'episode': ('title', {str}),
+                    'thumbnail': ('thumbnail', {url_or_none}),
+                }),
+            )
 
     def _real_extract(self, url):
         program_slug = self._match_id(url)
@@ -424,5 +423,11 @@ class RTVEProgramIE(RTVEBaseIE):
 
         program_id = self._html_search_meta('DC.identifier', program_page, 'Program ID', fatal=True)
 
-        return self.playlist_result(
-            self._entries(program_id), program_id, self._html_extract_title(program_page))
+        first_page = self._fetch_page(program_id, 1)
+        page_count = traverse_obj(first_page, ('page', 'totalPages', {int})) or 1
+
+        entries = InAdvancePagedList(
+            lambda idx: self._entries(self._fetch_page(program_id, idx + 1) if idx else first_page),
+            page_count, self._PAGE_SIZE)
+
+        return self.playlist_result(entries, program_id, self._html_extract_title(program_page))
