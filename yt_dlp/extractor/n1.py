@@ -187,8 +187,6 @@ class N1InfoIIE(InfoExtractor):
                 entries.append(self.url_result(url, ie='Reddit'))
             elif url.startswith('https://www.facebook.com'):
                 entries.append(self.url_result(url, ie='FacebookPluginsVideo'))
-            elif url.startswith('https://www.twitter.com') or url.startswith('https://www.x.com'):
-                entries.append(self.url_result(url, ie='TwitterBase'))
 
         return {
             '_type': 'playlist',
