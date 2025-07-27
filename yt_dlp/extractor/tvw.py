@@ -84,9 +84,9 @@ class TvwIE(InfoExtractor):
         'info_dict': {
             'id': '2025041235',
             'ext': 'mp4',
-            'title': 'Legislative Review -- April 18',
+            'title': 'Legislative Review - Medicaid Postpartum Bill Sparks Debate & Senate Approves Automatic Voter Registration',
             'thumbnail': r're:^https?://.*\.(?:jpe?g|png)$',
-            'description': 'Legislative Review features highlights from Friday\'s legislative activity (4/18/25).',
+            'description': 'md5:37d0f3a9187ae520aac261b3959eaee6',
             'timestamp': 1745006400,
             'upload_date': '20250418',
             'location': 'Hayner Media Center',
