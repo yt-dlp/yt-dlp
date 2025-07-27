@@ -131,7 +131,7 @@ from .aol import AolIE
 from .apa import APAIE
 from .aparat import AparatIE
 from .appleconnect import AppleConnectIE
-from .applepodcasts import ApplePodcastsIE
+from .applepodcasts import ApplePodcastsIE, ApplePodcastsPlaylistIE
 from .appletrailers import (
     AppleTrailersIE,
     AppleTrailersSectionIE,
