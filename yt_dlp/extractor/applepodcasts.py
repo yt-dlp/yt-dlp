@@ -83,10 +83,9 @@ class ApplePodcastsIE(ApplePodcastsBaseIE):
         }
 
 class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
-    # Apple podcast items are partially described (last episodes only) in the embedded json from main page therefore API calls are mandatory to get a full list
+    # Apple podcast items are partially described in the embedded json from main page (last episodes only) therefore API calls are mandatory to get a full list
 
     _VALID_URL = ApplePodcastsBaseIE._BASE_URL_REGEX + r'/id(?P<id>\d+)'
-
     _TESTS = [{
         'url': 'https://podcasts.apple.com/fr/podcast/id1691740320',
         'info_dict': {
@@ -95,27 +94,27 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
             'playlist_uploader': 'Guillaume Pley'
         },
         'playlist_mincount': 400,
-            'playlist_entries': [
-                {
-                    'id': '1000718966711',
-                    'title': 'MICHAEL YOUN : LES MOMENTS LES PLUS FOUS DE SES 25 ANS DE CARRIÈRE (MORNING LIVE, FATAL 2…)',
-                    'uploader': 'Guillaume Pley',
-                    'description': "Retrouvez la boutique LEGEND ➡️: https://shop.legend-group.fr/\nMerci à Michaël Youn d'être venu nous voir sur LEGEND. Il est venu nous raconter plus de 25 ans de carrière, en tant qu’acteur, réalisateur et artiste. Il a été révélé par l'émission Morning Live sur M6, il nous a livré les anecdotes les plus folles qu’il a vécues à cette époque. Il est aussi venu nous raconter comment il a rencontré sa femme et ce que ses enfants ont changé dans sa vie.\nPour voir la bande annonce du film « Certains l’aiment chauve » déjà disponible au cinéma ➡️ https://www.allocine.fr/film/fichefilm_gen_cfilm=1000007354.html\nRetrouvez l'interview complète sur YouTube ➡️ https://youtu.be/_TXBz1dSfBw\nPour toutes demandes de partenariats : legend@influxcrew.com\nRetrouvez-nous sur tous les réseaux LEGEND !\nFacebook : https://www.facebook.com/legendmediafr\nInstagram : https://www.instagram.com/legendmedia/\nTikTok : https://www.tiktok.com/@legend\nTwitter : https://twitter.com/legendmediafr\nSnapchat : https://t.snapchat.com/CgEvsbWV\n Hébergé par Acast. Visitez acast.com/privacy pour plus d'informations.",
-                    'release_timestamp': 1753434168,
-                    'duration': 6856,
-                    'url': 'https://podcasts.apple.com/fr/podcast/michael-youn-les-moments-les-plus-fous-de-ses-25-ans/id1691740320?i=1000718966711'
-                },
-                {
-                    'id': '1000718672235',
-                    'title': 'AMBULANCIER DU SAMU: SES INTERVENTIONS IMPROBABLES (SUIC*DES, FAUX MALADES, ENFANTS DR0GUÉS)',
-                    'uploader': 'Guillaume Pley',
-                    'description': "Retrouvez la boutique LEGEND ➡️: https://shop.legend-group.fr/\nMerci à Thomas d’être passé nous voir chez LEGEND ! Thomas est ambulancier et urgentiste au SMUR depuis 10 ans. Il est venu partager avec nous ses anecdotes les plus marquantes.\nIl a vécu des interventions difficiles, comme sur une scène de crime où une mère avait tué ses deux enfants, ou encore ce jour où il a pris en charge une victime coupée en deux par un hachoir.\nMais son métier, c’est aussi des moments plus légers, parfois même drôles, comme cette fois où il a dû intervenir sur le tournage d’un film X pour secourir des acteurs.\nPour toutes demandes de partenariats : legend@influxcrew.com\nRetrouvez-nous sur tous les réseaux LEGEND !\nRetrouvez l'interview complète sur YouTube ➡️ https://youtu.be/ye5cVoc7hIc\nFacebook : https://www.facebook.com/legendmediafr\nInstagram : https://www.instagram.com/legendmedia/\nTikTok : https://www.tiktok.com/@legend\nTwitter : https://twitter.com/legendmediafr\nSnapchat : https://t.snapchat.com/CgEvsbWV\n Hébergé par Acast. Visitez acast.com/privacy pour plus d'informations.",
-                    'release_timestamp': 1753272000,
-                    'duration': 4165,
-                    'url': 'https://podcasts.apple.com/fr/podcast/ambulancier-du-samu-ses-interventions-improbables-suic/id1691740320?i=1000718672235'
-                }
-            ]
-        }]
+        'playlist_entries': [
+            {
+                'id': '1000718966711',
+                'title': 'MICHAEL YOUN : LES MOMENTS LES PLUS FOUS DE SES 25 ANS DE CARRIÈRE (MORNING LIVE, FATAL 2…)',
+                'uploader': 'Guillaume Pley',
+                'description': 'Retrouvez la boutique LEGEND ➡️: https://shop.legend-group.fr/\nMerci à Michaël Youn d\'être venu nous voir sur LEGEND. Il est venu nous raconter plus de 25 ans de carrière, en tant qu’acteur, réalisateur et artiste. Il a été révélé par l\'émission Morning Live sur M6, il nous a livré les anecdotes les plus folles qu’il a vécues à cette époque. Il est aussi venu nous raconter comment il a rencontré sa femme et ce que ses enfants ont changé dans sa vie.\nPour voir la bande annonce du film « Certains l’aiment chauve » déjà disponible au cinéma ➡️ https://www.allocine.fr/film/fichefilm_gen_cfilm=1000007354.html\nRetrouvez l\'interview complète sur YouTube ➡️ https://youtu.be/_TXBz1dSfBw\nPour toutes demandes de partenariats : legend@influxcrew.com\nRetrouvez-nous sur tous les réseaux LEGEND !\nFacebook : https://www.facebook.com/legendmediafr\nInstagram : https://www.instagram.com/legendmedia/\nTikTok : https://www.tiktok.com/@legend\nTwitter : https://twitter.com/legendmediafr\nSnapchat : https://t.snapchat.com/CgEvsbWV\n Hébergé par Acast. Visitez acast.com/privacy pour plus d\'informations.',
+                'release_timestamp': 1753434168,
+                'duration': 6856,
+                'url': 'https://podcasts.apple.com/fr/podcast/michael-youn-les-moments-les-plus-fous-de-ses-25-ans/id1691740320?i=1000718966711'
+            },
+            {
+                'id': '1000718672235',
+                'title': 'AMBULANCIER DU SAMU: SES INTERVENTIONS IMPROBABLES (SUIC*DES, FAUX MALADES, ENFANTS DR0GUÉS)',
+                'uploader': 'Guillaume Pley',
+                'description': 'Retrouvez la boutique LEGEND ➡️: https://shop.legend-group.fr/\nMerci à Thomas d’être passé nous voir chez LEGEND ! Thomas est ambulancier et urgentiste au SMUR depuis 10 ans. Il est venu partager avec nous ses anecdotes les plus marquantes.\nIl a vécu des interventions difficiles, comme sur une scène de crime où une mère avait tué ses deux enfants, ou encore ce jour où il a pris en charge une victime coupée en deux par un hachoir.\nMais son métier, c’est aussi des moments plus légers, parfois même drôles, comme cette fois où il a dû intervenir sur le tournage d’un film X pour secourir des acteurs.\nPour toutes demandes de partenariats : legend@influxcrew.com\nRetrouvez-nous sur tous les réseaux LEGEND !\nRetrouvez l\'interview complète sur YouTube ➡️ https://youtu.be/ye5cVoc7hIc\nFacebook : https://www.facebook.com/legendmediafr\nInstagram : https://www.instagram.com/legendmedia/\nTikTok : https://www.tiktok.com/@legend\nTwitter : https://twitter.com/legendmediafr\nSnapchat : https://t.snapchat.com/CgEvsbWV\n Hébergé par Acast. Visitez acast.com/privacy pour plus d\'informations.',
+                'release_timestamp': 1753272000,
+                'duration': 4165,
+                'url': 'https://podcasts.apple.com/fr/podcast/ambulancier-du-samu-ses-interventions-improbables-suic/id1691740320?i=1000718672235'
+            }
+        ]
+    }]
 
     # Extract token (supposedly JWT) from javascript
     # Note: javascript file number/names and token variable name may change
@@ -125,7 +124,7 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
 
         auth_token = None
         for js_url in js_urls:
-            js_code = self._download_webpage(js_url, 'Generic authentification token', fatal=False, note=f'Scanning {js_url}')
+            js_code = self._download_webpage(js_url, 'Generic authorization token', fatal=False, note=f'Scanning {js_url}')
             if not js_code:
                 continue
             match = re.search(r'const\s+Ml\s*=\s*"((?:eyJ)[^"]+)"', js_code)
@@ -139,11 +138,11 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
         return auth_token
 
     # Call backend API pages and merge them as a single list
-    def _paginate_episodes(self, playlist_id, token):
+    def _unpaginate_episodes(self, playlist_id, token):
         base_url = 'https://amp-api.podcasts.apple.com/v1/catalog/fr/podcasts/'
         headers = {
-            'Authorization': f'Bearer {token}',
-            'Origin': 'https://podcasts.apple.com'
+                  'Authorization': f'Bearer {token}',
+                  'Origin': 'https://podcasts.apple.com'
         }
 
         all_episodes = []
@@ -151,10 +150,7 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
         limit = 25 # Limit in use by website but other values seem to be accepted
 
         while True:
-            episodes_url = (
-                f'{base_url}{playlist_id}/episodes?'
-                f'l=fr-FR&offset={offset}&limit={limit}'
-            )
+            episodes_url = f'{base_url}{playlist_id}/episodes?l=fr-FR&offset={offset}&limit={limit}'
             episodes_json = self._download_json(episodes_url, playlist_id, headers=headers, note=f'Downloading episodes offset {offset}')
             all_episodes.extend(episodes_json.get('data', []))
             if 'next' not in episodes_json:
@@ -174,38 +170,34 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
                 (..., lambda _, v: v.get('contentType') == 'showHeaderRegular', 'items', 0),
                 expected_type=dict, get_all=False)
 
-        token = self._extract_token(webpage)
-        episodes = self._paginate_episodes(playlist_id, token)
-
         entries = []
-        for e in episodes:
+        for e in self._unpaginate_episodes(playlist_id, self._extract_token(webpage)):
             episode_data = traverse_obj(e, {
-                'id': ('id', {str}),
-                'title': ('attributes', 'name', {str}),
-                'uploader': ('attributes', 'artistName', {str}),
-                'description': ('attributes', 'description', 'standard', {str}),
-                'url': ('attributes', 'url', {clean_podcast_url}),
-                'release_timestamp': ('attributes', 'releaseDateTime', {parse_iso8601}),
-                'duration': ('attributes', 'durationInMilliseconds', {lambda x: int(x) // 1000}),
-                'thumbnail_template': ('artwork', 'url', {str}),
-                'thumb_width': ('artwork', 'width', {int}),
-                'thumb_height': ('artwork', 'height', {int}),
-            })
+                                           'id': ('id', {str}),
+                                           'title': ('attributes', 'name', {str}),
+                                           'uploader': ('attributes', 'artistName', {str}),
+                                           'description': ('attributes', 'description', 'standard', {str}),
+                                           'url': ('attributes', 'url', {clean_podcast_url}),
+                                           'release_timestamp': ('attributes', 'releaseDateTime', {parse_iso8601}),
+                                           'duration': ('attributes', 'durationInMilliseconds', {lambda x: int(x) // 1000}),
+                                           'thumbnail_template': ('artwork', 'url', {str}),
+                                           'thumb_width': ('artwork', 'width', {int}),
+                                           'thumb_height': ('artwork', 'height', {int}),
+                           })
 
             if not episode_data.get('url'):
                 continue
 
             entries.append({
-                '_type': 'url',
-                'ie_key': 'ApplePodcasts',
-                **episode_data,
+                           '_type': 'url',
+                           'ie_key': 'ApplePodcasts',
+                           **episode_data,
             })
 
         return self.playlist_result(entries,
                                     playlist_id,
                                     **traverse_obj(playlist_data, {
-                                        'playlist_title': ('title', {str}),
-                                        'playlist_description': ('description', {str}),
-                                        'playlist_uploader': ('providerTitle', {str}),
-                                    })
-               )
+                                                                  'playlist_title': ('title', {str}),
+                                                                  'playlist_description': ('description', {str}),
+                                                                  'playlist_uploader': ('providerTitle', {str}),
+                                    }))
