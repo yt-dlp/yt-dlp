@@ -12,7 +12,7 @@ from ..utils.traversal import traverse_obj
 
 
 class ApplePodcastsBaseIE(InfoExtractor):
-    _BASE_URL_REGEX = r'https?://podcasts\.apple\.com/(?:[^/]+/)?podcast(?:/[^/]+){1,2}'
+    _BASE_URL_REGEX = r'https?://podcasts\.apple\.com/(?:[^/]+/)?podcast(?:/[^/]+)?'
     _BASE_HTML_JSON_LOCATION = r'<script [^>]*\bid=["\']serialized-server-data["\'][^>]*>'
     _BASE_HTML_JSON_PATTERN = r'\[{(?s:.+)}\]'
 
@@ -90,7 +90,7 @@ class ApplePodcastsIE(ApplePodcastsBaseIE):
 class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
     # Apple podcast items are partially described in the embedded json from main page (last episodes only) therefore API calls are mandatory to get a full list
 
-    _VALID_URL = ApplePodcastsBaseIE._BASE_URL_REGEX + r'/id(?P<id>\d+)'
+    _VALID_URL = ApplePodcastsBaseIE._BASE_URL_REGEX + r'/id(?P<id>\d+)(?!\?i=\d+)$'
     _TESTS = [{
         'url': 'https://podcasts.apple.com/fr/podcast/id1691740320',
         'info_dict': {
