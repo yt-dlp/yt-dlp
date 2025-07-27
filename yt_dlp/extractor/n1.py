@@ -38,7 +38,7 @@ class N1InfoIIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:\w+\.)?n1info\.\w+|nova\.rs)/(?:[^/?#]+/){1,2}(?P<id>[^/?#]+)'
     _TESTS = [{
         # YouTube embedded
-        'url': 'https://rs.n1info.com/sport-klub/tenis/kako-je-djokovic-propustio-istorijsku-priliku-video/',
+        'url': 'https://sportklub.n1info.rs/tenis/us-open/glava-telo-igra-kako-je-novak-ispustio-istorijsku-sansu/',
         'md5': '987ce6fd72acfecc453281e066b87973',
         'info_dict': {
             'id': 'L5Hd4hQVUpk',
@@ -67,36 +67,24 @@ class N1InfoIIE(InfoExtractor):
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
+            'media_type': 'video',
         },
     }, {
-        'url': 'https://rs.n1info.com/vesti/djilas-los-plan-za-metro-nece-resiti-nijedan-saobracajni-problem/',
+        'url': 'https://n1info.si/novice/svet/v-srbiji-samo-ta-konec-tedna-vec-kot-200-pozarov/',
         'info_dict': {
-            'id': 'bgmetrosot2409zta20210924174316682-n1info-rs-worldwide',
+            'id': '2182656',
             'ext': 'mp4',
-            'title': 'Đilas: Predlog izgradnje metroa besmislen; SNS odbacuje navode',
-            'upload_date': '20210924',
-            'timestamp': 1632481347,
-            'thumbnail': 'http://n1info.rs/wp-content/themes/ucnewsportal-n1/dist/assets/images/placeholder-image-video.jpg',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'https://n1info.si/novice/slovenija/zadnji-dnevi-na-kopaliscu-ilirija-ilirija-ni-umrla-ubili-so-jo/',
-        'info_dict': {
-            'id': 'ljsottomazilirija3060921-n1info-si-worldwide',
-            'ext': 'mp4',
-            'title': 'Zadnji dnevi na kopališču Ilirija: “Ilirija ni umrla, ubili so jo”',
-            'timestamp': 1632567630,
-            'upload_date': '20210925',
-            'thumbnail': 'https://n1info.si/wp-content/uploads/2021/09/06/1630945843-tomaz3.png',
+            'title': 'V Srbiji samo ta konec tedna več kot 200 požarov',
+            'timestamp': 1753611983,
+            'upload_date': '20250727',
+            'thumbnail': 'https://n1info.si/media/images/2025/7/1753611048_Pozar.width-1200.webp',
         },
         'params': {
             'skip_download': True,
         },
     }, {
         # Reddit embedded
-        'url': 'https://ba.n1info.com/lifestyle/vucic-bolji-od-tita-ako-izgubi-ja-cu-da-crknem-jugoslavija-je-gotova/',
+        'url': 'https://nova.rs/vesti/drustvo/ako-vucic-izgubi-izbore-ja-cu-da-crknem-jugoslavija-je-gotova/',
         'info_dict': {
             'id': '2wmfee9eycp71',
             'ext': 'mp4',
@@ -112,10 +100,7 @@ class N1InfoIIE(InfoExtractor):
             'age_limit': 0,
             'duration': 134,
             'thumbnail': 'https://external-preview.redd.it/5nmmawSeGx60miQM3Iq-ueC9oyCLTLjjqX-qqY8uRsc.png?format=pjpg&auto=webp&s=2f973400b04d23f871b608b178e47fc01f9b8f1d',
-        },
-        'params': {
-            'skip_download': True,
-        },
+        }
     }, {
         'url': 'https://nova.rs/vesti/politika/zaklina-tatalovic-ani-brnabic-pricate-lazi-video/',
         'info_dict': {
@@ -125,6 +110,9 @@ class N1InfoIIE(InfoExtractor):
             'upload_date': '20211102',
             'timestamp': 1635861677,
             'thumbnail': 'https://nova.rs/wp-content/uploads/2021/11/02/1635860298-TNJG_Ana_Brnabic_i_Zaklina_Tatalovic_100_dana_Vlade_GP.jpg',
+        },
+        'params': {
+            'skip_download': True,
         },
     }, {
         'url': 'https://n1info.rs/vesti/cuta-biti-u-kosovskoj-mitrovici-znaci-da-te-docekaju-eksplozivnim-napravama/',
@@ -155,12 +143,14 @@ class N1InfoIIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_regex(r'<h1[^>]+>(.+?)</h1>', webpage, 'title')
-        timestamp = unified_timestamp(self._html_search_meta('article:published_time', webpage))
+        title = self._og_search_title(webpage) or self._html_extract_title(webpage)
+        timestamp = unified_timestamp(self._og_search_property('published_time', webpage, default=None) or self._html_search_meta('article:published_time', webpage))
         plugin_data = re.findall(r'\$bp\("(?:Brid|TargetVideo)_\d+",\s(.+)\);', webpage)
         entries = []
         if plugin_data:
-            site_id = self._html_search_regex(r'site:(\d+)', webpage, 'site id')
+            site_id = self._html_search_regex(r'site:(\d+)', webpage, 'site id', default=None)
+            if site_id is None:
+                site_id = re.search(r'partners/(\d+)', self._html_search_meta('contentUrl', webpage)).group(1)
             for video_data in plugin_data:
                 video_id = self._parse_json(video_data, title)['video']
                 entries.append({
@@ -195,6 +185,10 @@ class N1InfoIIE(InfoExtractor):
                 entries.append(self.url_result(url, ie='Youtube'))
             elif url.startswith('https://www.redditmedia.com'):
                 entries.append(self.url_result(url, ie='Reddit'))
+            elif url.startswith('https://www.facebook.com'):
+                entries.append(self.url_result(url, ie='FacebookPluginsVideo'))
+            elif url.startswith('https://www.twitter.com') or url.startswith('https://www.x.com'):
+                entries.append(self.url_result(url, ie='TwitterBase'))
 
         return {
             '_type': 'playlist',
