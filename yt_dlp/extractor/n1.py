@@ -100,7 +100,7 @@ class N1InfoIIE(InfoExtractor):
             'age_limit': 0,
             'duration': 134,
             'thumbnail': 'https://external-preview.redd.it/5nmmawSeGx60miQM3Iq-ueC9oyCLTLjjqX-qqY8uRsc.png?format=pjpg&auto=webp&s=2f973400b04d23f871b608b178e47fc01f9b8f1d',
-        }
+        },
     }, {
         'url': 'https://nova.rs/vesti/politika/zaklina-tatalovic-ani-brnabic-pricate-lazi-video/',
         'info_dict': {
