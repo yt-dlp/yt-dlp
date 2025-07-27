@@ -1,6 +1,6 @@
 import json
 
-from .common import ExtractorError, HTTPError, InfoExtractor
+from .common import InfoExtractor
 from ..utils import (
     clean_html,
     extract_attributes,
@@ -13,23 +13,7 @@ from ..utils import (
 from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
-class TvwBaseIE(InfoExtractor):
-    def _download_tvw_webpage(self, url, video_id):
-        try:
-            return self._download_webpage(url, video_id, headers={
-                # yt-dlp's default user-agents are too old and blocked by cloudflare
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0',
-            })
-        except ExtractorError as e:
-            if not isinstance(e.cause, HTTPError) or e.cause.status != 403:
-                raise
-            self.report_warning('Got HTTP Error 403, retrying')
-
-        # Retry with impersonation if hardcoded UA is insufficient to bypass cloudflare
-        return self._download_webpage(url, video_id, impersonate=True)
-
-
-class TvwIE(TvwBaseIE):
+class TvwIE(InfoExtractor):
     IE_NAME = 'tvw'
     _VALID_URL = [
         r'https?://(?:www\.)?tvw\.org/video/(?P<id>[^/?#]+)',
@@ -112,7 +96,7 @@ class TvwIE(TvwBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_tvw_webpage(url, display_id)
+        webpage = self._download_webpage(url, display_id)
 
         client_id = self._html_search_meta('clientID', webpage, fatal=True)
         video_id = self._html_search_meta('eventID', webpage, fatal=True)
@@ -158,7 +142,7 @@ class TvwIE(TvwBaseIE):
         }
 
 
-class TvwNewsIE(TvwBaseIE):
+class TvwNewsIE(InfoExtractor):
     IE_NAME = 'tvw:news'
     _VALID_URL = r'https?://(?:www\.)?tvw\.org/\d{4}/\d{2}/(?P<id>[^/?#]+)'
     _TESTS = [{
@@ -181,7 +165,7 @@ class TvwNewsIE(TvwBaseIE):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        webpage = self._download_tvw_webpage(url, playlist_id)
+        webpage = self._download_webpage(url, playlist_id)
 
         video_ids = traverse_obj(webpage, (
             {find_elements(cls='invintus-player', html=True)}, ..., {extract_attributes}, 'data-eventid'))
@@ -193,7 +177,7 @@ class TvwNewsIE(TvwBaseIE):
             getter=lambda x: f'https://tvw.org/watch?eventID={x}', ie=TvwIE)
 
 
-class TvwTvChannelsIE(TvwBaseIE):
+class TvwTvChannelsIE(InfoExtractor):
     IE_NAME = 'tvw:tvchannels'
     _VALID_URL = r'https?://(?:www\.)?tvw\.org/tvchannels/(?P<id>[^/?#]+)'
     _TESTS = [{
@@ -218,7 +202,7 @@ class TvwTvChannelsIE(TvwBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_tvw_webpage(url, video_id)
+        webpage = self._download_webpage(url, video_id)
 
         m3u8_url = traverse_obj(webpage, (
             {find_element(id='invintus-persistent-stream-frame', html=True)}, {extract_attributes},
