@@ -377,7 +377,7 @@ class RTVETelevisionIE(InfoExtractor):
 
 class RTVEProgramIE(RTVEBaseIE):
     IE_NAME = 'rtve.es:program'
-    IE_DESC = 'RTVE.es program'
+    IE_DESC = 'RTVE.es programs'
     _VALID_URL = r'https?://(?:www\.)?rtve\.es/play/videos/(?P<id>[\w-]+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.rtve.es/play/videos/saber-vivir/',
