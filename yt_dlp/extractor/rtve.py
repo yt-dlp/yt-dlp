@@ -422,7 +422,7 @@ class RTVEProgramIE(RTVEBaseIE):
         program_slug = self._match_id(url)
         program_page = self._download_webpage(url, program_slug)
 
-        program_id = self._html_search_meta('DC.identifier', program_page, 'Program ID', fatal=False)
+        program_id = self._html_search_meta('DC.identifier', program_page, 'Program ID', fatal=True)
 
         return self.playlist_result(
             self._entries(program_id), program_id, self._html_extract_title(program_page))
