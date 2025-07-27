@@ -1,3 +1,6 @@
+import re
+from urllib.parse import urljoin
+
 from .common import InfoExtractor
 from ..utils import (
     clean_podcast_url,
@@ -5,8 +8,7 @@ from ..utils import (
     parse_iso8601,
 )
 from ..utils.traversal import traverse_obj
-import re
-from urllib.parse import urljoin
+
 
 class ApplePodcastsBaseIE(InfoExtractor):
     _BASE_URL_REGEX = r'https?://podcasts\.apple\.com/(?:[^/]+/)?podcast(?:/[^/]+){1,2}'
@@ -91,7 +93,7 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
         'info_dict': {
             'id': '1691740320',
             'title': 'LEGEND',
-            'playlist_uploader': 'Guillaume Pley'
+            'playlist_uploader': 'Guillaume Pley',
         },
         'playlist_mincount': 400,
         'playlist_entries': [
@@ -102,7 +104,7 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
                 'description': 'Retrouvez la boutique LEGEND ➡️: https://shop.legend-group.fr/\nMerci à Michaël Youn d\'être venu nous voir sur LEGEND. Il est venu nous raconter plus de 25 ans de carrière, en tant qu’acteur, réalisateur et artiste. Il a été révélé par l\'émission Morning Live sur M6, il nous a livré les anecdotes les plus folles qu’il a vécues à cette époque. Il est aussi venu nous raconter comment il a rencontré sa femme et ce que ses enfants ont changé dans sa vie.\nPour voir la bande annonce du film « Certains l’aiment chauve » déjà disponible au cinéma ➡️ https://www.allocine.fr/film/fichefilm_gen_cfilm=1000007354.html\nRetrouvez l\'interview complète sur YouTube ➡️ https://youtu.be/_TXBz1dSfBw\nPour toutes demandes de partenariats : legend@influxcrew.com\nRetrouvez-nous sur tous les réseaux LEGEND !\nFacebook : https://www.facebook.com/legendmediafr\nInstagram : https://www.instagram.com/legendmedia/\nTikTok : https://www.tiktok.com/@legend\nTwitter : https://twitter.com/legendmediafr\nSnapchat : https://t.snapchat.com/CgEvsbWV\n Hébergé par Acast. Visitez acast.com/privacy pour plus d\'informations.',
                 'release_timestamp': 1753434168,
                 'duration': 6856,
-                'url': 'https://podcasts.apple.com/fr/podcast/michael-youn-les-moments-les-plus-fous-de-ses-25-ans/id1691740320?i=1000718966711'
+                'url': 'https://podcasts.apple.com/fr/podcast/michael-youn-les-moments-les-plus-fous-de-ses-25-ans/id1691740320?i=1000718966711',
             },
             {
                 'id': '1000718672235',
@@ -111,9 +113,9 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
                 'description': 'Retrouvez la boutique LEGEND ➡️: https://shop.legend-group.fr/\nMerci à Thomas d’être passé nous voir chez LEGEND ! Thomas est ambulancier et urgentiste au SMUR depuis 10 ans. Il est venu partager avec nous ses anecdotes les plus marquantes.\nIl a vécu des interventions difficiles, comme sur une scène de crime où une mère avait tué ses deux enfants, ou encore ce jour où il a pris en charge une victime coupée en deux par un hachoir.\nMais son métier, c’est aussi des moments plus légers, parfois même drôles, comme cette fois où il a dû intervenir sur le tournage d’un film X pour secourir des acteurs.\nPour toutes demandes de partenariats : legend@influxcrew.com\nRetrouvez-nous sur tous les réseaux LEGEND !\nRetrouvez l\'interview complète sur YouTube ➡️ https://youtu.be/ye5cVoc7hIc\nFacebook : https://www.facebook.com/legendmediafr\nInstagram : https://www.instagram.com/legendmedia/\nTikTok : https://www.tiktok.com/@legend\nTwitter : https://twitter.com/legendmediafr\nSnapchat : https://t.snapchat.com/CgEvsbWV\n Hébergé par Acast. Visitez acast.com/privacy pour plus d\'informations.',
                 'release_timestamp': 1753272000,
                 'duration': 4165,
-                'url': 'https://podcasts.apple.com/fr/podcast/ambulancier-du-samu-ses-interventions-improbables-suic/id1691740320?i=1000718672235'
-            }
-        ]
+                'url': 'https://podcasts.apple.com/fr/podcast/ambulancier-du-samu-ses-interventions-improbables-suic/id1691740320?i=1000718672235',
+            },
+        ],
     }]
 
     # Extract token (supposedly JWT) from javascript
@@ -142,7 +144,7 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
         base_url = 'https://amp-api.podcasts.apple.com/v1/catalog/fr/podcasts/'
         headers = {
                   'Authorization': f'Bearer {token}',
-                  'Origin': 'https://podcasts.apple.com'
+                  'Origin': 'https://podcasts.apple.com',
         }
 
         all_episodes = []
