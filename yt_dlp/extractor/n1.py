@@ -185,7 +185,7 @@ class N1InfoIIE(InfoExtractor):
                 entries.append(self.url_result(url, ie='Youtube'))
             elif url.startswith('https://www.redditmedia.com'):
                 entries.append(self.url_result(url, ie='Reddit'))
-            elif url.startswith('https://www.facebook.com'):
+            elif url.startswith('https://www.facebook.com') and 'plugins/video' in url:
                 entries.append(self.url_result(url, ie='FacebookPluginsVideo'))
 
         return {
