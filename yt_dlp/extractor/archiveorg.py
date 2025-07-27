@@ -16,6 +16,7 @@ from ..utils import (
     dict_get,
     extract_attributes,
     get_element_by_id,
+    get_element_text_and_html_by_tag,
     int_or_none,
     join_nonempty,
     js_to_json,
@@ -72,6 +73,7 @@ class ArchiveOrgIE(InfoExtractor):
             'display_id': 'Cops-v2.mp4',
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
             'duration': 1091.96,
+            'track': 'Cops-v2',
         },
     }, {
         'url': 'http://archive.org/embed/XD300-23_68HighlightsAResearchCntAugHumanIntellect',
@@ -86,6 +88,7 @@ class ArchiveOrgIE(InfoExtractor):
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
             'duration': 59.77,
             'display_id': 'Commercial-JFK1960ElectionAdCampaignJingle.mpg',
+            'track': 'Commercial-JFK1960ElectionAdCampaignJingle',
         },
     }, {
         'url': 'https://archive.org/details/Election_Ads/Commercial-Nixon1960ElectionAdToughonDefense.mpg',
@@ -102,6 +105,7 @@ class ArchiveOrgIE(InfoExtractor):
             'duration': 59.51,
             'license': 'http://creativecommons.org/licenses/publicdomain/',
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
+            'track': 'Commercial-Nixon1960ElectionAdToughonDefense',
         },
     }, {
         'url': 'https://archive.org/details/gd1977-05-08.shure57.stevenson.29303.flac16',
@@ -182,6 +186,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'duration': 130.46,
                     'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel1_01_000117.jpg',
                     'display_id': 'irelandthemakingofarepublicreel1_01.mov',
+                    'track': 'irelandthemakingofarepublicreel1 01',
                 },
             }, {
                 'md5': '67335ee3b23a0da930841981c1e79b02',
@@ -192,6 +197,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'title': 'irelandthemakingofarepublicreel1_02.mov',
                     'display_id': 'irelandthemakingofarepublicreel1_02.mov',
                     'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel1_02_001374.jpg',
+                    'track': 'irelandthemakingofarepublicreel1 02',
                 },
             }, {
                 'md5': 'e470e86787893603f4a341a16c281eb5',
@@ -202,6 +208,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'title': 'irelandthemakingofarepublicreel2.mov',
                     'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel2_001554.jpg',
                     'display_id': 'irelandthemakingofarepublicreel2.mov',
+                    'track': 'irelandthemakingofarepublicreel2',
                 },
             },
         ],
@@ -229,15 +236,8 @@ class ArchiveOrgIE(InfoExtractor):
 
     @staticmethod
     def _playlist_data(webpage):
-        element = re.findall(r'''(?xs)
-            <input
-            (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
-            \s+class=['"]?js-play8-playlist['"]?
-            (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
-            \s*/>
-        ''', webpage)[0]
-
-        return json.loads(extract_attributes(element)['value'])
+        element = get_element_text_and_html_by_tag('play-av', webpage)[1]
+        return json.loads(extract_attributes(element)['playlist'])
 
     def _real_extract(self, url):
         video_id = urllib.parse.unquote_plus(self._match_id(url))

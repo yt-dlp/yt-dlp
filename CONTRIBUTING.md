@@ -126,7 +126,7 @@ By sharing an account with anyone, you agree to bear all risks associated with i
 While these steps won't necessarily ensure that no misuse of the account takes place, these are still some good practices to follow.
 
 - Look for people with `Member` (maintainers of the project) or `Contributor` (people who have previously contributed code) tag on their messages.
-- Change the password before sharing the account to something random (use [this](https://passwordsgenerator.net/) if you don't have a random password generator).
+- Change the password before sharing the account to something random.
 - Change the password after receiving the account back.
 
 ### Is the website primarily used for piracy?
