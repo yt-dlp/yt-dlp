@@ -2,9 +2,10 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     UserNotLive,
+    filter_dict,
     int_or_none,
+    parse_iso8601,
     traverse_obj,
-    unified_strdate,
     url_or_none,
     urlencode_postdata,
 )
@@ -33,12 +34,11 @@ class PandaTvIE(InfoExtractor):
         video_meta = self._download_json(
             'https://api.pandalive.co.kr/v1/live/play', channel_id,
             'Downloading video meta data', 'Unable to download video meta data',
-            data=urlencode_postdata({
+            data=urlencode_postdata(filter_dict({
                 'action': 'watch',
                 'userId': channel_id,
                 'password': self.get_param('videopassword'),
-                'shareLinkType': '',
-            }), expected_status=400)
+            })), expected_status=400)
 
         if not video_meta.get('result'):
             error_code = traverse_obj(video_meta, ('errorData', 'code', {str}))
@@ -52,17 +52,21 @@ class PandaTvIE(InfoExtractor):
                 raise ExtractorError('Coin purchase is required for this stream', expected=True)
             elif error_code == 'needUnlimitItem':
                 raise ExtractorError('Ticket purchase is required for this stream', expected=True)
-            elif error_code == 'wrongPw':
+            elif error_code == 'needPw':
                 raise ExtractorError('Password protected video, use --video-password <password>', expected=True)
+            elif error_code == 'wrongPw':
+                raise ExtractorError('Wrong password', expected=True)
             else:
-                raise ExtractorError(f'API returned an error code: {error_code}')
+                raise ExtractorError(f'API returned an error code: {error_code} with error message: {video_meta.get('message')}')
+
+        http_headers = {'Origin': 'https://www.pandalive.co.kr'}
 
         return {
             'id': channel_id,
             'is_live': True,
             'formats': self._extract_m3u8_formats(
                 video_meta['PlayList']['hls'][0]['url'], channel_id, 'mp4', headers=http_headers, live=True),
-            'http_headers': {'Origin': 'https://www.pandalive.co.kr'},
+            'http_headers': http_headers,
             **traverse_obj(video_meta.get('media'), {
                 'title': ('title', {str}),
                 'release_timestamp': ('startTime', {parse_iso8601(delim=' ')}),
