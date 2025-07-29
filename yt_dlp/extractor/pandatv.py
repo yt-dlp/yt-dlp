@@ -19,7 +19,7 @@ class PandaTvIE(InfoExtractor):
             'ext': 'mp4',
             'channel': '릴리ෆ',
             'title': r're:앙앙❤ \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-            'thumbnail': r're:https://cdn\.pandalive\.co\.kr/ivs/v1/.+/thumb.jpg',
+            'thumbnail': r're:https://cdn\.pandalive\.co\.kr/ivs/v1/.+/thumb\.jpg',
             'concurrent_view_count': int,
             'like_count': int,
             'live_status': 'is_live',
