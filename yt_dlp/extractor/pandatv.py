@@ -10,7 +10,7 @@ from ..utils import (
 )
 
 
-class PandaTVIE(InfoExtractor):
+class PandaTvIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.|m\.)?pandalive\.co\.kr/play/(?P<id>[\da-z]+)'
     _TESTS = [{
         'url': 'https://www.pandalive.co.kr/play/bebenim',
