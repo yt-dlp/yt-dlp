@@ -30,8 +30,6 @@ class PandaTvIE(InfoExtractor):
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-        http_headers = {'Origin': 'https://www.pandalive.co.kr'}
-
         video_meta = self._download_json(
             'https://api.pandalive.co.kr/v1/live/play', channel_id,
             'Downloading video meta data', 'Unable to download video meta data',
