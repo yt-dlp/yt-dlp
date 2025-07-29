@@ -62,7 +62,7 @@ class PandaTvIE(InfoExtractor):
             'is_live': True,
             'formats': self._extract_m3u8_formats(
                 video_meta['PlayList']['hls'][0]['url'], channel_id, 'mp4', headers=http_headers, live=True),
-            'http_headers': http_headers,
+            'http_headers': {'Origin': 'https://www.pandalive.co.kr'},
             **traverse_obj(video_meta.get('media'), {
                 'title': ('title', {str}),
                 'release_timestamp': ('startTime', {parse_iso8601(delim=' ')}),
