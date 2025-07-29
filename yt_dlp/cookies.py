@@ -37,7 +37,6 @@ from .utils import (
     Popen,
     error_to_str,
     expand_path,
-    float_or_none,
     is_path_like,
     sanitize_url,
     str_or_none,
@@ -1336,7 +1335,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
             if len(cookie_list) != self._ENTRY_LEN:
                 raise http.cookiejar.LoadError(f'invalid length {len(cookie_list)}')
             cookie = self._CookieFileEntry(*cookie_list)
-            if cookie.expires_at and float_or_none(cookie.expires_at) is None:
+            if cookie.expires_at and not re.fullmatch(r'[0-9]+(?:\.[0-9]+)?', cookie.expires_at):
                 raise http.cookiejar.LoadError(f'invalid expires at {cookie.expires_at}')
             return line
 
