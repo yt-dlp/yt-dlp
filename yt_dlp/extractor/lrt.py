@@ -134,7 +134,7 @@ class LRTRadioIE(LRTBaseIE):
     def _real_extract(self, url):
         video_id, path = self._match_valid_url(url).group('id', 'path')
         media = self._download_json(
-            'https://www.lrt.lt/radioteka/api/media', video_id,
+            'https://www.lrt.lt/rest-api/media', video_id,
             query={'url': f'/mediateka/irasas/{video_id}/{path}'})
 
         return {

@@ -19,7 +19,7 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
-from ..utils.traversal import traverse_obj, value
+from ..utils.traversal import require, traverse_obj, value
 
 
 class PatreonBaseIE(InfoExtractor):
@@ -462,7 +462,7 @@ class PatreonCampaignIE(PatreonBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?patreon\.com/(?:
             (?:m|api/campaigns)/(?P<campaign_id>\d+)|
-            (?:c/)?(?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
+            (?:cw?/)?(?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
         )(?:/posts)?/?(?:$|[?#])'''
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
@@ -531,6 +531,28 @@ class PatreonCampaignIE(PatreonBaseIE):
             'age_limit': 0,
         },
         'playlist_mincount': 331,
+        'skip': 'Channel removed',
+    }, {
+        # next.js v13 data, see https://github.com/yt-dlp/yt-dlp/issues/13622
+        'url': 'https://www.patreon.com/c/anythingelse/posts',
+        'info_dict': {
+            'id': '9631148',
+            'title': 'Anything Else?',
+            'description': 'md5:2ee1db4aed2f9460c2b295825a24aa08',
+            'uploader': 'dan ',
+            'uploader_id': '13852412',
+            'uploader_url': 'https://www.patreon.com/anythingelse',
+            'channel': 'Anything Else?',
+            'channel_id': '9631148',
+            'channel_url': 'https://www.patreon.com/anythingelse',
+            'channel_follower_count': int,
+            'age_limit': 0,
+            'thumbnail': r're:https?://.+/.+',
+        },
+        'playlist_mincount': 151,
+    }, {
+        'url': 'https://www.patreon.com/cw/anythingelse',
+        'only_matching': True,
     }, {
         'url': 'https://www.patreon.com/c/OgSog/posts',
         'only_matching': True,
@@ -572,8 +594,11 @@ class PatreonCampaignIE(PatreonBaseIE):
         campaign_id, vanity = self._match_valid_url(url).group('campaign_id', 'vanity')
         if campaign_id is None:
             webpage = self._download_webpage(url, vanity, headers={'User-Agent': self.patreon_user_agent})
-            campaign_id = self._search_nextjs_data(
-                webpage, vanity)['props']['pageProps']['bootstrapEnvelope']['pageBootstrap']['campaign']['data']['id']
+            campaign_id = traverse_obj(self._search_nextjs_data(webpage, vanity, default=None), (
+                'props', 'pageProps', 'bootstrapEnvelope', 'pageBootstrap', 'campaign', 'data', 'id', {str}))
+            if not campaign_id:
+                campaign_id = traverse_obj(self._search_nextjs_v13_data(webpage, vanity), (
+                    lambda _, v: v['type'] == 'campaign', 'id', {str}, any, {require('campaign ID')}))
 
         params = {
             'json-api-use-default-includes': 'false',

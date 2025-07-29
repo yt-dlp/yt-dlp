@@ -48,7 +48,6 @@ MSO_INFO = {
         'username_field': 'user',
         'password_field': 'passwd',
         'login_hostname': 'login.xfinity.com',
-        'needs_newer_ua': True,
     },
     'TWC': {
         'name': 'Time Warner Cable | Spectrum',
@@ -1379,11 +1378,8 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
 
     @staticmethod
     def _get_mso_headers(mso_info):
-        # yt-dlp's default user-agent is usually too old for some MSO's like Comcast_SSO
-        # See: https://github.com/yt-dlp/yt-dlp/issues/10848
-        return {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:131.0) Gecko/20100101 Firefox/131.0',
-        } if mso_info.get('needs_newer_ua') else {}
+        # Not needed currently
+        return {}
 
     @staticmethod
     def _get_mvpd_resource(provider_id, title, guid, rating):

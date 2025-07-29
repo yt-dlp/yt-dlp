@@ -8,67 +8,86 @@ from ..utils import (
 
 
 class SportDeutschlandIE(InfoExtractor):
-    _VALID_URL = r'https?://sportdeutschland\.tv/(?P<id>(?:[^/]+/)?[^?#/&]+)'
+    _VALID_URL = r'https?://(?:player\.)?sportdeutschland\.tv/(?P<id>(?:[^/?#]+/)?[^?#/&]+)'
     _TESTS = [{
-        'url': 'https://sportdeutschland.tv/blauweissbuchholztanzsport/buchholzer-formationswochenende-2023-samstag-1-bundesliga-landesliga',
+        # Single-part video, direct link
+        'url': 'https://sportdeutschland.tv/rostock-griffins/gfl2-rostock-griffins-vs-elmshorn-fighting-pirates',
+        'md5': '35c11a19395c938cdd076b93bda54cde',
         'info_dict': {
-            'id': '9839a5c7-0dbb-48a8-ab63-3b408adc7b54',
+            'id': '9f27a97d-1544-4d0b-aa03-48d92d17a03a',
             'ext': 'mp4',
-            'title': 'Buchholzer Formationswochenende 2023 - Samstag - 1. Bundesliga / Landesliga',
-            'display_id': 'blauweissbuchholztanzsport/buchholzer-formationswochenende-2023-samstag-1-bundesliga-landesliga',
-            'description': 'md5:a288c794a5ee69e200d8f12982f81a87',
+            'title': 'GFL2: Rostock Griffins vs. Elmshorn Fighting Pirates',
+            'display_id': 'rostock-griffins/gfl2-rostock-griffins-vs-elmshorn-fighting-pirates',
+            'channel': 'Rostock Griffins',
+            'channel_url': 'https://sportdeutschland.tv/rostock-griffins',
             'live_status': 'was_live',
-            'channel': 'Blau-Weiss Buchholz Tanzsport',
-            'channel_url': 'https://sportdeutschland.tv/blauweissbuchholztanzsport',
-            'channel_id': '93ec33c9-48be-43b6-b404-e016b64fdfa3',
-            'duration': 32447,
-            'upload_date': '20230114',
-            'timestamp': 1673733618,
+            'description': 'md5:60cb00067e55dafa27b0933a43d72862',
+            'channel_id': '9635f21c-3f67-4584-9ce4-796e9a47276b',
+            'timestamp': 1749913117,
+            'upload_date': '20250614',
+            'duration': 12287.0,
         },
     }, {
-        'url': 'https://sportdeutschland.tv/deutscherbadmintonverband/bwf-tour-1-runde-feld-1-yonex-gainward-german-open-2022-0',
+        # Single-part video, embedded player link
+        'url': 'https://player.sportdeutschland.tv/9e9619c4-7d77-43c4-926d-49fb57dc06dc',
         'info_dict': {
-            'id': '95c80c52-6b9a-4ae9-9197-984145adfced',
+            'id': '9f27a97d-1544-4d0b-aa03-48d92d17a03a',
             'ext': 'mp4',
-            'title': 'BWF Tour: 1. Runde Feld 1 - YONEX GAINWARD German Open 2022',
-            'display_id': 'deutscherbadmintonverband/bwf-tour-1-runde-feld-1-yonex-gainward-german-open-2022-0',
-            'description': 'md5:2afb5996ceb9ac0b2ac81f563d3a883e',
+            'title': 'GFL2: Rostock Griffins vs. Elmshorn Fighting Pirates',
+            'display_id': '9e9619c4-7d77-43c4-926d-49fb57dc06dc',
+            'channel': 'Rostock Griffins',
+            'channel_url': 'https://sportdeutschland.tv/rostock-griffins',
             'live_status': 'was_live',
-            'channel': 'Deutscher Badminton Verband',
-            'channel_url': 'https://sportdeutschland.tv/deutscherbadmintonverband',
-            'channel_id': '93ca5866-2551-49fc-8424-6db35af58920',
-            'duration': 41097,
-            'upload_date': '20220309',
-            'timestamp': 1646860727.0,
+            'description': 'md5:60cb00067e55dafa27b0933a43d72862',
+            'channel_id': '9635f21c-3f67-4584-9ce4-796e9a47276b',
+            'timestamp': 1749913117,
+            'upload_date': '20250614',
+            'duration': 12287.0,
         },
+        'params': {'skip_download': True},
     }, {
-        'url': 'https://sportdeutschland.tv/ggcbremen/formationswochenende-latein-2023',
+        # Multi-part video
+        'url': 'https://sportdeutschland.tv/rhine-ruhr-2025-fisu-world-university-games/volleyball-w-japan-vs-brasilien-halbfinale-2',
         'info_dict': {
-            'id': '9889785e-55b0-4d97-a72a-ce9a9f157cce',
-            'title': 'Formationswochenende Latein 2023 - Samstag',
-            'display_id': 'ggcbremen/formationswochenende-latein-2023',
-            'description': 'md5:6e4060d40ff6a8f8eeb471b51a8f08b2',
+            'id': '9f63d737-2444-4e3a-a1ea-840df73fd481',
+            'display_id': 'rhine-ruhr-2025-fisu-world-university-games/volleyball-w-japan-vs-brasilien-halbfinale-2',
+            'title': 'Volleyball w: Japan vs. Braslien - Halbfinale 2',
+            'description': 'md5:0a17da15e48a687e6019639c3452572b',
+            'channel': 'Rhine-Ruhr 2025 FISU World University Games',
+            'channel_id': '9f5216be-a49d-470b-9a30-4fe9df993334',
+            'channel_url': 'https://sportdeutschland.tv/rhine-ruhr-2025-fisu-world-university-games',
             'live_status': 'was_live',
-            'channel': 'Grün-Gold-Club Bremen e.V.',
-            'channel_id': '9888f04e-bb46-4c7f-be47-df960a4167bb',
-            'channel_url': 'https://sportdeutschland.tv/ggcbremen',
         },
-        'playlist_count': 3,
+        'playlist_count': 2,
         'playlist': [{
             'info_dict': {
-                'id': '988e1fea-9d44-4fab-8c72-3085fb667547',
+                'id': '9f725a94-d43e-40ff-859d-13da3081bb04',
                 'ext': 'mp4',
-                'channel_url': 'https://sportdeutschland.tv/ggcbremen',
-                'channel_id': '9888f04e-bb46-4c7f-be47-df960a4167bb',
-                'channel': 'Grün-Gold-Club Bremen e.V.',
-                'duration': 86,
-                'title': 'Formationswochenende Latein 2023 - Samstag Part 1',
-                'upload_date': '20230225',
-                'timestamp': 1677349909,
+                'title': 'Volleyball w: Japan vs. Braslien - Halbfinale 2 Part 1',
+                'channel': 'Rhine-Ruhr 2025 FISU World University Games',
+                'channel_id': '9f5216be-a49d-470b-9a30-4fe9df993334',
+                'channel_url': 'https://sportdeutschland.tv/rhine-ruhr-2025-fisu-world-university-games',
+                'duration': 14773.0,
+                'timestamp': 1753085197,
+                'upload_date': '20250721',
+                'live_status': 'was_live',
+            },
+        }, {
+            'info_dict': {
+                'id': '9f725a94-370e-4477-89ac-1751098e3217',
+                'ext': 'mp4',
+                'title': 'Volleyball w: Japan vs. Braslien - Halbfinale 2 Part 2',
+                'channel': 'Rhine-Ruhr 2025 FISU World University Games',
+                'channel_id': '9f5216be-a49d-470b-9a30-4fe9df993334',
+                'channel_url': 'https://sportdeutschland.tv/rhine-ruhr-2025-fisu-world-university-games',
+                'duration': 14773.0,
+                'timestamp': 1753128421,
+                'upload_date': '20250721',
                 'live_status': 'was_live',
             },
         }],
     }, {
+        # Livestream
         'url': 'https://sportdeutschland.tv/dtb/gymnastik-international-tag-1',
         'info_dict': {
             'id': '95d71b8a-370a-4b87-ad16-94680da18528',
@@ -87,8 +106,9 @@ class SportDeutschlandIE(InfoExtractor):
     def _process_video(self, asset_id, video):
         is_live = video['type'] == 'mux_live'
         token = self._download_json(
-            f'https://api.sportdeutschland.tv/api/frontend/asset-token/{asset_id}',
-            video['id'], query={'type': video['type'], 'playback_id': video['src']})['token']
+            f'https://api.sportdeutschland.tv/api/web/personal/asset-token/{asset_id}',
+            video['id'], query={'type': video['type'], 'playback_id': video['src']},
+            headers={'Referer': 'https://sportdeutschland.tv/'})['token']
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'https://stream.mux.com/{video["src"]}.m3u8?token={token}', video['id'], live=is_live)
 

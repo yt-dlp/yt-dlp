@@ -18,7 +18,7 @@ class ExecPP(PostProcessor):
         if filepath:
             if '{}' not in cmd:
                 cmd += ' {}'
-            cmd = cmd.replace('{}', shell_quote(filepath))
+            cmd = cmd.replace('{}', shell_quote(filepath, shell=True))
         return cmd
 
     def run(self, info):

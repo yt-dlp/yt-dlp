@@ -75,7 +75,7 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.11.0",
+    "ruff~=0.12.0",
 ]
 test = [
     "pytest~=8.1",
@@ -210,10 +210,12 @@ ignore = [
     "TD001",   # invalid-todo-tag
     "TD002",   # missing-todo-author
     "TD003",   # missing-todo-link
+    "PLC0415", # import-outside-top-level
     "PLE0604", # invalid-all-object (false positives)
     "PLE0643", # potential-index-error (false positives)
     "PLW0603", # global-statement
     "PLW1510", # subprocess-run-without-check
+    "PLW1641", # eq-without-hash
     "PLW2901", # redefined-loop-name
     "RUF001",  # ambiguous-unicode-character-string
     "RUF012",  # mutable-class-default

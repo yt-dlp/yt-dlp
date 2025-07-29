@@ -478,6 +478,10 @@ class TestJSInterpreter(unittest.TestCase):
         func = jsi.extract_function('c', {'e': 10}, {'f': 100, 'g': 1000})
         self.assertEqual(func([1]), 1111)
 
+    def test_extract_object(self):
+        jsi = JSInterpreter('var a={};a.xy={};var xy;var zxy={};xy={z:function(){return "abc"}};')
+        self.assertTrue('z' in jsi.extract_object('xy', None))
+
     def test_increment_decrement(self):
         self._test('function f() { var x = 1; return ++x; }', 2)
         self._test('function f() { var x = 1; return x++; }', 1)
@@ -485,6 +489,57 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f() { var y; var x = 1; x++, --x, x--, x--, y="z", "abc", x++; return --x }', -1)
         self._test('function f() { var a = "test--"; return a; }', 'test--')
         self._test('function f() { var b = 1; var a = "b--"; return a; }', 'b--')
+
+    def test_nested_function_scoping(self):
+        self._test(R'''
+            function f() {
+                var g = function() {
+                    var P = 2;
+                    return P;
+                };
+                var P = 1;
+                g();
+                return P;
+            }
+        ''', 1)
+        self._test(R'''
+            function f() {
+                var x = function() {
+                    for (var w = 1, M = []; w < 2; w++) switch (w) {
+                        case 1:
+                            M.push("a");
+                        case 2:
+                            M.push("b");
+                    }
+                    return M
+                };
+                var w = "c";
+                var M = "d";
+                var y = x();
+                y.push(w);
+                y.push(M);
+                return y;
+            }
+        ''', ['a', 'b', 'c', 'd'])
+        self._test(R'''
+            function f() {
+                var P, Q;
+                var z = 100;
+                var g = function() {
+                    var P, Q; P = 2; Q = 15;
+                    z = 0;
+                    return P+Q;
+                };
+                P = 1; Q = 10;
+                var x = g(), y = 3;
+                return P+Q+x+y+z;
+            }
+        ''', 31)
+
+    def test_undefined_varnames(self):
+        jsi = JSInterpreter('function f(){ var a; return [a, b]; }')
+        self._test(jsi, [JS_Undefined, JS_Undefined])
+        self.assertEqual(jsi._undefined_varnames, {'b'})
 
 
 if __name__ == '__main__':

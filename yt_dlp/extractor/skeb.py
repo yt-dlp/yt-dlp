@@ -1,140 +1,118 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, determine_ext, parse_qs, traverse_obj
+from ..networking.exceptions import HTTPError
+from ..utils import (
+    ExtractorError,
+    clean_html,
+    int_or_none,
+    str_or_none,
+    url_or_none,
+)
+from ..utils.traversal import traverse_obj
 
 
 class SkebIE(InfoExtractor):
-    _VALID_URL = r'https?://skeb\.jp/@[^/]+/works/(?P<id>\d+)'
-
+    _VALID_URL = r'https?://skeb\.jp/@(?P<uploader_id>[^/?#]+)/works/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://skeb.jp/@riiru_wm/works/10',
         'info_dict': {
             'id': '466853',
-            'title': '内容はおまかせします！ by 姫ノ森りぃる@一周年',
-            'description': 'md5:1ec50901efc3437cfbfe3790468d532d',
-            'uploader': '姫ノ森りぃる@一周年',
-            'uploader_id': 'riiru_wm',
-            'age_limit': 0,
-            'tags': [],
-            'url': r're:https://skeb.+',
-            'thumbnail': r're:https://skeb.+',
-            'subtitles': {
-                'jpn': [{
-                    'url': r're:https://skeb.+',
-                    'ext': 'vtt',
-                }],
-            },
-            'width': 720,
-            'height': 405,
-            'duration': 313,
-            'fps': 30,
             'ext': 'mp4',
+            'title': '10-1',
+            'description': 'md5:1ec50901efc3437cfbfe3790468d532d',
+            'duration': 313,
+            'genres': ['video'],
+            'thumbnail': r're:https?://.+',
+            'uploader': '姫ノ森りぃる@ひとづま',
+            'uploader_id': 'riiru_wm',
         },
     }, {
         'url': 'https://skeb.jp/@furukawa_nob/works/3',
         'info_dict': {
             'id': '489408',
-            'title': 'いつもお世話になってお... by 古川ノブ@音楽とVlo...',
-            'description': 'md5:5adc2e41d06d33b558bf7b1faeb7b9c2',
-            'uploader': '古川ノブ@音楽とVlogのVtuber',
-            'uploader_id': 'furukawa_nob',
-            'age_limit': 0,
-            'tags': [
-                'よろしく', '大丈夫', 'お願い', 'でした',
-                '是非', 'O', 'バー', '遊び', 'おはよう',
-                'オーバ', 'ボイス',
-            ],
-            'url': r're:https://skeb.+',
-            'thumbnail': r're:https://skeb.+',
-            'subtitles': {
-                'jpn': [{
-                    'url': r're:https://skeb.+',
-                    'ext': 'vtt',
-                }],
-            },
-            'duration': 98,
             'ext': 'mp3',
-            'vcodec': 'none',
-            'abr': 128,
+            'title': '3-1',
+            'description': 'md5:6de1f8f876426a6ac321c123848176a8',
+            'duration': 98,
+            'genres': ['voice'],
+            'tags': 'count:11',
+            'thumbnail': r're:https?://.+',
+            'uploader': '古川ノブ@宮城の動画勢Vtuber',
+            'uploader_id': 'furukawa_nob',
         },
     }, {
-        'url': 'https://skeb.jp/@mollowmollow/works/6',
+        'url': 'https://skeb.jp/@Rizu_panda_cube/works/626',
         'info_dict': {
-            'id': '6',
-            'title': 'ヒロ。\n\n私のキャラク... by 諸々',
-            'description': 'md5:aa6cbf2ba320b50bce219632de195f07',
-            '_type': 'playlist',
-            'entries': [{
-                'id': '486430',
-                'title': 'ヒロ。\n\n私のキャラク... by 諸々',
-                'description': 'md5:aa6cbf2ba320b50bce219632de195f07',
-            }, {
-                'id': '486431',
-                'title': 'ヒロ。\n\n私のキャラク... by 諸々',
-            }],
+            'id': '626',
+            'description': 'md5:834557b39ca56960c5f77dd6ddabe775',
+            'uploader': 'りづ100億%',
+            'uploader_id': 'Rizu_panda_cube',
+            'tags': 'count:57',
+            'genres': ['video'],
         },
+        'playlist_count': 2,
+        'expected_warnings': ['Skipping unsupported extension'],
     }]
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        nuxt_data = self._search_nuxt_data(self._download_webpage(url, video_id), video_id)
+    def _call_api(self, uploader_id, work_id):
+        return self._download_json(
+            f'https://skeb.jp/api/users/{uploader_id}/works/{work_id}', work_id, headers={
+                'Accept': 'application/json',
+                'Authorization': 'Bearer null',
+            })
 
-        parent = {
-            'id': video_id,
-            'title': nuxt_data.get('title'),
-            'description': nuxt_data.get('description'),
-            'uploader': traverse_obj(nuxt_data, ('creator', 'name')),
-            'uploader_id': traverse_obj(nuxt_data, ('creator', 'screen_name')),
-            'age_limit': 18 if nuxt_data.get('nsfw') else 0,
-            'tags': nuxt_data.get('tag_list'),
+    def _real_extract(self, url):
+        uploader_id, work_id = self._match_valid_url(url).group('uploader_id', 'id')
+        try:
+            works = self._call_api(uploader_id, work_id)
+        except ExtractorError as e:
+            if not isinstance(e.cause, HTTPError) or e.cause.status != 429:
+                raise
+            webpage = e.cause.response.read().decode()
+            value = self._search_regex(
+                r'document\.cookie\s*=\s*["\']request_key=([^;"\']+)', webpage, 'request key')
+            self._set_cookie('skeb.jp', 'request_key', value)
+            works = self._call_api(uploader_id, work_id)
+
+        info = {
+            'uploader_id': uploader_id,
+            **traverse_obj(works, {
+                'age_limit': ('nsfw', {bool}, {lambda x: 18 if x else None}),
+                'description': (('source_body', 'body'), {clean_html}, filter, any),
+                'genres': ('genre', {str}, filter, all, filter),
+                'tags': ('tag_list', ..., {str}, filter, all, filter),
+                'uploader': ('creator', 'name', {str}),
+            }),
         }
 
         entries = []
-        for item in nuxt_data.get('previews') or []:
-            vid_url = item.get('url')
-            given_ext = traverse_obj(item, ('information', 'extension'))
-            preview_ext = determine_ext(vid_url, default_ext=None)
-            if not preview_ext:
-                content_disposition = parse_qs(vid_url)['response-content-disposition'][0]
-                preview_ext = self._search_regex(
-                    r'filename="[^"]+\.([^\.]+?)"', content_disposition,
-                    'preview file extension', fatal=False, group=1)
-            if preview_ext not in ('mp4', 'mp3'):
+        for idx, preview in enumerate(traverse_obj(works, ('previews', lambda _, v: url_or_none(v['url']))), 1):
+            ext = traverse_obj(preview, ('information', 'extension', {str}))
+            if ext not in ('mp3', 'mp4'):
+                self.report_warning(f'Skipping unsupported extension "{ext}"')
                 continue
-            if not vid_url or not item.get('id'):
-                continue
-            width, height = traverse_obj(item, ('information', 'width')), traverse_obj(item, ('information', 'height'))
-            if width is not None and height is not None:
-                # the longest side is at most 720px for non-client viewers
-                max_size = max(width, height)
-                width, height = (x * 720 // max_size for x in (width, height))
+
             entries.append({
-                **parent,
-                'id': str(item['id']),
-                'url': vid_url,
-                'thumbnail': item.get('poster_url'),
+                'ext': ext,
+                'title': f'{work_id}-{idx}',
                 'subtitles': {
-                    'jpn': [{
-                        'url': item.get('vtt_url'),
+                    'ja': [{
                         'ext': 'vtt',
+                        'url': preview['vtt_url'],
                     }],
-                } if item.get('vtt_url') else None,
-                'width': width,
-                'height': height,
-                'duration': traverse_obj(item, ('information', 'duration')),
-                'fps': traverse_obj(item, ('information', 'frame_rate')),
-                'ext': preview_ext or given_ext,
-                'vcodec': 'none' if preview_ext == 'mp3' else None,
-                # you'll always get 128kbps MP3 for non-client viewers
-                'abr': 128 if preview_ext == 'mp3' else None,
+                } if url_or_none(preview.get('vtt_url')) else None,
+                'vcodec': 'none' if ext == 'mp3' else None,
+                **info,
+                **traverse_obj(preview, {
+                    'id': ('id', {str_or_none}),
+                    'thumbnail': ('poster_url', {url_or_none}),
+                    'url': ('url', {url_or_none}),
+                }),
+                **traverse_obj(preview, ('information', {
+                    'duration': ('duration', {int_or_none}),
+                    'fps': ('frame_rate', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                    'width': ('width', {int_or_none}),
+                })),
             })
 
-        if not entries:
-            raise ExtractorError('No video/audio attachment found in this commission.', expected=True)
-        elif len(entries) == 1:
-            return entries[0]
-        else:
-            parent.update({
-                '_type': 'playlist',
-                'entries': entries,
-            })
-            return parent
+        return self.playlist_result(entries, work_id, **info)

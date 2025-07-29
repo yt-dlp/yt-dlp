@@ -213,7 +213,7 @@ class CieloTVItIE(SkyItIE):  # XXX: Do not subclass from concrete IE
 
 class TV8ItIE(SkyItVideoIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'tv8.it'
-    _VALID_URL = r'https?://(?:www\.)?tv8\.it/(?:show)?video/[0-9a-z-]+-(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tv8\.it/(?:show)?video/(?:[0-9a-z-]+-)?(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.tv8.it/video/ogni-mattina-ucciso-asino-di-andrea-lo-cicero-630529',
         'md5': '9ab906a3f75ea342ed928442f9dabd21',
@@ -227,6 +227,19 @@ class TV8ItIE(SkyItVideoIE):  # XXX: Do not subclass from concrete IE
             'thumbnail': 'https://videoplatform.sky.it/still/2020/11/18/1605717753954_ogni-mattina-ucciso-asino-di-andrea-lo-cicero_videostill_1.jpg',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.tv8.it/video/964361',
+        'md5': '1e58e807154658a16edc29e45be38107',
+        'info_dict': {
+            'id': '964361',
+            'ext': 'mp4',
+            'title': 'GialappaShow - S.4 Ep.2',
+            'description': 'md5:60bb4ff5af18bbeeaedabc1de5f9e1e2',
+            'duration': 8030,
+            'thumbnail': 'https://videoplatform.sky.it/captures/494/2024/11/06/964361/964361_1730888412914_thumb_494.jpg',
+            'timestamp': 1730821499,
+            'upload_date': '20241105',
+        },
     }]
     _DOMAIN = 'mtv8'
 

@@ -242,7 +242,7 @@ class SoundcloudBaseIE(InfoExtractor):
                     format_urls.add(format_url)
                     formats.append({
                         'format_id': 'download',
-                        'ext': urlhandle_detect_ext(urlh, default='mp3'),
+                        'ext': urlhandle_detect_ext(urlh),
                         'filesize': int_or_none(urlh.headers.get('Content-Length')),
                         'url': format_url,
                         'quality': 10,

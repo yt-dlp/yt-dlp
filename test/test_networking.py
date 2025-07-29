@@ -22,7 +22,6 @@ import ssl
 import tempfile
 import threading
 import time
-import urllib.error
 import urllib.request
 import warnings
 import zlib
@@ -223,10 +222,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
                 if encoding == 'br' and brotli:
                     payload = brotli.compress(payload)
                 elif encoding == 'gzip':
-                    buf = io.BytesIO()
-                    with gzip.GzipFile(fileobj=buf, mode='wb') as f:
-                        f.write(payload)
-                    payload = buf.getvalue()
+                    payload = gzip.compress(payload, mtime=0)
                 elif encoding == 'deflate':
                     payload = zlib.compress(payload)
                 elif encoding == 'unsupported':
@@ -728,6 +724,17 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     f'http://127.0.0.1:{self.http_port}/headers', headers={'X-test-heaDer': 'test'}, extensions={'keep_header_casing': True})).read().decode()
 
             assert 'X-test-heaDer: test' in res
+
+    def test_partial_read_then_full_read(self, handler):
+        with handler() as rh:
+            for encoding in ('', 'gzip', 'deflate'):
+                res = validate_and_send(rh, Request(
+                    f'http://127.0.0.1:{self.http_port}/content-encoding',
+                    headers={'ytdl-encoding': encoding}))
+                assert res.headers.get('Content-Encoding') == encoding
+                assert res.read(6) == b'<html>'
+                assert res.read(0) == b''
+                assert res.read() == b'<video src="/vid.mp4" /></html>'
 
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)

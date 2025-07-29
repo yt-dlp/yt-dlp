@@ -317,17 +317,31 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         content_id = view_model.get('contentId')
         if not content_id:
             return
+
         content_type = view_model.get('contentType')
-        if content_type not in ('LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_PODCAST'):
+        if content_type == 'LOCKUP_CONTENT_TYPE_VIDEO':
+            ie = YoutubeIE
+            url = f'https://www.youtube.com/watch?v={content_id}'
+            thumb_keys = (None,)
+        elif content_type in ('LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_PODCAST'):
+            ie = YoutubeTabIE
+            url = f'https://www.youtube.com/playlist?list={content_id}'
+            thumb_keys = ('collectionThumbnailViewModel', 'primaryThumbnail')
+        else:
             self.report_warning(
-                f'Unsupported lockup view model content type "{content_type}"{bug_reports_message()}', only_once=True)
+                f'Unsupported lockup view model content type "{content_type}"{bug_reports_message()}',
+                only_once=True)
             return
+
         return self.url_result(
-            f'https://www.youtube.com/playlist?list={content_id}', ie=YoutubeTabIE, video_id=content_id,
+            url, ie, content_id,
             title=traverse_obj(view_model, (
                 'metadata', 'lockupMetadataViewModel', 'title', 'content', {str})),
             thumbnails=self._extract_thumbnails(view_model, (
-                'contentImage', 'collectionThumbnailViewModel', 'primaryThumbnail', 'thumbnailViewModel', 'image'), final_key='sources'))
+                'contentImage', *thumb_keys, 'thumbnailViewModel', 'image'), final_key='sources'),
+            duration=traverse_obj(view_model, (
+                'contentImage', 'thumbnailViewModel', 'overlays', ..., 'thumbnailOverlayBadgeViewModel',
+                'thumbnailBadges', ..., 'thumbnailBadgeViewModel', 'text', {parse_duration}, any)))
 
     def _rich_entries(self, rich_grid_renderer):
         if lockup_view_model := traverse_obj(rich_grid_renderer, ('content', 'lockupViewModel', {dict})):
