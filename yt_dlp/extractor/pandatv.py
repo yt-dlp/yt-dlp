@@ -67,7 +67,7 @@ class PandaTVIE(InfoExtractor):
             'http_headers': http_headers,
             **traverse_obj(video_meta.get('media'), {
                 'title': ('title', {str}),
-                'upload_date': ('startTime', {unified_strdate}),
+                'release_timestamp': ('startTime', {parse_iso8601(delim=' ')}),
                 'thumbnail': ('ivsThumbnail', {url_or_none}),
                 'channel': ('userNick', {str}),
                 'concurrent_view_count': ('user', {int_or_none}),
