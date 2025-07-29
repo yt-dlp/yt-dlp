@@ -42,6 +42,7 @@ class PandaTvIE(InfoExtractor):
 
         if not video_meta.get('result'):
             error_code = traverse_obj(video_meta, ('errorData', 'code', {str}))
+            error_msg  = video_meta.get('message')
             if error_code == 'castEnd':
                 raise UserNotLive(video_id=channel_id)
             elif error_code == 'needAdult':
@@ -57,7 +58,7 @@ class PandaTvIE(InfoExtractor):
             elif error_code == 'wrongPw':
                 raise ExtractorError('Wrong password', expected=True)
             else:
-                raise ExtractorError(f'API returned an error code: {error_code} with error message: {video_meta.get('message')}')
+                raise ExtractorError(f'API returned an error code: {error_code} with error message: {error_msg}')
 
         http_headers = {'Origin': 'https://www.pandalive.co.kr'}
 
