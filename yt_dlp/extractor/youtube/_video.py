@@ -3786,6 +3786,99 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or 'premium' in (self._get_text(tlr, 'tooltipText') or '').lower()
         )
 
+    def _get_translated_metadata_from_api(self, video_id, preferred_lang):
+        """
+        Obtiene título y descripción traducidos usando la API interna de YouTube.
+        Basado en la lógica demostrada por el usuario.
+        """
+        if not preferred_lang or preferred_lang == 'en':
+            return None, None
+            
+        try:
+            url = "https://www.youtube.com/youtubei/v1/get_watch?prettyPrint=false"
+            
+            # Headers para simular navegador y forzar idioma
+            headers = {
+                'accept': '*/*',
+                'accept-language': f'{preferred_lang}-{preferred_lang.upper()},{preferred_lang};q=0.9',
+                'content-type': 'application/json',
+                'origin': 'https://www.youtube.com',
+                'referer': f'https://www.youtube.com/watch?v={video_id}',
+                'x-goog-visitor-id': '',
+                'x-youtube-client-name': '1',
+            }
+            
+            # Datos del payload con idioma forzado
+            data = {
+                "context": {
+                    "client": {
+                        "hl": preferred_lang,  # Forzar idioma
+                        "gl": preferred_lang.upper(),  # Forzar región
+                        "clientName": "WEB",
+                        "clientVersion": "2.20250725.01.00",
+                        "acceptLanguage": f'{preferred_lang}-{preferred_lang.upper()},{preferred_lang};q=0.9',
+                    },
+                    "user": {
+                        "lockedSafetyMode": False
+                    },
+                    "request": {
+                        "useSsl": True,
+                        "consistencyTokenJars": []
+                    },
+                    "clickTracking": {
+                        "clickTrackingParams": ""
+                    }
+                },
+                "playerRequest": {
+                    "videoId": video_id,
+                    "playbackContext": {
+                        "contentPlaybackContext": {
+                            "currentUrl": f"/watch?v={video_id}",
+                            "html5Preference": "HTML5_PREF_WANTS",
+                        }
+                    }
+                },
+                "watchNextRequest": {
+                    "videoId": video_id
+                }
+            }
+            
+            response = self._download_json(
+                url, video_id, data=json.dumps(data).encode(),
+                headers=headers, note=f'Downloading translated metadata for language {preferred_lang}'
+            )
+            
+            if not response:
+                return None, None
+                
+            title = None
+            description = None
+            
+            # Buscar en la estructura watchNextResponse
+            if isinstance(response, list) and len(response) > 1:
+                watch_next_data = response[1]
+                
+                if traverse_obj(watch_next_data, ('watchNextResponse', 'contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', 0, 'videoPrimaryInfoRenderer', 'title')):
+                    title_data = watch_next_data['watchNextResponse']['contents']['twoColumnWatchNextResults']['results']['results']['contents'][0]['videoPrimaryInfoRenderer']['title']
+                    if isinstance(title_data, dict) and 'runs' in title_data:
+                        title = traverse_obj(title_data, ('runs', 0, 'text'), expected_type=str)
+                    elif isinstance(title_data, str):
+                        title = title_data
+                        
+                    # Buscar descripción
+                    description_data = traverse_obj(watch_next_data, 
+                        ('watchNextResponse', 'contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', 0, 'videoPrimaryInfoRenderer', 'description'))
+                    if isinstance(description_data, dict) and 'runs' in description_data:
+                        description = ''.join([run.get('text', '') for run in description_data.get('runs', [])])
+                    elif isinstance(description_data, str):
+                        description = description_data
+            
+            return title, description
+            
+        except Exception as e:
+            self.write_debug(f'Failed to get translated metadata: {str(e)}')
+            return None, None
+
     def _initial_extract(self, url, smuggled_data, webpage_url, webpage_client, video_id):
         # This function is also used by live-from-start refresh
         webpage = self._download_initial_webpage(webpage_url, webpage_client, video_id)
@@ -3833,18 +3926,63 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
             expected_type=dict)
 
-        translated_title = self._get_text(microformats, (..., 'title'))
-        video_title = ((self._preferred_lang and translated_title)
-                       or get_first(video_details, 'title')  # primary
-                       or translated_title
-                       or search_meta(['og:title', 'twitter:title', 'title']))
-        translated_description = self._get_text(microformats, (..., 'description'))
+        # Extract title with language preference
+        video_title = get_first(video_details, 'title')  # primary
+        
+        # Try to get localized title using language preference
+        if self._preferred_lang and self._preferred_lang != 'en':
+            # First check microformats for manually provided translations
+            localized_title = None
+            for mf in microformats:
+                localized = traverse_obj(mf, ('localized'), expected_type=dict)
+                if localized:
+                    localized_title = traverse_obj(localized, ('title'), expected_type=str)
+                    if localized_title:
+                        video_title = localized_title
+                        break
+            
+            # If no manual translations found, try using the internal API
+            if not localized_title:
+                api_title, api_description = self._get_translated_metadata_from_api(video_id, self._preferred_lang)
+                if api_title:
+                    video_title = api_title
+                if api_description:
+                    video_description = api_description
+        
+        # Fallback to original extraction logic
+        if not video_title:
+            translated_title = self._get_text(microformats, (..., 'title'))
+            video_title = (get_first(video_details, 'title')  # primary
+                           or translated_title
+                           or search_meta(['og:title', 'twitter:title', 'title']))
+
+        # Extract description with language preference
         original_description = get_first(video_details, 'shortDescription')
-        video_description = (
-            (self._preferred_lang and translated_description)
-            # If original description is blank, it will be an empty string.
-            # Do not prefer translated description in this case.
-            or original_description if original_description is not None else translated_description)
+        video_description = original_description
+        
+        # Try to get localized description using language preference
+        if self._preferred_lang and self._preferred_lang != 'en':
+            # First check microformats for manually provided translations
+            localized_description = None
+            for mf in microformats:
+                localized = traverse_obj(mf, ('localized'), expected_type=dict)
+                if localized:
+                    localized_description = traverse_obj(localized, ('description'), expected_type=str)
+                    if localized_description:
+                        video_description = localized_description
+                        break
+            
+            # If no manual translations found and API didn't provide description, try API for description
+            if not localized_description and not video_description:
+                api_title, api_description = self._get_translated_metadata_from_api(video_id, self._preferred_lang)
+                if api_description:
+                    video_description = api_description
+        
+        # Fallback to original extraction logic
+        if not video_description or video_description == original_description:
+            translated_description = self._get_text(microformats, (..., 'description'))
+            video_description = (original_description if original_description is not None 
+                               else translated_description)
 
         multifeed_metadata_list = get_first(
             player_responses,
