@@ -3795,8 +3795,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return None, None
             
         try:
-            url = "https://www.youtube.com/youtubei/v1/get_watch?prettyPrint=false"
-            
+            url = 'https://www.youtube.com/youtubei/v1/get_watch?prettyPrint=false'
+
             # Headers para simular navegador y forzar idioma
             headers = {
                 'accept': '*/*',
@@ -3810,13 +3810,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             
             # Datos del payload con idioma forzado
             data = {
-                "context": {
-                    "client": {
-                        "hl": preferred_lang,  # Forzar idioma
-                        "gl": preferred_lang.upper(),  # Forzar región
-                        "clientName": "WEB",
-                        "clientVersion": "2.20250725.01.00",
-                        "acceptLanguage": f'{preferred_lang}-{preferred_lang.upper()},{preferred_lang};q=0.9',
+                'context': {
+                    'client': {
+                        'hl': preferred_lang,  # Forzar idioma
+                        'gl': preferred_lang.upper(),  # Forzar región
+                        'clientName': 'WEB',
+                        'clientVersion': '2.20250725.01.00',
+                        'acceptLanguage': f'{preferred_lang}-{preferred_lang.upper()},{preferred_lang};q=0.9',
                     },
                     "user": {
                         "lockedSafetyMode": False
