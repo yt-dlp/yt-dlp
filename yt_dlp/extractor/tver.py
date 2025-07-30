@@ -223,10 +223,17 @@ class TVerIE(StreaksBaseIE):
                 'ie_key': 'BrightcoveNew',
             }
 
-        return {
-            **self._extract_from_streaks_api(video_info['streaks']['projectID'], streaks_id, {
+        try:
+            streaks_info = self._extract_from_streaks_api(video_info['streaks']['projectID'], streaks_id, {
                 'Origin': 'https://tver.jp',
                 'Referer': 'https://tver.jp/',
+            })
+        except GeoRestrictedError as e:
+            # Catch and re-raise with metadata_available to support --ignore-no-formats-error
+            self.raise_geo_restricted(e.orig_msg, countries=self._GEO_COUNTRIES, metadata_available=True)
+            streaks_info = {}
+
+        return {
             **streaks_info,
             **metadata,
             'id': video_id,
