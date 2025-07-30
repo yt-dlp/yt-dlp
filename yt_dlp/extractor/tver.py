@@ -9,6 +9,7 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     strip_or_none,
+    time_seconds,
     update_url_query,
 )
 from ..utils.traversal import require, traverse_obj
@@ -230,7 +231,7 @@ class TVerIE(StreaksBaseIE):
             }
 
         project_id = video_info['streaks']['projectID']
-        key_idx = dt.datetime.now(tz=dt.timezone.utc).month % 6 or 6
+        key_idx = dt.datetime.fromtimestamp(time_seconds(hours=9)).month % 6 or 6
 
         return {
             **self._extract_from_streaks_api(project_id, streaks_id, {
