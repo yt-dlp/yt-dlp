@@ -227,7 +227,7 @@ class TVerIE(StreaksBaseIE):
                 '_type': 'url_transparent',
                 'url': smuggle_url(
                     self.BRIGHTCOVE_URL_TEMPLATE % (account_id, brightcove_id),
-                    {'geo_countries': ['JP']}),
+                    {'geo_countries': self._GEO_COUNTRIES}),
                 'ie_key': 'BrightcoveNew',
             }
 
