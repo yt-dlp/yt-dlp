@@ -233,7 +233,7 @@ class TVerIE(StreaksBaseIE):
         key_idx = dt.datetime.now(tz=dt.timezone.utc).month % 6 or 6
 
         return {
-            **self._extract_from_streaks_api(video_info['streaks']['projectID'], streaks_id, {
+            **self._extract_from_streaks_api(project_id, streaks_id, {
                 'Origin': 'https://tver.jp',
                 'Referer': 'https://tver.jp/',
                 'X-Streaks-Api-Key': self._STREAKS_API_INFO[project_id]['api_key'][f'key0{key_idx}'],
