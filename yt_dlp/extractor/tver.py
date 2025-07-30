@@ -1,6 +1,7 @@
 from .streaks import StreaksBaseIE
 from ..utils import (
     ExtractorError,
+    GeoRestrictedError,
     int_or_none,
     join_nonempty,
     make_archive_id,
