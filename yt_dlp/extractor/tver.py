@@ -229,7 +229,7 @@ class TVerIE(StreaksBaseIE):
                 'ie_key': 'BrightcoveNew',
             }
 
-        project_id = traverse_obj(video_info, ('streaks', 'projectID', {str}, {require('project ID')}))
+        project_id = video_info['streaks']['projectID']
         key_idx = dt.datetime.now(tz=dt.timezone.utc).month % 6 or 6
 
         return {
