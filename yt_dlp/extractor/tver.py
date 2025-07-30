@@ -3,6 +3,7 @@ import datetime as dt
 from .streaks import StreaksBaseIE
 from ..utils import (
     ExtractorError,
+    GeoRestrictedError,
     int_or_none,
     join_nonempty,
     make_archive_id,
@@ -226,19 +227,26 @@ class TVerIE(StreaksBaseIE):
                 '_type': 'url_transparent',
                 'url': smuggle_url(
                     self.BRIGHTCOVE_URL_TEMPLATE % (account_id, brightcove_id),
-                    {'geo_countries': ['JP']}),
+                    {'geo_countries': self._GEO_COUNTRIES}),
                 'ie_key': 'BrightcoveNew',
             }
 
         project_id = video_info['streaks']['projectID']
         key_idx = dt.datetime.fromtimestamp(time_seconds(hours=9), dt.timezone.utc).month % 6 or 6
 
-        return {
-            **self._extract_from_streaks_api(project_id, streaks_id, {
+        try:
+            streaks_info = self._extract_from_streaks_api(project_id, streaks_id, {
                 'Origin': 'https://tver.jp',
                 'Referer': 'https://tver.jp/',
                 'X-Streaks-Api-Key': self._STREAKS_API_INFO[project_id]['api_key'][f'key0{key_idx}'],
-            }),
+            })
+        except GeoRestrictedError as e:
+            # Catch and re-raise with metadata_available to support --ignore-no-formats-error
+            self.raise_geo_restricted(e.orig_msg, countries=self._GEO_COUNTRIES, metadata_available=True)
+            streaks_info = {}
+
+        return {
+            **streaks_info,
             **metadata,
             'id': video_id,
             '_old_archive_ids': [make_archive_id('BrightcoveNew', brightcove_id)] if brightcove_id else None,
