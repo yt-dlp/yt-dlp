@@ -227,9 +227,8 @@ class TVerIE(StreaksBaseIE):
             **self._extract_from_streaks_api(video_info['streaks']['projectID'], streaks_id, {
                 'Origin': 'https://tver.jp',
                 'Referer': 'https://tver.jp/',
-            }, metadata_available=True),
+            **streaks_info,
             **metadata,
             'id': video_id,
-            'geo_countries': self._GEO_COUNTRIES,
             '_old_archive_ids': [make_archive_id('BrightcoveNew', brightcove_id)] if brightcove_id else None,
         }
