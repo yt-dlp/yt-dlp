@@ -2,7 +2,6 @@ import itertools
 
 from .common import InfoExtractor
 from ..utils import (
-    filter_dict,
     float_or_none,
     int_or_none,
     parse_qs,
@@ -127,53 +126,89 @@ class SpreakerIE(InfoExtractor):
 
 class SpreakerShowIE(InfoExtractor):
     _VALID_URL = [
-        r'https?://api\.spreaker\.com/show/(?P<id>\d+)',
+        r'https?://api\.spreaker\.com/(?:v2/)shows?/(?P<id>\d+)',
         r'https?://(?:www\.)?spreaker\.com/podcast/[\w-]+--(?P<id>[\d]+)',
         r'https?://(?:www\.)?spreaker\.com/show/(?P<id>\d+)/episodes/feed',
     ]
     _TESTS = [{
-        'url': 'https://api.spreaker.com/show/4652058',
+        'url': 'https://api.spreaker.com/v2/shows/4652058',
         'info_dict': {
-            'id': '4652058',
+            'id': 4652058,
+            'display_id': '3-ninjas-podcast',
+            'title': 'The Dojo w/ Domino & Hesh Jones',
+            'description': 'md5:d3277d9d3264b85a56f34de37820af95',
+            'uploader': 'The Dojo w/ Domino & Hesh Jone',
+            'uploader_id': 13414919,
+            'uploader_url': 'https://www.spreaker.com/user/the-dojo-w-domino-hesh-jone--13414919',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/images.spreaker.com/original/2808a2bb63a36549ca25b9a72492c70a.jpg',
+            'categories': ['Comedy', 'Animation & Manga', 'Video Games'],
         },
         'playlist_mincount': 118,
     }, {
         'url': 'https://www.spreaker.com/podcast/health-wealth--5918323',
         'info_dict': {
-            'id': '5918323',
+            'id': 5918323,
+            'display_id': 'itpodradio-health-wealth',
+            'title': 'Health Wealth',
+            'description': 'md5:99e7a46c0c39b7b9f5aee92452216864',
+            'uploader': 'India Today Podcast',
+            'uploader_id': 15714861,
+            'uploader_url': 'https://www.spreaker.com/user/india-today-podcast--15714861',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/images.spreaker.com/original/cb96e6b9a211c1a004e4a027f696f8c2.jpg',
+            'categories': ['Health & Fitness'],
         },
         'playlist_mincount': 60,
     }, {
         'url': 'https://www.spreaker.com/show/5887186/episodes/feed',
         'info_dict': {
-            'id': '5887186',
+            'id': 5887186,
+            'display_id': 'orbinea',
+            'title': 'Orbinéa Le Monde des Odyssées| Documentaire Podcast Histoire pour dormir Livre Audio Enfant & Adulte',
+            'description': 'md5:79101727388ece4114ae4fabc8861bb5',
+            'uploader': 'Orbinea Studio',
+            'uploader_id': 17206155,
+            'uploader_url': 'https://www.spreaker.com/user/orbinea-studio--17206155',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/images.spreaker.com/original/0d755be30d97fb65f8a8f2803a5edb57.jpg',
+            'categories': ['Science', 'Documentary', 'Education'],
         },
         'playlist_mincount': 290,
     }]
 
-    def _entries(self, show_id, key=None):
-        for page_num in itertools.count(1):
-            episodes = self._download_json(
-                f'https://api.spreaker.com/show/{show_id}/episodes',
-                show_id, note=f'Downloading JSON page {page_num}', query=filter_dict({
-                    'page': page_num,
-                    'max_per_page': 100,
-                    'key': key,
-                }))
-            pager = try_get(episodes, lambda x: x['response']['pager'], dict)
-            if not pager:
-                break
-            results = pager.get('results')
-            if not results or not isinstance(results, list):
-                break
-            for result in results:
-                if not isinstance(result, dict):
-                    continue
-                yield _extract_episode(result)
-            if page_num == pager.get('last_page'):
-                break
-
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        key = traverse_obj(parse_qs(url), ('key', 0))
-        return self.playlist_result(self._entries(show_id, key), playlist_id=show_id)
+        show_data = self._download_json(
+            f'https://api.spreaker.com/v2/shows/{show_id}', show_id,
+            note='Downloading JSON show metadata')
+        episodes = []
+        episodes_api_url = f'https://api.spreaker.com/v2/shows/{show_id}/episodes?limit=100'
+
+        for page_num in itertools.count(1):
+            episodes_api = self._download_json(episodes_api_url, show_id,
+                                               note=f'Downloading JSON episodes metadata page {page_num}')
+            episodes_in_page = traverse_obj(episodes_api, ('response', 'items', ..., {
+                'url': 'site_url',
+                'id': 'episode_id',
+                'title': 'title',
+            }))
+
+            for i in episodes_in_page:
+                episodes.append(self.url_result(i['url'], ie=SpreakerIE.ie_key(), video_id=i.get('id'), video_title=i.get('title')))
+
+            episodes_api_url = traverse_obj(episodes_api, ('response', 'next_url'), default=None)
+            if episodes_api_url is None:
+                break
+
+        return {
+            '_type': 'playlist',
+            'id': int_or_none(show_id),
+            'display_id': traverse_obj(show_data, ('response', 'show', 'permalink')),
+            'title': traverse_obj(show_data, ('response', 'show', 'title')),
+            'description': traverse_obj(show_data, ('response', 'show', 'description')),
+            'thumbnail': traverse_obj(show_data, ('response', 'show', 'image_original_url')),
+            'uploader': traverse_obj(show_data, ('response', 'show', 'author', 'fullname')),
+            'uploader_id': traverse_obj(show_data, ('response', 'show', 'author', 'user_id')),
+            'uploader_url': traverse_obj(show_data, ('response', 'show', 'author', 'site_url')),
+            'webpage_url': traverse_obj(show_data, ('response', 'show', 'site_url')),
+            'categories': traverse_obj(show_data, ('response', 'show', ('category', 'category_2', 'category_3'), 'name')),
+            'entries': episodes,
+        }
