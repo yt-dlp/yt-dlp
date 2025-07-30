@@ -8,6 +8,7 @@ from ..utils import (
     str_or_none,
     try_get,
     unified_timestamp,
+    update_url_query,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -176,15 +177,18 @@ class SpreakerShowIE(InfoExtractor):
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
+        additional_api_query = traverse_obj(parse_qs(url), {
+            'key': ('key', 0),
+        }) or {}
         show_data = self._download_json(
             f'https://api.spreaker.com/v2/shows/{show_id}', show_id,
-            note='Downloading JSON show metadata')
+            note='Downloading JSON show metadata', query=additional_api_query)
         episodes = []
         episodes_api_url = f'https://api.spreaker.com/v2/shows/{show_id}/episodes?limit=100'
 
         for page_num in itertools.count(1):
             episodes_api = self._download_json(episodes_api_url, show_id,
-                                               note=f'Downloading JSON episodes metadata page {page_num}')
+                                               note=f'Downloading JSON episodes metadata page {page_num}', query=additional_api_query)
             episodes_in_page = traverse_obj(episodes_api, ('response', 'items', ..., {
                 'url': 'site_url',
                 'id': 'episode_id',
@@ -192,7 +196,7 @@ class SpreakerShowIE(InfoExtractor):
             }))
 
             for i in episodes_in_page:
-                episodes.append(self.url_result(i['url'], ie=SpreakerIE.ie_key(), video_id=i.get('id'), video_title=i.get('title')))
+                episodes.append(self.url_result(update_url_query(i['url'], additional_api_query), ie=SpreakerIE.ie_key(), video_id=i.get('id'), video_title=i.get('title')))
 
             episodes_api_url = traverse_obj(episodes_api, ('response', 'next_url'), default=None)
             if episodes_api_url is None:
