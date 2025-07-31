@@ -55,7 +55,7 @@ class TBSJPEpisodeIE(TBSJPBaseIE):
 
         return {
             **self._extract_from_streaks_api(
-                'tbs', f'ref:{video_id}', headers={'Origin': 'https://cu.tbs.co.jp/'}),
+                'tbs', f'ref:{video_id}', headers={'Origin': 'https://cu.tbs.co.jp'}),
             **traverse_obj(episode, {
                 'title': ('title', ..., 'value', {str}, any),
                 'cast': (
