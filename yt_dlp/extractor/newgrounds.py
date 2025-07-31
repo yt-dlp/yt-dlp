@@ -1,7 +1,9 @@
 import functools
+import os
 import re
 
 from .common import InfoExtractor
+from .. import float_or_none
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -16,6 +18,7 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
     urljoin,
+    parse_resolution,
 )
 from ..utils.traversal import traverse_obj
 
@@ -37,14 +40,15 @@ class NewgroundsIE(InfoExtractor):
             'view_count': int,
             'description': 'md5:b8b3c2958875189f07d8e313462e8c4f',
             'age_limit': 0,
+            'average_rating': float,
             'thumbnail': r're:^https://aicon\.ngfiles\.com/549/549479\.png',
         },
     }, {
         'url': 'https://www.newgrounds.com/portal/view/1',
-        'md5': 'fbfb40e2dc765a7e830cb251d370d981',
+        'md5': '7475546f1d8611052fe7204de5cbb102',
         'info_dict': {
             'id': '1',
-            'ext': 'mp4',
+            'ext': 'swf',
             'title': 'Scrotum 1',
             'uploader': 'Brian-Beaton',
             'timestamp': 955078533,
@@ -52,6 +56,7 @@ class NewgroundsIE(InfoExtractor):
             'view_count': int,
             'description': 'Scrotum plays "catch."',
             'age_limit': 17,
+            'average_rating': float,
             'thumbnail': r're:^https://picon\.ngfiles\.com/0/flash_1_card\.png',
         },
     }, {
@@ -65,8 +70,9 @@ class NewgroundsIE(InfoExtractor):
             'timestamp': 1487983183,
             'upload_date': '20170225',
             'view_count': int,
-            'description': 'md5:aff9b330ec2e78ed93b1ad6d017accc6',
+            'description': str,
             'age_limit': 17,
+            'average_rating': float,
             'thumbnail': r're:^https://picon\.ngfiles\.com/689000/flash_689400_card\.png',
         },
         'params': {
@@ -74,32 +80,18 @@ class NewgroundsIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.newgrounds.com/portal/view/297383',
-        'md5': '2c11f5fd8cb6b433a63c89ba3141436c',
-        'info_dict': {
-            'id': '297383',
-            'ext': 'mp4',
-            'title': 'Metal Gear Awesome',
-            'uploader': 'Egoraptor',
-            'timestamp': 1140681292,
-            'upload_date': '20060223',
-            'view_count': int,
-            'description': 'md5:9246c181614e23754571995104da92e0',
-            'age_limit': 13,
-            'thumbnail': r're:^https://picon\.ngfiles\.com/297000/flash_297383_card\.png',
-        },
-    }, {
-        'url': 'https://www.newgrounds.com/portal/view/297383/format/flash',
         'md5': '5d05585a9a0caca059f5abfbd3865524',
         'info_dict': {
             'id': '297383',
             'ext': 'swf',
             'title': 'Metal Gear Awesome',
-            'description': 'Metal Gear Awesome',
+            'description': str,
             'uploader': 'Egoraptor',
             'upload_date': '20060223',
             'timestamp': 1140681292,
             'view_count': int,
             'age_limit': 13,
+            'average_rating': float,
             'thumbnail': r're:^https://picon\.ngfiles\.com/297000/flash_297383_card\.png',
         },
     }, {
@@ -114,6 +106,7 @@ class NewgroundsIE(InfoExtractor):
             'timestamp': 1637611540,
             'view_count': int,
             'age_limit': 18,
+            'average_rating': float,
             'thumbnail': r're:^https://picon\.ngfiles\.com/823000/flash_823109_card\.png',
         },
     }]
@@ -170,13 +163,20 @@ class NewgroundsIE(InfoExtractor):
             formats = []
             uploader = traverse_obj(json_video, ('author', {str}))
             for format_id, sources in traverse_obj(json_video, ('sources', {dict.items}, ...)):
-                quality = int_or_none(format_id[:-1])
-                formats.extend({
-                    'format_id': format_id,
-                    'quality': quality,
-                    'url': url,
-                } for url in traverse_obj(sources, (..., 'src', {url_or_none})))
-
+                quality = parse_resolution(format_id)['height']
+                for url in traverse_obj(sources, (..., 'src', {url_or_none})):
+                    formats.append({
+                        'format_id': format_id,
+                        'quality': quality,
+                        'url': url,
+                    })
+                    raw_url = re.sub(r'\?\d+', '', url)
+                    if raw_url != url:
+                        formats.append({
+                            'format_id': 's' + format_id,
+                            'quality': quality + 1,
+                            'url': raw_url,
+                        })
         if not uploader:
             uploader = self._html_search_regex(
                 (r'(?s)<h4[^>]*>(.+?)</h4>.*?<em>\s*(?:Author|Artist)\s*</em>',
@@ -209,6 +209,8 @@ class NewgroundsIE(InfoExtractor):
                 or self._og_search_description(webpage)),
             'age_limit': self._AGE_LIMIT.get(self._html_search_regex(
                 r'<h2\s+class=["\']rated-([etma])["\']', webpage, 'age_limit', default='e')),
+            'average_rating': float_or_none(self._html_search_regex(
+                r'<span\s+id=["\']score_number["\'][^>]*>([^<]+)', webpage, 'score_number', default=None)),
             'view_count': parse_count(self._html_search_regex(
                 r'(?s)<dt>\s*(?:Views|Listens)\s*</dt>\s*<dd>([\d\.,]+)</dd>',
                 webpage, 'view count', default=None)),
