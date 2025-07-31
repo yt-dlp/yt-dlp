@@ -2,6 +2,7 @@ import itertools
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     float_or_none,
     int_or_none,
     parse_qs,
@@ -116,12 +117,29 @@ class SpreakerIE(InfoExtractor):
         'url': 'https://www.spreaker.com/episode/60269615',
         'only_matching': True,
     }]
+    _NETRC_MACHINE = 'spreaker'
+    additional_api_query = {}
+
+    def _perform_login(self, username, password):
+        if username != 'oauth':
+            raise ExtractorError('Login using username and password is not currently supported. '
+                                 'Set your username to "oauth" and the password to an OAuth token to login using that. '
+                                 f'{self._login_hint("password")}', expected=True)
+
+        self._download_json(f'https://api.spreaker.com/v2/me?oauth2_access_token={password}', None,
+                            note='Verifying OAuth token...', errnote='Provided OAuth token is not valid')
+
+        # If the OAuth token is not valid, yt-dlp terminates before this line with exit code 1
+        # so if we got here, it means that the token is valid
+        self.additional_api_query.update({'oauth2_access_token': password})
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)
+        self.additional_api_query.update(traverse_obj(parse_qs(url), {'key': ('key', 0)}) or {})
+
         data = self._download_json(
             f'https://api.spreaker.com/v2/episodes/{episode_id}', episode_id,
-            query=traverse_obj(parse_qs(url), {'key': ('key', 0)}))['response']['episode']
+            query=self.additional_api_query)['response']['episode']
         return _extract_episode(data, episode_id)
 
 
@@ -174,21 +192,35 @@ class SpreakerShowIE(InfoExtractor):
         },
         'playlist_mincount': 290,
     }]
+    _NETRC_MACHINE = 'spreaker'
+    additional_api_query = {}
+
+    def _perform_login(self, username, password):
+        if username != 'oauth':
+            raise ExtractorError('Login using username and password is not currently supported. '
+                                 'Set your username to "oauth" and the password to an OAuth token to login using that. '
+                                 f'{self._login_hint("password")}', expected=True)
+
+        self._download_json(f'https://api.spreaker.com/v2/me?oauth2_access_token={password}', None,
+                            note='Verifying OAuth token...', errnote='Provided OAuth token is not valid')
+
+        # If the OAuth token is not valid, yt-dlp terminates before this line with exit code 1
+        # so if we got here, it means that the token is valid
+        self.additional_api_query.update({'oauth2_access_token': password})
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        additional_api_query = traverse_obj(parse_qs(url), {
-            'key': ('key', 0),
-        }) or {}
+        self.additional_api_query.update(traverse_obj(parse_qs(url), {'key': ('key', 0)}) or {})
+
         show_data = self._download_json(
             f'https://api.spreaker.com/v2/shows/{show_id}', show_id,
-            note='Downloading JSON show metadata', query=additional_api_query)
+            note='Downloading JSON show metadata', query=self.additional_api_query)
         episodes = []
         episodes_api_url = f'https://api.spreaker.com/v2/shows/{show_id}/episodes?limit=100'
 
         for page_num in itertools.count(1):
             episodes_api = self._download_json(episodes_api_url, show_id,
-                                               note=f'Downloading JSON episodes metadata page {page_num}', query=additional_api_query)
+                                               note=f'Downloading JSON episodes metadata page {page_num}', query=self.additional_api_query)
             episodes_in_page = traverse_obj(episodes_api, ('response', 'items', ..., {
                 'url': 'site_url',
                 'id': 'episode_id',
@@ -196,7 +228,9 @@ class SpreakerShowIE(InfoExtractor):
             }))
 
             for i in episodes_in_page:
-                episodes.append(self.url_result(update_url_query(i['url'], additional_api_query), ie=SpreakerIE.ie_key(), video_id=i.get('id'), video_title=i.get('title')))
+                episodes.append(self.url_result(
+                    update_url_query(i['url'], traverse_obj(self.additional_api_query, {'key': ('key', 0)})),
+                    ie=SpreakerIE.ie_key(), video_id=i.get('id'), video_title=i.get('title')))
 
             episodes_api_url = traverse_obj(episodes_api, ('response', 'next_url'), default=None)
             if episodes_api_url is None:
