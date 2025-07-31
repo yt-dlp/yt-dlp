@@ -10,8 +10,8 @@ from ..utils.traversal import traverse_obj
 
 
 class TBSJPBaseIE(StreaksBaseIE):
-    def _window_app(self, webpage, name, item_id, fatal=True):
-        return self._search_json(r'window\.app\s*=', webpage, f'{name} info', item_id, fatal=fatal, default={})
+    def _search_window_app_json(self, webpage, name, item_id, **kwargs):
+        return self._search_json(r'window\.app\s*=', webpage, f'{name} info', item_id, **kwargs)
 
 
 class TBSJPEpisodeIE(TBSJPBaseIE):
@@ -50,7 +50,7 @@ class TBSJPEpisodeIE(TBSJPBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        meta = self._window_app(webpage, 'episode', video_id, fatal=False)
+        meta = self._search_window_app_json(webpage, 'episode', video_id, fatal=False)
         episode = traverse_obj(meta, ('falcorCache', 'catalog', 'episode', video_id, 'value'))
 
         return {
@@ -58,7 +58,9 @@ class TBSJPEpisodeIE(TBSJPBaseIE):
                 'tbs', f'ref:{video_id}', headers={'Origin': 'https://cu.tbs.co.jp/'}),
             **traverse_obj(episode, {
                 'title': ('title', ..., 'value', {str}, any),
-                'cast': ('credit', ..., 'name', ..., 'value', {clean_html}, any, {lambda x: x.split(',')}, ..., {str.strip}, filter, all, filter),
+                'cast': (
+                    'credit', ..., 'name', ..., 'value', {clean_html}, any,
+                    {lambda x: x.split(',')}, ..., {str.strip}, filter, all, filter),
                 'categories': ('keywords', ..., {str}, filter, all, filter),
                 'description': ('description', ..., 'value', {clean_html}, any),
                 'duration': ('tv_episode_info', 'duration', {int_or_none}),
@@ -99,7 +101,7 @@ class TBSJPProgramIE(TBSJPBaseIE):
     def _real_extract(self, url):
         programme_id = self._match_id(url)
         webpage = self._download_webpage(url, programme_id)
-        meta = self._window_app(webpage, 'programme', programme_id)
+        meta = self._search_window_app_json(webpage, 'programme', programme_id)
         programme = traverse_obj(meta, ('falcorCache', 'catalog', 'program', programme_id, 'false', 'value'))
 
         return {
@@ -131,7 +133,7 @@ class TBSJPPlaylistIE(TBSJPBaseIE):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
         webpage = self._download_webpage(url, playlist_id)
-        meta = self._window_app(webpage, 'playlist', playlist_id)
+        meta = self._search_window_app_json(webpage, 'playlist', playlist_id)
         playlist = traverse_obj(meta, ('falcorCache', 'playList', playlist_id))
 
         def entries():
