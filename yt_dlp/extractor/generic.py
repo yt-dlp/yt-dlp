@@ -139,7 +139,7 @@ class GenericIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'f08e80da-bf1d-4e3d-8899-f0f6155f6efa',
             'duration': 211,
-            'timestamp': 1737363648.0,
+            'timestamp': 1737363648,
             'upload_date': '20250120',
         },
         'params': {'skip_download': 'm3u8'},
@@ -434,8 +434,8 @@ class GenericIE(InfoExtractor):
             'age_limit': 0,
             'description': 'md5:5bdf23fcb76801dc3b31e74cabf82147',
             'thumbnail': r're:https?://beltzlaw\.com/wp-content/uploads/.+\.jpg',
-            'timestamp': 1752816636.0,
-            'upload_date': '20250718',
+            'timestamp': 1753961749,
+            'upload_date': '20250731',
             '_old_archive_ids': ['generic beltzlaw'],
         },
         'skip': 'timestamp varies',
@@ -489,18 +489,18 @@ class GenericIE(InfoExtractor):
     }, {
         # JSON-LD: VideoObject
         # https://github.com/ytdl-org/youtube-dl/commit/6e6b70d65f0681317c425bfe1e157f3474afbbe8
-        'url': 'https://www.polleverywhere.com/',
+        'url': 'https://breezy.hr/',
         'info_dict': {
-            'id': 'www.polleverywhere',
+            'id': 'k6gl2kt2eq',
             'ext': 'mp4',
-            'title': 'Home Page Clip-Handbrake',
+            'title': 'Breezy HR\'s ATS helps you find & hire employees sooner',
             'age_limit': 0,
-            'description': 'md5:8e8e5e6f55da4ee04eb0c01af582c666',
-            'direct': True,
-            'duration': 22.0,
-            'thumbnail': r're:https?://.+',
-            'timestamp': 1746221968,
-            'upload_date': '20250502',
+            'average_rating': 4.5,
+            'description': 'md5:eee75fdd3044c538003f3be327ba01e1',
+            'duration': 60.1,
+            'thumbnail': r're:https?://cdn\.prod\.website-files\.com/.+\.webp',
+            'timestamp': 1485734400,
+            'upload_date': '20170130',
         },
     }, {
         # Video.js: VOD HLS
