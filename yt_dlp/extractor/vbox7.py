@@ -62,7 +62,7 @@ class Vbox7IE(InfoExtractor):
             'id': '5a4d12166d',
             'ext': 'mp4',
             'title': 'НА КОСЪМ ОТ ВЗРИВ: Отцепиха цял квартал заради изтичане на газ в Пловдив',
-            'description': 'md5:7d29497934a0340dc5b5598454d406bc',
+            'description': 'Инцидентът е станал на бензиностанция',
             'duration': 200,
             'thumbnail': r're:https?://.+\.jpg',
             'timestamp': 1471353501,
