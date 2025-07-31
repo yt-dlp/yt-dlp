@@ -68,7 +68,7 @@ class ArcPublishingIE(InfoExtractor):
             'id': '508116f7-e999-48db-b7c2-60a04842679b',
             'ext': 'mp4',
             'title': 'Scattered showers & storms bring heavy rain potential',
-            'description': 'md5:c86a616ea013842ed7db9faa6a414bb9',
+            'description': 'Scattered showers & storms bring heavy rain potential',
             'duration': 2016,
             'thumbnail': r're:https?://.+\.jpg',
             'timestamp': 1752881287,
