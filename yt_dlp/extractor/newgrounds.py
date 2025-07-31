@@ -13,11 +13,11 @@ from ..utils import (
     int_or_none,
     parse_count,
     parse_duration,
+    parse_resolution,
     unified_timestamp,
     url_or_none,
     urlencode_postdata,
     urljoin,
-    parse_resolution,
 )
 from ..utils.traversal import traverse_obj
 
