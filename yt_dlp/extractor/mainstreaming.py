@@ -56,7 +56,7 @@ class MainStreamingIE(InfoExtractor):
         'info_dict': {
             'id': 'EUlZfGWkGpOd',
             'title': 'La Settimana ',
-            'description': 'md5:4ba134e31c76288586949451a493812c',
+            'description': '03 Ottobre ore 02:00',
             'ext': 'mp4',
             'live_status': 'not_live',
             'thumbnail': r're:https?://[\w-]+\.msvdn\.net/image/\w+/poster',
@@ -69,7 +69,7 @@ class MainStreamingIE(InfoExtractor):
         'info_dict': {
             'id': 'MfuWmzL2lGkA',
             'title': 'TG Mattina',
-            'description': 'md5:d0e1efdc4cdaeba9628ce76f68a2496c',
+            'description': '06 Ottobre ore 08:00',
             'ext': 'mp4',
             'live_status': 'not_live',
             'thumbnail': r're:https?://[\w-]+\.msvdn\.net/image/\w+/poster',
@@ -82,7 +82,7 @@ class MainStreamingIE(InfoExtractor):
         'info_dict': {
             'id': 'HVvPMzy',
             'title': str,
-            'description': 'md5:f18ace9d2fe1a83445ef829bb635f40c',
+            'description': 'canale all news',
             'live_status': 'is_live',
             'ext': 'mp4',
             'thumbnail': r're:https?://[\w-]+\.msvdn\.net/image/\w+/poster',
