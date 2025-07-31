@@ -1647,10 +1647,10 @@ class PeerTubePlaylistIE(InfoExtractor):
         'url': 'https://peertube.debian.social/w/p/hFdJoTuyhNJVa1cDWd1d12',
         'info_dict': {
             'id': 'hFdJoTuyhNJVa1cDWd1d12',
+            'description': 'Diversas palestras do Richard Stallman no Brasil.',
             'title': 'Richard Stallman no Brasil',
             'channel': 'debianbrazilteam',
             'channel_id': 1522,
-            'description': 'md5:e2d3ef4626ed10f287b43b6289cb87a5',
             'thumbnail': r're:https?://peertube\.debian\.social/lazy-static/thumbnails/.+\.jpg',
             'timestamp': 1599676222,
             'upload_date': '20200909',
