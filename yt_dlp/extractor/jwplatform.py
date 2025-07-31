@@ -12,7 +12,7 @@ class JWPlatformIE(InfoExtractor):
             'id': 'nPripu9l',
             'ext': 'mp4',
             'title': 'Big Buck Bunny Trailer',
-            'description': 'md5:dc40c483d5a5808bced2e53b07452759',
+            'description': 'Big Buck Bunny is a short animated film by the Blender Institute. It is made using free and open source software.',
             'upload_date': '20081127',
             'timestamp': 1227796140,
             'duration': 32.0,
