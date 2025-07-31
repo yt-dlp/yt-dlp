@@ -33,6 +33,7 @@ class DBTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Putin taler - så skjer dette',
             'description': 'md5:3e8bacee33de861a9663d9a3fcc54e5e',
+            'display_id': 'putin-taler-sa-skjer-dette',
             'thumbnail': r're:https?://cdn\.jwplayer\.com/v2/media/.+',
             'timestamp': 1751043600,
             'upload_date': '20250627',
