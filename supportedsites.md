@@ -1327,7 +1327,6 @@ The only reliable way to check if a site is supported is to try it.
  - **ShahidShow**
  - **SharePoint**
  - **ShareVideosEmbed**
- - **Shiey**
  - **ShemarooMe**
  - **ShowRoomLive**
  - **ShugiinItvLive**: 衆議院インターネット審議中継
