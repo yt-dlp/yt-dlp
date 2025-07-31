@@ -179,7 +179,7 @@ class MLBIE(MLBBaseIE):
             'id': 'mlb-classic-video-vault-open-watch-embed-share',
             'title': 'MLB Classic vault is open! Don\'t avert your eyes!',
             'age_limit': 0,
-            'description': 'md5:9b75b6d23ca586e64e71a646855e4f18',
+            'description': 'All the video needed to hold you over until real baseball starts next month.',
             'thumbnail': r're:https?://cdn\.vox-cdn\.com/thumbor/.+\.jpg',
         },
         'playlist_count': 3,
