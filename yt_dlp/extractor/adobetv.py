@@ -240,7 +240,7 @@ class AdobeTVVideoIE(AdobeTVBaseIE):
             'id': '2456',
             'ext': 'mp4',
             'title': 'New experience with Acrobat DC',
-            'description': 'md5:e07ac2ad55635b4c227298ab0fed89df',
+            'description': 'New experience with Acrobat DC',
             'duration': 248.667,
             'thumbnail': r're:https?://images-tv\.adobe\.com/.+\.jpg',
         },
