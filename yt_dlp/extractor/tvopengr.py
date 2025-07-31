@@ -116,7 +116,7 @@ class TVOpenGrEmbedIE(TVOpenGrBaseIE):
             'id': '101119',
             'ext': 'mp4',
             'title': 'Οι καρποί των διαπραγματεύσεων ΗΠΑ-Ρωσίας | Ώρα Ελλάδος 7:00 > Ρεπορτάζ',
-            'description': 'md5:e54fc1977c7159b01cc11cd7d9d85550',
+            'description': 'Ξεκινούν οι διαπραγματεύσεις ανάμεσα σε Ηνωμένες Πολιτείες και Ρωσία για την Ουκρανία.',
             'display_id': 'oikarpoitondiapragmateyseonhparosias',
             'duration': 421.0,
             'thumbnail': r're:https?://opentv-static\.siliconweb\.com/imgHandler/.+\.jpg',
