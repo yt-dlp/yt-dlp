@@ -1,4 +1,5 @@
 import re
+from urllib import parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -181,11 +182,13 @@ class N1InfoIIE(InfoExtractor):
         for embedded_video in embedded_videos:
             video_data = extract_attributes(embedded_video)
             url = video_data.get('src') or ''
-            if url.startswith('https://www.youtube.com'):
+            if url:
+                url = parse.urlparse(url).hostname
+            if url == 'www.youtube.com':
                 entries.append(self.url_result(url, ie='Youtube'))
-            elif url.startswith('https://www.redditmedia.com'):
+            elif url == 'www.redditmedia.com':
                 entries.append(self.url_result(url, ie='Reddit'))
-            elif url.startswith('https://www.facebook.com') and 'plugins/video' in url:
+            elif url == 'www.facebook.com' and 'plugins/video' in url:
                 entries.append(self.url_result(url, ie='FacebookPluginsVideo'))
 
         return {
