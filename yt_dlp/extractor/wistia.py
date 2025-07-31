@@ -339,7 +339,7 @@ class WistiaChannelIE(WistiaBaseIE):
             'title': 'The Roof S2: The Modern CRO',
             'thumbnail': r're:https?://embed(?:-ssl)?\.wistia\.com/.+\.(?:jpg|png)',
             'duration': 86.487,
-            'description': 'md5:4f60fa590babd92e7db2fb53372a1711',
+            'description': 'A sales leader on The Roof? Man, they really must be letting anyone up here this season.\n',
             'timestamp': 1619790290,
             'upload_date': '20210430',
         },
