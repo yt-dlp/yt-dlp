@@ -1,5 +1,4 @@
 import functools
-import os
 import re
 
 from .common import InfoExtractor
