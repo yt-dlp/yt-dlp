@@ -163,7 +163,7 @@ class ERTFlixIE(ERTFlixBaseIE):
             'id': 'ser.164991',
             'age_limit': 8,
             'title': 'The Network',
-            'description': 'md5:daed7ea54637c27744f367234b8a0f53',
+            'description': 'The first Greek show featuring topics exclusively around the internet.',
         },
         'playlist_mincount': 0,
     }, {
