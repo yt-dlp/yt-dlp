@@ -182,13 +182,12 @@ class N1InfoIIE(InfoExtractor):
         for embedded_video in embedded_videos:
             video_data = extract_attributes(embedded_video)
             url = video_data.get('src') or ''
-            if url:
-                url = parse.urlparse(url).hostname
-            if url == 'www.youtube.com':
+            hostname = parse.urlparse(url).hostname
+            if hostname == 'www.youtube.com':
                 entries.append(self.url_result(url, ie='Youtube'))
-            elif url == 'www.redditmedia.com':
+            elif hostname == 'www.redditmedia.com':
                 entries.append(self.url_result(url, ie='Reddit'))
-            elif url == 'www.facebook.com' and 'plugins/video' in url:
+            elif hostname == 'www.facebook.com' and 'plugins/video' in url:
                 entries.append(self.url_result(url, ie='FacebookPluginsVideo'))
 
         return {
