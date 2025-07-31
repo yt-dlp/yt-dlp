@@ -49,7 +49,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         'Cannot download embed-only video without embedding URL. Please call yt-dlp '
         'with the URL of the page that embeds this video.')
 
-    _DEFAULT_CLIENT = 'android'
+    _DEFAULT_CLIENT = 'web'
     _DEFAULT_AUTHED_CLIENT = 'web'
     _CLIENT_HEADERS = {
         'Accept': 'application/vnd.vimeo.*+json; version=3.4.10',
@@ -58,7 +58,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     _CLIENT_CONFIGS = {
         'android': {
             'CACHE_KEY': 'oauth-token-android',
-            'CACHE_ONLY': False,
+            'CACHE_ONLY': True,
             'VIEWER_JWT': False,
             'REQUIRES_AUTH': False,
             'AUTH': 'NzRmYTg5YjgxMWExY2JiNzUwZDg1MjhkMTYzZjQ4YWYyOGEyZGJlMTp4OGx2NFd3QnNvY1lkamI2UVZsdjdDYlNwSDUrdm50YzdNNThvWDcwN1JrenJGZC9tR1lReUNlRjRSVklZeWhYZVpRS0tBcU9YYzRoTGY2Z1dlVkJFYkdJc0dMRHpoZWFZbU0reDRqZ1dkZ1diZmdIdGUrNUM5RVBySlM0VG1qcw==',
@@ -88,6 +88,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             ),
         },
         'web': {
+            'CACHE_ONLY': False,
             'VIEWER_JWT': True,
             'REQUIRES_AUTH': True,
             'USER_AGENT': None,
@@ -142,7 +143,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'service': 'vimeo',
             'token': viewer['xsrft'],
         }
-        self._set_vimeo_cookie('vuid', viewer['vuid'])
         try:
             self._download_webpage(
                 self._LOGIN_URL, None, 'Logging in',
@@ -151,15 +151,39 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'Referer': self._LOGIN_URL,
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 418:
+            if isinstance(e.cause, HTTPError) and e.cause.status in (405, 418):
                 raise ExtractorError(
                     'Unable to log in: bad username or password',
                     expected=True)
             raise ExtractorError('Unable to log in')
 
+        # Clear unauthenticated viewer info
+        self._viewer_info = None
+
     def _real_initialize(self):
-        if self._LOGIN_REQUIRED and not self._is_logged_in:
+        if self._is_logged_in:
+            return
+
+        if self._LOGIN_REQUIRED:
             self.raise_login_required()
+
+        if self._DEFAULT_CLIENT != 'web':
+            return
+
+        for client_name, client_config in self._CLIENT_CONFIGS.items():
+            if not client_config['CACHE_ONLY']:
+                continue
+
+            cache_key = client_config['CACHE_KEY']
+            if cache_key not in self._oauth_tokens:
+                if token := self.cache.load(self._NETRC_MACHINE, cache_key):
+                    self._oauth_tokens[cache_key] = token
+
+            if self._oauth_tokens.get(cache_key):
+                self._DEFAULT_CLIENT = client_name
+                self.write_debug(
+                    f'Found cached {client_name} token; using {client_name} as default API client')
+                return
 
     def _get_video_password(self):
         password = self.get_param('videopassword')
@@ -199,9 +223,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             webpage, 'vimeo config', *args, **kwargs)
         if vimeo_config:
             return self._parse_json(vimeo_config, video_id)
-
-    def _set_vimeo_cookie(self, name, value):
-        self._set_cookie('vimeo.com', name, value)
 
     def _parse_config(self, config, video_id):
         video_data = config['video']
@@ -363,22 +384,26 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         return f'Bearer {self._oauth_tokens[cache_key]}'
 
     def _get_requested_client(self):
-        default_client = self._DEFAULT_AUTHED_CLIENT if self._is_logged_in else self._DEFAULT_CLIENT
+        if client := self._configuration_arg('client', [None], ie_key=VimeoIE)[0]:
+            if client not in self._CLIENT_CONFIGS:
+                raise ExtractorError(
+                    f'Unsupported API client "{client}" requested. '
+                    f'Supported clients are: {", ".join(self._CLIENT_CONFIGS)}', expected=True)
+            self.write_debug(
+                f'Using {client} API client as specified by extractor argument', only_once=True)
+            return client
 
-        client = self._configuration_arg('client', [default_client], ie_key=VimeoIE)[0]
-        if client not in self._CLIENT_CONFIGS:
-            raise ExtractorError(
-                f'Unsupported API client "{client}" requested. '
-                f'Supported clients are: {", ".join(self._CLIENT_CONFIGS)}', expected=True)
+        if self._is_logged_in:
+            return self._DEFAULT_AUTHED_CLIENT
 
-        return client
+        return self._DEFAULT_CLIENT
 
     def _call_videos_api(self, video_id, unlisted_hash=None, path=None, *, force_client=None, query=None, **kwargs):
         client = force_client or self._get_requested_client()
 
         client_config = self._CLIENT_CONFIGS[client]
         if client_config['REQUIRES_AUTH'] and not self._is_logged_in:
-            self.raise_login_required(f'The {client} client requires authentication')
+            self.raise_login_required(f'The {client} client only works when logged-in')
 
         return self._download_json(
             join_nonempty(
@@ -1192,7 +1217,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 raise ExtractorError(
                     'This album is protected by a password, use the --video-password option',
                     expected=True)
-            self._set_vimeo_cookie('vuid', viewer['vuid'])
             try:
                 self._download_json(
                     f'https://vimeo.com/showcase/{album_id}/auth',
@@ -1589,7 +1613,6 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
                 raise ExtractorError(
                     'This album is protected by a password, use the --video-password option',
                     expected=True)
-            self._set_vimeo_cookie('vuid', viewer['vuid'])
             try:
                 hashed_pass = self._download_json(
                     f'https://vimeo.com/showcase/{album_id}/auth',
