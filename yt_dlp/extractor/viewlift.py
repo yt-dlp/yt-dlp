@@ -98,7 +98,7 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
             'ext': 'mp4',
             'title': '#whilewewatch',
         },
-        'skip': 'Invalid URL',
+        'skip': 'Dead embed URL',
     }]
 
     def _real_extract(self, url):

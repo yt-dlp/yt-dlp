@@ -90,7 +90,6 @@ class FacebookIE(InfoExtractor):
         },
         'expected_warnings': ['Cannot parse data'],
     }, {
-        # Requires logging in
         'url': 'https://www.facebook.com/video.php?v=637842556329505&fref=nf',
         'md5': '6a40d33c0eccbb1af76cf0485a052659',
         'info_dict': {
@@ -101,7 +100,7 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20140908',
             'timestamp': 1410199200,
         },
-        'skip': 'Invalid URL',
+        'skip': 'Requires logging in',
     }, {
         # data.video
         'url': 'https://www.facebook.com/video.php?v=274175099429670',
@@ -121,7 +120,6 @@ class FacebookIE(InfoExtractor):
         },
         'expected_warnings': ['Cannot parse data'],
     }, {
-        # Requires logging in
         'note': 'Video with DASH manifest',
         'url': 'https://www.facebook.com/video.php?v=957955867617029',
         'md5': 'b2c28d528273b323abe5c6ab59f0f030',
@@ -133,7 +131,7 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20160110',
             'timestamp': 1452431627,
         },
-        'skip': 'Invalid URL',
+        'skip': 'Requires logging in',
     }, {
         'url': 'https://www.facebook.com/maxlayn/posts/10153807558977570',
         'md5': '037b1fa7f3c2d02b7a0d7bc16031ecc6',
@@ -375,7 +373,7 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20201123',
             'timestamp': 1606162592,
         },
-        'skip': 'Invalid URL',
+        'skip': 'Requires logging in',
     }, {
         # node.comet_sections.content.story.attached_story.attachments.style_type_renderer.attachment.media
         'url': 'https://www.facebook.com/groups/ateistiskselskab/permalink/10154930137678856/',
@@ -1010,7 +1008,7 @@ class FacebookRedirectURLIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
         },
-        'skip': 'Invalid URL',
+        'skip': 'Youtube video is now private',
     }]
 
     def _real_extract(self, url):
