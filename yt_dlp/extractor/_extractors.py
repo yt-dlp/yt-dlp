@@ -2322,6 +2322,7 @@ from .vgtv import (
     BTVestlendingenIE,
 )
 from .vh1 import VH1IE
+from .viacomcbs import ViacomcbsIE
 from .vice import (
     ViceArticleIE,
     ViceIE,
