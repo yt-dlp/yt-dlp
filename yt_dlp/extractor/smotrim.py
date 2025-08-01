@@ -116,4 +116,5 @@ class SmotrimIE(InfoExtractor):
             'thumbnail': json_info['data']['playlist']['medialist'][0]['pictures']['16:9'],
             'formats': formats,
             'subtitles': subtitles,
+            "is_live": json_info['data']['playlist']['type'] == 'live',
         }
