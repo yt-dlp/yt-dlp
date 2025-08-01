@@ -60,14 +60,14 @@ class SmotrimIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        video_id, type = self._match_valid_url(url).group('id', 'type')
-        webpage = self._download_webpage(url, video_id, f'Resolving {type} link')
+        video_id, typ = self._match_valid_url(url).group('id', 'type')
+        webpage = self._download_webpage(url, video_id, f'Resolving {typ} link')
         iframe_url = self._search_regex(
             r'<iframe\b[^>]+\bsrc=["\'](https?://player\.smotrim\.ru/iframe/[^"\']+)',
             webpage,
             'iframe URL',
         )
-        if type in {'live', 'channel'}:
+        if typ in {'live', 'channel'}:
             # iframe_url = 'https://player.smotrim.ru/iframe/live/uid/381308c7-a066-4c4f-9656-83e2e792a7b4/showZoomBtn/false/isPlay/true/mute/true/sid/smotrim_rk/'
             video_id = re.search(
                 r'(?P<video_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})',
