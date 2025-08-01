@@ -14,6 +14,9 @@ class SmotrimIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Погода. на 2 августа 2025 года',
                 'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/xw/635/545/7.jpg',
+                'subtitles': {},
+                'is_live': False,
+                'duration': 105,
             },
             'add_ie': ['RUTV'],
         },
@@ -24,6 +27,9 @@ class SmotrimIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Новости культуры. Ольга Любимова провела рабочую встречу в Еврейской автономной области',
                 'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/xw/638/386/6.jpg',
+                'subtitles': {},
+                'is_live': False,
+                'duration': 69,
             },
             'add_ie': ['RUTV'],
         },
@@ -34,6 +40,9 @@ class SmotrimIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Большие и маленькие. 6-й сезон 8-й выпуск',
                 'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/xw/527/187/3.jpg',
+                'subtitles': {},
+                'is_live': False,
+                'duration': 6622,
             },
             'add_ie': ['RUTV'],
         },
@@ -44,6 +53,12 @@ class SmotrimIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Россия К',
                 'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/xw/441/085/7.png',
+                'subtitles': {
+                    'ru': [
+                        {'url': 'https://vgtrkregion-reg.cdnvideo.ru/vgtrk/0/kultura-hd/track_2001_319a299f/chunklist.m3u8', 'ext': 'vtt', 'protocol': 'm3u8_native',},
+                    ]
+                },
+                'is_live': True,
             },
             'add_ie': ['RUTV'],
         },
@@ -54,6 +69,12 @@ class SmotrimIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Россия К',
                 'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/xw/441/085/7.png',
+                'subtitles': {
+                    'ru': [
+                        {'url': 'https://vgtrkregion-reg.cdnvideo.ru/vgtrk/0/kultura-hd/track_2001_319a299f/chunklist.m3u8', 'ext': 'vtt', 'protocol': 'm3u8_native',},
+                    ]
+                },
+                'is_live': True,
             },
             'add_ie': ['RUTV'],
         },
