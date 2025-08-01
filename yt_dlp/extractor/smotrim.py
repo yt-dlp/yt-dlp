@@ -101,6 +101,8 @@ class SmotrimIE(InfoExtractor):
             )
         except Exception as e:
             raise ExtractorError(str(e), expected=True)
+        if json_info.get("status") != 200:
+            raise ExtractorError("Json download error. Status code: %s" % str(json_info.get("status")), expected=True)
         m3u8_url = json_info['data']['playlist']['medialist'][0]['sources']['m3u8'][
             'auto'
         ]
@@ -111,9 +113,7 @@ class SmotrimIE(InfoExtractor):
         return {
             'id': video_id,
             'title': json_info['data']['playlist']['medialist'][0]['title'],
-            'thumbnail': json_info['data']['playlist']['medialist'][0]['pictures'][
-                '16:9'
-            ],
+            'thumbnail': json_info['data']['playlist']['medialist'][0]['pictures']['16:9'],
             'formats': formats,
             'subtitles': subtitles,
         }
