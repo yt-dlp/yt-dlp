@@ -117,4 +117,3 @@ class SmotrimIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         }
-
