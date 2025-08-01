@@ -103,18 +103,19 @@ class SmotrimIE(InfoExtractor):
             raise ExtractorError(str(e), expected=True)
         if json_info.get('status') != 200:
             raise ExtractorError('Json download error. Status code: %s' % str(json_info.get('status')), expected=True)
-        m3u8_url = json_info['data']['playlist']['medialist'][0]['sources']['m3u8'][
-            'auto'
-        ]
+        media_info = json_info['data']['playlist']['medialist'][0]
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            m3u8_url, video_id, 'mp4', m3u8_id='hls',
+            media_info['sources']['m3u8']['auto'], video_id, 'mp4', m3u8_id='hls',
         )
-
-        return {
+        res = {
             'id': video_id,
-            'title': json_info['data']['playlist']['medialist'][0]['title'],
-            'thumbnail': json_info['data']['playlist']['medialist'][0]['pictures']['16:9'],
+            'title': media_info['title'],
+            'thumbnail': media_info['pictures']['16:9'],
             'formats': formats,
             'subtitles': subtitles,
             'is_live': json_info['data']['playlist']['type'] == 'live',
         }
+        if not res['is_live'] and 'duration' in media_info:
+            res['duration'] = media_info['duration']
+
+        return res
