@@ -107,7 +107,7 @@ class SmotrimIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             m3u8_url, video_id, 'mp4', m3u8_id='hls',
         )
-        
+
         return {
             'id': video_id,
             'title': json_info['data']['playlist']['medialist'][0]['title'],
