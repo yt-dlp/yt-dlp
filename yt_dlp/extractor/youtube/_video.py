@@ -4183,9 +4183,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     (?:\n|^)(?P<track>[^\n·]+)\ ·\ (?P<artist>[^\n]+)\n+
                     (?P<album>[^\n]+)\n+
                     (?:℗\s*(?P<release_year>\d{4})[^\n]+\n+)?
-                    (?:Released\ on\s*:\s*(?P<release_date>\d{4}-\d{2}-\d{2}))?.+?
-                    (\nArtist\s*:\s*(?P<clean_artist>[^\n]+)\n.+)?
-                    Auto-generated\ by\ YouTube\.\s*$
+                    (?:Released\ on\s*:\s*(?P<release_date>\d{4}-\d{2}-\d{2}))?
+                    (.+?\nArtist\s*:\s*(?P<clean_artist>[^\n]+)\n)?
+                    .+Auto-generated\ by\ YouTube\.\s*$
                 ''', video_description)
             if mobj:
                 release_year = mobj.group('release_year')
