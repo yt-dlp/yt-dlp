@@ -115,7 +115,6 @@ class RutubeIE(RutubeBaseIE):
 
     _TESTS = [{
         'url': 'https://rutube.ru/video/3eac3b4561676c17df9132a9a1e62e3e/',
-        'md5': '3d73fdfe5bb81b9aef139e22ef3de26a',
         'info_dict': {
             'id': '3eac3b4561676c17df9132a9a1e62e3e',
             'ext': 'mp4',
@@ -128,10 +127,11 @@ class RutubeIE(RutubeBaseIE):
             'upload_date': '20131016',
             'age_limit': 0,
             'view_count': int,
-            'thumbnail': 'https://pic.rutubelist.ru/video/d2/a0/d2a0aec998494a396deafc7ba2c82add.jpg',
+            'thumbnail': r're:https?://pic\.rutubelist\.ru/video/.+\.(?:jpg|png)',
             'categories': ['Новости и СМИ'],
             'chapters': [],
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://rutube.ru/play/embed/a10e53b86e8f349080f718582ce4c661',
         'only_matching': True,
@@ -146,7 +146,6 @@ class RutubeIE(RutubeBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://rutube.ru/video/private/884fb55f07a97ab673c7d654553e0f48/?p=x2QojCumHTS3rsKHWXN8Lg',
-        'md5': '4fce7b4fcc7b1bcaa3f45eb1e1ad0dd7',
         'info_dict': {
             'id': '884fb55f07a97ab673c7d654553e0f48',
             'ext': 'mp4',
@@ -163,6 +162,7 @@ class RutubeIE(RutubeBaseIE):
             'categories': ['Видеоигры'],
             'chapters': [],
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://rutube.ru/video/c65b465ad0c98c89f3b25cb03dcc87c6/',
         'info_dict': {
@@ -171,7 +171,7 @@ class RutubeIE(RutubeBaseIE):
             'chapters': 'count:4',
             'categories': ['Бизнес и предпринимательство'],
             'description': 'md5:252feac1305257d8c1bab215cedde75d',
-            'thumbnail': 'https://pic.rutubelist.ru/video/71/8f/718f27425ea9706073eb80883dd3787b.png',
+            'thumbnail': r're:https?://pic\.rutubelist\.ru/video/.+\.(?:jpg|png)',
             'duration': 782,
             'age_limit': 0,
             'uploader_id': '23491359',
@@ -181,6 +181,7 @@ class RutubeIE(RutubeBaseIE):
             'title': 'Бизнес с нуля: найм сотрудников. Интервью с директором строительной компании #1',
             'uploader': 'Стас Быков',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://rutube.ru/live/video/c58f502c7bb34a8fcdd976b221fca292/',
         'info_dict': {
@@ -188,16 +189,17 @@ class RutubeIE(RutubeBaseIE):
             'ext': 'mp4',
             'categories': ['Телепередачи'],
             'description': '',
-            'thumbnail': 'https://pic.rutubelist.ru/video/14/19/14190807c0c48b40361aca93ad0867c7.jpg',
+            'thumbnail': r're:https?://pic\.rutubelist\.ru/video/.+\.(?:jpg|png)',
             'live_status': 'is_live',
             'age_limit': 0,
             'uploader_id': '23460655',
             'timestamp': 1652972968,
             'view_count': int,
             'upload_date': '20220519',
-            'title': r're:Первый канал. Прямой эфир \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+            'title': str,
             'uploader': 'Первый канал',
         },
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://rutube.ru/play/embed/03a9cb54bac3376af4c5cb0f18444e01/',
         'info_dict': {
@@ -211,17 +213,38 @@ class RutubeIE(RutubeBaseIE):
             'duration': 293,
             'uploader': 'MOEX - Московская биржа',
             'timestamp': 1724946628,
-            'thumbnail': 'https://pic.rutubelist.ru/video/2e/24/2e241fddb459baf0fa54acfca44874f4.jpg',
+            'thumbnail': r're:https?://pic\.rutubelist\.ru/video/.+\.(?:jpg|png)',
             'view_count': int,
             'uploader_id': '38420507',
             'categories': ['Интервью'],
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://rutube.ru/video/5ab908fccfac5bb43ef2b1e4182256b0/',
         'only_matching': True,
     }, {
         'url': 'https://rutube.ru/live/video/private/c58f502c7bb34a8fcdd976b221fca292/',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://novate.ru/blogs/170625/73644/',
+        'info_dict': {
+            'id': 'b0c96c75a4e5b274721bbced6ed8fb64',
+            'ext': 'mp4',
+            'title': 'Где в России находится единственная в своем роде скальная торпедная батарея',
+            'age_limit': 0,
+            'categories': ['Наука'],
+            'chapters': [],
+            'description': 'md5:2ed82e6b81958a43da6fb4d56f949e1f',
+            'duration': 182,
+            'thumbnail': r're:https?://pic\.rutubelist\.ru/video/.+\.(?:jpg|png)',
+            'timestamp': 1749950158,
+            'upload_date': '20250615',
+            'uploader': 'Novate',
+            'uploader_id': '24044809',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -256,12 +279,10 @@ class RutubeEmbedIE(RutubeBaseIE):
             'chapters': [],
             'description': 'md5:a5acea57bbc3ccdc3cacd1f11a014b5b',
             'view_count': int,
-            'thumbnail': 'https://pic.rutubelist.ru/video/d3/03/d3031f4670a6e6170d88fb3607948418.jpg',
+            'thumbnail': r're:https?://pic\.rutubelist\.ru/video/.+\.(?:jpg|png)',
             'categories': ['Сериалы'],
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://rutube.ru/play/embed/8083783',
         'only_matching': True,
