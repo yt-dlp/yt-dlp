@@ -29,13 +29,13 @@ class YapFilesIE(InfoExtractor):
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
+        # FIXME: Update _VALID_URL
         'url': 'https://www.yapfiles.ru/show/3397030/e34b69aa03829d513d7dc3ace6ec9631.mp4.html',
         'info_dict': {
             'id': 'vMDE4NzI1Mjgt690b',
             'ext': 'mp4',
             'title': 'Котята',
         },
-        'skip': 'IE fix required; update _VALID_URL',
     }]
 
     def _real_extract(self, url):

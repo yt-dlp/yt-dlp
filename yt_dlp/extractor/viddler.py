@@ -81,7 +81,7 @@ class ViddlerIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'WALL-TO-GORTAT',
         },
-        'skip': 'Site changed',
+        'skip': 'Site no longer embeds Viddler',
     }]
 
     def _real_extract(self, url):

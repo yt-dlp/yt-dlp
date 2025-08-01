@@ -410,6 +410,7 @@ class XHamsterEmbedIE(InfoExtractor):
         },
     }]
     _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
         'url': 'https://xhamster.com/awards/2023',
         'info_dict': {
             'id': 'xh2VnYn',
@@ -429,7 +430,6 @@ class XHamsterEmbedIE(InfoExtractor):
             'view_count': int,
         },
         'params': {'skip_download': 'm3u8'},
-        'skip': 'IE fix required; embed detection',
     }]
 
     def _real_extract(self, url):

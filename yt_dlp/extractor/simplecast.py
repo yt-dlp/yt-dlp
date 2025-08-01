@@ -98,6 +98,7 @@ class SimplecastIE(SimplecastBaseIE):
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
         'url': 'https://poddtoppen.se/podcast/1498417306/the-rebindio-podcast/errant-signal-chris-franklin-new-wave-video-essays',
         'md5': '8c93be7be54251bf29ee97464eabe61c',
         'info_dict': {
@@ -118,7 +119,6 @@ class SimplecastIE(SimplecastBaseIE):
             'timestamp': 1580979475,
             'upload_date': '20200206',
         },
-        'skip': 'IE fix required; embed detection',
     }]
 
     def _real_extract(self, url):

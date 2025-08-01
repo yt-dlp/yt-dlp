@@ -20,6 +20,7 @@ class TVCIE(InfoExtractor):
         },
     }]
     _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
         'url': 'https://krizis-centr.ru/informatsiya/smi-o-tsentre/liniya-zashchity-bitye-zhjony-tv-tsentr',
         'md5': '43b8eee579a5cd2b85c9ed5b73d1c671',
         'info_dict': {
@@ -29,7 +30,6 @@ class TVCIE(InfoExtractor):
             'duration': 1526,
             'thumbnail': r're:https?://cdn\.tvc\.ru/pictures/.+\.jpg',
         },
-        'skip': 'IE fix required; embed detection',
     }]
 
     def _real_extract(self, url):

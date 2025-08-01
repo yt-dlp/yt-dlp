@@ -47,7 +47,7 @@ class PlaywireIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Joe Dirt 2 Beautiful Loser Teaser Trailer',
         },
-        'skip': 'Site changed',
+        'skip': 'Site no longer embeds Playwire',
     }]
 
     def _real_extract(self, url):

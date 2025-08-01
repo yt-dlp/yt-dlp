@@ -543,7 +543,7 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
             'ext': 'mp4',
             'title': 'David Letterman: A Preview',
         },
-        'skip': 'Site changed',
+        'skip': 'Invalid URL',
     }]
 
     def _real_extract(self, url):
@@ -606,6 +606,7 @@ class NBCOlympicsIE(InfoExtractor):
     _VALID_URL = r'https?://www\.nbcolympics\.com/videos?/(?P<id>[0-9a-z-]+)'
 
     _TESTS = [{
+        # Geo-restricted to US
         'url': 'https://www.nbcolympics.com/videos/watch-final-minutes-team-usas-mens-basketball-gold',
         'info_dict': {
             'id': 'SAwGfPlQ1q01',
@@ -620,7 +621,6 @@ class NBCOlympicsIE(InfoExtractor):
             'timestamp': 1723346984,
             'upload_date': '20240811',
         },
-        'skip': 'Geo-restricted to US',
     }, {
         'url': 'http://www.nbcolympics.com/video/justin-roses-son-leo-was-tears-after-his-dad-won-gold',
         'only_matching': True,

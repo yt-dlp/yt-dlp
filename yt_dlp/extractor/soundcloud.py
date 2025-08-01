@@ -467,6 +467,7 @@ class SoundcloudIE(SoundcloudBaseIE):
             'tags': 'count:14',
         },
     }, {
+        # Geo-restricted
         'url': 'https://soundcloud.com/the-concept-band/goldrushed-mastered?in=the-concept-band/sets/the-royal-concept-ep',
         'info_dict': {
             'id': '47127627',
@@ -490,7 +491,6 @@ class SoundcloudIE(SoundcloudBaseIE):
             'artists': ['The Royal Concept'],
             'tags': [],
         },
-        'skip': 'Geo-restricted',
     }, {
         # private link
         'url': 'https://soundcloud.com/jaimemf/youtube-dl-test-video-a-y-baw/s-8Pjrp',

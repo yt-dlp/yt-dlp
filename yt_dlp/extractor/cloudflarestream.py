@@ -59,6 +59,7 @@ class CloudflareStreamIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }, {
+        # FIXME: Embed detection
         'url': 'https://www.cloudflare.com/developer-platform/products/cloudflare-stream/',
         'info_dict': {
             'id': 'e7bd2dd67e0f8860b4ae81e33a966049',
@@ -66,7 +67,6 @@ class CloudflareStreamIE(InfoExtractor):
             'title': 'e7bd2dd67e0f8860b4ae81e33a966049',
             'thumbnail': r're:https?://cloudflarestream\.com/.+\.jpg',
         },
-        'skip': 'IE fix required; embed detection',
     }]
 
     def _real_extract(self, url):

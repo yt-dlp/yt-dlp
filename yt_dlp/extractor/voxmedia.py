@@ -72,6 +72,7 @@ class VoxMediaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:(?:theverge|vox|sbnation|eater|polygon|curbed|racked|funnyordie)\.com|recode\.net)/(?:[^/]+/)*(?P<id>[^/?]+)'
     _EMBED_REGEX = [r'<iframe[^>]+?src="(?P<url>https?://(?:www\.)?funnyordie\.com/embed/[^"]+)"']
     _TESTS = [{
+        # FIXME: Unsupported iframe embed
         # Volume embed, Youtube
         'url': 'http://www.theverge.com/2014/6/27/5849272/material-world-how-google-discovered-what-software-is-made-of',
         'info_dict': {
@@ -84,7 +85,6 @@ class VoxMediaIE(InfoExtractor):
             'uploader': 'The Verge',
         },
         'add_ie': ['Youtube'],
-        'skip': 'Site changed',
     }, {
         # Volume embed, Youtube
         'url': 'http://www.theverge.com/2014/10/21/7025853/google-nexus-6-hands-on-photos-video-android-phablet',

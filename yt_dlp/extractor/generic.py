@@ -271,6 +271,7 @@ class GenericIE(InfoExtractor):
         },
         'playlist_count': 3,
     }, {
+        # FIXME: Improve extraction
         # Flowplayer
         # https://github.com/ytdl-org/youtube-dl/commit/4d805e063c6c4ffd557d7c7cb905a3ed9c926b08
         'url': 'https://flowplayer.com/resources/demos/standard-setup',
@@ -283,7 +284,6 @@ class GenericIE(InfoExtractor):
             'upload_date': '20181009',
         },
         'params': {'skip_download': 'm3u8'},
-        'skip': 'Extraction needs improvement',
     }, {
         # JW Player: YouTube
         # https://github.com/ytdl-org/youtube-dl/commit/a0f719854463c6f4226e4042dfa80c1b17154e1d
@@ -399,6 +399,7 @@ class GenericIE(InfoExtractor):
         },
         'expected_warnings': ['Untested major version'],
     }, {
+        # FIXME: Unable to extract flashvars
         # KVS Player v7.11.4
         # kt_player.js?v=2.11.5.1
         # https://github.com/yt-dlp/yt-dlp/commit/a318f59d14792d25b2206c3f50181e03e8716db7
@@ -408,7 +409,6 @@ class GenericIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Kelis - 4th Of July',
         },
-        'skip': 'Unable to extract flashvars',
     }, {
         # KVS Player v7.11.4
         # kt_player.js?v=6.3.2
@@ -434,11 +434,10 @@ class GenericIE(InfoExtractor):
             'age_limit': 0,
             'description': 'md5:5bdf23fcb76801dc3b31e74cabf82147',
             'thumbnail': r're:https?://beltzlaw\.com/wp-content/uploads/.+\.jpg',
-            'timestamp': 1753961749,
-            'upload_date': '20250731',
+            'timestamp': int,  # varies
+            'upload_date': str,
             '_old_archive_ids': ['generic beltzlaw'],
         },
-        'skip': 'timestamp varies',
     }, {
         # twitter:player
         # https://github.com/ytdl-org/youtube-dl/commit/329179073b93e37ab76e759d1fe96d8f984367f3

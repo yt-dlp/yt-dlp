@@ -353,7 +353,7 @@ class WistiaChannelIE(WistiaBaseIE):
             'description': 'md5:14a8a93a1dbe236718e6a59f8c8c7bae',
         },
         'playlist_mincount': 30,
-        'skip': 'Site changed',
+        'skip': 'Site no longer embeds Wistia playlists',
     }, {
         # section instead of div
         'url': 'https://360learning.com/studio/onboarding-joei/',

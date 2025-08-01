@@ -246,6 +246,7 @@ class AdobeTVVideoIE(AdobeTVBaseIE):
         },
     }]
     _WEBPAGE_TESTS = [{
+        # FIXME: Invalid extension
         'url': 'https://www.adobe.com/learn/acrobat/web/customize-toolbar',
         'info_dict': {
             'id': '3463980',
@@ -254,7 +255,6 @@ class AdobeTVVideoIE(AdobeTVBaseIE):
             'description': 'md5:94368ab95ae24f9c1bee0cb346e03dc3',
             'duration': 97.557,
         },
-        'skip': 'IE fix required; invalid extension',
     }]
 
     def _real_extract(self, url):

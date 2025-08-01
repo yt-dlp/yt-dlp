@@ -27,6 +27,7 @@ class DBTVIE(InfoExtractor):
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
         'url': 'https://www.dagbladet.no/nyheter/rekordstort-russisk-angrep/83325693',
         'info_dict': {
             'id': '1HW7fYry',
@@ -38,7 +39,6 @@ class DBTVIE(InfoExtractor):
             'timestamp': 1751043600,
             'upload_date': '20250627',
         },
-        'skip': 'IE fix required; embed detection',
     }]
 
     def _real_extract(self, url):

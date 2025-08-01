@@ -62,6 +62,7 @@ class SenateISVPIE(InfoExtractor):
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
         'url': 'https://www.hsgac.senate.gov/subcommittees/bmfwra/hearings/match-ready-oversight-of-the-federal-governments-border-management-and-personnel-readiness-efforts-for-the-decade-of-sports/',
         'info_dict': {
             'id': 'govtaff061025',
@@ -70,7 +71,6 @@ class SenateISVPIE(InfoExtractor):
             'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
             '_old_archive_ids': ['senategov govtaff061025'],
         },
-        'skip': 'IE fix required; embed detection',
     }]
 
     _COMMITTEES = {

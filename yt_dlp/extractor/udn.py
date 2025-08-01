@@ -32,6 +32,7 @@ class UDNEmbedIE(InfoExtractor):
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
+        # FIXME: Update _VALID_URL
         'url': 'https://video.udn.com/news/1308561',
         'info_dict': {
             'id': '1308561',
@@ -41,7 +42,6 @@ class UDNEmbedIE(InfoExtractor):
         },
         'expected_warnings': ['Failed to parse JSON'],
         'params': {'skip_download': 'm3u8'},
-        'skip': 'IE fix required; update _VALID_URL',
     }]
 
     def _real_extract(self, url):

@@ -97,6 +97,7 @@ class CondeNastIE(InfoExtractor):
             'timestamp': 1442434920,
         },
     }, {
+        # FIXME: Subtitles
         'url': 'https://www.vanityfair.com/video/watch/vf-quiz-show-squid-game-s3',
         'info_dict': {
             'id': '6862f999c1afbc5ff06b4803',
@@ -113,7 +114,6 @@ class CondeNastIE(InfoExtractor):
             'upload_date': '20250701',
             'uploader': 'vanityfair',
         },
-        'skip': 'IE fix required; subtitles extraction',
     }, {
         'url': 'https://player.cnevids.com/inline/video/59138decb57ac36b83000005.js?target=js-cne-player',
         'only_matching': True,

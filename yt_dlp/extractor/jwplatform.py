@@ -35,7 +35,7 @@ class JWPlatformIE(InfoExtractor):
             'description': '',
             'duration': 294.0,
         },
-        'skip': 'Site changed',
+        'skip': 'Site no longer embeds JWPlatform',
     }, {
         # Player url not surrounded by quotes
         'url': 'https://www.deutsche-kinemathek.de/en/online/streaming/school-trip',
@@ -49,7 +49,7 @@ class JWPlatformIE(InfoExtractor):
             'description': '',
             'duration': 5193.0,
         },
-        'skip': 'Site changed',
+        'skip': 'Site no longer embeds JWPlatform',
     }, {
         # iframe src attribute includes backslash before URL string
         'url': 'https://www.elespectador.com/colombia/video-asi-se-evito-la-fuga-de-john-poulos-presunto-feminicida-de-valentina-trespalacios-explicacion',

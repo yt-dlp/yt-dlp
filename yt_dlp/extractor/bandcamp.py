@@ -122,6 +122,7 @@ class BandcampIE(InfoExtractor):
         },
     }]
     _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
         'url': 'https://www.punknews.org/article/85809/stay-inside-super-sonic',
         'info_dict': {
             'id': '2475540375',
@@ -143,7 +144,6 @@ class BandcampIE(InfoExtractor):
             'uploader_id': 'stayinside',
             'uploader_url': 'https://stayinside.bandcamp.com',
         },
-        'skip': 'IE fix required; embed detection',
     }]
 
     def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):

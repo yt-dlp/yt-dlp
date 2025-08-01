@@ -100,6 +100,7 @@ class MainStreamingIE(InfoExtractor):
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
         'url': 'https://www.lacplay.it/video/in-evidenza_728/lac-storie-p-250-i-santi-pietro-e-paolo_77297/',
         'info_dict': {
             'id': 'u7kiX5DUaHYr',
@@ -111,7 +112,6 @@ class MainStreamingIE(InfoExtractor):
             'tags': '06/07/2025',
             'live_status': 'not_live',
         },
-        'skip': 'IE fix required; embed detection',
     }]
 
     def _playlist_entries(self, host, playlist_content):

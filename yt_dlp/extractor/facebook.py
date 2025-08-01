@@ -427,6 +427,7 @@ class FacebookIE(InfoExtractor):
         },
         'expected_warnings': ['unable to extract uploader'],
     }, {
+        # FIXME: Embed detection
         # <iframe> embed, plugin video
         'url': 'https://www.newsmemory.com/eedition/e-publishing-solutions/2-in-one-app/',
         'md5': 'ae97d4a44f8cc9a8b1a4c03b9ed793af',
@@ -445,7 +446,6 @@ class FacebookIE(InfoExtractor):
             'view_count': int,
         },
         'expected_warnings': ['Cannot parse data'],
-        'skip': 'IE fix required: embed detection',
     }, {
         # API embed
         'url': 'https://www.curs.md/ro',
