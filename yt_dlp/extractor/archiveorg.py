@@ -33,7 +33,6 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
     urlhandle_detect_ext,
-    variadic,
 )
 
 
@@ -232,6 +231,23 @@ class ArchiveOrgIE(InfoExtractor):
             'release_date': '19950402',
             'timestamp': 1084927901,
         },
+    }, {
+        # metadata['metadata']['description'] is a list of strings instead of str
+        'url': 'https://archive.org/details/pra-KZ1908.02',
+        'info_dict': {
+            'id': 'pra-KZ1908.02',
+            'ext': 'mp3',
+            'display_id': 'KZ1908.02_01.wav',
+            'title': 'Crips and Bloods speak about gang life',
+            'description': 'md5:2b56b35ff021311e3554b47a285e70b3',
+            'uploader': 'jake@archive.org',
+            'duration': 1733.74,
+            'track': 'KZ1908.02 01',
+            'track_number': 1,
+            'timestamp': 1336026026,
+            'upload_date': '20120503',
+            'release_year': 1992,
+        },
     }]
 
     @staticmethod
@@ -274,34 +290,40 @@ class ArchiveOrgIE(InfoExtractor):
         m = metadata['metadata']
         identifier = m['identifier']
 
-        info = {
+        info = traverse_obj(m, {
+            'title': ('title', {str}),
+            'description': ('description', ({str}, (..., all, {' '.join})), {clean_html}, filter, any),
+            'uploader': (('uploader', 'adder'), {str}, any),
+            'creators': ('creator', (None, ...), {str}, filter, all, filter),
+            'license': ('licenseurl', {url_or_none}),
+            'release_date': ('date', {unified_strdate}),
+            'timestamp': (('publicdate', 'addeddate'), {unified_timestamp}, any),
+            'location': ('venue', {str}),
+            'release_year': ('year', {int_or_none}),
+        })
+        info.update({
             'id': identifier,
-            'title': m['title'],
-            'description': clean_html(m.get('description')),
-            'uploader': dict_get(m, ['uploader', 'adder']),
-            'creators': traverse_obj(m, ('creator', {variadic}, {lambda x: x[0] and list(x)})),
-            'license': m.get('licenseurl'),
-            'release_date': unified_strdate(m.get('date')),
-            'timestamp': unified_timestamp(dict_get(m, ['publicdate', 'addeddate'])),
             'webpage_url': f'https://archive.org/details/{identifier}',
-            'location': m.get('venue'),
-            'release_year': int_or_none(m.get('year'))}
+        })
 
         for f in metadata['files']:
             if f['name'] in entries:
                 entries[f['name']] = merge_dicts(entries[f['name']], {
                     'id': identifier + '/' + f['name'],
-                    'title': f.get('title') or f['name'],
-                    'display_id': f['name'],
-                    'description': clean_html(f.get('description')),
-                    'creators': traverse_obj(f, ('creator', {variadic}, {lambda x: x[0] and list(x)})),
-                    'duration': parse_duration(f.get('length')),
-                    'track_number': int_or_none(f.get('track')),
-                    'album': f.get('album'),
-                    'discnumber': int_or_none(f.get('disc')),
-                    'release_year': int_or_none(f.get('year'))})
+                    **traverse_obj(f, {
+                        'title': (('title', 'name'), {str}, any),
+                        'display_id': ('name', {str}),
+                        'description': ('description', ({str}, (..., all, {' '.join})), {clean_html}, filter, any),
+                        'creators': ('creator', (None, ...), {str}, filter, all, filter),
+                        'duration': ('length', {parse_duration}),
+                        'track_number': ('track', {int_or_none}),
+                        'album': ('album', {str}),
+                        'discnumber': ('disc', {int_or_none}),
+                        'release_year': ('year', {int_or_none}),
+                    }),
+                })
                 entry = entries[f['name']]
-            elif traverse_obj(f, 'original', expected_type=str) in entries:
+            elif traverse_obj(f, ('original', {str})) in entries:
                 entry = entries[f['original']]
             else:
                 continue
