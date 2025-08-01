@@ -55,8 +55,8 @@ class SmotrimIE(InfoExtractor):
                 'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/xw/441/085/7.png',
                 'subtitles': {
                     'ru': [
-                        {'url': 'https://vgtrkregion-reg.cdnvideo.ru/vgtrk/0/kultura-hd/track_2001_319a299f/chunklist.m3u8', 'ext': 'vtt', 'protocol': 'm3u8_native',},
-                    ]
+                        {'url': 'https://vgtrkregion-reg.cdnvideo.ru/vgtrk/0/kultura-hd/track_2001_319a299f/chunklist.m3u8', 'ext': 'vtt', 'protocol': 'm3u8_native'},
+                    ],
                 },
                 'is_live': True,
             },
@@ -71,8 +71,8 @@ class SmotrimIE(InfoExtractor):
                 'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/xw/441/085/7.png',
                 'subtitles': {
                     'ru': [
-                        {'url': 'https://vgtrkregion-reg.cdnvideo.ru/vgtrk/0/kultura-hd/track_2001_319a299f/chunklist.m3u8', 'ext': 'vtt', 'protocol': 'm3u8_native',},
-                    ]
+                        {'url': 'https://vgtrkregion-reg.cdnvideo.ru/vgtrk/0/kultura-hd/track_2001_319a299f/chunklist.m3u8', 'ext': 'vtt', 'protocol': 'm3u8_native'},
+                    ],
                 },
                 'is_live': True,
             },
