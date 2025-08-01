@@ -1758,6 +1758,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'media_type': 'short',
             },
         },
+        {
+            # Youtube Music Auto-generated description with dot in artist name
+            'url': 'https://music.youtube.com/watch?v=DbCvuSGfR3Y',
+            'info_dict': {
+                'id': 'DbCvuSGfR3Y',
+                'title': 'Back Around',
+                'artists': ['half·alive'],
+                'track': 'Back Around',
+                'album': 'Conditions Of A Punk',
+                'release_date': '20221202',
+                'release_year': 2021,
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
     ]
 
     _WEBPAGE_TESTS = [
