@@ -315,6 +315,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(prepend_extension('abc', 'temp'), 'abc.temp')
         self.assertEqual(prepend_extension('.abc', 'temp'), '.abc.temp')
         self.assertEqual(prepend_extension('.abc.ext', 'temp'), '.abc.temp.ext')
+        self.assertEqual(prepend_extension('..ext', 'temp', 'temp', True), '..ext.temp.temp')
 
         # Test uncommon extensions
         self.assertEqual(prepend_extension('abc.ext', 'bin'), 'abc.bin.ext')
