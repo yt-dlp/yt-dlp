@@ -75,7 +75,7 @@ class SmotrimIE(InfoExtractor):
             )
             if not video_id:
                 raise ExtractorError(
-                    'There are no player uuid in this page.', expected=True
+                    'There are no player uuid in this page.', expected=True,
                 )
             video_id = video_id.group('video_id')
             jsondata_url = (
@@ -89,7 +89,7 @@ class SmotrimIE(InfoExtractor):
             )
             if not video_id:
                 raise ExtractorError(
-                    'There are no player id in this page.', expected=True
+                    'There are no player id in this page.', expected=True,
                 )
             video_id = video_id.group('video_id')
             jsondata_url = (
@@ -97,7 +97,7 @@ class SmotrimIE(InfoExtractor):
             )
         try:
             json_info = self._download_json(
-                jsondata_url, video_id, 'Downloading player config JSON metadata'
+                jsondata_url, video_id, 'Downloading player config JSON metadata',
             )
         except Exception as e:
             raise ExtractorError(str(e), expected=True)
@@ -105,7 +105,7 @@ class SmotrimIE(InfoExtractor):
             'auto'
         ]
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            m3u8_url, video_id, 'mp4', m3u8_id='hls'
+            m3u8_url, video_id, 'mp4', m3u8_id='hls',
         )
         return {
             'id': video_id,
