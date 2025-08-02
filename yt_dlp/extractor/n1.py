@@ -145,7 +145,9 @@ class N1InfoIIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         title = self._og_search_title(webpage) or self._html_extract_title(webpage)
-        timestamp = unified_timestamp(self._og_search_property('published_time', webpage, default=None) or self._html_search_meta('article:published_time', webpage))
+        timestamp = unified_timestamp(
+            self._og_search_property('published_time', webpage, default=None)
+            or self._html_search_meta('article:published_time', webpage))
         plugin_data = re.findall(r'\$bp\("(?:Brid|TargetVideo)_\d+",\s(.+)\);', webpage)
         entries = []
         if plugin_data:
