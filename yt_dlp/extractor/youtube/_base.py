@@ -282,6 +282,7 @@ INNERTUBE_CLIENTS = {
                 'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
         },
+        'PLAYER_PARAMS': '8AEB',
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
         'GVS_PO_TOKEN_POLICY': {
             StreamingProtocol.HTTPS: GvsPoTokenPolicy(
