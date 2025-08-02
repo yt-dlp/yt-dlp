@@ -107,9 +107,7 @@ class FaulioIE(FaulioBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         api_base = self._get_api_base(url, video_id)
-
         video_info = self._download_json(f'{api_base}/video/{video_id}', video_id, fatal=False)
         player_info = self._download_json(f'{api_base}/video/{video_id}/player', video_id)
 
