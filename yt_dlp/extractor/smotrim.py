@@ -136,5 +136,5 @@ class SmotrimIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'is_live': json_info['data']['playlist']['type'] == 'live',
-            'duration': int_or_none(media_info.get('duration'))
+            'duration': int_or_none(media_info.get('duration')),
         }
