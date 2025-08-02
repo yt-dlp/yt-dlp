@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import ExtractorError
+from ..utils import ExtractorError, int_or_none
 
 
 class SmotrimIE(InfoExtractor):
@@ -128,15 +128,13 @@ class SmotrimIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             media_info['sources']['m3u8']['auto'], video_id, 'mp4', m3u8_id='hls',
         )
-        res = {
+
+        return {
             'id': video_id,
-            'title': media_info['title'],
+            'title': media_info.get('title'),
             'thumbnail': media_info['pictures']['16:9'],
             'formats': formats,
             'subtitles': subtitles,
             'is_live': json_info['data']['playlist']['type'] == 'live',
+            'duration': int_or_none(media_info.get('duration'))
         }
-        if not res['is_live'] and 'duration' in media_info:
-            res['duration'] = media_info['duration']
-
-        return res
