@@ -5,26 +5,21 @@ from .common import InfoExtractor
 from ..utils import js_to_json, url_or_none
 from ..utils.traversal import traverse_obj
 
-_DOMAINS = (
-    'aloula.sba.sa',
-    'bahry.com',
-    'maraya.sba.net.ae',
-    'sat7plus.org',
-)
+class FaulioBaseIE(InfoExtractor):
+    _DOMAINS = (
+        'aloula.sba.sa',
+        'bahry.com',
+        'maraya.sba.net.ae',
+        'sat7plus.org',
+    )
+    _LANGUAGES = ('ar', 'en', 'fa')
+    _BASE_URL_RE = fr'https?://(?:{"|".join(map(re.escape, _DOMAINS))})/(?:(?:{"|".join(_LANGUAGES)})/)?'
 
-_LANGUAGES = (
-    'ar',
-    'en',
-    'fa',
-)
-
-
-class FaulioBase(InfoExtractor):
     def _get_headers(self, url):
-        origin = f'{urllib.parse.urlparse(url).scheme}://{urllib.parse.urlparse(url).netloc}'
+        parsed_url = urllib.parse.urlparse(url)
         return {
-            'Referer': origin,
-            'Origin': origin,
+            'Referer': url,
+            'Origin': f'{parsed_url.scheme}://{parsed_url.hostname}'
         }
 
     def _get_api_base(self, url, video_id):
@@ -34,10 +29,9 @@ class FaulioBase(InfoExtractor):
         return config_data['public']['TRANSLATIONS_API_URL']
 
 
-class FaulioIE(FaulioBase):
-    _VALID_URL = fr'https?://(?:{"|".join(map(re.escape, _DOMAINS))})/(?:(?:{"|".join(map(re.escape, _LANGUAGES))})/)?(?:episode|media)/(?P<id>[a-zA-Z0-9-]+)'
-    _TESTS = [
-        {
+class FaulioIE(FaulioBaseIE):
+    _VALID_URL = fr'{FaulioBaseIE._BASE_URL_RE}(?:episode|media)/(?P<id>[a-zA-Z0-9-]+)'
+    _TESTS = [{
             'url': 'https://bahry.com/en/media/1191',
             'info_dict': {
                 'id': 'bahry.faulio.com_1191',
@@ -54,8 +48,7 @@ class FaulioIE(FaulioBase):
                 'duration': 1653,
                 'age_limit': 0,
             },
-        },
-        {
+    }, {
             'url': 'https://maraya.sba.net.ae/en/episode/127735',
             'info_dict': {
                 'id': 'maraya.faulio.com_127735',
@@ -71,16 +64,15 @@ class FaulioIE(FaulioBase):
                 'thumbnail': str,
                 'duration': 1316,
                 'age_limit': 0,
-            },
         },
-    ]
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         api_base = self._get_api_base(url, video_id)
 
-        video_info = self._download_json(f'{api_base}/video/{video_id}', video_id)
+        video_info = self._download_json(f'{api_base}/video/{video_id}', video_id, fatal=False)
         player_info = self._download_json(f'{api_base}/video/{video_id}/player', video_id)
 
         headers = self._get_headers(url)
@@ -104,25 +96,24 @@ class FaulioIE(FaulioBase):
         return {
             'id': f'{urllib.parse.urlparse(api_base).hostname}_{video_id}',
             **traverse_obj(traverse_obj(video_info, ('blocks', 0)), {
-                'display_id': ('slug',),
-                'title': ('title',),
-                'episode': ('title',),
-                'description': ('description',),
-                'series': ('program_title',),
-                'season_number': ('season_number',),
-                'episode_number': ('episode',),
-                'thumbnail': ('image',),
-                'duration': ('duration', 'total'),
-                'age_limit': ('age_rating',),
+                'display_id': ('slug', {str}),
+                'title': ('title', {str}),
+                'episode': ('title', {str}),
+                'description': ('description', {str}),
+                'series': ('program_title', {str}),
+                'season_number': ('season_number', {int_or_none}),
+                'episode_number': ('episode', {int_or_none}),
+                'thumbnail': ('image', {url_or_none}),
+                'duration': ('duration', 'total', {int_or_none}),
+                'age_limit': ('age_rating', {int_or_none}),
             }),
             'formats': formats,
             'subtitles': subtitles,
-            'is_live': False,
         }
 
 
-class FaulioLiveIE(FaulioBase):
-    _VALID_URL = fr'https?://(?:{"|".join(map(re.escape, _DOMAINS))})/(?:(?:{"|".join(map(re.escape, _LANGUAGES))})/)?live/(?P<id>[a-zA-Z0-9-]+)'
+class FaulioLiveIE(FaulioBaseIE):
+    _VALID_URL = fr'{FaulioBaseIE._BASE_URL_RE}live/(?P<id>[a-zA-Z0-9-]+)'
     _TESTS = [{
         'url': 'https://aloula.sba.sa/live/saudiatv',
         'info_dict': {
