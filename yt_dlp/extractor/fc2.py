@@ -22,8 +22,23 @@ class FC2IE(InfoExtractor):
         'md5': 'a6ebe8ebe0396518689d963774a54eb7',
         'info_dict': {
             'id': '20121103kUan1KHs',
-            'ext': 'flv',
             'title': 'Boxing again with Puff',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://.+\.jpe?g',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        # Direct video url
+        'url': 'https://video.fc2.com/content/20121209FP73fxDx',
+        'md5': '066bdb9b3a56a97f49cbf0d0b8a75a1f',
+        'info_dict': {
+            'id': '20121209FP73fxDx',
+            'title': 'Farewelling The Wiggles Live in Sydney Dec 8 2012',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://.+\.jpe?g',
+            'description': 'Saying goodbye to the Wiggles at their Celebration Concert in Sydney, and what a concert that was!',
         },
     }, {
         'url': 'http://video.fc2.com/en/content/20150125cEva0hDn/',
@@ -99,12 +114,14 @@ class FC2IE(InfoExtractor):
             raise ExtractorError('Unable to extract video URL')
         vid_url = urljoin('https://video.fc2.com/', vid_url)
 
+        video_type = vidplaylist.get('type')
+
         return {
             'id': video_id,
             'title': title,
             'url': vid_url,
             'ext': 'mp4',
-            'protocol': 'm3u8_native',
+            'protocol': 'm3u8_native' if video_type == 2 else 'https',
             'description': description,
             'thumbnail': thumbnail,
         }
