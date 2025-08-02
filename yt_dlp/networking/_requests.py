@@ -313,7 +313,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
             max_retries=urllib3.util.retry.Retry(False),
         )
         session.adapters.clear()
-        session.headers = requests.models.CaseInsensitiveDict({'Connection': 'keep-alive'})
+        session.headers = requests.models.CaseInsensitiveDict()
         session.mount('https://', http_adapter)
         session.mount('http://', http_adapter)
         session.cookies = cookiejar
@@ -322,6 +322,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
     def _prepare_headers(self, _, headers):
         add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
+        headers.setdefault('Connection', 'keep-alive')
 
     def _send(self, request):
 

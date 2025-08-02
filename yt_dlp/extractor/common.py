@@ -38,7 +38,6 @@ from ..networking.exceptions import (
     TransportError,
     network_exceptions,
 )
-from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,
@@ -259,6 +258,11 @@ class InfoExtractor:
                                  * key  The key (as hex) used to decrypt fragments.
                                         If `key` is given, any key URI will be ignored
                                  * iv   The IV (as hex) used to decrypt fragments
+                    * impersonate  Impersonate target(s). Can be any of the following entities:
+                                * an instance of yt_dlp.networking.impersonate.ImpersonateTarget
+                                * a string in the format of CLIENT[:OS]
+                                * a list or a tuple of CLIENT[:OS] strings or ImpersonateTarget instances
+                                * a boolean value; True means any impersonate target is sufficient
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
@@ -336,6 +340,7 @@ class InfoExtractor:
                         * "name": Name or description of the subtitles
                         * "http_headers": A dictionary of additional HTTP headers
                                   to add to the request.
+                        * "impersonate": Impersonate target(s); same as the "formats" field
                     "ext" will be calculated from URL if missing
     automatic_captions: Like 'subtitles'; contains automatically generated
                     captions instead of normal subtitles
@@ -392,6 +397,8 @@ class InfoExtractor:
     chapters:       A list of dictionaries, with the following entries:
                         * "start_time" - The start time of the chapter in seconds
                         * "end_time" - The end time of the chapter in seconds
+                                       (optional: core code can determine this value from
+                                       the next chapter's start_time or the video's duration)
                         * "title" (optional, string)
     heatmap:        A list of dictionaries, with the following entries:
                         * "start_time" - The start time of the data point in seconds
@@ -406,7 +413,8 @@ class InfoExtractor:
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
                     to set it
     media_type:     The type of media as classified by the site, e.g. "episode", "clip", "trailer"
-    _old_archive_ids: A list of old archive ids needed for backward compatibility
+    _old_archive_ids: A list of old archive ids needed for backward
+                   compatibility. Use yt_dlp.utils.make_archive_id to generate ids
     _format_sort_fields: A list of fields to use for sorting formats
     __post_extractor: A function to be called just before the metadata is
                     written to either disk, logger or console. The function
@@ -884,26 +892,17 @@ class InfoExtractor:
 
         extensions = {}
 
-        if impersonate in (True, ''):
-            impersonate = ImpersonateTarget()
-        requested_targets = [
-            t if isinstance(t, ImpersonateTarget) else ImpersonateTarget.from_str(t)
-            for t in variadic(impersonate)
-        ] if impersonate else []
-
-        available_target = next(filter(self._downloader._impersonate_target_available, requested_targets), None)
+        available_target, requested_targets = self._downloader._parse_impersonate_targets(impersonate)
         if available_target:
             extensions['impersonate'] = available_target
         elif requested_targets:
-            message = 'The extractor is attempting impersonation, but '
-            message += (
-                'no impersonate target is available' if not str(impersonate)
-                else f'none of these impersonate targets are available: "{", ".join(map(str, requested_targets))}"')
-            info_msg = ('see  https://github.com/yt-dlp/yt-dlp#impersonation  '
-                        'for information on installing the required dependencies')
+            msg = 'The extractor is attempting impersonation'
             if require_impersonation:
-                raise ExtractorError(f'{message}; {info_msg}', expected=True)
-            self.report_warning(f'{message}; if you encounter errors, then {info_msg}', only_once=True)
+                raise ExtractorError(
+                    self._downloader._unavailable_targets_message(requested_targets, note=msg, is_error=True),
+                    expected=True)
+            self.report_warning(
+                self._downloader._unavailable_targets_message(requested_targets, note=msg), only_once=True)
 
         try:
             return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query, extensions))
@@ -1782,6 +1781,59 @@ class InfoExtractor:
         return self._search_json(
             r'<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>', webpage, 'next.js data',
             video_id, end_pattern='</script>', fatal=fatal, default=default, **kw)
+
+    def _search_nextjs_v13_data(self, webpage, video_id, fatal=True):
+        """Parses Next.js app router flight data that was introduced in Next.js v13"""
+        nextjs_data = {}
+        if not fatal and not isinstance(webpage, str):
+            return nextjs_data
+
+        def flatten(flight_data):
+            if not isinstance(flight_data, list):
+                return
+            if len(flight_data) == 4 and flight_data[0] == '$':
+                _, name, _, data = flight_data
+                if not isinstance(data, dict):
+                    return
+                children = data.pop('children', None)
+                if data and isinstance(name, str) and re.fullmatch(r'\$L[0-9a-f]+', name):
+                    # It is useful hydration JSON data
+                    nextjs_data[name[2:]] = data
+                flatten(children)
+                return
+            for f in flight_data:
+                flatten(f)
+
+        flight_text = ''
+        # The pattern for the surrounding JS/tag should be strict as it's a hardcoded string in the next.js source
+        # Ref: https://github.com/vercel/next.js/blob/5a4a08fdc/packages/next/src/server/app-render/use-flight-response.tsx#L189
+        for flight_segment in re.findall(r'<script\b[^>]*>self\.__next_f\.push\((\[.+?\])\)</script>', webpage):
+            segment = self._parse_json(flight_segment, video_id, fatal=fatal, errnote=None if fatal else False)
+            # Some earlier versions of next.js "optimized" away this array structure; this is unsupported
+            # Ref: https://github.com/vercel/next.js/commit/0123a9d5c9a9a77a86f135b7ae30b46ca986d761
+            if not isinstance(segment, list) or len(segment) != 2:
+                self.write_debug(
+                    f'{video_id}: Unsupported next.js flight data structure detected', only_once=True)
+                continue
+            # Only use the relevant payload type (1 == data)
+            # Ref: https://github.com/vercel/next.js/blob/5a4a08fdc/packages/next/src/server/app-render/use-flight-response.tsx#L11-L14
+            payload_type, chunk = segment
+            if payload_type == 1:
+                flight_text += chunk
+
+        for f in flight_text.splitlines():
+            prefix, _, body = f.lstrip().partition(':')
+            if not re.fullmatch(r'[0-9a-f]+', prefix):
+                continue
+            # The body still isn't guaranteed to be valid JSON, so parsing should always be non-fatal
+            if body.startswith('[') and body.endswith(']'):
+                flatten(self._parse_json(body, video_id, fatal=False, errnote=False))
+            elif body.startswith('{') and body.endswith('}'):
+                data = self._parse_json(body, video_id, fatal=False, errnote=False)
+                if data is not None:
+                    nextjs_data[prefix] = data
+
+        return nextjs_data
 
     def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', *, fatal=True, traverse=('data', 0)):
         """Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function"""

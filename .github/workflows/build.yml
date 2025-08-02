@@ -242,7 +242,7 @@ jobs:
     permissions:
       contents: read
       actions: write  # For cleaning up cache
-    runs-on: macos-13
+    runs-on: macos-14
 
     steps:
       - uses: actions/checkout@v4
@@ -261,6 +261,8 @@ jobs:
       - name: Install Requirements
         run: |
           brew install coreutils
+          # We need to use system Python in order to roll our own universal2 curl_cffi wheel
+          brew uninstall --ignore-dependencies python3
           python3 -m venv ~/yt-dlp-build-venv
           source ~/yt-dlp-build-venv/bin/activate
           python3 devscripts/install_deps.py -o --include build

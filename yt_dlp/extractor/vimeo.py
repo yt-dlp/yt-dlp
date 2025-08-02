@@ -21,6 +21,7 @@ from ..utils import (
     js_to_json,
     jwt_decode_hs256,
     merge_dicts,
+    mimetype2ext,
     parse_filesize,
     parse_iso8601,
     parse_qs,
@@ -28,9 +29,11 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     traverse_obj,
+    try_call,
     try_get,
     unified_timestamp,
     unsmuggle_url,
+    url_basename,
     url_or_none,
     urlencode_postdata,
     urlhandle_detect_ext,
@@ -45,14 +48,58 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     _REFERER_HINT = (
         'Cannot download embed-only video without embedding URL. Please call yt-dlp '
         'with the URL of the page that embeds this video.')
-    _IOS_CLIENT_AUTH = 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw=='
-    _IOS_CLIENT_HEADERS = {
+
+    _DEFAULT_CLIENT = 'web'
+    _DEFAULT_AUTHED_CLIENT = 'web'
+    _CLIENT_HEADERS = {
         'Accept': 'application/vnd.vimeo.*+json; version=3.4.10',
         'Accept-Language': 'en',
-        'User-Agent': 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0',
     }
-    _IOS_OAUTH_CACHE_KEY = 'oauth-token-ios'
-    _ios_oauth_token = None
+    _CLIENT_CONFIGS = {
+        'android': {
+            'CACHE_KEY': 'oauth-token-android',
+            'CACHE_ONLY': True,
+            'VIEWER_JWT': False,
+            'REQUIRES_AUTH': False,
+            'AUTH': 'NzRmYTg5YjgxMWExY2JiNzUwZDg1MjhkMTYzZjQ4YWYyOGEyZGJlMTp4OGx2NFd3QnNvY1lkamI2UVZsdjdDYlNwSDUrdm50YzdNNThvWDcwN1JrenJGZC9tR1lReUNlRjRSVklZeWhYZVpRS0tBcU9YYzRoTGY2Z1dlVkJFYkdJc0dMRHpoZWFZbU0reDRqZ1dkZ1diZmdIdGUrNUM5RVBySlM0VG1qcw==',
+            'USER_AGENT': 'com.vimeo.android.videoapp (OnePlus, ONEPLUS A6003, OnePlus, Android 14/34 Version 11.8.1) Kotlin VimeoNetworking/3.12.0',
+            'VIDEOS_FIELDS': (
+                'uri', 'name', 'description', 'type', 'link', 'player_embed_url', 'duration', 'width',
+                'language', 'height', 'embed', 'created_time', 'modified_time', 'release_time', 'content_rating',
+                'content_rating_class', 'rating_mod_locked', 'license', 'privacy', 'pictures', 'tags', 'stats',
+                'categories', 'uploader', 'metadata', 'user', 'files', 'download', 'app', 'play', 'status',
+                'resource_key', 'badge', 'upload', 'transcode', 'is_playable', 'has_audio',
+            ),
+        },
+        'ios': {
+            'CACHE_KEY': 'oauth-token-ios',
+            'CACHE_ONLY': True,
+            'VIEWER_JWT': False,
+            'REQUIRES_AUTH': False,
+            'AUTH': 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw==',
+            'USER_AGENT': 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0',
+            'VIDEOS_FIELDS': (
+                'uri', 'name', 'description', 'type', 'link', 'player_embed_url', 'duration',
+                'width', 'language', 'height', 'embed', 'created_time', 'modified_time', 'release_time',
+                'content_rating', 'content_rating_class', 'rating_mod_locked', 'license', 'config_url',
+                'embed_player_config_url', 'privacy', 'pictures', 'tags', 'stats', 'categories', 'uploader',
+                'metadata', 'user', 'files', 'download', 'app', 'play', 'status', 'resource_key', 'badge',
+                'upload', 'transcode', 'is_playable', 'has_audio',
+            ),
+        },
+        'web': {
+            'CACHE_ONLY': False,
+            'VIEWER_JWT': True,
+            'REQUIRES_AUTH': True,
+            'USER_AGENT': None,
+            'VIDEOS_FIELDS': (
+                'config_url', 'created_time', 'description', 'license',
+                'metadata.connections.comments.total', 'metadata.connections.likes.total',
+                'release_time', 'stats.plays',
+            ),
+        },
+    }
+    _oauth_tokens = {}
     _viewer_info = None
 
     @staticmethod
@@ -80,7 +127,14 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
         return self._viewer_info
 
+    @property
+    def _is_logged_in(self):
+        return 'vimeo' in self._get_cookies('https://vimeo.com')
+
     def _perform_login(self, username, password):
+        if self._is_logged_in:
+            return
+
         viewer = self._fetch_viewer_info()
         data = {
             'action': 'login',
@@ -89,7 +143,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'service': 'vimeo',
             'token': viewer['xsrft'],
         }
-        self._set_vimeo_cookie('vuid', viewer['vuid'])
         try:
             self._download_webpage(
                 self._LOGIN_URL, None, 'Logging in',
@@ -98,15 +151,39 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'Referer': self._LOGIN_URL,
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 418:
+            if isinstance(e.cause, HTTPError) and e.cause.status in (405, 418):
                 raise ExtractorError(
                     'Unable to log in: bad username or password',
                     expected=True)
             raise ExtractorError('Unable to log in')
 
+        # Clear unauthenticated viewer info
+        self._viewer_info = None
+
     def _real_initialize(self):
-        if self._LOGIN_REQUIRED and not self._get_cookies('https://vimeo.com').get('vuid'):
-            self._raise_login_required()
+        if self._is_logged_in:
+            return
+
+        if self._LOGIN_REQUIRED:
+            self.raise_login_required()
+
+        if self._DEFAULT_CLIENT != 'web':
+            return
+
+        for client_name, client_config in self._CLIENT_CONFIGS.items():
+            if not client_config['CACHE_ONLY']:
+                continue
+
+            cache_key = client_config['CACHE_KEY']
+            if cache_key not in self._oauth_tokens:
+                if token := self.cache.load(self._NETRC_MACHINE, cache_key):
+                    self._oauth_tokens[cache_key] = token
+
+            if self._oauth_tokens.get(cache_key):
+                self._DEFAULT_CLIENT = client_name
+                self.write_debug(
+                    f'Found cached {client_name} token; using {client_name} as default API client')
+                return
 
     def _get_video_password(self):
         password = self.get_param('videopassword')
@@ -146,9 +223,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             webpage, 'vimeo config', *args, **kwargs)
         if vimeo_config:
             return self._parse_json(vimeo_config, video_id)
-
-    def _set_vimeo_cookie(self, name, value):
-        self._set_cookie('vimeo.com', name, value)
 
     def _parse_config(self, config, video_id):
         video_data = config['video']
@@ -277,52 +351,99 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             '_format_sort_fields': ('quality', 'res', 'fps', 'hdr:12', 'source'),
         }
 
-    def _fetch_oauth_token(self):
-        if not self._ios_oauth_token:
-            self._ios_oauth_token = self.cache.load(self._NETRC_MACHINE, self._IOS_OAUTH_CACHE_KEY)
+    def _fetch_oauth_token(self, client):
+        client_config = self._CLIENT_CONFIGS[client]
 
-        if not self._ios_oauth_token:
-            self._ios_oauth_token = self._download_json(
+        if client_config['VIEWER_JWT']:
+            return f'jwt {self._fetch_viewer_info()["jwt"]}'
+
+        cache_key = client_config['CACHE_KEY']
+
+        if not self._oauth_tokens.get(cache_key):
+            self._oauth_tokens[cache_key] = self.cache.load(self._NETRC_MACHINE, cache_key)
+
+        if not self._oauth_tokens.get(cache_key):
+            if client_config['CACHE_ONLY']:
+                raise ExtractorError(
+                    f'The {client} client is unable to fetch new OAuth tokens '
+                    f'and is only intended for use with previously cached tokens', expected=True)
+
+            self._oauth_tokens[cache_key] = self._download_json(
                 'https://api.vimeo.com/oauth/authorize/client', None,
-                'Fetching OAuth token', 'Failed to fetch OAuth token',
+                f'Fetching {client} OAuth token', f'Failed to fetch {client} OAuth token',
                 headers={
-                    'Authorization': f'Basic {self._IOS_CLIENT_AUTH}',
-                    **self._IOS_CLIENT_HEADERS,
+                    'Authorization': f'Basic {client_config["AUTH"]}',
+                    'User-Agent': client_config['USER_AGENT'],
+                    **self._CLIENT_HEADERS,
                 }, data=urlencode_postdata({
                     'grant_type': 'client_credentials',
-                    'scope': 'private public create edit delete interact upload purchased stats',
+                    'scope': 'private public create edit delete interact upload purchased stats video_files',
                 }, quote_via=urllib.parse.quote))['access_token']
-            self.cache.store(self._NETRC_MACHINE, self._IOS_OAUTH_CACHE_KEY, self._ios_oauth_token)
+            self.cache.store(self._NETRC_MACHINE, cache_key, self._oauth_tokens[cache_key])
 
-        return self._ios_oauth_token
+        return f'Bearer {self._oauth_tokens[cache_key]}'
 
-    def _call_videos_api(self, video_id, unlisted_hash=None, **kwargs):
+    def _get_requested_client(self):
+        if client := self._configuration_arg('client', [None], ie_key=VimeoIE)[0]:
+            if client not in self._CLIENT_CONFIGS:
+                raise ExtractorError(
+                    f'Unsupported API client "{client}" requested. '
+                    f'Supported clients are: {", ".join(self._CLIENT_CONFIGS)}', expected=True)
+            self.write_debug(
+                f'Using {client} API client as specified by extractor argument', only_once=True)
+            return client
+
+        if self._is_logged_in:
+            return self._DEFAULT_AUTHED_CLIENT
+
+        return self._DEFAULT_CLIENT
+
+    def _call_videos_api(self, video_id, unlisted_hash=None, path=None, *, force_client=None, query=None, **kwargs):
+        client = force_client or self._get_requested_client()
+
+        client_config = self._CLIENT_CONFIGS[client]
+        if client_config['REQUIRES_AUTH'] and not self._is_logged_in:
+            self.raise_login_required(f'The {client} client only works when logged-in')
+
         return self._download_json(
-            join_nonempty(f'https://api.vimeo.com/videos/{video_id}', unlisted_hash, delim=':'),
-            video_id, 'Downloading API JSON', headers={
-                'Authorization': f'Bearer {self._fetch_oauth_token()}',
-                **self._IOS_CLIENT_HEADERS,
-            }, query={
-                'fields': ','.join((
-                    'config_url', 'embed_player_config_url', 'player_embed_url', 'download', 'play',
-                    'files', 'description', 'license', 'release_time', 'created_time', 'stats.plays',
-                    'metadata.connections.comments.total', 'metadata.connections.likes.total')),
+            join_nonempty(
+                'https://api.vimeo.com/videos',
+                join_nonempty(video_id, unlisted_hash, delim=':'),
+                path, delim='/'),
+            video_id, f'Downloading {client} API JSON', f'Unable to download {client} API JSON',
+            headers=filter_dict({
+                'Authorization': self._fetch_oauth_token(client),
+                'User-Agent': client_config['USER_AGENT'],
+                **self._CLIENT_HEADERS,
+            }), query={
+                'fields': ','.join(client_config['VIDEOS_FIELDS']),
+                **(query or {}),
             }, **kwargs)
 
-    def _extract_original_format(self, url, video_id, unlisted_hash=None, api_data=None):
+    def _extract_original_format(self, url, video_id, unlisted_hash=None):
         # Original/source formats are only available when logged in
-        if not self._get_cookies('https://vimeo.com/').get('vimeo'):
-            return
+        if not self._is_logged_in:
+            return None
 
-        query = {'action': 'load_download_config'}
-        if unlisted_hash:
-            query['unlisted_hash'] = unlisted_hash
-        download_data = self._download_json(
-            url, video_id, 'Loading download config JSON', fatal=False,
-            query=query, headers={'X-Requested-With': 'XMLHttpRequest'},
-            expected_status=(403, 404)) or {}
-        source_file = download_data.get('source_file')
-        download_url = try_get(source_file, lambda x: x['download_url'])
+        policy = self._configuration_arg('original_format_policy', ['auto'], ie_key=VimeoIE)[0]
+        if policy == 'never':
+            return None
+
+        try:
+            download_data = self._download_json(
+                url, video_id, 'Loading download config JSON', query=filter_dict({
+                    'action': 'load_download_config',
+                    'unlisted_hash': unlisted_hash,
+                }), headers={
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                })
+        except ExtractorError as error:
+            self.write_debug(f'Unable to load download config JSON: {error.cause}')
+            download_data = None
+
+        source_file = traverse_obj(download_data, ('source_file', {dict})) or {}
+        download_url = traverse_obj(source_file, ('download_url', {url_or_none}))
         if download_url and not source_file.get('is_cold') and not source_file.get('is_defrosting'):
             source_name = source_file.get('public_name', 'Original')
             if self._is_valid_url(download_url, video_id, f'{source_name} video'):
@@ -340,8 +461,27 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'quality': 1,
                 }
 
-        original_response = api_data or self._call_videos_api(
-            video_id, unlisted_hash, fatal=False, expected_status=(403, 404))
+        # Most web client API requests are subject to rate-limiting (429) when logged-in.
+        # Requesting only the 'privacy' field is NOT rate-limited,
+        # so first we should check if video even has 'download' formats available
+        try:
+            privacy_info = self._call_videos_api(
+                video_id, unlisted_hash, force_client='web', query={'fields': 'privacy'})
+        except ExtractorError as error:
+            self.write_debug(f'Unable to download privacy info: {error.cause}')
+            return None
+
+        if not traverse_obj(privacy_info, ('privacy', 'download', {bool})):
+            msg = f'{video_id}: Vimeo says this video is not downloadable'
+            if policy != 'always':
+                self.write_debug(
+                    f'{msg}, so yt-dlp is not attempting to extract the original/source format. '
+                    f'To try anyways, use --extractor-args "vimeo:original_format_policy=always"')
+                return None
+            self.write_debug(f'{msg}; attempting to extract original/source format anyways')
+
+        original_response = self._call_videos_api(
+            video_id, unlisted_hash, force_client='web', query={'fields': 'download'}, fatal=False)
         for download_data in traverse_obj(original_response, ('download', ..., {dict})):
             download_url = download_data.get('link')
             if not download_url or download_data.get('quality') != 'source':
@@ -404,496 +544,489 @@ class VimeoIE(VimeoBaseInfoExtractor):
         # Non-standard embedded Vimeo player
         r'<video[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?vimeo\.com/[0-9]+)\1',
     ]
-    _TESTS = [
-        {
-            'url': 'http://vimeo.com/56015672#at=0',
-            'md5': '8879b6cc097e987f02484baf890129e5',
-            'info_dict': {
-                'id': '56015672',
-                'ext': 'mp4',
-                'title': "youtube-dl test video '' ä↭𝕐-BaW jenozKc",
-                'description': 'md5:2d3305bad981a06ff79f027f19865021',
-                'timestamp': 1355990239,
-                'upload_date': '20121220',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user7108434',
-                'uploader_id': 'user7108434',
-                'uploader': 'Filippo Valsorda',
-                'duration': 10,
-                'license': 'by-sa',
-            },
-            'params': {
-                'format': 'best[protocol=https]',
-            },
-            'skip': 'No longer available',
+    _TESTS = [{
+        'url': 'http://vimeo.com/56015672#at=0',
+        'md5': '8879b6cc097e987f02484baf890129e5',
+        'info_dict': {
+            'id': '56015672',
+            'ext': 'mp4',
+            'title': "youtube-dl test video '' ä↭𝕐-BaW jenozKc",
+            'description': 'md5:2d3305bad981a06ff79f027f19865021',
+            'timestamp': 1355990239,
+            'upload_date': '20121220',
+            'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user7108434',
+            'uploader_id': 'user7108434',
+            'uploader': 'Filippo Valsorda',
+            'duration': 10,
+            'license': 'by-sa',
         },
-        {
-            'url': 'https://player.vimeo.com/video/54469442',
-            'md5': '619b811a4417aa4abe78dc653becf511',
-            'note': 'Videos that embed the url in the player page',
-            'info_dict': {
-                'id': '54469442',
-                'ext': 'mp4',
-                'title': 'Kathy Sierra: Building the minimum Badass User, Business of Software 2012',
-                'uploader': 'Business of Software',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/businessofsoftware',
-                'uploader_id': 'businessofsoftware',
-                'duration': 3610,
-                'thumbnail': 'https://i.vimeocdn.com/video/376682406-f34043e7b766af6bef2af81366eacd6724f3fc3173179a11a97a1e26587c9529-d',
-            },
-            'params': {
-                'format': 'best[protocol=https]',
-            },
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
+        'params': {
+            'format': 'best[protocol=https]',
         },
-        {
-            'url': 'http://vimeo.com/68375962',
-            'md5': 'aaf896bdb7ddd6476df50007a0ac0ae7',
-            'note': 'Video protected with password',
-            'info_dict': {
-                'id': '68375962',
-                'ext': 'mp4',
-                'title': 'youtube-dl password protected test video',
-                'timestamp': 1371214555,
-                'upload_date': '20130614',
-                'release_timestamp': 1371214555,
-                'release_date': '20130614',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user18948128',
-                'uploader_id': 'user18948128',
-                'uploader': 'Jaime Marquínez Ferrándiz',
-                'duration': 10,
-                'comment_count': int,
-                'like_count': int,
-                'view_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d',
-            },
-            'params': {
-                'format': 'best[protocol=https]',
-                'videopassword': 'youtube-dl',
-            },
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
+        'skip': 'No longer available',
+    }, {
+        'url': 'https://player.vimeo.com/video/54469442',
+        'md5': '619b811a4417aa4abe78dc653becf511',
+        'note': 'Videos that embed the url in the player page',
+        'info_dict': {
+            'id': '54469442',
+            'ext': 'mp4',
+            'title': 'Kathy Sierra: Building the minimum Badass User, Business of Software 2012',
+            'uploader': 'Business of Software',
+            'uploader_id': 'businessofsoftware',
+            'uploader_url': 'https://vimeo.com/businessofsoftware',
+            'duration': 3610,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
         },
-        {
-            'url': 'http://vimeo.com/channels/keypeele/75629013',
-            'md5': '2f86a05afe9d7abc0b9126d229bbe15d',
-            'info_dict': {
-                'id': '75629013',
-                'ext': 'mp4',
-                'title': 'Key & Peele: Terrorist Interrogation',
-                'description': 'md5:6173f270cd0c0119f22817204b3eb86c',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/atencio',
-                'uploader_id': 'atencio',
-                'uploader': 'Peter Atencio',
-                'channel_id': 'keypeele',
-                'channel_url': r're:https?://(?:www\.)?vimeo\.com/channels/keypeele',
-                'timestamp': 1380339469,
-                'upload_date': '20130928',
-                'duration': 187,
-                'thumbnail': 'https://i.vimeocdn.com/video/450239872-a05512d9b1e55d707a7c04365c10980f327b06d966351bc403a5d5d65c95e572-d',
-                'view_count': int,
-                'comment_count': int,
-                'like_count': int,
-            },
-            'params': {'format': 'http-1080p'},
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
+        'params': {'format': 'best[protocol=https]'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        'url': 'http://vimeo.com/68375962',
+        'md5': 'aaf896bdb7ddd6476df50007a0ac0ae7',
+        'note': 'Video protected with password',
+        'info_dict': {
+            'id': '68375962',
+            'ext': 'mp4',
+            'title': 'youtube-dl password protected test video',
+            'timestamp': 1371214555,
+            'upload_date': '20130614',
+            'release_timestamp': 1371214555,
+            'release_date': '20130614',
+            'uploader_id': 'user18948128',
+            'uploader_url': 'https://vimeo.com/user18948128',
+            'uploader': 'Jaime Marquínez Ferrándiz',
+            'duration': 10,
+            'comment_count': int,
+            'like_count': int,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
         },
-        {
-            'url': 'http://vimeo.com/76979871',
-            'note': 'Video with subtitles',
-            'info_dict': {
-                'id': '76979871',
-                'ext': 'mp4',
-                'title': 'The New Vimeo Player (You Know, For Videos)',
-                'description': str,  # FIXME: Dynamic SEO spam description
-                'timestamp': 1381860509,
-                'upload_date': '20131015',
-                'release_timestamp': 1381860509,
-                'release_date': '20131015',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/staff',
-                'uploader_id': 'staff',
-                'uploader': 'Vimeo',
-                'duration': 62,
-                'comment_count': int,
-                'like_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/452001751-8216e0571c251a09d7a8387550942d89f7f86f6398f8ed886e639b0dd50d3c90-d',
-                'subtitles': {
-                    'de': 'count:3',
-                    'en': 'count:3',
-                    'es': 'count:3',
-                    'fr': 'count:3',
-                },
+        'params': {
+            'format': 'best[protocol=https]',
+            'videopassword': 'youtube-dl',
+        },
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        'url': 'http://vimeo.com/channels/keypeele/75629013',
+        'md5': '2f86a05afe9d7abc0b9126d229bbe15d',
+        'info_dict': {
+            'id': '75629013',
+            'ext': 'mp4',
+            'title': 'Key & Peele: Terrorist Interrogation',
+            'description': 'md5:6173f270cd0c0119f22817204b3eb86c',
+            'uploader_id': 'atencio',
+            'uploader_url': 'https://vimeo.com/atencio',
+            'uploader': 'Peter Atencio',
+            'channel_id': 'keypeele',
+            'channel_url': 'https://vimeo.com/channels/keypeele',
+            'timestamp': 1380339469,
+            'upload_date': '20130928',
+            'duration': 187,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'view_count': int,
+            'comment_count': int,
+            'like_count': int,
+        },
+        'params': {'format': 'http-1080p'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        'url': 'http://vimeo.com/76979871',
+        'note': 'Video with subtitles',
+        'info_dict': {
+            'id': '76979871',
+            'ext': 'mp4',
+            'title': 'The New Vimeo Player (You Know, For Videos)',
+            'description': str,  # FIXME: Dynamic SEO spam description
+            'timestamp': 1381860509,
+            'upload_date': '20131015',
+            'release_timestamp': 1381860509,
+            'release_date': '20131015',
+            'uploader_id': 'staff',
+            'uploader_url': 'https://vimeo.com/staff',
+            'uploader': 'Vimeo',
+            'duration': 62,
+            'comment_count': int,
+            'like_count': int,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'subtitles': {
+                'de': 'count:2',
+                'en': 'count:2',
+                'es': 'count:2',
+                'fr': 'count:2',
             },
-            'expected_warnings': [
-                'Ignoring subtitle tracks found in the HLS manifest',
-                'Failed to parse XML: not well-formed',
+        },
+        'expected_warnings': [
+            'Ignoring subtitle tracks found in the HLS manifest',
+            'Failed to parse XML: not well-formed',
+        ],
+    }, {
+        # from https://www.ouya.tv/game/Pier-Solar-and-the-Great-Architects/
+        'url': 'https://player.vimeo.com/video/98044508',
+        'note': 'The js code contains assignments to the same variable as the config',
+        'info_dict': {
+            'id': '98044508',
+            'ext': 'mp4',
+            'title': 'Pier Solar OUYA Official Trailer',
+            'uploader': 'Tulio Gonçalves',
+            'uploader_id': 'user28849593',
+            'uploader_url': 'https://vimeo.com/user28849593',
+            'duration': 118,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+        },
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # contains Original format
+        'url': 'https://vimeo.com/33951933',
+        # 'md5': '53c688fa95a55bf4b7293d37a89c5c53',
+        'info_dict': {
+            'id': '33951933',
+            'ext': 'mp4',
+            'title': 'FOX CLASSICS - Forever Classic ID - A Full Minute',
+            'uploader': 'The DMCI',
+            'uploader_id': 'dmci',
+            'uploader_url': 'https://vimeo.com/dmci',
+            'timestamp': 1324361742,
+            'upload_date': '20111220',
+            'description': 'md5:f37b4ad0f3ded6fa16f38ecde16c3c44',
+            'duration': 60,
+            'comment_count': int,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'like_count': int,
+            'release_timestamp': 1324361742,
+            'release_date': '20111220',
+        },
+        # 'params': {'format': 'Original'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        'note': 'Contains source format not accessible in webpage',
+        'url': 'https://vimeo.com/393756517',
+        # 'md5': 'c464af248b592190a5ffbb5d33f382b0',
+        'info_dict': {
+            'id': '393756517',
+            # 'ext': 'mov',
+            'ext': 'mp4',
+            'timestamp': 1582660091,
+            'uploader_id': 'frameworkla',
+            'title': 'Straight To Hell - Sabrina: Netflix',
+            'uploader': 'Framework Studio',
+            'upload_date': '20200225',
+            'duration': 176,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'uploader_url': 'https://vimeo.com/frameworkla',
+            'comment_count': int,
+            'like_count': int,
+            'release_timestamp': 1582660091,
+            'release_date': '20200225',
+        },
+        # 'params': {'format': 'source'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # only available via https://vimeo.com/channels/tributes/6213729 and
+        # not via https://vimeo.com/6213729
+        'url': 'https://vimeo.com/channels/tributes/6213729',
+        'info_dict': {
+            'id': '6213729',
+            'ext': 'mp4',
+            'title': 'Vimeo Tribute: The Shining',
+            'uploader': 'Casey Donahue',
+            'uploader_id': 'caseydonahue',
+            'uploader_url': 'https://vimeo.com/caseydonahue',
+            'channel_id': 'tributes',
+            'channel_url': 'https://vimeo.com/channels/tributes',
+            'timestamp': 1250886430,
+            'upload_date': '20090821',
+            'description': str,  # FIXME: Dynamic SEO spam description
+            'duration': 321,
+            'comment_count': int,
+            'view_count': int,
+            'tags': 'count:4',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'like_count': int,
+        },
+        'params': {'skip_download': True},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # redirects to ondemand extractor and should be passed through it
+        # for successful extraction
+        'url': 'https://vimeo.com/73445910',
+        'info_dict': {
+            'id': '73445910',
+            'ext': 'mp4',
+            'title': 'The Reluctant Revolutionary',
+            'uploader': '10Ft Films',
+            'uploader_url': 'https://vimeo.com/tenfootfilms',
+            'uploader_id': 'tenfootfilms',
+            'description': 'md5:0fa704e05b04f91f40b7f3ca2e801384',
+            'upload_date': '20130830',
+            'timestamp': 1377853339,
+        },
+        'params': {'skip_download': True},
+        'skip': 'this page is no longer available.',
+    }, {
+        'url': 'https://player.vimeo.com/video/68375962',
+        'md5': 'aaf896bdb7ddd6476df50007a0ac0ae7',
+        'info_dict': {
+            'id': '68375962',
+            'ext': 'mp4',
+            'title': 'youtube-dl password protected test video',
+            'uploader_id': 'user18948128',
+            'uploader_url': 'https://vimeo.com/user18948128',
+            'uploader': 'Jaime Marquínez Ferrándiz',
+            'duration': 10,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+        },
+        'params': {
+            'format': 'best[protocol=https]',
+            'videopassword': 'youtube-dl',
+        },
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        'url': 'http://vimeo.com/moogaloop.swf?clip_id=2539741',
+        'only_matching': True,
+    }, {
+        'url': 'https://vimeo.com/109815029',
+        'note': 'Video not completely processed, "failed" seed status',
+        'only_matching': True,
+    }, {
+        'url': 'https://vimeo.com/groups/travelhd/videos/22439234',
+        'only_matching': True,
+    }, {
+        'url': 'https://vimeo.com/album/2632481/video/79010983',
+        'only_matching': True,
+    }, {
+        'url': 'https://vimeo.com/showcase/3253534/video/119195465',
+        'note': 'A video in a password protected album (showcase)',
+        'info_dict': {
+            'id': '119195465',
+            'ext': 'mp4',
+            'title': "youtube-dl test video '' ä↭𝕐-BaW jenozKc",
+            'uploader': 'Philipp Hagemeister',
+            'uploader_id': 'user20132939',
+            'description': str,  # FIXME: Dynamic SEO spam description
+            'upload_date': '20150209',
+            'timestamp': 1423518307,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'duration': 10,
+            'like_count': int,
+            'uploader_url': 'https://vimeo.com/user20132939',
+            'view_count': int,
+            'comment_count': int,
+        },
+        'params': {
+            'format': 'best[protocol=https]',
+            'videopassword': 'youtube-dl',
+        },
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # source file returns 403: Forbidden
+        'url': 'https://vimeo.com/7809605',
+        'only_matching': True,
+    }, {
+        'note': 'Direct URL with hash',
+        'url': 'https://vimeo.com/160743502/abd0e13fb4',
+        'info_dict': {
+            'id': '160743502',
+            'ext': 'mp4',
+            'uploader': 'Julian Tryba',
+            'uploader_id': 'aliniamedia',
+            'title': 'Harrisville New Hampshire',
+            'timestamp': 1459259666,
+            'upload_date': '20160329',
+            'release_timestamp': 1459259666,
+            'license': 'by-nc',
+            'duration': 159,
+            'comment_count': int,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'like_count': int,
+            'uploader_url': 'https://vimeo.com/aliniamedia',
+            'release_date': '20160329',
+        },
+        'params': {'skip_download': True},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        'url': 'https://vimeo.com/138909882',
+        'info_dict': {
+            'id': '138909882',
+            # 'ext': 'm4v',
+            'ext': 'mp4',
+            'title': 'Eastnor Castle 2015 Firework Champions - The Promo!',
+            'description': 'md5:9441e6829ae94f380cc6417d982f63ac',
+            'uploader_id': 'fireworkchampions',
+            'uploader': 'Firework Champions',
+            'upload_date': '20150910',
+            'timestamp': 1441916295,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'uploader_url': 'https://vimeo.com/fireworkchampions',
+            'duration': 229,
+            'like_count': int,
+            'comment_count': int,
+            'release_timestamp': 1441916295,
+            'release_date': '20150910',
+        },
+        'params': {
+            'skip_download': True,
+            # 'format': 'source',
+        },
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        'url': 'https://vimeo.com/channels/staffpicks/143603739',
+        'info_dict': {
+            'id': '143603739',
+            'ext': 'mp4',
+            'uploader': 'Karim Huu Do',
+            'timestamp': 1445846953,
+            'upload_date': '20151026',
+            'title': 'The Shoes - Submarine Feat. Blaine Harrison',
+            'uploader_id': 'karimhd',
+            'description': 'md5:8e2eea76de4504c2e8020a9bcfa1e843',
+            'channel_id': 'staffpicks',
+            'duration': 336,
+            'comment_count': int,
+            'view_count': int,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'like_count': int,
+            'uploader_url': 'https://vimeo.com/karimhd',
+            'channel_url': 'https://vimeo.com/channels/staffpicks',
+            'tags': 'count:6',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # requires passing unlisted_hash(a52724358e) to load_download_config request
+        'url': 'https://vimeo.com/392479337/a52724358e',
+        'only_matching': True,
+    }, {
+        # similar, but all numeric: ID must be 581039021, not 9603038895
+        # https://github.com/ytdl-org/youtube-dl/issues/29690
+        'url': 'https://vimeo.com/581039021/9603038895',
+        'info_dict': {
+            'id': '581039021',
+            'ext': 'mp4',
+            'timestamp': 1627621014,
+            'release_timestamp': 1627621014,
+            'duration': 976,
+            'comment_count': int,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'like_count': int,
+            'uploader_url': 'https://vimeo.com/txwestcapital',
+            'release_date': '20210730',
+            'uploader': 'Christopher Inks',
+            'title': 'Thursday, July 29, 2021 BMA Evening Video Update',
+            'uploader_id': 'txwestcapital',
+            'upload_date': '20210730',
+        },
+        'params': {'skip_download': True},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # chapters must be sorted, see: https://github.com/yt-dlp/yt-dlp/issues/5308
+        'url': 'https://player.vimeo.com/video/756714419',
+        'info_dict': {
+            'id': '756714419',
+            'ext': 'mp4',
+            'title': 'Dr Arielle Schwartz - Therapeutic yoga for optimum sleep',
+            'uploader': 'Alex Howard',
+            'uploader_id': 'user54729178',
+            'uploader_url': 'https://vimeo.com/user54729178',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'duration': 2636,
+            'chapters': [
+                {'start_time': 0, 'end_time': 10, 'title': '<Untitled Chapter 1>'},
+                {'start_time': 10, 'end_time': 106, 'title': 'Welcoming Dr Arielle Schwartz'},
+                {'start_time': 106, 'end_time': 305, 'title': 'What is therapeutic yoga?'},
+                {'start_time': 305, 'end_time': 594, 'title': 'Vagal toning practices'},
+                {'start_time': 594, 'end_time': 888, 'title': 'Trauma and difficulty letting go'},
+                {'start_time': 888, 'end_time': 1059, 'title': "Dr Schwartz' insomnia experience"},
+                {'start_time': 1059, 'end_time': 1471, 'title': 'A strategy for helping sleep issues'},
+                {'start_time': 1471, 'end_time': 1667, 'title': 'Yoga nidra'},
+                {'start_time': 1667, 'end_time': 2121, 'title': 'Wisdom in stillness'},
+                {'start_time': 2121, 'end_time': 2386, 'title': 'What helps us be more able to let go?'},
+                {'start_time': 2386, 'end_time': 2510, 'title': 'Practical tips to help ourselves'},
+                {'start_time': 2510, 'end_time': 2636, 'title': 'Where to find out more'},
             ],
         },
-        {
-            # from https://www.ouya.tv/game/Pier-Solar-and-the-Great-Architects/
-            'url': 'https://player.vimeo.com/video/98044508',
-            'note': 'The js code contains assignments to the same variable as the config',
-            'info_dict': {
-                'id': '98044508',
-                'ext': 'mp4',
-                'title': 'Pier Solar OUYA Official Trailer',
-                'uploader': 'Tulio Gonçalves',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user28849593',
-                'uploader_id': 'user28849593',
-                'duration': 118,
-                'thumbnail': 'https://i.vimeocdn.com/video/478636036-c18440305ef3df9decfb6bf207a61fe39d2d17fa462a96f6f2d93d30492b037d-d',
-            },
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
+        'params': {
+            'http_headers': {'Referer': 'https://sleepsuperconference.com'},
+            'skip_download': 'm3u8',
         },
-        {
-            # contains Original format
-            'url': 'https://vimeo.com/33951933',
-            # 'md5': '53c688fa95a55bf4b7293d37a89c5c53',
-            'info_dict': {
-                'id': '33951933',
-                'ext': 'mp4',
-                'title': 'FOX CLASSICS - Forever Classic ID - A Full Minute',
-                'uploader': 'The DMCI',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/dmci',
-                'uploader_id': 'dmci',
-                'timestamp': 1324361742,
-                'upload_date': '20111220',
-                'description': 'md5:f37b4ad0f3ded6fa16f38ecde16c3c44',
-                'duration': 60,
-                'comment_count': int,
-                'view_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/231174622-dd07f015e9221ff529d451e1cc31c982b5d87bfafa48c4189b1da72824ee289a-d',
-                'like_count': int,
-                'release_timestamp': 1324361742,
-                'release_date': '20111220',
-            },
-            # 'params': {'format': 'Original'},
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # vimeo.com URL with unlisted hash and Original format
+        'url': 'https://vimeo.com/144579403/ec02229140',
+        # 'md5': '6b662c2884e0373183fbde2a0d15cb78',
+        'info_dict': {
+            'id': '144579403',
+            'ext': 'mp4',
+            'title': 'SALESMANSHIP',
+            'description': 'md5:4338302f347a1ff8841b4a3aecaa09f0',
+            'uploader': 'Off the Picture Pictures',
+            'uploader_id': 'offthepicturepictures',
+            'uploader_url': 'https://vimeo.com/offthepicturepictures',
+            'duration': 669,
+            'upload_date': '20151104',
+            'timestamp': 1446607180,
+            'release_date': '20151104',
+            'release_timestamp': 1446607180,
+            'like_count': int,
+            'comment_count': int,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
         },
-        {
-            'note': 'Contains source format not accessible in webpage',
-            'url': 'https://vimeo.com/393756517',
-            # 'md5': 'c464af248b592190a5ffbb5d33f382b0',
-            'info_dict': {
-                'id': '393756517',
-                # 'ext': 'mov',
-                'ext': 'mp4',
-                'timestamp': 1582660091,
-                'uploader_id': 'frameworkla',
-                'title': 'Straight To Hell - Sabrina: Netflix',
-                'uploader': 'Framework Studio',
-                'upload_date': '20200225',
-                'duration': 176,
-                'thumbnail': 'https://i.vimeocdn.com/video/859377297-836494a4ef775e9d4edbace83937d9ad34dc846c688c0c419c0e87f7ab06c4b3-d',
-                'uploader_url': 'https://vimeo.com/frameworkla',
-                'comment_count': int,
-                'like_count': int,
-                'release_timestamp': 1582660091,
-                'release_date': '20200225',
-            },
-            # 'params': {'format': 'source'},
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
+        # 'params': {'format': 'Original'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        # player.vimeo.com URL with source format
+        'url': 'https://player.vimeo.com/video/859028877',
+        # 'md5': '19ca3d2463441dee2d2f0671ac2916a2',
+        'info_dict': {
+            'id': '859028877',
+            'ext': 'mp4',
+            'title': 'Ariana Grande - Honeymoon Avenue (Live from London)',
+            'uploader': 'Raja Virdi',
+            'uploader_id': 'rajavirdi',
+            'uploader_url': 'https://vimeo.com/rajavirdi',
+            'duration': 300,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
         },
-        {
-            # only available via https://vimeo.com/channels/tributes/6213729 and
-            # not via https://vimeo.com/6213729
-            'url': 'https://vimeo.com/channels/tributes/6213729',
-            'info_dict': {
-                'id': '6213729',
-                'ext': 'mp4',
-                'title': 'Vimeo Tribute: The Shining',
-                'uploader': 'Casey Donahue',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/caseydonahue',
-                'uploader_id': 'caseydonahue',
-                'channel_url': r're:https?://(?:www\.)?vimeo\.com/channels/tributes',
-                'channel_id': 'tributes',
-                'timestamp': 1250886430,
-                'upload_date': '20090821',
-                'description': str,  # FIXME: Dynamic SEO spam description
-                'duration': 321,
-                'comment_count': int,
-                'view_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/22728298-bfc22146f930de7cf497821c7b0b9f168099201ecca39b00b6bd31fcedfca7a6-d',
-                'like_count': int,
-                'tags': ['[the shining', 'vimeohq', 'cv', 'vimeo tribute]'],
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
+        # 'params': {'format': 'source'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # user playlist alias -> https://vimeo.com/258705797
+        'url': 'https://vimeo.com/user26785108/newspiritualguide',
+        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # Referer & password-protected
+        # https://github.com/yt-dlp/yt-dlp/commit/a1a460759815414c6194bc921ac77a5533b6e02e
+        'url': 'https://gettingthingsdone.com/workflowmap/',
+        'info_dict': {
+            'id': '105375912',
+            'ext': 'mp4',
+            'title': 'WORKFLOW MAP',
+            'duration': 1950,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'uploader': 'GTD',
+            'uploader_id': 'gettingthingsdone',
+            'uploader_url': 'https://vimeo.com/gettingthingsdone',
         },
-        {
-            # redirects to ondemand extractor and should be passed through it
-            # for successful extraction
-            'url': 'https://vimeo.com/73445910',
-            'info_dict': {
-                'id': '73445910',
-                'ext': 'mp4',
-                'title': 'The Reluctant Revolutionary',
-                'uploader': '10Ft Films',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/tenfootfilms',
-                'uploader_id': 'tenfootfilms',
-                'description': 'md5:0fa704e05b04f91f40b7f3ca2e801384',
-                'upload_date': '20130830',
-                'timestamp': 1377853339,
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'skip': 'this page is no longer available.',
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+        'skip': 'Password protected',
+    }, {
+        'url': 'https://www.gsd.harvard.edu/event/i-m-pei-a-centennial-celebration/',
+        'info_dict': {
+            'id': '855172304',
+            'ext': 'mp4',
+            'title': 'I. M. Pei: A Centennial Celebration',
+            'duration': 6073,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'uploader': 'Harvard GSD',
+            'uploader_id': 'harvardgsd',
+            'uploader_url': 'https://vimeo.com/harvardgsd',
         },
-        {
-            'url': 'https://player.vimeo.com/video/68375962',
-            'md5': 'aaf896bdb7ddd6476df50007a0ac0ae7',
-            'info_dict': {
-                'id': '68375962',
-                'ext': 'mp4',
-                'title': 'youtube-dl password protected test video',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user18948128',
-                'uploader_id': 'user18948128',
-                'uploader': 'Jaime Marquínez Ferrándiz',
-                'duration': 10,
-                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d',
-            },
-            'params': {
-                'format': 'best[protocol=https]',
-                'videopassword': 'youtube-dl',
-            },
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+        'params': {
+            'extractor_args': {'generic': {'impersonate': ['chrome']}},
+            'skip_download': 'm3u8',
         },
-        {
-            'url': 'http://vimeo.com/moogaloop.swf?clip_id=2539741',
-            'only_matching': True,
-        },
-        {
-            'url': 'https://vimeo.com/109815029',
-            'note': 'Video not completely processed, "failed" seed status',
-            'only_matching': True,
-        },
-        {
-            'url': 'https://vimeo.com/groups/travelhd/videos/22439234',
-            'only_matching': True,
-        },
-        {
-            'url': 'https://vimeo.com/album/2632481/video/79010983',
-            'only_matching': True,
-        },
-        {
-            'url': 'https://vimeo.com/showcase/3253534/video/119195465',
-            'note': 'A video in a password protected album (showcase)',
-            'info_dict': {
-                'id': '119195465',
-                'ext': 'mp4',
-                'title': "youtube-dl test video '' ä↭𝕐-BaW jenozKc",
-                'uploader': 'Philipp Hagemeister',
-                'uploader_id': 'user20132939',
-                'description': str,  # FIXME: Dynamic SEO spam description
-                'upload_date': '20150209',
-                'timestamp': 1423518307,
-                'thumbnail': r're:https://i\.vimeocdn\.com/video/default',
-                'duration': 10,
-                'like_count': int,
-                'uploader_url': 'https://vimeo.com/user20132939',
-                'view_count': int,
-                'comment_count': int,
-            },
-            'params': {
-                'format': 'best[protocol=https]',
-                'videopassword': 'youtube-dl',
-            },
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
-        },
-        {
-            # source file returns 403: Forbidden
-            'url': 'https://vimeo.com/7809605',
-            'only_matching': True,
-        },
-        {
-            'note': 'Direct URL with hash',
-            'url': 'https://vimeo.com/160743502/abd0e13fb4',
-            'info_dict': {
-                'id': '160743502',
-                'ext': 'mp4',
-                'uploader': 'Julian Tryba',
-                'uploader_id': 'aliniamedia',
-                'title': 'Harrisville New Hampshire',
-                'timestamp': 1459259666,
-                'upload_date': '20160329',
-                'release_timestamp': 1459259666,
-                'license': 'by-nc',
-                'duration': 159,
-                'comment_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/562802436-585eeb13b5020c6ac0f171a2234067938098f84737787df05ff0d767f6d54ee9-d',
-                'like_count': int,
-                'uploader_url': 'https://vimeo.com/aliniamedia',
-                'release_date': '20160329',
-                'view_count': int,
-            },
-            'params': {'skip_download': True},
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
-        },
-        {
-            'url': 'https://vimeo.com/138909882',
-            'info_dict': {
-                'id': '138909882',
-                # 'ext': 'm4v',
-                'ext': 'mp4',
-                'title': 'Eastnor Castle 2015 Firework Champions - The Promo!',
-                'description': 'md5:9441e6829ae94f380cc6417d982f63ac',
-                'uploader_id': 'fireworkchampions',
-                'uploader': 'Firework Champions',
-                'upload_date': '20150910',
-                'timestamp': 1441916295,
-                'thumbnail': 'https://i.vimeocdn.com/video/534715882-6ff8e4660cbf2fea68282876d8d44f318825dfe572cc4016e73b3266eac8ae3a-d',
-                'uploader_url': 'https://vimeo.com/fireworkchampions',
-                'duration': 229,
-                'view_count': int,
-                'like_count': int,
-                'comment_count': int,
-                'release_timestamp': 1441916295,
-                'release_date': '20150910',
-            },
-            'params': {
-                'skip_download': True,
-                # 'format': 'source',
-            },
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
-        },
-        {
-            'url': 'https://vimeo.com/channels/staffpicks/143603739',
-            'info_dict': {
-                'id': '143603739',
-                'ext': 'mp4',
-                'uploader': 'Karim Huu Do',
-                'timestamp': 1445846953,
-                'upload_date': '20151026',
-                'title': 'The Shoes - Submarine Feat. Blaine Harrison',
-                'uploader_id': 'karimhd',
-                'description': 'md5:8e2eea76de4504c2e8020a9bcfa1e843',
-                'channel_id': 'staffpicks',
-                'duration': 336,
-                'comment_count': int,
-                'view_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/541243181-b593db36a16db2f0096f655da3f5a4dc46b8766d77b0f440df937ecb0c418347-d',
-                'like_count': int,
-                'uploader_url': 'https://vimeo.com/karimhd',
-                'channel_url': 'https://vimeo.com/channels/staffpicks',
-                'tags': 'count:6',
-            },
-            'params': {'skip_download': 'm3u8'},
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
-        },
-        {
-            # requires passing unlisted_hash(a52724358e) to load_download_config request
-            'url': 'https://vimeo.com/392479337/a52724358e',
-            'only_matching': True,
-        },
-        {
-            # similar, but all numeric: ID must be 581039021, not 9603038895
-            # issue #29690
-            'url': 'https://vimeo.com/581039021/9603038895',
-            'info_dict': {
-                'id': '581039021',
-                'ext': 'mp4',
-                'timestamp': 1627621014,
-                'release_timestamp': 1627621014,
-                'duration': 976,
-                'comment_count': int,
-                'thumbnail': 'https://i.vimeocdn.com/video/1202249320-4ddb2c30398c0dc0ee059172d1bd5ea481ad12f0e0e3ad01d2266f56c744b015-d',
-                'like_count': int,
-                'uploader_url': 'https://vimeo.com/txwestcapital',
-                'release_date': '20210730',
-                'uploader': 'Christopher Inks',
-                'title': 'Thursday, July 29, 2021 BMA Evening Video Update',
-                'uploader_id': 'txwestcapital',
-                'upload_date': '20210730',
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
-        },
-        {
-            # chapters must be sorted, see: https://github.com/yt-dlp/yt-dlp/issues/5308
-            'url': 'https://player.vimeo.com/video/756714419',
-            'info_dict': {
-                'id': '756714419',
-                'ext': 'mp4',
-                'title': 'Dr Arielle Schwartz - Therapeutic yoga for optimum sleep',
-                'uploader': 'Alex Howard',
-                'uploader_id': 'user54729178',
-                'uploader_url': 'https://vimeo.com/user54729178',
-                'thumbnail': r're:https://i\.vimeocdn\.com/video/1520099929-[\da-f]+-d',
-                'duration': 2636,
-                'chapters': [
-                    {'start_time': 0, 'end_time': 10, 'title': '<Untitled Chapter 1>'},
-                    {'start_time': 10, 'end_time': 106, 'title': 'Welcoming Dr Arielle Schwartz'},
-                    {'start_time': 106, 'end_time': 305, 'title': 'What is therapeutic yoga?'},
-                    {'start_time': 305, 'end_time': 594, 'title': 'Vagal toning practices'},
-                    {'start_time': 594, 'end_time': 888, 'title': 'Trauma and difficulty letting go'},
-                    {'start_time': 888, 'end_time': 1059, 'title': "Dr Schwartz' insomnia experience"},
-                    {'start_time': 1059, 'end_time': 1471, 'title': 'A strategy for helping sleep issues'},
-                    {'start_time': 1471, 'end_time': 1667, 'title': 'Yoga nidra'},
-                    {'start_time': 1667, 'end_time': 2121, 'title': 'Wisdom in stillness'},
-                    {'start_time': 2121, 'end_time': 2386, 'title': 'What helps us be more able to let go?'},
-                    {'start_time': 2386, 'end_time': 2510, 'title': 'Practical tips to help ourselves'},
-                    {'start_time': 2510, 'end_time': 2636, 'title': 'Where to find out more'},
-                ],
-            },
-            'params': {
-                'http_headers': {'Referer': 'https://sleepsuperconference.com'},
-                'skip_download': 'm3u8',
-            },
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
-        },
-        {
-            # vimeo.com URL with unlisted hash and Original format
-            'url': 'https://vimeo.com/144579403/ec02229140',
-            # 'md5': '6b662c2884e0373183fbde2a0d15cb78',
-            'info_dict': {
-                'id': '144579403',
-                'ext': 'mp4',
-                'title': 'SALESMANSHIP',
-                'description': 'md5:4338302f347a1ff8841b4a3aecaa09f0',
-                'uploader': 'Off the Picture Pictures',
-                'uploader_id': 'offthepicturepictures',
-                'uploader_url': 'https://vimeo.com/offthepicturepictures',
-                'duration': 669,
-                'upload_date': '20151104',
-                'timestamp': 1446607180,
-                'release_date': '20151104',
-                'release_timestamp': 1446607180,
-                'like_count': int,
-                'view_count': int,
-                'comment_count': int,
-                'thumbnail': r're:https://i\.vimeocdn\.com/video/1018638656-[\da-f]+-d',
-            },
-            # 'params': {'format': 'Original'},
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
-        },
-        {
-            # player.vimeo.com URL with source format
-            'url': 'https://player.vimeo.com/video/859028877',
-            # 'md5': '19ca3d2463441dee2d2f0671ac2916a2',
-            'info_dict': {
-                'id': '859028877',
-                'ext': 'mp4',
-                'title': 'Ariana Grande - Honeymoon Avenue (Live from London)',
-                'uploader': 'Raja Virdi',
-                'uploader_id': 'rajavirdi',
-                'uploader_url': 'https://vimeo.com/rajavirdi',
-                'duration': 300,
-                'thumbnail': r're:https://i\.vimeocdn\.com/video/1716727772-[\da-f]+-d',
-            },
-            # 'params': {'format': 'source'},
-            'expected_warnings': ['Failed to parse XML: not well-formed'],
-        },
-        {
-            # user playlist alias -> https://vimeo.com/258705797
-            'url': 'https://vimeo.com/user26785108/newspiritualguide',
-            'only_matching': True,
-        },
-        # https://gettingthingsdone.com/workflowmap/
-        # vimeo embed with check-password page protected by Referer header
-    ]
+    }]
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -919,25 +1052,125 @@ class VimeoIE(VimeoBaseInfoExtractor):
             raise ExtractorError('Wrong video password', expected=True)
         return checked
 
+    def _get_subtitles(self, video_id, unlisted_hash):
+        subs = {}
+        text_tracks = self._call_videos_api(
+            video_id, unlisted_hash, path='texttracks', query={
+                'include_transcript': 'true',
+                'fields': ','.join((
+                    'active', 'display_language', 'id', 'language', 'link', 'name', 'type', 'uri',
+                )),
+            }, fatal=False)
+        for tt in traverse_obj(text_tracks, ('data', lambda _, v: url_or_none(v['link']))):
+            subs.setdefault(tt.get('language'), []).append({
+                'url': tt['link'],
+                'ext': 'vtt',
+                'name': tt.get('display_language'),
+            })
+        return subs
+
+    def _parse_api_response(self, video, video_id, unlisted_hash=None):
+        formats, subtitles = [], {}
+        seen_urls = set()
+        duration = traverse_obj(video, ('duration', {int_or_none}))
+
+        for file in traverse_obj(video, (
+            (('play', (None, 'progressive')), 'files', 'download'), lambda _, v: url_or_none(v['link']),
+        )):
+            format_url = file['link']
+            if format_url in seen_urls:
+                continue
+            seen_urls.add(format_url)
+            quality = file.get('quality')
+            ext = determine_ext(format_url)
+            if quality == 'hls' or ext == 'm3u8':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    format_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+            elif quality == 'dash' or ext == 'mpd':
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    format_url, video_id, mpd_id='dash', fatal=False)
+                for fmt in fmts:
+                    fmt['format_id'] = join_nonempty(
+                        *fmt['format_id'].split('-', 2)[:2], int_or_none(fmt.get('tbr')))
+            else:
+                fmt = traverse_obj(file, {
+                    'ext': ('type', {mimetype2ext(default='mp4')}),
+                    'vcodec': ('codec', {str.lower}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                    'filesize': ('size', {int_or_none}),
+                    'fps': ('fps', {int_or_none}),
+                })
+                fmt.update({
+                    'url': format_url,
+                    'format_id': join_nonempty(
+                        'http', traverse_obj(file, 'public_name', 'rendition'), quality),
+                    'tbr': try_call(lambda: fmt['filesize'] * 8 / duration / 1024),
+                })
+                formats.append(fmt)
+                continue
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+
+        if traverse_obj(video, ('metadata', 'connections', 'texttracks', 'total', {int})):
+            self._merge_subtitles(self.extract_subtitles(video_id, unlisted_hash), target=subtitles)
+
+        return {
+            **traverse_obj(video, {
+                'title': ('name', {str}),
+                'uploader': ('user', 'name', {str}),
+                'uploader_id': ('user', 'link', {url_basename}),
+                'uploader_url': ('user', 'link', {url_or_none}),
+                'release_timestamp': ('live', 'scheduled_start_time', {int_or_none}),
+                'thumbnails': ('pictures', 'sizes', lambda _, v: url_or_none(v['link']), {
+                    'url': 'link',
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+            }),
+            'id': video_id,
+            'duration': duration,
+            'formats': formats,
+            'subtitles': subtitles,
+            'live_status': {
+                'streaming': 'is_live',
+                'done': 'was_live',
+            }.get(traverse_obj(video, ('live', 'status', {str}))),
+        }
+
     def _extract_from_api(self, video_id, unlisted_hash=None):
         for retry in (False, True):
             try:
                 video = self._call_videos_api(video_id, unlisted_hash)
                 break
             except ExtractorError as e:
-                if (not retry and isinstance(e.cause, HTTPError) and e.cause.status == 400
-                    and 'password' in traverse_obj(
-                        self._webpage_read_content(e.cause.response, e.cause.response.url, video_id, fatal=False),
-                        ({json.loads}, 'invalid_parameters', ..., 'field'),
-                )):
+                if not isinstance(e.cause, HTTPError):
+                    raise
+                response = traverse_obj(
+                    self._webpage_read_content(e.cause.response, e.cause.response.url, video_id, fatal=False),
+                    ({json.loads}, {dict})) or {}
+                if (
+                    not retry and e.cause.status == 400
+                    and 'password' in traverse_obj(response, ('invalid_parameters', ..., 'field'))
+                ):
                     self._verify_video_password(video_id)
-                    continue
-                raise
+                elif e.cause.status == 404 and response.get('error_code') == 5460:
+                    self.raise_login_required(join_nonempty(
+                        traverse_obj(response, ('error', {str.strip})),
+                        'Authentication may be needed due to your location.',
+                        'If your IP address is located in Europe you could try using a VPN/proxy,',
+                        f'or else u{self._login_hint()[1:]}',
+                        delim=' '), method=None)
+                else:
+                    raise
 
-        info = self._parse_config(self._download_json(
-            video['config_url'], video_id), video_id)
+        if config_url := traverse_obj(video, ('config_url', {url_or_none})):
+            info = self._parse_config(self._download_json(config_url, video_id), video_id)
+        else:
+            info = self._parse_api_response(video, video_id, unlisted_hash)
+
         source_format = self._extract_original_format(
-            f'https://vimeo.com/{video_id}', video_id, unlisted_hash, api_data=video)
+            f'https://vimeo.com/{video_id}', video_id, unlisted_hash)
         if source_format:
             info['formats'].append(source_format)
 
@@ -977,7 +1210,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 raise ExtractorError(
                     'This album is protected by a password, use the --video-password option',
                     expected=True)
-            self._set_vimeo_cookie('vuid', viewer['vuid'])
             try:
                 self._download_json(
                     f'https://vimeo.com/showcase/{album_id}/auth',
@@ -1169,21 +1401,19 @@ class VimeoOndemandIE(VimeoIE):  # XXX: Do not subclass from concrete IE
             'ext': 'mp4',
             'title': 'המעבדה - במאי יותם פלדמן',
             'uploader': 'גם סרטים',
-            'uploader_url': r're:https?://(?:www\.)?vimeo\.com/gumfilms',
             'uploader_id': 'gumfilms',
+            'uploader_url': 'https://vimeo.com/gumfilms',
             'description': 'md5:aeeba3dbd4d04b0fa98a4fdc9c639998',
             'upload_date': '20140906',
             'timestamp': 1410032453,
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'comment_count': int,
             'license': 'https://creativecommons.org/licenses/by-nc-nd/3.0/',
             'duration': 53,
             'view_count': int,
             'like_count': int,
         },
-        'params': {
-            'format': 'best[protocol=https]',
-        },
+        'params': {'format': 'best[protocol=https]'},
         'expected_warnings': ['Failed to parse XML: not well-formed'],
     }, {
         # requires Referer to be passed along with og:video:url
@@ -1193,21 +1423,19 @@ class VimeoOndemandIE(VimeoIE):  # XXX: Do not subclass from concrete IE
             'ext': 'mp4',
             'title': 'Rävlock, rätt läte på rätt plats',
             'uploader': 'Lindroth & Norin',
-            'uploader_url': r're:https?://(?:www\.)?vimeo\.com/lindrothnorin',
             'uploader_id': 'lindrothnorin',
+            'uploader_url': 'https://vimeo.com/lindrothnorin',
             'description': 'md5:c3c46a90529612c8279fb6af803fc0df',
             'upload_date': '20150502',
             'timestamp': 1430586422,
             'duration': 121,
             'comment_count': int,
             'view_count': int,
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'like_count': int,
             'tags': 'count:5',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': True},
         'expected_warnings': ['Failed to parse XML: not well-formed'],
     }, {
         'url': 'https://vimeo.com/ondemand/nazmaalik',
@@ -1320,9 +1548,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
             'id': '3253534',
         },
         'playlist_count': 1,
-        'params': {
-            'videopassword': 'youtube-dl',
-        },
+        'params': {'videopassword': 'youtube-dl'},
     }]
     _PAGE_SIZE = 100
 
@@ -1374,7 +1600,6 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
                 raise ExtractorError(
                     'This album is protected by a password, use the --video-password option',
                     expected=True)
-            self._set_vimeo_cookie('vuid', viewer['vuid'])
             try:
                 hashed_pass = self._download_json(
                     f'https://vimeo.com/showcase/{album_id}/auth',
@@ -1422,7 +1647,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'uploader_id': 'user170863801',
             'uploader_url': 'https://vimeo.com/user170863801',
             'duration': 30,
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
         },
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Failed to parse XML: not well-formed'],
@@ -1437,7 +1662,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'uploader_id': 'user21297594',
             'description': "Comedian Dick Hardwick's five minute demo filmed in front of a live theater audience.\nEdit by Doug Mattocks",
             'duration': 304,
-            'thumbnail': 'https://i.vimeocdn.com/video/450115033-43303819d9ebe24c2630352e18b7056d25197d09b3ae901abdac4c4f1d68de71-d_1280',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'uploader_url': 'https://vimeo.com/user21297594',
         },
         'skip': '404 Not Found',
@@ -1451,7 +1676,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'title': 're:(?i)^Death by dogma versus assembling agile . Sander Hoogendoorn',
             'uploader': 'DevWeek Events',
             'duration': 2773,
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'uploader_id': 'user22258446',
         },
         'skip': 'video gone',
@@ -1465,9 +1690,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'uploader': 'TMB',
             'uploader_id': 'user37284429',
         },
-        'params': {
-            'videopassword': 'holygrail',
-        },
+        'params': {'videopassword': 'holygrail'},
         'skip': 'video gone',
     }]
 
@@ -1542,6 +1765,20 @@ class VHXEmbedIE(VimeoBaseInfoExtractor):
     IE_NAME = 'vhx:embed'
     _VALID_URL = r'https?://embed\.vhx\.tv/videos/(?P<id>\d+)'
     _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://embed\.vhx\.tv/videos/\d+[^"]*)"']
+    _WEBPAGE_TESTS = [{
+        'url': 'https://demo.vhx.tv/packages/behind-the-scenes-with-sasha/videos/hard-work',
+        'info_dict': {
+            'id': '2251259',
+            'ext': 'mp4',
+            'title': 'Untitled',
+            'duration': 30,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            'uploader': 'OTT Videos',
+            'uploader_id': 'user80538407',
+            'uploader_url': 'https://vimeo.com/user80538407',
+        },
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }]
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -1572,8 +1809,8 @@ class VimeoProIE(VimeoBaseInfoExtractor):
         'info_dict': {
             'id': '68093876',
             'ext': 'mp4',
-            'uploader_url': r're:https?://(?:www\.)?vimeo\.com/openstreetmapus',
             'uploader_id': 'openstreetmapus',
+            'uploader_url': 'https://vimeo.com/openstreetmapus',
             'uploader': 'OpenStreetMap US',
             'title': 'Andy Allan - Putting the Carto into OpenStreetMap Cartography',
             'description': 'md5:8cf69a1a435f2d763f4adf601e9c3125',
@@ -1581,16 +1818,13 @@ class VimeoProIE(VimeoBaseInfoExtractor):
             'upload_date': '20130610',
             'timestamp': 1370907556,
             'license': 'by',
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
-            'view_count': int,
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'comment_count': int,
             'like_count': int,
             'release_timestamp': 1370907556,
             'release_date': '20130610',
         },
-        'params': {
-            'format': 'best[protocol=https]',
-        },
+        'params': {'format': 'best[protocol=https]'},
         'expected_warnings': ['Failed to parse XML: not well-formed'],
     }, {
         # password-protected VimeoPro page with Vimeo player embed
@@ -1599,7 +1833,7 @@ class VimeoProIE(VimeoBaseInfoExtractor):
             'id': '764543723',
             'ext': 'mp4',
             'title': 'Mechanische Systeme in Perfektion: Realität erfassen, Innovation treiben',
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'description': 'md5:2a9d195cd1b0f6f79827107dc88c2420',
             'uploader': 'CADFEM',
             'uploader_id': 'cadfem',
@@ -1675,7 +1909,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'comment_count': int,
             'like_count': int,
             'duration': 9810,
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'timestamp': 1747502974,
             'upload_date': '20250517',
             'release_timestamp': 1747502998,
@@ -1697,7 +1931,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'uploader_id': 'mitmedialab',
             'uploader_url': 'https://vimeo.com/mitmedialab',
             'duration': 23235,
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'chapters': 'count:37',
             'release_timestamp': 1744290000,
             'release_date': '20250410',
@@ -1723,7 +1957,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'comment_count': int,
             'like_count': int,
             'duration': 4962,
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'timestamp': 1736702464,
             'upload_date': '20250112',
             'release_timestamp': 1736702543,
@@ -1736,7 +1970,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
         # "24/7" livestream
         'url': 'https://vimeo.com/event/4768062',
         'info_dict': {
-            'id': '1079901414',
+            'id': '1097650937',
             'ext': 'mp4',
             'display_id': '4768062',
             'title': r're:GRACELAND CAM \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
@@ -1744,8 +1978,8 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'uploader': 'Elvis Presley\'s Graceland',
             'uploader_id': 'visitgraceland',
             'uploader_url': 'https://vimeo.com/visitgraceland',
-            'release_timestamp': 1745975450,
-            'release_date': '20250430',
+            'release_timestamp': 1751396691,
+            'release_date': '20250701',
             'live_status': 'is_live',
         },
         'params': {'skip_download': 'livestream'},
@@ -1764,7 +1998,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'comment_count': int,
             'like_count': int,
             'duration': 3961,
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'timestamp': 1716408008,
             'upload_date': '20240522',
             'release_timestamp': 1716408062,
@@ -1788,7 +2022,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'comment_count': int,
             'like_count': int,
             'duration': 4466,
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'timestamp': 1612228466,
             'upload_date': '20210202',
             'release_timestamp': 1612228538,
@@ -1811,7 +2045,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'comment_count': int,
             'like_count': int,
             'duration': 33115,
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'timestamp': 1740261836,
             'upload_date': '20250222',
             'release_timestamp': 1740261873,
@@ -1862,7 +2096,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'uploader_id': 'mitmedialab',
             'uploader_url': 'https://vimeo.com/mitmedialab',
             'duration': 23235,
-            'thumbnail': r're:https://i\.vimeocdn\.com/video/\d+-[\da-f]+-d',
+            'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
             'chapters': 'count:37',
             'release_timestamp': 1744290000,
             'release_date': '20250410',

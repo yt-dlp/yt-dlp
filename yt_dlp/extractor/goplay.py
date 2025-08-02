@@ -5,16 +5,11 @@ import hashlib
 import hmac
 import json
 import os
-import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    remove_end,
-    traverse_obj,
-)
+from ..utils import ExtractorError, int_or_none
+from ..utils.traversal import get_first, traverse_obj
 
 
 class GoPlayIE(InfoExtractor):
@@ -27,10 +22,10 @@ class GoPlayIE(InfoExtractor):
         'info_dict': {
             'id': '2baa4560-87a0-421b-bffc-359914e3c387',
             'ext': 'mp4',
-            'title': 'S22 - Aflevering 1',
+            'title': 'De Slimste Mens ter Wereld - S22 - Aflevering 1',
             'description': r're:In aflevering 1 nemen Daan Alferink, Tess Elst en Xander De Rycke .{66}',
             'series': 'De Slimste Mens ter Wereld',
-            'episode': 'Episode 1',
+            'episode': 'Wordt aangekondigd',
             'season_number': 22,
             'episode_number': 1,
             'season': 'Season 22',
@@ -52,7 +47,7 @@ class GoPlayIE(InfoExtractor):
         'info_dict': {
             'id': 'ecb79672-92b9-4cd9-a0d7-e2f0250681ee',
             'ext': 'mp4',
-            'title': 'S11 - Aflevering 1',
+            'title': 'De Mol - S11 - Aflevering 1',
             'description': r're:Tien kandidaten beginnen aan hun verovering van Amerika en ontmoeten .{102}',
             'episode': 'Episode 1',
             'series': 'De Mol',
@@ -75,21 +70,13 @@ class GoPlayIE(InfoExtractor):
         if not self._id_token:
             raise self.raise_login_required(method='password')
 
-    # XXX: For parsing next.js v15+ data; see also yt_dlp.extractor.francetv
-    def _find_json(self, s):
-        return self._search_json(
-            r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=None)
-
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        nextjs_data = traverse_obj(
-            re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
-            (..., {json.loads}, ..., {self._find_json}, ...))
-        meta = traverse_obj(nextjs_data, (
-            ..., ..., 'children', ..., ..., 'children',
-            lambda _, v: v['video']['path'] == urllib.parse.urlparse(url).path, 'video', any))
+        nextjs_data = self._search_nextjs_v13_data(webpage, display_id)
+        meta = get_first(nextjs_data, (
+            lambda k, v: k in ('video', 'meta') and v['path'] == urllib.parse.urlparse(url).path))
 
         video_id = meta['uuid']
         info_dict = traverse_obj(meta, {
@@ -98,19 +85,18 @@ class GoPlayIE(InfoExtractor):
         })
 
         if traverse_obj(meta, ('program', 'subtype')) != 'movie':
-            for season_data in traverse_obj(nextjs_data, (..., 'children', ..., 'playlists', ...)):
-                episode_data = traverse_obj(
-                    season_data, ('videos', lambda _, v: v['videoId'] == video_id, any))
+            for season_data in traverse_obj(nextjs_data, (..., 'playlists', ..., {dict})):
+                episode_data = traverse_obj(season_data, ('videos', lambda _, v: v['videoId'] == video_id, any))
                 if not episode_data:
                     continue
 
-                episode_title = traverse_obj(
-                    episode_data, 'contextualTitle', 'episodeTitle', expected_type=str)
+                season_number = traverse_obj(season_data, ('season', {int_or_none}))
                 info_dict.update({
-                    'title': episode_title or info_dict.get('title'),
-                    'series': remove_end(info_dict.get('title'), f' - {episode_title}'),
-                    'season_number': traverse_obj(season_data, ('season', {int_or_none})),
+                    'episode': traverse_obj(episode_data, ('episodeTitle', {str})),
                     'episode_number': traverse_obj(episode_data, ('episodeNumber', {int_or_none})),
+                    'season_number': season_number,
+                    'series': self._search_regex(
+                        fr'^(.+)? - S{season_number} - ', info_dict.get('title'), 'series', default=None),
                 })
                 break
 
