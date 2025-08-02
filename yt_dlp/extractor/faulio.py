@@ -2,8 +2,9 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import js_to_json, url_or_none
+from ..utils import int_or_none, js_to_json, url_or_none
 from ..utils.traversal import traverse_obj
+
 
 class FaulioBaseIE(InfoExtractor):
     _DOMAINS = (
@@ -19,7 +20,7 @@ class FaulioBaseIE(InfoExtractor):
         parsed_url = urllib.parse.urlparse(url)
         return {
             'Referer': url,
-            'Origin': f'{parsed_url.scheme}://{parsed_url.hostname}'
+            'Origin': f'{parsed_url.scheme}://{parsed_url.hostname}',
         }
 
     def _get_api_base(self, url, video_id):
@@ -32,39 +33,77 @@ class FaulioBaseIE(InfoExtractor):
 class FaulioIE(FaulioBaseIE):
     _VALID_URL = fr'{FaulioBaseIE._BASE_URL_RE}(?:episode|media)/(?P<id>[a-zA-Z0-9-]+)'
     _TESTS = [{
-            'url': 'https://bahry.com/en/media/1191',
-            'info_dict': {
-                'id': 'bahry.faulio.com_1191',
-                'ext': 'mp4',
-                'display_id': 'Episode-4-1191',
-                'title': 'Episode 4',
-                'episode': 'Episode 4',
-                'description': '',
-                'series': 'Wild Water',
-                'season': 'Season 1',
-                'season_number': 1,
-                'episode_number': 4,
-                'thumbnail': str,
-                'duration': 1653,
-                'age_limit': 0,
-            },
+        'url': 'https://aloula.sba.sa/en/episode/29102',
+        'info_dict': {
+            'id': 'aloula.faulio.com_29102',
+            'ext': 'mp4',
+            'display_id': 'هذا-مكانك-03-004-v-29102',
+            'title': 'الحلقة 4',
+            'episode': 'الحلقة 4',
+            'description': '',
+            'series': 'هذا مكانك',
+            'season': 'Season 3',
+            'season_number': 3,
+            'episode_number': 4,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 4855,
+            'age_limit': 3,
+        },
     }, {
-            'url': 'https://maraya.sba.net.ae/en/episode/127735',
+        'url': 'https://bahry.com/en/media/1191',
+        'info_dict': {
+            'id': 'bahry.faulio.com_1191',
+            'ext': 'mp4',
+            'display_id': 'Episode-4-1191',
+            'title': 'Episode 4',
+            'episode': 'Episode 4',
+            'description': '',
+            'series': 'Wild Water',
+            'season': 'Season 1',
+            'season_number': 1,
+            'episode_number': 4,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 1653,
+            'age_limit': 0,
+        },
+    },
+        {
+            'url': 'https://maraya.sba.net.ae/episode/127735',
             'info_dict': {
                 'id': 'maraya.faulio.com_127735',
                 'ext': 'mp4',
                 'display_id': 'عبدالله-الهاجري---عبدالرحمن-المطروشي-127735',
                 'title': 'عبدالله الهاجري - عبدالرحمن المطروشي',
                 'episode': 'عبدالله الهاجري - عبدالرحمن المطروشي',
-                'description': 'تابعوا رحلة الطلبة الإماراتيين المبتعثين إلى أرقى الجامعات العالمية. يستعرض البرنامج كيف تُعدّ هذه البعثات الطلاب بالمهارات والمعرفة اللازمة لمواجهة تحديات المستقبل وقيادة مسيرة الوطن.',
+                'description': 'md5:53de01face66d3d6303221e5a49388a0',
                 'series': 'أبناؤنا في الخارج',
                 'season': 'Season 3',
                 'season_number': 3,
                 'episode_number': 7,
-                'thumbnail': str,
+                'thumbnail': r're:^https?://.*\.jpg$',
                 'duration': 1316,
                 'age_limit': 0,
-        },
+            },
+    }, {
+            'url': 'https://sat7plus.org/episode/18165',
+            'info_dict': {
+                'id': 'sat7.faulio.com_18165',
+                'ext': 'mp4',
+                'display_id': 'ep-13-ADHD-18165',
+                'title': 'ADHD and creativity',
+                'episode': 'ADHD and creativity',
+                'description': '',
+                'series': 'ADHD Podcast',
+                'season': 'Season 1',
+                'season_number': 1,
+                'episode_number': 13,
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'duration': 2492,
+                'age_limit': 0,
+            },
+    }, {
+            'url': 'https://aloula.sba.sa/en/episode/0',
+            'only_matching': True,
     }]
 
     def _real_extract(self, url):
