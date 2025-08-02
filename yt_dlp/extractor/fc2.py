@@ -114,18 +114,14 @@ class FC2IE(InfoExtractor):
             raise ExtractorError('Unable to extract video URL')
         vid_url = urljoin('https://video.fc2.com/', vid_url)
 
-        if vidplaylist.get('type') == '1':
-            formats = self._extract_m3u8_formats(vid_url, video_id, 'mp4')
-        else:
-            formats = [{
-                'url': vid_url,
-                'ext': 'mp4',
-            }]
+        video_type = vidplaylist.get('type')
 
         return {
             'id': video_id,
             'title': title,
-            'formats': formats,
+            'url': vid_url,
+            'ext': 'mp4',
+            'protocol': 'm3u8_native' if video_type == 2 else 'https',
             'description': description,
             'thumbnail': thumbnail,
         }
