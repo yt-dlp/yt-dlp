@@ -128,9 +128,6 @@ class FaulioIE(FaulioBaseIE):
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
-        for f in formats:
-            f['http_headers'] = headers
-
         return {
             'id': f'{urllib.parse.urlparse(api_base).hostname}_{video_id}',
             **traverse_obj(traverse_obj(video_info, ('blocks', 0)), {
@@ -147,6 +144,7 @@ class FaulioIE(FaulioBaseIE):
             }),
             'formats': formats,
             'subtitles': subtitles,
+            'http_headers': headers,
         }
 
 
@@ -228,9 +226,6 @@ class FaulioLiveIE(FaulioBaseIE):
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
-        for f in formats:
-            f['http_headers'] = headers
-
         return {
             'id': f'{urllib.parse.urlparse(api_base).hostname}_{video_id}',
             **traverse_obj(channel, {
@@ -239,5 +234,6 @@ class FaulioLiveIE(FaulioBaseIE):
             }),
             'formats': formats,
             'subtitles': subtitles,
+            'http_headers': headers,
             'is_live': True,
         }
