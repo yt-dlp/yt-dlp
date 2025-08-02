@@ -2123,8 +2123,10 @@ def parse_duration(s):
 
     if ms:
         ms = ms.replace(':', '.')
-    return sum(float(part or 0) * mult for part, mult in (
+    total = sum(float(part or 0) * mult for part, mult in (
         (days, 86400), (hours, 3600), (mins, 60), (secs, 1), (ms, 1)))
+
+    return int(total) if total.is_integer() else total
 
 
 def _change_extension(prepend, filename, ext, expected_real_ext=None):
