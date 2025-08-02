@@ -42,6 +42,7 @@ class MedialaanIE(InfoExtractor):
             'id': '193993',
             'ext': 'mp4',
             'title': 'De terugkeer van Ally de Aap en wie vertrekt er nog bij NAC?',
+            'thumbnail': r're:https?://images\.mychannels\.video/imgix/.+',
             'timestamp': 1611663540,
             'upload_date': '20210126',
             'duration': 238,
@@ -67,6 +68,19 @@ class MedialaanIE(InfoExtractor):
     }, {
         'url': 'https://embed.mychannels.video/embed/193993',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.demorgen.be/snelnieuws/tom-waes-promoot-alcoholtesten-op-werchter-ik-ben-de-laatste-persoon-die-met-de-vinger-moet-wijzen~b7457c0d/',
+        'info_dict': {
+            'id': '1576607',
+            'ext': 'mp4',
+            'title': 'Tom Waes blaastest',
+            'duration': 62,
+            'thumbnail': r're:https?://video-images\.persgroep\.be/aws_generated.+\.jpg',
+            'timestamp': 1751730795,
+            'upload_date': '20250705',
+        },
+        'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
     }]
 
     @classmethod
