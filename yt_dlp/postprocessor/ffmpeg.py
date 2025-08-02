@@ -1081,17 +1081,21 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         deprecation_warning(f'{cls.__module__}.{cls.__name__}.is_webp is deprecated')
         return imghdr.what(path) == 'webp'
 
-    def fixup_webp(self, info, idx=-1):
+    def fixup_thumbnail_ext(self, info, idx=-1):
         thumbnail_filename = info['thumbnails'][idx]['filepath']
+        actual_format = imghdr.what(thumbnail_filename)
+        if not actual_format:
+            return
+
         _, thumbnail_ext = os.path.splitext(thumbnail_filename)
-        if thumbnail_ext:
-            if thumbnail_ext.lower() != '.webp' and imghdr.what(thumbnail_filename) == 'webp':
-                self.to_screen(f'Correcting thumbnail "{thumbnail_filename}" extension to webp')
-                webp_filename = replace_extension(thumbnail_filename, 'webp')
-                os.replace(thumbnail_filename, webp_filename)
-                info['thumbnails'][idx]['filepath'] = webp_filename
-                info['__files_to_move'][webp_filename] = replace_extension(
-                    info['__files_to_move'].pop(thumbnail_filename), 'webp')
+        thumbnail_ext = thumbnail_ext.removeprefix('.').lower()
+        if thumbnail_ext != actual_format and not (actual_format == 'jpeg' and thumbnail_ext == 'jpg'):
+            self.to_screen(f'Correcting thumbnail "{thumbnail_filename}" extension to {actual_format}')
+            correct_filename = replace_extension(thumbnail_filename, actual_format)
+            os.replace(thumbnail_filename, correct_filename)
+            info['thumbnails'][idx]['filepath'] = correct_filename
+            info['__files_to_move'][correct_filename] = replace_extension(
+                info['__files_to_move'].pop(thumbnail_filename), actual_format)
 
     @staticmethod
     def _options(target_ext):
@@ -1118,7 +1122,7 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
             if not original_thumbnail:
                 continue
             has_thumbnail = True
-            self.fixup_webp(info, idx)
+            self.fixup_thumbnail_ext(info, idx)
             original_thumbnail = thumbnail_dict['filepath']  # Path can change during fixup
             thumbnail_ext = os.path.splitext(original_thumbnail)[1][1:].lower()
             if thumbnail_ext == 'jpeg':
