@@ -1,5 +1,5 @@
 import re
-from urllib import parse
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -151,7 +151,8 @@ class N1InfoIIE(InfoExtractor):
         if plugin_data:
             site_id = self._html_search_regex(r'site:(\d+)', webpage, 'site id', default=None)
             if site_id is None:
-                site_id = re.search(r'partners/(\d+)', self._html_search_meta('contentUrl', webpage)).group(1)
+                site_id = self._search_regex(
+                    r'partners/(\d+)', self._html_search_meta('contentUrl', webpage, fatal=True), 'site ID')
             for video_data in plugin_data:
                 video_id = self._parse_json(video_data, title)['video']
                 entries.append({
@@ -182,7 +183,7 @@ class N1InfoIIE(InfoExtractor):
         for embedded_video in embedded_videos:
             video_data = extract_attributes(embedded_video)
             url = video_data.get('src') or ''
-            hostname = parse.urlparse(url).hostname
+            hostname = urllib.parse.urlparse(url).hostname
             if hostname == 'www.youtube.com':
                 entries.append(self.url_result(url, ie='Youtube'))
             elif hostname == 'www.redditmedia.com':
