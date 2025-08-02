@@ -3234,7 +3234,12 @@ class YoutubeDL:
         else:
             params = self.params
 
-        fd = get_suitable_downloader(info, params, to_stdout=(name == '-'))(self, params)
+        # Check if async downloads are enabled
+        if params.get('async_downloads', True) and not test:
+            from .downloader.async_integration import AsyncFileDownloader
+            fd = AsyncFileDownloader(self, params)
+        else:
+            fd = get_suitable_downloader(info, params, to_stdout=(name == '-'))(self, params)
         if not test:
             for ph in self._progress_hooks:
                 fd.add_progress_hook(ph)

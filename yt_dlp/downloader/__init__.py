@@ -36,6 +36,7 @@ from .rtsp import RtspFD
 from .websocket import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatFD
 from .bunnycdn import BunnyCdnFD
+from .async_integration import AsyncFileDownloader, configure_async_downloads
 
 PROTOCOL_MAP = {
     'rtmp': RtmpFD,
@@ -128,4 +129,6 @@ __all__ = [
     'FileDownloader',
     'get_suitable_downloader',
     'shorten_protocol_name',
+    'AsyncFileDownloader',
+    'configure_async_downloads',
 ]

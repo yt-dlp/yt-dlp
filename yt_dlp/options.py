@@ -981,6 +981,34 @@ def create_parser():
         dest='concurrent_fragment_downloads', metavar='N', default=1, type=int,
         help='Number of fragments of a dash/hlsnative video that should be downloaded concurrently (default is %default)')
     downloader.add_option(
+        '--async-downloads',
+        action='store_true', dest='async_downloads', default=True,
+        help='Enable async downloads for better performance and concurrent file downloads (default)')
+    downloader.add_option(
+        '--no-async-downloads',
+        action='store_false', dest='async_downloads',
+        help='Disable async downloads and use traditional synchronous downloads')
+    downloader.add_option(
+        '--concurrent-downloads',
+        dest='concurrent_downloads', metavar='N', default=5, type=int,
+        help='Number of files that should be downloaded concurrently when using async downloads (default is %default)')
+    downloader.add_option(
+        '--chunk-size',
+        dest='chunk_size', metavar='SIZE', default=1048576, type=int,
+        help='Size of chunks for async downloads in bytes, e.g. 1048576 or 1M (default is %default)')
+    downloader.add_option(
+        '--async-timeout',
+        dest='async_timeout', metavar='SECONDS', default=30, type=int,
+        help='Timeout for async downloads in seconds (default is %default)')
+    downloader.add_option(
+        '--async-retry-delay',
+        dest='async_retry_delay', metavar='SECONDS', default=1.0, type=float,
+        help='Initial delay between retries for async downloads in seconds (default is %default)')
+    downloader.add_option(
+        '--async-max-retries',
+        dest='async_max_retries', metavar='N', default=3, type=int,
+        help='Maximum number of retries for async downloads (default is %default)')
+    downloader.add_option(
         '-r', '--limit-rate', '--rate-limit',
         dest='ratelimit', metavar='RATE',
         help='Maximum download rate in bytes per second, e.g. 50K or 4.2M')
