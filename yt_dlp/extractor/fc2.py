@@ -31,14 +31,14 @@ class FC2IE(InfoExtractor):
         },
     }, {
         # Direct video url
-        'url': 'https://video.fc2.com/content/20121129xMeT3Czt',
-        'md5': '19109bbee429d5b3765986505d44a012',
+        'url': 'https://video.fc2.com/content/20121209FP73fxDx',
+        'md5': '066bdb9b3a56a97f49cbf0d0b8a75a1f',
         'info_dict': {
-            'id': '20121129xMeT3Czt',
-            'title': 'Rotfux',
+            'id': '20121209FP73fxDx',
+            'title': 'Farewelling The Wiggles Live in Sydney Dec 8 2012',
             'ext': 'mp4',
             'thumbnail': r're:https?://.+\.jpe?g',
-            'description': 'Rotfux',
+            'description': 'Saying goodbye to the Wiggles at their Celebration Concert in Sydney, and what a concert that was!',
         },
     }, {
         'url': 'http://video.fc2.com/en/content/20150125cEva0hDn/',
