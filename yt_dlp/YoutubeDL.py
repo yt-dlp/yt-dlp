@@ -611,7 +611,7 @@ class YoutubeDL:
         'width', 'height', 'aspect_ratio', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns', 'hls_media_playlist_data',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start', 'is_dash_periods', 'request_data',
-        'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
+        'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies', 'additional_cookies_urls',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'extra_param_to_key_url',
         'hls_aes', 'downloader_options', 'page_url', 'app', 'play_path', 'tc_url', 'flash_version',
         'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time',
@@ -2625,6 +2625,8 @@ class YoutubeDL:
         # See: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj
         res.pop('Cookie', None)
         cookies = self.cookiejar.get_cookies_for_url(info_dict['url'])
+        for additional_url in info_dict.get('additional_cookies_urls') or []:
+            cookies.extend(self.cookiejar.get_cookies_for_url(additional_url))
         if cookies:
             encoder = LenientSimpleCookie()
             values = []
@@ -2914,6 +2916,10 @@ class YoutubeDL:
             if (('manifest-filesize-approx' in self.params['compat_opts'] or not fmt.get('manifest_url'))
                     and not fmt.get('filesize') and not fmt.get('filesize_approx')):
                 fmt['filesize_approx'] = filesize_from_tbr(fmt.get('tbr'), info_dict.get('duration'))
+            if hls_aes_key_url := traverse_obj(fmt, ('hls_aes', 'uri')):
+                additional_urls = fmt.get('additional_cookies_urls') or []
+                if hls_aes_key_url not in additional_urls:
+                    fmt['additional_cookies_urls'] = [*additional_urls, hls_aes_key_url]
             fmt['http_headers'] = self._calc_headers(collections.ChainMap(fmt, info_dict), load_cookies=True)
 
         # Safeguard against old/insecure infojson when using --load-info-json
