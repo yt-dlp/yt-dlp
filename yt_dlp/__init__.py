@@ -974,6 +974,7 @@ def parse_options(argv=None):
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
+        '_load_info_filename': opts.load_info_filename,
     })
 
 

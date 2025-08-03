@@ -1840,6 +1840,27 @@ class YoutubeDL:
                 'extractor_key': ie.ie_key(),
             })
 
+    # Repair fragments in info file from --live-from-start
+    # see https://github.com/yt-dlp/yt-dlp/issues/13906
+    def _repair_ie_fragments(self, ie_result):
+        try:
+            protocol = ie_result.get('protocol')
+            if (protocol is not None
+                    and 'http_dash_segments_generator' in protocol.split('+')
+                    and ie_result.get('is_live')
+                    and bool(self.params.get('live_from_start'))
+                    and self.params.get('_load_info_filename') is not None
+                ):
+                self.to_screen('Repairing fragments for live-from-start stream from JSON')
+
+                ie = self.get_info_extractor(ie_result.get('extractor_key'))
+                webpage_url = ie_result.get('webpage_url')
+                ie._prepare_live_from_start_formats(
+                    ie_result['formats'], ie_result['id'], ie_result.get('release_timestamp'),
+                    webpage_url, webpage_url, {}, ie_result.get('live_status') == 'is_live')
+        except Exception as e:
+            self.report_warning(f'Could not repair fragments: {e}')
+
     def process_ie_result(self, ie_result, download=True, extra_info=None):
         """
         Take the result of the ie(may be modified) and resolve all unresolved
@@ -1876,6 +1897,7 @@ class YoutubeDL:
                 return ie_result
 
         if result_type == 'video':
+            self._repair_ie_fragments(ie_result)
             self.add_extra_info(ie_result, extra_info)
             ie_result = self.process_video_result(ie_result, download=download)
             self._raise_pending_errors(ie_result)
