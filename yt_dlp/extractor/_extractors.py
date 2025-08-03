@@ -1860,6 +1860,7 @@ from .shahid import (
 from .sharepoint import SharePointIE
 from .sharevideos import ShareVideosEmbedIE
 from .shemaroome import ShemarooMeIE
+from .shiey import ShieyIE
 from .showroomlive import ShowRoomLiveIE
 from .sibnet import SibnetEmbedIE
 from .simplecast import (
