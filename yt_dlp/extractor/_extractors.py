@@ -2309,6 +2309,7 @@ from .ustudio import (
     UstudioIE,
 )
 from .utreon import UtreonIE
+from .vanillo import VanilloIE, VanilloPlaylistIE, VanilloUserIE
 from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veo import VeoIE
