@@ -129,7 +129,7 @@ class SmotrimIE(InfoExtractor):
         try:
             media_info = json_info.get('data').get('playlist').get('medialist')[0]
         except (KeyError, AttributeError, TypeError) as e:
-            raise ExtractorError("media_info get error: %s " % str(e), expected=True)
+            raise ExtractorError('media_info get error: %s' % str(e), expected=True)
         try:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 media_info.get('sources').get('m3u8').get('auto'), video_id, 'mp4', m3u8_id='hls',
@@ -144,6 +144,6 @@ class SmotrimIE(InfoExtractor):
                 'duration': int_or_none(media_info.get('duration')),
             }
         except (KeyError, AttributeError, TypeError) as e:
-            raise ExtractorError("Result error: %s" % str(e), expected=True)
+            raise ExtractorError('Result error: %s' % str(e), expected=True)
 
         return res
