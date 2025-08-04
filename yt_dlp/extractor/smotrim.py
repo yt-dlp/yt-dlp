@@ -126,17 +126,24 @@ class SmotrimIE(InfoExtractor):
             raise ExtractorError(str(e), expected=True)
         if json_info.get('status') != 200:
             raise ExtractorError('Json download error. Status code: %s' % str(json_info.get('status')), expected=True)
-        media_info = json_info['data']['playlist']['medialist'][0]
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            media_info['sources']['m3u8']['auto'], video_id, 'mp4', m3u8_id='hls',
-        )
+        try:
+            media_info = json_info.get('data').get('playlist').get('medialist')[0]
+        except (KeyError, AttributeError, TypeError) as e:
+            raise ExtractorError("media_info get error: %s " % str(e), expected=True)
+        try:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                media_info.get('sources').get('m3u8').get('auto'), video_id, 'mp4', m3u8_id='hls',
+            )
+            res = {
+                'id': video_id,
+                'title': media_info.get('title'),
+                'thumbnail': media_info.get('pictures').get('16:9'),
+                'formats': formats,
+                'subtitles': subtitles,
+                'is_live': json_info.get('data').get('playlist').get('type') == 'live',
+                'duration': int_or_none(media_info.get('duration')),
+            }
+        except (KeyError, AttributeError, TypeError) as e:
+            raise ExtractorError("Result error: %s" % str(e), expected=True)
 
-        return {
-            'id': video_id,
-            'title': media_info.get('title'),
-            'thumbnail': media_info['pictures']['16:9'],
-            'formats': formats,
-            'subtitles': subtitles,
-            'is_live': json_info['data']['playlist']['type'] == 'live',
-            'duration': int_or_none(media_info.get('duration')),
-        }
+        return res
