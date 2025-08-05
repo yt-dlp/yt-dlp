@@ -184,7 +184,7 @@ def _get_version_age_warning():
 
         update_message = UPDATE_HINT or 'Run "yt-dlp --update" to update'
 
-        if dt.date(*version_parts[:3]) < dt.date.today() - dt.timedelta(days=90):
+        if dt.date(*version_parts[:3]) < dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=90):
             return ('\n         '.join((
                 f'Your yt-dlp version ({__version__}) is older than 90 days!',
                 'It is strongly recommeded to always use the latest versions, as sites regularly change and extractors need to be adjusted.',
