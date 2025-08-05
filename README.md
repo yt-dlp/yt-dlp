@@ -162,6 +162,9 @@ Example usage:
 * `yt-dlp --update-to 2023.10.07` upgrade/downgrade to tag `2023.10.07` if it exists on the current channel
 * `yt-dlp --update-to example/yt-dlp@2023.09.24` upgrade/downgrade to the release from the `example/yt-dlp` repository, tag `2023.09.24`
 
+When running a yt-dlp version that is older than 90 days, you will see a warning message suggesting to update to the latest version.
+You can suppress this warning by adding `--no-update` to your command or configuration file.
+
 **Important**: Any user experiencing an issue with the `stable` release should install or update to the `nightly` release before submitting a bug report:
 ```
 # To update to nightly from stable executable/binary:
