@@ -3466,6 +3466,7 @@ class YoutubeDL:
 
                     merger = FFmpegMergerPP(self)
                     downloaded = []
+                    should_merge = True
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
                     elif fd:
@@ -3483,12 +3484,20 @@ class YoutubeDL:
                                 'You have requested merging of multiple formats '
                                 'while also allowing unplayable formats to be downloaded. '
                                 'The formats won\'t be merged to prevent data corruption.')
+                            should_merge = False
                         elif not merger.available:
                             msg = 'You have requested merging of multiple formats but ffmpeg is not installed'
                             if not self.params.get('ignoreerrors'):
                                 self.report_error(f'{msg}. Aborting due to --abort-on-error')
                                 return
                             self.report_warning(f'{msg}. The formats won\'t be merged')
+                            should_merge = False
+                        elif any(f.get('container') == 'iamf' for f in info_dict['requested_formats']):
+                            self.report_warning(
+                                'You have requested merging of multiple formats '
+                                'but one of the formats is an IAMF audio format. '
+                                'The formats won\'t be merged to prevent data loss.')
+                            should_merge = False
 
                         if temp_filename == '-':
                             reason = ('using a downloader other than ffmpeg' if FFmpegFD.can_merge_formats(info_dict, self.params)
@@ -3514,7 +3523,7 @@ class YoutubeDL:
                             info_dict['__real_download'] = info_dict['__real_download'] or real_download
                             success = success and partial_success
 
-                    if downloaded and merger.available and not self.params.get('allow_unplayable_formats'):
+                    if downloaded and should_merge:
                         info_dict['__postprocessors'].append(merger)
                         info_dict['__files_to_merge'] = downloaded
                         # Even if there were no downloads, it is being merged only now
