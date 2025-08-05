@@ -73,6 +73,7 @@ from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
 from .update import (
     REPOSITORY,
     _get_system_deprecation,
+    _get_version_age_warning,
     _make_label,
     current_git_head,
     detect_variant,
@@ -703,6 +704,11 @@ class YoutubeDL:
         system_deprecation = _get_system_deprecation()
         if system_deprecation:
             self.deprecated_feature(system_deprecation.replace('\n', '\n                    '))
+
+        if self.params.get('update_self') is None:
+            version_age_warning = _get_version_age_warning()
+            if version_age_warning:
+                self.report_warning(version_age_warning)
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
