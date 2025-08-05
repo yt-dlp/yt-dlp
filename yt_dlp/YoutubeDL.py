@@ -705,9 +705,8 @@ class YoutubeDL:
         if system_deprecation:
             self.deprecated_feature(system_deprecation.replace('\n', '\n                    '))
 
-        if self.params.get('update_self') is None:
-            version_age_warning = _get_version_age_warning()
-            if version_age_warning:
+        if self.params.get('warn_when_outdated'):
+            if version_age_warning := _get_version_age_warning():
                 self.report_warning(version_age_warning)
 
         if self.params.get('allow_unplayable_formats'):
