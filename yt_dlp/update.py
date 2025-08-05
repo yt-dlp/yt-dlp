@@ -189,7 +189,7 @@ def _get_version_age_warning():
                 f'Your yt-dlp version ({__version__}) is older than 90 days!',
                 'It is strongly recommeded to always use the latest versions, as sites regularly change and extractors need to be adjusted.',
                 f'{update_message}. To suppress this warning, add "--no-update" to your command/config.')))
-    except (ValueError, TypeError):
+    except Exception:
         pass
 
     return None
