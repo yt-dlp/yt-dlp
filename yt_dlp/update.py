@@ -173,25 +173,18 @@ def _get_system_deprecation():
 
 
 def _get_version_age_warning():
-    # Only yt-dlp guarantees a stable release at least every 3 months
+    # Only yt-dlp guarantees a stable release at least every 90 days
     if not ORIGIN.startswith('yt-dlp/'):
         return None
 
-    try:
-        version_parts = version_tuple(__version__)
-        if len(version_parts) < 3:
-            return None
-
-        update_message = UPDATE_HINT or 'Run "yt-dlp --update" to update'
-
-        if dt.date(*version_parts[:3]) < dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=90):
+    with contextlib.suppress(Exception):
+        last_updated = dt.date(*version_tuple(__version__)[:3])
+        if last_updated < dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=90):
             return ('\n         '.join((
                 f'Your yt-dlp version ({__version__}) is older than 90 days!',
-                'It is strongly recommeded to always use the latest versions, as sites regularly change and extractors need to be adjusted.',
-                f'{update_message}. To suppress this warning, add "--no-update" to your command/config.')))
-    except Exception:
-        pass
-
+                'It is strongly recommended to always use the latest version.',
+                f'{UPDATE_HINT or """Run "yt-dlp -U" to update"""}.',
+                'To suppress this warning, add --no-update to your command/config.')))
     return None
 
 
