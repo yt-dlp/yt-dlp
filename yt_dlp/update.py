@@ -183,7 +183,7 @@ def _get_version_age_warning():
             return ('\n         '.join((
                 f'Your yt-dlp version ({__version__}) is older than 90 days!',
                 'It is strongly recommended to always use the latest version.',
-                f'{UPDATE_HINT or """Run "yt-dlp --update" or "yt-dlp -U" to update"""}.',
+                f'{is_non_updateable() or """Run "yt-dlp --update" or "yt-dlp -U" to update"""}.',
                 'To suppress this warning, add --no-update to your command/config.')))
     return None
 
