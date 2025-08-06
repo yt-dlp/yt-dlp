@@ -1013,6 +1013,8 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     syntax as "--remux-video". Use "--convert-
                                     thumbnails none" to disable conversion
                                     (default)
+    --force-convert-thumbnails      Convert the thumbnails to another format even
+                                    if it's already in this format
     --split-chapters                Split video into multiple files based on
                                     internal chapters. The "chapter:" prefix can
                                     be used with "--paths" and "--output" to set
