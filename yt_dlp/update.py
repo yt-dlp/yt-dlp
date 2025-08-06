@@ -172,7 +172,7 @@ def _get_system_deprecation():
     return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
 
 
-def _get_version_age_warning():
+def _get_outdated_warning():
     # Only yt-dlp guarantees a stable release at least every 90 days
     if not ORIGIN.startswith('yt-dlp/'):
         return None
