@@ -54,6 +54,9 @@ class XAttrMetadataPP(PostProcessor):
                     if infoname == 'upload_date':
                         value = hyphenate_date(value)
                     elif xattrname == 'com.apple.metadata:kMDItemWhereFroms':
+                        # NTFS ADS doesn't support colons in names
+                        if os.name == 'nt':
+                            continue
                         value = self.APPLE_PLIST_TEMPLATE % value
                     write_xattr(info['filepath'], xattrname, value.encode())
 
