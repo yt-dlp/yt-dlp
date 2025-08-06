@@ -925,6 +925,7 @@ def parse_options(argv=None):
         'prefer_insecure': opts.prefer_insecure,
         'enable_file_urls': opts.enable_file_urls,
         'http_headers': opts.headers,
+        'no_std_headers': opts.no_std_headers,
         'proxy': opts.proxy,
         'socket_timeout': opts.socket_timeout,
         'bidi_workaround': opts.bidi_workaround,
