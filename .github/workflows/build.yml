@@ -208,7 +208,7 @@ jobs:
             python3.9 -m pip install -U pip wheel 'setuptools>=71.0.2'
             # XXX: Keep this in sync with pyproject.toml (it can't be accessed at this stage) and exclude secretstorage
             python3.9 -m pip install -U Pyinstaller mutagen pycryptodomex brotli certifi cffi \
-              'requests>=2.32.2,<3' 'urllib3>=1.26.17,<3' 'websockets>=13.0'
+              'requests>=2.32.2,<3' 'urllib3>=2.0.2,<3' 'websockets>=13.0'
 
           run: |
             cd repo
