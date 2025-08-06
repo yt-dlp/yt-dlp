@@ -703,6 +703,7 @@ def get_postprocessors(opts):
             'add_chapters': opts.addchapters,
             'add_metadata': opts.addmetadata,
             'add_infojson': opts.embed_infojson,
+            'prefer_mutagen': opts.prefer_mutagen,
         }
     # Deprecated
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
@@ -930,6 +931,7 @@ def parse_options(argv=None):
         'bidi_workaround': opts.bidi_workaround,
         'debug_printtraffic': opts.debug_printtraffic,
         'prefer_ffmpeg': opts.prefer_ffmpeg,
+        'prefer_mutagen': opts.prefer_mutagen,
         'include_ads': opts.include_ads,
         'default_search': opts.default_search,
         'dynamic_mpd': opts.dynamic_mpd,
