@@ -1712,6 +1712,7 @@ from .redbulltv import (
     RedBullTVRrnContentIE,
 )
 from .reddit import RedditIE
+from .redditonion import RedditOnionIE
 from .redge import RedCDNLivxIE
 from .redgifs import (
     RedGifsIE,
