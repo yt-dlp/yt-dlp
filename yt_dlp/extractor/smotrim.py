@@ -14,7 +14,7 @@ class SmotrimIE(InfoExtractor):
                 'id': '3003613',
                 'ext': 'mp4',
                 'title': 'Погода. на 2 августа 2025 года',
-                'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/xw/635/545/7.jpg',
+                'thumbnail': r're:https?://cdn-st\d\.smotrim\.ru/vh/pictures/[a-z]{2}/\d+/\d+/\d+\.(?:jpg|png)',
                 'subtitles': {},
                 'is_live': False,
                 'duration': 105,
@@ -27,7 +27,7 @@ class SmotrimIE(InfoExtractor):
                 'id': '3000761',
                 'ext': 'mp4',
                 'title': 'Новости культуры. Ольга Любимова провела рабочую встречу в Еврейской автономной области',
-                'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/xw/638/386/6.jpg',
+                'thumbnail': r're:https?://cdn-st\d\.smotrim\.ru/vh/pictures/[a-z]{2}/\d+/\d+/\d+\.(?:jpg|png)',
                 'subtitles': {},
                 'is_live': False,
                 'duration': 69,
@@ -40,7 +40,7 @@ class SmotrimIE(InfoExtractor):
                 'id': '2885093',
                 'ext': 'mp4',
                 'title': 'Большие и маленькие. 6-й сезон 8-й выпуск',
-                'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/xw/527/187/3.jpg',
+                'thumbnail': r're:https?://cdn-st\d\.smotrim\.ru/vh/pictures/[a-z]{2}/\d+/\d+/\d+\.(?:jpg|png)',
                 'subtitles': {},
                 'is_live': False,
                 'duration': 6622,
@@ -53,7 +53,7 @@ class SmotrimIE(InfoExtractor):
                 'id': '381308c7-a066-4c4f-9656-83e2e792a7b4',
                 'ext': 'mp4',
                 'title': 'Россия К',
-                'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/xw/441/085/7.png',
+                'thumbnail': r're:https?://cdn-st\d\.smotrim\.ru/vh/pictures/[a-z]{2}/\d+/\d+/\d+\.(?:jpg|png)',
                 'subtitles': {
                     'ru': [
                         {'url': 'https://vgtrkregion-reg.cdnvideo.ru/vgtrk/0/kultura-hd/track_2001_319a299f/chunklist.m3u8', 'ext': 'vtt', 'protocol': 'm3u8_native'},
@@ -70,7 +70,7 @@ class SmotrimIE(InfoExtractor):
                 'id': '4',
                 'ext': 'mp4',
                 'title': 'Россия К',
-                'thumbnail': 'https://cdn-st2.smotrim.ru/vh/pictures/xw/441/085/7.png',
+                'thumbnail': r're:https?://cdn-st\d\.smotrim\.ru/vh/pictures/[a-z]{2}/\d+/\d+/\d+\.(?:jpg|png)',
                 'subtitles': {
                     'ru': [
                         {'url': 'https://vgtrkregion-reg.cdnvideo.ru/vgtrk/0/kultura-hd/track_2001_319a299f/chunklist.m3u8', 'ext': 'vtt', 'protocol': 'm3u8_native'},
