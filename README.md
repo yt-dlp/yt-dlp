@@ -2367,7 +2367,6 @@ These are aliases that are no longer documented for various reasons
     --dump-headers                   --print-traffic
     --dump-intermediate-pages        --dump-pages
     --force-write-download-archive   --force-write-archive
-    --load-info                      --load-info-json
     --no-clean-infojson              --no-clean-info-json
     --no-split-tracks                --no-split-chapters
     --no-write-srt                   --no-write-subs
