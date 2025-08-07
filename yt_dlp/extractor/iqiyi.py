@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import itertools
 import re
@@ -337,57 +338,51 @@ class IqiyiIE(InfoExtractor):
         return self.playlist_result(entries, album_id, album_title)
 
     def _real_extract(self, url):
-        webpage = self._download_webpage(
-            url, 'temp_id', note='download video page')
+        js = self._download_webpage(
+            'https://mesh.if.iqiyi.com/player/lw/lwplay/accelerator.js?apiVer=3',
+            'temp_id_js',
+            headers={'Referer': url},
+        )
 
-        # There's no simple way to determine whether an URL is a playlist or not
-        # Sometimes there are playlist links in individual videos, so treat it
-        # as a single video first
-        tvid = self._search_regex(
-            r'data-(?:player|shareplattrigger)-tvid\s*=\s*[\'"](\d+)', webpage, 'tvid', default=None)
-        if tvid is None:
-            playlist_result = self._extract_playlist(webpage)
-            if playlist_result:
-                return playlist_result
-            raise ExtractorError('Can\'t find any video')
+        tvid = self._search_regex(r'"tvid":(\d+)', js, 'tvid')
 
-        video_id = self._search_regex(
-            r'data-(?:player|shareplattrigger)-videoid\s*=\s*[\'"]([a-f\d]+)', webpage, 'video_id')
+        params = {
+            'tvid': tvid,
+            'ad_cid': '',
+            'disableDRM': 'false',
+            'cpt': 0,
+            'apiVer': 3,
+            'format': 'json',
+            'timestamp': int(time.time() * 1000),
+        }
 
-        formats = []
-        for _ in range(5):
-            raw_data = self.get_raw_data(tvid, video_id)
+        download_info = self._download_json(
+            'https://mesh.if.iqiyi.com/player/lw/lwplay/accelerator.js', 'temp_id_json', query=params)
+        ev = download_info.get('ev')
+        if not ev:
+            raise ExtractorError('No ev data in response')
 
-            if raw_data['code'] != 'A00000':
-                if raw_data['code'] == 'A00111':
-                    self.raise_geo_restricted()
-                raise ExtractorError('Unable to load data. Error code: ' + raw_data['code'])
+        # Decode
+        try:
+            decoded = ''.join(chr(ord(c) ^ 90) for c in ev)
+            ev_data = self._parse_json(decoded, 'ev json')
+        except Exception as e:
+            raise ExtractorError('Failed to decode ev: ' + str(e))
 
-            data = raw_data['data']
+        m3u8_content = traverse_obj(ev_data, ('data', 'program', 'video', 2, 'm3u8'))
+        m3u8_base64 = base64.b64encode(m3u8_content.encode('utf-8')).decode('ascii')
+        m3u8_data_url = f'data:application/vnd.apple.mpegurl;base64,{m3u8_base64}'
+        title = traverse_obj(download_info,('videoInfo','title'))
 
-            for stream in data['vidl']:
-                if 'm3utx' not in stream:
-                    continue
-                vd = str(stream['vd'])
-                formats.append({
-                    'url': stream['m3utx'],
-                    'format_id': vd,
-                    'ext': 'mp4',
-                    'quality': self._FORMATS_MAP.get(vd, -1),
-                    'protocol': 'm3u8_native',
-                })
-
-            if formats:
-                break
-
-            self._sleep(5, video_id)
-
-        title = (get_element_by_id('widget-videotitle', webpage)
-                 or clean_html(get_element_by_attribute('class', 'mod-play-tit', webpage))
-                 or self._html_search_regex(r'<span[^>]+data-videochanged-title="word"[^>]*>([^<]+)</span>', webpage, 'title'))
+        formats = [{
+            'format_id': 'default',
+            'url': m3u8_data_url,
+            'ext': 'mp4',
+            'protocol': 'm3u8_native',
+        }]
 
         return {
-            'id': video_id,
+            'id': tvid,
             'title': title,
             'formats': formats,
         }
