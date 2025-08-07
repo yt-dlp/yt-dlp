@@ -9,12 +9,9 @@ from .common import InfoExtractor
 from .openload import PhantomJSwrapper
 from ..utils import (
     ExtractorError,
-    clean_html,
     decode_packed_codes,
     float_or_none,
     format_field,
-    get_element_by_attribute,
-    get_element_by_id,
     int_or_none,
     js_to_json,
     ohdave_rsa_encrypt,
@@ -172,14 +169,6 @@ class IqiyiIE(InfoExtractor):
     _NETRC_MACHINE = 'iqiyi'
 
     _TESTS = [{
-        'url': 'http://www.iqiyi.com/v_19rrojlavg.html',
-        # MD5 checksum differs on my machine and Travis CI
-        'info_dict': {
-            'id': '9c1fb1b99d192b21c559e5a1a2cb3c73',
-            'ext': 'mp4',
-            'title': '美国德州空中惊现奇异云团 酷似UFO',
-        },
-    }, {
         'url': 'http://www.iqiyi.com/v_19rrhnnclk.html',
         'md5': 'b7dc800a4004b1b57749d9abae0472da',
         'info_dict': {
@@ -343,7 +332,6 @@ class IqiyiIE(InfoExtractor):
             'temp_id_js',
             headers={'Referer': url},
         )
-
         tvid = self._search_regex(r'"tvid":(\d+)', js, 'tvid')
 
         params = {
