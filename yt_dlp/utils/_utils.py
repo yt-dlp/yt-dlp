@@ -167,6 +167,19 @@ JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>\s*(?P<
 
 NUMBER_RE = r'\d+(?:\.\d+)?'
 
+WINDOWS_RESERVED_NAMES = (
+    'CON', 'CONOUT$', 'CONIN$', 'PRN', 'AUX', 'NUL',
+    *tuple(f'{name:s}{num:d}' for name, num in itertools.product(('COM', 'LPT'), range(10))),
+    *tuple(
+        f'{name:s}{ssd:s}'
+        for name, ssd in itertools.product(
+            ('COM', 'LPT'),
+            ('\N{SUPERSCRIPT ONE}', '\N{SUPERSCRIPT TWO}', '\N{SUPERSCRIPT THREE}'),
+        )
+    ),
+)
+WINDOWS_RESERVED_NAMES_RE = fr'({"|".join(WINDOWS_RESERVED_NAMES)})'
+
 
 @functools.cache
 def preferredencoding():
@@ -679,6 +692,19 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
     return result
 
 
+def _sanitize_windows_reserved_names(s):
+    # Append _res to invalid path names
+    # in order to maintain easy recognizability
+    # when a user accidentally writes to device files
+    # - CON.opus => CON_res.opus
+    def suffix_sanitize(match):
+        other = match.group(3) if match.group(3) else ''
+        if not match.group(2) and other:
+            return match.group(1) + other
+        return match.group(1) + '_res' + match.group(2) + other  # suffix the reserved portion only
+    return re.sub(fr'{WINDOWS_RESERVED_NAMES_RE}(\.*)(.*$)', suffix_sanitize, s)
+
+
 def _sanitize_path_parts(parts):
     sanitized_parts = []
     for part in parts:
@@ -694,6 +720,7 @@ def _sanitize_path_parts(parts):
         # - trailing dots and spaces (`asdf...` => `asdf..#`)
         # - invalid chars (`<>` => `##`)
         sanitized_part = re.sub(r'[/<>:"\|\\?\*]|[\s.]$', '#', part)
+        sanitized_part = _sanitize_windows_reserved_names(sanitized_part)
         sanitized_parts.append(sanitized_part)
 
     return sanitized_parts
@@ -713,6 +740,11 @@ def sanitize_path(s, force=False):
     if normed.startswith('\\\\'):
         # UNC path (`\\SERVER\SHARE`) or device path (`\\.`, `\\?`)
         parts = normed.split('\\')
+        # allow user to write to explicitly declared legacy devices
+        if len(parts) == 4 and re.fullmatch(WINDOWS_RESERVED_NAMES_RE, parts[3]):
+            return '\\'.join(parts[:4])
+        # sanitize legacy name device otherwise
+        parts[3] = _sanitize_windows_reserved_names(parts[3])
         root = '\\'.join(parts[:4]) + '\\'
         parts = parts[4:]
     elif normed[1:2] == ':':
