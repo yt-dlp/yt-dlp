@@ -360,7 +360,7 @@ class IqiyiIE(InfoExtractor):
         m3u8_content = traverse_obj(ev_data, ('data', 'program', 'video', 2, 'm3u8'))
         m3u8_base64 = base64.b64encode(m3u8_content.encode('utf-8')).decode('ascii')
         m3u8_data_url = f'data:application/vnd.apple.mpegurl;base64,{m3u8_base64}'
-        title = traverse_obj(download_info,('videoInfo','title'))
+        title = traverse_obj(download_info, ('videoInfo', 'title'))
 
         formats = [{
             'format_id': 'default',
