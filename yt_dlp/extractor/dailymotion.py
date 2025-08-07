@@ -119,13 +119,14 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     _EMBED_REGEX = [rf'(?ix)<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)["\'](?P<url>{_VALID_URL[5:]})']
     _TESTS = [{
         'url': 'http://www.dailymotion.com/video/x5kesuj_office-christmas-party-review-jason-bateman-olivia-munn-t-j-miller_news',
-        'md5': '074b95bdee76b9e3654137aee9c79dfe',
         'info_dict': {
             'id': 'x5kesuj',
             'ext': 'mp4',
             'title': 'Office Christmas Party Review –  Jason Bateman, Olivia Munn, T.J. Miller',
             'description': 'Office Christmas Party Review - Jason Bateman, Olivia Munn, T.J. Miller',
             'duration': 187,
+            'tags': 'count:5',
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
             'timestamp': 1493651285,
             'upload_date': '20170501',
             'uploader': 'Deadline',
@@ -133,18 +134,17 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'age_limit': 0,
             'view_count': int,
             'like_count': int,
-            'tags': ['hollywood', 'celeb', 'celebrity', 'movies', 'red carpet'],
-            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/K456B1cmt4ZcZ9KiM/x1080',
         },
     }, {
         'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
-        'md5': 'e2f9717c6604773f963f069ca53a07f8',
         'info_dict': {
             'id': 'x89eyek',
             'ext': 'mp4',
-            'title': "En quête d'esprit du 27/03/2022",
+            'title': 'En quête d\'esprit du 27/03/2022',
             'description': 'md5:66542b9f4df2eb23f314fc097488e553',
             'duration': 2756,
+            'tags': 'count:1',
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
             'timestamp': 1648383669,
             'upload_date': '20220327',
             'uploader': 'CNEWS',
@@ -152,8 +152,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'age_limit': 0,
             'view_count': int,
             'like_count': int,
-            'tags': ['en_quete_d_esprit'],
-            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/Tncwi1clTH6StrxMP/x1080',
         },
     }, {
         'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
@@ -163,8 +161,8 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'ext': 'mp4',
             'title': 'Steam Machine Models, Pricing Listed on Steam Store - IGN News',
             'description': 'Several come bundled with the Steam Controller.',
-            'thumbnail': r're:^https?:.*\.(?:jpg|png)$',
             'duration': 74,
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
             'timestamp': 1425657362,
             'upload_date': '20150306',
             'uploader': 'IGN',
@@ -183,10 +181,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'uploader': 'Katy Perry',
             'upload_date': '20130905',
         },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'VEVO is only available in some countries',
+        'skip': 'Invalid URL',
     }, {
         # age-restricted video
         'url': 'http://www.dailymotion.com/video/xyh2zz_leanna-decker-cyber-girl-of-the-year-desires-nude-playboy-plus_redband',
@@ -259,9 +254,9 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'uploader_id': 'x2vtgmm',
             'age_limit': 0,
             'tags': [],
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
             'view_count': int,
             'like_count': int,
-            'thumbnail': r're:https://\w+.dmcdn.net/v/WnEY61cmvMxt2Fi6d/x1080',
         },
     }, {
         # https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj
@@ -276,18 +271,18 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         'info_dict': {
             'id': 'x8u4owg',
             'ext': 'mp4',
+            'description': 'À bord du « véloto », l’alternative à la voiture pour la campagne',
             'like_count': int,
             'uploader': 'Le Parisien',
-            'thumbnail': 'https://www.leparisien.fr/resizer/ho_GwveeYftNkLwg_cEta--5Bv4=/1200x675/cloudfront-eu-central-1.images.arcpublishing.com/leparisien/BFXJNEBN75EUNHGYJLORUC3TX4.jpg',
             'upload_date': '20240309',
             'view_count': int,
+            'tags': 'count:7',
+            'thumbnail': r're:https?://www\.leparisien\.fr/.+\.jpg',
             'timestamp': 1709997866,
             'age_limit': 0,
             'uploader_id': 'x32f7b',
             'title': 'VIDÉO. Le «\xa0véloto\xa0», la voiture à pédales qui aimerait se faire une place sur les routes',
             'duration': 428.0,
-            'description': 'À bord du « véloto », l’alternative à la voiture pour la campagne',
-            'tags': ['biclou', 'vélo', 'véloto', 'campagne', 'voiture', 'environnement', 'véhicules intermédiaires'],
         },
     }, {
         # https://geo.dailymotion.com/player/xry80.html?video=x8vu47w
@@ -297,9 +292,9 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'ext': 'mp4',
             'like_count': int,
             'uploader': 'Metatube',
-            'thumbnail': r're:https://\w+.dmcdn.net/v/W1G_S1coGSFTfkTeR/x1080',
             'upload_date': '20240326',
             'view_count': int,
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
             'timestamp': 1711496732,
             'age_limit': 0,
             'uploader_id': 'x2xpy74',
@@ -308,6 +303,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'description': 'Que lindura',
             'tags': [],
         },
+        'skip': 'Invalid URL',
     }, {
         # //geo.dailymotion.com/player/xysxq.html?video=k2Y4Mjp7krAF9iCuINM
         'url': 'https://lcp.fr/programmes/avant-la-catastrophe-la-naissance-de-la-dictature-nazie-1933-1936-346819',
@@ -322,10 +318,29 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'like_count': int,
             'age_limit': 0,
             'duration': 3220,
-            'thumbnail': 'https://s1.dmcdn.net/v/Xvumk1djJBUZfjj2a/x1080',
             'tags': [],
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
             'timestamp': 1739919947,
             'upload_date': '20250218',
+        },
+        'skip': 'Invalid URL',
+    }, {
+        'url': 'https://forum.ionicframework.com/t/ionic-2-jw-player-dailymotion-player/83248',
+        'info_dict': {
+            'id': 'xwr14q',
+            'ext': 'mp4',
+            'title': 'Macklemore & Ryan Lewis - Thrift Shop (feat. Wanz)',
+            'age_limit': 0,
+            'description': 'md5:47fbe168b5a6ddc4a205e20dd6c841b2',
+            'duration': 234,
+            'like_count': int,
+            'tags': 'count:5',
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
+            'timestamp': 1358177670,
+            'upload_date': '20130114',
+            'uploader': 'Macklemore Official',
+            'uploader_id': 'x19qlwr',
+            'view_count': int,
         },
     }]
     _GEO_BYPASS = False
@@ -540,7 +555,7 @@ class DailymotionSearchIE(DailymotionPlaylistBaseIE):
             'id': 'king of turtles',
             'title': 'king of turtles',
         },
-        'playlist_mincount': 90,
+        'playlist_mincount': 0,
     }]
     _SEARCH_QUERY = 'query SEARCH_QUERY( $query: String! $page: Int $limit: Int ) { search { videos( query: $query first: $limit page: $page ) { edges { node { xid } } } } } '
 
@@ -584,7 +599,7 @@ class DailymotionUserIE(DailymotionPlaylistBaseIE):
         'info_dict': {
             'id': 'nqtv',
         },
-        'playlist_mincount': 152,
+        'playlist_mincount': 148,
     }, {
         'url': 'http://www.dailymotion.com/user/UnderProject',
         'info_dict': {

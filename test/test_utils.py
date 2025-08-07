@@ -659,6 +659,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(url_or_none('mms://foo.de'), 'mms://foo.de')
         self.assertEqual(url_or_none('rtspu://foo.de'), 'rtspu://foo.de')
         self.assertEqual(url_or_none('ftps://foo.de'), 'ftps://foo.de')
+        self.assertEqual(url_or_none('ws://foo.de'), 'ws://foo.de')
+        self.assertEqual(url_or_none('wss://foo.de'), 'wss://foo.de')
 
     def test_parse_age_limit(self):
         self.assertEqual(parse_age_limit(None), None)
@@ -1371,6 +1373,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_resolution('pre_1920x1080_post'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('ep1x2'), {})
         self.assertEqual(parse_resolution('1920, 1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('1920w', lenient=True), {'width': 1920})
 
     def test_parse_bitrate(self):
         self.assertEqual(parse_bitrate(None), None)

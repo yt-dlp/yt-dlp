@@ -36,6 +36,9 @@ def main():
         f'--name={name}',
         '--icon=devscripts/logo.ico',
         '--upx-exclude=vcruntime140.dll',
+        # Ref: https://github.com/yt-dlp/yt-dlp/issues/13311
+        #      https://github.com/pyinstaller/pyinstaller/issues/9149
+        '--exclude-module=pkg_resources',
         '--noconfirm',
         '--additional-hooks-dir=yt_dlp/__pyinstaller',
         *opts,
@@ -59,16 +62,22 @@ def parse_options():
 
 def exe(onedir):
     """@returns (name, path)"""
+    platform_name, machine, extension = {
+        'win32': (None, MACHINE, '.exe'),
+        'darwin': ('macos', None, None),
+    }.get(OS_NAME, (OS_NAME, MACHINE, None))
+
     name = '_'.join(filter(None, (
         'yt-dlp',
-        {'win32': '', 'darwin': 'macos'}.get(OS_NAME, OS_NAME),
-        MACHINE,
+        platform_name,
+        machine,
     )))
+
     return name, ''.join(filter(None, (
         'dist/',
         onedir and f'{name}/',
         name,
-        OS_NAME == 'win32' and '.exe',
+        extension,
     )))
 
 

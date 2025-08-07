@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import contextlib
+import datetime as dt
 import functools
 import hashlib
 import json
@@ -139,7 +140,18 @@ def _get_binary_name():
 
 
 def _get_system_deprecation():
-    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 9), (3, 9)
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 9), (3, 10)
+
+    EXE_MSG_TMPL = ('Support for {} has been deprecated. '
+                    'See  https://github.com/yt-dlp/yt-dlp/{}  for details.\n{}')
+    STOP_MSG = 'You may stop receiving updates on this version at any time!'
+    variant = detect_variant()
+
+    # Temporary until macos_legacy executable builds are discontinued
+    if variant == 'darwin_legacy_exe':
+        return EXE_MSG_TMPL.format(
+            f'{variant} (the PyInstaller-bundled executable for macOS versions older than 10.15)',
+            'issues/13856', STOP_MSG)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
@@ -150,7 +162,30 @@ def _get_system_deprecation():
     if sys.version_info < MIN_SUPPORTED:
         return f'Python version {major}.{minor} is no longer supported! {PYTHON_MSG}'
 
+    # Temporary until aarch64/armv7l build flow is bumped to Ubuntu 22.04 and Python 3.10
+    if variant in ('linux_aarch64_exe', 'linux_armv7l_exe'):
+        libc_ver = version_tuple(os.confstr('CS_GNU_LIBC_VERSION').partition(' ')[2])
+        if libc_ver < (2, 35):
+            return EXE_MSG_TMPL.format('system glibc version < 2.35', 'issues/13858', STOP_MSG)
+        return None
+
     return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
+
+
+def _get_outdated_warning():
+    # Only yt-dlp guarantees a stable release at least every 90 days
+    if not ORIGIN.startswith('yt-dlp/'):
+        return None
+
+    with contextlib.suppress(Exception):
+        last_updated = dt.date(*version_tuple(__version__)[:3])
+        if last_updated < dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=90):
+            return ('\n         '.join((
+                f'Your yt-dlp version ({__version__}) is older than 90 days!',
+                'It is strongly recommended to always use the latest version.',
+                f'{is_non_updateable() or """Run "yt-dlp --update" or "yt-dlp -U" to update"""}.',
+                'To suppress this warning, add --no-update to your command/config.')))
+    return None
 
 
 def _sha256_file(path):
@@ -202,7 +237,7 @@ class UpdateInfo:
     requested_version: str | None = None
     commit: str | None = None
 
-    binary_name: str | None = _get_binary_name()  # noqa: RUF009: Always returns the same value
+    binary_name: str | None = _get_binary_name()  # noqa: RUF009 # Always returns the same value
     checksum: str | None = None
 
 

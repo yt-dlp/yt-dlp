@@ -52,9 +52,9 @@ from ..compat import (
     compat_HTMLParseError,
 )
 from ..dependencies import xattr
-from ..globals import IN_CLI
+from ..globals import IN_CLI, WINDOWS_VT_MODE
 
-__name__ = __name__.rsplit('.', 1)[0]  # noqa: A001: Pretend to be the parent module
+__name__ = __name__.rsplit('.', 1)[0]  # noqa: A001 # Pretend to be the parent module
 
 
 class NO_DEFAULT:
@@ -1285,7 +1285,7 @@ def unified_timestamp(date_str, day_first=True):
 
     timetuple = email.utils.parsedate_tz(date_str)
     if timetuple:
-        return calendar.timegm(timetuple) + pm_delta * 3600 - timezone.total_seconds()
+        return calendar.timegm(timetuple) + pm_delta * 3600 - int(timezone.total_seconds())
 
 
 @partial_application
@@ -1875,6 +1875,11 @@ def parse_resolution(s, *, lenient=False):
     if mobj:
         return {'height': int(mobj.group(1)) * 540}
 
+    if lenient:
+        mobj = re.search(r'(?<!\d)(\d{2,5})w(?![a-zA-Z0-9])', s)
+        if mobj:
+            return {'width': int(mobj.group(1))}
+
     return {}
 
 
@@ -2044,7 +2049,7 @@ def url_or_none(url):
     if not url or not isinstance(url, str):
         return None
     url = url.strip()
-    return url if re.match(r'(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
+    return url if re.match(r'(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?|wss?):)?//', url) else None
 
 
 def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
@@ -2961,6 +2966,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'audio/x-matroska': 'mka',
         'audio/x-mpegurl': 'm3u',
         'aacp': 'aac',
+        'flac': 'flac',
         'midi': 'mid',
         'ogg': 'ogg',
         'wav': 'wav',
@@ -3105,21 +3111,15 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
 def urlhandle_detect_ext(url_handle, default=NO_DEFAULT):
     getheader = url_handle.headers.get
 
-    cd = getheader('Content-Disposition')
-    if cd:
-        m = re.match(r'attachment;\s*filename="(?P<filename>[^"]+)"', cd)
-        if m:
-            e = determine_ext(m.group('filename'), default_ext=None)
-            if e:
-                return e
+    if cd := getheader('Content-Disposition'):
+        if m := re.match(r'attachment;\s*filename="(?P<filename>[^"]+)"', cd):
+            if ext := determine_ext(m.group('filename'), default_ext=None):
+                return ext
 
-    meta_ext = getheader('x-amz-meta-name')
-    if meta_ext:
-        e = meta_ext.rpartition('.')[2]
-        if e:
-            return e
-
-    return mimetype2ext(getheader('Content-Type'), default=default)
+    return (
+        determine_ext(getheader('x-amz-meta-name'), default_ext=None)
+        or getheader('x-amz-meta-file-type')
+        or mimetype2ext(getheader('Content-Type'), default=default))
 
 
 def encode_data_uri(data, mime_type):
@@ -4769,13 +4769,10 @@ def jwt_is_expired(token, buffer=300, key='exp'):
     return exp - time.time() < buffer
 
 
-WINDOWS_VT_MODE = False if os.name == 'nt' else None
-
-
 @functools.cache
 def supports_terminal_sequences(stream):
     if os.name == 'nt':
-        if not WINDOWS_VT_MODE:
+        if not WINDOWS_VT_MODE.value:
             return False
     elif not os.getenv('TERM'):
         return False
@@ -4812,8 +4809,7 @@ def windows_enable_vt_mode():
     finally:
         os.close(handle)
 
-    global WINDOWS_VT_MODE
-    WINDOWS_VT_MODE = True
+    WINDOWS_VT_MODE.value = True
     supports_terminal_sequences.cache_clear()
 
 
