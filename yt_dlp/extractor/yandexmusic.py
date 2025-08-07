@@ -309,7 +309,7 @@ class YandexMusicAlbumIE(YandexMusicPlaylistBaseIE):
 class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
     IE_NAME = 'yandexmusic:playlist'
     IE_DESC = 'Яндекс.Музыка - Плейлист'
-    _VALID_URL = rf'{YandexMusicBaseIE._VALID_URL_BASE}/users/(?P<user>[^/]+)/playlists/(?P<id>\d+)'
+    _VALID_URL = rf'{YandexMusicBaseIE._VALID_URL_BASE}/(?:users/(?P<user>[^/]+)/playlists/(?P<id>\d+)|playlists/(?P<uuid>[0-9a-z-]+))'
 
     _TESTS = [{
         'url': 'http://music.yandex.ru/users/music.partners/playlists/1245',
@@ -320,6 +320,9 @@ class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
         },
         'playlist_count': 5,
         # 'skip': 'Travis CI servers blocked by YandexMusic',
+    }, {
+        'url': 'https://music.yandex.ru/playlists/2042ead9-189e-094a-b8d9-d6c8cd0ba35c',
+        'only_matching': True,
     }, {
         'url': 'https://music.yandex.ru/users/ya.playlist/playlists/1036',
         'only_matching': True,
@@ -337,19 +340,33 @@ class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
+        print(mobj)
         tld = mobj.group('tld')
-        user = mobj.group('user')
-        playlist_id = mobj.group('id')
-
-        playlist = self._call_api(
-            'playlist', tld, url, playlist_id, 'Downloading playlist JSON', {
-                'owner': user,
-                'kinds': playlist_id,
-                'light': 'true',
-                'lang': tld,
-                'external-domain': f'music.yandex.{tld}',
-                'overembed': 'false',
-            })['playlist']
+        uuid = mobj.group('uuid')
+        print(uuid)
+        
+        if uuid:
+            playlist_id = uuid
+            user = None
+            playlist = self._call_api(
+                'playlist-by-uid', tld, url, uuid, 'Downloading playlist JSON', {
+                    'uid': uuid,
+                    'light': 'true',
+                    'lang': tld,
+                    'external-domain': f'music.yandex.{tld}',
+                })['playlist']
+        else:
+            user = mobj.group('user')
+            playlist_id = mobj.group('id')
+            playlist = self._call_api(
+                'playlist', tld, url, playlist_id, 'Downloading playlist JSON', {
+                    'owner': user,
+                    'kinds': playlist_id,
+                    'light': 'true',
+                    'lang': tld,
+                    'external-domain': f'music.yandex.{tld}',
+                    'overembed': 'false',
+                })['playlist']
 
         tracks = self._extract_tracks(playlist, playlist_id, url, tld)
 
