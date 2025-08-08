@@ -243,7 +243,7 @@ class InfoExtractor:
                     * extra_param_to_segment_url  A query string to append to each
                                  fragment's URL, or to update each existing query string
                                  with. If it is an HLS stream with an AES-128 decryption key,
-                                 the query paramaters will be passed to the key URI as well,
+                                 the query parameters will be passed to the key URI as well,
                                  unless there is an `extra_param_to_key_url` given,
                                  or unless an external key URI is provided via `hls_aes`.
                                  Only applied by the native HLS/DASH downloaders.
@@ -419,7 +419,7 @@ class InfoExtractor:
     __post_extractor: A function to be called just before the metadata is
                     written to either disk, logger or console. The function
                     must return a dict which will be added to the info_dict.
-                    This is usefull for additional information that is
+                    This is useful for additional information that is
                     time-consuming to extract. Note that the fields thus
                     extracted will not be available to output template and
                     match_filter. So, only "comments" and "comment_count" are

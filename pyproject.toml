@@ -15,11 +15,11 @@ description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
 requires-python = ">=3.9"
 keywords = [
+    "cli",
+    "downloader",
     "youtube-dl",
-    "video-downloader",
     "youtube-downloader",
     "sponsorblock",
-    "youtube-dlc",
     "yt-dlp",
 ]
 license = {file = "LICENSE"}
