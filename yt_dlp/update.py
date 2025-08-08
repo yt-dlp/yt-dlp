@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import contextlib
+import datetime as dt
 import functools
 import hashlib
 import json
@@ -169,6 +170,22 @@ def _get_system_deprecation():
         return None
 
     return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
+
+
+def _get_outdated_warning():
+    # Only yt-dlp guarantees a stable release at least every 90 days
+    if not ORIGIN.startswith('yt-dlp/'):
+        return None
+
+    with contextlib.suppress(Exception):
+        last_updated = dt.date(*version_tuple(__version__)[:3])
+        if last_updated < dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=90):
+            return ('\n         '.join((
+                f'Your yt-dlp version ({__version__}) is older than 90 days!',
+                'It is strongly recommended to always use the latest version.',
+                f'{is_non_updateable() or """Run "yt-dlp --update" or "yt-dlp -U" to update"""}.',
+                'To suppress this warning, add --no-update to your command/config.')))
+    return None
 
 
 def _sha256_file(path):
