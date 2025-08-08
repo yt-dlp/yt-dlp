@@ -99,7 +99,7 @@ class MotherlessIE(InfoExtractor):
         if any(p in webpage for p in (
             '<title>404 - MOTHERLESS.COM<',
             ">The page you're looking for cannot be found.<",
-            '<div class="error-page view-page py-3">',
+            '<div class="error-page',
         )):
             raise ExtractorError(f'Video {video_id} does not exist', expected=True)
 
