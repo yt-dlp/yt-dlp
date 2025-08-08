@@ -661,6 +661,9 @@ from .floatplane import (
 from .folketinget import FolketingetIE
 from .footyroom import FootyRoomIE
 from .formula1 import Formula1IE
+from .fosdem import (
+    FosdemIE
+)
 from .fourtube import (
     FourTubeIE,
     FuxIE,
