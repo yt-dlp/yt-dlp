@@ -170,7 +170,7 @@ class MotherlessPaginatedIE(InfoExtractor):
         raise NotImplementedError('This method must be implemented by subclasses')
 
     def _correct_title(self, title, /):
-        return title.partition(' - Videos')[0]
+        return title.partition(' - Videos')[0] if title else None
 
     def _extract_entries(self, webpage, base):
         for mobj in re.finditer(r'href="[^"]*(?P<href>/[A-F0-9]+)"\s+title="(?P<title>[^"]+)',
