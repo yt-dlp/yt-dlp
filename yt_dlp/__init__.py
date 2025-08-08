@@ -545,6 +545,8 @@ def validate_options(opts):
     report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-remove', 'sponsorblock_remove')
     report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters',
                     val1=opts.sponskrub and opts.sponskrub_cut)
+    report_conflict('--force-keyframes-at-cuts', 'force_keyframes_at_cuts', '--round-cuts-to-keyframes',
+                    'round_cuts_to_keyframes')
 
     # Conflicts with --allow-unplayable-formats
     report_conflict('--embed-metadata', 'addmetadata')
@@ -690,6 +692,7 @@ def get_postprocessors(opts):
             'remove_ranges': opts.remove_ranges,
             'sponsorblock_chapter_title': opts.sponsorblock_chapter_title,
             'force_keyframes': opts.force_keyframes_at_cuts,
+            'round_to_keyframes': opts.round_cuts_to_keyframes,
         }
     # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
     # FFmpegExtractAudioPP as containers before conversion may not support
