@@ -58,13 +58,7 @@ from .adn import (
     ADNSeasonIE,
 )
 from .adobeconnect import AdobeConnectIE
-from .adobetv import (
-    AdobeTVChannelIE,
-    AdobeTVEmbedIE,
-    AdobeTVIE,
-    AdobeTVShowIE,
-    AdobeTVVideoIE,
-)
+from .adobetv import AdobeTVVideoIE
 from .adultswim import AdultSwimIE
 from .aenetworks import (
     AENetworksCollectionIE,
