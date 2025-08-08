@@ -556,23 +556,25 @@ class FFmpegFD(ExternalFD):
 
         selected_formats = info_dict.get('requested_formats') or [info_dict]
         for i, fmt in enumerate(selected_formats):
-            is_http = re.match(r'https?://', fmt['url'])
-            cookies = self.ydl.cookiejar.get_cookies_for_url(fmt['url']) if is_http else []
-            if cookies:
-                args.extend(['-cookies', ''.join(
-                    f'{cookie.name}={cookie.value}; path={cookie.path}; domain={cookie.domain};\r\n'
-                    for cookie in cookies)])
-            if fmt.get('http_headers') and is_http:
-                # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
-                # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
-                args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in fmt['http_headers'].items())])
+            url = fmt['url']
+            if re.match(r'https?://', url):
+                cookies = self.ydl.cookiejar.get_cookies_for_url(url)
+                for additional_url in fmt.get('additional_cookies_urls') or []:
+                    cookies.extend(self.ydl.cookiejar.get_cookies_for_url(additional_url))
+                if cookies:
+                    args.extend(['-cookies', ''.join(
+                        f'{cookie.name}={cookie.value}; path={cookie.path}; domain={cookie.domain};\r\n'
+                        for cookie in cookies)])
+                if fmt.get('http_headers'):
+                    # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
+                    # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
+                    args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in fmt['http_headers'].items())])
 
             if start_time:
                 args += ['-ss', str(start_time)]
             if end_time:
                 args += ['-t', str(end_time - start_time)]
 
-            url = fmt['url']
             if self.params.get('enable_file_urls') and url.startswith('file:'):
                 # The default protocol_whitelist is 'file,crypto,data' when reading local m3u8 URLs,
                 # so only local segments can be read unless we also include 'http,https,tcp,tls'
