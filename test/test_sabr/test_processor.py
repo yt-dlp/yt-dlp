@@ -3,7 +3,7 @@ import dataclasses
 import pytest
 from unittest.mock import MagicMock
 
-from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError
+from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError, MediaSegmentMismatchError
 from yt_dlp.extractor.youtube._streaming.sabr.part import (
     PoTokenStatusSabrPart,
     FormatInitializedSabrPart,
@@ -25,6 +25,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.models import (
     CaptionSelector,
     InitializedFormat,
     Segment,
+    ConsumedRange,
 )
 from yt_dlp.extractor.youtube._proto.videostreaming import (
     FormatId,
@@ -35,8 +36,9 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     SabrContextSendingPolicy,
     SabrSeek,
     MediaHeader,
+    TimeRange,
 )
-from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, NextRequestPolicy
+from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, NextRequestPolicy, CompressionAlgorithm
 
 
 @pytest.fixture
@@ -1283,16 +1285,13 @@ class TestMediaHeader:
         )
         fim = make_format_im(selector)
         processor.process_format_initialization_metadata(fim)
-
         media_header = make_init_header(selector)
 
         result = processor.process_media_header(media_header)
 
         assert isinstance(result, ProcessMediaHeaderResult)
         assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
-
         part = result.sabr_part
-
         # TODO: confirm expected duration/start_ms settings for init segments
         assert part == MediaSegmentInitSabrPart(
             format_selector=selector,
@@ -1304,12 +1303,11 @@ class TestMediaHeader:
             content_length=501,
             start_time_ms=0,
             duration_ms=0,
+            duration_estimated=True,  # TODO: confirm expected behavior
             start_bytes=0,
         )
         assert media_header.header_id in processor.partial_segments
-
         segment = processor.partial_segments[media_header.header_id]
-
         # TODO: confirm expected duration/start_ms settings for init segments
         assert segment == Segment(
             format_id=selector.format_ids[0],
@@ -1335,16 +1333,13 @@ class TestMediaHeader:
         )
         fim = make_format_im(selector)
         processor.process_format_initialization_metadata(fim)
-
         media_header = make_media_header(selector, sequence_no=1)
 
         result = processor.process_media_header(media_header)
 
         assert isinstance(result, ProcessMediaHeaderResult)
         assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
-
         part = result.sabr_part
-
         assert part == MediaSegmentInitSabrPart(
             format_selector=selector,
             format_id=selector.format_ids[0],
@@ -1358,9 +1353,7 @@ class TestMediaHeader:
             start_bytes=502,
         )
         assert media_header.header_id in processor.partial_segments
-
         segment = processor.partial_segments[media_header.header_id]
-
         assert segment == Segment(
             format_id=selector.format_ids[0],
             is_init_segment=False,
@@ -1376,3 +1369,644 @@ class TestMediaHeader:
             consumed=False,
             received_data_length=0,
         )
+
+    def test_media_header_with_startms(self, base_args):
+        # start_ms is provided instead of time_range in media header
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.start_ms = 1002
+        media_header.time_range = None
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.start_time_ms == 1002
+        assert processor.partial_segments[media_header.header_id].start_ms == 1002
+
+    def test_media_header_with_time_range(self, base_args):
+        # time_range is provided instead of start_ms in media header
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.time_range = TimeRange(start_ticks=10020, timescale=10000)
+        media_header.start_ms = None
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.start_time_ms == 1002
+        assert processor.partial_segments[media_header.header_id].start_ms == 1002
+
+    def test_media_header_with_start_ms_and_time_range(self, base_args):
+        # time_range and start_ms is provided; start_ms should take precedence
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.time_range = TimeRange(start_ticks=10020, timescale=10000)
+        media_header.start_ms = 1004
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.start_time_ms == 1004
+        assert processor.partial_segments[media_header.header_id].start_ms == 1004
+
+    def test_media_header_duration_ms(self, base_args):
+        # only duration_ms is provided in media header
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.duration_ms = 1002
+        media_header.time_range = None
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.duration_ms == 1002
+        assert processor.partial_segments[media_header.header_id].duration_ms == 1002
+
+    def test_media_header_duration_ticks(self, base_args):
+        # only duration_ticks is provided in media header
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.time_range = TimeRange(duration_ticks=10020, timescale=10000)
+        media_header.duration_ms = None
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.duration_ms == 1002
+        assert processor.partial_segments[media_header.header_id].duration_ms == 1002
+
+    def test_media_header_duration_ms_and_ticks(self, base_args):
+        # both duration_ms and duration_ticks are provided; duration_ms should take precedence
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.duration_ms = 1004
+        media_header.time_range = TimeRange(duration_ticks=10020, timescale=10000)
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.duration_ms == 1004
+        assert processor.partial_segments[media_header.header_id].duration_ms == 1004
+
+    # init segment duration_ms default to 0 tested in test_media_header_init_segment
+
+    def test_media_header_estimated_duration(self, base_args):
+        # Should estimate the duration for livestreams
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            live_segment_target_duration_sec=5,
+            live_segment_target_duration_tolerance_ms=200,
+        )
+        processor.is_live = True
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.duration_ms = None
+        media_header.time_range = None
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.duration_ms == 4800  # 5 seconds minus tolerance
+        assert result.sabr_part.duration_estimated is True
+        assert processor.partial_segments[media_header.header_id].duration_ms == 4800
+        assert processor.partial_segments[media_header.header_id].duration_estimated is True
+
+    def test_media_header_prefer_actual_duration(self, base_args):
+        # Should prefer actual duration over estimated duration
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            live_segment_target_duration_sec=5,
+            live_segment_target_duration_tolerance_ms=200,
+        )
+        processor.is_live = True
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.duration_ms = 6000
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.duration_ms == 6000
+        assert result.sabr_part.duration_estimated is False
+        assert processor.partial_segments[media_header.header_id].duration_ms == 6000
+        assert processor.partial_segments[media_header.header_id].duration_estimated is False
+
+    def test_media_header_estimated_content_length(self, base_args):
+        # Should estimate the content length for livestreams
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            live_segment_target_duration_sec=5,
+            live_segment_target_duration_tolerance_ms=200,
+        )
+        processor.is_live = True
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.content_length = None
+        media_header.bitrate_bps = 45000
+        media_header.duration_ms = None
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.content_length == 216000
+        assert result.sabr_part.content_length_estimated is True
+        assert processor.partial_segments[media_header.header_id].content_length == 216000
+        assert processor.partial_segments[media_header.header_id].content_length_estimated is True
+
+    def test_media_header_estimated_content_length_with_duration(self, base_args):
+        # Should use actual duration over the estimated duration if available
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            live_segment_target_duration_sec=5,
+            live_segment_target_duration_tolerance_ms=200,
+        )
+        processor.is_live = True
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.content_length = None
+        media_header.bitrate_bps = 45000
+        media_header.duration_ms = 6000
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.content_length == 270000
+        assert result.sabr_part.content_length_estimated is True
+        assert processor.partial_segments[media_header.header_id].content_length == 270000
+        assert processor.partial_segments[media_header.header_id].content_length_estimated is True
+
+    def test_media_header_content_length_provided(self, base_args):
+        # Should not estimate content length if content_length is provided
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            live_segment_target_duration_sec=5,
+            live_segment_target_duration_tolerance_ms=200,
+        )
+        processor.is_live = True
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.content_length = 100000
+        media_header.bitrate_bps = 45000
+        media_header.duration_ms = None
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.content_length == 100000
+        assert result.sabr_part.content_length_estimated is False
+        assert processor.partial_segments[media_header.header_id].content_length == 100000
+        assert processor.partial_segments[media_header.header_id].content_length_estimated is False
+
+    def test_media_header_no_estimated_content_length(self, base_args):
+        # Should not estimate content length if bitrate_bps is not available
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            live_segment_target_duration_sec=5,
+            live_segment_target_duration_tolerance_ms=200,
+        )
+        processor.is_live = True
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.content_length = None
+        media_header.bitrate_bps = None
+        media_header.duration_ms = None
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.content_length is None
+        assert result.sabr_part.content_length_estimated is False
+        assert processor.partial_segments[media_header.header_id].content_length is None
+        assert processor.partial_segments[media_header.header_id].content_length_estimated is False
+
+    def test_media_header_non_live_no_estimated_content_length(self, base_args):
+        # Should not estimate content length for non-live streams
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.content_length = None
+        media_header.bitrate_bps = 45000
+
+        result = processor.process_media_header(media_header)
+
+        assert result.sabr_part.content_length is None
+        assert result.sabr_part.content_length_estimated is False
+        assert processor.partial_segments[media_header.header_id].content_length is None
+        assert processor.partial_segments[media_header.header_id].content_length_estimated is False
+
+    # Discard segment handling
+
+    def test_discard_segment_initialized_format_discard(self, base_args):
+        # Segment should be discarded if initialized format is marked as discard
+        selector = make_selector('audio', discard_media=True)
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        # Clear consumed ranges. We want to also handle the case when we cannot mark the format as entirely consumed.
+        processor.initialized_formats[str(selector.format_ids[0])].consumed_ranges.clear()
+        media_header = make_media_header(selector, sequence_no=1)
+
+        result = processor.process_media_header(media_header)
+
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert result.sabr_part is None
+        assert media_header.header_id in processor.partial_segments
+        segment = processor.partial_segments[media_header.header_id]
+        assert segment.discard is True
+        assert segment.consumed is False
+
+    def test_discard_segment_sequence_number_consumed(self, base_args):
+        # Segment should be discarded if sequence number within a consumed range
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=4)
+        # Simulate that the sequence number 1 has been consumed
+        # Testing with multiple consumed ranges
+        consumed_ranges = [
+            ConsumedRange(
+                start_time_ms=0,
+                duration_ms=1000,
+                start_sequence_number=1,
+                end_sequence_number=2),
+            ConsumedRange(
+                start_time_ms=0,
+                duration_ms=2000,
+                start_sequence_number=3,
+                end_sequence_number=6)]
+        processor.initialized_formats[str(selector.format_ids[0])].consumed_ranges.extend(consumed_ranges)
+
+        result = processor.process_media_header(media_header)
+
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert result.sabr_part is None
+        assert media_header.header_id in processor.partial_segments
+        segment = processor.partial_segments[media_header.header_id]
+        assert segment.discard is True
+        assert segment.consumed is True
+
+    def test_discard_segment_already_have_init_segment(self, base_args):
+        # Segment should be discarded if already have init segment
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_init_header(selector)
+
+        # Simulate that we already have an init segment for this format
+        processor.initialized_formats[str(selector.format_ids[0])].init_segment = Segment(
+            is_init_segment=True,
+            format_id=selector.format_ids[0],
+        )
+
+        result = processor.process_media_header(media_header)
+
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert result.sabr_part is None
+        assert media_header.header_id in processor.partial_segments
+        segment = processor.partial_segments[media_header.header_id]
+        assert segment.discard is True
+        assert segment.consumed is True
+
+    def test_previous_ooo_initialized_format_discard(self, base_args):
+        # Segment should be discarded if previous segment is not in order and initialized format is marked as discard
+        # We are testing that it checks the InitializedFormat.discard flag
+        # No error should be raised
+        selector = make_selector('audio', discard_media=True)
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+
+        # Simulate that the previous segment was not in order
+        processor.initialized_formats[str(selector.format_ids[0])].current_segment = Segment(
+            format_id=selector.format_ids[0],
+            is_init_segment=False,
+            sequence_number=10,
+            discard=False,  # should not happen but not relying on this
+            consumed=False,
+        )
+        # Clear consumed ranges. We want to also handle the case when we cannot mark the format as entirely consumed.
+        processor.initialized_formats[str(selector.format_ids[0])].consumed_ranges.clear()
+
+        result = processor.process_media_header(media_header)
+
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert result.sabr_part is None
+        assert media_header.header_id in processor.partial_segments
+        segment = processor.partial_segments[media_header.header_id]
+        assert segment.discard is True
+        assert segment.consumed is False
+
+    def test_previous_ooo_segment_consumed(self, base_args):
+        # Segment should be ignored and discarded if previous segment is out of order, and the current segment is already consumed
+        # No error should be raised
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+
+        # Simulate that the previous segment was discarded and not in order
+        processor.initialized_formats[str(selector.format_ids[0])].current_segment = Segment(
+            format_id=selector.format_ids[0],
+            is_init_segment=False,
+            sequence_number=10,
+            discard=False,
+            consumed=False,
+        )
+        # Mark segment 1 as consumed
+        processor.initialized_formats[str(selector.format_ids[0])].consumed_ranges.append(
+            ConsumedRange(
+                start_sequence_number=1,
+                end_sequence_number=1,
+                start_time_ms=0,
+                duration_ms=2300,
+            ),
+        )
+
+        result = processor.process_media_header(media_header)
+
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert result.sabr_part is None
+        assert media_header.header_id in processor.partial_segments
+        segment = processor.partial_segments[media_header.header_id]
+        assert segment.discard is True
+        assert segment.consumed is True
+
+    def test_previous_ooo_previous_discarded(self, base_args):
+        # Segment should be accepted if previous segment is discarded AND segment is not in order
+        # No error should be raised
+        # TODO: confirm expected behavior
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+
+        # Simulate that the previous segment was discarded and not in order
+        processor.initialized_formats[str(selector.format_ids[0])].current_segment = Segment(
+            format_id=selector.format_ids[0],
+            is_init_segment=False,
+            sequence_number=10,
+            discard=True,  # Previous segment is discarded
+            consumed=False,
+        )
+
+        result = processor.process_media_header(media_header)
+
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+        assert media_header.header_id in processor.partial_segments
+
+    def test_media_header_no_video_id(self, base_args):
+        # Media header does not have a video id, but processor does
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            video_id='example_video_id',
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.video_id = None
+
+        # Should not raise an error
+        result = processor.process_media_header(media_header)
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+
+    def test_processor_no_video_id_media_header_has_video_id(self, base_args):
+        # Processor does not have a video id, but media header does
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            video_id=None,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.video_id = 'example_video_id'
+
+        # Should not raise an error
+        result = processor.process_media_header(media_header)
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+
+    def test_no_update_consumed_ranges(self, base_args):
+        # Media Header should not update the consumed ranges. This is done on media end.
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        result = processor.process_media_header(media_header)
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+        assert not processor.initialized_formats[str(selector.format_ids[0])].consumed_ranges
+
+    # Error scenarios
+
+    def test_video_id_mismatch(self, base_args):
+        # Media header has a different video id than the processor
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            video_id='example_video_id',
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.video_id = 'different_video_id'
+
+        with pytest.raises(
+            SabrStreamError,
+            match='Received unexpected MediaHeader for video different_video_id \\(expecting example_video_id\\)',
+        ):
+            processor.process_media_header(media_header)
+
+    def test_format_id_missing(self, base_args):
+        # Media header does not have a format id
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.format_id = None
+
+        with pytest.raises(SabrStreamError, match='FormatId not found in MediaHeader'):
+            processor.process_media_header(media_header)
+
+    def test_header_id_in_partial_segments(self, base_args):
+        # Media header has a header_id that is already in partial_segments
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+
+        processor.process_media_header(media_header)
+
+        with pytest.raises(SabrStreamError, match='Header ID 0 already exists'):
+            processor.process_media_header(media_header)
+
+    def test_no_matching_initialized_format(self, base_args):
+        # Media header has a format_id that does not match any initialized format
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        media_header = make_media_header(selector, sequence_no=1)
+
+        with pytest.raises(SabrStreamError, match='Initialized format not found'):
+            processor.process_media_header(media_header)
+
+    def test_media_header_compression(self, base_args):
+        # Media header has a compression algorithm
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.compression = CompressionAlgorithm.COMPRESSION_ALGORITHM_GZIP
+
+        # should raise an error as unsupported
+        with pytest.raises(SabrStreamError, match='Compression not supported in MediaHeader'):
+            processor.process_media_header(media_header)
+
+    def test_missing_sequence_number_not_init_segment(self, base_args):
+        # Media header is not an init segment and does not have a sequence number
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=None)
+
+        with pytest.raises(SabrStreamError, match='Sequence number not found in MediaHeader'):
+            processor.process_media_header(media_header)
+
+    def test_no_duration_ms(self, base_args):
+        # Media header does not have a duration_ms or time_range with duration_ticks
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.duration_ms = None
+        media_header.time_range = TimeRange(timescale=1000, start_ticks=0, duration_ticks=None)
+
+        with pytest.raises(SabrStreamError, match='Cannot determine duration of segment 1'):
+            processor.process_media_header(media_header)
+
+    def test_segment_mismatch(self, base_args):
+        # Media header segment does not match the current segment
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+
+        # Simulate that the current segment is not in order
+        processor.initialized_formats[str(selector.format_ids[0])].current_segment = Segment(
+            format_id=selector.format_ids[0],
+            is_init_segment=False,
+            sequence_number=10,
+            discard=False,
+            consumed=False,
+        )
+
+        with pytest.raises(MediaSegmentMismatchError, match='Segment sequence number mismatch') as exc_info:
+            processor.process_media_header(media_header)
+            assert exc_info.value.expected_sequence_number == 11
+            assert exc_info.value.received_sequence_number == 1

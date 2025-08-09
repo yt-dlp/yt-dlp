@@ -199,7 +199,7 @@ class SabrProcessor:
                 f' {media_header.video_id} (expecting {self.video_id})')
 
         if not media_header.format_id:
-            raise SabrStreamError(f'Format ID not found in MediaHeader (media_header={media_header})')
+            raise SabrStreamError(f'FormatId not found in MediaHeader (media_header={media_header})')
 
         # Guard. This should not happen, except if we don't clear partial segments
         if media_header.header_id in self.partial_segments:
@@ -210,7 +210,7 @@ class SabrProcessor:
         initialized_format = self.initialized_formats.get(str(media_header.format_id))
         if not initialized_format:
             self.logger.debug(f'Initialized format not found for {media_header.format_id}')
-            return result
+            raise SabrStreamError(f'Initialized format not found for {media_header.format_id}')
 
         if media_header.compression:
             # Unknown when this is used, but it is not supported currently
@@ -278,13 +278,13 @@ class SabrProcessor:
 
         duration_ms = actual_duration_ms or estimated_duration_ms
 
-        estimated_content_length = None
-        if self.is_live and media_header.content_length is None and media_header.bitrate_bps is not None:
-            estimated_content_length = math.ceil(media_header.bitrate_bps * (estimated_duration_ms / 1000))
-
         # Guard: Bail out if we cannot determine the duration, which we need to progress.
         if duration_ms is None:
             raise SabrStreamError(f'Cannot determine duration of segment {sequence_number} (media_header={media_header})')
+
+        estimated_content_length = None
+        if self.is_live and media_header.content_length is None and media_header.bitrate_bps is not None:
+            estimated_content_length = math.ceil(media_header.bitrate_bps * (duration_ms / 1000))
 
         segment = Segment(
             format_id=media_header.format_id,
@@ -312,6 +312,7 @@ class SabrProcessor:
                 sequence_number=segment.sequence_number,
                 total_segments=segment.initialized_format.total_segments,
                 duration_ms=segment.duration_ms,
+                duration_estimated=segment.duration_estimated,
                 start_bytes=segment.start_data_range,
                 start_time_ms=segment.start_ms,
                 is_init_segment=segment.is_init_segment,
