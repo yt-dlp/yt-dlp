@@ -2,144 +2,171 @@ import itertools
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
-    float_or_none,
     int_or_none,
     parse_qs,
-    try_get,
+    str_or_none,
+    try_call,
     urlencode_postdata,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class CiscoLiveBaseIE(InfoExtractor):
-    # These appear to be constant across all Cisco Live presentations
-    # and are not tied to any user session or event
-    RAINFOCUS_API_URL = 'https://events.rainfocus.com/api/%s'
-    RAINFOCUS_API_PROFILE_ID = 'Na3vqYdAlJFSxhYTYQGuMbpafMqftalz'
-    RAINFOCUS_WIDGET_ID = 'n6l4Lo05R8fiy3RpUBm447dZN8uNWoye'
-    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/5647924234001/SyK2FdqjM_default/index.html?videoId=%s'
-
-    HEADERS = {
-        'Origin': 'https://ciscolive.cisco.com',
-        'rfApiProfileId': RAINFOCUS_API_PROFILE_ID,
-        'rfWidgetId': RAINFOCUS_WIDGET_ID,
+    _BASE_URL = 'https://www.ciscolive.com'
+    _HEADERS = {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Rfapiprofileid': 'HEedDIRblcZk7Ld3KHm1T0VUtZog9eG9',
+        'Rfwidgetid': 'M7n14I8sz0pklW1vybwVRdKrgdREj8sR',
     }
 
-    def _call_api(self, ep, rf_id, query, referrer, note=None):
-        headers = self.HEADERS.copy()
-        headers['Referer'] = referrer
-        return self._download_json(
-            self.RAINFOCUS_API_URL % ep, rf_id, note=note,
-            data=urlencode_postdata(query), headers=headers)
+    def _call_api(self, endpoint, payload, doseq=False, **kwargs):
+        api_resp = self._download_json(
+            f'https://events.rainfocus.com/api/{endpoint}', payload.get('id'),
+            headers=self._HEADERS, data=urlencode_postdata(payload, doseq=doseq), **kwargs)
+        if traverse_obj(api_resp, 'responseCode') != '0':
+            msg = traverse_obj(api_resp, ('responseMessage', {str}, filter))
+            raise ExtractorError(
+                msg or 'API returned an error response', expected=bool(msg))
 
-    def _parse_rf_item(self, rf_item):
-        event_name = rf_item.get('eventName')
-        title = rf_item['title']
-        description = clean_html(rf_item.get('abstract'))
-        presenter_name = try_get(rf_item, lambda x: x['participants'][0]['fullName'])
-        bc_id = rf_item['videos'][0]['url']
-        bc_url = self.BRIGHTCOVE_URL_TEMPLATE % bc_id
-        duration = float_or_none(try_get(rf_item, lambda x: x['times'][0]['length']))
-        location = try_get(rf_item, lambda x: x['times'][0]['room'])
-
-        if duration:
-            duration = duration * 60
-
-        return {
-            '_type': 'url_transparent',
-            'url': bc_url,
-            'ie_key': 'BrightcoveNew',
-            'title': title,
-            'description': description,
-            'duration': duration,
-            'creator': presenter_name,
-            'location': location,
-            'series': event_name,
-        }
+        return api_resp
 
 
 class CiscoLiveSessionIE(CiscoLiveBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?ciscolive(?:\.cisco)?\.com/[^#]*#/session/(?P<id>[^/?&]+)'
+    IE_NAME = 'ciscolive:session'
+    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/5647924234001/SyK2FdqjM_default/index.html?videoId=%s'
+
+    _VALID_URL = r'https?://(?:www\.)?ciscolive\.com/on-demand/on-demand-library\.html[^#]*#/(?P<type>session|video)/(?P<id>[^/?&]+)'
     _TESTS = [{
-        'url': 'https://ciscolive.cisco.com/on-demand-library/?#/session/1423353499155001FoSs',
-        'md5': 'c98acf395ed9c9f766941c70f5352e22',
+        'url': 'https://www.ciscolive.com/on-demand/on-demand-library.html#/session/1749591952508001pGUf',
         'info_dict': {
-            'id': '5803694304001',
+            'id': '6374109944112',
             'ext': 'mp4',
-            'title': '13 Smart Automations to Monitor Your Cisco IOS Network',
-            'description': 'md5:ec4a436019e09a918dec17714803f7cc',
-            'timestamp': 1530305395,
-            'upload_date': '20180629',
+            'title': 'AI Changes Everything: A New Blueprint for Network Security, Zero Trust, and the SOC - KDDSEC-1000',
+            'creators': 'count:4',
+            'description': 'md5:70ee6edf45c8221d7e9346426ae25fb0',
+            'display_id': '1749591952508001pGUf',
+            'duration': 2921.387,
+            'series': 'Cisco Live On Demand',
+            'series_id': '1749591952508001pGUf',
+            'thumbnail': r're:https?://cf-images\.us-east-1\.prod\.boltdns\.net/.+\.jpg',
+            'timestamp': 1749602136,
+            'upload_date': '20250611',
             'uploader_id': '5647924234001',
-            'location': '16B Mezz.',
         },
+        'add_ie': ['BrightcoveNew'],
     }, {
-        'url': 'https://www.ciscolive.com/global/on-demand-library.html?search.event=ciscoliveemea2019#/session/15361595531500013WOU',
-        'only_matching': True,
+        'url': 'https://www.ciscolive.com/on-demand/on-demand-library.html#/video/1749603837855001eWhB',
+        'info_dict': {
+            'id': '6374109944112',
+            'ext': 'mp4',
+            'title': 'AI Changes Everything: A New Blueprint for Network Security, Zero Trust, and the SOC - KDDSEC-1000',
+            'creators': 'count:4',
+            'description': 'md5:70ee6edf45c8221d7e9346426ae25fb0',
+            'display_id': '1749603837855001eWhB',
+            'duration': 2921.387,
+            'series': 'Cisco Live On Demand',
+            'series_id': '1749591952508001pGUf',
+            'thumbnail': r're:https?://cf-images\.us-east-1\.prod\.boltdns\.net/.+\.jpg',
+            'timestamp': 1749602136,
+            'upload_date': '20250611',
+            'uploader_id': '5647924234001',
+        },
+        'add_ie': ['BrightcoveNew'],
     }, {
-        'url': 'https://www.ciscolive.com/global/on-demand-library.html?#/session/1490051371645001kNaS',
-        'only_matching': True,
+        'url': 'https://www.ciscolive.com/on-demand/on-demand-library.html?search.sessiontype=Keynote#/session/1748956425383001aEIK',
+        'info_dict': {
+            'id': '6373626841112',
+            'ext': 'mp4',
+            'title': 'Keynote: Innovation in Action - KEYGEN-1002',
+            'creators': 'count:6',
+            'description': 'md5:3a1d82ca9e4e3505e251c251d3509cc5',
+            'display_id': '1748956425383001aEIK',
+            'duration': 4405.739,
+            'series': 'Cisco Live On Demand',
+            'series_id': '1748956425383001aEIK',
+            'thumbnail': r're:https?://cf-images\.us-east-1\.prod\.boltdns\.net/.+\.jpg',
+            'timestamp': 1748553118,
+            'upload_date': '20250529',
+            'uploader_id': '5647924234001',
+        },
+        'add_ie': ['BrightcoveNew'],
     }]
 
     def _real_extract(self, url):
-        rf_id = self._match_id(url)
-        rf_result = self._call_api('session', rf_id, {'id': rf_id}, url)
-        return self._parse_rf_item(rf_result['items'][0])
+        url_type, display_id = self._match_valid_url(url).group('type', 'id')
+        if url_type == 'video':
+            auth_token = try_call(lambda: self._get_cookies(self._BASE_URL)['rfjwt'].value)
+            if not auth_token:
+                self.raise_login_required()
+
+            self._HEADERS['Rfauthtoken'] = auth_token
+            file = self._call_api('file', {'id': display_id})
+            rf_id = traverse_obj(file, ('items', 'file', 'rainfocusId', {str}))
+        else:
+            rf_id = display_id
+
+        return {
+            '_type': 'url_transparent',
+            'ie_key': 'BrightcoveNew',
+            'display_id': display_id,
+            **traverse_obj(self._call_api('session', {'id': rf_id}), ('items', ..., {
+                'title': ('title', {clean_html}),
+                'creators': ('participants', ..., 'fullName', {str}),
+                'description': ('abstract', {clean_html}),
+                'series': ('eventName', {clean_html}),
+                'series_id': ('sessionID', {str}),
+                'url': ('videos', ..., 'url', {str_or_none},
+                        {lambda x: self.BRIGHTCOVE_URL_TEMPLATE % x}, any, {require('brightcove video ID')}),
+            }, any)),
+        }
 
 
 class CiscoLiveSearchIE(CiscoLiveBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?ciscolive(?:\.cisco)?\.com/(?:global/)?on-demand-library(?:\.html|/)'
+    IE_NAME = 'ciscolive:search'
+
+    _VALID_URL = r'https?://(?:www\.)?ciscolive\.com/on-demand/on-demand-library\.html\?[^#]+#/(?!session|video)[^/?#]*$'
     _TESTS = [{
-        'url': 'https://ciscolive.cisco.com/on-demand-library/?search.event=ciscoliveus2018&search.technicallevel=scpsSkillLevel_aintroductory&search.focus=scpsSessionFocus_designAndDeployment#/',
+        'url': 'https://www.ciscolive.com/on-demand/on-demand-library.html?search.event=1737762187215001jsy4#/',
         'info_dict': {
-            'title': 'Search query',
+            'id': 'search',
         },
-        'playlist_count': 5,
+        'playlist_count': 500,
     }, {
-        'url': 'https://ciscolive.cisco.com/on-demand-library/?search.technology=scpsTechnology_applicationDevelopment&search.technology=scpsTechnology_ipv6&search.focus=scpsSessionFocus_troubleshootingTroubleshooting#/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.ciscolive.com/global/on-demand-library.html?search.technicallevel=scpsSkillLevel_aintroductory&search.event=ciscoliveemea2019&search.technology=scpsTechnology_dataCenter&search.focus=scpsSessionFocus_bestPractices#/',
-        'only_matching': True,
+        'url': 'https://www.ciscolive.com/on-demand/on-demand-library.html?search.event=1707169032930001EEu2&search.technology=1538390420915002wPJx#/',
+        'info_dict': {
+            'id': 'search',
+        },
+        'playlist_count': 34,
     }]
 
-    @classmethod
-    def suitable(cls, url):
-        return False if CiscoLiveSessionIE.suitable(url) else super().suitable(url)
+    def _entries(self, payload):
+        from_val = 0
 
-    @staticmethod
-    def _check_bc_id_exists(rf_item):
-        return int_or_none(try_get(rf_item, lambda x: x['videos'][0]['url'])) is not None
+        for page in itertools.count(1):
+            search = self._call_api(
+                'search', {**payload, 'from': from_val},
+                doseq=True, note=f'Downloading page {page}')
+            if not traverse_obj(search, 'sectionList'):
+                return
 
-    def _entries(self, query, url):
-        query['size'] = 50
-        query['from'] = 0
-        for page_num in itertools.count(1):
-            results = self._call_api(
-                'search', None, query, url,
-                f'Downloading search JSON page {page_num}')
-            sl = try_get(results, lambda x: x['sectionList'][0], dict)
-            if sl:
-                results = sl
-            items = results.get('items')
-            if not items or not isinstance(items, list):
+            yield from [self.url_result(
+                f'{self._BASE_URL}/on-demand/on-demand-library.html#/session/{session_id}', CiscoLiveSessionIE)
+                for session_id in traverse_obj(search, (
+                    'sectionList', ..., 'items', ..., 'sessionID', {str_or_none}, filter, all, filter))]
+
+            from_val += int_or_none(payload['size'])
+            if from_val >= min(500, traverse_obj(search, (
+                'sectionList', ..., 'total', {int_or_none}, any,
+            ))):
                 break
-            for item in items:
-                if not isinstance(item, dict):
-                    continue
-                if not self._check_bc_id_exists(item):
-                    continue
-                yield self._parse_rf_item(item)
-            size = int_or_none(results.get('size'))
-            if size is not None:
-                query['size'] = size
-            total = int_or_none(results.get('total'))
-            if total is not None and query['from'] + query['size'] > total:
-                break
-            query['from'] += query['size']
 
     def _real_extract(self, url):
-        query = parse_qs(url)
-        query['type'] = 'session'
-        return self.playlist_result(
-            self._entries(query, url), playlist_title='Search query')
+        payload = {
+            'size': '50',
+            'type': 'session',
+            **parse_qs(url),
+        }
+
+        return self.playlist_result(self._entries(payload), 'search')
