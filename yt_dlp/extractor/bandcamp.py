@@ -71,7 +71,7 @@ class BandcampIE(InfoExtractor):
             'album_artists': ['Ben Prunty'],
         },
     }, {
-        # no free download, mp3 128
+        # track from compilation album (artist/album_artist difference)
         'url': 'https://relapsealumni.bandcamp.com/track/hail-to-fire',
         'md5': 'fec12ff55e804bb7f7ebeb77a800c8b7',
         'info_dict': {
@@ -96,7 +96,7 @@ class BandcampIE(InfoExtractor):
             'album_artists': ['Mastodon'],
         },
     }, {
-        # track from compilation album (artist/album_artist difference)
+        # FIXME: Embed detection
         'url': 'https://diskotopia.bandcamp.com/track/safehouse',
         'md5': '19c5337bca1428afa54129f86a2f6a69',
         'info_dict': {
@@ -145,6 +145,7 @@ class BandcampIE(InfoExtractor):
             'uploader_url': 'https://stayinside.bandcamp.com',
         },
     }]
+
     def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):
         return self._parse_json(self._html_search_regex(
             rf'data-{attr}=(["\'])({{.+?}})\1', webpage,
@@ -439,8 +440,6 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
 
         blob = self._extract_data_attr(webpage, show_id, 'blob')
 
-        # Updated to correctly navigate the new data structure
-        # The data is now in a list under appData['shows']
         shows_list = try_get(blob, lambda x: x['appData']['shows'], list)
         show = None
         if shows_list:
@@ -450,14 +449,13 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     break
 
         if not show:
-            # Fallback to the original logic if the new path fails
+           
             show = try_get(blob, lambda x: x['bcw_data'][show_id], dict)
 
         if not show:
             raise ExtractorError('Bandcamp Weekly data not found. This extractor is outdated. Please report this issue.')
 
         formats = []
-        # The audio track ID is now in the 'audioTrackId' key
         audio_track_id = str_or_none(show.get('audioTrackId'))
 
         # If audio track ID is found, download the audio page to get formats
