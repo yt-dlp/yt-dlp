@@ -461,8 +461,6 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             track_url = f'https://bandcamp.com/download?id={audio_track_id}'
             audio_page = self._download_webpage(
                 track_url, show_id, 'Downloading audio download page')
-            
-
             audio_blob = self._extract_data_attr(audio_page, show_id, 'blob', fatal=False)
             if audio_blob:
                 # The formats are now in the 'downloads' list within the audio_blob
@@ -475,8 +473,6 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                             'ext': f.get('encoding_name'),
                             'vcodec': 'none',
                         })
-        
-
         if not formats and show.get('audio_stream'):
             for format_id, format_url in show['audio_stream'].items():
                 if not url_or_none(format_url):
@@ -493,7 +489,6 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'ext': ext,
                     'vcodec': 'none',
                 })
-        
         if not formats:
             raise ExtractorError('Could not find any audio formats for this episode.')
 
