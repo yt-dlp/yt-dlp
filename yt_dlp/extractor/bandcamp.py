@@ -145,7 +145,6 @@ class BandcampIE(InfoExtractor):
             'uploader_url': 'https://stayinside.bandcamp.com',
         },
     }]
-
     def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):
         return self._parse_json(self._html_search_regex(
             rf'data-{attr}=(["\'])({{.+?}})\1', webpage,
@@ -463,7 +462,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             audio_page = self._download_webpage(
                 track_url, show_id, 'Downloading audio download page')
             
-            # The download links are on the new page, so we need a new way to parse
+
             audio_blob = self._extract_data_attr(audio_page, show_id, 'blob', fatal=False)
             if audio_blob:
                 # The formats are now in the 'downloads' list within the audio_blob
@@ -477,7 +476,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                             'vcodec': 'none',
                         })
         
-        # Fallback to the old logic if new parsing fails
+
         if not formats and show.get('audio_stream'):
             for format_id, format_url in show['audio_stream'].items():
                 if not url_or_none(format_url):
@@ -495,7 +494,6 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'vcodec': 'none',
                 })
         
-        # If no formats were found after all attempts, raise an error
         if not formats:
             raise ExtractorError('Could not find any audio formats for this episode.')
 
@@ -503,7 +501,6 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         subtitle = show.get('shortDesc')
         if subtitle:
             title += f' - {subtitle}'
-            
         return {
             'id': show_id,
             'title': title,
