@@ -49,7 +49,7 @@ class TVIPlayerIE(InfoExtractor):
             elif ch == '}':
                 depth -= 1
                 if depth == 0:
-                    return webpage[start:i+1]
+                    return webpage[start:i + 1]
         return None
 
     def _real_extract(self, url):
