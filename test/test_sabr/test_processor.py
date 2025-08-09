@@ -1,4 +1,5 @@
 import dataclasses
+import io
 
 import pytest
 from unittest.mock import MagicMock
@@ -9,6 +10,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
     FormatInitializedSabrPart,
     MediaSeekSabrPart,
     MediaSegmentInitSabrPart,
+    MediaSegmentDataSabrPart,
 )
 
 from yt_dlp.extractor.youtube._streaming.sabr.processor import (
@@ -18,6 +20,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.processor import (
     ProcessLiveMetadataResult,
     ProcessSabrSeekResult,
     ProcessMediaHeaderResult,
+    ProcessMediaResult,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.models import (
     AudioSelector,
@@ -319,7 +322,7 @@ class TestSabrProcessorInitialization:
         assert processor.post_live is True
 
 
-class TestStreamProtectionStatusPart:
+class TestStreamProtectionStatus:
 
     @pytest.mark.parametrize(
         'sps,po_token,expected_status',
@@ -2010,3 +2013,127 @@ class TestMediaHeader:
             processor.process_media_header(media_header)
             assert exc_info.value.expected_sequence_number == 11
             assert exc_info.value.received_sequence_number == 1
+
+
+class TestMedia:
+    def test_valid_media_parts(self, base_args):
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+
+        example_payload = b'example-data'
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.content_length = len(example_payload)
+        processor.process_media_header(media_header)
+
+        result = processor.process_media(
+            header_id=media_header.header_id,
+            content_length=media_header.content_length,
+            data=io.BytesIO(example_payload))
+
+        assert isinstance(result, ProcessMediaResult)
+        assert isinstance(result.sabr_part, MediaSegmentDataSabrPart)
+        assert result.sabr_part == MediaSegmentDataSabrPart(
+            format_selector=selector,
+            format_id=selector.format_ids[0],
+            sequence_number=1,
+            is_init_segment=False,
+            total_segments=fim.total_segments,
+            data=example_payload,
+            content_length=len(example_payload),
+            segment_start_bytes=0,
+        )
+        assert processor.partial_segments[media_header.header_id].received_data_length == len(example_payload)
+
+        # Subsequent call should increment received data length
+        result = processor.process_media(
+            header_id=media_header.header_id,
+            content_length=media_header.content_length,
+            data=io.BytesIO(example_payload))
+
+        assert isinstance(result, ProcessMediaResult)
+        assert isinstance(result.sabr_part, MediaSegmentDataSabrPart)
+        assert result.sabr_part == MediaSegmentDataSabrPart(
+            format_selector=selector,
+            format_id=selector.format_ids[0],
+            sequence_number=1,
+            is_init_segment=False,
+            total_segments=fim.total_segments,
+            data=example_payload,
+            content_length=len(example_payload),
+            segment_start_bytes=len(example_payload),
+        )
+        assert processor.partial_segments[media_header.header_id].received_data_length == len(example_payload) * 2
+
+    def test_no_matching_partial_segment(self, base_args):
+        # Should raise an error if no matching partial segment found
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        with pytest.raises(SabrStreamError, match='Header ID 12345 not found in partial segments'):
+            processor.process_media(
+                header_id=12345,  # Non-existent header ID
+                content_length=100,
+                data=io.BytesIO(b'example-data'),
+            )
+
+    def test_discarded_partial_segment(self, base_args):
+        # Should ignore the media part if the segment is marked as discard
+        selector = make_selector('audio', discard_media=True)
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        example_payload = b'example-data'
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.content_length = len(example_payload)
+        processor.process_media_header(media_header)
+
+        result = processor.process_media(
+            header_id=media_header.header_id,
+            content_length=media_header.content_length,
+            data=io.BytesIO(example_payload))
+
+        assert isinstance(result, ProcessMediaResult)
+        assert result.sabr_part is None
+        assert processor.partial_segments[media_header.header_id].received_data_length == len(example_payload)
+
+    def test_valid_init_segment(self, base_args):
+        # Should process init segment correctly and report as such
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        example_payload = b'example-init-data'
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_init_header(selector)
+        processor.process_media_header(media_header)
+
+        result = processor.process_media(
+            header_id=media_header.header_id,
+            content_length=len(example_payload),
+            data=io.BytesIO(example_payload))
+
+        assert isinstance(result, ProcessMediaResult)
+        assert isinstance(result.sabr_part, MediaSegmentDataSabrPart)
+        assert result.sabr_part == MediaSegmentDataSabrPart(
+            format_selector=selector,
+            format_id=selector.format_ids[0],
+            sequence_number=None,
+            is_init_segment=True,  # Init segment should be True
+            total_segments=fim.total_segments,
+            data=example_payload,
+            content_length=len(example_payload),
+            segment_start_bytes=0,
+        )
+        assert processor.partial_segments[media_header.header_id].received_data_length == len(example_payload)

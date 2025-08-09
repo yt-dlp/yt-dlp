@@ -330,7 +330,7 @@ class SabrProcessor:
         segment = self.partial_segments.get(header_id)
         if not segment:
             self.logger.debug(f'Header ID {header_id} not found')
-            return result
+            raise SabrStreamError(f'Header ID {header_id} not found in partial segments')
 
         segment_start_bytes = segment.received_data_length
         segment.received_data_length += content_length

@@ -35,10 +35,10 @@ class MediaSegmentDataSabrPart(SabrPart):
     format_id: FormatId
     sequence_number: int | None = None
     is_init_segment: bool = False
-    total_segments: int = None
+    total_segments: int | None = None
     data: bytes = b''
-    content_length: int = None
-    segment_start_bytes: int = None
+    content_length: int | None = None
+    segment_start_bytes: int | None = None
 
 
 @dataclasses.dataclass
