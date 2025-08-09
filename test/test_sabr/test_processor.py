@@ -1373,6 +1373,29 @@ class TestMediaHeader:
             received_data_length=0,
         )
 
+    def test_media_header_replay(self, base_args):
+        # Should be able to replay a media header (e.g. request was retried)
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        result = processor.process_media_header(media_header)
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+        segment = processor.partial_segments[media_header.header_id]
+        processor.partial_segments.clear()
+
+        result = processor.process_media_header(media_header)
+
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+        assert segment == processor.partial_segments[media_header.header_id]
+        assert segment is not processor.partial_segments[media_header.header_id]
+
     def test_media_header_with_startms(self, base_args):
         # start_ms is provided instead of time_range in media header
         selector = make_selector('audio')
