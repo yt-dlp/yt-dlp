@@ -383,6 +383,7 @@ from .chaturbate import ChaturbateIE
 from .chilloutzone import ChilloutzoneIE
 from .chzzk import (
     CHZZKLiveIE,
+    CHZZKChannelIE,
     CHZZKVideoIE,
 )
 from .cinemax import CinemaxIE
