@@ -127,6 +127,7 @@ class FragmentFD(FileDownloader):
         if fragment_info_dict.get('filetime'):
             ctx['fragment_filetime'] = fragment_info_dict.get('filetime')
         ctx['fragment_filename_sanitized'] = fragment_filename
+        ctx['fragment_content_type'] = fragment_info_dict.get('fragment_content_type')
         return True
 
     def _read_fragment(self, ctx):
@@ -488,14 +489,25 @@ class FragmentFD(FileDownloader):
             def _download_fragment(fragment):
                 ctx_copy = ctx.copy()
                 download_fragment(fragment, ctx_copy)
-                return fragment, fragment['frag_index'], ctx_copy.get('fragment_filename_sanitized')
+                return (
+                    fragment,
+                    fragment['frag_index'],
+                    ctx_copy.get('fragment_filename_sanitized'),
+                    ctx_copy.get('fragment_content_type'),
+                )
 
             with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
                 try:
-                    for fragment, frag_index, frag_filename in pool.map(_download_fragment, fragments):
+                    for (
+                        fragment,
+                        frag_index,
+                        frag_filename,
+                        fragment_content_type,
+                    ) in pool.map(_download_fragment, fragments):
                         ctx.update({
                             'fragment_filename_sanitized': frag_filename,
                             'fragment_index': frag_index,
+                            'fragment_content_type': fragment_content_type,
                         })
                         if not append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index, ctx):
                             return False

@@ -15,8 +15,16 @@ from ..utils import (
     traverse_obj,
     update_url_query,
     urljoin,
+    YoutubeDLError,
 )
 from ..utils._utils import _request_dump_filename
+
+IMAGE_CLOAKING_HEADER_LENGTHS = {
+    'image/png': 8,
+    'image/bmp': 2,
+    'image/jpg': 4,
+    'image/jpeg': 4,
+}
 
 
 class HlsFD(FragmentFD):
@@ -407,3 +415,22 @@ class HlsFD(FragmentFD):
                     ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
         else:
             return self.download_and_append_fragments(ctx, fragments, info_dict)
+
+    def _image_cloaking_stripper(self, ctx, frag_content, fragment_image_cloaking):
+        content_type = ctx.get('fragment_content_type')
+        bl = (
+            fragment_image_cloaking.get(content_type)
+            or IMAGE_CLOAKING_HEADER_LENGTHS.get(content_type)
+        )
+        if bl:
+            return frag_content[bl:]
+        raise YoutubeDLError(f'Unknown length to strip for fragment type of {content_type}')
+
+    def _append_fragment(self, ctx, frag_content):
+        if self.ydl.params.get('fragment_image_cloaking') is None:
+            processed_frag_content = frag_content
+        else:
+            processed_frag_content = self._image_cloaking_stripper(
+                ctx, frag_content, self.ydl.params['fragment_image_cloaking'])
+
+        super()._append_fragment(ctx, processed_frag_content)
