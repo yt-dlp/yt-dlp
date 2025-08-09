@@ -278,6 +278,8 @@ class BandcampIE(InfoExtractor):
             'formats': formats,
             'tags': traverse_obj(webpage, ({find_elements(cls='tag')}, ..., {clean_html})),
         }
+
+
 class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:album'
     _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com/album/(?P<id>[^/?#&]+)'
@@ -404,6 +406,8 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             'description': current.get('about'),
             'entries': entries,
         }
+
+
 class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:weekly'
     _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/?\?(?:.*?&)?show=(?P<id>\d+)'
@@ -508,6 +512,8 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             'episode_id': show_id,
             'formats': formats,
         }
+
+
 class BandcampUserIE(InfoExtractor):
     IE_NAME = 'Bandcamp:user'
     _VALID_URL = r'https?://(?!www\.)(?P<id>[^.]+)\.bandcamp\.com(?:/music)?/?(?:[#?]|$)'
