@@ -1,7 +1,8 @@
-from .common import InfoExtractor
-from ..utils import traverse_obj, ExtractorError, js_to_json
-import re
 import json
+import re
+
+from ..utils import ExtractorError, js_to_json, traverse_obj
+from .common import InfoExtractor
 
 
 class TVIPlayerIE(InfoExtractor):
