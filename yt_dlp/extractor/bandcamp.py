@@ -71,7 +71,7 @@ class BandcampIE(InfoExtractor):
             'album_artists': ['Ben Prunty'],
         },
     }, {
-        # no free download, mp3 128
+        # track from compilation album (artist/album_artist difference)
         'url': 'https://relapsealumni.bandcamp.com/track/hail-to-fire',
         'md5': 'fec12ff55e804bb7f7ebeb77a800c8b7',
         'info_dict': {
@@ -96,7 +96,7 @@ class BandcampIE(InfoExtractor):
             'album_artists': ['Mastodon'],
         },
     }, {
-        # track from compilation album (artist/album_artist difference)
+        # FIXME: Embed detection
         'url': 'https://diskotopia.bandcamp.com/track/safehouse',
         'md5': '19c5337bca1428afa54129f86a2f6a69',
         'info_dict': {
@@ -440,39 +440,73 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
 
         blob = self._extract_data_attr(webpage, show_id, 'blob')
 
-        show = blob['bcw_data'][show_id]
+        shows_list = try_get(blob, lambda x: x['appData']['shows'], list)
+        show = None
+        if shows_list:
+            for s in shows_list:
+                if str(s.get('showId')) == show_id:
+                    show = s
+                    break
+
+        if not show:
+           
+            show = try_get(blob, lambda x: x['bcw_data'][show_id], dict)
+
+        if not show:
+            raise ExtractorError('Bandcamp Weekly data not found. This extractor is outdated. Please report this issue.')
 
         formats = []
-        for format_id, format_url in show['audio_stream'].items():
-            if not url_or_none(format_url):
-                continue
-            for known_ext in KNOWN_EXTENSIONS:
-                if known_ext in format_id:
-                    ext = known_ext
-                    break
-            else:
-                ext = None
-            formats.append({
-                'format_id': format_id,
-                'url': format_url,
-                'ext': ext,
-                'vcodec': 'none',
-            })
+        audio_track_id = str_or_none(show.get('audioTrackId'))
 
-        title = show.get('audio_title') or 'Bandcamp Weekly'
-        subtitle = show.get('subtitle')
+        # If audio track ID is found, download the audio page to get formats
+        if audio_track_id:
+            track_url = f'https://bandcamp.com/download?id={audio_track_id}'
+            audio_page = self._download_webpage(
+                track_url, show_id, 'Downloading audio download page')
+            audio_blob = self._extract_data_attr(audio_page, show_id, 'blob', fatal=False)
+            if audio_blob:
+                # The formats are now in the 'downloads' list within the audio_blob
+                downloads = try_get(audio_blob, lambda x: x['digital_items'][0]['downloads'], dict)
+                if downloads:
+                    for format_id, f in downloads.items():
+                        formats.append({
+                            'url': f.get('url'),
+                            'format_id': format_id,
+                            'ext': f.get('encoding_name'),
+                            'vcodec': 'none',
+                        })
+        if not formats and show.get('audio_stream'):
+            for format_id, format_url in show['audio_stream'].items():
+                if not url_or_none(format_url):
+                    continue
+                for known_ext in KNOWN_EXTENSIONS:
+                    if known_ext in format_id:
+                        ext = known_ext
+                        break
+                else:
+                    ext = None
+                formats.append({
+                    'format_id': format_id,
+                    'url': format_url,
+                    'ext': ext,
+                    'vcodec': 'none',
+                })
+        if not formats:
+            raise ExtractorError('Could not find any audio formats for this episode.')
+
+        title = show.get('audio_title') or show.get('title') or 'Bandcamp Weekly'
+        subtitle = show.get('shortDesc')
         if subtitle:
             title += f' - {subtitle}'
-
         return {
             'id': show_id,
             'title': title,
-            'description': show.get('desc') or show.get('short_desc'),
+            'description': show.get('desc') or show.get('shortDesc'),
             'duration': float_or_none(show.get('audio_duration')),
             'is_live': False,
-            'release_date': unified_strdate(show.get('published_date')),
+            'release_date': unified_strdate(show.get('date')),
             'series': 'Bandcamp Weekly',
-            'episode': show.get('subtitle'),
+            'episode': show.get('shortDesc'),
             'episode_id': show_id,
             'formats': formats,
         }
