@@ -44,7 +44,7 @@ from .utils import ticks_to_ms
 
 class ProcessMediaEndResult:
     def __init__(self, sabr_part: MediaSegmentEndSabrPart = None, is_new_segment: bool = False):
-        self.is_new_segment = is_new_segment
+        self.is_new_segment = is_new_segment  # TODO: better name
         self.sabr_part = sabr_part
 
 
@@ -355,10 +355,8 @@ class SabrProcessor:
         result = ProcessMediaEndResult()
         segment = self.partial_segments.pop(header_id, None)
         if not segment:
-            # Should only happen due to server issue,
-            # or we have an uninitialized format (which itself should not happen)
-            self.logger.warning(f'Received a MediaEnd for an unknown or already finished header ID {header_id}')
-            return result
+            self.logger.debug(f'Header ID {header_id} not found')
+            raise SabrStreamError(f'Header ID {header_id} not found in partial segments')
 
         self.logger.trace(
             f'MediaEnd for {segment.format_id} (sequence {segment.sequence_number}, data length = {segment.received_data_length})')
@@ -374,10 +372,9 @@ class SabrProcessor:
                     f'expected {segment.content_length} bytes, got {segment.received_data_length} bytes',
                 )
 
-        # Only count received segments as new segments if they are not discarded (consumed)
-        # or it was part of a format that was discarded (but not consumed).
-        # The latter can happen if the format is to be discarded but was not marked as fully consumed.
-        if not segment.discard or (segment.initialized_format.discard and not segment.consumed):
+        # Only count received segments as new segments if they are not consumed.
+        # Discarded segments that are not consumed are considered new segments.
+        if not segment.consumed:
             result.is_new_segment = True
 
         # Return the segment here instead of during MEDIA part(s) because:
@@ -409,21 +406,18 @@ class SabrProcessor:
 
         segment.initialized_format.current_segment = segment
 
-        # Try to find a consumed range for this segment in sequence
-        consumed_range = next(
-            (cr for cr in segment.initialized_format.consumed_ranges if cr.end_sequence_number == segment.sequence_number - 1),
-            None,
-        )
-
-        if not consumed_range and any(
-            cr.start_sequence_number <= segment.sequence_number <= cr.end_sequence_number
-            for cr in segment.initialized_format.consumed_ranges
-        ):
+        if segment.consumed:
             # Segment is already consumed, do not create a new consumed range. It was probably discarded.
             # This can be expected to happen in the case of video-only, where we discard the audio track (and mark it as entirely buffered)
             # We still want to create/update consumed range for discarded media IF it is not already consumed
             self.logger.debug(f'{segment.format_id} segment {segment.sequence_number} already consumed, not creating or updating consumed range (discard={segment.discard})')
             return result
+
+        # Try to find a consumed range for this segment in sequence
+        consumed_range = next(
+            (cr for cr in segment.initialized_format.consumed_ranges if cr.end_sequence_number == segment.sequence_number - 1),
+            None,
+        )
 
         if not consumed_range:
             # Create a new consumed range starting from this segment
@@ -611,7 +605,7 @@ class SabrProcessor:
             'This may cause issues with playback.')
 
         self.sabr_context_updates[sabr_ctx_update.type] = sabr_ctx_update
-        if sabr_ctx_update.send_by_default is True:
+        if sabr_ctx_update.send_by_default:
             self.sabr_contexts_to_send.add(sabr_ctx_update.type)
         self.logger.debug(f'Registered SabrContextUpdate {sabr_ctx_update}')
 
