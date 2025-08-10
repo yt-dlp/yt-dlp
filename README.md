@@ -171,6 +171,9 @@ yt-dlp --update-to nightly
 python3 -m pip install -U --pre "yt-dlp[default]"
 ```
 
+When running a yt-dlp version that is older than 90 days, you will see a warning message suggesting to update to the latest version.
+You can suppress this warning by adding `--no-update` to your command or configuration file.
+
 ## DEPENDENCIES
 Python versions 3.9+ (CPython) and 3.11+ (PyPy) are supported. Other versions and implementations may or may not work correctly.
 
