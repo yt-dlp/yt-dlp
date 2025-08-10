@@ -83,6 +83,19 @@ class UMPDecoder:
             yield UMPPart(UMPPartId(part_type), part_size, io.BytesIO(part_data))
 
 
+class UMPEncoder:
+    def __init__(self, fp: io.BufferedIOBase):
+        self.fp = fp
+
+    def write_part(self, part: UMPPart) -> None:
+        if not isinstance(part.part_id, UMPPartId):
+            raise ValueError('part_id must be an instance of UMPPartId')
+
+        write_varint(self.fp, part.part_id.value)
+        write_varint(self.fp, part.size)
+        self.fp.write(part.data.read())
+
+
 def read_varint(fp: io.BufferedIOBase) -> int:
     # https://web.archive.org/web/20250430054327/https://github.com/gsuberland/UMP_Format/blob/main/UMP_Format.md
     # https://web.archive.org/web/20250429151021/https://github.com/davidzeng0/innertube/blob/main/googlevideo/ump.md
@@ -114,3 +127,35 @@ def read_varint(fp: io.BufferedIOBase) -> int:
 
 def varint_size(byte: int) -> int:
     return 1 if byte < 128 else 2 if byte < 192 else 3 if byte < 224 else 4 if byte < 240 else 5
+
+
+def write_varint(fp: io.BufferedIOBase, value: int) -> None:
+    # ref: https://github.com/LuanRT/googlevideo/blob/main/src/core/UmpWriter.ts
+    if value < 0:
+        raise ValueError('Value must be a non-negative integer')
+
+    if value < 128:
+        fp.write(bytes([value]))
+    elif value < 16384:
+        fp.write(bytes([
+            (value & 0x3F) | 0x80,
+            value >> 6,
+        ]))
+    elif value < 2097152:
+        fp.write(bytes([
+            (value & 0x1F) | 0xC0,
+            (value >> 5) & 0xFF,
+            value >> 13,
+        ]))
+    elif value < 268435456:
+        fp.write(bytes([
+            (value & 0x0F) | 0xE0,
+            (value >> 4) & 0xFF,
+            (value >> 12) & 0xFF,
+            value >> 20,
+        ]))
+    else:
+        data = bytearray(5)
+        data[0] = 0xF0
+        data[1:5] = value.to_bytes(4, 'little')
+        fp.write(data)
