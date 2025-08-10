@@ -2177,6 +2177,7 @@ from .tubitv import (
 )
 from .tumblr import TumblrIE
 from .tunein import (
+    TuneInEmbedIE,
     TuneInPodcastEpisodeIE,
     TuneInPodcastIE,
     TuneInShortenerIE,
