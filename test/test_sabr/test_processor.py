@@ -271,6 +271,11 @@ class TestSabrProcessorInitialization:
                 start_time_ms=invalid_start_time_ms,
             )
 
+    def test_client_abr_state_defaults(self, base_args):
+        processor = SabrProcessor(**base_args)
+        # Must be enabled to allow DRC formats to be streamed
+        assert processor.client_abr_state.drc_enabled is True
+
     @pytest.mark.parametrize(
         'duration_sec,tolerance_ms',
         [

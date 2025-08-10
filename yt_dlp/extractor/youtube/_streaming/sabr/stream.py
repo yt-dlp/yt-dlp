@@ -188,7 +188,7 @@ class SabrStream:
     @url.setter
     def url(self, url):
         self.logger.debug(f'New URL: {url}')
-        if hasattr(self, '_url') and ((bn := broadcast_id_from_url(url)) != (bc := broadcast_id_from_url(self.url))):
+        if self.processor.is_live and hasattr(self, '_url') and ((bn := broadcast_id_from_url(url)) != (bc := broadcast_id_from_url(self.url))):
             raise SabrStreamError(f'Broadcast ID changed from {bc} to {bn}. The download will need to be restarted.')
         self._url = url
         if str_or_none(parse_qs(url).get('source', [None])[0]) == 'yt_live_broadcast':

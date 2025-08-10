@@ -182,7 +182,9 @@ class SabrProcessor:
         self.logger.debug(f'Starting playback at: {self.start_time_ms}ms')
         self.client_abr_state = ClientAbrState(
             player_time_ms=self.start_time_ms,
-            enabled_track_types_bitfield=enabled_track_types_bitfield)
+            enabled_track_types_bitfield=enabled_track_types_bitfield,
+            drc_enabled=True,  # Required to stream DRC formats
+        )
 
     def match_format_selector(self, format_init_metadata):
         for format_selector in (self._video_format_selector, self._audio_format_selector, self._caption_format_selector):
