@@ -1,6 +1,25 @@
 services:
-  static:
-    build: static
+  linux_x86_64:
+    build:
+      context: linux
+      platforms:
+        - "linux/amd64"
+      args:
+        BASEIMAGE: ghcr.io/bashonly/manylinux2014_x86_64_builds:latest
+    environment:
+      channel: ${channel}
+      origin: ${origin}
+      version: ${version}
+    volumes:
+      - ~/build:/build
+      - ../..:/yt-dlp
+  linux_aarch64:
+    build:
+      context: linux
+      platforms:
+        - "linux/arm64"
+      args:
+        BASEIMAGE: ghcr.io/bashonly/manylinux2014_aarch64_builds:latest
     environment:
       channel: ${channel}
       origin: ${origin}

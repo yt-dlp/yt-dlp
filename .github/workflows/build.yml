@@ -12,10 +12,7 @@ on:
       unix:
         default: true
         type: boolean
-      linux_static:
-        default: true
-        type: boolean
-      linux_arm:
+      linux:
         default: true
         type: boolean
       macos:
@@ -52,12 +49,8 @@ on:
         description: yt-dlp, yt-dlp.tar.gz
         default: true
         type: boolean
-      linux_static:
-        description: yt-dlp_linux
-        default: true
-        type: boolean
-      linux_arm:
-        description: yt-dlp_linux_aarch64, yt-dlp_linux_armv7l
+      linux:
+        description: yt-dlp_linux, yt-dlp_linux_aarch64
         default: true
         type: boolean
       macos:
@@ -134,13 +127,23 @@ jobs:
             yt-dlp.tar.gz
           compression-level: 0
 
-  linux_static:
+  linux:
     needs: process
-    if: inputs.linux_static
-    runs-on: ubuntu-latest
+    if: inputs.linux
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - exe: yt-dlp_linux
+          platform: x86_64
+          runner: ubuntu-24.04
+        - exe: yt-dlp_linux_aarch64
+          platform: aarch64
+          runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
-      - name: Build static executable
+      - name: Build executable
         env:
           channel: ${{ inputs.channel }}
           origin: ${{ needs.process.outputs.origin }}
@@ -148,85 +151,25 @@ jobs:
         run: |
           mkdir ~/build
           cd bundle/docker
-          docker compose up --build static
-          sudo chown "${USER}:docker" ~/build/yt-dlp_linux
+          docker compose up --build linux_${{ matrix.platform }}
+          sudo chown "${USER}:docker" ~/build/${{ matrix.exe }}
+          chmod +x ~/build/${{ matrix.exe }}
+          # docker compose can fail with exit code 0, so we need to check the exe here
+          ~/build/${{ matrix.exe }} --version
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          chmod +x ~/build/yt-dlp_linux
-          cp ~/build/yt-dlp_linux ~/build/yt-dlp_linux_downgraded
-          version="$(~/build/yt-dlp_linux --version)"
-          ~/build/yt-dlp_linux_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-          downgraded_version="$(~/build/yt-dlp_linux_downgraded --version)"
+          cp ~/build/${{ matrix.exe }} ~/build/${{ matrix.exe }}_downgraded
+          version="$(~/build/${{ matrix.exe }} --version)"
+          ~/build/${{ matrix.exe }}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(~/build/${{ matrix.exe }}_downgraded --version)"
           [[ "$version" != "$downgraded_version" ]]
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-bin-${{ github.job }}
+          name: build-bin-${{ github.job }}_${{ matrix.platform }}
           path: |
-            ~/build/yt-dlp_linux
-          compression-level: 0
-
-  linux_arm:
-    needs: process
-    if: inputs.linux_arm
-    permissions:
-      contents: read
-      packages: write # for creating cache
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        architecture:
-          - armv7
-          - aarch64
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: ./repo
-      - name: Virtualized Install, Prepare & Build
-        uses: yt-dlp/run-on-arch-action@v3
-        with:
-          # Ref: https://github.com/uraimo/run-on-arch-action/issues/55
-          env: |
-            GITHUB_WORKFLOW: build
-          githubToken: ${{ github.token }} # To cache image
-          arch: ${{ matrix.architecture }}
-          distro: ubuntu20.04 # Standalone executable should be built on minimum supported OS
-          dockerRunArgs: --volume "${PWD}/repo:/repo"
-          install: | # Installing Python 3.10 from the Deadsnakes repo raises errors
-            apt update
-            apt -y install zlib1g-dev libffi-dev python3.9 python3.9-dev python3.9-distutils python3-pip \
-              python3-secretstorage  # Cannot build cryptography wheel in virtual armv7 environment
-            python3.9 -m pip install -U pip wheel 'setuptools>=71.0.2'
-            # XXX: Keep this in sync with pyproject.toml (it can't be accessed at this stage) and exclude secretstorage
-            python3.9 -m pip install -U Pyinstaller mutagen pycryptodomex brotli certifi cffi \
-              'requests>=2.32.2,<3' 'urllib3>=2.0.2,<3' 'websockets>=13.0'
-
-          run: |
-            cd repo
-            python3.9 devscripts/install_deps.py -o --include build
-            python3.9 devscripts/install_deps.py --include pyinstaller  # Cached versions may be out of date
-            python3.9 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
-            python3.9 devscripts/make_lazy_extractors.py
-            python3.9 -m bundle.pyinstaller
-
-            if ${{ vars.UPDATE_TO_VERIFICATION && 'true' || 'false' }}; then
-              arch="${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}"
-              chmod +x ./dist/yt-dlp_linux_${arch}
-              cp ./dist/yt-dlp_linux_${arch} ./dist/yt-dlp_linux_${arch}_downgraded
-              version="$(./dist/yt-dlp_linux_${arch} --version)"
-              ./dist/yt-dlp_linux_${arch}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-              downgraded_version="$(./dist/yt-dlp_linux_${arch}_downgraded --version)"
-              [[ "$version" != "$downgraded_version" ]]
-            fi
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-bin-linux_${{ matrix.architecture }}
-          path: | # run-on-arch-action designates armv7l as armv7
-            repo/dist/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
+            ~/build/${{ matrix.exe }}
           compression-level: 0
 
   macos:
@@ -436,8 +379,7 @@ jobs:
     needs:
       - process
       - unix
-      - linux_static
-      - linux_arm
+      - linux
       - macos
       - windows
       - windows32
