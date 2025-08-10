@@ -6,11 +6,10 @@ from ..utils import (
     clean_html,
     int_or_none,
     parse_iso8601,
-    parse_qs,
     update_url_query,
     url_or_none,
 )
-from ..utils.traversal import require, traverse_obj
+from ..utils.traversal import traverse_obj
 
 
 class TuneInBaseIE(InfoExtractor):
@@ -101,7 +100,7 @@ class TuneInStationIE(TuneInBaseIE):
 class TuneInPodcastIE(TuneInBaseIE):
     IE_NAME = 'tunein:podcast:program'
     _PAGE_SIZE = 20
-    _VALID_URL = r'https?://tunein\.com/podcasts(?:/[^/?#]+)?/[^/?#]+(?P<id>p\d+)/?(?:\?(?![^#]*[?&](?i:topicid)=)[^#]*)?(?:#|$)'
+    _VALID_URL = r'https?://tunein\.com/podcasts(?:/[^/?#]+)?/[^/?#]+(?P<id>p\d+)/?(?:\?(?![^#]*(?i:\btopicid)=)[^#]*)?(?:#|$)'
     _TESTS = [{
         'url': 'https://tunein.com/podcasts/Technology-Podcasts/Artificial-Intelligence-p1153019/',
         'info_dict': {
@@ -145,7 +144,7 @@ class TuneInPodcastIE(TuneInBaseIE):
 
 class TuneInPodcastEpisodeIE(TuneInBaseIE):
     IE_NAME = 'tunein:podcast'
-    _VALID_URL = r'https?://tunein\.com/podcasts(?:/[^/?#]+)?/[^/?#]+(?P<series_id>p\d+)/?\?(?:[^#]*)?(?<=\?|&)(?i:topicid)=(?P<id>\d+)(?:[&#]|$)'
+    _VALID_URL = r'https?://tunein\.com/podcasts(?:/[^/?#]+)?/[^/?#]+(?P<series_id>p\d+)/?\?[^#]*?(?<=\?|&)(?i:\btopicid)=(?P<id>\d+)(?:[&#]|$)'
     _TESTS = [{
         'url': 'https://tunein.com/podcasts/Technology-Podcasts/Artificial-Intelligence-p1153019/?topicId=236404354',
         'info_dict': {
@@ -183,9 +182,7 @@ class TuneInPodcastEpisodeIE(TuneInBaseIE):
     }]
 
     def _real_extract(self, url):
-        series_id = self._match_valid_url(url).group('series_id')
-        display_id = traverse_obj(parse_qs(url), (
-            ('topicid', 'topicId'), -1, {str}, any, {require('topic ID')}))
+        series_id, display_id = self._match_valid_url(url).group('series_id', 'id')
         episode_id = f't{display_id}'
         formats, subtitles = self._extract_formats_and_subtitles(episode_id)
 
