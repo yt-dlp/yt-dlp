@@ -970,7 +970,7 @@ class GenericIE(InfoExtractor):
             'title': self._generic_title('', webpage, default='video'),
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
-            'age_limit': self._rta_search(webpage) or None,
+            'age_limit': self._rta_search(webpage),
         })
 
         self._downloader.write_debug('Looking for embeds')
