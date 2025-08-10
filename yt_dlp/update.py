@@ -154,7 +154,7 @@ def _get_system_deprecation():
             'issues/13856', STOP_MSG)
 
     # Temporary until linux_armv7l executable builds are discontinued
-    if variant in ('linux_armv7l_exe'):
+    if variant == 'linux_armv7l_exe':
         return EXE_MSG_TMPL.format(
             f'{variant} (the PyInstaller-bundled executable for the Linux armv7l platform)',
             'issues/13976', STOP_MSG)
