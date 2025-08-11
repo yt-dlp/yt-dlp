@@ -971,6 +971,7 @@ def parse_options(argv=None):
         'geo_bypass': opts.geo_bypass,
         'geo_bypass_country': opts.geo_bypass_country,
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
+        'warn_when_outdated': opts.update_self is None,
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
@@ -1030,6 +1031,7 @@ def _real_main(argv=None):
                 (ImpersonateTarget('safari'), 'curl_cffi'),
                 (ImpersonateTarget('firefox'), 'curl_cffi>=0.10'),
                 (ImpersonateTarget('edge'), 'curl_cffi'),
+                (ImpersonateTarget('tor'), 'curl_cffi>=0.11'),
             ]
 
             available_targets = ydl._get_available_impersonate_targets()
