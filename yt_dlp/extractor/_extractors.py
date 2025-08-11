@@ -1781,6 +1781,7 @@ from .rtve import (
     RTVEALaCartaIE,
     RTVEAudioIE,
     RTVELiveIE,
+    RTVEProgramIE,
     RTVETelevisionIE,
 )
 from .rtvs import RTVSIE
@@ -1865,6 +1866,7 @@ from .shahid import (
 from .sharepoint import SharePointIE
 from .sharevideos import ShareVideosEmbedIE
 from .shemaroome import ShemarooMeIE
+from .shiey import ShieyIE
 from .showroomlive import ShowRoomLiveIE
 from .sibnet import SibnetEmbedIE
 from .simplecast import (
@@ -2234,6 +2236,7 @@ from .tvplay import (
 from .tvplayer import TVPlayerIE
 from .tvw import (
     TvwIE,
+    TvwNewsIE,
     TvwTvChannelsIE,
 )
 from .tweakers import TweakersIE
