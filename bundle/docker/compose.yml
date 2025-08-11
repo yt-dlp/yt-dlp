@@ -7,9 +7,10 @@ services:
       args:
         BASEIMAGE: ghcr.io/bashonly/manylinux2014_x86_64_builds:latest
     environment:
-      channel: ${channel}
-      origin: ${origin}
-      version: ${version}
+      EXE_NAME: ${EXE_NAME}
+      CHANNEL: ${CHANNEL}
+      ORIGIN: ${ORIGIN}
+      VERSION: ${VERSION}
     volumes:
       - ~/build:/build
       - ../..:/yt-dlp
@@ -21,9 +22,10 @@ services:
       args:
         BASEIMAGE: ghcr.io/bashonly/manylinux2014_aarch64_builds:latest
     environment:
-      channel: ${channel}
-      origin: ${origin}
-      version: ${version}
+      EXE_NAME: ${EXE_NAME}
+      CHANNEL: ${CHANNEL}
+      ORIGIN: ${ORIGIN}
+      VERSION: ${VERSION}
     volumes:
       - ~/build:/build
       - ../..:/yt-dlp

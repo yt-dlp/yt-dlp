@@ -50,7 +50,7 @@ on:
         default: true
         type: boolean
       linux:
-        description: yt-dlp_linux, yt-dlp_linux_aarch64
+        description: yt-dlp_linux, yt-dlp_linux.zip, yt-dlp_linux_aarch64, yt-dlp_linux_aarch64.zip
         default: true
         type: boolean
       macos:
@@ -145,14 +145,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build executable
         env:
-          channel: ${{ inputs.channel }}
-          origin: ${{ needs.process.outputs.origin }}
-          version: ${{ inputs.version }}
+          EXE_NAME: ${{ matrix.exe }}
+          CHANNEL: ${{ inputs.channel }}
+          ORIGIN: ${{ needs.process.outputs.origin }}
+          VERSION: ${{ inputs.version }}
         run: |
           mkdir ~/build
           cd bundle/docker
           docker compose up --build linux_${{ matrix.platform }}
           sudo chown "${USER}:docker" ~/build/${{ matrix.exe }}
+          sudo chown "${USER}:docker" ~/build/${{ matrix.exe }}.zip
           chmod +x ~/build/${{ matrix.exe }}
           ~/build/${{ matrix.exe }} --version
       - name: Verify --update-to
@@ -169,6 +171,7 @@ jobs:
           name: build-bin-${{ github.job }}_${{ matrix.platform }}
           path: |
             ~/build/${{ matrix.exe }}
+            ~/build/${{ matrix.exe }}.zip
           compression-level: 0
 
   macos:
