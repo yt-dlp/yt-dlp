@@ -61,10 +61,10 @@ def _get_variant_and_executable_path():
         # py2exe is unsupported but we should still correctly identify it for debugging purposes
         if not hasattr(sys, '_MEIPASS'):
             return 'py2exe', path
-        if sys._MEIPASS == os.path.dirname(path):
-            return f'{sys.platform}_dir', path
+        # We know it's a PyInstaller bundle, but is it "onedir" or "onefile"?
+        suffix = 'dir' if sys._MEIPASS == os.path.dirname(path) else 'exe'
         if sys.platform == 'darwin':
-            return 'darwin_exe', path
+            return f'darwin_{suffix}', path
 
         machine = f'_{platform.machine().lower()}'
         is_64bits = sys.maxsize > 2**32
@@ -80,7 +80,7 @@ def _get_variant_and_executable_path():
         if static_exe_path := os.getenv('STATICX_PROG_PATH'):
             path = static_exe_path
 
-        return f'{remove_end(sys.platform, "32")}{machine}_exe', path
+        return f'{remove_end(sys.platform, "32")}{machine}_{suffix}', path
 
     path = os.path.dirname(__file__)
     if isinstance(__loader__, zipimporter):
