@@ -133,7 +133,7 @@ body > figure > img {
                 '\r\n'
                 f'--{frag_boundary}\r\n'
                 'Content-Type: text/html; charset=utf-8\r\n'
-                f'Content-Length: {len(stub)}\r\n'
+                f'Content-Length: {len(stub.encode())}\r\n'
                 '\r\n'
                 f'{stub}\r\n').encode())
             extra_state['header_written'] = True
