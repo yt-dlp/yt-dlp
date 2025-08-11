@@ -1186,15 +1186,7 @@ from .moview import MoviewPlayIE
 from .moviezine import MoviezineIE
 from .movingimage import MovingImageIE
 from .msn import MSNIE
-from .mtv import (
-    MTVDEIE,
-    MTVIE,
-    MTVItaliaIE,
-    MTVItaliaProgrammaIE,
-    MTVJapanIE,
-    MTVServicesEmbeddedIE,
-    MTVVideoIE,
-)
+from .mtv import MTVIE
 from .muenchentv import MuenchenTVIE
 from .murrtube import (
     MurrtubeIE,
@@ -1945,10 +1937,6 @@ from .spankbang import (
     SpankBangPlaylistIE,
 )
 from .spiegel import SpiegelIE
-from .spike import (
-    BellatorIE,
-    ParamountNetworkIE,
-)
 from .sport5 import Sport5IE
 from .sportbox import SportBoxIE
 from .sportdeutschland import SportDeutschlandIE
@@ -2213,7 +2201,6 @@ from .tvc import (
 from .tver import TVerIE
 from .tvigle import TvigleIE
 from .tviplayer import TVIPlayerIE
-from .tvland import TVLandIE
 from .tvn24 import TVN24IE
 from .tvnoe import TVNoeIE
 from .tvopengr import (
