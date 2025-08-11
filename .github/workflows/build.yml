@@ -154,7 +154,6 @@ jobs:
           docker compose up --build linux_${{ matrix.platform }}
           sudo chown "${USER}:docker" ~/build/${{ matrix.exe }}
           chmod +x ~/build/${{ matrix.exe }}
-          # docker compose can fail with exit code 0, so we need to check the exe here
           ~/build/${{ matrix.exe }} --version
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
