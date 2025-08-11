@@ -152,7 +152,6 @@ from .ard import (
     ARDBetaMediathekIE,
     ARDMediathekCollectionIE,
 )
-from .arkena import ArkenaIE
 from .arnes import ArnesIE
 from .art19 import (
     Art19IE,
