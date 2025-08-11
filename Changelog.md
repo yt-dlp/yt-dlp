@@ -10,7 +10,7 @@
 - **The minimum *recommended* Python version has been raised to 3.10**
 Since Python 3.9 will reach end-of-life in October 2025, support for it will be dropped soon. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13858)
 - **darwin_legacy_exe builds are being discontinued**
-This release's `yt-dlp_macos_legacy` binary will likely be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13857)
+This release's `yt-dlp_macos_legacy` binary will likely be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13856)
 - **linux_armv7l_exe builds are being discontinued**
 This release's `yt-dlp_linux_armv7l` binary could be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13976)
 
