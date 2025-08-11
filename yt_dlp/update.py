@@ -115,7 +115,6 @@ _FILE_SUFFIXES = {
     'darwin_exe': '_macos',
     'linux_exe': '_linux',
     'linux_aarch64_exe': '_linux_aarch64',
-    'linux_armv7l_exe': '_linux_armv7l',
 }
 
 _NON_UPDATEABLE_REASONS = {
