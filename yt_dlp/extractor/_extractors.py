@@ -2298,10 +2298,6 @@ from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veo import VeoIE
 from .vesti import VestiIE
-from .vevo import (
-    VevoIE,
-    VevoPlaylistIE,
-)
 from .vgtv import (
     VGTVIE,
     BTArticleIE,
