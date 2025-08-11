@@ -64,7 +64,9 @@ def _get_variant_and_executable_path():
         if sys._MEIPASS == os.path.dirname(path):
             return f'{sys.platform}_dir', path
         if sys.platform == 'darwin':
-            return 'darwin_exe', path
+            # darwin_legacy_exe is no longer supported, but still identify it to block updates
+            machine = '_legacy' if version_tuple(platform.mac_ver()[0]) < (10, 15) else ''
+            return f'darwin{machine}_exe', path
 
         machine = f'_{platform.machine().lower()}'
         is_64bits = sys.maxsize > 2**32
