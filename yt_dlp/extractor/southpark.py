@@ -1,7 +1,7 @@
 from .mtv import MTVServicesInfoExtractor
 from ..utils import (
-    traverse_obj,
     random_uuidv4,
+    traverse_obj,
 )
 
 
@@ -110,26 +110,20 @@ class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
         data = self._parse_json(self._search_regex(
             r'window\.__DATA__\s*=\s*({.+?});', webpage, 'data'), display_id)
 
-        # Find the videoDetail object by first finding the MainContainer component
         video_detail = traverse_obj(data, (
             'children', lambda _, v: v.get('type') == 'MainContainer',
             'children', 0, 'children', 0, 'props', 'videoDetail'
-        ), get_all=False)
-
-        # Fallback for a simpler data structure found on some pages
-        if not video_detail:
-            video_detail = traverse_obj(data, ('children', 0, 'videoDetail'), get_all=False)
+        ), default=traverse_obj(data, ('children', 0, 'videoDetail')))
 
         api_url = video_detail['videoServiceUrl']
 
-        # Call the Topaz API to get the final stream URL
         api_data = self._download_json(
             api_url, display_id, 'Fetching video metadata', query={
                 'ssus': random_uuidv4(),
                 'clientPlatform': 'mobile',
             })
 
-        hls_url = traverse_obj(api_data, ('stitchedstream', 'source'))
+        hls_url = traverse_obj(api_data, ('stitchedstream', 'source'), expected_type=str)
 
         return {
             'id': video_detail['id'],
