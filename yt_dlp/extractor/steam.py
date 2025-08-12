@@ -25,21 +25,21 @@ class SteamIE(InfoExtractor):
         'url': 'http://store.steampowered.com/video/105600/',
         'playlist': [
             {
-                'md5': '695242613303ffa2a4c44c9374ddc067',
+                'md5': 'e800bd0baf47286d8b434d07b357247e',
                 'info_dict': {
                     'id': '256785003',
                     'ext': 'mp4',
                     'title': 'Terraria video 256785003',
-                    'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
+                    'thumbnail': r're:^https?://[^/]*steamstatic\.com',
                 },
             },
             {
-                'md5': '6a294ee0c4b1f47f5bb76a65e31e3592',
+                'md5': '9612ee058ebd645371c5ddd69adb310f',
                 'info_dict': {
                     'id': '2040428',
                     'ext': 'mp4',
                     'title': 'Terraria video 2040428',
-                    'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
+                    'thumbnail': r're:^https?://[^/]*steamstatic\.com',
                 },
             },
         ],
@@ -50,6 +50,7 @@ class SteamIE(InfoExtractor):
         'params': {
             'playlistend': 2,
         },
+        'expected_warnings': ['Unknown MIME type image/avif in DASH manifest'],
     }, {
         'url': 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
         'info_dict': {
@@ -96,15 +97,19 @@ class SteamIE(InfoExtractor):
             }
             formats = []
             if movie:
-                entry['thumbnail'] = movie.get('data-poster')
-                for quality in ('', '-hd'):
-                    for ext in ('webm', 'mp4'):
-                        video_url = movie.get(f'data-{ext}{quality}-source')
-                        if video_url:
-                            formats.append({
-                                'format_id': ext + quality,
-                                'url': video_url,
-                            })
+                data = self._parse_json(movie['data-props'], video_id=movie_id)
+
+                entry['thumbnail'] = data.get('screenshot')
+
+                for dash_url in data.get('dashManifests', []):
+                    formats.extend(self._extract_mpd_formats(
+                        dash_url, movie_id, mpd_id='dash', fatal=False))
+
+                hls_url = data.get('hlsManifest')
+                if hls_url:
+                    formats.extend(self._extract_m3u8_formats(
+                        hls_url, movie_id, entry_protocol='m3u8', m3u8_id='hls', fatal=False))
+
             entry['formats'] = formats
             entries.append(entry)
         embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
