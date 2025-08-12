@@ -15,11 +15,11 @@ description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
 requires-python = ">=3.9"
 keywords = [
+    "cli",
+    "downloader",
     "youtube-dl",
-    "video-downloader",
     "youtube-downloader",
     "sponsorblock",
-    "youtube-dlc",
     "yt-dlp",
 ]
 license = {file = "LICENSE"}
@@ -55,7 +55,7 @@ default = [
     "websockets>=13.0",
 ]
 curl-cffi = [
-    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.11; implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.14; implementation_name=='cpython'",
 ]
 secretstorage = [
     "cffi",
