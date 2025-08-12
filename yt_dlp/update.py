@@ -68,6 +68,10 @@ def _get_variant_and_executable_path():
             machine = '_legacy' if version_tuple(platform.mac_ver()[0]) < (10, 15) else ''
             return f'darwin{machine}_{suffix}', path
 
+        system_platform = remove_end(sys.platform, '32')
+        if system_platform == 'linux' and platform.libc_ver()[0] != 'glibc':
+            system_platform = 'musllinux'
+
         machine = f'_{platform.machine().lower()}'
         is_64bits = sys.maxsize > 2**32
         # Ref: https://en.wikipedia.org/wiki/Uname#Examples
@@ -82,7 +86,7 @@ def _get_variant_and_executable_path():
         if static_exe_path := os.getenv('STATICX_PROG_PATH'):
             path = static_exe_path
 
-        return f'{remove_end(sys.platform, "32")}{machine}_{suffix}', path
+        return f'{system_platform}{machine}_{suffix}', path
 
     path = os.path.dirname(__file__)
     if isinstance(__loader__, zipimporter):
@@ -117,6 +121,9 @@ _FILE_SUFFIXES = {
     'darwin_exe': '_macos',
     'linux_exe': '_linux',
     'linux_aarch64_exe': '_linux_aarch64',
+    'linux_armv7l_exe': '_linux_armv7l',
+    'musllinux_exe': '_musllinux',
+    'musllinux_aarch64_exe': '_musllinux_aarch64',
 }
 
 _NON_UPDATEABLE_REASONS = {

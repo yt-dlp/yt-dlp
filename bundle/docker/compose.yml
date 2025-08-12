@@ -1,4 +1,5 @@
 services:
+
   linux_x86_64:
     build:
       context: linux
@@ -14,6 +15,7 @@ services:
     volumes:
       - ~/build:/build
       - ../..:/yt-dlp
+
   linux_aarch64:
     build:
       context: linux
@@ -21,6 +23,58 @@ services:
         - "linux/arm64"
       args:
         BASEIMAGE: ghcr.io/bashonly/manylinux2014_aarch64_builds:latest
+    environment:
+      EXE_NAME: ${EXE_NAME}
+      CHANNEL: ${CHANNEL}
+      ORIGIN: ${ORIGIN}
+      VERSION: ${VERSION}
+    volumes:
+      - ~/build:/build
+      - ../..:/yt-dlp
+
+  linux_armv7l:
+    build:
+      context: linux
+      platforms:
+        - "linux/arm/v7"
+      args:
+        BASEIMAGE: ghcr.io/bashonly/manylinux_2_31_armv7l_builds:latest
+    environment:
+      EXE_NAME: ${EXE_NAME}
+      CHANNEL: ${CHANNEL}
+      ORIGIN: ${ORIGIN}
+      VERSION: ${VERSION}
+      PIP_EXTRA_INDEX_URL: https://www.piwheels.org/simple
+      PIP_PREFER_BINARY: "1"
+      USE_PYTHON_VERSION: "3.11"
+      SKIP_ONEDIR_BUILD: "1"
+    volumes:
+      - ~/build:/build
+      - ../..:/yt-dlp
+
+  musllinux_x86_64:
+    build:
+      context: linux
+      platforms:
+        - "linux/amd64"
+      args:
+        BASEIMAGE: ghcr.io/bashonly/musllinux_1_2_x86_64_builds:latest
+    environment:
+      EXE_NAME: ${EXE_NAME}
+      CHANNEL: ${CHANNEL}
+      ORIGIN: ${ORIGIN}
+      VERSION: ${VERSION}
+    volumes:
+      - ~/build:/build
+      - ../..:/yt-dlp
+
+  musllinux_aarch64:
+    build:
+      context: linux
+      platforms:
+        - "linux/arm64"
+      args:
+        BASEIMAGE: ghcr.io/bashonly/musllinux_1_2_aarch64_builds:latest
     environment:
       EXE_NAME: ${EXE_NAME}
       CHANNEL: ${CHANNEL}

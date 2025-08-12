@@ -15,6 +15,9 @@ on:
       linux:
         default: true
         type: boolean
+      musllinux:
+        default: true
+        type: boolean
       macos:
         default: true
         type: boolean
@@ -50,7 +53,11 @@ on:
         default: true
         type: boolean
       linux:
-        description: yt-dlp_linux, yt-dlp_linux.zip, yt-dlp_linux_aarch64, yt-dlp_linux_aarch64.zip
+        description: yt-dlp_linux, yt-dlp_linux.zip, yt-dlp_linux_aarch64, yt-dlp_linux_aarch64.zip, yt-dlp_linux_armv7l
+        default: true
+        type: boolean
+      musllinux:
+        description: yt-dlp_musllinux, yt-dlp_musllinux.zip, yt-dlp_musllinux_aarch64, yt-dlp_musllinux_aarch64.zip
         default: true
         type: boolean
       macos:
@@ -141,8 +148,16 @@ jobs:
         - exe: yt-dlp_linux_aarch64
           platform: aarch64
           runner: ubuntu-24.04-arm
+        - exe: yt-dlp_linux_armv7l
+          platform: armv7l
+          runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
+      - name: Set up QEMU
+        if: matrix.platform == 'armv7l'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm/v7
       - name: Build executable
         env:
           EXE_NAME: ${{ matrix.exe }}
@@ -154,24 +169,67 @@ jobs:
           cd bundle/docker
           docker compose up --build linux_${{ matrix.platform }}
           sudo chown "${USER}:docker" ~/build/${{ matrix.exe }}
-          sudo chown "${USER}:docker" ~/build/${{ matrix.exe }}.zip
-          chmod +x ~/build/${{ matrix.exe }}
-          ~/build/${{ matrix.exe }} --version
       - name: Verify --update-to
-        if: vars.UPDATE_TO_VERIFICATION
+        if: vars.UPDATE_TO_VERIFICATION && matrix.platform != 'armv7l'
         run: |
+          chmod +x ~/build/${{ matrix.exe }}
           cp ~/build/${{ matrix.exe }} ~/build/${{ matrix.exe }}_downgraded
           version="$(~/build/${{ matrix.exe }} --version)"
           ~/build/${{ matrix.exe }}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
           downgraded_version="$(~/build/${{ matrix.exe }}_downgraded --version)"
+          rm -f "${{ matrix.exe }}_downgraded"
           [[ "$version" != "$downgraded_version" ]]
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-bin-${{ github.job }}_${{ matrix.platform }}
           path: |
-            ~/build/${{ matrix.exe }}
-            ~/build/${{ matrix.exe }}.zip
+            ~/build/${{ matrix.exe }}*
+          compression-level: 0
+
+  musllinux:
+    needs: process
+    if: inputs.musllinux
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - exe: yt-dlp_musllinux
+          platform: x86_64
+          runner: ubuntu-24.04
+        - exe: yt-dlp_musllinux_aarch64
+          platform: aarch64
+          runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build executable
+        env:
+          EXE_NAME: ${{ matrix.exe }}
+          CHANNEL: ${{ inputs.channel }}
+          ORIGIN: ${{ needs.process.outputs.origin }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          mkdir ~/build
+          cd bundle/docker
+          docker compose up --build musllinux_${{ matrix.platform }}
+          sudo chown "${USER}:docker" ~/build/${{ matrix.exe }}
+      # - name: Verify --update-to
+      #   if: vars.UPDATE_TO_VERIFICATION
+      #   run: |
+      #     chmod +x ~/build/${{ matrix.exe }}
+      #     cp ~/build/${{ matrix.exe }} ~/build/${{ matrix.exe }}_downgraded
+      #     version="$(~/build/${{ matrix.exe }} --version)"
+      #     ~/build/${{ matrix.exe }}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+      #     downgraded_version="$(~/build/${{ matrix.exe }}_downgraded --version)"
+      #     rm -f "${{ matrix.exe }}_downgraded"
+      #     [[ "$version" != "$downgraded_version" ]]
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-${{ github.job }}_${{ matrix.platform }}
+          path: |
+            ~/build/${{ matrix.exe }}*
           compression-level: 0
 
   macos:
@@ -382,6 +440,7 @@ jobs:
       - process
       - unix
       - linux
+      - musllinux
       - macos
       - windows
       - windows32
