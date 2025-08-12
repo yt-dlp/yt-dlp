@@ -2,6 +2,7 @@ from .mtv import MTVServicesInfoExtractor
 from ..utils import (
     random_uuidv4,
     traverse_obj,
+    ExtractorError, # Added ExtractorError import
 )
 
 
