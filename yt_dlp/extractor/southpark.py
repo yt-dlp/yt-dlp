@@ -111,13 +111,14 @@ class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
         data = self._parse_json(self._search_regex(
             r'window\.__DATA__\s*=\s*({.+?});', webpage, 'data'), display_id)
 
-        # CORRECTED: Provide paths as separate arguments, not a list
+        # Try multiple paths and, crucially, get only the FIRST match, not a list
         video_detail = traverse_obj(data,
             # Path for regular episodes
             ('children', lambda _, v: v.get('type') == 'MainContainer',
              'children', 0, 'children', 0, 'props', 'videoDetail'),
             # Fallback path for special episodes
-            ('children', 0, 'videoDetail'))
+            ('children', 0, 'videoDetail'),
+            get_all=False)
 
         if not video_detail:
             raise ExtractorError('Could not find video data in page')
@@ -130,7 +131,7 @@ class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
                 'clientPlatform': 'mobile',
             })
 
-        hls_url = traverse_obj(api_data, ('stitchedstream', 'source'), expected_type=str)
+        hls_url = traverse_obj(api_data, ('stitchedstream', 'source'), expected_type=str, get_all=False)
 
         return {
             'id': video_detail['id'],
