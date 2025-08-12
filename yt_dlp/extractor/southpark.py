@@ -111,14 +111,10 @@ class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
         data = self._parse_json(self._search_regex(
             r'window\.__DATA__\s*=\s*({.+?});', webpage, 'data'), display_id)
 
-        # Try multiple paths and, crucially, get only the FIRST match, not a list
-        video_detail = traverse_obj(data,
-            # Path for regular episodes
-            ('children', lambda _, v: v.get('type') == 'MainContainer',
-             'children', 0, 'children', 0, 'props', 'videoDetail'),
-            # Fallback path for special episodes
-            ('children', 0, 'videoDetail'),
-            get_all=False)
+        video_detail = traverse_obj(data, (
+            'children', lambda _, v: v.get('type') == 'MainContainer',
+            'children', 0, 'children', 0, 'props', 'videoDetail'
+        ), ('children', 0, 'videoDetail'), get_all=False)
 
         if not video_detail:
             raise ExtractorError('Could not find video data in page')
@@ -131,12 +127,11 @@ class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
                 'clientPlatform': 'mobile',
             })
 
-        hls_url = traverse_obj(api_data, ('stitchedstream', 'source'), expected_type=str, get_all=False)
+        hls_url = traverse_obj(api_data, ('stitchedstream', 'source'), expected_type=str)
 
-        return {
+        info = {
             'id': video_detail['id'],
             'display_id': display_id,
-            'url': hls_url,
             'title': video_detail.get('title'),
             'description': video_detail.get('description'),
             'duration': traverse_obj(video_detail, ('duration', 'milliseconds'), expected_type=int) / 1000,
@@ -145,6 +140,9 @@ class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
             'timestamp': traverse_obj(video_detail, ('publishDate', 'timestamp')),
             'series': traverse_obj(video_detail, ('parentEntity', 'title')),
         }
+        info['formats'] = self._extract_m3u8_formats(
+            hls_url, display_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
+        return info
 
 
 class SouthParkLatIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
