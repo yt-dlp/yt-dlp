@@ -9,7 +9,7 @@ python3 -m devscripts.make_lazy_extractors
 python3 devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
 python3 -m bundle.pyinstaller --onedir
 pushd "./dist/${EXE_NAME}"
-zip -r "/build/${EXE_NAME}.zip" .
+python3 -m zipfile -c "/build/${EXE_NAME}.zip" ./
 popd
 python3 -m bundle.pyinstaller
 mv "./dist/${EXE_NAME}" /build/
