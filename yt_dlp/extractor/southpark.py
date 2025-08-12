@@ -111,14 +111,13 @@ class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
         data = self._parse_json(self._search_regex(
             r'window\.__DATA__\s*=\s*({.+?});', webpage, 'data'), display_id)
 
-        # Try multiple paths to find the video data, handling both regular and special episodes
-        video_detail = traverse_obj(data, [
-            # Path for regular episodes (more complex)
+        # CORRECTED: Provide paths as separate arguments, not a list
+        video_detail = traverse_obj(data,
+            # Path for regular episodes
             ('children', lambda _, v: v.get('type') == 'MainContainer',
              'children', 0, 'children', 0, 'props', 'videoDetail'),
-            # Fallback path for special episodes (simpler)
-            ('children', 0, 'videoDetail'),
-        ])
+            # Fallback path for special episodes
+            ('children', 0, 'videoDetail'))
 
         if not video_detail:
             raise ExtractorError('Could not find video data in page')
