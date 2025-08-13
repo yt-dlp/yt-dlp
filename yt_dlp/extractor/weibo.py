@@ -53,7 +53,6 @@ class WeiboBaseIE(InfoExtractor):
             })
 
     def _weibo_download_json(self, url, video_id, *args, fatal=True, note='Downloading JSON metadata', **kwargs):
-        # XXX: Always fatal; _download_webpage_handle only returns False (not a tuple) on error
         webpage, urlh = self._download_webpage_handle(url, video_id, *args, fatal=fatal, note=note, **kwargs)
         if urllib.parse.urlparse(urlh.url).netloc == 'passport.weibo.com':
             self._update_visitor_cookies(urlh.url, video_id)
@@ -188,8 +187,8 @@ class WeiboIE(WeiboBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
-        meta = self._weibo_download_json(f'https://weibo.com/ajax/statuses/show?id={video_id}', video_id)
+        headers = {'Referer': 'https://weibo.com/'}
+        meta = self._weibo_download_json(f'https://weibo.com/ajax/statuses/show?id={video_id}', video_id, headers=headers)
         mix_media_info = traverse_obj(meta, ('mix_media_info', 'items', ...))
         if not mix_media_info:
             return self._parse_video_info(meta)
@@ -205,7 +204,7 @@ class WeiboIE(WeiboBaseIE):
 
 
 class WeiboVideoIE(WeiboBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?weibo\.com/tv/show/(?P<id>\d+:\d+)'
+    _VALID_URL = r'https?://(?:www\.)?weibo\.com/tv/show/(?P<id>\d+:[0-9A-Za-z]+)'
     _TESTS = [{
         'url': 'https://weibo.com/tv/show/1034:4797699866951785?from=old_pc_videoshow',
         'info_dict': {
@@ -253,10 +252,11 @@ class WeiboUserIE(WeiboBaseIE):
     }]
 
     def _fetch_page(self, uid, cursor=0, page=1):
+        headers = {'Referer': 'https://weibo.com/'}
         return self._weibo_download_json(
             'https://weibo.com/ajax/profile/getWaterFallContent',
             uid, note=f'Downloading videos page {page}',
-            query={'uid': uid, 'cursor': cursor})['data']
+            query={'uid': uid, 'cursor': cursor}, headers=headers)['data']
 
     def _entries(self, uid, first_page):
         cursor = 0
