@@ -1,5 +1,5 @@
-from .mtv import MTVServicesInfoExtractor
 from ..utils import random_uuidv4, traverse_obj, ExtractorError
+from .mtv import MTVServicesInfoExtractor
 
 
 class SouthParkIE(MTVServicesInfoExtractor):
@@ -107,10 +107,15 @@ class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
         data = self._parse_json(self._search_regex(
             r'window\.__DATA__\s*=\s*({.+?});', webpage, 'data'), display_id)
 
-        video_detail = traverse_obj(data, (
-            'children', lambda _, v: v.get('type') == 'MainContainer',
-            'children', 0, 'children', 0, 'props', 'videoDetail'
-        ), ('children', 0, 'videoDetail'), get_all=False,)
+        video_detail = traverse_obj(
+            data,
+            # Path for regular episodes
+            ('children', lambda _, v: v.get('type') == 'MainContainer',
+             'children', 0, 'children', 0, 'props', 'videoDetail'),
+            # Fallback path for special episodes
+            ('children', 0, 'videoDetail'),
+            get_all=False,
+        )
 
         if not video_detail:
             raise ExtractorError('Could not find video data in page')
