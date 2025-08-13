@@ -429,7 +429,7 @@ jobs:
         with:
           path: |
             /yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ github.ref }}
+          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
 
       - name: Install Requirements
         run: |
@@ -492,7 +492,7 @@ jobs:
           matrix.arch == 'arm64' && steps.restore-cache.outputs.cache-hit == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          cache_key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ github.ref }}
+          cache_key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
         run: |
           gh cache delete "${cache_key}"
 
@@ -502,7 +502,7 @@ jobs:
         with:
           path: |
             /yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ github.ref }}
+          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
 
   meta_files:
     if: always() && !cancelled()
