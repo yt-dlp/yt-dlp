@@ -191,6 +191,9 @@ jobs:
   linux_armv7l:
     needs: process
     if: inputs.linux_armv7l
+    permissions:
+      contents: read
+      actions: write  # For cleaning up cache
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
