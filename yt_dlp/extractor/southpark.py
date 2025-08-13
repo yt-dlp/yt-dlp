@@ -1,5 +1,5 @@
-from ..utils import random_uuidv4, traverse_obj, ExtractorError
 from .mtv import MTVServicesInfoExtractor
+from ..utils import ExtractorError, random_uuidv4, traverse_obj
 
 
 class SouthParkIE(MTVServicesInfoExtractor):
