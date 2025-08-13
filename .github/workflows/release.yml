@@ -226,6 +226,7 @@ jobs:
       version: ${{ needs.prepare.outputs.version }}
       channel: ${{ needs.prepare.outputs.channel }}
       origin: ${{ needs.prepare.outputs.target_repo }}
+      linux_armv7l: ${{ inputs.source != 'master' }}  # Skip for 'master' channel (push) releases
     permissions:
       contents: read
       packages: write  # For package cache
