@@ -240,7 +240,7 @@ jobs:
           docker compose down
           sudo chown "${USER}:docker" ~/build/${EXE_NAME}
 
-      - name: Verify --update-to
+      - name: Verify --update-to in container
         if: vars.UPDATE_TO_VERIFICATION
         env:
           EXE_NAME: yt-dlp_linux_armv7l
@@ -305,7 +305,7 @@ jobs:
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
           docker compose down
           sudo chown "${USER}:docker" ~/build/${{ matrix.exe }}
-      - name: Verify --update-to
+      - name: Verify --update-to in container
         env:
           EXE_NAME: ${{ matrix.exe }}
           CHANNEL: ${{ inputs.channel }}

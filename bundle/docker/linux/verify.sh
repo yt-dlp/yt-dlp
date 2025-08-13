@@ -1,10 +1,11 @@
 #!/bin/sh
-set -exuo
+set -eu
 
 chmod +x /build/${EXE_NAME}
 
 if [ -z "${EXCLUDE_CURL_CFFI:-}" ]; then
-    /build/${EXE_NAME} -v --print-traffic -o- --impersonate chrome "https://tls.browserleaks.com/json" | cat
+    /build/${EXE_NAME} -v --print-traffic --impersonate chrome "https://tls.browserleaks.com/json" -o ./resp.json
+    cat ./resp.json
 fi
 
 if [ -n "${SKIP_UPDATE_TO:-}" ]; then

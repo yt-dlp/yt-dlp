@@ -32,5 +32,7 @@ if [[ -z "${SKIP_ONEDIR_BUILD:-}" ]]; then
     popd
 fi
 
-runpy -m bundle.pyinstaller
-mv "./dist/${EXE_NAME}" /build/
+if [[ -z "${SKIP_ONEFILE_BUILD:-}" ]]; then
+    runpy -m bundle.pyinstaller
+    mv "./dist/${EXE_NAME}" /build/
+fi
