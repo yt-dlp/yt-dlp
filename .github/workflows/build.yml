@@ -15,6 +15,9 @@ on:
       linux:
         default: true
         type: boolean
+      linux_armv7l:
+        default: true
+        type: boolean
       musllinux:
         default: true
         type: boolean
@@ -53,7 +56,11 @@ on:
         default: true
         type: boolean
       linux:
-        description: yt-dlp_linux, yt-dlp_linux.zip, yt-dlp_linux_aarch64, yt-dlp_linux_aarch64.zip, yt-dlp_linux_armv7l
+        description: yt-dlp_linux, yt-dlp_linux.zip, yt-dlp_linux_aarch64, yt-dlp_linux_aarch64.zip
+        default: true
+        type: boolean
+      linux_armv7l:
+        description: yt-dlp_linux_armv7l
         default: true
         type: boolean
       musllinux:
@@ -148,16 +155,8 @@ jobs:
         - exe: yt-dlp_linux_aarch64
           platform: aarch64
           runner: ubuntu-24.04-arm
-        - exe: yt-dlp_linux_armv7l
-          platform: armv7l
-          runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
-      - name: Set up QEMU
-        if: matrix.platform == 'armv7l'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: linux/arm/v7
       - name: Build executable
         env:
           EXE_NAME: ${{ matrix.exe }}
@@ -172,7 +171,7 @@ jobs:
           docker compose down
           sudo chown "${USER}:docker" ~/build/${{ matrix.exe }}
       - name: Verify --update-to
-        if: vars.UPDATE_TO_VERIFICATION && matrix.platform != 'armv7l'
+        if: vars.UPDATE_TO_VERIFICATION
         run: |
           chmod +x ~/build/${{ matrix.exe }}
           mkdir -p ~/testing
@@ -181,20 +180,6 @@ jobs:
           ~/testing/${{ matrix.exe }}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
           downgraded_version="$(~/testing/${{ matrix.exe }}_downgraded --version)"
           [[ "$version" != "$downgraded_version" ]]
-          # TEMPORARY:
-          ~/build/${{ matrix.exe }} -v --print-traffic -o- --impersonate chrome "https://tls.browserleaks.com/json" | cat
-      - name: Verify --update-to for armv7l
-        if: vars.UPDATE_TO_VERIFICATION && matrix.platform == 'armv7l'
-        env:
-          EXE_NAME: ${{ matrix.exe }}
-          CHANNEL: ${{ inputs.channel }}
-          ORIGIN: ${{ needs.process.outputs.origin }}
-          VERSION: ${{ inputs.version }}
-          SERVICE: linux_${{ matrix.platform }}_verify
-        run: |
-          cd bundle/docker
-          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-          docker compose down
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -202,6 +187,79 @@ jobs:
           path: |
             ~/build/${{ matrix.exe }}*
           compression-level: 0
+
+  linux_armv7l:
+    needs: process
+    if: inputs.linux_armv7l
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore cached requirements
+        id: restore-cache
+        uses: actions/cache/restore@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: |
+            ~/yt-dlp-build-venv
+          key: cache-reqs-${{ github.job }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm/v7
+
+      - name: Build executable
+        env:
+          EXE_NAME: yt-dlp_linux_armv7l
+          CHANNEL: ${{ inputs.channel }}
+          ORIGIN: ${{ needs.process.outputs.origin }}
+          VERSION: ${{ inputs.version }}
+          SERVICE: linux_armv7l
+        run: |
+          mkdir -p ~/build
+          mkdir -p ~/yt-dlp-build-venv
+          cd bundle/docker
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+          docker compose down
+          sudo chown "${USER}:docker" ~/build/${EXE_NAME}
+
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        env:
+          EXE_NAME: yt-dlp_linux_armv7l
+          CHANNEL: ${{ inputs.channel }}
+          ORIGIN: ${{ needs.process.outputs.origin }}
+          VERSION: ${{ inputs.version }}
+          SERVICE: linux_armv7l_verify
+        run: |
+          cd bundle/docker
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+          docker compose down
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-${{ github.job }}
+          path: |
+            ~/build/yt-dlp_linux_armv7l
+          compression-level: 0
+
+      - name: Cleanup cache
+        if: steps.restore-cache.outputs.cache-hit == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cache_key: cache-reqs-${{ github.job }}
+        run: |
+          gh cache delete "${cache_key}"
+
+      - name: Cache requirements
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/yt-dlp-build-venv
+          key: cache-reqs-${{ github.job }}
 
   musllinux:
     needs: process
@@ -459,6 +517,7 @@ jobs:
       - process
       - unix
       - linux
+      - linux_armv7l
       - musllinux
       - macos
       - windows

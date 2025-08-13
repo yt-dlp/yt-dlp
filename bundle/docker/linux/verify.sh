@@ -3,13 +3,12 @@ set -exuo
 
 chmod +x /build/${EXE_NAME}
 
+# TEMPORARY:
+/build/${EXE_NAME} -v --print-traffic -o- --impersonate chrome "https://tls.browserleaks.com/json" | cat
+
 if [ -n "${SKIP_UPDATE_TO:-}" ]; then
     /build/${EXE_NAME} -v || true
     /build/${EXE_NAME} --version
-
-    # TEMPORARY:
-    /build/${EXE_NAME} -v --print-traffic -o- --impersonate chrome "https://tls.browserleaks.com/json" | cat
-
     exit 0
 fi
 

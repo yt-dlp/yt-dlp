@@ -48,6 +48,7 @@ services:
     volumes:
       - ~/build:/build
       - ../..:/yt-dlp
+      - ~/yt-dlp-build-venv:/yt-dlp-build-venv
 
   linux_armv7l_verify:
     build:

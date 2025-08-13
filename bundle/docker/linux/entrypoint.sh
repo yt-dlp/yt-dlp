@@ -9,8 +9,8 @@ function runpy {
     esac
 }
 
-runpy -m venv ~/yt-dlp-build-venv
-source ~/yt-dlp-build-venv/bin/activate
+runpy -m venv /yt-dlp-build-venv
+source /yt-dlp-build-venv/bin/activate
 runpy -m devscripts.install_deps -o --include build
 runpy -m devscripts.install_deps --include secretstorage --include curl-cffi --include pyinstaller
 runpy -m devscripts.make_lazy_extractors
