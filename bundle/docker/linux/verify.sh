@@ -3,7 +3,7 @@ set -exuo
 
 chmod +x /build/${EXE_NAME}
 
-if [ -n "${EXCLUDE_CURL_CFFI:-}" ]; then
+if [ -z "${EXCLUDE_CURL_CFFI:-}" ]; then
     /build/${EXE_NAME} -v --print-traffic -o- --impersonate chrome "https://tls.browserleaks.com/json" | cat
 fi
 
