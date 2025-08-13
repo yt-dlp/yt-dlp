@@ -454,7 +454,8 @@ jobs:
           vars.UPDATE_TO_VERIFICATION && matrix.arch == 'arm64'
         run: |
           foreach ($name in @("yt-dlp${{ matrix.suffix }}")) {
-            & "./dist/${name}.exe" -v || true
+            & "./dist/${name}.exe" -v --print-traffic --impersonate chrome "https://tls.browserleaks.com/json" -o ./resp.json
+            & cat ./resp.json
             & "./dist/${name}.exe" --version
           }
 
