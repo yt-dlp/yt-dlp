@@ -44,13 +44,23 @@ services:
       CHANNEL: ${CHANNEL}
       ORIGIN: ${ORIGIN}
       VERSION: ${VERSION}
-      PIP_EXTRA_INDEX_URL: https://www.piwheels.org/simple
-      PIP_PREFER_BINARY: "1"
-      USE_PYTHON_VERSION: "3.11"
       SKIP_ONEDIR_BUILD: "1"
     volumes:
       - ~/build:/build
       - ../..:/yt-dlp
+
+  linux_armv7l_verify:
+    build:
+      context: linux
+      dockerfile: verify.Dockerfile
+      platforms:
+        - "linux/arm/v7"
+      args:
+        IMAGE: arm32v7/debian:bullseye
+    environment:
+      EXE_NAME: ${EXE_NAME}
+    volumes:
+      - ~/build:/build
 
   musllinux_x86_64:
     build:
@@ -68,6 +78,20 @@ services:
       - ~/build:/build
       - ../..:/yt-dlp
 
+  musllinux_x86_64_verify:
+    build:
+      context: linux
+      dockerfile: verify.Dockerfile
+      platforms:
+        - "linux/amd64"
+      args:
+        IMAGE: alpine:3.22
+    environment:
+      EXE_NAME: ${EXE_NAME}
+      SKIP_UPDATE_TO: "1"
+    volumes:
+      - ~/build:/build
+
   musllinux_aarch64:
     build:
       context: linux
@@ -83,3 +107,17 @@ services:
     volumes:
       - ~/build:/build
       - ../..:/yt-dlp
+
+  musllinux_aarch64_verify:
+    build:
+      context: linux
+      dockerfile: verify.Dockerfile
+      platforms:
+        - "linux/arm64"
+      args:
+        IMAGE: alpine:3.22
+    environment:
+      EXE_NAME: ${EXE_NAME}
+      SKIP_UPDATE_TO: "1"
+    volumes:
+      - ~/build:/build
