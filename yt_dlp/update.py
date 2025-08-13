@@ -58,11 +58,20 @@ def _get_variant_and_executable_path():
     """@returns (variant, executable_path)"""
     if getattr(sys, 'frozen', False):
         path = sys.executable
-        # py2exe is unsupported but we should still correctly identify it for debugging purposes
+
+        # py2exe: No longer officially supported, but still identify it to block updates
         if not hasattr(sys, '_MEIPASS'):
             return 'py2exe', path
+
+        # staticx builds: sys.executable returns a /tmp/ path
+        # No longer officially supported, but still identify them to block updates
+        # Ref: https://staticx.readthedocs.io/en/latest/usage.html#run-time-information
+        if static_exe_path := os.getenv('STATICX_PROG_PATH'):
+            return 'linux_static_exe', static_exe_path
+
         # We know it's a PyInstaller bundle, but is it "onedir" or "onefile"?
         suffix = 'dir' if sys._MEIPASS == os.path.dirname(path) else 'exe'
+
         if sys.platform == 'darwin':
             # darwin_legacy_exe is no longer supported, but still identify it to block updates
             machine = '_legacy' if version_tuple(platform.mac_ver()[0]) < (10, 15) else ''
@@ -81,10 +90,6 @@ def _get_variant_and_executable_path():
         # See: https://github.com/yt-dlp/yt-dlp/issues/11813
         elif machine[1:] == 'aarch64' and not is_64bits:
             machine = '_armv7l'
-        # sys.executable returns a /tmp/ path for staticx builds (linux_static)
-        # Ref: https://staticx.readthedocs.io/en/latest/usage.html#run-time-information
-        if static_exe_path := os.getenv('STATICX_PROG_PATH'):
-            path = static_exe_path
 
         return f'{system_platform}{machine}_{suffix}', path
 
