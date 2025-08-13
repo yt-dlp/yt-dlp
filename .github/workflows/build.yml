@@ -170,6 +170,18 @@ jobs:
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
           docker compose down
           sudo chown "${USER}:docker" ~/build/${{ matrix.exe }}
+      - name: Verify --update-to in container
+        if: vars.UPDATE_TO_VERIFICATION
+        env:
+          EXE_NAME: ${{ matrix.exe }}
+          CHANNEL: ${{ inputs.channel }}
+          ORIGIN: ${{ needs.process.outputs.origin }}
+          VERSION: ${{ inputs.version }}
+          SERVICE: linux_${{ matrix.platform }}_verify
+        run: |
+          cd bundle/docker
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+          docker compose down
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
