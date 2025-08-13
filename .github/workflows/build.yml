@@ -397,15 +397,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { arch: 'x64', runner: 'windows-2025', suffix: '' }
-          - { arch: 'x86', runner: 'windows-2025', suffix: '_x86'}
-          - { arch: 'arm64', runner: 'windows-11-arm', suffix: '_arm64' }
+        - arch: 'x64'
+          runner: windows-2025
+          suffix: ''
+          python_version: '3.10'
+        - arch: 'x86'
+          runner: windows-2025
+          suffix: '_x86'
+          python_version: '3.10'
+        - arch: 'arm64'
+          runner: windows-11-arm
+          suffix: '_arm64'
+          python_version: '3.11'  # arm64 only has Python >= 3.11 available
 
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"  # arm64 only has Python >= 3.11 available
+          python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.arch }}
       - name: Install Requirements
         run: |  # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
