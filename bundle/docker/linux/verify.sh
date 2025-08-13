@@ -3,8 +3,9 @@ set -exuo
 
 chmod +x /build/${EXE_NAME}
 
-# TEMPORARY:
-/build/${EXE_NAME} -v --print-traffic -o- --impersonate chrome "https://tls.browserleaks.com/json" | cat
+if [ -n "${EXCLUDE_CURL_CFFI:-}" ]; then
+    /build/${EXE_NAME} -v --print-traffic -o- --impersonate chrome "https://tls.browserleaks.com/json" | cat
+fi
 
 if [ -n "${SKIP_UPDATE_TO:-}" ]; then
     /build/${EXE_NAME} -v || true

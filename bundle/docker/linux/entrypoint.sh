@@ -9,10 +9,19 @@ function runpy {
     esac
 }
 
+INCLUDES=(
+    --include pyinstaller
+    --include secretstorage
+)
+
+if [[ -z "${EXCLUDE_CURL_CFFI:-}" ]]; then
+    INCLUDES+=(--include curl-cffi)
+fi
+
 runpy -m venv /yt-dlp-build-venv
 source /yt-dlp-build-venv/bin/activate
 runpy -m devscripts.install_deps -o --include build
-runpy -m devscripts.install_deps --include secretstorage --include curl-cffi --include pyinstaller
+runpy -m devscripts.install_deps "${INCLUDES[@]}"
 runpy -m devscripts.make_lazy_extractors
 runpy devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
 
