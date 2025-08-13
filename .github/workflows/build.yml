@@ -392,6 +392,9 @@ jobs:
   windows:
     needs: process
     if: inputs.windows
+    permissions:
+      contents: read
+      actions: write  # For cleaning up cache
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -416,10 +419,25 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.arch }}
+
+      - name: Restore cached requirements
+        id: restore-cache
+        if: matrix.arch == 'arm64'
+        uses: actions/cache/restore@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: |
+            /yt-dlp-build-venv
+          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ github.ref }}
+
       - name: Install Requirements
-        run: |  # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
+        run: |
+          python -m venv /yt-dlp-build-venv
+          /yt-dlp-build-venv/Scripts/Activate.ps1
           python devscripts/install_deps.py -o --include build
           python devscripts/install_deps.py ${{ (matrix.arch != 'x86' && '--include curl-cffi') || '' }}
+          # Use custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/${{ matrix.arch }}/pyinstaller-6.15.0-py3-none-any.whl"
 
       - name: Prepare
@@ -428,6 +446,7 @@ jobs:
           python devscripts/make_lazy_extractors.py
       - name: Build
         run: |
+          /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
           Compress-Archive -Path ./dist/yt-dlp${{ matrix.suffix }}/* -DestinationPath ./dist/yt-dlp_win${{ matrix.suffix }}.zip
@@ -467,6 +486,23 @@ jobs:
             dist/yt-dlp${{ matrix.suffix }}.exe
             dist/yt-dlp_win${{ matrix.suffix }}.zip
           compression-level: 0
+
+      - name: Cleanup cache
+        if: |
+          matrix.arch == 'arm64' && steps.restore-cache.outputs.cache-hit == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cache_key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ github.ref }}
+        run: |
+          gh cache delete "${cache_key}"
+
+      - name: Cache requirements
+        if: matrix.arch == 'arm64'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /yt-dlp-build-venv
+          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ github.ref }}
 
   meta_files:
     if: always() && !cancelled()
