@@ -411,7 +411,7 @@ jobs:
         - arch: 'arm64'
           runner: windows-11-arm
           suffix: '_arm64'
-          python_version: '3.11'  # arm64 only has Python >= 3.11 available
+          python_version: '3.13'  # arm64 only has Python >= 3.11 available
 
     steps:
       - uses: actions/checkout@v4
