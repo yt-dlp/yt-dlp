@@ -439,6 +439,16 @@ jobs:
             }
           }
 
+        # TODO: remove when there is a windows_arm64 release that we can --update-to
+      - name: Verify arm64 executable
+        if: |
+          vars.UPDATE_TO_VERIFICATION && matrix.arch == 'arm64'
+        run: |
+          foreach ($name in @("yt-dlp${{ matrix.suffix }}")) {
+            & "./dist/${name}.exe" -v || true
+            & "./dist/${name}.exe" --version
+          }
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
