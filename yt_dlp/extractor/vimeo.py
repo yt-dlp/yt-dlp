@@ -1225,13 +1225,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             info[k + '_count'] = int_or_none(try_get(connections, lambda x: x[k + 's']['total']))
         return info
 
-    def _try_album_password(self, url, is_embed, referer):
-        album_id = self._search_regex(
-            r'vimeo\.com/(?:album|showcase)/([^/]+)', url, 'album id', default=None)
-        if not album_id:
-            return
-        self._get_album_data_and_hashed_pass(album_id, is_embed, referer)
-
     def _real_extract(self, url):
         url, data, headers = self._unsmuggle_headers(url)
         if 'Referer' not in headers:
@@ -1246,9 +1239,14 @@ class VimeoIE(VimeoBaseInfoExtractor):
         if any(p in url for p in ('play_redirect_hls', 'moogaloop.swf')):
             url = 'https://vimeo.com/' + video_id
 
-        is_player_url = urllib.parse.urlparse(url).hostname == 'player.vimeo.com'
-        self._try_album_password(url, is_player_url, headers['Referer'])
-        is_secure = urllib.parse.urlparse(url).scheme == 'https'
+        album_id = self._search_regex(
+            r'vimeo\.com/(?:album|showcase)/([0-9]+)/', url, 'album id', default=None)
+        if album_id:
+            # Detect password-protected showcase video => POST album password => set cookies
+            self._get_album_data_and_hashed_pass(album_id, '/embed' in url, headers['Referer'])
+
+        parsed_url = urllib.parse.urlparse(url)
+        is_secure = parsed_url.scheme == 'https'
         try:
             # Retrieve video webpage to extract further information
             webpage, urlh = self._download_webpage_handle(
@@ -1274,7 +1272,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 f'{self._downloader._format_err("compromising your security/cookies", "light red")}, '
                 f'try replacing "https:" with "http:" in the input URL. {dcip_msg}.', expected=True)
 
-        if is_player_url:
+        if parsed_url.hostname == 'player.vimeo.com':
             config = self._search_json(
                 r'\b(?:playerC|c)onfig\s*=', webpage, 'info section', video_id)
             if config.get('view') == 4:
@@ -1302,7 +1300,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         config_url = None
 
         channel_id = self._search_regex(
-            r'vimeo\.com/channels/([^/]+)', url, 'channel id', default=None)
+            r'vimeo\.com/channels/([^/?#]+)', url, 'channel id', default=None)
         if channel_id:
             config_url = self._extract_config_url(webpage, default=None)
             video_description = clean_html(get_element_by_class('description', webpage))
