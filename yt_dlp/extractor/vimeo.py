@@ -28,7 +28,6 @@ from ..utils import (
     qualities,
     smuggle_url,
     str_or_none,
-    traverse_obj,
     try_call,
     try_get,
     unified_timestamp,
@@ -39,6 +38,7 @@ from ..utils import (
     urlhandle_detect_ext,
     urljoin,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class VimeoBaseInfoExtractor(InfoExtractor):
@@ -1540,7 +1540,7 @@ class VimeoUserIE(VimeoChannelIE):  # XXX: Do not subclass from concrete IE
 
 class VimeoAlbumIE(VimeoBaseInfoExtractor):
     IE_NAME = 'vimeo:album'
-    _VALID_URL = r'https://vimeo\.com/(?:album|showcase)/(?P<id>\d+)(?:$|[?#]|(?P<is_embed>/embed))'
+    _VALID_URL = r'https://vimeo\.com/(?:album|showcase)/(?P<id>[^/?#]+)(?:$|[?#]|(?P<is_embed>/embed))'
     _TITLE_RE = r'<header id="page_header">\n\s*<h1>(.*?)</h1>'
     _TESTS = [{
         'url': 'https://vimeo.com/album/2632481',
@@ -1599,6 +1599,15 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
             'id': '11803104',
         },
         'playlist_mincount': 41,
+    }, {
+        'note': 'non-numeric slug, need to fetch numeric album ID',
+        'url': 'https://vimeo.com/showcase/BethelTally-Homegoing-Services',
+        'info_dict': {
+            'title': 'BethelTally Homegoing Services',
+            'id': '11547429',
+            'description': 'Bethel Missionary Baptist Church\nTallahassee, FL',
+        },
+        'playlist_mincount': 8,
     }]
     _PAGE_SIZE = 100
 
@@ -1642,6 +1651,15 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
         url, _, http_headers = self._unsmuggle_headers(url)
         album_id, is_embed = self._match_valid_url(url).group('id', 'is_embed')
         referer = http_headers.get('Referer')
+
+        if not re.fullmatch(r'[0-9]+', album_id):
+            auth_info = self._download_json(
+                f'https://vimeo.com/showcase/{album_id}/auth', album_id, 'Downloading album info',
+                headers={'X-Requested-With': 'XMLHttpRequest', 'Referer': referer},
+                expected_status=(401, 403))
+            album_id = traverse_obj(auth_info, (
+                'metadata', 'id', {int}, {str_or_none}, {require('album ID')}))
+
         album, hashed_pass = self._get_album_data_and_hashed_pass(album_id, is_embed, referer)
 
         entries = OnDemandPagedList(functools.partial(
