@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', pypy-3.10, pypy-3.11]
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', pypy-3.11]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}

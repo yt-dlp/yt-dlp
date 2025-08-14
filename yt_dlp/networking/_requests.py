@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import functools
 import http.client
 import logging
@@ -20,9 +19,9 @@ if urllib3 is None:
 
 urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.split('.'))
 
-if urllib3_version < (1, 26, 17):
+if urllib3_version < (2, 0, 2):
     urllib3._yt_dlp__version = f'{urllib3.__version__} (unsupported)'
-    raise ImportError('Only urllib3 >= 1.26.17 is supported')
+    raise ImportError('Only urllib3 >= 2.0.2 is supported')
 
 if requests.__build__ < 0x023202:
     requests._yt_dlp__version = f'{requests.__version__} (unsupported)'
@@ -101,27 +100,10 @@ class Urllib3PercentREOverride:
 # https://github.com/urllib3/urllib3/commit/a2697e7c6b275f05879b60f593c5854a816489f0
 import urllib3.util.url
 
-if hasattr(urllib3.util.url, 'PERCENT_RE'):
-    urllib3.util.url.PERCENT_RE = Urllib3PercentREOverride(urllib3.util.url.PERCENT_RE)
-elif hasattr(urllib3.util.url, '_PERCENT_RE'):  # urllib3 >= 2.0.0
+if hasattr(urllib3.util.url, '_PERCENT_RE'):  # was 'PERCENT_RE' in urllib3 < 2.0.0
     urllib3.util.url._PERCENT_RE = Urllib3PercentREOverride(urllib3.util.url._PERCENT_RE)
 else:
-    warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)' + bug_reports_message())
-
-'''
-Workaround for issue in urllib.util.ssl_.py: ssl_wrap_context does not pass
-server_hostname to SSLContext.wrap_socket if server_hostname is an IP,
-however this is an issue because we set check_hostname to True in our SSLContext.
-
-Monkey-patching IS_SECURETRANSPORT forces ssl_wrap_context to pass server_hostname regardless.
-
-This has been fixed in urllib3 2.0+.
-See: https://github.com/urllib3/urllib3/issues/517
-'''
-
-if urllib3_version < (2, 0, 0):
-    with contextlib.suppress(Exception):
-        urllib3.util.IS_SECURETRANSPORT = urllib3.util.ssl_.IS_SECURETRANSPORT = True
+    warnings.warn('Failed to patch _PERCENT_RE in urllib3 (does the attribute exist?)' + bug_reports_message())
 
 
 # Requests will not automatically handle no_proxy by default
