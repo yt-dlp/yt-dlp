@@ -1243,7 +1243,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             r'vimeo\.com/(?:album|showcase)/([0-9]+)/', url, 'album id', default=None)
         if album_id:
             # Detect password-protected showcase video => POST album password => set cookies
-            self._get_album_data_and_hashed_pass(album_id, '/embed' in url, headers['Referer'])
+            self._get_album_data_and_hashed_pass(album_id, False, None)
 
         parsed_url = urllib.parse.urlparse(url)
         is_secure = parsed_url.scheme == 'https'
