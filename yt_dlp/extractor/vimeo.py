@@ -1660,7 +1660,12 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
             album_id = traverse_obj(auth_info, (
                 'metadata', 'id', {int}, {str_or_none}, {require('album ID')}))
 
-        album, hashed_pass = self._get_album_data_and_hashed_pass(album_id, is_embed, referer)
+        try:
+            album, hashed_pass = self._get_album_data_and_hashed_pass(album_id, is_embed, referer)
+        except ExtractorError as e:
+            if is_embed and not referer and isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                raise ExtractorError(self._REFERER_HINT, expected=True)
+            raise
 
         entries = OnDemandPagedList(functools.partial(
             self._fetch_page, album_id, hashed_pass, is_embed, referer), self._PAGE_SIZE)
