@@ -84,9 +84,10 @@ class AdobeTVBaseIE(InfoExtractor):
 
 
 class AdobeTVEmbedIE(AdobeTVBaseIE):
+    _WORKING = False
     IE_NAME = 'adobetv:embed'
     _VALID_URL = r'https?://tv\.adobe\.com/embed/\d+/(?P<id>\d+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://tv.adobe.com/embed/22/4153',
         'md5': 'c8c0461bf04d54574fc2b4d07ac6783a',
         'info_dict': {
@@ -94,12 +95,12 @@ class AdobeTVEmbedIE(AdobeTVBaseIE):
             'ext': 'flv',
             'title': 'Creating Graphics Optimized for BlackBerry',
             'description': 'md5:eac6e8dced38bdaae51cd94447927459',
-            'thumbnail': r're:https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'upload_date': '20091109',
             'duration': 377,
             'view_count': int,
         },
-    }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -110,10 +111,10 @@ class AdobeTVEmbedIE(AdobeTVBaseIE):
 
 
 class AdobeTVIE(AdobeTVBaseIE):
+    _WORKING = False
     IE_NAME = 'adobetv'
     _VALID_URL = r'https?://tv\.adobe\.com/(?:(?P<language>fr|de|es|jp)/)?watch/(?P<show_urlname>[^/]+)/(?P<id>[^/]+)'
-
-    _TEST = {
+    _TESTS = [{
         'url': 'http://tv.adobe.com/watch/the-complete-picture-with-julieanne-kost/quick-tip-how-to-draw-a-circle-around-an-object-in-photoshop/',
         'md5': '9bc5727bcdd55251f35ad311ca74fa1e',
         'info_dict': {
@@ -121,12 +122,12 @@ class AdobeTVIE(AdobeTVBaseIE):
             'ext': 'mp4',
             'title': 'Quick Tip - How to Draw a Circle Around an Object in Photoshop',
             'description': 'md5:99ec318dc909d7ba2a1f2b038f7d2311',
-            'thumbnail': r're:https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'upload_date': '20110914',
             'duration': 60,
             'view_count': int,
         },
-    }
+    }]
 
     def _real_extract(self, url):
         language, show_urlname, urlname = self._match_valid_url(url).groups()
@@ -159,10 +160,10 @@ class AdobeTVPlaylistBaseIE(AdobeTVBaseIE):
 
 
 class AdobeTVShowIE(AdobeTVPlaylistBaseIE):
+    _WORKING = False
     IE_NAME = 'adobetv:show'
     _VALID_URL = r'https?://tv\.adobe\.com/(?:(?P<language>fr|de|es|jp)/)?show/(?P<id>[^/]+)'
-
-    _TEST = {
+    _TESTS = [{
         'url': 'http://tv.adobe.com/show/the-complete-picture-with-julieanne-kost',
         'info_dict': {
             'id': '36',
@@ -170,7 +171,7 @@ class AdobeTVShowIE(AdobeTVPlaylistBaseIE):
             'description': 'md5:fa50867102dcd1aa0ddf2ab039311b27',
         },
         'playlist_mincount': 136,
-    }
+    }]
     _RESOURCE = 'episode'
     _process_data = AdobeTVBaseIE._parse_video_data
 
@@ -195,16 +196,16 @@ class AdobeTVShowIE(AdobeTVPlaylistBaseIE):
 
 
 class AdobeTVChannelIE(AdobeTVPlaylistBaseIE):
+    _WORKING = False
     IE_NAME = 'adobetv:channel'
     _VALID_URL = r'https?://tv\.adobe\.com/(?:(?P<language>fr|de|es|jp)/)?channel/(?P<id>[^/]+)(?:/(?P<category_urlname>[^/]+))?'
-
-    _TEST = {
+    _TESTS = [{
         'url': 'http://tv.adobe.com/channel/development',
         'info_dict': {
             'id': 'development',
         },
         'playlist_mincount': 96,
-    }
+    }]
     _RESOURCE = 'show'
 
     def _process_data(self, show_data):
@@ -231,8 +232,7 @@ class AdobeTVVideoIE(AdobeTVBaseIE):
     IE_NAME = 'adobetv:video'
     _VALID_URL = r'https?://video\.tv\.adobe\.com/v/(?P<id>\d+)'
     _EMBED_REGEX = [r'<iframe[^>]+src=[\'"](?P<url>(?:https?:)?//video\.tv\.adobe\.com/v/\d+[^"]+)[\'"]']
-
-    _TEST = {
+    _TESTS = [{
         # From https://helpx.adobe.com/acrobat/how-to/new-experience-acrobat-dc.html?set=acrobat--get-started--essential-beginners
         'url': 'https://video.tv.adobe.com/v/2456/',
         'md5': '43662b577c018ad707a63766462b1e87',
@@ -242,8 +242,20 @@ class AdobeTVVideoIE(AdobeTVBaseIE):
             'title': 'New experience with Acrobat DC',
             'description': 'New experience with Acrobat DC',
             'duration': 248.667,
+            'thumbnail': r're:https?://images-tv\.adobe\.com/.+\.jpg',
         },
-    }
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Invalid extension
+        'url': 'https://www.adobe.com/learn/acrobat/web/customize-toolbar',
+        'info_dict': {
+            'id': '3463980',
+            'ext': 'm3u8',
+            'title': 'Adobe Acrobat: How to Customize the Toolbar for Faster PDF Editing',
+            'description': 'md5:94368ab95ae24f9c1bee0cb346e03dc3',
+            'duration': 97.557,
+        },
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

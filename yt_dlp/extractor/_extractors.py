@@ -571,10 +571,6 @@ from .dw import (
     DWIE,
     DWArticleIE,
 )
-from .eagleplatform import (
-    ClipYouEmbedIE,
-    EaglePlatformIE,
-)
 from .ebaumsworld import EbaumsWorldIE
 from .ebay import EbayIE
 from .egghead import (
@@ -640,6 +636,7 @@ from .fancode import (
     FancodeVodIE,
 )
 from .fathom import FathomIE
+from .faulio import FaulioLiveIE
 from .faz import FazIE
 from .fc2 import (
     FC2IE,
@@ -1568,6 +1565,7 @@ from .pluralsight import (
 )
 from .plutotv import PlutoTVIE
 from .plvideo import PlVideoIE
+from .plyr import PlyrEmbedIE
 from .podbayfm import (
     PodbayFMChannelIE,
     PodbayFMIE,
@@ -1783,6 +1781,7 @@ from .rtve import (
     RTVEALaCartaIE,
     RTVEAudioIE,
     RTVELiveIE,
+    RTVEProgramIE,
     RTVETelevisionIE,
 )
 from .rtvs import RTVSIE
@@ -1867,6 +1866,7 @@ from .shahid import (
 from .sharepoint import SharePointIE
 from .sharevideos import ShareVideosEmbedIE
 from .shemaroome import ShemarooMeIE
+from .shiey import ShieyIE
 from .showroomlive import ShowRoomLiveIE
 from .sibnet import SibnetEmbedIE
 from .simplecast import (
@@ -2236,6 +2236,7 @@ from .tvplay import (
 from .tvplayer import TVPlayerIE
 from .tvw import (
     TvwIE,
+    TvwNewsIE,
     TvwTvChannelsIE,
 )
 from .tweakers import TweakersIE

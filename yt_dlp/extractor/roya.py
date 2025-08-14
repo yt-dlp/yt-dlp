@@ -3,9 +3,9 @@ from ..utils.traversal import traverse_obj
 
 
 class RoyaLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://roya\.tv/live-stream/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:en\.)?roya\.tv/live-stream/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://roya.tv/live-stream/1',
+        'url': 'https://en.roya.tv/live-stream/1',
         'info_dict': {
             'id': '1',
             'title': r're:Roya TV \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
