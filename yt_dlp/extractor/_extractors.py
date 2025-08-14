@@ -1571,6 +1571,7 @@ from .podbayfm import (
     PodbayFMIE,
 )
 from .podchaser import PodchaserIE
+from .podimo import PodimoIE
 from .podomatic import PodomaticIE
 from .pokergo import (
     PokerGoCollectionIE,
