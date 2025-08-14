@@ -1655,8 +1655,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
         if not re.fullmatch(r'[0-9]+', album_id):
             auth_info = self._download_json(
                 f'https://vimeo.com/showcase/{album_id}/auth', album_id, 'Downloading album info',
-                headers={'X-Requested-With': 'XMLHttpRequest', 'Referer': referer},
-                expected_status=(401, 403))
+                headers={'X-Requested-With': 'XMLHttpRequest'}, expected_status=(401, 403))
             album_id = traverse_obj(auth_info, (
                 'metadata', 'id', {int}, {str_or_none}, {require('album ID')}))
 
