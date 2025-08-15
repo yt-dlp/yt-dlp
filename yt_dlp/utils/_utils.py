@@ -2436,7 +2436,7 @@ class PlaylistEntries:
     def parse_playlist_items(cls, string):
         for segment in string.split(','):
             if not segment:
-                raise ValueError('There is two or more consecutive commas')
+                raise ValueError('There are two or more consecutive commas')
             mobj = cls.PLAYLIST_ITEMS_RE.fullmatch(segment)
             if not mobj:
                 raise ValueError(f'{segment!r} is not a valid specification')
