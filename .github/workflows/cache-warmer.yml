@@ -11,6 +11,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       version: '123456'
+      channel: stable
       unix: false
       linux: false
       linux_armv7l: true
