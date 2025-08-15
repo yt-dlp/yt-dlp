@@ -71,13 +71,13 @@ def _get_variant_and_executable_path():
 
         # We know it's a PyInstaller bundle, but is it "onedir" or "onefile"?
         suffix = 'dir' if sys._MEIPASS == os.path.dirname(path) else 'exe'
+        system_platform = remove_end(sys.platform, '32')
 
-        if sys.platform == 'darwin':
+        if system_platform == 'darwin':
             # darwin_legacy_exe is no longer supported, but still identify it to block updates
             machine = '_legacy' if version_tuple(platform.mac_ver()[0]) < (10, 15) else ''
             return f'darwin{machine}_{suffix}', path
 
-        system_platform = remove_end(sys.platform, '32')
         if system_platform == 'linux' and platform.libc_ver()[0] != 'glibc':
             system_platform = 'musllinux'
 
