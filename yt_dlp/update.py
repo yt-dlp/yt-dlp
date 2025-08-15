@@ -126,7 +126,6 @@ _FILE_SUFFIXES = {
     'darwin_exe': '_macos',
     'linux_exe': '_linux',
     'linux_aarch64_exe': '_linux_aarch64',
-    'linux_armv7l_exe': '_linux_armv7l',
     'musllinux_exe': '_musllinux',
     'musllinux_aarch64_exe': '_musllinux_aarch64',
 }
@@ -155,18 +154,6 @@ def _get_binary_name():
 
 def _get_system_deprecation():
     MIN_SUPPORTED, MIN_RECOMMENDED = (3, 9), (3, 10)
-
-    EXE_MSG_TMPL = ('Support for {} has been deprecated. '
-                    'See  https://github.com/yt-dlp/yt-dlp/{}  for details.\n{}')
-    STOP_MSG = 'You may stop receiving updates on this version at any time!'
-    variant = detect_variant()
-
-    # TODO: update message and remove after making one final release?
-    # Temporary until linux_armv7l executable builds are discontinued
-    if variant == 'linux_armv7l_exe':
-        return EXE_MSG_TMPL.format(
-            f'{variant} (the PyInstaller-bundled executable for the Linux armv7l platform)',
-            'issues/13976', STOP_MSG)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None

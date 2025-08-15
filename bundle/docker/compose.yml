@@ -71,7 +71,7 @@ services:
       CHANNEL: ${CHANNEL}
       ORIGIN: ${ORIGIN}
       VERSION: ${VERSION}
-      SKIP_ONEDIR_BUILD: "1"
+      SKIP_ONEFILE_BUILD: "1"
     volumes:
       - ~/build:/build
       - ../..:/yt-dlp
@@ -87,6 +87,7 @@ services:
         IMAGE: arm32v7/debian:bullseye
     environment:
       EXE_NAME: ${EXE_NAME}
+      TEST_ONEDIR_BUILD: "1"
     volumes:
       - ~/build:/build
 

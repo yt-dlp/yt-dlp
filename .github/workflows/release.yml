@@ -14,6 +14,10 @@ on:
         required: false
         default: ''
         type: string
+      linux_armv7l:
+        required: false
+        default: false
+        type: boolean
       prerelease:
         required: false
         default: true
@@ -43,6 +47,10 @@ on:
         required: false
         default: ''
         type: string
+      linux_armv7l:
+        description: Include linux_armv7l
+        default: true
+        type: boolean
       prerelease:
         description: Pre-release
         default: false
@@ -226,10 +234,9 @@ jobs:
       version: ${{ needs.prepare.outputs.version }}
       channel: ${{ needs.prepare.outputs.channel }}
       origin: ${{ needs.prepare.outputs.target_repo }}
-      linux_armv7l: ${{ inputs.source != 'master' }}  # Skip for 'master' channel (push) releases
+      linux_armv7l: ${{ inputs.linux_armv7l }}
     permissions:
       contents: read
-      packages: write  # For package cache
       actions: write  # For cleaning up cache
     secrets:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
