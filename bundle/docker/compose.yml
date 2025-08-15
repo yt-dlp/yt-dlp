@@ -26,7 +26,6 @@ services:
         IMAGE: quay.io/pypa/manylinux2014_x86_64:latest
     environment:
       EXE_NAME: ${EXE_NAME}
-      TEST_ONEDIR_BUILD: "1"  # XXX: TEMPORARY
     volumes:
       - ~/build:/build
 
@@ -57,7 +56,6 @@ services:
     environment:
       EXE_NAME: ${EXE_NAME}
       SKIP_UPDATE_TO: "1"  # TODO: remove when there is a glibc2.17 aarch64 release to --update-to
-      TEST_ONEDIR_BUILD: "1"  # XXX: TEMPORARY
     volumes:
       - ~/build:/build
 
@@ -120,7 +118,6 @@ services:
     environment:
       EXE_NAME: ${EXE_NAME}
       SKIP_UPDATE_TO: "1"  # TODO: remove when there is a musllinux_aarch64 release to --update-to
-      TEST_ONEDIR_BUILD: "1"  # XXX: TEMPORARY
     volumes:
       - ~/build:/build
 
@@ -153,6 +150,5 @@ services:
       EXE_NAME: ${EXE_NAME}
       SKIP_UPDATE_TO: "1"  # TODO: remove when there is a musllinux_aarch64 release to --update-to
       EXCLUDE_CURL_CFFI: "1"
-      TEST_ONEDIR_BUILD: "1"  # XXX: TEMPORARY
     volumes:
       - ~/build:/build
