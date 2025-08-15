@@ -2308,19 +2308,20 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
     )
     IE_NAME = 'youtube:playlist'
     _TESTS = [{
+        # TODO: fix availability extraction
         'note': 'issue #673',
         'url': 'PLBB231211A4F62143',
         'info_dict': {
-            'title': '[OLD]Team Fortress 2 (Class-based LP)',
+            'title': 'Team Fortress 2 [2010 Version]',
             'id': 'PLBB231211A4F62143',
-            'uploader': 'Wickman',
-            'uploader_id': '@WickmanVT',
+            'uploader': 'Wickman Wish',
+            'uploader_id': '@WickmanWish',
             'description': 'md5:8fa6f52abb47a9552002fa3ddfc57fc2',
             'view_count': int,
-            'uploader_url': 'https://www.youtube.com/@WickmanVT',
+            'uploader_url': 'https://www.youtube.com/@WickmanWish',
             'modified_date': r're:\d{8}',
             'channel_id': 'UCKSpbfbl5kRQpTdL7kMc-1Q',
-            'channel': 'Wickman',
+            'channel': 'Wickman Wish',
             'tags': [],
             'channel_url': 'https://www.youtube.com/channel/UCKSpbfbl5kRQpTdL7kMc-1Q',
             'availability': 'public',
@@ -2335,6 +2336,7 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
         'playlist_count': 2,
         'skip': 'This playlist is private',
     }, {
+        # TODO: fix availability extraction
         'note': 'embedded',
         'url': 'https://www.youtube.com/embed/videoseries?list=PL6IaIsEjSbf96XFRuNccS_RuEXwNdsoEu',
         'playlist_count': 4,
@@ -2355,6 +2357,7 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
         },
         'expected_warnings': [r'[Uu]navailable videos? (is|are|will be) hidden', 'Retrying', 'Giving up'],
     }, {
+        # TODO: fix availability extraction
         'url': 'http://www.youtube.com/embed/_xDOZElKyNU?list=PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
         'playlist_mincount': 455,
         'info_dict': {
