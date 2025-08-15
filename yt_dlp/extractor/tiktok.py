@@ -942,7 +942,6 @@ class TikTokUserIE(TikTokBaseIE):
             'id': 'MS4wLjABAAAAM3R2BtjzVT-uAtstkl2iugMzC6AtnpkojJbjiOdDDrdsTiTR75-8lyWJCY5VvDrZ',
         },
     }]
-    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0'
     _API_BASE_URL = 'https://www.tiktok.com/api/creator/item_list/'
 
     def _build_web_query(self, sec_uid, cursor):
@@ -983,12 +982,27 @@ class TikTokUserIE(TikTokBaseIE):
     def _entries(self, sec_uid, user_name):
         display_id = user_name or sec_uid
         seen_ids = set()
+        last_batch = None
 
         cursor = int(time.time() * 1E3)
         for page in itertools.count(1):
-            response = self._download_json(
-                self._API_BASE_URL, display_id, f'Downloading page {page}',
-                query=self._build_web_query(sec_uid, cursor), headers={'User-Agent': self._USER_AGENT})
+            for retry in self.RetryManager():
+                response = self._download_json(
+                    self._API_BASE_URL, display_id, f'Downloading page {page}',
+                    query=self._build_web_query(sec_uid, cursor))
+
+                current_batch = sorted(traverse_obj(response, ('itemList', ..., 'id', {str})))
+                if current_batch == last_batch:
+                    message = 'TikTok API keeps sending the same page'
+                    if self._KNOWN_DEVICE_ID:
+                        raise ExtractorError(
+                            f'{message}. Try again with a different device_id', expected=True)
+                    # The user didn't pass a device_id so we can reset it and retry
+                    del self._DEVICE_ID
+                    retry.error = ExtractorError(
+                        f'{message}. Taking measures to avoid infinite loop', expected=True)
+
+            last_batch = current_batch
 
             for video in traverse_obj(response, ('itemList', lambda _, v: v['id'])):
                 video_id = video['id']
