@@ -1027,7 +1027,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'title': 'Igor Kleiner  - Playlists',
-            'description': r're:(?s)Добро пожаловать на мой канал! Здесь вы найдете видео .{504}/a1/50b/10a',
+            'description': r're:(?s)Добро пожаловать на мой канал! Здесь вы найдете видео .{504}/a1/50b/10a$',
             'uploader': 'Igor Kleiner ',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
@@ -1044,7 +1044,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'title': 'Igor Kleiner  - Playlists',
-            'description': r're:(?s)Добро пожаловать на мой канал! Здесь вы найдете видео .{504}/a1/50b/10a',
+            'description': r're:(?s)Добро пожаловать на мой канал! Здесь вы найдете видео .{504}/a1/50b/10a$',
             'uploader': 'Igor Kleiner ',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
