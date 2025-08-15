@@ -982,7 +982,6 @@ class TikTokUserIE(TikTokBaseIE):
     def _entries(self, sec_uid, user_name):
         display_id = user_name or sec_uid
         seen_ids = set()
-        last_batch = None
 
         cursor = int(time.time() * 1E3)
         for page in itertools.count(1):
@@ -992,7 +991,7 @@ class TikTokUserIE(TikTokBaseIE):
                     query=self._build_web_query(sec_uid, cursor))
 
                 current_batch = sorted(traverse_obj(response, ('itemList', ..., 'id', {str})))
-                if current_batch and current_batch == last_batch:
+                if current_batch and current_batch == sorted(seen_ids):
                     message = 'TikTok API keeps sending the same page'
                     if self._KNOWN_DEVICE_ID:
                         raise ExtractorError(
@@ -1001,8 +1000,6 @@ class TikTokUserIE(TikTokBaseIE):
                     del self._DEVICE_ID
                     retry.error = ExtractorError(
                         f'{message}. Taking measures to avoid an infinite loop', expected=True)
-
-            last_batch = current_batch
 
             for video in traverse_obj(response, ('itemList', lambda _, v: v['id'])):
                 video_id = video['id']
