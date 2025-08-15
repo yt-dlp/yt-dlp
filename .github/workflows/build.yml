@@ -239,7 +239,7 @@ jobs:
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
           docker compose down
 
-      - name: Verify --update-to in container
+      - name: Verify executable
         if: vars.UPDATE_TO_VERIFICATION
         env:
           EXE_NAME: yt-dlp_linux_armv7l
