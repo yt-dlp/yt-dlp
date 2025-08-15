@@ -4,6 +4,7 @@ on:
   schedule:
     - cron: '0 22 1,6,11,16,21,27 * *'
 
+jobs:
   build:
     if: |
       vars.KEEP_CACHE_WARM != '' || github.event_name == 'workflow_dispatch'
