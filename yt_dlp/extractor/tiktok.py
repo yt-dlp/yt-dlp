@@ -990,6 +990,8 @@ class TikTokUserIE(TikTokBaseIE):
                     self._API_BASE_URL, display_id, f'Downloading page {page}',
                     query=self._build_web_query(sec_uid, cursor))
 
+                # Avoid infinite loop caused by bad device_id
+                # See: https://github.com/yt-dlp/yt-dlp/issues/14031
                 current_batch = sorted(traverse_obj(response, ('itemList', ..., 'id', {str})))
                 if current_batch and current_batch == sorted(seen_ids):
                     message = 'TikTok API keeps sending the same page'
