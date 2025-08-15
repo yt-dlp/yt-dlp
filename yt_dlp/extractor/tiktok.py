@@ -992,7 +992,7 @@ class TikTokUserIE(TikTokBaseIE):
                     query=self._build_web_query(sec_uid, cursor))
 
                 current_batch = sorted(traverse_obj(response, ('itemList', ..., 'id', {str})))
-                if current_batch == last_batch:
+                if current_batch and current_batch == last_batch:
                     message = 'TikTok API keeps sending the same page'
                     if self._KNOWN_DEVICE_ID:
                         raise ExtractorError(
