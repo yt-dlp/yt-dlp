@@ -1000,7 +1000,7 @@ class TikTokUserIE(TikTokBaseIE):
                     # The user didn't pass a device_id so we can reset it and retry
                     del self._DEVICE_ID
                     retry.error = ExtractorError(
-                        f'{message}. Taking measures to avoid infinite loop', expected=True)
+                        f'{message}. Taking measures to avoid an infinite loop', expected=True)
 
             last_batch = current_batch
 
