@@ -3,7 +3,7 @@ set -eu
 
 if [ -n "${TEST_ONEDIR_BUILD:-}" ]; then
     echo "Extracting zip to verify onedir build"
-    python3 -m zipfile -e "/build/${EXE_NAME}.zip" ./
+    "${PYTHON:-python}" -m zipfile -e "/build/${EXE_NAME}.zip" ./
 else
     echo "Verifying onefile build"
     cp "/build/${EXENAME}" ./
