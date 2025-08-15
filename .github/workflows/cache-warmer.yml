@@ -1,0 +1,22 @@
+name: Keep cache warm
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 22 1,6,11,16,21,27 * *'
+
+  build:
+    if: |
+      vars.KEEP_CACHE_WARM != '' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/build.yml
+    with:
+      version: '123456'
+      unix: false
+      linux: false
+      linux_armv7l: true
+      musllinux: false
+      macos: true
+      windows: false
+      windows32: false
+    permissions:
+      contents: read
+      actions: write  # For cleaning up cache
