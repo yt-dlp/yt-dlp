@@ -2434,6 +2434,8 @@ class PlaylistEntries:
 
     @classmethod
     def parse_playlist_items(cls, string):
+        if string.startswith(',') or string.endswith(','):
+           raise ValueError('There is an invalid leading comma or a trailing comma')
         for segment in string.split(','):
             if not segment:
                 raise ValueError('There are two or more consecutive commas')
