@@ -172,17 +172,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         },
         'skip': 'video gone',
     }, {
-        # Vevo video
-        'url': 'http://www.dailymotion.com/video/x149uew_katy-perry-roar-official_musi',
-        'info_dict': {
-            'title': 'Roar (Official)',
-            'id': 'USUV71301934',
-            'ext': 'mp4',
-            'uploader': 'Katy Perry',
-            'upload_date': '20130905',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # age-restricted video
         'url': 'http://www.dailymotion.com/video/xyh2zz_leanna-decker-cyber-girl-of-the-year-desires-nude-playboy-plus_redband',
         'md5': '0d667a7b9cebecc3c89ee93099c4159d',

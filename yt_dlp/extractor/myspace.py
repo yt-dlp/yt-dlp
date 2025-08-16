@@ -111,12 +111,8 @@ class MySpaceIE(InfoExtractor):
                 search_data('stream-url'), search_data('hls-stream-url'),
                 search_data('http-stream-url'))
             if not formats:
-                vevo_id = search_data('vevo-id')
                 youtube_id = search_data('youtube-id')
-                if vevo_id:
-                    self.to_screen(f'Vevo video detected: {vevo_id}')
-                    return self.url_result(f'vevo:{vevo_id}', ie='Vevo')
-                elif youtube_id:
+                if youtube_id:
                     self.to_screen(f'Youtube video detected: {youtube_id}')
                     return self.url_result(youtube_id, ie='Youtube')
                 else:
