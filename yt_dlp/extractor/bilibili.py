@@ -648,7 +648,7 @@ class BiliBiliIE(BilibiliBaseIE):
         if not initial_state:
             query = {}
             if groups := re.search(r"[bB][vV](?P<id>[^/?#&]+)", url):
-                query["bvid"] = f"BV{groups.group("id")}"
+                query["bvid"] = f"BV{groups.group('id')}"
             elif groups := re.search(r"[aA][vV](?P<id>[^/?#&]+)", url):
                 query["aid"] = groups.group("id")
             if query:
