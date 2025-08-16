@@ -272,5 +272,26 @@
         "action": "add",
         "when": "959ac99e98c3215437e573c22d64be42d361e863",
         "short": "[priority] Security: [[CVE-2025-54072](https://nvd.nist.gov/vuln/detail/CVE-2025-54072)] [Fix `--exec` placeholder expansion on Windows](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-45hg-7f49-5h56)\n    - When `--exec` is used on Windows, the filepath expanded from `{}` (or the default placeholder) is now properly escaped"
+    },
+    {
+        "action": "change",
+        "when": "b831406a1d3be34c159835079d12bae624c43610",
+        "short": "[ie/rtve.es:program] Add extractor (#12955)",
+        "authors": ["meGAmeS1", "seproDev"]
+    },
+    {
+        "action": "add",
+        "when": "23c658b9cbe34a151f8f921ab1320bb5d4e40a4d",
+        "short": "[priority] **The minimum *recommended* Python version has been raised to 3.10**\nSince Python 3.9 will reach end-of-life in October 2025, support for it will be dropped soon. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13858)"
+    },
+    {
+        "action": "add",
+        "when": "cc5a5caac5fbc0d605b52bde0778d6fd5f97b5ab",
+        "short": "[priority] **darwin_legacy_exe builds are being discontinued**\nThis release's `yt-dlp_macos_legacy` binary will likely be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13857)"
+    },
+    {
+        "action": "add",
+        "when": "c76ce28e06c816eb5b261dfb6aff6e69dd9b7382",
+        "short": "[priority] **linux_armv7l_exe builds are being discontinued**\nThis release's `yt-dlp_linux_armv7l` binary could be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13976)"
     }
 ]

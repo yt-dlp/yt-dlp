@@ -1031,6 +1031,7 @@ def _real_main(argv=None):
                 (ImpersonateTarget('safari'), 'curl_cffi'),
                 (ImpersonateTarget('firefox'), 'curl_cffi>=0.10'),
                 (ImpersonateTarget('edge'), 'curl_cffi'),
+                (ImpersonateTarget('tor'), 'curl_cffi>=0.11'),
             ]
 
             available_targets = ydl._get_available_impersonate_targets()
