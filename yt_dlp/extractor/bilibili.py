@@ -647,10 +647,10 @@ class BiliBiliIE(BilibiliBaseIE):
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id, default=None)
         if not initial_state:
             query = {}
-            if groups := re.search(r"[bB][vV](?P<id>[^/?#&]+)", url):
-                query["bvid"] = f"BV{groups.group('id')}"
-            elif groups := re.search(r"[aA][vV](?P<id>[^/?#&]+)", url):
-                query["aid"] = groups.group("id")
+            if groups := re.search(r'[bB][vV](?P<id>[^/?#&]+)', url):
+                query['bvid'] = 'BV' + groups.group('id')
+            elif groups := re.search(r'[aA][vV](?P<id>[^/?#&]+)', url):
+                query['aid'] = groups.group('id')
             if query:
                 ep_url = traverse_obj(
                     self._download_json('https://api.bilibili.com/x/web-interface/wbi/view/detail', 'vid',
