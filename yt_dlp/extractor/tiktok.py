@@ -65,7 +65,7 @@ class TikTokBaseIE(InfoExtractor):
 
     @functools.cached_property
     def _DEVICE_ID(self):
-        return self._KNOWN_DEVICE_ID or str(random.randint(7250000000000000000, 7351147085025500000))
+        return self._KNOWN_DEVICE_ID or str(random.randint(7250000000000000000, 7325099899999994577))
 
     @functools.cached_property
     def _API_HOSTNAME(self):
