@@ -1527,11 +1527,11 @@ class InfoExtractor:
             r'>\s*(?:18\s+U(?:\.S\.C\.|SC)\s+)?(?:§+\s*)?2257\b',
         ]
 
-        age_limit = 0
+        age_limit = None
         for marker in AGE_LIMIT_MARKERS:
             mobj = re.search(marker, html)
             if mobj:
-                age_limit = max(age_limit, int(traverse_obj(mobj, 1, default=18)))
+                age_limit = max(age_limit or 0, int(traverse_obj(mobj, 1, default=18)))
         return age_limit
 
     def _media_rating_search(self, html):
