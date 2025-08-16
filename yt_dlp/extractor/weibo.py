@@ -8,6 +8,7 @@ from ..utils import (
     int_or_none,
     make_archive_id,
     mimetype2ext,
+    parse_qs,
     parse_resolution,
     str_or_none,
     strip_jsonp,
@@ -209,7 +210,11 @@ class WeiboIE(WeiboBaseIE):
 
 
 class WeiboVideoIE(WeiboBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?weibo\.com/tv/show/(?P<id>\d+:(?:[\da-f]{32}|\d{16,}))'
+    _VIDEO_ID_RE = r'\d+:(?:[\da-f]{32}|\d{16,})'
+    _VALID_URL = [
+        fr'https?://(?:www\.)?weibo\.com/tv/show/(?P<id>{_VIDEO_ID_RE})',
+        fr'https?://video\.weibo\.com/show/?\?(?:[^#]+&)?fid=(?P<id>{_VIDEO_ID_RE})',
+    ]
     _TESTS = [{
         'url': 'https://weibo.com/tv/show/1034:4797699866951785?from=old_pc_videoshow',
         'info_dict': {
@@ -252,6 +257,28 @@ class WeiboVideoIE(WeiboBaseIE):
             'upload_date': '20171226',
             '_old_archive_ids': ['weibomobile 4189191225395228'],
         },
+    }, {
+        'url': 'https://video.weibo.com/show?fid=1034:4967272104787984',
+        'info_dict': {
+            'id': '4967273022359838',
+            'ext': 'mp4',
+            'display_id': 'Nse4S9TTU',
+            'title': '#张婧仪[超话]#📸#婧仪的相册集#  早收工的一天，小张@张婧仪 变身可可爱爱小导游，来次说走就走的泉州City Walk[举手]',
+            'alt_title': '#张婧仪[超话]#📸#婧仪的相册集# \n早收工的一天，小张@张婧仪 变身可可爱爱小导游，来次说走就走的泉州City Walk[举手]',
+            'description': '#张婧仪[超话]#📸#婧仪的相册集# \n早收工的一天，小张@张婧仪 变身可可爱爱小导游，来次说走就走的泉州City Walk[举手] http://t.cn/A6WTpbEu \u200B\u200B\u200B',
+            'uploader': '张婧仪工作室',
+            'uploader_id': '7610808848',
+            'uploader_url': 'https://weibo.com/u/7610808848',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'duration': 85,
+            'thumbnail': 'https://wx2.sinaimg.cn/orj480/008j4b3qly1hjsce01gnqj30u00gvwf8.jpg',
+            'tags': ['婧仪的相册集'],
+            'timestamp': 1699773545,
+            'upload_date': '20231112',
+            '_old_archive_ids': ['weibomobile 4967273022359838'],
+        },
     }]
 
     def _real_extract(self, url):
@@ -275,6 +302,38 @@ class WeiboUserIE(WeiboBaseIE):
             'uploader': '萧影殿下',
         },
         'playlist_mincount': 195,
+    }, {
+        'url': 'https://weibo.com/u/7610808848?tabtype=newVideo&layerid=4967273022359838',
+        'info_dict': {
+            'id': '7610808848',
+            'title': '张婧仪工作室的视频',
+            'description': '张婧仪工作室的全部视频',
+            'uploader': '张婧仪工作室',
+        },
+        'playlist_mincount': 61,
+    }, {
+        'url': 'https://weibo.com/u/7610808848?tabtype=newVideo&layerid=4967273022359838',
+        'info_dict': {
+            'id': '4967273022359838',
+            'ext': 'mp4',
+            'display_id': 'Nse4S9TTU',
+            'title': '#张婧仪[超话]#📸#婧仪的相册集#  早收工的一天，小张@张婧仪 变身可可爱爱小导游，来次说走就走的泉州City Walk[举手]',
+            'alt_title': '#张婧仪[超话]#📸#婧仪的相册集# \n早收工的一天，小张@张婧仪 变身可可爱爱小导游，来次说走就走的泉州City Walk[举手]',
+            'description': '#张婧仪[超话]#📸#婧仪的相册集# \n早收工的一天，小张@张婧仪 变身可可爱爱小导游，来次说走就走的泉州City Walk[举手] http://t.cn/A6WTpbEu \u200B\u200B\u200B',
+            'uploader': '张婧仪工作室',
+            'uploader_id': '7610808848',
+            'uploader_url': 'https://weibo.com/u/7610808848',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'duration': 85,
+            'thumbnail': 'https://wx2.sinaimg.cn/orj480/008j4b3qly1hjsce01gnqj30u00gvwf8.jpg',
+            'tags': ['婧仪的相册集'],
+            'timestamp': 1699773545,
+            'upload_date': '20231112',
+            '_old_archive_ids': ['weibomobile 4967273022359838'],
+        },
+        'params': {'noplaylist': True},
     }]
 
     def _fetch_page(self, uid, cursor=0, page=1):
@@ -295,6 +354,11 @@ class WeiboUserIE(WeiboBaseIE):
 
     def _real_extract(self, url):
         uid = self._match_id(url)
+        params = {k: v[-1] for k, v in parse_qs(url).items()}
+        video_id = params.get('layerid') if params.get('tabtype') == 'newVideo' else None
+        if not self._yes_playlist(uid, video_id):
+            return self.url_result(f'https://weibo.com/{uid}/{video_id}', WeiboIE, video_id)
+
         first_page = self._fetch_page(uid)
         uploader = traverse_obj(first_page, ('list', ..., 'user', 'screen_name', {str}), get_all=False)
         metainfo = {
