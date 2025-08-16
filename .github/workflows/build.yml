@@ -422,7 +422,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-bin-${{ github.job }}-win${{ matrix.suffix }}
+          name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
             dist/yt-dlp${{ matrix.suffix }}.exe
             dist/yt-dlp_win${{ matrix.suffix }}.zip
