@@ -287,7 +287,7 @@
     {
         "action": "add",
         "when": "cc5a5caac5fbc0d605b52bde0778d6fd5f97b5ab",
-        "short": "[priority] **darwin_legacy_exe builds are being discontinued**\nThis release's `yt-dlp_macos_legacy` binary will likely be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13857)"
+        "short": "[priority] **darwin_legacy_exe builds are being discontinued**\nThis release's `yt-dlp_macos_legacy` binary will likely be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13856)"
     },
     {
         "action": "add",
