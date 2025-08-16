@@ -644,7 +644,19 @@ class BiliBiliIE(BilibiliBaseIE):
 
         headers['Referer'] = url
 
-        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id, default=None)
+        if not initial_state:
+            query = {}
+            if groups := re.search(r"[bB][vV](?P<id>[^/?#&]+)", url):
+                query["bvid"] = f"BV{groups.group("id")}"
+            elif groups := re.search(r"[aA][vV](?P<id>[^/?#&]+)", url):
+                query["aid"] = groups.group("id")
+            if query:
+                ep_url = traverse_obj(
+                    self._download_json('https://api.bilibili.com/x/web-interface/wbi/view/detail', 'vid',
+                        query=self._sign_wbi(query, 'vid'), headers=headers), ('data', 'View', 'redirect_url'))
+                if ep_url and BiliBiliBangumiIE._match_valid_url(ep_url):
+                    return BiliBiliBangumiIE(self._downloader).extract(ep_url)
 
         if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
             self.raise_login_required()
