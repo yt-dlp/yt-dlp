@@ -1900,37 +1900,21 @@ def create_parser():
         default='https://sponsor.ajay.app', dest='sponsorblock_api',
         help='SponsorBlock API location, defaults to %default')
 
-    sponsorblock.add_option(
-        '--sponskrub',
-        action='store_true', dest='sponskrub', default=False,
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--no-sponskrub',
-        action='store_false', dest='sponskrub',
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--sponskrub-cut', default=False,
-        action='store_true', dest='sponskrub_cut',
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--no-sponskrub-cut',
-        action='store_false', dest='sponskrub_cut',
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--sponskrub-force', default=False,
-        action='store_true', dest='sponskrub_force',
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--no-sponskrub-force',
-        action='store_true', dest='sponskrub_force',
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--sponskrub-location', metavar='PATH',
-        dest='sponskrub_path', default='',
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--sponskrub-args', dest='sponskrub_args', metavar='ARGS',
-        help=optparse.SUPPRESS_HELP)
+    sponskrub_switches = [
+        '--sponskrub', '--no-sponskrub', '--sponskrub-cut', '--no-sponskrub-cut',
+        '--sponskrub-force', '--no-sponskrub-force']
+    sponskrub_arguments = ['--sponskrub-location', '--sponskrub-args']
+
+    def _sponskrub_deprecation(option, opt_str, value, parser):
+        current = getattr(parser.values, 'sponskrub_options', [])
+        parser.values.sponskrub_options = [*current, opt_str]
+
+    for switch in sponskrub_switches:
+        sponsorblock.add_option(
+            switch, action='callback', callback=_sponskrub_deprecation, help=optparse.SUPPRESS_HELP)
+    for opt in sponskrub_arguments:
+        sponsorblock.add_option(
+            opt, action='callback', type='str', callback=_sponskrub_deprecation, help=optparse.SUPPRESS_HELP)
 
     extractor = optparse.OptionGroup(parser, 'Extractor Options')
     extractor.add_option(
