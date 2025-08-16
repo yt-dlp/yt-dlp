@@ -657,6 +657,7 @@ class BiliBiliIE(BilibiliBaseIE):
                         query=self._sign_wbi(query, 'vid'), headers=headers), ('data', 'View', 'redirect_url'))
                 if ep_url and BiliBiliBangumiIE._match_valid_url(ep_url):
                     return BiliBiliBangumiIE(self._downloader).extract(ep_url)
+            raise ExtractorError('Unable to extract initial state!')
 
         if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
             self.raise_login_required()
