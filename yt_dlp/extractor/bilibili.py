@@ -654,7 +654,7 @@ class BiliBiliIE(BilibiliBaseIE):
             if query:
                 ep_url = traverse_obj(
                     self._download_json('https://api.bilibili.com/x/web-interface/wbi/view/detail', 'vid',
-                        query=self._sign_wbi(query, 'vid'), headers=headers), ('data', 'View', 'redirect_url'))
+                                        query=self._sign_wbi(query, 'vid'), headers=headers), ('data', 'View', 'redirect_url'))
                 if ep_url and BiliBiliBangumiIE._match_valid_url(ep_url):
                     return BiliBiliBangumiIE(self._downloader).extract(ep_url)
             raise ExtractorError('Unable to extract initial state!')
