@@ -4,7 +4,7 @@ from ..utils.traversal import require, traverse_obj
 
 
 class VTMIE(MedialaanBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?vtm\.be/[^/?#]+~v(?P<id>[\da-f-]+)'
+    _VALID_URL = r'https?://(?:www\.)?vtm\.be/[^/?#]+~v(?P<id>[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12})'
     _TESTS = [{
         'url': 'https://vtm.be/gast-vernielt-genkse-hotelkamer~ve7534523-279f-4b4d-a5c9-a33ffdbe23e1',
         'info_dict': {
@@ -32,11 +32,11 @@ class VTMIE(MedialaanBaseIE):
             self.raise_login_required()
 
     def _real_extract(self, url):
-        uuid = self._match_id(url)
-        webpage = self._download_webpage(url, uuid)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         apollo_state = self._search_json(
-            r'window\.__APOLLO_STATE__\s*=', webpage, 'apollo state', uuid)
+            r'window\.__APOLLO_STATE__\s*=', webpage, 'apollo state', video_id)
         mychannels_id = traverse_obj(apollo_state, (
-            f'Video:{{"uuid":"{uuid}"}}', 'myChannelsVideo', {str_or_none}, {require('mychannels ID')}))
+            f'Video:{{"uuid":"{video_id}"}}', 'myChannelsVideo', {str_or_none}, {require('mychannels ID')}))
 
         return self._extract_from_mychannels_api(mychannels_id)

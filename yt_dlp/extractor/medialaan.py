@@ -90,7 +90,7 @@ class MedialaanIE(MedialaanBaseIE):
                                     tubantia|
                                     volkskrant
                                 )\.nl
-                            )/videos?/(?:[^/]+/)*[^/?&#]+(?:-|~p)
+                            )/videos?/(?:[^/?#]+/)*[^/?&#]+(?:-|~p)
                         )
                         (?P<id>\d+)
                     '''
@@ -213,11 +213,10 @@ class MedialaanIE(MedialaanBaseIE):
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
-        return traverse_obj(webpage, (
+        yield from traverse_obj(webpage, (
             {find_elements(tag='div', attr='data-mychannels-type', value='video', html=True)},
-            ..., {extract_attributes}, 'data-mychannels-id', {str},
-            {lambda x: f'https://mychannels.video/embed/{x}'}, {url_or_none}, filter, all, filter,
-        ))
+            ..., {extract_attributes}, 'data-mychannels-id', {str}, filter,
+            {lambda x: f'https://mychannels.video/embed/{x}'}))
 
     def _real_extract(self, url):
         mychannels_id = self._match_id(url)
