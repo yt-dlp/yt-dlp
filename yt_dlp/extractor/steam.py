@@ -50,7 +50,6 @@ class SteamIE(InfoExtractor):
         'params': {
             'playlistend': 2,
         },
-        'expected_warnings': ['Unknown MIME type image/avif in DASH manifest'],
     }, {
         'url': 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
         'info_dict': {
