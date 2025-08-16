@@ -213,7 +213,7 @@ class WeiboVideoIE(WeiboBaseIE):
     _VIDEO_ID_RE = r'\d+:(?:[\da-f]{32}|\d{16,})'
     _VALID_URL = [
         fr'https?://(?:www\.)?weibo\.com/tv/show/(?P<id>{_VIDEO_ID_RE})',
-        fr'https?://video\.weibo\.com/show\?(?:[^#]+&)?fid=(?P<id>{_VIDEO_ID_RE})',
+        fr'https?://video\.weibo\.com/show/?\?(?:[^#]+&)?fid=(?P<id>{_VIDEO_ID_RE})',
     ]
     _TESTS = [{
         'url': 'https://weibo.com/tv/show/1034:4797699866951785?from=old_pc_videoshow',
