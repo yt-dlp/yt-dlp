@@ -503,11 +503,10 @@ def validate_options(opts):
     # Common mistake: -f mp4
     if opts.format == 'mp4':
         warnings.append('.\n         '.join((
-            '"-f mp4" selects the best pre-merged mp4 format which is most likely not what you want',
-            'Many websites do not provide pre-merged mp4 formats. So this will either not work or limit you to low quality formats',
-            'To download the best h264 video and aac audio in an mp4 container, use "-t mp4" instead',
-            'This will cause yt-dlp to pick and merge the appropriate formats',
-            'If you know what you are doing and want the pre-merged mp4 format, use "-f b[ext=mp4]" instead to suppress this warning')))
+            '"-f mp4" selects the best pre-merged mp4 format which is often not what\'s intended',
+            'Pre-merged mp4 formats are not available from all sites, or may only be available in lower quality',
+            'To prioritize the best h264 video and aac audio in an mp4 container, use "-t mp4" instead',
+            'If you know what you are doing and want a pre-merged mp4 format, use "-f b[ext=mp4]" instead to suppress this warning')))
 
     # --(postprocessor/downloader)-args without name
     def report_args_compat(name, value, key1, key2=None, where=None):
