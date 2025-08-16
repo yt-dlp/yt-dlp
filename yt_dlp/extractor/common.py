@@ -1527,11 +1527,11 @@ class InfoExtractor:
             r'>\s*(?:18\s+U(?:\.S\.C\.|SC)\s+)?(?:§+\s*)?2257\b',
         ]
 
-        age_limit = 0
+        age_limit = None
         for marker in AGE_LIMIT_MARKERS:
             mobj = re.search(marker, html)
             if mobj:
-                age_limit = max(age_limit, int(traverse_obj(mobj, 1, default=18)))
+                age_limit = max(age_limit or 0, int(traverse_obj(mobj, 1, default=18)))
         return age_limit
 
     def _media_rating_search(self, html):
@@ -2968,7 +2968,7 @@ class InfoExtractor:
                     else:
                         codecs = parse_codecs(codec_str)
                     if content_type not in ('video', 'audio', 'text'):
-                        if mime_type == 'image/jpeg':
+                        if mime_type in ('image/avif', 'image/jpeg'):
                             content_type = mime_type
                         elif codecs.get('vcodec', 'none') != 'none':
                             content_type = 'video'
@@ -3028,14 +3028,14 @@ class InfoExtractor:
                             'manifest_url': mpd_url,
                             'filesize': filesize,
                         }
-                    elif content_type == 'image/jpeg':
+                    elif content_type in ('image/avif', 'image/jpeg'):
                         # See test case in VikiIE
                         # https://www.viki.com/videos/1175236v-choosing-spouse-by-lottery-episode-1
                         f = {
                             'format_id': format_id,
                             'ext': 'mhtml',
                             'manifest_url': mpd_url,
-                            'format_note': 'DASH storyboards (jpeg)',
+                            'format_note': f'DASH storyboards ({mimetype2ext(mime_type)})',
                             'acodec': 'none',
                             'vcodec': 'none',
                         }
@@ -3177,7 +3177,7 @@ class InfoExtractor:
                             'url': mpd_url or base_url,
                             'fragment_base_url': base_url,
                             'fragments': [],
-                            'protocol': 'http_dash_segments' if mime_type != 'image/jpeg' else 'mhtml',
+                            'protocol': 'mhtml' if mime_type in ('image/avif', 'image/jpeg') else 'http_dash_segments',
                         })
                         if 'initialization_url' in representation_ms_info:
                             initialization_url = representation_ms_info['initialization_url']
@@ -3192,7 +3192,7 @@ class InfoExtractor:
                     else:
                         # Assuming direct URL to unfragmented media.
                         f['url'] = base_url
-                    if content_type in ('video', 'audio', 'image/jpeg'):
+                    if content_type in ('video', 'audio', 'image/avif', 'image/jpeg'):
                         f['manifest_stream_number'] = stream_numbers[f['url']]
                         stream_numbers[f['url']] += 1
                         period_entry['formats'].append(f)

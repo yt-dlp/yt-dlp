@@ -58,26 +58,30 @@ def _get_variant_and_executable_path():
     """@returns (variant, executable_path)"""
     if getattr(sys, 'frozen', False):
         path = sys.executable
+        # py2exe is unsupported but we should still correctly identify it for debugging purposes
         if not hasattr(sys, '_MEIPASS'):
             return 'py2exe', path
-        elif sys._MEIPASS == os.path.dirname(path):
+        if sys._MEIPASS == os.path.dirname(path):
             return f'{sys.platform}_dir', path
-        elif sys.platform == 'darwin':
+        if sys.platform == 'darwin':
+            # darwin_legacy_exe is no longer supported, but still identify it to block updates
             machine = '_legacy' if version_tuple(platform.mac_ver()[0]) < (10, 15) else ''
-        else:
-            machine = f'_{platform.machine().lower()}'
-            is_64bits = sys.maxsize > 2**32
-            # Ref: https://en.wikipedia.org/wiki/Uname#Examples
-            if machine[1:] in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
-                machine = '_x86' if not is_64bits else ''
-            # platform.machine() on 32-bit raspbian OS may return 'aarch64', so check "64-bitness"
-            # See: https://github.com/yt-dlp/yt-dlp/issues/11813
-            elif machine[1:] == 'aarch64' and not is_64bits:
-                machine = '_armv7l'
-            # sys.executable returns a /tmp/ path for staticx builds (linux_static)
-            # Ref: https://staticx.readthedocs.io/en/latest/usage.html#run-time-information
-            if static_exe_path := os.getenv('STATICX_PROG_PATH'):
-                path = static_exe_path
+            return f'darwin{machine}_exe', path
+
+        machine = f'_{platform.machine().lower()}'
+        is_64bits = sys.maxsize > 2**32
+        # Ref: https://en.wikipedia.org/wiki/Uname#Examples
+        if machine[1:] in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
+            machine = '_x86' if not is_64bits else ''
+        # platform.machine() on 32-bit raspbian OS may return 'aarch64', so check "64-bitness"
+        # See: https://github.com/yt-dlp/yt-dlp/issues/11813
+        elif machine[1:] == 'aarch64' and not is_64bits:
+            machine = '_armv7l'
+        # sys.executable returns a /tmp/ path for staticx builds (linux_static)
+        # Ref: https://staticx.readthedocs.io/en/latest/usage.html#run-time-information
+        if static_exe_path := os.getenv('STATICX_PROG_PATH'):
+            path = static_exe_path
+
         return f'{remove_end(sys.platform, "32")}{machine}_exe', path
 
     path = os.path.dirname(__file__)
@@ -111,7 +115,6 @@ _FILE_SUFFIXES = {
     'win_exe': '.exe',
     'win_x86_exe': '_x86.exe',
     'darwin_exe': '_macos',
-    'darwin_legacy_exe': '_macos_legacy',
     'linux_exe': '_linux',
     'linux_aarch64_exe': '_linux_aarch64',
     'linux_armv7l_exe': '_linux_armv7l',
@@ -146,12 +149,6 @@ def _get_system_deprecation():
                     'See  https://github.com/yt-dlp/yt-dlp/{}  for details.\n{}')
     STOP_MSG = 'You may stop receiving updates on this version at any time!'
     variant = detect_variant()
-
-    # Temporary until macos_legacy executable builds are discontinued
-    if variant == 'darwin_legacy_exe':
-        return EXE_MSG_TMPL.format(
-            f'{variant} (the PyInstaller-bundled executable for macOS versions older than 10.15)',
-            'issues/13856', STOP_MSG)
 
     # Temporary until linux_armv7l executable builds are discontinued
     if variant == 'linux_armv7l_exe':
