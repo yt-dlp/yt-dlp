@@ -98,14 +98,11 @@ class SproutVideoIE(InfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id, headers={
-            **traverse_obj(smuggled_data, {'Referer': 'referer'}),
-            # yt-dlp's default Chrome user-agents are too old
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:140.0) Gecko/20100101 Firefox/140.0',
-        })
+        webpage = self._download_webpage(
+            url, video_id, headers=traverse_obj(smuggled_data, {'Referer': 'referer'}))
         data = self._search_json(
-            r'var\s+(?:dat|playerInfo)\s*=\s*["\']', webpage, 'player info', video_id,
-            contains_pattern=r'[A-Za-z0-9+/=]+', end_pattern=r'["\'];',
+            r'(?:var|const|let)\s+(?:dat|(?:player|video)Info|)\s*=\s*["\']', webpage, 'player info',
+            video_id, contains_pattern=r'[A-Za-z0-9+/=]+', end_pattern=r'["\'];',
             transform_source=lambda x: base64.b64decode(x).decode())
 
         # SproutVideo may send player info for 'SMPTE Color Monitor Test' [a791d7b71b12ecc52e]

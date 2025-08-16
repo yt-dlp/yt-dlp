@@ -529,14 +529,14 @@ def create_parser():
                 'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
-                'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext', 'prefer-vp9-sort',
+                'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext', 'prefer-vp9-sort', 'mtime-by-default',
             }, 'aliases': {
                 'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization'],
                 '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
                 '2023': ['2024', 'prefer-vp9-sort'],
-                '2024': [],
+                '2024': ['mtime-by-default'],
             },
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
@@ -1466,12 +1466,12 @@ def create_parser():
         help='Do not use .part files - write directly into output file')
     filesystem.add_option(
         '--mtime',
-        action='store_true', dest='updatetime', default=True,
-        help='Use the Last-modified header to set the file modification time (default)')
+        action='store_true', dest='updatetime', default=None,
+        help='Use the Last-modified header to set the file modification time')
     filesystem.add_option(
         '--no-mtime',
         action='store_false', dest='updatetime',
-        help='Do not use the Last-modified header to set the file modification time')
+        help='Do not use the Last-modified header to set the file modification time (default)')
     filesystem.add_option(
         '--write-description',
         action='store_true', dest='writedescription', default=False,
@@ -1526,7 +1526,7 @@ def create_parser():
         action='store_false', dest='getcomments',
         help='Do not retrieve video comments unless the extraction is known to be quick (Alias: --no-get-comments)')
     filesystem.add_option(
-        '--load-info-json', '--load-info',
+        '--load-info-json',
         dest='load_info_filename', metavar='FILE',
         help='JSON file containing the video information (created with the "--write-info-json" option)')
     filesystem.add_option(
