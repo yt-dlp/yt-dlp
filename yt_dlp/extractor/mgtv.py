@@ -93,8 +93,11 @@ class MGTVIE(InfoExtractor):
                 raise ExtractorError(error['msg'], expected=True)
             raise
 
+        url = 'https://pcweb.api.mgtv.com/player/getSource'
+        if self._get_cookies('https://mgtv.com'):
+            url = 'https://tinker.glb.mgtv.com/player/getSource'
         stream_data = self._download_json(
-            'https://pcweb.api.mgtv.com/player/getSource', video_id, query={
+            url, video_id, query={
                 'tk2': tk2,
                 'pm2': api_data['atc']['pm2'],
                 'video_id': video_id,
