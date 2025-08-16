@@ -88,12 +88,12 @@ class UMPEncoder:
         self.fp = fp
 
     def write_part(self, part: UMPPart) -> None:
-        if not isinstance(part.part_id, UMPPartId):
-            raise ValueError('part_id must be an instance of UMPPartId')
-
         write_varint(self.fp, part.part_id.value)
         write_varint(self.fp, part.size)
         self.fp.write(part.data.read())
+
+    __enter__ = lambda self: self
+    __exit__ = lambda self, exc_type, exc_value, traceback: None
 
 
 def read_varint(fp: io.BufferedIOBase) -> int:

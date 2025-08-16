@@ -2,7 +2,6 @@ import dataclasses
 import io
 
 import pytest
-from unittest.mock import MagicMock
 
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError, MediaSegmentMismatchError
 from yt_dlp.extractor.youtube._streaming.sabr.part import (
@@ -43,17 +42,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     MediaHeader,
     TimeRange,
 )
-from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, NextRequestPolicy, CompressionAlgorithm
-
-
-@pytest.fixture
-def logger():
-    return MagicMock()
-
-
-@pytest.fixture
-def client_info():
-    return ClientInfo()
+from yt_dlp.extractor.youtube._proto.innertube import NextRequestPolicy, CompressionAlgorithm
 
 
 @pytest.fixture
