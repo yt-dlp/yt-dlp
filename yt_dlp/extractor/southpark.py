@@ -1,4 +1,5 @@
 from .mtv import MTVServicesInfoExtractor
+from ..utils import ExtractorError, random_uuidv4, traverse_obj
 
 
 class SouthParkIE(MTVServicesInfoExtractor):
@@ -99,14 +100,50 @@ class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
         },
     }]
 
-    def _get_feed_url(self, uri, url=None):
-        video_id = self._id_from_uri(uri)
-        config = self._download_json(
-            f'http://media.mtvnservices.com/pmt/e1/access/index.html?uri={uri}&configtype=edge&ref={url}', video_id)
-        return self._remove_template_parameter(config['feedWithQueryParams'])
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
 
-    def _get_feed_query(self, uri):
-        return
+        data = self._parse_json(self._search_regex(
+            r'window\.__DATA__\s*=\s*({.+?});', webpage, 'data'), display_id)
+
+        video_detail = traverse_obj(
+            data,
+            # Path for regular episodes
+            ('children', lambda _, v: v.get('type') == 'MainContainer',
+             'children', 0, 'children', 0, 'props', 'videoDetail'),
+            # Fallback path for special episodes
+            ('children', 0, 'videoDetail'),
+            get_all=False,
+        )
+
+        if not video_detail:
+            raise ExtractorError('Could not find video data in page')
+
+        api_url = video_detail['videoServiceUrl']
+
+        api_data = self._download_json(
+            api_url, display_id, 'Fetching video metadata', query={
+                'ssus': random_uuidv4(),
+                'clientPlatform': 'mobile',
+            })
+
+        hls_url = traverse_obj(api_data, ('stitchedstream', 'source'), expected_type=str)
+
+        info = {
+            'id': video_detail['id'],
+            'display_id': display_id,
+            'title': video_detail.get('title'),
+            'description': video_detail.get('description'),
+            'duration': traverse_obj(video_detail, ('duration', 'milliseconds'), expected_type=int) / 1000,
+            'season_number': video_detail.get('seasonNumber'),
+            'episode_number': traverse_obj(video_detail, 'episodeAiringOrder'),
+            'timestamp': traverse_obj(video_detail, ('publishDate', 'timestamp')),
+            'series': traverse_obj(video_detail, ('parentEntity', 'title')),
+        }
+        info['formats'] = self._extract_m3u8_formats(
+            hls_url, display_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
+        return info
 
 
 class SouthParkLatIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
