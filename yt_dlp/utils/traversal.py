@@ -3,6 +3,7 @@ from __future__ import annotations
 import collections
 import collections.abc
 import contextlib
+import dataclasses
 import functools
 import http.cookies
 import inspect
@@ -233,6 +234,8 @@ def traverse_obj(
                 result = list(map(apply_specials, obj.iterfind(xpath)))
             else:
                 result = apply_specials(obj)
+        elif dataclasses.is_dataclass(obj):
+            result = getattr(obj, key)
 
         return branching, result if branching else (result,)
 
