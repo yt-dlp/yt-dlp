@@ -921,6 +921,9 @@ class NiconicoLiveIE(NiconicoBaseIE):
 
         age_limit = 18 if 'age_auth' in urlh.url else None
         if age_limit:
+            if not self.is_logged_in:
+                self.raise_login_required('Login is required to access age-restricted content')
+
             my = self._download_webpage('https://www.nicovideo.jp/my', None, 'Checking age verification')
             if traverse_obj(my, (
                 {find_element(id='js-initial-userpage-data', html=True)}, {extract_attributes},
@@ -929,7 +932,7 @@ class NiconicoLiveIE(NiconicoBaseIE):
                 self._set_cookie('.nicovideo.jp', 'age_auth', '1')
                 webpage = self._download_webpage(url, video_id)
             else:
-                raise ExtractorError('Age restricted content', expected=True)
+                raise ExtractorError('Sensitive content setting must be enabled', expected=True)
 
         embedded_data = traverse_obj(webpage, (
             {find_element(tag='script', id='embedded-data', html=True)},
