@@ -13,8 +13,8 @@ from ..utils.traversal import traverse_obj
 
 class AdobeTVVideoIE(InfoExtractor):
     IE_NAME = 'adobe:tv'
-    _VALID_URL = r'https?://video\.tv\.adobe\.com/v/(?P<id>[^/?#]+)'
-    _EMBED_REGEX = [r'<iframe[^>]+src=[\'"](?P<url>(?:https?:)?//video\.tv\.adobe\.com/v/[^\'"]+)']
+    _VALID_URL = r'https?://video\.tv\.adobe\.com/v/(?P<id>\d+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=[\'"](?P<url>(?:https?:)?//video\.tv\.adobe\.com/v/\d+)']
     _TESTS = [{
         'url': 'https://video.tv.adobe.com/v/2456',
         'md5': '43662b577c018ad707a63766462b1e87',
@@ -68,7 +68,7 @@ class AdobeTVVideoIE(InfoExtractor):
                 fmts = [{'url': source_url}]
 
             for fmt in fmts:
-                fmt.update(**traverse_obj(source, {
+                fmt.update(traverse_obj(source, {
                     'duration': ('duration', {float_or_none(scale=1000)}),
                     'filesize': ('kilobytes', {float_or_none(invscale=1000)}),
                     'format_id': (('format', 'label'), {str}, all, {lambda x: join_nonempty(*x)}),
@@ -82,7 +82,7 @@ class AdobeTVVideoIE(InfoExtractor):
         for translation in traverse_obj(video_data, (
             'translations', lambda _, v: url_or_none(v['vttPath']),
         )):
-            lang = translation.get('language_w3c') or ISO639Utils.long2short(translation['language_medium'])
+            lang = translation.get('language_w3c') or ISO639Utils.long2short(translation.get('language_medium')) or 'und'
             subtitles.setdefault(lang, []).append({
                 'ext': 'vtt',
                 'url': self._proto_relative_url(translation['vttPath']),
