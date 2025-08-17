@@ -816,6 +816,7 @@ from .hse import (
     HSEProductIE,
     HSEShowIE,
 )
+from .hsex import HSexIE
 from .huajiao import HuajiaoIE
 from .huffpost import HuffPostIE
 from .hungama import (
