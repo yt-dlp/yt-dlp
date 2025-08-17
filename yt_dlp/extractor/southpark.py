@@ -58,15 +58,29 @@ class SouthParkIE(MTVServicesBaseIE):
 
 class SouthParkEsIE(MTVServicesBaseIE):
     IE_NAME = 'southpark.cc.com:español'
-    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.cc\.com/es/episodios/(?P<id>.+?)(\?|#|$))'
+    _VALID_URL = r'https?://(?:www\.)?southpark\.cc\.com/es/episodios/(?P<id>[\da-z]{6})'
     _TESTS = [{
-        'url': 'http://southpark.cc.com/es/episodios/s01e01-cartman-consigue-una-sonda-anal#source=351c1323-0b96-402d-a8b9-40d01b2e9bde&position=1&sort=!airdate',
+        'url': 'https://southpark.cc.com/es/episodios/er4a32/south-park-aumento-de-peso-4000-temporada-1-ep-2',
         'info_dict': {
-            'title': 'Cartman Consigue Una Sonda Anal',
-            'description': 'Cartman Consigue Una Sonda Anal',
+            'id': '5fb94f0c-ecfd-11e0-aca6-0026b9414f30',
+            'ext': 'mp4',
+            'display_id': 'er4a32',
+            'title': 'Aumento de peso 4000',
+            'description': 'md5:a939b4819ea74c245a0cde180de418c0',
+            'channel': 'Comedy Central',
+            'duration': 1320.0,
+            'thumbnail': r're:https://images\.paramount\.tech/uri/mgid:arc:imageassetref:',
+            'series': 'South Park',
+            'season': 'Season 1',
+            'season_number': 1,
+            'episode': 'Episode 2',
+            'episode_number': 2,
+            'timestamp': 872078400,
+            'upload_date': '19970820',
+            'release_timestamp': 872078400,
+            'release_date': '19970820',
         },
-        'playlist_count': 4,
-        'skip': 'Geo-restricted',
+        'params': {'skip_download': 'm3u8'},
     }]
 
 
