@@ -646,6 +646,9 @@ class BiliBiliIE(BilibiliBaseIE):
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id, default=None)
         if not initial_state:
+            if traverse_obj(self._search_json(
+                    r'<script\s*>\s*window\._riskdata_\s*=', webpage, 'risk data', video_id, default=None), 'v_voucher'):
+                raise ExtractorError('You are downloading too frequently, please wait and try later', expected=True)
             query = {'platform': 'web'}
             prefix = prefix.upper()
             if prefix == 'BV':
