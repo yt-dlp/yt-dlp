@@ -410,10 +410,6 @@ from .cnn import (
     CNNIE,
     CNNIndonesiaIE,
 )
-from .comedycentral import (
-    ComedyCentralIE,
-    ComedyCentralTVIE,
-)
 from .commonmistakes import (
     BlobIE,
     CommonMistakesIE,
