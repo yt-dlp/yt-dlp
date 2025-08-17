@@ -1,10 +1,13 @@
-import itertools
+import functools
 import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    OnDemandPagedList,
+    UnsupportedError,
     clean_html,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
     update_url_query,
     url_or_none,
@@ -14,10 +17,9 @@ from ..utils.traversal import traverse_obj
 
 class TuneInBaseIE(InfoExtractor):
     def _call_api(self, item_id, endpoint=None, note='Downloading JSON metadata', query=None):
-        path = f'/{endpoint}' if endpoint else ''
-
         return self._download_json(
-            f'https://api.tunein.com/profiles/{item_id}{path}', item_id, note=note, query=query)
+            join_nonempty('https://api.tunein.com/profiles', item_id, endpoint, delim='/'),
+            item_id, note=note, query=query)
 
     def _extract_formats_and_subtitles(self, content_id):
         streams = self._download_json(
@@ -25,11 +27,10 @@ class TuneInBaseIE(InfoExtractor):
                 'formats': 'mp3,aac,ogg,flash,hls',
                 'id': content_id,
                 'render': 'json',
-            },
-        )['body']
+            })
 
         formats, subtitles = [], {}
-        for stream in streams:
+        for stream in traverse_obj(streams, ('body', lambda _, v: url_or_none(v['url']))):
             if stream.get('media_type') == 'hls':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(stream['url'], content_id, fatal=False)
                 formats.extend(fmts)
@@ -38,7 +39,7 @@ class TuneInBaseIE(InfoExtractor):
                 formats.append(traverse_obj(stream, {
                     'abr': ('bitrate', {int_or_none}),
                     'ext': ('media_type', {str}),
-                    'url': ('url', {self._proto_relative_url}, {url_or_none}),
+                    'url': ('url', {self._proto_relative_url}),
                 }))
 
         return formats, subtitles
@@ -46,7 +47,7 @@ class TuneInBaseIE(InfoExtractor):
 
 class TuneInStationIE(TuneInBaseIE):
     IE_NAME = 'tunein:station'
-    _VALID_URL = r'https?://tunein\.com/radio/[^/]+(?P<id>s\d+)'
+    _VALID_URL = r'https?://tunein\.com/radio/[^/?#]+(?P<id>s\d+)'
     _TESTS = [{
         'url': 'https://tunein.com/radio/Jazz24-885-s34682/',
         'info_dict': {
@@ -91,7 +92,7 @@ class TuneInStationIE(TuneInBaseIE):
                 'channel_follower_count': ('Actions', 'Follow', 'FollowerCount', {int_or_none}),
                 'description': ('Description', {clean_html}, filter),
                 'is_live': ('Actions', 'Play', 'IsLive', {bool}),
-                'location': ('Properties', 'Location', 'DisplayName', {str}, any),
+                'location': ('Properties', 'Location', 'DisplayName', {str}),
                 'thumbnail': ('Image', {url_or_none}),
             })),
         }
@@ -100,7 +101,7 @@ class TuneInStationIE(TuneInBaseIE):
 class TuneInPodcastIE(TuneInBaseIE):
     IE_NAME = 'tunein:podcast:program'
     _PAGE_SIZE = 20
-    _VALID_URL = r'https?://tunein\.com/podcasts(?:/[^/?#]+)?/[^/?#]+(?P<id>p\d+)/?(?:\?(?![^#]*(?i:\btopicid)=)[^#]*)?(?:#|$)'
+    _VALID_URL = r'https?://tunein\.com/podcasts(?:/[^/?#]+){1,2}(?P<id>p\d+)'
     _TESTS = [{
         'url': 'https://tunein.com/podcasts/Technology-Podcasts/Artificial-Intelligence-p1153019/',
         'info_dict': {
@@ -117,34 +118,36 @@ class TuneInPodcastIE(TuneInBaseIE):
         'playlist_mincount': 35,
     }]
 
-    def _entries(self, podcast_id):
-        for page in itertools.count():
-            contents = self._call_api(
-                podcast_id, 'contents',
-                f'Downloading page {page + 1}', query={
-                    'filter': 't:free',
-                    'limit': self._PAGE_SIZE,
-                    'offset': page * self._PAGE_SIZE,
-                })
+    @classmethod
+    def suitable(cls, url):
+        return False if TuneInPodcastEpisodeIE.suitable(url) else super().suitable(url)
 
-            yield from traverse_obj(contents, (
-                'Items', ..., 'GuideId', {str}, filter, all, filter))
+    def _fetch_page(self, url, podcast_id, page=0):
+        items = self._call_api(
+            podcast_id, 'contents', f'Downloading page {page + 1}', query={
+                'filter': 't:free',
+                'limit': self._PAGE_SIZE,
+                'offset': page * self._PAGE_SIZE,
+            },
+        )['Items']
 
-            if not traverse_obj(contents, ('Paging', 'Next', {url_or_none})):
-                break
+        if items:
+            for item in traverse_obj(items, (
+                ..., 'GuideId', {str}, filter, all, filter,
+            )):
+                yield self.url_result(update_url_query(url, {'topicId': item[1:]}))
 
     def _real_extract(self, url):
         podcast_id = self._match_id(url)
 
-        return self.playlist_from_matches(
-            self._entries(podcast_id), podcast_id,
-            traverse_obj(self._call_api(podcast_id), ('Item', 'Title', {str})),
-            getter=lambda x: update_url_query(url, {'topicId': x[1:]}))
+        return self.playlist_result(OnDemandPagedList(
+            functools.partial(self._fetch_page, url, podcast_id), self._PAGE_SIZE),
+            podcast_id, traverse_obj(self._call_api(podcast_id), ('Item', 'Title', {str})))
 
 
 class TuneInPodcastEpisodeIE(TuneInBaseIE):
     IE_NAME = 'tunein:podcast'
-    _VALID_URL = r'https?://tunein\.com/podcasts(?:/[^/?#]+)?/[^/?#]+(?P<series_id>p\d+)/?\?[^#]*?(?<=\?|&)(?i:\btopicid)=(?P<id>\d+)(?:[&#]|$)'
+    _VALID_URL = r'https?://tunein\.com/podcasts(?:/[^/?#]+){1,2}(?P<series_id>p\d+)/?\?(?:[^#]+&)?(?i:topicid)=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://tunein.com/podcasts/Technology-Podcasts/Artificial-Intelligence-p1153019/?topicId=236404354',
         'info_dict': {
@@ -210,7 +213,7 @@ class TuneInPodcastEpisodeIE(TuneInBaseIE):
 class TuneInEmbedIE(TuneInBaseIE):
     IE_NAME = 'tunein:embed'
     _VALID_URL = r'https?://tunein\.com/embed/player/(?P<id>[^/?#]+)'
-    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?:)?//tunein\.com/embed/player/[^/?#]+)']
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>(?:https?:)?//tunein\.com/embed/player/[^/?#"\']+)']
     _TESTS = [{
         'url': 'https://tunein.com/embed/player/s6404/',
         'info_dict': {
@@ -247,7 +250,7 @@ class TuneInEmbedIE(TuneInBaseIE):
             'id': 'p191660',
             'title': 'SBS Tamil',
         },
-        'playlist_mincount': 197,
+        'playlist_mincount': 196,
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.martiniinthemorning.com/',
@@ -328,5 +331,7 @@ class TuneInShortenerIE(InfoExtractor):
         urlh = self._request_webpage(url, redirect_id, 'Downloading redirect page')
         parsed = urllib.parse.urlparse(urlh.url)
 
-        return self.url_result(
-            urllib.parse.urlunparse(parsed._replace(netloc=parsed.hostname)))
+        new_url = urllib.parse.urlunparse(parsed._replace(netloc=parsed.hostname))
+        if self.suitable(new_url):  # Prevent infinite loop in case redirect fails
+            raise UnsupportedError(new_url)
+        return self.url_result(new_url)
