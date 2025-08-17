@@ -411,10 +411,7 @@ from .cnn import (
     CNNIE,
     CNNIndonesiaIE,
 )
-from .comedycentral import (
-    ComedyCentralIE,
-    ComedyCentralTVIE,
-)
+from .comedycentral import ComedyCentralIE
 from .commonmistakes import (
     BlobIE,
     CommonMistakesIE,
@@ -1187,15 +1184,7 @@ from .moview import MoviewPlayIE
 from .moviezine import MoviezineIE
 from .movingimage import MovingImageIE
 from .msn import MSNIE
-from .mtv import (
-    MTVDEIE,
-    MTVIE,
-    MTVItaliaIE,
-    MTVItaliaProgrammaIE,
-    MTVJapanIE,
-    MTVServicesEmbeddedIE,
-    MTVVideoIE,
-)
+from .mtv import MTVIE
 from .muenchentv import MuenchenTVIE
 from .murrtube import (
     MurrtubeIE,

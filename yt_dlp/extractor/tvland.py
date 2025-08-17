@@ -1,9 +1,9 @@
-from .mtv import MTVServicesInfoExtractor
+from .mtv import MTVServicesBaseIE
 
 # TODO: Remove - Reason not used anymore - Service moved to youtube
 
 
-class TVLandIE(MTVServicesInfoExtractor):
+class TVLandIE(MTVServicesBaseIE):
     IE_NAME = 'tvland.com'
     _VALID_URL = r'https?://(?:www\.)?tvland\.com/(?:video-clips|(?:full-)?episodes)/(?P<id>[^/?#.]+)'
     _FEED_URL = 'http://www.tvland.com/feeds/mrss/'

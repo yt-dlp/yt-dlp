@@ -1,7 +1,7 @@
-from .mtv import MTVServicesInfoExtractor
+from .mtv import MTVServicesBaseIE
 
 
-class BellatorIE(MTVServicesInfoExtractor):
+class BellatorIE(MTVServicesBaseIE):
     _VALID_URL = r'https?://(?:www\.)?bellator\.com/[^/]+/[\da-z]{6}(?:[/?#&]|$)'
     _TESTS = [{
         'url': 'http://www.bellator.com/fight/atwr7k/bellator-158-michael-page-vs-evangelista-cyborg',
@@ -19,7 +19,7 @@ class BellatorIE(MTVServicesInfoExtractor):
     _GEO_COUNTRIES = ['US']
 
 
-class ParamountNetworkIE(MTVServicesInfoExtractor):
+class ParamountNetworkIE(MTVServicesBaseIE):
     _VALID_URL = r'https?://(?:www\.)?paramountnetwork\.com/[^/]+/[\da-z]{6}(?:[/?#&]|$)'
     _TESTS = [{
         'url': 'http://www.paramountnetwork.com/episodes/j830qm/lip-sync-battle-joel-mchale-vs-jim-rash-season-2-ep-13',
