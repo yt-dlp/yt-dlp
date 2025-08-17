@@ -580,7 +580,27 @@ class BiliBiliIE(BilibiliBaseIE):
             'duration': 1183.957,
             'timestamp': 1571648124,
             'upload_date': '20191021',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(jpg|jpeg|png)$',
+        },
+    }, {
+        'note': 'redirect from aid to bangumi link via redirect_url',
+        'url': 'https://www.bilibili.com/video/av114868162141203',
+        'info_dict': {
+            'id': '1933368',
+            'title': 'PV 引爆变革的起点',
+            'ext': 'mp4',
+            'duration': 63.139,
+            'series': '时光代理人',
+            'series_id': '5183',
+            'season': '第三季',
+            'season_number': 4,
+            'season_id': '105212',
+            'episode': '引爆变革的起点',
+            'episode_number': 1,
+            'episode_id': '1933368',
+            'timestamp': 1752849001,
+            'upload_date': '20250718',
+            'thumbnail': r're:https?://.*\.(jpg|jpeg|png)$',
         },
     }, {
         'note': 'video has subtitles, which requires login',
@@ -657,6 +677,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 query['aid'] = video_id
             detail = self._download_json(
                 'https://api.bilibili.com/x/web-interface/wbi/view/detail', video_id,
+                note='Downloading redirection URL', errnote='Failed to download redirection URL',
                 query=self._sign_wbi(query, video_id), headers=headers)
             new_url = traverse_obj(detail, ('data', 'View', 'redirect_url', {url_or_none}))
             if new_url and BiliBiliBangumiIE.suitable(new_url):
