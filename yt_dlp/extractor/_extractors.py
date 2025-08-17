@@ -657,8 +657,6 @@ from .flickr import FlickrIE
 from .floatplane import (
     FloatplaneChannelIE,
     FloatplaneIE,
-    SauceplusChannelIE,
-    SauceplusIE,
 )
 from .folketinget import FolketingetIE
 from .footyroom import FootyRoomIE
