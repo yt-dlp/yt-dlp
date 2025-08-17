@@ -304,7 +304,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)(?P<prefix>[aAbB][vV])(?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -636,7 +636,7 @@ class BiliBiliIE(BilibiliBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, prefix = self._match_valid_url(url).group('id', 'prefix')
         headers = self.geo_verification_headers()
         webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
         if not self._match_valid_url(urlh.url):
@@ -646,18 +646,19 @@ class BiliBiliIE(BilibiliBaseIE):
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id, default=None)
         if not initial_state:
-            query = {}
-            if groups := re.search(r'[bB][vV](?P<id>[^/?#&]+)', url):
-                query['bvid'] = 'BV' + groups.group('id')
-            elif groups := re.search(r'[aA][vV](?P<id>[^/?#&]+)', url):
-                query['aid'] = groups.group('id')
-            if query:
-                ep_url = traverse_obj(
-                    self._download_json('https://api.bilibili.com/x/web-interface/wbi/view/detail', 'vid',
-                                        query=self._sign_wbi(query, 'vid'), headers=headers), ('data', 'View', 'redirect_url'))
-                if ep_url and BiliBiliBangumiIE._match_valid_url(ep_url):
-                    return BiliBiliBangumiIE(self._downloader).extract(ep_url)
-            raise ExtractorError('Unable to extract initial state!')
+            query = {'platform': 'web'}
+            prefix = prefix.upper()
+            if prefix == 'BV':
+                query['bvid'] = prefix + video_id
+            elif prefix == 'AV':
+                query['aid'] = video_id
+            detail = self._download_json(
+                'https://api.bilibili.com/x/web-interface/wbi/view/detail', video_id,
+                query=self._sign_wbi(query, video_id), headers=headers)
+            new_url = traverse_obj(detail, ('data', 'View', 'redirect_url', {url_or_none}))
+            if new_url and BiliBiliBangumiIE.suitable(new_url):
+                return self.url_result(new_url, BiliBiliBangumiIE)
+            raise ExtractorError('Unable to extract initial state')
 
         if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
             self.raise_login_required()
