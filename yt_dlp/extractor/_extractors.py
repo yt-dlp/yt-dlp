@@ -405,7 +405,6 @@ from .cloudflarestream import CloudflareStreamIE
 from .cloudycdn import CloudyCDNIE
 from .clubic import ClubicIE
 from .clyp import ClypIE
-from .cmt import CMTIE
 from .cnbc import CNBCVideoIE
 from .cnn import (
     CNNIE,
