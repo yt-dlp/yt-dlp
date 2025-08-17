@@ -1325,12 +1325,7 @@ from .nhk import (
     NhkVodProgramIE,
 )
 from .nhl import NHLIE
-from .nick import (
-    NickBrIE,
-    NickDeIE,
-    NickIE,
-    NickRuIE,
-)
+from .nick import NickIE
 from .niconico import (
     NiconicoHistoryIE,
     NiconicoIE,
