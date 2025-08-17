@@ -91,6 +91,7 @@ class MTVServicesBaseIE(InfoExtractor):
 
         access_token = self._get_fresh_access_token(config, display_id)
         if not jwt_decode_hs256(access_token).get('accessMethods'):
+            # MTVServices uses a custom AdobePass oauth flow which is incompatible with AdobePassIE
             mso_id = self.get_param('ap_mso')
             if not mso_id:
                 raise ExtractorError(
@@ -110,6 +111,7 @@ class MTVServicesBaseIE(InfoExtractor):
                 query={'callbackUrl': callback_url},
                 headers={'Authorization': f'Bearer {access_token}'})['authenticationUrl']
             res = self._download_webpage_handle(auth_url, display_id, 'Downloading provider auth page')
+            # XXX: The following "provider-specific code" likely only works if mso_id == Comcast_SSO
             # BEGIN provider-specific code
             redirect_url = self._search_json(
                 r'initInterstitialRedirect\(', res[0], 'redirect JSON',
@@ -155,6 +157,8 @@ class MTVServicesBaseIE(InfoExtractor):
 
         headers = {}
         if video_detail.get('authRequired'):
+            # The vast majority of provider-locked content has been moved to Paramount+
+            # BetIE is the only extractor that is currently known to reach this code path
             video_config = traverse_obj(flex_wrapper, (
                 'children', lambda _, v: v['type'] == 'AuthSuiteWrapper',
                 'props', 'videoConfig', {dict}, any, {require('video config')}))
