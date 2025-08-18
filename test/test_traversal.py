@@ -45,6 +45,7 @@ _TEST_HTML = '''<html><body>
     <div class="b" data-id="y" custom="z">3</div>
     <p class="a">4</p>
     <p id="d" custom="e">5</p>
+    <p class="">123</p>
 </body></html>'''
 
 
@@ -593,6 +594,7 @@ class TestTraversalHelpers:
         assert find_element(attr='data-id', value='y(?:es)?', regex=True)(_TEST_HTML) == '3'
         assert find_element(
             attr='data-id', value='y', html=True)(_TEST_HTML) == '<div class="b" data-id="y" custom="z">3</div>'
+        assert find_element(cls='')(_TEST_HTML) == '123'
 
     def test_find_elements(self):
         for improper_kwargs in [
