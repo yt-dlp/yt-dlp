@@ -90,18 +90,14 @@ class AppleConnectIE(InfoExtractor):
         for format_id, src_url in traverse_obj(attributes, (
             'assetTokens', {dict.items}, lambda _, v: url_or_none(v[1]),
         )):
-            height = self._QUALITIES.get(format_id)
-            fmt = {
+            formats.append({
                 'ext': 'm4v',
                 'format_id': format_id,
-                'height': height,
+                'height': self._QUALITIES.get(format_id),
                 'quality': quality(format_id),
                 'url': src_url,
                 **parse_resolution(update_url(src_url, query=None), lenient=True),
-            }
-            if not height:
-                fmt['width'] = None
-            formats.append(fmt)
+            })
 
         return {
             'id': video_id,
