@@ -14,7 +14,7 @@ from ..utils.traversal import traverse_obj
 class AdobeTVVideoIE(InfoExtractor):
     IE_NAME = 'adobe:tv'
     _VALID_URL = r'https?://video\.tv\.adobe\.com/v/(?P<id>\d+)'
-    _EMBED_REGEX = [r'<iframe[^>]+src=[\'"](?P<url>(?:https?:)?//video\.tv\.adobe\.com/v/\d+)']
+    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?:)?//video\.tv\.adobe\.com/v/\d+)']
     _TESTS = [{
         'url': 'https://video.tv.adobe.com/v/2456',
         'md5': '43662b577c018ad707a63766462b1e87',
