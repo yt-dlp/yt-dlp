@@ -1914,12 +1914,13 @@ from .soundgasm import (
     SoundgasmProfileIE,
 )
 from .southpark import (
+    SouthParkComBrIE,
+    SouthParkCoUkIE,
     SouthParkDeIE,
     SouthParkDkIE,
     SouthParkEsIE,
     SouthParkIE,
     SouthParkLatIE,
-    SouthParkNlIE,
 )
 from .sovietscloset import (
     SovietsClosetIE,
