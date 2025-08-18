@@ -442,13 +442,13 @@ class TestTraversal:
 
     def test_traversal_dataclass(self):
         @dataclasses.dataclass
-        class _TEST_DATACLASS:
-            string: str
+        class _TestDataclass:
+            val: str
 
-        dataclass = _TEST_DATACLASS(string='yt-dlp')
-        assert traverse_obj(dataclass, ('string')) == 'yt-dlp', \
+        dc = _TestDataclass(val='yt-dlp')
+        assert traverse_obj(dc, 'val') == 'yt-dlp', \
             'Dataclasses should be traversable'
-        assert traverse_obj({'dataclass': dataclass}, ('dataclass', 'string')) == 'yt-dlp', \
+        assert traverse_obj({'dataclass': dc}, ('dataclass', 'val')) == 'yt-dlp', \
             'Dataclasses inside other objects should be traversable'
 
 
