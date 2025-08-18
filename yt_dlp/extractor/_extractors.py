@@ -1877,6 +1877,7 @@ from .simplecast import (
 from .sina import SinaIE
 from .sixplay import SixPlayIE
 from .skeb import SkebIE
+from .skool import SkoolIE
 from .sky import (
     SkyNewsIE,
     SkyNewsStoryIE,
