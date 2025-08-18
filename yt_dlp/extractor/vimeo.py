@@ -1910,10 +1910,10 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'like_count': int,
             'duration': 9810,
             'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
-            'timestamp': 1747502974,
-            'upload_date': '20250517',
-            'release_timestamp': 1747502998,
-            'release_date': '20250517',
+            'timestamp': 1746627359,
+            'upload_date': '20250507',
+            'release_timestamp': 1746627359,
+            'release_date': '20250507',
             'live_status': 'was_live',
         },
         'params': {'skip_download': 'm3u8'},
@@ -1970,7 +1970,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
         # "24/7" livestream
         'url': 'https://vimeo.com/event/4768062',
         'info_dict': {
-            'id': '1097650937',
+            'id': '1108792268',
             'ext': 'mp4',
             'display_id': '4768062',
             'title': r're:GRACELAND CAM \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
@@ -1978,8 +1978,8 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'uploader': 'Elvis Presley\'s Graceland',
             'uploader_id': 'visitgraceland',
             'uploader_url': 'https://vimeo.com/visitgraceland',
-            'release_timestamp': 1751396691,
-            'release_date': '20250701',
+            'release_timestamp': 1754812109,
+            'release_date': '20250810',
             'live_status': 'is_live',
         },
         'params': {'skip_download': 'livestream'},
@@ -2023,10 +2023,10 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'like_count': int,
             'duration': 4466,
             'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
-            'timestamp': 1612228466,
-            'upload_date': '20210202',
-            'release_timestamp': 1612228538,
-            'release_date': '20210202',
+            'timestamp': 1610059450,
+            'upload_date': '20210107',
+            'release_timestamp': 1610059450,
+            'release_date': '20210107',
             'live_status': 'was_live',
         },
         'params': {'skip_download': 'm3u8'},
@@ -2214,7 +2214,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
 
                 video_filter = lambda _, v: self._extract_video_id_and_unlisted_hash(v)[0] == video_id
             else:
-                video_filter = lambda _, v: v['live']['status'] in ('streaming', 'done')
+                video_filter = lambda _, v: traverse_obj(v, ('live', 'status')) != 'unavailable'
 
             for page in itertools.count(1):
                 videos_data = self._call_events_api(
@@ -2226,15 +2226,18 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
                 if video or not traverse_obj(videos_data, ('paging', 'next', {str})):
                     break
 
+            if not video:  # requested video_id is unavailable or no videos are available
+                raise ExtractorError('This event video is unavailable', expected=True)
+
             live_status = {
                 'streaming': 'is_live',
                 'done': 'was_live',
+                None: 'was_live',
             }.get(traverse_obj(video, ('live', 'status', {str})))
 
-            if not live_status:  # requested video_id is unavailable or no videos are available
-                raise ExtractorError('This event video is unavailable', expected=True)
-            elif live_status == 'was_live':
+            if live_status == 'was_live':
                 return self._vimeo_url_result(*self._extract_video_id_and_unlisted_hash(video), event_id)
+
             config_url = video['config_url']
 
         if config_url:  # view_policy == 'embed_only' or live_status == 'is_live'
