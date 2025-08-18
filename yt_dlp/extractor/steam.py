@@ -1,11 +1,19 @@
+import json
 import re
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    clean_html,
     extract_attributes,
-    get_element_by_class,
     str_or_none,
+    url_or_none,
+)
+from ..utils.traversal import (
+    find_element,
+    find_elements,
+    traverse_obj,
+    trim_str,
 )
 
 
@@ -23,40 +31,18 @@ class SteamIE(InfoExtractor):
     _AGECHECK_TEMPLATE = 'http://store.steampowered.com/agecheck/video/%s/?snr=1_agecheck_agecheck__age-gate&ageDay=1&ageMonth=January&ageYear=1970'
     _TESTS = [{
         'url': 'http://store.steampowered.com/video/105600/',
-        'playlist': [
-            {
-                'md5': 'e800bd0baf47286d8b434d07b357247e',
-                'info_dict': {
-                    'id': '256785003',
-                    'ext': 'mp4',
-                    'title': 'Terraria video 256785003',
-                    'thumbnail': r're:^https?://[^/]*steamstatic\.com',
-                },
-            },
-            {
-                'md5': '9612ee058ebd645371c5ddd69adb310f',
-                'info_dict': {
-                    'id': '2040428',
-                    'ext': 'mp4',
-                    'title': 'Terraria video 2040428',
-                    'thumbnail': r're:^https?://[^/]*steamstatic\.com',
-                },
-            },
-        ],
         'info_dict': {
             'id': '105600',
             'title': 'Terraria',
         },
-        'params': {
-            'playlistend': 2,
-        },
+        'playlist_mincount': 3,
     }, {
         'url': 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
         'info_dict': {
             'id': '271590',
-            'title': 'Grand Theft Auto V',
+            'title': 'Grand Theft Auto V Legacy',
         },
-        'playlist_count': 23,
+        'playlist_mincount': 26,
     }]
 
     def _real_extract(self, url):
@@ -81,36 +67,31 @@ class SteamIE(InfoExtractor):
             self.report_age_confirmation()
             webpage = self._download_webpage(video_url, playlist_id)
 
-        videos = re.findall(r'(<div[^>]+id=[\'"]highlight_movie_(\d+)[\'"][^>]+>)', webpage)
+        app_name = traverse_obj(webpage, ({find_element(cls='apphub_AppName')}, {clean_html}))
         entries = []
-        playlist_title = get_element_by_class('apphub_AppName', webpage)
-        for movie, movie_id in videos:
-            if not movie:
-                continue
-            movie = extract_attributes(movie)
-            if not movie_id:
-                continue
-            entry = {
-                'id': movie_id,
-                'title': f'{playlist_title} video {movie_id}',
-            }
+        for data_prop in traverse_obj(webpage, (
+            {find_elements(cls='highlight_player_item highlight_movie', html=True)},
+            ..., {extract_attributes}, 'data-props', {json.loads}, {dict},
+        )):
             formats = []
-            if movie:
-                data = self._parse_json(movie['data-props'], video_id=movie_id)
+            if hls_manifest := traverse_obj(data_prop, ('hlsManifest', {url_or_none})):
+                formats.extend(self._extract_m3u8_formats(
+                    hls_manifest, playlist_id, 'mp4', m3u8_id='hls', fatal=False))
 
-                entry['thumbnail'] = data.get('screenshot')
+            for dash_manifest in traverse_obj(data_prop, (
+                'dashManifests', ..., {url_or_none}, filter, all, filter,
+            )):
+                formats.extend(self._extract_mpd_formats(
+                    dash_manifest, playlist_id, mpd_id='dash', fatal=False))
 
-                for dash_url in data.get('dashManifests', []):
-                    formats.extend(self._extract_mpd_formats(
-                        dash_url, movie_id, mpd_id='dash', fatal=False))
+            movie_id = traverse_obj(data_prop, ('id', {trim_str(start='highlight_movie_')}))
+            entries.append({
+                'id': movie_id,
+                'title': f'{app_name} video {movie_id}',
+                'formats': formats,
+                'thumbnail': traverse_obj(data_prop, ('screenshot', {url_or_none})),
+            })
 
-                hls_url = data.get('hlsManifest')
-                if hls_url:
-                    formats.extend(self._extract_m3u8_formats(
-                        hls_url, movie_id, entry_protocol='m3u8', m3u8_id='hls', fatal=False))
-
-            entry['formats'] = formats
-            entries.append(entry)
         embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
         for evideos in embedded_videos:
             evideos = extract_attributes(evideos).get('src')
@@ -125,7 +106,7 @@ class SteamIE(InfoExtractor):
         if not entries:
             raise ExtractorError('Could not find any videos')
 
-        return self.playlist_result(entries, playlist_id, playlist_title)
+        return self.playlist_result(entries, playlist_id, app_name)
 
 
 class SteamCommunityBroadcastIE(InfoExtractor):
