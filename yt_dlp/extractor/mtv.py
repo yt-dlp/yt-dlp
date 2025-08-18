@@ -322,6 +322,37 @@ class MTVServicesInfoExtractor(InfoExtractor):
         return self._get_videos_info(mgid, url=url)
 
 
+class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
+    IE_NAME = 'mtvservices:embedded'
+    _VALID_URL = r'https?://media\.mtvnservices\.com/embed/(?P<mgid>.+?)(\?|/|$)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1']
+
+    _TEST = {
+        # From http://www.thewrap.com/peter-dinklage-sums-up-game-of-thrones-in-45-seconds-video/
+        'url': 'http://media.mtvnservices.com/embed/mgid:uma:video:mtv.com:1043906/cp~vid%3D1043906%26uri%3Dmgid%3Auma%3Avideo%3Amtv.com%3A1043906',
+        'md5': 'cb349b21a7897164cede95bd7bf3fbb9',
+        'info_dict': {
+            'id': '1043906',
+            'ext': 'mp4',
+            'title': 'Peter Dinklage Sums Up \'Game Of Thrones\' In 45 Seconds',
+            'description': '"Sexy sexy sexy, stabby stabby stabby, beautiful language," says Peter Dinklage as he tries summarizing "Game of Thrones" in under a minute.',
+            'timestamp': 1400126400,
+            'upload_date': '20140515',
+        },
+    }
+
+    def _get_feed_url(self, uri, url=None):
+        video_id = self._id_from_uri(uri)
+        config = self._download_json(
+            f'http://media.mtvnservices.com/pmt/e1/access/index.html?uri={uri}&configtype=edge', video_id)
+        return self._remove_template_parameter(config['feedWithQueryParams'])
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        mgid = mobj.group('mgid')
+        return self._get_videos_info(mgid)
+
+
 class MTVIE(MTVServicesInfoExtractor):
     IE_NAME = 'mtv'
     _VALID_URL = r'https?://(?:www\.)?mtv\.com/(?:video-clips|(?:full-)?episodes)/(?P<id>[^/?#.]+)'
@@ -345,3 +376,277 @@ class MTVIE(MTVServicesInfoExtractor):
         'url': 'http://www.mtv.com/episodes/g8xu7q/teen-mom-2-breaking-the-wall-season-7-ep-713',
         'only_matching': True,
     }]
+
+
+class MTVJapanIE(MTVServicesInfoExtractor):
+    IE_NAME = 'mtvjapan'
+    _VALID_URL = r'https?://(?:www\.)?mtvjapan\.com/videos/(?P<id>[0-9a-z]+)'
+
+    _TEST = {
+        'url': 'http://www.mtvjapan.com/videos/prayht/fresh-info-cadillac-escalade',
+        'info_dict': {
+            'id': 'bc01da03-6fe5-4284-8880-f291f4e368f5',
+            'ext': 'mp4',
+            'title': '【Fresh Info】Cadillac ESCALADE Sport Edition',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }
+    _GEO_COUNTRIES = ['JP']
+    _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
+
+    def _get_feed_query(self, uri):
+        return {
+            'arcEp': 'mtvjapan.com',
+            'mgid': uri,
+        }
+
+
+class MTVVideoIE(MTVServicesInfoExtractor):
+    IE_NAME = 'mtv:video'
+    _VALID_URL = r'''(?x)^https?://
+        (?:(?:www\.)?mtv\.com/videos/.+?/(?P<videoid>[0-9]+)/[^/]+$|
+           m\.mtv\.com/videos/video\.rbml\?.*?id=(?P<mgid>[^&]+))'''
+
+    _FEED_URL = 'http://www.mtv.com/player/embed/AS3/rss/'
+
+    _TESTS = [
+        {
+            'url': 'http://www.mtv.com/videos/misc/853555/ours-vh1-storytellers.jhtml',
+            'md5': '850f3f143316b1e71fa56a4edfd6e0f8',
+            'info_dict': {
+                'id': '853555',
+                'ext': 'mp4',
+                'title': 'Taylor Swift - "Ours (VH1 Storytellers)"',
+                'description': 'Album: Taylor Swift performs "Ours" for VH1 Storytellers at Harvey Mudd College.',
+                'timestamp': 1352610000,
+                'upload_date': '20121111',
+            },
+        },
+    ]
+
+    def _get_thumbnail_url(self, uri, itemdoc):
+        return 'http://mtv.mtvnimages.com/uri/' + uri
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        video_id = mobj.group('videoid')
+        uri = mobj.groupdict().get('mgid')
+        if uri is None:
+            webpage = self._download_webpage(url, video_id)
+
+            # Some videos come from Vevo.com
+            m_vevo = re.search(
+                r'(?s)isVevoVideo = true;.*?vevoVideoId = "(.*?)";', webpage)
+            if m_vevo:
+                vevo_id = m_vevo.group(1)
+                self.to_screen(f'Vevo video detected: {vevo_id}')
+                return self.url_result(f'vevo:{vevo_id}', ie='Vevo')
+
+            uri = self._html_search_regex(r'/uri/(.*?)\?', webpage, 'uri')
+        return self._get_videos_info(uri)
+
+
+class MTVDEIE(MTVServicesInfoExtractor):
+    _WORKING = False
+    IE_NAME = 'mtv.de'
+    _VALID_URL = r'https?://(?:www\.)?mtv\.de/(?:musik/videoclips|folgen|news)/(?P<id>[0-9a-z]+)'
+    _TESTS = [{
+        'url': 'http://www.mtv.de/musik/videoclips/2gpnv7/Traum',
+        'info_dict': {
+            'id': 'd5d472bc-f5b7-11e5-bffd-a4badb20dab5',
+            'ext': 'mp4',
+            'title': 'Traum',
+            'description': 'Traum',
+        },
+        'params': {
+            # rtmp download
+            'skip_download': True,
+        },
+        'skip': 'Blocked at Travis CI',
+    }, {
+        # mediagen URL without query (e.g. http://videos.mtvnn.com/mediagen/e865da714c166d18d6f80893195fcb97)
+        'url': 'http://www.mtv.de/folgen/6b1ylu/teen-mom-2-enthuellungen-S5-F1',
+        'info_dict': {
+            'id': '1e5a878b-31c5-11e7-a442-0e40cf2fc285',
+            'ext': 'mp4',
+            'title': 'Teen Mom 2',
+            'description': 'md5:dc65e357ef7e1085ed53e9e9d83146a7',
+        },
+        'params': {
+            # rtmp download
+            'skip_download': True,
+        },
+        'skip': 'Blocked at Travis CI',
+    }, {
+        'url': 'http://www.mtv.de/news/glolix/77491-mtv-movies-spotlight--pixels--teil-3',
+        'info_dict': {
+            'id': 'local_playlist-4e760566473c4c8c5344',
+            'ext': 'mp4',
+            'title': 'Article_mtv-movies-spotlight-pixels-teil-3_short-clips_part1',
+            'description': 'MTV Movies Supercut',
+        },
+        'params': {
+            # rtmp download
+            'skip_download': True,
+        },
+        'skip': 'Das Video kann zur Zeit nicht abgespielt werden.',
+    }]
+    _GEO_COUNTRIES = ['DE']
+    _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
+
+    def _get_feed_query(self, uri):
+        return {
+            'arcEp': 'mtv.de',
+            'mgid': uri,
+        }
+
+
+class MTVItaliaIE(MTVServicesInfoExtractor):
+    IE_NAME = 'mtv.it'
+    _VALID_URL = r'https?://(?:www\.)?mtv\.it/(?:episodi|video|musica)/(?P<id>[0-9a-z]+)'
+    _TESTS = [{
+        'url': 'http://www.mtv.it/episodi/24bqab/mario-una-serie-di-maccio-capatonda-cavoli-amario-episodio-completo-S1-E1',
+        'info_dict': {
+            'id': '0f0fc78e-45fc-4cce-8f24-971c25477530',
+            'ext': 'mp4',
+            'title': 'Cavoli amario (episodio completo)',
+            'description': 'md5:4962bccea8fed5b7c03b295ae1340660',
+            'series': 'Mario - Una Serie Di Maccio Capatonda',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+    _GEO_COUNTRIES = ['IT']
+    _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
+
+    def _get_feed_query(self, uri):
+        return {
+            'arcEp': 'mtv.it',
+            'mgid': uri,
+        }
+
+
+class MTVItaliaProgrammaIE(MTVItaliaIE):  # XXX: Do not subclass from concrete IE
+    IE_NAME = 'mtv.it:programma'
+    _VALID_URL = r'https?://(?:www\.)?mtv\.it/(?:programmi|playlist)/(?P<id>[0-9a-z]+)'
+    _TESTS = [{
+        # program page: general
+        'url': 'http://www.mtv.it/programmi/s2rppv/mario-una-serie-di-maccio-capatonda',
+        'info_dict': {
+            'id': 'a6f155bc-8220-4640-aa43-9b95f64ffa3d',
+            'title': 'Mario - Una Serie Di Maccio Capatonda',
+            'description': 'md5:72fbffe1f77ccf4e90757dd4e3216153',
+        },
+        'playlist_count': 2,
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # program page: specific season
+        'url': 'http://www.mtv.it/programmi/d9ncjf/mario-una-serie-di-maccio-capatonda-S2',
+        'info_dict': {
+            'id': '4deeb5d8-f272-490c-bde2-ff8d261c6dd1',
+            'title': 'Mario - Una Serie Di Maccio Capatonda - Stagione 2',
+        },
+        'playlist_count': 34,
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # playlist page + redirect
+        'url': 'http://www.mtv.it/playlist/sexy-videos/ilctal',
+        'info_dict': {
+            'id': 'dee8f9ee-756d-493b-bf37-16d1d2783359',
+            'title': 'Sexy Videos',
+        },
+        'playlist_mincount': 145,
+        'params': {
+            'skip_download': True,
+        },
+    }]
+    _GEO_COUNTRIES = ['IT']
+    _FEED_URL = 'http://www.mtv.it/feeds/triforce/manifest/v8'
+
+    def _get_entries(self, title, url):
+        while True:
+            pg = self._search_regex(r'/(\d+)$', url, 'entries', '1')
+            entries = self._download_json(url, title, f'page {pg}')
+            url = try_get(
+                entries, lambda x: x['result']['nextPageURL'], str)
+            entries = try_get(
+                entries, (
+                    lambda x: x['result']['data']['items'],
+                    lambda x: x['result']['data']['seasons']),
+                list)
+            for entry in entries or []:
+                if entry.get('canonicalURL'):
+                    yield self.url_result(entry['canonicalURL'])
+            if not url:
+                break
+
+    def _real_extract(self, url):
+        query = {'url': url}
+        info_url = update_url_query(self._FEED_URL, query)
+        video_id = self._match_id(url)
+        info = self._download_json(info_url, video_id).get('manifest')
+
+        redirect = try_get(
+            info, lambda x: x['newLocation']['url'], str)
+        if redirect:
+            return self.url_result(redirect)
+
+        title = info.get('title')
+        video_id = try_get(
+            info, lambda x: x['reporting']['itemId'], str)
+        parent_id = try_get(
+            info, lambda x: x['reporting']['parentId'], str)
+
+        playlist_url = current_url = None
+        for z in (info.get('zones') or {}).values():
+            if z.get('moduleName') in ('INTL_M304', 'INTL_M209'):
+                info_url = z.get('feed')
+            if z.get('moduleName') in ('INTL_M308', 'INTL_M317'):
+                playlist_url = playlist_url or z.get('feed')
+            if z.get('moduleName') in ('INTL_M300',):
+                current_url = current_url or z.get('feed')
+
+        if not info_url:
+            raise ExtractorError('No info found')
+
+        if video_id == parent_id:
+            video_id = self._search_regex(
+                r'([^\/]+)/[^\/]+$', info_url, 'video_id')
+
+        info = self._download_json(info_url, video_id, 'Show infos')
+        info = try_get(info, lambda x: x['result']['data'], dict)
+        title = title or try_get(
+            info, (
+                lambda x: x['title'],
+                lambda x: x['headline']),
+            str)
+        description = try_get(info, lambda x: x['content'], str)
+
+        if current_url:
+            season = try_get(
+                self._download_json(playlist_url, video_id, 'Seasons info'),
+                lambda x: x['result']['data'], dict)
+            current = try_get(
+                season, lambda x: x['currentSeason'], str)
+            seasons = try_get(
+                season, lambda x: x['seasons'], list) or []
+
+            if current in [s.get('eTitle') for s in seasons]:
+                playlist_url = current_url
+
+        title = re.sub(
+            r'[-|]\s*(?:mtv\s*italia|programma|playlist)',
+            '', title, flags=re.IGNORECASE).strip()
+
+        return self.playlist_result(
+            self._get_entries(title, playlist_url),
+            video_id, title, description)
