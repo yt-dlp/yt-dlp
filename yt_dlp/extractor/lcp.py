@@ -21,8 +21,8 @@ class LcpPlayIE(InfoExtractor):
 
 
 class LcpIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?lcp\.fr/(?:[^/]+/)*(?P<id>[^/]+)'
     _WORKING = False
+    _VALID_URL = r'https?://(?:www\.)?lcp\.fr/(?:[^/]+/)*(?P<id>[^/]+)'
     _TESTS = [{
         # dailymotion live stream
         'url': 'http://www.lcp.fr/le-direct',
