@@ -15,11 +15,11 @@ description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
 requires-python = ">=3.9"
 keywords = [
+    "cli",
+    "downloader",
     "youtube-dl",
-    "video-downloader",
     "youtube-downloader",
     "sponsorblock",
-    "youtube-dlc",
     "yt-dlp",
 ]
 license = {file = "LICENSE"}
@@ -51,11 +51,11 @@ default = [
     "mutagen",
     "pycryptodomex",
     "requests>=2.32.2,<3",
-    "urllib3>=1.26.17,<3",
+    "urllib3>=2.0.2,<3",
     "websockets>=13.0",
 ]
 curl-cffi = [
-    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.11; implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.14; implementation_name=='cpython'",
 ]
 secretstorage = [
     "cffi",
@@ -75,7 +75,7 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.11.0",
+    "ruff~=0.12.0",
 ]
 test = [
     "pytest~=8.1",
@@ -210,10 +210,12 @@ ignore = [
     "TD001",   # invalid-todo-tag
     "TD002",   # missing-todo-author
     "TD003",   # missing-todo-link
+    "PLC0415", # import-outside-top-level
     "PLE0604", # invalid-all-object (false positives)
     "PLE0643", # potential-index-error (false positives)
     "PLW0603", # global-statement
     "PLW1510", # subprocess-run-without-check
+    "PLW1641", # eq-without-hash
     "PLW2901", # redefined-loop-name
     "RUF001",  # ambiguous-unicode-character-string
     "RUF012",  # mutable-class-default

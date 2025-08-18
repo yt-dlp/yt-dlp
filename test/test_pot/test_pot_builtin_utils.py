@@ -11,7 +11,7 @@ class TestGetWebPoContentBinding:
 
     @pytest.mark.parametrize('client_name, context, is_authenticated, expected', [
         *[(client, context, is_authenticated, expected) for client in [
-            'WEB', 'MWEB', 'TVHTML5', 'WEB_EMBEDDED_PLAYER', 'WEB_CREATOR', 'TVHTML5_SIMPLY_EMBEDDED_PLAYER']
+            'WEB', 'MWEB', 'TVHTML5', 'WEB_EMBEDDED_PLAYER', 'WEB_CREATOR', 'TVHTML5_SIMPLY_EMBEDDED_PLAYER', 'TVHTML5_SIMPLY']
           for context, is_authenticated, expected in [
             (PoTokenContext.GVS, False, ('example-visitor-data', ContentBindingType.VISITOR_DATA)),
             (PoTokenContext.PLAYER, False, ('example-video-id', ContentBindingType.VIDEO_ID)),

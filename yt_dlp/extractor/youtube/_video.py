@@ -18,6 +18,9 @@ import urllib.parse
 from ._base import (
     INNERTUBE_CLIENTS,
     BadgeType,
+    GvsPoTokenPolicy,
+    PlayerPoTokenPolicy,
+    StreamingProtocol,
     YoutubeBaseInfoExtractor,
     _PoTokenContext,
     _split_innertube_client,
@@ -26,7 +29,7 @@ from ._base import (
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
 from ..openload import PhantomJSwrapper
-from ...jsinterp import JSInterpreter
+from ...jsinterp import JSInterpreter, LocalNameSpace
 from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
@@ -71,9 +74,11 @@ from ...utils import (
 from ...utils.networking import clean_headers, clean_proxies, select_proxy
 
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
-STREAMING_DATA_INITIAL_PO_TOKEN = '__yt_dlp_po_token'
 STREAMING_DATA_FETCH_SUBS_PO_TOKEN = '__yt_dlp_fetch_subs_po_token'
+STREAMING_DATA_FETCH_GVS_PO_TOKEN = '__yt_dlp_fetch_gvs_po_token'
+STREAMING_DATA_PLAYER_TOKEN_PROVIDED = '__yt_dlp_player_token_provided'
 STREAMING_DATA_INNERTUBE_CONTEXT = '__yt_dlp_innertube_context'
+STREAMING_DATA_IS_PREMIUM_SUBSCRIBER = '__yt_dlp_is_premium_subscriber'
 
 PO_TOKEN_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide'
 
@@ -250,1557 +255,1578 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '400': {'ext': 'mp4', 'height': 1440, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
-    _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
+    _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
     _DEFAULT_CLIENTS = ('tv', 'ios', 'web')
     _DEFAULT_AUTHED_CLIENTS = ('tv', 'web')
+    # Premium does not require POT (except for subtitles)
+    _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web')
 
     _GEO_BYPASS = False
 
     IE_NAME = 'youtube'
-    _TESTS = [
-        {
-            'url': 'https://www.youtube.com/watch?v=BaW_jenozKc&t=1s&end=9',
-            'info_dict': {
-                'id': 'BaW_jenozKc',
-                'ext': 'mp4',
-                'title': 'youtube-dl test video "\'/\\ä↭𝕐',
-                'channel': 'Philipp Hagemeister',
-                'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
-                'channel_url': r're:https?://(?:www\.)?youtube\.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
-                'upload_date': '20121002',
-                'description': 'md5:8fb536f4877b8a7455c2ec23794dbc22',
-                'categories': ['Science & Technology'],
-                'tags': ['youtube-dl'],
-                'duration': 10,
-                'view_count': int,
-                'like_count': int,
-                'availability': 'public',
-                'playable_in_embed': True,
-                'thumbnail': 'https://i.ytimg.com/vi/BaW_jenozKc/maxresdefault.jpg',
-                'live_status': 'not_live',
-                'age_limit': 0,
-                'start_time': 1,
-                'end_time': 9,
-                'comment_count': int,
-                'channel_follower_count': int,
-                'uploader': 'Philipp Hagemeister',
-                'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
-                'uploader_id': '@PhilippHagemeister',
-                'heatmap': 'count:100',
-                'timestamp': 1349198244,
-            },
+    _TESTS = [{
+        'url': 'https://www.youtube.com/watch?v=BaW_jenozKc&t=1s&end=9',
+        'info_dict': {
+            'id': 'BaW_jenozKc',
+            'ext': 'mp4',
+            'title': 'youtube-dl test video "\'/\\ä↭𝕐',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Science & Technology'],
+            'channel': 'Philipp Hagemeister',
+            'channel_follower_count': int,
+            'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
+            'channel_url': 'https://www.youtube.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
+            'comment_count': int,
+            'description': 'md5:8fb536f4877b8a7455c2ec23794dbc22',
+            'duration': 10,
+            'end_time': 9,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'playable_in_embed': True,
+            'start_time': 1,
+            'tags': 'count:1',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1349198244,
+            'upload_date': '20121002',
+            'uploader': 'Philipp Hagemeister',
+            'uploader_id': '@PhilippHagemeister',
+            'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
+            'view_count': int,
         },
-        {
-            'url': '//www.YouTube.com/watch?v=yZIXLfi8CZQ',
-            'note': 'Embed-only video (#1746)',
-            'info_dict': {
-                'id': 'yZIXLfi8CZQ',
-                'ext': 'mp4',
-                'upload_date': '20120608',
-                'title': 'Principal Sexually Assaults A Teacher - Episode 117 - 8th June 2012',
-                'description': 'md5:09b78bd971f1e3e289601dfba15ca4f7',
-                'age_limit': 18,
-            },
-            'skip': 'Private video',
+        'skip': 'Video unavailable',
+    }, {
+        'note': 'Embed-only video (#1746)',
+        'url': '//www.YouTube.com/watch?v=yZIXLfi8CZQ',
+        'info_dict': {
+            'id': 'yZIXLfi8CZQ',
+            'ext': 'mp4',
+            'title': 'Principal Sexually Assaults A Teacher - Episode 117 - 8th June 2012',
+            'age_limit': 18,
+            'description': 'md5:09b78bd971f1e3e289601dfba15ca4f7',
+            'upload_date': '20120608',
         },
-        {
-            'url': 'https://www.youtube.com/watch?v=BaW_jenozKc&v=yZIXLfi8CZQ',
-            'note': 'Use the first video ID in the URL',
-            'info_dict': {
-                'id': 'BaW_jenozKc',
-                'ext': 'mp4',
-                'title': 'youtube-dl test video "\'/\\ä↭𝕐',
-                'channel': 'Philipp Hagemeister',
-                'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
-                'channel_url': r're:https?://(?:www\.)?youtube\.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
-                'upload_date': '20121002',
-                'description': 'md5:8fb536f4877b8a7455c2ec23794dbc22',
-                'categories': ['Science & Technology'],
-                'tags': ['youtube-dl'],
-                'duration': 10,
-                'view_count': int,
-                'like_count': int,
-                'availability': 'public',
-                'playable_in_embed': True,
-                'thumbnail': 'https://i.ytimg.com/vi/BaW_jenozKc/maxresdefault.jpg',
-                'live_status': 'not_live',
-                'age_limit': 0,
-                'comment_count': int,
-                'channel_follower_count': int,
-                'uploader': 'Philipp Hagemeister',
-                'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
-                'uploader_id': '@PhilippHagemeister',
-                'heatmap': 'count:100',
-                'timestamp': 1349198244,
-            },
-            'params': {
-                'skip_download': True,
-            },
+        'skip': 'Private video',
+    }, {
+        'note': 'Use the first video ID in the URL',
+        'url': 'https://www.youtube.com/watch?v=BaW_jenozKc&v=yZIXLfi8CZQ',
+        'info_dict': {
+            'id': 'BaW_jenozKc',
+            'ext': 'mp4',
+            'title': 'youtube-dl test video "\'/\\ä↭𝕐',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Science & Technology'],
+            'channel': 'Philipp Hagemeister',
+            'channel_follower_count': int,
+            'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
+            'channel_url': 'https://www.youtube.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
+            'comment_count': int,
+            'description': 'md5:8fb536f4877b8a7455c2ec23794dbc22',
+            'duration': 10,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'playable_in_embed': True,
+            'tags': 'count:1',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1349198244,
+            'upload_date': '20121002',
+            'uploader': 'Philipp Hagemeister',
+            'uploader_id': '@PhilippHagemeister',
+            'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
+            'view_count': int,
         },
-        {
-            'url': 'https://www.youtube.com/watch?v=a9LDPn-MO4I',
-            'note': '256k DASH audio (format 141) via DASH manifest',
-            'info_dict': {
-                'id': 'a9LDPn-MO4I',
-                'ext': 'm4a',
-                'upload_date': '20121002',
-                'description': '',
-                'title': 'UHDTV TEST 8K VIDEO.mp4',
-            },
-            'params': {
-                'youtube_include_dash_manifest': True,
-                'format': '141',
-            },
-            'skip': 'format 141 not served anymore',
+        'skip': 'Video unavailable',
+    }, {
+        'note': '256k DASH audio (format 141) via DASH manifest',
+        'url': 'https://www.youtube.com/watch?v=a9LDPn-MO4I',
+        'info_dict': {
+            'id': 'a9LDPn-MO4I',
+            'ext': 'm4a',
+            'title': 'UHDTV TEST 8K VIDEO.mp4',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Science & Technology'],
+            'channel': '8KVIDEO',
+            'channel_follower_count': int,
+            'channel_id': 'UC8cn-cnCZ2FnxmjfkoLGpsQ',
+            'channel_url': 'https://www.youtube.com/channel/UC8cn-cnCZ2FnxmjfkoLGpsQ',
+            'comment_count': int,
+            'description': '',
+            'duration': 60,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:8',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1349185252,
+            'upload_date': '20121002',
+            'uploader': '8KVIDEO',
+            'uploader_id': '@8KVIDEO',
+            'uploader_url': 'https://www.youtube.com/@8KVIDEO',
+            'view_count': int,
         },
+        'params': {
+            'format': '141',
+            'skip_download': True,
+            'youtube_include_dash_manifest': True,
+        },
+        'skip': 'format 141 not served anymore',
+    }, {
         # DASH manifest with encrypted signature
-        {
-            'url': 'https://www.youtube.com/watch?v=IB3lcPjvWLA',
-            'info_dict': {
-                'id': 'IB3lcPjvWLA',
-                'ext': 'm4a',
-                'title': 'Afrojack, Spree Wilson - The Spark (Official Music Video) ft. Spree Wilson',
-                'description': 'md5:8f5e2b82460520b619ccac1f509d43bf',
-                'duration': 244,
-                'upload_date': '20131011',
-                'abr': 129.495,
-                'like_count': int,
-                'channel_id': 'UChuZAo1RKL85gev3Eal9_zg',
-                'playable_in_embed': True,
-                'channel_url': 'https://www.youtube.com/channel/UChuZAo1RKL85gev3Eal9_zg',
-                'view_count': int,
-                'track': 'The Spark',
-                'live_status': 'not_live',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/IB3lcPjvWLA/maxresdefault.webp',
-                'channel': 'Afrojack',
-                'tags': 'count:19',
-                'availability': 'public',
-                'categories': ['Music'],
-                'age_limit': 0,
-                'alt_title': 'The Spark',
-                'channel_follower_count': int,
-                'uploader': 'Afrojack',
-                'uploader_url': 'https://www.youtube.com/@Afrojack',
-                'uploader_id': '@Afrojack',
-                'media_type': 'video',
-            },
-            'params': {
-                'youtube_include_dash_manifest': True,
-                'format': '141/bestaudio[ext=m4a]',
-            },
+        'url': 'https://www.youtube.com/watch?v=IB3lcPjvWLA',
+        'info_dict': {
+            'id': 'IB3lcPjvWLA',
+            'ext': 'm4a',
+            'title': 'Afrojack, Spree Wilson - The Spark (Official Music Video) ft. Spree Wilson',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Music'],
+            'channel': 'Afrojack',
+            'channel_follower_count': int,
+            'channel_id': 'UChuZAo1RKL85gev3Eal9_zg',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UChuZAo1RKL85gev3Eal9_zg',
+            'comment_count': int,
+            'description': 'md5:8f5e2b82460520b619ccac1f509d43bf',
+            'duration': 244,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:19',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1381496404,
+            'upload_date': '20131011',
+            'uploader': 'Afrojack',
+            'uploader_id': '@AfrojackVEVO',
+            'uploader_url': 'https://www.youtube.com/@AfrojackVEVO',
+            'view_count': int,
         },
-        # Age-gate videos. See https://github.com/yt-dlp/yt-dlp/pull/575#issuecomment-888837000
-        {
-            'note': 'Embed allowed age-gate video; works with web_embedded',
-            'url': 'https://youtube.com/watch?v=HtVdAasjOgU',
-            'info_dict': {
-                'id': 'HtVdAasjOgU',
-                'ext': 'mp4',
-                'title': 'The Witcher 3: Wild Hunt - The Sword Of Destiny Trailer',
-                'description': r're:(?s).{100,}About the Game\n.*?The Witcher 3: Wild Hunt.{100,}',
-                'duration': 142,
-                'upload_date': '20140605',
-                'age_limit': 18,
-                'categories': ['Gaming'],
-                'thumbnail': 'https://i.ytimg.com/vi_webp/HtVdAasjOgU/maxresdefault.webp',
-                'availability': 'needs_auth',
-                'channel_url': 'https://www.youtube.com/channel/UCzybXLxv08IApdjdN0mJhEg',
-                'like_count': int,
-                'channel': 'The Witcher',
-                'live_status': 'not_live',
-                'tags': 'count:17',
-                'channel_id': 'UCzybXLxv08IApdjdN0mJhEg',
-                'playable_in_embed': True,
-                'view_count': int,
-                'channel_follower_count': int,
-                'uploader': 'The Witcher',
-                'uploader_url': 'https://www.youtube.com/@thewitcher',
-                'uploader_id': '@thewitcher',
-                'comment_count': int,
-                'channel_is_verified': True,
-                'heatmap': 'count:100',
-                'timestamp': 1401991663,
-                'media_type': 'video',
-            },
+        'params': {
+            'format': '141/bestaudio[ext=m4a]',
+            'skip_download': True,
+            'youtube_include_dash_manifest': True,
         },
-        {
-            'note': 'Formerly an age-gate video with embed allowed in public site',
-            'url': 'https://youtube.com/watch?v=HsUATh_Nc2U',
-            'info_dict': {
-                'id': 'HsUATh_Nc2U',
-                'ext': 'mp4',
-                'title': 'Godzilla 2 (Official Video)',
-                'description': 'md5:bf77e03fcae5529475e500129b05668a',
-                'upload_date': '20200408',
-                'age_limit': 0,
-                'availability': 'public',
-                'channel_id': 'UCYQT13AtrJC0gsM1far_zJg',
-                'channel': 'FlyingKitty',
-                'channel_url': 'https://www.youtube.com/channel/UCYQT13AtrJC0gsM1far_zJg',
-                'view_count': int,
-                'categories': ['Entertainment'],
-                'live_status': 'not_live',
-                'tags': ['Flyingkitty', 'godzilla 2'],
-                'thumbnail': 'https://i.ytimg.com/vi/HsUATh_Nc2U/maxresdefault.jpg',
-                'like_count': int,
-                'duration': 177,
-                'playable_in_embed': True,
-                'channel_follower_count': int,
-                'uploader': 'FlyingKitty',
-                'uploader_url': 'https://www.youtube.com/@FlyingKitty900',
-                'uploader_id': '@FlyingKitty900',
-                'comment_count': int,
-                'channel_is_verified': True,
-                'media_type': 'video',
-            },
+    }, {
+        # Age-gated video
+        # https://github.com/yt-dlp/yt-dlp/pull/575#issuecomment-888837000
+        'note': 'Embed allowed age-gated video; works with web_embedded',
+        'url': 'https://youtube.com/watch?v=HtVdAasjOgU',
+        'info_dict': {
+            'id': 'HtVdAasjOgU',
+            'ext': 'mp4',
+            'title': 'The Witcher 3: Wild Hunt - The Sword Of Destiny Trailer',
+            'age_limit': 18,
+            'availability': 'needs_auth',
+            'categories': ['Gaming'],
+            'channel': 'The Witcher',
+            'channel_follower_count': int,
+            'channel_id': 'UCzybXLxv08IApdjdN0mJhEg',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCzybXLxv08IApdjdN0mJhEg',
+            'comment_count': int,
+            'description': 'md5:595a43060c51c2a8cb61dd33c18e5fbd',
+            'duration': 142,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:17',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1401991663,
+            'upload_date': '20140605',
+            'uploader': 'The Witcher',
+            'uploader_id': '@thewitcher',
+            'uploader_url': 'https://www.youtube.com/@thewitcher',
+            'view_count': int,
         },
-        {
-            'note': 'Age-gate video embedable only with clientScreen=EMBED',
-            'url': 'https://youtube.com/watch?v=Tq92D6wQ1mg',
-            'info_dict': {
-                'id': 'Tq92D6wQ1mg',
-                'title': '[MMD] Adios - EVERGLOW [+Motion DL]',
-                'ext': 'mp4',
-                'upload_date': '20191228',
-                'description': 'md5:17eccca93a786d51bc67646756894066',
-                'age_limit': 18,
-                'like_count': int,
-                'availability': 'needs_auth',
-                'channel_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
-                'view_count': int,
-                'thumbnail': 'https://i.ytimg.com/vi_webp/Tq92D6wQ1mg/sddefault.webp',
-                'channel': 'Projekt Melody',
-                'live_status': 'not_live',
-                'tags': ['mmd', 'dance', 'mikumikudance', 'kpop', 'vtuber'],
-                'playable_in_embed': True,
-                'categories': ['Entertainment'],
-                'duration': 106,
-                'channel_url': 'https://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
-                'comment_count': int,
-                'channel_follower_count': int,
-                'uploader': 'Projekt Melody',
-                'uploader_url': 'https://www.youtube.com/@ProjektMelody',
-                'uploader_id': '@ProjektMelody',
-                'timestamp': 1577508724,
-            },
-            'skip': 'Age-restricted; requires authentication',
+        'params': {'skip_download': True},
+        'skip': 'Age-restricted; requires authentication',
+    }, {
+        'note': 'Formerly an age-gated video with embed allowed in public site',
+        'url': 'https://youtube.com/watch?v=HsUATh_Nc2U',
+        'info_dict': {
+            'id': 'HsUATh_Nc2U',
+            'ext': 'mp4',
+            'title': 'Godzilla 2 (Official Video)',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Entertainment'],
+            'channel': 'FlyingKitty',
+            'channel_follower_count': int,
+            'channel_id': 'UCYQT13AtrJC0gsM1far_zJg',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCYQT13AtrJC0gsM1far_zJg',
+            'comment_count': int,
+            'description': 'md5:bf77e03fcae5529475e500129b05668a',
+            'duration': 177,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:2',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1586358900,
+            'upload_date': '20200408',
+            'uploader': 'FlyingKitty',
+            'uploader_id': '@FlyingKitty900',
+            'uploader_url': 'https://www.youtube.com/@FlyingKitty900',
+            'view_count': int,
         },
-        {
-            'note': 'Non-Agegated non-embeddable video',
-            'url': 'https://youtube.com/watch?v=MeJVWBSsPAY',
-            'info_dict': {
-                'id': 'MeJVWBSsPAY',
-                'ext': 'mp4',
-                'title': 'OOMPH! - Such Mich Find Mich (Lyrics)',
-                'description': 'Fan Video. Music & Lyrics by OOMPH!.',
-                'upload_date': '20130730',
-                'track': 'Such mich find mich',
-                'age_limit': 0,
-                'tags': ['oomph', 'such mich find mich', 'lyrics', 'german industrial', 'musica industrial'],
-                'like_count': int,
-                'playable_in_embed': False,
-                'creator': 'OOMPH!',
-                'thumbnail': 'https://i.ytimg.com/vi/MeJVWBSsPAY/sddefault.jpg',
-                'view_count': int,
-                'alt_title': 'Such mich find mich',
-                'duration': 210,
-                'channel': 'Herr Lurik',
-                'channel_id': 'UCdR3RSDPqub28LjZx0v9-aA',
-                'categories': ['Music'],
-                'availability': 'public',
-                'channel_url': 'https://www.youtube.com/channel/UCdR3RSDPqub28LjZx0v9-aA',
-                'live_status': 'not_live',
-                'artist': 'OOMPH!',
-                'channel_follower_count': int,
-                'uploader': 'Herr Lurik',
-                'uploader_url': 'https://www.youtube.com/@HerrLurik',
-                'uploader_id': '@HerrLurik',
-                'media_type': 'video',
-            },
+        'params': {'skip_download': True},
+    }, {
+        'note': 'Age-gated video embedable only with clientScreen=EMBED',
+        'url': 'https://youtube.com/watch?v=Tq92D6wQ1mg',
+        'info_dict': {
+            'id': 'Tq92D6wQ1mg',
+            'ext': 'mp4',
+            'title': '[MMD] Adios - EVERGLOW [+Motion DL]',
+            'age_limit': 18,
+            'availability': 'needs_auth',
+            'categories': ['Entertainment'],
+            'channel': 'Projekt Melody',
+            'channel_follower_count': int,
+            'channel_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
+            'channel_url': 'https://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
+            'comment_count': int,
+            'description': 'md5:17eccca93a786d51bc67646756894066',
+            'duration': 106,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:5',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1577508724,
+            'upload_date': '20191228',
+            'uploader': 'Projekt Melody',
+            'uploader_id': '@ProjektMelody',
+            'uploader_url': 'https://www.youtube.com/@ProjektMelody',
+            'view_count': int,
         },
-        {
-            'note': 'Non-bypassable age-gated video',
-            'url': 'https://youtube.com/watch?v=Cr381pDsSsA',
-            'only_matching': True,
+        'skip': 'Age-restricted; requires authentication',
+    }, {
+        'note': 'Non-age-gated non-embeddable video',
+        'url': 'https://youtube.com/watch?v=MeJVWBSsPAY',
+        'info_dict': {
+            'id': 'MeJVWBSsPAY',
+            'ext': 'mp4',
+            'title': 'OOMPH! - Such Mich Find Mich (Lyrics)',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Music'],
+            'channel': 'Herr Lurik',
+            'channel_follower_count': int,
+            'channel_id': 'UCdR3RSDPqub28LjZx0v9-aA',
+            'channel_url': 'https://www.youtube.com/channel/UCdR3RSDPqub28LjZx0v9-aA',
+            'description': 'md5:205c1049102a4dffa61e4831c1f16851',
+            'duration': 210,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': False,
+            'tags': 'count:5',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1375214517,
+            'upload_date': '20130730',
+            'uploader': 'Herr Lurik',
+            'uploader_id': '@HerrLurik',
+            'uploader_url': 'https://www.youtube.com/@HerrLurik',
+            'view_count': int,
         },
-        # video_info is None (https://github.com/ytdl-org/youtube-dl/issues/4421)
+    }, {
+        'note': 'Non-bypassable age-gated video',
+        'url': 'https://youtube.com/watch?v=Cr381pDsSsA',
+        'only_matching': True,
+    }, {
+        # video_info is None
+        # https://github.com/ytdl-org/youtube-dl/issues/4421
         # YouTube Red ad is not captured for creator
-        {
-            'url': '__2ABJjxzNo',
-            'info_dict': {
-                'id': '__2ABJjxzNo',
-                'ext': 'mp4',
-                'duration': 266,
-                'upload_date': '20100430',
-                'creator': 'deadmau5',
-                'description': 'md5:6cbcd3a92ce1bc676fc4d6ab4ace2336',
-                'title': 'Deadmau5 - Some Chords (HD)',
-                'alt_title': 'Some Chords',
-                'availability': 'public',
-                'tags': 'count:14',
-                'channel_id': 'UCYEK6xds6eo-3tr4xRdflmQ',
-                'view_count': int,
-                'live_status': 'not_live',
-                'channel': 'deadmau5',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/__2ABJjxzNo/maxresdefault.webp',
-                'like_count': int,
-                'track': 'Some Chords',
-                'artist': 'deadmau5',
-                'playable_in_embed': True,
-                'age_limit': 0,
-                'channel_url': 'https://www.youtube.com/channel/UCYEK6xds6eo-3tr4xRdflmQ',
-                'categories': ['Music'],
-                'album': 'Some Chords',
-                'channel_follower_count': int,
-                'uploader': 'deadmau5',
-                'uploader_url': 'https://www.youtube.com/@deadmau5',
-                'uploader_id': '@deadmau5',
-                'media_type': 'video',
-            },
-            'expected_warnings': [
-                'DASH manifest missing',
-            ],
+        'url': '__2ABJjxzNo',
+        'info_dict': {
+            'id': '__2ABJjxzNo',
+            'ext': 'mp4',
+            'title': 'Deadmau5 - Some Chords (HD)',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Music'],
+            'channel': 'deadmau5',
+            'channel_follower_count': int,
+            'channel_id': 'UCYEK6xds6eo-3tr4xRdflmQ',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCYEK6xds6eo-3tr4xRdflmQ',
+            'comment_count': int,
+            'description': 'md5:c27e1e9e095a3d9dd99de2f0f377ba06',
+            'duration': 266,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:14',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1272659179,
+            'upload_date': '20100430',
+            'uploader': 'deadmau5',
+            'uploader_id': '@deadmau5',
+            'uploader_url': 'https://www.youtube.com/@deadmau5',
+            'view_count': int,
         },
-        # Olympics (https://github.com/ytdl-org/youtube-dl/issues/4431)
-        {
-            'url': 'lqQg6PlCWgI',
-            'info_dict': {
-                'id': 'lqQg6PlCWgI',
-                'ext': 'mp4',
-                'duration': 6085,
-                'upload_date': '20150827',
-                'description': 'md5:04bbbf3ccceb6795947572ca36f45904',
-                'title': 'Hockey - Women -  GER-AUS - London 2012 Olympic Games',
-                'like_count': int,
-                'release_timestamp': 1343767800,
-                'playable_in_embed': True,
-                'categories': ['Sports'],
-                'release_date': '20120731',
-                'channel': 'Olympics',
-                'tags': ['Hockey', '2012-07-31', '31 July 2012', 'Riverbank Arena', 'Session', 'Olympics', 'Olympic Games', 'London 2012', '2012 Summer Olympics', 'Summer Games'],
-                'channel_id': 'UCTl3QQTvqHFjurroKxexy2Q',
-                'thumbnail': 'https://i.ytimg.com/vi/lqQg6PlCWgI/maxresdefault.jpg',
-                'age_limit': 0,
-                'availability': 'public',
-                'live_status': 'was_live',
-                'view_count': int,
-                'channel_url': 'https://www.youtube.com/channel/UCTl3QQTvqHFjurroKxexy2Q',
-                'channel_follower_count': int,
-                'uploader': 'Olympics',
-                'uploader_url': 'https://www.youtube.com/@Olympics',
-                'uploader_id': '@Olympics',
-                'channel_is_verified': True,
-                'timestamp': 1440707674,
-                'media_type': 'livestream',
-            },
-            'params': {
-                'skip_download': 'requires avconv',
-            },
+        'expected_warnings': ['DASH manifest missing'],
+        'params': {'skip_download': True},
+    }, {
+        # https://github.com/ytdl-org/youtube-dl/issues/4431
+        'url': 'lqQg6PlCWgI',
+        'info_dict': {
+            'id': 'lqQg6PlCWgI',
+            'ext': 'mp4',
+            'title': 'Hockey - Women -  GER-AUS - London 2012 Olympic Games',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Sports'],
+            'channel': 'Olympics',
+            'channel_follower_count': int,
+            'channel_id': 'UCTl3QQTvqHFjurroKxexy2Q',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCTl3QQTvqHFjurroKxexy2Q',
+            'description': 'md5:04bbbf3ccceb6795947572ca36f45904',
+            'duration': 6085,
+            'like_count': int,
+            'live_status': 'was_live',
+            'media_type': 'livestream',
+            'playable_in_embed': True,
+            'release_date': '20120731',
+            'release_timestamp': 1343767800,
+            'tags': 'count:10',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1440707674,
+            'upload_date': '20150827',
+            'uploader': 'Olympics',
+            'uploader_id': '@Olympics',
+            'uploader_url': 'https://www.youtube.com/@Olympics',
+            'view_count': int,
         },
+        'params': {'skip_download': True},
+    }, {
         # Non-square pixels
-        {
-            'url': 'https://www.youtube.com/watch?v=_b-2C3KPAM0',
-            'info_dict': {
-                'id': '_b-2C3KPAM0',
-                'ext': 'mp4',
-                'stretched_ratio': 16 / 9.,
-                'duration': 85,
-                'upload_date': '20110310',
-                'description': 'made by Wacom from Korea | 字幕&加油添醋 by TY\'s Allen | 感謝heylisa00cavey1001同學熱情提供梗及翻譯',
-                'title': '[A-made] 變態妍字幕版 太妍 我就是這樣的人',
-                'playable_in_embed': True,
-                'channel': '孫ᄋᄅ',
-                'age_limit': 0,
-                'tags': 'count:11',
-                'channel_url': 'https://www.youtube.com/channel/UCS-xxCmRaA6BFdmgDPA_BIw',
-                'channel_id': 'UCS-xxCmRaA6BFdmgDPA_BIw',
-                'thumbnail': 'https://i.ytimg.com/vi/_b-2C3KPAM0/maxresdefault.jpg',
-                'view_count': int,
-                'categories': ['People & Blogs'],
-                'like_count': int,
-                'live_status': 'not_live',
-                'availability': 'unlisted',
-                'comment_count': int,
-                'channel_follower_count': int,
-                'uploader': '孫ᄋᄅ',
-                'uploader_url': 'https://www.youtube.com/@AllenMeow',
-                'uploader_id': '@AllenMeow',
-                'timestamp': 1299776999,
-                'media_type': 'video',
-            },
+        'url': 'https://www.youtube.com/watch?v=_b-2C3KPAM0',
+        'info_dict': {
+            'id': '_b-2C3KPAM0',
+            'ext': 'mp4',
+            'title': '[A-made] 變態妍字幕版 太妍 我就是這樣的人',
+            'age_limit': 0,
+            'availability': 'unlisted',
+            'categories': ['People & Blogs'],
+            'channel': '孫ᄋᄅ',
+            'channel_follower_count': int,
+            'channel_id': 'UCS-xxCmRaA6BFdmgDPA_BIw',
+            'channel_url': 'https://www.youtube.com/channel/UCS-xxCmRaA6BFdmgDPA_BIw',
+            'comment_count': int,
+            'description': 'md5:636f03cf211e7687daffe5bded88a94f',
+            'duration': 85,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'stretched_ratio': 16 / 9.,
+            'tags': 'count:11',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1299776999,
+            'upload_date': '20110310',
+            'uploader': '孫ᄋᄅ',
+            'uploader_id': '@AllenMeow',
+            'uploader_url': 'https://www.youtube.com/@AllenMeow',
+            'view_count': int,
         },
-        # url_encoded_fmt_stream_map is empty string
-        {
-            'url': 'qEJwOuvDf7I',
-            'info_dict': {
-                'id': 'qEJwOuvDf7I',
-                'ext': 'webm',
-                'title': 'Обсуждение судебной практики по выборам 14 сентября 2014 года в Санкт-Петербурге',
-                'description': '',
-                'upload_date': '20150404',
-            },
-            'params': {
-                'skip_download': 'requires avconv',
-            },
-            'skip': 'This live event has ended.',
+        'params': {'skip_download': True},
+    }, {
+        # url_encoded_fmt_stream_map is empty string (deprecated)
+        # https://github.com/ytdl-org/youtube-dl/commit/3a9fadd6dfc127ed0707b218b11ac10c654af1e2
+        # https://github.com/ytdl-org/youtube-dl/commit/67299f23d8b1894120e875edf97440de87e22308
+        'url': 'qEJwOuvDf7I',
+        'only_matching': True,
+    }, {
+        # Extraction from multiple DASH manifests
+        # https://github.com/ytdl-org/youtube-dl/pull/6097
+        'url': 'https://www.youtube.com/watch?v=FIl7x6_3R5Y',
+        'info_dict': {
+            'id': 'FIl7x6_3R5Y',
+            'ext': 'mp4',
+            'title': '[60fps] 150614  마마무 솔라 \'Mr. 애매모호\' 라이브 직캠 @대학로 게릴라 콘서트',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['People & Blogs'],
+            'channel': 'dorappi2000',
+            'channel_follower_count': int,
+            'channel_id': 'UCNlmrKRHLHcd2gq6LtPOTlQ',
+            'channel_url': 'https://www.youtube.com/channel/UCNlmrKRHLHcd2gq6LtPOTlQ',
+            'description': 'md5:116377fd2963b81ec4ce64b542173306',
+            'duration': 220,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:12',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1435276932,
+            'upload_date': '20150626',
+            'uploader': 'dorappi2000',
+            'uploader_id': '@dorappi2000',
+            'uploader_url': 'https://www.youtube.com/@dorappi2000',
+            'view_count': int,
         },
-        # Extraction from multiple DASH manifests (https://github.com/ytdl-org/youtube-dl/pull/6097)
-        {
-            'url': 'https://www.youtube.com/watch?v=FIl7x6_3R5Y',
-            'info_dict': {
-                'id': 'FIl7x6_3R5Y',
-                'ext': 'webm',
-                'title': 'md5:7b81415841e02ecd4313668cde88737a',
-                'description': 'md5:116377fd2963b81ec4ce64b542173306',
-                'duration': 220,
-                'upload_date': '20150625',
-                'formats': 'mincount:31',
-            },
-            'skip': 'not actual anymore',
-        },
+        'params': {'skip_download': True},
+    }, {
         # DASH manifest with segment_list
-        {
-            'url': 'https://www.youtube.com/embed/CsmdDsKjzN8',
-            'md5': '8ce563a1d667b599d21064e982ab9e31',
-            'info_dict': {
-                'id': 'CsmdDsKjzN8',
-                'ext': 'mp4',
-                'upload_date': '20150501',  # According to '<meta itemprop="datePublished"', but in other places it's 20150510
-                'description': 'Retransmisión en directo de la XVIII media maratón de Zaragoza.',
-                'title': 'Retransmisión XVIII Media maratón Zaragoza 2015',
-            },
-            'params': {
-                'youtube_include_dash_manifest': True,
-                'format': '135',  # bestvideo
-            },
-            'skip': 'This live event has ended.',
+        # https://github.com/ytdl-org/youtube-dl/pull/5886
+        'url': 'https://www.youtube.com/embed/CsmdDsKjzN8',
+        'info_dict': {
+            'id': 'CsmdDsKjzN8',
+            'ext': 'mp4',
+            'title': 'Retransmisión XVIII Media maratón Zaragoza 2015',
+            'age_limit': 0,
+            'availability': 'unlisted',
+            'categories': ['Sports'],
+            'channel': 'Airtek | LED streaming',
+            'channel_follower_count': int,
+            'channel_id': 'UCzTzUmjXxxacNnL8I3m4LnQ',
+            'channel_url': 'https://www.youtube.com/channel/UCzTzUmjXxxacNnL8I3m4LnQ',
+            'comment_count': int,
+            'description': 'md5:fcac84e6c545114766f670236fc10196',
+            'duration': 4394,
+            'like_count': int,
+            'live_status': 'was_live',
+            'media_type': 'livestream',
+            'playable_in_embed': True,
+            'release_date': '20150510',
+            'release_timestamp': 1431241011,
+            'tags': 'count:31',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1430505417,
+            'upload_date': '20150501',
+            'uploader': 'Airtek | LED streaming',
+            'uploader_id': '@airtekledstreaming7916',
+            'uploader_url': 'https://www.youtube.com/@airtekledstreaming7916',
+            'view_count': int,
         },
-        {
-            # Multifeed videos (multiple cameras), URL can be of any Camera
-            # TODO: fix multifeed titles
-            'url': 'https://www.youtube.com/watch?v=zaPI8MvL8pg',
-            'info_dict': {
-                'id': 'zaPI8MvL8pg',
-                'title': 'Terraria 1.2 Live Stream | Let\'s Play - Part 04',
-                'description': 'md5:563ccbc698b39298481ca3c571169519',
-            },
-            'playlist': [{
-                'info_dict': {
-                    'id': 'j5yGuxZ8lLU',
-                    'ext': 'mp4',
-                    'title': 'Terraria 1.2 Live Stream | Let\'s Play - Part 04 (Chris)',
-                    'description': 'md5:563ccbc698b39298481ca3c571169519',
-                    'duration': 10120,
-                    'channel_follower_count': int,
-                    'channel_url': 'https://www.youtube.com/channel/UCN2XePorRokPB9TEgRZpddg',
-                    'availability': 'public',
-                    'playable_in_embed': True,
-                    'upload_date': '20131105',
-                    'categories': ['Gaming'],
-                    'live_status': 'was_live',
-                    'tags': 'count:24',
-                    'release_timestamp': 1383701910,
-                    'thumbnail': 'https://i.ytimg.com/vi/j5yGuxZ8lLU/maxresdefault.jpg',
-                    'comment_count': int,
-                    'age_limit': 0,
-                    'like_count': int,
-                    'channel_id': 'UCN2XePorRokPB9TEgRZpddg',
-                    'channel': 'WiiLikeToPlay',
-                    'view_count': int,
-                    'release_date': '20131106',
-                    'uploader': 'WiiLikeToPlay',
-                    'uploader_id': '@WLTP',
-                    'uploader_url': 'https://www.youtube.com/@WLTP',
-                },
-            }, {
-                'info_dict': {
-                    'id': 'zaPI8MvL8pg',
-                    'ext': 'mp4',
-                    'title': 'Terraria 1.2 Live Stream | Let\'s Play - Part 04 (Tyson)',
-                    'availability': 'public',
-                    'channel_url': 'https://www.youtube.com/channel/UCN2XePorRokPB9TEgRZpddg',
-                    'channel': 'WiiLikeToPlay',
-                    'channel_follower_count': int,
-                    'description': 'md5:563ccbc698b39298481ca3c571169519',
-                    'duration': 10108,
-                    'age_limit': 0,
-                    'like_count': int,
-                    'tags': 'count:24',
-                    'channel_id': 'UCN2XePorRokPB9TEgRZpddg',
-                    'release_timestamp': 1383701915,
-                    'comment_count': int,
-                    'upload_date': '20131105',
-                    'thumbnail': 'https://i.ytimg.com/vi/zaPI8MvL8pg/maxresdefault.jpg',
-                    'release_date': '20131106',
-                    'playable_in_embed': True,
-                    'live_status': 'was_live',
-                    'categories': ['Gaming'],
-                    'view_count': int,
-                    'uploader': 'WiiLikeToPlay',
-                    'uploader_id': '@WLTP',
-                    'uploader_url': 'https://www.youtube.com/@WLTP',
-                },
-            }, {
-                'info_dict': {
-                    'id': 'R7r3vfO7Hao',
-                    'ext': 'mp4',
-                    'title': 'Terraria 1.2 Live Stream | Let\'s Play - Part 04 (Spencer)',
-                    'thumbnail': 'https://i.ytimg.com/vi/R7r3vfO7Hao/maxresdefault.jpg',
-                    'channel_id': 'UCN2XePorRokPB9TEgRZpddg',
-                    'like_count': int,
-                    'availability': 'public',
-                    'playable_in_embed': True,
-                    'upload_date': '20131105',
-                    'description': 'md5:563ccbc698b39298481ca3c571169519',
-                    'channel_follower_count': int,
-                    'tags': 'count:24',
-                    'release_date': '20131106',
-                    'comment_count': int,
-                    'channel_url': 'https://www.youtube.com/channel/UCN2XePorRokPB9TEgRZpddg',
-                    'channel': 'WiiLikeToPlay',
-                    'categories': ['Gaming'],
-                    'release_timestamp': 1383701914,
-                    'live_status': 'was_live',
-                    'age_limit': 0,
-                    'duration': 10128,
-                    'view_count': int,
-                    'uploader': 'WiiLikeToPlay',
-                    'uploader_id': '@WLTP',
-                    'uploader_url': 'https://www.youtube.com/@WLTP',
-                },
-            }],
-            'params': {'skip_download': True},
-            'skip': 'Not multifeed anymore',
+        'params': {
+            'format': '135',  # bestvideo
+            'skip_download': True,
+            'youtube_include_dash_manifest': True,
         },
-        {
-            # Multifeed video with comma in title (see https://github.com/ytdl-org/youtube-dl/issues/8536)
-            'url': 'https://www.youtube.com/watch?v=gVfLd0zydlo',
-            'info_dict': {
-                'id': 'gVfLd0zydlo',
-                'title': 'DevConf.cz 2016 Day 2 Workshops 1 14:00 - 15:30',
-            },
-            'playlist_count': 2,
-            'skip': 'Not multifeed anymore',
+    }, {
+        # Multi-camera events (deprecated)
+        # https://web.archive.org/web/20200308092705/https://support.google.com/youtube/answer/2853812
+        'url': 'https://www.youtube.com/watch?v=zaPI8MvL8pg',
+        'only_matching': True,
+    }, {
+        # Multi-camera events (deprecated)
+        # https://github.com/ytdl-org/youtube-dl/issues/8536
+        'url': 'https://www.youtube.com/watch?v=gVfLd0zydlo',
+        'only_matching': True,
+    }, {
+        'url': 'https://vid.plus/FlRa-iH7PGw',
+        'only_matching': True,
+    }, {
+        'url': 'https://zwearz.com/watch/9lWxNJF-ufM/electra-woman-dyna-girl-official-trailer-grace-helbig.html',
+        'only_matching': True,
+    }, {
+        # Title with JS-like syntax "};"
+        # https://github.com/ytdl-org/youtube-dl/issues/7468
+        # Also tests cut-off URL expansion in video description
+        # https://github.com/ytdl-org/youtube-dl/issues/1892
+        # https://github.com/ytdl-org/youtube-dl/issues/8164
+        'url': 'https://www.youtube.com/watch?v=lsguqyKfVQg',
+        'info_dict': {
+            'id': 'lsguqyKfVQg',
+            'ext': 'mp4',
+            'title': '{dark walk}; Loki/AC/Dishonored; collab w/Elflover21',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Film & Animation'],
+            'channel': 'IronSoulElf',
+            'channel_follower_count': int,
+            'channel_id': 'UCTSRgz5jylBvFt_S7wnsqLQ',
+            'channel_url': 'https://www.youtube.com/channel/UCTSRgz5jylBvFt_S7wnsqLQ',
+            'comment_count': int,
+            'description': 'md5:8085699c11dc3f597ce0410b0dcbb34a',
+            'duration': 133,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:13',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1447959261,
+            'upload_date': '20151119',
+            'uploader': 'IronSoulElf',
+            'uploader_id': '@IronSoulElf',
+            'uploader_url': 'https://www.youtube.com/@IronSoulElf',
+            'view_count': int,
         },
-        {
-            'url': 'https://vid.plus/FlRa-iH7PGw',
-            'only_matching': True,
+        'params': {'skip_download': True},
+    }, {
+        # Tags with '};'
+        # https://github.com/ytdl-org/youtube-dl/issues/7468
+        'url': 'https://www.youtube.com/watch?v=Ms7iBXnlUO8',
+        'only_matching': True,
+    }, {
+        # Video with yt:stretch=17:0
+        'url': 'https://www.youtube.com/watch?v=Q39EVAstoRM',
+        'info_dict': {
+            'id': 'Q39EVAstoRM',
+            'ext': 'mp4',
+            'title': 'Clash Of Clans#14 Dicas De Ataque Para CV 4',
+            'description': 'md5:ee18a25c350637c8faff806845bddee9',
+            'upload_date': '20151107',
         },
-        {
-            'url': 'https://zwearz.com/watch/9lWxNJF-ufM/electra-woman-dyna-girl-official-trailer-grace-helbig.html',
-            'only_matching': True,
+        'skip': 'This video does not exist.',
+    }, {
+        # Video with incomplete 'yt:stretch=16:'
+        'url': 'https://www.youtube.com/watch?v=FRhJzUSJbGI',
+        'only_matching': True,
+    }, {
+        # Video licensed under Creative Commons
+        'url': 'https://www.youtube.com/watch?v=M4gD1WSo5mA',
+        'info_dict': {
+            'id': 'M4gD1WSo5mA',
+            'ext': 'mp4',
+            'title': 'William Fisher, CopyrightX: Lecture 3.2, The Subject Matter of Copyright: Drama and choreography',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Education'],
+            'channel': 'The Berkman Klein Center for Internet & Society',
+            'channel_follower_count': int,
+            'channel_id': 'UCuLGmD72gJDBwmLw06X58SA',
+            'channel_url': 'https://www.youtube.com/channel/UCuLGmD72gJDBwmLw06X58SA',
+            'chapters': 'count:4',
+            'description': 'md5:a677553cf0840649b731a3024aeff4cc',
+            'duration': 721,
+            'license': 'Creative Commons Attribution license (reuse allowed)',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:3',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1422422076,
+            'upload_date': '20150128',
+            'uploader': 'The Berkman Klein Center for Internet & Society',
+            'uploader_id': '@BKCHarvard',
+            'uploader_url': 'https://www.youtube.com/@BKCHarvard',
+            'view_count': int,
         },
-        {
-            # Title with JS-like syntax "};" (see https://github.com/ytdl-org/youtube-dl/issues/7468)
-            # Also tests cut-off URL expansion in video description (see
-            # https://github.com/ytdl-org/youtube-dl/issues/1892,
-            # https://github.com/ytdl-org/youtube-dl/issues/8164)
-            'url': 'https://www.youtube.com/watch?v=lsguqyKfVQg',
-            'info_dict': {
-                'id': 'lsguqyKfVQg',
-                'ext': 'mp4',
-                'title': '{dark walk}; Loki/AC/Dishonored; collab w/Elflover21',
-                'alt_title': 'Dark Walk',
-                'description': 'md5:8085699c11dc3f597ce0410b0dcbb34a',
-                'duration': 133,
-                'upload_date': '20151119',
-                'creator': 'Todd Haberman;\nDaniel Law Heath and Aaron Kaplan',
-                'track': 'Dark Walk',
-                'artist': 'Todd Haberman;\nDaniel Law Heath and Aaron Kaplan',
-                'album': 'Position Music - Production Music Vol. 143 - Dark Walk',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/lsguqyKfVQg/maxresdefault.webp',
-                'categories': ['Film & Animation'],
-                'view_count': int,
-                'live_status': 'not_live',
-                'channel_url': 'https://www.youtube.com/channel/UCTSRgz5jylBvFt_S7wnsqLQ',
-                'channel_id': 'UCTSRgz5jylBvFt_S7wnsqLQ',
-                'tags': 'count:13',
-                'availability': 'public',
-                'channel': 'IronSoulElf',
-                'playable_in_embed': True,
-                'like_count': int,
-                'age_limit': 0,
-                'channel_follower_count': int,
-                'media_type': 'video',
-            },
-            'params': {
-                'skip_download': True,
-            },
+        'params': {'skip_download': True},
+    }, {
+        # https://github.com/ytdl-org/youtube-dl/commit/fd050249afce1bcc9e7f4a127069375467007b55
+        'url': 'https://www.youtube.com/watch?v=eQcmzGIKrzg',
+        'info_dict': {
+            'id': 'eQcmzGIKrzg',
+            'ext': 'mp4',
+            'title': 'Democratic Socialism and Foreign Policy | Bernie Sanders',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['News & Politics'],
+            'channel': 'Bernie Sanders',
+            'channel_follower_count': int,
+            'channel_id': 'UCH1dpzjCEiGAt8CXkryhkZg',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCH1dpzjCEiGAt8CXkryhkZg',
+            'chapters': 'count:5',
+            'comment_count': int,
+            'description': 'md5:13a2503d7b5904ef4b223aa101628f39',
+            'duration': 4060,
+            'heatmap': 'count:100',
+            'license': 'Creative Commons Attribution license (reuse allowed)',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:12',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1447987198,
+            'upload_date': '20151120',
+            'uploader': 'Bernie Sanders',
+            'uploader_id': '@BernieSanders',
+            'uploader_url': 'https://www.youtube.com/@BernieSanders',
+            'view_count': int,
         },
-        {
-            # Tags with '};' (see https://github.com/ytdl-org/youtube-dl/issues/7468)
-            'url': 'https://www.youtube.com/watch?v=Ms7iBXnlUO8',
-            'only_matching': True,
+        'params': {'skip_download': True},
+    }, {
+        'url': 'https://www.youtube.com/watch?feature=player_embedded&amp;amp;v=V36LpHqtcDY',
+        'only_matching': True,
+    }, {
+        # YouTube Red paid video
+        # https://github.com/ytdl-org/youtube-dl/issues/10059
+        'url': 'https://www.youtube.com/watch?v=i1Ko8UG-Tdo',
+        'only_matching': True,
+    }, {
+        # Rental video preview
+        # https://github.com/ytdl-org/youtube-dl/commit/fd050249afce1bcc9e7f4a127069375467007b55
+        'url': 'https://www.youtube.com/watch?v=yYr8q0y5Jfg',
+        'info_dict': {
+            'id': 'uGpuVWrhIzE',
+            'ext': 'mp4',
+            'title': 'Piku - Trailer',
+            'description': 'md5:c36bd60c3fd6f1954086c083c72092eb',
+            'upload_date': '20150811',
+            'license': 'Standard YouTube License',
         },
-        {
-            # Video with yt:stretch=17:0
-            'url': 'https://www.youtube.com/watch?v=Q39EVAstoRM',
-            'info_dict': {
-                'id': 'Q39EVAstoRM',
-                'ext': 'mp4',
-                'title': 'Clash Of Clans#14 Dicas De Ataque Para CV 4',
-                'description': 'md5:ee18a25c350637c8faff806845bddee9',
-                'upload_date': '20151107',
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'skip': 'This video does not exist.',
+        'skip': 'This video is not available.',
+    }, {
+        # YouTube Red video with episode data
+        'url': 'https://www.youtube.com/watch?v=iqKdEhx-dD4',
+        'info_dict': {
+            'id': 'iqKdEhx-dD4',
+            'ext': 'mp4',
+            'title': 'Isolation - Mind Field (Ep 1)',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Entertainment'],
+            'channel': 'Vsauce',
+            'channel_follower_count': int,
+            'channel_id': 'UC6nSFpj9HTCZ5t-N3Rm3-HA',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UC6nSFpj9HTCZ5t-N3Rm3-HA',
+            'comment_count': int,
+            'description': 'md5:f540112edec5d09fc8cc752d3d4ba3cd',
+            'duration': 2085,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:12',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1484761047,
+            'upload_date': '20170118',
+            'uploader': 'Vsauce',
+            'uploader_id': '@Vsauce',
+            'uploader_url': 'https://www.youtube.com/@Vsauce',
+            'view_count': int,
         },
-        {
-            # Video with incomplete 'yt:stretch=16:'
-            'url': 'https://www.youtube.com/watch?v=FRhJzUSJbGI',
-            'only_matching': True,
+        'expected_warnings': ['Skipping DASH manifest'],
+        'params': {'skip_download': True},
+    }, {
+        # The following content has been identified by the YouTube community
+        # as inappropriate or offensive to some audiences.
+        'url': 'https://www.youtube.com/watch?v=6SJNVb0GnPI',
+        'info_dict': {
+            'id': '6SJNVb0GnPI',
+            'ext': 'mp4',
+            'title': 'Race Differences in Intelligence',
+            'description': 'md5:5d161533167390427a1f8ee89a1fc6f1',
+            'duration': 965,
+            'upload_date': '20140124',
         },
-        {
-            # Video licensed under Creative Commons
-            'url': 'https://www.youtube.com/watch?v=M4gD1WSo5mA',
-            'info_dict': {
-                'id': 'M4gD1WSo5mA',
-                'ext': 'mp4',
-                'title': 'md5:e41008789470fc2533a3252216f1c1d1',
-                'description': 'md5:a677553cf0840649b731a3024aeff4cc',
-                'duration': 721,
-                'upload_date': '20150128',
-                'license': 'Creative Commons Attribution license (reuse allowed)',
-                'channel_id': 'UCuLGmD72gJDBwmLw06X58SA',
-                'channel_url': 'https://www.youtube.com/channel/UCuLGmD72gJDBwmLw06X58SA',
-                'like_count': int,
-                'age_limit': 0,
-                'tags': ['Copyright (Legal Subject)', 'Law (Industry)', 'William W. Fisher (Author)'],
-                'channel': 'The Berkman Klein Center for Internet & Society',
-                'availability': 'public',
-                'view_count': int,
-                'categories': ['Education'],
-                'thumbnail': 'https://i.ytimg.com/vi_webp/M4gD1WSo5mA/maxresdefault.webp',
-                'live_status': 'not_live',
-                'playable_in_embed': True,
-                'channel_follower_count': int,
-                'chapters': list,
-                'uploader': 'The Berkman Klein Center for Internet & Society',
-                'uploader_id': '@BKCHarvard',
-                'uploader_url': 'https://www.youtube.com/@BKCHarvard',
-                'timestamp': 1422422076,
-                'media_type': 'video',
-            },
-            'params': {
-                'skip_download': True,
-            },
+        'skip': 'This video has been removed for violating YouTube\'s policy on hate speech.',
+    }, {
+        # itag 212
+        'url': '1t24XAntNCY',
+        'only_matching': True,
+    }, {
+        # geo restricted to JP
+        'url': 'sJL6WA-aGkQ',
+        'only_matching': True,
+    }, {
+        'url': 'https://invidio.us/watch?v=BaW_jenozKc',
+        'only_matching': True,
+    }, {
+        'url': 'https://redirect.invidious.io/watch?v=BaW_jenozKc',
+        'only_matching': True,
+    }, {
+        # from https://nitter.pussthecat.org/YouTube/status/1360363141947944964#m
+        'url': 'https://redirect.invidious.io/Yh0AhrY9GjA',
+        'only_matching': True,
+    }, {
+        # DRM protected
+        'url': 'https://www.youtube.com/watch?v=s7_qI6_mIXc',
+        'only_matching': True,
+    }, {
+        # Video with unsupported adaptive stream type formats
+        # https://github.com/ytdl-org/youtube-dl/commit/4fe54c128a11d394874505af75aaa5a2276aa3ba
+        'url': 'https://www.youtube.com/watch?v=Z4Vy8R84T1U',
+        'only_matching': True,
+    }, {
+        # Youtube Music Auto-generated description
+        # TODO: fix metadata extraction
+        # https://github.com/ytdl-org/youtube-dl/issues/20599
+        'url': 'https://music.youtube.com/watch?v=MgNrAu2pzNs',
+        'info_dict': {
+            'id': 'MgNrAu2pzNs',
+            'ext': 'mp4',
+            'title': 'Voyeur Girl',
+            'age_limit': 0,
+            'album': 'it\'s too much love to know my dear',
+            'alt_title': 'Voyeur Girl',
+            'artists': ['Stephen'],
+            'availability': 'public',
+            'categories': ['Music'],
+            'channel': 'Stephen',  # TODO: should be 'Stephen - Topic'
+            'channel_follower_count': int,
+            'channel_id': 'UC-pWHpBjdGG69N9mM2auIAA',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UC-pWHpBjdGG69N9mM2auIAA',
+            'comment_count': int,
+            'creators': ['Stephen'],
+            'description': 'md5:7ae382a65843d6df2685993e90a8628f',
+            'duration': 169,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'release_date': '20190313',
+            'tags': 'count:11',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1552385807,
+            'track': 'Voyeur Girl',
+            'upload_date': '20190312',
+            'uploader': 'Stephen',
+            'view_count': int,
         },
-        {
-            'url': 'https://www.youtube.com/watch?v=eQcmzGIKrzg',
-            'info_dict': {
-                'id': 'eQcmzGIKrzg',
-                'ext': 'mp4',
-                'title': 'Democratic Socialism and Foreign Policy | Bernie Sanders',
-                'description': 'md5:13a2503d7b5904ef4b223aa101628f39',
-                'duration': 4060,
-                'upload_date': '20151120',
-                'license': 'Creative Commons Attribution license (reuse allowed)',
-                'playable_in_embed': True,
-                'tags': 'count:12',
-                'like_count': int,
-                'channel_id': 'UCH1dpzjCEiGAt8CXkryhkZg',
-                'age_limit': 0,
-                'availability': 'public',
-                'categories': ['News & Politics'],
-                'channel': 'Bernie Sanders',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/eQcmzGIKrzg/maxresdefault.webp',
-                'view_count': int,
-                'live_status': 'not_live',
-                'channel_url': 'https://www.youtube.com/channel/UCH1dpzjCEiGAt8CXkryhkZg',
-                'comment_count': int,
-                'channel_follower_count': int,
-                'chapters': list,
-                'uploader': 'Bernie Sanders',
-                'uploader_url': 'https://www.youtube.com/@BernieSanders',
-                'uploader_id': '@BernieSanders',
-                'channel_is_verified': True,
-                'heatmap': 'count:100',
-                'timestamp': 1447987198,
-                'media_type': 'video',
-            },
-            'params': {
-                'skip_download': True,
-            },
+        'params': {'skip_download': True},
+    }, {
+        'url': 'https://www.youtubekids.com/watch?v=3b8nCWDgZ6Q',
+        'only_matching': True,
+    }, {
+        # invalid -> valid video id redirection
+        # https://github.com/ytdl-org/youtube-dl/pull/25063
+        'url': 'DJztXj2GPfl',
+        'info_dict': {
+            'id': 'DJztXj2GPfk',
+            'ext': 'mp4',
+            'title': 'Panjabi MC - Mundian To Bach Ke (The Dictator Soundtrack)',
+            'description': 'md5:bf577a41da97918e94fa9798d9228825',
+            'upload_date': '20090125',
+            'artist': 'Panjabi MC',
+            'track': 'Beware of the Boys (Mundian to Bach Ke) - Motivo Hi-Lectro Remix',
+            'album': 'Beware of the Boys (Mundian To Bach Ke)',
         },
-        {
-            'url': 'https://www.youtube.com/watch?feature=player_embedded&amp;amp;v=V36LpHqtcDY',
-            'only_matching': True,
+        'skip': 'Video unavailable',
+    }, {
+        # empty description results in an empty string
+        # https://github.com/ytdl-org/youtube-dl/pull/26575
+        'url': 'https://www.youtube.com/watch?v=x41yOUIvK2k',
+        'info_dict': {
+            'id': 'x41yOUIvK2k',
+            'ext': 'mp4',
+            'title': 'IMG 3456',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Pets & Animals'],
+            'channel': 'l\'Or Vert asbl',
+            'channel_follower_count': int,
+            'channel_id': 'UCo03ZQPBW5U4UC3regpt1nw',
+            'channel_url': 'https://www.youtube.com/channel/UCo03ZQPBW5U4UC3regpt1nw',
+            'description': '',
+            'duration': 7,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': [],
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1497343210,
+            'upload_date': '20170613',
+            'uploader': 'l\'Or Vert asbl',
+            'uploader_id': '@ElevageOrVert',
+            'uploader_url': 'https://www.youtube.com/@ElevageOrVert',
+            'view_count': int,
         },
-        {
-            # YouTube Red paid video (https://github.com/ytdl-org/youtube-dl/issues/10059)
-            'url': 'https://www.youtube.com/watch?v=i1Ko8UG-Tdo',
-            'only_matching': True,
+        'params': {'skip_download': True},
+    }, {
+        # with '};' inside yt initial data (see [1])
+        # see [2] for an example with '};' inside ytInitialPlayerResponse
+        # 1. https://github.com/ytdl-org/youtube-dl/issues/27093
+        # 2. https://github.com/ytdl-org/youtube-dl/issues/27216
+        'url': 'https://www.youtube.com/watch?v=CHqg6qOn4no',
+        'info_dict': {
+            'id': 'CHqg6qOn4no',
+            'ext': 'mp4',
+            'title': 'Part 77   Sort a list of simple types in c#',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Education'],
+            'channel': 'kudvenkat',
+            'channel_follower_count': int,
+            'channel_id': 'UCCTVrRB5KpIiK6V2GGVsR1Q',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCCTVrRB5KpIiK6V2GGVsR1Q',
+            'chapters': 'count:4',
+            'comment_count': int,
+            'description': 'md5:b8746fa52e10cdbf47997903f13b20dc',
+            'duration': 522,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:12',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1377976349,
+            'upload_date': '20130831',
+            'uploader': 'kudvenkat',
+            'uploader_id': '@Csharp-video-tutorialsBlogspot',
+            'uploader_url': 'https://www.youtube.com/@Csharp-video-tutorialsBlogspot',
+            'view_count': int,
         },
-        {
-            # Rental video preview
-            'url': 'https://www.youtube.com/watch?v=yYr8q0y5Jfg',
-            'info_dict': {
-                'id': 'uGpuVWrhIzE',
-                'ext': 'mp4',
-                'title': 'Piku - Trailer',
-                'description': 'md5:c36bd60c3fd6f1954086c083c72092eb',
-                'upload_date': '20150811',
-                'license': 'Standard YouTube License',
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'skip': 'This video is not available.',
+        'params': {'skip_download': True},
+    }, {
+        # another example of '};' in ytInitialData
+        'url': 'https://www.youtube.com/watch?v=gVfgbahppCY',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/watch_popup?v=63RmMXCd_bQ',
+        'only_matching': True,
+    }, {
+        # https://github.com/ytdl-org/youtube-dl/pull/28094
+        'url': 'OtqTfy26tG0',
+        'info_dict': {
+            'id': 'OtqTfy26tG0',
+            'ext': 'mp4',
+            'title': 'Burn Out',
+            'age_limit': 0,
+            'album': 'Every Day',
+            'alt_title': 'Burn Out',
+            'artists': ['The Cinematic Orchestra'],
+            'availability': 'public',
+            'categories': ['Music'],
+            'channel': 'The Cinematic Orchestra',
+            'channel_follower_count': int,
+            'channel_id': 'UCIzsJBIyo8hhpFm1NK0uLgw',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCIzsJBIyo8hhpFm1NK0uLgw',
+            'comment_count': int,
+            'creators': ['The Cinematic Orchestra'],
+            'description': 'md5:fee8b19b7ba433cc2957d1c7582067ac',
+            'duration': 614,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'release_date': '20020513',
+            'release_year': 2023,
+            'tags': 'count:3',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1416497379,
+            'track': 'Burn Out',
+            'upload_date': '20141120',
+            'uploader': 'The Cinematic Orchestra',
+            'view_count': int,
         },
-        {
-            # YouTube Red video with episode data
-            'url': 'https://www.youtube.com/watch?v=iqKdEhx-dD4',
-            'info_dict': {
-                'id': 'iqKdEhx-dD4',
-                'ext': 'mp4',
-                'title': 'Isolation - Mind Field (Ep 1)',
-                'description': 'md5:f540112edec5d09fc8cc752d3d4ba3cd',
-                'duration': 2085,
-                'upload_date': '20170118',
-                'series': 'Mind Field',
-                'season_number': 1,
-                'episode_number': 1,
-                'thumbnail': 'https://i.ytimg.com/vi_webp/iqKdEhx-dD4/maxresdefault.webp',
-                'tags': 'count:12',
-                'view_count': int,
-                'availability': 'public',
-                'age_limit': 0,
-                'channel': 'Vsauce',
-                'episode': 'Episode 1',
-                'categories': ['Entertainment'],
-                'season': 'Season 1',
-                'channel_id': 'UC6nSFpj9HTCZ5t-N3Rm3-HA',
-                'channel_url': 'https://www.youtube.com/channel/UC6nSFpj9HTCZ5t-N3Rm3-HA',
-                'like_count': int,
-                'playable_in_embed': True,
-                'live_status': 'not_live',
-                'channel_follower_count': int,
-                'uploader': 'Vsauce',
-                'uploader_url': 'https://www.youtube.com/@Vsauce',
-                'uploader_id': '@Vsauce',
-                'comment_count': int,
-                'channel_is_verified': True,
-                'timestamp': 1484761047,
-                'media_type': 'video',
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'expected_warnings': [
-                'Skipping DASH manifest',
-            ],
+        'params': {'skip_download': True},
+    }, {
+        # controversial video, only works with bpctr when authenticated with cookies
+        'url': 'https://www.youtube.com/watch?v=nGC3D_FkCmg',
+        'only_matching': True,
+    }, {
+        # controversial video, requires bpctr/contentCheckOk
+        'url': 'https://www.youtube.com/watch?v=SZJvDhaSDnc',
+        'info_dict': {
+            'id': 'SZJvDhaSDnc',
+            'ext': 'mp4',
+            'title': 'San Diego teen commits suicide after bullying over embarrassing video',
+            'age_limit': 18,
+            'availability': 'needs_auth',
+            'categories': ['News & Politics'],
+            'channel': 'CBS Mornings',
+            'channel_follower_count': int,
+            'channel_id': 'UC-SJ6nODDmufqBzPBwCvYvQ',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UC-SJ6nODDmufqBzPBwCvYvQ',
+            'comment_count': int,
+            'description': 'md5:acde3a73d3f133fc97e837a9f76b53b7',
+            'duration': 170,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:5',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1405513526,
+            'upload_date': '20140716',
+            'uploader': 'CBS Mornings',
+            'uploader_id': '@CBSMornings',
+            'uploader_url': 'https://www.youtube.com/@CBSMornings',
+            'view_count': int,
         },
-        {
-            # The following content has been identified by the YouTube community
-            # as inappropriate or offensive to some audiences.
-            'url': 'https://www.youtube.com/watch?v=6SJNVb0GnPI',
-            'info_dict': {
-                'id': '6SJNVb0GnPI',
-                'ext': 'mp4',
-                'title': 'Race Differences in Intelligence',
-                'description': 'md5:5d161533167390427a1f8ee89a1fc6f1',
-                'duration': 965,
-                'upload_date': '20140124',
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'skip': 'This video has been removed for violating YouTube\'s policy on hate speech.',
+        'skip': 'Age-restricted; requires authentication',
+    }, {
+        # restricted location
+        # https://github.com/ytdl-org/youtube-dl/issues/28685
+        'url': 'cBvYw8_A0vQ',
+        'info_dict': {
+            'id': 'cBvYw8_A0vQ',
+            'ext': 'mp4',
+            'title': '4K Ueno Okachimachi  Street  Scenes  上野御徒町歩き',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Travel & Events'],
+            'channel': 'Walk around Japan',
+            'channel_follower_count': int,
+            'channel_id': 'UC3o_t8PzBmXf5S9b7GLx1Mw',
+            'channel_url': 'https://www.youtube.com/channel/UC3o_t8PzBmXf5S9b7GLx1Mw',
+            'description': 'md5:ea770e474b7cd6722b4c95b833c03630',
+            'duration': 1456,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:5',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1605884416,
+            'upload_date': '20201120',
+            'uploader': 'Walk around Japan',
+            'uploader_id': '@walkaroundjapan7124',
+            'uploader_url': 'https://www.youtube.com/@walkaroundjapan7124',
+            'view_count': int,
         },
-        {
-            # itag 212
-            'url': '1t24XAntNCY',
-            'only_matching': True,
+        'params': {'skip_download': True},
+    }, {
+        # Has multiple audio streams
+        'url': 'WaOKSUlf4TM',
+        'only_matching': True,
+    }, {
+        # Requires Premium: has format 141 when requested using YTM url
+        'url': 'https://music.youtube.com/watch?v=XclachpHxis',
+        'only_matching': True,
+    }, {
+        # multiple subtitles with same lang_code
+        'url': 'https://www.youtube.com/watch?v=wsQiKKfKxug',
+        'only_matching': True,
+    }, {
+        # Force use android client fallback
+        'url': 'https://www.youtube.com/watch?v=YOelRv7fMxY',
+        'info_dict': {
+            'id': 'YOelRv7fMxY',
+            'ext': '3gp',
+            'title': 'DIGGING A SECRET TUNNEL Part 1',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Entertainment'],
+            'channel': 'colinfurze',
+            'channel_follower_count': int,
+            'channel_id': 'UCp68_FLety0O-n9QU6phsgw',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCp68_FLety0O-n9QU6phsgw',
+            'chapters': 'count:4',
+            'comment_count': int,
+            'description': 'md5:5d5991195d599b56cd0c4148907eec50',
+            'duration': 596,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:6',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1624546829,
+            'upload_date': '20210624',
+            'uploader': 'colinfurze',
+            'uploader_id': '@colinfurze',
+            'uploader_url': 'https://www.youtube.com/@colinfurze',
+            'view_count': int,
         },
-        {
-            # geo restricted to JP
-            'url': 'sJL6WA-aGkQ',
-            'only_matching': True,
+        'params': {
+            'extractor_args': {'youtube': {'player_client': ['android']}},
+            'format': '17',  # 3gp format available on android
+            'skip_download': True,
         },
-        {
-            'url': 'https://invidio.us/watch?v=BaW_jenozKc',
-            'only_matching': True,
+        'skip': 'Android client broken',
+    }, {
+        # Skip download of additional client configs (remix client config in this case)
+        'url': 'https://music.youtube.com/watch?v=MgNrAu2pzNs',
+        'only_matching': True,
+        'params': {'extractor_args': {'youtube': {'player_skip': ['configs']}}},
+    }, {
+        # shorts
+        'url': 'https://www.youtube.com/shorts/BGQWPY4IigY',
+        'only_matching': True,
+    }, {
+        'note': 'Storyboards',
+        'url': 'https://www.youtube.com/watch?v=5KLPxDtMqe8',
+        'info_dict': {
+            'id': '5KLPxDtMqe8',
+            'ext': 'mhtml',
+            'title': 'Your Brain is Plastic',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Education'],
+            'channel': 'SciShow',
+            'channel_follower_count': int,
+            'channel_id': 'UCZYTClx2T1of7BRZ86-8fow',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCZYTClx2T1of7BRZ86-8fow',
+            'chapters': 'count:5',
+            'comment_count': int,
+            'description': 'md5:89cd86034bdb5466cd87c6ba206cd2bc',
+            'duration': 248,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:12',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1395685455,
+            'upload_date': '20140324',
+            'uploader': 'SciShow',
+            'uploader_id': '@SciShow',
+            'uploader_url': 'https://www.youtube.com/@SciShow',
+            'view_count': int,
         },
-        {
-            'url': 'https://redirect.invidious.io/watch?v=BaW_jenozKc',
-            'only_matching': True,
+        'params': {
+            'format': 'mhtml',
+            'skip_download': True,
         },
-        {
-            # from https://nitter.pussthecat.org/YouTube/status/1360363141947944964#m
-            'url': 'https://redirect.invidious.io/Yh0AhrY9GjA',
-            'only_matching': True,
+    }, {
+        # Ensure video upload_date is in UTC timezone (video was uploaded 1641170939)
+        'url': 'https://www.youtube.com/watch?v=2NUZ8W2llS4',
+        'info_dict': {
+            'id': '2NUZ8W2llS4',
+            'ext': 'mp4',
+            'title': 'The NP that test your phone performance 🙂',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Gaming'],
+            'channel': 'Leon Nguyen',
+            'channel_follower_count': int,
+            'channel_id': 'UCRqNBSOHgilHfAczlUmlWHA',
+            'channel_url': 'https://www.youtube.com/channel/UCRqNBSOHgilHfAczlUmlWHA',
+            'comment_count': int,
+            'description': 'md5:144494b24d4f9dfacb97c1bbef5de84d',
+            'duration': 21,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:23',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1641170939,
+            'upload_date': '20220103',
+            'uploader': 'Leon Nguyen',
+            'uploader_id': '@LeonNguyen',
+            'uploader_url': 'https://www.youtube.com/@LeonNguyen',
+            'view_count': int,
         },
-        {
-            # DRM protected
-            'url': 'https://www.youtube.com/watch?v=s7_qI6_mIXc',
-            'only_matching': True,
+        'params': {'skip_download': True},
+    }, {
+        # date text is premiered video, ensure upload date in UTC (published 1641172509)
+        'url': 'https://www.youtube.com/watch?v=mzZzzBU6lrM',
+        'info_dict': {
+            'id': 'mzZzzBU6lrM',
+            'ext': 'mp4',
+            'title': 'I Met GeorgeNotFound In Real Life...',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Entertainment'],
+            'channel': 'Quackity',
+            'channel_follower_count': int,
+            'channel_id': 'UC_8NknAFiyhOUaZqHR3lq3Q',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UC_8NknAFiyhOUaZqHR3lq3Q',
+            'comment_count': int,
+            'description': 'md5:42e72df3d4d5965903a2b9359c3ccd25',
+            'duration': 955,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'release_date': '20220103',
+            'release_timestamp': 1641172509,
+            'tags': 'count:26',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1641172509,
+            'upload_date': '20220103',
+            'uploader': 'Quackity',
+            'uploader_id': '@Quackity',
+            'uploader_url': 'https://www.youtube.com/@Quackity',
+            'view_count': int,
         },
-        {
-            # Video with unsupported adaptive stream type formats
-            'url': 'https://www.youtube.com/watch?v=Z4Vy8R84T1U',
-            'info_dict': {
-                'id': 'Z4Vy8R84T1U',
-                'ext': 'mp4',
-                'title': 'saman SMAN 53 Jakarta(Sancety) opening COFFEE4th at SMAN 53 Jakarta',
-                'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
-                'duration': 433,
-                'upload_date': '20130923',
-                'formats': 'maxcount:10',
-            },
-            'params': {
-                'skip_download': True,
-                'youtube_include_dash_manifest': False,
-            },
-            'skip': 'not actual anymore',
+        'params': {'skip_download': True},
+    }, {
+        # continuous livestream.
+        # Upload date was 2022-07-12T05:12:29-07:00, while stream start is 2022-07-12T15:59:30+00:00
+        'url': 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+        'info_dict': {
+            'id': 'jfKfPfyJRdk',
+            'ext': 'mp4',
+            'title': str,
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Music'],
+            'channel': 'Lofi Girl',
+            'channel_follower_count': int,
+            'channel_id': 'UCSJ4gkVC6NrvII8umztf0Ow',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCSJ4gkVC6NrvII8umztf0Ow',
+            'concurrent_view_count': int,
+            'description': 'md5:48841fcfc1be6131d729fa7b4a7784cb',
+            'like_count': int,
+            'live_status': 'is_live',
+            'media_type': 'livestream',
+            'playable_in_embed': True,
+            'release_date': '20220712',
+            'release_timestamp': 1657641570,
+            'tags': 'count:32',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1657627949,
+            'upload_date': '20220712',
+            'uploader': 'Lofi Girl',
+            'uploader_id': '@LofiGirl',
+            'uploader_url': 'https://www.youtube.com/@LofiGirl',
+            'view_count': int,
         },
-        {
-            # Youtube Music Auto-generated description
-            # TODO: fix metadata extraction
-            'url': 'https://music.youtube.com/watch?v=MgNrAu2pzNs',
-            'info_dict': {
-                'id': 'MgNrAu2pzNs',
-                'ext': 'mp4',
-                'title': 'Voyeur Girl',
-                'description': 'md5:7ae382a65843d6df2685993e90a8628f',
-                'upload_date': '20190312',
-                'artists': ['Stephen'],
-                'creators': ['Stephen'],
-                'track': 'Voyeur Girl',
-                'album': 'it\'s too much love to know my dear',
-                'release_date': '20190313',
-                'alt_title': 'Voyeur Girl',
-                'view_count': int,
-                'playable_in_embed': True,
-                'like_count': int,
-                'categories': ['Music'],
-                'channel_url': 'https://www.youtube.com/channel/UC-pWHpBjdGG69N9mM2auIAA',
-                'channel': 'Stephen',  # TODO: should be "Stephen - Topic"
-                'uploader': 'Stephen',
-                'availability': 'public',
-                'duration': 169,
-                'thumbnail': 'https://i.ytimg.com/vi_webp/MgNrAu2pzNs/maxresdefault.webp',
-                'age_limit': 0,
-                'channel_id': 'UC-pWHpBjdGG69N9mM2auIAA',
-                'tags': 'count:11',
-                'live_status': 'not_live',
-                'channel_follower_count': int,
-                'media_type': 'video',
-            },
-            'params': {
-                'skip_download': True,
-            },
+        'params': {'skip_download': True},
+    }, {
+        'url': 'https://www.youtube.com/watch?v=tjjjtzRLHvA',
+        'info_dict': {
+            'id': 'tjjjtzRLHvA',
+            'ext': 'mp4',
+            'title': 'ハッシュタグ無し };if window.ytcsi',
+            'age_limit': 0,
+            'availability': 'unlisted',
+            'categories': ['Music'],
+            'channel': 'Lesmiscore',
+            'channel_follower_count': int,
+            'channel_id': 'UCdqltm_7iv1Vs6kp6Syke5A',
+            'channel_url': 'https://www.youtube.com/channel/UCdqltm_7iv1Vs6kp6Syke5A',
+            'description': '',
+            'duration': 6,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'short',
+            'playable_in_embed': True,
+            'tags': [],
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1648005313,
+            'upload_date': '20220323',
+            'uploader': 'Lesmiscore',
+            'uploader_id': '@lesmiscore',
+            'uploader_url': 'https://www.youtube.com/@lesmiscore',
+            'view_count': int,
         },
-        {
-            'url': 'https://www.youtubekids.com/watch?v=3b8nCWDgZ6Q',
-            'only_matching': True,
+        'params': {'skip_download': True},
+    }, {
+        # Prefer primary title+description language metadata by default
+        # Do not prefer translated description if primary is empty
+        'url': 'https://www.youtube.com/watch?v=el3E4MbxRqQ',
+        'info_dict': {
+            'id': 'el3E4MbxRqQ',
+            'ext': 'mp4',
+            'title': 'dlp test video 2 - primary sv no desc',
+            'age_limit': 0,
+            'availability': 'unlisted',
+            'categories': ['People & Blogs'],
+            'channel': 'cole-dlp-test-acc',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'description': '',
+            'duration': 5,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': [],
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1662677394,
+            'upload_date': '20220908',
+            'uploader': 'cole-dlp-test-acc',
+            'uploader_id': '@coletdjnz',
+            'uploader_url': 'https://www.youtube.com/@coletdjnz',
+            'view_count': int,
         },
-        {
-            # invalid -> valid video id redirection
-            'url': 'DJztXj2GPfl',
-            'info_dict': {
-                'id': 'DJztXj2GPfk',
-                'ext': 'mp4',
-                'title': 'Panjabi MC - Mundian To Bach Ke (The Dictator Soundtrack)',
-                'description': 'md5:bf577a41da97918e94fa9798d9228825',
-                'upload_date': '20090125',
-                'artist': 'Panjabi MC',
-                'track': 'Beware of the Boys (Mundian to Bach Ke) - Motivo Hi-Lectro Remix',
-                'album': 'Beware of the Boys (Mundian To Bach Ke)',
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'skip': 'Video unavailable',
+        'params': {'skip_download': True},
+    }, {
+        # Extractor argument: prefer translated title+description
+        'url': 'https://www.youtube.com/watch?v=gHKT4uU8Zng',
+        'info_dict': {
+            'id': 'gHKT4uU8Zng',
+            'ext': 'mp4',
+            'title': 'dlp test video title primary (en-GB)',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['People & Blogs'],
+            'channel': 'cole-dlp-test-acc',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'description': 'md5:e8c098ba19888e08554f960ffbf6f90e',
+            'duration': 5,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': [],
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1659073275,
+            'upload_date': '20220729',
+            'uploader': 'cole-dlp-test-acc',
+            'uploader_id': '@coletdjnz',
+            'uploader_url': 'https://www.youtube.com/@coletdjnz',
+            'view_count': int,
         },
-        {
-            # empty description results in an empty string
-            'url': 'https://www.youtube.com/watch?v=x41yOUIvK2k',
-            'info_dict': {
-                'id': 'x41yOUIvK2k',
-                'ext': 'mp4',
-                'title': 'IMG 3456',
-                'description': '',
-                'upload_date': '20170613',
-                'view_count': int,
-                'thumbnail': 'https://i.ytimg.com/vi_webp/x41yOUIvK2k/maxresdefault.webp',
-                'like_count': int,
-                'channel_id': 'UCo03ZQPBW5U4UC3regpt1nw',
-                'tags': [],
-                'channel_url': 'https://www.youtube.com/channel/UCo03ZQPBW5U4UC3regpt1nw',
-                'availability': 'public',
-                'age_limit': 0,
-                'categories': ['Pets & Animals'],
-                'duration': 7,
-                'playable_in_embed': True,
-                'live_status': 'not_live',
-                'channel': 'l\'Or Vert asbl',
-                'channel_follower_count': int,
-                'uploader': 'l\'Or Vert asbl',
-                'uploader_url': 'https://www.youtube.com/@ElevageOrVert',
-                'uploader_id': '@ElevageOrVert',
-                'timestamp': 1497343210,
-                'media_type': 'video',
-            },
-            'params': {
-                'skip_download': True,
-            },
+        'params': {
+            'extractor_args': {'youtube': {'lang': ['fr']}},
+            'skip_download': True,
         },
-        {
-            # with '};' inside yt initial data (see [1])
-            # see [2] for an example with '};' inside ytInitialPlayerResponse
-            # 1. https://github.com/ytdl-org/youtube-dl/issues/27093
-            # 2. https://github.com/ytdl-org/youtube-dl/issues/27216
-            'url': 'https://www.youtube.com/watch?v=CHqg6qOn4no',
-            'info_dict': {
-                'id': 'CHqg6qOn4no',
-                'ext': 'mp4',
-                'title': 'Part 77   Sort a list of simple types in c#',
-                'description': 'md5:b8746fa52e10cdbf47997903f13b20dc',
-                'upload_date': '20130831',
-                'channel_id': 'UCCTVrRB5KpIiK6V2GGVsR1Q',
-                'like_count': int,
-                'channel_url': 'https://www.youtube.com/channel/UCCTVrRB5KpIiK6V2GGVsR1Q',
-                'live_status': 'not_live',
-                'categories': ['Education'],
-                'availability': 'public',
-                'thumbnail': 'https://i.ytimg.com/vi/CHqg6qOn4no/sddefault.jpg',
-                'tags': 'count:12',
-                'playable_in_embed': True,
-                'age_limit': 0,
-                'view_count': int,
-                'duration': 522,
-                'channel': 'kudvenkat',
-                'comment_count': int,
-                'channel_follower_count': int,
-                'chapters': list,
-                'uploader': 'kudvenkat',
-                'uploader_url': 'https://www.youtube.com/@Csharp-video-tutorialsBlogspot',
-                'uploader_id': '@Csharp-video-tutorialsBlogspot',
-                'channel_is_verified': True,
-                'heatmap': 'count:100',
-                'timestamp': 1377976349,
-                'media_type': 'video',
-            },
-            'params': {
-                'skip_download': True,
-            },
+        'expected_warnings': [r'Preferring "fr" translated fields'],
+    }, {
+        'note': '6 channel audio',
+        'url': 'https://www.youtube.com/watch?v=zgdo7-RRjgo',
+        'only_matching': True,
+    }, {
+        'note': 'Multiple HLS formats with same itag',
+        'url': 'https://www.youtube.com/watch?v=kX3nB4PpJko',
+        'info_dict': {
+            'id': 'kX3nB4PpJko',
+            'ext': 'mp4',
+            'title': 'Last To Take Hand Off Jet, Keeps It!',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Entertainment'],
+            'channel': 'MrBeast',
+            'channel_follower_count': int,
+            'channel_id': 'UCX6OQ3DkcsbYNE6H8uQQuVA',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCX6OQ3DkcsbYNE6H8uQQuVA',
+            'comment_count': int,
+            'description': 'md5:42731fced13eff2c48c099fbb5c1b3a0',
+            'duration': 937,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': [],
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1668286800,
+            'upload_date': '20221112',
+            'uploader': 'MrBeast',
+            'uploader_id': '@MrBeast',
+            'uploader_url': 'https://www.youtube.com/@MrBeast',
+            'view_count': int,
         },
-        {
-            # another example of '};' in ytInitialData
-            'url': 'https://www.youtube.com/watch?v=gVfgbahppCY',
-            'only_matching': True,
+        'params': {
+            'extractor_args': {'youtube': {'player_client': ['ios']}},
+            'format': '233-1',
+            'skip_download': True,
         },
-        {
-            'url': 'https://www.youtube.com/watch_popup?v=63RmMXCd_bQ',
-            'only_matching': True,
+        'skip': 'PO Token Required',
+    }, {
+        'note': 'Audio formats with Dynamic Range Compression',
+        'url': 'https://www.youtube.com/watch?v=Tq92D6wQ1mg',
+        'info_dict': {
+            'id': 'Tq92D6wQ1mg',
+            'ext': 'webm',
+            'title': '[MMD] Adios - EVERGLOW [+Motion DL]',
+            'age_limit': 18,
+            'availability': 'needs_auth',
+            'categories': ['Entertainment'],
+            'channel': 'Projekt Melody',
+            'channel_follower_count': int,
+            'channel_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
+            'channel_url': 'https://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
+            'comment_count': int,
+            'description': 'md5:17eccca93a786d51bc67646756894066',
+            'duration': 106,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:5',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1577508724,
+            'upload_date': '20191228',
+            'uploader': 'Projekt Melody',
+            'uploader_id': '@ProjektMelody',
+            'uploader_url': 'https://www.youtube.com/@ProjektMelody',
+            'view_count': int,
         },
-        {
-            # https://github.com/ytdl-org/youtube-dl/pull/28094
-            'url': 'OtqTfy26tG0',
-            'info_dict': {
-                'id': 'OtqTfy26tG0',
-                'ext': 'mp4',
-                'title': 'Burn Out',
-                'description': 'md5:8d07b84dcbcbfb34bc12a56d968b6131',
-                'upload_date': '20141120',
-                'artist': 'The Cinematic Orchestra',
-                'track': 'Burn Out',
-                'album': 'Every Day',
-                'like_count': int,
-                'live_status': 'not_live',
-                'alt_title': 'Burn Out',
-                'duration': 614,
-                'age_limit': 0,
-                'view_count': int,
-                'channel_url': 'https://www.youtube.com/channel/UCIzsJBIyo8hhpFm1NK0uLgw',
-                'creator': 'The Cinematic Orchestra',
-                'channel': 'The Cinematic Orchestra',
-                'tags': ['The Cinematic Orchestra', 'Every Day', 'Burn Out'],
-                'channel_id': 'UCIzsJBIyo8hhpFm1NK0uLgw',
-                'availability': 'public',
-                'thumbnail': 'https://i.ytimg.com/vi/OtqTfy26tG0/maxresdefault.jpg',
-                'categories': ['Music'],
-                'playable_in_embed': True,
-                'channel_follower_count': int,
-                'uploader': 'The Cinematic Orchestra',
-                'comment_count': int,
-                'media_type': 'video',
-            },
-            'params': {
-                'skip_download': True,
-            },
+        'params': {
+            'extractor_args': {'youtube': {'player_client': ['tv_embedded']}},
+            'format': '251-drc',
+            'skip_download': True,
         },
-        {
-            # controversial video, only works with bpctr when authenticated with cookies
-            'url': 'https://www.youtube.com/watch?v=nGC3D_FkCmg',
-            'only_matching': True,
+        'skip': 'Age-restricted; requires authentication',
+    }, {
+        'note': 'Support /live/ URL + media type for post-live content',
+        'url': 'https://www.youtube.com/live/qVv6vCqciTM',
+        'info_dict': {
+            'id': 'qVv6vCqciTM',
+            'ext': 'mp4',
+            'title': '【 #インターネット女クリスマス 】3Dで歌ってはしゃぐインターネットの女たち【月ノ美兎/名取さな】',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Entertainment'],
+            'channel': 'さなちゃんねる',
+            'channel_follower_count': int,
+            'channel_id': 'UCIdEIHpS0TdkqRkHL5OkLtA',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCIdEIHpS0TdkqRkHL5OkLtA',
+            'chapters': 'count:13',
+            'comment_count': int,
+            'description': 'md5:6aebf95cc4a1d731aebc01ad6cc9806d',
+            'duration': 4438,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'was_live',
+            'media_type': 'livestream',
+            'playable_in_embed': True,
+            'release_date': '20221223',
+            'release_timestamp': 1671793345,
+            'tags': 'count:6',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1671798112,
+            'upload_date': '20221223',
+            'uploader': 'さなちゃんねる',
+            'uploader_id': '@sana_natori',
+            'uploader_url': 'https://www.youtube.com/@sana_natori',
+            'view_count': int,
         },
-        {
-            # controversial video, requires bpctr/contentCheckOk
-            'url': 'https://www.youtube.com/watch?v=SZJvDhaSDnc',
-            'info_dict': {
-                'id': 'SZJvDhaSDnc',
-                'ext': 'mp4',
-                'title': 'San Diego teen commits suicide after bullying over embarrassing video',
-                'channel_id': 'UC-SJ6nODDmufqBzPBwCvYvQ',
-                'upload_date': '20140716',
-                'description': 'md5:acde3a73d3f133fc97e837a9f76b53b7',
-                'duration': 170,
-                'categories': ['News & Politics'],
-                'view_count': int,
-                'channel': 'CBS Mornings',
-                'tags': ['suicide', 'bullying', 'video', 'cbs', 'news'],
-                'thumbnail': 'https://i.ytimg.com/vi/SZJvDhaSDnc/hqdefault.jpg',
-                'age_limit': 18,
-                'availability': 'needs_auth',
-                'channel_url': 'https://www.youtube.com/channel/UC-SJ6nODDmufqBzPBwCvYvQ',
-                'like_count': int,
-                'live_status': 'not_live',
-                'playable_in_embed': True,
-                'channel_follower_count': int,
-                'uploader': 'CBS Mornings',
-                'uploader_url': 'https://www.youtube.com/@CBSMornings',
-                'uploader_id': '@CBSMornings',
-                'comment_count': int,
-                'channel_is_verified': True,
-                'timestamp': 1405513526,
-            },
-            'skip': 'Age-restricted; requires authentication',
+        'params': {'skip_download': True},
+    }, {
+        # Fallbacks when webpage and web client is unavailable
+        'url': 'https://www.youtube.com/watch?v=wSSmNUl9Snw',
+        'info_dict': {
+            'id': 'wSSmNUl9Snw',
+            'ext': 'webm',
+            'title': 'The Computer Hack That Saved Apollo 14',
+            'age_limit': 0,
+            # 'availability': 'public',
+            # 'categories': ['Science & Technology'],
+            'channel': 'Scott Manley',
+            'channel_follower_count': int,
+            'channel_id': 'UCxzC4EngIsMrPmbm6Nxvb-A',
+            'channel_is_verified': True,
+            'channel_url': 'https://www.youtube.com/channel/UCxzC4EngIsMrPmbm6Nxvb-A',
+            'chapters': 'count:2',
+            'comment_count': int,
+            'description': 'md5:f4bed7b200404b72a394c2f97b782c02',
+            'duration': 682,
+            'heatmap': 'count:100',
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:8',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1504198713,
+            'upload_date': '20170831',
+            'uploader': 'Scott Manley',
+            'uploader_id': '@scottmanley',
+            'uploader_url': 'https://www.youtube.com/@scottmanley',
+            'view_count': int,
         },
-        {
-            # restricted location, https://github.com/ytdl-org/youtube-dl/issues/28685
-            'url': 'cBvYw8_A0vQ',
-            'info_dict': {
-                'id': 'cBvYw8_A0vQ',
-                'ext': 'mp4',
-                'title': '4K Ueno Okachimachi  Street  Scenes  上野御徒町歩き',
-                'description': 'md5:ea770e474b7cd6722b4c95b833c03630',
-                'upload_date': '20201120',
-                'duration': 1456,
-                'categories': ['Travel & Events'],
-                'channel_id': 'UC3o_t8PzBmXf5S9b7GLx1Mw',
-                'view_count': int,
-                'channel': 'Walk around Japan',
-                'tags': ['Ueno Tokyo', 'Okachimachi Tokyo', 'Ameyoko Street', 'Tokyo attraction', 'Travel in Tokyo'],
-                'thumbnail': 'https://i.ytimg.com/vi/cBvYw8_A0vQ/hqdefault.jpg',
-                'age_limit': 0,
-                'availability': 'public',
-                'channel_url': 'https://www.youtube.com/channel/UC3o_t8PzBmXf5S9b7GLx1Mw',
-                'live_status': 'not_live',
-                'playable_in_embed': True,
-                'channel_follower_count': int,
-                'uploader': 'Walk around Japan',
-                'uploader_url': 'https://www.youtube.com/@walkaroundjapan7124',
-                'uploader_id': '@walkaroundjapan7124',
-                'timestamp': 1605884416,
-                'media_type': 'video',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        }, {
-            # Has multiple audio streams
-            'url': 'WaOKSUlf4TM',
-            'only_matching': True,
-        }, {
-            # Requires Premium: has format 141 when requested using YTM url
-            'url': 'https://music.youtube.com/watch?v=XclachpHxis',
-            'only_matching': True,
-        }, {
-            # multiple subtitles with same lang_code
-            'url': 'https://www.youtube.com/watch?v=wsQiKKfKxug',
-            'only_matching': True,
-        }, {
-            # Force use android client fallback
-            'url': 'https://www.youtube.com/watch?v=YOelRv7fMxY',
-            'info_dict': {
-                'id': 'YOelRv7fMxY',
-                'title': 'DIGGING A SECRET TUNNEL Part 1',
-                'ext': '3gp',
-                'upload_date': '20210624',
-                'channel_id': 'UCp68_FLety0O-n9QU6phsgw',
-                'channel_url': r're:https?://(?:www\.)?youtube\.com/channel/UCp68_FLety0O-n9QU6phsgw',
-                'description': 'md5:5d5991195d599b56cd0c4148907eec50',
-                'duration': 596,
-                'categories': ['Entertainment'],
-                'view_count': int,
-                'channel': 'colinfurze',
-                'tags': ['Colin', 'furze', 'Terry', 'tunnel', 'underground', 'bunker'],
-                'thumbnail': 'https://i.ytimg.com/vi/YOelRv7fMxY/maxresdefault.jpg',
-                'age_limit': 0,
-                'availability': 'public',
-                'like_count': int,
-                'live_status': 'not_live',
-                'playable_in_embed': True,
-                'channel_follower_count': int,
-                'chapters': list,
-                'uploader': 'colinfurze',
-                'uploader_url': 'https://www.youtube.com/@colinfurze',
-                'uploader_id': '@colinfurze',
-                'comment_count': int,
-                'channel_is_verified': True,
-                'heatmap': 'count:100',
-            },
-            'params': {
-                'format': '17',  # 3gp format available on android
-                'extractor_args': {'youtube': {'player_client': ['android']}},
-            },
-            'skip': 'android client broken',
+        'params': {
+            'extractor_args': {'youtube': {
+                'player_client': ['ios'],
+                'player_skip': ['webpage'],
+            }},
+            'skip_download': True,
         },
-        {
-            # Skip download of additional client configs (remix client config in this case)
-            'url': 'https://music.youtube.com/watch?v=MgNrAu2pzNs',
-            'only_matching': True,
-            'params': {
-                'extractor_args': {'youtube': {'player_skip': ['configs']}},
-            },
-        }, {
-            # shorts
-            'url': 'https://www.youtube.com/shorts/BGQWPY4IigY',
-            'only_matching': True,
-        }, {
-            'note': 'Storyboards',
-            'url': 'https://www.youtube.com/watch?v=5KLPxDtMqe8',
-            'info_dict': {
-                'id': '5KLPxDtMqe8',
-                'ext': 'mhtml',
-                'format_id': 'sb0',
-                'title': 'Your Brain is Plastic',
-                'description': 'md5:89cd86034bdb5466cd87c6ba206cd2bc',
-                'upload_date': '20140324',
-                'like_count': int,
-                'channel_id': 'UCZYTClx2T1of7BRZ86-8fow',
-                'channel_url': 'https://www.youtube.com/channel/UCZYTClx2T1of7BRZ86-8fow',
-                'view_count': int,
-                'thumbnail': 'https://i.ytimg.com/vi/5KLPxDtMqe8/maxresdefault.jpg',
-                'playable_in_embed': True,
-                'tags': 'count:12',
-                'availability': 'public',
-                'channel': 'SciShow',
-                'live_status': 'not_live',
-                'duration': 248,
-                'categories': ['Education'],
-                'age_limit': 0,
-                'channel_follower_count': int,
-                'chapters': list,
-                'uploader': 'SciShow',
-                'uploader_url': 'https://www.youtube.com/@SciShow',
-                'uploader_id': '@SciShow',
-                'comment_count': int,
-                'channel_is_verified': True,
-                'heatmap': 'count:100',
-                'timestamp': 1395685455,
-                'media_type': 'video',
-            }, 'params': {'format': 'mhtml', 'skip_download': True},
-        }, {
-            # Ensure video upload_date is in UTC timezone (video was uploaded 1641170939)
-            'url': 'https://www.youtube.com/watch?v=2NUZ8W2llS4',
-            'info_dict': {
-                'id': '2NUZ8W2llS4',
-                'ext': 'mp4',
-                'title': 'The NP that test your phone performance 🙂',
-                'description': 'md5:144494b24d4f9dfacb97c1bbef5de84d',
-                'channel_id': 'UCRqNBSOHgilHfAczlUmlWHA',
-                'channel_url': 'https://www.youtube.com/channel/UCRqNBSOHgilHfAczlUmlWHA',
-                'duration': 21,
-                'view_count': int,
-                'age_limit': 0,
-                'categories': ['Gaming'],
-                'tags': 'count:23',
-                'playable_in_embed': True,
-                'live_status': 'not_live',
-                'upload_date': '20220103',
-                'like_count': int,
-                'availability': 'public',
-                'channel': 'Leon Nguyen',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp',
-                'comment_count': int,
-                'channel_follower_count': int,
-                'uploader': 'Leon Nguyen',
-                'uploader_url': 'https://www.youtube.com/@LeonNguyen',
-                'uploader_id': '@LeonNguyen',
-                'heatmap': 'count:100',
-                'timestamp': 1641170939,
-                'media_type': 'video',
-            },
-        }, {
-            # date text is premiered video, ensure upload date in UTC (published 1641172509)
-            'url': 'https://www.youtube.com/watch?v=mzZzzBU6lrM',
-            'info_dict': {
-                'id': 'mzZzzBU6lrM',
-                'ext': 'mp4',
-                'title': 'I Met GeorgeNotFound In Real Life...',
-                'description': 'md5:978296ec9783a031738b684d4ebf302d',
-                'channel_id': 'UC_8NknAFiyhOUaZqHR3lq3Q',
-                'channel_url': 'https://www.youtube.com/channel/UC_8NknAFiyhOUaZqHR3lq3Q',
-                'duration': 955,
-                'view_count': int,
-                'age_limit': 0,
-                'categories': ['Entertainment'],
-                'tags': 'count:26',
-                'playable_in_embed': True,
-                'live_status': 'not_live',
-                'release_timestamp': 1641172509,
-                'release_date': '20220103',
-                'upload_date': '20220103',
-                'like_count': int,
-                'availability': 'public',
-                'channel': 'Quackity',
-                'thumbnail': 'https://i.ytimg.com/vi/mzZzzBU6lrM/maxresdefault.jpg',
-                'channel_follower_count': int,
-                'uploader': 'Quackity',
-                'uploader_id': '@Quackity',
-                'uploader_url': 'https://www.youtube.com/@Quackity',
-                'comment_count': int,
-                'channel_is_verified': True,
-                'heatmap': 'count:100',
-                'timestamp': 1641172509,
-                'media_type': 'video',
-            },
+        'skip': 'PO Token Required',
+    }, {
+        # uploader_id has non-ASCII characters that are percent-encoded in YT's JSON
+        # https://github.com/yt-dlp/yt-dlp/pull/11818
+        'url': 'https://www.youtube.com/shorts/18NGQq7p3LY',
+        'info_dict': {
+            'id': '18NGQq7p3LY',
+            'ext': 'mp4',
+            'title': '아이브 이서 장원영 리즈 삐끼삐끼 챌린지',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['People & Blogs'],
+            'channel': 'ㅇㅇ',
+            'channel_follower_count': int,
+            'channel_id': 'UCC25oTm2J7ZVoi5TngOHg9g',
+            'channel_url': 'https://www.youtube.com/channel/UCC25oTm2J7ZVoi5TngOHg9g',
+            'description': '',
+            'duration': 3,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'short',
+            'playable_in_embed': True,
+            'tags': [],
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1724306170,
+            'upload_date': '20240822',
+            'uploader': 'ㅇㅇ',
+            'uploader_id': '@으아-v1k',
+            'uploader_url': 'https://www.youtube.com/@으아-v1k',
+            'view_count': int,
         },
-        {   # continuous livestream.
-            # Upload date was 2022-07-12T05:12:29-07:00, while stream start is 2022-07-12T15:59:30+00:00
-            'url': 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
-            'info_dict': {
-                'id': 'jfKfPfyJRdk',
-                'ext': 'mp4',
-                'channel_id': 'UCSJ4gkVC6NrvII8umztf0Ow',
-                'like_count': int,
-                'uploader': 'Lofi Girl',
-                'categories': ['Music'],
-                'concurrent_view_count': int,
-                'playable_in_embed': True,
-                'timestamp': 1657627949,
-                'release_date': '20220712',
-                'channel_url': 'https://www.youtube.com/channel/UCSJ4gkVC6NrvII8umztf0Ow',
-                'description': 'md5:452d5c82f72bb7e62a4e0297c3f01c23',
-                'age_limit': 0,
-                'thumbnail': 'https://i.ytimg.com/vi/jfKfPfyJRdk/maxresdefault.jpg',
-                'release_timestamp': 1657641570,
-                'uploader_url': 'https://www.youtube.com/@LofiGirl',
-                'channel_follower_count': int,
-                'channel_is_verified': True,
-                'title': r're:^lofi hip hop radio 📚 beats to relax/study to',
-                'view_count': int,
-                'live_status': 'is_live',
-                'media_type': 'livestream',
-                'tags': 'count:32',
-                'channel': 'Lofi Girl',
-                'availability': 'public',
-                'upload_date': '20220712',
-                'uploader_id': '@LofiGirl',
-            },
-            'params': {'skip_download': True},
-        }, {
-            'url': 'https://www.youtube.com/watch?v=tjjjtzRLHvA',
-            'info_dict': {
-                'id': 'tjjjtzRLHvA',
-                'ext': 'mp4',
-                'title': 'ハッシュタグ無し };if window.ytcsi',
-                'upload_date': '20220323',
-                'like_count': int,
-                'availability': 'unlisted',
-                'channel': 'Lesmiscore',
-                'thumbnail': r're:^https?://.*\.jpg',
-                'age_limit': 0,
-                'categories': ['Music'],
-                'view_count': int,
-                'description': '',
-                'channel_url': 'https://www.youtube.com/channel/UCdqltm_7iv1Vs6kp6Syke5A',
-                'channel_id': 'UCdqltm_7iv1Vs6kp6Syke5A',
-                'live_status': 'not_live',
-                'playable_in_embed': True,
-                'channel_follower_count': int,
-                'duration': 6,
-                'tags': [],
-                'uploader_id': '@lesmiscore',
-                'uploader': 'Lesmiscore',
-                'uploader_url': 'https://www.youtube.com/@lesmiscore',
-                'timestamp': 1648005313,
-                'media_type': 'short',
-            },
-        }, {
-            # Prefer primary title+description language metadata by default
-            # Do not prefer translated description if primary is empty
-            'url': 'https://www.youtube.com/watch?v=el3E4MbxRqQ',
-            'info_dict': {
-                'id': 'el3E4MbxRqQ',
-                'ext': 'mp4',
-                'title': 'dlp test video 2 - primary sv no desc',
-                'description': '',
-                'channel': 'cole-dlp-test-acc',
-                'tags': [],
-                'view_count': int,
-                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
-                'like_count': int,
-                'playable_in_embed': True,
-                'availability': 'unlisted',
-                'thumbnail': r're:^https?://.*\.jpg',
-                'age_limit': 0,
-                'duration': 5,
-                'live_status': 'not_live',
-                'upload_date': '20220908',
-                'categories': ['People & Blogs'],
-                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
-                'uploader_url': 'https://www.youtube.com/@coletdjnz',
-                'uploader_id': '@coletdjnz',
-                'uploader': 'cole-dlp-test-acc',
-                'timestamp': 1662677394,
-                'media_type': 'video',
-            },
-            'params': {'skip_download': True},
-        }, {
-            # Extractor argument: prefer translated title+description
-            'url': 'https://www.youtube.com/watch?v=gHKT4uU8Zng',
-            'info_dict': {
-                'id': 'gHKT4uU8Zng',
-                'ext': 'mp4',
-                'channel': 'cole-dlp-test-acc',
-                'tags': [],
-                'duration': 5,
-                'live_status': 'not_live',
-                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
-                'upload_date': '20220729',
-                'view_count': int,
-                'categories': ['People & Blogs'],
-                'thumbnail': r're:^https?://.*\.jpg',
-                'title': 'dlp test video title translated (fr)',
-                'availability': 'public',
-                'age_limit': 0,
-                'description': 'dlp test video description translated (fr)',
-                'playable_in_embed': True,
-                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
-                'uploader_url': 'https://www.youtube.com/@coletdjnz',
-                'uploader_id': '@coletdjnz',
-                'uploader': 'cole-dlp-test-acc',
-                'timestamp': 1659073275,
-                'like_count': int,
-                'media_type': 'video',
-            },
-            'params': {'skip_download': True, 'extractor_args': {'youtube': {'lang': ['fr']}}},
-            'expected_warnings': [r'Preferring "fr" translated fields'],
-        }, {
-            'note': '6 channel audio',
-            'url': 'https://www.youtube.com/watch?v=zgdo7-RRjgo',
-            'only_matching': True,
-        }, {
-            'note': 'Multiple HLS formats with same itag',
-            'url': 'https://www.youtube.com/watch?v=kX3nB4PpJko',
-            'info_dict': {
-                'id': 'kX3nB4PpJko',
-                'ext': 'mp4',
-                'categories': ['Entertainment'],
-                'description': 'md5:e8031ff6e426cdb6a77670c9b81f6fa6',
-                'live_status': 'not_live',
-                'duration': 937,
-                'channel_follower_count': int,
-                'thumbnail': 'https://i.ytimg.com/vi_webp/kX3nB4PpJko/maxresdefault.webp',
-                'title': 'Last To Take Hand Off Jet, Keeps It!',
-                'channel': 'MrBeast',
-                'playable_in_embed': True,
-                'view_count': int,
-                'upload_date': '20221112',
-                'channel_url': 'https://www.youtube.com/channel/UCX6OQ3DkcsbYNE6H8uQQuVA',
-                'age_limit': 0,
-                'availability': 'public',
-                'channel_id': 'UCX6OQ3DkcsbYNE6H8uQQuVA',
-                'like_count': int,
-                'tags': [],
-                'uploader': 'MrBeast',
-                'uploader_url': 'https://www.youtube.com/@MrBeast',
-                'uploader_id': '@MrBeast',
-                'comment_count': int,
-                'channel_is_verified': True,
-                'heatmap': 'count:100',
-                'media_type': 'video',
-            },
-            'params': {'extractor_args': {'youtube': {'player_client': ['ios']}}, 'format': '233-1'},
-        }, {
-            'note': 'Audio formats with Dynamic Range Compression',
-            'url': 'https://www.youtube.com/watch?v=Tq92D6wQ1mg',
-            'info_dict': {
-                'id': 'Tq92D6wQ1mg',
-                'ext': 'webm',
-                'title': '[MMD] Adios - EVERGLOW [+Motion DL]',
-                'channel_url': 'https://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
-                'channel_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
-                'channel_follower_count': int,
-                'description': 'md5:17eccca93a786d51bc67646756894066',
-                'upload_date': '20191228',
-                'tags': ['mmd', 'dance', 'mikumikudance', 'kpop', 'vtuber'],
-                'playable_in_embed': True,
-                'like_count': int,
-                'categories': ['Entertainment'],
-                'thumbnail': 'https://i.ytimg.com/vi/Tq92D6wQ1mg/sddefault.jpg',
-                'age_limit': 18,
-                'channel': 'Projekt Melody',
-                'view_count': int,
-                'availability': 'needs_auth',
-                'comment_count': int,
-                'live_status': 'not_live',
-                'duration': 106,
-                'uploader': 'Projekt Melody',
-                'uploader_id': '@ProjektMelody',
-                'uploader_url': 'https://www.youtube.com/@ProjektMelody',
-                'timestamp': 1577508724,
-            },
-            'params': {'extractor_args': {'youtube': {'player_client': ['tv_embedded']}}, 'format': '251-drc'},
-            'skip': 'Age-restricted; requires authentication',
+        'params': {'skip_download': True},
+    }]
+    _WEBPAGE_TESTS = [{
+        # <object>
+        # https://github.com/ytdl-org/youtube-dl/pull/12696
+        'url': 'http://www.improbable.com/2017/04/03/untrained-modern-youths-and-ancient-masters-in-selfie-portraits/',
+        'info_dict': {
+            'id': 'msN87y-iEx0',
+            'ext': 'mp4',
+            'title': 'Feynman: Mirrors FUN TO IMAGINE 6',
+            'upload_date': '20080526',
+            'description': 'md5:873c81d308b979f0e23ee7e620b312a3',
+            'age_limit': 0,
+            'tags': 'count:8',
+            'channel_id': 'UCCeo--lls1vna5YJABWAcVA',
+            'playable_in_embed': True,
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'like_count': int,
+            'comment_count': int,
+            'channel': 'Christopher Sykes',
+            'live_status': 'not_live',
+            'channel_url': 'https://www.youtube.com/channel/UCCeo--lls1vna5YJABWAcVA',
+            'availability': 'public',
+            'duration': 195,
+            'view_count': int,
+            'categories': ['Science & Technology'],
+            'channel_follower_count': int,
+            'uploader': 'Christopher Sykes',
+            'uploader_url': 'https://www.youtube.com/@ChristopherSykesDocumentaries',
+            'uploader_id': '@ChristopherSykesDocumentaries',
+            'heatmap': 'count:100',
+            'timestamp': 1211825920,
+            'media_type': 'video',
         },
-        {
-            'note': 'Support /live/ URL + media type for post-live content',
-            'url': 'https://www.youtube.com/live/qVv6vCqciTM',
-            'info_dict': {
-                'id': 'qVv6vCqciTM',
-                'ext': 'mp4',
-                'age_limit': 0,
-                'comment_count': int,
-                'chapters': 'count:13',
-                'upload_date': '20221223',
-                'thumbnail': 'https://i.ytimg.com/vi/qVv6vCqciTM/maxresdefault.jpg',
-                'channel_url': 'https://www.youtube.com/channel/UCIdEIHpS0TdkqRkHL5OkLtA',
-                'like_count': int,
-                'release_date': '20221223',
-                'tags': ['Vtuber', '月ノ美兎', '名取さな', 'にじさんじ', 'クリスマス', '3D配信'],
-                'title': '【 #インターネット女クリスマス 】3Dで歌ってはしゃぐインターネットの女たち【月ノ美兎/名取さな】',
-                'view_count': int,
-                'playable_in_embed': True,
-                'duration': 4438,
-                'availability': 'public',
-                'channel_follower_count': int,
-                'channel_id': 'UCIdEIHpS0TdkqRkHL5OkLtA',
-                'categories': ['Entertainment'],
-                'live_status': 'was_live',
-                'media_type': 'livestream',
-                'release_timestamp': 1671793345,
-                'channel': 'さなちゃんねる',
-                'description': 'md5:6aebf95cc4a1d731aebc01ad6cc9806d',
-                'uploader': 'さなちゃんねる',
-                'uploader_url': 'https://www.youtube.com/@sana_natori',
-                'uploader_id': '@sana_natori',
-                'channel_is_verified': True,
-                'heatmap': 'count:100',
-                'timestamp': 1671798112,
-            },
+        'params': {'skip_download': True},
+    }, {
+        # <embed>
+        # https://github.com/ytdl-org/youtube-dl/commit/2b88feedf7993c24b03e0a7ff169a548794de70c
+        'url': 'https://badzine.de/news/als-marc-zwiebler-taufik-hidayat-schlug',
+        'info_dict': {
+            'id': 'bSVcWOq397g',
+            'ext': 'mp4',
+            'title': 'TAUFIK TUNJUKKAN KELASNYA !!! : Taufik Hidayat VS Marc Zwiebler Canada Open 2011',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Sports'],
+            'channel': 'Badminton Addict Id',
+            'channel_follower_count': int,
+            'channel_id': 'UCfCpKOwQGUe2FUJzYNadQcQ',
+            'channel_url': 'https://www.youtube.com/channel/UCfCpKOwQGUe2FUJzYNadQcQ',
+            'comment_count': int,
+            'description': 'md5:2c3737da9a575f301a8380b4d60592a8',
+            'duration': 756,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:9',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1621418412,
+            'upload_date': '20210519',
+            'uploader': 'Badminton Addict Id',
+            'uploader_id': '@badmintonaddictid8958',
+            'uploader_url': 'https://www.youtube.com/@badmintonaddictid8958',
+            'view_count': int,
         },
-        {
-            # Fallbacks when webpage and web client is unavailable
-            'url': 'https://www.youtube.com/watch?v=wSSmNUl9Snw',
-            'info_dict': {
-                'id': 'wSSmNUl9Snw',
-                'ext': 'mp4',
-                # 'categories': ['Science & Technology'],
-                'view_count': int,
-                'chapters': 'count:2',
-                'channel': 'Scott Manley',
-                'like_count': int,
-                'age_limit': 0,
-                # 'availability': 'public',
-                'channel_follower_count': int,
-                'live_status': 'not_live',
-                'upload_date': '20170831',
-                'duration': 682,
-                'tags': 'count:8',
-                'uploader_url': 'https://www.youtube.com/@scottmanley',
-                'description': 'md5:f4bed7b200404b72a394c2f97b782c02',
-                'uploader': 'Scott Manley',
-                'uploader_id': '@scottmanley',
-                'title': 'The Computer Hack That Saved Apollo 14',
-                'channel_id': 'UCxzC4EngIsMrPmbm6Nxvb-A',
-                'thumbnail': r're:^https?://.*\.webp',
-                'channel_url': 'https://www.youtube.com/channel/UCxzC4EngIsMrPmbm6Nxvb-A',
-                'playable_in_embed': True,
-                'comment_count': int,
-                'channel_is_verified': True,
-                'heatmap': 'count:100',
-                'media_type': 'video',
-            },
-            'params': {
-                'extractor_args': {'youtube': {'player_client': ['ios'], 'player_skip': ['webpage']}},
-            },
+        'params': {'skip_download': True},
+    }, {
+        # WordPress Plugin: YouTube Video Importer
+        # https://github.com/ytdl-org/youtube-dl/commit/7deef1ba6743bf11247565e63ed7e31d2e8a9382
+        'url': 'https://lothype.com/2025-chino-hills-hs-snare-quad-features-wgi2025-drumline/',
+        'info_dict': {
+            'id': 'lC21AX_pCfA',
+            'ext': 'mp4',
+            'title': '2025 Chino Hills HS Snare & Quad Features! #wgi2025 #drumline',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Music'],
+            'channel': 'DrumlineAV',
+            'channel_follower_count': int,
+            'channel_id': 'UCqdfUdyiQOZMvW5PcTTYikQ',
+            'channel_url': 'https://www.youtube.com/channel/UCqdfUdyiQOZMvW5PcTTYikQ',
+            'comment_count': int,
+            'description': '',
+            'duration': 48,
+            'like_count': int,
+            'live_status': 'not_live',
+            'location': 'WESTMINSTER',
+            'media_type': 'short',
+            'playable_in_embed': True,
+            'tags': 'count:72',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1739910835,
+            'upload_date': '20250218',
+            'uploader': 'DrumlineAV',
+            'uploader_id': '@DrumlineAV',
+            'uploader_url': 'https://www.youtube.com/@DrumlineAV',
+            'view_count': int,
         },
-        {
-            # uploader_id has non-ASCII characters that are percent-encoded in YT's JSON
-            'url': 'https://www.youtube.com/shorts/18NGQq7p3LY',
-            'info_dict': {
-                'id': '18NGQq7p3LY',
-                'ext': 'mp4',
-                'title': '아이브 이서 장원영 리즈 삐끼삐끼 챌린지',
-                'description': '',
-                'uploader': 'ㅇㅇ',
-                'uploader_id': '@으아-v1k',
-                'uploader_url': 'https://www.youtube.com/@으아-v1k',
-                'channel': 'ㅇㅇ',
-                'channel_id': 'UCC25oTm2J7ZVoi5TngOHg9g',
-                'channel_url': 'https://www.youtube.com/channel/UCC25oTm2J7ZVoi5TngOHg9g',
-                'thumbnail': r're:https?://.+/.+\.jpg',
-                'playable_in_embed': True,
-                'age_limit': 0,
-                'duration': 3,
-                'timestamp': 1724306170,
-                'upload_date': '20240822',
-                'availability': 'public',
-                'live_status': 'not_live',
-                'view_count': int,
-                'like_count': int,
-                'channel_follower_count': int,
-                'categories': ['People & Blogs'],
-                'tags': [],
-                'media_type': 'short',
-            },
+        'params': {'skip_download': True},
+    }, {
+        # lazyYT
+        # https://github.com/ytdl-org/youtube-dl/commit/65f3a228b16c55fee959eee055767a796479270f
+        'url': 'https://rabota7.ru/%D0%91%D1%83%D1%85%D0%B3%D0%B0%D0%BB%D1%82%D0%B5%D1%80',
+        'info_dict': {
+            'id': 'DexR8_tTSsQ',
+            'ext': 'mp4',
+            'title': 'Работа бухгалтером в Москве',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['People & Blogs'],
+            'channel': 'Работа в Москве свежие вакансии',
+            'channel_follower_count': int,
+            'channel_id': 'UCG3qz_gefGaMiSBvmaxN5WQ',
+            'channel_url': 'https://www.youtube.com/channel/UCG3qz_gefGaMiSBvmaxN5WQ',
+            'description': 'md5:b779d3d70af4efda26cf62b76808c0e3',
+            'duration': 42,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:7',
+            'thumbnail': r're:https?://i\.ytimg\.com/.+',
+            'timestamp': 1496398980,
+            'upload_date': '20170602',
+            'uploader': 'Работа в Москве свежие вакансии',
+            'uploader_id': '@РаботавМосквесвежиевакансии',
+            'uploader_url': 'https://www.youtube.com/@РаботавМосквесвежиевакансии',
+            'view_count': int,
         },
-    ]
-
-    _WEBPAGE_TESTS = [
-        # YouTube <object> embed
-        {
-            'url': 'http://www.improbable.com/2017/04/03/untrained-modern-youths-and-ancient-masters-in-selfie-portraits/',
-            'md5': '873c81d308b979f0e23ee7e620b312a3',
-            'info_dict': {
-                'id': 'msN87y-iEx0',
-                'ext': 'mp4',
-                'title': 'Feynman: Mirrors FUN TO IMAGINE 6',
-                'upload_date': '20080526',
-                'description': 'md5:873c81d308b979f0e23ee7e620b312a3',
-                'age_limit': 0,
-                'tags': ['feynman', 'mirror', 'science', 'physics', 'imagination', 'fun', 'cool', 'puzzle'],
-                'channel_id': 'UCCeo--lls1vna5YJABWAcVA',
-                'playable_in_embed': True,
-                'thumbnail': 'https://i.ytimg.com/vi/msN87y-iEx0/hqdefault.jpg',
-                'like_count': int,
-                'comment_count': int,
-                'channel': 'Christopher Sykes',
-                'live_status': 'not_live',
-                'channel_url': 'https://www.youtube.com/channel/UCCeo--lls1vna5YJABWAcVA',
-                'availability': 'public',
-                'duration': 195,
-                'view_count': int,
-                'categories': ['Science & Technology'],
-                'channel_follower_count': int,
-                'uploader': 'Christopher Sykes',
-                'uploader_url': 'https://www.youtube.com/@ChristopherSykesDocumentaries',
-                'uploader_id': '@ChristopherSykesDocumentaries',
-                'heatmap': 'count:100',
-                'timestamp': 1211825920,
-                'media_type': 'video',
-            },
-            'params': {
-                'skip_download': True,
-            },
+        'params': {
+            'extractor_args': {'generic': {'impersonate': ['chrome']}},
+            'skip_download': True,
         },
-    ]
+    }, {
+        # data-video-url=
+        # https://github.com/ytdl-org/youtube-dl/pull/2948
+        'url': 'https://www.uca.ac.uk/',
+        'info_dict': {
+            'id': 'www.uca.ac',
+            'title': 'UCA | Creative Arts Degrees UK | University for the Creative Arts',
+            'age_limit': 0,
+            'description': 'md5:179c7a06ea1ed01b94ff5d56cb18d73b',
+            'thumbnail': '/media/uca-2020/hero-headers/2025-prospectus-all-2x2.jpg',
+        },
+        'playlist_count': 10,
+        'params': {'skip_download': True},
+    }]
 
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
         'tce': 'player_ias_tce.vflset/en_US/base.js',
+        'es5': 'player_es5.vflset/en_US/base.js',
+        'es6': 'player_es6.vflset/en_US/base.js',
         'tv': 'tv-player-ias.vflset/tv-player-ias.js',
         'tv_es6': 'tv-player-es6.vflset/tv-player-es6.js',
         'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
         'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',
     }
     _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
+    _NSIG_FUNC_CACHE_ID = 'nsig func'
+    _DUMMY_STRING = 'dlp_wins'
 
     @classmethod
     def suitable(cls, url):
@@ -1831,7 +1857,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if time.time() <= start_time + delay:
                 return
 
-            _, _, prs, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
+            _, _, _, _, prs, player_url = self._initial_extract(
+                url, smuggled_data, webpage_url, 'web', video_id)
             video_details = traverse_obj(prs, (..., 'videoDetails'), expected_type=dict)
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
@@ -2066,7 +2093,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         assert os.path.basename(func_id) == func_id
 
         self.write_debug(f'Extracting signature function {func_id}')
-        cache_spec, code = self.cache.load('youtube-sigfuncs', func_id, min_ver='2025.03.31'), None
+        cache_spec, code = self.cache.load('youtube-sigfuncs', func_id, min_ver='2025.07.21'), None
 
         if not cache_spec:
             code = self._load_player(video_id, player_url)
@@ -2170,7 +2197,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if data := self._player_cache.get(cache_id):
             return data
 
-        data = self.cache.load(*cache_id, min_ver='2025.03.31')
+        data = self.cache.load(*cache_id, min_ver='2025.07.21')
         if data:
             self._player_cache[cache_id] = data
 
@@ -2204,7 +2231,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.to_screen(f'Extracted nsig function from {player_id}:\n{func_code[1]}\n')
 
         try:
-            extract_nsig = self._cached(self._extract_n_function_from_code, 'nsig func', player_url)
+            extract_nsig = self._cached(self._extract_n_function_from_code, self._NSIG_FUNC_CACHE_ID, player_url)
             ret = extract_nsig(jsi, func_code)(s)
         except JSInterpreter.Exception as e:
             try:
@@ -2229,20 +2256,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_n_function_name(self, jscode, player_url=None):
         varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
         if debug_str := traverse_obj(global_list, (lambda _, v: v.endswith('-_w8_'), any)):
-            funcname = self._search_regex(
-                r'''(?xs)
-                    [;\n](?:
-                        (?P<f>function\s+)|
-                        (?:var\s+)?
-                    )(?P<funcname>[a-zA-Z0-9_$]+)\s*(?(f)|=\s*function\s*)
-                    \((?P<argname>[a-zA-Z0-9_$]+)\)\s*\{
-                    (?:(?!\}[;\n]).)+
-                    \}\s*catch\(\s*[a-zA-Z0-9_$]+\s*\)\s*
-                    \{\s*return\s+%s\[%d\]\s*\+\s*(?P=argname)\s*\}\s*return\s+[^}]+\}[;\n]
-                ''' % (re.escape(varname), global_list.index(debug_str)),
-                jscode, 'nsig function name', group='funcname', default=None)
-            if funcname:
-                return funcname
+            pattern = r'''(?x)
+                \{\s*return\s+%s\[%d\]\s*\+\s*(?P<argname>[a-zA-Z0-9_$]+)\s*\}
+            ''' % (re.escape(varname), global_list.index(debug_str))
+            if match := re.search(pattern, jscode):
+                pattern = r'''(?x)
+                    \{\s*\)%s\(\s*
+                    (?:
+                        (?P<funcname_a>[a-zA-Z0-9_$]+)\s*noitcnuf\s*
+                        |noitcnuf\s*=\s*(?P<funcname_b>[a-zA-Z0-9_$]+)(?:\s+rav)?
+                    )[;\n]
+                ''' % re.escape(match.group('argname')[::-1])
+                if match := re.search(pattern, jscode[match.start()::-1]):
+                    a, b = match.group('funcname_a', 'funcname_b')
+                    return (a or b)[::-1]
             self.write_debug(join_nonempty(
                 'Initial search was unable to find nsig function name',
                 player_url and f'        player = {player_url}', delim='\n'), only_once=True)
@@ -2312,16 +2339,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         jsi = JSInterpreter(varcode)
         interpret_global_var = self._cached(jsi.interpret_expression, 'js global list', player_url)
-        return varname, interpret_global_var(varvalue, {}, allow_recursion=10)
+        return varname, interpret_global_var(varvalue, LocalNameSpace(), allow_recursion=10)
 
     def _fixup_n_function_code(self, argnames, nsig_code, jscode, player_url):
+        # Fixup global array
         varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
         if varname and global_list:
             nsig_code = f'var {varname}={json.dumps(global_list)}; {nsig_code}'
         else:
-            varname = 'dlp_wins'
+            varname = self._DUMMY_STRING
             global_list = []
 
+        # Fixup typeof check
         undefined_idx = global_list.index('undefined') if 'undefined' in global_list else r'\d+'
         fixed_code = re.sub(
             fr'''(?x)
@@ -2334,6 +2363,32 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.write_debug(join_nonempty(
                 'No typeof statement found in nsig function code',
                 player_url and f'        player = {player_url}', delim='\n'), only_once=True)
+
+        # Fixup global funcs
+        jsi = JSInterpreter(fixed_code)
+        cache_id = (self._NSIG_FUNC_CACHE_ID, player_url)
+        try:
+            self._cached(
+                self._extract_n_function_from_code, *cache_id)(jsi, (argnames, fixed_code))(self._DUMMY_STRING)
+        except JSInterpreter.Exception:
+            self._player_cache.pop(cache_id, None)
+
+        global_funcnames = jsi._undefined_varnames
+        debug_names = []
+        jsi = JSInterpreter(jscode)
+        for func_name in global_funcnames:
+            try:
+                func_args, func_code = jsi.extract_function_code(func_name)
+                fixed_code = f'var {func_name} = function({", ".join(func_args)}) {{ {func_code} }}; {fixed_code}'
+                debug_names.append(func_name)
+            except Exception:
+                self.report_warning(join_nonempty(
+                    f'Unable to extract global nsig function {func_name} from player JS',
+                    player_url and f'        player = {player_url}', delim='\n'), only_once=True)
+
+        if debug_names:
+            self.write_debug(f'Extracted global nsig functions: {", ".join(debug_names)}')
+
         return argnames, fixed_code
 
     def _extract_n_function_code(self, video_id, player_url):
@@ -2347,7 +2402,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         func_name = self._extract_n_function_name(jscode, player_url=player_url)
 
-        # XXX: Workaround for the global array variable and lack of `typeof` implementation
+        # XXX: Work around (a) global array variable, (b) `typeof` short-circuit, (c) global functions
         func_code = self._fixup_n_function_code(*jsi.extract_function_code(func_name), jscode, player_url)
 
         return jsi, player_id, func_code
@@ -2861,7 +2916,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     only_once=True)
                 continue
 
-    def fetch_po_token(self, client='web', context=_PoTokenContext.GVS, ytcfg=None, visitor_data=None,
+    def fetch_po_token(self, client='web', context: _PoTokenContext = _PoTokenContext.GVS, ytcfg=None, visitor_data=None,
                        data_sync_id=None, session_index=None, player_url=None, video_id=None, webpage=None,
                        required=False, **kwargs):
         """
@@ -2946,7 +3001,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             fetch_pot_policy == 'never'
             or (
                 fetch_pot_policy == 'auto'
-                and _PoTokenContext(context) not in self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
                 and not kwargs.get('required', False)
             )
         ):
@@ -3005,19 +3059,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token):
+    def _extract_player_response(self, client, video_id, webpage_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token):
         headers = self.generate_api_headers(
             ytcfg=player_ytcfg,
             default_client=client,
             visitor_data=visitor_data,
-            session_index=self._extract_session_index(master_ytcfg, player_ytcfg),
+            session_index=self._extract_session_index(webpage_ytcfg, player_ytcfg),
             delegated_session_id=(
                 self._parse_data_sync_id(data_sync_id)[0]
-                or self._extract_delegated_session_id(master_ytcfg, initial_pr, player_ytcfg)
+                or self._extract_delegated_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
             ),
             user_session_id=(
                 self._parse_data_sync_id(data_sync_id)[1]
-                or self._extract_user_session_id(master_ytcfg, initial_pr, player_ytcfg)
+                or self._extract_user_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
             ),
         )
 
@@ -3033,7 +3087,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if po_token:
             yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}
 
-        sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False) if player_url else None
+        sts = self._extract_signature_timestamp(video_id, player_url, webpage_ytcfg, fatal=False) if player_url else None
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -3042,10 +3096,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             note='Downloading {} player API JSON'.format(client.replace('_', ' ').strip()),
         ) or None
 
-    def _get_requested_clients(self, url, smuggled_data):
+    def _get_requested_clients(self, url, smuggled_data, is_premium_subscriber):
         requested_clients = []
         excluded_clients = []
-        default_clients = self._DEFAULT_AUTHED_CLIENTS if self.is_authenticated else self._DEFAULT_CLIENTS
+        default_clients = (
+            self._DEFAULT_PREMIUM_CLIENTS if is_premium_subscriber
+            else self._DEFAULT_AUTHED_CLIENTS if self.is_authenticated
+            else self._DEFAULT_CLIENTS
+        )
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
@@ -3087,11 +3145,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if (pr_id := traverse_obj(pr, ('videoDetails', 'videoId'))) != video_id:
             return pr_id
 
-    def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
+    def _extract_player_responses(self, clients, video_id, webpage, webpage_client, webpage_ytcfg, is_premium_subscriber):
         initial_pr = None
         if webpage:
             initial_pr = self._search_json(
-                self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
+                self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage,
+                f'{webpage_client} client initial player response', video_id, fatal=False)
 
         prs = []
         deprioritized_prs = []
@@ -3122,11 +3181,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         while clients:
             deprioritize_pr = False
             client, base_client, variant = _split_innertube_client(clients.pop())
-            player_ytcfg = master_ytcfg if client == 'web' else {}
-            if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
+            player_ytcfg = webpage_ytcfg if client == webpage_client else {}
+            if 'configs' not in self._configuration_arg('player_skip') and client != webpage_client:
                 player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
 
-            player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
+            player_url = player_url or self._extract_player_url(webpage_ytcfg, player_ytcfg, webpage=webpage)
             require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
             if 'js' in self._configuration_arg('player_skip'):
                 require_js_player = False
@@ -3136,10 +3195,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_url = self._download_player_url(video_id)
                 tried_iframe_fallback = True
 
-            pr = initial_pr if client == 'web' else None
+            pr = None
+            if client == webpage_client and 'player_response' not in self._configuration_arg('webpage_skip'):
+                pr = initial_pr
 
-            visitor_data = visitor_data or self._extract_visitor_data(master_ytcfg, initial_pr, player_ytcfg)
-            data_sync_id = data_sync_id or self._extract_data_sync_id(master_ytcfg, initial_pr, player_ytcfg)
+            visitor_data = visitor_data or self._extract_visitor_data(webpage_ytcfg, initial_pr, player_ytcfg)
+            data_sync_id = data_sync_id or self._extract_data_sync_id(webpage_ytcfg, initial_pr, player_ytcfg)
 
             fetch_po_token_args = {
                 'client': client,
@@ -3148,53 +3209,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'data_sync_id': data_sync_id if self.is_authenticated else None,
                 'player_url': player_url if require_js_player else None,
                 'webpage': webpage,
-                'session_index': self._extract_session_index(master_ytcfg, player_ytcfg),
+                'session_index': self._extract_session_index(webpage_ytcfg, player_ytcfg),
                 'ytcfg': player_ytcfg or self._get_default_ytcfg(client),
             }
 
             # Don't need a player PO token for WEB if using player response from webpage
+            player_pot_policy: PlayerPoTokenPolicy = self._get_default_ytcfg(client)['PLAYER_PO_TOKEN_POLICY']
             player_po_token = None if pr else self.fetch_po_token(
-                context=_PoTokenContext.PLAYER, **fetch_po_token_args)
+                context=_PoTokenContext.PLAYER, **fetch_po_token_args,
+                required=player_pot_policy.required or player_pot_policy.recommended)
 
-            gvs_po_token = self.fetch_po_token(
-                context=_PoTokenContext.GVS, **fetch_po_token_args)
+            fetch_gvs_po_token_func = functools.partial(
+                self.fetch_po_token, context=_PoTokenContext.GVS, **fetch_po_token_args)
 
             fetch_subs_po_token_func = functools.partial(
-                self.fetch_po_token,
-                context=_PoTokenContext.SUBS,
-                **fetch_po_token_args,
-            )
-
-            required_pot_contexts = self._get_default_ytcfg(client)['PO_TOKEN_REQUIRED_CONTEXTS']
-
-            if (
-                not player_po_token
-                and _PoTokenContext.PLAYER in required_pot_contexts
-            ):
-                # TODO: may need to skip player response request. Unsure yet..
-                self.report_warning(
-                    f'No Player PO Token provided for {client} client, '
-                    f'which may be required for working {client} formats. This client will be deprioritized'
-                    f'You can manually pass a Player PO Token for this client with --extractor-args "youtube:po_token={client}.player+XXX". '
-                    f'For more information, refer to {PO_TOKEN_GUIDE_URL} .', only_once=True)
-                deprioritize_pr = True
-
-            if (
-                not gvs_po_token
-                and _PoTokenContext.GVS in required_pot_contexts
-                and 'missing_pot' in self._configuration_arg('formats')
-            ):
-                # note: warning with help message is provided later during format processing
-                self.report_warning(
-                    f'No GVS PO Token provided for {client} client, '
-                    f'which may be required for working {client} formats. This client will be deprioritized',
-                    only_once=True)
-                deprioritize_pr = True
+                self.fetch_po_token, context=_PoTokenContext.SUBS, **fetch_po_token_args)
 
             try:
                 pr = pr or self._extract_player_response(
                     client, video_id,
-                    master_ytcfg=player_ytcfg or master_ytcfg,
+                    webpage_ytcfg=player_ytcfg or webpage_ytcfg,
                     player_ytcfg=player_ytcfg,
                     player_url=player_url,
                     initial_pr=initial_pr,
@@ -3212,12 +3246,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 innertube_context = traverse_obj(player_ytcfg or self._get_default_ytcfg(client), 'INNERTUBE_CONTEXT')
                 sd = pr.setdefault('streamingData', {})
                 sd[STREAMING_DATA_CLIENT_NAME] = client
-                sd[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
+                sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
+                sd[STREAMING_DATA_PLAYER_TOKEN_PROVIDED] = bool(player_po_token)
                 sd[STREAMING_DATA_INNERTUBE_CONTEXT] = innertube_context
                 sd[STREAMING_DATA_FETCH_SUBS_PO_TOKEN] = fetch_subs_po_token_func
+                sd[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER] = is_premium_subscriber
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
-                    f[STREAMING_DATA_INITIAL_PO_TOKEN] = gvs_po_token
+                    f[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
+                    f[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER] = is_premium_subscriber
+                    f[STREAMING_DATA_PLAYER_TOKEN_PROVIDED] = bool(player_po_token)
                 if deprioritize_pr:
                     deprioritized_prs.append(pr)
                 else:
@@ -3242,6 +3280,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # tv_embedded can work around the age-verification requirement for embeddable videos
                 # web_creator may work around age-verification for all videos but requires PO token
                 append_client('tv_embedded', 'web_creator')
+
+            status = traverse_obj(pr, ('playabilityStatus', 'status', {str}))
+            if status not in ('OK', 'LIVE_STREAM_OFFLINE', 'AGE_CHECK_REQUIRED', 'AGE_VERIFICATION_REQUIRED'):
+                self.write_debug(f'{video_id}: {client} player response playability status: {status}')
 
         prs.extend(deprioritized_prs)
 
@@ -3323,6 +3365,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 }),
             } for range_start in range(0, f['filesize'], CHUNK_SIZE))
 
+        def gvs_pot_required(policy, is_premium_subscriber, has_player_token):
+            return (
+                policy.required
+                and not (policy.not_required_with_player_token and has_player_token)
+                and not (policy.not_required_for_premium and is_premium_subscriber))
+
+        # save pots per client to avoid fetching again
+        gvs_pots = {}
+
         for fmt in streaming_formats:
             client_name = fmt[STREAMING_DATA_CLIENT_NAME]
             if fmt.get('targetDurationSec'):
@@ -3382,7 +3433,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 encrypted_sig = try_get(sc, lambda x: x['s'][0])
                 if not all((sc, fmt_url, player_url, encrypted_sig)):
                     msg = f'Some {client_name} client https formats have been skipped as they are missing a url. '
-                    if client_name == 'web':
+                    if client_name in ('web', 'web_safari'):
                         msg += 'YouTube is forcing SABR streaming for this client. '
                     else:
                         msg += (
@@ -3442,18 +3493,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.report_warning(
                     'Some formats are possibly damaged. They will be deprioritized', video_id, only_once=True)
 
-            po_token = fmt.get(STREAMING_DATA_INITIAL_PO_TOKEN)
+            fetch_po_token_func = fmt[STREAMING_DATA_FETCH_GVS_PO_TOKEN]
+            pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.HTTPS]
+
+            require_po_token = (
+                itag not in ['18']
+                and gvs_pot_required(
+                    pot_policy, fmt[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER],
+                    fmt[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]))
+
+            po_token = (
+                gvs_pots.get(client_name)
+                or fetch_po_token_func(required=require_po_token or pot_policy.recommended))
 
             if po_token:
                 fmt_url = update_url_query(fmt_url, {'pot': po_token})
+                if client_name not in gvs_pots:
+                    gvs_pots[client_name] = po_token
 
-            # Clients that require PO Token return videoplayback URLs that may return 403
-            require_po_token = (
-                not po_token
-                and _PoTokenContext.GVS in self._get_default_ytcfg(client_name)['PO_TOKEN_REQUIRED_CONTEXTS']
-                and itag not in ['18'])  # these formats do not require PO Token
-
-            if require_po_token and 'missing_pot' not in self._configuration_arg('formats'):
+            if not po_token and require_po_token and 'missing_pot' not in self._configuration_arg('formats'):
                 self._report_pot_format_skipped(video_id, client_name, 'https')
                 continue
 
@@ -3468,7 +3526,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     name, fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
-                    is_damaged and 'DAMAGED', require_po_token and 'MISSING POT',
+                    is_damaged and 'DAMAGED', require_po_token and not po_token and 'MISSING POT',
                     (self.get_param('verbose') or all_formats) and short_client_name(client_name),
                     delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
@@ -3531,7 +3589,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         elif skip_bad_formats and live_status == 'is_live' and needs_live_processing != 'is_live':
             skip_manifests.add('dash')
 
-        def process_manifest_format(f, proto, client_name, itag, po_token):
+        def process_manifest_format(f, proto, client_name, itag, missing_pot):
             key = (proto, f.get('language'))
             if not all_formats and key in itags[itag]:
                 return False
@@ -3539,18 +3597,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if f.get('source_preference') is None:
                 f['source_preference'] = -1
 
-            # Clients that require PO Token return videoplayback URLs that may return 403
-            # hls does not currently require PO Token
-            if (
-                not po_token
-                and _PoTokenContext.GVS in self._get_default_ytcfg(client_name)['PO_TOKEN_REQUIRED_CONTEXTS']
-                and proto != 'hls'
-            ):
-                if 'missing_pot' not in self._configuration_arg('formats'):
-                    self._report_pot_format_skipped(video_id, client_name, proto)
-                    return False
+            if missing_pot:
                 f['format_note'] = join_nonempty(f.get('format_note'), 'MISSING POT', delim=' ')
                 f['source_preference'] -= 20
+
+            # XXX: Check if IOS HLS formats are affected by PO token enforcement; temporary
+            # See https://github.com/yt-dlp/yt-dlp/issues/13511
+            if proto == 'hls' and client_name == 'ios':
+                f['__needs_testing'] = True
 
             itags[itag].add(key)
 
@@ -3586,39 +3640,62 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         subtitles = {}
         for sd in streaming_data:
             client_name = sd[STREAMING_DATA_CLIENT_NAME]
-            po_token = sd.get(STREAMING_DATA_INITIAL_PO_TOKEN)
+            fetch_pot_func = sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN]
+            is_premium_subscriber = sd[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER]
+            has_player_token = sd[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]
+
             hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
+                pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(
+                    client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.HLS]
+                require_po_token = gvs_pot_required(pot_policy, is_premium_subscriber, has_player_token)
+                po_token = gvs_pots.get(client_name, fetch_pot_func(required=require_po_token or pot_policy.recommended))
                 if po_token:
                     hls_manifest_url = hls_manifest_url.rstrip('/') + f'/pot/{po_token}'
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
-                for sub in traverse_obj(subs, (..., ..., {dict})):
-                    # HLS subs (m3u8) do not need a PO token; save client name for debugging
-                    sub[STREAMING_DATA_CLIENT_NAME] = client_name
-                subtitles = self._merge_subtitles(subs, subtitles)
-                for f in fmts:
-                    if process_manifest_format(f, 'hls', client_name, self._search_regex(
-                            r'/itag/(\d+)', f['url'], 'itag', default=None), po_token):
-                        yield f
+                    if client_name not in gvs_pots:
+                        gvs_pots[client_name] = po_token
+                if require_po_token and not po_token and 'missing_pot' not in self._configuration_arg('formats'):
+                    self._report_pot_format_skipped(video_id, client_name, 'hls')
+                else:
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                        hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
+                    for sub in traverse_obj(subs, (..., ..., {dict})):
+                        # TODO: If HLS video requires a PO Token, do the subs also require pot?
+                        # Save client name for debugging
+                        sub[STREAMING_DATA_CLIENT_NAME] = client_name
+                    subtitles = self._merge_subtitles(subs, subtitles)
+                    for f in fmts:
+                        if process_manifest_format(f, 'hls', client_name, self._search_regex(
+                                r'/itag/(\d+)', f['url'], 'itag', default=None), require_po_token and not po_token):
+                            yield f
 
             dash_manifest_url = 'dash' not in skip_manifests and sd.get('dashManifestUrl')
             if dash_manifest_url:
+                pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(
+                    client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.DASH]
+                require_po_token = gvs_pot_required(pot_policy, is_premium_subscriber, has_player_token)
+                po_token = gvs_pots.get(client_name, fetch_pot_func(required=require_po_token or pot_policy.recommended))
                 if po_token:
                     dash_manifest_url = dash_manifest_url.rstrip('/') + f'/pot/{po_token}'
-                formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
-                for sub in traverse_obj(subs, (..., ..., {dict})):
-                    # TODO: Investigate if DASH subs ever need a PO token; save client name for debugging
-                    sub[STREAMING_DATA_CLIENT_NAME] = client_name
-                subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
-                for f in formats:
-                    if process_manifest_format(f, 'dash', client_name, f['format_id'], po_token):
-                        f['filesize'] = int_or_none(self._search_regex(
-                            r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
-                        if needs_live_processing:
-                            f['is_from_start'] = True
+                    if client_name not in gvs_pots:
+                        gvs_pots[client_name] = po_token
+                if require_po_token and not po_token and 'missing_pot' not in self._configuration_arg('formats'):
+                    self._report_pot_format_skipped(video_id, client_name, 'dash')
+                else:
+                    formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
+                    for sub in traverse_obj(subs, (..., ..., {dict})):
+                        # TODO: If DASH video requires a PO Token, do the subs also require pot?
+                        # Save client name for debugging
+                        sub[STREAMING_DATA_CLIENT_NAME] = client_name
+                    subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
+                    for f in formats:
+                        if process_manifest_format(f, 'dash', client_name, f['format_id'], require_po_token and not po_token):
+                            f['filesize'] = int_or_none(self._search_regex(
+                                r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
+                            if needs_live_processing:
+                                f['is_from_start'] = True
 
-                        yield f
+                            yield f
         yield subtitles
 
     def _extract_storyboard(self, player_responses, duration):
@@ -3659,22 +3736,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 } for j in range(math.ceil(fragment_count))],
             }
 
-    def _download_player_responses(self, url, smuggled_data, video_id, webpage_url):
+    def _download_initial_webpage(self, webpage_url, webpage_client, video_id):
         webpage = None
-        if 'webpage' not in self._configuration_arg('player_skip'):
+        if webpage_url and 'webpage' not in self._configuration_arg('player_skip'):
             query = {'bpctr': '9999999999', 'has_verified': '1'}
-            pp = self._configuration_arg('player_params', [None], casesense=True)[0]
+            pp = (
+                self._configuration_arg('player_params', [None], casesense=True)[0]
+                or traverse_obj(INNERTUBE_CLIENTS, (webpage_client, 'PLAYER_PARAMS', {str}))
+            )
             if pp:
                 query['pp'] = pp
-            webpage = self._download_webpage_with_retries(webpage_url, video_id, query=query)
-
-        master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
-
-        player_responses, player_url = self._extract_player_responses(
-            self._get_requested_clients(url, smuggled_data),
-            video_id, webpage, master_ytcfg, smuggled_data)
-
-        return webpage, master_ytcfg, player_responses, player_url
+            webpage = self._download_webpage_with_retries(
+                webpage_url, video_id, query=query,
+                headers=traverse_obj(self._get_default_ytcfg(webpage_client), {
+                    'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
+                }))
+        return webpage
 
     def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
@@ -3699,14 +3776,60 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return live_broadcast_details, live_status, streaming_data, formats, subtitles
 
+    def _download_initial_data(self, video_id, webpage, webpage_client, webpage_ytcfg):
+        initial_data = None
+        if webpage and 'initial_data' not in self._configuration_arg('webpage_skip'):
+            initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
+            if not traverse_obj(initial_data, 'contents'):
+                self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
+                initial_data = None
+        if not initial_data and 'initial_data' not in self._configuration_arg('player_skip'):
+            query = {'videoId': video_id}
+            query.update(self._get_checkok_params())
+            initial_data = self._extract_response(
+                item_id=video_id, ep='next', fatal=False,
+                ytcfg=webpage_ytcfg, query=query, check_get_keys='contents',
+                note='Downloading initial data API JSON', default_client=webpage_client)
+        return initial_data
+
+    def _is_premium_subscriber(self, initial_data):
+        if not self.is_authenticated or not initial_data:
+            return False
+
+        tlr = traverse_obj(
+            initial_data, ('topbar', 'desktopTopbarRenderer', 'logo', 'topbarLogoRenderer'))
+        return (
+            traverse_obj(tlr, ('iconImage', 'iconType')) == 'YOUTUBE_PREMIUM_LOGO'
+            or 'premium' in (self._get_text(tlr, 'tooltipText') or '').lower()
+        )
+
+    def _initial_extract(self, url, smuggled_data, webpage_url, webpage_client, video_id):
+        # This function is also used by live-from-start refresh
+        webpage = self._download_initial_webpage(webpage_url, webpage_client, video_id)
+        webpage_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg(webpage_client)
+
+        initial_data = self._download_initial_data(video_id, webpage, webpage_client, webpage_ytcfg)
+
+        is_premium_subscriber = self._is_premium_subscriber(initial_data)
+        if is_premium_subscriber:
+            self.write_debug('Detected YouTube Premium subscription')
+
+        player_responses, player_url = self._extract_player_responses(
+            self._get_requested_clients(url, smuggled_data, is_premium_subscriber),
+            video_id, webpage, webpage_client, webpage_ytcfg, is_premium_subscriber)
+
+        return webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
+        webpage_client = 'web'
 
-        webpage, master_ytcfg, player_responses, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
+        webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
+            url, smuggled_data, webpage_url, webpage_client, video_id)
 
         playability_statuses = traverse_obj(
             player_responses, (..., 'playabilityStatus'), expected_type=dict)
@@ -3943,11 +4066,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def process_language(container, base_url, lang_code, sub_name, client_name, query):
             lang_subs = container.setdefault(lang_code, [])
             for fmt in self._SUBTITLE_FORMATS:
-                query = {**query, 'fmt': fmt}
+                # xosf=1 results in undesirable text position data for vtt, json3 & srv* subtitles
+                # See: https://github.com/yt-dlp/yt-dlp/issues/13654
+                query = {**query, 'fmt': fmt, 'xosf': []}
                 lang_subs.append({
                     'ext': fmt,
                     'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
                     'name': sub_name,
+                    'impersonate': True,
                     STREAMING_DATA_CLIENT_NAME: client_name,
                 })
 
@@ -3979,7 +4105,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pctr = pr['captions']['playerCaptionsTracklistRenderer']
             client_name = pr['streamingData'][STREAMING_DATA_CLIENT_NAME]
             innertube_client_name = pr['streamingData'][STREAMING_DATA_INNERTUBE_CONTEXT]['client']['clientName']
-            required_contexts = self._get_default_ytcfg(client_name)['PO_TOKEN_REQUIRED_CONTEXTS']
+            pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name)['SUBS_PO_TOKEN_POLICY']
             fetch_subs_po_token_func = pr['streamingData'][STREAMING_DATA_FETCH_SUBS_PO_TOKEN]
 
             pot_params = {}
@@ -3992,11 +4118,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requires_pot = (
                     # We can detect the experiment for now
                     any(e in traverse_obj(qs, ('exp', ...)) for e in ('xpe', 'xpv'))
-                    or _PoTokenContext.SUBS in required_contexts)
+                    or (pot_policy.required and not (pot_policy.not_required_for_premium and is_premium_subscriber)))
 
                 if not already_fetched_pot:
                     already_fetched_pot = True
-                    if subs_po_token := fetch_subs_po_token_func(required=requires_pot):
+                    if subs_po_token := fetch_subs_po_token_func(required=requires_pot or pot_policy.recommended):
                         pot_params.update({
                             'pot': subs_po_token,
                             'potc': '1',
@@ -4098,21 +4224,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'release_date': release_date,
                     'release_year': int_or_none(release_year),
                 })
-
-        initial_data = None
-        if webpage:
-            initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
-            if not traverse_obj(initial_data, 'contents'):
-                self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
-                initial_data = None
-        if not initial_data and 'initial_data' not in self._configuration_arg('player_skip'):
-            query = {'videoId': video_id}
-            query.update(self._get_checkok_params())
-            initial_data = self._extract_response(
-                item_id=video_id, ep='next', fatal=False,
-                ytcfg=master_ytcfg, query=query, check_get_keys='contents',
-                headers=self.generate_api_headers(ytcfg=master_ytcfg),
-                note='Downloading initial data API JSON')
 
         COMMENTS_SECTION_IDS = ('comment-item-section', 'engagement-panel-comments-section')
         info['comment_count'] = traverse_obj(initial_data, (
@@ -4280,6 +4391,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
+            # XXX: This is redundant for as long as we are already checking all IOS HLS formats
             upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.timezone.utc)
             if upload_datetime >= datetime_from_str('today-2days'):
                 for fmt in info['formats']:
@@ -4311,7 +4423,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED)
                     or get_first(microformats, 'isUnlisted', expected_type=bool))))
 
-        info['__post_extractor'] = self.extract_comments(master_ytcfg, video_id, contents, webpage)
+        info['__post_extractor'] = self.extract_comments(webpage_ytcfg, video_id, contents, webpage)
 
         self.mark_watched(video_id, player_responses)
 
