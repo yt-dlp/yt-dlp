@@ -7,6 +7,7 @@ from ..utils import (
     js_to_json,
     mimetype2ext,
     unified_strdate,
+    url_or_none,
     urljoin,
 )
 from ..utils.traversal import find_element, traverse_obj
@@ -45,11 +46,11 @@ class TVNoeIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         player = self._search_json(
-            r'var\s+INIT_PLAYER\s*=\s*', webpage, 'init player',
+            r'var\s+INIT_PLAYER\s*=', webpage, 'init player',
             video_id, transform_source=js_to_json, fatal=True)
 
         formats = []
-        for source in traverse_obj(player, ('tracks', ..., lambda _, v: v['src'])):
+        for source in traverse_obj(player, ('tracks', ..., lambda _, v: url_or_none(v['src']))):
             src_url = source['src']
             ext = mimetype2ext(source.get('type'))
             if ext == 'm3u8':
@@ -71,7 +72,9 @@ class TVNoeIE(InfoExtractor):
             **traverse_obj(webpage, {
                 'title': ({find_element(tag='h2')}, {clean_html}),
                 'release_date': (
-                    {re.compile(r'\d{1,2}\.\d{1,2}\.\d{4}').findall}, filter, ..., {unified_strdate}, any),
+                    {clean_html}, {re.compile(r'Premiéra:\s*(\d{1,2}\.\d{1,2}\.\d{4})').findall},
+                    ..., {str}, filter, {unified_strdate}, any,
+                ),
                 'series': ({find_element(tag='h1')}, {clean_html}),
                 'thumbnail': (
                     {find_element(id='player-live', html=True)}, {extract_attributes},
