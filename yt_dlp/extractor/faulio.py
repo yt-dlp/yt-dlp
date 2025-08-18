@@ -9,6 +9,7 @@ from ..utils.traversal import traverse_obj
 class FaulioLiveIE(InfoExtractor):
     _DOMAINS = (
         'aloula.sba.sa',
+        'bahry.com',
         'maraya.sba.net.ae',
         'sat7plus.org',
     )
@@ -17,6 +18,18 @@ class FaulioLiveIE(InfoExtractor):
         'url': 'https://aloula.sba.sa/live/saudiatv',
         'info_dict': {
             'id': 'aloula.faulio.com_saudiatv',
+            'title': str,
+            'description': str,
+            'ext': 'mp4',
+            'live_status': 'is_live',
+        },
+        'params': {
+            'skip_download': 'Livestream',
+        },
+    }, {
+        'url': 'https://bahry.com/live/1',
+        'info_dict': {
+            'id': 'bahry.faulio.com_1',
             'title': str,
             'description': str,
             'ext': 'mp4',

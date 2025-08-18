@@ -566,6 +566,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'gridContinuation': (self._grid_entries, None),
                 'itemSectionContinuation': (self._post_thread_continuation_entries, None),
                 'sectionListContinuation': (extract_entries, None),  # for feeds
+                'lockupViewModel': (self._grid_entries, 'items'),  # for playlists tab
             }
 
             continuation_items = traverse_obj(response, (
@@ -1026,7 +1027,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'title': 'Igor Kleiner  - Playlists',
-            'description': 'md5:15d7dd9e333cb987907fcb0d604b233a',
+            'description': r're:(?s)Добро пожаловать на мой канал! Здесь вы найдете видео .{504}/a1/50b/10a$',
             'uploader': 'Igor Kleiner ',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
@@ -1043,7 +1044,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'title': 'Igor Kleiner  - Playlists',
-            'description': 'md5:15d7dd9e333cb987907fcb0d604b233a',
+            'description': r're:(?s)Добро пожаловать на мой канал! Здесь вы найдете видео .{504}/a1/50b/10a$',
             'uploader': 'Igor Kleiner ',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
@@ -1093,7 +1094,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://www.youtube.com/c/ChristophLaimer/playlists',
         'only_matching': True,
     }, {
-        # TODO: fix availability extraction
+        # TODO: fix availability and view_count extraction
         'note': 'basic, single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlSLRHmI1qNm0wjyVNWw1pCU',
         'info_dict': {
@@ -1215,6 +1216,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'lex will',
         },
         'playlist_mincount': 18,
+        'skip': 'This Community isn\'t available',
     }, {
         # TODO: fix channel_is_verified extraction
         'note': 'Search tab',
@@ -1399,7 +1401,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': 'YDvsBbKfLPA',  # This will keep changing
+            'id': 'VFGoUmo74wE',  # This will keep changing
             'ext': 'mp4',
             'title': str,
             'upload_date': r're:\d{8}',
@@ -1578,6 +1580,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_count': 50,
         'expected_warnings': ['YouTube Music is not directly supported'],
     }, {
+        # TODO: fix test suite, 208163447408c78673b08c172beafe5c310fb167 broke this test
         'note': 'unlisted single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlQLfIN0MMgp0wVV6MP3bM4_',
         'info_dict': {
@@ -1597,19 +1600,19 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
         'playlist': [{
             'info_dict': {
-                'title': 'youtube-dl test video "\'/\\ä↭𝕐',
-                'id': 'BaW_jenozKc',
+                'title': 'Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film',
+                'id': 'aqz-KE-bpKQ',
                 '_type': 'url',
                 'ie_key': 'Youtube',
-                'duration': 10,
-                'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
-                'channel_url': 'https://www.youtube.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
+                'duration': 635,
+                'channel_id': 'UCSMOQeBJ2RAnuFungnQOxLg',
+                'channel_url': 'https://www.youtube.com/channel/UCSMOQeBJ2RAnuFungnQOxLg',
                 'view_count': int,
-                'url': 'https://www.youtube.com/watch?v=BaW_jenozKc',
-                'channel': 'Philipp Hagemeister',
-                'uploader_id': '@PhilippHagemeister',
-                'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
-                'uploader': 'Philipp Hagemeister',
+                'url': 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
+                'channel': 'Blender',
+                'uploader_id': '@BlenderOfficial',
+                'uploader_url': 'https://www.youtube.com/@BlenderOfficial',
+                'uploader': 'Blender',
             },
         }],
         'playlist_count': 1,
@@ -1675,7 +1678,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://www.youtube.com/channel/UCwVVpHQ2Cs9iGJfpdFngePQ',
         'only_matching': True,
     }, {
-        # TODO: fix metadata extraction
         'note': 'collaborative playlist (uploader name in the form "by <uploader> and x other(s)")',
         'url': 'https://www.youtube.com/playlist?list=PLx-_-Kk4c89oOHEDQAojOXzEzemXxoqx6',
         'info_dict': {
@@ -1694,6 +1696,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'pukkandan',
         },
         'playlist_mincount': 2,
+        'skip': 'https://github.com/yt-dlp/yt-dlp/issues/13690',
     }, {
         'note': 'translated tab name',
         'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/playlists',
@@ -1801,7 +1804,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'Not Just Bikes - Shorts',
             'tags': 'count:10',
             'channel_url': 'https://www.youtube.com/channel/UC0intLFzLaudFG-xAvUEO-A',
-            'description': 'md5:1d9fc1bad7f13a487299d1fe1712e031',
+            'description': 'md5:295758591d0d43d8594277be54584da7',
             'channel_follower_count': int,
             'channel_id': 'UC0intLFzLaudFG-xAvUEO-A',
             'channel': 'Not Just Bikes',
@@ -1822,7 +1825,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UC3eYAvjCVwNHgkaGbXX3sig',
             'channel': '中村悠一',
             'channel_follower_count': int,
-            'description': 'md5:e8fd705073a594f27d6d6d020da560dc',
+            'description': 'md5:76b312b48a26c3b0e4d90e2dfc1b417d',
             'uploader_url': 'https://www.youtube.com/@Yuichi-Nakamura',
             'uploader_id': '@Yuichi-Nakamura',
             'uploader': '中村悠一',
@@ -1865,12 +1868,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
         },
         'playlist_mincount': 30,
+        'skip': 'The channel/playlist does not exist and the URL redirected to youtube.com home page',
     }, {
         # Trending Gaming Tab. tab id is empty
         'url': 'https://www.youtube.com/feed/trending?bp=4gIcGhpnYW1pbmdfY29ycHVzX21vc3RfcG9wdWxhcg%3D%3D',
         'info_dict': {
             'id': 'trending',
-            'title': 'trending - Gaming',
+            'title': 'trending',
             'tags': [],
         },
         'playlist_mincount': 30,
@@ -2018,7 +2022,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'A Himitsu',
             'channel_id': 'UCgFwu-j5-xNJml2FtTrrB3A',
             'tags': 'count:12',
-            'description': 'I make music',
+            'description': 'Music producer, sometimes.',
             'channel_url': 'https://www.youtube.com/channel/UCgFwu-j5-xNJml2FtTrrB3A',
             'channel_follower_count': int,
             'channel_is_verified': True,
@@ -2304,19 +2308,20 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
     )
     IE_NAME = 'youtube:playlist'
     _TESTS = [{
+        # TODO: fix availability extraction
         'note': 'issue #673',
         'url': 'PLBB231211A4F62143',
         'info_dict': {
-            'title': '[OLD]Team Fortress 2 (Class-based LP)',
+            'title': 'Team Fortress 2 [2010 Version]',
             'id': 'PLBB231211A4F62143',
-            'uploader': 'Wickman',
-            'uploader_id': '@WickmanVT',
+            'uploader': 'Wickman Wish',
+            'uploader_id': '@WickmanWish',
             'description': 'md5:8fa6f52abb47a9552002fa3ddfc57fc2',
             'view_count': int,
-            'uploader_url': 'https://www.youtube.com/@WickmanVT',
+            'uploader_url': 'https://www.youtube.com/@WickmanWish',
             'modified_date': r're:\d{8}',
             'channel_id': 'UCKSpbfbl5kRQpTdL7kMc-1Q',
-            'channel': 'Wickman',
+            'channel': 'Wickman Wish',
             'tags': [],
             'channel_url': 'https://www.youtube.com/channel/UCKSpbfbl5kRQpTdL7kMc-1Q',
             'availability': 'public',
@@ -2331,6 +2336,7 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
         'playlist_count': 2,
         'skip': 'This playlist is private',
     }, {
+        # TODO: fix availability extraction
         'note': 'embedded',
         'url': 'https://www.youtube.com/embed/videoseries?list=PL6IaIsEjSbf96XFRuNccS_RuEXwNdsoEu',
         'playlist_count': 4,
@@ -2351,6 +2357,7 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
         },
         'expected_warnings': [r'[Uu]navailable videos? (is|are|will be) hidden', 'Retrying', 'Giving up'],
     }, {
+        # TODO: fix availability extraction
         'url': 'http://www.youtube.com/embed/_xDOZElKyNU?list=PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
         'playlist_mincount': 455,
         'info_dict': {
