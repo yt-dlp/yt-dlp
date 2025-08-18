@@ -1,124 +1,132 @@
+import json
+
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
-    qualities,
-    remove_end,
-    strip_or_none,
-    try_get,
-    unified_timestamp,
-    url_basename,
+    extract_attributes,
+    make_archive_id,
+    str_or_none,
+)
+from ..utils.traversal import (
+    find_element,
+    require,
+    traverse_obj,
 )
 
 
 class AllocineIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?allocine\.fr/(?:article|video|film)/(?:fichearticle_gen_carticle=|player_gen_cmedia=|fichefilm_gen_cfilm=|video-)(?P<id>[0-9]+)(?:\.html)?'
+    IE_NAME = 'allocine'
+    IE_DESC = 'AlloCiné'
 
+    _VALID_URL = r'https?://(?:www\.)?allocine\.fr/(?:article|video|film)/(?:fichearticle_gen_carticle=|player_gen_cmedia=|fichefilm_gen_cfilm=|video-)(?P<id>\d+)(?:\.html)?'
     _TESTS = [{
-        'url': 'http://www.allocine.fr/article/fichearticle_gen_carticle=18635087.html',
-        'md5': '0c9fcf59a841f65635fa300ac43d8269',
+        'url': 'https://www.allocine.fr/article/fichearticle_gen_carticle=18635087.html',
         'info_dict': {
-            'id': '19546517',
-            'display_id': '18635087',
+            'id': 'x8a20c7',
             'ext': 'mp4',
-            'title': 'Astérix - Le Domaine des Dieux Teaser VF',
-            'description': 'md5:4a754271d9c6f16c72629a8a993ee884',
-            'thumbnail': r're:http://.*\.jpg',
-            'duration': 39,
-            'timestamp': 1404273600,
+            'title': 'Teaser Astérix - Le Domaine des Dieux : les Romains font grève !',
+            'age_limit': 0,
+            'creators': 'count:1',
+            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+            'display_id': '18635087',
+            'duration': 40,
+            'like_count': int,
+            'modified_date': '20140702',
+            'modified_timestamp': 1404270000,
+            'release_date': '20140702',
+            'release_timestamp': 1404270000,
+            'tags': [],
+            'thumbnail': r're:https?://.+\.jpg',
+            'timestamp': 1404259200,
             'upload_date': '20140702',
+            'uploader': 'AlloCiné',
+            'uploader_id': 'x5rjhv',
             'view_count': int,
+            '_old_archive_ids': ['allocine 19546517'],
         },
+        'add_ie': ['Dailymotion'],
     }, {
-        'url': 'http://www.allocine.fr/video/player_gen_cmedia=19540403&cfilm=222257.html',
-        'md5': 'd0cdce5d2b9522ce279fdfec07ff16e0',
+        'url': 'https://www.allocine.fr/video/player_gen_cmedia=19540403&cfilm=222257.html',
         'info_dict': {
-            'id': '19540403',
-            'display_id': '19540403',
+            'id': 'x8a48qo',
             'ext': 'mp4',
             'title': 'Planes 2 Bande-annonce VF',
-            'description': 'Regardez la bande annonce du film Planes 2 (Planes 2 Bande-annonce VF). Planes 2, un film de Roberts Gannaway',
-            'thumbnail': r're:http://.*\.jpg',
-            'duration': 69,
-            'timestamp': 1385659800,
+            'age_limit': 0,
+            'description': 'md5:3bb65456b814081d264318e661166268',
+            'display_id': '19540403',
+            'duration': 69.0,
+            'like_count': int,
+            'tags': [],
+            'thumbnail': r're:https?://.+\.jpg',
+            'timestamp': 1385656200,
             'upload_date': '20131128',
+            'uploader': 'Allociné',
+            'uploader_id': 'x5rjhv',
             'view_count': int,
+            '_old_archive_ids': ['allocine 19540403'],
         },
+        'add_ie': ['Dailymotion'],
     }, {
-        'url': 'http://www.allocine.fr/video/player_gen_cmedia=19544709&cfilm=181290.html',
-        'md5': '101250fb127ef9ca3d73186ff22a47ce',
+        'url': 'https://www.allocine.fr/video/player_gen_cmedia=19544709&cfilm=181290.html',
         'info_dict': {
-            'id': '19544709',
-            'display_id': '19544709',
+            'id': 'x8a1vly',
             'ext': 'mp4',
             'title': 'Dragons 2 - Bande annonce finale VF',
-            'description': 'md5:6cdd2d7c2687d4c6aafe80a35e17267a',
-            'thumbnail': r're:http://.*\.jpg',
-            'duration': 144,
-            'timestamp': 1397589900,
+            'age_limit': 0,
+            'description': 'md5:1cda4f6c621f95fafe9c42dcac399b5f',
+            'display_id': '19544709',
+            'duration': 144.0,
+            'like_count': int,
+            'tags': [],
+            'thumbnail': r're:https?://.+\.jpg',
+            'timestamp': 1397582700,
             'upload_date': '20140415',
+            'uploader': 'Allociné',
+            'uploader_id': 'x5rjhv',
             'view_count': int,
+            '_old_archive_ids': ['allocine 19544709'],
         },
+        'add_ie': ['Dailymotion'],
     }, {
-        'url': 'http://www.allocine.fr/video/video-19550147/',
-        'md5': '3566c0668c0235e2d224fd8edb389f67',
+        'url': 'https://www.allocine.fr/video/video-19550147/',
         'info_dict': {
-            'id': '19550147',
+            'id': 'x8a3u4k',
             'ext': 'mp4',
-            'title': 'Faux Raccord N°123 - Les gaffes de Cliffhanger',
-            'description': 'md5:bc734b83ffa2d8a12188d9eb48bb6354',
-            'thumbnail': r're:http://.*\.jpg',
+            'title': 'Les gaffes de Cliffhanger',
+            'age_limit': 0,
+            'description': 'md5:f0f8daccb3a4687928edbc806d596b35',
+            'display_id': '19550147',
+            'duration': 346.0,
+            'like_count': int,
+            'tags': [],
+            'thumbnail': r're:https?://.+\.jpg',
+            'timestamp': 1418330280,
+            'upload_date': '20141211',
+            'uploader': 'Allociné',
+            'uploader_id': 'x5rjhv',
+            'view_count': int,
+            '_old_archive_ids': ['allocine 19550147'],
         },
+        'add_ie': ['Dailymotion'],
+
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-
         webpage = self._download_webpage(url, display_id)
+        videos = traverse_obj(webpage, (
+            {find_element(cls='player player-auto-play js-player', html=True)},
+            {extract_attributes}, 'data-model', {json.loads}, 'videos'))
 
-        formats = []
-        quality = qualities(['ld', 'md', 'hd'])
-
-        model = self._html_search_regex(
-            r'data-model="([^"]+)"', webpage, 'data model', default=None)
-        if model:
-            model_data = self._parse_json(model, display_id)
-            video = model_data['videos'][0]
-            title = video['title']
-            for video_url in video['sources'].values():
-                video_id, format_id = url_basename(video_url).split('_')[:2]
-                formats.append({
-                    'format_id': format_id,
-                    'quality': quality(format_id),
-                    'url': video_url,
-                })
-            duration = int_or_none(video.get('duration'))
-            view_count = int_or_none(video.get('view_count'))
-            timestamp = unified_timestamp(try_get(
-                video, lambda x: x['added_at']['date'], str))
-        else:
-            video_id = display_id
-            media_data = self._download_json(
-                f'http://www.allocine.fr/ws/AcVisiondataV5.ashx?media={video_id}', display_id)
-            title = remove_end(strip_or_none(self._html_extract_title(webpage), ' - AlloCiné'))
-            for key, value in media_data['video'].items():
-                if not key.endswith('Path'):
-                    continue
-                format_id = key[:-len('Path')]
-                formats.append({
-                    'format_id': format_id,
-                    'quality': quality(format_id),
-                    'url': value,
-                })
-            duration, view_count, timestamp = [None] * 3
+        dailymotion_id = traverse_obj(videos, (
+            ..., 'idDailymotion', {str}, any, {require('Dailymotion ID')}))
+        old_id = traverse_obj(videos, (
+            ..., 'id', {str_or_none}, any), default=display_id)
 
         return {
-            'id': video_id,
+            **self._search_json_ld(webpage, display_id),
+            '_old_archive_ids': [make_archive_id(self, old_id)],
+            '_type': 'url_transparent',
             'display_id': display_id,
-            'title': title,
-            'description': self._og_search_description(webpage),
-            'thumbnail': self._og_search_thumbnail(webpage),
-            'duration': duration,
-            'timestamp': timestamp,
-            'view_count': view_count,
-            'formats': formats,
+            'ie_key': 'Dailymotion',
+            'url': f'https://www.dailymotion.com/video/{dailymotion_id}',
         }
