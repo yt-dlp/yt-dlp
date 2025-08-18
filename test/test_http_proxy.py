@@ -245,8 +245,11 @@ def ctx(request):
     return CTX_MAP[request.param]()
 
 
-@pytest.mark.parametrize(
-    'handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+@pytest.mark.parametrize('handler', [
+    'Urllib',
+    'Requests',
+    pytest.param('CurlCFFI', marks=pytest.mark.segfaults),
+], indirect=True)
 @pytest.mark.parametrize('ctx', ['http'], indirect=True)  # pure http proxy can only support http
 class TestHTTPProxy:
     def test_http_no_auth(self, handler, ctx):
@@ -313,7 +316,7 @@ class TestHTTPProxy:
 @pytest.mark.parametrize(
     'handler,ctx', [
         ('Requests', 'https'),
-        ('CurlCFFI', 'https'),
+        pytest.param('CurlCFFI', 'https', marks=pytest.mark.segfaults),
     ], indirect=True)
 class TestHTTPConnectProxy:
     def test_http_connect_no_auth(self, handler, ctx):

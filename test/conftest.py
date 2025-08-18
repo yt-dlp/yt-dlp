@@ -54,6 +54,9 @@ def skip_handlers_if(request, handler):
 
 def pytest_configure(config):
     config.addinivalue_line(
+        'markers', 'segfaults: mark a test as potentially segfaulting in CI',
+    )
+    config.addinivalue_line(
         'markers', 'skip_handler(handler): skip test for the given handler',
     )
     config.addinivalue_line(
