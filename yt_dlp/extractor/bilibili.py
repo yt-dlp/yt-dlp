@@ -603,6 +603,26 @@ class BiliBiliIE(BilibiliBaseIE):
             'thumbnail': r're:https?://.*\.(jpg|jpeg|png)$',
         },
     }, {
+        'note': 'redirect from bvid to bangumi link via redirect_url',
+        'url': 'https://www.bilibili.com/video/BV11s411S7zX',
+        'info_dict': {
+            'id': '28637',
+            'title': '12 波澜和动荡的日常结局',
+            'ext': 'mp4',
+            'duration': 1383.184,
+            'series': '路人女主的养成方法',
+            'series_id': '1037',
+            'season': '第一季',
+            'season_number': 1,
+            'season_id': '1512',
+            'episode': '波澜和动荡的日常结局',
+            'episode_number': 12,
+            'episode_id': '28637',
+            'timestamp': 1427392200,
+            'upload_date': '20150326',
+            'thumbnail': r're:https?://.*\.(jpg|jpeg|png)$',
+        },
+    }, {
         'note': 'video has subtitles, which requires login',
         'url': 'https://www.bilibili.com/video/BV12N4y1M7rh',
         'info_dict': {
