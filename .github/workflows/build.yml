@@ -21,9 +21,6 @@ on:
       macos:
         default: true
         type: boolean
-      macos_legacy:
-        default: true
-        type: boolean
       windows:
         default: true
         type: boolean
@@ -65,10 +62,6 @@ on:
         type: boolean
       macos:
         description: yt-dlp_macos, yt-dlp_macos.zip
-        default: true
-        type: boolean
-      macos_legacy:
-        description: yt-dlp_macos_legacy
         default: true
         type: boolean
       windows:
@@ -208,7 +201,7 @@ jobs:
             python3.9 -m pip install -U pip wheel 'setuptools>=71.0.2'
             # XXX: Keep this in sync with pyproject.toml (it can't be accessed at this stage) and exclude secretstorage
             python3.9 -m pip install -U Pyinstaller mutagen pycryptodomex brotli certifi cffi \
-              'requests>=2.32.2,<3' 'urllib3>=1.26.17,<3' 'websockets>=13.0'
+              'requests>=2.32.2,<3' 'urllib3>=2.0.2,<3' 'websockets>=13.0'
 
           run: |
             cd repo
@@ -344,58 +337,6 @@ jobs:
             ~/yt-dlp-build-venv
           key: cache-reqs-${{ github.job }}-${{ github.ref }}
 
-  macos_legacy:
-    needs: process
-    if: inputs.macos_legacy
-    runs-on: macos-13
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Python
-        # We need the official Python, because the GA ones only support newer macOS versions
-        env:
-          PYTHON_VERSION: 3.10.5
-          MACOSX_DEPLOYMENT_TARGET: 10.9 # Used up by the Python build tools
-        run: |
-          # Hack to get the latest patch version. Uncomment if needed
-          #brew install python@3.10
-          #export PYTHON_VERSION=$( $(brew --prefix)/opt/python@3.10/bin/python3 --version | cut -d ' ' -f 2 )
-          curl "https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg" -o "python.pkg"
-          sudo installer -pkg python.pkg -target /
-          python3 --version
-      - name: Install Requirements
-        run: |
-          brew install coreutils
-          python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --user --include pyinstaller
-
-      - name: Prepare
-        run: |
-          python3 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
-          python3 devscripts/make_lazy_extractors.py
-      - name: Build
-        run: |
-          python3 -m bundle.pyinstaller
-          mv dist/yt-dlp_macos dist/yt-dlp_macos_legacy
-
-      - name: Verify --update-to
-        if: vars.UPDATE_TO_VERIFICATION
-        run: |
-          chmod +x ./dist/yt-dlp_macos_legacy
-          cp ./dist/yt-dlp_macos_legacy ./dist/yt-dlp_macos_legacy_downgraded
-          version="$(./dist/yt-dlp_macos_legacy --version)"
-          ./dist/yt-dlp_macos_legacy_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-          downgraded_version="$(./dist/yt-dlp_macos_legacy_downgraded --version)"
-          [[ "$version" != "$downgraded_version" ]]
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-bin-${{ github.job }}
-          path: |
-            dist/yt-dlp_macos_legacy
-          compression-level: 0
-
   windows:
     needs: process
     if: inputs.windows
@@ -410,7 +351,7 @@ jobs:
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python devscripts/install_deps.py -o --include build
           python devscripts/install_deps.py --include curl-cffi
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-6.13.0-py3-none-any.whl"
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x64/pyinstaller-6.15.0-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -459,7 +400,7 @@ jobs:
         run: |
           python devscripts/install_deps.py -o --include build
           python devscripts/install_deps.py
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-6.13.0-py3-none-any.whl"
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86/pyinstaller-6.15.0-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -498,7 +439,6 @@ jobs:
       - linux_static
       - linux_arm
       - macos
-      - macos_legacy
       - windows
       - windows32
     runs-on: ubuntu-latest
@@ -530,27 +470,31 @@ jobs:
           lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lock 2024.10.22 py2exe .+
           lock 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
-          lock 2024.10.22 (?!\w+_exe).+ Python 3\.8
+          lock 2024.10.22 zip Python 3\.8
           lock 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
+          lock 2025.08.11 darwin_legacy_exe .+
           lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
           lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp 2024.10.22 py2exe .+
           lockV2 yt-dlp/yt-dlp 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
-          lockV2 yt-dlp/yt-dlp 2024.10.22 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp 2024.10.22 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
+          lockV2 yt-dlp/yt-dlp 2025.08.11 darwin_legacy_exe .+
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 py2exe .+
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
-          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2025.08.12.233030 darwin_legacy_exe .+
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.045052 py2exe .+
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
-          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
+          lockV2 yt-dlp/yt-dlp-master-builds 2025.08.12.232447 darwin_legacy_exe .+
           EOF
 
       - name: Sign checksum files

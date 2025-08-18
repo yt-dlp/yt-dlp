@@ -105,7 +105,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
         **WEB_PO_TOKEN_POLICIES,
-        'PLAYER_PARAMS': '8AEB',
+        'PLAYER_PARAMS': '8AEB2AMB',
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
     'web_safari': {
@@ -119,7 +119,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
         **WEB_PO_TOKEN_POLICIES,
-        'PLAYER_PARAMS': '8AEB',
+        'PLAYER_PARAMS': '8AEB2AMB',
     },
     'web_embedded': {
         'INNERTUBE_CONTEXT': {
@@ -282,7 +282,7 @@ INNERTUBE_CLIENTS = {
                 'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
         },
-        'PLAYER_PARAMS': '8AEB',
+        'PLAYER_PARAMS': '8AEB2AMB',
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
         'GVS_PO_TOKEN_POLICY': {
             StreamingProtocol.HTTPS: GvsPoTokenPolicy(
@@ -314,7 +314,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
         'SUPPORTS_COOKIES': True,
-        'PLAYER_PARAMS': '8AEB',
+        'PLAYER_PARAMS': '8AEB2AMB',
     },
     'tv_simply': {
         'INNERTUBE_CONTEXT': {
