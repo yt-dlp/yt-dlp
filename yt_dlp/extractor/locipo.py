@@ -13,6 +13,7 @@ from ..utils.traversal import require, traverse_obj
 
 class LocipoBaseIE(InfoExtractor):
     _BASE_URL = 'https://locipo.jp'
+
     def _call_api(self, path, item_id):
         return self._download_json(
             f'https://api.locipo.jp/api/v1/{path}', item_id)
@@ -21,128 +22,128 @@ class LocipoBaseIE(InfoExtractor):
 class LocipoIE(LocipoBaseIE):
     _VALID_URL = r'https?://locipo\.jp/(?P<type>creative|embed)/(?P<id>[^/?#]+)?'
 
-    _TESTS = [
-        {
-            'url': 'https://locipo.jp/creative/fb5ffeaa-398d-45ce-bb49-0e221b5f94f1',
-            'info_dict': {
-                'ext': 'mp4',
-                'id': 'fb5ffeaa-398d-45ce-bb49-0e221b5f94f1',
-                'series': 'リアルカレカノ',
-                'series_id': 'b865b972-99fe-41d5-a72c-8ed5c42132bd',
-                'duration': 3622,
-                'title': 'リアルカレカノ#4 ～伊達さゆりと勉強しよっ？～',
-                'description': 'TVアニメ「ラブライブ！スーパースター!!」澁谷かのん役などで\n活躍中の人気声優「伊達さゆり」さんと、恋人気分が味わえるコンテンツが登場！\n\n全てカレシ・カノジョの1人称目線で撮影しているため\nこの動画でしか味わえない、ドキドキ感が満載！\n一緒に勉強したり…ご飯を食べたり…相談に乗ってもらったり…\nいろんなシチュエーションを楽しんでください！\n',
-                'uploader': 'thk',
-                'uploader_id': '1',
-                'thumbnail': 'https://dophkbxgy39ig.cloudfront.net/store/creatives/99190/large-51fec5367d73fc55dc364250885dfb2e.png',
-                'timestamp': 1711789200,
-                'modified_timestamp': 1725415481,
-                'upload_date': '20240330',
-                'modified_date': '20240904',
-            },
+    _TESTS = [{
+        'url': 'https://locipo.jp/creative/fb5ffeaa-398d-45ce-bb49-0e221b5f94f1',
+        'info_dict': {
+            'id': 'fb5ffeaa-398d-45ce-bb49-0e221b5f94f1',
+            'ext': 'mp4',
+            'title': 'リアルカレカノ#4 ～伊達さゆりと勉強しよっ？～',
+            'description': 'md5:70a40c202f3fb7946b61e55fa015094c',
+            'duration': 3622,
+            'genres': 'count:1',
+            'modified_date': '20240904',
+            'modified_timestamp': 1725415481,
+            'release_timestamp': 1711789200,
+            'release_date': '20240330',
+            'series': 'リアルカレカノ',
+            'series_id': 'b865b972-99fe-41d5-a72c-8ed5c42132bd',
+            'thumbnail': r're:https?://.+\.(?:jpg|png)',
+            'timestamp': 1711789200,
+            'upload_date': '20240330',
+            'uploader': '東海テレビ',
+            'uploader_id': 'thk',
         },
-        {
-            'url': 'https://locipo.jp/creative/8be557b9-5a97-4092-825e-5cb8c72b36ab?list=3058b313-3a7c-4d64-b067-d3d870b4b17d&noautoplay=&redirect=true',
-            'info_dict': {
-                'id': '3058b313-3a7c-4d64-b067-d3d870b4b17d',
-                'title': '達眼の戦士s ',
-                'description': '今注目のeスポーツで活躍するプロに密着!\n勝利への強いこだわりに迫るドキュメントバラエティ',
-            },
-            'playlist_count': 2,
+    }, {
+        'url': 'https://locipo.jp/embed/?id=71a334a0-2b25-406f-9d96-88f341f571c2',
+        'info_dict': {
+            'id': '71a334a0-2b25-406f-9d96-88f341f571c2',
+            'ext': 'mp4',
+            'title': '#1 オーディション／ゲスト伊藤美来、豊田萌絵',
+            'description': 'md5:5bbcf532474700439cf56ceb6a15630e',
+            'duration': 3399,
+            'modified_date': '20250704',
+            'modified_timestamp': 1751623614,
+            'release_timestamp': 1751623200,
+            'release_date': '20250704',
+            'series': '声優ラジオのウラカブリ～Locipo出張所～',
+            'series_id': 'eaf2f2b2-aa73-40f1-b4c9-e47f098775b8',
+            'thumbnail': r're:https?://.+\.(?:jpg|png)',
+            'timestamp': 1751623200,
+            'upload_date': '20250704',
+            'uploader': 'テレビ愛知',
+            'uploader_id': 'tva',
         },
-        {
-            'url': 'https://locipo.jp/creative/867176a9-cfd8-4807-b5f0-e41a549ba588?list=07738b35-6ce6-48b6-92f7-00167a95bb12',
-            'info_dict': {
-                'id': '07738b35-6ce6-48b6-92f7-00167a95bb12',
-                'title': 'チャント！特集',
-            },
-            'playlist_mincount': 30,
+    }, {
+        'url': 'https://locipo.jp/creative/860201fa-f22b-4ffd-8890-6320a857159f?list=fef7c4fb-741f-4d6a-a3a6-754f354302a2',
+        'info_dict': {
+            'id': 'fef7c4fb-741f-4d6a-a3a6-754f354302a2',
+            'title': 'CBCアナウンサー公式【みてちょてれび】',
+            'description': 'md5:50a1b23e63112d5c06c882835c8c1fb1',
+            'genres': 'count:1',
+            'modified_date': '20250611',
+            'modified_timestamp': 1749614012,
+            'thumbnail': r're:https?://.+\.(?:jpg|png)',
         },
-    ]
+        'playlist_mincount': 32,
+        'params': {'yes_playlist': True},
+    }]
 
-    def _get_creative_metadata(self, creative_data):
-        return traverse_obj(creative_data, {
-            'id': ('id', {str}),
-            'duration': ('video', 'duration', {int_or_none}),
-            'title': ('title', {str}),
-            'description': ('description', {str}),
-            'uploader': ('station_cd', {str}),
-            'uploader_id': ('station_id', {str}),
-            'thumbnail': ('thumb', {url_or_none}),
-            'timestamp': ('broadcast_started_at', {parse_iso8601}),
-            'modified_timestamp': ('updated_at', {parse_iso8601}),
-        })
+    def _real_extract(self, url):
+        video_type, video_id = self._match_valid_url(url).group('type', 'id')  # type: ignore
+        if not video_id:
+            video_id = traverse_obj(parse_qs(url), ('id', -1, {str}, {require('video ID')}))
+        playlist_id = traverse_obj(parse_qs(url), ('list', -1, {str}))
+        if playlist_id and self._yes_playlist(playlist_id, video_id):
+            return self.url_result(
+                f'{self._BASE_URL}/playlist/{playlist_id}', LocipoPlaylistIE)
 
-    def _real_extract(self, url: str):
-        creative_id, playlist_id = self._match_valid_url(url).group('creative_id', 'playlist_id')  # type: ignore
+        creatives = self._call_api(f'creatives/{video_id}', video_id)
+        m3u8_url = traverse_obj(creatives, ('video', 'hls', {url_or_none}, {require('manifest URL')}))
+        uploader_id = traverse_obj(creatives, ('station_cd', {str}))
+        return {
+            'id': video_id,
+            'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4'),
+            'uploader': traverse_obj(self._call_api('config', video_id), (
+                'stations', lambda _, v: v['station_cd'] == uploader_id, 'name', {str}, any)),
+            'uploader_id': uploader_id,
+            **traverse_obj(creatives, {
+                'title': ('title', {clean_html}),
+                'description': ('description', {clean_html}, filter),
+                'duration': ('video', 'duration', {int_or_none}),
+                'modified_timestamp': ('updated_at', {parse_iso8601}),
+                'release_timestamp': ('live_scheduled_at', {parse_iso8601}),
+                'thumbnail': (('thumb', 'small_thumb', 'station_thumb'), {url_or_none}, any),
+                'timestamp': ('publication_started_at', {parse_iso8601}),
+            }),  # type: ignore
+            **traverse_obj(creatives, ('playlist', {
+                'cast': ('actors', ..., 'name', {clean_html}, filter, all, filter),
+                'genres': ('locipo_genres', ..., 'name', {clean_html}, filter, all, filter),
+                'series': ('title', {clean_html}),
+                'series_id': ('id', {str}),
+            })),  # type: ignore
+        }
 
-        if not playlist_id or self.get_param('noplaylist'):
-            creative_data = self._download_json(
-                f'https://api.locipo.jp/api/v1/creatives/{creative_id}',
-                creative_id,
-                headers={
-                    'accept': 'application/json, text/plain, */*',
-                    'origin': 'https://locipo.jp',
-                    'referer': 'https://locipo.jp/',
-                },
-            )
 
-            return {
-                'formats': self._extract_m3u8_formats(m3u8_url=traverse_obj(creative_data, ('video', 'hls', {str})), video_id=creative_id),  # type: ignore
-                'id': creative_id,
-                **self._get_creative_metadata(creative_data),  # type: ignore
-                **traverse_obj(
-                    creative_data,
-                    {
-                        'series': ('playlist', 'title', {str}),
-                        'series_id': ('playlist', 'id', {str}),
-                    },
-                ),  # type: ignore
-            }
+class LocipoPlaylistIE(LocipoBaseIE):
+    _VALID_URL = r'https?://locipo\.jp/playlist/(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://locipo.jp/playlist/ae42c14e-6006-4932-b40d-16fc236ab71f',
+        'info_dict': {
+            'id': 'ae42c14e-6006-4932-b40d-16fc236ab71f',
+            'title': 'キャッチ！ぶらり旅',
+            'description': '知っているようで知らない鉄道沿線の魅力を、上山アナが歩いて探る！',
+            'genres': 'count:2',
+            'modified_date': '20250801',
+            'modified_timestamp': 1754028028,
+            'thumbnail': r're:https?://.+\.(?:jpg|png)',
+        },
+        'playlist_mincount': 67,
+    }]
 
-        playlist_data = self._download_json(
-            f'https://api.locipo.jp/api/v1/playlists/{playlist_id}',
-            playlist_id,
-            headers={
-                'accept': 'application/json, text/plain, */*',
-                'origin': 'https://locipo.jp',
-                'referer': 'https://locipo.jp/',
-            },
-        )
+    def _entries(self, playlist_id):
+        creatives = self._call_api(f'playlists/{playlist_id}/creatives', playlist_id)
+        for creative in traverse_obj(creatives, ('items', lambda _, v: str_or_none(v['id']))):  # type: ignore
+            yield self.url_result(f'{self._BASE_URL}/creative/{creative["id"]}', LocipoIE)
 
-        # NOTE: This API can return up to 1000 videos. Since there doesn't seem to be any playlist with more than 1000 items at the moment, pagination is currently not implemented.
-        playlist_creatives_data = self._download_json(
-            f'https://api.locipo.jp/api/v1/playlists/{playlist_id}/creatives',
-            None,
-            headers={
-                'accept': 'application/json, text/plain, */*',
-                'origin': 'https://locipo.jp',
-                'referer': 'https://locipo.jp/',
-            },
-        )
-
-        entries = []
-        for creative in playlist_creatives_data.get('items', []):  # type: ignore
-            entries.append(
-                {
-                    'formats': self._extract_m3u8_formats(
-                        m3u8_url=traverse_obj(creative, ('video', 'hls', {str})),  # type: ignore
-                        video_id=traverse_obj(creative, ('id', {str})),  # type: ignore
-                    ),
-                    **self._get_creative_metadata(creative),  # type: ignore
-                    **traverse_obj(
-                        playlist_data,
-                        {
-                            'series': ('title', {str}),
-                            'series_id': ('id', {str}),
-                        },
-                    ),  # type: ignore
-                },
-            )
-
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        playlists = self._call_api(f'playlists/{playlist_id}', playlist_id)
         return self.playlist_result(
-            entries=entries,
-            playlist_id=playlist_id,
-            playlist_title=traverse_obj(playlist_data, ('title', {str})),  # type: ignore
-            playlist_description=traverse_obj(playlist_data, ('description', {str_or_none})),  # type: ignore
+            self._entries(playlist_id), playlist_id, **traverse_obj(playlists, {
+                'title': ('title', {clean_html}),
+                'description': ('description', {clean_html}, filter),
+                'genres': ('locipo_genres', ..., 'name', {clean_html}, filter, all, filter),
+                'modified_timestamp': ('updated_at', {parse_iso8601}),
+                'thumbnail': (('thumb', 'small_thumb'), {url_or_none}, any),
+            }),  # type: ignore
         )
