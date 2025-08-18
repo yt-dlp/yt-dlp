@@ -18,10 +18,8 @@ class LocipoBaseIE(InfoExtractor):
             f'https://api.locipo.jp/api/v1/{path}', item_id)
 
 
-class LocipoIE(InfoExtractor):
-    IE_DESC = 'Locipo (ロキポ) Video/Playlist'
-
-    _VALID_URL = r'https?://locipo\.jp/creative/(?P<creative_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(\?.*list=(?P<playlist_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}))?'
+class LocipoIE(LocipoBaseIE):
+    _VALID_URL = r'https?://locipo\.jp/(?P<type>creative|embed)/(?P<id>[^/?#]+)?'
 
     _TESTS = [
         {
