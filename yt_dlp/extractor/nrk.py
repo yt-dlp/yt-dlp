@@ -492,7 +492,8 @@ class NRKTVEpisodeIE(InfoExtractor):
         info = self._search_json_ld(webpage, display_id, default={})
         nrk_id = info.get('@id') or self._html_search_meta(
             'nrk:program-id', webpage, default=None) or self._search_regex(
-            rf'data-program-id=["\']({NRKTVIE._EPISODE_RE})', webpage,
+            (rf'"selectedEpisodePrfId":"{NRKTVIE._EPISODE_RE}"',
+             rf'data-program-id=["\']({NRKTVIE._EPISODE_RE})'), webpage,
             'nrk id')
         assert re.match(NRKTVIE._EPISODE_RE, nrk_id)
 
