@@ -3,6 +3,7 @@ from __future__ import annotations
 import collections
 import collections.abc
 import contextlib
+import dataclasses
 import functools
 import http.cookies
 import inspect
@@ -115,6 +116,9 @@ def traverse_obj(
     def apply_key(key, obj, is_last):
         branching = False
         result = None
+
+        if dataclasses.is_dataclass(obj):
+            obj = dataclasses.asdict(obj)
 
         if obj is None and traverse_string:
             if key is ... or callable(key) or isinstance(key, slice):
