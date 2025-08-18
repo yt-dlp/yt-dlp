@@ -1,12 +1,21 @@
 
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
     int_or_none,
     parse_iso8601,
+    parse_qs,
     str_or_none,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import require, traverse_obj
+
+
+class LocipoBaseIE(InfoExtractor):
+    _BASE_URL = 'https://locipo.jp'
+    def _call_api(self, path, item_id):
+        return self._download_json(
+            f'https://api.locipo.jp/api/v1/{path}', item_id)
 
 
 class LocipoIE(InfoExtractor):
