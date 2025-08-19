@@ -873,38 +873,66 @@ class NiconicoLiveIE(NiconicoBaseIE):
     IE_DESC = 'ニコニコ生放送'
     _VALID_URL = r'https?://(?:sp\.)?live2?\.nicovideo\.jp/(?:watch|gate)/(?P<id>lv\d+)'
     _TESTS = [{
-        'note': 'this test case includes invisible characters for title, pasting them as-is',
-        'url': 'https://live.nicovideo.jp/watch/lv339533123',
+        'url': 'https://live.nicovideo.jp/watch/lv329299587',
         'info_dict': {
-            'id': 'lv339533123',
-            'title': '激辛ペヤング食べます\u202a( ;ᯅ; )\u202c（歌枠オーディション参加中）',
-            'view_count': 1526,
-            'comment_count': 1772,
-            'description': '初めましてもかって言います❕\nのんびり自由に適当に暮らしてます',
-            'uploader': 'もか',
-            'channel': 'ゲストさんのコミュニティ',
-            'channel_id': 'co5776900',
-            'channel_url': 'https://com.nicovideo.jp/community/co5776900',
-            'timestamp': 1670677328,
-            'is_live': True,
+            'id': 'lv329299587',
+            'ext': 'mp4',
+            'title': str,
+            'channel': 'ニコニコエンタメチャンネル',
+            'channel_id': 'ch2640322',
+            'channel_url': 'https://ch.nicovideo.jp/channel/ch2640322',
+            'comment_count': int,
+            'description': 'md5:281edd7f00309e99ec46a87fb16d7033',
+            'live_status': 'is_live',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1608803400,
+            'upload_date': '20201224',
+            'uploader': '株式会社ドワンゴ',
+            'view_count': int,
         },
-        'skip': 'livestream',
+        'params': {'skip_download': True},
     }, {
-        'url': 'https://live2.nicovideo.jp/watch/lv339533123',
-        'only_matching': True,
-    }, {
-        'url': 'https://sp.live.nicovideo.jp/watch/lv339533123',
-        'only_matching': True,
-    }, {
-        'url': 'https://sp.live2.nicovideo.jp/watch/lv339533123',
-        'only_matching': True,
+        'url': 'https://live.nicovideo.jp/watch/lv331050399',
+        'info_dict': {
+            'id': 'lv331050399',
+            'ext': 'mp4',
+            'title': str,
+            'age_limit': 18,
+            'channel': 'みんなのおもちゃ REBOOT',
+            'channel_id': 'ch2642088',
+            'channel_url': 'https://ch.nicovideo.jp/channel/ch2642088',
+            'comment_count': int,
+            'description': 'md5:8d0bb5beaca73b911725478a1e7c7b91',
+            'live_status': 'is_live',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1617029400,
+            'upload_date': '20210329',
+            'uploader': '株式会社ドワンゴ',
+            'view_count': int,
+        },
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id, expected_status=404)
+        webpage, urlh = self._download_webpage_handle(url, video_id, expected_status=404)
         if err_msg := traverse_obj(webpage, ({find_element(cls='message')}, {clean_html})):
             raise ExtractorError(err_msg, expected=True)
+
+        age_limit = 18 if 'age_auth' in urlh.url else None
+        if age_limit:
+            if not self.is_logged_in:
+                self.raise_login_required('Login is required to access age-restricted content')
+
+            my = self._download_webpage('https://www.nicovideo.jp/my', None, 'Checking age verification')
+            if traverse_obj(my, (
+                {find_element(id='js-initial-userpage-data', html=True)}, {extract_attributes},
+                'data-environment', {json.loads}, 'allowSensitiveContents', {bool},
+            )):
+                self._set_cookie('.nicovideo.jp', 'age_auth', '1')
+                webpage = self._download_webpage(url, video_id)
+            else:
+                raise ExtractorError('Sensitive content setting must be enabled', expected=True)
 
         embedded_data = traverse_obj(webpage, (
             {find_element(tag='script', id='embedded-data', html=True)},
@@ -1008,6 +1036,7 @@ class NiconicoLiveIE(NiconicoBaseIE):
         return {
             'id': video_id,
             'title': title,
+            'age_limit': age_limit,
             'downloader_options': {
                 'max_quality': traverse_obj(embedded_data, ('program', 'stream', 'maxQuality', {str})) or 'normal',
                 'ws': ws,
