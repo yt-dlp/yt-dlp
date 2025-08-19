@@ -1077,10 +1077,12 @@ class TikTokUserIE(TikTokBaseIE):
             if detail.get('statusCode') == 10222:
                 self.raise_login_required(
                     'This user\'s account is private. Log into an account that has access')
-            sec_uid = (
-                traverse_obj(detail, ('userInfo', 'user', 'secUid', {str}))
-                or self._extract_sec_uid_from_embed(user_name))
-            fail_early = not traverse_obj(detail, ('userInfo', 'itemList', ...))
+            sec_uid = traverse_obj(detail, ('userInfo', 'user', 'secUid', {str}))
+            if sec_uid:
+                fail_early = not traverse_obj(detail, ('userInfo', 'itemList', ...))
+            else:
+                sec_uid = self._extract_sec_uid_from_embed(user_name))
+                fail_early = False
 
         if not sec_uid:
             raise ExtractorError(
