@@ -829,6 +829,10 @@ from .ichinanalive import (
     IchinanaLiveIE,
     IchinanaLiveVODIE,
 )
+from .idagio import (
+    IdagioTrackIE,
+    IdagioRecordingIE,
+)
 from .idolplus import IdolPlusIE
 from .ign import (
     IGNIE,
