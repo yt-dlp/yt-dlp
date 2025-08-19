@@ -162,9 +162,12 @@ class MTVServicesBaseIE(InfoExtractor):
             video_detail = traverse_obj(data, (
                 'children', ..., ('handleTVEAuthRedirection', None),
                 'videoDetail', {dict}, any, {require('video detail')}))
+
         mgid = video_detail['mgid']
         video_id = mgid.rpartition(':')[2]
         service_url = traverse_obj(video_detail, ('videoServiceUrl', {url_or_none}, {update_url(query=None)}))
+        if not service_url:
+            raise ExtractorError('This content is no longer available', expected=True)
 
         headers = {}
         if video_detail.get('authRequired'):
@@ -178,8 +181,7 @@ class MTVServicesBaseIE(InfoExtractor):
             headers['X-VIA-TVE-MEDIATOKEN'] = self._get_media_token(video_config, config, display_id)
 
         stream_info = self._download_json(
-            service_url or f'https://topaz.paramount.tech/topaz/api/{mgid}/mica.json',
-            video_id, 'Downloading API JSON', 'Unable to download API JSON',
+            service_url, video_id, 'Downloading API JSON', 'Unable to download API JSON',
             query={'clientPlatform': 'desktop'}, headers=headers)['stitchedstream']
 
         manifest_type = stream_info['manifesttype']
