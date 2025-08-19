@@ -3885,7 +3885,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Do not prefer translated description in this case.
             or original_description if original_description is not None else translated_description)
         if video_description is None:
-             video_description = initial_description
+            video_description = initial_description
 
         multifeed_metadata_list = get_first(
             player_responses,
