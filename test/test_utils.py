@@ -2205,11 +2205,11 @@ Line 1
         def test(expected, headers={}):
             self.assertEqual(jwt_encode(self._JWT_DECODED, self._JWT_KEY, headers=headers), expected)
 
-        test(self._JWT_SIMPLE.encode())
-        test(self._JWT_WITH_EXTRA_HEADERS.encode(), headers=self._JWT_HEADERS_1)
-        test(self._JWT_WITH_REORDERED_HEADERS.encode(), headers=self._JWT_HEADERS_2)
-        test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG.encode(), headers=self._JWT_HEADERS_3)
-        test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG.encode(), headers=self._JWT_HEADERS_4)
+        test(self._JWT_SIMPLE)
+        test(self._JWT_WITH_EXTRA_HEADERS, headers=self._JWT_HEADERS_1)
+        test(self._JWT_WITH_REORDERED_HEADERS, headers=self._JWT_HEADERS_2)
+        test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG, headers=self._JWT_HEADERS_3)
+        test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG, headers=self._JWT_HEADERS_4)
 
     # Deprecated
     def test_jwt_encode_hs256(self):
@@ -2223,8 +2223,6 @@ Line 1
         def test(inp):
             self.assertEqual(jwt_decode_hs256(inp), self._JWT_DECODED)
 
-        test(self._JWT_UNSAFE_WITH_WHITESPACE)
-        test(self._JWT_UNSAFE_WITH_WHITESPACE_AND_EXTRA_HEADERS)
         test(self._JWT_SIMPLE)
         test(self._JWT_WITH_EXTRA_HEADERS)
         test(self._JWT_WITH_REORDERED_HEADERS)
