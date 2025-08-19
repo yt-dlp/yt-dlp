@@ -4768,21 +4768,6 @@ def jwt_encode(payload_data, key, *, alg='HS256', headers=None):
     return header_b64 + b'.' + payload_b64 + b'.' + jwt_b64encode(h.digest())
 
 
-def jwt_encode_hs256(payload_data, key, headers={}):
-    # TODO: Deprecate
-    header_data = {
-        'alg': 'HS256',
-        'typ': 'JWT',
-    }
-    if headers:
-        header_data.update(headers)
-    header_b64 = base64.b64encode(json.dumps(header_data).encode())
-    payload_b64 = base64.b64encode(json.dumps(payload_data).encode())
-    h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
-    signature_b64 = base64.b64encode(h.digest())
-    return header_b64 + b'.' + payload_b64 + b'.' + signature_b64
-
-
 # can be extended in future to verify the signature and parse header and return the algorithm used if it's not HS256
 def jwt_decode_hs256(jwt):
     header_b64, payload_b64, signature_b64 = jwt.split('.')

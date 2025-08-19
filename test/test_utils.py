@@ -73,7 +73,7 @@ from yt_dlp.utils import (
     js_to_json,
     jwt_decode_hs256,
     jwt_encode,
-    jwt_encode_hs256,
+    jwt_encode_hs256,  # noqa: TID251
     limit_length,
     locked_file,
     lowercase_escape,

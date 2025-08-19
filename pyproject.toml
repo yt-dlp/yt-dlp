@@ -315,6 +315,7 @@ banned-from = [
 "yt_dlp.utils.error_to_compat_str".msg = "Use `str` instead."
 "yt_dlp.utils.bytes_to_intlist".msg = "Use `list` instead."
 "yt_dlp.utils.intlist_to_bytes".msg = "Use `bytes` instead."
+"yt_dlp.utils.jwt_encode_hs256".msg = "Use `yt_dlp.utils.jwt_encode` instead."
 "yt_dlp.utils.decodeArgument".msg = "Do not use"
 "yt_dlp.utils.decodeFilename".msg = "Do not use"
 "yt_dlp.utils.encodeFilename".msg = "Do not use"
