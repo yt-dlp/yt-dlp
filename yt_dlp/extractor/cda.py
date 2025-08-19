@@ -16,6 +16,8 @@ from ..utils import (
     determine_ext,
     float_or_none,
     int_or_none,
+    jwt_encode_hs256,
+    jwt_is_expired,
     merge_dicts,
     multipart_encode,
     parse_duration,
@@ -152,7 +154,7 @@ class CDAIE(InfoExtractor):
         self._API_HEADERS['User-Agent'] = f'pl.cda 1.0 (version {app_version}; Android {android_version}; {phone_model})'
 
         cached_bearer = self.cache.load(self._BEARER_CACHE, username) or {}
-        if cached_bearer.get('valid_until', 0) > dt.datetime.now().timestamp() + 5:
+        if not jwt_is_expired(jwt_encode_hs256(cached_bearer, 'cda.pl'), 5, 'valid_until'):
             self._API_HEADERS['Authorization'] = f'Bearer {cached_bearer["token"]}'
             return
 

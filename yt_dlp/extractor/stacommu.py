@@ -1,8 +1,7 @@
-import time
-
 from .wrestleuniverse import WrestleUniverseBaseIE
 from ..utils import (
     int_or_none,
+    jwt_is_expired,
     traverse_obj,
     url_basename,
     url_or_none,
@@ -23,7 +22,7 @@ class StacommuBaseIE(WrestleUniverseBaseIE):
 
     @WrestleUniverseBaseIE._TOKEN.getter
     def _TOKEN(self):
-        if self._REAL_TOKEN and self._TOKEN_EXPIRY <= int(time.time()):
+        if self._REAL_TOKEN and jwt_is_expired(self._REAL_TOKEN):
             self._refresh_token()
 
         return self._REAL_TOKEN
