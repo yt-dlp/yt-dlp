@@ -100,7 +100,7 @@ class VRTBaseIE(InfoExtractor):
                 'identityToken': id_token or '',
                 'playerInfo': jwt_encode(player_info, self._JWT_SIGNING_KEY, headers={
                     'kid': self._JWT_KEY_ID,
-                }).decode(),
+                }),
             }, separators=(',', ':')).encode())['vrtPlayerToken']
 
         return self._download_json(
