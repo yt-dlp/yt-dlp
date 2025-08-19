@@ -398,16 +398,12 @@ from .cloudflarestream import CloudflareStreamIE
 from .cloudycdn import CloudyCDNIE
 from .clubic import ClubicIE
 from .clyp import ClypIE
-from .cmt import CMTIE
 from .cnbc import CNBCVideoIE
 from .cnn import (
     CNNIE,
     CNNIndonesiaIE,
 )
-from .comedycentral import (
-    ComedyCentralIE,
-    ComedyCentralTVIE,
-)
+from .comedycentral import ComedyCentralIE
 from .commonmistakes import (
     BlobIE,
     CommonMistakesIE,
@@ -1180,15 +1176,7 @@ from .moview import MoviewPlayIE
 from .moviezine import MoviezineIE
 from .movingimage import MovingImageIE
 from .msn import MSNIE
-from .mtv import (
-    MTVDEIE,
-    MTVIE,
-    MTVItaliaIE,
-    MTVItaliaProgrammaIE,
-    MTVJapanIE,
-    MTVServicesEmbeddedIE,
-    MTVVideoIE,
-)
+from .mtv import MTVIE
 from .muenchentv import MuenchenTVIE
 from .murrtube import (
     MurrtubeIE,
@@ -1330,12 +1318,7 @@ from .nhk import (
     NhkVodProgramIE,
 )
 from .nhl import NHLIE
-from .nick import (
-    NickBrIE,
-    NickDeIE,
-    NickIE,
-    NickRuIE,
-)
+from .nick import NickIE
 from .niconico import (
     NiconicoHistoryIE,
     NiconicoIE,
@@ -1923,12 +1906,13 @@ from .soundgasm import (
     SoundgasmProfileIE,
 )
 from .southpark import (
+    SouthParkComBrIE,
+    SouthParkCoUkIE,
     SouthParkDeIE,
     SouthParkDkIE,
     SouthParkEsIE,
     SouthParkIE,
     SouthParkLatIE,
-    SouthParkNlIE,
 )
 from .sovietscloset import (
     SovietsClosetIE,
@@ -1939,10 +1923,6 @@ from .spankbang import (
     SpankBangPlaylistIE,
 )
 from .spiegel import SpiegelIE
-from .spike import (
-    BellatorIE,
-    ParamountNetworkIE,
-)
 from .sport5 import Sport5IE
 from .sportbox import SportBoxIE
 from .sportdeutschland import SportDeutschlandIE
@@ -2207,7 +2187,6 @@ from .tvc import (
 from .tver import TVerIE
 from .tvigle import TvigleIE
 from .tviplayer import TVIPlayerIE
-from .tvland import TVLandIE
 from .tvn24 import TVN24IE
 from .tvnoe import TVNoeIE
 from .tvopengr import (
