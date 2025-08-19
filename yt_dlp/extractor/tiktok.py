@@ -1081,7 +1081,7 @@ class TikTokUserIE(TikTokBaseIE):
             if sec_uid:
                 fail_early = not traverse_obj(detail, ('userInfo', 'itemList', ...))
             else:
-                sec_uid = self._extract_sec_uid_from_embed(user_name))
+                sec_uid = self._extract_sec_uid_from_embed(user_name)
                 fail_early = False
 
         if not sec_uid:
