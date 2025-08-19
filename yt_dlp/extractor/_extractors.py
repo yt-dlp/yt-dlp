@@ -1115,6 +1115,7 @@ from .megatvcom import (
 )
 from .meipai import MeipaiIE
 from .melonvod import MelonVODIE
+from .mercadolibre import MercadoLibreIE
 from .metacritic import MetacriticIE
 from .mgtv import MGTVIE
 from .microsoftembed import (
