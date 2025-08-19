@@ -449,6 +449,7 @@ class NRKTVEpisodeIE(InfoExtractor):
     _VALID_URL = r'https?://tv\.nrk\.no/serie/(?P<id>[^/]+/sesong/(?P<season_number>\d+)/episode/(?P<episode_number>\d+))'
     _TESTS = [{
         'url': 'https://tv.nrk.no/serie/hellums-kro/sesong/1/episode/2',
+        'add_ie': [NRKIE.ie_key()],
         'info_dict': {
             'id': 'MUHH36005220',
             'ext': 'mp4',
