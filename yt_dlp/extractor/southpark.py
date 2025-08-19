@@ -88,6 +88,7 @@ class SouthParkDeIE(MTVServicesBaseIE):
     IE_NAME = 'southpark.de'
     _VALID_URL = r'https?://(?:www\.)?southpark\.de/(?:en/)?(?:videoclip|collections|episodes|video-clips|folgen)/(?P<id>[^?#]+)'
     _GEO_COUNTRIES = ['DE']
+    _GEO_BYPASS = True
     _TESTS = [{
         'url': 'https://www.southpark.de/videoclip/rsribv/south-park-rueckzug-zum-gummibonbon-wald',
         'only_matching': True,
@@ -194,6 +195,7 @@ class SouthParkLatIE(MTVServicesBaseIE):
     IE_NAME = 'southpark.lat'
     _VALID_URL = r'https?://(?:www\.)?southpark\.lat/(?:en/)?(?:video-?clips?|collections|episod(?:e|io)s)/(?P<id>[^?#]+)'
     _GEO_COUNTRIES = ['MX']
+    _GEO_BYPASS = True
     _TESTS = [{
         'url': 'https://www.southpark.lat/en/video-clips/ct46op/south-park-tooth-fairy-cartman',
         'info_dict': {
@@ -247,6 +249,7 @@ class SouthParkDkIE(MTVServicesBaseIE):
     IE_NAME = 'southparkstudios.nu'
     _VALID_URL = r'https?://(?:www\.)?southparkstudios\.nu/(?:video-clips|episodes|collections)/(?P<id>[^?#]+)'
     _GEO_COUNTRIES = ['DK']
+    _GEO_BYPASS = True
     _TESTS = [{
         'url': 'https://www.southparkstudios.nu/episodes/y3uvvc/south-park-grounded-vindaloop-season-18-ep-7',
         'info_dict': {
@@ -282,6 +285,7 @@ class SouthParkComBrIE(MTVServicesBaseIE):
     IE_NAME = 'southparkstudios.com.br'
     _VALID_URL = r'https?://(?:www\.)?southparkstudios\.com\.br/(?:en/)?(?:video-clips|episodios|collections|episodes)/(?P<id>[^?#]+)'
     _GEO_COUNTRIES = ['BR']
+    _GEO_BYPASS = True
     _TESTS = [{
         'url': 'https://www.southparkstudios.com.br/video-clips/3vifo0/south-park-welcome-to-mar-a-lago7',
         'info_dict': {
@@ -319,6 +323,7 @@ class SouthParkCoUkIE(MTVServicesBaseIE):
     IE_NAME = 'southparkstudios.co.uk'
     _VALID_URL = r'https?://(?:www\.)?southparkstudios\.co\.uk/(?:video-clips|collections|episodes)/(?P<id>[^?#]+)'
     _GEO_COUNTRIES = ['UK']
+    _GEO_BYPASS = True
     _TESTS = [{
         'url': 'https://www.southparkstudios.co.uk/video-clips/8kabfr/south-park-respectclydesauthority',
         'info_dict': {

@@ -4,6 +4,7 @@ import time
 import urllib.parse
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -20,6 +21,8 @@ from ..utils.traversal import require, traverse_obj
 
 
 class MTVServicesBaseIE(InfoExtractor):
+    _GEO_BYPASS = False
+    _GEO_COUNTRIES = ['US']
     _CACHE_SECTION = 'mtvservices'
     _ACCESS_TOKEN_KEY = 'access'
     _REFRESH_TOKEN_KEY = 'refresh'
@@ -138,7 +141,15 @@ class MTVServicesBaseIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
-        data = self._download_json(update_url(url, query=None), display_id, query={'json': 'true'})
+        try:
+            data = self._download_json(
+                update_url(url, query=None), display_id,
+                query={'json': 'true'})
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 404 and not self.suitable(e.cause.response.url):
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+            raise
+
         flex_wrapper = traverse_obj(data, (
             'children', lambda _, v: v['type'] == 'MainContainer',
             (None, ('children', lambda _, v: v['type'] == 'AviaWrapper')),
