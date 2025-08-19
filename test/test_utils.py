@@ -71,6 +71,8 @@ from yt_dlp.utils import (
     iri_to_uri,
     is_html,
     js_to_json,
+    jwt_decode_hs256,
+    jwt_encode_hs256,
     limit_length,
     locked_file,
     lowercase_escape,
@@ -2179,6 +2181,25 @@ Line 1
         assert int_or_none(10, scale=0.1) == 100, 'positionally passed argument should call function'
         assert int_or_none(v=10) == 10, 'keyword passed positional should call function'
         assert int_or_none(scale=0.1)(10) == 100, 'call after partial application should call the function'
+
+    _JWT_KEY = '12345678'
+    _JWT_HEADERS = {'a': 'b'}
+    _JWT_DECODED = {
+        'foo': 'bar',
+        'qux': 'baz',
+    }
+    _JWT_UNSAFE_WITH_WHITESPACE = 'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJmb28iOiAiYmFyIiwgInF1eCI6ICJiYXoifQ==.vxdOBui/tWcdlkzmERQBTF90PlRx5yfqbwGvYPPqYmU='
+    _JWT_UNSAFE_WITH_WHITESPACE_AND_HEADERS = 'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCIsICJhIjogImIifQ==.eyJmb28iOiAiYmFyIiwgInF1eCI6ICJiYXoifQ==.S1Aa5AB5BlSlc7Ohm7qR0ePuvw4meHQWxZWAD2I1plg='
+
+    def test_jwt_encode_hs256(self):
+        def test(inp, expected, headers={}):
+            self.assertEqual(jwt_encode_hs256(inp, self._JWT_KEY, headers), expected)
+
+        test(self._JWT_DECODED, self._JWT_UNSAFE_WITH_WHITESPACE.encode())
+        test(self._JWT_DECODED, self._JWT_UNSAFE_WITH_WHITESPACE_AND_HEADERS.encode(), headers=self._JWT_HEADERS)
+
+    def test_jwt_decode_hs256(self):
+        self.assertEqual(jwt_decode_hs256(self._JWT_UNSAFE_WITH_WHITESPACE), self._JWT_DECODED)
 
 
 if __name__ == '__main__':
