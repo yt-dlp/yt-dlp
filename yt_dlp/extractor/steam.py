@@ -27,10 +27,10 @@ class SteamIE(InfoExtractor):
         |
         https?://(?:www\.)?steamcommunity\.com/sharedfiles/filedetails/\?id=(?P<fileID>[0-9]+)
     '''
-    _VIDEO_PAGE_TEMPLATE = 'http://store.steampowered.com/video/%s/'
-    _AGECHECK_TEMPLATE = 'http://store.steampowered.com/agecheck/video/%s/?snr=1_agecheck_agecheck__age-gate&ageDay=1&ageMonth=January&ageYear=1970'
+    _VIDEO_PAGE_TEMPLATE = 'https://store.steampowered.com/video/%s/'
+    _AGECHECK_TEMPLATE = 'https://store.steampowered.com/agecheck/video/%s/?snr=1_agecheck_agecheck__age-gate&ageDay=1&ageMonth=January&ageYear=1970'
     _TESTS = [{
-        'url': 'http://store.steampowered.com/video/105600/',
+        'url': 'https://store.steampowered.com/video/105600/',
         'info_dict': {
             'id': '105600',
             'title': 'Terraria',
