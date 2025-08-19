@@ -72,6 +72,7 @@ from yt_dlp.utils import (
     is_html,
     js_to_json,
     jwt_decode_hs256,
+    jwt_encode,
     jwt_encode_hs256,
     limit_length,
     locked_file,
@@ -2183,23 +2184,52 @@ Line 1
         assert int_or_none(scale=0.1)(10) == 100, 'call after partial application should call the function'
 
     _JWT_KEY = '12345678'
-    _JWT_HEADERS = {'a': 'b'}
+    _JWT_HEADERS_1 = {'a': 'b'}
+    _JWT_HEADERS_2 = {'typ': 'JWT', 'alg': 'HS256'}
+    _JWT_HEADERS_3 = {'typ': 'JWT', 'alg': 'RS256'}
+    _JWT_HEADERS_4 = {'c': 'd', 'alg': 'ES256'}
     _JWT_DECODED = {
         'foo': 'bar',
         'qux': 'baz',
     }
+    _JWT_SIMPLE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.fKojvTWqnjNTbsdoDTmYNc4tgYAG3h_SWRzM77iLH0U'
+    _JWT_WITH_EXTRA_HEADERS = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImEiOiJiIn0.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.Ia91-B77yasfYM7jsB6iVKLew-3rO6ITjNmjWUVXCvQ'
+    _JWT_WITH_REORDERED_HEADERS = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.slg-7COta5VOfB36p3tqV4MGPV6TTA_ouGnD48UEVq4'
+    _JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.XWp496oVgQnoits0OOocutdjxoaQwn4GUWWxUsKENPM'
+    _JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG = 'eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImMiOiJkIn0.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.oM_tc7IkfrwkoRh43rFFE1wOi3J3mQGwx7_lMyKQqDg'
+    # Deprecated:
     _JWT_UNSAFE_WITH_WHITESPACE = 'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJmb28iOiAiYmFyIiwgInF1eCI6ICJiYXoifQ==.vxdOBui/tWcdlkzmERQBTF90PlRx5yfqbwGvYPPqYmU='
-    _JWT_UNSAFE_WITH_WHITESPACE_AND_HEADERS = 'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCIsICJhIjogImIifQ==.eyJmb28iOiAiYmFyIiwgInF1eCI6ICJiYXoifQ==.S1Aa5AB5BlSlc7Ohm7qR0ePuvw4meHQWxZWAD2I1plg='
+    _JWT_UNSAFE_WITH_WHITESPACE_AND_EXTRA_HEADERS = 'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCIsICJhIjogImIifQ==.eyJmb28iOiAiYmFyIiwgInF1eCI6ICJiYXoifQ==.S1Aa5AB5BlSlc7Ohm7qR0ePuvw4meHQWxZWAD2I1plg='
 
+    def test_jwt_encode(self):
+        def test(expected, headers={}):
+            self.assertEqual(jwt_encode(self._JWT_DECODED, self._JWT_KEY, headers=headers), expected)
+
+        test(self._JWT_SIMPLE.encode())
+        test(self._JWT_WITH_EXTRA_HEADERS.encode(), headers=self._JWT_HEADERS_1)
+        test(self._JWT_WITH_REORDERED_HEADERS.encode(), headers=self._JWT_HEADERS_2)
+        test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG.encode(), headers=self._JWT_HEADERS_3)
+        test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG.encode(), headers=self._JWT_HEADERS_4)
+
+    # Deprecated
     def test_jwt_encode_hs256(self):
-        def test(inp, expected, headers={}):
-            self.assertEqual(jwt_encode_hs256(inp, self._JWT_KEY, headers), expected)
+        def test(expected, headers={}):
+            self.assertEqual(jwt_encode_hs256(self._JWT_DECODED, self._JWT_KEY, headers), expected)
 
-        test(self._JWT_DECODED, self._JWT_UNSAFE_WITH_WHITESPACE.encode())
-        test(self._JWT_DECODED, self._JWT_UNSAFE_WITH_WHITESPACE_AND_HEADERS.encode(), headers=self._JWT_HEADERS)
+        test(self._JWT_UNSAFE_WITH_WHITESPACE.encode())
+        test(self._JWT_UNSAFE_WITH_WHITESPACE_AND_EXTRA_HEADERS.encode(), headers=self._JWT_HEADERS_1)
 
     def test_jwt_decode_hs256(self):
-        self.assertEqual(jwt_decode_hs256(self._JWT_UNSAFE_WITH_WHITESPACE), self._JWT_DECODED)
+        def test(inp):
+            self.assertEqual(jwt_decode_hs256(inp), self._JWT_DECODED)
+
+        test(self._JWT_UNSAFE_WITH_WHITESPACE)
+        test(self._JWT_UNSAFE_WITH_WHITESPACE_AND_EXTRA_HEADERS)
+        test(self._JWT_SIMPLE)
+        test(self._JWT_WITH_EXTRA_HEADERS)
+        test(self._JWT_WITH_REORDERED_HEADERS)
+        test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG)
+        test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG)
 
 
 if __name__ == '__main__':
