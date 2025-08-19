@@ -4765,6 +4765,7 @@ def jwt_encode(payload_data, key, *, alg='HS256', headers=None):
     payload_b64 = jwt_b64encode(jwt_json_bytes(payload_data))
     h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
 
+    # XXX: Should we return bytes or str? Old impl returned bytes
     return header_b64 + b'.' + payload_b64 + b'.' + jwt_b64encode(h.digest())
 
 
