@@ -83,11 +83,10 @@ class ATVAtIE(InfoExtractor):
             'nbf': int(not_before.timestamp()),
             'exp': int(expire.timestamp()),
         }
-        jwt_token = jwt_encode(payload, self._ENCRYPTION_KEY, headers={'kid': self._ACCESS_ID})
         videos = self._download_json(
             'https://vas-v4.p7s1video.net/4.0/getsources',
             content_id, 'Downloading videos JSON', query={
-                'token': jwt_token.decode('utf-8'),
+                'token': jwt_encode(payload, self._ENCRYPTION_KEY, headers={'kid': self._ACCESS_ID}),
             })
 
         video_id, videos_data = next(iter(videos['data'].items()))
