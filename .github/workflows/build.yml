@@ -425,7 +425,7 @@ jobs:
           vars.UPDATE_TO_VERIFICATION && matrix.arch == 'arm64'
         run: |
           foreach ($name in @("yt-dlp${{ matrix.suffix }}")) {
-            & "./dist/${name}.exe" -v --update-to stable
+            & "./dist/${name}.exe" -v --update-to stable@latest
           }
 
       - name: Upload artifacts
