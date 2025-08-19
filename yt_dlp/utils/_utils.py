@@ -4741,15 +4741,14 @@ def time_seconds(**kwargs):
 
 # implemented following JWT https://www.rfc-editor.org/rfc/rfc7519.html
 # implemented following JWS https://www.rfc-editor.org/rfc/rfc7515.html
-def jwt_encode(payload_data, key, *, alg='HS256', headers=None, _urlsafe=True, _no_whitespace=True, _rstrip=True):
+def jwt_encode(payload_data, key, *, alg='HS256', headers=None):
     assert alg in ('HS256',), f'Unsupported algorithm "{alg}"'
 
     def jwt_json_bytes(obj):
-        return json.dumps(obj, separators=(',', ':') if _no_whitespace else None)
+        return json.dumps(obj, separators=(',', ':')).encode()
 
     def jwt_b64encode(bytestring):
-        encoder = base64.urlsafe_b64encode if _urlsafe else base64.b64encode
-        return encoder(bytestring).rstrip(b'=') if _rstrip else encoder(bytestring)
+        return base64.urlsafe_b64encode(bytestring).rstrip(b'=')
 
     header_data = {
         'alg': alg,
@@ -4762,8 +4761,8 @@ def jwt_encode(payload_data, key, *, alg='HS256', headers=None, _urlsafe=True, _
         else:
             header_data.update(headers)
 
-    header_b64 = jwt_b64encode(jwt_json_bytes(header_data).encode())
-    payload_b64 = jwt_b64encode(jwt_json_bytes(payload_data).encode())
+    header_b64 = jwt_b64encode(jwt_json_bytes(header_data))
+    payload_b64 = jwt_b64encode(jwt_json_bytes(payload_data))
     h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
 
     return header_b64 + b'.' + payload_b64 + b'.' + jwt_b64encode(h.digest())
@@ -4771,7 +4770,17 @@ def jwt_encode(payload_data, key, *, alg='HS256', headers=None, _urlsafe=True, _
 
 def jwt_encode_hs256(payload_data, key, headers={}):
     # TODO: Deprecate
-    return jwt_encode(payload_data, key, headers=headers, _urlsafe=False, _no_whitespace=False, _rstrip=False)
+    header_data = {
+        'alg': 'HS256',
+        'typ': 'JWT',
+    }
+    if headers:
+        header_data.update(headers)
+    header_b64 = base64.b64encode(json.dumps(header_data).encode())
+    payload_b64 = base64.b64encode(json.dumps(payload_data).encode())
+    h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
+    signature_b64 = base64.b64encode(h.digest())
+    return header_b64 + b'.' + payload_b64 + b'.' + signature_b64
 
 
 # can be extended in future to verify the signature and parse header and return the algorithm used if it's not HS256
