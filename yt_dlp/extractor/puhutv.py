@@ -223,6 +223,10 @@ class PuhuTVSerieIE(InfoExtractor):
                 self._extract_entries(seasons), playlist_id, info.get('name'))
 
         # For films, these are using same url with series
-        video_id = (info['slug'] or info['assets'][0]['slug']).removesuffix('-detay').removesuffix('-izle')
+        video_id = info.get('slug')
+        if video_id:
+            video_id = video_id.removesuffix('-detay')
+        else:
+            video_id = info['assets'][0]['slug'].removesuffix('-izle')
         return self.url_result(
             f'https://puhutv.com/{video_id}-izle', PuhuTVIE, video_id)
