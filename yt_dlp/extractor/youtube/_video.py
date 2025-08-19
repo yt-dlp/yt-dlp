@@ -3884,6 +3884,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # If original description is blank, it will be an empty string.
             # Do not prefer translated description in this case.
             or original_description if original_description is not None else translated_description)
+        if video_description is None:
+             video_description = initial_description
 
         multifeed_metadata_list = get_first(
             player_responses,
@@ -4055,7 +4057,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # The best thumbnail that we are sure exists. Prevents unnecessary
             # URL checking if user don't care about getting the best possible thumbnail
             'thumbnail': traverse_obj(original_thumbnails, (-1, 'url')),
-            'description': video_description if video_description is not None else initial_description,
+            'description': video_description,
             'channel_id': channel_id,
             'channel_url': format_field(channel_id, None, 'https://www.youtube.com/channel/%s', default=None),
             'duration': duration,
