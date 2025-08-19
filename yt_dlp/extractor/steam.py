@@ -78,9 +78,7 @@ class SteamIE(InfoExtractor):
                 formats.extend(self._extract_m3u8_formats(
                     hls_manifest, playlist_id, 'mp4', m3u8_id='hls', fatal=False))
 
-            for dash_manifest in traverse_obj(data_prop, (
-                'dashManifests', ..., {url_or_none}, filter, all, filter,
-            )):
+            for dash_manifest in traverse_obj(data_prop, ('dashManifests', ..., {url_or_none})):
                 formats.extend(self._extract_mpd_formats(
                     dash_manifest, playlist_id, mpd_id='dash', fatal=False))
 
