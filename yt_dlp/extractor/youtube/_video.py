@@ -4045,9 +4045,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._prepare_live_from_start_formats(
                 formats, video_id, live_start_time, url, webpage_url, smuggled_data, live_status == 'is_live')
         elif live_status != 'is_live':
-            # Handle preroll waiting period
-            preroll_sleep = int_or_none(self._configuration_arg('preroll_sleep', [None])[0], default=6)
-            available_at = int(time.time()) + preroll_sleep
+            # Handle pre-playback waiting period
+            playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=6)
+            available_at = int(time.time()) + playback_wait
             for fmt in formats:
                 fmt['available_at'] = available_at
 
