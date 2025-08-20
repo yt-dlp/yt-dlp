@@ -921,6 +921,8 @@ class TikTokUserIE(TikTokBaseIE):
             'id': 'MS4wLjABAAAAepiJKgwWhulvCpSuUVsp7sgVVsFJbbNaLeQ6OQ0oAJERGDUIXhb2yxxHZedsItgT',
             'title': 'corgibobaa',
         },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
     }, {
         'url': 'https://www.tiktok.com/@6820838815978423302',
         'playlist_mincount': 5,
@@ -928,6 +930,8 @@ class TikTokUserIE(TikTokBaseIE):
             'id': 'MS4wLjABAAAA0tF1nBwQVVMyrGu3CqttkNgM68Do1OXUFuCY0CRQk8fEtSVDj89HqoqvbSTmUP2W',
             'title': '6820838815978423302',
         },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
     }, {
         'url': 'https://www.tiktok.com/@meme',
         'playlist_mincount': 593,
@@ -935,12 +939,16 @@ class TikTokUserIE(TikTokBaseIE):
             'id': 'MS4wLjABAAAAiKfaDWeCsT3IHwY77zqWGtVRIy9v4ws1HbVi7auP1Vx7dJysU_hc5yRiGywojRD6',
             'title': 'meme',
         },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
     }, {
         'url': 'tiktokuser:MS4wLjABAAAAM3R2BtjzVT-uAtstkl2iugMzC6AtnpkojJbjiOdDDrdsTiTR75-8lyWJCY5VvDrZ',
         'playlist_mincount': 31,
         'info_dict': {
             'id': 'MS4wLjABAAAAM3R2BtjzVT-uAtstkl2iugMzC6AtnpkojJbjiOdDDrdsTiTR75-8lyWJCY5VvDrZ',
         },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
     }]
     _API_BASE_URL = 'https://www.tiktok.com/api/creator/item_list/'
 
@@ -979,7 +987,7 @@ class TikTokUserIE(TikTokBaseIE):
             'webcast_language': 'en',
         }
 
-    def _entries(self, sec_uid, user_name):
+    def _entries(self, sec_uid, user_name, fail_early=False):
         display_id = user_name or sec_uid
         seen_ids = set()
 
@@ -1023,10 +1031,13 @@ class TikTokUserIE(TikTokBaseIE):
             if cursor < 1472706000000 or not traverse_obj(response, 'hasMorePrevious'):
                 return
 
-            # User directly passed sec_uid via prefix URL, bypassing our private account detection
-            if not user_name and not seen_ids:
+            # This code path is ideally only reached when one of the following is true:
+            # 1. TikTok profile is private and webpage detection was bypassed due to a tiktokuser:sec_uid URL
+            # 2. TikTok profile is *not* private but all of their videos are private
+            if fail_early and not seen_ids:
                 self.raise_login_required(
-                    'This user\'s account is likely private. Log into an account that has access')
+                    'This user\'s account is likely either private or all of their videos are private. '
+                    'Log into an account that has access')
 
     def _extract_sec_uid_from_embed(self, user_name):
         webpage = self._download_webpage(
@@ -1053,8 +1064,9 @@ class TikTokUserIE(TikTokBaseIE):
 
     def _real_extract(self, url):
         user_name, sec_uid = self._match_id(url), None
-        if mobj := re.fullmatch(r'MS4wLjABAAAA[\w-]{64}', user_name):
-            user_name, sec_uid = None, mobj.group(0)
+        if re.fullmatch(r'MS4wLjABAAAA[\w-]{64}', user_name):
+            user_name, sec_uid = None, user_name
+            fail_early = True
         else:
             webpage = self._download_webpage(
                 self._UPLOADER_URL_FORMAT % user_name, user_name,
@@ -1065,8 +1077,12 @@ class TikTokUserIE(TikTokBaseIE):
             if detail.get('statusCode') == 10222:
                 self.raise_login_required(
                     'This user\'s account is private. Log into an account that has access')
-            sec_uid = traverse_obj(detail, (
-                'userInfo', 'user', 'secUid', {str})) or self._extract_sec_uid_from_embed(user_name)
+            sec_uid = traverse_obj(detail, ('userInfo', 'user', 'secUid', {str}))
+            if sec_uid:
+                fail_early = not traverse_obj(detail, ('userInfo', 'itemList', ...))
+            else:
+                sec_uid = self._extract_sec_uid_from_embed(user_name)
+                fail_early = False
 
         if not sec_uid:
             raise ExtractorError(
@@ -1074,7 +1090,7 @@ class TikTokUserIE(TikTokBaseIE):
                 'from a video posted by this user, try using "tiktokuser:channel_id" as the '
                 'input URL (replacing `channel_id` with its actual value)', expected=True)
 
-        return self.playlist_result(self._entries(sec_uid, user_name), sec_uid, user_name)
+        return self.playlist_result(self._entries(sec_uid, user_name, fail_early), sec_uid, user_name)
 
 
 class TikTokBaseListIE(TikTokBaseIE):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor

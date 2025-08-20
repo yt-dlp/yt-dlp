@@ -263,6 +263,7 @@ class InfoExtractor:
                                 * a string in the format of CLIENT[:OS]
                                 * a list or a tuple of CLIENT[:OS] strings or ImpersonateTarget instances
                                 * a boolean value; True means any impersonate target is sufficient
+                    * available_at  Unix timestamp of when a format will be available to download
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
@@ -3107,7 +3108,6 @@ class InfoExtractor:
                         else:
                             # $Number*$ or $Time$ in media template with S list available
                             # Example $Number*$: http://www.svtplay.se/klipp/9023742/stopptid-om-bjorn-borg
-                            # Example $Time$: https://play.arkena.com/embed/avp/v2/player/media/b41dda37-d8e7-4d3f-b1b5-9a9db578bdfe/1/129411
                             representation_ms_info['fragments'] = []
                             segment_time = 0
                             segment_d = None

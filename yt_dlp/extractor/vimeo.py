@@ -28,7 +28,6 @@ from ..utils import (
     qualities,
     smuggle_url,
     str_or_none,
-    traverse_obj,
     try_call,
     try_get,
     unified_timestamp,
@@ -39,6 +38,7 @@ from ..utils import (
     urlhandle_detect_ext,
     urljoin,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class VimeoBaseInfoExtractor(InfoExtractor):
@@ -117,13 +117,13 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     def _jwt_is_expired(self, token):
         return jwt_decode_hs256(token)['exp'] - time.time() < 120
 
-    def _fetch_viewer_info(self, display_id=None, fatal=True):
+    def _fetch_viewer_info(self, display_id=None):
         if self._viewer_info and not self._jwt_is_expired(self._viewer_info['jwt']):
             return self._viewer_info
 
         self._viewer_info = self._download_json(
             'https://vimeo.com/_next/viewer', display_id, 'Downloading web token info',
-            'Failed to download web token info', fatal=fatal, headers={'Accept': 'application/json'})
+            'Failed to download web token info', headers={'Accept': 'application/json'})
 
         return self._viewer_info
 
@@ -501,6 +501,43 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'filesize': int_or_none(download_data.get('size')),
                 'quality': 1,
             }
+
+    @staticmethod
+    def _get_embed_params(is_embed, referer):
+        return {
+            'is_embed': 'true' if is_embed else 'false',
+            'referrer': urllib.parse.urlparse(referer).hostname if referer and is_embed else '',
+        }
+
+    def _get_album_data_and_hashed_pass(self, album_id, is_embed, referer):
+        viewer = self._fetch_viewer_info(album_id)
+        jwt = viewer['jwt']
+        album = self._download_json(
+            'https://api.vimeo.com/albums/' + album_id,
+            album_id, headers={'Authorization': 'jwt ' + jwt, 'Accept': 'application/json'},
+            query={**self._get_embed_params(is_embed, referer), 'fields': 'description,name,privacy'})
+        hashed_pass = None
+        if traverse_obj(album, ('privacy', 'view')) == 'password':
+            password = self.get_param('videopassword')
+            if not password:
+                raise ExtractorError(
+                    'This album is protected by a password, use the --video-password option',
+                    expected=True)
+            try:
+                hashed_pass = self._download_json(
+                    f'https://vimeo.com/showcase/{album_id}/auth',
+                    album_id, 'Verifying the password', data=urlencode_postdata({
+                        'password': password,
+                        'token': viewer['xsrft'],
+                    }), headers={
+                        'X-Requested-With': 'XMLHttpRequest',
+                    })['hashed_pass']
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                    raise ExtractorError('Wrong password', expected=True)
+                raise
+
+        return album, hashed_pass
 
 
 class VimeoIE(VimeoBaseInfoExtractor):
@@ -1188,42 +1225,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             info[k + '_count'] = int_or_none(try_get(connections, lambda x: x[k + 's']['total']))
         return info
 
-    def _try_album_password(self, url):
-        album_id = self._search_regex(
-            r'vimeo\.com/(?:album|showcase)/([^/]+)', url, 'album id', default=None)
-        if not album_id:
-            return
-        viewer = self._fetch_viewer_info(album_id, fatal=False)
-        if not viewer:
-            webpage = self._download_webpage(url, album_id)
-            viewer = self._parse_json(self._search_regex(
-                r'bootstrap_data\s*=\s*({.+?})</script>',
-                webpage, 'bootstrap data'), album_id)['viewer']
-        jwt = viewer['jwt']
-        album = self._download_json(
-            'https://api.vimeo.com/albums/' + album_id,
-            album_id, headers={'Authorization': 'jwt ' + jwt, 'Accept': 'application/json'},
-            query={'fields': 'description,name,privacy'})
-        if try_get(album, lambda x: x['privacy']['view']) == 'password':
-            password = self.get_param('videopassword')
-            if not password:
-                raise ExtractorError(
-                    'This album is protected by a password, use the --video-password option',
-                    expected=True)
-            try:
-                self._download_json(
-                    f'https://vimeo.com/showcase/{album_id}/auth',
-                    album_id, 'Verifying the password', data=urlencode_postdata({
-                        'password': password,
-                        'token': viewer['xsrft'],
-                    }), headers={
-                        'X-Requested-With': 'XMLHttpRequest',
-                    })
-            except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                    raise ExtractorError('Wrong password', expected=True)
-                raise
-
     def _real_extract(self, url):
         url, data, headers = self._unsmuggle_headers(url)
         if 'Referer' not in headers:
@@ -1238,8 +1239,14 @@ class VimeoIE(VimeoBaseInfoExtractor):
         if any(p in url for p in ('play_redirect_hls', 'moogaloop.swf')):
             url = 'https://vimeo.com/' + video_id
 
-        self._try_album_password(url)
-        is_secure = urllib.parse.urlparse(url).scheme == 'https'
+        album_id = self._search_regex(
+            r'vimeo\.com/(?:album|showcase)/([0-9]+)/', url, 'album id', default=None)
+        if album_id:
+            # Detect password-protected showcase video => POST album password => set cookies
+            self._get_album_data_and_hashed_pass(album_id, False, None)
+
+        parsed_url = urllib.parse.urlparse(url)
+        is_secure = parsed_url.scheme == 'https'
         try:
             # Retrieve video webpage to extract further information
             webpage, urlh = self._download_webpage_handle(
@@ -1265,7 +1272,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 f'{self._downloader._format_err("compromising your security/cookies", "light red")}, '
                 f'try replacing "https:" with "http:" in the input URL. {dcip_msg}.', expected=True)
 
-        if '://player.vimeo.com/video/' in url:
+        if parsed_url.hostname == 'player.vimeo.com':
             config = self._search_json(
                 r'\b(?:playerC|c)onfig\s*=', webpage, 'info section', video_id)
             if config.get('view') == 4:
@@ -1293,7 +1300,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         config_url = None
 
         channel_id = self._search_regex(
-            r'vimeo\.com/channels/([^/]+)', url, 'channel id', default=None)
+            r'vimeo\.com/channels/([^/?#]+)', url, 'channel id', default=None)
         if channel_id:
             config_url = self._extract_config_url(webpage, default=None)
             video_description = clean_html(get_element_by_class('description', webpage))
@@ -1531,7 +1538,7 @@ class VimeoUserIE(VimeoChannelIE):  # XXX: Do not subclass from concrete IE
 
 class VimeoAlbumIE(VimeoBaseInfoExtractor):
     IE_NAME = 'vimeo:album'
-    _VALID_URL = r'https://vimeo\.com/(?:album|showcase)/(?P<id>\d+)(?:$|[?#]|/(?!video))'
+    _VALID_URL = r'https://vimeo\.com/(?:album|showcase)/(?P<id>[^/?#]+)(?:$|[?#]|(?P<is_embed>/embed))'
     _TITLE_RE = r'<header id="page_header">\n\s*<h1>(.*?)</h1>'
     _TESTS = [{
         'url': 'https://vimeo.com/album/2632481',
@@ -1549,12 +1556,63 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
         },
         'playlist_count': 1,
         'params': {'videopassword': 'youtube-dl'},
+    }, {
+        'note': 'embedded album that requires "referrer" in query (smuggled)',
+        'url': 'https://vimeo.com/showcase/10677689/embed#__youtubedl_smuggle=%7B%22referer%22%3A+%22https%3A%2F%2Fwww.riccardomutimusic.com%2F%22%7D',
+        'info_dict': {
+            'title': 'La Traviata - la serie completa',
+            'id': '10677689',
+        },
+        'playlist': [{
+            'url': 'https://player.vimeo.com/video/505682113#__youtubedl_smuggle=%7B%22referer%22%3A+%22https%3A%2F%2Fwww.riccardomutimusic.com%2F%22%7D',
+            'info_dict': {
+                'id': '505682113',
+                'ext': 'mp4',
+                'title': 'La Traviata - Episodio 7',
+                'uploader': 'RMMusic',
+                'uploader_id': 'user62556494',
+                'uploader_url': 'https://vimeo.com/user62556494',
+                'duration': 3202,
+                'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
+            },
+        }],
+        'params': {
+            'playlist_items': '1',
+            'skip_download': 'm3u8',
+        },
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
+    }, {
+        'note': 'embedded album that requires "referrer" in query (passed as param)',
+        'url': 'https://vimeo.com/showcase/10677689/embed',
+        'info_dict': {
+            'title': 'La Traviata - la serie completa',
+            'id': '10677689',
+        },
+        'playlist_mincount': 9,
+        'params': {'http_headers': {'Referer': 'https://www.riccardomutimusic.com/'}},
+    }, {
+        'url': 'https://vimeo.com/showcase/11803104/embed2',
+        'info_dict': {
+            'title': 'Romans Video Ministry',
+            'id': '11803104',
+        },
+        'playlist_mincount': 41,
+    }, {
+        'note': 'non-numeric slug, need to fetch numeric album ID',
+        'url': 'https://vimeo.com/showcase/BethelTally-Homegoing-Services',
+        'info_dict': {
+            'title': 'BethelTally Homegoing Services',
+            'id': '11547429',
+            'description': 'Bethel Missionary Baptist Church\nTallahassee, FL',
+        },
+        'playlist_mincount': 8,
     }]
     _PAGE_SIZE = 100
 
-    def _fetch_page(self, album_id, authorization, hashed_pass, page):
+    def _fetch_page(self, album_id, hashed_pass, is_embed, referer, page):
         api_page = page + 1
         query = {
+            **self._get_embed_params(is_embed, referer),
             'fields': 'link,uri',
             'page': api_page,
             'per_page': self._PAGE_SIZE,
@@ -1565,7 +1623,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
             videos = self._download_json(
                 f'https://api.vimeo.com/albums/{album_id}/videos',
                 album_id, f'Downloading page {api_page}', query=query, headers={
-                    'Authorization': 'jwt ' + authorization,
+                    'Authorization': 'jwt ' + self._fetch_viewer_info(album_id)['jwt'],
                     'Accept': 'application/json',
                 })['data']
         except ExtractorError as e:
@@ -1577,44 +1635,37 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
             if not link:
                 continue
             uri = video.get('uri')
-            video_id = self._search_regex(r'/videos/(\d+)', uri, 'video_id', default=None) if uri else None
+            video_id = self._search_regex(r'/videos/(\d+)', uri, 'id', default=None) if uri else None
+            if is_embed:
+                if not video_id:
+                    self.report_warning(f'Skipping due to missing video ID: {link}')
+                    continue
+                link = f'https://player.vimeo.com/video/{video_id}'
+                if referer:
+                    link = self._smuggle_referrer(link, referer)
             yield self.url_result(link, VimeoIE.ie_key(), video_id)
 
     def _real_extract(self, url):
-        album_id = self._match_id(url)
-        viewer = self._fetch_viewer_info(album_id, fatal=False)
-        if not viewer:
-            webpage = self._download_webpage(url, album_id)
-            viewer = self._parse_json(self._search_regex(
-                r'bootstrap_data\s*=\s*({.+?})</script>',
-                webpage, 'bootstrap data'), album_id)['viewer']
-        jwt = viewer['jwt']
-        album = self._download_json(
-            'https://api.vimeo.com/albums/' + album_id,
-            album_id, headers={'Authorization': 'jwt ' + jwt, 'Accept': 'application/json'},
-            query={'fields': 'description,name,privacy'})
-        hashed_pass = None
-        if try_get(album, lambda x: x['privacy']['view']) == 'password':
-            password = self.get_param('videopassword')
-            if not password:
-                raise ExtractorError(
-                    'This album is protected by a password, use the --video-password option',
-                    expected=True)
-            try:
-                hashed_pass = self._download_json(
-                    f'https://vimeo.com/showcase/{album_id}/auth',
-                    album_id, 'Verifying the password', data=urlencode_postdata({
-                        'password': password,
-                        'token': viewer['xsrft'],
-                    }), headers={
-                        'X-Requested-With': 'XMLHttpRequest',
-                    })['hashed_pass']
-            except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                    raise ExtractorError('Wrong password', expected=True)
-                raise
+        url, _, http_headers = self._unsmuggle_headers(url)
+        album_id, is_embed = self._match_valid_url(url).group('id', 'is_embed')
+        referer = http_headers.get('Referer')
+
+        if not re.fullmatch(r'[0-9]+', album_id):
+            auth_info = self._download_json(
+                f'https://vimeo.com/showcase/{album_id}/auth', album_id, 'Downloading album info',
+                headers={'X-Requested-With': 'XMLHttpRequest'}, expected_status=(401, 403))
+            album_id = traverse_obj(auth_info, (
+                'metadata', 'id', {int}, {str_or_none}, {require('album ID')}))
+
+        try:
+            album, hashed_pass = self._get_album_data_and_hashed_pass(album_id, is_embed, referer)
+        except ExtractorError as e:
+            if is_embed and not referer and isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                raise ExtractorError(self._REFERER_HINT, expected=True)
+            raise
+
         entries = OnDemandPagedList(functools.partial(
-            self._fetch_page, album_id, jwt, hashed_pass), self._PAGE_SIZE)
+            self._fetch_page, album_id, hashed_pass, is_embed, referer), self._PAGE_SIZE)
         return self.playlist_result(
             entries, album_id, album.get('name'), album.get('description'))
 
@@ -1910,10 +1961,10 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'like_count': int,
             'duration': 9810,
             'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
-            'timestamp': 1747502974,
-            'upload_date': '20250517',
-            'release_timestamp': 1747502998,
-            'release_date': '20250517',
+            'timestamp': 1746627359,
+            'upload_date': '20250507',
+            'release_timestamp': 1746627359,
+            'release_date': '20250507',
             'live_status': 'was_live',
         },
         'params': {'skip_download': 'm3u8'},
@@ -1970,7 +2021,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
         # "24/7" livestream
         'url': 'https://vimeo.com/event/4768062',
         'info_dict': {
-            'id': '1097650937',
+            'id': '1108792268',
             'ext': 'mp4',
             'display_id': '4768062',
             'title': r're:GRACELAND CAM \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
@@ -1978,8 +2029,8 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'uploader': 'Elvis Presley\'s Graceland',
             'uploader_id': 'visitgraceland',
             'uploader_url': 'https://vimeo.com/visitgraceland',
-            'release_timestamp': 1751396691,
-            'release_date': '20250701',
+            'release_timestamp': 1754812109,
+            'release_date': '20250810',
             'live_status': 'is_live',
         },
         'params': {'skip_download': 'livestream'},
@@ -2023,10 +2074,10 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
             'like_count': int,
             'duration': 4466,
             'thumbnail': r're:https?://i\.vimeocdn\.com/video/.+',
-            'timestamp': 1612228466,
-            'upload_date': '20210202',
-            'release_timestamp': 1612228538,
-            'release_date': '20210202',
+            'timestamp': 1610059450,
+            'upload_date': '20210107',
+            'release_timestamp': 1610059450,
+            'release_date': '20210107',
             'live_status': 'was_live',
         },
         'params': {'skip_download': 'm3u8'},
@@ -2214,7 +2265,7 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
 
                 video_filter = lambda _, v: self._extract_video_id_and_unlisted_hash(v)[0] == video_id
             else:
-                video_filter = lambda _, v: v['live']['status'] in ('streaming', 'done')
+                video_filter = lambda _, v: traverse_obj(v, ('live', 'status')) != 'unavailable'
 
             for page in itertools.count(1):
                 videos_data = self._call_events_api(
@@ -2226,15 +2277,18 @@ class VimeoEventIE(VimeoBaseInfoExtractor):
                 if video or not traverse_obj(videos_data, ('paging', 'next', {str})):
                     break
 
+            if not video:  # requested video_id is unavailable or no videos are available
+                raise ExtractorError('This event video is unavailable', expected=True)
+
             live_status = {
                 'streaming': 'is_live',
                 'done': 'was_live',
+                None: 'was_live',
             }.get(traverse_obj(video, ('live', 'status', {str})))
 
-            if not live_status:  # requested video_id is unavailable or no videos are available
-                raise ExtractorError('This event video is unavailable', expected=True)
-            elif live_status == 'was_live':
+            if live_status == 'was_live':
                 return self._vimeo_url_result(*self._extract_video_id_and_unlisted_hash(video), event_id)
+
             config_url = video['config_url']
 
         if config_url:  # view_policy == 'embed_only' or live_status == 'is_live'
