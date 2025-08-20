@@ -24,9 +24,6 @@ on:
       windows:
         default: true
         type: boolean
-      windows32:
-        default: true
-        type: boolean
       origin:
         required: false
         default: ''
@@ -65,11 +62,7 @@ on:
         default: true
         type: boolean
       windows:
-        description: yt-dlp.exe, yt-dlp_win.zip
-        default: true
-        type: boolean
-      windows32:
-        description: yt-dlp_x86.exe
+        description: yt-dlp.exe, yt-dlp_win.zip, yt-dlp_x86.exe, yt-dlp_win_x86.zip, yt-dlp_arm64.exe, yt-dlp_win_arm64.zip
         default: true
         type: boolean
       origin:
@@ -340,36 +333,73 @@ jobs:
   windows:
     needs: process
     if: inputs.windows
-    runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: write  # For cleaning up cache
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - arch: 'x64'
+          runner: windows-2025
+          python_version: '3.10'
+          suffix: ''
+        - arch: 'x86'
+          runner: windows-2025
+          python_version: '3.10'
+          suffix: '_x86'
+        - arch: 'arm64'
+          runner: windows-11-arm
+          python_version: '3.13'  # arm64 only has Python >= 3.11 available
+          suffix: '_arm64'
 
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.arch }}
+
+      - name: Restore cached requirements
+        id: restore-cache
+        if: matrix.arch == 'arm64'
+        uses: actions/cache/restore@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: |
+            /yt-dlp-build-venv
+          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
+
       - name: Install Requirements
-        run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
+        run: |
+          python -m venv /yt-dlp-build-venv
+          /yt-dlp-build-venv/Scripts/Activate.ps1
           python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py --include curl-cffi
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x64/pyinstaller-6.15.0-py3-none-any.whl"
+          python devscripts/install_deps.py ${{ (matrix.arch != 'x86' && '--include curl-cffi') || '' }}
+          # Use custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/${{ matrix.arch }}/pyinstaller-6.15.0-py3-none-any.whl"
 
       - name: Prepare
         run: |
           python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
           python devscripts/make_lazy_extractors.py
+
       - name: Build
         run: |
+          /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
-          Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
+          Compress-Archive -Path ./dist/yt-dlp${{ matrix.suffix }}/* -DestinationPath ./dist/yt-dlp_win${{ matrix.suffix }}.zip
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          foreach ($name in @("yt-dlp")) {
+          foreach ($name in @("yt-dlp${{ matrix.suffix }}")) {
             Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
             $version = & "./dist/${name}.exe" --version
-            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
+            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2025.08.20
             $downgraded_version = & "./dist/${name}_downgraded.exe" --version
             if ($version -eq $downgraded_version) {
               exit 1
@@ -379,57 +409,28 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-bin-${{ github.job }}
+          name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
-            dist/yt-dlp.exe
-            dist/yt-dlp_win.zip
+            dist/yt-dlp${{ matrix.suffix }}.exe
+            dist/yt-dlp_win${{ matrix.suffix }}.zip
           compression-level: 0
 
-  windows32:
-    needs: process
-    if: inputs.windows32
-    runs-on: windows-latest
+      - name: Cleanup cache
+        if: |
+          matrix.arch == 'arm64' && steps.restore-cache.outputs.cache-hit == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cache_key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
+        run: |
+          gh cache delete "${cache_key}"
 
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Cache requirements
+        if: matrix.arch == 'arm64'
+        uses: actions/cache/save@v4
         with:
-          python-version: "3.10"
-          architecture: "x86"
-      - name: Install Requirements
-        run: |
-          python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86/pyinstaller-6.15.0-py3-none-any.whl"
-
-      - name: Prepare
-        run: |
-          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
-          python devscripts/make_lazy_extractors.py
-      - name: Build
-        run: |
-          python -m bundle.pyinstaller
-
-      - name: Verify --update-to
-        if: vars.UPDATE_TO_VERIFICATION
-        run: |
-          foreach ($name in @("yt-dlp_x86")) {
-            Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
-            $version = & "./dist/${name}.exe" --version
-            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
-            $downgraded_version = & "./dist/${name}_downgraded.exe" --version
-            if ($version -eq $downgraded_version) {
-              exit 1
-            }
-          }
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-bin-${{ github.job }}
           path: |
-            dist/yt-dlp_x86.exe
-          compression-level: 0
+            /yt-dlp-build-venv
+          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
 
   meta_files:
     if: always() && !cancelled()
@@ -440,7 +441,6 @@ jobs:
       - linux_arm
       - macos
       - windows
-      - windows32
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts

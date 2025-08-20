@@ -114,6 +114,7 @@ _FILE_SUFFIXES = {
     'zip': '',
     'win_exe': '.exe',
     'win_x86_exe': '_x86.exe',
+    'win_arm64_exe': '_arm64.exe',
     'darwin_exe': '_macos',
     'linux_exe': '_linux',
     'linux_aarch64_exe': '_linux_aarch64',

@@ -304,7 +304,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)(?P<prefix>[aAbB][vV])(?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -563,7 +563,7 @@ class BiliBiliIE(BilibiliBaseIE):
             },
         }],
     }, {
-        'note': '301 redirect to bangumi link',
+        'note': 'redirect from bvid to bangumi link via redirect_url',
         'url': 'https://www.bilibili.com/video/BV1TE411f7f1',
         'info_dict': {
             'id': '288525',
@@ -580,7 +580,27 @@ class BiliBiliIE(BilibiliBaseIE):
             'duration': 1183.957,
             'timestamp': 1571648124,
             'upload_date': '20191021',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(jpg|jpeg|png)$',
+        },
+    }, {
+        'note': 'redirect from aid to bangumi link via redirect_url',
+        'url': 'https://www.bilibili.com/video/av114868162141203',
+        'info_dict': {
+            'id': '1933368',
+            'title': 'PV 引爆变革的起点',
+            'ext': 'mp4',
+            'duration': 63.139,
+            'series': '时光代理人',
+            'series_id': '5183',
+            'season': '第三季',
+            'season_number': 4,
+            'season_id': '105212',
+            'episode': '引爆变革的起点',
+            'episode_number': 1,
+            'episode_id': '1933368',
+            'timestamp': 1752849001,
+            'upload_date': '20250718',
+            'thumbnail': r're:https?://.*\.(jpg|jpeg|png)$',
         },
     }, {
         'note': 'video has subtitles, which requires login',
@@ -636,7 +656,7 @@ class BiliBiliIE(BilibiliBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, prefix = self._match_valid_url(url).group('id', 'prefix')
         headers = self.geo_verification_headers()
         webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
         if not self._match_valid_url(urlh.url):
@@ -644,7 +664,24 @@ class BiliBiliIE(BilibiliBaseIE):
 
         headers['Referer'] = url
 
-        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id, default=None)
+        if not initial_state:
+            if self._search_json(r'\bwindow\._riskdata_\s*=', webpage, 'risk', video_id, default={}).get('v_voucher'):
+                raise ExtractorError('You have exceeded the rate limit. Try again later', expected=True)
+            query = {'platform': 'web'}
+            prefix = prefix.upper()
+            if prefix == 'BV':
+                query['bvid'] = prefix + video_id
+            elif prefix == 'AV':
+                query['aid'] = video_id
+            detail = self._download_json(
+                'https://api.bilibili.com/x/web-interface/wbi/view/detail', video_id,
+                note='Downloading redirection URL', errnote='Failed to download redirection URL',
+                query=self._sign_wbi(query, video_id), headers=headers)
+            new_url = traverse_obj(detail, ('data', 'View', 'redirect_url', {url_or_none}))
+            if new_url and BiliBiliBangumiIE.suitable(new_url):
+                return self.url_result(new_url, BiliBiliBangumiIE)
+            raise ExtractorError('Unable to extract initial state')
 
         if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
             self.raise_login_required()
