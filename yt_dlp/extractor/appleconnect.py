@@ -1,10 +1,8 @@
-import base64
-import json
-
 from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
     float_or_none,
+    jwt_encode,
     parse_resolution,
     qualities,
     unified_strdate,
@@ -32,7 +30,7 @@ class AppleConnectIE(InfoExtractor):
         '720pHdVideo': 720,
         '1080pHdVideo': 1080,
     }
-    _VALID_URL = r'https?://music\.apple\.com/\w{0,2}/post/(?P<id>\d+)'
+    _VALID_URL = r'https?://music\.apple\.com/[\w-]+/post/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://music.apple.com/us/post/1018290019',
         'info_dict': {
@@ -66,13 +64,7 @@ class AppleConnectIE(InfoExtractor):
             {extract_attributes}, 'src', {urljoin(self._BASE_URL)}, {require('JS URL')}))
         js = self._download_webpage(js_url, video_id)
 
-        header = base64.urlsafe_b64encode(
-            json.dumps({
-                'alg': 'ES256',
-                'typ': 'JWT',
-                'kid': 'WebPlayKid',
-            }, separators=(',', ':')).encode(),
-        ).decode().rstrip('=')
+        header = jwt_encode({}, '', headers={'alg': 'ES256', 'kid': 'WebPlayKid'}).split('.')[0]
         jwt = self._search_regex(
             fr'(["\'])(?P<jwt>{header}(?:\.[\w-]+){{2}})\1', js, 'JSON Web Token', group='jwt')
 
