@@ -6,6 +6,7 @@ from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
+    join_nonempty,
     js_to_json,
     str_or_none,
     url_or_none,
@@ -62,7 +63,7 @@ class SteamIE(InfoExtractor):
             movie_id = traverse_obj(data_prop, ('id', {trim_str(start='highlight_movie_')}))
             entries.append({
                 'id': movie_id,
-                'title': f'{app_name} video {movie_id}',
+                'title': join_nonempty(app_name, 'video', movie_id, delim=' '),
                 'formats': formats,
                 'series': app_name,
                 'series_id': app_id,
@@ -73,7 +74,7 @@ class SteamIE(InfoExtractor):
 
 
 class SteamCommunityIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?steamcommunity\.com/sharedfiles/filedetails/?(?:\?(?:[^#]+&)?id=)?(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?steamcommunity\.com/sharedfiles/filedetails(?:/?\?(?:[^#]+&)?id=|/)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://steamcommunity.com/sharedfiles/filedetails/2717708756',
         'info_dict': {
@@ -145,7 +146,7 @@ class SteamCommunityIE(InfoExtractor):
 
         flashvars = self._search_json(
             r'var\s+rgMovieFlashvars\s*=', webpage, 'flashvars',
-            file_id, fatal=False, default={}, transform_source=js_to_json)
+            file_id, default={}, transform_source=js_to_json)
         youtube_id = (
             traverse_obj(flashvars, (..., 'YOUTUBE_VIDEO_ID', {str}, any))
             or traverse_obj(webpage, (
