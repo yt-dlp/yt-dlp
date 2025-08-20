@@ -44,11 +44,7 @@ The only reliable way to check if a site is supported is to try it.
  - **ADN**: [*animationdigitalnetwork*](## "netrc machine") Animation Digital Network
  - **ADNSeason**: [*animationdigitalnetwork*](## "netrc machine") Animation Digital Network
  - **AdobeConnect**
- - **adobetv**: (**Currently broken**)
- - **adobetv:channel**: (**Currently broken**)
- - **adobetv:embed**: (**Currently broken**)
- - **adobetv:show**: (**Currently broken**)
- - **adobetv:video**
+ - **adobetv**
  - **AdultSwim**
  - **aenetworks**: A+E Networks: A&E, Lifetime, History.com, FYI Network and History Vault
  - **aenetworks:collection**
@@ -100,7 +96,6 @@ The only reliable way to check if a site is supported is to try it.
  - **ARD**
  - **ARDMediathek**
  - **ARDMediathekCollection**
- - **Arkena**
  - **Art19**
  - **Art19Show**
  - **arte.sky.it**
@@ -155,9 +150,8 @@ The only reliable way to check if a site is supported is to try it.
  - **Beatport**
  - **Beeg**
  - **BehindKink**: (**Currently broken**)
- - **Bellator**
  - **BerufeTV**
- - **Bet**: (**Currently broken**)
+ - **Bet**
  - **bfi:player**: (**Currently broken**)
  - **bfmtv**
  - **bfmtv:article**
@@ -290,12 +284,10 @@ The only reliable way to check if a site is supported is to try it.
  - **CloudyCDN**
  - **Clubic**: (**Currently broken**)
  - **Clyp**
- - **cmt.com**: (**Currently broken**)
  - **CNBCVideo**
  - **CNN**
  - **CNNIndonesia**
  - **ComedyCentral**
- - **ComedyCentralTV**
  - **ConanClassic**: (**Currently broken**)
  - **CondeNast**: Condé Nast media group: Allure, Architectural Digest, Ars Technica, Bon Appétit, Brides, Condé Nast, Condé Nast Traveler, Details, Epicurious, GQ, Glamour, Golf Digest, SELF, Teen Vogue, The New Yorker, Vanity Fair, Vogue, W Magazine, WIRED
  - **CONtv**
@@ -445,6 +437,7 @@ The only reliable way to check if a site is supported is to try it.
  - **fancode:live**: [*fancode*](## "netrc machine") (**Currently broken**)
  - **fancode:vod**: [*fancode*](## "netrc machine") (**Currently broken**)
  - **Fathom**
+ - **Faulio**
  - **FaulioLive**
  - **faz.net**
  - **fc2**: [*fc2*](## "netrc machine")
@@ -700,8 +693,8 @@ The only reliable way to check if a site is supported is to try it.
  - **lbry:channel**: odysee.com channels
  - **lbry:playlist**: odysee.com playlists
  - **LCI**
- - **Lcp**
- - **LcpPlay**
+ - **Lcp**: (**Currently broken**)
+ - **LcpPlay**: (**Currently broken**)
  - **Le**: 乐视网
  - **LearningOnScreen**
  - **Lecture2Go**: (**Currently broken**)
@@ -840,12 +833,6 @@ The only reliable way to check if a site is supported is to try it.
  - **MSN**
  - **mtg**: MTG services
  - **mtv**
- - **mtv.de**: (**Currently broken**)
- - **mtv.it**
- - **mtv.it:programma**
- - **mtv:video**
- - **mtvjapan**
- - **mtvservices:embedded**
  - **MTVUutisetArticle**: (**Currently broken**)
  - **MuenchenTV**: münchen.tv (**Currently broken**)
  - **MujRozhlas**
@@ -945,9 +932,6 @@ The only reliable way to check if a site is supported is to try it.
  - **NhkVodProgram**
  - **nhl.com**
  - **nick.com**
- - **nick.de**
- - **nickelodeon:br**
- - **nickelodeonru**
  - **niconico**: [*niconico*](## "netrc machine") ニコニコ動画
  - **niconico:history**: NicoNico user history or likes. Requires cookies.
  - **niconico:live**: [*niconico*](## "netrc machine") ニコニコ生放送
@@ -1049,7 +1033,6 @@ The only reliable way to check if a site is supported is to try it.
  - **Panopto**
  - **PanoptoList**
  - **PanoptoPlaylist**
- - **ParamountNetwork**
  - **ParamountPlus**
  - **ParamountPlusSeries**
  - **ParamountPressExpress**
@@ -1088,7 +1071,6 @@ The only reliable way to check if a site is supported is to try it.
  - **PiramideTVChannel**
  - **pixiv:sketch**
  - **pixiv:​sketch:user**
- - **Pladform**
  - **PlanetMarathi**
  - **Platzi**: [*platzi*](## "netrc machine")
  - **PlatziCourse**: [*platzi*](## "netrc machine")
@@ -1377,8 +1359,9 @@ The only reliable way to check if a site is supported is to try it.
  - **southpark.cc.com:español**
  - **southpark.de**
  - **southpark.lat**
- - **southpark.nl**
- - **southparkstudios.dk**
+ - **southparkstudios.co.uk**
+ - **southparkstudios.com.br**
+ - **southparkstudios.nu**
  - **SovietsCloset**
  - **SovietsClosetPlaylist**
  - **SpankBang**
@@ -1557,7 +1540,6 @@ The only reliable way to check if a site is supported is to try it.
  - **TVer**
  - **tvigle**: Интернет-телевидение Tvigle.ru
  - **TVIPlayer**
- - **tvland.com**
  - **TVN24**: (**Currently broken**)
  - **TVNoe**: (**Currently broken**)
  - **tvopengr:embed**: tvopen.gr embedded videos
@@ -1618,8 +1600,6 @@ The only reliable way to check if a site is supported is to try it.
  - **Vbox7**
  - **Veo**
  - **Vesti**: Вести.Ru (**Currently broken**)
- - **Vevo**
- - **VevoPlaylist**
  - **VGTV**: VGTV, BTTV, FTV, Aftenposten and Aftonbladet
  - **vh1.com**
  - **vhx:embed**: [*vimeo*](## "netrc machine")
@@ -1698,7 +1678,7 @@ The only reliable way to check if a site is supported is to try it.
  - **vrsquare:section**
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
  - **vrtmax**: [*vrtnu*](## "netrc machine") VRT MAX (formerly VRT NU)
- - **VTM**: (**Currently broken**)
+ - **VTM**
  - **VTV**
  - **VTVGo**
  - **VTXTV**: [*vtxtv*](## "netrc machine")
