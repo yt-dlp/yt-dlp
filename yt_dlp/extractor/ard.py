@@ -1,4 +1,5 @@
 import functools
+import json
 import re
 
 from .common import InfoExtractor
@@ -601,3 +602,149 @@ class ARDMediathekCollectionIE(InfoExtractor):
         return self.playlist_result(
             OnDemandPagedList(fetch_page, self._PAGE_SIZE), full_id, display_id=display_id,
             title=page_data.get('title'), description=page_data.get('synopsis'))
+
+
+class ARDAudiothekIE(InfoExtractor):
+    _VALID_URL = r'''(?x)https:?//
+        (?:www\.)?ardaudiothek\.de/
+        (?:episode|(?P<playlist>sendung))/
+        (?:(?(playlist)[a-zA-Z-]+)/)?
+        (?P<id>urn:ard:(episode|section|extra|show):[a-f0-9]{16})/$'''
+
+    _TESTS = [
+        {
+            'url': 'https://www.ardaudiothek.de/episode/urn:ard:episode:eabead1add170e93/',
+            'info_dict': {
+                'id': 'urn:ard:episode:eabead1add170e93',
+                'ext': 'mp3',
+                'upload_date': '20240717',
+                'duration': 3339,
+                'title': 'CAIMAN CLUB (S04E04): Cash Out',
+                'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:ed64411a07a4b405',
+                'description': 'md5:0e5d127a3832ae59e8bab40a91a5dadc',
+                'display_id': 'urn:ard:episode:eabead1add170e93',
+                'timestamp': 1721181641,
+                'series': '1LIVE Caiman Club',
+                'channel': 'WDR',
+                'episode': 'Episode 4',
+                'episode_number': 4,
+            },
+        },
+        {
+            'url': 'https://www.ardaudiothek.de/sendung/mia-insomnia/urn:ard:show:c405aa26d9a4060a/',
+            'info_dict': {
+                'display_id': 'urn:ard:show:c405aa26d9a4060a',
+                'title': 'Mia Insomnia',
+                'id': 'urn:ard:show:c405aa26d9a4060a',
+                'description': 'md5:d9ceb7a6b4d26a4db3316573bb564292',
+            },
+            'playlist_mincount': 30,
+        },
+        {
+            'url': 'https://www.ardaudiothek.de/episode/urn:ard:section:855c7a53dac72e0a/',
+            'info_dict': {
+                'id': 'urn:ard:section:855c7a53dac72e0a',
+                'ext': 'mp3',
+                'upload_date': '20241231',
+                'duration': 3304,
+                'title': 'Illegaler DDR-Detektiv: Doberschütz und die letzte Staatsjagd (1/2) - Wendezeit',
+                'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:b9b4f1e8b93da4dd',
+                'description': 'md5:3552d571e1959754cff66c1da6c0fdae',
+                'display_id': 'urn:ard:section:855c7a53dac72e0a',
+                'timestamp': 1735629900,
+                'series': 'Auf der Spur – Die ARD Ermittlerkrimis',
+                'channel': 'ARD',
+                'episode': 'Episode 1',
+                'episode_number': 1,
+            },
+        },
+    ]
+
+    _QUERY_PLAYLIST = '''
+    query($id: ID!) {
+        show(id: $id) {
+            title
+            description
+            items(filter: { isPublished: { equalTo: true } }) {
+                nodes {
+                    url
+                }
+            }
+        }
+    }'''
+
+    _QUERY_ITEM = '''\
+    query($id: ID!) {
+        item(id: $id) {
+            audioList {
+                href
+                distributionType
+            }
+            show {
+              title
+            }
+            image {
+              url1X1
+            }
+            programSet {
+              publicationService {
+                organizationName
+              }
+            }
+            description
+            title
+            duration
+            startDate
+            episodeNumber
+        }
+    }'''
+
+    _GRAPHQL_ENDPOINT = 'https://api.ardaudiothek.de/graphql'
+
+    def _graphql_query(self, urn, query):
+        return self._download_json(
+            self._GRAPHQL_ENDPOINT,
+            urn,
+            data=json.dumps({'query': query,
+                             'variables': {'id': urn},
+                             }).encode(),
+            headers={
+                'Content-Type': 'application/json',
+            },
+        )['data']
+
+    def _real_extract(self, url):
+        urn, playlist_type = self._match_valid_url(url).group('id', 'playlist')
+
+        if playlist_type:
+            playlist_info = self._graphql_query(urn, self._QUERY_PLAYLIST)['show']
+            episodes = playlist_info['items']['nodes']
+            entries = []
+            for episode in episodes:
+                entries.append(self.url_result(
+                    episode['url'],
+                    ie=ARDAudiothekIE.ie_key()))
+            return self.playlist_result(entries, urn, display_id=urn, **traverse_obj(playlist_info, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+            }))
+
+        item = self._graphql_query(urn, self._QUERY_ITEM)['item']
+        return {
+            'formats': traverse_obj(item, (
+                'audioList', lambda _, v: url_or_none(v['href']), {
+                    'url': 'href',
+                    'format_id': ('distributionType', {str}),
+                })),
+            'id': urn,
+            **traverse_obj(item, {
+                'channel': ('programSet', 'publicationService', 'organizationName', {str}),
+                'description': ('description', {str}),
+                'duration': ('duration', {int_or_none}),
+                'series': ('show', 'title'),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'thumbnail': ('image', 'url1X1', {lambda v: v.split('?')[0] if isinstance(v, str) else None}),
+                'timestamp': ('startDate', {parse_iso8601}),
+                'title': ('title', {str}),
+            }),
+        }
