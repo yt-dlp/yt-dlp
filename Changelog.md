@@ -4,13 +4,64 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.08.20
+
+#### Core changes
+- [Warn against using `-f mp4`](https://github.com/yt-dlp/yt-dlp/commit/70f56699515e0854a4853d214dce11b61d432387) ([#13915](https://github.com/yt-dlp/yt-dlp/issues/13915)) by [seproDev](https://github.com/seproDev)
+- **utils**: [Add improved `jwt_encode` function](https://github.com/yt-dlp/yt-dlp/commit/35da8df4f843cb8f0656a301e5bebbf47d64d69a) ([#14071](https://github.com/yt-dlp/yt-dlp/issues/14071)) by [bashonly](https://github.com/bashonly)
+
+#### Extractor changes
+- [Extract avif storyboard formats from MPD manifests](https://github.com/yt-dlp/yt-dlp/commit/770119bdd15c525ba4338503f0eb68ea4baedf10) ([#14016](https://github.com/yt-dlp/yt-dlp/issues/14016)) by [doe1080](https://github.com/doe1080)
+- `_rta_search`: [Do not assume `age_limit` is `0`](https://github.com/yt-dlp/yt-dlp/commit/6ae3543d5a1feea0c546571fd2782b024c108eac) ([#13985](https://github.com/yt-dlp/yt-dlp/issues/13985)) by [doe1080](https://github.com/doe1080)
+- **adobetv**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/c22660aed5fadb4ac29bdf25db4e8016414153cc) ([#13917](https://github.com/yt-dlp/yt-dlp/issues/13917)) by [doe1080](https://github.com/doe1080)
+- **bilibili**: [Handle Bangumi redirection](https://github.com/yt-dlp/yt-dlp/commit/6ca9165648ac9a07c012de639faf50a97cbe0991) ([#14038](https://github.com/yt-dlp/yt-dlp/issues/14038)) by [grqz](https://github.com/grqz), [junyilou](https://github.com/junyilou)
+- **faulio**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/74b4b3b00516e92a60250e0626272a6826459057) ([#13907](https://github.com/yt-dlp/yt-dlp/issues/13907)) by [CasperMcFadden95](https://github.com/CasperMcFadden95)
+- **francetv**: site: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/7b8a8abb98165a53c026e2a3f52faee608df1f20) ([#14082](https://github.com/yt-dlp/yt-dlp/issues/14082)) by [bashonly](https://github.com/bashonly)
+- **medialaan**: [Rework extractors](https://github.com/yt-dlp/yt-dlp/commit/86d74e5cf0e06c53c931ccdbdd497e3f2c4d2fe2) ([#14015](https://github.com/yt-dlp/yt-dlp/issues/14015)) by [doe1080](https://github.com/doe1080)
+- **mtv**: [Overhaul extractors](https://github.com/yt-dlp/yt-dlp/commit/8df121ba59208979aa713822781891347abd03d1) ([#14052](https://github.com/yt-dlp/yt-dlp/issues/14052)) by [bashonly](https://github.com/bashonly), [doe1080](https://github.com/doe1080), [Randalix](https://github.com/Randalix), [seproDev](https://github.com/seproDev)
+- **niconico**: live: [Support age-restricted streams](https://github.com/yt-dlp/yt-dlp/commit/374ea049f531959bcccf8a1e6bc5659d228a780e) ([#13549](https://github.com/yt-dlp/yt-dlp/issues/13549)) by [doe1080](https://github.com/doe1080)
+- **nrktvepisode**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/7540aa1da1800769af40381f423825a1a8826377) ([#14065](https://github.com/yt-dlp/yt-dlp/issues/14065)) by [runarmod](https://github.com/runarmod)
+- **puhutv**: [Fix playlists extraction](https://github.com/yt-dlp/yt-dlp/commit/36e873822bdb2c5aba3780dd3ae32cbae564c6cd) ([#11955](https://github.com/yt-dlp/yt-dlp/issues/11955)) by [e2dk4r](https://github.com/e2dk4r)
+- **steam**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/d3d1ac8eb2f9e96f3d75292e0effe2b1bccece3b) ([#14008](https://github.com/yt-dlp/yt-dlp/issues/14008)) by [AzartX47](https://github.com/AzartX47)
+- **svt**: [Extract forced subs under separate lang code](https://github.com/yt-dlp/yt-dlp/commit/82a139020417a501f261d9fe02cefca01b1e12e4) ([#14062](https://github.com/yt-dlp/yt-dlp/issues/14062)) by [PierreMesure](https://github.com/PierreMesure)
+- **tiktok**: user: [Avoid infinite loop during extraction](https://github.com/yt-dlp/yt-dlp/commit/edf55e81842fcfa6c302528d7f33ccd5081b37ef) ([#14032](https://github.com/yt-dlp/yt-dlp/issues/14032)) by [bashonly](https://github.com/bashonly) (With fixes in [471a2b6](https://github.com/yt-dlp/yt-dlp/commit/471a2b60e0a3e056960d9ceb1ebf57908428f752))
+- **vimeo**
+    - album: [Support embed-only and non-numeric albums](https://github.com/yt-dlp/yt-dlp/commit/d8200ff0a4699e06c9f7daca8f8531f8b98e68f2) ([#14021](https://github.com/yt-dlp/yt-dlp/issues/14021)) by [bashonly](https://github.com/bashonly)
+    - event: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/0f6b915822fb64bd944126fdacd401975c9f06ed) ([#14064](https://github.com/yt-dlp/yt-dlp/issues/14064)) by [bashonly](https://github.com/bashonly)
+- **weibo**
+    - [Fix extractors](https://github.com/yt-dlp/yt-dlp/commit/8e3f8065af1415caeff788c5c430703dd0d8f576) ([#14012](https://github.com/yt-dlp/yt-dlp/issues/14012)) by [AzartX47](https://github.com/AzartX47), [bashonly](https://github.com/bashonly)
+    - [Support more URLs and --no-playlist](https://github.com/yt-dlp/yt-dlp/commit/404bd889d0e0b62ad72b7281e3fefdc0497080b3) ([#14035](https://github.com/yt-dlp/yt-dlp/issues/14035)) by [bashonly](https://github.com/bashonly)
+- **youtube**
+    - [Add `es5` and `es6` player JS variants](https://github.com/yt-dlp/yt-dlp/commit/f2919bd28eac905f1267c62b83738a02bb5b4e04) ([#14005](https://github.com/yt-dlp/yt-dlp/issues/14005)) by [bashonly](https://github.com/bashonly)
+    - [Add `playback_wait` extractor-arg](https://github.com/yt-dlp/yt-dlp/commit/f63a7e41d120ef84f0f2274b0962438e3272d2fa) by [bashonly](https://github.com/bashonly)
+    - [Default to `main` player JS variant](https://github.com/yt-dlp/yt-dlp/commit/df0553153e41f81e3b30aa5bb1d119c61bd449ac) ([#14079](https://github.com/yt-dlp/yt-dlp/issues/14079)) by [bashonly](https://github.com/bashonly)
+    - [Extract title and description from initial data](https://github.com/yt-dlp/yt-dlp/commit/7bc53ae79930b36f4f947679545c75f36e9f0ddd) ([#14078](https://github.com/yt-dlp/yt-dlp/issues/14078)) by [bashonly](https://github.com/bashonly)
+    - [Handle required preroll waiting period](https://github.com/yt-dlp/yt-dlp/commit/a97f4cb57e61e19be61a7d5ac19665d4b567c960) ([#14081](https://github.com/yt-dlp/yt-dlp/issues/14081)) by [bashonly](https://github.com/bashonly)
+    - [Remove default player params](https://github.com/yt-dlp/yt-dlp/commit/d154dc3dcf0c7c75dbabb6cd1aca66fdd806f858) ([#14081](https://github.com/yt-dlp/yt-dlp/issues/14081)) by [bashonly](https://github.com/bashonly)
+    - tab: [Fix playlists tab extraction](https://github.com/yt-dlp/yt-dlp/commit/8a8861d53864c8a38e924bc0657ead5180f17268) ([#14030](https://github.com/yt-dlp/yt-dlp/issues/14030)) by [bashonly](https://github.com/bashonly)
+
+#### Downloader changes
+- [Support `available_at` format field](https://github.com/yt-dlp/yt-dlp/commit/438d3f06b3c41bdef8112d40b75d342186e91a16) ([#13980](https://github.com/yt-dlp/yt-dlp/issues/13980)) by [bashonly](https://github.com/bashonly)
+
+#### Postprocessor changes
+- **xattrmetadata**: [Only set "Where From" attribute on macOS](https://github.com/yt-dlp/yt-dlp/commit/bdeb3eb3f29eebbe8237fbc5186e51e7293eea4a) ([#13999](https://github.com/yt-dlp/yt-dlp/issues/13999)) by [bashonly](https://github.com/bashonly)
+
+#### Misc. changes
+- **build**
+    - [Add Windows ARM64 builds](https://github.com/yt-dlp/yt-dlp/commit/07247d6c20fef1ad13b6f71f6355a44d308cf010) ([#14003](https://github.com/yt-dlp/yt-dlp/issues/14003)) by [bashonly](https://github.com/bashonly)
+    - [Bump PyInstaller version to 6.15.0 for Windows](https://github.com/yt-dlp/yt-dlp/commit/681ed2153de754c2c885fdad09ab71fffa8114f9) ([#14002](https://github.com/yt-dlp/yt-dlp/issues/14002)) by [bashonly](https://github.com/bashonly)
+    - [Discontinue `darwin_legacy_exe` support](https://github.com/yt-dlp/yt-dlp/commit/aea85d525e1007bb64baec0e170c054292d0858a) ([#13860](https://github.com/yt-dlp/yt-dlp/issues/13860)) by [bashonly](https://github.com/bashonly)
+- **cleanup**
+    - [Remove dead extractors](https://github.com/yt-dlp/yt-dlp/commit/6f4c1bb593da92f0ce68229d0c813cdbaf1314da) ([#13996](https://github.com/yt-dlp/yt-dlp/issues/13996)) by [doe1080](https://github.com/doe1080)
+    - Miscellaneous: [c2fc4f3](https://github.com/yt-dlp/yt-dlp/commit/c2fc4f3e7f6d757250183b177130c64beee50520) by [bashonly](https://github.com/bashonly)
+
 ### 2025.08.11
 
 #### Important changes
 - **The minimum *recommended* Python version has been raised to 3.10**
 Since Python 3.9 will reach end-of-life in October 2025, support for it will be dropped soon. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13858)
 - **darwin_legacy_exe builds are being discontinued**
-This release's `yt-dlp_macos_legacy` binary will likely be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13857)
+This release's `yt-dlp_macos_legacy` binary will likely be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13856)
 - **linux_armv7l_exe builds are being discontinued**
 This release's `yt-dlp_linux_armv7l` binary could be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13976)
 

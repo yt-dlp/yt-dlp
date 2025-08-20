@@ -2020,7 +2020,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not player_url:
             return
 
-        requested_js_variant = self._configuration_arg('player_js_variant', [''])[0] or 'actual'
+        requested_js_variant = self._configuration_arg('player_js_variant', [''])[0] or 'main'
         if requested_js_variant in self._PLAYER_JS_VARIANT_MAP:
             player_id = self._extract_player_info(player_url)
             original_url = player_url
@@ -3850,11 +3850,33 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
             expected_type=dict)
 
+        # Fallbacks in case player responses are missing metadata
+        initial_sdcr = traverse_obj(initial_data, (
+            'engagementPanels', ..., 'engagementPanelSectionListRenderer',
+            'content', 'structuredDescriptionContentRenderer', {dict}, any))
+        initial_description = traverse_obj(initial_sdcr, (
+            'items', ..., 'expandableVideoDescriptionBodyRenderer',
+            'attributedDescriptionBodyText', 'content', {str}, any))
+        # videoDescriptionHeaderRenderer also has publishDate/channel/handle/ucid, but not needed
+        initial_vdhr = traverse_obj(initial_sdcr, (
+            'items', ..., 'videoDescriptionHeaderRenderer', {dict}, any)) or {}
+        initial_video_details_renderer = traverse_obj(initial_data, (
+            'playerOverlays', 'playerOverlayRenderer', 'videoDetails',
+            'playerOverlayVideoDetailsRenderer', {dict})) or {}
+        initial_title = (
+            self._get_text(initial_vdhr, 'title')
+            or self._get_text(initial_video_details_renderer, 'title'))
+
         translated_title = self._get_text(microformats, (..., 'title'))
         video_title = ((self._preferred_lang and translated_title)
                        or get_first(video_details, 'title')  # primary
                        or translated_title
                        or search_meta(['og:title', 'twitter:title', 'title']))
+        if not video_title and initial_title:
+            self.report_warning(
+                'No title found in player responses; falling back to title from initial data. '
+                'Other metadata may also be missing')
+            video_title = initial_title
         translated_description = self._get_text(microformats, (..., 'description'))
         original_description = get_first(video_details, 'shortDescription')
         video_description = (
@@ -3862,6 +3884,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # If original description is blank, it will be an empty string.
             # Do not prefer translated description in this case.
             or original_description if original_description is not None else translated_description)
+        if video_description is None:
+            video_description = initial_description
 
         multifeed_metadata_list = get_first(
             player_responses,
@@ -4020,6 +4044,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if needs_live_processing:
             self._prepare_live_from_start_formats(
                 formats, video_id, live_start_time, url, webpage_url, smuggled_data, live_status == 'is_live')
+        elif live_status != 'is_live':
+            # Handle pre-playback waiting period
+            playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=6)
+            available_at = int(time.time()) + playback_wait
+            for fmt in formats:
+                fmt['available_at'] = available_at
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 

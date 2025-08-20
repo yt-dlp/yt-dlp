@@ -71,6 +71,8 @@ from yt_dlp.utils import (
     iri_to_uri,
     is_html,
     js_to_json,
+    jwt_decode_hs256,
+    jwt_encode,
     limit_length,
     locked_file,
     lowercase_escape,
@@ -2179,6 +2181,41 @@ Line 1
         assert int_or_none(10, scale=0.1) == 100, 'positionally passed argument should call function'
         assert int_or_none(v=10) == 10, 'keyword passed positional should call function'
         assert int_or_none(scale=0.1)(10) == 100, 'call after partial application should call the function'
+
+    _JWT_KEY = '12345678'
+    _JWT_HEADERS_1 = {'a': 'b'}
+    _JWT_HEADERS_2 = {'typ': 'JWT', 'alg': 'HS256'}
+    _JWT_HEADERS_3 = {'typ': 'JWT', 'alg': 'RS256'}
+    _JWT_HEADERS_4 = {'c': 'd', 'alg': 'ES256'}
+    _JWT_DECODED = {
+        'foo': 'bar',
+        'qux': 'baz',
+    }
+    _JWT_SIMPLE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.fKojvTWqnjNTbsdoDTmYNc4tgYAG3h_SWRzM77iLH0U'
+    _JWT_WITH_EXTRA_HEADERS = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImEiOiJiIn0.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.Ia91-B77yasfYM7jsB6iVKLew-3rO6ITjNmjWUVXCvQ'
+    _JWT_WITH_REORDERED_HEADERS = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.slg-7COta5VOfB36p3tqV4MGPV6TTA_ouGnD48UEVq4'
+    _JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.XWp496oVgQnoits0OOocutdjxoaQwn4GUWWxUsKENPM'
+    _JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG = 'eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImMiOiJkIn0.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.oM_tc7IkfrwkoRh43rFFE1wOi3J3mQGwx7_lMyKQqDg'
+
+    def test_jwt_encode(self):
+        def test(expected, headers={}):
+            self.assertEqual(jwt_encode(self._JWT_DECODED, self._JWT_KEY, headers=headers), expected)
+
+        test(self._JWT_SIMPLE)
+        test(self._JWT_WITH_EXTRA_HEADERS, headers=self._JWT_HEADERS_1)
+        test(self._JWT_WITH_REORDERED_HEADERS, headers=self._JWT_HEADERS_2)
+        test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG, headers=self._JWT_HEADERS_3)
+        test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG, headers=self._JWT_HEADERS_4)
+
+    def test_jwt_decode_hs256(self):
+        def test(inp):
+            self.assertEqual(jwt_decode_hs256(inp), self._JWT_DECODED)
+
+        test(self._JWT_SIMPLE)
+        test(self._JWT_WITH_EXTRA_HEADERS)
+        test(self._JWT_WITH_REORDERED_HEADERS)
+        test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG)
+        test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG)
 
 
 if __name__ == '__main__':

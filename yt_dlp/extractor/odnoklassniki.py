@@ -352,14 +352,6 @@ class OdnoklassnikiIE(InfoExtractor):
             'subtitles': subtitles,
         }
 
-        # pladform
-        if provider == 'OPEN_GRAPH':
-            info.update({
-                '_type': 'url_transparent',
-                'url': movie['contentId'],
-            })
-            return info
-
         if provider == 'USER_YOUTUBE':
             info.update({
                 '_type': 'url_transparent',
