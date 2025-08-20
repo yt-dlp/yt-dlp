@@ -343,16 +343,16 @@ jobs:
         include:
         - arch: 'x64'
           runner: windows-2025
-          suffix: ''
           python_version: '3.10'
+          suffix: ''
         - arch: 'x86'
           runner: windows-2025
-          suffix: '_x86'
           python_version: '3.10'
+          suffix: '_x86'
         - arch: 'arm64'
           runner: windows-11-arm
-          suffix: '_arm64'
           python_version: '3.13'  # arm64 only has Python >= 3.11 available
+          suffix: '_arm64'
 
     steps:
       - uses: actions/checkout@v4
@@ -385,6 +385,7 @@ jobs:
         run: |
           python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
           python devscripts/make_lazy_extractors.py
+
       - name: Build
         run: |
           /yt-dlp-build-venv/Scripts/Activate.ps1
@@ -393,30 +394,16 @@ jobs:
           Compress-Archive -Path ./dist/yt-dlp${{ matrix.suffix }}/* -DestinationPath ./dist/yt-dlp_win${{ matrix.suffix }}.zip
 
       - name: Verify --update-to
-        # if: vars.UPDATE_TO_VERIFICATION
-        # Temporarily skip for arm64 until there is a release that it can --update-to
-        if: |
-          vars.UPDATE_TO_VERIFICATION && matrix.arch != 'arm64'
+        if: vars.UPDATE_TO_VERIFICATION
         run: |
           foreach ($name in @("yt-dlp${{ matrix.suffix }}")) {
             Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
             $version = & "./dist/${name}.exe" --version
-            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
+            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2025.08.20
             $downgraded_version = & "./dist/${name}_downgraded.exe" --version
             if ($version -eq $downgraded_version) {
               exit 1
             }
-          }
-
-        # TODO: remove when there is a windows_arm64 release that we can --update-to
-      - name: Verify arm64 executable
-        if: |
-          vars.UPDATE_TO_VERIFICATION && matrix.arch == 'arm64'
-        run: |
-          foreach ($name in @("yt-dlp${{ matrix.suffix }}")) {
-            & "./dist/${name}.exe" -v --print-traffic --impersonate chrome "https://tls.browserleaks.com/json" -o ./resp.json
-            & cat ./resp.json
-            & "./dist/${name}.exe" --version
           }
 
       - name: Upload artifacts
