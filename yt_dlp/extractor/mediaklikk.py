@@ -17,13 +17,14 @@ class MediaKlikkIE(InfoExtractor):
 
     _TESTS = [{
         # mediaklikk
-        'url': 'https://mediaklikk.hu/filmajanlo/cikk/heviz-dzsungel-a-viz-alatt/',
+        'url': 'https://mediaklikk.hu/ajanlo/video/2025/08/04/heviz-dzsungel-a-viz-alatt-ajanlo-08-10/',
         'info_dict': {
-            'id': '8590182',
-            'title': 'Hévíz - dzsungel a víz alatt',
-            'display_id': 'heviz-dzsungel-a-viz-alatt',
+            'id': '8573769',
+            'title': 'Hévíz - dzsungel a víz alatt – Ajánló (08.10.)',
+            'display_id': 'heviz-dzsungel-a-viz-alatt-ajanlo-08-10',
             'ext': 'mp4',
-            'thumbnail': 'https://cdn.cms.mtv.hu/wp-content/uploads/sites/4/2025/08/2025-008846-M0000-01_3700_cover_09.jpg',
+            'upload_date': '20250804',
+            'thumbnail': 'https://cdn.cms.mtv.hu/wp-content/uploads/sites/4/2025/08/vlcsnap-2025-08-04-13h48m24s336.jpg',
         },
     }, {
         # mediaklikk - date in html
@@ -76,9 +77,8 @@ class MediaKlikkIE(InfoExtractor):
         display_id = mobj.group('id')
         webpage = self._download_webpage(url, display_id)
 
-        player_data_str = self._html_search_regex(
-            r'loadPlayer\(\s*(?:["\'][^"\']+["\']\s*,\s*)?(\{.*?\})\s*\)', webpage, 'player data')
-        player_data = self._parse_json(player_data_str, display_id, urllib.parse.unquote)
+        player_data = self._search_json(
+            r'loadPlayer\((?:\s*["\'][^"\']+["\']\s*,)?', webpage, 'player data', mobj)
         video_id = str(player_data['contentId'])
         title = player_data.get('title') or self._og_search_title(webpage, fatal=False) or \
             self._html_search_regex(r'<h\d+\b[^>]+\bclass="article_title">([^<]+)<', webpage, 'title')
@@ -89,7 +89,7 @@ class MediaKlikkIE(InfoExtractor):
             upload_date = unified_strdate(self._html_search_regex(
                 r'<p+\b[^>]+\bclass="article_date">([^<]+)<', webpage, 'upload date', default=None))
 
-        player_data['video'] = player_data.pop('token')
+        player_data['video'] = urllib.parse.unquote(player_data.pop('token'))
         player_page = self._download_webpage(
             'https://player.mediaklikk.hu/playernew/player.php', video_id,
             query=player_data, headers={'Referer': url})
