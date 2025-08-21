@@ -4178,6 +4178,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=6)
             available_at = int(time.time()) + playback_wait
             for fmt in formats:
+                if fmt.get('protocol') == 'sabr':
+                    continue  # SABR downloader handles this
                 fmt['available_at'] = available_at
 
         formats.extend(self._extract_storyboard(player_responses, duration))
