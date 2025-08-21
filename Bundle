@@ -1,0 +1,2 @@
+yt-dlp -o "%(https://youtube.com/playlist?list=PLLwbcnRfOPbrfxW1B6PegqUp3E9n4p0Ig&si=eaIDDOiW2vP__PIN
+)s/%(playlist_index)s - %(title)s.%(ext)s" "URL" -f 'ba' -x --audio-
