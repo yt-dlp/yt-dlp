@@ -115,13 +115,22 @@ def load_cookies(cookie_file, browser_specification, ydl):
 
 def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None, container=None):
     if browser_name == 'firefox':
-        return _extract_firefox_cookies(profile, container, logger)
+        jar = _extract_firefox_cookies(profile, container, logger)
     elif browser_name == 'safari':
-        return _extract_safari_cookies(profile, logger)
+        jar = _extract_safari_cookies(profile, logger)
     elif browser_name in CHROMIUM_BASED_BROWSERS:
-        return _extract_chrome_cookies(browser_name, profile, keyring, logger)
+        jar = _extract_chrome_cookies(browser_name, profile, keyring, logger)
     else:
         raise ValueError(f'unknown browser: {browser_name}')
+
+    # Browser cookies databases are not pruned of expired cookies, so we need to do it
+    # See: https://github.com/yt-dlp/yt-dlp/issues/13559
+    pruned_jar = YoutubeDLCookieJar()
+    for cookie in jar:
+        if not cookie.is_expired():
+            pruned_jar.set_cookie(cookie)
+
+    return pruned_jar
 
 
 def _extract_firefox_cookies(profile, container, logger):
@@ -367,10 +376,14 @@ def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, pa
         if value is None:
             return is_encrypted, None
 
+    discard = False
     # In chrome, session cookies have expires_utc set to 0
     # In our cookie-store, cookies that do not expire should have expires set to None
     if not expires_utc:
         expires_utc = None
+        # Since YoutubeDLCookieJar.save() defaults to ignore_discard=True,
+        # we can set discard=True so that jar.clear_session_cookies() will work properly
+        discard = True
 
     return is_encrypted, http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
