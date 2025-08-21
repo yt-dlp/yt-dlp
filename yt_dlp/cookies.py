@@ -185,7 +185,8 @@ def _extract_firefox_cookies(profile, container, logger):
                         domain=host, domain_specified=bool(host), domain_initial_dot=host.startswith('.'),
                         path=path, path_specified=bool(path), secure=is_secure, expires=expiry, discard=False,
                         comment=None, comment_url=None, rest={})
-                    jar.set_cookie(cookie)
+                    if not cookie.is_expired():
+                        jar.set_cookie(cookie)
             logger.info(f'Extracted {len(jar)} cookies from firefox')
             return jar
         finally:
@@ -334,7 +335,8 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
                         continue
                     elif not is_encrypted:
                         unencrypted_cookies += 1
-                    jar.set_cookie(cookie)
+                    if not cookie.is_expired():
+                        jar.set_cookie(cookie)
             if failed_cookies > 0:
                 failed_message = f' ({failed_cookies} could not be decrypted)'
             else:
@@ -367,15 +369,17 @@ def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, pa
         if value is None:
             return is_encrypted, None
 
+    discard = False
     # In chrome, session cookies have expires_utc set to 0
     # In our cookie-store, cookies that do not expire should have expires set to None
     if not expires_utc:
         expires_utc = None
+        discard = True
 
     return is_encrypted, http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
         domain=host_key, domain_specified=bool(host_key), domain_initial_dot=host_key.startswith('.'),
-        path=path, path_specified=bool(path), secure=is_secure, expires=expires_utc, discard=False,
+        path=path, path_specified=bool(path), secure=is_secure, expires=expires_utc, discard=discard,
         comment=None, comment_url=None, rest={})
 
 
@@ -702,7 +706,9 @@ def _parse_safari_cookies_record(data, jar, logger):
         domain=domain, domain_specified=bool(domain), domain_initial_dot=domain.startswith('.'),
         path=path, path_specified=bool(path), secure=is_secure, expires=expiration_date, discard=False,
         comment=None, comment_url=None, rest={})
-    jar.set_cookie(cookie)
+    if not cookie.is_expired():
+        jar.set_cookie(cookie)
+
     return record_size
 
 
