@@ -162,6 +162,7 @@ def _extract_firefox_cookies(profile, container, logger):
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
+            db_schema_version = int(cursor.execute('PRAGMA user_version;').fetchone()[0])
             if isinstance(container_id, int):
                 logger.debug(
                     f'Only loading cookies from firefox container "{container}", ID {container_id}')
@@ -180,6 +181,10 @@ def _extract_firefox_cookies(profile, container, logger):
                 total_cookie_count = len(table)
                 for i, (host, name, value, path, expiry, is_secure) in enumerate(table):
                     progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
+                    # FF142 upgraded cookies DB to schema version 16 and started using milliseconds for cookie expiry
+                    # Ref: https://github.com/mozilla-firefox/firefox/commit/5869af852cd20425165837f6c2d9971f3efba83d
+                    if db_schema_version >= 16 and expiry is not None:
+                        expiry = expiry / 1000
                     cookie = http.cookiejar.Cookie(
                         version=0, name=name, value=value, port=None, port_specified=False,
                         domain=host, domain_specified=bool(host), domain_initial_dot=host.startswith('.'),
