@@ -166,7 +166,7 @@ def _extract_firefox_cookies(profile, container, logger):
             cursor = _open_database_copy(cookie_database_path, tmpdir)
             db_schema_version = cursor.execute('PRAGMA user_version;').fetchone()[0]
             if db_schema_version > MAX_SUPPORTED_DB_SCHEMA_VERSION:
-                logger.warning(f'Possibly unsupported Firefox coookie database version: {db_schema_version}')
+                logger.warning(f'Possibly unsupported firefox cookies database version: {db_schema_version}')
             if isinstance(container_id, int):
                 logger.debug(
                     f'Only loading cookies from firefox container "{container}", ID {container_id}')
