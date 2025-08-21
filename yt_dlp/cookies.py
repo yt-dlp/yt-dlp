@@ -388,7 +388,7 @@ def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, pa
     return is_encrypted, http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
         domain=host_key, domain_specified=bool(host_key), domain_initial_dot=host_key.startswith('.'),
-        path=path, path_specified=bool(path), secure=is_secure, expires=expires_utc, discard=False,
+        path=path, path_specified=bool(path), secure=is_secure, expires=expires_utc, discard=discard,
         comment=None, comment_url=None, rest={})
 
 
