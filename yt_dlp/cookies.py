@@ -163,7 +163,6 @@ def _extract_firefox_cookies(profile, container, logger):
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = _open_database_copy(cookie_database_path, tmpdir)
         with contextlib.closing(cursor.connection):
-            cursor = _open_database_copy(cookie_database_path, tmpdir)
             db_schema_version = cursor.execute('PRAGMA user_version;').fetchone()[0]
             if db_schema_version > MAX_SUPPORTED_DB_SCHEMA_VERSION:
                 logger.warning(f'Possibly unsupported firefox cookies database version: {db_schema_version}')
