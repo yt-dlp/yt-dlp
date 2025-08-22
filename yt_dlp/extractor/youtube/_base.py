@@ -952,7 +952,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             headers=traverse_obj(self._get_default_ytcfg(client), {
                 'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
             }))
-        return self.extract_ytcfg(video_id, webpage) or {}
+
+        ytcfg = self.extract_ytcfg(video_id, webpage) or {}
+
+        # Workaround for https://github.com/yt-dlp/yt-dlp/issues/12563
+        if client == 'tv':
+            config_info = traverse_obj(ytcfg, (
+                'INNERTUBE_CONTEXT', 'client', 'configInfo', {dict})) or {}
+            config_info.pop('appInstallData', None)
+
+        return ytcfg
 
     @staticmethod
     def _build_api_continuation_query(continuation, ctp=None):
