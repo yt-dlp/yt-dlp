@@ -572,7 +572,21 @@ class FFmpegFD(ExternalFD):
             if end_time:
                 args += ['-t', str(end_time - start_time)]
 
-            args += [*self._configuration_args((f'_i{i + 1}', '_i')), '-i', fmt['url']]
+            url = fmt['url']
+            if self.params.get('enable_file_urls') and url.startswith('file:'):
+                # The default protocol_whitelist is 'file,crypto,data' when reading local m3u8 URLs,
+                # so only local segments can be read unless we also include 'http,https,tcp,tls'
+                args += ['-protocol_whitelist', 'file,crypto,data,http,https,tcp,tls']
+                # ffmpeg incorrectly handles 'file:' URLs by only removing the
+                # 'file:' prefix and treating the rest as if it's a normal filepath.
+                # FFmpegPostProcessor also depends on this behavior, so we need to fixup the URLs:
+                # - On Windows/Cygwin, replace 'file:///' and 'file://localhost/' with 'file:'
+                # - On *nix, replace 'file://localhost/' with 'file:/'
+                # Ref: https://github.com/yt-dlp/yt-dlp/issues/13781
+                #      https://trac.ffmpeg.org/ticket/2702
+                url = re.sub(r'^file://(?:localhost)?/', 'file:' if os.name == 'nt' else 'file:/', url)
+
+            args += [*self._configuration_args((f'_i{i + 1}', '_i')), '-i', url]
 
         if not (start_time or end_time) or not self.params.get('force_keyframes_at_cuts'):
             args += ['-c', 'copy']
