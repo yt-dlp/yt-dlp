@@ -12,6 +12,7 @@ from ..utils import (
     int_or_none,
     parse_duration,
     str_or_none,
+    traverse_obj,
     try_get,
     unified_strdate,
     url_or_none,
@@ -253,6 +254,15 @@ class XHamsterIE(InfoExtractor):
                                     },
                                 })
 
+            subtitles = {}
+            if subtitle_dict := traverse_obj(initials, ('xplayerPluginSettings', 'subtitles', 'tracks'), expected_type=list):
+                for item in subtitle_dict:
+                    subtitles.update(
+                        {item['lang']: [{'ext': 'vtt',
+                                         'url': item['urls']['vtt'],
+                                         'name': item['label'],
+                                         }]})
+
             categories_list = video.get('categories')
             if isinstance(categories_list, list):
                 categories = []
@@ -287,6 +297,7 @@ class XHamsterIE(InfoExtractor):
                 'age_limit': age_limit if age_limit is not None else 18,
                 'categories': categories,
                 'formats': formats,
+                'subtitles': subtitles,
             }
 
         # Old layout fallback
