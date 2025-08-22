@@ -5,7 +5,6 @@ import re
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from .odnoklassniki import OdnoklassnikiIE
-from .pladform import PladformIE
 from .sibnet import SibnetEmbedIE
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
@@ -335,11 +334,6 @@ class VKIE(VKBaseIE):
             'only_matching': True,
         },
         {
-            # pladform embed
-            'url': 'https://vk.com/video-76116461_171554880',
-            'only_matching': True,
-        },
-        {
             'url': 'http://new.vk.com/video205387401_165548505',
             'only_matching': True,
         },
@@ -455,10 +449,6 @@ class VKIE(VKBaseIE):
         vimeo_url = VimeoIE._extract_url(url, info_page)
         if vimeo_url is not None:
             return self.url_result(vimeo_url, VimeoIE.ie_key())
-
-        pladform_url = PladformIE._extract_url(info_page)
-        if pladform_url:
-            return self.url_result(pladform_url, PladformIE.ie_key())
 
         m_rutube = re.search(
             r'\ssrc="((?:https?:)?//rutube\.ru\\?/(?:video|play)\\?/embed(?:.*?))\\?"', info_page)

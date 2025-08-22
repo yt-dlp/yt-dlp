@@ -63,6 +63,29 @@ class SubstackIE(InfoExtractor):
             'uploader_id': '61579',
         },
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.mollymovieclub.com/p/interstellar',
+        'info_dict': {
+            'id': '53602801',
+            'ext': 'mpga',
+            'title': 'Interstellar',
+            'description': 'Listen now | Episode One',
+            'thumbnail': r're:https?://.+\.jpeg',
+            'uploader': 'Molly Movie Club',
+            'uploader_id': '839621',
+        },
+    }, {
+        'url': 'https://www.blockedandreported.org/p/episode-117-lets-talk-about-depp',
+        'info_dict': {
+            'id': '57962052',
+            'ext': 'mpga',
+            'title': 'md5:855b2756f0ee10f6723fa00b16266f8d',
+            'description': 'The takes the takes the takes',
+            'thumbnail': r're:https?://.+\.jpeg',
+            'uploader': 'Blocked and Reported',
+            'uploader_id': '500230',
+        },
+    }]
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):

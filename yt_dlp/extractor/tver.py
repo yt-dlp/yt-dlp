@@ -1,12 +1,16 @@
+import datetime as dt
+
 from .streaks import StreaksBaseIE
 from ..utils import (
     ExtractorError,
+    GeoRestrictedError,
     int_or_none,
     join_nonempty,
     make_archive_id,
     smuggle_url,
     str_or_none,
     strip_or_none,
+    time_seconds,
     update_url_query,
 )
 from ..utils.traversal import require, traverse_obj
@@ -96,6 +100,7 @@ class TVerIE(StreaksBaseIE):
         'Referer': 'https://tver.jp/',
     }
     _PLATFORM_QUERY = {}
+    _STREAKS_API_INFO = {}
 
     def _real_initialize(self):
         session_info = self._download_json(
@@ -105,6 +110,9 @@ class TVerIE(StreaksBaseIE):
             'platform_uid': 'platform_uid',
             'platform_token': 'platform_token',
         }))
+        self._STREAKS_API_INFO = self._download_json(
+            'https://player.tver.jp/player/streaks_info_v2.json', None,
+            'Downloading STREAKS API info', 'Unable to download STREAKS API info')
 
     def _call_platform_api(self, path, video_id, note=None, fatal=True, query=None):
         return self._download_json(
@@ -219,15 +227,26 @@ class TVerIE(StreaksBaseIE):
                 '_type': 'url_transparent',
                 'url': smuggle_url(
                     self.BRIGHTCOVE_URL_TEMPLATE % (account_id, brightcove_id),
-                    {'geo_countries': ['JP']}),
+                    {'geo_countries': self._GEO_COUNTRIES}),
                 'ie_key': 'BrightcoveNew',
             }
 
-        return {
-            **self._extract_from_streaks_api(video_info['streaks']['projectID'], streaks_id, {
+        project_id = video_info['streaks']['projectID']
+        key_idx = dt.datetime.fromtimestamp(time_seconds(hours=9), dt.timezone.utc).month % 6 or 6
+
+        try:
+            streaks_info = self._extract_from_streaks_api(project_id, streaks_id, {
                 'Origin': 'https://tver.jp',
                 'Referer': 'https://tver.jp/',
-            }),
+                'X-Streaks-Api-Key': self._STREAKS_API_INFO[project_id]['api_key'][f'key0{key_idx}'],
+            })
+        except GeoRestrictedError as e:
+            # Catch and re-raise with metadata_available to support --ignore-no-formats-error
+            self.raise_geo_restricted(e.orig_msg, countries=self._GEO_COUNTRIES, metadata_available=True)
+            streaks_info = {}
+
+        return {
+            **streaks_info,
             **metadata,
             'id': video_id,
             '_old_archive_ids': [make_archive_id('BrightcoveNew', brightcove_id)] if brightcove_id else None,
