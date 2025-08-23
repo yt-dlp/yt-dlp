@@ -39,7 +39,7 @@ class NZOnScreenVideoIE(InfoExtractor):
                 raise ExtractorError('Failed to get video data')
 
         except Exception as e:
-            raise ExtractorError(f'Failed to extract video {uuid}: {str(e)}')
+            raise ExtractorError(f'Failed to extract video {uuid}: {e!s}')
 
         return {
             'id': uuid,
