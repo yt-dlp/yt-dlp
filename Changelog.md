@@ -4,6 +4,23 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.08.22
+
+#### Core changes
+- **cookies**: [Fix `--cookies-from-browser` with Firefox 142+](https://github.com/yt-dlp/yt-dlp/commit/f29acc4a6e73a9dc091686d40951288acae5a46d) ([#14114](https://github.com/yt-dlp/yt-dlp/issues/14114)) by [bashonly](https://github.com/bashonly), [Grub4K](https://github.com/Grub4K) (With fixes in [526410b](https://github.com/yt-dlp/yt-dlp/commit/526410b4af9c1ca73aa3503cdaf4d32e42308fd6) by [bashonly](https://github.com/bashonly))
+
+#### Extractor changes
+- **mediaklikk**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/4dbe96459d7e632d397826d0bb323f3f0ac8b057) ([#13975](https://github.com/yt-dlp/yt-dlp/issues/13975)) by [zhallgato](https://github.com/zhallgato)
+- **steam**: [Fix extractors](https://github.com/yt-dlp/yt-dlp/commit/fcea3edb5c5648638357f27431500c0aaf08b147) ([#14093](https://github.com/yt-dlp/yt-dlp/issues/14093)) by [doe1080](https://github.com/doe1080)
+- **youtube**
+    - [Improve `tv` client context](https://github.com/yt-dlp/yt-dlp/commit/39b7b8ddc7a4d0669e0cf39105c3bb84cb2736cc) ([#14122](https://github.com/yt-dlp/yt-dlp/issues/14122)) by [bashonly](https://github.com/bashonly)
+    - [Optimize playback wait times](https://github.com/yt-dlp/yt-dlp/commit/5c8bcfdbc638dfde13e93157637d8521413ed774) ([#14124](https://github.com/yt-dlp/yt-dlp/issues/14124)) by [bashonly](https://github.com/bashonly)
+    - [Replace `ios` with `tv_simply` in default clients](https://github.com/yt-dlp/yt-dlp/commit/895e762a834bbd729ab822c7d17329fdf815aaf2) ([#14123](https://github.com/yt-dlp/yt-dlp/issues/14123)) by [bashonly](https://github.com/bashonly), [coletdjnz](https://github.com/coletdjnz)
+    - [Update `tv` client config](https://github.com/yt-dlp/yt-dlp/commit/a03c37b44ec8f50fd472c409115096f92410346d) ([#14101](https://github.com/yt-dlp/yt-dlp/issues/14101)) by [seproDev](https://github.com/seproDev)
+
+#### Misc. changes
+- **build**: [Post-release workflow cleanup](https://github.com/yt-dlp/yt-dlp/commit/415b6d9ca868032a45b30b9139a50c5c06be2feb) ([#14090](https://github.com/yt-dlp/yt-dlp/issues/14090)) by [bashonly](https://github.com/bashonly)
+
 ### 2025.08.20
 
 #### Core changes
