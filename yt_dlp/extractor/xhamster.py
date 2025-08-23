@@ -49,6 +49,9 @@ class XHamsterIE(InfoExtractor):
             'description': '',
             'view_count': int,
             'comment_count': int,
+            'subtitles': {
+                'cs': 'count:1',
+            },
         },
     }, {
         'url': 'https://xhamster.com/videos/britney-spears-sexy-booty-2221348?hd=',
@@ -66,6 +69,24 @@ class XHamsterIE(InfoExtractor):
             'view_count': int,
             'thumbnail': r're:https?://.+\.jpg',
             'comment_count': int,
+            'subtitles': {
+                'en': 'count:1',
+                'hi': 'count:1',
+                'it': 'count:1',
+                'tr': 'count:1',
+                'pt': 'count:1',
+                'fr': 'count:1',
+                'es': 'count:1',
+                'ru': 'count:1',
+                'de': 'count:1',
+                'hi-latn-in': 'count:1',
+                'ar': 'count:1',
+                'pl': 'count:1',
+                'ko': 'count:1',
+                'uk': 'count:1',
+
+            },
+
         },
         'params': {
             'extractor_args': {'generic': {'impersonate': ['chrome']}},
