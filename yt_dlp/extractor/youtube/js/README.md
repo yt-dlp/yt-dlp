@@ -31,7 +31,8 @@ from yt_dlp.extractor.youtube.js.provider import (
     JsChallengeResponse,
     JsChallengeProviderError,
     JsChallengeProviderRejectedRequest,
-    JsChallengeType,
+    JsChallengeType, 
+    JsChallengeProviderResponse,
 )
 from yt_dlp.networking.common import Request
 from yt_dlp.utils import traverse_obj, Popen
@@ -96,13 +97,21 @@ class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must
             raise JsChallengeProviderError(f'Command returned error code {ret}', expected=False)
 
         return JsChallengeResponse(challenge_result=stdout)
+        
+    # def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> list[JsChallengeProviderResponse]:
+        # Optional bulk solve method, called when multiple requests are made at once.
+        # This is useful for providers that can handle multiple requests at once.
+        
+        # IMPORTANT: This method should NOT raise any errors. 
+        # The method should return a list of JsChallengeProviderResponse objects for every request. 
+        # In case of an error, return a JsChallengeProviderResponse with the error set.
 
 
-# If there are multiple JS Challenge Providers that can handle the same JsChallengeRequest,
+# If there are multiple JS Challenge Providers that can handle the same JsChallengeRequest(s),
 # you can define a preference function to increase/decrease the priority of providers.
 
 @register_preference(MyJsChallengeProviderJSP)
-def my_provider_preference(provider: JsChallengeProvider, request: JsChallengeRequest) -> int:
+def my_provider_preference(provider: JsChallengeProvider, requests: list[JsChallengeRequest]) -> int:
     return 50
 ```
 

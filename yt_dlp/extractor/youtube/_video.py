@@ -3136,7 +3136,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self.report_warning(msg, video_id, only_once=True)
                     continue
 
-                challenge_response = self._jsc_director.solve_challenge(
+                challenge_response = self._jsc_director.solve(
                     JsChallengeRequest(
                         challenge=encrypted_sig, video_id=video_id,
                         player_url=player_url, type=JsChallengeType.SIG))
@@ -3164,7 +3164,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 n_challenge = query['n'][0]
                 decrypted_nsig = self._player_cache.get(n_challenge)
                 if not decrypted_nsig:
-                    challenge_response = self._jsc_director.solve_challenge(
+                    challenge_response = self._jsc_director.solve(
                         JsChallengeRequest(
                             challenge=n_challenge, video_id=video_id,
                             player_url=player_url, type=JsChallengeType.NSIG))

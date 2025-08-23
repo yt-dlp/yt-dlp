@@ -39,10 +39,10 @@ class JsChallengeRequestDirector:
     def register_preference(self, preference: JsChallengePreference):
         self.preferences.append(preference)
 
-    def _get_providers(self, request: JsChallengeRequest) -> Iterable[JsChallengeProvider]:
+    def _get_providers(self, requests: list[JsChallengeRequest]) -> Iterable[JsChallengeProvider]:
         """Sorts available providers by preference, given a request"""
         preferences = {
-            provider: sum(pref(provider, request) for pref in self.preferences)
+            provider: sum(pref(provider, requests) for pref in self.preferences)
             for provider in self.providers.values()
         }
         if self.logger.log_level <= self.logger.LogLevel.TRACE:
@@ -57,44 +57,73 @@ class JsChallengeRequestDirector:
             if provider.is_available()
         )
 
-    def solve_challenge(self, request: JsChallengeRequest) -> JsChallengeResponse | None:
+    def bulk_solve(self, requests: list[JsChallengeRequest]) -> list[JsChallengeResponse]:
+        """Solves multiple JS Challenges in bulk, returning a list of responses"""
         if not self.providers:
             self.logger.trace('No JS Challenge providers registered')
-            return None
+            return []
 
-        for provider in self._get_providers(request):
-            try:
-                self.logger.trace(
-                    f'Attempting to solve {request.type.value} JS Challenge from "{provider.PROVIDER_NAME}" provider')
-                response = provider.solve(request.copy())
-            except JsChallengeProviderRejectedRequest as e:
-                self.logger.trace(
-                    f'JS Challenge Provider "{provider.PROVIDER_NAME}" rejected this request, '
-                    f'trying next available provider. Reason: {e}')
-                continue
-            except JsChallengeProviderError as e:
+        results = []
+
+        next_requests = requests
+
+        for provider in self._get_providers(next_requests):
+            next_requests = []
+
+            self.logger.trace(
+                f'Attempting to solve {len(requests)} challenges using "{provider.PROVIDER_NAME}" provider')
+            responses = provider.bulk_solve([request.copy() for request in requests])
+            if len(responses) != len(requests):
                 self.logger.warning(
-                    f'Error solving {request.type.value} JS Challenge from "{provider.PROVIDER_NAME}" provider: '
-                    f'{e!r}{provider_bug_report_message(provider) if not e.expected else ""}')
-                continue
-            except Exception as e:
-                self.logger.error(
-                    f'Unexpected error when solving {request.type.value} JS Challenge from "{provider.PROVIDER_NAME}" provider: '
-                    f'{e!r}{provider_bug_report_message(provider)}')
-                continue
+                    f'JS Challenge Provider "{provider.PROVIDER_NAME}" returned {len(responses)} responses for {len(requests)} requests, '
+                    f'expected {len(requests)} responses{provider_bug_report_message(provider)}')
 
-            self.logger.trace(f'JS Challenge response from "{provider.PROVIDER_NAME}" provider: {response}')
+            for response in responses:
+                if response.error:
+                    try:
+                        raise response.error
+                    except JsChallengeProviderRejectedRequest:
+                        # TODO: better error message
+                        self.logger.trace(
+                            f'JS Challenge Provider "{provider.PROVIDER_NAME}" rejected this request, '
+                            f'trying next available provider. Reason: {response.error}, Request: {response.request}')
+                        next_requests.append(response.request)
+                        continue
+                    except JsChallengeProviderError as e:
+                        # TODO: better error message
+                        self.logger.warning(
+                            f'Error solving {response.request.type.value} JS Challenge from "{provider.PROVIDER_NAME}" provider: '
+                            f'{e!r}{provider_bug_report_message(provider) if not e.expected else ""}', once=True)
+                        next_requests.append(response.request)
+                        continue
+                    except Exception as e:
+                        self.logger.error(
+                            f'Unexpected error when solving {response.request.type.value} JS Challenge from "{provider.PROVIDER_NAME}" provider: '
+                            f'{e!r}{provider_bug_report_message(provider)}')
+                        next_requests.append(response.request)
+                        continue
 
-            if not validate_response(response):
-                self.logger.error(
-                    f'Invalid JS Challenge response received from "{provider.PROVIDER_NAME}" provider: '
-                    f'{response}{provider_bug_report_message(provider)}')
-                continue
+                if not validate_response(response.response):
+                    self.logger.error(
+                        f'Invalid JS Challenge response received from "{provider.PROVIDER_NAME}" provider: '
+                        f'{response.response}{provider_bug_report_message(provider)}')
+                    next_requests.append(response.request)
+                    continue
 
-            return response
+                self.logger.trace(f'JS Challenge response from "{provider.PROVIDER_NAME}" provider: {response.response}')
+                results.append(response.response)
 
-        self.logger.trace(f'No JS Challenge providers were able to solve the {request.type.value} JS Challenge')
-        return None
+        if len(results) != len(requests):
+            self.logger.trace(
+                f'Not all JS Challenges were solved, expected {len(requests)} responses, got {len(results)}')
+            self.logger.trace(f'Unsolved requests: {next_requests}')
+        else:
+            self.logger.trace(f'All {len(requests)} JS Challenges solved successfully')
+        return results
+
+    def solve(self, request: JsChallengeRequest) -> JsChallengeResponse | None:
+        responses = self.bulk_solve([request])
+        return responses[0] if responses else None
 
     def close(self):
         for provider in self.providers.values():

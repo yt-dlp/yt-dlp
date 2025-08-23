@@ -20,6 +20,7 @@ __all__ = [
     'JsChallengeProvider',
     'JsChallengeProviderError',
     'JsChallengeProviderRejectedRequest',
+    'JsChallengeProviderResponse',
     'JsChallengeRequest',
     'JsChallengeResponse',
     'JsChallengeType',
@@ -42,6 +43,13 @@ class JsChallengeRequest:
 
     def copy(self):
         return dataclasses.replace(self)
+
+
+@dataclasses.dataclass
+class JsChallengeProviderResponse:
+    request: JsChallengeRequest
+    response: JsChallengeResponse | None = None
+    error: Exception | None = None
 
 
 @dataclasses.dataclass
@@ -74,14 +82,32 @@ class JsChallengeProvider(IEContentProvider, abc.ABC, suffix='JCP'):
             raise JsChallengeProviderRejectedRequest(
                 f'JS Challenge type "{request.type}" is not supported by {self.PROVIDER_NAME}')
 
-    def solve(self, request: JsChallengeRequest) -> JsChallengeResponse:
-        """Solve the JS challenge and return the result"""
-        self.__validate_request(request)
-        return self._real_solve(request)
+    def bulk_solve(self, requests: list[JsChallengeRequest]) -> list[JsChallengeProviderResponse]:
+        """Solve multiple JS challenges and return the results"""
+        responses = []
+        validated_requests = []
+        for request in requests:
+            try:
+                self.__validate_request(request)
+                validated_requests.append(request)
+            except JsChallengeProviderRejectedRequest as e:
+                responses.append(JsChallengeProviderResponse(request=request, error=e))
+                continue
+        responses.extend(self._real_bulk_solve(validated_requests))
+        return responses
 
-    def request_pot(self, request: JsChallengeRequest) -> JsChallengeResponse:
-        self.__validate_request(request)
-        return self._real_solve(request)
+    def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> list[JsChallengeProviderResponse]:
+        """Subclasses can override this method to handle bulk solving"""
+        return [self.solve(request) for request in requests]
+
+    def solve(self, request: JsChallengeRequest) -> JsChallengeProviderResponse:
+        """Solve the JS challenge and return the result"""
+        try:
+            self.__validate_request(request)
+            response = self._real_solve(request)
+            return JsChallengeProviderResponse(request=request, response=response)
+        except Exception as e:
+            return JsChallengeProviderResponse(request=request, error=e)
 
     @abc.abstractmethod
     def _real_solve(self, request: JsChallengeRequest) -> JsChallengeResponse:
@@ -119,5 +145,5 @@ def register_preference(*providers: type[JsChallengeProvider]) -> typing.Callabl
 
 
 if typing.TYPE_CHECKING:
-    Preference = typing.Callable[[JsChallengeProvider, JsChallengeRequest], int]
+    Preference = typing.Callable[[JsChallengeProvider, list[JsChallengeRequest]], int]
     __all__.append('Preference')
