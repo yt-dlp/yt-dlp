@@ -122,7 +122,7 @@ class SpankBangIE(InfoExtractor):
                 }), headers={
                     'Referer': url,
                     'X-Requested-With': 'XMLHttpRequest',
-                })
+                }, impersonate=True)
 
             for format_id, format_url in stream.items():
                 if format_url and isinstance(format_url, list):
