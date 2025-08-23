@@ -1817,6 +1817,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
+        'tcc': 'player_ias_tcc.vflset/en_US/base.js',
         'tce': 'player_ias_tce.vflset/en_US/base.js',
         'es5': 'player_es5.vflset/en_US/base.js',
         'es6': 'player_es6.vflset/en_US/base.js',
