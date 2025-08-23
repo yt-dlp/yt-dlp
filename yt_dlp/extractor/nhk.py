@@ -450,17 +450,6 @@ class NhkVodProgramIE(NhkBaseIE):
 
 
 class NhkForSchoolBangumiIE(InfoExtractor):
-
-    def _decode_unicode_escapes(self, text):
-        """Decode %uXXXX Unicode escape sequences"""
-        if not text:
-            return text
-        # Convert %uXXXX to proper Unicode characters
-
-        def decode_match(match):
-            hex_code = match.group(1)
-            return chr(int(hex_code, 16))
-        return re.sub(r'%u([0-9A-Fa-f]{4})', decode_match, text)
     _VALID_URL = r'https?://www2\.nhk\.or\.jp/school/watch/(?P<type>bangumi|clip)/\?das_id=(?P<id>[a-zA-Z0-9_-]+)'
     _TESTS = [{
         'url': 'https://www2.nhk.or.jp/school/watch/bangumi/?das_id=D0005110301_00000',
@@ -485,30 +474,25 @@ class NhkForSchoolBangumiIE(InfoExtractor):
         webpage = self._download_webpage(
             f'https://www2.nhk.or.jp/school/watch/{program_type}/?das_id={video_id}', video_id)
 
-        # searches all variables (both old var format and new let format)
-        base_values = {g.group(1): g.group(2) for g in re.finditer(r'(?:var|let)\s+([a-zA-Z_]+)\s*=\s*"([^"]+?)";', webpage)}
-        # and programObj values in modern object format
+        # Search programObj
         program_values = {}
         program_obj_match = re.search(r'let\s+programObj\s*=\s*\{([^}]+)\};', webpage)
         if program_obj_match:
             obj_content = program_obj_match.group(1)
             for prop_match in re.finditer(r'([a-zA-Z_]+):\s*"([^"]*)"', obj_content):
                 program_values[prop_match.group(1)] = prop_match.group(2)
-        # fallback to old format
-        if not program_values:
-            program_values = {g.group(1): g.group(3) for g in re.finditer(r'(?:program|clip)Obj\.([a-zA-Z_]+)\s*=\s*(["\'])([^"]+?)\2;', webpage)}
-        # extract all chapters (both old and new formats)
-        chapter_durations = [parse_duration(g.group(1)) for g in re.finditer(r'chapterTime\.push\(\'([0-9:]+?)\'\);', webpage)]
-        # new format: let chapterTime =["0","86.186","144.811",...]
-        if not chapter_durations:
-            chapter_time_match = re.search(r'let\s+chapterTime\s*=\s*\[([^\]]+)\];', webpage)
-            if chapter_time_match:
-                chapter_values = chapter_time_match.group(1)
-                chapter_durations = [float(match.group(1)) for match in re.finditer(r'"([^"]+)"', chapter_values)]
-        chapter_titles = [' '.join([g.group(1) or '', unescapeHTML(g.group(2))]).strip() for g in re.finditer(r'<div class="cpTitle"><span>(scene\s*\d+)?</span>([^<]+?)</div>', webpage)]
+        timestamp_match = re.search(r'r_upload\s*=\s*"([^"]+)"', webpage)
+        if timestamp_match:
+            timestamp = timestamp_match.group(1)
 
+        # extract all chapters
+        chapter_time_match = re.search(r'let\s+chapterTime\s*=\s*\[([^\]]+)\];', webpage)
+        if chapter_time_match:
+            chapter_values = chapter_time_match.group(1)
+            chapter_durations = [float(match.group(1)) for match in re.finditer(r'"([^"]+)"', chapter_values)]
+        chapter_titles = [' '.join([g.group(1) or '', unescapeHTML(g.group(2))]).strip() for g in re.finditer(r'<div class="cpTitle"><span>(scene\s*\d+)?</span>([^<]+?)</div>', webpage)]
         # this is how player_core.js is actually doing (!)
-        version = base_values.get('r_version') or program_values.get('version')
+        version = program_values.get('version')
         if version:
             video_id = f'{video_id.split("_")[0]}_{version}'
 
@@ -517,7 +501,7 @@ class NhkForSchoolBangumiIE(InfoExtractor):
             video_id, ext='mp4', m3u8_id='hls')
 
         # Handle duration from either source
-        duration_str = base_values.get('r_duration') or program_values.get('duration')
+        duration_str = program_values.get('duration')
         if duration_str and ':' in duration_str:
             # Handle format like '00:10:00:0' which is HH:MM:SS:frame, not standard HH:MM:SS
             parts = duration_str.split(':')
@@ -559,8 +543,7 @@ class NhkForSchoolBangumiIE(InfoExtractor):
 
         # Try to get episode title from multiple sources
         episode_title = (
-            self._decode_unicode_escapes(program_values.get('name'))
-            or self._html_search_regex(r'<div class="title">([^<]+)</div>', webpage, 'episode title', fatal=False)
+            self._html_search_regex(r'<div class="title">([^<]+)</div>', webpage, 'episode title', fatal=False)
             or self._html_search_regex(r'<title>([^|]+)', webpage, 'page title', fatal=False)
         )
 
@@ -576,7 +559,7 @@ class NhkForSchoolBangumiIE(InfoExtractor):
             'series': series_title,
             'episode': episode_title,
             'duration': duration,
-            'timestamp': unified_timestamp(base_values.get('r_upload')),
+            'timestamp': unified_timestamp(timestamp),
             'formats': formats,
             'chapters': chapters,
         }
