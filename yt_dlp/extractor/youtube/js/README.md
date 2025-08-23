@@ -112,4 +112,4 @@ todo
 
 ## Debugging
 
-- Use `-v --extractor-args "youtube:jsc_trace=true"` to enable JS Challenge debug output.
+- Use `-v --extractor-args "youtube:js_trace=true"` to enable JS Challenge debug output.
