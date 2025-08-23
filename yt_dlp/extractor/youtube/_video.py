@@ -3204,13 +3204,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if client_name not in gvs_pots:
                             gvs_pots[client_name] = po_token
 
-                    fmt = process_format_stream(fmt_stream, proto, missing_pot=require_po_token and not po_token)
-                    if not fmt:
-                        continue
-
-                    fmt['_jsc_requests'] = []
-
                     fmt_url = fmt_stream.get('url')
+                    fmt = {}
+                    fmt['_jsc_requests'] = []
                     if not fmt_url:
                         sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
                         fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
@@ -3232,6 +3228,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             challenge=encrypted_sig, video_id=video_id,
                             player_url=player_url, type=JsChallengeType.SIG))
                         fmt['_sc'] = sc
+
+                    fmt_result = process_format_stream(fmt_stream, proto, missing_pot=require_po_token and not po_token)
+                    if not fmt_result:
+                        continue
+
+                    fmt.update(fmt_result)
 
                     query = parse_qs(fmt_url)
                     if query.get('n'):
