@@ -259,9 +259,8 @@ INNERTUBE_CLIENTS = {
                 not_required_with_player_token=True,
             ),
             # HLS Livestreams require POT 30 seconds in
-            # TODO: Rolling out
             StreamingProtocol.HLS: GvsPoTokenPolicy(
-                required=False,
+                required=True,
                 recommended=True,
                 not_required_with_player_token=True,
             ),
@@ -952,7 +951,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             headers=traverse_obj(self._get_default_ytcfg(client), {
                 'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
             }))
-        return self.extract_ytcfg(video_id, webpage) or {}
+
+        ytcfg = self.extract_ytcfg(video_id, webpage) or {}
+
+        # Workaround for https://github.com/yt-dlp/yt-dlp/issues/12563
+        if client == 'tv':
+            config_info = traverse_obj(ytcfg, (
+                'INNERTUBE_CONTEXT', 'client', 'configInfo', {dict})) or {}
+            config_info.pop('appInstallData', None)
+
+        return ytcfg
 
     @staticmethod
     def _build_api_continuation_query(continuation, ctp=None):

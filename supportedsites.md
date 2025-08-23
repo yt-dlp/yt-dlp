@@ -1386,6 +1386,7 @@ The only reliable way to check if a site is supported is to try it.
  - **startrek**: STAR TREK
  - **startv**
  - **Steam**
+ - **SteamCommunity**
  - **SteamCommunityBroadcast**
  - **Stitcher**
  - **StitcherShow**

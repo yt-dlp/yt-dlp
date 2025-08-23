@@ -79,6 +79,7 @@ STREAMING_DATA_FETCH_GVS_PO_TOKEN = '__yt_dlp_fetch_gvs_po_token'
 STREAMING_DATA_PLAYER_TOKEN_PROVIDED = '__yt_dlp_player_token_provided'
 STREAMING_DATA_INNERTUBE_CONTEXT = '__yt_dlp_innertube_context'
 STREAMING_DATA_IS_PREMIUM_SUBSCRIBER = '__yt_dlp_is_premium_subscriber'
+STREAMING_DATA_FETCHED_TIMESTAMP = '__yt_dlp_fetched_timestamp'
 
 PO_TOKEN_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide'
 
@@ -256,10 +257,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('tv', 'ios', 'web')
-    _DEFAULT_AUTHED_CLIENTS = ('tv', 'web')
+    _DEFAULT_CLIENTS = ('tv', 'tv_simply', 'web')
+    _DEFAULT_AUTHED_CLIENTS = ('tv', 'web_safari', 'web')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web_creator', 'web')
 
     _GEO_BYPASS = False
 
@@ -3244,6 +3245,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             elif pr:
                 # Save client details for introspection later
                 innertube_context = traverse_obj(player_ytcfg or self._get_default_ytcfg(client), 'INNERTUBE_CONTEXT')
+                fetched_timestamp = int(time.time())
                 sd = pr.setdefault('streamingData', {})
                 sd[STREAMING_DATA_CLIENT_NAME] = client
                 sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
@@ -3256,6 +3258,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
                     f[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER] = is_premium_subscriber
                     f[STREAMING_DATA_PLAYER_TOKEN_PROVIDED] = bool(player_po_token)
+                    f[STREAMING_DATA_FETCHED_TIMESTAMP] = fetched_timestamp
                 if deprioritize_pr:
                     deprioritized_prs.append(pr)
                 else:
@@ -3308,11 +3311,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             f'{video_id}: {client_name} client {proto} formats require a GVS PO Token which was not provided. '
             'They will be skipped as they may yield HTTP Error 403. '
             f'You can manually pass a GVS PO Token for this client with --extractor-args "youtube:po_token={client_name}.gvs+XXX". '
-            f'For more information, refer to  {PO_TOKEN_GUIDE_URL} . '
-            'To enable these broken formats anyway, pass --extractor-args "youtube:formats=missing_pot"')
+            f'For more information, refer to  {PO_TOKEN_GUIDE_URL}')
 
         # Only raise a warning for non-default clients, to not confuse users.
-        # iOS HLS formats still work without PO Token, so we don't need to warn about them.
         if client_name in (*self._DEFAULT_CLIENTS, *self._DEFAULT_AUTHED_CLIENTS):
             self.write_debug(msg, only_once=True)
         else:
@@ -3374,8 +3375,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # save pots per client to avoid fetching again
         gvs_pots = {}
 
+        # For handling potential pre-playback required waiting period
+        playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=6)
+
         for fmt in streaming_formats:
             client_name = fmt[STREAMING_DATA_CLIENT_NAME]
+            available_at = fmt[STREAMING_DATA_FETCHED_TIMESTAMP] + playback_wait
             if fmt.get('targetDurationSec'):
                 continue
 
@@ -3557,6 +3562,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if single_stream and dct.get('ext'):
                 dct['container'] = dct['ext'] + '_dash'
 
+            # For handling potential pre-playback required waiting period
+            if live_status not in ('is_live', 'post_live'):
+                dct['available_at'] = available_at
+
             if (all_formats or 'dashy' in format_types) and dct['filesize']:
                 yield {
                     **dct,
@@ -3594,17 +3603,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not all_formats and key in itags[itag]:
                 return False
 
+            # For handling potential pre-playback required waiting period
+            if live_status not in ('is_live', 'post_live'):
+                f['available_at'] = available_at
+
             if f.get('source_preference') is None:
                 f['source_preference'] = -1
 
             if missing_pot:
                 f['format_note'] = join_nonempty(f.get('format_note'), 'MISSING POT', delim=' ')
                 f['source_preference'] -= 20
-
-            # XXX: Check if IOS HLS formats are affected by PO token enforcement; temporary
-            # See https://github.com/yt-dlp/yt-dlp/issues/13511
-            if proto == 'hls' and client_name == 'ios':
-                f['__needs_testing'] = True
 
             itags[itag].add(key)
 
@@ -4044,12 +4052,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if needs_live_processing:
             self._prepare_live_from_start_formats(
                 formats, video_id, live_start_time, url, webpage_url, smuggled_data, live_status == 'is_live')
-        elif live_status != 'is_live':
-            # Handle pre-playback waiting period
-            playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=6)
-            available_at = int(time.time()) + playback_wait
-            for fmt in formats:
-                fmt['available_at'] = available_at
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 
@@ -4421,7 +4423,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
-            # XXX: This is redundant for as long as we are already checking all IOS HLS formats
             upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.timezone.utc)
             if upload_datetime >= datetime_from_str('today-2days'):
                 for fmt in info['formats']:
