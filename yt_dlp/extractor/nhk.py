@@ -450,19 +450,17 @@ class NhkVodProgramIE(NhkBaseIE):
 
 
 class NhkForSchoolBangumiIE(InfoExtractor):
-    _VALID_URL = r'https?://www2\.nhk\.or\.jp/school/movie/(?P<type>bangumi|clip)\.cgi\?das_id=(?P<id>[a-zA-Z0-9_-]+)'
+    _VALID_URL = r'https?://www2\.nhk\.or\.jp/school/watch/(?P<type>bangumi|clip)/\?das_id=(?P<id>[a-zA-Z0-9_-]+)'
     _TESTS = [{
-        'url': 'https://www2.nhk.or.jp/school/movie/bangumi.cgi?das_id=D0005150191_00000',
+        'url': 'https://www2.nhk.or.jp/school/watch/bangumi/?das_id=D0005110301_00000',
         'info_dict': {
-            'id': 'D0005150191_00003',
-            'title': 'にている かな',
-            'duration': 599.999,
-            'timestamp': 1396414800,
-
-            'upload_date': '20140402',
+            'id': 'D0005110301_00002',
+            'title': '考えるカラス～科学の考え方～ - ＃１',
+            'duration': 600,
             'ext': 'mp4',
-
-            'chapters': 'count:12',
+            'chapters': 'count:7',
+            'series': '考えるカラス～科学の考え方～',
+            'episode': '＃１',
         },
         'params': {
             # m3u8 download
@@ -474,42 +472,94 @@ class NhkForSchoolBangumiIE(InfoExtractor):
         program_type, video_id = self._match_valid_url(url).groups()
 
         webpage = self._download_webpage(
-            f'https://www2.nhk.or.jp/school/movie/{program_type}.cgi?das_id={video_id}', video_id)
+            f'https://www2.nhk.or.jp/school/watch/{program_type}/?das_id={video_id}', video_id)
 
-        # searches all variables
-        base_values = {g.group(1): g.group(2) for g in re.finditer(r'var\s+([a-zA-Z_]+)\s*=\s*"([^"]+?)";', webpage)}
-        # and programObj values too
-        program_values = {g.group(1): g.group(3) for g in re.finditer(r'(?:program|clip)Obj\.([a-zA-Z_]+)\s*=\s*(["\'])([^"]+?)\2;', webpage)}
+        # Search programObj
+        program_values = {}
+        program_obj_match = re.search(r'let\s+programObj\s*=\s*\{([^}]+)\};', webpage)
+        if program_obj_match:
+            obj_content = program_obj_match.group(1)
+            for prop_match in re.finditer(r'([a-zA-Z_]+):\s*"([^"]*)"', obj_content):
+                program_values[prop_match.group(1)] = prop_match.group(2)
+        timestamp_match = re.search(r'r_upload\s*=\s*"([^"]+)"', webpage)
+        if timestamp_match:
+            timestamp = timestamp_match.group(1)
+
         # extract all chapters
-        chapter_durations = [parse_duration(g.group(1)) for g in re.finditer(r'chapterTime\.push\(\'([0-9:]+?)\'\);', webpage)]
+        chapter_time_match = re.search(r'let\s+chapterTime\s*=\s*\[([^\]]+)\];', webpage)
+        if chapter_time_match:
+            chapter_values = chapter_time_match.group(1)
+            chapter_durations = [float(match.group(1)) for match in re.finditer(r'"([^"]+)"', chapter_values)]
         chapter_titles = [' '.join([g.group(1) or '', unescapeHTML(g.group(2))]).strip() for g in re.finditer(r'<div class="cpTitle"><span>(scene\s*\d+)?</span>([^<]+?)</div>', webpage)]
-
         # this is how player_core.js is actually doing (!)
-        version = base_values.get('r_version') or program_values.get('version')
+        version = program_values.get('version')
         if version:
             video_id = f'{video_id.split("_")[0]}_{version}'
 
         formats = self._extract_m3u8_formats(
-            f'https://nhks-vh.akamaihd.net/i/das/{video_id[0:8]}/{video_id}_V_000.f4v/master.m3u8',
+            f'https://vod-stream.nhk.jp/das/{video_id[0:8]}/{video_id}_V_000/index.m3u8',
             video_id, ext='mp4', m3u8_id='hls')
 
-        duration = parse_duration(base_values.get('r_duration'))
+        # Handle duration from either source
+        duration_str = program_values.get('duration')
+        if duration_str and ':' in duration_str:
+            # Handle format like '00:10:00:0' which is HH:MM:SS:frame, not standard HH:MM:SS
+            parts = duration_str.split(':')
+            if len(parts) == 4:  # HH:MM:SS:frame format
+                hours, minutes, seconds, _ = parts
+                duration = int(hours) * 3600 + int(minutes) * 60 + int(seconds)
+            else:
+                duration = parse_duration(duration_str)
+        else:
+            duration = parse_duration(duration_str)
 
         chapters = None
-        if chapter_durations and chapter_titles and len(chapter_durations) == len(chapter_titles):
-            start_time = chapter_durations
-            end_time = [*chapter_durations[1:], duration]
-            chapters = [{
-                'start_time': s,
-                'end_time': e,
-                'title': t,
-            } for s, e, t in zip(start_time, end_time, chapter_titles)]
+        if chapter_durations and chapter_titles:
+            # chapter_durations includes start (0.0) + chapter breaks, but we only have titles for actual chapters
+            if len(chapter_durations) == len(chapter_titles) + 1:
+                # Standard case: we have start + N chapter breaks, and N chapter titles
+                start_time = chapter_durations[:-1]  # All but the last
+                end_time = chapter_durations[1:]     # All but the first
+                if duration and end_time:
+                    end_time[-1] = duration  # Replace last end time with total duration
+                chapters = [{
+                    'start_time': s,
+                    'end_time': e,
+                    'title': t,
+                } for s, e, t in zip(start_time, end_time, chapter_titles)]
+            elif len(chapter_durations) == len(chapter_titles):
+                # Equal case: same number of durations and titles
+                start_time = chapter_durations
+                end_time = [*chapter_durations[1:], duration]
+                chapters = [{
+                    'start_time': s,
+                    'end_time': e,
+                    'title': t,
+                } for s, e, t in zip(start_time, end_time, chapter_titles)]
+
+        # Extract series title from HTML if available
+        series_title = self._html_search_regex(
+            r'<div class="onair">([^<]+)</div>', webpage, 'series title', fatal=False)
+
+        # Try to get episode title from multiple sources
+        episode_title = (
+            self._html_search_regex(r'<div class="title">([^<]+)</div>', webpage, 'episode title', fatal=False)
+            or self._html_search_regex(r'<title>([^|]+)', webpage, 'page title', fatal=False)
+        )
+
+        # Combine series and episode titles
+        if series_title and episode_title:
+            title = f'{series_title} - {episode_title}'
+        else:
+            title = episode_title or series_title or 'Unknown'
 
         return {
             'id': video_id,
-            'title': program_values.get('name'),
-            'duration': parse_duration(base_values.get('r_duration')),
-            'timestamp': unified_timestamp(base_values['r_upload']),
+            'title': title,
+            'series': series_title,
+            'episode': episode_title,
+            'duration': duration,
+            'timestamp': unified_timestamp(timestamp),
             'formats': formats,
             'chapters': chapters,
         }
