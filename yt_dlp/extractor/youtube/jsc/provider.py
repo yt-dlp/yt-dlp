@@ -55,6 +55,7 @@ class JsChallengeProviderResponse:
 @dataclasses.dataclass
 class JsChallengeResponse:
     challenge_result: str
+    request: JsChallengeRequest
 
 
 class JsChallengeProviderRejectedRequest(IEContentProviderError):

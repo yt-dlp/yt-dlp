@@ -44,7 +44,7 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
             self._extract_signature_function, 'sig', request.player_url, self._signature_cache_id(request.challenge))
         func = extract_sig(request.video_id, request.player_url, request.challenge)
         self._print_sig_code(func, request.challenge)
-        return JsChallengeResponse(challenge_result=func(request.challenge))
+        return JsChallengeResponse(challenge_result=func(request.challenge), request=request)
 
     def _solve_nsig_challenge(self, request: JsChallengeRequest) -> JsChallengeResponse:
         """Turn the encrypted n field into a working signature"""
@@ -73,7 +73,7 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
         self.logger.debug(f'Decrypted nsig {request.challenge} => {ret}')
         # Only cache nsig func JS code to disk if successful, and only once
         self.ie._store_player_data_to_cache('nsig', player_url, func_code)
-        return JsChallengeResponse(challenge_result=ret)
+        return JsChallengeResponse(challenge_result=ret, request=request)
 
     # region sig
     def _extract_signature_function(self, video_id, player_url, example_sig):
