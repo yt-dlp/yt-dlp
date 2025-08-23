@@ -74,9 +74,9 @@ class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must
             raise JsChallengeProviderRejectedRequest('Challenges longer than 255 are not supported', expected=True)
             
 
-        # ℹ️ Settings are pulled from extractor args passed to yt-dlp with the key `youtubejs-<PROVIDER_KEY>`.
+        # ℹ️ Settings are pulled from extractor args passed to yt-dlp with the key `youtubejsc-<PROVIDER_KEY>`.
         # For this example, the extractor arg would be:
-        # `--extractor-args "youtubejs-myjschallengeprovider:bin_path=/path/to/bin"`
+        # `--extractor-args "youtubejsc-myjschallengeprovider:bin_path=/path/to/bin"`
         bin_path = self._configuration_arg(
             'bin_path', default=['/path/to/bin'])[0]
         
@@ -100,11 +100,12 @@ class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must
         
     # def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> list[JsChallengeProviderResponse]:
         # Optional bulk solve method, called when multiple requests are made at once.
-        # This is useful for providers that can handle multiple requests at once.
+        # This is useful for providers that can handle multiple requests at once efficiently.
+        # By default, this method calls the standalone solve method.
         
         # IMPORTANT: This method should NOT raise any errors. 
         # The method should return a list of JsChallengeProviderResponse objects for every request. 
-        # In case of an error, return a JsChallengeProviderResponse with the error set.
+        # In case of an error, return a JsChallengeProviderResponse with the error set (following the same error guidelines as _real_solve)
 
 
 # If there are multiple JS Challenge Providers that can handle the same JsChallengeRequest(s),
