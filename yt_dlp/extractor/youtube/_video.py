@@ -3175,6 +3175,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             def process_https_formats():
                 proto = 'https'
+                https_fmts = []
                 for fmt_stream in streaming_formats:
                     if fmt_stream.get('targetDurationSec'):
                         continue
@@ -3207,6 +3208,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not fmt:
                         continue
 
+                    fmt['_jsc_requests'] = []
+
                     fmt_url = fmt_stream.get('url')
                     if not fmt_url:
                         sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
@@ -3225,57 +3228,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             self.report_warning(msg, video_id, only_once=True)
                             continue
 
-                        challenge_response = self._jsc_director.solve(
-                            JsChallengeRequest(
-                                challenge=encrypted_sig, video_id=video_id,
-                                player_url=player_url, type=JsChallengeType.SIG))
-
-                        if not challenge_response:
-                            self.report_warning(
-                                f'Signature extraction failed: Some formats may be missing\n'
-                                f'         player = {player_url}\n'
-                                f'         {bug_reports_message(before="")}',
-                                video_id=video_id, only_once=True)
-                            self.write_debug(
-                                f'{video_id}: Signature extraction failure info:\n'
-                                f'         encrypted sig = {encrypted_sig}\n'
-                                f'         player = {player_url}')
-                            # self.write_debug(e, only_once=True)
-                            continue
-
-                        fmt_url += '&{}={}'.format(
-                            traverse_obj(sc, ('sp', -1)) or 'signature',
-                            challenge_response.challenge_result,
-                        )
+                        fmt['_jsc_requests'].append(JsChallengeRequest(
+                            challenge=encrypted_sig, video_id=video_id,
+                            player_url=player_url, type=JsChallengeType.SIG))
+                        fmt['_sc'] = sc
 
                     query = parse_qs(fmt_url)
                     if query.get('n'):
                         n_challenge = query['n'][0]
-                        decrypted_nsig = self._player_cache.get(n_challenge)
-                        if not decrypted_nsig:
-                            challenge_response = self._jsc_director.solve(
-                                JsChallengeRequest(
-                                    challenge=n_challenge, video_id=video_id,
-                                    player_url=player_url, type=JsChallengeType.NSIG))
-                            if not challenge_response:
-                                if player_url:
-                                    self.report_warning(
-                                        f'nsig extraction failed: Some formats may be missing\n'
-                                        f'         n = {query["n"][0]} ; player = {player_url}\n'
-                                        f'         {bug_reports_message(before="")}',
-                                        video_id=video_id, only_once=True)
-                                    # self.write_debug(e, only_once=True)
-                                else:
-                                    self.report_warning(
-                                        'Cannot decrypt nsig without player_url: Some formats may be missing',
-                                        video_id=video_id, only_once=True)
-                                continue
-                            decrypted_nsig = challenge_response.challenge_result
-                            self._player_cache[n_challenge] = decrypted_nsig
-
-                        fmt_url = update_url_query(fmt_url, {
-                            'n': decrypted_nsig,
-                        })
+                        if n_challenge in self._player_cache:
+                            fmt_url = update_url_query(fmt_url, {'n': self._player_cache[n_challenge]})
+                        else:
+                            fmt['_jsc_requests'].append(JsChallengeRequest(
+                                challenge=n_challenge, video_id=video_id,
+                                player_url=player_url, type=JsChallengeType.NSIG))
 
                     if po_token:
                         fmt_url = update_url_query(fmt_url, {'pot': po_token})
@@ -3291,17 +3257,68 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         fmt['available_at'] = available_at
 
                     if (all_formats or 'dashy' in format_types) and fmt['filesize']:
-                        yield {
+                        https_fmts.append({
                             **fmt,
                             'format_id': f'{fmt["format_id"]}-dashy' if all_formats else fmt['format_id'],
                             'protocol': 'http_dash_segments',
                             'fragments': build_fragments(fmt),
-                        }
+                        })
                     if all_formats or 'dashy' not in format_types:
                         fmt['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
-                        yield fmt
+                        https_fmts.append(fmt)
 
-            # TODO: bulk sig/nsig handling
+                # Bulk process sig/nsig handling
+                # Retrieve all JSC Sig and Nsig requests for this player response in one go
+                challenge_requests = {}
+                for fmt in https_fmts:
+                    # This will de-duplicate requests
+                    for jsc_request in fmt.pop('_jsc_requests', []):
+                        challenge_requests.setdefault(jsc_request, []).append(fmt)
+
+                if challenge_requests:
+                    challenge_responses = self._jsc_director.solve_bulk(
+                        list(challenge_requests.keys()))
+                    for challenge_response in challenge_responses:
+                        cfmts = challenge_requests.pop(challenge_response.request, [])
+                        if not cfmts:
+                            self.report_warning('failed to match challenge response to fmts')
+                            continue
+                        for cfmt in cfmts:
+                            if challenge_response.request.type == JsChallengeType.SIG:
+                                sc = cfmt.pop('_sc')
+                                cfmt['url'] += '&{}={}'.format(
+                                    traverse_obj(sc, ('sp', -1)) or 'signature',
+                                    challenge_response.challenge_result)
+
+                            elif challenge_response.request.type == JsChallengeType.NSIG:
+                                decrypted_nsig = challenge_response.challenge_result
+                                self._player_cache[challenge_response.request.challenge] = decrypted_nsig
+                                cfmt['url'] = update_url_query(cfmt['url'], {'n': decrypted_nsig})
+
+                    # Raise warning if any challenge requests remain
+                    # Depending on type of challenge request
+                    # TODO: this could happen as there are no supported JSC Providers
+                    # TODO: cleanup
+                    if challenge_requests:
+                        for cfmts in challenge_requests.values():
+                            for fmt in cfmts:
+                                if fmt in https_fmts:
+                                    https_fmts.remove(fmt)
+                        if any(req.type == JsChallengeType.SIG for req in challenge_requests):
+                            self.report_warning(
+                                f'Signature extraction failed: Some formats may be missing\n'
+                                f'         player = {player_url}\n'
+                                f'         {bug_reports_message(before="")}',
+                                video_id=video_id, only_once=True)
+                        elif any(req.type == JsChallengeType.NSIG for req in challenge_requests):
+                            self.report_warning(
+                                f'nsig extraction failed: Some formats may be missing\n'
+                                f'         player = {player_url}\n'
+                                f'         {bug_reports_message(before="")}',
+                                video_id=video_id, only_once=True)
+
+                yield from https_fmts
+
             yield from process_https_formats()
 
             needs_live_processing = self._needs_live_processing(live_status, duration)

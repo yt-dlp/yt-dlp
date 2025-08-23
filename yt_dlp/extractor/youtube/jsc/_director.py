@@ -57,7 +57,7 @@ class JsChallengeRequestDirector:
             if provider.is_available()
         )
 
-    def bulk_solve(self, requests: list[JsChallengeRequest]) -> list[JsChallengeResponse]:
+    def solve_bulk(self, requests: list[JsChallengeRequest]) -> list[JsChallengeResponse]:
         """Solves multiple JS Challenges in bulk, returning a list of responses"""
         if not self.providers:
             self.logger.trace('No JS Challenge providers registered')
@@ -122,7 +122,7 @@ class JsChallengeRequestDirector:
         return results
 
     def solve(self, request: JsChallengeRequest) -> JsChallengeResponse | None:
-        responses = self.bulk_solve([request])
+        responses = self.solve_bulk([request])
         return responses[0] if responses else None
 
     def close(self):

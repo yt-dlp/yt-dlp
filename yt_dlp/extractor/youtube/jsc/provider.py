@@ -34,7 +34,7 @@ class JsChallengeType(enum.Enum):
     SIG = 'sig'
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class JsChallengeRequest:
     type: JsChallengeType
     challenge: str
