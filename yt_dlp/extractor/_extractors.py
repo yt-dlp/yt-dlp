@@ -164,6 +164,10 @@ from .asobichannel import (
 from .asobistage import AsobiStageIE
 from .atresplayer import AtresPlayerIE
 from .atscaleconf import AtScaleConfEventIE
+from .atv import (
+    AtvIE,
+    AtvSeriesIE,
+)
 from .atvat import ATVAtIE
 from .audimedia import AudiMediaIE
 from .audioboom import AudioBoomIE
