@@ -90,7 +90,7 @@ class IEContentProvider(abc.ABC):
     @classproperty
     def PROVIDER_KEY(cls) -> str:
         assert hasattr(cls, '_PROVIDER_KEY_SUFFIX'), 'Content Provider implementation must define a suffix for the provider key'
-        assert cls.__name__.endswith(cls._PROVIDER_KEY_SUFFIX), f'PoTokenProvider class names must end with "{cls._PROVIDER_KEY_SUFFIX}"'
+        assert cls.__name__.endswith(cls._PROVIDER_KEY_SUFFIX), f'Class name must end with "{cls._PROVIDER_KEY_SUFFIX}"'
         return cls.__name__[:-len(cls._PROVIDER_KEY_SUFFIX)]
 
     @abc.abstractmethod
