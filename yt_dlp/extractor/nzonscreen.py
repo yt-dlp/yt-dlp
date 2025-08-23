@@ -41,11 +41,20 @@ class NZOnScreenVideoIE(InfoExtractor):
         except Exception as e:
             raise ExtractorError(f'Failed to extract video {uuid}: {e!s}')
 
+        # Get webpage for alt_title extraction
+        webpage = self._download_webpage(f'https://www.nzonscreen.com/title/{display_id}', uuid, fatal=False)
+        alt_title = None
+        if webpage:
+            alt_title = strip_or_none(remove_end(
+                self._html_extract_title(webpage, default=None) or self._og_search_title(webpage, default=None),
+                ' | NZ On Screen'))
+
         return {
             'id': uuid,
             'display_id': display_id,
             'title': strip_or_none(playlist.get('label')),
             'description': strip_or_none(playlist.get('description')),
+            'alt_title': alt_title,
             'thumbnail': traverse_obj(playlist, ('thumbnail', 'path')),
             'duration': float_or_none(playlist.get('duration')),
             'formats': self._extract_formats(playlist, uuid),
