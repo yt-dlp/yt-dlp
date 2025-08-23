@@ -3,11 +3,11 @@ from __future__ import annotations
 import typing
 from collections.abc import Iterable
 
-from yt_dlp.extractor.youtube.js._registry import (
+from yt_dlp.extractor.youtube.jsc._registry import (
     _jsc_preferences,
     _jsc_providers,
 )
-from yt_dlp.extractor.youtube.js.provider import (
+from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
     JsChallengeProviderRejectedRequest,
@@ -23,7 +23,7 @@ from yt_dlp.extractor.youtube.pot.provider import (
 )
 
 if typing.TYPE_CHECKING:
-    from yt_dlp.extractor.youtube.js.provider import Preference as JsChallengePreference
+    from yt_dlp.extractor.youtube.jsc.provider import Preference as JsChallengePreference
 
 
 class JsChallengeRequestDirector:
@@ -130,14 +130,14 @@ class JsChallengeRequestDirector:
             provider.close()
 
 
-EXTRACTOR_ARG_PREFIX = 'youtubejs'
+EXTRACTOR_ARG_PREFIX = 'youtubejsc'
 
 
 def initialize_jsc_director(ie):
     assert ie._downloader is not None, 'Downloader not set'
 
     enable_trace = ie._configuration_arg(
-        'js_trace', ['false'], ie_key='youtube', casesense=False)[0] == 'true'
+        'jsc_trace', ['false'], ie_key='youtube', casesense=False)[0] == 'true'
 
     if enable_trace:
         log_level = IEContentProviderLogger.LogLevel.TRACE
@@ -154,13 +154,13 @@ def initialize_jsc_director(ie):
             ie.get_param('extractor_args', {}).get(extractor_key, {}))
 
     director = JsChallengeRequestDirector(
-        logger=YoutubeIEContentProviderLogger(ie, 'js', log_level=log_level),
+        logger=YoutubeIEContentProviderLogger(ie, 'jsc', log_level=log_level),
     )
 
     ie._downloader.add_close_hook(director.close)
 
     for provider in _jsc_providers.value.values():
-        logger, settings = get_provider_logger_and_settings(provider, 'js')
+        logger, settings = get_provider_logger_and_settings(provider, 'jsc')
         director.register_provider(provider(ie, logger, settings))
 
     for preference in _jsc_preferences.value:

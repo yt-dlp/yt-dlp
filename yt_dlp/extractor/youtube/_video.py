@@ -24,8 +24,8 @@ from ._base import (
     _split_innertube_client,
     short_client_name,
 )
-from .js._director import initialize_jsc_director
-from .js.provider import JsChallengeRequest, JsChallengeType
+from .jsc._director import initialize_jsc_director
+from .jsc.provider import JsChallengeRequest, JsChallengeType
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
 from ...networking.exceptions import HTTPError

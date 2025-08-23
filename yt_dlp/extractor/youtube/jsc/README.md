@@ -8,8 +8,8 @@ As part of the YouTube extractor, we have a framework for solving JS Challenges 
 
 ## Public APIs
 
-- `yt_dlp.extractor.youtube.js.provider`
-- `yt_dlp.extractor.youtube.js.utils`
+- `yt_dlp.extractor.youtube.jsc.provider`
+- `yt_dlp.extractor.youtube.jsc.utils`
 
 Everything else is internal-only and no guarantees are made about the API stability.
 
@@ -20,10 +20,10 @@ Everything else is internal-only and no guarantees are made about the API stabil
 
 ## JS Challenge Provider
 
-`yt_dlp.extractor.youtube.js.provider`
+`yt_dlp.extractor.youtube.jsc.provider`
 
 ```python
-from yt_dlp.extractor.youtube.js.provider import (
+from yt_dlp.extractor.youtube.jsc.provider import (
     register_provider,
     register_preference,
     JsChallengeProvider,
@@ -69,7 +69,7 @@ class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must
 
     def _real_solve(self, request: JsChallengeRequest) -> JsChallengeResponse:
         # ℹ️ If you need to validate the request before making the request to the external source.
-        # Raise yt_dlp.extractor.youtube.js.provider.JsChallengeProviderRejectedRequest if the request is not supported.
+        # Raise yt_dlp.extractor.youtube.jsc.provider.JsChallengeProviderRejectedRequest if the request is not supported.
         if len(request.challenge) > 255:
             raise JsChallengeProviderRejectedRequest('Challenges longer than 255 are not supported', expected=True)
             
@@ -121,4 +121,4 @@ todo
 
 ## Debugging
 
-- Use `-v --extractor-args "youtube:js_trace=true"` to enable JS Challenge debug output.
+- Use `-v --extractor-args "youtube:jsc_trace=true"` to enable JS Challenge debug output.

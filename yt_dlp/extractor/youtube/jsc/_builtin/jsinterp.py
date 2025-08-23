@@ -4,7 +4,7 @@ import re
 import traceback
 
 from yt_dlp import join_nonempty, traverse_obj
-from yt_dlp.extractor.youtube.js.provider import (
+from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
     JsChallengeProviderRejectedRequest,
@@ -325,7 +325,7 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
 
     def _interpret_player_js_global_var(self, jscode, player_url):
         """Returns tuple of: variable name string, variable value list"""
-        extract_global_var = self.ie._cached(self.ie._search_regex, 'js global array', player_url)
+        extract_global_var = self.ie._cached(self.ie._search_regex, 'jsc global array', player_url)
         varcode, varname, varvalue = extract_global_var(
             r'''(?x)
                 (?P<q1>["\'])use\s+strict(?P=q1);\s*
@@ -346,5 +346,5 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
             return None, None
 
         jsi = JSInterpreter(varcode)
-        interpret_global_var = self.ie._cached(jsi.interpret_expression, 'js global list', player_url)
+        interpret_global_var = self.ie._cached(jsi.interpret_expression, 'jsc global list', player_url)
         return varname, interpret_global_var(varvalue, LocalNameSpace(), allow_recursion=10)

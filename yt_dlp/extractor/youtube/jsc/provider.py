@@ -7,7 +7,7 @@ import dataclasses
 import enum
 import typing
 
-from yt_dlp.extractor.youtube.js._registry import _jsc_preferences, _jsc_providers
+from yt_dlp.extractor.youtube.jsc._registry import _jsc_preferences, _jsc_providers
 from yt_dlp.extractor.youtube.pot._provider import (
     IEContentProvider,
     IEContentProviderError,
