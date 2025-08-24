@@ -129,7 +129,7 @@ class GoogleDriveIE(InfoExtractor):
                     'lang': (caption_lang_code if origin_lang_code is None
                              else origin_lang_code),
                     'type': 'track',
-                    'name': '',
+                    'name': caption_entry.attrib.get('name', ''),
                     'kind': '',
                 }
                 if origin_lang_code is not None:
@@ -268,10 +268,9 @@ class GoogleDriveIE(InfoExtractor):
         subtitles_id = None
         ttsurl = get_value('ttsurl')
         if ttsurl:
-            # the video Id for subtitles will be the last value in the ttsurl
-            # query string
-            subtitles_id = ttsurl.encode().decode(
-                'unicode_escape').split('=')[-1]
+            # the subtitles ID is the vid param of the ttsurl query
+            subtitles_id = urllib.parse.parse_qs(
+                urllib.parse.urlparse(ttsurl).query).get('vid', [None])[0]
 
         self.cookiejar.clear(domain='.google.com', path='/', name='NID')
 
