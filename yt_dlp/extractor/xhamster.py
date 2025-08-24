@@ -275,14 +275,16 @@ class XHamsterIE(InfoExtractor):
                                     },
                                 })
 
-            subtitles = {}
-            if subtitle_dict := traverse_obj(initials, ('xplayerPluginSettings', 'subtitles', 'tracks'), expected_type=list):
-                for item in subtitle_dict:
-                    subtitles.update(
-                        {item['lang']: [{'ext': 'vtt',
-                                         'url': item['urls']['vtt'],
-                                         'name': item['label'],
-                                         }]})
+            subtitles = {
+                item['lang']: [{'ext': 'vtt',
+                                'url': item['urls']['vtt'],
+                                'name': item['label'],
+                                }] for item in traverse_obj(
+                    initials,
+                    ('xplayerPluginSettings', 'subtitles', 'tracks'),
+                    expected_type=list,
+                )
+            }
 
             categories_list = video.get('categories')
             if isinstance(categories_list, list):
