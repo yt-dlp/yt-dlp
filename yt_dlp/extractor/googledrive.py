@@ -12,6 +12,7 @@ from ..utils import (
     get_element_html_by_id,
     int_or_none,
     lowercase_escape,
+    parse_qs,
     try_get,
     update_url_query,
 )
@@ -118,7 +119,11 @@ class GoogleDriveIE(InfoExtractor):
         for caption_entry in self._captions_xml.findall(
                 self._CAPTIONS_ENTRY_TAG[caption_type]):
             caption_lang_code = caption_entry.attrib.get('lang_code')
-            if not caption_lang_code:
+            caption_name = caption_entry.attrib.get('name')
+            if not caption_lang_code or not caption_name:
+                self.report_warning(f'Missing necessary caption metadata. '
+                                    f'Need lang_code and name attributes. '
+                                    f'Found: {caption_entry.attrib}')
                 continue
             caption_format_data = []
             for caption_format in self._caption_formats_ext:
@@ -129,7 +134,7 @@ class GoogleDriveIE(InfoExtractor):
                     'lang': (caption_lang_code if origin_lang_code is None
                              else origin_lang_code),
                     'type': 'track',
-                    'name': caption_entry.attrib.get('name', ''),
+                    'name': caption_name,
                     'kind': '',
                 }
                 if origin_lang_code is not None:
@@ -269,8 +274,7 @@ class GoogleDriveIE(InfoExtractor):
         ttsurl = get_value('ttsurl')
         if ttsurl:
             # the subtitles ID is the vid param of the ttsurl query
-            subtitles_id = urllib.parse.parse_qs(
-                urllib.parse.urlparse(ttsurl).query).get('vid', [None])[0]
+            subtitles_id = parse_qs(ttsurl).get('vid', [None])[0]
 
         self.cookiejar.clear(domain='.google.com', path='/', name='NID')
 
