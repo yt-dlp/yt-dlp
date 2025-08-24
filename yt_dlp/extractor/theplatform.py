@@ -12,11 +12,13 @@ from ..utils import (
     float_or_none,
     int_or_none,
     mimetype2ext,
+    parse_age_limit,
     parse_qs,
     traverse_obj,
     unsmuggle_url,
     update_url,
     update_url_query,
+    url_or_none,
     urlhandle_detect_ext,
     xpath_with_ns,
 )
@@ -63,62 +65,53 @@ class ThePlatformBaseIE(AdobePassIE):
 
         return formats, subtitles
 
-    def _download_theplatform_metadata(self, path, video_id):
-        info_url = f'http://link.theplatform.{self._TP_TLD}/s/{path}?format=preview'
-        return self._download_json(info_url, video_id)
+    def _download_theplatform_metadata(self, path, video_id, fatal=True):
+        return self._download_json(
+            f'https://link.theplatform.{self._TP_TLD}/s/{path}', video_id,
+            fatal=fatal, query={'format': 'preview'}) or {}
 
-    def _parse_theplatform_metadata(self, info):
-        subtitles = {}
-        captions = info.get('captions')
-        if isinstance(captions, list):
-            for caption in captions:
-                lang, src, mime = caption.get('lang', 'en'), caption.get('src'), caption.get('type')
-                subtitles.setdefault(lang, []).append({
-                    'ext': mimetype2ext(mime),
-                    'url': src,
-                })
+    @staticmethod
+    def _parse_theplatform_metadata(tp_metadata):
+        def site_specific_filter(*fields):
+            return lambda k, v: v and k.endswith(tuple(f'${f}' for f in fields))
 
-        duration = info.get('duration')
-        tp_chapters = info.get('chapters', [])
-        chapters = []
-        if tp_chapters:
-            def _add_chapter(start_time, end_time):
-                start_time = float_or_none(start_time, 1000)
-                end_time = float_or_none(end_time, 1000)
-                if start_time is None or end_time is None:
-                    return
-                chapters.append({
-                    'start_time': start_time,
-                    'end_time': end_time,
-                })
+        info = traverse_obj(tp_metadata, {
+            'title': ('title', {str}),
+            'episode': ('title', {str}),
+            'description': ('description', {str}),
+            'thumbnail': ('defaultThumbnailUrl', {url_or_none}),
+            'duration': ('duration', {float_or_none(scale=1000)}),
+            'timestamp': ('pubDate', {float_or_none(scale=1000)}),
+            'uploader': ('billingCode', {str}),
+            'creators': ('author', {str}, filter, all, filter),
+            'categories': (
+                'categories', lambda _, v: v.get('label') in ['category', None],
+                'name', {str}, filter, all, filter),
+            'tags': ('keywords', {str}, filter, {lambda x: re.split(r'[;,]\s?', x)}, filter),
+            'age_limit': ('ratings', ..., 'rating', {parse_age_limit}, any),
+            'season_number': (site_specific_filter('seasonNumber'), {int_or_none}, any),
+            'episode_number': (site_specific_filter('episodeNumber', 'airOrder'), {int_or_none}, any),
+            'series': (site_specific_filter('show', 'seriesTitle', 'seriesShortTitle'), (None, ...), {str}, any),
+            'location': (site_specific_filter('region'), {str}, any),
+            'media_type': (site_specific_filter('programmingType', 'type'), {str}, any),
+        })
 
-            for chapter in tp_chapters[:-1]:
-                _add_chapter(chapter.get('startTime'), chapter.get('endTime'))
-            _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime') or duration)
+        chapters = traverse_obj(tp_metadata, ('chapters', ..., {
+            'start_time': ('startTime', {float_or_none(scale=1000)}),
+            'end_time': ('endTime', {float_or_none(scale=1000)}),
+        }))
+        # Ignore pointless single chapters from short videos that span the entire video's duration
+        if len(chapters) > 1 or traverse_obj(chapters, (0, 'end_time')):
+            info['chapters'] = chapters
 
-        def extract_site_specific_field(field):
-            # A number of sites have custom-prefixed keys, e.g. 'cbc$seasonNumber'
-            return traverse_obj(info, lambda k, v: v and k.endswith(f'${field}'), get_all=False)
+        info['subtitles'] = {}
+        for caption in traverse_obj(tp_metadata, ('captions', lambda _, v: url_or_none(v['src']))):
+            info['subtitles'].setdefault(caption.get('lang') or 'en', []).append({
+                'url': caption['src'],
+                'ext': mimetype2ext(caption.get('type')),
+            })
 
-        return {
-            'title': info['title'],
-            'subtitles': subtitles,
-            'description': info['description'],
-            'thumbnail': info['defaultThumbnailUrl'],
-            'duration': float_or_none(duration, 1000),
-            'timestamp': int_or_none(info.get('pubDate'), 1000) or None,
-            'uploader': info.get('billingCode'),
-            'chapters': chapters,
-            'creator': traverse_obj(info, ('author', {str})) or None,
-            'categories': traverse_obj(info, (
-                'categories', lambda _, v: v.get('label') in ('category', None), 'name', {str})) or None,
-            'tags': traverse_obj(info, ('keywords', {lambda x: re.split(r'[;,]\s?', x) if x else None})),
-            'location': extract_site_specific_field('region'),
-            'series': extract_site_specific_field('show') or extract_site_specific_field('seriesTitle'),
-            'season_number': int_or_none(extract_site_specific_field('seasonNumber')),
-            'episode_number': int_or_none(extract_site_specific_field('episodeNumber')),
-            'media_type': extract_site_specific_field('programmingType') or extract_site_specific_field('type'),
-        }
+        return info
 
     def _extract_theplatform_metadata(self, path, video_id):
         info = self._download_theplatform_metadata(path, video_id)

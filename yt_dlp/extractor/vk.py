@@ -5,7 +5,6 @@ import re
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from .odnoklassniki import OdnoklassnikiIE
-from .pladform import PladformIE
 from .sibnet import SibnetEmbedIE
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
@@ -335,11 +334,6 @@ class VKIE(VKBaseIE):
             'only_matching': True,
         },
         {
-            # pladform embed
-            'url': 'https://vk.com/video-76116461_171554880',
-            'only_matching': True,
-        },
-        {
             'url': 'http://new.vk.com/video205387401_165548505',
             'only_matching': True,
         },
@@ -456,10 +450,6 @@ class VKIE(VKBaseIE):
         if vimeo_url is not None:
             return self.url_result(vimeo_url, VimeoIE.ie_key())
 
-        pladform_url = PladformIE._extract_url(info_page)
-        if pladform_url:
-            return self.url_result(pladform_url, PladformIE.ie_key())
-
         m_rutube = re.search(
             r'\ssrc="((?:https?:)?//rutube\.ru\\?/(?:video|play)\\?/embed(?:.*?))\\?"', info_page)
         if m_rutube is not None:
@@ -548,21 +538,21 @@ class VKIE(VKBaseIE):
             'formats': formats,
             'subtitles': subtitles,
             **traverse_obj(mv_data, {
-                'title': ('title', {unescapeHTML}),
+                'title': ('title', {str}, {unescapeHTML}),
                 'description': ('desc', {clean_html}, filter),
                 'duration': ('duration', {int_or_none}),
                 'like_count': ('likes', {int_or_none}),
                 'comment_count': ('commcount', {int_or_none}),
             }),
             **traverse_obj(data, {
-                'title': ('md_title', {unescapeHTML}),
+                'title': ('md_title', {str}, {unescapeHTML}),
                 'description': ('description', {clean_html}, filter),
                 'thumbnail': ('jpg', {url_or_none}),
-                'uploader': ('md_author', {unescapeHTML}),
+                'uploader': ('md_author', {str}, {unescapeHTML}),
                 'uploader_id': (('author_id', 'authorId'), {str_or_none}, any),
                 'duration': ('duration', {int_or_none}),
                 'chapters': ('time_codes', lambda _, v: isinstance(v['time'], int), {
-                    'title': ('text', {unescapeHTML}),
+                    'title': ('text', {str}, {unescapeHTML}),
                     'start_time': 'time',
                 }),
             }),
