@@ -129,7 +129,7 @@ def ws_validate_and_send(rh, req):
 
 
 @pytest.mark.skipif(not websockets, reason='websockets must be installed to test websocket request handlers')
-@pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
+@pytest.mark.parametrize('handler', [pytest.param('Websockets', marks=pytest.mark.segfaults)], indirect=True)
 class TestWebsSocketRequestHandlerConformance:
     @classmethod
     def setup_class(cls):
@@ -438,7 +438,7 @@ def create_fake_ws_connection(raised):
     return FakeWsConnection()
 
 
-@pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
+@pytest.mark.parametrize('handler', [pytest.param('Websockets', marks=pytest.mark.segfaults)], indirect=True)
 class TestWebsocketsRequestHandler:
     @pytest.mark.parametrize('raised,expected', [
         # https://websockets.readthedocs.io/en/stable/reference/exceptions.html

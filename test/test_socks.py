@@ -292,8 +292,8 @@ def ctx(request):
     'handler,ctx', [
         ('Urllib', 'http'),
         ('Requests', 'http'),
-        ('Websockets', 'ws'),
-        ('CurlCFFI', 'http'),
+        pytest.param('Websockets', 'ws', marks=pytest.mark.segfaults),
+        pytest.param('CurlCFFI', 'http', marks=pytest.mark.segfaults),
     ], indirect=True)
 class TestSocks4Proxy:
     def test_socks4_no_auth(self, handler, ctx):
@@ -367,8 +367,8 @@ class TestSocks4Proxy:
     'handler,ctx', [
         ('Urllib', 'http'),
         ('Requests', 'http'),
-        ('Websockets', 'ws'),
-        ('CurlCFFI', 'http'),
+        pytest.param('Websockets', 'ws', marks=pytest.mark.segfaults),
+        pytest.param('CurlCFFI', 'http', marks=pytest.mark.segfaults),
     ], indirect=True)
 class TestSocks5Proxy:
 
