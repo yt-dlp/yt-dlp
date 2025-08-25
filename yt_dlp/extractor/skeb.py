@@ -54,14 +54,17 @@ class SkebIE(InfoExtractor):
     }, {
         'url': 'https://skeb.jp/@Yossshy_Music/works/13',
         'info_dict': {
-            'id': '13',
+            'ext': 'wav',
+            'id': '5566495',
+            'title': '13-1',
             'description': 'md5:1026b8b9ae38c67c2d995970ec196550',
             'uploader': 'Yossshy',
             'uploader_id': 'Yossshy_Music',
+            'duration': 336,
+            'thumbnail': r're:https?://.+',
             'tags': 'count:59',
             'genres': ['music'],
         },
-        'playlist_count': 1,
     }]
 
     def _call_api(self, uploader_id, work_id):
