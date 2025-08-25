@@ -112,14 +112,14 @@ class GoogleDriveIE(InfoExtractor):
                     self._caption_formats_ext.append(f.attrib['fmt_code'])
 
     def _get_captions_by_type(self, video_id, subtitles_id, caption_type,
-                              origin_lang_code=None):
+                              origin_lang_code=None, origin_lang_name=None):
         if not subtitles_id or not caption_type:
             return
         captions = {}
         for caption_entry in self._captions_xml.findall(
                 self._CAPTIONS_ENTRY_TAG[caption_type]):
             caption_lang_code = caption_entry.attrib.get('lang_code')
-            caption_name = caption_entry.attrib.get('name')
+            caption_name = caption_entry.attrib.get('name') or origin_lang_name
             if not caption_lang_code or not caption_name:
                 self.report_warning(f'Missing necessary caption metadata. '
                                     f'Need lang_code and name attributes. '
@@ -160,14 +160,19 @@ class GoogleDriveIE(InfoExtractor):
         self._download_subtitles_xml(video_id, subtitles_id, hl)
         if not self._captions_xml:
             return
-        track = self._captions_xml.find('track')
+        track = None
+        for t in self._captions_xml.findall('track'):
+            if t.attrib.get('cantran') == 'true':
+                track = t
+                break
         if track is None:
             return
         origin_lang_code = track.attrib.get('lang_code')
-        if not origin_lang_code:
+        origin_lang_name = track.attrib.get('name')
+        if not origin_lang_code or not origin_lang_name:
             return
         return self._get_captions_by_type(
-            video_id, subtitles_id, 'automatic_captions', origin_lang_code)
+            video_id, subtitles_id, 'automatic_captions', origin_lang_code, origin_lang_name)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
