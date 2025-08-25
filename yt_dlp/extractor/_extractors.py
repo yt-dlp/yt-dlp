@@ -1857,6 +1857,7 @@ from .sixplay import SixPlayIE
 from .skeb import SkebIE
 from .sky import (
     SkyNewsIE,
+    SkyNewsLiveIE,
     SkyNewsStoryIE,
     SkySportsIE,
     SkySportsNewsIE,

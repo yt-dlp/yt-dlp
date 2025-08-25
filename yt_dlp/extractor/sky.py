@@ -81,6 +81,37 @@ class SkyNewsIE(SkyBaseIE):
     }
 
 
+class SkyNewsLiveIE(SkyBaseIE):
+    IE_NAME = 'sky:news:live'
+    _VALID_URL = r'https?://news\.sky\.com/watch-live/?$'
+    _TEST = {
+        'url': 'https://news.sky.com/watch-live',
+        'info_dict': {
+            'id': 'ref:89badd34-6615-4a81-aa2e-43571ddf347f',
+            'ext': 'mp4',
+            'title': str,
+            'description': 'Watch Sky News live',
+            'uploader_id': '6058004172001',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'tags': ['/video type/livestream', '/shape/16:9'],
+            'timestamp': 1677106168,
+            'upload_date': '20230222',
+            'live_status': 'is_live',
+        },
+        'add_ie': ['BrightcoveNew'],
+    }
+
+    def _real_extract(self, url):
+        webpage = self._download_webpage(url, None)
+
+        entries = [self._process_video_element(webpage, sdc_el, url)
+                   for sdc_el in re.findall(self._SDC_EL_REGEX, webpage)]
+
+        return self.playlist_result(
+            entries, None, self._og_search_title(webpage),
+            self._html_search_meta(['og:description', 'description'], webpage))
+
+
 class SkyNewsStoryIE(SkyBaseIE):
     IE_NAME = 'sky:news:story'
     _VALID_URL = r'https?://news\.sky\.com/story/[0-9a-z-]+-(?P<id>[0-9]+)'
