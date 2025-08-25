@@ -98,7 +98,6 @@ class SkyNewsLiveIE(SkyBaseIE):
             'upload_date': '20230222',
             'live_status': 'is_live',
         },
-        'add_ie': ['BrightcoveNew'],
     }
 
     def _real_extract(self, url):
