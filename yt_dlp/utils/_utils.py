@@ -1369,7 +1369,7 @@ def datetime_add_months(dt_, months):
 
 def datetime_from_timestamp(timestamp):
     # Calling dt.datetime.fromtimestamp with negative timestamps throws error in Windows
-    # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/94414,
+    # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/81708,
     # https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642
     return (dt.datetime.fromtimestamp(0, dt.timezone.utc) + dt.timedelta(seconds=timestamp))
 
