@@ -37,7 +37,7 @@ class PopcornTVIE(InfoExtractor):
         m3u8_url = extract_attributes(
             self._search_regex(
                 r'(<link[^>]+itemprop=["\'](?:content|embed)Url[^>]*>)',
-                webpage, 'content'
+                webpage, 'content',
             ))['href']
 
         formats = self._extract_m3u8_formats(

@@ -27,7 +27,7 @@ class CJSWIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         program, episode_id = mobj.group('program', 'id')
-        audio_id = '%s/%s' % (program, episode_id)
+        audio_id = f'{program}/{episode_id}'
 
         webpage = self._download_webpage(url, episode_id)
 

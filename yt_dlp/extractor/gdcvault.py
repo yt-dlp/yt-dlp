@@ -18,8 +18,8 @@ class GDCVaultIE(InfoExtractor):
                 'id': '201311826596_AWNY',
                 'display_id': 'Doki-Doki-Universe-Sweet-Simple',
                 'ext': 'mp4',
-                'title': 'Doki-Doki Universe: Sweet, Simple and Genuine (GDC Next 10)'
-            }
+                'title': 'Doki-Doki Universe: Sweet, Simple and Genuine (GDC Next 10)',
+            },
         },
         {
             'url': 'http://www.gdcvault.com/play/1015683/Embracing-the-Dark-Art-of',
@@ -27,11 +27,11 @@ class GDCVaultIE(InfoExtractor):
                 'id': '201203272_1330951438328RSXR',
                 'display_id': 'Embracing-the-Dark-Art-of',
                 'ext': 'flv',
-                'title': 'Embracing the Dark Art of Mathematical Modeling in AI'
+                'title': 'Embracing the Dark Art of Mathematical Modeling in AI',
             },
             'params': {
                 'skip_download': True,  # Requires rtmpdump
-            }
+            },
         },
         {
             'url': 'http://www.gdcvault.com/play/1015301/Thexder-Meets-Windows-95-or',
@@ -202,7 +202,7 @@ class GDCVaultIE(InfoExtractor):
                     'display_id': display_id,
                 })
                 return info
-            embed_url = '%s/xml/%s' % (xml_root, xml_name)
+            embed_url = f'{xml_root}/xml/{xml_name}'
             ie_key = 'DigitallySpeaking'
 
         return {

@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     int_or_none,
     try_get,
@@ -38,7 +37,7 @@ class BongaCamsIE(InfoExtractor):
         channel_id = mobj.group('id')
 
         amf = self._download_json(
-            'https://%s/tools/amf.php' % host, channel_id,
+            f'https://{host}/tools/amf.php', channel_id,
             data=urlencode_postdata((
                 ('method', 'getRoomData'),
                 ('args[]', channel_id),
@@ -48,14 +47,14 @@ class BongaCamsIE(InfoExtractor):
         server_url = amf['localData']['videoServerUrl']
 
         uploader_id = try_get(
-            amf, lambda x: x['performerData']['username'], compat_str) or channel_id
+            amf, lambda x: x['performerData']['username'], str) or channel_id
         uploader = try_get(
-            amf, lambda x: x['performerData']['displayName'], compat_str)
+            amf, lambda x: x['performerData']['displayName'], str)
         like_count = int_or_none(try_get(
             amf, lambda x: x['performerData']['loversCount']))
 
         formats = self._extract_m3u8_formats(
-            '%s/hls/stream_%s/playlist.m3u8' % (server_url, uploader_id),
+            f'{server_url}/hls/stream_{uploader_id}/playlist.m3u8',
             channel_id, 'mp4', m3u8_id='hls', live=True)
 
         return {

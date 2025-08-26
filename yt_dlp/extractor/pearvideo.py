@@ -19,7 +19,7 @@ class PearVideoIE(InfoExtractor):
             'description': 'md5:01d576b747de71be0ee85eb7cac25f9d',
             'timestamp': 1494275280,
             'upload_date': '20170508',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -43,7 +43,7 @@ class PearVideoIE(InfoExtractor):
                 query={'contId': video_id}, headers={'Referer': url})
             formats = [{
                 'format_id': k,
-                'url': v.replace(info['systemTime'], f'cont-{video_id}') if k == 'srcUrl' else v
+                'url': v.replace(info['systemTime'], f'cont-{video_id}') if k == 'srcUrl' else v,
             } for k, v in traverse_obj(info, ('videoInfo', 'videos'), default={}).items() if v]
 
         title = self._search_regex(

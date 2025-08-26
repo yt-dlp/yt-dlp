@@ -37,7 +37,7 @@ class CamFMShowIE(InfoExtractor):
             'thumbnail': urljoin('https://camfm.co.uk', self._search_regex(
                 r'<img[^>]+class="thumb-expand"[^>]+src="([^"]+)"', page, 'thumbnail', fatal=False)),
             'title': self._html_search_regex('<h1>([^<]+)</h1>', page, 'title', fatal=False),
-            'description': clean_html(get_element_by_class('small-12 medium-8 cell', page))
+            'description': clean_html(get_element_by_class('small-12 medium-8 cell', page)),
         }
 
 
@@ -56,7 +56,7 @@ class CamFMEpisodeIE(InfoExtractor):
             'series': 'AITAA: Am I the Agony Aunt?',
             'thumbnail': 'md5:5980a831360d0744c3764551be3d09c1',
             'categories': ['Entertainment'],
-        }
+        },
     }]
 
     def _real_extract(self, url):

@@ -2,7 +2,6 @@ import re
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -27,13 +26,13 @@ class ZattooPlatformBaseIE(InfoExtractor):
     def _perform_login(self, username, password):
         try:
             data = self._download_json(
-                '%s/zapi/v2/account/login' % self._host_url(), None, 'Logging in',
+                f'{self._host_url()}/zapi/v2/account/login', None, 'Logging in',
                 data=urlencode_postdata({
                     'login': username,
                     'password': password,
                     'remember': 'true',
                 }), headers={
-                    'Referer': '%s/login' % self._host_url(),
+                    'Referer': f'{self._host_url()}/login',
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 })
         except ExtractorError as e:
@@ -51,9 +50,9 @@ class ZattooPlatformBaseIE(InfoExtractor):
 
         # Will setup appropriate cookies
         self._request_webpage(
-            '%s/zapi/v3/session/hello' % self._host_url(), None,
+            f'{self._host_url()}/zapi/v3/session/hello', None,
             'Opening session', data=urlencode_postdata({
-                'uuid': compat_str(uuid.uuid4()),
+                'uuid': str(uuid.uuid4()),
                 'lang': 'en',
                 'app_version': '1.8.2',
                 'format': 'json',
@@ -72,8 +71,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
 
     def _extract_cid(self, video_id, channel_name):
         channel_groups = self._download_json(
-            '%s/zapi/v2/cached/channels/%s' % (self._host_url(),
-                                               self._power_guide_hash),
+            f'{self._host_url()}/zapi/v2/cached/channels/{self._power_guide_hash}',
             video_id, 'Downloading channel list',
             query={'details': False})['channel_groups']
         channel_list = []
@@ -90,8 +88,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
 
     def _extract_cid_and_video_info(self, video_id):
         data = self._download_json(
-            '%s/zapi/v2/cached/program/power_details/%s' % (
-                self._host_url(), self._power_guide_hash),
+            f'{self._host_url()}/zapi/v2/cached/program/power_details/{self._power_guide_hash}',
             video_id,
             'Downloading video information',
             query={
@@ -113,7 +110,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
             'season_number': int_or_none(p.get('s_no')),
             'release_year': int_or_none(p.get('year')),
             'categories': try_get(p, lambda x: x['c'], list),
-            'tags': try_get(p, lambda x: x['g'], list)
+            'tags': try_get(p, lambda x: x['g'], list),
         }
 
         return cid, info_dict
@@ -123,7 +120,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
         @returns    (ondemand_token, ondemand_type, info_dict)
         """
         data = self._download_json(
-            '%s/zapi/vod/movies/%s' % (self._host_url(), ondemand_id),
+            f'{self._host_url()}/zapi/vod/movies/{ondemand_id}',
             ondemand_id, 'Downloading ondemand information')
         info_dict = {
             'id': ondemand_id,
@@ -144,18 +141,18 @@ class ZattooPlatformBaseIE(InfoExtractor):
 
         if is_live:
             postdata_common.update({'timeshift': 10800})
-            url = '%s/zapi/watch/live/%s' % (self._host_url(), cid)
+            url = f'{self._host_url()}/zapi/watch/live/{cid}'
         elif record_id:
-            url = '%s/zapi/watch/recording/%s' % (self._host_url(), record_id)
+            url = f'{self._host_url()}/zapi/watch/recording/{record_id}'
         elif ondemand_id:
             postdata_common.update({
                 'teasable_id': ondemand_id,
                 'term_token': ondemand_termtoken,
-                'teasable_type': ondemand_type
+                'teasable_type': ondemand_type,
             })
-            url = '%s/zapi/watch/vod/video' % self._host_url()
+            url = f'{self._host_url()}/zapi/watch/vod/video'
         else:
-            url = '%s/zapi/v3/watch/replay/%s/%s' % (self._host_url(), cid, video_id)
+            url = f'{self._host_url()}/zapi/v3/watch/replay/{cid}/{video_id}'
         formats = []
         subtitles = {}
         for stream_type in ('dash', 'hls7'):
@@ -163,7 +160,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
             postdata['stream_type'] = stream_type
 
             data = self._download_json(
-                url, video_id, 'Downloading %s formats' % stream_type.upper(),
+                url, video_id, f'Downloading {stream_type.upper()} formats',
                 data=urlencode_postdata(postdata), fatal=False)
             if not data:
                 continue
@@ -218,7 +215,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
             'title': channel_name,
             'is_live': True,
             'formats': formats,
-            'subtitles': subtitles
+            'subtitles': subtitles,
         }
 
     def _extract_record(self, record_id):
@@ -267,9 +264,9 @@ class ZattooIE(ZattooBaseIE):
             'release_year': 2022,
             'episode': 'Folge 1655',
             'categories': 'count:1',
-            'tags': 'count:2'
+            'tags': 'count:2',
         },
-        'params': {'skip_download': 'm3u8'}
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://zattoo.com/program/daserste/210177916',
         'only_matching': True,
@@ -322,7 +319,7 @@ class ZattooRecordingsIE(ZattooBaseIE):
 class NetPlusTVBaseIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'netplus'
     _HOST = 'netplus.tv'
-    _API_HOST = 'www.%s' % _HOST
+    _API_HOST = f'www.{_HOST}'
 
 
 class NetPlusTVIE(NetPlusTVBaseIE):
@@ -458,7 +455,7 @@ class WalyTVRecordingsIE(WalyTVBaseIE):
 class BBVTVBaseIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'bbvtv'
     _HOST = 'bbv-tv.net'
-    _API_HOST = 'www.%s' % _HOST
+    _API_HOST = f'www.{_HOST}'
 
 
 class BBVTVIE(BBVTVBaseIE):
@@ -504,7 +501,7 @@ class BBVTVRecordingsIE(BBVTVBaseIE):
 class VTXTVBaseIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'vtxtv'
     _HOST = 'vtxtv.ch'
-    _API_HOST = 'www.%s' % _HOST
+    _API_HOST = f'www.{_HOST}'
 
 
 class VTXTVIE(VTXTVBaseIE):
@@ -595,7 +592,7 @@ class GlattvisionTVRecordingsIE(GlattvisionTVBaseIE):
 class SAKTVBaseIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'saktv'
     _HOST = 'saktv.ch'
-    _API_HOST = 'www.%s' % _HOST
+    _API_HOST = f'www.{_HOST}'
 
 
 class SAKTVIE(SAKTVBaseIE):
@@ -686,7 +683,7 @@ class EWETVRecordingsIE(EWETVBaseIE):
 class QuantumTVBaseIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'quantumtv'
     _HOST = 'quantum-tv.com'
-    _API_HOST = 'www.%s' % _HOST
+    _API_HOST = f'www.{_HOST}'
 
 
 class QuantumTVIE(QuantumTVBaseIE):
@@ -777,7 +774,7 @@ class OsnatelTVRecordingsIE(OsnatelTVBaseIE):
 class EinsUndEinsTVBaseIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = '1und1tv'
     _HOST = '1und1.tv'
-    _API_HOST = 'www.%s' % _HOST
+    _API_HOST = f'www.{_HOST}'
 
 
 class EinsUndEinsTVIE(EinsUndEinsTVBaseIE):

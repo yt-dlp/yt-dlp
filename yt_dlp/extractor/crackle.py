@@ -45,7 +45,7 @@ class CrackleIE(InfoExtractor):
             'skip_download': True,
         },
         'expected_warnings': [
-            'Trying with a list of known countries'
+            'Trying with a list of known countries',
         ],
     }, {
         'url': 'https://www.sonycrackle.com/thanksgiving/2510064',
@@ -89,7 +89,7 @@ class CrackleIE(InfoExtractor):
         for num, country in enumerate(countries):
             if num == 1:  # start hard-coded list
                 self.report_warning('%s. Trying with a list of known countries' % (
-                    'Unable to obtain video formats from %s API' % geo_bypass_country if geo_bypass_country
+                    f'Unable to obtain video formats from {geo_bypass_country} API' if geo_bypass_country
                     else 'No country code was given using --geo-bypass-country'))
             elif num == num_countries:  # end of list
                 geo_info = self._download_json(
@@ -99,17 +99,17 @@ class CrackleIE(InfoExtractor):
                 country = geo_info.get('CountryCode')
                 if country is None:
                     continue
-                self.to_screen('%s identified country as %s' % (self.IE_NAME, country))
+                self.to_screen(f'{self.IE_NAME} identified country as {country}')
                 if country in countries:
-                    self.to_screen('Downloading from %s API was already attempted. Skipping...' % country)
+                    self.to_screen(f'Downloading from {country} API was already attempted. Skipping...')
                     continue
 
             if country is None:
                 continue
             try:
                 media = self._download_json(
-                    'https://web-api-us.crackle.com/Service.svc/details/media/%s/%s?disableProtocols=true' % (video_id, country),
-                    video_id, note='Downloading media JSON from %s API' % country,
+                    f'https://web-api-us.crackle.com/Service.svc/details/media/{video_id}/{country}?disableProtocols=true',
+                    video_id, note=f'Downloading media JSON from {country} API',
                     errnote='Unable to download media JSON')
             except ExtractorError as e:
                 # 401 means geo restriction, trying next country
@@ -120,7 +120,7 @@ class CrackleIE(InfoExtractor):
             status = media.get('status')
             if status.get('messageCode') != '0':
                 raise ExtractorError(
-                    '%s said: %s %s - %s' % (
+                    '{} said: {} {} - {}'.format(
                         self.IE_NAME, status.get('messageCodeDescription'), status.get('messageCode'), status.get('message')),
                     expected=True)
 

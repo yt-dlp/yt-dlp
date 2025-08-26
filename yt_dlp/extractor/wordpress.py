@@ -44,10 +44,10 @@ class WordpressPlaylistEmbedIE(InfoExtractor):
                 'duration': 49.0,
                 'artist': 'Nancy and Randall Faber',
                 'description': 'md5:a9f8e9aeabbd2912bc13cc0fab1a4ce8',
-            }
+            },
         }],
         'playlist_count': 6,
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _extract_from_webpage(self, url, webpage):
@@ -94,11 +94,11 @@ class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
                 'id': 'over_the_horizon_2013',
                 'ext': 'mp3',
                 'title': 'Over the Horizon 2013',
-                'url': 'http://news.samsung.com/global/wp-content/uploads/ringtones/over_the_horizon_2013.mp3'
-            }
+                'url': 'http://news.samsung.com/global/wp-content/uploads/ringtones/over_the_horizon_2013.mp3',
+            },
         }],
         'playlist_count': 6,
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         # Version 1.9.3: https://plugins.trac.wordpress.org/browser/wp-miniaudioplayer/tags/1.9.3
         'url': 'https://www.booksontape.com/collections/audiobooks-with-teacher-guides/',
@@ -108,7 +108,7 @@ class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
             'age_limit': 0,
             'thumbnail': 'https://www.booksontape.com/wp-content/uploads/2016/09/bot-logo-1200x630.jpg',
         },
-        'playlist_mincount': 12
+        'playlist_mincount': 12,
     }, {
         # Version 1.9.7: https://plugins.trac.wordpress.org/browser/wp-miniaudioplayer/tags/1.9.7
         # But has spaces around href filter
@@ -122,7 +122,7 @@ class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
             'thumbnail': 'https://www.estudiords.com.br/wp-content/uploads/2021/03/LOGO-TEMAS.png',
             'description': 'md5:ab24d6a7ed0312ad2d466e721679f5a0',
         },
-        'playlist_mincount': 30
+        'playlist_mincount': 30,
     }]
 
     def _extract_from_webpage(self, url, webpage):

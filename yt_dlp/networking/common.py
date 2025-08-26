@@ -83,8 +83,8 @@ class RequestDirector:
             rh: sum(pref(rh, request) for pref in self.preferences)
             for rh in self.handlers.values()
         }
-        self._print_verbose('Handler preferences for this request: %s' % ', '.join(
-            f'{rh.RH_NAME}={pref}' for rh, pref in preferences.items()))
+        self._print_verbose('Handler preferences for this request: {}'.format(', '.join(
+            f'{rh.RH_NAME}={pref}' for rh, pref in preferences.items())))
         return sorted(self.handlers.values(), key=preferences.get, reverse=True)
 
     def _print_verbose(self, msg):
@@ -205,6 +205,8 @@ class RequestHandler(abc.ABC):
     The following extensions are defined for RequestHandler:
     - `cookiejar`: Cookiejar to use for this request.
     - `timeout`: socket timeout to use for this request.
+    - `legacy_ssl`: Enable legacy SSL options for this request. See legacy_ssl_support.
+    - `keep_header_casing`: Keep the casing of headers when sending the request.
     To enable these, add extensions.pop('<extension>', None) to _check_extensions
 
     Apart from the url protocol, proxies dict may contain the following keys:
@@ -224,11 +226,11 @@ class RequestHandler(abc.ABC):
         headers: HTTPHeaderDict = None,
         cookiejar: YoutubeDLCookieJar = None,
         timeout: float | int | None = None,
-        proxies: dict = None,
-        source_address: str = None,
+        proxies: dict | None = None,
+        source_address: str | None = None,
         verbose: bool = False,
         prefer_system_certs: bool = False,
-        client_cert: dict[str, str | None] = None,
+        client_cert: dict[str, str | None] | None = None,
         verify: bool = True,
         legacy_ssl_support: bool = False,
         **_,
@@ -247,10 +249,10 @@ class RequestHandler(abc.ABC):
         self.legacy_ssl_support = legacy_ssl_support
         super().__init__()
 
-    def _make_sslcontext(self):
+    def _make_sslcontext(self, legacy_ssl_support=None):
         return make_ssl_context(
             verify=self.verify,
-            legacy_support=self.legacy_ssl_support,
+            legacy_support=legacy_ssl_support if legacy_ssl_support is not None else self.legacy_ssl_support,
             use_certifi=not self.prefer_system_certs,
             **self._client_cert,
         )
@@ -258,11 +260,29 @@ class RequestHandler(abc.ABC):
     def _merge_headers(self, request_headers):
         return HTTPHeaderDict(self.headers, request_headers)
 
+    def _prepare_headers(self, request: Request, headers: HTTPHeaderDict) -> None:  # noqa: B027
+        """Additional operations to prepare headers before building. To be extended by subclasses.
+        @param request: Request object
+        @param headers: Merged headers to prepare
+        """
+
+    def _get_headers(self, request: Request) -> dict[str, str]:
+        """
+        Get headers for external use.
+        Subclasses may define a _prepare_headers method to modify headers after merge but before building.
+        """
+        headers = self._merge_headers(request.headers)
+        self._prepare_headers(request, headers)
+        if request.extensions.get('keep_header_casing'):
+            return headers.sensitive()
+        return dict(headers)
+
     def _calculate_timeout(self, request):
         return float(request.extensions.get('timeout') or self.timeout)
 
     def _get_cookiejar(self, request):
-        return request.extensions.get('cookiejar') or self.cookiejar
+        cookiejar = request.extensions.get('cookiejar')
+        return self.cookiejar if cookiejar is None else cookiejar
 
     def _get_proxies(self, request):
         return (request.proxies or self.proxies).copy()
@@ -314,6 +334,8 @@ class RequestHandler(abc.ABC):
         """Check extensions for unsupported extensions. Subclasses should extend this."""
         assert isinstance(extensions.get('cookiejar'), (YoutubeDLCookieJar, NoneType))
         assert isinstance(extensions.get('timeout'), (float, int, NoneType))
+        assert isinstance(extensions.get('legacy_ssl'), (bool, NoneType))
+        assert isinstance(extensions.get('keep_header_casing'), (bool, NoneType))
 
     def _validate(self, request):
         self._check_url_scheme(request)
@@ -341,7 +363,7 @@ class RequestHandler(abc.ABC):
         """Handle a request from start to finish. Redefine in subclasses."""
         pass
 
-    def close(self):
+    def close(self):  # noqa: B027
         pass
 
     @classproperty
@@ -378,11 +400,11 @@ class Request:
             self,
             url: str,
             data: RequestData = None,
-            headers: typing.Mapping = None,
-            proxies: dict = None,
-            query: dict = None,
-            method: str = None,
-            extensions: dict = None
+            headers: typing.Mapping | None = None,
+            proxies: dict | None = None,
+            query: dict | None = None,
+            method: str | None = None,
+            extensions: dict | None = None,
     ):
 
         self._headers = HTTPHeaderDict()
@@ -483,6 +505,7 @@ class Request:
 
 
 HEADRequest = functools.partial(Request, method='HEAD')
+PATCHRequest = functools.partial(Request, method='PATCH')
 PUTRequest = functools.partial(Request, method='PUT')
 
 
@@ -508,8 +531,8 @@ class Response(io.IOBase):
             url: str,
             headers: Mapping[str, str],
             status: int = 200,
-            reason: str = None,
-            extensions: dict = None
+            reason: str | None = None,
+            extensions: dict | None = None,
     ):
 
         self.fp = fp
@@ -527,7 +550,7 @@ class Response(io.IOBase):
     def readable(self):
         return self.fp.readable()
 
-    def read(self, amt: int = None) -> bytes:
+    def read(self, amt: int | None = None) -> bytes:
         # Expected errors raised here should be of type RequestError or subclasses.
         # Subclasses should redefine this method with more precise error handling.
         try:

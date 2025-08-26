@@ -26,7 +26,7 @@ class DisneyIE(InfoExtractor):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         # Grill.burger
         'url': 'http://www.starwars.com/video/rogue-one-a-star-wars-story-intro-featurette',
@@ -40,7 +40,7 @@ class DisneyIE(InfoExtractor):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'http://videos.disneylatino.com/ver/spider-man-de-regreso-a-casa-primer-adelanto-543a33a1850bdcfcca13bae2',
         'only_matching': True,
@@ -84,15 +84,11 @@ class DisneyIE(InfoExtractor):
             video_data = page_data['data'][0]
         else:
             webpage = self._download_webpage(
-                'http://%s/embed/%s' % (domain, video_id), video_id)
+                f'http://{domain}/embed/{video_id}', video_id)
             page_data = self._parse_json(self._search_regex(
                 r'Disney\.EmbedVideo\s*=\s*({.+});',
                 webpage, 'embed data'), video_id)
             video_data = page_data['video']
-
-        for external in video_data.get('externals', []):
-            if external.get('source') == 'vevo':
-                return self.url_result('vevo:' + external['data_id'], 'Vevo')
 
         video_id = video_data['id']
         title = video_data['title']
@@ -132,7 +128,7 @@ class DisneyIE(InfoExtractor):
             })
         if not formats and video_data.get('expired'):
             self.raise_no_formats(
-                '%s said: %s' % (self.IE_NAME, page_data['translations']['video_expired']),
+                '{} said: {}'.format(self.IE_NAME, page_data['translations']['video_expired']),
                 expected=True)
 
         subtitles = {}

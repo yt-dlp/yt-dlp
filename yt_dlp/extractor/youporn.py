@@ -90,7 +90,7 @@ class YouPornIE(InfoExtractor):
             'timestamp': 1606147564,
             'title': 'Tinder In Real Life',
             'view_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -126,7 +126,7 @@ class YouPornIE(InfoExtractor):
         for definition in get_format_data(definitions, 'mp4'):
             f = traverse_obj(definition, {
                 'url': 'videoUrl',
-                'filesize': ('videoSize', {int_or_none})
+                'filesize': ('videoSize', {int_or_none}),
             })
             height = int_or_none(definition.get('quality'))
             # Video URL's path looks like this:
@@ -140,7 +140,7 @@ class YouPornIE(InfoExtractor):
                     height = int(mobj.group('height'))
                 bitrate = int(mobj.group('bitrate'))
                 f.update({
-                    'format_id': '%dp-%dk' % (height, bitrate),
+                    'format_id': f'{height}p-{bitrate}k',
                     'tbr': bitrate,
                 })
             f['height'] = height
@@ -227,7 +227,7 @@ class YouPornIE(InfoExtractor):
         return result
 
 
-class YouPornListBase(InfoExtractor):
+class YouPornListBaseIE(InfoExtractor):
     def _get_next_url(self, url, pl_id, html):
         return urljoin(url, self._search_regex(
             r'''<a [^>]*?\bhref\s*=\s*("|')(?P<url>(?:(?!\1)[^>])+)\1''',
@@ -247,7 +247,7 @@ class YouPornListBase(InfoExtractor):
             if not html:
                 return
             for element in get_elements_html_by_class('video-title', html):
-                if video_url := traverse_obj(element, ({extract_attributes}, 'href', {lambda x: urljoin(url, x)})):
+                if video_url := traverse_obj(element, ({extract_attributes}, 'href', {urljoin(url)})):
                     yield self.url_result(video_url)
 
             if page_num is not None:
@@ -284,7 +284,7 @@ class YouPornListBase(InfoExtractor):
             playlist_id=pl_id, playlist_title=title)
 
 
-class YouPornCategoryIE(YouPornListBase):
+class YouPornCategoryIE(YouPornListBaseIE):
     IE_DESC = 'YouPorn category, with sorting, filtering and pagination'
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?youporn\.com/
@@ -319,7 +319,7 @@ class YouPornCategoryIE(YouPornListBase):
     }]
 
 
-class YouPornChannelIE(YouPornListBase):
+class YouPornChannelIE(YouPornListBaseIE):
     IE_DESC = 'YouPorn channel, with sorting and pagination'
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?youporn\.com/
@@ -349,7 +349,7 @@ class YouPornChannelIE(YouPornListBase):
         return re.sub(r'_', ' ', title_slug).title()
 
 
-class YouPornCollectionIE(YouPornListBase):
+class YouPornCollectionIE(YouPornListBaseIE):
     IE_DESC = 'YouPorn collection (user playlist), with sorting and pagination'
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?youporn\.com/
@@ -394,7 +394,7 @@ class YouPornCollectionIE(YouPornListBase):
         return playlist
 
 
-class YouPornTagIE(YouPornListBase):
+class YouPornTagIE(YouPornListBaseIE):
     IE_DESC = 'YouPorn tag (porntags), with sorting, filtering and pagination'
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?youporn\.com/
@@ -442,7 +442,7 @@ class YouPornTagIE(YouPornListBase):
         return super()._real_extract(url)
 
 
-class YouPornStarIE(YouPornListBase):
+class YouPornStarIE(YouPornListBaseIE):
     IE_DESC = 'YouPorn Pornstar, with description, sorting and pagination'
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?youporn\.com/
@@ -493,7 +493,7 @@ class YouPornStarIE(YouPornListBase):
         }
 
 
-class YouPornVideosIE(YouPornListBase):
+class YouPornVideosIE(YouPornListBaseIE):
     IE_DESC = 'YouPorn video (browse) playlists, with sorting, filtering and pagination'
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?youporn\.com/

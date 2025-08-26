@@ -1,8 +1,6 @@
+import base64
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_str,
-)
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -48,10 +46,10 @@ class PlatziBaseIE(InfoExtractor):
             None)
 
         for kind in ('error', 'password', 'nonFields'):
-            error = str_or_none(login.get('%sError' % kind))
+            error = str_or_none(login.get(f'{kind}Error'))
             if error:
                 raise ExtractorError(
-                    'Unable to login: %s' % error, expected=True)
+                    f'Unable to login: {error}', expected=True)
         raise ExtractorError('Unable to log in')
 
 
@@ -120,16 +118,16 @@ class PlatziIE(PlatziBaseIE):
                     formats.extend(self._extract_m3u8_formats(
                         format_url, lecture_id, 'mp4',
                         entry_protocol='m3u8_native', m3u8_id=format_id,
-                        note='Downloading %s m3u8 information' % server_id,
+                        note=f'Downloading {server_id} m3u8 information',
                         fatal=False))
                 elif format_id == 'dash':
                     formats.extend(self._extract_mpd_formats(
                         format_url, lecture_id, mpd_id=format_id,
-                        note='Downloading %s MPD manifest' % server_id,
+                        note=f'Downloading {server_id} MPD manifest',
                         fatal=False))
 
         content = str_or_none(desc.get('content'))
-        description = (clean_html(compat_b64decode(content).decode('utf-8'))
+        description = (clean_html(base64.b64decode(content).decode('utf-8'))
                        if content else None)
         duration = int_or_none(material.get('duration'), invscale=60)
 
@@ -168,7 +166,7 @@ class PlatziCourseIE(PlatziBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if PlatziIE.suitable(url) else super(PlatziCourseIE, cls).suitable(url)
+        return False if PlatziIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         course_name = self._match_id(url)
@@ -207,7 +205,7 @@ class PlatziCourseIE(PlatziBaseIE):
                     'chapter_id': chapter_id,
                 })
 
-        course_id = compat_str(try_get(props, lambda x: x['course']['id']))
-        course_title = try_get(props, lambda x: x['course']['name'], compat_str)
+        course_id = str(try_get(props, lambda x: x['course']['id']))
+        course_title = try_get(props, lambda x: x['course']['name'], str)
 
         return self.playlist_result(entries, course_id, course_title)

@@ -64,7 +64,7 @@ class RCSBaseIE(InfoExtractor):
         'media2-doveviaggi-it.akamaized': 'viaggi',
         'media2-vivimilano-corriere-it.akamaized': 'vivimilano',
         'vivimilano-vh.akamaihd': 'vivimilano',
-        'media2-youreporter-it.akamaized': 'youreporter'
+        'media2-youreporter-it.akamaized': 'youreporter',
     }
 
     def _get_video_src(self, video):
@@ -97,7 +97,7 @@ class RCSBaseIE(InfoExtractor):
             yield {
                 'type': type_,
                 'url': url,
-                'bitrate': source.get('bitrate')
+                'bitrate': source.get('bitrate'),
             }
 
     def _create_http_formats(self, m3u8_formats, video_id):
@@ -185,7 +185,7 @@ class RCSBaseIE(InfoExtractor):
                     return {
                         '_type': 'url_transparent',
                         'url': emb,
-                        'ie_key': RCSEmbedsIE.ie_key()
+                        'ie_key': RCSEmbedsIE.ie_key(),
                     }
 
         if not video_data:
@@ -236,13 +236,13 @@ class RCSEmbedsIE(RCSBaseIE):
             'title': 'Sky Arte racconta Madonna nella serie "Artist to icon"',
             'description': 'md5:65b09633df9ffee57f48b39e34c9e067',
             'uploader': 'rcs.it',
-        }
+        },
     }, {
         'url': 'https://video.gazzanet.gazzetta.it/video-embed/gazzanet-mo05-0000260789',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://video.gazzetta.it/video-embed/49612410-00ca-11eb-bcd8-30d4253e0140',
-        'only_matching': True
+        'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.iodonna.it/video-iodonna/personaggi-video/monica-bellucci-piu-del-lavoro-oggi-per-me-sono-importanti-lamicizia-e-la-famiglia/',
@@ -252,7 +252,7 @@ class RCSEmbedsIE(RCSBaseIE):
             'title': 'Monica Bellucci: «Più del lavoro, oggi per me sono importanti l\'amicizia e la famiglia»',
             'description': 'md5:daea6d9837351e56b1ab615c06bebac1',
             'uploader': 'rcs.it',
-        }
+        },
     }]
 
     @staticmethod
@@ -286,7 +286,7 @@ class RCSIE(RCSBaseIE):
             'title': 'Vettel guida la Ferrari SF90 al Mugello e al suo fianco c\'è Leclerc (bendato): il video è esilarante',
             'description': 'md5:3915ce5ebb3d2571deb69a5eb85ac9b5',
             'uploader': 'Corriere Tv',
-        }
+        },
     }, {
         # search for video id inside the page
         'url': 'https://viaggi.corriere.it/video/norvegia-il-nuovo-ponte-spettacolare-sopra-la-cascata-di-voringsfossen/',
@@ -298,7 +298,7 @@ class RCSIE(RCSBaseIE):
             'title': 'La nuova spettacolare attrazione in Norvegia: il ponte sopra Vøringsfossen',
             'description': 'md5:18b35a291f6746c0c8dacd16e5f5f4f8',
             'uploader': 'DOVE Viaggi',
-        }
+        },
     }, {
         # only audio format https://github.com/yt-dlp/yt-dlp/issues/5683
         'url': 'https://video.corriere.it/cronaca/audio-telefonata-il-papa-becciu-santita-lettera-che-mi-ha-inviato-condanna/b94c0d20-70c2-11ed-9572-e4b947a0ebd2',
@@ -310,7 +310,7 @@ class RCSIE(RCSBaseIE):
             'description': 'md5:c0ddb61bd94a8d4e0d4bb9cda50a689b',
             'uploader': 'Corriere Tv',
             'formats': [{'format_id': 'https-mp3', 'ext': 'mp3'}],
-        }
+        },
     }, {
         # old content still needs cdn migration
         'url': 'https://viaggi.corriere.it/video/milano-varallo-sesia-sul-treno-a-vapore/',
@@ -322,10 +322,10 @@ class RCSIE(RCSBaseIE):
             'title': 'Milano-Varallo Sesia sul treno a vapore',
             'description': 'md5:6348f47aac230397fe341a74f7678d53',
             'uploader': 'DOVE Viaggi',
-        }
+        },
     }, {
         'url': 'https://video.corriere.it/video-360/metro-copenaghen-tutta-italiana/a248a7f0-e2db-11e9-9830-af2de6b1f945',
-        'only_matching': True
+        'only_matching': True,
     }]
 
 
@@ -346,7 +346,7 @@ class RCSVariousIE(RCSBaseIE):
             'title': 'Cervicalgia e mal di testa, il video con i suggerimenti dell\'esperto',
             'description': 'md5:ae21418f34cee0b8d02a487f55bcabb5',
             'uploader': 'leitv.it',
-        }
+        },
     }, {
         'url': 'https://www.youreporter.it/fiume-sesia-3-ottobre-2020/',
         'md5': '3989b6d603482611a2abd2f32b79f739',
@@ -357,7 +357,7 @@ class RCSVariousIE(RCSBaseIE):
             'title': 'Fiume Sesia 3 ottobre 2020',
             'description': 'md5:0070eef1cc884d13c970a4125063de55',
             'uploader': 'youreporter.it',
-        }
+        },
     }, {
         'url': 'https://www.amica.it/video-post/saint-omer-al-cinema-il-film-leone-dargento-che-ribalta-gli-stereotipi/',
         'md5': '187cce524dfd0343c95646c047375fc4',
@@ -368,5 +368,5 @@ class RCSVariousIE(RCSBaseIE):
             'title': '"Saint Omer": al cinema il film Leone d\'argento che ribalta gli stereotipi',
             'description': 'md5:b1c8869c2dcfd6073a2a311ba0008aa8',
             'uploader': 'rcs.it',
-        }
+        },
     }]

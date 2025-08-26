@@ -23,7 +23,7 @@ class BannedVideoIE(InfoExtractor):
             'description': 'md5:560d96f02abbebe6c6b78b47465f6b28',
             'upload_date': '20200324',
             'timestamp': 1585087895,
-        }
+        },
     }]
 
     _GRAPHQL_GETMETADATA_QUERY = '''
@@ -84,15 +84,15 @@ query GetCommentReplies($id: String!) {
         'GetCommentReplies': _GRAPHQL_GETCOMMENTSREPLIES_QUERY,
     }
 
-    def _call_api(self, video_id, id, operation, note):
+    def _call_api(self, video_id, id_var, operation, note):
         return self._download_json(
             'https://api.infowarsmedia.com/graphql', video_id, note=note,
             headers={
-                'Content-Type': 'application/json; charset=utf-8'
+                'Content-Type': 'application/json; charset=utf-8',
             }, data=json.dumps({
-                'variables': {'id': id},
+                'variables': {'id': id_var},
                 'operationName': operation,
-                'query': self._GRAPHQL_QUERIES[operation]
+                'query': self._GRAPHQL_QUERIES[operation],
             }).encode('utf8')).get('data')
 
     def _get_comments(self, video_id, comments, comment_data):
@@ -151,5 +151,5 @@ query GetCommentReplies($id: String!) {
             'tags': [tag.get('name') for tag in video_info.get('tags')],
             'availability': self._availability(is_unlisted=video_info.get('unlisted')),
             'comments': comments,
-            '__post_extractor': self.extract_comments(video_id, comments, video_json.get('getVideoComments'))
+            '__post_extractor': self.extract_comments(video_id, comments, video_json.get('getVideoComments')),
         }

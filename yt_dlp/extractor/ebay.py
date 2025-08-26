@@ -11,7 +11,7 @@ class EbayIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'WiFi internal antenna adhesive for wifi 2.4GHz wifi 5 wifi 6 wifi 6E full bands',
         },
-        'params': {'skip_download': 'm3u8'}
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -32,5 +32,5 @@ class EbayIE(InfoExtractor):
         return {
             'id': video_id,
             'title': remove_end(self._html_extract_title(webpage), ' | eBay'),
-            'formats': formats
+            'formats': formats,
         }

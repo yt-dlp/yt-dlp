@@ -293,7 +293,7 @@ class VideoKenTopicIE(VideoKenBaseIE):
         'playlist_mincount': 77,
         'info_dict': {
             'id': 'gravitational_waves',
-            'title': 'gravitational waves'
+            'title': 'gravitational waves',
         },
     }, {
         'url': 'https://videos.cncf.io/topic/prometheus/',

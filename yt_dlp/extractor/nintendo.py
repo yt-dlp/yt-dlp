@@ -91,7 +91,7 @@ class NintendoIE(InfoExtractor):
             'extensions': json.dumps({
                 'persistedQuery': {
                     'version': 1,
-                    'sha256Hash': '969b16fe9f08b686fa37bc44d1fd913b6188e65794bb5e341c54fa683a8004cb'
+                    'sha256Hash': '969b16fe9f08b686fa37bc44d1fd913b6188e65794bb5e341c54fa683a8004cb',
                 },
             }, separators=(',', ':')),
         })

@@ -170,19 +170,19 @@ class ParamountPlusSeriesIE(InfoExtractor):
         'playlist_mincount': 50,
         'info_dict': {
             'id': 'drake-josh',
-        }
+        },
     }, {
         'url': 'https://www.paramountplus.com/shows/hawaii_five_0/',
         'playlist_mincount': 240,
         'info_dict': {
             'id': 'hawaii_five_0',
-        }
+        },
     }, {
         'url': 'https://www.paramountplus.com/shows/spongebob-squarepants/',
         'playlist_mincount': 248,
         'info_dict': {
             'id': 'spongebob-squarepants',
-        }
+        },
     }]
 
     def _entries(self, show_name):
@@ -193,7 +193,7 @@ class ParamountPlusSeriesIE(InfoExtractor):
                 return
             for episode in show_json['result']['data']:
                 yield self.url_result(
-                    'https://www.paramountplus.com%s' % episode['url'],
+                    'https://www.paramountplus.com{}'.format(episode['url']),
                     ie=ParamountPlusIE.ie_key(), video_id=episode['content_id'])
 
     def _real_extract(self, url):

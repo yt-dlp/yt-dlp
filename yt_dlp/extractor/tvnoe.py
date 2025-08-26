@@ -18,7 +18,7 @@ class TVNoeIE(InfoExtractor):
             'series': 'Noční univerzita',
             'title': 'prof. Tomáš Halík, Th.D. - Návrat náboženství a střet civilizací',
             'description': 'md5:f337bae384e1a531a52c55ebc50fff41',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -40,7 +40,7 @@ class TVNoeIE(InfoExtractor):
                 'field-name-field-podnazev', webpage)),
             'description': clean_html(get_element_by_class(
                 'field-name-body', webpage)),
-            'series': clean_html(get_element_by_class('title', webpage))
+            'series': clean_html(get_element_by_class('title', webpage)),
         })
 
         return info_dict

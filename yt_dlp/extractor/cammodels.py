@@ -7,14 +7,14 @@ class CamModelsIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.cammodels.com/cam/AutumnKnight/',
         'only_matching': True,
-        'age_limit': 18
+        'age_limit': 18,
     }]
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
 
         manifest = self._download_json(
-            'https://manifest-server.naiadsystems.com/live/s:%s.json' % user_id, user_id)
+            f'https://manifest-server.naiadsystems.com/live/s:{user_id}.json', user_id)
 
         formats = []
         thumbnails = []
@@ -36,7 +36,7 @@ class CamModelsIE(InfoExtractor):
                 format_id_list = [format_id]
                 height = int_or_none(media.get('videoHeight'))
                 if height is not None:
-                    format_id_list.append('%dp' % height)
+                    format_id_list.append(f'{height}p')
                 f = {
                     'url': media_url,
                     'format_id': '-'.join(format_id_list),
@@ -73,5 +73,5 @@ class CamModelsIE(InfoExtractor):
             'thumbnails': thumbnails,
             'is_live': True,
             'formats': formats,
-            'age_limit': 18
+            'age_limit': 18,
         }

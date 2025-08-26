@@ -15,7 +15,7 @@ class TrtCocukVideoIE(InfoExtractor):
             'title': 'Kaptan Pengu ve Arkadaşları 1 Bölüm İzle TRT Çocuk',
             'release_date': '20201209',
             'release_timestamp': 1607513774,
-        }
+        },
     }, {
         'url': 'https://www.trtcocuk.net.tr/video/sef-rokanin-lezzet-dunyasi-17',
         'info_dict': {
@@ -23,7 +23,7 @@ class TrtCocukVideoIE(InfoExtractor):
             'ext': 'mp4',
             'series': '"Şef Roka\'nın Lezzet Dünyası"',
             'title': 'Şef Roka\'nın Lezzet Dünyası 17 Bölüm İzle TRT Çocuk',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -44,5 +44,5 @@ class TrtCocukVideoIE(InfoExtractor):
             'season_number': int_or_none(nuxtjs_data.get('season')),
             'release_timestamp': parse_iso8601(nuxtjs_data.get('publishedDate')),
             'series': traverse_obj(nuxtjs_data, ('show', 0, 'title')),
-            'title': self._html_extract_title(webpage)  # TODO: get better title
+            'title': self._html_extract_title(webpage),  # TODO: get better title
         }

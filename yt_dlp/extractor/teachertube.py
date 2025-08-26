@@ -50,7 +50,7 @@ class TeacherTubeIE(InfoExtractor):
             r'<div\b[^>]+\bclass=["\']msgBox error[^>]+>([^<]+)', webpage,
             'error', default=None)
         if error:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, error), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {error}', expected=True)
 
         title = self._html_search_meta('title', webpage, 'title', fatal=True)
         TITLE_SUFFIX = ' - TeacherTube'
@@ -70,7 +70,7 @@ class TeacherTubeIE(InfoExtractor):
         formats = [
             {
                 'url': media_url,
-                'quality': quality(determine_ext(media_url))
+                'quality': quality(determine_ext(media_url)),
             } for media_url in set(media_urls)
         ]
 
@@ -102,7 +102,7 @@ class TeacherTubeUserIE(InfoExtractor):
     _TEST = {
         'url': 'http://www.teachertube.com/user/profile/rbhagwati2',
         'info_dict': {
-            'id': 'rbhagwati2'
+            'id': 'rbhagwati2',
         },
         'playlist_mincount': 179,
     }
@@ -115,10 +115,10 @@ class TeacherTubeUserIE(InfoExtractor):
         webpage = self._download_webpage(url, user_id)
         urls.extend(re.findall(self._MEDIA_RE, webpage))
 
-        pages = re.findall(r'/ajax-user/user-videos/%s\?page=([0-9]+)' % user_id, webpage)[:-1]
+        pages = re.findall(rf'/ajax-user/user-videos/{user_id}\?page=([0-9]+)', webpage)[:-1]
         for p in pages:
-            more = 'http://www.teachertube.com/ajax-user/user-videos/%s?page=%s' % (user_id, p)
-            webpage = self._download_webpage(more, user_id, 'Downloading page %s/%s' % (p, len(pages)))
+            more = f'http://www.teachertube.com/ajax-user/user-videos/{user_id}?page={p}'
+            webpage = self._download_webpage(more, user_id, f'Downloading page {p}/{len(pages)}')
             video_urls = re.findall(self._MEDIA_RE, webpage)
             urls.extend(video_urls)
 

@@ -10,7 +10,7 @@ class BusinessInsiderIE(InfoExtractor):
         'info_dict': {
             'id': 'cjGDb0X9',
             'ext': 'mp4',
-            'title': "Bananas give you more radiation exposure than living next to a nuclear power plant",
+            'title': 'Bananas give you more radiation exposure than living next to a nuclear power plant',
             'description': 'md5:0175a3baf200dd8fa658f94cade841b3',
             'upload_date': '20160611',
             'timestamp': 1465675620,
@@ -41,5 +41,5 @@ class BusinessInsiderIE(InfoExtractor):
              r'(?:jwplatform\.com/players/|jwplayer_)([a-zA-Z0-9]{8})'),
             webpage, 'jwplatform id')
         return self.url_result(
-            'jwplatform:%s' % jwplatform_id, ie=JWPlatformIE.ie_key(),
+            f'jwplatform:{jwplatform_id}', ie=JWPlatformIE.ie_key(),
             video_id=video_id)

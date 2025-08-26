@@ -52,8 +52,8 @@ class BrainPOPBaseIE(InfoExtractor):
             '%s': {},
             'ad_%s': {
                 'format_note': 'Audio description',
-                'source_preference': -2
-            }
+                'source_preference': -2,
+            },
         }
         for additional_key_format, additional_key_fields in additional_key_formats.items():
             for key_quality, key_index in enumerate(('high', 'low')):
@@ -62,7 +62,7 @@ class BrainPOPBaseIE(InfoExtractor):
                     formats.extend(self._assemble_formats(data[full_key_index], full_key_index, display_id, token, {
                         'quality': -1 - key_quality,
                         **additional_key_fields,
-                        **extra_fields
+                        **extra_fields,
                     }))
         return formats
 
@@ -72,7 +72,7 @@ class BrainPOPBaseIE(InfoExtractor):
             data=json.dumps({'username': username, 'password': password}).encode(),
             headers={
                 'Content-Type': 'application/json',
-                'Referer': self._ORIGIN
+                'Referer': self._ORIGIN,
             }, note='Logging in', errnote='Unable to log in', expected_status=400)
         status_code = int_or_none(login_res['status_code'])
         if status_code != 1505:
@@ -131,12 +131,12 @@ class BrainPOPIE(BrainPOPBaseIE):
         formats, subtitles = [], {}
         formats.extend(self._extract_adaptive_formats(movie_feature_data, movie_feature_data.get('token', ''), display_id, '%s_v2', {
             'language': movie_feature.get('language') or 'en',
-            'language_preference': 10
+            'language_preference': 10,
         }))
         for lang, localized_feature in traverse_obj(movie_feature, 'localization', default={}, expected_type=dict).items():
             formats.extend(self._extract_adaptive_formats(localized_feature, localized_feature.get('token', ''), display_id, '%s_v2', {
                 'language': lang,
-                'language_preference': -10
+                'language_preference': -10,
             }))
 
         # TODO: Do localization fields also have subtitles?
@@ -145,7 +145,7 @@ class BrainPOPIE(BrainPOPBaseIE):
                 r'^subtitles_(?P<lang>\w+)$', name, 'subtitle metadata', default=None)
             if lang and url:
                 subtitles.setdefault(lang, []).append({
-                    'url': urljoin(self._CDN_URL, url)
+                    'url': urljoin(self._CDN_URL, url),
                 })
 
         return {

@@ -29,7 +29,7 @@ class IxiguaIE(InfoExtractor):
             'thumbnail': r're:^https?://.+\.(avif|webp)',
             'timestamp': 1629088414,
             'duration': 1030,
-        }
+        },
     }]
 
     def _get_json_data(self, webpage, video_id):

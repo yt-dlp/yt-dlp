@@ -31,7 +31,7 @@ class TrueIDIE(InfoExtractor):
             'upload_date': '20200916',
             'release_date': '20200630',
         },
-        'expected_warnings': ['Video is geo restricted.']
+        'expected_warnings': ['Video is geo restricted.'],
     }, {
         'url': 'https://trueid.id/series/zZOBVPb62EwR/qXY73rwyl7oj/one-piece-ep-1/',
         'md5': '1c6d976049bc3c89a8a25aed2c3fb081',
@@ -51,7 +51,7 @@ class TrueIDIE(InfoExtractor):
             'upload_date': '20210112',
             'release_date': '20210131',
         },
-        'expected_warnings': ['Video is geo restricted.']
+        'expected_warnings': ['Video is geo restricted.'],
     }, {
         'url': 'https://vn.trueid.net/series/7DNPM7Bpa9wv/pwLgEQ4Xbda2/haikyu-vua-bong-chuyen-phan-1/',
         'info_dict': {
@@ -69,7 +69,7 @@ class TrueIDIE(InfoExtractor):
             'upload_date': '20210818',
             'release_date': '20210818',
         },
-        'expected_warnings': ['Video is geo restricted.']
+        'expected_warnings': ['Video is geo restricted.'],
     }, {
         'url': 'https://trueid.ph/series/l8rvvAw7Jwv8/l8rvvAw7Jwv8/naruto-trailer/',
         'only_matching': True,

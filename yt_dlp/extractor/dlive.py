@@ -16,7 +16,7 @@ class DLiveVODIE(InfoExtractor):
             'upload_date': '20190701',
             'timestamp': 1562011015,
             'uploader_id': 'pdp',
-        }
+        },
     }, {
         'url': 'https://dlive.tv/p/pdpreplay+D-RD-xSZg',
         'only_matching': True,
@@ -36,7 +36,7 @@ class DLiveVODIE(InfoExtractor):
     thumbnailUrl
     viewCount
   }
-}''' % (uploader_id, vod_id)}).encode())['data']['pastBroadcast']
+}''' % (uploader_id, vod_id)}).encode())['data']['pastBroadcast']  # noqa: UP031
         title = broadcast['title']
         formats = self._extract_m3u8_formats(
             broadcast['playbackUrl'], vod_id, 'mp4', 'm3u8_native')
@@ -71,12 +71,12 @@ class DLiveStreamIE(InfoExtractor):
     }
     username
   }
-}''' % display_name}).encode())['data']['userByDisplayName']
+}''' % display_name}).encode())['data']['userByDisplayName']  # noqa: UP031
         livestream = user['livestream']
         title = livestream['title']
         username = user['username']
         formats = self._extract_m3u8_formats(
-            'https://live.prd.dlive.tv/hls/live/%s.m3u8' % username,
+            f'https://live.prd.dlive.tv/hls/live/{username}.m3u8',
             display_name, 'mp4')
         return {
             'id': display_name,

@@ -1,9 +1,10 @@
+import base64
 import random
 import string
 import struct
 
 from .common import InfoExtractor
-from ..compat import compat_b64decode, compat_ord
+from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -36,7 +37,7 @@ class VideaIE(InfoExtractor):
             'id': '8YfIAjxwWGwT8HVQ',
             'ext': 'mp4',
             'title': 'Az őrült kígyász 285 kígyót enged szabadon',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://videa\.hu/static/still/.+',
             'duration': 21,
             'age_limit': 0,
         },
@@ -47,7 +48,7 @@ class VideaIE(InfoExtractor):
             'id': 'jAHDWfWSJH5XuFhH',
             'ext': 'mp4',
             'title': 'Supercars előzés',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://videa\.hu/static/still/.+',
             'duration': 64,
             'age_limit': 0,
         },
@@ -58,7 +59,7 @@ class VideaIE(InfoExtractor):
             'id': '8YfIAjxwWGwT8HVQ',
             'ext': 'mp4',
             'title': 'Az őrült kígyász 285 kígyót enged szabadon',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://videa\.hu/static/still/.+',
             'duration': 21,
             'age_limit': 0,
         },
@@ -74,6 +75,25 @@ class VideaIE(InfoExtractor):
     }, {
         'url': 'https://videakid.hu/player/v/8YfIAjxwWGwT8HVQ?autoplay=1',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.kapucziner.hu/',
+        'info_dict': {
+            'id': '95yhJCdK2dX1T5Nh',
+            'ext': 'mp4',
+            'title': 'Nemzetközi díjat kapott a győri kávémanufaktúra',
+            'age_limit': 0,
+            'duration': 207,
+            'thumbnail': r're:https?://videa\.hu/static/still/.+',
+        },
+    }, {
+        # FIXME: No video formats found
+        'url': 'https://hirtv.hu/hirtv_kesleltetett',
+        'info_dict': {
+            'id': 'IDRqF7W9X0GXHGj1',
+            'ext': 'mp4',
+            'title': 'Hír TV - 60 perccel késleltetett adás',
+        },
     }]
     _STATIC_SECRET = 'xHb0ZvME5q8CBcoQi6AngerDu3FGO9fkUlwPmLVY_RTzj2hJIS4NasXWKy1td7p'
 
@@ -118,7 +138,7 @@ class VideaIE(InfoExtractor):
         l = nonce[:32]
         s = nonce[32:]
         result = ''
-        for i in range(0, 32):
+        for i in range(32):
             result += s[i - (self._STATIC_SECRET.index(l[i]) - 31)]
 
         query = parse_qs(player_url)
@@ -133,7 +153,7 @@ class VideaIE(InfoExtractor):
         else:
             key = result[16:] + random_seed + handle.headers['x-videa-xs']
             info = self._parse_xml(self.rc4(
-                compat_b64decode(b64_info), key), video_id)
+                base64.b64decode(b64_info), key), video_id)
 
         video = xpath_element(info, './video', 'video')
         if video is None:

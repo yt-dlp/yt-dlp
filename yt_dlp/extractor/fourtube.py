@@ -1,12 +1,8 @@
+import base64
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_str,
-    compat_urllib_parse_unquote,
-    compat_urlparse,
-)
 from ..utils import (
     int_or_none,
     parse_duration,
@@ -21,21 +17,20 @@ from ..utils import (
 
 class FourTubeBaseIE(InfoExtractor):
     def _extract_formats(self, url, video_id, media_id, sources):
-        token_url = 'https://%s/%s/desktop/%s' % (
+        token_url = 'https://{}/{}/desktop/{}'.format(
             self._TKN_HOST, media_id, '+'.join(sources))
 
-        parsed_url = compat_urlparse.urlparse(url)
+        parsed_url = urllib.parse.urlparse(url)
         tokens = self._download_json(token_url, video_id, data=b'', headers={
-            'Origin': '%s://%s' % (parsed_url.scheme, parsed_url.hostname),
+            'Origin': f'{parsed_url.scheme}://{parsed_url.hostname}',
             'Referer': url,
         })
-        formats = [{
-            'url': tokens[format]['token'],
-            'format_id': format + 'p',
-            'resolution': format + 'p',
-            'quality': int(format),
-        } for format in sources]
-        return formats
+        return [{
+            'url': tokens[res]['token'],
+            'format_id': res + 'p',
+            'resolution': res + 'p',
+            'quality': int(res),
+        } for res in sources]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -89,9 +84,9 @@ class FourTubeBaseIE(InfoExtractor):
             params_js = self._search_regex(
                 r'\$\.ajax\(url,\ opts\);\s*\}\s*\}\)\(([0-9,\[\] ]+)\)',
                 player_js, 'initialization parameters')
-            params = self._parse_json('[%s]' % params_js, video_id)
+            params = self._parse_json(f'[{params_js}]', video_id)
             media_id = params[0]
-            sources = ['%s' % p for p in params[2]]
+            sources = [f'{p}' for p in params[2]]
 
         formats = self._extract_formats(url, video_id, media_id, sources)
 
@@ -234,20 +229,20 @@ class PornTubeIE(FourTubeBaseIE):
             self._search_regex(
                 r'INITIALSTATE\s*=\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
                 webpage, 'data', group='value'), video_id,
-            transform_source=lambda x: compat_urllib_parse_unquote(
-                compat_b64decode(x).decode('utf-8')))['page']['video']
+            transform_source=lambda x: urllib.parse.unquote(
+                base64.b64decode(x).decode('utf-8')))['page']['video']
 
         title = video['title']
         media_id = video['mediaId']
-        sources = [compat_str(e['height'])
+        sources = [str(e['height'])
                    for e in video['encodings'] if e.get('height')]
         formats = self._extract_formats(url, video_id, media_id, sources)
 
         thumbnail = url_or_none(video.get('masterThumb'))
-        uploader = try_get(video, lambda x: x['user']['username'], compat_str)
+        uploader = try_get(video, lambda x: x['user']['username'], str)
         uploader_id = str_or_none(try_get(
             video, lambda x: x['user']['id'], int))
-        channel = try_get(video, lambda x: x['channel']['name'], compat_str)
+        channel = try_get(video, lambda x: x['channel']['name'], str)
         channel_id = str_or_none(try_get(
             video, lambda x: x['channel']['id'], int))
         like_count = int_or_none(video.get('likes'))

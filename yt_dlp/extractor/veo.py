@@ -22,7 +22,7 @@ class VeoIE(InfoExtractor):
             'timestamp': 1603847208,
             'duration': 1916,
             'view_count': int,
-        }
+        },
     }, {
         'url': 'https://app.veo.co/matches/20220313-2022-03-13_u15m-plsjq-vs-csl/',
         'only_matching': True,
@@ -32,10 +32,10 @@ class VeoIE(InfoExtractor):
         video_id = self._match_id(url)
 
         metadata = self._download_json(
-            'https://app.veo.co/api/app/matches/%s' % video_id, video_id)
+            f'https://app.veo.co/api/app/matches/{video_id}', video_id)
 
         video_data = self._download_json(
-            'https://app.veo.co/api/app/matches/%s/videos' % video_id, video_id, 'Downloading video data')
+            f'https://app.veo.co/api/app/matches/{video_id}/videos', video_id, 'Downloading video data')
 
         formats = []
         for fmt in video_data:

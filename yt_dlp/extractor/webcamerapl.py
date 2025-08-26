@@ -12,7 +12,7 @@ class WebcameraplIE(InfoExtractor):
             'ext': 'mp4',
             'title': r're:WIDOK NA PLAC ZAMKOWY W WARSZAWIE \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
             'live_status': 'is_live',
-        }
+        },
     }, {
         'url': 'https://gdansk-stare-miasto.webcamera.pl/',
         'info_dict': {
@@ -20,7 +20,7 @@ class WebcameraplIE(InfoExtractor):
             'ext': 'mp4',
             'title': r're:GDAŃSK - widok na Stare Miasto \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
             'live_status': 'is_live',
-        }
+        },
     }]
 
     def _real_extract(self, url):

@@ -16,7 +16,7 @@ from ..utils import (
 
 
 class RadioFranceIE(InfoExtractor):
-    _VALID_URL = r'^https?://maison\.radiofrance\.fr/radiovisions/(?P<id>[^?#]+)'
+    _VALID_URL = r'https?://maison\.radiofrance\.fr/radiovisions/(?P<id>[^?#]+)'
     IE_NAME = 'radiofrance'
 
     _TEST = {
@@ -126,7 +126,7 @@ class FranceCultureIE(RadioFranceBaseIE):
         }, {
             'url': 'https://www.radiofrance.fr/franceinfo/podcasts/le-billet-sciences/sante-bientot-un-vaccin-contre-l-asthme-allergique-3057200',
             'only_matching': True,
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -150,7 +150,7 @@ class FranceCultureIE(RadioFranceBaseIE):
             'uploader': self._html_search_regex(
                 r'(?s)<span class="author">(.*?)</span>', webpage, 'uploader', default=None),
             'upload_date': unified_strdate(self._search_regex(
-                r'"datePublished"\s*:\s*"([^"]+)', webpage, 'timestamp', fatal=False))
+                r'"datePublished"\s*:\s*"([^"]+)', webpage, 'timestamp', fatal=False)),
         }
 
 

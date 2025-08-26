@@ -51,7 +51,6 @@ cookies
 *.srt
 *.ssa
 *.swf
-*.swp
 *.tt
 *.ttml
 *.url
@@ -93,6 +92,7 @@ updates_key.pem
 *.class
 *.isorted
 *.stackdump
+uv.lock
 
 # Generated
 AUTHORS
@@ -105,6 +105,8 @@ README.txt
 *.zsh
 *.spec
 test/testdata/sigs/player-*.js
+test/testdata/thumbnails/empty.webp
+test/testdata/thumbnails/foo\ %d\ bar/foo_%d.*
 
 # Binary
 /youtube-dl
@@ -119,6 +121,7 @@ yt-dlp.zip
 .vscode
 *.sublime-*
 *.code-workspace
+*.swp
 
 # Lazy extractors
 */extractor/lazy_extractors.py

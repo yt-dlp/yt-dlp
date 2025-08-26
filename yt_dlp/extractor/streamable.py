@@ -25,7 +25,7 @@ class StreamableIE(InfoExtractor):
                 'upload_date': '20160208',
                 'duration': 61.516,
                 'view_count': int,
-            }
+            },
         },
         # older video without bitrate, width/height, codecs, etc. info
         {
@@ -40,7 +40,7 @@ class StreamableIE(InfoExtractor):
                 'upload_date': '20150311',
                 'duration': 12,
                 'view_count': int,
-            }
+            },
         },
         {
             'url': 'https://streamable.com/e/dnd1',
@@ -49,7 +49,7 @@ class StreamableIE(InfoExtractor):
         {
             'url': 'https://streamable.com/s/okkqk/drxjds',
             'only_matching': True,
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -59,7 +59,7 @@ class StreamableIE(InfoExtractor):
         # to return video info like the title properly sometimes, and doesn't
         # include info like the video duration
         video = self._download_json(
-            'https://ajax.streamable.com/videos/%s' % video_id, video_id)
+            f'https://ajax.streamable.com/videos/{video_id}', video_id)
 
         # Format IDs:
         # 0 The video is being uploaded
@@ -99,5 +99,5 @@ class StreamableIE(InfoExtractor):
             'timestamp': float_or_none(video.get('date_added')),
             'duration': float_or_none(video.get('duration')),
             'view_count': int_or_none(video.get('plays')),
-            'formats': formats
+            'formats': formats,
         }

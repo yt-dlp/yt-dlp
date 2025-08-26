@@ -37,7 +37,7 @@ class GlobalPlayerBaseIE(InfoExtractor):
                 'url': 'streamUrl',
                 'timestamp': (('pubDate', 'startDate'), {unified_timestamp}),
                 'title': 'title',
-            }, get_all=False)
+            }, get_all=False),
         }
 
 
@@ -111,7 +111,7 @@ class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
             'live_status': 'is_live',
             'description': 'md5:e10f5e10b01a7f2c14ba815509fbb38d',
             'thumbnail': 'https://images.globalplayer.com/images/551379?width=450&signature=oMLPZIoi5_dBSHnTMREW0Xg76mA=',
-            'title': 're:^Classic FM Hall of Fame.+$'
+            'title': 're:^Classic FM Hall of Fame.+$',
         },
     }]
 

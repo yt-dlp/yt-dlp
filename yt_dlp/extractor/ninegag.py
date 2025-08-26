@@ -1,6 +1,5 @@
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     determine_ext,
     int_or_none,
     traverse_obj,
@@ -29,7 +28,7 @@ class NineGagIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'comment_count': int,
-        }
+        },
     }, {
         # HTML escaped title
         'url': 'https://9gag.com/gag/av5nvyb',
@@ -53,18 +52,18 @@ class NineGagIE(InfoExtractor):
             'uploader': 'Peter Klaus',
             'uploader_id': 'peterklaus12',
             'uploader_url': 'https://9gag.com/u/peterklaus12',
-        }
+        },
     }]
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
         post = self._download_json(
             'https://9gag.com/v1/post', post_id, query={
-                'id': post_id
-            })['data']['post']
+                'id': post_id,
+            }, impersonate=True)['data']['post']
 
         if post.get('type') != 'Animated':
-            raise ExtractorError(
+            self.raise_no_formats(
                 'The given url does not contain a video',
                 expected=True)
 

@@ -3,7 +3,9 @@ from ..utils import (
     clean_html,
     merge_dicts,
     traverse_obj,
+    unified_timestamp,
     url_or_none,
+    urljoin,
 )
 
 
@@ -22,8 +24,8 @@ class LRTStreamIE(LRTBaseIE):
             'id': 'lrt-opus',
             'live_status': 'is_live',
             'title': 're:^LRT Opus.+$',
-            'ext': 'mp4'
-        }
+            'ext': 'mp4',
+        },
     }]
 
     def _real_extract(self, url):
@@ -44,7 +46,7 @@ class LRTStreamIE(LRTBaseIE):
             'formats': formats,
             'subtitles': subtitles,
             'is_live': True,
-            'title': f'{self._og_search_title(webpage)} - {stream_title}'
+            'title': f'{self._og_search_title(webpage)} - {stream_title}',
         }
 
 
@@ -62,7 +64,7 @@ class LRTVODIE(LRTBaseIE):
             'timestamp': 1604079000,
             'upload_date': '20201030',
             'tags': ['LRT TELEVIZIJA', 'Beatos virtuvė', 'Beata Nicholson', 'Makaronai', 'Baklažanai', 'Vakarienė', 'Receptas'],
-            'thumbnail': 'https://www.lrt.lt/img/2020/10/30/764041-126478-1287x836.jpg'
+            'thumbnail': 'https://www.lrt.lt/img/2020/10/30/764041-126478-1287x836.jpg',
         },
     }, {
         # direct mp3 download
@@ -80,7 +82,7 @@ class LRTVODIE(LRTBaseIE):
     }]
 
     def _real_extract(self, url):
-        path, video_id = self._match_valid_url(url).groups()
+        path, video_id = self._match_valid_url(url).group('path', 'id')
         webpage = self._download_webpage(url, video_id)
 
         media_url = self._extract_js_var(webpage, 'main_url', path)
@@ -106,3 +108,44 @@ class LRTVODIE(LRTBaseIE):
         }
 
         return merge_dicts(clean_info, jw_data, json_ld_data)
+
+
+class LRTRadioIE(LRTBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?lrt\.lt/radioteka/irasas/(?P<id>\d+)/(?P<path>[^?#/]+)'
+    _TESTS = [{
+        # m3u8 download
+        'url': 'https://www.lrt.lt/radioteka/irasas/2000359728/nemarios-eiles-apie-pragarus-ir-skaistyklas-su-aiste-kiltinaviciute',
+        'info_dict': {
+            'id': '2000359728',
+            'ext': 'm4a',
+            'title': 'Nemarios eilės: apie pragarus ir skaistyklas su Aiste Kiltinavičiūte',
+            'description': 'md5:5eee9a0e86a55bf547bd67596204625d',
+            'timestamp': 1726143120,
+            'upload_date': '20240912',
+            'tags': 'count:5',
+            'thumbnail': r're:https?://.+/.+\.jpe?g',
+            'categories': ['Daiktiniai įrodymai'],
+        },
+    }, {
+        'url': 'https://www.lrt.lt/radioteka/irasas/2000304654/vakaras-su-knyga-svetlana-aleksijevic-cernobylio-malda-v-dalis?season=%2Fmediateka%2Faudio%2Fvakaras-su-knyga%2F2023',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        video_id, path = self._match_valid_url(url).group('id', 'path')
+        media = self._download_json(
+            'https://www.lrt.lt/rest-api/media', video_id,
+            query={'url': f'/mediateka/irasas/{video_id}/{path}'})
+
+        return {
+            'id': video_id,
+            'formats': self._extract_m3u8_formats(media['playlist_item']['file'], video_id),
+            **traverse_obj(media, {
+                'title': ('title', {str}),
+                'tags': ('tags', ..., 'name', {str}),
+                'categories': ('playlist_item', 'category', {str}, filter, all, filter),
+                'description': ('content', {clean_html}, {str}),
+                'timestamp': ('date', {lambda x: x.replace('.', '/')}, {unified_timestamp}),
+                'thumbnail': ('playlist_item', 'image', {urljoin('https://www.lrt.lt')}),
+            }),
+        }

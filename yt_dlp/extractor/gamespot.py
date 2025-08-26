@@ -1,8 +1,9 @@
-from .once import OnceIE
-from ..compat import compat_urllib_parse_unquote
+import urllib.parse
+
+from .common import InfoExtractor
 
 
-class GameSpotIE(OnceIE):
+class GameSpotIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?gamespot\.com/(?:video|article|review)s/(?:[^/]+/\d+-|embed/)(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://www.gamespot.com/videos/arma-3-community-guide-sitrep-i/2300-6410818/',
@@ -40,7 +41,7 @@ class GameSpotIE(OnceIE):
         data_video = self._parse_json(self._html_search_regex(
             r'data-video=(["\'])({.*?})\1', webpage,
             'video data', group=2), page_id)
-        title = compat_urllib_parse_unquote(data_video['title'])
+        title = urllib.parse.unquote(data_video['title'])
         streams = data_video['videoStreams']
         formats = []
 

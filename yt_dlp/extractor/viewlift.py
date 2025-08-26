@@ -5,6 +5,7 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     parse_age_limit,
     traverse_obj,
 )
@@ -62,8 +63,8 @@ class ViewLiftBaseIE(InfoExtractor):
 
 class ViewLiftEmbedIE(ViewLiftBaseIE):
     IE_NAME = 'viewlift:embed'
-    _VALID_URL = r'https?://(?:(?:www|embed)\.)?(?P<domain>%s)/embed/player\?.*\bfilmId=(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})' % ViewLiftBaseIE._DOMAINS_REGEX
-    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:embed\.)?(?:%s)/embed/player.+?)\1' % ViewLiftBaseIE._DOMAINS_REGEX]
+    _VALID_URL = rf'https?://(?:(?:www|embed)\.)?(?P<domain>{ViewLiftBaseIE._DOMAINS_REGEX})/embed/player\?.*\bfilmId=(?P<id>[\da-f]{{8}}-(?:[\da-f]{{4}}-){{3}}[\da-f]{{12}})'
+    _EMBED_REGEX = [rf'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:embed\.)?(?:{ViewLiftBaseIE._DOMAINS_REGEX})/embed/player.+?)\1']
     _TESTS = [{
         'url': 'http://embed.snagfilms.com/embed/player?filmId=74849a00-85a9-11e1-9660-123139220831&w=500',
         'md5': '2924e9215c6eff7a55ed35b72276bd93',
@@ -74,7 +75,8 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
             'description': 'md5:b542bef32a6f657dadd0df06e26fb0c8',
             'timestamp': 1334350096,
             'upload_date': '20120413',
-        }
+        },
+        'skip': 'Invalid URL',
     }, {
         # invalid labels, 360p is better that 480p
         'url': 'http://www.snagfilms.com/embed/player?filmId=17ca0950-a74a-11e0-a92a-0026bb61d036',
@@ -89,6 +91,15 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
         'url': 'http://www.snagfilms.com/embed/player?filmId=0000014c-de2f-d5d6-abcf-ffef58af0017',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'http://whilewewatch.blogspot.ru/2012/06/whilewewatch-whilewewatch-gripping.html',
+        'info_dict': {
+            'id': '74849a00-85a9-11e1-9660-123139220831',
+            'ext': 'mp4',
+            'title': '#whilewewatch',
+        },
+        'skip': 'Dead embed URL',
+    }]
 
     def _real_extract(self, url):
         domain, film_id = self._match_valid_url(url).groups()
@@ -98,7 +109,7 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
 
         content_data = self._call_api(
             site, 'entitlement/video/status', film_id, url, {
-                'id': film_id
+                'id': film_id,
             })['video']
         gist = content_data['gist']
         title = gist['title']
@@ -120,7 +131,7 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
                 'height', default=None))
             formats.append({
                 'url': video_asset_url,
-                'format_id': 'http%s' % ('-%d' % bitrate if bitrate else ''),
+                'format_id': join_nonempty('http', bitrate),
                 'tbr': bitrate,
                 'height': height,
                 'vcodec': video_asset.get('codec'),
@@ -153,7 +164,7 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
 class ViewLiftIE(ViewLiftBaseIE):
     IE_NAME = 'viewlift'
     _API_BASE = 'https://prod-api-cached-2.viewlift.com/'
-    _VALID_URL = r'https?://(?:www\.)?(?P<domain>%s)(?P<path>(?:/(?:films/title|show|(?:news/)?videos?|watch))?/(?P<id>[^?#]+))' % ViewLiftBaseIE._DOMAINS_REGEX
+    _VALID_URL = rf'https?://(?:www\.)?(?P<domain>{ViewLiftBaseIE._DOMAINS_REGEX})(?P<path>(?:/(?:films/title|show|(?:news/)?videos?|watch))?/(?P<id>[^?#]+))'
     _TESTS = [{
         'url': 'http://www.snagfilms.com/films/title/lost_for_life',
         'md5': '19844f897b35af219773fd63bdec2942',
@@ -163,13 +174,14 @@ class ViewLiftIE(ViewLiftBaseIE):
             'ext': 'mp4',
             'title': 'Lost for Life',
             'description': 'md5:ea10b5a50405ae1f7b5269a6ec594102',
-            'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnail': r're:https?://.+\.jpg',
             'duration': 4489,
             'categories': 'mincount:3',
             'age_limit': 14,
             'upload_date': '20150421',
             'timestamp': 1429656820,
-        }
+        },
+        'skip': 'Invalid URL',
     }, {
         'url': 'http://www.snagfilms.com/show/the_world_cut_project/india',
         'md5': 'e6292e5b837642bbda82d7f8bf3fbdfd',
@@ -179,11 +191,12 @@ class ViewLiftIE(ViewLiftBaseIE):
             'ext': 'mp4',
             'title': 'India',
             'description': 'md5:5c168c5a8f4719c146aad2e0dfac6f5f',
-            'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnail': r're:https?://.+\.jpg',
             'duration': 979,
             'timestamp': 1399478279,
             'upload_date': '20140507',
-        }
+        },
+        'skip': 'Invalid URL',
     }, {
         'url': 'http://main.snagfilms.com/augie_alone/s_2_ep_12_love',
         'info_dict': {
@@ -192,15 +205,13 @@ class ViewLiftIE(ViewLiftBaseIE):
             'ext': 'mp4',
             'title': 'S. 2 Ep. 12 - Love',
             'description': 'Augie finds love.',
-            'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnail': r're:https?://.+\.jpg',
             'duration': 107,
             'upload_date': '20141012',
             'timestamp': 1413129540,
             'age_limit': 17,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Invalid URL',
     }, {
         'url': 'http://main.snagfilms.com/films/title/the_freebie',
         'only_matching': True,
@@ -229,10 +240,10 @@ class ViewLiftIE(ViewLiftBaseIE):
             'ext': 'mp4',
             'title': 'Shuyopoka',
             'description': 'md5:e28f2fb8680096a69c944d37c1fa5ffc',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'upload_date': '20211006',
         },
-        'params': {'skip_download': True},
+        'skip': 'Subscription required',
     }, {  # Free film
         'url': 'https://www.hoichoi.tv/films/title/dadu-no1',
         'info_dict': {
@@ -240,10 +251,10 @@ class ViewLiftIE(ViewLiftBaseIE):
             'ext': 'mp4',
             'title': 'Dadu No.1',
             'description': 'md5:605cba408e51a79dafcb824bdeded51e',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'upload_date': '20210827',
         },
-        'params': {'skip_download': True},
+        'skip': 'Subscription required',
     }, {  # Free episode
         'url': 'https://www.hoichoi.tv/webseries/case-jaundice-s01-e01',
         'info_dict': {
@@ -251,11 +262,11 @@ class ViewLiftIE(ViewLiftBaseIE):
             'ext': 'mp4',
             'title': 'Humans Vs. Corona',
             'description': 'md5:ca30a682b4528d02a3eb6d0427dd0f87',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'upload_date': '20210830',
-            'series': 'Case Jaundice'
+            'series': 'Case Jaundice',
         },
-        'params': {'skip_download': True},
+        'skip': 'Invalid URL',
     }, {  # Free video
         'url': 'https://www.hoichoi.tv/videos/1549072415320-six-episode-02-hindi',
         'info_dict': {
@@ -263,11 +274,11 @@ class ViewLiftIE(ViewLiftBaseIE):
             'ext': 'mp4',
             'title': 'Woman in red - Hindi',
             'description': 'md5:9d21edc1827d32f8633eb67c2054fc31',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'upload_date': '20211006',
-            'series': 'Six (Hindi)'
+            'series': 'Six (Hindi)',
         },
-        'params': {'skip_download': True},
+        'skip': 'Invalid URL',
     }, {  # Free episode
         'url': 'https://www.hoichoi.tv/shows/watch-asian-paints-moner-thikana-online-season-1-episode-1',
         'info_dict': {
@@ -275,32 +286,35 @@ class ViewLiftIE(ViewLiftBaseIE):
             'ext': 'mp4',
             'title': 'Jisshu Sengupta',
             'description': 'md5:ef6ffae01a3d83438597367400f824ed',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'upload_date': '20211004',
-            'series': 'Asian Paints Moner Thikana'
+            'series': 'Asian Paints Moner Thikana',
         },
-        'params': {'skip_download': True},
+        'skip': 'Invalid URL',
     }, {  # Free series
         'url': 'https://www.hoichoi.tv/shows/watch-moner-thikana-bengali-web-series-online',
         'playlist_mincount': 5,
         'info_dict': {
             'id': 'watch-moner-thikana-bengali-web-series-online',
         },
+        'skip': 'Subscription required',
     }, {  # Premium series
         'url': 'https://www.hoichoi.tv/shows/watch-byomkesh-bengali-web-series-online',
         'playlist_mincount': 14,
         'info_dict': {
             'id': 'watch-byomkesh-bengali-web-series-online',
         },
+        'skip': 'Subscription required',
     }, {  # Premium movie
         'url': 'https://www.hoichoi.tv/movies/detective-2020',
-        'only_matching': True
+        'only_matching': True,
     }, {  # Chorki Premium series
         'url': 'https://www.chorki.com/bn/series/sinpaat',
         'playlist_mincount': 7,
         'info_dict': {
             'id': 'bn/series/sinpaat',
         },
+        'skip': 'Subscription required',
     }, {  # Chorki free movie
         'url': 'https://www.chorki.com/bn/videos/bangla-movie-bikkhov',
         'info_dict': {
@@ -316,9 +330,7 @@ class ViewLiftIE(ViewLiftBaseIE):
             'description': 'md5:71492b086450625f4374a3eb824f27dc',
             'duration': 8002,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Invalid URL',
     }, {  # Chorki Premium movie
         'url': 'https://www.chorki.com/bn/videos/something-like-an-autobiography',
         'only_matching': True,
@@ -326,7 +338,7 @@ class ViewLiftIE(ViewLiftBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if ViewLiftEmbedIE.suitable(url) else super(ViewLiftIE, cls).suitable(url)
+        return False if ViewLiftEmbedIE.suitable(url) else super().suitable(url)
 
     def _show_entries(self, domain, seasons):
         for season in seasons:
@@ -355,7 +367,7 @@ class ViewLiftIE(ViewLiftBaseIE):
         film_id = next(m['contentData'][0]['gist']['id'] for m in modules if m.get('moduleType') == 'VideoDetailModule')
         return {
             '_type': 'url_transparent',
-            'url': 'http://%s/embed/player?filmId=%s' % (domain, film_id),
+            'url': f'http://{domain}/embed/player?filmId={film_id}',
             'id': film_id,
             'display_id': display_id,
             'ie_key': 'ViewLiftEmbed',

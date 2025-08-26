@@ -13,7 +13,7 @@ class VODPlatformIE(InfoExtractor):
             'id': 'RufMcytHDolTH1MuKHY9Fw',
             'ext': 'mp4',
             'title': 'LBCi News_ النصرة في ضيافة الـ "سي.أن.أن"',
-        }
+        },
     }, {
         'url': 'http://embed.kwikmotion.com/embed/RufMcytHDolTH1MuKHY9Fw',
         'only_matching': True,

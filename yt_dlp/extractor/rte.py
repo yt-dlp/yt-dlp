@@ -35,7 +35,7 @@ class RteBaseIE(InfoExtractor):
                     error_info = self._parse_json(ee.cause.response.read().decode(), item_id, fatal=False)
                     if error_info:
                         raise ExtractorError(
-                            '%s said: %s' % (self.IE_NAME, error_info['message']),
+                            '{} said: {}'.format(self.IE_NAME, error_info['message']),
                             expected=True)
                 raise
 

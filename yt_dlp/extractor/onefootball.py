@@ -36,7 +36,7 @@ class OneFootballIE(InfoExtractor):
             'tags': ['Football', 'Soccer', 'OneFootball'],
             '_old_archive_ids': ['onefootball 34041020'],
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):

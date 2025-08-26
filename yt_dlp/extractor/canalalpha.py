@@ -21,7 +21,7 @@ class CanalAlphaIE(InfoExtractor):
             'upload_date': '20211028',
             'duration': 1125,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.canalalpha.ch/play/le-journal/topic/24512/la-poste-fait-de-neuchatel-un-pole-cryptographique',
         'info_dict': {
@@ -33,7 +33,7 @@ class CanalAlphaIE(InfoExtractor):
             'upload_date': '20211028',
             'duration': 138,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.canalalpha.ch/play/eureka/episode/24484/ces-innovations-qui-veulent-rendre-lagriculture-plus-durable',
         'info_dict': {
@@ -45,7 +45,7 @@ class CanalAlphaIE(InfoExtractor):
             'upload_date': '20211026',
             'duration': 360,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.canalalpha.ch/play/avec-le-temps/episode/23516/redonner-de-leclat-grace-au-polissage',
         'info_dict': {
@@ -57,7 +57,7 @@ class CanalAlphaIE(InfoExtractor):
             'upload_date': '20210726',
             'duration': 360,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.canalalpha.ch/play/le-journal/topic/33500/encore-des-mesures-deconomie-dans-le-jura',
         'info_dict': {

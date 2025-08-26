@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -37,7 +36,7 @@ class StitcherBaseIE(InfoExtractor):
 
     def _extract_episode(self, episode, audio_url, show_info):
         info = {
-            'id': compat_str(episode['id']),
+            'id': str(episode['id']),
             'display_id': episode.get('slug'),
             'title': episode['title'].strip(),
             'description': self._extract_description(episode),
@@ -126,7 +125,7 @@ class StitcherShowIE(StitcherBaseIE):
     def _real_extract(self, url):
         show_slug = self._match_id(url)
         data = self._call_api(
-            'search/show/%s/allEpisodes' % show_slug, show_slug, {'count': 10000})
+            f'search/show/{show_slug}/allEpisodes', show_slug, {'count': 10000})
         show = try_get(data, lambda x: x['shows'][0], dict) or {}
         show_info = self._extract_show_info(show)
 

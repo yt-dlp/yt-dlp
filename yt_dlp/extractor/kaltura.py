@@ -1,12 +1,10 @@
 import base64
+import contextlib
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -24,7 +22,7 @@ class KalturaIE(InfoExtractor):
                 (?:
                     kaltura:(?P<partner_id>\w+):(?P<id>\w+)(?::(?P<player_type>\w+))?|
                     https?://
-                        (:?(?:www|cdnapi(?:sec)?)\.)?kaltura\.com(?::\d+)?/
+                        (?:(?:www|cdnapi(?:sec)?)\.)?kaltura\.com(?::\d+)?/
                         (?:
                             (?:
                                 # flash player
@@ -43,163 +41,202 @@ class KalturaIE(InfoExtractor):
         2: 'ttml',
         3: 'vtt',
     }
-    _TESTS = [
-        {
-            'url': 'kaltura:269692:1_1jc2y3e4',
-            'md5': '3adcbdb3dcc02d647539e53f284ba171',
-            'info_dict': {
-                'id': '1_1jc2y3e4',
-                'ext': 'mp4',
-                'title': 'Straight from the Heart',
-                'upload_date': '20131219',
-                'uploader_id': 'mlundberg@wolfgangsvault.com',
-                'description': 'The Allman Brothers Band, 12/16/1981',
-                'thumbnail': 're:^https?://.*/thumbnail/.*',
-                'timestamp': int,
+    _TESTS = [{
+        'url': 'kaltura:269692:1_1jc2y3e4',
+        'md5': '3adcbdb3dcc02d647539e53f284ba171',
+        'info_dict': {
+            'id': '1_1jc2y3e4',
+            'ext': 'mp4',
+            'title': 'Straight from the Heart',
+            'upload_date': '20131219',
+            'uploader_id': 'mlundberg@wolfgangsvault.com',
+            'description': 'The Allman Brothers Band, 12/16/1981',
+            'thumbnail': r're:https?://.+/thumbnail/.+',
+            'timestamp': int,
+        },
+        'skip': 'The access to this service is forbidden since the specified partner is blocked',
+    }, {
+        'url': 'http://www.kaltura.com/index.php/kwidget/cache_st/1300318621/wid/_269692/uiconf_id/3873291/entry_id/1_1jc2y3e4',
+        'only_matching': True,
+    }, {
+        'url': 'https://cdnapisec.kaltura.com/index.php/kwidget/wid/_557781/uiconf_id/22845202/entry_id/1_plr1syf3',
+        'only_matching': True,
+    }, {
+        'url': 'https://cdnapisec.kaltura.com/html5/html5lib/v2.30.2/mwEmbedFrame.php/p/1337/uiconf_id/20540612/entry_id/1_sf5ovm7u?wid=_243342',
+        'only_matching': True,
+    }, {
+        # video with subtitles
+        'url': 'kaltura:111032:1_cw786r8q',
+        'only_matching': True,
+    }, {
+        # video with ttml subtitles (no fileExt)
+        'url': 'kaltura:1926081:0_l5ye1133',
+        'info_dict': {
+            'id': '0_l5ye1133',
+            'ext': 'mp4',
+            'title': 'What Can You Do With Python?',
+            'upload_date': '20160221',
+            'uploader_id': 'stork',
+            'thumbnail': r're:https?://.+/thumbnail/.+',
+            'timestamp': int,
+            'subtitles': {
+                'en': [{
+                    'ext': 'ttml',
+                }],
             },
-            'skip': 'The access to this service is forbidden since the specified partner is blocked'
         },
-        {
-            'url': 'http://www.kaltura.com/index.php/kwidget/cache_st/1300318621/wid/_269692/uiconf_id/3873291/entry_id/1_1jc2y3e4',
-            'only_matching': True,
+        'skip': 'Gone. Maybe https://www.safaribooksonline.com/library/tutorials/introduction-to-python-anon/3469/',
+        'params': {'skip_download': True},
+    }, {
+        'url': 'https://www.kaltura.com/index.php/extwidget/preview/partner_id/1770401/uiconf_id/37307382/entry_id/0_58u8kme7/embed/iframe?&flashvars[streamerType]=auto',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.kaltura.com:443/index.php/extwidget/preview/partner_id/1770401/uiconf_id/37307382/entry_id/0_58u8kme7/embed/iframe?&flashvars[streamerType]=auto',
+        'only_matching': True,
+    }, {
+        # unavailable source format
+        'url': 'kaltura:513551:1_66x4rg7o',
+        'only_matching': True,
+    }, {
+        # html5lib URL using kwidget player
+        'url': 'https://cdnapisec.kaltura.com/html5/html5lib/v2.46/mwEmbedFrame.php/p/691292/uiconf_id/20499062/entry_id/0_c076mna6?wid=_691292&iframeembed=true&playerId=kaltura_player_1420508608&entry_id=0_c076mna6&flashvars%5BakamaiHD.loadingPolicy%5D=preInitialize&flashvars%5BakamaiHD.asyncInit%5D=true&flashvars%5BstreamerType%5D=hdnetwork',
+        'info_dict': {
+            'id': '0_c076mna6',
+            'ext': 'mp4',
+            'title': 'md5:4883e7acbcbf42583a2dddc97dee4855',
+            'duration': 3608,
+            'uploader_id': 'commons@swinburne.edu.au',
+            'timestamp': 1408086874,
+            'view_count': int,
+            'upload_date': '20140815',
+            'thumbnail': r're:https?://cfvod\.kaltura\.com/.+',
         },
-        {
-            'url': 'https://cdnapisec.kaltura.com/index.php/kwidget/wid/_557781/uiconf_id/22845202/entry_id/1_plr1syf3',
-            'only_matching': True,
+    }, {
+        # html5lib playlist URL using kwidget player
+        'url': 'https://cdnapisec.kaltura.com/html5/html5lib/v2.89/mwEmbedFrame.php/p/2019031/uiconf_id/40436601?wid=1_4j3m32cv&iframeembed=true&playerId=kaltura_player_&flashvars[playlistAPI.kpl0Id]=1_jovey5nu&flashvars[ks]=&&flashvars[imageDefaultDuration]=30&flashvars[localizationCode]=en&flashvars[leadWithHTML5]=true&flashvars[forceMobileHTML5]=true&flashvars[nextPrevBtn.plugin]=true&flashvars[hotspots.plugin]=true&flashvars[sideBarContainer.plugin]=true&flashvars[sideBarContainer.position]=left&flashvars[sideBarContainer.clickToClose]=true&flashvars[chapters.plugin]=true&flashvars[chapters.layout]=vertical&flashvars[chapters.thumbnailRotator]=false&flashvars[streamSelector.plugin]=true&flashvars[EmbedPlayer.SpinnerTarget]=videoHolder&flashvars[dualScreen.plugin]=true&flashvars[playlistAPI.playlistUrl]=https://canvasgatechtest.kaf.kaltura.com/playlist/details/{playlistAPI.kpl0Id}/categoryid/126428551',
+        'info_dict': {
+            'id': '1_jovey5nu',
+            'title': '00-00 Introduction',
         },
-        {
-            'url': 'https://cdnapisec.kaltura.com/html5/html5lib/v2.30.2/mwEmbedFrame.php/p/1337/uiconf_id/20540612/entry_id/1_sf5ovm7u?wid=_243342',
-            'only_matching': True,
-        },
-        {
-            # video with subtitles
-            'url': 'kaltura:111032:1_cw786r8q',
-            'only_matching': True,
-        },
-        {
-            # video with ttml subtitles (no fileExt)
-            'url': 'kaltura:1926081:0_l5ye1133',
-            'info_dict': {
-                'id': '0_l5ye1133',
-                'ext': 'mp4',
-                'title': 'What Can You Do With Python?',
-                'upload_date': '20160221',
-                'uploader_id': 'stork',
-                'thumbnail': 're:^https?://.*/thumbnail/.*',
-                'timestamp': int,
-                'subtitles': {
-                    'en': [{
-                        'ext': 'ttml',
-                    }],
+        'playlist': [
+            {
+                'info_dict': {
+                    'id': '1_b1y5hlvx',
+                    'ext': 'mp4',
+                    'title': 'CS7646_00-00 Introductio_Introduction',
+                    'duration': 91,
+                    'thumbnail': r're:https?://cfvod\.kaltura\.com/.+',
+                    'view_count': int,
+                    'timestamp': 1533154447,
+                    'upload_date': '20180801',
+                    'uploader_id': 'djoyner3',
+                },
+            }, {
+                'info_dict': {
+                    'id': '1_jfb7mdpn',
+                    'ext': 'mp4',
+                    'title': 'CS7646_00-00 Introductio_Three parts to the course',
+                    'duration': 63,
+                    'thumbnail': r're:https?://cfvod\.kaltura\.com/.+',
+                    'view_count': int,
+                    'timestamp': 1533154489,
+                    'upload_date': '20180801',
+                    'uploader_id': 'djoyner3',
+                },
+            }, {
+                'info_dict': {
+                    'id': '1_8xflxdp7',
+                    'ext': 'mp4',
+                    'title': 'CS7646_00-00 Introductio_Textbooks',
+                    'duration': 37,
+                    'thumbnail': r're:https?://cfvod\.kaltura\.com/.+',
+                    'view_count': int,
+                    'timestamp': 1533154512,
+                    'upload_date': '20180801',
+                    'uploader_id': 'djoyner3',
+                },
+            }, {
+                'info_dict': {
+                    'id': '1_3hqew8kn',
+                    'ext': 'mp4',
+                    'title': 'CS7646_00-00 Introductio_Prerequisites',
+                    'duration': 49,
+                    'thumbnail': r're:https?://cfvod\.kaltura\.com/.+',
+                    'view_count': int,
+                    'timestamp': 1533154536,
+                    'upload_date': '20180801',
+                    'uploader_id': 'djoyner3',
                 },
             },
-            'skip': 'Gone. Maybe https://www.safaribooksonline.com/library/tutorials/introduction-to-python-anon/3469/',
-            'params': {
-                'skip_download': True,
-            },
+        ],
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.cornell.edu/VIDEO/nima-arkani-hamed-standard-models-of-particle-physics',
+        'info_dict': {
+            'id': '1_sgtvehim',
+            'ext': 'mp4',
+            'title': 'Our "Standard Models" of particle physics and cosmology',
+            'duration': 5420,
+            'thumbnail': r're:https?://cdnsecakmi\.kaltura\.com/.+',
+            'timestamp': 1321158993,
+            'upload_date': '20111113',
+            'uploader_id': 'kps1',
+            'view_count': int,
         },
-        {
-            'url': 'https://www.kaltura.com/index.php/extwidget/preview/partner_id/1770401/uiconf_id/37307382/entry_id/0_58u8kme7/embed/iframe?&flashvars[streamerType]=auto',
-            'only_matching': True,
+    }, {
+        'url': 'https://www.oreilly.com/ideas/my-cloud-makes-pretty-pictures',
+        'info_dict': {
+            'id': '0_utuok90b',
+            'ext': 'mp4',
+            'title': '06_matthew_brender_raj_dutt',
+            'duration': 331,
+            'thumbnail': r're:https?://cfvod\.kaltura\.com/.+',
+            'timestamp': 1466638791,
+            'upload_date': '20160622',
+            'uploader_id': '',
+            'view_count': int,
         },
-        {
-            'url': 'https://www.kaltura.com:443/index.php/extwidget/preview/partner_id/1770401/uiconf_id/37307382/entry_id/0_58u8kme7/embed/iframe?&flashvars[streamerType]=auto',
-            'only_matching': True,
+    }, {
+        'url': 'https://fod.infobase.com/p_ViewPlaylist.aspx?AssignmentID=NUN8ZY',
+        'info_dict': {
+            'id': '0_izeg5utt',
+            'ext': 'mp4',
+            'title': '35871',
+            'duration': 3403,
+            'thumbnail': r're:https?://cfvod\.kaltura\.com/.+',
+            'timestamp': 1355743100,
+            'upload_date': '20121217',
+            'uploader_id': 'cplapp@learn360.com',
+            'view_count': int,
         },
-        {
-            # unavailable source format
-            'url': 'kaltura:513551:1_66x4rg7o',
-            'only_matching': True,
+    }, {
+        'url': 'https://www.cns.nyu.edu/~eero/math-tools17/Videos/lecture-05sep2017.html',
+        'info_dict': {
+            'id': '1_9gzouybz',
+            'ext': 'mp4',
+            'title': 'lecture-05sep2017',
+            'duration': 7219,
+            'thumbnail': r're:https?://cfvod\.kaltura\.com/.+',
+            'timestamp': 1505340777,
+            'upload_date': '20170913',
+            'uploader_id': 'eps2',
+            'view_count': int,
         },
-        {
-            # html5lib URL using kwidget player
-            'url': 'https://cdnapisec.kaltura.com/html5/html5lib/v2.46/mwEmbedFrame.php/p/691292/uiconf_id/20499062/entry_id/0_c076mna6?wid=_691292&iframeembed=true&playerId=kaltura_player_1420508608&entry_id=0_c076mna6&flashvars%5BakamaiHD.loadingPolicy%5D=preInitialize&flashvars%5BakamaiHD.asyncInit%5D=true&flashvars%5BstreamerType%5D=hdnetwork',
-            'info_dict': {
-                'id': '0_c076mna6',
-                'ext': 'mp4',
-                'title': 'md5:4883e7acbcbf42583a2dddc97dee4855',
-                'duration': 3608,
-                'uploader_id': 'commons@swinburne.edu.au',
-                'timestamp': 1408086874,
-                'view_count': int,
-                'upload_date': '20140815',
-                'thumbnail': 'http://cfvod.kaltura.com/p/691292/sp/69129200/thumbnail/entry_id/0_c076mna6/version/100022',
-            }
-        },
-        {
-            # html5lib playlist URL using kwidget player
-            'url': 'https://cdnapisec.kaltura.com/html5/html5lib/v2.89/mwEmbedFrame.php/p/2019031/uiconf_id/40436601?wid=1_4j3m32cv&iframeembed=true&playerId=kaltura_player_&flashvars[playlistAPI.kpl0Id]=1_jovey5nu&flashvars[ks]=&&flashvars[imageDefaultDuration]=30&flashvars[localizationCode]=en&flashvars[leadWithHTML5]=true&flashvars[forceMobileHTML5]=true&flashvars[nextPrevBtn.plugin]=true&flashvars[hotspots.plugin]=true&flashvars[sideBarContainer.plugin]=true&flashvars[sideBarContainer.position]=left&flashvars[sideBarContainer.clickToClose]=true&flashvars[chapters.plugin]=true&flashvars[chapters.layout]=vertical&flashvars[chapters.thumbnailRotator]=false&flashvars[streamSelector.plugin]=true&flashvars[EmbedPlayer.SpinnerTarget]=videoHolder&flashvars[dualScreen.plugin]=true&flashvars[playlistAPI.playlistUrl]=https://canvasgatechtest.kaf.kaltura.com/playlist/details/{playlistAPI.kpl0Id}/categoryid/126428551',
-            'info_dict': {
-                'id': '1_jovey5nu',
-                'title': '00-00 Introduction'
-            },
-            'playlist': [
-                {
-                    'info_dict': {
-                        'id': '1_b1y5hlvx',
-                        'ext': 'mp4',
-                        'title': 'CS7646_00-00 Introductio_Introduction',
-                        'duration': 91,
-                        'thumbnail': 'http://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_b1y5hlvx/version/100001',
-                        'view_count': int,
-                        'timestamp': 1533154447,
-                        'upload_date': '20180801',
-                        'uploader_id': 'djoyner3',
-                    }
-                }, {
-                    'info_dict': {
-                        'id': '1_jfb7mdpn',
-                        'ext': 'mp4',
-                        'title': 'CS7646_00-00 Introductio_Three parts to the course',
-                        'duration': 63,
-                        'thumbnail': 'http://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_jfb7mdpn/version/100001',
-                        'view_count': int,
-                        'timestamp': 1533154489,
-                        'upload_date': '20180801',
-                        'uploader_id': 'djoyner3',
-                    }
-                }, {
-                    'info_dict': {
-                        'id': '1_8xflxdp7',
-                        'ext': 'mp4',
-                        'title': 'CS7646_00-00 Introductio_Textbooks',
-                        'duration': 37,
-                        'thumbnail': 'http://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_8xflxdp7/version/100001',
-                        'view_count': int,
-                        'timestamp': 1533154512,
-                        'upload_date': '20180801',
-                        'uploader_id': 'djoyner3',
-                    }
-                }, {
-                    'info_dict': {
-                        'id': '1_3hqew8kn',
-                        'ext': 'mp4',
-                        'title': 'CS7646_00-00 Introductio_Prerequisites',
-                        'duration': 49,
-                        'thumbnail': 'http://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_3hqew8kn/version/100001',
-                        'view_count': int,
-                        'timestamp': 1533154536,
-                        'upload_date': '20180801',
-                        'uploader_id': 'djoyner3',
-                    }
-                }
-            ]
-        }
-    ]
+    }]
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         # Embed codes: https://knowledge.kaltura.com/embedding-kaltura-media-players-your-site
         finditer = (
             list(re.finditer(
-                r"""(?xs)
+                r'''(?xs)
                     kWidget\.(?:thumb)?[Ee]mbed\(
                     \{.*?
                         (?P<q1>['"])wid(?P=q1)\s*:\s*
                         (?P<q2>['"])_?(?P<partner_id>(?:(?!(?P=q2)).)+)(?P=q2),.*?
                         (?P<q3>['"])entry_?[Ii]d(?P=q3)\s*:\s*
                         (?P<q4>['"])(?P<id>(?:(?!(?P=q4)).)+)(?P=q4)(?:,|\s*\})
-                """, webpage))
+                ''', webpage))
             or list(re.finditer(
                 r'''(?xs)
                     (?P<q1>["'])
@@ -230,34 +267,34 @@ class KalturaIE(InfoExtractor):
             for k, v in embed_info.items():
                 if v:
                     embed_info[k] = v.strip()
-            embed_url = 'kaltura:%(partner_id)s:%(id)s' % embed_info
+            embed_url = 'kaltura:{partner_id}:{id}'.format(**embed_info)
             escaped_pid = re.escape(embed_info['partner_id'])
             service_mobj = re.search(
-                r'<script[^>]+src=(["\'])(?P<id>(?:https?:)?//(?:(?!\1).)+)/p/%s/sp/%s00/embedIframeJs' % (escaped_pid, escaped_pid),
+                rf'<script[^>]+src=(["\'])(?P<id>(?:https?:)?//(?:(?!\1).)+)/p/{escaped_pid}/sp/{escaped_pid}00/embedIframeJs',
                 webpage)
             if service_mobj:
                 embed_url = smuggle_url(embed_url, {'service_url': service_mobj.group('id')})
             urls.append(embed_url)
         return urls
 
-    def _kaltura_api_call(self, video_id, actions, service_url=None, *args, **kwargs):
+    def _kaltura_api_call(self, video_id, actions, service_url=None, **kwargs):
         params = actions[0]
-        params.update({i: a for i, a in enumerate(actions[1:], start=1)})
+        params.update(dict(enumerate(actions[1:], start=1)))
 
         data = self._download_json(
             (service_url or self._SERVICE_URL) + self._SERVICE_BASE,
-            video_id, data=json.dumps(params).encode('utf-8'),
+            video_id, data=json.dumps(params).encode(),
             headers={
                 'Content-Type': 'application/json',
                 'Accept-Encoding': 'gzip, deflate, br',
-            }, *args, **kwargs)
+            }, **kwargs)
 
         for idx, status in enumerate(data):
             if not isinstance(status, dict):
                 continue
             if status.get('objectType') == 'KalturaAPIException':
                 raise ExtractorError(
-                    '%s said: %s (%d)' % (self.IE_NAME, status['message'], idx))
+                    '{} said: {} ({})'.format(self.IE_NAME, status['message'], idx))
 
         data[1] = traverse_obj(data, (1, 'objects', 0))
 
@@ -342,7 +379,7 @@ class KalturaIE(InfoExtractor):
                 'apiVersion': '3.1',
                 'clientTag': 'kwidget:v2.89',
                 'ignoreNull': 1,
-                'ks': '{1:result:ks}'
+                'ks': '{1:result:ks}',
             },
             # info
             {
@@ -397,10 +434,10 @@ class KalturaIE(InfoExtractor):
                 raise ExtractorError('Invalid URL', expected=True)
             params = {}
             if query:
-                params = compat_parse_qs(query)
+                params = urllib.parse.parse_qs(query)
             if path:
                 splitted_path = path.split('/')
-                params.update(dict((zip(splitted_path[::2], [[v] for v in splitted_path[1::2]]))))
+                params.update(dict(zip(splitted_path[::2], [[v] for v in splitted_path[1::2]])))
             if 'wid' in params:
                 partner_id = remove_start(params['wid'][0], '_')
             elif 'p' in params:
@@ -423,14 +460,11 @@ class KalturaIE(InfoExtractor):
                 # Unfortunately, data returned in kalturaIframePackageData lacks
                 # captions so we will try requesting the complete data using
                 # regular approach since we now know the entry_id
-                try:
+                # Even if this fails we already have everything extracted
+                # apart from captions and can process at least with this
+                with contextlib.suppress(ExtractorError):
                     _, info, flavor_assets, captions = self._get_video_info(
                         entry_id, partner_id, player_type=player_type)
-                except ExtractorError:
-                    # Regular scenario failed but we already have everything
-                    # extracted apart from captions and can process at least
-                    # with this
-                    pass
             elif 'uiconf_id' in params and 'flashvars[playlistAPI.kpl0Id]' in params:
                 playlist_id = params['flashvars[playlistAPI.kpl0Id]'][0]
                 webpage = self._download_webpage(url, playlist_id)
@@ -451,16 +485,16 @@ class KalturaIE(InfoExtractor):
         source_url = smuggled_data.get('source_url')
         if source_url:
             referrer = base64.b64encode(
-                '://'.join(compat_urlparse.urlparse(source_url)[:2])
-                .encode('utf-8')).decode('utf-8')
+                '://'.join(urllib.parse.urlparse(source_url)[:2])
+                .encode()).decode('utf-8')
         else:
             referrer = None
 
         def sign_url(unsigned_url):
             if ks:
-                unsigned_url += '/ks/%s' % ks
+                unsigned_url += f'/ks/{ks}'
             if referrer:
-                unsigned_url += '?referrer=%s' % referrer
+                unsigned_url += f'?referrer={referrer}'
             return unsigned_url
 
         data_url = info['dataUrl']
@@ -487,8 +521,8 @@ class KalturaIE(InfoExtractor):
                 else:
                     f['fileExt'] = 'mp4'
             video_url = sign_url(
-                '%s/flavorId/%s' % (data_url, f['id']))
-            format_id = '%(fileExt)s-%(bitrate)s' % f
+                '{}/flavorId/{}'.format(data_url, f['id']))
+            format_id = '{fileExt}-{bitrate}'.format(**f)
             # Source format may not be available (e.g. kaltura:513551:1_66x4rg7o)
             if f.get('isOriginal') is True and not self._is_valid_url(
                     video_url, entry_id, format_id):
@@ -527,7 +561,7 @@ class KalturaIE(InfoExtractor):
                     continue
                 caption_format = int_or_none(caption.get('format'))
                 subtitles.setdefault(caption.get('languageCode') or caption.get('language'), []).append({
-                    'url': '%s/api_v3/service/caption_captionasset/action/serve/captionAssetId/%s' % (self._SERVICE_URL, caption['id']),
+                    'url': '{}/api_v3/service/caption_captionasset/action/serve/captionAssetId/{}'.format(self._SERVICE_URL, caption['id']),
                     'ext': caption.get('fileExt') or self._CAPTION_TYPES.get(caption_format) or 'ttml',
                 })
 

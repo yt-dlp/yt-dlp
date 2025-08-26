@@ -38,8 +38,8 @@ class Rule34VideoIE(InfoExtractor):
                 'uploader': 'Sweet HMV',
                 'uploader_url': 'https://rule34video.com/members/22119/',
                 'categories': ['3D', 'MMD', 'iwara'],
-                'tags': 'mincount:10'
-            }
+                'tags': 'mincount:10',
+            },
         },
         {
             'url': 'https://rule34video.com/videos/3065296/lara-in-trouble-ep-7-wildeerstudio/',
@@ -61,8 +61,8 @@ class Rule34VideoIE(InfoExtractor):
                 'uploader': 'CerZule',
                 'uploader_url': 'https://rule34video.com/members/36281/',
                 'categories': ['3D', 'Tomb Raider'],
-                'tags': 'mincount:40'
-            }
+                'tags': 'mincount:40',
+            },
         },
     ]
 

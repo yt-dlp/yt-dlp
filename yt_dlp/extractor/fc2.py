@@ -1,7 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_parse_qs
 from ..networking import Request
 from ..utils import (
     ExtractorError,
@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class FC2IE(InfoExtractor):
-    _VALID_URL = r'^(?:https?://video\.fc2\.com/(?:[^/]+/)*content/|fc2:)(?P<id>[^/]+)'
+    _VALID_URL = r'(?:https?://video\.fc2\.com/(?:[^/]+/)*content/|fc2:)(?P<id>[^/]+)'
     IE_NAME = 'fc2'
     _NETRC_MACHINE = 'fc2'
     _TESTS = [{
@@ -22,8 +22,23 @@ class FC2IE(InfoExtractor):
         'md5': 'a6ebe8ebe0396518689d963774a54eb7',
         'info_dict': {
             'id': '20121103kUan1KHs',
-            'ext': 'flv',
             'title': 'Boxing again with Puff',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://.+\.jpe?g',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        # Direct video url
+        'url': 'https://video.fc2.com/content/20121209FP73fxDx',
+        'md5': '066bdb9b3a56a97f49cbf0d0b8a75a1f',
+        'info_dict': {
+            'id': '20121209FP73fxDx',
+            'title': 'Farewelling The Wiggles Live in Sydney Dec 8 2012',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://.+\.jpe?g',
+            'description': 'Saying goodbye to the Wiggles at their Celebration Concert in Sydney, and what a concert that was!',
         },
     }, {
         'url': 'http://video.fc2.com/en/content/20150125cEva0hDn/',
@@ -92,7 +107,7 @@ class FC2IE(InfoExtractor):
             description = self._og_search_description(webpage, default=None)
 
         vidplaylist = self._download_json(
-            'https://video.fc2.com/api/v3/videoplaylist/%s?sh=1&fs=0' % video_id, video_id,
+            f'https://video.fc2.com/api/v3/videoplaylist/{video_id}?sh=1&fs=0', video_id,
             note='Downloading info page')
         vid_url = traverse_obj(vidplaylist, ('playlist', 'nq'))
         if not vid_url:
@@ -104,7 +119,7 @@ class FC2IE(InfoExtractor):
             'title': title,
             'url': vid_url,
             'ext': 'mp4',
-            'protocol': 'm3u8_native',
+            'protocol': 'm3u8_native' if vidplaylist.get('type') == 2 else 'https',
             'description': description,
             'thumbnail': thumbnail,
         }
@@ -127,22 +142,22 @@ class FC2EmbedIE(InfoExtractor):
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        query = compat_parse_qs(mobj.group('query'))
+        query = urllib.parse.parse_qs(mobj.group('query'))
 
         video_id = query['i'][-1]
-        title = query.get('tl', ['FC2 video %s' % video_id])[0]
+        title = query.get('tl', [f'FC2 video {video_id}'])[0]
 
         sj = query.get('sj', [None])[0]
         thumbnail = None
         if sj:
             # See thumbnailImagePath() in ServerConst.as of flv2.swf
-            thumbnail = 'http://video%s-thumbnail.fc2.com/up/pic/%s.jpg' % (
+            thumbnail = 'http://video{}-thumbnail.fc2.com/up/pic/{}.jpg'.format(
                 sj, '/'.join((video_id[:6], video_id[6:8], video_id[-2], video_id[-1], video_id)))
 
         return {
             '_type': 'url_transparent',
             'ie_key': FC2IE.ie_key(),
-            'url': 'fc2:%s' % video_id,
+            'url': f'fc2:{video_id}',
             'title': title,
             'thumbnail': thumbnail,
         }
@@ -166,7 +181,7 @@ class FC2LiveIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage('https://live.fc2.com/%s/' % video_id, video_id)
+        webpage = self._download_webpage(f'https://live.fc2.com/{video_id}/', video_id)
 
         self._set_cookie('live.fc2.com', 'js-player_size', '1')
 
@@ -175,7 +190,7 @@ class FC2LiveIE(InfoExtractor):
                 'channel': '1',
                 'profile': '1',
                 'user': '1',
-                'streamid': video_id
+                'streamid': video_id,
             }), note='Requesting member info')
 
         control_server = self._download_json(
@@ -224,7 +239,7 @@ class FC2LiveIE(InfoExtractor):
                 self.write_debug('Goodbye')
                 playlist_data = data
                 break
-            self.write_debug('Server said: %s%s' % (recv[:100], '...' if len(recv) > 100 else ''))
+            self.write_debug('Server said: {}{}'.format(recv[:100], '...' if len(recv) > 100 else ''))
 
         if not playlist_data:
             raise ExtractorError('Unable to fetch HLS playlist info via WebSocket')

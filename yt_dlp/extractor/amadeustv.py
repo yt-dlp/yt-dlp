@@ -24,7 +24,7 @@ class AmadeusTVIE(InfoExtractor):
             'display_id': '65091a87ff85af59d9fc54c3',
             'view_count': int,
             'description': 'md5:a0357b9c215489e2067cbae0b777bb95',
-        }
+        },
     }]
 
     def _real_extract(self, url):

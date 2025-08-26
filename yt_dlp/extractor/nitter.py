@@ -1,8 +1,8 @@
 import random
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     determine_ext,
     parse_count,
@@ -265,7 +265,7 @@ class NitterIE(InfoExtractor):
                 'like_count': int,
                 'repost_count': int,
                 'comment_count': int,
-            }
+            },
         }, {  # no OpenGraph title
             'url': f'https://{current_instance}/LocalBateman/status/1678455464038735895#m',
             'info_dict': {
@@ -286,12 +286,12 @@ class NitterIE(InfoExtractor):
             },
             'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
             'params': {'skip_download': 'm3u8'},
-        }
+        },
     ]
 
     def _real_extract(self, url):
         video_id, uploader_id = self._match_valid_url(url).group('id', 'uploader_id')
-        parsed_url = compat_urlparse.urlparse(url)
+        parsed_url = urllib.parse.urlparse(url)
         base_url = f'{parsed_url.scheme}://{parsed_url.netloc}'
 
         self._set_cookie(parsed_url.netloc, 'hlsPlayback', 'on')
@@ -301,7 +301,7 @@ class NitterIE(InfoExtractor):
         if main_tweet_start > 0:
             webpage = full_webpage[main_tweet_start:]
 
-        video_url = '%s%s' % (base_url, self._html_search_regex(
+        video_url = '{}{}'.format(base_url, self._html_search_regex(
             r'(?:<video[^>]+data-url|<source[^>]+src)="([^"]+)"', webpage, 'video url'))
         ext = determine_ext(video_url)
 
@@ -310,7 +310,7 @@ class NitterIE(InfoExtractor):
         else:
             formats = [{
                 'url': video_url,
-                'ext': ext
+                'ext': ext,
             }]
 
         title = description = self._og_search_description(full_webpage, default=None) or self._html_search_regex(
@@ -334,12 +334,12 @@ class NitterIE(InfoExtractor):
 
         thumbnail = (
             self._html_search_meta('og:image', full_webpage, 'thumbnail url')
-            or remove_end('%s%s' % (base_url, self._html_search_regex(
+            or remove_end('{}{}'.format(base_url, self._html_search_regex(
                 r'<video[^>]+poster="([^"]+)"', webpage, 'thumbnail url', fatal=False)), '%3Asmall'))
 
         thumbnails = [
-            {'id': id, 'url': f'{thumbnail}%3A{id}'}
-            for id in ('thumb', 'small', 'large', 'medium', 'orig')
+            {'id': id_, 'url': f'{thumbnail}%3A{id_}'}
+            for id_ in ('thumb', 'small', 'large', 'medium', 'orig')
         ]
 
         date = self._html_search_regex(

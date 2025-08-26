@@ -28,7 +28,7 @@ class ImdbIE(InfoExtractor):
             'description': 'md5:87bd0bdc61e351f21f20d2d7441cb4e7',
             'duration': 152,
             'thumbnail': r're:^https?://.+\.jpg',
-        }
+        },
     }, {
         'url': 'https://www.imdb.com/video/vi3516832537',
         'info_dict': {
@@ -38,7 +38,7 @@ class ImdbIE(InfoExtractor):
             'description': 'md5:17fcc4fe11ec29b4399be9d4c5ef126c',
             'duration': 153,
             'thumbnail': r're:^https?://.+\.jpg',
-        }
+        },
     }, {
         'url': 'http://www.imdb.com/video/_/vi2524815897',
         'only_matching': True,
@@ -73,7 +73,7 @@ class ImdbIE(InfoExtractor):
                 'key': base64.b64encode(json.dumps({
                     'type': 'VIDEO_PLAYER',
                     'subType': 'FORCE_LEGACY',
-                    'id': 'vi%s' % video_id,
+                    'id': f'vi{video_id}',
                 }).encode()).decode(),
             }), lambda x: x[0]['videoLegacyEncodings'])
         quality = qualities(('SD', '480p', '720p', '1080p'))
@@ -132,7 +132,7 @@ class ImdbListIE(InfoExtractor):
         webpage = self._download_webpage(url, list_id)
         entries = [
             self.url_result('http://www.imdb.com' + m, 'Imdb')
-            for m in re.findall(r'href="(/list/ls%s/videoplayer/vi[^"]+)"' % list_id, webpage)]
+            for m in re.findall(rf'href="(/list/ls{list_id}/videoplayer/vi[^"]+)"', webpage)]
 
         list_title = self._html_search_regex(
             r'<h1[^>]+class="[^"]*header[^"]*"[^>]*>(.*?)</h1>',

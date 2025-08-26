@@ -5,6 +5,7 @@ from ..utils import (
     determine_ext,
     float_or_none,
     int_or_none,
+    join_nonempty,
     mimetype2ext,
     try_get,
     urljoin,
@@ -15,7 +16,7 @@ class YandexDiskIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://
         (?P<domain>
             yadi\.sk|
-            disk\.yandex\.
+            disk\.(?:360\.)?yandex\.
                 (?:
                     az|
                     by|
@@ -49,6 +50,9 @@ class YandexDiskIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://yadi.sk/public?hash=5DZ296JK9GWCLp02f6jrObjnctjRxMs8L6%2B%2FuhNqk38%3D',
+        'only_matching': True,
+    }, {
+        'url': 'https://disk.360.yandex.ru/i/TM2xsIVsgjY4uw',
         'only_matching': True,
     }]
 
@@ -102,7 +106,7 @@ class YandexDiskIE(InfoExtractor):
                 'format_id': 'source',
                 'ext': determine_ext(title, meta.get('ext') or mimetype2ext(meta.get('mime_type')) or 'mp4'),
                 'quality': 1,
-                'filesize': int_or_none(meta.get('size'))
+                'filesize': int_or_none(meta.get('size')),
             })
 
         for video in (video_streams.get('videos') or []):
@@ -116,12 +120,9 @@ class YandexDiskIE(InfoExtractor):
             else:
                 size = video.get('size') or {}
                 height = int_or_none(size.get('height'))
-                format_id = 'hls'
-                if height:
-                    format_id += '-%dp' % height
                 formats.append({
                     'ext': 'mp4',
-                    'format_id': format_id,
+                    'format_id': join_nonempty('hls', height and f'{height}p'),
                     'height': height,
                     'protocol': 'm3u8_native',
                     'url': format_url,

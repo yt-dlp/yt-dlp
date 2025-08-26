@@ -1,4 +1,5 @@
-import contextlib
+from __future__ import annotations
+
 import functools
 import http.client
 import logging
@@ -8,7 +9,7 @@ import warnings
 
 from ..dependencies import brotli, requests, urllib3
 from ..utils import bug_reports_message, int_or_none, variadic
-from ..utils.networking import normalize_url
+from ..utils.networking import normalize_url, select_proxy
 
 if requests is None:
     raise ImportError('requests module is not installed')
@@ -18,10 +19,12 @@ if urllib3 is None:
 
 urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.split('.'))
 
-if urllib3_version < (1, 26, 17):
-    raise ImportError('Only urllib3 >= 1.26.17 is supported')
+if urllib3_version < (2, 0, 2):
+    urllib3._yt_dlp__version = f'{urllib3.__version__} (unsupported)'
+    raise ImportError('Only urllib3 >= 2.0.2 is supported')
 
 if requests.__build__ < 0x023202:
+    requests._yt_dlp__version = f'{requests.__version__} (unsupported)'
     raise ImportError('Only requests >= 2.32.2 is supported')
 
 import requests.adapters
@@ -37,7 +40,6 @@ from ._helper import (
     create_socks_proxy_socket,
     get_redirect_method,
     make_socks_proxy_opts,
-    select_proxy,
 )
 from .common import (
     Features,
@@ -58,13 +60,13 @@ from .exceptions import (
 from ..socks import ProxyError as SocksProxyError
 
 SUPPORTED_ENCODINGS = [
-    'gzip', 'deflate'
+    'gzip', 'deflate',
 ]
 
 if brotli is not None:
     SUPPORTED_ENCODINGS.append('br')
 
-"""
+'''
 Override urllib3's behavior to not convert lower-case percent-encoded characters
 to upper-case during url normalization process.
 
@@ -79,7 +81,7 @@ is best to avoid it in requests too for compatability reasons.
 
 1: https://tools.ietf.org/html/rfc3986#section-2.1
 2: https://github.com/streamlink/streamlink/pull/4003
-"""
+'''
 
 
 class Urllib3PercentREOverride:
@@ -96,29 +98,12 @@ class Urllib3PercentREOverride:
 
 # urllib3 >= 1.25.8 uses subn:
 # https://github.com/urllib3/urllib3/commit/a2697e7c6b275f05879b60f593c5854a816489f0
-import urllib3.util.url  # noqa: E305
+import urllib3.util.url
 
-if hasattr(urllib3.util.url, 'PERCENT_RE'):
-    urllib3.util.url.PERCENT_RE = Urllib3PercentREOverride(urllib3.util.url.PERCENT_RE)
-elif hasattr(urllib3.util.url, '_PERCENT_RE'):  # urllib3 >= 2.0.0
+if hasattr(urllib3.util.url, '_PERCENT_RE'):  # was 'PERCENT_RE' in urllib3 < 2.0.0
     urllib3.util.url._PERCENT_RE = Urllib3PercentREOverride(urllib3.util.url._PERCENT_RE)
 else:
-    warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)' + bug_reports_message())
-
-"""
-Workaround for issue in urllib.util.ssl_.py: ssl_wrap_context does not pass
-server_hostname to SSLContext.wrap_socket if server_hostname is an IP,
-however this is an issue because we set check_hostname to True in our SSLContext.
-
-Monkey-patching IS_SECURETRANSPORT forces ssl_wrap_context to pass server_hostname regardless.
-
-This has been fixed in urllib3 2.0+.
-See: https://github.com/urllib3/urllib3/issues/517
-"""
-
-if urllib3_version < (2, 0, 0):
-    with contextlib.suppress(Exception):
-        urllib3.util.IS_SECURETRANSPORT = urllib3.util.ssl_.IS_SECURETRANSPORT = True
+    warnings.warn('Failed to patch _PERCENT_RE in urllib3 (does the attribute exist?)' + bug_reports_message())
 
 
 # Requests will not automatically handle no_proxy by default
@@ -135,8 +120,14 @@ class RequestsResponseAdapter(Response):
 
         self._requests_response = res
 
-    def read(self, amt: int = None):
+    def read(self, amt: int | None = None):
         try:
+            # Work around issue with `.read(amt)` then `.read()`
+            # See: https://github.com/urllib3/urllib3/issues/3636
+            if amt is None:
+                # Python 3.9 preallocates the whole read buffer, read in chunks
+                read_chunk = functools.partial(self.fp.read, 1 << 20, decode_content=True)
+                return b''.join(iter(read_chunk, b''))
             # Interact with urllib3 response directly.
             return self.fp.read(amt, decode_content=True)
 
@@ -228,9 +219,7 @@ class Urllib3LoggingFilter(logging.Filter):
 
     def filter(self, record):
         # Ignore HTTP request messages since HTTPConnection prints those
-        if record.msg == '%s://%s:%s "%s %s %s" %s %s':
-            return False
-        return True
+        return record.msg != '%s://%s:%s "%s %s %s" %s %s'
 
 
 class Urllib3LoggingHandler(logging.Handler):
@@ -295,30 +284,37 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         super()._check_extensions(extensions)
         extensions.pop('cookiejar', None)
         extensions.pop('timeout', None)
+        extensions.pop('legacy_ssl', None)
+        extensions.pop('keep_header_casing', None)
 
-    def _create_instance(self, cookiejar):
+    def _create_instance(self, cookiejar, legacy_ssl_support=None):
         session = RequestsSession()
         http_adapter = RequestsHTTPAdapter(
-            ssl_context=self._make_sslcontext(),
+            ssl_context=self._make_sslcontext(legacy_ssl_support=legacy_ssl_support),
             source_address=self.source_address,
             max_retries=urllib3.util.retry.Retry(False),
         )
         session.adapters.clear()
-        session.headers = requests.models.CaseInsensitiveDict({'Connection': 'keep-alive'})
+        session.headers = requests.models.CaseInsensitiveDict()
         session.mount('https://', http_adapter)
         session.mount('http://', http_adapter)
         session.cookies = cookiejar
         session.trust_env = False  # no need, we already load proxies from env
         return session
 
+    def _prepare_headers(self, _, headers):
+        add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
+        headers.setdefault('Connection', 'keep-alive')
+
     def _send(self, request):
 
-        headers = self._merge_headers(request.headers)
-        add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
-
+        headers = self._get_headers(request)
         max_redirects_exceeded = False
 
-        session = self._get_instance(cookiejar=self._get_cookiejar(request))
+        session = self._get_instance(
+            cookiejar=self._get_cookiejar(request),
+            legacy_ssl_support=request.extensions.get('legacy_ssl'),
+        )
 
         try:
             requests_res = session.request(
@@ -329,7 +325,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
                 timeout=self._calculate_timeout(request),
                 proxies=self._get_proxies(request),
                 allow_redirects=True,
-                stream=True
+                stream=True,
             )
 
         except requests.exceptions.TooManyRedirects as e:
@@ -411,7 +407,7 @@ class SocksProxyManager(urllib3.PoolManager):
         super().__init__(num_pools, headers, **connection_pool_kw)
         self.pool_classes_by_scheme = {
             'http': SocksHTTPConnectionPool,
-            'https': SocksHTTPSConnectionPool
+            'https': SocksHTTPSConnectionPool,
         }
 
 

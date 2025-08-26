@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
     float_or_none,
     format_field,
@@ -35,7 +33,7 @@ class ArnesIE(InfoExtractor):
             'view_count': int,
             'tags': ['linearna_algebra'],
             'start_time': 10,
-        }
+        },
     }, {
         'url': 'https://video.arnes.si/api/asset/s1YjnV7hadlC/play.mp4',
         'only_matching': True,
@@ -93,6 +91,6 @@ class ArnesIE(InfoExtractor):
             'duration': float_or_none(video.get('duration'), 1000),
             'view_count': int_or_none(video.get('views')),
             'tags': video.get('hashtags'),
-            'start_time': int_or_none(compat_parse_qs(
-                compat_urllib_parse_urlparse(url).query).get('t', [None])[0]),
+            'start_time': int_or_none(urllib.parse.parse_qs(
+                urllib.parse.urlparse(url).query).get('t', [None])[0]),
         }

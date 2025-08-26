@@ -26,8 +26,8 @@ class OneNewsNZIE(InfoExtractor):
                     'duration': 38.272,
                     'thumbnail': r're:^https?://.*\.jpg$',
                     'description': 'Greenpeace accused the Government of "greenwashing" instead of taking climate action.',
-                }
-            }]
+                },
+            }],
         }, {
             # YouTube video
             'url': 'https://www.1news.co.nz/2022/09/30/now-is-the-time-to-care-about-womens-rugby/',
@@ -59,8 +59,8 @@ class OneNewsNZIE(InfoExtractor):
                     'availability': 'public',
                     'playable_in_embed': True,
                     'live_status': 'not_live',
-                }
-            }]
+                },
+            }],
         }, {
             # 2 Brightcove videos
             'url': 'https://www.1news.co.nz/2022/09/29/raw-videos-capture-hurricane-ians-fury-as-it-slams-florida/',
@@ -89,7 +89,7 @@ class OneNewsNZIE(InfoExtractor):
                 brightcove_config = traverse_obj(item, ('embed', 'config'))
                 brightcove_url = self.BRIGHTCOVE_URL_TEMPLATE % (
                     traverse_obj(brightcove_config, 'brightcoveAccount') or '963482464001',
-                    traverse_obj(brightcove_config, 'brightcoveVideoId')
+                    traverse_obj(brightcove_config, 'brightcoveVideoId'),
                 )
                 entries.append(self.url_result(brightcove_url, BrightcoveNewIE))
             elif item_type == 'youtube':
