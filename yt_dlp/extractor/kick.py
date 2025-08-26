@@ -72,7 +72,7 @@ class KickIE(KickBaseIE):
 
         return {
             'channel': channel,
-            'is_live': True,
+            'live_status': 'is_live',
             'formats': self._extract_m3u8_formats(response['playback_url'], channel, 'mp4', live=True),
             **traverse_obj(response, {
                 'id': ('livestream', 'slug', {str}),
@@ -95,24 +95,24 @@ class KickVODIE(KickBaseIE):
     IE_NAME = 'kick:vod'
     _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+/videos/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
     _TESTS = [{
-        'url': 'https://kick.com/xqc/videos/8dd97a8d-e17f-48fb-8bc3-565f88dbc9ea',
-        'md5': '3870f94153e40e7121a6e46c068b70cb',
+        'url': 'https://kick.com/xqc/videos/5c697a87-afce-4256-b01f-3c8fe71ef5cb',
         'info_dict': {
-            'id': '8dd97a8d-e17f-48fb-8bc3-565f88dbc9ea',
+            'id': '5c697a87-afce-4256-b01f-3c8fe71ef5cb',
             'ext': 'mp4',
-            'title': '18+ #ad 🛑LIVE🛑CLICK🛑DRAMA🛑NEWS🛑STUFF🛑REACT🛑GET IN HHERE🛑BOP BOP🛑WEEEE WOOOO🛑',
+            'title': '🐗LIVE🐗CLICK🐗HERE🐗DRAMA🐗ALL DAY🐗NEWS🐗VIDEOS🐗CLIPS🐗GAMES🐗STUFF🐗WOW🐗IM HERE🐗LETS GO🐗COOL🐗VERY NICE🐗',
             'description': 'THE BEST AT ABSOLUTELY EVERYTHING. THE JUICER. LEADER OF THE JUICERS.',
-            'channel': 'xqc',
-            'channel_id': '668',
             'uploader': 'xQc',
             'uploader_id': '676',
-            'upload_date': '20240909',
-            'timestamp': 1725919141,
-            'duration': 10155.0,
-            'thumbnail': r're:^https?://.*\.jpg',
+            'channel': 'xqc',
+            'channel_id': '668',
             'view_count': int,
-            'categories': ['Just Chatting'],
-            'age_limit': 0,
+            'age_limit': 18,
+            'duration': 22278.0,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'categories': ['Deadlock'],
+            'timestamp': 1756082443,
+            'upload_date': '20250825',
+            'live_status': 'was_live',
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -137,6 +137,9 @@ class KickVODIE(KickBaseIE):
                 'categories': ('livestream', 'categories', ..., 'name', {str}),
                 'view_count': ('views', {int_or_none}),
                 'age_limit': ('livestream', 'is_mature', {bool}, {lambda x: 18 if x else 0}),
+                'live_status': (
+                    'livestream', 'is_live', {bool},
+                    {lambda x: 'is_live' if x else 'was_live' if x is False else None}),
             }),
         }
 
