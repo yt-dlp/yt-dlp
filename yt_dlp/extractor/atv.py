@@ -105,6 +105,43 @@ class AtvIE(AtvBaseIE):
                 'ext': 'mp4',
             },
         },
+        {
+            'url': 'https://www.atv.com.tr/mutfak-bahane/723-bolum/izle',
+            'info_dict': {
+                'id': '78222537-f80b-47c3-baff-2075a4dafc0a',
+                'title': 'Mutfak Bahane - 4. Sezon 723. Bölüm',
+                'thumbnails': [
+                    {
+                        'id': 'normal',
+                        'url': 'https://iaatv.tmgrup.com.tr/0ed24c/959/566/0/0/1831/1080?u=https://iatv.tmgrup.com.tr/2025/06/25/mutfak-bahane-1750858626323.jpg',
+                        'width': 959,
+                        'height': 566,
+                    },
+                    {
+                        'id': 'large',
+                        'url': 'https://iatv.tmgrup.com.tr/2025/06/25/mutfak-bahane-1750858626323.jpg',
+                        'width': 1831,
+                        'height': 1080,
+                    },
+                ],
+                'thumbnail': 'https://iatv.tmgrup.com.tr/2025/06/25/mutfak-bahane-1750858626323.jpg',
+                'duration': 5608,
+                'release_date': '20250625',
+                'release_timestamp': 1750869432,
+                'ext': 'mp4',
+            },
+        },
+        {
+            'url': 'https://www.atv.com.tr/atv-ana-haber/9884-bolum/izle',
+            'info_dict': {
+                'id': 'b428f689-30f7-4ff4-bb75-792519d43216',
+                'title': 'atv Ana Haber',
+                'duration': 2785,
+                'release_date': '20250714',
+                'release_timestamp': 1752525577,
+                'ext': 'mp4',
+            },
+        },
     ]
 
     def _extract_video(self, video_id):
@@ -142,6 +179,7 @@ class AtvIE(AtvBaseIE):
                 },
             ]
 
+        # TODO: extract description
         return {
             'id': video_id,
             'title': video_player.get('title'),
