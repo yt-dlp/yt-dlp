@@ -786,9 +786,7 @@ class GenericIE(InfoExtractor):
                     return self.url_result('ytsearch:' + url)
 
             if default_search in ('error', 'fixup_error'):
-                raise ExtractorError(
-                    f'{url!r} is not a valid URL. '
-                    f'Set --default-search "ytsearch" (or run  yt-dlp "ytsearch:{url}" ) to search YouTube', expected=True)
+                raise ExtractorError(f'{url!r} is not a valid URL', expected=True)
             else:
                 if ':' not in default_search:
                     default_search += ':'
