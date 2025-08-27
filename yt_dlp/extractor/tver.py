@@ -202,6 +202,8 @@ class TVerIE(StreaksBaseIE):
                 'description': ('description', {str}),
                 'release_timestamp': ('viewStatus', 'startAt', {int_or_none}),
                 'episode_number': ('no', {int_or_none}),
+                'series_id': ('seriesID', {str_or_none}),
+                'season_id': ('seasonID', {str_or_none}),
             }),
         }
 
