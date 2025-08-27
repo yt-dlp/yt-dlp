@@ -772,8 +772,8 @@ class GenericIE(InfoExtractor):
 
             if default_search in ('auto', 'auto_warning', 'fixup_error'):
                 if re.match(r'[^\s/]+\.[^\s/]+/', url):
-                    self.report_warning('The url doesn\'t specify the protocol, trying with http')
-                    return self.url_result('http://' + url)
+                    self.report_warning('The url doesn\'t specify the protocol, trying with https')
+                    return self.url_result('https://' + url)
                 elif default_search != 'fixup_error':
                     if default_search == 'auto_warning':
                         if re.match(r'^(?:url|URL)$', url):
