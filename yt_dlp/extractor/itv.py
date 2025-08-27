@@ -13,6 +13,7 @@ from ..utils import (
     merge_dicts,
     parse_duration,
     smuggle_url,
+    traverse_obj,
     try_get,
     url_basename,
     url_or_none,
@@ -243,7 +244,7 @@ class ITVBTCCIE(InfoExtractor):
 
         entries = []
         for video in json_map:
-            if not any(video['data'].get(attr) == 'Brightcove' for attr in ('name', 'type')):
+            if not any(traverse_obj(video, ('data', attr)) == 'Brightcove' for attr in ('name', 'type')):
                 continue
             video_id = video['data']['id']
             account_id = video['data']['accountId']
