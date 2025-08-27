@@ -2,13 +2,13 @@ import functools
 import re
 
 from .common import InfoExtractor
-from .. import float_or_none
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     clean_html,
     extract_attributes,
+    float_or_none,
     get_element_by_id,
     int_or_none,
     parse_count,
