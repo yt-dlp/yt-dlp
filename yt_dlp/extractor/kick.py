@@ -95,6 +95,7 @@ class KickVODIE(KickBaseIE):
     IE_NAME = 'kick:vod'
     _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+/videos/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
     _TESTS = [{
+        # Regular VOD
         'url': 'https://kick.com/xqc/videos/5c697a87-afce-4256-b01f-3c8fe71ef5cb',
         'info_dict': {
             'id': '5c697a87-afce-4256-b01f-3c8fe71ef5cb',
@@ -115,6 +116,7 @@ class KickVODIE(KickBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
+        # VOD of ongoing livestream (at the time of writing the test, ID rotates every two days)
         'url': 'https://kick.com/a-log-burner/videos/5230df84-ea38-46e1-be4f-f5949ae55641',
         'info_dict': {
             'id': '5230df84-ea38-46e1-be4f-f5949ae55641',
