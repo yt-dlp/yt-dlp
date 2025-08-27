@@ -660,7 +660,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _get_default_ytcfg(self, client='web'):
         ytcfg = copy.deepcopy(INNERTUBE_CLIENTS[client])
 
-        # Currently, only the tv client needs to use an alternate user-agent when logged-in
+        # Currently, only the tv client needs to use an alternative user-agent when logged-in
         if ytcfg.get('AUTHENTICATED_USER_AGENT') and self.is_authenticated:
             client_context = ytcfg.setdefault('INNERTUBE_CONTEXT', {}).setdefault('client', {})
             client_context['userAgent'] = ytcfg['AUTHENTICATED_USER_AGENT']
