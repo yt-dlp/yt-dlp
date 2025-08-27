@@ -310,6 +310,8 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
         'SUPPORTS_COOKIES': True,
+        # See: https://github.com/youtube/cobalt/blob/main/cobalt/browser/user_agent/user_agent_platform_info.cc#L506
+        'AUTHENTICATED_USER_AGENT': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko), Unknown_TV_Unknown_0/Unknown (Unknown, Unknown)',
     },
     'tv_simply': {
         'INNERTUBE_CONTEXT': {
@@ -368,6 +370,7 @@ def build_innertube_clients():
         ytcfg.setdefault('REQUIRE_AUTH', False)
         ytcfg.setdefault('SUPPORTS_COOKIES', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
+        ytcfg.setdefault('AUTHENTICATED_USER_AGENT', None)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
         _, base_client, variant = _split_innertube_client(client)
@@ -655,7 +658,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*='
 
     def _get_default_ytcfg(self, client='web'):
-        return copy.deepcopy(INNERTUBE_CLIENTS[client])
+        ytcfg = copy.deepcopy(INNERTUBE_CLIENTS[client])
+
+        # Currently, only the tv client needs to use an alternative user-agent when logged-in
+        if ytcfg.get('AUTHENTICATED_USER_AGENT') and self.is_authenticated:
+            client_context = ytcfg.setdefault('INNERTUBE_CONTEXT', {}).setdefault('client', {})
+            client_context['userAgent'] = ytcfg['AUTHENTICATED_USER_AGENT']
+
+        return ytcfg
 
     def _get_innertube_host(self, client='web'):
         return INNERTUBE_CLIENTS[client]['INNERTUBE_HOST']
@@ -954,7 +964,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         ytcfg = self.extract_ytcfg(video_id, webpage) or {}
 
         # Workaround for https://github.com/yt-dlp/yt-dlp/issues/12563
-        if client == 'tv':
+        # But it's not effective when logged-in
+        if client == 'tv' and not self.is_authenticated:
             config_info = traverse_obj(ytcfg, (
                 'INNERTUBE_CONTEXT', 'client', 'configInfo', {dict})) or {}
             config_info.pop('appInstallData', None)
