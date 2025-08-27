@@ -92,6 +92,7 @@ class JsChallengeRequestDirector:
             self.logger.trace('No JS Challenge providers registered')
             return []
 
+        # TODO: We need to return the response's associated request to the caller
         results = []
         next_requests = requests[:]
 
