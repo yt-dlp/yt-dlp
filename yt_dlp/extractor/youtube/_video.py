@@ -3612,7 +3612,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['source_preference'] = -1
 
             # Deprioritize since its pre-merged m3u8 formats may have lower quality audio streams
-            if client_name == 'web_safari':
+            if client_name == 'web_safari' and proto == 'hls' and live_status != 'is_live':
                 f['source_preference'] -= 1
 
             if missing_pot:
