@@ -79,6 +79,11 @@ try:
 except ImportError:
     curl_cffi = None
 
+try:
+    import protobug
+except ImportError:
+    protobug = None
+
 from . import Cryptodome
 
 all_dependencies = {k: v for k, v in globals().items() if not k.startswith('_')}
