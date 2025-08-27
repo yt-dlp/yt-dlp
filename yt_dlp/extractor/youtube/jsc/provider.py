@@ -26,6 +26,10 @@ __all__ = [
     'JsChallengeType',
     'register_preference',
     'register_provider',
+    'NSigChallengeInput',
+    'NSigChallengeOutput',
+    'SigChallengeInput',
+    'SigChallengeOutput',
 ]
 
 
@@ -37,12 +41,29 @@ class JsChallengeType(enum.Enum):
 @dataclasses.dataclass(frozen=True)
 class JsChallengeRequest:
     type: JsChallengeType
-    challenge: str
+    input: NSigChallengeInput | SigChallengeInput
     player_url: str | None = None
     video_id: str | None = None
 
-    def copy(self):
-        return dataclasses.replace(self)
+
+@dataclasses.dataclass(frozen=True)
+class NSigChallengeInput:
+    challenges: list[str] = dataclasses.field(default_factory=list)
+
+
+@dataclasses.dataclass(frozen=True)
+class SigChallengeInput:
+    challenges: list[str] = dataclasses.field(default_factory=list)
+
+
+@dataclasses.dataclass(frozen=True)
+class NSigChallengeOutput:
+    results: dict[str, str] = dataclasses.field(default_factory=dict)
+
+
+@dataclasses.dataclass(frozen=True)
+class SigChallengeOutput:
+    results: dict[str, str] = dataclasses.field(default_factory=dict)
 
 
 @dataclasses.dataclass
@@ -54,8 +75,8 @@ class JsChallengeProviderResponse:
 
 @dataclasses.dataclass
 class JsChallengeResponse:
-    challenge_result: str
-    request: JsChallengeRequest
+    type: JsChallengeType
+    output: NSigChallengeOutput | SigChallengeOutput
 
 
 class JsChallengeProviderRejectedRequest(IEContentProviderError):
@@ -97,23 +118,10 @@ class JsChallengeProvider(IEContentProvider, abc.ABC, suffix='JCP'):
         responses.extend(self._real_bulk_solve(validated_requests))
         return responses
 
-    def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> list[JsChallengeProviderResponse]:
-        """Subclasses can override this method to handle bulk solving"""
-        return [self.solve(request) for request in requests]
-
-    def solve(self, request: JsChallengeRequest) -> JsChallengeProviderResponse:
-        """Solve the JS challenge and return the result"""
-        try:
-            self.__validate_request(request)
-            response = self._real_solve(request)
-            return JsChallengeProviderResponse(request=request, response=response)
-        except Exception as e:
-            return JsChallengeProviderResponse(request=request, error=e)
-
     @abc.abstractmethod
-    def _real_solve(self, request: JsChallengeRequest) -> JsChallengeResponse:
-        """To be implemented by subclasses"""
-        pass
+    def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> typing.Generator[JsChallengeProviderResponse, None, None]:
+        """Subclasses can override this method to handle bulk solving"""
+        raise NotImplementedError(f'{self.PROVIDER_NAME} does not implement bulk solving')
 
     def _get_player(self, video_id, player_url):
         try:

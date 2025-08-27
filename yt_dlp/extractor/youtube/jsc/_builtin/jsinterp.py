@@ -2,15 +2,18 @@ import json
 import os
 import re
 import traceback
+from collections.abc import Generator
 
 from yt_dlp import join_nonempty, traverse_obj
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
-    JsChallengeProviderRejectedRequest,
+    JsChallengeProviderResponse,
     JsChallengeRequest,
     JsChallengeResponse,
     JsChallengeType,
+    NSigChallengeOutput,
+    SigChallengeOutput,
     register_provider,
 )
 from yt_dlp.extractor.youtube.pot._provider import BuiltinIEContentProvider
@@ -29,33 +32,48 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
     def is_available(self) -> bool:
         return True
 
-    def _real_solve(self, request: JsChallengeRequest) -> JsChallengeResponse:
+    def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> Generator[JsChallengeProviderResponse, None, None]:
+        for request in requests:
+            try:
+                if request.type == JsChallengeType.SIG:
+                    output = self._solve_sig_challenges(request)
+                else:
+                    output = self._solve_nsig_challenges(request)
+                yield JsChallengeProviderResponse(
+                    request=request, response=JsChallengeResponse(type=request.type, output=output))
+            except Exception as e:
+                yield JsChallengeProviderResponse(request=request, error=e)
 
-        if request.type == JsChallengeType.SIG:
-            return self._solve_sig_challenge(request)
-        elif request.type == JsChallengeType.NSIG:
-            return self._solve_nsig_challenge(request)
-        else:
-            raise JsChallengeProviderRejectedRequest(f'Unsupported challenge type: {request.type}')
+    def _solve_sig_challenges(self, request: JsChallengeRequest) -> SigChallengeOutput:
+        """Turn the s field into a working signature"""
+        results = {}
+        for challenge in request.input.challenges:
+            extract_sig = self.ie._cached(
+                self._extract_signature_function, 'sig', request.player_url, self._signature_cache_id(challenge))
+            func = extract_sig(request.video_id, request.player_url, challenge)
+            self._print_sig_code(func, challenge)
+            results[challenge] = func(challenge)
 
-    def _solve_sig_challenge(self, request: JsChallengeRequest) -> JsChallengeResponse:
-        """Turn the encrypted s field into a working signature"""
-        extract_sig = self.ie._cached(
-            self._extract_signature_function, 'sig', request.player_url, self._signature_cache_id(request.challenge))
-        func = extract_sig(request.video_id, request.player_url, request.challenge)
-        self._print_sig_code(func, request.challenge)
-        return JsChallengeResponse(challenge_result=func(request.challenge), request=request)
+        return SigChallengeOutput(results=results)
 
-    def _solve_nsig_challenge(self, request: JsChallengeRequest) -> JsChallengeResponse:
+    def _solve_nsig_challenges(self, request: JsChallengeRequest) -> NSigChallengeOutput:
         """Turn the encrypted n field into a working signature"""
-        if request.player_url is None:
+        results = {}
+        for challenge in request.input.challenges:
+            results[challenge] = self._solve_nsig_challenge(challenge, request.video_id, request.player_url)
+
+        return NSigChallengeOutput(results=results)
+
+    def _solve_nsig_challenge(self, challenge, video_id, player_url) -> str:
+        """Turn the encrypted n field into a working signature"""
+        if player_url is None:
             raise JsChallengeProviderError('Cannot decrypt nsig without player_url')
 
         # TODO: do this in IE
-        player_url = urljoin('https://www.youtube.com', request.player_url)
+        player_url = urljoin('https://www.youtube.com', player_url)
 
         try:
-            jsi, player_id, func_code = self._extract_n_function_code(request.video_id, player_url)
+            jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
         except ExtractorError as e:
             raise JsChallengeProviderError(f'Unable to extract nsig function code: {e}') from e
         if self.ie.get_param('youtube_print_sig_code'):
@@ -63,17 +81,17 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
 
         try:
             extract_nsig = self.ie._cached(self._extract_n_function_from_code, self._NSIG_FUNC_CACHE_ID, player_url)
-            ret = extract_nsig(jsi, func_code)(request.challenge)
+            ret = extract_nsig(jsi, func_code)(challenge)
         except JSInterpreter.Exception as e:
             self.logger.debug(str(e))  # TODO: only print once
             raise JsChallengeProviderError(
                 f'Native nsig extraction failed\n'
-                f'         n = {request.challenge} ; player = {player_url}', expected=False)
+                f'         n = {challenge} ; player = {player_url}', expected=False)
 
-        self.logger.debug(f'Decrypted nsig {request.challenge} => {ret}')
+        self.logger.debug(f'Decrypted nsig {challenge} => {ret}')
         # Only cache nsig func JS code to disk if successful, and only once
         self.ie._store_player_data_to_cache('nsig', player_url, func_code)
-        return JsChallengeResponse(challenge_result=ret, request=request)
+        return ret
 
     # region sig
     def _extract_signature_function(self, video_id, player_url, example_sig):

@@ -25,7 +25,7 @@ from ._base import (
     short_client_name,
 )
 from .jsc._director import initialize_jsc_director
-from .jsc.provider import JsChallengeRequest, JsChallengeType
+from .jsc.provider import JsChallengeRequest, JsChallengeType, NSigChallengeInput, SigChallengeInput
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
 from ...networking.exceptions import HTTPError
@@ -3206,7 +3206,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     fmt_url = fmt_stream.get('url')
                     fmt = {}
-                    fmt['_jsc_requests'] = []
                     if not fmt_url:
                         sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
                         fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
@@ -3224,10 +3223,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             self.report_warning(msg, video_id, only_once=True)
                             continue
 
-                        fmt['_jsc_requests'].append(JsChallengeRequest(
-                            challenge=encrypted_sig, video_id=video_id,
-                            player_url=player_url, type=JsChallengeType.SIG))
-                        fmt['_sc'] = sc
+                        fmt['_jsc_s_challenge'] = encrypted_sig
+                        fmt['_jsc_s_sc'] = sc
 
                     fmt_result = process_format_stream(fmt_stream, proto, missing_pot=require_po_token and not po_token)
                     if not fmt_result:
@@ -3241,9 +3238,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if n_challenge in self._player_cache:
                             fmt_url = update_url_query(fmt_url, {'n': self._player_cache[n_challenge]})
                         else:
-                            fmt['_jsc_requests'].append(JsChallengeRequest(
-                                challenge=n_challenge, video_id=video_id,
-                                player_url=player_url, type=JsChallengeType.NSIG))
+                            fmt['_jsc_n_challenge'] = n_challenge
 
                     if po_token:
                         fmt_url = update_url_query(fmt_url, {'pot': po_token})
@@ -3271,53 +3266,71 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                 # Bulk process sig/nsig handling
                 # Retrieve all JSC Sig and Nsig requests for this player response in one go
-                challenge_requests = {}
+                n_challenges = {}
+                s_challenges = {}
                 for fmt in https_fmts:
                     # This will de-duplicate requests
-                    for jsc_request in fmt.pop('_jsc_requests', []):
-                        challenge_requests.setdefault(jsc_request, []).append(fmt)
+                    n_challenge = fmt.pop('_jsc_n_challenge', None)
+                    if n_challenge is not None:
+                        n_challenges.setdefault(n_challenge, []).append(fmt)
+
+                    s_challenge = fmt.pop('_jsc_s_challenge', None)
+                    if s_challenge is not None:
+                        s_challenges.setdefault(s_challenge, []).append(fmt)
+
+                challenge_requests = []
+                if n_challenges:
+                    challenge_requests.append(JsChallengeRequest(
+                        player_url=player_url,
+                        video_id=video_id,
+                        input=NSigChallengeInput(challenges=list(n_challenges.keys())), type=JsChallengeType.NSIG))
+                if s_challenges:
+                    challenge_requests.append(JsChallengeRequest(
+                        player_url=player_url,
+                        video_id=video_id,
+                        input=SigChallengeInput(challenges=list(s_challenges.keys())), type=JsChallengeType.SIG))
 
                 if challenge_requests:
-                    challenge_responses = self._jsc_director.solve_bulk(
-                        list(challenge_requests.keys()))
+                    challenge_responses = self._jsc_director.bulk_solve(challenge_requests)
                     for challenge_response in challenge_responses:
-                        cfmts = challenge_requests.pop(challenge_response.request, [])
-                        if not cfmts:
-                            self.report_warning('failed to match challenge response to fmts')
-                            continue
-                        for cfmt in cfmts:
-                            if challenge_response.request.type == JsChallengeType.SIG:
-                                sc = cfmt.pop('_sc')
-                                cfmt['url'] += '&{}={}'.format(
-                                    traverse_obj(sc, ('sp', -1)) or 'signature',
-                                    challenge_response.challenge_result)
+                        for challenge, result in challenge_response.output.results.items():
+                            cfmts = s_challenges.pop(challenge, []) if challenge_response.type == JsChallengeType.SIG else n_challenges.pop(challenge, [])
+                            if not cfmts:
+                                self.report_warning('failed to match challenge response to fmts')
+                                continue
+                            for cfmt in cfmts:
+                                if challenge_response.type == JsChallengeType.SIG:
+                                    sc = cfmt.pop('_jsc_s_sc')
+                                    cfmt['url'] += '&{}={}'.format(
+                                        traverse_obj(sc, ('sp', -1)) or 'signature',
+                                        result)
 
-                            elif challenge_response.request.type == JsChallengeType.NSIG:
-                                decrypted_nsig = challenge_response.challenge_result
-                                self._player_cache[challenge_response.request.challenge] = decrypted_nsig
-                                cfmt['url'] = update_url_query(cfmt['url'], {'n': decrypted_nsig})
+                                elif challenge_response.type == JsChallengeType.NSIG:
+                                    self._player_cache[challenge] = result
+                                    cfmt['url'] = update_url_query(cfmt['url'], {'n': result})
 
                     # Raise warning if any challenge requests remain
                     # Depending on type of challenge request
                     # TODO: this could happen as there are no supported JSC Providers
                     # TODO: cleanup
-                    if challenge_requests:
-                        for cfmts in challenge_requests.values():
-                            for fmt in cfmts:
-                                if fmt in https_fmts:
-                                    https_fmts.remove(fmt)
-                        if any(req.type == JsChallengeType.SIG for req in challenge_requests):
-                            self.report_warning(
-                                f'Signature extraction failed: Some formats may be missing\n'
-                                f'         player = {player_url}\n'
-                                f'         {bug_reports_message(before="")}',
-                                video_id=video_id, only_once=True)
-                        elif any(req.type == JsChallengeType.NSIG for req in challenge_requests):
-                            self.report_warning(
-                                f'nsig extraction failed: Some formats may be missing\n'
-                                f'         player = {player_url}\n'
-                                f'         {bug_reports_message(before="")}',
-                                video_id=video_id, only_once=True)
+
+                    if s_challenges:
+                        self.report_warning(
+                            f'Signature extraction failed: Some formats may be missing\n'
+                            f'         player = {player_url}\n'
+                            f'         {bug_reports_message(before="")}',
+                            video_id=video_id, only_once=True)
+                    if n_challenges:
+                        self.report_warning(
+                            f'nsig extraction failed: Some formats may be missing\n'
+                            f'         player = {player_url}\n'
+                            f'         {bug_reports_message(before="")}',
+                            video_id=video_id, only_once=True)
+
+                    for cfmts in list(s_challenges.values()) + list(n_challenges.values()):
+                        for fmt in cfmts:
+                            if fmt in https_fmts:
+                                https_fmts.remove(fmt)
 
                 yield from https_fmts
 

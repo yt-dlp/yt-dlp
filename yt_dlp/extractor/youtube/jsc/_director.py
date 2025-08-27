@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import typing
 from collections.abc import Iterable
 
@@ -13,6 +14,11 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProviderRejectedRequest,
     JsChallengeRequest,
     JsChallengeResponse,
+    JsChallengeType,
+    NSigChallengeInput,
+    NSigChallengeOutput,
+    SigChallengeInput,
+    SigChallengeOutput,
 )
 from yt_dlp.extractor.youtube.pot._director import YoutubeIEContentProviderLogger, provider_display_list
 from yt_dlp.extractor.youtube.pot._provider import (
@@ -57,61 +63,63 @@ class JsChallengeRequestDirector:
             if provider.is_available()
         )
 
-    def solve_bulk(self, requests: list[JsChallengeRequest]) -> list[JsChallengeResponse]:
+    def _handle_error(self, e: Exception, provider: JsChallengeProvider, requests: list[JsChallengeRequest]):
+        # xxx: this seems kinda jank
+        # TODO: add useful debugging information (e.g. request details)
+        if isinstance(e, JsChallengeProviderRejectedRequest):
+            self.logger.trace(
+                f'JS Challenge Provider "{provider.PROVIDER_NAME}" rejected '
+                f'{"this request" if len(requests) == 1 else f"{len(requests)} requests"}, '
+                f'trying next available provider. Reason: {e}'
+                + (f', Request: {getattr(e, "request", None)}' if hasattr(e, 'request') else ''),
+            )
+        elif isinstance(e, JsChallengeProviderError):
+            self.logger.warning(
+                f'Error solving {requests[0].type.value if len(requests) == 1 else f"{len(requests)}"} JS Challenge '
+                f'from "{provider.PROVIDER_NAME}" provider: {e!r}'
+                + (provider_bug_report_message(provider) if not e.expected else ''),
+                once=True,
+            )
+        else:
+            self.logger.error(
+                f'Unexpected error when solving {requests[0].type.value if len(requests) == 1 else f"{len(requests)}"} JS Challenge '
+                f'from "{provider.PROVIDER_NAME}" provider: {e!r}{provider_bug_report_message(provider)}',
+            )
+
+    def bulk_solve(self, requests: list[JsChallengeRequest]) -> list[JsChallengeResponse]:
         """Solves multiple JS Challenges in bulk, returning a list of responses"""
         if not self.providers:
             self.logger.trace('No JS Challenge providers registered')
             return []
 
         results = []
-
-        next_requests = requests
+        next_requests = requests[:]
 
         for provider in self._get_providers(next_requests):
-            next_requests = []
-
             self.logger.trace(
-                f'Attempting to solve {len(requests)} challenges using "{provider.PROVIDER_NAME}" provider')
-            responses = provider.bulk_solve([request.copy() for request in requests])
-            if len(responses) != len(requests):
-                self.logger.warning(
-                    f'JS Challenge Provider "{provider.PROVIDER_NAME}" returned {len(responses)} responses for {len(requests)} requests, '
-                    f'expected {len(requests)} responses{provider_bug_report_message(provider)}')
+                f'Attempting to solve {len(next_requests)} challenges using "{provider.PROVIDER_NAME}" provider')
 
-            for response in responses:
-                if response.error:
-                    try:
-                        raise response.error
-                    except JsChallengeProviderRejectedRequest:
-                        # TODO: better error message
-                        self.logger.trace(
-                            f'JS Challenge Provider "{provider.PROVIDER_NAME}" rejected this request, '
-                            f'trying next available provider. Reason: {response.error}, Request: {response.request}')
-                        next_requests.append(response.request)
+            try:
+                for response in provider.bulk_solve([dataclasses.replace(request) for request in next_requests]):
+                    if response.error:
+                        self._handle_error(response.error, provider, [response.request])
                         continue
-                    except JsChallengeProviderError as e:
-                        # TODO: better error message
-                        self.logger.warning(
-                            f'Error solving {response.request.type.value} JS Challenge from "{provider.PROVIDER_NAME}" provider: '
-                            f'{e!r}{provider_bug_report_message(provider) if not e.expected else ""}', once=True)
-                        next_requests.append(response.request)
-                        continue
-                    except Exception as e:
+                    if not validate_response(response.response, response.request):
                         self.logger.error(
-                            f'Unexpected error when solving {response.request.type.value} JS Challenge from "{provider.PROVIDER_NAME}" provider: '
-                            f'{e!r}{provider_bug_report_message(provider)}')
-                        next_requests.append(response.request)
+                            f'Invalid JS Challenge response received from "{provider.PROVIDER_NAME}" provider: '
+                            f'{response.response}{provider_bug_report_message(provider)}')
                         continue
-
-                if not validate_response(response.response):
-                    self.logger.error(
-                        f'Invalid JS Challenge response received from "{provider.PROVIDER_NAME}" provider: '
-                        f'{response.response}{provider_bug_report_message(provider)}')
-                    next_requests.append(response.request)
-                    continue
-
-                self.logger.trace(f'JS Challenge response from "{provider.PROVIDER_NAME}" provider: {response.response}')
-                results.append(response.response)
+                    try:
+                        next_requests.remove(response.request)
+                    except ValueError:
+                        self.logger.error(
+                            f'JS Challenge Provider "{provider.PROVIDER_NAME}" returned a response for an unknown request: {response.request}'
+                            f'{provider_bug_report_message(provider)}')
+                        continue
+                    results.append(response.response)
+            except Exception as e:
+                self._handle_error(e, provider, next_requests)
+                continue
 
         if len(results) != len(requests):
             self.logger.trace(
@@ -120,10 +128,6 @@ class JsChallengeRequestDirector:
         else:
             self.logger.trace(f'All {len(requests)} JS Challenges solved successfully')
         return results
-
-    def solve(self, request: JsChallengeRequest) -> JsChallengeResponse | None:
-        responses = self.solve_bulk([request])
-        return responses[0] if responses else None
 
     def close(self):
         for provider in self.providers.values():
@@ -174,8 +178,25 @@ def initialize_jsc_director(ie):
     return director
 
 
-def validate_response(response: JsChallengeResponse | None):
+def validate_response(response: JsChallengeResponse, request: JsChallengeRequest) -> bool:
     return (
         isinstance(response, JsChallengeResponse)
-        and isinstance(response.challenge_result, str)
+        and (
+            (request.type == JsChallengeType.NSIG and validate_output(response.output, request.input, NSigChallengeOutput))
+            or (request.type == JsChallengeType.SIG and validate_output(response.output, request.input, SigChallengeOutput))
+        )
+    )
+
+
+def validate_output(
+        challenge_output: NSigChallengeOutput | SigChallengeOutput,
+        challenge_input: NSigChallengeInput | SigChallengeInput,
+        output_class,
+) -> bool:
+    # Since the two classes have same structure, we can use a single validation function for now
+    return (
+        isinstance(challenge_output, output_class)
+        and len(challenge_output.results) == len(challenge_input.challenges)
+        and all(isinstance(k, str) and isinstance(v, str) for k, v in challenge_output.results.items())
+        and all(challenge in challenge_output.results for challenge in challenge_input.challenges)
     )

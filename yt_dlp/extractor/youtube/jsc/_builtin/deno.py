@@ -22,6 +22,7 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     register_preference,
     register_provider,
 )
+from yt_dlp.extractor.youtube.pot._provider import BuiltinIEContentProvider
 from yt_dlp.utils import Popen
 
 TYPE_CHECKING = False
@@ -72,11 +73,9 @@ def _hash_file(path: pathlib.Path, hash_algorithm: Callable[[], hashlib._Hash]) 
 
 
 @register_provider
-class DenoJCP(JsChallengeProvider):
-    PROVIDER_NAME = 'yt_dlp_jsc_deno'
-    PROVIDER_VERSION = yt_dlp.version.__version__
-    BUG_REPORT_LOCATION = 'https://github.com/yt-dlp/yt-dlp-jsc-deno'
-    _SUPPORTED_TYPES = None
+class DenoJCP(JsChallengeProvider, BuiltinIEContentProvider):
+    PROVIDER_NAME = 'deno'
+    _SUPPORTED_TYPES = [JsChallengeType.NSIG, JsChallengeType.SIG]
 
     _DENO_ARGS = ['--location', 'https://www.youtube.com/watch?v=yt-dlp-wins', '--no-prompt']
     _SUPPORTED_VERSION = '0.0.1'
@@ -84,7 +83,8 @@ class DenoJCP(JsChallengeProvider):
     _SUPPORTED_HASH = 'a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26'
     _RELEASE_BUNDLE_URL = f'https://github.com/yt-dlp/yt-dlp-jsc-deno/releases/download/{_SUPPORTED_VERSION}/jsc-deno.js'
 
-    def __init__(self, /, *, _debug=False):
+    def __init__(self, *args, _debug=False, **kwargs):
+        super().__init__(*args, **kwargs)
         self._debug = _debug
         self._tried_downloading_asset = False
 
@@ -166,6 +166,7 @@ class DenoJCP(JsChallengeProvider):
         return response.read()
 
     def is_available(self, /) -> bool:
+        return False  # TODO: self._bundle crashes @Grub4k
         if not bool(self._bundle):
             return False
         if self._bundle.version != self._SUPPORTED_VERSION:
@@ -177,21 +178,7 @@ class DenoJCP(JsChallengeProvider):
             return False
         return True
 
-    def _real_solve(self, request: JsChallengeRequest) -> JsChallengeResponse:
-        assert False, 'jank ass incomplete poc'
-
-    def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> list[JsChallengeProviderResponse]:
-        try:
-            return list(self._unsafe_bulk_solve(requests))
-        except Exception as error:
-            return [
-                JsChallengeProviderResponse(request, None, error)
-                for request in requests
-            ]
-
-    def _unsafe_bulk_solve(self, requests: list[JsChallengeRequest]) -> Generator[JsChallengeProviderResponse]:
-        assert self._bundle, 'is_available is false, this should not have been called'
-
+    def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> Generator[JsChallengeProviderResponse, None, None]:
         deno = self._configuration_arg('deno', default=['deno'])[0]
         self.logger.trace(f'Using deno: {deno}')
         cmd = [deno, *self._DENO_ARGS]
@@ -205,20 +192,16 @@ class DenoJCP(JsChallengeProvider):
             cmd.append(str(path))
 
             for player_url, requests in grouped.items():
-                try:
-                    cached = False
-                    if cached:
-                        code = self.ie.cache['something']
-                    else:
-                        code = self._get_player(requests[0].video_id, player_url)
-                    responses, preprocessed = self._call_deno_bundle(cmd, requests, code, preprocessed=cached)
-                    if not cached:
-                        # TODO: cache preprocessed
-                        _ = preprocessed
-                    yield from responses
-                except JsChallengeProviderError as error:
-                    for request in requests:
-                        yield JsChallengeProviderResponse(request, None, error)
+                cached = False
+                if cached:
+                    code = self.ie.cache['something']
+                else:
+                    code = self._get_player(requests[0].video_id, player_url)
+                responses, preprocessed = self._call_deno_bundle(cmd, requests, code, preprocessed=cached)
+                if not cached:
+                    # TODO: cache preprocessed
+                    _ = preprocessed
+                yield from responses
 
     def _call_deno_bundle(
         self,
@@ -228,6 +211,7 @@ class DenoJCP(JsChallengeProvider):
         player: str,
         preprocessed: bool,
     ) -> tuple[list[JsChallengeProviderResponse], str | None]:
+        # TODO: update for new request structure
         json_requests = [{
             'type': request.type.value,
             'challenge': request.challenge,

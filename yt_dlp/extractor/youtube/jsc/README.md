@@ -3,7 +3,7 @@
 As part of the YouTube extractor, we have a framework for solving JS Challenges programmatically (sig, nsig). This can be used by plugins.
 
 > [!TIP]
-> If publishing a JS Challenge Provider plugin to GitHub, add the [yt-dlp-jsc-provider](https://github.com/topics/yt-dlp-pot-provider) topic to your repository to help users find it.
+> If publishing a JS Challenge Provider plugin to GitHub, add the [yt-dlp-jsc-provider](https://github.com/topics/yt-dlp-jsc-provider) topic to your repository to help users find it.
 
 
 ## Public APIs
@@ -33,13 +33,12 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProviderRejectedRequest,
     JsChallengeType, 
     JsChallengeProviderResponse,
+    NSigChallengeOutput,
 )
-from yt_dlp.networking.common import Request
 from yt_dlp.utils import traverse_obj, Popen
-from yt_dlp.networking.exceptions import RequestError
 import json
 import subprocess
-
+import typing
 
 @register_provider
 class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must end with "JSP"
@@ -50,7 +49,7 @@ class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must
     
     # Set supported challenge types.
     # If None, the provider will handle all types.
-    _SUPPORTED_TYPES = (JsChallengeType.NSIG,)
+    _SUPPORTED_TYPES = [JsChallengeType.NSIG]
 
     def is_available(self) -> bool:
         """
@@ -67,10 +66,10 @@ class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must
         # Optional close hook, called when YoutubeDL is closed.
         pass
 
-    def _real_solve(self, request: JsChallengeRequest) -> JsChallengeResponse:
-        # ℹ️ If you need to validate the request before making the request to the external source.
+    def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> typing.Generator[JsChallengeProviderResponse, None, None]:
+        # ℹ️ If you need to do additional validation on the requests.
         # Raise yt_dlp.extractor.youtube.jsc.provider.JsChallengeProviderRejectedRequest if the request is not supported.
-        if len(request.challenge) > 255:
+        if len("something") > 255:
             raise JsChallengeProviderRejectedRequest('Challenges longer than 255 are not supported', expected=True)
             
 
@@ -83,30 +82,35 @@ class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must
         # See below for logging guidelines
         self.logger.trace(f'Using bin path: {bin_path}')
         
-        # You can use the _get_player method to get the player JS code if needed.
-        # This shares the same caching as the YouTube extractor, so it will not make unnecessary requests.
-        player_js = self._get_player(request.video_id, request.player_url)
+        for request in requests:
+            # You can use the _get_player method to get the player JS code if needed.
+            # This shares the same caching as the YouTube extractor, so it will not make unnecessary requests.
+            player_js = self._get_player(request.video_id, request.player_url)
+            cmd = f'{bin_path} {request.input.challenges} {player_js}'
+            self.logger.info(f'Executing command: {cmd}')
+            stdout, _, ret = Popen.run(cmd, text=True, shell=True, stdout=subprocess.PIPE)
+            if ret != 0:
+                # ℹ️ If there is an error, raise JsChallengeProviderError.
+                # The request will be sent to the next provider if there is one.
+                # You can specify whether it is expected or not. If it is unexpected, 
+                #  the log will include a link to the bug report location (BUG_REPORT_LOCATION).
+                
+                # raise JsChallengeProviderError(f'Command returned error code {ret}', expected=False)
+                
+                # You can also only fail this specific request by returning a JsChallengeProviderResponse with the error.
+                # This will allow other requests to be processed by this provider.
+                yield JsChallengeProviderResponse(
+                    request=request, 
+                    error=JsChallengeProviderError(f'Command returned error code {ret}', expected=False)
+                )
+                
+            yield JsChallengeProviderResponse(
+                request=request, 
+                response=JsChallengeResponse(
+                    type=JsChallengeType.NSIG,
+                    output=NSigChallengeOutput(results=traverse_obj(json.loads(stdout))),
+            ))
         
-        cmd = f'{bin_path} {request.challenge} {player_js}'
-        self.logger.info(f'Executing command: {cmd}')
-        stdout, _, ret = Popen.run(cmd, text=True, shell=True, stdout=subprocess.PIPE)
-        if ret != 0:
-            # ℹ️ If there is an error, raise JsChallengeProviderError.
-            # You can specify whether it is expected or not. If it is unexpected, 
-            #  the log will include a link to the bug report location (BUG_REPORT_LOCATION).
-            raise JsChallengeProviderError(f'Command returned error code {ret}', expected=False)
-
-        return JsChallengeResponse(challenge_result=stdout)
-        
-    # def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> list[JsChallengeProviderResponse]:
-        # Optional bulk solve method, called when multiple requests are made at once.
-        # This is useful for providers that can handle multiple requests at once efficiently.
-        # By default, this method calls the standalone solve method.
-        
-        # IMPORTANT: This method should NOT raise any errors. 
-        # The method should return a list of JsChallengeProviderResponse objects for every request. 
-        # In case of an error, return a JsChallengeProviderResponse with the error set (following the same error guidelines as _real_solve)
-
 
 # If there are multiple JS Challenge Providers that can handle the same JsChallengeRequest(s),
 # you can define a preference function to increase/decrease the priority of providers.
