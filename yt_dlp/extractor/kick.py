@@ -72,7 +72,7 @@ class KickIE(KickBaseIE):
 
         return {
             'channel': channel,
-            'live_status': 'is_live',
+            'is_live': True,
             'formats': self._extract_m3u8_formats(response['playback_url'], channel, 'mp4', live=True),
             **traverse_obj(response, {
                 'id': ('livestream', 'slug', {str}),
@@ -112,9 +112,28 @@ class KickVODIE(KickBaseIE):
             'categories': ['Deadlock'],
             'timestamp': 1756082443,
             'upload_date': '20250825',
-            'live_status': 'was_live',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://kick.com/a-log-burner/videos/5230df84-ea38-46e1-be4f-f5949ae55641',
+        'info_dict': {
+            'id': '5230df84-ea38-46e1-be4f-f5949ae55641',
+            'ext': 'mp4',
+            'title': r're:😴 Cozy Fireplace ASMR 🔥 | Relax, Focus, Sleep 💤',
+            'description': 'md5:080bc713eac0321a7b376a1b53816d1b',
+            'uploader': 'A_Log_Burner',
+            'uploader_id': '65114691',
+            'channel': 'a-log-burner',
+            'channel_id': '63967687',
+            'view_count': int,
+            'age_limit': 18,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'categories': ['Other, Watch Party'],
+            'timestamp': int,
+            'upload_date': str,
+            'live_status': 'is_live',
+        },
+        'skip': 'live',
     }]
 
     def _real_extract(self, url):
@@ -137,9 +156,7 @@ class KickVODIE(KickBaseIE):
                 'categories': ('livestream', 'categories', ..., 'name', {str}),
                 'view_count': ('views', {int_or_none}),
                 'age_limit': ('livestream', 'is_mature', {bool}, {lambda x: 18 if x else 0}),
-                'live_status': (
-                    'livestream', 'is_live', {bool},
-                    {lambda x: 'is_live' if x else 'was_live' if x is False else None}),
+                'is_live': ('livestream', 'is_live', {bool}),
             }),
         }
 
