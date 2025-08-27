@@ -224,6 +224,7 @@ class ITVBTCCIE(InfoExtractor):
         },
         'playlist_count': 12,
     }, {
+        # news page, can have absent `data` field
         'url': 'https://www.itv.com/news/2021-10-27/i-have-to-protect-the-country-says-rishi-sunak-as-uk-faces-interest-rate-hike',
         'info_dict': {
             'id': 'i-have-to-protect-the-country-says-rishi-sunak-as-uk-faces-interest-rate-hike',
