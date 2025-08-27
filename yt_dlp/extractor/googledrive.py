@@ -160,11 +160,7 @@ class GoogleDriveIE(InfoExtractor):
         self._download_subtitles_xml(video_id, subtitles_id, hl)
         if not self._captions_xml:
             return
-        track = None
-        for t in self._captions_xml.findall('track'):
-            if t.attrib.get('cantran') == 'true':
-                track = t
-                break
+        track = next((t for t in self._captions_xml.findall('track') if t.attrib.get('cantran') == 'true'), None)
         if track is None:
             return
         origin_lang_code = track.attrib.get('lang_code')
