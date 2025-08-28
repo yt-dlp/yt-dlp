@@ -12,7 +12,9 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeRequest,
     JsChallengeResponse,
     JsChallengeType,
+    NSigChallengeInput,
     NSigChallengeOutput,
+    SigChallengeInput,
     SigChallengeOutput,
     register_provider,
 )
@@ -36,31 +38,31 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
         for request in requests:
             try:
                 if request.type == JsChallengeType.SIG:
-                    output = self._solve_sig_challenges(request)
+                    output = self._solve_sig_challenges(request.video_id, request.input)
                 else:
-                    output = self._solve_nsig_challenges(request)
+                    output = self._solve_nsig_challenges(request.video_id, request.input)
                 yield JsChallengeProviderResponse(
                     request=request, response=JsChallengeResponse(type=request.type, output=output))
             except Exception as e:
                 yield JsChallengeProviderResponse(request=request, error=e)
 
-    def _solve_sig_challenges(self, request: JsChallengeRequest) -> SigChallengeOutput:
+    def _solve_sig_challenges(self, video_id, sig_input: SigChallengeInput) -> SigChallengeOutput:
         """Turn the s field into a working signature"""
         results = {}
-        for challenge in request.input.challenges:
+        for challenge in sig_input.challenges:
             extract_sig = self.ie._cached(
-                self._extract_signature_function, 'sig', request.player_url, self._signature_cache_id(challenge))
-            func = extract_sig(request.video_id, request.player_url, challenge)
+                self._extract_signature_function, 'sig', sig_input.player_url, self._signature_cache_id(challenge))
+            func = extract_sig(video_id, sig_input.player_url, challenge)
             self._print_sig_code(func, challenge)
             results[challenge] = func(challenge)
 
         return SigChallengeOutput(results=results)
 
-    def _solve_nsig_challenges(self, request: JsChallengeRequest) -> NSigChallengeOutput:
+    def _solve_nsig_challenges(self, video_id, nsig_input: NSigChallengeInput) -> NSigChallengeOutput:
         """Turn the encrypted n field into a working signature"""
         results = {}
-        for challenge in request.input.challenges:
-            results[challenge] = self._solve_nsig_challenge(challenge, request.video_id, request.player_url)
+        for challenge in nsig_input.challenges:
+            results[challenge] = self._solve_nsig_challenge(challenge, video_id, nsig_input.player_url)
 
         return NSigChallengeOutput(results=results)
 

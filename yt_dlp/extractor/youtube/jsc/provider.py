@@ -24,12 +24,12 @@ __all__ = [
     'JsChallengeRequest',
     'JsChallengeResponse',
     'JsChallengeType',
-    'register_preference',
-    'register_provider',
     'NSigChallengeInput',
     'NSigChallengeOutput',
     'SigChallengeInput',
     'SigChallengeOutput',
+    'register_preference',
+    'register_provider',
 ]
 
 
@@ -42,17 +42,18 @@ class JsChallengeType(enum.Enum):
 class JsChallengeRequest:
     type: JsChallengeType
     input: NSigChallengeInput | SigChallengeInput
-    player_url: str | None = None
     video_id: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class NSigChallengeInput:
+    player_url: str
     challenges: list[str] = dataclasses.field(default_factory=list)
 
 
 @dataclasses.dataclass(frozen=True)
 class SigChallengeInput:
+    player_url: str
     challenges: list[str] = dataclasses.field(default_factory=list)
 
 
