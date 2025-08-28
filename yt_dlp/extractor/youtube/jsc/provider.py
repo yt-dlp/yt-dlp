@@ -66,6 +66,10 @@ class NSigChallengeOutput:
 class SigChallengeOutput:
     results: dict[str, str] = dataclasses.field(default_factory=dict)
 
+    # Optional. Sig mapping specification, to use to transform future sig challenges.
+    # spec_id can be obtained using sig_spec_id function on an untransformed sig.
+    specs: dict[str, list[int]] = dataclasses.field(default_factory=dict)
+
 
 @dataclasses.dataclass
 class JsChallengeProviderResponse:

@@ -3283,12 +3283,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     challenge_requests.append(JsChallengeRequest(
                         type=JsChallengeType.NSIG,
                         video_id=video_id,
-                        input=NSigChallengeInput(challenges=list(n_challenges.keys()), player_url=player_url)))
+                        input=NSigChallengeInput(challenges=list(n_challenges.keys()), player_url=urljoin('https://www.youtube.com', player_url))))
                 if s_challenges:
                     challenge_requests.append(JsChallengeRequest(
                         type=JsChallengeType.SIG,
                         video_id=video_id,
-                        input=SigChallengeInput(challenges=list(s_challenges.keys()), player_url=player_url)))
+                        input=SigChallengeInput(challenges=list(s_challenges.keys()), player_url=urljoin('https://www.youtube.com', player_url))))
 
                 if challenge_requests:
                     challenge_responses = self._jsc_director.bulk_solve(challenge_requests)

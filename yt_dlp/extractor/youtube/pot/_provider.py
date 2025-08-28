@@ -36,7 +36,7 @@ class IEContentProviderLogger(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def debug(self, message: str):
+    def debug(self, message: str, *, once=False):
         pass
 
     @abc.abstractmethod

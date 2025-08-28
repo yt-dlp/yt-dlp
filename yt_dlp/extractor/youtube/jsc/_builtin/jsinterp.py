@@ -1,5 +1,4 @@
 import json
-import os
 import re
 import traceback
 from collections.abc import Generator
@@ -18,9 +17,10 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     SigChallengeOutput,
     register_provider,
 )
+from yt_dlp.extractor.youtube.jsc.utils import sig_spec_id
 from yt_dlp.extractor.youtube.pot._provider import BuiltinIEContentProvider
 from yt_dlp.jsinterp import JSInterpreter, LocalNameSpace
-from yt_dlp.utils import ExtractorError, filter_dict, js_to_json, urljoin
+from yt_dlp.utils import ExtractorError, filter_dict, js_to_json
 
 
 @register_provider
@@ -46,115 +46,22 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
             except Exception as e:
                 yield JsChallengeProviderResponse(request=request, error=e)
 
+    # region sig
     def _solve_sig_challenges(self, video_id, sig_input: SigChallengeInput) -> SigChallengeOutput:
         """Turn the s field into a working signature"""
-        results = {}
+        results, specs = {}, {}
         for challenge in sig_input.challenges:
-            extract_sig = self.ie._cached(
-                self._extract_signature_function, 'sig', sig_input.player_url, self._signature_cache_id(challenge))
-            func = extract_sig(video_id, sig_input.player_url, challenge)
-            self._print_sig_code(func, challenge)
-            results[challenge] = func(challenge)
+            spec_id = sig_spec_id(challenge)
+            if spec_id not in specs:
+                specs[spec_id] = self._extract_sig_spec(video_id, sig_input.player_url, challenge)
+            results[challenge] = ''.join(challenge[i] for i in specs[spec_id])
+        return SigChallengeOutput(results=results, specs=specs)
 
-        return SigChallengeOutput(results=results)
-
-    def _solve_nsig_challenges(self, video_id, nsig_input: NSigChallengeInput) -> NSigChallengeOutput:
-        """Turn the encrypted n field into a working signature"""
-        results = {}
-        for challenge in nsig_input.challenges:
-            results[challenge] = self._solve_nsig_challenge(challenge, video_id, nsig_input.player_url)
-
-        return NSigChallengeOutput(results=results)
-
-    def _solve_nsig_challenge(self, challenge, video_id, player_url) -> str:
-        """Turn the encrypted n field into a working signature"""
-        if player_url is None:
-            raise JsChallengeProviderError('Cannot decrypt nsig without player_url')
-
-        # TODO: do this in IE
-        player_url = urljoin('https://www.youtube.com', player_url)
-
-        try:
-            jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
-        except ExtractorError as e:
-            raise JsChallengeProviderError(f'Unable to extract nsig function code: {e}') from e
-        if self.ie.get_param('youtube_print_sig_code'):
-            self.logger.info(f'Extracted nsig function from {player_id}:\n{func_code[1]}\n')
-
-        try:
-            extract_nsig = self.ie._cached(self._extract_n_function_from_code, self._NSIG_FUNC_CACHE_ID, player_url)
-            ret = extract_nsig(jsi, func_code)(challenge)
-        except JSInterpreter.Exception as e:
-            self.logger.debug(str(e))  # TODO: only print once
-            raise JsChallengeProviderError(
-                f'Native nsig extraction failed\n'
-                f'         n = {challenge} ; player = {player_url}', expected=False)
-
-        self.logger.debug(f'Decrypted nsig {challenge} => {ret}')
-        # Only cache nsig func JS code to disk if successful, and only once
-        self.ie._store_player_data_to_cache('nsig', player_url, func_code)
-        return ret
-
-    # region sig
-    def _extract_signature_function(self, video_id, player_url, example_sig):
-        # Read from filesystem cache
-        func_id = join_nonempty(
-            self.ie._player_js_cache_key(player_url), self._signature_cache_id(example_sig))
-        assert os.path.basename(func_id) == func_id
-
-        self.logger.debug(f'Extracting signature function {func_id}')
-        cache_spec, code = self.ie.cache.load('youtube-sigfuncs', func_id, min_ver='2025.07.21'), None
-
-        if not cache_spec:
-            code = self._get_player(video_id, player_url)
-        if code:
-            res = self._parse_sig_js(code, player_url)
-            test_string = ''.join(map(chr, range(len(example_sig))))
-            cache_spec = [ord(c) for c in res(test_string)]
-            self.ie.cache.store('youtube-sigfuncs', func_id, cache_spec)
-
-        return lambda s: ''.join(s[i] for i in cache_spec)
-
-    def _print_sig_code(self, func, example_sig):
-        if not self.ie.get_param('youtube_print_sig_code'):
-            return
-
-        def gen_sig_code(idxs):
-            def _genslice(start, end, step):
-                starts = '' if start == 0 else str(start)
-                ends = (':%d' % (end + step)) if end + step >= 0 else ':'
-                steps = '' if step == 1 else (':%d' % step)
-                return f's[{starts}{ends}{steps}]'
-
-            step = None
-            # Quelch pyflakes warnings - start will be set when step is set
-            start = '(Never used)'
-            for i, prev in zip(idxs[1:], idxs[:-1]):
-                if step is not None:
-                    if i - prev == step:
-                        continue
-                    yield _genslice(start, prev, step)
-                    step = None
-                    continue
-                if i - prev in [-1, 1]:
-                    step = i - prev
-                    start = prev
-                    continue
-                else:
-                    yield 's[%d]' % prev
-            if step is None:
-                yield 's[%d]' % i
-            else:
-                yield _genslice(start, i, step)
-
-        test_string = ''.join(map(chr, range(len(example_sig))))
-        cache_res = func(test_string)
-        cache_spec = [ord(c) for c in cache_res]
-        expr_code = ' + '.join(gen_sig_code(cache_spec))
-        signature_id_tuple = '({})'.format(', '.join(str(len(p)) for p in example_sig.split('.')))
-        code = (f'if tuple(len(p) for p in s.split(\'.\')) == {signature_id_tuple}:\n'
-                f'    return {expr_code}\n')
-        self.logger.info('Extracted signature function:\n' + code)
+    def _extract_sig_spec(self, video_id, player_url, s):
+        code = self._get_player(video_id, player_url)
+        res = self._parse_sig_js(code, player_url)
+        test_string = ''.join(map(chr, range(len(s))))
+        return [ord(c) for c in res(test_string)]
 
     def _parse_sig_js(self, jscode, player_url):
         # Examples where `sig` is funcname:
@@ -184,14 +91,36 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
         jsi = JSInterpreter(jscode)
         initial_function = jsi.extract_function(funcname, filter_dict({varname: global_list}))
         return lambda s: initial_function([s])
-
-    def _signature_cache_id(self, example_sig):
-        """ Return a string representation of a signature """
-        return '.'.join(str(len(part)) for part in example_sig.split('.'))
-
     # endregion sig
 
     # region nsig
+    def _solve_nsig_challenges(self, video_id, nsig_input: NSigChallengeInput) -> NSigChallengeOutput:
+        """Turn the n field into a working signature"""
+        results = {}
+        for challenge in nsig_input.challenges:
+            results[challenge] = self._solve_nsig_challenge(challenge, video_id, nsig_input.player_url)
+        return NSigChallengeOutput(results=results)
+
+    def _solve_nsig_challenge(self, challenge, video_id, player_url) -> str:
+        """Turn the n field into a working signature"""
+        try:
+            jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
+        except ExtractorError as e:
+            raise JsChallengeProviderError(f'Unable to extract nsig function code: {e}') from e
+
+        try:
+            extract_nsig = self.ie._cached(self._extract_n_function_from_code, self._NSIG_FUNC_CACHE_ID, player_url)
+            ret = extract_nsig(jsi, func_code)(challenge)
+        except JSInterpreter.Exception as e:
+            self.logger.debug(str(e), once=True)
+            raise JsChallengeProviderError(
+                f'Native nsig extraction failed\n'
+                f'         n = {challenge} ; player = {player_url}', expected=False) from e
+
+        self.logger.debug(f'Transformed nsig {challenge} => {ret}')
+        # Only cache nsig func JS code to disk if successful, and only once
+        self.ie._store_player_data_to_cache('nsig', player_url, func_code)
+        return ret
 
     def _extract_n_function_name(self, jscode, player_url=None):
         varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
@@ -210,10 +139,9 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
                 if match := re.search(pattern, jscode[match.start()::-1]):
                     a, b = match.group('funcname_a', 'funcname_b')
                     return (a or b)[::-1]
-            # TODO: only print once
             self.logger.debug(join_nonempty(
                 'Initial search was unable to find nsig function name',
-                player_url and f'        player = {player_url}', delim='\n'))
+                player_url and f'        player = {player_url}', delim='\n'), once=True)
 
         # Examples (with placeholders nfunc, narray, idx):
         # *  .get("n"))&&(b=nfunc(b)
@@ -276,10 +204,9 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
                 )\s*\)\s*return\s+{re.escape(argnames[0])};
             ''', ';', nsig_code)
         if fixed_code == nsig_code:
-            # TODO: only print once
             self.logger.debug(join_nonempty(
                 'No typeof statement found in nsig function code',
-                player_url and f'        player = {player_url}', delim='\n'))
+                player_url and f'        player = {player_url}', delim='\n'), once=True)
 
         # Fixup global funcs
         jsi = JSInterpreter(fixed_code)
@@ -340,8 +267,7 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
             return ret
 
         return extract_nsig
-
-    # endregion
+    # endregion nsig
 
     def _interpret_player_js_global_var(self, jscode, player_url):
         """Returns tuple of: variable name string, variable value list"""
