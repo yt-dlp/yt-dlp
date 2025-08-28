@@ -28,7 +28,7 @@ from ..utils import (
     deprecation_warning,
     error_to_str,
     update_url_query,
-    url_or_none
+    url_or_none,
 )
 from ..utils.networking import HTTPHeaderDict, normalize_url
 
