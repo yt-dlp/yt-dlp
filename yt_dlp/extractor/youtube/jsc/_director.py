@@ -198,4 +198,11 @@ def validate_output(
         and len(challenge_output.results) == len(challenge_input.challenges)
         and all(isinstance(k, str) and isinstance(v, str) for k, v in challenge_output.results.items())
         and all(challenge in challenge_output.results for challenge in challenge_input.challenges)
+        # Extra validation for SigChallengeOutput specs
+        and (output_class != SigChallengeOutput or (
+            isinstance(challenge_output.specs, dict)
+            and all(
+                isinstance(k, str) and isinstance(v, list) and all(isinstance(i, int) for i in v)
+                for k, v in challenge_output.specs.items())
+        ))
     )
