@@ -28,6 +28,7 @@ from ..utils import (
     deprecation_warning,
     error_to_str,
     update_url_query,
+    url_or_none
 )
 from ..utils.networking import HTTPHeaderDict, normalize_url
 
@@ -273,6 +274,9 @@ class RequestHandler(abc.ABC):
         """
         headers = self._merge_headers(request.headers)
         self._prepare_headers(request, headers)
+        for k, v in headers.items():
+            if url_or_none(v):
+                headers[k] = normalize_url(v)
         if request.extensions.get('keep_header_casing'):
             return headers.sensitive()
         return dict(headers)
