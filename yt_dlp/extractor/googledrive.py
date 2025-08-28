@@ -275,7 +275,7 @@ class GoogleDriveIE(InfoExtractor):
         ttsurl = get_value('ttsurl')
         if ttsurl:
             # the subtitles ID is the vid param of the ttsurl query
-            subtitles_id = parse_qs(ttsurl).get('vid', [None])[0]
+            subtitles_id = parse_qs(ttsurl).get('vid', [None])[-1]
 
         self.cookiejar.clear(domain='.google.com', path='/', name='NID')
 
