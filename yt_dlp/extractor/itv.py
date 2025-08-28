@@ -13,12 +13,12 @@ from ..utils import (
     merge_dicts,
     parse_duration,
     smuggle_url,
-    traverse_obj,
     try_get,
     url_basename,
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ITVIE(InfoExtractor):
