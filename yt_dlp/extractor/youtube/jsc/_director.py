@@ -86,20 +86,18 @@ class JsChallengeRequestDirector:
                 f'from "{provider.PROVIDER_NAME}" provider: {e!r}{provider_bug_report_message(provider)}',
             )
 
-    def bulk_solve(self, requests: list[JsChallengeRequest]) -> list[JsChallengeResponse]:
+    def bulk_solve(self, requests: list[JsChallengeRequest]) -> list[tuple[JsChallengeRequest, JsChallengeResponse]]:
         """Solves multiple JS Challenges in bulk, returning a list of responses"""
         if not self.providers:
             self.logger.trace('No JS Challenge providers registered')
             return []
 
-        # TODO: We need to return the response's associated request to the caller
         results = []
         next_requests = requests[:]
 
         for provider in self._get_providers(next_requests):
             self.logger.trace(
                 f'Attempting to solve {len(next_requests)} challenges using "{provider.PROVIDER_NAME}" provider')
-
             try:
                 for response in provider.bulk_solve([dataclasses.replace(request) for request in next_requests]):
                     if response.error:
@@ -117,7 +115,7 @@ class JsChallengeRequestDirector:
                             f'JS Challenge Provider "{provider.PROVIDER_NAME}" returned a response for an unknown request: {response.request}'
                             f'{provider_bug_report_message(provider)}')
                         continue
-                    results.append(response.response)
+                    results.append((response.request, response.response))
             except Exception as e:
                 self._handle_error(e, provider, next_requests)
                 continue
@@ -127,7 +125,7 @@ class JsChallengeRequestDirector:
                 f'Not all JS Challenges were solved, expected {len(requests)} responses, got {len(results)}')
             self.logger.trace(f'Unsolved requests: {next_requests}')
         else:
-            self.logger.trace(f'All {len(requests)} JS Challenges solved successfully')
+            self.logger.trace(f'Solved all {len(requests)} requested JS Challenges')
         return results
 
     def close(self):

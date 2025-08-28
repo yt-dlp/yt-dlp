@@ -85,7 +85,7 @@ class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must
         for request in requests:
             # You can use the _get_player method to get the player JS code if needed.
             # This shares the same caching as the YouTube extractor, so it will not make unnecessary requests.
-            player_js = self._get_player(request.video_id, request.player_url)
+            player_js = self._get_player(request.video_id, request.input.player_url)
             cmd = f'{bin_path} {request.input.challenges} {player_js}'
             self.logger.info(f'Executing command: {cmd}')
             stdout, _, ret = Popen.run(cmd, text=True, shell=True, stdout=subprocess.PIPE)

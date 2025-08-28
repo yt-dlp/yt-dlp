@@ -17,7 +17,7 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     SigChallengeOutput,
     register_provider,
 )
-from yt_dlp.extractor.youtube.jsc.utils import sig_spec_id
+from yt_dlp.extractor.youtube.jsc.utils import sig_spec_id, solve_sig
 from yt_dlp.extractor.youtube.pot._provider import BuiltinIEContentProvider
 from yt_dlp.jsinterp import JSInterpreter, LocalNameSpace
 from yt_dlp.utils import ExtractorError, filter_dict, js_to_json
@@ -54,7 +54,7 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
             spec_id = sig_spec_id(challenge)
             if spec_id not in specs:
                 specs[spec_id] = self._extract_sig_spec(video_id, sig_input.player_url, challenge)
-            results[challenge] = ''.join(challenge[i] for i in specs[spec_id])
+            results[challenge] = solve_sig(challenge, specs[spec_id])
         return SigChallengeOutput(results=results, specs=specs)
 
     def _extract_sig_spec(self, video_id, player_url, s):
