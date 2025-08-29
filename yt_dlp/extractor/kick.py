@@ -12,6 +12,7 @@ from ..utils import (
     traverse_obj,
     unified_timestamp,
     url_or_none,
+    value,
 )
 
 
@@ -31,7 +32,7 @@ class KickBaseIE(InfoExtractor):
 
 class KickIE(KickBaseIE):
     IE_NAME = 'kick:live'
-    _VALID_URL = r'https?://(?:www\.)?kick\.com/(?!(?:video|categories|search|auth)(?:[/?#]|$))(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?kick\.com/(?!(?:video|categories|search|auth|api)(?:[/?#]|$))(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://kick.com/buddha',
         'info_dict': {
@@ -62,7 +63,9 @@ class KickIE(KickBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if (KickVODIE.suitable(url) or KickClipIE.suitable(url)) else super().suitable(url)
+        return False if (
+            KickVODIE.suitable(url) or KickClipIE.suitable(url)
+            or KickChannelVideosIE.suitable(url)) else super().suitable(url)
 
     def _real_extract(self, url):
         channel = self._match_id(url)
@@ -92,10 +95,10 @@ class KickIE(KickBaseIE):
 
 
 class KickVODIE(KickBaseIE):
-    IE_NAME = 'kick:vod'
+    IE_NAME = 'kick:video'
     _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+/videos/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
     _TESTS = [{
-        # Regular VOD
+        # Regular video
         'url': 'https://kick.com/xqc/videos/5c697a87-afce-4256-b01f-3c8fe71ef5cb',
         'info_dict': {
             'id': '5c697a87-afce-4256-b01f-3c8fe71ef5cb',
@@ -116,7 +119,7 @@ class KickVODIE(KickBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        # VOD of ongoing livestream (at the time of writing the test, ID rotates every two days)
+        # Video of ongoing livestream (at the time of writing the test, ID rotates every two days)
         'url': 'https://kick.com/a-log-burner/videos/5230df84-ea38-46e1-be4f-f5949ae55641',
         'info_dict': {
             'id': '5230df84-ea38-46e1-be4f-f5949ae55641',
@@ -256,3 +259,47 @@ class KickClipIE(KickBaseIE):
                 'age_limit': ('is_mature', {bool}, {lambda x: 18 if x else 0}),
             }),
         }
+
+
+class KickChannelVideosIE(KickBaseIE):
+    IE_NAME = 'kick:channel:videos'
+    _VALID_URL = rf'{KickIE._VALID_URL}/videos/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://kick.com/xqc/videos',
+        'info_dict': {
+            'id': 'xqc',
+            'title': 'All videos from xqc',
+        },
+        'playlist_mincount': 15,
+    }, {
+        'url': 'https://kick.com/xqc/videos/',
+        'only_matching': True,
+    }, {
+        'url': 'https://kick.com/xqc/videos?sort=views',
+        'only_matching': True,
+    }, {
+        'url': 'https://kick.com/xqc/videos/?sort=date',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        channel = self._match_id(url)
+        response = self._call_api(f'v2/channels/{channel}/videos', channel)
+        videos = []
+        for video in response:
+            video_id = str(video['video']['uuid'])
+            videos.append(self.url_result(
+                f'https://kick.com/{channel}/videos/{video_id}', KickVODIE, video_id,
+                **traverse_obj(video, {
+                    'title': ('session_title', {str}),
+                    'channel': {value(channel)},
+                    'channel_id': ('channel_id', {int}, {str_or_none}),
+                    'timestamp': ('video', 'created_at', {parse_iso8601}),
+                    'duration': ('duration', {float_or_none(scale=1000)}),
+                    'categories': ('categories', ..., 'name', {str}),
+                    'view_count': ('video', 'views', {int_or_none}),
+                    'age_limit': ('is_mature', {bool}, {lambda x: 18 if x else 0}),
+                    'is_live': ('is_live', {bool}),
+                })))
+
+        return self.playlist_result(videos, channel, f'All videos from {channel}')
