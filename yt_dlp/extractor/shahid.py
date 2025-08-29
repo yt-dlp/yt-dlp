@@ -55,8 +55,8 @@ class ShahidBaseIE(InfoExtractor):
         if not self.get_param('allow_unplayable_formats') and playout.get('drm', False):
             self.report_drm(video_id)
 
-        # https://docs.aws.amazon.com/mediapackage/latest/ug/manifest-filtering.html
-        return re.sub(r'aws\.manifestfilter=[\w:;,-]+&?', '', playout['url'])
+        # Removes quality limiting parameters
+        return self.remove_params(playout.get('url'))
 
     def _get_product_info(self, product_id):
         return self._call_api('product/id', product_id, {'id': product_id})
