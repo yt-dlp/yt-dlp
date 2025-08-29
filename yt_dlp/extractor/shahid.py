@@ -63,9 +63,9 @@ class ShahidBaseIE(InfoExtractor):
             r'aws\.manifestfilter=[\w:;,-]+&?',
             '', stream_url), video_id, 'mp4', live=live)
 
-    def _get_product_info(self, video_id):
-        return self._call_api('product/id', video_id, {
-            'id': video_id,
+    def _get_product_info(self, product_id):
+        return self._call_api('product/id', product_id, {
+            'id': product_id,
         })
 
     def remove_params(self, url):
