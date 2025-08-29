@@ -59,11 +59,9 @@ from .utils import (
     render_table,
     setproctitle,
     shell_quote,
-    traverse_obj,
     variadic,
     write_string,
 )
-from .utils.networking import std_headers
 from .utils._utils import _UnsafeExtensionError
 from .YoutubeDL import YoutubeDL
 
@@ -554,26 +552,12 @@ def validate_options(opts):
     report_conflict('--sponsorblock-remove', 'sponsorblock_remove', default=set())
     report_conflict('--xattrs', 'xattrs')
 
-    # Fully deprecated options
-    def report_deprecation(val, old, new=None):
-        if not val:
-            return
+    if hasattr(opts, '_deprecated_options'):
         deprecation_warnings.append(
-            f'{old} is deprecated and may be removed in a future version. Use {new} instead' if new
-            else f'{old} is deprecated and may not work as expected')
-
-    if hasattr(opts, 'sponskrub_options'):
-        for opt_str in opts.sponskrub_options:
-            deprecation_warnings.append(
-                f'SponSkrub support has been removed from yt-dlp, but "{opt_str}" was passed.\n'
-                'Please use SponsorBlock instead and remove all SponSkrub-related options from your commands and config files.\n'
-                'These options will be removed in a future version, which will cause errors if not updated.')
-        del opts.sponskrub_options
-
-    report_deprecation(not opts.prefer_ffmpeg, '--prefer-avconv', 'ffmpeg')
-    # report_deprecation(opts.include_ads, '--include-ads')  # We may re-implement this in future
-    # report_deprecation(opts.call_home, '--call-home')  # We may re-implement this in future
-    # report_deprecation(opts.writeannotations, '--write-annotations')  # It's just that no website has it
+            f'The following options have been deprecated: {", ".join(opts._deprecated_options)}\n'
+            'Please remove them from your commands and config files to avoid future errors.\n'
+            'See  https://github.com/yt-dlp/yt-dlp/issues/000000  for more details')
+        del opts._deprecated_options
 
     # Dependent options
     opts.date = DateRange.day(opts.date) if opts.date else DateRange(opts.dateafter, opts.datebefore)
@@ -862,7 +846,6 @@ def parse_options(argv=None):
         'nopart': opts.nopart,
         'updatetime': opts.updatetime,
         'writedescription': opts.writedescription,
-        'writeannotations': opts.writeannotations,
         'writeinfojson': opts.writeinfojson,
         'allow_playlist_files': opts.allow_playlist_files,
         'clean_infojson': opts.clean_infojson,
@@ -896,7 +879,6 @@ def parse_options(argv=None):
         'max_views': opts.max_views,
         'daterange': opts.date,
         'cachedir': opts.cachedir,
-        'youtube_print_sig_code': opts.youtube_print_sig_code,
         'age_limit': opts.age_limit,
         'download_archive': opts.download_archive,
         'break_on_existing': opts.break_on_existing,
@@ -914,13 +896,9 @@ def parse_options(argv=None):
         'socket_timeout': opts.socket_timeout,
         'bidi_workaround': opts.bidi_workaround,
         'debug_printtraffic': opts.debug_printtraffic,
-        'prefer_ffmpeg': opts.prefer_ffmpeg,
-        'include_ads': opts.include_ads,
         'default_search': opts.default_search,
         'dynamic_mpd': opts.dynamic_mpd,
         'extractor_args': opts.extractor_args,
-        'youtube_include_dash_manifest': opts.youtube_include_dash_manifest,
-        'youtube_include_hls_manifest': opts.youtube_include_hls_manifest,
         'encoding': opts.encoding,
         'extract_flat': opts.extract_flat,
         'live_from_start': opts.live_from_start,
@@ -932,7 +910,6 @@ def parse_options(argv=None):
         'fixup': opts.fixup,
         'source_address': opts.source_address,
         'impersonate': opts.impersonate,
-        'call_home': opts.call_home,
         'sleep_interval_requests': opts.sleep_interval_requests,
         'sleep_interval': opts.sleep_interval,
         'max_sleep_interval': opts.max_sleep_interval,
@@ -942,7 +919,6 @@ def parse_options(argv=None):
         'force_keyframes_at_cuts': opts.force_keyframes_at_cuts,
         'list_thumbnails': opts.list_thumbnails,
         'playlist_items': opts.playlist_items,
-        'xattr_set_filesize': opts.xattr_set_filesize,
         'match_filter': opts.match_filter,
         'color': opts.color,
         'ffmpeg_location': opts.ffmpeg_location,
@@ -951,7 +927,6 @@ def parse_options(argv=None):
         'hls_split_discontinuity': opts.hls_split_discontinuity,
         'external_downloader_args': opts.external_downloader_args,
         'postprocessor_args': opts.postprocessor_args,
-        'cn_verification_proxy': opts.cn_verification_proxy,
         'geo_verification_proxy': opts.geo_verification_proxy,
         'geo_bypass': opts.geo_bypass,
         'geo_bypass_country': opts.geo_bypass_country,
@@ -966,12 +941,6 @@ def _real_main(argv=None):
     setproctitle('yt-dlp')
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
-
-    # Dump user agent
-    if opts.dump_user_agent:
-        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
-        write_string(f'{ua}\n', out=sys.stdout)
-        return
 
     if print_extractor_information(opts, all_urls):
         return

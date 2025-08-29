@@ -62,7 +62,6 @@ class FileDownloader:
     test:               Download only first bytes to test the downloader.
     min_filesize:       Skip files smaller than this size
     max_filesize:       Skip files larger than this size
-    xattr_set_filesize: Set ytdl.filesize user xattribute with expected size.
     progress_delta:     The minimum time between progress output, in seconds
     external_downloader_args:  A dictionary of downloader keys (in lower case)
                         and a list of additional command-line arguments for the
