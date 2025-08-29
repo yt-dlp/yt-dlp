@@ -48,7 +48,7 @@ class IEContentProviderLogger(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def error(self, message: str):
+    def error(self, message: str, cause=None):
         pass
 
 

@@ -3348,15 +3348,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     if s_challenges:
                         self.report_warning(
-                            f'Signature extraction failed: Some formats may be missing\n'
-                            f'         player = {player_url}\n'
-                            f'         {bug_reports_message(before="")}',
+                            'Signature extraction failed: Some formats may be missing',
                             video_id=video_id, only_once=True)
                     if n_challenges:
                         self.report_warning(
-                            f'nsig extraction failed: Some formats may be missing\n'
-                            f'         player = {player_url}\n'
-                            f'         {bug_reports_message(before="")}',
+                            'nsig extraction failed: Some formats may be missing',
                             video_id=video_id, only_once=True)
 
                     for cfmts in list(s_challenges.values()) + list(n_challenges.values()):

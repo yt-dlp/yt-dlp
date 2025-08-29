@@ -112,8 +112,7 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
         except JSInterpreter.Exception as e:
             self.logger.debug(str(e), once=True)
             raise JsChallengeProviderError(
-                f'Native nsig extraction failed\n'
-                f'         n = {challenge} ; player = {player_url}', expected=False) from e
+                'Native nsig extraction failed', expected=False) from e
 
         self.logger.debug(f'Transformed nsig {challenge} => {ret}')
         # Only cache nsig func JS code to disk if successful, and only once
@@ -260,8 +259,6 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
             except Exception as e:
                 raise JSInterpreter.Exception(traceback.format_exc(), cause=e)
 
-            if ret.startswith('enhanced_except_') or ret.endswith(s):
-                raise JSInterpreter.Exception('Signature function returned an exception')
             return ret
 
         return extract_nsig
@@ -283,10 +280,9 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
                 )[;,]
             ''', jscode, 'global variable', group=('code', 'name', 'value'), default=(None, None, None))
         if not varcode:
-            # TODO: only print once
             self.logger.debug(join_nonempty(
                 'No global array variable found in player JS',
-                player_url and f'        player = {player_url}', delim='\n'))
+                player_url and f'        player = {player_url}', delim='\n'), once=True)
             return None, None
 
         jsi = JSInterpreter(varcode)

@@ -12,6 +12,7 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
     JsChallengeProviderRejectedRequest,
+    JsChallengeProviderResponse,
     JsChallengeRequest,
     JsChallengeResponse,
     JsChallengeType,
@@ -64,27 +65,28 @@ class JsChallengeRequestDirector:
         )
 
     def _handle_error(self, e: Exception, provider: JsChallengeProvider, requests: list[JsChallengeRequest]):
-        # xxx: this seems kinda jank
-        # TODO: add useful debugging information (e.g. request details)
         if isinstance(e, JsChallengeProviderRejectedRequest):
             self.logger.trace(
                 f'JS Challenge Provider "{provider.PROVIDER_NAME}" rejected '
                 f'{"this request" if len(requests) == 1 else f"{len(requests)} requests"}, '
-                f'trying next available provider. Reason: {e}'
-                + (f', Request: {getattr(e, "request", None)}' if hasattr(e, 'request') else ''),
+                f'trying next available provider. Reason: {e}',
             )
         elif isinstance(e, JsChallengeProviderError):
-            self.logger.warning(
-                f'Error solving {requests[0].type.value if len(requests) == 1 else f"{len(requests)}"} JS Challenge '
-                f'from "{provider.PROVIDER_NAME}" provider: {e!r}'
-                + (provider_bug_report_message(provider) if not e.expected else ''),
-                once=True,
-            )
+            if len(requests) == 1:
+                self.logger.warning(
+                    f'Error solving {requests[0].type.value} challenge request using "{provider.PROVIDER_NAME}" provider: {e}.\n'
+                    f'         input = {requests[0].input}\n'
+                    f'         {(provider_bug_report_message(provider, before="") if not e.expected else "")}')
+            else:
+                self.logger.warning(
+                    f'Error solving {len(requests)} challenge requests using "{provider.PROVIDER_NAME}" provider: {e}.\n'
+                    f'         requests = {requests}\n'
+                    f'         {(provider_bug_report_message(provider, before="") if not e.expected else "")}')
         else:
             self.logger.error(
-                f'Unexpected error when solving {requests[0].type.value if len(requests) == 1 else f"{len(requests)}"} JS Challenge '
-                f'from "{provider.PROVIDER_NAME}" provider: {e!r}{provider_bug_report_message(provider)}',
-            )
+                f'Unexpected error solving {len(requests)} challenge request(s) using "{provider.PROVIDER_NAME}" provider: {e!r}\n'
+                f'         requests = {requests}\n'
+                f'         {provider_bug_report_message(provider, before="")}', cause=e)
 
     def bulk_solve(self, requests: list[JsChallengeRequest]) -> list[tuple[JsChallengeRequest, JsChallengeResponse]]:
         """Solves multiple JS Challenges in bulk, returning a list of responses"""
@@ -100,20 +102,29 @@ class JsChallengeRequestDirector:
                 f'Attempting to solve {len(next_requests)} challenges using "{provider.PROVIDER_NAME}" provider')
             try:
                 for response in provider.bulk_solve([dataclasses.replace(request) for request in next_requests]):
+                    if not validate_provider_response(response):
+                        self.logger.warning(
+                            f'JS Challenge Provider "{provider.PROVIDER_NAME}" returned an invalid response:'
+                            f'         response = {response!r}\n'
+                            f'         {provider_bug_report_message(provider, before="")}')
+                        continue
                     if response.error:
                         self._handle_error(response.error, provider, [response.request])
                         continue
-                    if not validate_response(response.response, response.request):
-                        self.logger.error(
-                            f'Invalid JS Challenge response received from "{provider.PROVIDER_NAME}" provider: '
-                            f'{response.response}{provider_bug_report_message(provider)}')
+                    if (vr_msg := validate_response(response.response, response.request)) is not True:
+                        self.logger.warning(
+                            f'Invalid JS Challenge response received from "{provider.PROVIDER_NAME}" provider: {vr_msg or ""}\n'
+                            f'         response = {response.response}\n'
+                            f'         request = {response.request}\n'
+                            f'         {provider_bug_report_message(provider, before="")}')
                         continue
                     try:
                         next_requests.remove(response.request)
                     except ValueError:
-                        self.logger.error(
-                            f'JS Challenge Provider "{provider.PROVIDER_NAME}" returned a response for an unknown request: {response.request}'
-                            f'{provider_bug_report_message(provider)}')
+                        self.logger.warning(
+                            f'JS Challenge Provider "{provider.PROVIDER_NAME}" returned a response for an unknown request:\n'
+                            f'         request = {response.request}\n'
+                            f'         {provider_bug_report_message(provider, before="")}')
                         continue
                     results.append((response.request, response.response))
             except Exception as e:
@@ -177,23 +188,39 @@ def initialize_jsc_director(ie):
     return director
 
 
-def validate_response(response: JsChallengeResponse, request: JsChallengeRequest) -> bool:
+def validate_provider_response(response: JsChallengeProviderResponse) -> bool:
     return (
-        isinstance(response, JsChallengeResponse)
+        isinstance(response, JsChallengeProviderResponse)
+        and isinstance(response.request, JsChallengeRequest)
         and (
-            (request.type == JsChallengeType.NSIG and validate_nsig_challenge_output(response.output, request.input))
-            or (request.type == JsChallengeType.SIG_SPEC and validate_sig_challenge_output(response.output, request.input))
-        )
+            isinstance(response.response, JsChallengeResponse)
+            or (response.error is not None and isinstance(response.error, Exception)))
     )
 
 
-def validate_nsig_challenge_output(challenge_output: NSigChallengeOutput, challenge_input: NSigChallengeInput) -> bool:
-    return (
+def validate_response(response: JsChallengeResponse, request: JsChallengeRequest) -> bool | str:
+    if not isinstance(response, JsChallengeResponse):
+        return 'Response is not a JsChallengeResponse'
+    if request.type == JsChallengeType.NSIG:
+        return validate_nsig_challenge_output(response.output, request.input)
+    else:
+        return validate_sig_challenge_output(response.output, request.input)
+
+
+def validate_nsig_challenge_output(challenge_output: NSigChallengeOutput, challenge_input: NSigChallengeInput) -> bool | str:
+    if not (
         isinstance(challenge_output, NSigChallengeOutput)
         and len(challenge_output.results) == len(challenge_input.challenges)
         and all(isinstance(k, str) and isinstance(v, str) for k, v in challenge_output.results.items())
         and all(challenge in challenge_output.results for challenge in challenge_input.challenges)
-    )
+    ):
+        return 'Invalid NSigChallengeOutput'
+
+    # Validate nsig results are valid - if they end with the input challenge then the js function returned with an exception.
+    for challenge, result in challenge_output.results.items():
+        if result.endswith(challenge):
+            return f'nsig result is invalid for {challenge!r}: {result!r}'
+    return True
 
 
 def validate_sig_challenge_output(challenge_output: SigSpecChallengeOutput, challenge_input: SigSpecChallengeInput) -> bool:
@@ -204,4 +231,4 @@ def validate_sig_challenge_output(challenge_output: SigSpecChallengeOutput, chal
         and all(isinstance(k, int) and isinstance(v, list) and all(isinstance(item, int) for item in v) for k, v in
                 challenge_output.specs.items())
         and all(spec_id in challenge_output.specs for spec_id in challenge_input.spec_ids)
-    )
+    ) or 'Invalid SigSpecChallengeOutput'
