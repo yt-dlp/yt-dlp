@@ -279,7 +279,7 @@ class ShahidShowIE(ShahidBaseIE):
                 'product/playlist', show_id, {
                     'playListId': playlist_id,
                     'pageNumber': page_num,
-                    'pageSize': 30,
+                    'pageSize': self._PAGE_SIZE,
                     'sorts': [{
                         'order': 'DESC',
                         'type': 'SORTDATE',
