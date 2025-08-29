@@ -180,7 +180,6 @@ class FFmpegPostProcessor(PostProcessor):
             self.basename, self._features = basename, features
         else:
             self.probe_basename = basename
-
         return version
 
     @functools.cached_property
