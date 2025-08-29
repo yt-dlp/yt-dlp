@@ -1458,6 +1458,156 @@ class TikTokVMIE(InfoExtractor):
         return self.url_result(new_url)
 
 
+class TikTokPlaylistIE(TikTokBaseIE):
+    IE_NAME = 'tiktok:playlist'
+    _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<user_id>[\w.-]+)/playlist/(?P<playlist_name>[^/?#]+)-(?P<id>\d+)/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://www.tiktok.com/@berzerg86/playlist/Cycles-of-Humanity-7515108740543056683',
+        'info_dict': {
+            'id': '7515108740543056683',
+            'title': 'berzerg86-Cycles of Humanity',
+            'description': 'TikTok playlist with 14 videos',
+        },
+        'playlist_mincount': 1,
+    }, {
+        'url': 'https://www.tiktok.com/@linustech/playlist/Riley%20Tech%20Tips-7220878800733260549',
+        'info_dict': {
+            'id': '7220878800733260549',
+            'title': 'linustech-Riley Tech Tips',
+            'description': 'TikTok playlist with 2 videos',
+        },
+        'playlist_mincount': 1,
+    }]
+
+    def _call_playlist_api(self, endpoint, mix_id, query=None):
+        """Call TikTok's playlist API endpoints"""
+        base_query = {
+            'aid': '1988',
+            'app_language': 'en',
+            'app_name': 'tiktok_web',
+            'browser_language': 'en-US',
+            'browser_name': 'Mozilla',
+            'browser_online': 'true',
+            'browser_platform': 'Win32',
+            'browser_version': '5.0 (Windows)',
+            'channel': 'tiktok_web',
+            'cookie_enabled': 'true',
+            'device_id': self._DEVICE_ID,
+            'device_platform': 'web_pc',
+            'focus_state': 'true',
+            'history_len': '2',
+            'is_fullscreen': 'false',
+            'is_page_visible': 'true',
+            'language': 'en',
+            'mixId': mix_id,
+            'os': 'windows',
+            'priority_region': '',
+            'referer': '',
+            'region': 'US',
+            'screen_height': '1080',
+            'screen_width': '1920',
+            'tz_name': 'UTC',
+            'webcast_language': 'en',
+        }
+
+        if query:
+            base_query.update(query)
+
+        return self._download_json(
+            f'https://www.tiktok.com/api/{endpoint}/', mix_id,
+            f'Downloading {endpoint} data',
+            query=base_query, fatal=False)
+
+    def _real_extract(self, url):
+        user_id, playlist_name, playlist_id = self._match_valid_url(url).group('user_id', 'playlist_name', 'id')
+
+        # First get playlist metadata
+        playlist_meta = self._call_playlist_api('mix/detail', playlist_id)
+        if not playlist_meta:
+            raise ExtractorError('Unable to fetch playlist metadata')
+
+        # Check if the request was successful
+        if traverse_obj(playlist_meta, 'statusCode') != 0:
+            status_msg = traverse_obj(playlist_meta, 'status_msg', default='Unknown error')
+            raise ExtractorError(f'Playlist API error: {status_msg}')
+
+        # Extract playlist info
+        mix_info = traverse_obj(playlist_meta, 'mixInfo', expected_type=dict)
+        if not mix_info:
+            raise ExtractorError('No playlist info found')
+
+        playlist_title = traverse_obj(mix_info, 'name', expected_type=str) or playlist_name
+
+        # Now get the video list
+        entries = []
+        cursor = 0
+        count = 30  # Max items per request
+
+        while True:
+            item_list_response = self._call_playlist_api('mix/item_list', playlist_id, {
+                'cursor': cursor,
+                'count': count,
+            })
+
+            if not item_list_response or traverse_obj(item_list_response, 'statusCode') != 0:
+                break
+
+            item_list = traverse_obj(item_list_response, 'itemList', expected_type=list)
+            if not item_list:
+                break
+
+            for video in item_list:
+                video_id = traverse_obj(video, 'id', expected_type=str)
+                if not video_id:
+                    continue
+
+                author_info = traverse_obj(video, ('author', {
+                    'uploader': ('uniqueId', {str}),
+                    'uploader_id': ('id', {str}),
+                }), get_all=False) or {}
+
+                video_uploader = author_info.get('uploader') or user_id
+                video_url = f'https://www.tiktok.com/@{video_uploader}/video/{video_id}'
+
+                # Create a basic info dict for flat extraction
+                video_info = {
+                    'id': video_id,
+                    'title': traverse_obj(video, 'desc', expected_type=str) or f'TikTok video #{video_id}',
+                    'uploader': video_uploader,
+                    'uploader_id': author_info.get('uploader_id'),
+                    'timestamp': traverse_obj(video, 'createTime', expected_type=int),
+                    'view_count': traverse_obj(video, ('stats', 'playCount'), expected_type=int),
+                    'like_count': traverse_obj(video, ('stats', 'diggCount'), expected_type=int),
+                    'comment_count': traverse_obj(video, ('stats', 'commentCount'), expected_type=int),
+                    'repost_count': traverse_obj(video, ('stats', 'shareCount'), expected_type=int),
+                    'duration': traverse_obj(video, ('video', 'duration'), expected_type=int),
+                    'thumbnail': traverse_obj(video, ('video', 'cover'), expected_type=str),
+                }
+
+                entries.append(self.url_result(video_url, TikTokIE, **video_info))
+
+            # Check if there are more videos to fetch
+            has_more = traverse_obj(item_list_response, 'hasMore', expected_type=bool)
+            if not has_more:
+                break
+
+            # Update cursor for next page
+            cursor = traverse_obj(item_list_response, 'cursor', expected_type=str)
+            if not cursor:
+                break
+            try:
+                cursor = int(cursor)
+            except (ValueError, TypeError):
+                break
+
+        if not entries:
+            raise ExtractorError('No videos found in playlist')
+
+        return self.playlist_result(
+            entries, playlist_id, f'{user_id}-{playlist_title}',
+            description=f'TikTok playlist with {len(entries)} videos')
+
+
 class TikTokLiveIE(TikTokBaseIE):
     _VALID_URL = r'''(?x)https?://(?:
         (?:www\.)?tiktok\.com/@(?P<uploader>[\w.-]+)/live|
