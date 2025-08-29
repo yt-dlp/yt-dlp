@@ -75,7 +75,7 @@ def _hash_file(path: pathlib.Path, hash_algorithm: Callable[[], hashlib._Hash]) 
 @register_provider
 class DenoJCP(JsChallengeProvider, BuiltinIEContentProvider):
     PROVIDER_NAME = 'deno'
-    _SUPPORTED_TYPES = [JsChallengeType.NSIG, JsChallengeType.SIG]
+    _SUPPORTED_TYPES = [JsChallengeType.NSIG, JsChallengeType.SIG_SPEC]
 
     _DENO_ARGS = ['--location', 'https://www.youtube.com/watch?v=yt-dlp-wins', '--no-prompt']
     _SUPPORTED_VERSION = '0.0.1'

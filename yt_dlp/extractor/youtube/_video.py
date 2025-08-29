@@ -25,8 +25,7 @@ from ._base import (
     short_client_name,
 )
 from .jsc._director import initialize_jsc_director
-from .jsc.provider import JsChallengeRequest, JsChallengeType, NSigChallengeInput, SigChallengeInput
-from .jsc.utils import sig_spec_id, solve_sig
+from .jsc.provider import JsChallengeRequest, JsChallengeType, NSigChallengeInput, SigSpecChallengeInput
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
 from ...networking.exceptions import HTTPError
@@ -2080,7 +2079,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return self._code_cache.get(player_js_key)
 
     def _sig_spec_cache_id(self, player_url, spec_id):
-        return join_nonempty(self._player_js_cache_key(player_url), spec_id)
+        return join_nonempty(self._player_js_cache_key(player_url), str(spec_id))
 
     def _load_sig_spec_from_cache(self, spec_cache_id):
         # This is almost identical to _load_player_data_from_cache
@@ -3065,6 +3064,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._downloader.deprecated_feature('[youtube] include_duplicate_formats extractor argument is deprecated. '
                                                 'Use formats=duplicate extractor argument instead')
 
+        def solve_sig(s, spec):
+            return ''.join(s[i] for i in spec)
+
         def build_fragments(f):
             return LazyList({
                 'url': update_url_query(f['url'], {
@@ -3248,7 +3250,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     # signature
                     # Attempt to load sig spec from cache
-                    spec_cache_id = self._sig_spec_cache_id(player_url, sig_spec_id(encrypted_sig))
+                    spec_cache_id = self._sig_spec_cache_id(player_url, len(encrypted_sig))
                     spec = self._load_sig_spec_from_cache(spec_cache_id)
                     if spec:
                         self.write_debug(f'Using cached signature function {spec_cache_id}', only_once=True)
@@ -3303,36 +3305,41 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     s_challenge = fmt.pop('_jsc_s_challenge', None)
                     if s_challenge is not None:
-                        s_challenges.setdefault(s_challenge, []).append(fmt)
+                        s_challenges.setdefault(len(s_challenge), {'s': s_challenge, 'fmts': []})['fmts'].append(fmt)
 
                 challenge_requests = []
                 if n_challenges:
                     challenge_requests.append(JsChallengeRequest(
                         type=JsChallengeType.NSIG,
                         video_id=video_id,
-                        input=NSigChallengeInput(challenges=list(n_challenges.keys()), player_url=urljoin('https://www.youtube.com', player_url))))
+                        input=NSigChallengeInput(challenges=list(n_challenges.keys()), player_url=player_url)))
                 if s_challenges:
                     challenge_requests.append(JsChallengeRequest(
-                        type=JsChallengeType.SIG,
+                        type=JsChallengeType.SIG_SPEC,
                         video_id=video_id,
-                        input=SigChallengeInput(challenges=list(s_challenges.keys()), player_url=urljoin('https://www.youtube.com', player_url))))
+                        input=SigSpecChallengeInput(spec_ids=set(s_challenges.keys()), player_url=player_url)))
 
                 if challenge_requests:
                     for _challenge_request, challenge_response in self._jsc_director.bulk_solve(challenge_requests):
-                        for challenge, result in challenge_response.output.results.items():
-                            fmts = s_challenges.pop(challenge, n_challenges.pop(challenge, []))
-                            for fmt in fmts:
-                                if challenge_response.type == JsChallengeType.SIG:
+                        if challenge_response.type == JsChallengeType.SIG_SPEC:
+                            for spec_id, spec in challenge_response.output.specs.items():
+                                self._store_sig_spec_to_cache(self._sig_spec_cache_id(player_url, spec_id), spec)
+                                s_challenge_data = s_challenges.pop(spec_id, {})
+                                if not s_challenge_data:
+                                    continue
+                                solved_challenge = solve_sig(s_challenge_data['s'], spec)
+                                for fmt in s_challenge_data['fmts']:
                                     sc = fmt.pop('_jsc_s_sc')
                                     fmt['url'] += '&{}={}'.format(
                                         traverse_obj(sc, ('sp', -1)) or 'signature',
-                                        result)
-                                elif challenge_response.type == JsChallengeType.NSIG:
+                                        solved_challenge)
+
+                        elif challenge_response.type == JsChallengeType.NSIG:
+                            for challenge, result in challenge_response.output.results.items():
+                                fmts = n_challenges.pop(challenge, [])
+                                for fmt in fmts:
                                     self._player_cache[challenge] = result
                                     fmt['url'] = update_url_query(fmt['url'], {'n': result})
-                        if challenge_response.type == JsChallengeType.SIG:
-                            for spec_id, spec in challenge_response.output.specs.items():
-                                self._store_sig_spec_to_cache(self._sig_spec_cache_id(player_url, spec_id), spec)
 
                     # Raise warning if any challenge requests remain
                     # Depending on type of challenge request

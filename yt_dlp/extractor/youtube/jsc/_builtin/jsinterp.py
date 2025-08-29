@@ -13,11 +13,10 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeType,
     NSigChallengeInput,
     NSigChallengeOutput,
-    SigChallengeInput,
-    SigChallengeOutput,
+    SigSpecChallengeInput,
+    SigSpecChallengeOutput,
     register_provider,
 )
-from yt_dlp.extractor.youtube.jsc.utils import sig_spec_id, solve_sig
 from yt_dlp.extractor.youtube.pot._provider import BuiltinIEContentProvider
 from yt_dlp.jsinterp import JSInterpreter, LocalNameSpace
 from yt_dlp.utils import ExtractorError, filter_dict, js_to_json
@@ -26,7 +25,7 @@ from yt_dlp.utils import ExtractorError, filter_dict, js_to_json
 @register_provider
 class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
     PROVIDER_NAME = 'jsinterp'
-    _SUPPORTED_TYPES = [JsChallengeType.SIG, JsChallengeType.NSIG]
+    _SUPPORTED_TYPES = [JsChallengeType.SIG_SPEC, JsChallengeType.NSIG]
 
     _NSIG_FUNC_CACHE_ID = 'nsig func'
     _DUMMY_STRING = 'dlp_wins'
@@ -37,7 +36,7 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
     def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> Generator[JsChallengeProviderResponse, None, None]:
         for request in requests:
             try:
-                if request.type == JsChallengeType.SIG:
+                if request.type == JsChallengeType.SIG_SPEC:
                     output = self._solve_sig_challenges(request.video_id, request.input)
                 else:
                     output = self._solve_nsig_challenges(request.video_id, request.input)
@@ -47,20 +46,18 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
                 yield JsChallengeProviderResponse(request=request, error=e)
 
     # region sig
-    def _solve_sig_challenges(self, video_id, sig_input: SigChallengeInput) -> SigChallengeOutput:
-        """Turn the s field into a working signature"""
-        results, specs = {}, {}
-        for challenge in sig_input.challenges:
-            spec_id = sig_spec_id(challenge)
-            if spec_id not in specs:
-                specs[spec_id] = self._extract_sig_spec(video_id, sig_input.player_url, challenge)
-            results[challenge] = solve_sig(challenge, specs[spec_id])
-        return SigChallengeOutput(results=results, specs=specs)
+    def _solve_sig_challenges(self, video_id, sig_input: SigSpecChallengeInput) -> SigSpecChallengeOutput:
+        """Turn the s field into a working signature spec"""
+        specs = {}
+        self.logger.trace(f'Generating {len(sig_input.spec_ids)} sig specs using player {sig_input.player_url}')
+        for spec_id in sig_input.spec_ids:
+            specs[spec_id] = self._extract_sig_spec(video_id, sig_input.player_url, spec_id)
+        return SigSpecChallengeOutput(specs=specs)
 
-    def _extract_sig_spec(self, video_id, player_url, s):
+    def _extract_sig_spec(self, video_id, player_url, spec_id):
         code = self._get_player(video_id, player_url)
         res = self._parse_sig_js(code, player_url)
-        test_string = ''.join(map(chr, range(len(s))))
+        test_string = ''.join(map(chr, range(spec_id)))
         return [ord(c) for c in res(test_string)]
 
     def _parse_sig_js(self, jscode, player_url):
@@ -97,6 +94,7 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
     def _solve_nsig_challenges(self, video_id, nsig_input: NSigChallengeInput) -> NSigChallengeOutput:
         """Turn the n field into a working signature"""
         results = {}
+        self.logger.trace(f'Solving {len(nsig_input.challenges)} nsig challenges using player {nsig_input.player_url}')
         for challenge in nsig_input.challenges:
             results[challenge] = self._solve_nsig_challenge(challenge, video_id, nsig_input.player_url)
         return NSigChallengeOutput(results=results)

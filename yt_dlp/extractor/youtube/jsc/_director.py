@@ -17,8 +17,8 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeType,
     NSigChallengeInput,
     NSigChallengeOutput,
-    SigChallengeInput,
-    SigChallengeOutput,
+    SigSpecChallengeInput,
+    SigSpecChallengeOutput,
 )
 from yt_dlp.extractor.youtube.pot._director import YoutubeIEContentProviderLogger, provider_display_list
 from yt_dlp.extractor.youtube.pot._provider import (
@@ -181,28 +181,27 @@ def validate_response(response: JsChallengeResponse, request: JsChallengeRequest
     return (
         isinstance(response, JsChallengeResponse)
         and (
-            (request.type == JsChallengeType.NSIG and validate_output(response.output, request.input, NSigChallengeOutput))
-            or (request.type == JsChallengeType.SIG and validate_output(response.output, request.input, SigChallengeOutput))
+            (request.type == JsChallengeType.NSIG and validate_nsig_challenge_output(response.output, request.input))
+            or (request.type == JsChallengeType.SIG_SPEC and validate_sig_challenge_output(response.output, request.input))
         )
     )
 
 
-def validate_output(
-        challenge_output: NSigChallengeOutput | SigChallengeOutput,
-        challenge_input: NSigChallengeInput | SigChallengeInput,
-        output_class,
-) -> bool:
-    # Since the two classes have same structure, we can use a single validation function for now
+def validate_nsig_challenge_output(challenge_output: NSigChallengeOutput, challenge_input: NSigChallengeInput) -> bool:
     return (
-        isinstance(challenge_output, output_class)
+        isinstance(challenge_output, NSigChallengeOutput)
         and len(challenge_output.results) == len(challenge_input.challenges)
         and all(isinstance(k, str) and isinstance(v, str) for k, v in challenge_output.results.items())
         and all(challenge in challenge_output.results for challenge in challenge_input.challenges)
-        # Extra validation for SigChallengeOutput specs
-        and (output_class != SigChallengeOutput or (
-            isinstance(challenge_output.specs, dict)
-            and all(
-                isinstance(k, str) and isinstance(v, list) and all(isinstance(i, int) for i in v)
-                for k, v in challenge_output.specs.items())
-        ))
+    )
+
+
+def validate_sig_challenge_output(challenge_output: SigSpecChallengeOutput, challenge_input: SigSpecChallengeInput) -> bool:
+    return (
+        isinstance(challenge_output, SigSpecChallengeOutput)
+        and isinstance(challenge_output.specs, dict)
+        and len(challenge_output.specs) == len(challenge_input.spec_ids)
+        and all(isinstance(k, int) and isinstance(v, list) and all(isinstance(item, int) for item in v) for k, v in
+                challenge_output.specs.items())
+        and all(spec_id in challenge_output.specs for spec_id in challenge_input.spec_ids)
     )
