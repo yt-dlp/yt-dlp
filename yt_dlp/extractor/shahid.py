@@ -1,5 +1,6 @@
 import json
 import math
+import re
 import urllib.parse
 
 from .common import InfoExtractor
@@ -57,22 +58,10 @@ class ShahidBaseIE(InfoExtractor):
         if not stream_url:
             raise ExtractorError('Stream URL not found in API response.')
 
-        # Remove query from stream_url that restricts video resolutions
-        cleaned_url = self.remove_params(stream_url)
-
-        formats = []
-        subtitles = []
-        for url in orderedSet((cleaned_url, stream_url)):
-            try:
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                    stream_url, video_id, 'mp4', live=live)
-                if formats:
-                    break
-            except Exception as e:
-                self.report_warning(f'Failed to extract formats from {url}: {e}')
-                continue
-
-        return formats, subtitles
+        return self._extract_m3u8_formats_and_subtitles(re.sub(
+            # https://docs.aws.amazon.com/mediapackage/latest/ug/manifest-filtering.html
+            r'aws\.manifestfilter=[\w:;,-]+&?',
+            '', stream_url), video_id, 'mp4', live=live)
 
     def _get_product_info(self, video_id):
         return self._call_api('product/id', video_id, {
