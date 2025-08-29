@@ -104,9 +104,9 @@ class LRTVODIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         # TODO: Use _search_nextjs_v13_data once fixed
-        canonical_url = (self._search_regex(
-            r'\\"(?:article|data)\\":{[^}]*\\"url\\":\\"(/[^"]+)\\"', webpage, 'content', fatal=False) or self._search_regex(
-            r'<link\s+rel="canonical"\s*href="([^"]+)"', webpage, 'canonical URL'))
+        canonical_url = (
+            self._search_regex(r'\\"(?:article|data)\\":{[^}]*\\"url\\":\\"(/[^"]+)\\"', webpage, 'content URL', fatal=False)
+            or self._search_regex(r'<link\s+rel="canonical"\s*href="(/[^"]+)"', webpage, 'canonical URL'))
 
         media = self._download_json(
             'https://www.lrt.lt/servisai/stream_url/vod/media_info/',
