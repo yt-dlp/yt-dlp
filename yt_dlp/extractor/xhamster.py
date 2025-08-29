@@ -20,7 +20,7 @@ from ..utils import (
 
 
 class XHamsterIE(InfoExtractor):
-    _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.com|xhday\.com|xhvid\.com)'
+    _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.(?:com|desi)|xhday\.com|xhvid\.com)'
     _VALID_URL = rf'''(?x)
                     https?://
                         (?:[^/?#]+\.)?{_DOMAINS}/
@@ -31,7 +31,7 @@ class XHamsterIE(InfoExtractor):
                     '''
     _TESTS = [{
         'url': 'https://xhamster.com/videos/femaleagent-shy-beauty-takes-the-bait-1509445',
-        'md5': '34e1ab926db5dc2750fed9e1f34304bb',
+        'md5': 'e009ea6b849b129e3bebaeb9cf0dee51',
         'info_dict': {
             'id': '1509445',
             'display_id': 'femaleagent-shy-beauty-takes-the-bait',
@@ -43,6 +43,11 @@ class XHamsterIE(InfoExtractor):
             'uploader_id': 'ruseful2011',
             'duration': 893,
             'age_limit': 18,
+            'thumbnail': r're:https?://.+\.jpg',
+            'uploader_url': 'https://xhamster.com/users/ruseful2011',
+            'description': '',
+            'view_count': int,
+            'comment_count': int,
         },
     }, {
         'url': 'https://xhamster.com/videos/britney-spears-sexy-booty-2221348?hd=',
@@ -56,9 +61,14 @@ class XHamsterIE(InfoExtractor):
             'uploader': 'jojo747400',
             'duration': 200,
             'age_limit': 18,
+            'description': '',
+            'view_count': int,
+            'thumbnail': r're:https?://.+\.jpg',
+            'comment_count': int,
         },
         'params': {
-            'skip_download': True,
+            'extractor_args': {'generic': {'impersonate': ['chrome']}},
+            'skip_download': 'm3u8',
         },
     }, {
         # empty seo, unavailable via new URL schema
@@ -73,10 +83,13 @@ class XHamsterIE(InfoExtractor):
             'uploader_id': 'parejafree',
             'duration': 72,
             'age_limit': 18,
+            'comment_count': int,
+            'uploader_url': 'https://xhamster.com/users/parejafree',
+            'description': '',
+            'view_count': int,
+            'thumbnail': r're:https?://.+\.jpg',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Invalid URL',
     }, {
         # mobile site
         'url': 'https://m.xhamster.com/videos/cute-teen-jacqueline-solo-masturbation-8559111',
@@ -121,6 +134,9 @@ class XHamsterIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://xhvid.com/videos/lk-mm-xhc6wn6',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster20.desi/videos/my-verification-video-scottishmistress23-11937369',
         'only_matching': True,
     }]
 
@@ -267,7 +283,7 @@ class XHamsterIE(InfoExtractor):
                     video, lambda x: x['rating']['likes'], int)),
                 'dislike_count': int_or_none(try_get(
                     video, lambda x: x['rating']['dislikes'], int)),
-                'comment_count': int_or_none(video.get('views')),
+                'comment_count': int_or_none(video.get('comments')),
                 'age_limit': age_limit if age_limit is not None else 18,
                 'categories': categories,
                 'formats': formats,
@@ -373,19 +389,48 @@ class XHamsterIE(InfoExtractor):
 class XHamsterEmbedIE(InfoExtractor):
     _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/xembed\.php\?video=(?P<id>\d+)'
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?xhamster\.com/xembed\.php\?video=\d+)\1']
-    _TEST = {
+    _TESTS = [{
         'url': 'http://xhamster.com/xembed.php?video=3328539',
         'info_dict': {
             'id': '3328539',
             'ext': 'mp4',
             'title': 'Pen Masturbation',
+            'comment_count': int,
+            'description': '',
+            'display_id': 'pen-masturbation',
             'timestamp': 1406581861,
             'upload_date': '20140728',
             'uploader': 'ManyakisArt',
             'duration': 5,
             'age_limit': 18,
+            'thumbnail': r're:https?://.+\.jpg',
+            'uploader_id': 'manyakisart',
+            'uploader_url': 'https://xhamster.com/users/manyakisart',
+            'view_count': int,
         },
-    }
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://xhamster.com/awards/2023',
+        'info_dict': {
+            'id': 'xh2VnYn',
+            'ext': 'mp4',
+            'title': 'xHamster Awards 2023 - The Winners',
+            'age_limit': 18,
+            'comment_count': int,
+            'description': '',
+            'display_id': 'xhamster-awards-2023-the-winners',
+            'duration': 292,
+            'thumbnail': r're:https?://ic-vt-nss\.xhcdn\.com/.+',
+            'timestamp': 1700122082,
+            'upload_date': '20231116',
+            'uploader': 'xHamster',
+            'uploader_id': 'xhamster',
+            'uploader_url': 'https://xhamster.com/users/xhamster',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -420,13 +465,13 @@ class XHamsterUserIE(InfoExtractor):
         'info_dict': {
             'id': 'firatkaan',
         },
-        'playlist_mincount': 1,
+        'playlist_mincount': 0,
     }, {
         'url': 'https://xhamster.com/creators/squirt-orgasm-69',
         'info_dict': {
             'id': 'squirt-orgasm-69',
         },
-        'playlist_mincount': 150,
+        'playlist_mincount': 46,
     }, {
         'url': 'https://xhday.com/users/mobhunter',
         'only_matching': True,

@@ -19,7 +19,9 @@ from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .networking.impersonate import ImpersonateTarget
+from .globals import IN_CLI, plugin_dirs
 from .options import parseOpts
+from .plugins import load_all_plugins as _load_all_plugins
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
@@ -33,7 +35,6 @@ from .postprocessor import (
 )
 from .update import Updater
 from .utils import (
-    Config,
     NO_DEFAULT,
     POSTPROCESS_WHEN,
     DateRange,
@@ -65,8 +66,6 @@ from .utils import (
 from .utils.networking import std_headers
 from .utils._utils import _UnsafeExtensionError
 from .YoutubeDL import YoutubeDL
-
-_IN_CLI = False
 
 
 def _exit(status=0, *args):
@@ -159,6 +158,12 @@ def set_compat_opts(opts):
         opts.format_sort.extend(FormatSorter.ytdl_default)
     elif 'prefer-vp9-sort' in opts.compat_opts:
         opts.format_sort.extend(FormatSorter._prefer_vp9_sort)
+
+    if 'mtime-by-default' in opts.compat_opts:
+        if opts.updatetime is None:
+            opts.updatetime = True
+        else:
+            _unused_compat_opt('mtime-by-default')
 
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
     _audio_multistreams_set = set_default_compat('multistreams', 'allow_multiple_audio_streams', False, remove_compat=False)
@@ -261,9 +266,11 @@ def validate_options(opts):
         elif value in ('inf', 'infinite'):
             return float('inf')
         try:
-            return int(value)
+            int_value = int(value)
         except (TypeError, ValueError):
             validate(False, f'{name} retry count', value)
+        validate_positive(f'{name} retry count', int_value)
+        return int_value
 
     opts.retries = parse_retries('download', opts.retries)
     opts.fragment_retries = parse_retries('fragment', opts.fragment_retries)
@@ -293,18 +300,20 @@ def validate_options(opts):
             raise ValueError(f'invalid {key} retry sleep expression {expr!r}')
 
     # Bytes
-    def validate_bytes(name, value):
+    def validate_bytes(name, value, strict_positive=False):
         if value is None:
             return None
         numeric_limit = parse_bytes(value)
-        validate(numeric_limit is not None, 'rate limit', value)
+        validate(numeric_limit is not None, name, value)
+        if strict_positive:
+            validate_positive(name, numeric_limit, True)
         return numeric_limit
 
-    opts.ratelimit = validate_bytes('rate limit', opts.ratelimit)
+    opts.ratelimit = validate_bytes('rate limit', opts.ratelimit, True)
     opts.throttledratelimit = validate_bytes('throttled rate limit', opts.throttledratelimit)
     opts.min_filesize = validate_bytes('min filesize', opts.min_filesize)
     opts.max_filesize = validate_bytes('max filesize', opts.max_filesize)
-    opts.buffersize = validate_bytes('buffer size', opts.buffersize)
+    opts.buffersize = validate_bytes('buffer size', opts.buffersize, True)
     opts.http_chunk_size = validate_bytes('http chunk size', opts.http_chunk_size)
 
     # Output templates
@@ -429,6 +438,10 @@ def validate_options(opts):
     }
 
     # Other options
+    opts.plugin_dirs = opts.plugin_dirs
+    if opts.plugin_dirs is None:
+        opts.plugin_dirs = ['default']
+
     if opts.playlist_items is not None:
         try:
             tuple(PlaylistEntries.parse_playlist_items(opts.playlist_items))
@@ -486,6 +499,14 @@ def validate_options(opts):
             '"-f best" selects the best pre-merged format which is often not the best option',
             'To let yt-dlp download and merge the best available formats, simply do not pass any format selection',
             'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
+
+    # Common mistake: -f mp4
+    if opts.format == 'mp4':
+        warnings.append('.\n         '.join((
+            '"-f mp4" selects the best pre-merged mp4 format which is often not what\'s intended',
+            'Pre-merged mp4 formats are not available from all sites, or may only be available in lower quality',
+            'To prioritize the best h264 video and aac audio in an mp4 container, use "-t mp4" instead',
+            'If you know what you are doing and want a pre-merged mp4 format, use "-f b[ext=mp4]" instead to suppress this warning')))
 
     # --(postprocessor/downloader)-args without name
     def report_args_compat(name, value, key1, key2=None, where=None):
@@ -959,6 +980,7 @@ def parse_options(argv=None):
         'geo_bypass': opts.geo_bypass,
         'geo_bypass_country': opts.geo_bypass_country,
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
+        'warn_when_outdated': opts.update_self is None,
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
@@ -969,11 +991,6 @@ def _real_main(argv=None):
     setproctitle('yt-dlp')
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
-
-    # HACK: Set the plugin dirs early on
-    # TODO(coletdjnz): remove when plugin globals system is implemented
-    if opts.plugin_dirs is not None:
-        Config._plugin_dirs = list(map(expand_path, opts.plugin_dirs))
 
     # Dump user agent
     if opts.dump_user_agent:
@@ -988,6 +1005,11 @@ def _real_main(argv=None):
     # See https://github.com/yt-dlp/yt-dlp/issues/2191
     if opts.ffmpeg_location:
         FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
+
+    # load all plugins into the global lookup
+    plugin_dirs.value = opts.plugin_dirs
+    if plugin_dirs.value:
+        _load_all_plugins()
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir
@@ -1015,8 +1037,10 @@ def _real_main(argv=None):
                 # List of simplified targets we know are supported,
                 # to help users know what dependencies may be required.
                 (ImpersonateTarget('chrome'), 'curl_cffi'),
-                (ImpersonateTarget('edge'), 'curl_cffi'),
                 (ImpersonateTarget('safari'), 'curl_cffi'),
+                (ImpersonateTarget('firefox'), 'curl_cffi>=0.10'),
+                (ImpersonateTarget('edge'), 'curl_cffi'),
+                (ImpersonateTarget('tor'), 'curl_cffi>=0.11'),
             ]
 
             available_targets = ydl._get_available_impersonate_targets()
@@ -1032,12 +1056,12 @@ def _real_main(argv=None):
 
             for known_target, known_handler in known_targets:
                 if not any(
-                    known_target in target and handler == known_handler
+                    known_target in target and known_handler.startswith(handler)
                     for target, handler in available_targets
                 ):
-                    rows.append([
+                    rows.insert(0, [
                         ydl._format_out(text, ydl.Styles.SUPPRESS)
-                        for text in make_row(known_target, f'{known_handler} (not available)')
+                        for text in make_row(known_target, f'{known_handler} (unavailable)')
                     ])
 
             ydl.to_screen('[info] Available impersonate targets')
@@ -1088,8 +1112,7 @@ def _real_main(argv=None):
 
 
 def main(argv=None):
-    global _IN_CLI
-    _IN_CLI = True
+    IN_CLI.value = True
     try:
         _exit(*variadic(_real_main(argv)))
     except (CookieLoadError, DownloadError):

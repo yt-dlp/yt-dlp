@@ -15,11 +15,11 @@ description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
 requires-python = ">=3.9"
 keywords = [
+    "cli",
+    "downloader",
     "youtube-dl",
-    "video-downloader",
     "youtube-downloader",
     "sponsorblock",
-    "youtube-dlc",
     "yt-dlp",
 ]
 license = {file = "LICENSE"}
@@ -51,12 +51,11 @@ default = [
     "mutagen",
     "pycryptodomex",
     "requests>=2.32.2,<3",
-    "urllib3>=1.26.17,<3",
+    "urllib3>=2.0.2,<3",
     "websockets>=13.0",
 ]
 curl-cffi = [
-    "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
-    "curl-cffi>=0.5.10,!=0.6.*,<0.7.2; os_name!='nt' and implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.14; implementation_name=='cpython'",
 ]
 secretstorage = [
     "cffi",
@@ -66,7 +65,7 @@ build = [
     "build",
     "hatchling",
     "pip",
-    "setuptools>=71.0.2",  # 71.0.0 broke pyinstaller
+    "setuptools>=71.0.2,<81",  # See https://github.com/pyinstaller/pyinstaller/issues/9149
     "wheel",
 ]
 dev = [
@@ -76,14 +75,14 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.8.0",
+    "ruff~=0.12.0",
 ]
 test = [
     "pytest~=8.1",
     "pytest-rerunfailures~=14.0",
 ]
 pyinstaller = [
-    "pyinstaller>=6.11.1",  # Windows temp cleanup fixed in 6.11.1
+    "pyinstaller>=6.13.0",  # Windows temp cleanup fixed in 6.13.0
 ]
 
 [project.urls]
@@ -195,6 +194,7 @@ ignore = [
     "B023",    # function-uses-loop-variable (false positives)
     "B028",    # no-explicit-stacklevel
     "B904",    # raise-without-from-inside-except
+    "A005",    # stdlib-module-shadowing
     "C401",    # unnecessary-generator-set
     "C402",    # unnecessary-generator-dict
     "PIE790",  # unnecessary-placeholder
@@ -210,10 +210,12 @@ ignore = [
     "TD001",   # invalid-todo-tag
     "TD002",   # missing-todo-author
     "TD003",   # missing-todo-link
+    "PLC0415", # import-outside-top-level
     "PLE0604", # invalid-all-object (false positives)
     "PLE0643", # potential-index-error (false positives)
     "PLW0603", # global-statement
     "PLW1510", # subprocess-run-without-check
+    "PLW1641", # eq-without-hash
     "PLW2901", # redefined-loop-name
     "RUF001",  # ambiguous-unicode-character-string
     "RUF012",  # mutable-class-default
@@ -313,6 +315,7 @@ banned-from = [
 "yt_dlp.utils.error_to_compat_str".msg = "Use `str` instead."
 "yt_dlp.utils.bytes_to_intlist".msg = "Use `list` instead."
 "yt_dlp.utils.intlist_to_bytes".msg = "Use `bytes` instead."
+"yt_dlp.utils.jwt_encode_hs256".msg = "Use `yt_dlp.utils.jwt_encode` instead."
 "yt_dlp.utils.decodeArgument".msg = "Do not use"
 "yt_dlp.utils.decodeFilename".msg = "Do not use"
 "yt_dlp.utils.encodeFilename".msg = "Do not use"
@@ -383,9 +386,14 @@ select = [
     "W391",
     "W504",
 ]
+exclude = "*/extractor/lazy_extractors.py,*venv*,*/test/testdata/sigs/player-*.js,.idea,.vscode"
 
 [tool.pytest.ini_options]
-addopts = "-ra -v --strict-markers"
+addopts = [
+    "-ra",  # summary: all except passed
+    "--verbose",
+    "--strict-markers",
+]
 markers = [
     "download",
 ]

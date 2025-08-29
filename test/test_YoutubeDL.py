@@ -6,6 +6,8 @@ import sys
 import unittest
 from unittest.mock import patch
 
+from yt_dlp.globals import all_plugins_loaded
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -486,11 +488,11 @@ class TestFormatSelection(unittest.TestCase):
 
     def test_format_filtering(self):
         formats = [
-            {'format_id': 'A', 'filesize': 500, 'width': 1000},
-            {'format_id': 'B', 'filesize': 1000, 'width': 500},
-            {'format_id': 'C', 'filesize': 1000, 'width': 400},
-            {'format_id': 'D', 'filesize': 2000, 'width': 600},
-            {'format_id': 'E', 'filesize': 3000},
+            {'format_id': 'A', 'filesize': 500, 'width': 1000, 'aspect_ratio': 1.0},
+            {'format_id': 'B', 'filesize': 1000, 'width': 500, 'aspect_ratio': 1.33},
+            {'format_id': 'C', 'filesize': 1000, 'width': 400, 'aspect_ratio': 1.5},
+            {'format_id': 'D', 'filesize': 2000, 'width': 600, 'aspect_ratio': 1.78},
+            {'format_id': 'E', 'filesize': 3000, 'aspect_ratio': 0.56},
             {'format_id': 'F'},
             {'format_id': 'G', 'filesize': 1000000},
         ]
@@ -548,6 +550,31 @@ class TestFormatSelection(unittest.TestCase):
         with contextlib.suppress(ExtractorError):
             ydl.process_ie_result(info_dict)
         self.assertEqual(ydl.downloaded_info_dicts, [])
+
+        ydl = YDL({'format': 'best[aspect_ratio=1]'})
+        ydl.process_ie_result(info_dict)
+        downloaded = ydl.downloaded_info_dicts[0]
+        self.assertEqual(downloaded['format_id'], 'A')
+
+        ydl = YDL({'format': 'all[aspect_ratio > 1.00]'})
+        ydl.process_ie_result(info_dict)
+        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
+        self.assertEqual(downloaded_ids, ['D', 'C', 'B'])
+
+        ydl = YDL({'format': 'all[aspect_ratio < 1.00]'})
+        ydl.process_ie_result(info_dict)
+        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
+        self.assertEqual(downloaded_ids, ['E'])
+
+        ydl = YDL({'format': 'best[aspect_ratio=1.5]'})
+        ydl.process_ie_result(info_dict)
+        downloaded = ydl.downloaded_info_dicts[0]
+        self.assertEqual(downloaded['format_id'], 'C')
+
+        ydl = YDL({'format': 'all[aspect_ratio!=1]'})
+        ydl.process_ie_result(info_dict)
+        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
+        self.assertEqual(downloaded_ids, ['E', 'D', 'C', 'B'])
 
     @patch('yt_dlp.postprocessor.ffmpeg.FFmpegMergerPP.available', False)
     def test_default_format_spec_without_ffmpeg(self):
@@ -1401,6 +1428,33 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertIsNone(check_for_cookie_header(result), msg='http_headers cookies for wrong domain')
         self.assertFalse(result.get('cookies'), msg='Cookies set in cookies field for wrong domain')
         self.assertFalse(ydl.cookiejar.get_cookie_header(fmt['url']), msg='Cookies set in cookiejar for wrong domain')
+
+    def test_load_plugins_compat(self):
+        # Should try to reload plugins if they haven't already been loaded
+        all_plugins_loaded.value = False
+        FakeYDL().close()
+        assert all_plugins_loaded.value
+
+    def test_close_hooks(self):
+        # Should call all registered close hooks on close
+        close_hook_called = False
+        close_hook_two_called = False
+
+        def close_hook():
+            nonlocal close_hook_called
+            close_hook_called = True
+
+        def close_hook_two():
+            nonlocal close_hook_two_called
+            close_hook_two_called = True
+
+        ydl = FakeYDL()
+        ydl.add_close_hook(close_hook)
+        ydl.add_close_hook(close_hook_two)
+
+        ydl.close()
+        self.assertTrue(close_hook_called, 'Close hook was not called')
+        self.assertTrue(close_hook_two_called, 'Close hook two was not called')
 
 
 if __name__ == '__main__':

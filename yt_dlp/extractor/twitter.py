@@ -1,11 +1,12 @@
 import functools
 import json
-import random
+import math
 import re
 import urllib.parse
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
+from ..jsinterp import js_number_to_string
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -19,7 +20,7 @@ from ..utils import (
     remove_end,
     str_or_none,
     strip_or_none,
-    traverse_obj,
+    truncate_string,
     try_call,
     try_get,
     unified_timestamp,
@@ -27,6 +28,7 @@ from ..utils import (
     url_or_none,
     xpath_text,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class TwitterBaseIE(InfoExtractor):
@@ -357,6 +359,7 @@ class TwitterCardIE(InfoExtractor):
                 'display_id': '560070183650213889',
                 'uploader_url': 'https://twitter.com/Twitter',
             },
+            'skip': 'This content is no longer available.',
         },
         {
             'url': 'https://twitter.com/i/cards/tfw/v1/623160978427936768',
@@ -364,7 +367,7 @@ class TwitterCardIE(InfoExtractor):
             'info_dict': {
                 'id': '623160978427936768',
                 'ext': 'mp4',
-                'title': "NASA - Fly over Pluto's icy Norgay Mountains and Sputnik Plain in this @NASANewHorizons #PlutoFlyby video.",
+                'title': "NASA - Fly over Pluto's icy Norgay Mountains and Sputnik Plain in this @NASA...",
                 'description': "Fly over Pluto's icy Norgay Mountains and Sputnik Plain in this @NASANewHorizons #PlutoFlyby video. https://t.co/BJYgOjSeGA",
                 'uploader': 'NASA',
                 'uploader_id': 'NASA',
@@ -376,12 +379,14 @@ class TwitterCardIE(InfoExtractor):
                 'like_count': int,
                 'repost_count': int,
                 'tags': ['PlutoFlyby'],
+                'channel_id': '11348282',
+                '_old_archive_ids': ['twitter 623160978427936768'],
             },
             'params': {'format': '[protocol=https]'},
         },
         {
             'url': 'https://twitter.com/i/cards/tfw/v1/654001591733886977',
-            'md5': 'b6d9683dd3f48e340ded81c0e917ad46',
+            'md5': 'fb08fbd69595cbd8818f0b2f2a94474d',
             'info_dict': {
                 'id': 'dq4Oj5quskI',
                 'ext': 'mp4',
@@ -389,12 +394,12 @@ class TwitterCardIE(InfoExtractor):
                 'description': 'md5:a831e97fa384863d6e26ce48d1c43376',
                 'upload_date': '20111013',
                 'uploader': 'OMG! UBUNTU!',
-                'uploader_id': 'omgubuntu',
+                'uploader_id': '@omgubuntu',
                 'channel_url': 'https://www.youtube.com/channel/UCIiSwcm9xiFb3Y4wjzR41eQ',
                 'channel_id': 'UCIiSwcm9xiFb3Y4wjzR41eQ',
                 'channel_follower_count': int,
                 'chapters': 'count:8',
-                'uploader_url': 'http://www.youtube.com/user/omgubuntu',
+                'uploader_url': 'https://www.youtube.com/@omgubuntu',
                 'duration': 138,
                 'categories': ['Film & Animation'],
                 'age_limit': 0,
@@ -406,28 +411,11 @@ class TwitterCardIE(InfoExtractor):
                 'tags': 'count:12',
                 'channel': 'OMG! UBUNTU!',
                 'playable_in_embed': True,
+                'heatmap': 'count:100',
+                'timestamp': 1318500227,
+                'live_status': 'not_live',
             },
             'add_ie': ['Youtube'],
-        },
-        {
-            'url': 'https://twitter.com/i/cards/tfw/v1/665289828897005568',
-            'info_dict': {
-                'id': 'iBb2x00UVlv',
-                'ext': 'mp4',
-                'upload_date': '20151113',
-                'uploader_id': '1189339351084113920',
-                'uploader': 'ArsenalTerje',
-                'title': 'Vine by ArsenalTerje',
-                'timestamp': 1447451307,
-                'alt_title': 'Vine by ArsenalTerje',
-                'comment_count': int,
-                'like_count': int,
-                'thumbnail': r're:^https?://[^?#]+\.jpg',
-                'view_count': int,
-                'repost_count': int,
-            },
-            'add_ie': ['Vine'],
-            'params': {'skip_download': 'm3u8'},
         },
         {
             'url': 'https://twitter.com/i/videos/tweet/705235433198714880',
@@ -567,32 +555,14 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 0,
             '_old_archive_ids': ['twitter 700207533655363584'],
         },
-    }, {
-        'url': 'https://twitter.com/Filmdrunk/status/713801302971588609',
-        'md5': '89a15ed345d13b86e9a5a5e051fa308a',
-        'info_dict': {
-            'id': 'MIOxnrUteUd',
-            'ext': 'mp4',
-            'title': 'Dr.Pepperの飲み方 #japanese #バカ #ドクペ #電動ガン',
-            'uploader': 'TAKUMA',
-            'uploader_id': '1004126642786242560',
-            'timestamp': 1402826626,
-            'upload_date': '20140615',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'alt_title': 'Vine by TAKUMA',
-            'comment_count': int,
-            'repost_count': int,
-            'like_count': int,
-            'view_count': int,
-        },
-        'add_ie': ['Vine'],
+        'skip': 'Tweet has been deleted',
     }, {
         'url': 'https://twitter.com/captainamerica/status/719944021058060289',
         'info_dict': {
             'id': '717462543795523584',
             'display_id': '719944021058060289',
             'ext': 'mp4',
-            'title': 'Captain America - @King0fNerd Are you sure you made the right choice? Find out in theaters.',
+            'title': 'Captain America - @King0fNerd Are you sure you made the right choice? Find out in theat...',
             'description': '@King0fNerd Are you sure you made the right choice? Find out in theaters. https://t.co/GpgYi9xMJI',
             'channel_id': '701615052',
             'uploader_id': 'CaptainAmerica',
@@ -629,7 +599,7 @@ class TwitterIE(TwitterBaseIE):
         'info_dict': {
             'id': '852077943283097602',
             'ext': 'mp4',
-            'title': 'عالم الأخبار - كلمة تاريخية بجلسة الجناسي التاريخية.. النائب خالد مؤنس العتيبي للمعارضين : اتقوا الله .. الظلم ظلمات يوم القيامة',
+            'title': 'عالم الأخبار - كلمة تاريخية بجلسة الجناسي التاريخية.. النائب خالد مؤنس العتيبي للمعا...',
             'description': 'كلمة تاريخية بجلسة الجناسي التاريخية.. النائب خالد مؤنس العتيبي للمعارضين : اتقوا الله .. الظلم ظلمات يوم القيامة   https://t.co/xg6OhpyKfN',
             'channel_id': '2526757026',
             'uploader': 'عالم الأخبار',
@@ -653,7 +623,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '910030238373089285',
             'display_id': '910031516746514432',
             'ext': 'mp4',
-            'title': 'Préfet de Guadeloupe - [Direct] #Maria Le centre se trouve actuellement au sud de Basse-Terre. Restez confinés. Réfugiez-vous dans la pièce la + sûre.',
+            'title': 'Préfet de Guadeloupe - [Direct] #Maria Le centre se trouve actuellement au sud de Basse-Terr...',
             'thumbnail': r're:^https?://.*\.jpg',
             'description': '[Direct] #Maria Le centre se trouve actuellement au sud de Basse-Terre. Restez confinés. Réfugiez-vous dans la pièce la + sûre. https://t.co/mwx01Rs4lo',
             'channel_id': '2319432498',
@@ -745,7 +715,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '1349774757969989634',
             'display_id': '1349794411333394432',
             'ext': 'mp4',
-            'title': 'md5:d1c4941658e4caaa6cb579260d85dcba',
+            'title': "Brooklyn Nets - WATCH: Sean Marks' full media session after our acquisition of 8-time...",
             'thumbnail': r're:^https?://.*\.jpg',
             'description': 'md5:71ead15ec44cee55071547d6447c6a3e',
             'channel_id': '18552281',
@@ -771,7 +741,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '1577855447914409984',
             'display_id': '1577855540407197696',
             'ext': 'mp4',
-            'title': 'md5:466a3a8b049b5f5a13164ce915484b51',
+            'title': 'Oshtru - gm ✨️ now I can post image and video. nice update.',
             'description': 'md5:b9c3699335447391d11753ab21c70a74',
             'upload_date': '20221006',
             'channel_id': '143077138',
@@ -793,10 +763,10 @@ class TwitterIE(TwitterBaseIE):
         'url': 'https://twitter.com/UltimaShadowX/status/1577719286659006464',
         'info_dict': {
             'id': '1577719286659006464',
-            'title': 'Ultima Reload - Test',
+            'title': 'Ultima - Test',
             'description': 'Test https://t.co/Y3KEZD7Dad',
             'channel_id': '168922496',
-            'uploader': 'Ultima Reload',
+            'uploader': 'Ultima',
             'uploader_id': 'UltimaShadowX',
             'uploader_url': 'https://twitter.com/UltimaShadowX',
             'upload_date': '20221005',
@@ -815,7 +785,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '1575559336759263233',
             'display_id': '1575560063510810624',
             'ext': 'mp4',
-            'title': 'md5:eec26382babd0f7c18f041db8ae1c9c9',
+            'title': 'Max Olson - Absolutely heartbreaking footage captured by our surge probe of catas...',
             'thumbnail': r're:^https?://.*\.jpg',
             'description': 'md5:95aea692fda36a12081b9629b02daa92',
             'channel_id': '1094109584',
@@ -939,18 +909,18 @@ class TwitterIE(TwitterBaseIE):
         'playlist_mincount': 2,
         'info_dict': {
             'id': '1600649710662213632',
-            'title': 'md5:be05989b0722e114103ed3851a0ffae2',
+            'title': "Jocelyn Laidlaw - How Kirstie Alley's tragic death inspired me to share more about my c...",
             'timestamp': 1670459604.0,
             'description': 'md5:591c19ce66fadc2359725d5cd0d1052c',
             'comment_count': int,
-            'uploader_id': 'CTVJLaidlaw',
+            'uploader_id': 'JocelynVLaidlaw',
             'channel_id': '80082014',
             'repost_count': int,
             'tags': ['colorectalcancer', 'cancerjourney', 'imnotaquitter'],
             'upload_date': '20221208',
             'age_limit': 0,
             'uploader': 'Jocelyn Laidlaw',
-            'uploader_url': 'https://twitter.com/CTVJLaidlaw',
+            'uploader_url': 'https://twitter.com/JocelynVLaidlaw',
             'like_count': int,
         },
     }, {
@@ -959,17 +929,17 @@ class TwitterIE(TwitterBaseIE):
         'info_dict': {
             'id': '1600649511827013632',
             'ext': 'mp4',
-            'title': 'md5:7662a0a27ce6faa3e5b160340f3cfab1',
+            'title': "Jocelyn Laidlaw - How Kirstie Alley's tragic death inspired me to share more about my c... #1",
             'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1670459604.0,
             'channel_id': '80082014',
-            'uploader_id': 'CTVJLaidlaw',
+            'uploader_id': 'JocelynVLaidlaw',
             'uploader': 'Jocelyn Laidlaw',
             'repost_count': int,
             'comment_count': int,
             'tags': ['colorectalcancer', 'cancerjourney', 'imnotaquitter'],
             'duration': 102.226,
-            'uploader_url': 'https://twitter.com/CTVJLaidlaw',
+            'uploader_url': 'https://twitter.com/JocelynVLaidlaw',
             'display_id': '1600649710662213632',
             'like_count': int,
             'description': 'md5:591c19ce66fadc2359725d5cd0d1052c',
@@ -1028,6 +998,7 @@ class TwitterIE(TwitterBaseIE):
             '_old_archive_ids': ['twitter 1599108751385972737'],
         },
         'params': {'noplaylist': True},
+        'skip': 'Tweet is limited',
     }, {
         'url': 'https://twitter.com/MunTheShinobi/status/1600009574919962625',
         'info_dict': {
@@ -1039,10 +1010,10 @@ class TwitterIE(TwitterBaseIE):
             'description': 'This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525 https://t.co/cNsA0MoOml',
             'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1600009362759733248/pu/img/XVhFQivj75H_YxxV.jpg?name=orig',
             'age_limit': 0,
-            'uploader': 'Mün',
+            'uploader': 'Boy Called Mün',
             'repost_count': int,
             'upload_date': '20221206',
-            'title': 'Mün - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
+            'title': 'Boy Called Mün - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
             'comment_count': int,
             'like_count': int,
             'tags': [],
@@ -1080,7 +1051,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '1694928337846538240',
             'ext': 'mp4',
             'display_id': '1695424220702888009',
-            'title': 'md5:e8daa9527bc2b947121395494f786d9d',
+            'title': 'Benny Johnson - Donald Trump driving through the urban, poor neighborhoods of Atlanta...',
             'description': 'md5:004f2d37fd58737724ec75bc7e679938',
             'channel_id': '15212187',
             'uploader': 'Benny Johnson',
@@ -1104,7 +1075,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '1694928337846538240',
             'ext': 'mp4',
             'display_id': '1695424220702888009',
-            'title': 'md5:e8daa9527bc2b947121395494f786d9d',
+            'title': 'Benny Johnson - Donald Trump driving through the urban, poor neighborhoods of Atlanta...',
             'description': 'md5:004f2d37fd58737724ec75bc7e679938',
             'channel_id': '15212187',
             'uploader': 'Benny Johnson',
@@ -1139,6 +1110,7 @@ class TwitterIE(TwitterBaseIE):
             'view_count': int,
         },
         'add_ie': ['TwitterBroadcast'],
+        'skip': 'Broadcast no longer exists',
     }, {
         # Animated gif and quote tweet video
         'url': 'https://twitter.com/BAKKOOONN/status/1696256659889565950',
@@ -1167,7 +1139,7 @@ class TwitterIE(TwitterBaseIE):
         'info_dict': {
             'id': '1724883339285544960',
             'ext': 'mp4',
-            'title': 'md5:cc56716f9ed0b368de2ba54c478e493c',
+            'title': 'Robert F. Kennedy Jr - A beautifully crafted short film by Mikki Willis about my independent...',
             'description': 'md5:9dc14f5b0f1311fc7caf591ae253a164',
             'display_id': '1724884212803834154',
             'channel_id': '337808606',
@@ -1188,7 +1160,7 @@ class TwitterIE(TwitterBaseIE):
     }, {
         # x.com
         'url': 'https://x.com/historyinmemes/status/1790637656616943991',
-        'md5': 'daca3952ba0defe2cfafb1276d4c1ea5',
+        'md5': '4549eda363fecfe37439c455923cba2c',
         'info_dict': {
             'id': '1790637589910654976',
             'ext': 'mp4',
@@ -1249,20 +1221,10 @@ class TwitterIE(TwitterBaseIE):
     }]
 
     _MEDIA_ID_RE = re.compile(r'_video/(\d+)/')
-
-    @property
-    def _GRAPHQL_ENDPOINT(self):
-        if self.is_logged_in:
-            return 'zZXycP0V6H7m-2r0mOnFcA/TweetDetail'
-        return '2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId'
+    _GRAPHQL_ENDPOINT = '2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId'
 
     def _graphql_to_legacy(self, data, twid):
-        result = traverse_obj(data, (
-            'threaded_conversation_with_injections_v2', 'instructions', 0, 'entries',
-            lambda _, v: v['entryId'] == f'tweet-{twid}', 'content', 'itemContent',
-            'tweet_results', 'result', ('tweet', None), {dict},
-        ), default={}, get_all=False) if self.is_logged_in else traverse_obj(
-            data, ('tweetResult', 'result', {dict}), default={})
+        result = traverse_obj(data, ('tweetResult', 'result', {dict})) or {}
 
         typename = result.get('__typename')
         if typename not in ('Tweet', 'TweetWithVisibilityResults', 'TweetTombstone', 'TweetUnavailable', None):
@@ -1307,37 +1269,6 @@ class TwitterIE(TwitterBaseIE):
     def _build_graphql_query(self, media_id):
         return {
             'variables': {
-                'focalTweetId': media_id,
-                'includePromotedContent': True,
-                'with_rux_injections': False,
-                'withBirdwatchNotes': True,
-                'withCommunity': True,
-                'withDownvotePerspective': False,
-                'withQuickPromoteEligibilityTweetFields': True,
-                'withReactionsMetadata': False,
-                'withReactionsPerspective': False,
-                'withSuperFollowsTweetFields': True,
-                'withSuperFollowsUserFields': True,
-                'withV2Timeline': True,
-                'withVoice': True,
-            },
-            'features': {
-                'graphql_is_translatable_rweb_tweet_is_translatable_enabled': False,
-                'interactive_text_enabled': True,
-                'responsive_web_edit_tweet_api_enabled': True,
-                'responsive_web_enhance_cards_enabled': True,
-                'responsive_web_graphql_timeline_navigation_enabled': False,
-                'responsive_web_text_conversations_enabled': False,
-                'responsive_web_uc_gql_enabled': True,
-                'standardized_nudges_misinfo': True,
-                'tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled': False,
-                'tweetypie_unmention_optimization_enabled': True,
-                'unified_cards_ad_metadata_container_dynamic_card_content_query_enabled': True,
-                'verified_phone_label_enabled': False,
-                'vibe_api_enabled': True,
-            },
-        } if self.is_logged_in else {
-            'variables': {
                 'tweetId': media_id,
                 'withCommunity': False,
                 'includePromotedContent': False,
@@ -1369,6 +1300,11 @@ class TwitterIE(TwitterBaseIE):
             },
         }
 
+    def _generate_syndication_token(self, twid):
+        # ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
+        translation = str.maketrans(dict.fromkeys('0.'))
+        return js_number_to_string((int(twid) / 1e15) * math.pi, 36).translate(translation)
+
     def _call_syndication_api(self, twid):
         self.report_warning(
             'Not all metadata or media is available via syndication endpoint', twid, only_once=True)
@@ -1376,8 +1312,7 @@ class TwitterIE(TwitterBaseIE):
             'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
             headers={'User-Agent': 'Googlebot'}, query={
                 'id': twid,
-                # TODO: token = ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
-                'token': ''.join(random.choices('123456789abcdefghijklmnopqrstuvwxyz', k=10)),
+                'token': self._generate_syndication_token(twid),
             })
         if not status:
             raise ExtractorError('Syndication endpoint returned empty JSON response')
@@ -1407,7 +1342,7 @@ class TwitterIE(TwitterBaseIE):
                     'tweet_mode': 'extended',
                 })
         except ExtractorError as e:
-            if not isinstance(e.cause, HTTPError) or not e.cause.status == 429:
+            if not isinstance(e.cause, HTTPError) or e.cause.status != 429:
                 raise
             self.report_warning('Rate-limit exceeded; falling back to syndication endpoint')
             status = self._call_syndication_api(twid)
@@ -1424,7 +1359,7 @@ class TwitterIE(TwitterBaseIE):
         title = description = traverse_obj(
             status, (('full_text', 'text'), {lambda x: x.replace('\n', ' ')}), get_all=False) or ''
         # strip  'https -_t.co_BJYgOjSeGA' junk from filenames
-        title = re.sub(r'\s+(https?://[^ ]+)', '', title)
+        title = truncate_string(re.sub(r'\s+(https?://[^ ]+)', '', title), left=72)
         user = status.get('user') or {}
         uploader = user.get('name')
         if uploader:
@@ -1661,8 +1596,8 @@ class TwitterAmplifyIE(TwitterBaseIE):
 
 class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
     IE_NAME = 'twitter:broadcast'
-    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/broadcasts/(?P<id>[0-9a-zA-Z]{13})'
 
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/(?P<type>broadcasts|events)/(?P<id>\w+)'
     _TESTS = [{
         # untitled Periscope video
         'url': 'https://twitter.com/i/broadcasts/1yNGaQLWpejGj',
@@ -1670,6 +1605,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'id': '1yNGaQLWpejGj',
             'ext': 'mp4',
             'title': 'Andrea May Sahouri - Periscope Broadcast',
+            'display_id': '1yNGaQLWpejGj',
             'uploader': 'Andrea May Sahouri',
             'uploader_id': 'andreamsahouri',
             'uploader_url': 'https://twitter.com/andreamsahouri',
@@ -1677,6 +1613,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'upload_date': '20200601',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
             'view_count': int,
+            'concurrent_view_count': int,
+            'live_status': 'was_live',
         },
     }, {
         'url': 'https://twitter.com/i/broadcasts/1ZkKzeyrPbaxv',
@@ -1684,6 +1622,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'id': '1ZkKzeyrPbaxv',
             'ext': 'mp4',
             'title': 'Starship | SN10 | High-Altitude Flight Test',
+            'display_id': '1ZkKzeyrPbaxv',
             'uploader': 'SpaceX',
             'uploader_id': 'SpaceX',
             'uploader_url': 'https://twitter.com/SpaceX',
@@ -1691,6 +1630,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'upload_date': '20210303',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
             'view_count': int,
+            'concurrent_view_count': int,
+            'live_status': 'was_live',
         },
     }, {
         'url': 'https://twitter.com/i/broadcasts/1OyKAVQrgzwGb',
@@ -1698,6 +1639,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'id': '1OyKAVQrgzwGb',
             'ext': 'mp4',
             'title': 'Starship Flight Test',
+            'display_id': '1OyKAVQrgzwGb',
             'uploader': 'SpaceX',
             'uploader_id': 'SpaceX',
             'uploader_url': 'https://twitter.com/SpaceX',
@@ -1705,21 +1647,58 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'upload_date': '20230420',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
             'view_count': int,
+            'concurrent_view_count': int,
+            'live_status': 'was_live',
+        },
+    }, {
+        'url': 'https://x.com/i/events/1910629646300762112',
+        'info_dict': {
+            'id': '1LyxBWDRNqyKN',
+            'ext': 'mp4',
+            'title': '#ガンニバル ウォッチパーティー',
+            'concurrent_view_count': int,
+            'display_id': '1910629646300762112',
+            'live_status': 'was_live',
+            'release_date': '20250423',
+            'release_timestamp': 1745409000,
+            'tags': ['ガンニバル'],
+            'thumbnail': r're:https?://[^?#]+\.jpg\?token=',
+            'timestamp': 1745403328,
+            'upload_date': '20250423',
+            'uploader': 'ディズニープラス公式',
+            'uploader_id': 'DisneyPlusJP',
+            'uploader_url': 'https://twitter.com/DisneyPlusJP',
+            'view_count': int,
         },
     }]
 
     def _real_extract(self, url):
-        broadcast_id = self._match_id(url)
+        broadcast_type, display_id = self._match_valid_url(url).group('type', 'id')
+
+        if broadcast_type == 'events':
+            timeline = self._call_api(
+                f'live_event/1/{display_id}/timeline.json', display_id)
+            broadcast_id = traverse_obj(timeline, (
+                'twitter_objects', 'broadcasts', ..., ('id', 'broadcast_id'),
+                {str}, any, {require('broadcast ID')}))
+        else:
+            broadcast_id = display_id
+
         broadcast = self._call_api(
             'broadcasts/show.json', broadcast_id,
             {'ids': broadcast_id})['broadcasts'][broadcast_id]
         if not broadcast:
             raise ExtractorError('Broadcast no longer exists', expected=True)
         info = self._parse_broadcast_data(broadcast, broadcast_id)
-        info['title'] = broadcast.get('status') or info.get('title')
-        info['uploader_id'] = broadcast.get('twitter_username') or info.get('uploader_id')
-        info['uploader_url'] = format_field(broadcast, 'twitter_username', 'https://twitter.com/%s', default=None)
+        info.update({
+            'display_id': display_id,
+            'title': broadcast.get('status') or info.get('title'),
+            'uploader_id': broadcast.get('twitter_username') or info.get('uploader_id'),
+            'uploader_url': format_field(
+                broadcast, 'twitter_username', 'https://twitter.com/%s', default=None),
+        })
         if info['live_status'] == 'is_upcoming':
+            self.raise_no_formats('This live broadcast has not yet started', expected=True)
             return info
 
         media_key = broadcast['media_key']
@@ -1741,21 +1720,22 @@ class TwitterSpacesIE(TwitterBaseIE):
     _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13})'
 
     _TESTS = [{
-        'url': 'https://twitter.com/i/spaces/1RDxlgyvNXzJL',
+        'url': 'https://twitter.com/i/spaces/1OwxWwQOPlNxQ',
         'info_dict': {
-            'id': '1RDxlgyvNXzJL',
+            'id': '1OwxWwQOPlNxQ',
             'ext': 'm4a',
-            'title': 'King Carlo e la mossa Kansas City per fare il Grande Centro',
-            'description': 'Twitter Space participated by annarita digiorgio, Signor Ernesto, Raffaello Colosimo, Simone M. Sepe',
-            'uploader': r're:Lucio Di Gaetano.*?',
-            'uploader_id': 'luciodigaetano',
+            'title': 'Everybody in: @mtbarra & @elonmusk discuss the future of EV charging',
+            'description': 'Twitter Space participated by Elon Musk',
             'live_status': 'was_live',
-            'timestamp': 1659877956,
-            'upload_date': '20220807',
-            'release_timestamp': 1659904215,
-            'release_date': '20220807',
+            'release_date': '20230608',
+            'release_timestamp': 1686256230,
+            'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
+            'timestamp': 1686254250,
+            'upload_date': '20230608',
+            'uploader': 'Mary Barra',
+            'uploader_id': 'mtbarra',
         },
-        'skip': 'No longer available',
+        'params': {'skip_download': 'm3u8'},
     }, {
         # post_live/TimedOut but downloadable
         'url': 'https://twitter.com/i/spaces/1vAxRAVQWONJl',
@@ -1767,9 +1747,10 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader': 'Google Cloud',
             'uploader_id': 'googlecloud',
             'live_status': 'post_live',
+            'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
             'timestamp': 1681409554,
             'upload_date': '20230413',
-            'release_timestamp': 1681839000,
+            'release_timestamp': 1681839082,
             'release_date': '20230418',
             'protocol': 'm3u8',  # ffmpeg is forced
             'container': 'm4a_dash',  # audio-only format fixup is applied
@@ -1786,6 +1767,9 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader': '息根とめる',
             'uploader_id': 'tomeru_ikinone',
             'live_status': 'was_live',
+            'release_date': '20230601',
+            'release_timestamp': 1685617200,
+            'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
             'timestamp': 1685617198,
             'upload_date': '20230601',
             'protocol': 'm3u8',  # ffmpeg is forced
@@ -1803,9 +1787,10 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader': 'Candace Owens',
             'uploader_id': 'RealCandaceO',
             'live_status': 'was_live',
+            'thumbnail': r're:https?://pbs\.twimg\.com/profile_images/.+',
             'timestamp': 1723931351,
             'upload_date': '20240817',
-            'release_timestamp': 1723932000,
+            'release_timestamp': 1723932056,
             'release_date': '20240817',
             'protocol': 'm3u8_native',  # not ffmpeg, detected as video space
         },
@@ -1885,18 +1870,21 @@ class TwitterSpacesIE(TwitterBaseIE):
 
         return {
             'id': space_id,
-            'title': metadata.get('title'),
             'description': f'Twitter Space participated by {participants}',
-            'uploader': traverse_obj(
-                metadata, ('creator_results', 'result', 'legacy', 'name')),
-            'uploader_id': traverse_obj(
-                metadata, ('creator_results', 'result', 'legacy', 'screen_name')),
-            'live_status': live_status,
-            'release_timestamp': try_call(
-                lambda: int_or_none(metadata['scheduled_start'], scale=1000)),
-            'timestamp': int_or_none(metadata.get('created_at'), scale=1000),
             'formats': formats,
             'http_headers': headers,
+            'live_status': live_status,
+            **traverse_obj(metadata, {
+                'title': ('title', {str}),
+                # started_at is None when stream is_upcoming so fallback to scheduled_start for --wait-for-video
+                'release_timestamp': (('started_at', 'scheduled_start'), {int_or_none(scale=1000)}, any),
+                'timestamp': ('created_at', {int_or_none(scale=1000)}),
+            }),
+            **traverse_obj(metadata, ('creator_results', 'result', 'legacy', {
+                'uploader': ('name', {str}),
+                'uploader_id': ('screen_name', {str_or_none}),
+                'thumbnail': ('profile_image_url_https', {lambda x: x.replace('_normal', '_400x400')}, {url_or_none}),
+            })),
         }
 
 

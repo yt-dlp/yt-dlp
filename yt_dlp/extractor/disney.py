@@ -90,10 +90,6 @@ class DisneyIE(InfoExtractor):
                 webpage, 'embed data'), video_id)
             video_data = page_data['video']
 
-        for external in video_data.get('externals', []):
-            if external.get('source') == 'vevo':
-                return self.url_result('vevo:' + external['data_id'], 'Vevo')
-
         video_id = video_data['id']
         title = video_data['title']
 

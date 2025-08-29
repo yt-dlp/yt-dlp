@@ -10,7 +10,8 @@ from ..utils import (
 
 
 class PicartoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www.)?picarto\.tv/(?P<id>[a-zA-Z0-9]+)'
+    IE_NAME = 'picarto'
+    _VALID_URL = r'https?://(?:www.)?picarto\.tv/(?P<id>[^/#?]+)/?(?:$|[?#])'
     _TEST = {
         'url': 'https://picarto.tv/Setz',
         'info_dict': {
@@ -89,7 +90,8 @@ class PicartoIE(InfoExtractor):
 
 
 class PicartoVodIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?picarto\.tv/(?:videopopout|\w+/videos)/(?P<id>[^/?#&]+)'
+    IE_NAME = 'picarto:vod'
+    _VALID_URL = r'https?://(?:www\.)?picarto\.tv/(?:videopopout|\w+(?:/profile)?/videos)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://picarto.tv/videopopout/ArtofZod_2017.12.12.00.13.23.flv',
         'md5': '3ab45ba4352c52ee841a28fb73f2d9ca',
@@ -111,6 +113,18 @@ class PicartoVodIE(InfoExtractor):
             'channel': 'ArtofZod',
             'age_limit': 18,
         },
+    }, {
+        'url': 'https://picarto.tv/DrechuArt/profile/videos/400347',
+        'md5': 'f9ea54868b1d9dec40eb554b484cc7bf',
+        'info_dict': {
+            'id': '400347',
+            'ext': 'mp4',
+            'title': 'Welcome to the Show',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'channel': 'DrechuArt',
+            'age_limit': 0,
+        },
+
     }, {
         'url': 'https://picarto.tv/videopopout/Plague',
         'only_matching': True,
