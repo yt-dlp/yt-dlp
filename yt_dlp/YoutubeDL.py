@@ -73,6 +73,7 @@ from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
 from .update import (
     REPOSITORY,
     _get_system_deprecation,
+    _get_outdated_warning,
     _make_label,
     current_git_head,
     detect_variant,
@@ -503,6 +504,7 @@ class YoutubeDL:
     force_keyframes_at_cuts: Re-encode the video when downloading ranges to get precise cuts
     noprogress:        Do not print the progress bar
     live_from_start:   Whether to download livestreams videos from the start
+    warn_when_outdated: Emit a warning if the yt-dlp version is older than 90 days
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
@@ -578,7 +580,7 @@ class YoutubeDL:
     _NUMERIC_FIELDS = {
         'width', 'height', 'asr', 'audio_channels', 'fps',
         'tbr', 'abr', 'vbr', 'filesize', 'filesize_approx',
-        'timestamp', 'release_timestamp',
+        'timestamp', 'release_timestamp', 'available_at',
         'duration', 'view_count', 'like_count', 'dislike_count', 'repost_count',
         'average_rating', 'comment_count', 'age_limit',
         'start_time', 'end_time',
@@ -588,13 +590,13 @@ class YoutubeDL:
 
     _format_fields = {
         # NB: Keep in sync with the docstring of extractor/common.py
-        'url', 'manifest_url', 'manifest_stream_number', 'ext', 'format', 'format_id', 'format_note',
+        'url', 'manifest_url', 'manifest_stream_number', 'ext', 'format', 'format_id', 'format_note', 'available_at',
         'width', 'height', 'aspect_ratio', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns', 'hls_media_playlist_data',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start', 'is_dash_periods', 'request_data',
         'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'extra_param_to_key_url',
-        'hls_aes', 'downloader_options', 'page_url', 'app', 'play_path', 'tc_url', 'flash_version',
+        'hls_aes', 'downloader_options', 'impersonate', 'page_url', 'app', 'play_path', 'tc_url', 'flash_version',
         'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time',
     }
     _deprecated_multivalue_fields = {
@@ -684,6 +686,9 @@ class YoutubeDL:
         system_deprecation = _get_system_deprecation()
         if system_deprecation:
             self.deprecated_feature(system_deprecation.replace('\n', '\n                    '))
+        elif self.params.get('warn_when_outdated'):
+            if outdated_warning := _get_outdated_warning():
+                self.report_warning(outdated_warning)
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
@@ -726,8 +731,6 @@ class YoutubeDL:
                 return True
             return False
 
-        check_deprecated('autonumber', '--auto-number', '-o "%(autonumber)s-%(title)s.%(ext)s"')
-        check_deprecated('usetitle', '--title', '-o "%(title)s-%(id)s.%(ext)s"')
         check_deprecated('useid', '--id', '-o "%(id)s.%(ext)s"')
 
         for msg in self.params.get('_warnings', []):

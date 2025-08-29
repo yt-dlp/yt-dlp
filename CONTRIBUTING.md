@@ -272,7 +272,7 @@ After you have ensured this site is distributing its content legally, you can fo
 
     You can use `hatch fmt` to automatically fix problems. Rules that the linter/formatter enforces should not be disabled with `# noqa` unless a maintainer requests it. The only exception allowed is for old/printf-style string formatting in GraphQL query templates (use `# noqa: UP031`).
 
-1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython >=3.9 and PyPy >=3.10. Backward compatibility is not required for even older versions of Python.
+1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython >=3.9 and PyPy >=3.11. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
     ```shell

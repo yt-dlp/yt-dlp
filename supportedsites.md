@@ -12,7 +12,7 @@ The only reliable way to check if a site is supported is to try it.
  - **17live:vod**
  - **1News**: 1news.co.nz article videos
  - **1tv**: Первый канал
- - **20min**
+ - **20min**: (**Currently broken**)
  - **23video**
  - **247sports**: (**Currently broken**)
  - **24tv.ua**
@@ -45,10 +45,6 @@ The only reliable way to check if a site is supported is to try it.
  - **ADNSeason**: [*animationdigitalnetwork*](## "netrc machine") Animation Digital Network
  - **AdobeConnect**
  - **adobetv**
- - **adobetv:channel**
- - **adobetv:embed**
- - **adobetv:show**
- - **adobetv:video**
  - **AdultSwim**
  - **aenetworks**: A+E Networks: A&E, Lifetime, History.com, FYI Network and History Vault
  - **aenetworks:collection**
@@ -100,7 +96,6 @@ The only reliable way to check if a site is supported is to try it.
  - **ARD**
  - **ARDMediathek**
  - **ARDMediathekCollection**
- - **Arkena**
  - **Art19**
  - **Art19Show**
  - **arte.sky.it**
@@ -155,9 +150,8 @@ The only reliable way to check if a site is supported is to try it.
  - **Beatport**
  - **Beeg**
  - **BehindKink**: (**Currently broken**)
- - **Bellator**
  - **BerufeTV**
- - **Bet**: (**Currently broken**)
+ - **Bet**
  - **bfi:player**: (**Currently broken**)
  - **bfmtv**
  - **bfmtv:article**
@@ -285,18 +279,15 @@ The only reliable way to check if a site is supported is to try it.
  - **Clipchamp**
  - **Clippit**
  - **ClipRs**: (**Currently broken**)
- - **ClipYouEmbed**
  - **CloserToTruth**: (**Currently broken**)
  - **CloudflareStream**
  - **CloudyCDN**
  - **Clubic**: (**Currently broken**)
  - **Clyp**
- - **cmt.com**: (**Currently broken**)
  - **CNBCVideo**
  - **CNN**
  - **CNNIndonesia**
  - **ComedyCentral**
- - **ComedyCentralTV**
  - **ConanClassic**: (**Currently broken**)
  - **CondeNast**: Condé Nast media group: Allure, Architectural Digest, Ars Technica, Bon Appétit, Brides, Condé Nast, Condé Nast Traveler, Details, Epicurious, GQ, Glamour, Golf Digest, SELF, Teen Vogue, The New Yorker, Vanity Fair, Vogue, W Magazine, WIRED
  - **CONtv**
@@ -396,7 +387,6 @@ The only reliable way to check if a site is supported is to try it.
  - **dw:article**: (**Currently broken**)
  - **dzen.ru**: Дзен (dzen) formerly Яндекс.Дзен (Yandex Zen)
  - **dzen.ru:channel**
- - **EaglePlatform**
  - **EbaumsWorld**
  - **Ebay**
  - **egghead:course**: egghead.io course
@@ -447,6 +437,8 @@ The only reliable way to check if a site is supported is to try it.
  - **fancode:live**: [*fancode*](## "netrc machine") (**Currently broken**)
  - **fancode:vod**: [*fancode*](## "netrc machine") (**Currently broken**)
  - **Fathom**
+ - **Faulio**
+ - **FaulioLive**
  - **faz.net**
  - **fc2**: [*fc2*](## "netrc machine")
  - **fc2:embed**
@@ -701,8 +693,8 @@ The only reliable way to check if a site is supported is to try it.
  - **lbry:channel**: odysee.com channels
  - **lbry:playlist**: odysee.com playlists
  - **LCI**
- - **Lcp**
- - **LcpPlay**
+ - **Lcp**: (**Currently broken**)
+ - **LcpPlay**: (**Currently broken**)
  - **Le**: 乐视网
  - **LearningOnScreen**
  - **Lecture2Go**: (**Currently broken**)
@@ -728,7 +720,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Liputan6**
  - **ListenNotes**
  - **LiTV**
- - **LiveJournal**
+ - **LiveJournal**: (**Currently broken**)
  - **livestream**
  - **livestream:original**
  - **Livestreamfails**
@@ -841,12 +833,6 @@ The only reliable way to check if a site is supported is to try it.
  - **MSN**
  - **mtg**: MTG services
  - **mtv**
- - **mtv.de**: (**Currently broken**)
- - **mtv.it**
- - **mtv.it:programma**
- - **mtv:video**
- - **mtvjapan**
- - **mtvservices:embedded**
  - **MTVUutisetArticle**: (**Currently broken**)
  - **MuenchenTV**: münchen.tv (**Currently broken**)
  - **MujRozhlas**
@@ -946,9 +932,6 @@ The only reliable way to check if a site is supported is to try it.
  - **NhkVodProgram**
  - **nhl.com**
  - **nick.com**
- - **nick.de**
- - **nickelodeon:br**
- - **nickelodeonru**
  - **niconico**: [*niconico*](## "netrc machine") ニコニコ動画
  - **niconico:history**: NicoNico user history or likes. Requires cookies.
  - **niconico:live**: [*niconico*](## "netrc machine") ニコニコ生放送
@@ -1050,13 +1033,12 @@ The only reliable way to check if a site is supported is to try it.
  - **Panopto**
  - **PanoptoList**
  - **PanoptoPlaylist**
- - **ParamountNetwork**
  - **ParamountPlus**
  - **ParamountPlusSeries**
  - **ParamountPressExpress**
  - **Parler**: Posts on parler.com
  - **parliamentlive.tv**: UK parliament videos
- - **Parlview**: (**Currently broken**)
+ - **Parlview**
  - **parti:livestream**
  - **parti:video**
  - **patreon**
@@ -1089,7 +1071,6 @@ The only reliable way to check if a site is supported is to try it.
  - **PiramideTVChannel**
  - **pixiv:sketch**
  - **pixiv:​sketch:user**
- - **Pladform**
  - **PlanetMarathi**
  - **Platzi**: [*platzi*](## "netrc machine")
  - **PlatziCourse**: [*platzi*](## "netrc machine")
@@ -1105,6 +1086,7 @@ The only reliable way to check if a site is supported is to try it.
  - **pluralsight:course**
  - **PlutoTV**: (**Currently broken**)
  - **PlVideo**: Платформа
+ - **PlyrEmbed**
  - **PodbayFM**
  - **PodbayFMChannel**
  - **Podchaser**
@@ -1258,6 +1240,7 @@ The only reliable way to check if a site is supported is to try it.
  - **rtve.es:alacarta**: RTVE a la carta and Play
  - **rtve.es:audio**: RTVE audio
  - **rtve.es:live**: RTVE.es live streams
+ - **rtve.es:program**: RTVE.es programs
  - **rtve.es:television**
  - **rtvslo.si**
  - **rtvslo.si:show**
@@ -1275,7 +1258,7 @@ The only reliable way to check if a site is supported is to try it.
  - **rutube:playlist**: Rutube playlists
  - **rutube:tags**: Rutube tags
  - **RUTV**: RUTV.RU
- - **Ruutu**
+ - **Ruutu**: (**Currently broken**)
  - **Ruv**
  - **ruv.is:spila**
  - **S4C**
@@ -1326,6 +1309,7 @@ The only reliable way to check if a site is supported is to try it.
  - **SharePoint**
  - **ShareVideosEmbed**
  - **ShemarooMe**
+ - **Shiey**
  - **ShowRoomLive**
  - **ShugiinItvLive**: 衆議院インターネット審議中継
  - **ShugiinItvLiveRoom**: 衆議院インターネット審議中継 (中継)
@@ -1375,15 +1359,16 @@ The only reliable way to check if a site is supported is to try it.
  - **southpark.cc.com:español**
  - **southpark.de**
  - **southpark.lat**
- - **southpark.nl**
- - **southparkstudios.dk**
+ - **southparkstudios.co.uk**
+ - **southparkstudios.com.br**
+ - **southparkstudios.nu**
  - **SovietsCloset**
  - **SovietsClosetPlaylist**
  - **SpankBang**
  - **SpankBangPlaylist**
  - **Spiegel**
  - **Sport5**
- - **SportBox**
+ - **SportBox**: (**Currently broken**)
  - **SportDeutschland**
  - **spotify**: Spotify episodes (**Currently broken**)
  - **spotify:show**: Spotify shows (**Currently broken**)
@@ -1401,6 +1386,7 @@ The only reliable way to check if a site is supported is to try it.
  - **startrek**: STAR TREK
  - **startv**
  - **Steam**
+ - **SteamCommunity**
  - **SteamCommunityBroadcast**
  - **Stitcher**
  - **StitcherShow**
@@ -1524,7 +1510,6 @@ The only reliable way to check if a site is supported is to try it.
  - **TrueID**
  - **TruNews**
  - **Truth**
- - **TruTV**
  - **Tube8**: (**Currently broken**)
  - **TubeTuGraz**: [*tubetugraz*](## "netrc machine") tube.tugraz.at
  - **TubeTuGrazSeries**: [*tubetugraz*](## "netrc machine")
@@ -1556,7 +1541,6 @@ The only reliable way to check if a site is supported is to try it.
  - **TVer**
  - **tvigle**: Интернет-телевидение Tvigle.ru
  - **TVIPlayer**
- - **tvland.com**
  - **TVN24**: (**Currently broken**)
  - **TVNoe**: (**Currently broken**)
  - **tvopengr:embed**: tvopen.gr embedded videos
@@ -1569,6 +1553,7 @@ The only reliable way to check if a site is supported is to try it.
  - **TVPlayer**
  - **TVPlayHome**
  - **tvw**
+ - **tvw:news**
  - **tvw:tvchannels**
  - **Tweakers**
  - **TwitCasting**
@@ -1616,15 +1601,13 @@ The only reliable way to check if a site is supported is to try it.
  - **Vbox7**
  - **Veo**
  - **Vesti**: Вести.Ru (**Currently broken**)
- - **Vevo**
- - **VevoPlaylist**
  - **VGTV**: VGTV, BTTV, FTV, Aftenposten and Aftonbladet
  - **vh1.com**
  - **vhx:embed**: [*vimeo*](## "netrc machine")
  - **vice**: (**Currently broken**)
  - **vice:article**: (**Currently broken**)
  - **vice:show**: (**Currently broken**)
- - **Viddler**
+ - **Viddler**: (**Currently broken**)
  - **Videa**
  - **video.arnes.si**: Arnes Video
  - **video.google:search**: Google Video search; "gvsearch:" prefix
@@ -1696,7 +1679,7 @@ The only reliable way to check if a site is supported is to try it.
  - **vrsquare:section**
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
  - **vrtmax**: [*vrtnu*](## "netrc machine") VRT MAX (formerly VRT NU)
- - **VTM**: (**Currently broken**)
+ - **VTM**
  - **VTV**
  - **VTVGo**
  - **VTXTV**: [*vtxtv*](## "netrc machine")
