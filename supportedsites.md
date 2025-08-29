@@ -108,6 +108,7 @@ The only reliable way to check if a site is supported is to try it.
  - **AsobiStage**: ASOBISTAGE (アソビステージ)
  - **AtresPlayer**: [*atresplayer*](## "netrc machine")
  - **AtScaleConfEvent**
+ - **atv.com.tr**
  - **ATVAt**
  - **AudiMedia**
  - **AudioBoom**
