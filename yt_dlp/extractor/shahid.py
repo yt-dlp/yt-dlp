@@ -1,6 +1,5 @@
 import json
 import math
-import re
 import urllib.parse
 
 from .common import InfoExtractor
