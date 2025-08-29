@@ -125,7 +125,7 @@ class ShahidIE(ShahidBaseIE):
         'url': 'https://shahid.mbc.net/en/player/episodes/Maraya-season-1-episode-1/id-985363',
         'info_dict': {
             'id': '985363',
-            'title': 'مرايا S1E1',
+            'title': 'Shahid video #985363',
             'description': '',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 3144,
@@ -145,7 +145,7 @@ class ShahidIE(ShahidBaseIE):
         'url': 'https://shahid.mbc.net/ar/player/episodes/Bab-Al-Hara-season-3-episode-17/id-76878',
         'info_dict': {
             'id': '76878',
-            'title': 'باب الحارة S3E17',
+            'title': 'Shahid video #76878',
             'description': '',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 2647,
@@ -172,25 +172,19 @@ class ShahidIE(ShahidBaseIE):
         show = product.get('show', {})
         season = show.get('season', {})
 
-        title = product.get('title')
-        series = show.get('title')
-        season_number = season.get('seasonNumber')
-        episode_number = product.get('number')
-        if not title and series:
-            title = series + ' S' + str(season_number) + 'E' + str(episode_number)
         return {
             'id': video_id,
-            'title': str_or_none(title),
+            'title': str_or_none(product.get('title')),
             'description': str_or_none(product.get('description')),
             'thumbnail': str_or_none(self.remove_params(product.get('thumbnailImage'))),
             'duration': int_or_none(product.get('duration')),
             'timestamp': parse_iso8601(product.get('createdDate')),
             'categories': [genre.get('title') for genre in product.get('genres', []) if genre.get('title')],
-            'series': str_or_none(series),
+            'series': str_or_none(show.get('title')),
             'season': int_or_none(season.get('seasonName')),
-            'season_number': int_or_none(season_number),
+            'season_number': int_or_none(season.get('seasonNumber')),
             'season_id': str_or_none(season.get('id')),
-            'episode_number': int_or_none(episode_number),
+            'episode_number': int_or_none(product.get('number')),
             'episode_id': video_id,
             'formats': formats,
             'subtitles': subtitles,
