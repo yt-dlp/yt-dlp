@@ -47,7 +47,10 @@ class LRTStreamIE(InfoExtractor):
 
 
 class LRTVODIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?lrt\.lt(?P<path>/mediateka/irasas/(?P<id>[0-9]+))'
+    _VALID_URL = [
+        r'https?://(?:(?:www|archyvai)\.)?lrt\.lt/mediateka/irasas/(?P<id>[0-9]+)',
+        r'https?://(?:(?:www|archyvai)\.)?lrt\.lt/mediateka/video/[^?#]+\?(?:[^#]*&)?episode=(?P<id>[0-9]+)',
+    ]
     _TESTS = [{
         # m3u8 download
         'url': 'https://www.lrt.lt/mediateka/irasas/2000127261/greita-ir-gardu-sicilijos-ikvepta-klasikiniu-makaronu-su-baklazanais-vakariene',
@@ -75,14 +78,35 @@ class LRTVODIE(InfoExtractor):
             'timestamp': 1473087900,
             'upload_date': '20160905',
         },
+    }, {
+        'url': 'https://www.lrt.lt/mediateka/video/auksinis-protas-vasara?episode=2000420320&season=%2Fmediateka%2Fvideo%2Fauksinis-protas-vasara%2F2025',
+        'info_dict': {
+            'id': '2000420320',
+            'ext': 'mp4',
+            'title': 'Kuris senovės romėnų poetas aprašė Narcizo mitą?',
+            'description': 'Intelektinė viktorina. Ved. Arūnas Valinskas ir Andrius Tapinas.',
+            'channel': 'Auksinis protas. Vasara',
+            'thumbnail': 'https://www.lrt.lt/img/2025/06/09/2094343-987905-1287x836.jpg',
+            'tags': ['LRT TELEVIZIJA', 'Auksinis protas'],
+            'timestamp': 1749851040,
+            'upload_date': '20250613',
+        },
+    }, {
+        'url': 'https://archyvai.lrt.lt/mediateka/video/ziniu-riteriai-ir-damos?episode=49685&season=%2Fmediateka%2Fvideo%2Fziniu-riteriai-ir-damos%2F2013',
+        'only_matching': True,
+    }, {
+        'url': 'https://archyvai.lrt.lt/mediateka/irasas/2000077058/panorama-1989-baltijos-kelias',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        path, video_id = self._match_valid_url(url).group('path', 'id')
+        video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        canonical_url = self._search_regex(
-            r'<link\s+rel="canonical"\s*href="([^"]+)"', webpage, 'canonical URL', default=path)
+        # TODO: Use _search_nextjs_v13_data once fixed
+        canonical_url = (self._search_regex(
+            r'\\"(?:article|data)\\":{[^}]*\\"url\\":\\"([^"]+)\\"', webpage, 'content', fatal=False) or self._search_regex(
+            r'<link\s+rel="canonical"\s*href="([^"]+)"', webpage, 'canonical URL'))
 
         media = self._download_json(
             'https://www.lrt.lt/servisai/stream_url/vod/media_info/',
