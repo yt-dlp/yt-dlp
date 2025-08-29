@@ -1,165 +1,265 @@
 import json
 import math
-import re
+import urllib.parse
 
-from .aws import AWSIE
-from ..networking.exceptions import HTTPError
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     InAdvancePagedList,
-    clean_html,
     int_or_none,
+    orderedSet,
     parse_iso8601,
     str_or_none,
-    urlencode_postdata,
 )
 
 
-class ShahidBaseIE(AWSIE):
-    _AWS_PROXY_HOST = 'api2.shahid.net'
-    _AWS_API_KEY = '2RRtuMHx95aNI1Kvtn2rChEuwsCogUd4samGPjLh'
+class ShahidBaseIE(InfoExtractor):
+    _API_BASE = 'https://api3.shahid.net/proxy/v2.1'
     _VALID_URL_BASE = r'https?://shahid\.mbc\.net/[a-z]{2}/'
 
-    def _handle_error(self, e):
-        fail_data = self._parse_json(
-            e.cause.response.read().decode('utf-8'), None, fatal=False)
-        if fail_data:
-            faults = fail_data.get('faults', [])
-            faults_message = ', '.join([clean_html(fault['userMessage']) for fault in faults if fault.get('userMessage')])
-            if faults_message:
-                raise ExtractorError(faults_message, expected=True)
+    def _call_api(self, path, item_id, request):
+        api_url = f'{self._API_BASE}/{path}'
+        query_params = {'request': json.dumps(request)}
+        query_string = urllib.parse.urlencode(query_params)
+        return self._download_json(f'{api_url}?{query_string}', item_id)
 
-    def _call_api(self, path, video_id, request=None):
-        query = {}
-        if request:
-            query['request'] = json.dumps(request)
-        try:
-            return self._aws_execute_api({
-                'uri': '/proxy/v2/' + path,
-                'access_key': 'AKIAI6X4TYCIXM2B7MUQ',
-                'secret_key': '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',
-            }, video_id, query)
-        except ExtractorError as e:
-            if isinstance(e.cause, HTTPError):
-                self._handle_error(e)
-            raise
+    def _call_playout_api(self, video_id, country):
+        query_params = {'outputParameter': 'vmap'}
+        if country:
+            query_params['country'] = country
+        query_string = urllib.parse.urlencode(query_params)
+        api_url = f'{self._API_BASE}/playout/new/url/{video_id}?{query_string}'
+
+        return self._download_json(api_url, video_id, note=f'Downloading API JSON for country={country}', fatal=False)
+
+    def get_formats_subtitles(self, video_id, live):
+        geo_bypass_country = self.get_param('geo_bypass_country', None)
+        # Try multiple country codes for geo-unblocking
+        countries = orderedSet((geo_bypass_country, None, 'SA', 'AE', 'EG', 'US'))
+        response = None
+        for country_code in countries:
+            try:
+                response = self._call_playout_api(video_id, country_code)
+                if response:
+                    break
+            except Exception as e:
+                self.write_debug(f'API call failed for country={country_code}: {e}')
+                continue
+
+        if not response:
+            raise ExtractorError('Unable to get a successful API response for ' + video_id)
+
+        playout = response.get('playout', {})
+        if not self.get_param('allow_unplayable_formats') and playout.get('drm', False):
+            self.report_drm(video_id)
+
+        stream_url = playout.get('url')
+        if not stream_url:
+            raise ExtractorError('Stream URL not found in API response.')
+
+        # Remove query from stream_url that restricts video resolutions
+        cleaned_url = self.remove_params(stream_url)
+
+        formats = []
+        subtitles = []
+        for url in orderedSet((cleaned_url, stream_url)):
+            try:
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                    stream_url, video_id, 'mp4', live=live)
+                if formats:
+                    break
+            except Exception as e:
+                self.report_warning(f'Failed to extract formats from {url}: {e}')
+                continue
+
+        return formats, subtitles
+
+    def _get_product_info(self, video_id):
+        return self._call_api('product/id', video_id, {
+            'id': video_id,
+        })
+
+    def remove_params(self, url):
+        if url:
+            parsed_url = urllib.parse.urlparse(url)
+            return urllib.parse.urlunparse(parsed_url._replace(query=''))
+        return url
 
 
 class ShahidIE(ShahidBaseIE):
-    _NETRC_MACHINE = 'shahid'
-    _VALID_URL = ShahidBaseIE._VALID_URL_BASE + r'(?:serie|show|movie)s/[^/]+/(?P<type>episode|clip|movie)-(?P<id>\d+)'
+    _VALID_URL = ShahidBaseIE._VALID_URL_BASE + r'player/(?P<type>clips|episodes)/(?P<title>[^/]+)/id-(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://shahid.mbc.net/ar/shows/%D9%85%D8%AA%D8%AD%D9%81-%D8%A7%D9%84%D8%AF%D8%AD%D9%8A%D8%AD-%D8%A7%D9%84%D9%85%D9%88%D8%B3%D9%85-1-%D9%83%D9%84%D9%8A%D8%A8-1/clip-816924',
+        'url': 'https://shahid.mbc.net/ar/player/clips/Al-Daheeh-Museum-season-1-clip-1/id-816924',
         'info_dict': {
             'id': '816924',
             'ext': 'mp4',
-            'title': 'متحف الدحيح الموسم 1 كليب 1',
+            'title': 'برومو',
             'timestamp': 1602806400,
             'upload_date': '20201016',
             'description': 'برومو',
             'duration': 22,
             'categories': ['كوميديا'],
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'series': 'متحف الدحيح',
+            'season': 1,
+            'season_number': 1,
+            'season_id': '816485',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'episode_id': '816924',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
         },
     }, {
-        'url': 'https://shahid.mbc.net/ar/movies/%D8%A7%D9%84%D9%82%D9%86%D8%A7%D8%B5%D8%A9/movie-151746',
-        'only_matching': True,
+        'url': 'https://shahid.mbc.net/en/player/episodes/Ramez-Fi-Al-Shallal-season-1-episode-1/id-359319',
+        'info_dict': {
+            'id': '359319',
+            'title': 'فيفي عبدو',
+            'description': 'فيفي عبدو',
+            'duration': 1530,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'categories': ['كوميديا', 'مصري', 'تلفزيون الواقع'],
+            'series': 'رامز في الشلال',
+            'season': 'Season 1',
+            'season_number': 1,
+            'season_id': '357909',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'episode_id': '359319',
+            'timestamp': 1557162000,
+            'upload_date': '20190506',
+            'ext': 'mp4',
+        },
     }, {
-        # shahid plus subscriber only
-        'url': 'https://shahid.mbc.net/ar/series/%D9%85%D8%B1%D8%A7%D9%8A%D8%A7-2011-%D8%A7%D9%84%D9%85%D9%88%D8%B3%D9%85-1-%D8%A7%D9%84%D8%AD%D9%84%D9%82%D8%A9-1/episode-90511',
-        'only_matching': True,
+        'url': 'https://shahid.mbc.net/en/player/episodes/Maraya-season-1-episode-1/id-985363',
+        'info_dict': {
+            'id': '985363',
+            'title': 'مرايا',
+            'description': '',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 3144,
+            'timestamp': 1683158400,
+            'categories': ['كوميديا', 'سوري'],
+            'series': 'مرايا',
+            'episode_number': 1,
+            'episode_id': '985363',
+            'upload_date': '20230504',
+            'episode': 'Episode 1',
+            'season': 1,
+            'season_number': 1,
+            'season_id': '985240',
+            'ext': 'mp4',
+        },
     }, {
-        'url': 'https://shahid.mbc.net/en/shows/Ramez-Fi-Al-Shallal-season-1-episode-1/episode-359319',
-        'only_matching': True,
+        'url': 'https://shahid.mbc.net/ar/player/episodes/Bab-Al-Hara-season-3-episode-17/id-76878',
+        'info_dict': {
+            'id': '76878',
+            'title': 'باب الحارة',
+            'description': '',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 2647,
+            'timestamp': 1399334400,
+            'categories': ['إجتماعي', 'سوري', 'دراما'],
+            'series': 'باب الحارة',
+            'episode_number': 17,
+            'episode_id': '76878',
+            'upload_date': '20140506',
+            'episode': 'Episode 17',
+            'season': 3,
+            'season_number': 3,
+            'season_id': '68680',
+            'ext': 'mp4',
+        },
     }]
 
-    def _perform_login(self, username, password):
-        try:
-            user_data = self._download_json(
-                'https://shahid.mbc.net/wd/service/users/login',
-                None, 'Logging in', data=json.dumps({
-                    'email': username,
-                    'password': password,
-                    'basic': 'false',
-                }).encode(), headers={
-                    'Content-Type': 'application/json; charset=UTF-8',
-                })['user']
-        except ExtractorError as e:
-            if isinstance(e.cause, HTTPError):
-                self._handle_error(e)
-            raise
-
-        self._download_webpage(
-            'https://shahid.mbc.net/populateContext',
-            None, 'Populate Context', data=urlencode_postdata({
-                'firstName': user_data['firstName'],
-                'lastName': user_data['lastName'],
-                'userName': user_data['email'],
-                'csg_user_name': user_data['email'],
-                'subscriberId': user_data['id'],
-                'sessionId': user_data['sessionId'],
-            }))
-
     def _real_extract(self, url):
-        page_type, video_id = self._match_valid_url(url).groups()
-        if page_type == 'clip':
-            page_type = 'episode'
+        video_id = self._match_id(url)
+        formats, subtitles = self.get_formats_subtitles(video_id, live=False)
 
-        playout = self._call_api(
-            'playout/new/url/' + video_id, video_id)['playout']
-
-        if not self.get_param('allow_unplayable_formats') and playout.get('drm'):
-            self.report_drm(video_id)
-
-        formats = self._extract_m3u8_formats(re.sub(
-            # https://docs.aws.amazon.com/mediapackage/latest/ug/manifest-filtering.html
-            r'aws\.manifestfilter=[\w:;,-]+&?',
-            '', playout['url']), video_id, 'mp4')
-
-        # video = self._call_api(
-        #     'product/id', video_id, {
-        #         'id': video_id,
-        #         'productType': 'ASSET',
-        #         'productSubType': page_type.upper()
-        #     })['productModel']
-
-        response = self._download_json(
-            f'http://api.shahid.net/api/v1_1/{page_type}/{video_id}',
-            video_id, 'Downloading video JSON', query={
-                'apiKey': 'sh@hid0nlin3',
-                'hash': 'b2wMCTHpSmyxGqQjJFOycRmLSex+BpTK/ooxy6vHaqs=',
-            })
-        data = response.get('data', {})
-        error = data.get('error')
-        if error:
-            raise ExtractorError(
-                '{} returned error: {}'.format(self.IE_NAME, '\n'.join(error.values())),
-                expected=True)
-
-        video = data[page_type]
-        title = video['title']
-        categories = [
-            category['name']
-            for category in video.get('genres', []) if 'name' in category]
+        product_info_response = self._get_product_info(video_id)
+        product = product_info_response.get('productModel', {})
+        show = product.get('show', {})
+        season = show.get('season', {})
 
         return {
             'id': video_id,
-            'title': title,
-            'description': video.get('description'),
-            'thumbnail': video.get('thumbnailUrl'),
-            'duration': int_or_none(video.get('duration')),
-            'timestamp': parse_iso8601(video.get('referenceDate')),
-            'categories': categories,
-            'series': video.get('showTitle') or video.get('showName'),
-            'season': video.get('seasonTitle'),
-            'season_number': int_or_none(video.get('seasonNumber')),
-            'season_id': str_or_none(video.get('seasonId')),
-            'episode_number': int_or_none(video.get('number')),
+            'title': str_or_none(product.get('title') or show.get('title')),
+            'description': str_or_none(product.get('description')),
+            'thumbnail': str_or_none(self.remove_params(product.get('thumbnailImage'))),
+            'duration': int_or_none(product.get('duration')),
+            'timestamp': parse_iso8601(product.get('createdDate')),
+            'categories': [genre.get('title') for genre in product.get('genres', []) if genre.get('title')],
+            'series': str_or_none(show.get('title')),
+            'season': int_or_none(season.get('seasonName')),
+            'season_number': int_or_none(season.get('seasonNumber')),
+            'season_id': str_or_none(season.get('id')),
+            'episode_number': int_or_none(product.get('number')),
             'episode_id': video_id,
             'formats': formats,
+            'subtitles': subtitles,
+            'ext': 'mp4',
+        }
+
+
+class ShahidLiveIE(ShahidBaseIE):
+    _VALID_URL = ShahidBaseIE._VALID_URL_BASE + r'?livestream/[^/]+/livechannel-(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://shahid.mbc.net/en/livestream/SBC/livechannel-946940',
+        'only_matching': True,  # DRM Protected
+    }, {
+        'url': 'https://shahid.mbc.net/fr/livestream/Wanasa/livechannel-414449',
+        'info_dict': {
+            'id': '414449',
+            'title': str,
+            'live_status': 'is_live',
+            'description': 'md5:eba66fad0a5fd9c8081d5158145dc924',
+            'thumbnail': str,
+            'categories': ['عمل غنائي', 'موسيقي'],
+            'ext': 'mp4',
+        },
+    }, {
+        'url': 'https://shahid.mbc.net/en/livestream/MBC1/livechannel-387238',
+        'info_dict': {
+            'id': '387238',
+            'title': str,
+            'live_status': 'is_live',
+            'description': 'md5:2562c67c7897e59c763c713c6a7712ec',
+            'thumbnail': str,
+            'categories': ['دراما'],
+            'ext': 'mp4',
+        },
+    }, {
+        'url': 'https://shahid.mbc.net/ar/livestream/MBC1/livechannel-816764',  # Requires country = 'US'
+        'info_dict': {
+            'id': '816764',
+            'title': str,
+            'live_status': 'is_live',
+            'description': 'md5:14faec01d54423a5dadaef27dd525130',
+            'thumbnail': str,
+            'categories': ['دراما'],
+            'ext': 'mp4',
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+
+        product_info_response = self._get_product_info(video_id)
+        product = product_info_response.get('productModel', {})
+        formats, subtitles = self.get_formats_subtitles(video_id, live=True)
+
+        return {
+            'id': video_id,
+            'title': str_or_none(product.get('title')),
+            'description': str_or_none(product.get('description')),
+            'thumbnail': str_or_none(self.remove_params(product.get('thumbnailImage'))),
+            'categories': [genre.get('title') for genre in product.get('genres', []) if genre.get('title')],
+            'formats': formats,
+            'subtitles': subtitles,
+            'ext': 'mp4',
+            'is_live': True,
         }
 
 
@@ -170,7 +270,7 @@ class ShahidShowIE(ShahidBaseIE):
         'info_dict': {
             'id': '79187',
             'title': 'رامز قرش البحر',
-            'description': 'md5:c88fa7e0f02b0abd39d417aee0d046ff',
+            'description': 'md5:d85c0675eb07251f9ec5273ee1979496',
         },
         'playlist_mincount': 32,
     }, {
