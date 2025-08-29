@@ -190,7 +190,7 @@ class SpankBangPlaylistIE(InfoExtractor):
                 webpage)]
 
         title = self._html_search_regex(
-            r'<em>([^<]+)</em>\s+playlist\s*<', webpage, 'playlist title',
+            r'<h1\b[^>]*>([^<]+)\s+Playlist</h1>', webpage, 'playlist title',
             fatal=False)
 
         return self.playlist_result(entries, playlist_id, title)
