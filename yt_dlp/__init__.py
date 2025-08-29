@@ -983,6 +983,7 @@ def parse_options(argv=None):
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
+        'useid': opts.useid or None,
     })
 
 
