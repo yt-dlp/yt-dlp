@@ -31,9 +31,9 @@ class ShahidBaseIE(InfoExtractor):
         query_string = urllib.parse.urlencode(query_params)
         api_url = f'{self._API_BASE}/playout/new/url/{video_id}?{query_string}'
 
-        return self._download_json(api_url, video_id, note=f'Downloading API JSON for country={country}', fatal=False)
+        return self._download_json(api_url, video_id, note=f'Downloading API JSON for country={country}')
 
-    def get_formats_subtitles(self, video_id, live):
+    def get_stream_url(self, video_id):
         geo_bypass_country = self.get_param('geo_bypass_country', None)
         # Try multiple country codes for geo-unblocking
         countries = orderedSet((geo_bypass_country, None, 'SA', 'AE', 'EG', 'US'))
@@ -48,25 +48,18 @@ class ShahidBaseIE(InfoExtractor):
                 continue
 
         if not response:
-            raise ExtractorError('Unable to get a successful API response for ' + video_id)
+            raise ExtractorError('Unable to get a playout API response for ' + video_id)
 
         playout = response.get('playout', {})
+
         if not self.get_param('allow_unplayable_formats') and playout.get('drm', False):
             self.report_drm(video_id)
 
-        stream_url = playout.get('url')
-        if not stream_url:
-            raise ExtractorError('Stream URL not found in API response.')
-
-        return self._extract_m3u8_formats_and_subtitles(re.sub(
-            # https://docs.aws.amazon.com/mediapackage/latest/ug/manifest-filtering.html
-            r'aws\.manifestfilter=[\w:;,-]+&?',
-            '', stream_url), video_id, 'mp4', live=live)
+        # https://docs.aws.amazon.com/mediapackage/latest/ug/manifest-filtering.html
+        return re.sub(r'aws\.manifestfilter=[\w:;,-]+&?', '', playout['url'])
 
     def _get_product_info(self, product_id):
-        return self._call_api('product/id', product_id, {
-            'id': product_id,
-        })
+        return self._call_api('product/id', product_id, {'id': product_id})
 
     def remove_params(self, url):
         if url:
@@ -165,12 +158,15 @@ class ShahidIE(ShahidBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        formats, subtitles = self.get_formats_subtitles(video_id, live=False)
 
         product_info_response = self._get_product_info(video_id)
         product = product_info_response.get('productModel', {})
         show = product.get('show', {})
         season = show.get('season', {})
+
+        formats, subtitles = (
+            self._extract_m3u8_formats_and_subtitles(
+                self.get_stream_url(video_id), video_id, 'mp4', live=True))
 
         return {
             'id': video_id,
@@ -237,7 +233,9 @@ class ShahidLiveIE(ShahidBaseIE):
 
         product_info_response = self._get_product_info(video_id)
         product = product_info_response.get('productModel', {})
-        formats, subtitles = self.get_formats_subtitles(video_id, live=True)
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            self.get_stream_url(video_id), video_id, 'mp4')
 
         return {
             'id': video_id,
