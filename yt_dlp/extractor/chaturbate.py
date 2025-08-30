@@ -51,15 +51,14 @@ class ChaturbateIE(InfoExtractor):
 
     def _extract_from_api(self, video_id, tld):
         response = self._download_json(
-            f'https://chaturbate.{tld}/get_edge_hls_url_ajax/', video_id,
-            data=urlencode_postdata({'room_slug': video_id}),
+            f'https://chaturbate.{tld}/api/chatvideocontext/{video_id}', video_id,
             headers={
                 **self.geo_verification_headers(),
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json',
             }, fatal=False, impersonate=True) or {}
 
-        m3u8_url = response.get('url')
+        m3u8_url = response.get('hls_source').replace('live-edge', 'live-fhls').replace('playlist.m3u8', 'playlist_sfm4s.m3u8')
         if not m3u8_url:
             status = response.get('room_status')
             if error := self._ERROR_MAP.get(status):
