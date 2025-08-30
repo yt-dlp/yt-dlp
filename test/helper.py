@@ -101,87 +101,109 @@ def getwebpagetestcases():
 md5 = lambda s: hashlib.md5(s.encode()).hexdigest()
 
 
-def expect_value(self, got, expected, field):
-    if isinstance(expected, str) and expected.startswith('re:'):
-        match_str = expected[len('re:'):]
-        match_rex = re.compile(match_str)
+def _iter_differences(got, expected, field):
+    if isinstance(expected, str):
+        op, _, val = expected.partition(':')
+        if op in ('mincount', 'maxcount', 'count'):
+            if not isinstance(got, (list, dict)):
+                yield field, f'expected either {list.__name__} or {dict.__name__}, got {type(got).__name__}'
+                return
 
-        self.assertTrue(
-            isinstance(got, str),
-            f'Expected a {str.__name__} object, but got {type(got).__name__} for field {field}')
-        self.assertTrue(
-            match_rex.match(got),
-            f'field {field} (value: {got!r}) should match {match_str!r}')
-    elif isinstance(expected, str) and expected.startswith('startswith:'):
-        start_str = expected[len('startswith:'):]
-        self.assertTrue(
-            isinstance(got, str),
-            f'Expected a {str.__name__} object, but got {type(got).__name__} for field {field}')
-        self.assertTrue(
-            got.startswith(start_str),
-            f'field {field} (value: {got!r}) should start with {start_str!r}')
-    elif isinstance(expected, str) and expected.startswith('contains:'):
-        contains_str = expected[len('contains:'):]
-        self.assertTrue(
-            isinstance(got, str),
-            f'Expected a {str.__name__} object, but got {type(got).__name__} for field {field}')
-        self.assertTrue(
-            contains_str in got,
-            f'field {field} (value: {got!r}) should contain {contains_str!r}')
-    elif isinstance(expected, type):
-        self.assertTrue(
-            isinstance(got, expected),
-            f'Expected type {expected!r} for field {field}, but got value {got!r} of type {type(got)!r}')
-    elif isinstance(expected, dict) and isinstance(got, dict):
-        expect_dict(self, got, expected)
-    elif isinstance(expected, list) and isinstance(got, list):
-        self.assertEqual(
-            len(expected), len(got),
-            f'Expect a list of length {len(expected)}, but got a list of length {len(got)} for field {field}')
-        for index, (item_got, item_expected) in enumerate(zip(got, expected)):
-            type_got = type(item_got)
-            type_expected = type(item_expected)
-            self.assertEqual(
-                type_expected, type_got,
-                f'Type mismatch for list item at index {index} for field {field}, '
-                f'expected {type_expected!r}, got {type_got!r}')
-            expect_value(self, item_got, item_expected, field)
-    else:
-        if isinstance(expected, str) and expected.startswith('md5:'):
-            self.assertTrue(
-                isinstance(got, str),
-                f'Expected field {field} to be a unicode object, but got value {got!r} of type {type(got)!r}')
-            got = 'md5:' + md5(got)
-        elif isinstance(expected, str) and re.match(r'^(?:min|max)?count:\d+', expected):
-            self.assertTrue(
-                isinstance(got, (list, dict)),
-                f'Expected field {field} to be a list or a dict, but it is of type {type(got).__name__}')
-            op, _, expected_num = expected.partition(':')
-            expected_num = int(expected_num)
+            expected_num = int(val)
+            got_num = len(got)
             if op == 'mincount':
-                assert_func = assertGreaterEqual
-                msg_tmpl = 'Expected %d items in field %s, but only got %d'
-            elif op == 'maxcount':
-                assert_func = assertLessEqual
-                msg_tmpl = 'Expected maximum %d items in field %s, but got %d'
-            elif op == 'count':
-                assert_func = assertEqual
-                msg_tmpl = 'Expected exactly %d items in field %s, but got %d'
-            else:
-                assert False
-            assert_func(
-                self, len(got), expected_num,
-                msg_tmpl % (expected_num, field, len(got)))
+                if got_num < expected_num:
+                    yield field, f'expected at least {val} items, got {got_num}'
+                return
+
+            if op == 'maxcount':
+                if got_num > expected_num:
+                    yield field, f'expected at most {val} items, got {got_num}'
+                return
+
+            assert op == 'count'
+            if got_num != expected_num:
+                yield field, f'expected exactly {val} items, got {got_num}'
             return
-        self.assertEqual(
-            expected, got,
-            f'Invalid value for field {field}, expected {expected!r}, got {got!r}')
+
+        if not isinstance(got, str):
+            yield field, f'expected {str.__name__}, got {type(got).__name__}'
+            return
+
+        if op == 're':
+            if not re.match(val, got):
+                yield field, f'should match {val!r}, got {got!r}'
+            return
+
+        if op == 'startswith':
+            if not got.startswith(val):
+                yield field, f'should start with {val!r}, got {got!r}'
+            return
+
+        if op == 'contains':
+            if not val.startswith(got):
+                yield field, f'should contain {val!r}, got {got!r}'
+            return
+
+        if op == 'md5':
+            hash_val = md5(got)
+            if hash_val != val:
+                yield field, f'expected hash {val}, got {hash_val}'
+            return
+
+        if got != expected:
+            yield field, f'expected {expected!r}, got {got!r}'
+        return
+
+    if isinstance(expected, dict) and isinstance(got, dict):
+        for key, expected_val in expected.items():
+            if key not in got:
+                yield field, f'missing key: {key!r}'
+                continue
+
+            field_name = key if field is None else f'{field}.{key}'
+            yield from _iter_differences(got[key], expected_val, field_name)
+        return
+
+    if isinstance(expected, type):
+        if not isinstance(got, expected):
+            yield field, f'expected {expected.__name__}, got {type(got).__name__}'
+        return
+
+    if isinstance(expected, list) and isinstance(got, list):
+        # TODO: clever diffing algorithm lmao
+        if len(expected) != len(got):
+            yield field, f'expected length of {len(expected)}, got {len(got)}'
+            return
+
+        for index, (got_val, expected_val) in enumerate(zip(got, expected)):
+            field_name = str(index) if field is None else f'{field}.{index}'
+            yield from _iter_differences(got_val, expected_val, field_name)
+        return
+
+    if got != expected:
+        yield field, f'expected {expected!r}, got {got!r}'
+
+
+def _expect_value(message, got, expected, field):
+    mismatches = list(_iter_differences(got, expected, field))
+    if not mismatches:
+        return
+
+    fields = [field for field, _ in mismatches if field is not None]
+    return ''.join((
+        message, f' ({", ".join(fields)})' if fields else '',
+        *(f'\n\t{field}: {message}' for field, message in mismatches)))
+
+
+def expect_value(self, got, expected, field):
+    if message := _expect_value('values differ', got, expected, field):
+        self.fail(message)
 
 
 def expect_dict(self, got_dict, expected_dict):
-    for info_field, expected in expected_dict.items():
-        got = got_dict.get(info_field)
-        expect_value(self, got, expected, info_field)
+    if message := _expect_value('dictionaries differ', got_dict, expected_dict, None):
+        self.fail(message)
 
 
 def sanitize_got_info_dict(got_dict):
@@ -237,6 +259,20 @@ def sanitize_got_info_dict(got_dict):
 
 
 def expect_info_dict(self, got_dict, expected_dict):
+    ALLOWED_KEYS_SORT_ORDER = (
+        # NB: Keep in sync with the docstring of extractor/common.py
+        'id', 'ext', 'direct', 'display_id', 'title', 'alt_title', 'description', 'media_type',
+        'uploader', 'uploader_id', 'uploader_url', 'channel', 'channel_id', 'channel_url', 'channel_is_verified',
+        'channel_follower_count', 'comment_count', 'view_count', 'concurrent_view_count',
+        'like_count', 'dislike_count', 'repost_count', 'average_rating', 'age_limit', 'duration', 'thumbnail', 'heatmap',
+        'chapters', 'chapter', 'chapter_number', 'chapter_id', 'start_time', 'end_time', 'section_start', 'section_end',
+        'categories', 'tags', 'cast', 'composers', 'artists', 'album_artists', 'creators', 'genres',
+        'track', 'track_number', 'track_id', 'album', 'album_type', 'disc_number',
+        'series', 'series_id', 'season', 'season_number', 'season_id', 'episode', 'episode_number', 'episode_id',
+        'timestamp', 'upload_date', 'release_timestamp', 'release_date', 'release_year', 'modified_timestamp', 'modified_date',
+        'playable_in_embed', 'availability', 'live_status', 'location', 'license', '_old_archive_ids',
+    )
+
     expect_dict(self, got_dict, expected_dict)
     # Check for the presence of mandatory fields
     if got_dict.get('_type') not in ('playlist', 'multi_video'):
@@ -252,7 +288,13 @@ def expect_info_dict(self, got_dict, expected_dict):
 
     test_info_dict = sanitize_got_info_dict(got_dict)
 
-    missing_keys = set(test_info_dict.keys()) - set(expected_dict.keys())
+    # Check for invalid/misspelled field names being returned by the extractor
+    invalid_keys = sorted(test_info_dict.keys() - ALLOWED_KEYS_SORT_ORDER)
+    self.assertFalse(invalid_keys, f'Invalid fields returned by the extractor: {", ".join(invalid_keys)}')
+
+    missing_keys = sorted(
+        test_info_dict.keys() - expected_dict.keys(),
+        key=lambda x: ALLOWED_KEYS_SORT_ORDER.index(x))
     if missing_keys:
         def _repr(v):
             if isinstance(v, str):

@@ -84,8 +84,9 @@ lock 2023.11.16 (?!win_x86_exe).+ Python 3\.7
 lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
 lock 2024.10.22 py2exe .+
 lock 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
-lock 2024.10.22 (?!\w+_exe).+ Python 3\.8
+lock 2024.10.22 zip Python 3\.8
 lock 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
+lock 2025.08.11 darwin_legacy_exe .+
 '''
 
 TEST_LOCKFILE_V2_TMPL = r'''%s
@@ -94,20 +95,23 @@ lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
 lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
 lockV2 yt-dlp/yt-dlp 2024.10.22 py2exe .+
 lockV2 yt-dlp/yt-dlp 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
-lockV2 yt-dlp/yt-dlp 2024.10.22 (?!\w+_exe).+ Python 3\.8
+lockV2 yt-dlp/yt-dlp 2024.10.22 zip Python 3\.8
 lockV2 yt-dlp/yt-dlp 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
+lockV2 yt-dlp/yt-dlp 2025.08.11 darwin_legacy_exe .+
 lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
 lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
 lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 py2exe .+
 lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
-lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 (?!\w+_exe).+ Python 3\.8
+lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 zip Python 3\.8
 lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
+lockV2 yt-dlp/yt-dlp-nightly-builds 2025.08.12.233030 darwin_legacy_exe .+
 lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
 lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
 lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.045052 py2exe .+
 lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
-lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 (?!\w+_exe).+ Python 3\.8
+lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 zip Python 3\.8
 lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
+lockV2 yt-dlp/yt-dlp-master-builds 2025.08.12.232447 darwin_legacy_exe .+
 '''
 
 TEST_LOCKFILE_V2 = TEST_LOCKFILE_V2_TMPL % TEST_LOCKFILE_COMMENT
@@ -217,6 +221,10 @@ class TestUpdate(unittest.TestCase):
             test(  # linux_aarch64_exe w/glibc2.3 should only update to glibc<2.31 lock
                 lockfile, 'linux_aarch64_exe Python 3.8.0 (CPython aarch64 64bit) - Linux-6.5.0-1025-azure-aarch64-with-glibc2.3 (OpenSSL',
                 '2025.01.01', '2024.10.22')
+            test(lockfile, 'darwin_legacy_exe Python 3.10.5', '2025.08.11', '2025.08.11')
+            test(lockfile, 'darwin_legacy_exe Python 3.10.5', '2025.08.11', '2025.08.11', exact=True)
+            test(lockfile, 'darwin_legacy_exe Python 3.10.5', '2025.08.12', '2025.08.11')
+            test(lockfile, 'darwin_legacy_exe Python 3.10.5', '2025.08.12', None, exact=True)
 
         # Forks can block updates to non-numeric tags rather than lock
         test(TEST_LOCKFILE_FORK, 'zip Python 3.6.3', 'pr0000', None, repo='fork/yt-dlp')
