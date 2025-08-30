@@ -24,7 +24,7 @@ if [ -n "${TEST_ONEDIR_BUILD:-}" ]; then
     fi
 else
     echo "Verifying onefile build"
-    cp "/build/${EXENAME}" ./
+    cp "/build/${EXE_NAME}" ./
 fi
 
 chmod +x "./${EXE_NAME}"
