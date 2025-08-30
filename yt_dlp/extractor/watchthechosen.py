@@ -1,4 +1,3 @@
-import datetime
 import json
 
 from .common import InfoExtractor
