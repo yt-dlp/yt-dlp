@@ -360,5 +360,5 @@ class KickChannelVideosIE(KickBaseIE):
             sort_by = self._DEFAULT_SORT
 
         return self.playlist_result(
-            self._entries(channel, response, sort_by), channel,
+            self._entries(channel, response, sort_by), f'{channel}-by-{sort_by}',
             f'{channel} - Past broadcasts sorted by "{self._SORT_OPTIONS[sort_by]}"')
