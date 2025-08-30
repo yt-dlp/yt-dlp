@@ -20,7 +20,6 @@ class LocipoBaseIE(InfoExtractor):
 
 class LocipoIE(LocipoBaseIE):
     _VALID_URL = r'https?://locipo\.jp/(?P<type>creative|embed)/(?P<id>[^/?#]+)?'
-
     _TESTS = [{
         'url': 'https://locipo.jp/creative/fb5ffeaa-398d-45ce-bb49-0e221b5f94f1',
         'info_dict': {
@@ -81,6 +80,7 @@ class LocipoIE(LocipoBaseIE):
         video_type, video_id = self._match_valid_url(url).group('type', 'id')  # type: ignore
         if not video_id:
             video_id = traverse_obj(parse_qs(url), ('id', -1, {str}, {require('video ID')}))
+
         playlist_id = traverse_obj(parse_qs(url), ('list', -1, {str}))
         if playlist_id and self._yes_playlist(playlist_id, video_id):
             return self.url_result(
@@ -89,6 +89,7 @@ class LocipoIE(LocipoBaseIE):
         creatives = self._call_api(f'creatives/{video_id}', video_id)
         m3u8_url = traverse_obj(creatives, ('video', 'hls', {url_or_none}, {require('manifest URL')}))
         uploader_id = traverse_obj(creatives, ('station_cd', {str}))
+
         return {
             'id': video_id,
             'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4'),
@@ -137,6 +138,7 @@ class LocipoPlaylistIE(LocipoBaseIE):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
         playlists = self._call_api(f'playlists/{playlist_id}', playlist_id)
+
         return self.playlist_result(
             self._entries(playlist_id), playlist_id, **traverse_obj(playlists, {
                 'title': ('title', {clean_html}),
