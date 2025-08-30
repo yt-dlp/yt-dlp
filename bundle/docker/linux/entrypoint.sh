@@ -1,12 +1,12 @@
 #!/bin/bash
 set -exuo pipefail
 
+: "${USE_PYTHON_VERSION:="3.13"}"
+
+export USE_PYTHON_VERSION
+
 function runpy {
-    case ${USE_PYTHON_VERSION:-} in
-        "3.11") python3.11 "$@";;
-        "3.13") python3.13 "$@";;
-        *)      python3 "$@";;
-    esac
+    "/opt/shared-cpython-${USE_PYTHON_VERSION}/bin/python${USE_PYTHON_VERSION}" "$@"
 }
 
 INCLUDES=(
@@ -20,6 +20,7 @@ fi
 
 runpy -m venv /yt-dlp-build-venv
 source /yt-dlp-build-venv/bin/activate
+runpy -m ensurepip --upgrade --default-pip
 runpy -m devscripts.install_deps -o --include build
 runpy -m devscripts.install_deps "${INCLUDES[@]}"
 runpy -m devscripts.make_lazy_extractors
