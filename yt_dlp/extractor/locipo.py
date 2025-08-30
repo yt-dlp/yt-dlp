@@ -76,7 +76,7 @@ class LocipoIE(LocipoBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_type, video_id = self._match_valid_url(url).group('type', 'id')  # type: ignore
+        video_type, video_id = self._match_valid_url(url).group('type', 'id')
         if not video_id:
             video_id = traverse_obj(parse_qs(url), ('id', -1, {str}, {require('video ID')}))
 
@@ -103,13 +103,13 @@ class LocipoIE(LocipoBaseIE):
                 'release_timestamp': ('live_scheduled_at', {parse_iso8601}),
                 'thumbnail': (('thumb', 'small_thumb', 'station_thumb'), {url_or_none}, any),
                 'timestamp': ('publication_started_at', {parse_iso8601}),
-            }),  # type: ignore
+            }),
             **traverse_obj(creatives, ('playlist', {
                 'cast': ('actors', ..., 'name', {clean_html}, filter, all, filter),
                 'genres': ('locipo_genres', ..., 'name', {clean_html}, filter, all, filter),
                 'series': ('title', {clean_html}),
                 'series_id': ('id', {str}),
-            })),  # type: ignore
+            })),
         }
 
 
@@ -131,7 +131,7 @@ class LocipoPlaylistIE(LocipoBaseIE):
 
     def _entries(self, playlist_id):
         creatives = self._call_api(f'playlists/{playlist_id}/creatives', playlist_id)
-        for creative in traverse_obj(creatives, ('items', lambda _, v: str_or_none(v['id']))):  # type: ignore
+        for creative in traverse_obj(creatives, ('items', lambda _, v: str_or_none(v['id']))):
             yield self.url_result(f'{self._BASE_URL}/creative/{creative["id"]}', LocipoIE)
 
     def _real_extract(self, url):
@@ -145,5 +145,5 @@ class LocipoPlaylistIE(LocipoBaseIE):
                 'genres': ('locipo_genres', ..., 'name', {clean_html}, filter, all, filter),
                 'modified_timestamp': ('updated_at', {parse_iso8601}),
                 'thumbnail': (('thumb', 'small_thumb'), {url_or_none}, any),
-            }),  # type: ignore
+            }),
         )
