@@ -6,7 +6,7 @@ services:
       platforms:
         - "linux/amd64"
       args:
-        BASEIMAGE: ghcr.io/bashonly/manylinux2014_x86_64-shared:latest
+        BASEIMAGE: ghcr.io/yt-dlp/manylinux2014_x86_64-shared:latest
     environment:
       EXE_NAME: ${EXE_NAME}
       CHANNEL: ${CHANNEL}
@@ -35,7 +35,7 @@ services:
       platforms:
         - "linux/arm64"
       args:
-        BASEIMAGE: ghcr.io/bashonly/manylinux2014_aarch64-shared:latest
+        BASEIMAGE: ghcr.io/yt-dlp/manylinux2014_aarch64-shared:latest
     environment:
       EXE_NAME: ${EXE_NAME}
       CHANNEL: ${CHANNEL}
@@ -65,7 +65,7 @@ services:
       platforms:
         - "linux/arm/v7"
       args:
-        BASEIMAGE: ghcr.io/bashonly/manylinux_2_31_armv7l-shared:latest
+        BASEIMAGE: ghcr.io/yt-dlp/manylinux_2_31_armv7l-shared:latest
     environment:
       EXE_NAME: ${EXE_NAME}
       CHANNEL: ${CHANNEL}
@@ -97,7 +97,7 @@ services:
       platforms:
         - "linux/amd64"
       args:
-        BASEIMAGE: ghcr.io/bashonly/musllinux_1_2_x86_64-shared:latest
+        BASEIMAGE: ghcr.io/yt-dlp/musllinux_1_2_x86_64-shared:latest
     environment:
       EXE_NAME: ${EXE_NAME}
       CHANNEL: ${CHANNEL}
@@ -127,7 +127,7 @@ services:
       platforms:
         - "linux/arm64"
       args:
-        BASEIMAGE: ghcr.io/bashonly/musllinux_1_2_aarch64-shared:latest
+        BASEIMAGE: ghcr.io/yt-dlp/musllinux_1_2_aarch64-shared:latest
     environment:
       EXE_NAME: ${EXE_NAME}
       CHANNEL: ${CHANNEL}
