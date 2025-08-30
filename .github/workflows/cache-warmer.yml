@@ -18,7 +18,6 @@ jobs:
       musllinux: false
       macos: true
       windows: false
-      windows32: false
     permissions:
       contents: read
       actions: write  # For cleaning up cache
