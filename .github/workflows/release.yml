@@ -237,7 +237,6 @@ jobs:
       linux_armv7l: ${{ inputs.linux_armv7l }}
     permissions:
       contents: read
-      actions: write  # For cleaning up cache
     secrets:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 

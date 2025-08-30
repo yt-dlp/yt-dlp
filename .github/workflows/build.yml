@@ -91,8 +91,22 @@ jobs:
     steps:
       - name: Process origin
         id: process_origin
+        env:
+          ORIGIN: ${{ inputs.origin }}
+          REPOSITORY: ${{ github.repository }}
+        shell: python
         run: |
-          echo "origin=${{ inputs.origin == 'current repo' && github.repository || inputs.origin }}" | tee "$GITHUB_OUTPUT"
+          import json
+          import os
+          import time
+          origin = os.environ['ORIGIN']
+          outputs = {
+              'origin': os.environ['REPOSITORY'] if origin == 'current repo' else origin,
+              'timestamp': int(time.time() * 1000),
+          }
+          print(json.dumps(outputs, indent=2))
+          with open(os.environ['GITHUB_OUTPUT'], 'at') as f:
+              f.write('\n'.join(f'{key}={value}' for key, value in outputs.items()))
 
   unix:
     needs: process
@@ -198,20 +212,22 @@ jobs:
     if: inputs.linux_armv7l
     permissions:
       contents: read
-      actions: write  # For cleaning up cache
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore cached requirements
-        id: restore-cache
-        uses: actions/cache/restore@v4
+      - name: Cache requirements
+        id: cache-venv
+        uses: actions/cache@v4
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
           path: |
             ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}
+          key: cache-reqs-${{ github.job }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
+          restore-keys: |
+            cache-reqs-${{ github.job }}-${{ github.ref }}-
+            cache-reqs-${{ github.job }}-
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -252,21 +268,6 @@ jobs:
           path: |
             ~/build/yt-dlp_linux_armv7l.zip
           compression-level: 0
-
-      - name: Cleanup cache
-        if: steps.restore-cache.outputs.cache-hit == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          cache_key: cache-reqs-${{ github.job }}
-        run: |
-          gh cache delete "${cache_key}" || true
-
-      - name: Cache requirements
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}
 
   musllinux:
     needs: process
@@ -322,22 +323,24 @@ jobs:
     if: inputs.macos
     permissions:
       contents: read
-      actions: write  # For cleaning up cache
     runs-on: macos-14
 
     steps:
       - uses: actions/checkout@v4
       # NB: Building universal2 does not work with python from actions/setup-python
 
-      - name: Restore cached requirements
-        id: restore-cache
-        uses: actions/cache/restore@v4
+      - name: Cache requirements
+        id: cache-venv
+        uses: actions/cache@v4
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
           path: |
             ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}-${{ github.ref }}
+          key: cache-reqs-${{ github.job }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
+          restore-keys: |
+            cache-reqs-${{ github.job }}-${{ github.ref }}-
+            cache-reqs-${{ github.job }}-
 
       - name: Install Requirements
         run: |
@@ -410,27 +413,11 @@ jobs:
             dist/yt-dlp_macos.zip
           compression-level: 0
 
-      - name: Cleanup cache
-        if: steps.restore-cache.outputs.cache-hit == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          cache_key: cache-reqs-${{ github.job }}-${{ github.ref }}
-        run: |
-          gh cache delete "${cache_key}" || true
-
-      - name: Cache requirements
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}-${{ github.ref }}
-
   windows:
     needs: process
     if: inputs.windows
     permissions:
       contents: read
-      actions: write  # For cleaning up cache
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -456,16 +443,19 @@ jobs:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.arch }}
 
-      - name: Restore cached requirements
-        id: restore-cache
+      - name: Cache requirements
+        id: cache-venv
         if: matrix.arch == 'arm64'
-        uses: actions/cache/restore@v4
+        uses: actions/cache@v4
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
           path: |
             /yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
+          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
+          restore-keys: |
+            cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}-
+            cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-
 
       - name: Install Requirements
         run: |
@@ -509,23 +499,6 @@ jobs:
             dist/yt-dlp${{ matrix.suffix }}.exe
             dist/yt-dlp_win${{ matrix.suffix }}.zip
           compression-level: 0
-
-      - name: Cleanup cache
-        if: |
-          matrix.arch == 'arm64' && steps.restore-cache.outputs.cache-hit == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          cache_key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
-        run: |
-          gh cache delete "${cache_key}" || true
-
-      - name: Cache requirements
-        if: matrix.arch == 'arm64'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            /yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
 
   meta_files:
     if: always() && !cancelled()

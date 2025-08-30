@@ -17,7 +17,6 @@ jobs:
       linux_armv7l: true
       musllinux: false
       macos: true
-      windows: false
+      windows: true
     permissions:
       contents: read
-      actions: write  # For cleaning up cache
