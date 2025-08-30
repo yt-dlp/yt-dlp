@@ -1,4 +1,5 @@
 import functools
+import math
 import urllib.parse
 
 from .common import InfoExtractor
@@ -28,6 +29,16 @@ class KickBaseIE(InfoExtractor):
         return self._download_json(
             f'https://kick.com/api/{path}', display_id, note=note,
             headers={**self._api_headers, **headers}, impersonate=True, **kwargs)
+
+    def _calculate_view_count(self, data):
+        views = traverse_obj(data, (('views', ('video', 'views')), {int_or_none}, any), default=0)
+        viewer_count = traverse_obj(data, (
+            ('viewer_count', ('livestream', 'viewer_count')), {int_or_none}, any), default=0)
+
+        def round_view_count(num):
+            return math.floor(num + 0.5)
+        # Reverse engineered from frontend JS code
+        return round_view_count(views + 2.25 * viewer_count)
 
 
 class KickIE(KickBaseIE):
@@ -159,7 +170,7 @@ class KickVODIE(KickBaseIE):
                 'duration': ('livestream', 'duration', {float_or_none(scale=1000)}),
                 'thumbnail': ('livestream', 'thumbnail', {url_or_none}),
                 'categories': ('livestream', 'categories', ..., 'name', {str}),
-                'view_count': ('views', {int_or_none}),
+                'view_count': {self._calculate_view_count},
                 'age_limit': ('livestream', 'is_mature', {bool}, {lambda x: 18 if x else 0}),
                 'is_live': ('livestream', 'is_live', {bool}),
             }),
@@ -293,7 +304,7 @@ class KickChannelVideosIE(KickBaseIE):
                     'timestamp': ('video', 'created_at', {parse_iso8601}),
                     'duration': ('duration', {float_or_none(scale=1000)}),
                     'categories': ('categories', ..., 'name', {str}),
-                    'view_count': ('video', 'views', {int_or_none}),
+                    'view_count': {self._calculate_view_count},
                     'age_limit': ('is_mature', {bool}, {lambda x: 18 if x else 0}),
                     'is_live': ('is_live', {bool}),
                 }))
