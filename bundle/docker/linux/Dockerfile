@@ -1,4 +1,4 @@
-ARG BASEIMAGE=ghcr.io/bashonly/manylinux2014_x86_64_builds:latest
+ARG BASEIMAGE=ghcr.io/bashonly/manylinux2014_x86_64-shared:latest
 
 FROM $BASEIMAGE AS base
 
