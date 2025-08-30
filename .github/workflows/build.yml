@@ -259,7 +259,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           cache_key: cache-reqs-${{ github.job }}
         run: |
-          gh cache delete "${cache_key}"
+          gh cache delete "${cache_key}" || true
 
       - name: Cache requirements
         uses: actions/cache/save@v4
@@ -416,7 +416,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           cache_key: cache-reqs-${{ github.job }}-${{ github.ref }}
         run: |
-          gh cache delete "${cache_key}"
+          gh cache delete "${cache_key}" || true
 
       - name: Cache requirements
         uses: actions/cache/save@v4
@@ -517,7 +517,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           cache_key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
         run: |
-          gh cache delete "${cache_key}"
+          gh cache delete "${cache_key}" || true
 
       - name: Cache requirements
         if: matrix.arch == 'arm64'
