@@ -19,7 +19,7 @@ class LocipoBaseIE(InfoExtractor):
 
 
 class LocipoIE(LocipoBaseIE):
-    _VALID_URL = r'https?://locipo\.jp/(?P<type>creative|embed)/(?P<id>[^/?#]+)?'
+    _VALID_URL = r'https?://locipo\.jp/(?:creative|embed)/(?:\?(?:[^#]+&)?id=)?(?P<id>[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12})'
     _TESTS = [{
         'url': 'https://locipo.jp/creative/fb5ffeaa-398d-45ce-bb49-0e221b5f94f1',
         'info_dict': {
@@ -115,7 +115,7 @@ class LocipoIE(LocipoBaseIE):
 
 
 class LocipoPlaylistIE(LocipoBaseIE):
-    _VALID_URL = r'https?://locipo\.jp/playlist/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://locipo\.jp/playlist/(?P<id>[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12})'
     _TESTS = [{
         'url': 'https://locipo.jp/playlist/ae42c14e-6006-4932-b40d-16fc236ab71f',
         'info_dict': {
