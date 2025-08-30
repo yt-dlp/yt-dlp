@@ -268,7 +268,6 @@ class KickChannelVideosIE(KickBaseIE):
         'url': 'https://kick.com/xqc/videos',
         'info_dict': {
             'id': 'xqc',
-            'title': 'All videos from xqc',
         },
         'playlist_mincount': 15,
     }, {
@@ -302,4 +301,4 @@ class KickChannelVideosIE(KickBaseIE):
                     'is_live': ('is_live', {bool}),
                 })))
 
-        return self.playlist_result(videos, channel, f'All videos from {channel}')
+        return self.playlist_result(videos, channel)
