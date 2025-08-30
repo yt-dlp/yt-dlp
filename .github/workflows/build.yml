@@ -88,6 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       origin: ${{ steps.process_origin.outputs.origin }}
+      timestamp: ${{ steps.process_origin.outputs.timestamp }}
     steps:
       - name: Process origin
         id: process_origin
