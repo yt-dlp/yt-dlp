@@ -564,7 +564,7 @@ def validate_options(opts):
         deprecation_warnings.append(
             f'The following options have been deprecated: {", ".join(opts._deprecated_options)}\n'
             'Please remove them from your commands and config files to avoid future errors.\n'
-            'See  https://github.com/yt-dlp/yt-dlp/issues/000000  for more details')
+            'See  https://github.com/yt-dlp/yt-dlp/issues/14198  for more details')
         del opts._deprecated_options
 
     # Dependent options
