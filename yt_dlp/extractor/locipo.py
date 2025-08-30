@@ -76,9 +76,7 @@ class LocipoIE(LocipoBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_type, video_id = self._match_valid_url(url).group('type', 'id')
-        if not video_id:
-            video_id = traverse_obj(parse_qs(url), ('id', -1, {str}, {require('video ID')}))
+        video_id = self._match_id(url)
 
         playlist_id = traverse_obj(parse_qs(url), ('list', -1, {str}))
         if playlist_id and not self.get_param('noplaylist'):
