@@ -281,13 +281,10 @@ class KickChannelVideosIE(KickBaseIE):
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        channel = self._match_id(url)
-        response = self._call_api(f'v2/channels/{channel}/videos', channel)
-        videos = []
-        for video in response:
+    def _entries(self, channel, videos):
+        for video in videos:
             video_id = str(video['video']['uuid'])
-            videos.append(self.url_result(
+            yield self.url_result(
                 f'https://kick.com/{channel}/videos/{video_id}', KickVODIE, video_id,
                 **traverse_obj(video, {
                     'title': ('session_title', {str}),
@@ -299,6 +296,9 @@ class KickChannelVideosIE(KickBaseIE):
                     'view_count': ('video', 'views', {int_or_none}),
                     'age_limit': ('is_mature', {bool}, {lambda x: 18 if x else 0}),
                     'is_live': ('is_live', {bool}),
-                })))
+                }))
 
-        return self.playlist_result(videos, channel)
+    def _real_extract(self, url):
+        channel = self._match_id(url)
+        response = self._call_api(f'v2/channels/{channel}/videos', channel)
+        return self.playlist_result(self._entries(channel, response), channel)
