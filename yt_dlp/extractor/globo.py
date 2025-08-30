@@ -69,8 +69,13 @@ class GloboIE(InfoExtractor):
         'info_dict': {
             'id': '8013907',
             'ext': 'mp4',
-            'title': 'Capítulo de 14⧸08⧸1989',
+            'title': 'Capítulo de 14/08/1989',
+            'episode': 'Episode 1',
             'episode_number': 1,
+            'uploader': 'Tieta',
+            'uploader_id': '11895',
+            'duration': 2858.389,
+            'subtitles': 'count:1',
         },
         'params': {
             'skip_download': True,
@@ -82,7 +87,12 @@ class GloboIE(InfoExtractor):
             'id': '12824146',
             'ext': 'mp4',
             'title': 'Acordo de damas',
+            'episode': 'Episode 1',
             'episode_number': 1,
+            'uploader': 'Rensga Hits!',
+            'uploader_id': '20481',
+            'duration': 1953.994,
+            'season': 'Season 2',
             'season_number': 2,
         },
         'params': {
@@ -136,9 +146,10 @@ class GloboIE(InfoExtractor):
         else:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 main_source['url'], video_id, 'mp4', m3u8_id='hls')
-        self._merge_subtitles(traverse_obj(main_source, ('text', ..., {
-            'url': ('subtitle', 'srt', 'url', {url_or_none}),
-        }, all, {subs_list_to_dict(lang='en')})), target=subtitles)
+
+        self._merge_subtitles(traverse_obj(main_source, ('text', ..., ('caption', 'subtitle'), {
+            'url': ('srt', 'url', {url_or_none}),
+        }, all, {subs_list_to_dict(lang='pt-BR')})), target=subtitles)
 
         return {
             'id': video_id,
