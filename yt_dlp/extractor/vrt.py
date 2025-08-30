@@ -562,7 +562,8 @@ class Radio1BeIE(VRTBaseIE):
             }))
 
 
-class VRTMaxRadioIE(VRTBaseIE):
+class VRTMaxRadioIE(VrtNUIE):
+    IE_NAME = 'vrtradio'
     IE_DESC = 'VRT MAX (radio)'
     _VALID_URL = r'https?://(?:www\.)?vrt\.be/(?:vrtmax|vrtnu)/luister/radio/(?P<show1l>[^/])/(?P<show>[^/]+)/(?P<episode_id>[^/?#&]+)/?'
     _TESTS = [{
@@ -603,31 +604,32 @@ class VRTMaxRadioIE(VRTBaseIE):
   page(id: $pageId) {
     ... on RadioEpisodePage {
       title
+      brand
       socialSharing {
         title
-      }
-      player {
-        listenAction {
-          ... on RadioEpisodeListenAction {
-            streamId
-            startDate
-            endDate
-          }
-        }
-      }
-      radioEpisode {
-        richDescription {
-          text
-        }
-        brand
         image {
           templateUrl
         }
-        actionItems {
-          action {
-            ... on LinkAction {
-              link
-              linkType
+      }
+      trackingData {
+        data
+      }
+      player {
+        modes {
+          cimMediaTrackingData {
+            programDuration
+          }
+          streamId
+        }
+      }
+      components {
+        ... on MediaInfo {
+          actionItems {
+            action {
+              ... on LinkAction {
+                internalTarget
+                link
+              }
             }
           }
         }
@@ -658,8 +660,9 @@ class VRTMaxRadioIE(VRTBaseIE):
         (show1l, show, episode_id) = self._match_valid_url(url).groups()
         metadata = self.get_metadata(show1l, show, episode_id)['data']['page']
 
-        audio_id = traverse_obj(metadata, ('player', 'listenAction', 'streamId'))
+        audio_id = traverse_obj(metadata, ('player', 'modes', 0, 'streamId'))
         media_items = self._call_api(audio_id, 'vrtnu-web@PROD', version='v2')
+        # -> {'code': 'CONTENT_REQUIRES_AUTHENTICATION'} ...
         formats, _ = self._extract_formats_and_subtitles(media_items, audio_id)
 
         return {
@@ -667,17 +670,14 @@ class VRTMaxRadioIE(VRTBaseIE):
             'formats': formats,
             **traverse_obj(metadata, {
                 'title': 'title',
-                'description': ([('socialSharing', 'title'),
-                                 ('radioEpisode', 'richDescription', 'text')],
-                                all, {lambda txts: ' | '.join(txts) or None}),
-                'thumbnail': ('radioEpisode', 'image', 'templateUrl'),
-                'timestamp': ('player', 'listenAction', 'startDate', {lambda x: x / 1000}),
+                'description': ('socialSharing', 'title'),
+                'thumbnail': ('socialSharing', 'image', 'templateUrl'),
+                'timestamp': ('trackingData', 'data', {json.loads}, '$eppt', {lambda x: x / 1000}),
                 # Duration of original transmission, downloaded file is sometimes shorter:
-                'duration': ('player', 'listenAction',
-                             {lambda a: try_call(lambda: (a['endDate'] - a['startDate']) / 1000)}),
-                'channel': ('radioEpisode', 'brand'),
-                'channel_url': ('radioEpisode', 'actionItems', ..., 'action', all,
-                                lambda _, act: act.get('linkType') == 'channel', any,
+                'duration': ('player', 'modes', 0, 'cimMediaTrackingData', 'programDuration'),
+                'channel': 'brand',
+                'channel_url': ('components', ..., 'actionItems', ..., 'action', all,
+                                lambda _, act: act.get('internalTarget') == 'channelpage', any,
                                 'link', {lambda link: 'https://www.vrt.be' + link}),
             }),
         }
