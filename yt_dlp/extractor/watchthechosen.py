@@ -2,6 +2,7 @@ import datetime
 import json
 
 from .common import InfoExtractor
+from ..utils import unified_strdate
 from ..utils.traversal import traverse_obj
 
 
@@ -62,11 +63,6 @@ class WatchTheChosenIE(InfoExtractor):
                 'content-type': 'application/json',
             }), ('data', 'video'))
 
-        # Helper for formatting dates in ISO 8601
-        def formatDate(date):
-            parsed_date = datetime.datetime.fromisoformat(date)
-            return parsed_date.strftime('%Y%m%d')
-
         # DOWNLOADING LIST OF SOURCES (LIST OF M3U8 FILES)
         hls_url = 'https://api.frontrow.cc/channels/12884901895/VIDEO/' + video_id + '/v2/hls.m3u8'
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls_url, video_id)
@@ -79,8 +75,8 @@ class WatchTheChosenIE(InfoExtractor):
                 'title': 'title',
                 'description': 'description',
                 'thumbnail': 'thumbnail',
-                'modified_date': ('updatedAt', {formatDate}),
-                'upload_date': ('createdAt', {formatDate}),
+                'modified_date': ('updatedAt', {unified_strdate}),
+                'upload_date': ('createdAt', {unified_strdate}),
                 'duration': 'duration',
                 'like_count': 'likeCount',
                 'comment_count': 'comments',
