@@ -274,6 +274,8 @@ class InfoExtractor:
                                  * max_quality     (NiconicoLiveFD only) Max stream quality string
                     * is_dash_periods  Whether the format is a result of merging
                                  multiple DASH periods.
+                    * additional_cookies_urls  A list of additional URLs for which cookies are needed,
+                                 e.g. if a livestream HLS AES key URL domain differs from the m3u8 URL
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time
