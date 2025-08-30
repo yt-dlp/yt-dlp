@@ -9,6 +9,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     parse_iso8601,
+    parse_qs,
     str_or_none,
     traverse_obj,
     unified_timestamp,
@@ -276,24 +277,63 @@ class KickChannelVideosIE(KickBaseIE):
     IE_NAME = 'kick:channel:videos'
     _VALID_URL = rf'{KickIE._VALID_URL}/videos/?(?:[?#]|$)'
     _TESTS = [{
+        # Default sort
         'url': 'https://kick.com/xqc/videos',
         'info_dict': {
             'id': 'xqc',
+            'title': 'xqc - Past broadcasts sorted by "Most recent"',
         },
         'playlist_mincount': 15,
     }, {
+        # Sorted by "Most recent"
+        'url': 'https://kick.com/xqc/videos?sort=date',
+        'info_dict': {
+            'id': 'xqc',
+            'title': 'xqc - Past broadcasts sorted by "Most recent"',
+        },
+        'playlist_mincount': 15,
+    }, {
+        # Sorted by "Views"
+        'url': 'https://kick.com/xqc/videos?sort=views',
+        'info_dict': {
+            'id': 'xqc',
+            'title': 'xqc - Past broadcasts sorted by "Views"',
+        },
+        'playlist_mincount': 15,
+    }, {
+        # Sorted by invalid value
+        'url': 'https://kick.com/xqc/videos?sort=foo',
+        'info_dict': {
+            'id': 'xqc',
+            'title': 'xqc - Past broadcasts sorted by "Most recent"',
+        },
+        'playlist_mincount': 15,
+        'expected_warnings': ['Unsupported sort order "foo", using "Most recent" instead'],
+    }, {
+        # Trailing slash
         'url': 'https://kick.com/xqc/videos/',
         'only_matching': True,
     }, {
-        'url': 'https://kick.com/xqc/videos?sort=views',
-        'only_matching': True,
-    }, {
-        'url': 'https://kick.com/xqc/videos/?sort=date',
+        # Trailing slash and sort order
+        'url': 'https://kick.com/xqc/videos/?sort=views',
         'only_matching': True,
     }]
 
-    def _entries(self, channel, videos):
-        for video in videos:
+    _DEFAULT_SORT = 'date'
+    _SORT_OPTIONS = {
+        _DEFAULT_SORT: 'Most recent',
+        'views': 'Views',
+    }
+
+    def _entries(self, channel, videos, sort_by):
+        view_count_traversal = {self._calculate_view_count}
+        timestamp_traversal = ('video', 'created_at', {parse_iso8601})
+
+        assert sort_by in ('date', 'views'), f'Unsupported sort option {sort_by}'
+        sort_traversal = view_count_traversal if sort_by == 'views' else timestamp_traversal
+        sort_key_func = lambda x: traverse_obj(x, sort_traversal, default=0)
+
+        for video in sorted(videos, key=sort_key_func, reverse=True):
             video_id = str(video['video']['uuid'])
             yield self.url_result(
                 f'https://kick.com/{channel}/videos/{video_id}', KickVODIE, video_id,
@@ -301,10 +341,10 @@ class KickChannelVideosIE(KickBaseIE):
                     'title': ('session_title', {str}),
                     'channel': {value(channel)},
                     'channel_id': ('channel_id', {int}, {str_or_none}),
-                    'timestamp': ('video', 'created_at', {parse_iso8601}),
+                    'timestamp': timestamp_traversal,
                     'duration': ('duration', {float_or_none(scale=1000)}),
                     'categories': ('categories', ..., 'name', {str}),
-                    'view_count': {self._calculate_view_count},
+                    'view_count': view_count_traversal,
                     'age_limit': ('is_mature', {bool}, {lambda x: 18 if x else 0}),
                     'is_live': ('is_live', {bool}),
                 }))
@@ -312,4 +352,13 @@ class KickChannelVideosIE(KickBaseIE):
     def _real_extract(self, url):
         channel = self._match_id(url)
         response = self._call_api(f'v2/channels/{channel}/videos', channel)
-        return self.playlist_result(self._entries(channel, response), channel)
+        sort_by = parse_qs(url).get('sort', ['date'])[0]
+        if sort_by not in self._SORT_OPTIONS:
+            self.report_warning(
+                f'Unsupported sort order "{sort_by}", '
+                f'using "{self._SORT_OPTIONS[self._DEFAULT_SORT]}" instead')
+            sort_by = self._DEFAULT_SORT
+
+        return self.playlist_result(
+            self._entries(channel, response, sort_by), channel,
+            f'{channel} - Past broadcasts sorted by "{self._SORT_OPTIONS[sort_by]}"')
