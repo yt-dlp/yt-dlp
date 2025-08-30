@@ -73,7 +73,6 @@ class LocipoIE(LocipoBaseIE):
             'thumbnail': r're:https?://.+\.(?:jpg|png)',
         },
         'playlist_mincount': 32,
-        'params': {'yes_playlist': True},
     }]
 
     def _real_extract(self, url):
@@ -82,7 +81,7 @@ class LocipoIE(LocipoBaseIE):
             video_id = traverse_obj(parse_qs(url), ('id', -1, {str}, {require('video ID')}))
 
         playlist_id = traverse_obj(parse_qs(url), ('list', -1, {str}))
-        if playlist_id and self._yes_playlist(playlist_id, video_id):
+        if playlist_id and not self.get_param('noplaylist'):
             return self.url_result(
                 f'{self._BASE_URL}/playlist/{playlist_id}', LocipoPlaylistIE)
 
