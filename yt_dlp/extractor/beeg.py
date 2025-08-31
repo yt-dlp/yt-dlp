@@ -9,26 +9,27 @@ from ..utils import (
 
 
 class BeegIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?beeg\.(?:com(?:/video)?)/-?(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?beeg\.(?:com(?:/video)?)/(?P<id>-?\d+)'
     _TESTS = [{
         'url': 'https://beeg.com/-0983946056129650',
-        'md5': '51d235147c4627cfce884f844293ff88',
+        'md5': 'ee26908515c64175da770f104de94a9b',
         'info_dict': {
-            'id': '0983946056129650',
+            'id': '983946056129650',
             'ext': 'mp4',
-            'title': 'sucked cock and fucked in a private plane',
+            'title': 'Sucked Cock and Fucked in a Private Plane',
             'duration': 927,
             'tags': list,
             'age_limit': 18,
-            'upload_date': '20220131',
-            'timestamp': 1643656455,
-            'display_id': '2540839',
+            'upload_date': '20240301',
+            'timestamp': 1709308546,
+            'display_id': '5511897',
+            'thumbnail': 're:https://thumbs.externulls.com/videos/\\d+/\\d+.webp'
         },
     }, {
         'url': 'https://beeg.com/-0599050563103750?t=4-861',
-        'md5': 'bd8b5ea75134f7f07fad63008db2060e',
+        'md5': '56f5edf40c6237b7cc41b28a7d447686',
         'info_dict': {
-            'id': '0599050563103750',
+            'id': '599050563103750',
             'ext': 'mp4',
             'title': 'Bad Relatives',
             'duration': 2060,
@@ -38,6 +39,7 @@ class BeegIE(InfoExtractor):
             'timestamp': 1643623200,
             'display_id': '2569965',
             'upload_date': '20220131',
+            'thumbnail': 're:https://thumbs.externulls.com/videos/\\d+/\\d+.webp'
         },
     }, {
         # api/v6 v2
@@ -53,6 +55,8 @@ class BeegIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
+        if video_id.startswith('-0'):
+            video_id = video_id[2:]
 
         video = self._download_json(
             f'https://store.externulls.com/facts/file/{video_id}',
@@ -66,6 +70,12 @@ class BeegIE(InfoExtractor):
 
         resources = traverse_obj(video, ('file', 'hls_resources')) or first_fact.get('hls_resources')
 
+        thumbnails = []
+        for index in first_fact.get('fc_thumbs') or []:
+            thumbnails.append({
+                'url': f'https://thumbs.externulls.com/videos/{video_id}/{index}.webp'
+            })
+
         formats = []
         for format_id, video_uri in resources.items():
             if not video_uri:
@@ -76,14 +86,23 @@ class BeegIE(InfoExtractor):
                 f['height'] = height
             formats.extend(current_formats)
 
+        title = traverse_obj(video, ('file', 'stuff', 'sf_name'))
+        description = traverse_obj(video, ('file', 'stuff', 'sf_story'))
+        for item in traverse_obj(video, ('file', 'data')):
+            if item.get('cd_column') == "sf_name" and not title:
+                title = item.get('cd_value')
+            if item.get('cd_column') == "sf_story" and not description:
+                description = item.get('cd_value')
+
         return {
             'id': video_id,
             'display_id': str_or_none(first_fact.get('id')),
-            'title': traverse_obj(video, ('file', 'stuff', 'sf_name')),
-            'description': traverse_obj(video, ('file', 'stuff', 'sf_story')),
+            'title': title,
+            'description': description,
             'timestamp': unified_timestamp(first_fact.get('fc_created')),
             'duration': int_or_none(traverse_obj(video, ('file', 'fl_duration'))),
             'tags': traverse_obj(video, ('tags', ..., 'tg_name')),
             'formats': formats,
             'age_limit': self._rta_search(webpage),
+            'thumbnails': thumbnails
         }
