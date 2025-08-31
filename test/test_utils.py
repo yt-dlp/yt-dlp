@@ -59,6 +59,7 @@ from yt_dlp.utils import (
     get_element_by_attribute,
     get_element_by_class,
     get_element_html_by_attribute,
+    datetime_from_timestamp,
     get_element_html_by_class,
     get_element_text_and_html_by_tag,
     get_elements_by_attribute,
@@ -424,6 +425,34 @@ class TestUtil(unittest.TestCase):
                          dt.datetime(2024, 12, 25, 1, 23, 45, tzinfo=dt.timezone.utc))
         self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.678Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
                          dt.datetime(2024, 12, 25, 1, 23, 46, tzinfo=dt.timezone.utc))
+
+    def test_datetime_from_timestamp(self):
+        self.assertEqual(
+            datetime_from_timestamp(0),
+            dt.datetime(1970, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc))
+        self.assertEqual(
+            datetime_from_timestamp(1),
+            dt.datetime(1970, 1, 1, 0, 0, 1, tzinfo=dt.timezone.utc))
+        self.assertEqual(
+            datetime_from_timestamp(3600),
+            dt.datetime(1970, 1, 1, 1, 0, 0, tzinfo=dt.timezone.utc))
+
+        self.assertEqual(
+            datetime_from_timestamp(-1),
+            dt.datetime(1969, 12, 31, 23, 59, 59, tzinfo=dt.timezone.utc))
+        self.assertEqual(
+            datetime_from_timestamp(-86400),
+            dt.datetime(1969, 12, 31, 0, 0, 0, tzinfo=dt.timezone.utc))
+
+        self.assertEqual(
+            datetime_from_timestamp(0.5),
+            dt.datetime(1970, 1, 1, 0, 0, 0, 500000, tzinfo=dt.timezone.utc))
+        self.assertEqual(
+            datetime_from_timestamp(1.000001),
+            dt.datetime(1970, 1, 1, 0, 0, 1, 1, tzinfo=dt.timezone.utc))
+        self.assertEqual(
+            datetime_from_timestamp(-1.25),
+            dt.datetime(1969, 12, 31, 23, 59, 58, 750000, tzinfo=dt.timezone.utc))
 
     def test_strftime_or_none(self):
         self.assertEqual(strftime_or_none(-4722192000), '18200512')
