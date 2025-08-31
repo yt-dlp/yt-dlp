@@ -454,6 +454,13 @@ class TestUtil(unittest.TestCase):
             datetime_from_timestamp(-1.25),
             dt.datetime(1969, 12, 31, 23, 59, 58, 750000, tzinfo=dt.timezone.utc))
 
+        self.assertEqual(
+            datetime_from_timestamp(-1577923200),
+            dt.datetime(1920, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc))
+        self.assertEqual(
+            datetime_from_timestamp(4102444800),
+            dt.datetime(2100, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc))
+
     def test_strftime_or_none(self):
         self.assertEqual(strftime_or_none(-4722192000), '18200512')
         self.assertEqual(strftime_or_none(0), '19700101')
