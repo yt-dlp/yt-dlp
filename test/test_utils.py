@@ -469,6 +469,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(strftime_or_none(-4722192000), '18200512')
         self.assertEqual(strftime_or_none(0), '19700101')
         self.assertEqual(strftime_or_none(1735084800), '20241225')
+        # Throws OverflowError
+        self.assertEqual(strftime_or_none(1735084800000), None)
 
     def test_daterange(self):
         _20century = DateRange('19000101', '20000101')
