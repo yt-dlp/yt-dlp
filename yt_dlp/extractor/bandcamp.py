@@ -5,6 +5,7 @@ import time
 
 from .common import InfoExtractor
 from ..utils import (
+    JSON_LD_RE,
     KNOWN_EXTENSIONS,
     ExtractorError,
     clean_html,
@@ -155,7 +156,9 @@ class BandcampIE(InfoExtractor):
         title, uploader = self._match_valid_url(url).group('id', 'uploader')
         webpage = self._download_webpage(url, title)
         tralbum = self._extract_data_attr(webpage, title)
-        thumbnail = self._og_search_thumbnail(webpage)
+        thumbnails = [{
+            'url': self._og_search_thumbnail(webpage)
+        }]
 
         track_id = None
         track = None
@@ -194,6 +197,17 @@ class BandcampIE(InfoExtractor):
         timestamp = unified_timestamp(
             current.get('publish_date') or tralbum.get('album_publish_date'))
 
+        track_additional_info = self._parse_json(self._search_regex(
+            JSON_LD_RE, webpage, 'JSON-LD', '{}',
+            group='json_ld'), title, fatal=False)
+
+        if track_additional_info.get('image'):
+            mobj = re.search(r'img/.+_(\d+).jpg', track_additional_info['image'])
+            thumbnails.append({
+                'url': track_additional_info['image'],
+                'id': mobj and mobj.group(1) or '10'
+            })
+
         download_link = tralbum.get('freeDownloadPage')
         if download_link:
             track_id = str(tralbum['id'])
@@ -213,8 +227,10 @@ class BandcampIE(InfoExtractor):
                         track = info.get('title')
                     if not artist:
                         artist = info.get('artist')
-                    if not thumbnail:
-                        thumbnail = info.get('thumb_url')
+                    if not thumbnails:
+                        thumbnails.append({
+                            'url': info.get('thumb_url')
+                        })
 
                     download_formats = {}
                     download_formats_list = blob.get('download_formats')
@@ -263,7 +279,7 @@ class BandcampIE(InfoExtractor):
         return {
             'id': track_id,
             'title': title,
-            'thumbnail': thumbnail,
+            'thumbnails': thumbnails,
             'uploader': artist,
             'uploader_id': uploader,
             'uploader_url': f'https://{uploader}.bandcamp.com',
