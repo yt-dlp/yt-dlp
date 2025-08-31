@@ -2676,7 +2676,9 @@ class YoutubeDL:
                 ('modified_timestamp', 'modified_date'),
         ):
             if info_dict.get(date_key) is None and info_dict.get(ts_key) is not None:
-                info_dict[date_key] = strftime_or_none(info_dict[ts_key])
+                # Large values due to an extractor bug can cause errors
+                with contextlib.suppress(ValueError, OverflowError, OSError):
+                    info_dict[date_key] = strftime_or_none(info_dict[ts_key])
 
         if not info_dict.get('release_year'):
             info_dict['release_year'] = traverse_obj(info_dict, ('release_date', {lambda x: int(x[:4])}))
