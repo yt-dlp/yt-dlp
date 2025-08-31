@@ -23,7 +23,7 @@ class BeegIE(InfoExtractor):
             'upload_date': '20240301',
             'timestamp': 1709308546,
             'display_id': '5511897',
-            'thumbnail': 're:https://thumbs.externulls.com/videos/\\d+/\\d+.webp'
+            'thumbnail': 're:https://thumbs.externulls.com/videos/\\d+/\\d+.webp',
         },
     }, {
         'url': 'https://beeg.com/-0599050563103750?t=4-861',
@@ -39,7 +39,7 @@ class BeegIE(InfoExtractor):
             'timestamp': 1643623200,
             'display_id': '2569965',
             'upload_date': '20220131',
-            'thumbnail': 're:https://thumbs.externulls.com/videos/\\d+/\\d+.webp'
+            'thumbnail': 're:https://thumbs.externulls.com/videos/\\d+/\\d+.webp',
         },
     }, {
         # api/v6 v2
@@ -89,9 +89,9 @@ class BeegIE(InfoExtractor):
         title = traverse_obj(video, ('file', 'stuff', 'sf_name'))
         description = traverse_obj(video, ('file', 'stuff', 'sf_story'))
         for item in traverse_obj(video, ('file', 'data')):
-            if item.get('cd_column') == "sf_name" and not title:
+            if item.get('cd_column') == 'sf_name' and not title:
                 title = item.get('cd_value')
-            if item.get('cd_column') == "sf_story" and not description:
+            if item.get('cd_column') == 'sf_story' and not description:
                 description = item.get('cd_value')
 
         return {
@@ -104,5 +104,5 @@ class BeegIE(InfoExtractor):
             'tags': traverse_obj(video, ('tags', ..., 'tg_name')),
             'formats': formats,
             'age_limit': self._rta_search(webpage),
-            'thumbnails': thumbnails
+            'thumbnails': thumbnails,
         }
