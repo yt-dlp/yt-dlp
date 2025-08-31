@@ -73,7 +73,7 @@ class BeegIE(InfoExtractor):
         thumbnails = []
         for index in first_fact.get('fc_thumbs') or []:
             thumbnails.append({
-                'url': f'https://thumbs.externulls.com/videos/{video_id}/{index}.webp'
+                'url': f'https://thumbs.externulls.com/videos/{video_id}/{index}.webp',
             })
 
         formats = []
