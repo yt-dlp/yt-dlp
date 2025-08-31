@@ -157,7 +157,7 @@ class BandcampIE(InfoExtractor):
         webpage = self._download_webpage(url, title)
         tralbum = self._extract_data_attr(webpage, title)
         thumbnails = [{
-            'url': self._og_search_thumbnail(webpage)
+            'url': self._og_search_thumbnail(webpage),
         }]
 
         track_id = None
@@ -205,7 +205,7 @@ class BandcampIE(InfoExtractor):
             mobj = re.search(r'img/.+_(\d+).jpg', track_additional_info['image'])
             thumbnails.append({
                 'url': track_additional_info['image'],
-                'id': mobj and mobj.group(1) or '10'
+                'id': (mobj and mobj.group(1)) or '10',
             })
 
         download_link = tralbum.get('freeDownloadPage')
@@ -229,7 +229,7 @@ class BandcampIE(InfoExtractor):
                         artist = info.get('artist')
                     if not thumbnails:
                         thumbnails.append({
-                            'url': info.get('thumb_url')
+                            'url': info.get('thumb_url'),
                         })
 
                     download_formats = {}
