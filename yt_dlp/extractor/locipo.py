@@ -73,6 +73,29 @@ class LocipoIE(LocipoBaseIE):
             'thumbnail': r're:https?://.+\.(?:jpg|png)',
         },
         'playlist_mincount': 32,
+    }, {
+        'url': 'https://locipo.jp/creative/a0751a7f-c7dd-4a10-a7f1-e12720bdf16c?list=006cff3f-ba74-42f0-b4fd-241486ebda2b',
+        'info_dict': {
+            'id': 'a0751a7f-c7dd-4a10-a7f1-e12720bdf16c',
+            'ext': 'mp4',
+            'title': '#839 人間真空パック',
+            'cast': 'count:1',
+            'description': 'md5:9fe190333b6975c5001c8c9cbe20d276',
+            'duration': 180,
+            'genres': 'count:3',
+            'modified_date': '20250503',
+            'modified_timestamp': 1746239489,
+            'release_timestamp': 1746239100,
+            'release_date': '20250503',
+            'series': 'でんじろう先生のはぴエネ！',
+            'series_id': '006cff3f-ba74-42f0-b4fd-241486ebda2b',
+            'thumbnail': r're:https?://.+\.(?:jpg|png)',
+            'timestamp': 1746239400,
+            'upload_date': '20250503',
+            'uploader': '中京テレビ',
+            'uploader_id': 'ctv',
+        },
+        'params': {'noplaylist': True},
     }]
 
     def _real_extract(self, url):
