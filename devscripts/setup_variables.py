@@ -117,7 +117,7 @@ def setup_variables(environment):
     }
 
 
-def _process_inputs(inputs):
+def process_inputs(inputs):
     outputs = {}
     for key in ('source', 'target'):
         repo, _, tag = inputs.get(key, '').partition('@')
@@ -133,7 +133,7 @@ def _test(github_repository, repo_vars, repo_secrets, inputs, expected=None):
     inp = inputs.copy()
     inp.setdefault('linux_armv7l', True)
     inp.setdefault('prerelease', False)
-    processed = _process_inputs(inp)
+    processed = process_inputs(inp)
     source_repo = processed['source_repo'].upper()
     target_repo = processed['target_repo'].upper()
     variables = {k.upper(): v for k, v in repo_vars.items()}
