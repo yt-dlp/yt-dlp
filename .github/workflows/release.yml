@@ -85,21 +85,8 @@ jobs:
         id: process_inputs
         env:
           INPUTS: ${{ toJSON(inputs) }}
-        shell: python
         run: |
-          from devscripts.setup_variables import process_inputs
-          import json
-          import os
-          inputs = json.loads(os.environ['INPUTS'])
-          print('::group::Inputs')
-          print(json.dumps(inputs, indent=2))
-          print('::endgroup::')
-          outputs = process_inputs(inputs)
-          print('::group::Processed')
-          print(json.dumps(outputs, indent=2))
-          print('::endgroup::')
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write('\n'.join(f'{key}={value}' for key, value in outputs.items()))
+          python -m devscripts.setup_variables process_inputs
 
       - name: Setup variables (new)
         id: setup_variables_new
