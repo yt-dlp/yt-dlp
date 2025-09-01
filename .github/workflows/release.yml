@@ -95,7 +95,7 @@ jobs:
           print('::endgroup::')
           outputs = {}
           for key in ('source', 'target'):
-              repo, _, tag = inputs[key].partition('@')
+              repo, _, tag = inputs.get(key, '').partition('@')
               outputs[f'{key}_repo'] = repo
               outputs[f'{key}_tag'] = tag
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
@@ -172,7 +172,7 @@ jobs:
               'python', 'devscripts/update-version.py', '--json',
               '-c', resolved_source,
               '-r', REPOSITORY,
-              inputs['version'] or revision,
+              inputs.get('version') or revision,
           ), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout)['version']
           
           target_repo = processed['target_repo']
