@@ -61,20 +61,20 @@ class IzRuIE(InfoExtractor):
         info_json = self._extract_script_data(
             iframe_webpage, r'window\.config\s*=\s*({.*?});',
         )
-        if info_json:
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                traverse_obj(info_json, ('sources', -1, 'hls', {url_or_none})),
-                video_id,
-                'mp4',
-                m3u8_id='hls',
-            )
+        if not info_json:
+            raise ExtractorError('Can\'t get info_json from player\'s iframe')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            traverse_obj(info_json, ('sources', -1, 'hls', {url_or_none})),
+            video_id,
+            'mp4',
+            m3u8_id='hls',
+        )
 
-            return {
-                'id': video_id,
-                'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
-                'thumbnail': traverse_obj(info_json, ('image', 'path', {url_or_none})),
-                'formats': formats,
-                'subtitles': subtitles,
-                'upload_date': unified_strdate(date),
-            }
-        raise ExtractorError('Can\'t get info_json from player\'s iframe')
+        return {
+            'id': video_id,
+            'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
+            'thumbnail': traverse_obj(info_json, ('image', 'path', {url_or_none})),
+            'formats': formats,
+            'subtitles': subtitles,
+            'upload_date': unified_strdate(date),
+        }
