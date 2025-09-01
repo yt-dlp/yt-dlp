@@ -106,8 +106,6 @@ jobs:
         env:
           INPUTS: ${{ toJSON(inputs) }}
           PROCESSED: ${{ toJSON(steps.process_inputs.outputs) }}
-          SOURCE_REPO: ${{ steps.process_inputs.outputs.source_repo }}
-          TARGET_REPO: ${{ steps.process_inputs.outputs.target_repo }}
           REPOSITORY: ${{ github.repository }}
           PUSH_VERSION_COMMIT: ${{ vars.PUSH_VERSION_COMMIT }}
           PYPI_PROJECT: ${{ vars.PYPI_PROJECT }}
@@ -128,19 +126,12 @@ jobs:
           import subprocess
           import sys
           
-          
-          def fallback_token(token_name):
-              if not json.loads(os.environ['HAS_ARCHIVE_REPO_TOKEN']):
-                  print('::error::Repository access secret {token_name.upper()} not found')
-                  sys.exit(1)
-              return 'ARCHIVE_REPO_TOKEN'
-          
-          
           REPOSITORY = os.environ['REPOSITORY']
           inputs = json.loads(os.environ['INPUTS'])
           processed = json.loads(os.environ['PROCESSED'])
           
           source_channel = None
+          does_not_have_needed_token = False
           target_repo_token = None
           pypi_project = None
           pypi_suffix = None
@@ -169,7 +160,8 @@ jobs:
               revision = ''
           
           version = json.loads(subprocess.run((
-              'python', 'devscripts/update-version.py', '--json',
+              'python', 'devscripts/update-version.py',
+              '--json',
               '-c', resolved_source,
               '-r', REPOSITORY,
               inputs.get('version') or revision,
@@ -186,22 +178,28 @@ jobs:
                       target_repo = REPOSITORY
               if target_repo != REPOSITORY:
                   target_repo = os.environ['TARGET_ARCHIVE_REPO']
-                  target_repo_token = f'{processed["target_repo"]}_archive_repo_token'
+                  target_repo_token = f'{processed["target_repo"].upper()}_ARCHIVE_REPO_TOKEN'
                   if not json.loads(os.environ['HAS_TARGET_ARCHIVE_REPO_TOKEN']):
-                      target_repo_token = fallback_token(target_repo_token)
+                      does_not_have_needed_token = True
                   pypi_project = os.environ['TARGET_PYPI_PROJECT']
                   pypi_suffix = os.environ['TARGET_PYPI_SUFFIX']
           else:
               target_tag = source_tag or version
               if source_channel:
                   target_repo = source_channel
-                  target_repo_token = f'{processed["source_repo"]}_archive_repo_token'
+                  target_repo_token = f'{processed["source_repo"].upper()}_ARCHIVE_REPO_TOKEN'
                   if not json.loads(os.environ['HAS_SOURCE_ARCHIVE_REPO_TOKEN']):
-                      target_repo_token = fallback_token(target_repo_token)
+                      does_not_have_needed_token = True
                   pypi_project = os.environ['SOURCE_PYPI_PROJECT']
                   pypi_suffix = os.environ['SOURCE_PYPI_SUFFIX']
               else:
                   target_repo = REPOSITORY
+          
+          if does_not_have_needed_token:
+              if not json.loads(os.environ['HAS_ARCHIVE_REPO_TOKEN']):
+                  print('::error::Repository access secret {target_repo_token} not found')
+                  sys.exit(1)
+              target_repo_token = 'ARCHIVE_REPO_TOKEN'
           
           if target_repo == REPOSITORY and inputs['prerelease']:
               pypi_project = os.environ['PYPI_PROJECT'] or None
