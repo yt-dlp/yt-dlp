@@ -136,7 +136,7 @@ jobs:
               return 'ARCHIVE_REPO_TOKEN'
           
           
-          REPOSITORY = os.environ['INPUTS']
+          REPOSITORY = os.environ['REPOSITORY']
           inputs = json.loads(os.environ['INPUTS'])
           processed = json.loads(os.environ['PROCESSED'])
           
@@ -204,7 +204,7 @@ jobs:
                   target_repo = REPOSITORY
           
           if target_repo == REPOSITORY and inputs['prerelease']:
-              pypi_project = os.environ['PYPI_PROJECT']
+              pypi_project = os.environ['PYPI_PROJECT'] or None
           
           outputs = {
               'channel': resolved_source,
