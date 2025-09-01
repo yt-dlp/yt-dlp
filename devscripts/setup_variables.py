@@ -167,12 +167,14 @@ def _test(github_repository, repo_vars, repo_secrets, inputs, expected=None):
 
 
 def _run_tests():
+    DEFAULT_VERSION = dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d')
+
     _test('yt-dlp/yt-dlp', {'PUSH_VERSION_COMMIT': '1'}, {}, {}, {
         'channel': 'stable',
-        'version': dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d'),
+        'version': DEFAULT_VERSION,
         'target_repo': 'yt-dlp/yt-dlp',
         'target_repo_token': None,
-        'target_tag': dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d'),
+        'target_tag': DEFAULT_VERSION,
         'pypi_project': None,
         'pypi_suffix': None,
     })
