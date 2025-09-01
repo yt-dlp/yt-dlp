@@ -283,7 +283,7 @@ jobs:
           GH_TOKEN: ${{ secrets[needs.prepare.outputs.target_repo_token] }}
           GH_REPO: ${{ needs.prepare.outputs.target_repo }}
           TITLE_PREFIX: ${{ startswith(env.TARGET_REPO, 'yt-dlp/') && 'yt-dlp ' || '' }}
-          TITLE: ${{ needs.prepare.outputs.channel }}
+          TITLE: ${{ inputs.target != env.TARGET_REPO && inputs.target || needs.prepare.outputs.channel }}
         if: |
           inputs.prerelease && env.GH_TOKEN && env.GH_REPO && env.GH_REPO != github.repository
         run: |
