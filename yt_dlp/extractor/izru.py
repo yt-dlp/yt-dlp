@@ -84,7 +84,7 @@ class IzRuIE(InfoExtractor):
         )
 
         json_ld_info.update(
-            {'formats': formats, 'subtitles': subtitles, 'id': video_id,}
+            {'formats': formats, 'subtitles': subtitles, 'id': video_id},
         )
 
         return json_ld_info
