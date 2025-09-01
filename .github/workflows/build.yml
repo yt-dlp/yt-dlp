@@ -102,15 +102,24 @@ jobs:
           import datetime as dt
           import json
           import os
+          import re
           origin = os.environ['ORIGIN']
           timestamp = dt.datetime.now(tz=datetime.timezone.utc).strftime('%Y.%m.%d.%H%M%S.%f')
-          version = os.environ['VERSION']
+          version = os.getenv('VERSION')
           if version and '.' not in version:
-              version = '.'.join(timestamp.split('.')[:3] + [version])
+              # build.yml was dispatched with only a revision as the version input value
+              version_parts = [*timestamp.split('.')[:3], version]
+          elif not version:
+              # build.yml was dispatched without any version input value, so include .HHMMSS revision
+              version_parts = timestamp.split('.')[:4]
+          else:
+              # build.yml was called or dispatched with a complete version input value
+              version_parts = version.split('.')
+          assert all(re.fullmatch(r'[0-9]+', part) for part in version_parts), 'Version must be numeric'
           outputs = {
               'origin': os.environ['REPOSITORY'] if origin == 'current repo' else origin,
               'timestamp': timestamp,
-              'version': version,
+              'version': '.'.join(version_parts),
           }
           print(json.dumps(outputs, indent=2))
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
