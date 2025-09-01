@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     if: |
-      vars.KEEP_CACHE_WARM != '' || github.event_name == 'workflow_dispatch'
+      vars.KEEP_CACHE_WARM || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/build.yml
     with:
       version: '123456'

@@ -144,7 +144,7 @@ jobs:
         env:
           GITHUB_EVENT_REF: ${{ github.event.ref }}
         if: |
-          !!vars.PUSH_VERSION_COMMIT && !inputs.prerelease && steps.setup_variables.outputs.target_repo == github.repository
+          vars.PUSH_VERSION_COMMIT && !inputs.prerelease && steps.setup_variables.outputs.target_repo == github.repository
         run: git push origin "${GITHUB_EVENT_REF}"
 
   build:
@@ -285,7 +285,7 @@ jobs:
           TITLE_PREFIX: ${{ startswith(env.TARGET_REPO, 'yt-dlp/') && 'yt-dlp ' || '' }}
           TITLE: ${{ needs.prepare.outputs.channel }}
         if: |
-          inputs.prerelease && !!env.GH_TOKEN && !!env.GH_REPO && env.GH_REPO != github.repository
+          inputs.prerelease && env.GH_TOKEN && env.GH_REPO && env.GH_REPO != github.repository
         run: |
           gh release create \
             --notes-file ARCHIVE_NOTES \

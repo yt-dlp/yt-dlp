@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   release:
-    if: vars.BUILD_MASTER != ''
+    if: vars.BUILD_MASTER
     uses: ./.github/workflows/release.yml
     with:
       prerelease: true
@@ -30,7 +30,7 @@ jobs:
 
   publish_pypi:
     needs: [release]
-    if: vars.MASTER_PYPI_PROJECT != ''
+    if: vars.MASTER_PYPI_PROJECT
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # mandatory for trusted publishing

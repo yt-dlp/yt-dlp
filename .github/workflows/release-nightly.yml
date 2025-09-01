@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   check_nightly:
-    if: vars.BUILD_NIGHTLY != ''
+    if: vars.BUILD_NIGHTLY
     runs-on: ubuntu-latest
     outputs:
       commit: ${{ steps.check_for_new_commits.outputs.commit }}
@@ -43,7 +43,7 @@ jobs:
 
   publish_pypi:
     needs: [release]
-    if: vars.NIGHTLY_PYPI_PROJECT != ''
+    if: vars.NIGHTLY_PYPI_PROJECT
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # mandatory for trusted publishing
