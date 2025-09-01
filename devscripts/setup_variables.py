@@ -6,7 +6,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import datetime as dt
 import json
-import subprocess
+
+from devscripts.utils import calculate_version
 
 
 def setup_variables(environment):
@@ -61,13 +62,7 @@ def setup_variables(environment):
     else:
         revision = ''
 
-    version = json.loads(subprocess.run((
-        sys.executable, 'devscripts/update-version.py',
-        '--json',
-        '-c', resolved_source,
-        '-r', REPOSITORY,
-        INPUTS.get('version') or revision,
-    ), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout)['version']
+    version = calculate_version(INPUTS.get('version') or revision)
 
     target_repo = PROCESSED['target_repo']
     target_tag = PROCESSED['target_tag']
@@ -99,7 +94,7 @@ def setup_variables(environment):
 
     if does_not_have_needed_token:
         if not json.loads(environment['HAS_ARCHIVE_REPO_TOKEN']):
-            print('::error::Repository access secret {target_repo_token} not found')
+            print(f'::error::Repository access secret {target_repo_token} not found')
             return None
         target_repo_token = 'ARCHIVE_REPO_TOKEN'
 
@@ -127,9 +122,6 @@ def process_inputs(inputs):
 
 
 def _test(github_repository, repo_vars, repo_secrets, inputs, expected=None):
-    from devscripts.utils import read_version
-    orig_version = read_version()
-
     inp = inputs.copy()
     inp.setdefault('linux_armv7l', True)
     inp.setdefault('prerelease', False)
@@ -138,6 +130,7 @@ def _test(github_repository, repo_vars, repo_secrets, inputs, expected=None):
     target_repo = processed['target_repo'].upper()
     variables = {k.upper(): v for k, v in repo_vars.items()}
     secrets = {k.upper(): v for k, v in repo_secrets.items()}
+
     env = {
         'INPUTS': json.dumps(inp),
         'PROCESSED': json.dumps(processed),
@@ -154,13 +147,8 @@ def _test(github_repository, repo_vars, repo_secrets, inputs, expected=None):
         'HAS_TARGET_ARCHIVE_REPO_TOKEN': json.dumps(bool(secrets.get(f'{target_repo}_ARCHIVE_REPO_TOKEN'))),
         'HAS_ARCHIVE_REPO_TOKEN': json.dumps(bool(secrets.get('ARCHIVE_REPO_TOKEN'))),
     }
+
     result = setup_variables(env)
-
-    version = json.loads(subprocess.run((
-        sys.executable, 'devscripts/update-version.py', '--json', orig_version,
-    ), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout)['version']
-    assert version == orig_version
-
     print('    {\n' + '\n'.join(f'        {k!r}: {v!r},' for k, v in result.items()) + '\n    }')
     if expected:
         assert result == expected

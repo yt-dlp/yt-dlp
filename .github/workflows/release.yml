@@ -108,6 +108,22 @@ jobs:
         run: |
           python -m devscripts.setup_variables
 
+      - name: Update version
+        env:
+          CHANNEL: ${{ steps.setup_variables.outputs.channel }}
+          # Use base repo since this could be committed; build jobs will call this again with true origin
+          REPOSITORY: ${{ github.repository }}
+          VERSION: ${{ steps.setup_variables.outputs.version }}
+        run: |
+            python devscripts/update-version.py -c "${CHANNEL}" -r "${REPOSITORY}" "${VERSION}"
+
+      - name: Show version
+        run: |
+            echo '::group::yt_dlp.version'
+            python -c 'from yt_dlp.version import __version__, CHANNEL, ORIGIN; print(__version__); print(CHANNEL); print(ORIGIN)'
+            echo '::endgroup::'
+            git restore yt_dlp/version.py
+
       - name: Process inputs (old)
         id: process_inputs_old
         run: |
@@ -214,3 +230,10 @@ jobs:
           pypi_suffix=${pypi_suffix}
           EOF
           echo "::endgroup::"
+
+      - name: Show version (old)
+        run: |
+            echo '::group::yt_dlp.version'
+            python -c 'from yt_dlp.version import __version__, CHANNEL, ORIGIN; print(__version__); print(CHANNEL); print(ORIGIN)'
+            echo '::endgroup::'
+            git restore yt_dlp/version.py
