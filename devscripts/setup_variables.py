@@ -12,7 +12,7 @@ from devscripts.utils import calculate_version
 
 def setup_variables(environment):
     """
-    environment must contain these keys:
+    `environment` must contain these keys:
         REPOSITORY, INPUTS, PROCESSED,
         PUSH_VERSION_COMMIT, PYPI_PROJECT,
         SOURCE_PYPI_PROJECT, SOURCE_PYPI_SUFFIX,
@@ -22,10 +22,10 @@ def setup_variables(environment):
         HAS_TARGET_ARCHIVE_REPO_TOKEN,
         HAS_ARCHIVE_REPO_TOKEN
 
-    INPUTS must contain these keys:
+    `INPUTS` must contain these keys:
         prerelease
 
-    PROCESSED must contain these keys:
+    `PROCESSED` must contain these keys:
         source_repo, source_tag,
         target_repo, target_tag
     """
@@ -78,8 +78,8 @@ def setup_variables(environment):
             target_repo_token = f'{PROCESSED["target_repo"].upper()}_ARCHIVE_REPO_TOKEN'
             if not json.loads(environment['HAS_TARGET_ARCHIVE_REPO_TOKEN']):
                 does_not_have_needed_token = True
-            pypi_project = environment['TARGET_PYPI_PROJECT']
-            pypi_suffix = environment['TARGET_PYPI_SUFFIX']
+            pypi_project = environment['TARGET_PYPI_PROJECT'] or None
+            pypi_suffix = environment['TARGET_PYPI_SUFFIX'] or None
     else:
         target_tag = source_tag or version
         if source_channel:
@@ -87,8 +87,8 @@ def setup_variables(environment):
             target_repo_token = f'{PROCESSED["source_repo"].upper()}_ARCHIVE_REPO_TOKEN'
             if not json.loads(environment['HAS_SOURCE_ARCHIVE_REPO_TOKEN']):
                 does_not_have_needed_token = True
-            pypi_project = environment['SOURCE_PYPI_PROJECT']
-            pypi_suffix = environment['SOURCE_PYPI_SUFFIX']
+            pypi_project = environment['SOURCE_PYPI_PROJECT'] or None
+            pypi_suffix = environment['SOURCE_PYPI_SUFFIX'] or None
         else:
             target_repo = REPOSITORY
 
@@ -121,7 +121,7 @@ def process_inputs(inputs):
     return outputs
 
 
-def _test(github_repository, repo_vars, repo_secrets, inputs, expected=None):
+def _test(github_repository, repo_vars, repo_secrets, inputs, expected=None, ignore_revision=False):
     inp = inputs.copy()
     inp.setdefault('linux_armv7l', True)
     inp.setdefault('prerelease', False)
@@ -150,50 +150,234 @@ def _test(github_repository, repo_vars, repo_secrets, inputs, expected=None):
 
     result = setup_variables(env)
     print('    {\n' + '\n'.join(f'        {k!r}: {v!r},' for k, v in result.items()) + '\n    }')
+
     if expected:
-        assert result == expected
+        exp = expected.copy()
+        if ignore_revision:
+            assert len(result['version']) == len(exp['version'])
+            version_is_tag = result['version'] == result['target_tag']
+            for dct in (result, exp):
+                dct['version'] = '.'.join(dct['version'].split('.')[:3])
+                if version_is_tag:
+                    dct['target_tag'] = dct['version']
+        assert result == exp
 
 
 def _run_tests():
-    DEFAULT_VERSION = dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d')
+    DEFAULT_VERSION_WITH_REVISION = dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d.%H%M%S')
+    DEFAULT_VERSION = DEFAULT_VERSION_WITH_REVISION[:10]
+    BASE_REPO_VARS = {
+        'MASTER_ARCHIVE_REPO': 'yt-dlp/yt-dlp-master-builds',
+        'NIGHTLY_ARCHIVE_REPO': 'yt-dlp/yt-dlp-nightly-builds',
+        'NIGHTLY_PYPI_PROJECT': 'yt-dlp',
+        'NIGHTLY_PYPI_SUFFIX': 'dev',
+        'PUSH_VERSION_COMMIT': '1',
+        'PYPI_PROJECT': 'yt-dlp',
+    }
+    BASE_REPO_SECRETS = {
+        'ARCHIVE_REPO_TOKEN': '1',
+    }
 
-    _test('yt-dlp/yt-dlp', {'PUSH_VERSION_COMMIT': '1'}, {}, {}, {
+    # Tests with yt-dlp/yt-dlp vars/secrets
+    _test('yt-dlp/yt-dlp', BASE_REPO_VARS, BASE_REPO_SECRETS, {}, {
         'channel': 'stable',
         'version': DEFAULT_VERSION,
         'target_repo': 'yt-dlp/yt-dlp',
         'target_repo_token': None,
         'target_tag': DEFAULT_VERSION,
-        'pypi_project': None,
+        'pypi_project': 'yt-dlp',
         'pypi_suffix': None,
     })
-    _test('bashonly/yt-dlp', {}, {}, {'version': '2025.09.01.000000'}, {
-        'channel': 'bashonly/yt-dlp',
-        'version': '2025.09.01.000000',
-        'target_repo': 'bashonly/yt-dlp',
-        'target_repo_token': None,
-        'target_tag': '2025.09.01.000000',
-        'pypi_project': None,
-        'pypi_suffix': None,
-    })
-    _test('bashonly/yt-dlp', {
-        'NIGHTLY_ARCHIVE_REPO': 'bashonly/yt-dlp-nightly-builds',
-        'NIGHTLY_PYPI_PROJECT': 'yt-dlp-test',
-        'NIGHTLY_PYPI_SUFFIX': 'pre',
-    }, {
-        'ARCHIVE_REPO_TOKEN': '1',
-    }, {
-        'version': '2025.09.01.000000',
+    _test('yt-dlp/yt-dlp', BASE_REPO_VARS, BASE_REPO_SECRETS, {
         'source': 'nightly',
         'prerelease': True,
     }, {
         'channel': 'nightly',
-        'version': '2025.09.01.000000',
-        'target_repo': 'bashonly/yt-dlp-nightly-builds',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'yt-dlp/yt-dlp-nightly-builds',
         'target_repo_token': 'ARCHIVE_REPO_TOKEN',
-        'target_tag': '2025.09.01.000000',
-        'pypi_project': 'yt-dlp-test',
-        'pypi_suffix': 'pre',
+        'target_tag': DEFAULT_VERSION_WITH_REVISION,
+        'pypi_project': 'yt-dlp',
+        'pypi_suffix': 'dev',
+    }, ignore_revision=True)
+    _test('yt-dlp/yt-dlp', BASE_REPO_VARS, BASE_REPO_SECRETS, {
+        'source': 'nightly',
+        'target': 'nightly',
+        'prerelease': True,
+    }, {
+        'channel': 'nightly',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'yt-dlp/yt-dlp-nightly-builds',
+        'target_repo_token': 'ARCHIVE_REPO_TOKEN',
+        'target_tag': DEFAULT_VERSION_WITH_REVISION,
+        'pypi_project': 'yt-dlp',
+        'pypi_suffix': 'dev',
+    }, ignore_revision=True)
+    _test('yt-dlp/yt-dlp', BASE_REPO_VARS, BASE_REPO_SECRETS, {
+        'source': 'master',
+        'prerelease': True,
+    }, {
+        'channel': 'master',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'yt-dlp/yt-dlp-master-builds',
+        'target_repo_token': 'ARCHIVE_REPO_TOKEN',
+        'target_tag': DEFAULT_VERSION_WITH_REVISION,
+        'pypi_project': None,
+        'pypi_suffix': None,
+    }, ignore_revision=True)
+    _test('yt-dlp/yt-dlp', BASE_REPO_VARS, BASE_REPO_SECRETS, {
+        'source': 'master',
+        'target': 'master',
+        'prerelease': True,
+    }, {
+        'channel': 'master',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'yt-dlp/yt-dlp-master-builds',
+        'target_repo_token': 'ARCHIVE_REPO_TOKEN',
+        'target_tag': DEFAULT_VERSION_WITH_REVISION,
+        'pypi_project': None,
+        'pypi_suffix': None,
+    }, ignore_revision=True)
+
+    # Fork tests without any vars/secrets
+    _test('bashonly/yt-dlp', {}, {}, {}, {
+        'channel': 'bashonly/yt-dlp',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'bashonly/yt-dlp',
+        'target_repo_token': None,
+        'target_tag': DEFAULT_VERSION_WITH_REVISION,
+        'pypi_project': None,
+        'pypi_suffix': None,
+    }, ignore_revision=True)
+    _test('bashonly/yt-dlp', {}, {}, {'prerelease': True}, {
+        'channel': 'bashonly/yt-dlp',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'bashonly/yt-dlp',
+        'target_repo_token': None,
+        'target_tag': DEFAULT_VERSION_WITH_REVISION,
+        'pypi_project': None,
+        'pypi_suffix': None,
+    }, ignore_revision=True)
+    _test('bashonly/yt-dlp', {}, {}, {
+        'prerelease': True,
+        'source': 'nightly',
+        'target': 'nightly',
+    }, {
+        'channel': 'bashonly/yt-dlp@nightly',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'bashonly/yt-dlp',
+        'target_repo_token': None,
+        'target_tag': 'nightly',
+        'pypi_project': None,
+        'pypi_suffix': None,
+    }, ignore_revision=True)
+    _test('bashonly/yt-dlp', {}, {}, {
+        'prerelease': True,
+        'source': 'master',
+        'target': 'master',
+    }, {
+        'channel': 'bashonly/yt-dlp@master',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'bashonly/yt-dlp',
+        'target_repo_token': None,
+        'target_tag': 'master',
+        'pypi_project': None,
+        'pypi_suffix': None,
+    }, ignore_revision=True)
+    _test('bashonly/yt-dlp', {}, {}, {'version': '123'}, {
+        'channel': 'bashonly/yt-dlp',
+        'version': f'{DEFAULT_VERSION}.123',
+        'target_repo': 'bashonly/yt-dlp',
+        'target_repo_token': None,
+        'target_tag': f'{DEFAULT_VERSION}.123',
+        'pypi_project': None,
+        'pypi_suffix': None,
     })
+
+    # Fork tests with PUSH_VERSION_COMMIT
+    _test('bashonly/yt-dlp', {'PUSH_VERSION_COMMIT': '1'}, {}, {}, {
+        'channel': 'bashonly/yt-dlp',
+        'version': DEFAULT_VERSION,
+        'target_repo': 'bashonly/yt-dlp',
+        'target_repo_token': None,
+        'target_tag': DEFAULT_VERSION,
+        'pypi_project': None,
+        'pypi_suffix': None,
+    })
+    _test('bashonly/yt-dlp', {'PUSH_VERSION_COMMIT': '1'}, {}, {'prerelease': True}, {
+        'channel': 'bashonly/yt-dlp',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'bashonly/yt-dlp',
+        'target_repo_token': None,
+        'target_tag': DEFAULT_VERSION_WITH_REVISION,
+        'pypi_project': None,
+        'pypi_suffix': None,
+    }, ignore_revision=True)
+
+    # Fork test for with NIGHTLY_ARCHIVE_REPO_TOKEN and PYPI_PROJECT but no NIGHTLY_PYPI_PROJECT
+    _test('bashonly/yt-dlp', {
+        'NIGHTLY_ARCHIVE_REPO': 'bashonly/yt-dlp-nightly-builds',
+        'PYPI_PROJECT': 'yt-dlp-test',
+    }, {
+        'NIGHTLY_ARCHIVE_REPO_TOKEN': '1',
+    }, {
+        'source': 'bashonly/yt-dlp-nightly-builds',
+        'target': 'nightly',
+        'prerelease': True,
+    }, {
+        'channel': 'bashonly/yt-dlp-nightly-builds',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'bashonly/yt-dlp-nightly-builds',
+        'target_repo_token': 'NIGHTLY_ARCHIVE_REPO_TOKEN',
+        'target_tag': DEFAULT_VERSION_WITH_REVISION,
+        'pypi_project': None,
+        'pypi_suffix': None,
+    }, ignore_revision=True)
+    # Fork test with MASTER_ARCHIVE_REPO_TOKEN and MASTER_PYPI_PROJECT/MASTER_PYPI_SUFFIX
+    _test('bashonly/yt-dlp', {
+        'MASTER_ARCHIVE_REPO': 'bashonly/yt-dlp-master-builds',
+        'MASTER_PYPI_PROJECT': 'yt-dlp-test',
+        'MASTER_PYPI_SUFFIX': 'dev',
+    }, {
+        'MASTER_ARCHIVE_REPO_TOKEN': '1',
+    }, {
+        'source': 'bashonly/yt-dlp-master-builds',
+        'target': 'master',
+        'prerelease': True,
+    }, {
+        'channel': 'bashonly/yt-dlp-master-builds',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'bashonly/yt-dlp-master-builds',
+        'target_repo_token': 'MASTER_ARCHIVE_REPO_TOKEN',
+        'target_tag': DEFAULT_VERSION_WITH_REVISION,
+        'pypi_project': 'yt-dlp-test',
+        'pypi_suffix': 'dev',
+    }, ignore_revision=True)
+
+    # Fork test with non-numeric tag
+    _test('bashonly/yt-dlp', {}, {}, {'source': 'experimental'}, {
+        'channel': 'bashonly/yt-dlp@experimental',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'bashonly/yt-dlp',
+        'target_repo_token': None,
+        'target_tag': 'experimental',
+        'pypi_project': None,
+        'pypi_suffix': None,
+    }, ignore_revision=True)
+    # Fork test with non-numeric tag that updates to stable
+    _test('bashonly/yt-dlp', {}, {}, {
+        'prerelease': True,
+        'source': 'stable',
+        'target': 'experimental',
+    }, {
+        'channel': 'stable',
+        'version': DEFAULT_VERSION_WITH_REVISION,
+        'target_repo': 'bashonly/yt-dlp',
+        'target_repo_token': None,
+        'target_tag': 'experimental',
+        'pypi_project': None,
+        'pypi_suffix': None,
+    }, ignore_revision=True)
 
 
 if __name__ == '__main__':
