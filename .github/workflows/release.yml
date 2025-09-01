@@ -309,14 +309,16 @@ jobs:
           NOTES_FILE: ${{ inputs.prerelease && 'PRERELEASE_NOTES' || 'RELEASE_NOTES' }}
           TITLE_PREFIX: ${{ github.repository == 'yt-dlp/yt-dlp' && 'yt-dlp ' || '' }}
           TITLE: ${{ env.TARGET_TAG != env.VERSION && format('{0} ', env.TARGET_TAG) || '' }}
-          PRERELEASE_ARG: ${{ inputs.prerelease && '--prerelease' || '' }}
+          PRERELEASE: ${{ inputs.prerelease && '1' || '0' }}
         if: |
           env.TARGET_REPO == github.repository
         run: |
-          gh release create \
-            --notes-file "${NOTES_FILE}" \
-            --target "${HEAD_SHA}" \
-            --title "${TITLE_PREFIX}${TITLE}${VERSION}" \
-            ${PRERELEASE_ARG} \
-            "${TARGET_TAG}" \
-            artifact/*
+          gh_options=(
+            --notes-file "${NOTES_FILE}"
+            --target "${HEAD_SHA}"
+            --title "${TITLE_PREFIX}${TITLE}${VERSION}"
+          )
+          if ((PRERELEASE)); then
+            gh_options+=(--prerelease)
+          fi
+          gh release create "${gh_options[@]}" "${TARGET_TAG}" artifact/*
