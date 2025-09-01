@@ -310,7 +310,7 @@ jobs:
           cd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
           docker compose down
-          sudo chown "${USER}:docker" ~/build/${{ matrix.exe }}
+          sudo chown "${USER}:docker" ~/build/"${EXE_NAME}"
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:
