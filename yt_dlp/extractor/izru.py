@@ -2,8 +2,8 @@ import json
 import re
 
 from .common import InfoExtractor
-from ...utils import ExtractorError, url_or_none
-from ...traversal import traverse_obj
+from ..utils import ExtractorError, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class IzRuIE(InfoExtractor):
