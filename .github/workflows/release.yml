@@ -270,7 +270,7 @@ jobs:
               "[![Nightly](https://img.shields.io/badge/Nightly%20builds-purple.svg?style=for-the-badge)]" \
                 "(https://github.com/${NIGHTLY_REPO}/releases/latest \"Nightly builds\") " \
               "[![Master](https://img.shields.io/badge/Master%20builds-lightblue.svg?style=for-the-badge)]" \
-                "(https://github.com/${MASTER_REPO}/releases/latest \"Master builds\")"' >> ./RELEASE_NOTES
+                "(https://github.com/${MASTER_REPO}/releases/latest \"Master builds\")" >> ./RELEASE_NOTES
           fi
           printf '\n\n' >> ./RELEASE_NOTES
           cat >> ./RELEASE_NOTES << EOF
