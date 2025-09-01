@@ -40,7 +40,9 @@ on:
       version:
         description: |
           VERSION: yyyy.mm.dd[.rev] or rev
-        required: true
+          (default: auto-generated)
+        required: false
+        default: ''
         type: string
       channel:
         description: |
