@@ -480,20 +480,27 @@ jobs:
 
       - name: Install Requirements
         env:
-          INCLUDES: ${{ (matrix.arch != 'x86' && '--include curl-cffi') || '' }}
+          ARCH: ${{ matrix.arch }}
+        shell: pwsh
         run: |
           python -m venv /yt-dlp-build-venv
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py ${Env:INCLUDES}
+          if ("${Env:ARCH}" -eq "x86") {
+            python devscripts/install_deps.py
+          } else {
+            python devscripts/install_deps.py --include curl-cffi
+          }
           python -m pip install -U "${Env:PYINSTALLER_URL}"
 
       - name: Prepare
+        shell: pwsh
         run: |
           python devscripts/update-version.py -c "${Env:CHANNEL}" -r "${Env:ORIGIN}" "${Env:VERSION}"
           python devscripts/make_lazy_extractors.py
 
       - name: Build
+        shell: pwsh
         run: |
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m bundle.pyinstaller
@@ -502,15 +509,15 @@ jobs:
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
+        shell: pwsh
         run: |
-          foreach ($name in @("yt-dlp${Env:SUFFIX}")) {
-            Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
-            $version = & "./dist/${name}.exe" --version
-            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2025.08.20
-            $downgraded_version = & "./dist/${name}_downgraded.exe" --version
-            if ($version -eq $downgraded_version) {
-              exit 1
-            }
+          $name = "yt-dlp${Env:SUFFIX}"
+          Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
+          $version = & "./dist/${name}.exe" --version
+          & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2025.08.20
+          $downgraded_version = & "./dist/${name}_downgraded.exe" --version
+          if ($version -eq $downgraded_version) {
+            exit 1
           }
 
       - name: Upload artifacts
