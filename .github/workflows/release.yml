@@ -201,7 +201,7 @@ jobs:
                   sys.exit(1)
               target_repo_token = 'ARCHIVE_REPO_TOKEN'
           
-          if target_repo == REPOSITORY and inputs['prerelease']:
+          if target_repo == REPOSITORY and not inputs['prerelease']:
               pypi_project = os.environ['PYPI_PROJECT'] or None
           
           outputs = {
