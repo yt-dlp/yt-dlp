@@ -211,7 +211,7 @@ if __name__ == '__main__':
         print('This script is only intended for use with GitHub Actions', file=sys.stderr)
         sys.exit(1)
 
-    if sys.argv[1] == 'process_inputs':
+    if 'process_inputs' in sys.argv:
         inputs = json.loads(os.environ['INPUTS'])
         print('::group::Inputs')
         print(json.dumps(inputs, indent=2))
