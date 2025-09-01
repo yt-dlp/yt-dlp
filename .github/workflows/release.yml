@@ -108,19 +108,14 @@ jobs:
         run: |
           python -m devscripts.setup_variables
 
-      - name: Update version
+      - name: Update version & documentation
         env:
           CHANNEL: ${{ steps.setup_variables.outputs.channel }}
           # Use base repo since this could be committed; build jobs will call this again with true origin
           REPOSITORY: ${{ github.repository }}
           VERSION: ${{ steps.setup_variables.outputs.version }}
         run: |
-            python devscripts/update-version.py -c "${CHANNEL}" -r "${REPOSITORY}" "${VERSION}"
-
-      - name: Update documentation
-        if: |
-          !inputs.prerelease || steps.setup_variables.outputs.target_repo != github.repository
-        run: |
+          python devscripts/update-version.py -c "${CHANNEL}" -r "${REPOSITORY}" "${VERSION}"
           python devscripts/update_changelog.py -vv
           make doc
 
