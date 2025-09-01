@@ -18,7 +18,7 @@ class IzRuIE(InfoExtractor):
                 'ext': 'mp4',
                 'thumbnail': r're:https://cdn\.iz\.ru/.+\.(?:jpg|png)',
             },
-        }
+        },
     ]
 
     def _extract_script_data(self, webpage, pattern):
@@ -39,12 +39,12 @@ class IzRuIE(InfoExtractor):
         urlstart, date = self._match_valid_url(url).group('urlstart', 'date')
         webpage = self._download_webpage(url, video_id)
         iframe_url = self._search_regex(
-            r'<iframe\b[^>]+\bsrc=["\'](/video/embed/[^"\']+)', webpage, 'iframe URL'
+            r'<iframe\b[^>]+\bsrc=["\'](/video/embed/[^"\']+)', webpage, 'iframe URL',
         )
 
         iframe_webpage = self._download_webpage(urlstart + iframe_url, video_id)
         info_json = self._extract_script_data(
-            iframe_webpage, r'window\.config\s*=\s*({.*?});'
+            iframe_webpage, r'window\.config\s*=\s*({.*?});',
         )
         if info_json:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
