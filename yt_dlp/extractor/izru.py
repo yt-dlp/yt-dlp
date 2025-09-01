@@ -1,9 +1,9 @@
 import json
 import re
 
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import ExtractorError, url_or_none
-from yt_dlp.utils.traversal import traverse_obj
+from .common import InfoExtractor
+from ...utils import ExtractorError, url_or_none
+from ...traversal import traverse_obj
 
 
 class IzRuIE(InfoExtractor):
