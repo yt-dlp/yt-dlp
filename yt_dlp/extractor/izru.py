@@ -23,7 +23,7 @@ class IzRuIE(InfoExtractor):
 
     def _extract_script_data(self, webpage, pattern):
         # We are looking for <script> tags with specific content
-        scripts = re.findall(r'<script[^>]*>(.*?)</script>', webpage, re.DOTALL)
+        scripts = re.findall(r'<script[^>]*>(.*?)</script>', webpage, re.DOTALL | re.IGNORECASE)
 
         for script in scripts:
             match = re.search(pattern, script, re.DOTALL)
