@@ -106,7 +106,7 @@ jobs:
               'timestamp': int(time.time() * 1000),
           }
           print(json.dumps(outputs, indent=2))
-          with open(os.environ['GITHUB_OUTPUT'], 'at') as f:
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write('\n'.join(f'{key}={value}' for key, value in outputs.items()))
 
   unix:
