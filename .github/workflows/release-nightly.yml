@@ -34,7 +34,8 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       prerelease: true
-      source: nightly
+      source: ${{ (github.repository != 'yt-dlp/yt-dlp' && vars.NIGHTLY_ARCHIVE_REPO) || 'nightly' }}
+      target: 'nightly'
     permissions:
       contents: write
       id-token: write  # mandatory for trusted publishing
