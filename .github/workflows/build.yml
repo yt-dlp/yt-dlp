@@ -106,7 +106,7 @@ jobs:
           import os
           import re
           origin = os.environ['ORIGIN']
-          timestamp = dt.datetime.now(tz=datetime.timezone.utc).strftime('%Y.%m.%d.%H%M%S.%f')
+          timestamp = dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d.%H%M%S.%f')
           version = os.getenv('VERSION')
           if version and '.' not in version:
               # build.yml was dispatched with only a revision as the version input value
