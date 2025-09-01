@@ -211,6 +211,19 @@ if __name__ == '__main__':
         print('This script is only intended for use with GitHub Actions', file=sys.stderr)
         sys.exit(1)
 
+    if sys.argv[1] == 'process_inputs':
+        inputs = json.loads(os.environ['INPUTS'])
+        print('::group::Inputs')
+        print(json.dumps(inputs, indent=2))
+        print('::endgroup::')
+        outputs = process_inputs(inputs)
+        print('::group::Processed')
+        print(json.dumps(outputs, indent=2))
+        print('::endgroup::')
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write('\n'.join(f'{key}={value}' for key, value in outputs.items()))
+        sys.exit(0)
+
     outputs = setup_variables(dict(os.environ))
     if not outputs:
         sys.exit(1)
