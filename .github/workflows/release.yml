@@ -87,19 +87,39 @@ jobs:
           INPUTS: ${{ toJSON(inputs) }}
         shell: python
         run: |
+          from devscripts.setup_variables import process_inputs
           import json
           import os
           inputs = json.loads(os.environ['INPUTS'])
           print('::group::Inputs')
           print(json.dumps(inputs, indent=2))
           print('::endgroup::')
-          outputs = {}
-          for key in ('source', 'target'):
-              repo, _, tag = inputs.get(key, '').partition('@')
-              outputs[f'{key}_repo'] = repo
-              outputs[f'{key}_tag'] = tag
+          outputs = process_inputs(inputs)
+          print('::group::Processed')
+          print(json.dumps(outputs, indent=2))
+          print('::endgroup::')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write('\n'.join(f'{key}={value}' for key, value in outputs.items()))
+
+      - name: Setup variables (new)
+        id: setup_variables_new
+        env:
+          INPUTS: ${{ toJSON(inputs) }}
+          PROCESSED: ${{ toJSON(steps.process_inputs.outputs) }}
+          REPOSITORY: ${{ github.repository }}
+          PUSH_VERSION_COMMIT: ${{ vars.PUSH_VERSION_COMMIT }}
+          PYPI_PROJECT: ${{ vars.PYPI_PROJECT }}
+          SOURCE_PYPI_PROJECT: ${{ vars[format('{0}_pypi_project', steps.process_inputs.outputs.source_repo)] }}
+          SOURCE_PYPI_SUFFIX: ${{ vars[format('{0}_pypi_suffix', steps.process_inputs.outputs.source_repo)] }}
+          TARGET_PYPI_PROJECT: ${{ vars[format('{0}_pypi_project', steps.process_inputs.outputs.target_repo)] }}
+          TARGET_PYPI_SUFFIX: ${{ vars[format('{0}_pypi_suffix', steps.process_inputs.outputs.target_repo)] }}
+          SOURCE_ARCHIVE_REPO: ${{ vars[format('{0}_archive_repo', steps.process_inputs.outputs.source_repo)] }}
+          TARGET_ARCHIVE_REPO: ${{ vars[format('{0}_archive_repo', steps.process_inputs.outputs.target_repo)] }}
+          HAS_SOURCE_ARCHIVE_REPO_TOKEN: ${{ toJSON(!!secrets[format('{0}_archive_repo_token', steps.process_inputs.outputs.source_repo)])}}
+          HAS_TARGET_ARCHIVE_REPO_TOKEN: ${{ toJSON(!!secrets[format('{0}_archive_repo_token', steps.process_inputs.outputs.target_repo)])}}
+          HAS_ARCHIVE_REPO_TOKEN: ${{ toJSON(!!secrets.ARCHIVE_REPO_TOKEN) }}
+        run: |
+          python -m devscripts.setup_variables
 
       - name: Setup variables
         id: setup_variables
