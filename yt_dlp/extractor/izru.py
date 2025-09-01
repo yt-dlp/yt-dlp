@@ -2,19 +2,31 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, url_or_none
+from ..utils import ExtractorError, url_or_none, urljoin, unified_strdate
 from ..utils.traversal import traverse_obj
 
 
 class IzRuIE(InfoExtractor):
     IE_NAME = 'iz.ru'
-    _VALID_URL = r'(?P<urlstart>https?://(?:www\.)?iz\.ru)/(?P<id>[0-9]+)/(?P<date>[0-9-]+)/(?P<slug>[^/?#]+)'
+    _BASE_URL = 'https://iz.ru'
+    _GEO_BYPASS = False
+    _GEO_COUNTRIES = ['RU']
+    _VALID_URL = r'https?://(?:www\.)?iz\.ru/(?P<id>[0-9]+)(?:/(?:(?P<date>[0-9-]+)|(?:video)))?/(?P<slug>[^/?#]+)'
     _TESTS = [
         {
             'url': 'https://iz.ru/1946734/2025-09-01/liubimova-nazvala-film-krasnyi-shelk-svidetelstvom-tesnykh-sviazei-rf-i-kitaia',
             'info_dict': {
                 'id': '1946734',
                 'title': 'Любимова назвала фильм «Красный шелк» свидетельством тесных связей РФ и Китая',
+                'ext': 'mp4',
+                'thumbnail': r're:https://cdn\.iz\.ru/.+\.(?:jpg|png)',
+            },
+        },
+        {
+            'url': 'https://iz.ru/1946727/video/liubimova-o-filme-krasnyi-shelk',
+            'info_dict': {
+                'id': '1946727',
+                'title': 'Любимова о фильме "Красный шелк"',
                 'ext': 'mp4',
                 'thumbnail': r're:https://cdn\.iz\.ru/.+\.(?:jpg|png)',
             },
@@ -36,13 +48,16 @@ class IzRuIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        urlstart, date = self._match_valid_url(url).group('urlstart', 'date')
-        webpage = self._download_webpage(url, video_id)
+        date = self._match_valid_url(url).group('date')
+        try:
+            webpage = self._download_webpage(url, video_id)
+        except ExtractorError:
+            self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
         iframe_url = self._search_regex(
             r'<iframe\b[^>]+\bsrc=["\'](/video/embed/[^"\']+)', webpage, 'iframe URL',
         )
 
-        iframe_webpage = self._download_webpage(urlstart + iframe_url, video_id)
+        iframe_webpage = self._download_webpage(urljoin(self._BASE_URL, iframe_url), video_id)
         info_json = self._extract_script_data(
             iframe_webpage, r'window\.config\s*=\s*({.*?});',
         )
@@ -60,5 +75,6 @@ class IzRuIE(InfoExtractor):
                 'thumbnail': traverse_obj(info_json, ('image', 'path', {url_or_none})),
                 'formats': formats,
                 'subtitles': subtitles,
+                'upload_date': unified_strdate(date),
             }
         raise ExtractorError('Can\'t get info_json from player\'s iframe')
