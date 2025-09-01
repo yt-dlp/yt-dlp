@@ -89,21 +89,28 @@ jobs:
     outputs:
       origin: ${{ steps.process_origin.outputs.origin }}
       timestamp: ${{ steps.process_origin.outputs.timestamp }}
+      version: ${{ steps.process_origin.outputs.version }}
     steps:
       - name: Process origin
         id: process_origin
         env:
           ORIGIN: ${{ inputs.origin }}
           REPOSITORY: ${{ github.repository }}
+          VERSION: ${{ inputs.version }}
         shell: python
         run: |
+          import datetime as dt
           import json
           import os
-          import time
           origin = os.environ['ORIGIN']
+          timestamp = dt.datetime.now(tz=datetime.timezone.utc).strftime('%Y.%m.%d.%H%M%S.%f')
+          version = os.environ['VERSION']
+          if version and '.' not in version:
+              version = '.'.join(timestamp.split('.')[:3] + [version])
           outputs = {
               'origin': os.environ['REPOSITORY'] if origin == 'current repo' else origin,
-              'timestamp': int(time.time() * 1000),
+              'timestamp': timestamp,
+              'version': version,
           }
           print(json.dumps(outputs, indent=2))
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
@@ -113,6 +120,10 @@ jobs:
     needs: process
     if: inputs.unix
     runs-on: ubuntu-latest
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -125,7 +136,7 @@ jobs:
           sudo apt -y install zip pandoc man sed
       - name: Prepare
         run: |
-          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
           python devscripts/update_changelog.py -vv
           python devscripts/make_lazy_extractors.py
       - name: Build Unix platform-independent binary
@@ -163,28 +174,25 @@ jobs:
         - exe: yt-dlp_linux_aarch64
           platform: aarch64
           runner: ubuntu-24.04-arm
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
+      EXE_NAME: ${{ matrix.exe }}
     steps:
       - uses: actions/checkout@v4
       - name: Build executable
         env:
-          EXE_NAME: ${{ matrix.exe }}
-          CHANNEL: ${{ inputs.channel }}
-          ORIGIN: ${{ needs.process.outputs.origin }}
-          VERSION: ${{ inputs.version }}
           SERVICE: linux_${{ matrix.platform }}
         run: |
           mkdir -p ~/build
           cd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
           docker compose down
-          sudo chown "${USER}:docker" ~/build/${{ matrix.exe }}
+          sudo chown "${USER}:docker" ~/build/${EXE_NAME}
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:
-          EXE_NAME: ${{ matrix.exe }}
-          CHANNEL: ${{ inputs.channel }}
-          ORIGIN: ${{ needs.process.outputs.origin }}
-          VERSION: ${{ inputs.version }}
           SERVICE: linux_${{ matrix.platform }}_verify
         run: |
           cd bundle/docker
@@ -193,12 +201,12 @@ jobs:
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          chmod +x ~/build/${{ matrix.exe }}
+          chmod +x ~/build/${EXE_NAME}
           mkdir -p ~/testing
-          cp ~/build/${{ matrix.exe }} ~/testing/${{ matrix.exe }}_downgraded
-          version="$(~/build/${{ matrix.exe }} --version)"
-          ~/testing/${{ matrix.exe }}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-          downgraded_version="$(~/testing/${{ matrix.exe }}_downgraded --version)"
+          cp ~/build/${EXE_NAME} ~/testing/${EXE_NAME}_downgraded
+          version="$(~/build/${EXE_NAME} --version)"
+          ~/testing/${EXE_NAME}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(~/testing/${EXE_NAME}_downgraded --version)"
           [[ "$version" != "$downgraded_version" ]]
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -214,9 +222,13 @@ jobs:
     permissions:
       contents: read
     runs-on: ubuntu-24.04-arm
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
+      EXE_NAME: yt-dlp_linux_armv7l
     steps:
       - uses: actions/checkout@v4
-
       - name: Cache requirements
         id: cache-venv
         uses: actions/cache@v4
@@ -229,18 +241,12 @@ jobs:
           restore-keys: |
             cache-reqs-${{ github.job }}-${{ github.ref }}-
             cache-reqs-${{ github.job }}-
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
           platforms: linux/arm/v7
-
       - name: Build executable
         env:
-          EXE_NAME: yt-dlp_linux_armv7l
-          CHANNEL: ${{ inputs.channel }}
-          ORIGIN: ${{ needs.process.outputs.origin }}
-          VERSION: ${{ inputs.version }}
           SERVICE: linux_armv7l
         run: |
           mkdir -p ~/build
@@ -248,20 +254,14 @@ jobs:
           cd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
           docker compose down
-
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:
-          EXE_NAME: yt-dlp_linux_armv7l
-          CHANNEL: ${{ inputs.channel }}
-          ORIGIN: ${{ needs.process.outputs.origin }}
-          VERSION: ${{ inputs.version }}
           SERVICE: linux_armv7l_verify
         run: |
           cd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
           docker compose down
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -284,14 +284,15 @@ jobs:
         - exe: yt-dlp_musllinux_aarch64
           platform: aarch64
           runner: ubuntu-24.04-arm
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
+      EXE_NAME: ${{ matrix.exe }}
     steps:
       - uses: actions/checkout@v4
       - name: Build executable
         env:
-          EXE_NAME: ${{ matrix.exe }}
-          CHANNEL: ${{ inputs.channel }}
-          ORIGIN: ${{ needs.process.outputs.origin }}
-          VERSION: ${{ inputs.version }}
           SERVICE: musllinux_${{ matrix.platform }}
         run: |
           mkdir -p ~/build
@@ -302,10 +303,6 @@ jobs:
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:
-          EXE_NAME: ${{ matrix.exe }}
-          CHANNEL: ${{ inputs.channel }}
-          ORIGIN: ${{ needs.process.outputs.origin }}
-          VERSION: ${{ inputs.version }}
           SERVICE: musllinux_${{ matrix.platform }}_verify
         run: |
           cd bundle/docker
@@ -325,6 +322,10 @@ jobs:
     permissions:
       contents: read
     runs-on: macos-14
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -386,7 +387,7 @@ jobs:
 
       - name: Prepare
         run: |
-          python3 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python3 devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
           python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
@@ -436,6 +437,14 @@ jobs:
           runner: windows-11-arm
           python_version: '3.13'  # arm64 only has Python >= 3.11 available
           suffix: '_arm64'
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
+      SUFFIX: ${{ matrix.suffix }}
+      BASE_CACHE_KEY: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}
+      # Use custom PyInstaller built with https://github.com/yt-dlp/Pyinstaller-builds
+      PYINSTALLER_URL: https://yt-dlp.github.io/Pyinstaller-Builds/${{ matrix.arch }}/pyinstaller-6.15.0-py3-none-any.whl
 
     steps:
       - uses: actions/checkout@v4
@@ -453,23 +462,24 @@ jobs:
         with:
           path: |
             /yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
+          key: ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
           restore-keys: |
-            cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}-
-            cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-
+            ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-
+            ${{ env.BASE_CACHE_KEY }}-
 
       - name: Install Requirements
+        env:
+          INCLUDES: ${{ (matrix.arch != 'x86' && '--include curl-cffi') || '' }}
         run: |
           python -m venv /yt-dlp-build-venv
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py ${{ (matrix.arch != 'x86' && '--include curl-cffi') || '' }}
-          # Use custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/${{ matrix.arch }}/pyinstaller-6.15.0-py3-none-any.whl"
+          python devscripts/install_deps.py ${Env:INCLUDES}
+          python -m pip install -U "${Env:PYINSTALLER_URL}"
 
       - name: Prepare
         run: |
-          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python devscripts/update-version.py -c "${Env:CHANNEL}" -r "${Env:ORIGIN}" "${Env:VERSION}"
           python devscripts/make_lazy_extractors.py
 
       - name: Build
@@ -477,12 +487,12 @@ jobs:
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
-          Compress-Archive -Path ./dist/yt-dlp${{ matrix.suffix }}/* -DestinationPath ./dist/yt-dlp_win${{ matrix.suffix }}.zip
+          Compress-Archive -Path ./dist/yt-dlp${Env:SUFFIX}/* -DestinationPath ./dist/yt-dlp_win${Env:SUFFIX}.zip
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          foreach ($name in @("yt-dlp${{ matrix.suffix }}")) {
+          foreach ($name in @("yt-dlp${Env:SUFFIX}")) {
             Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
             $version = & "./dist/${name}.exe" --version
             & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2025.08.20
