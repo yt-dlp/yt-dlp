@@ -2,7 +2,7 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, unified_strdate, url_or_none, urljoin
+from ..utils import JSON_LD_RE, ExtractorError, url_or_none, urljoin
 from ..utils.traversal import traverse_obj
 
 
@@ -17,9 +17,13 @@ class IzRuIE(InfoExtractor):
             'url': 'https://iz.ru/1946734/2025-09-01/liubimova-nazvala-film-krasnyi-shelk-svidetelstvom-tesnykh-sviazei-rf-i-kitaia',
             'info_dict': {
                 'id': '1946734',
-                'title': 'Любимова назвала фильм «Красный шелк» свидетельством тесных связей РФ и Китая',
+                'title': 'Любимова о фильме "Красный шелк"',
+                'description': 'Любимова о фильме "Красный шелк"',
+                'duration': 238,
                 'ext': 'mp4',
                 'thumbnail': r're:https://cdn\.iz\.ru/.+\.(?:jpg|png)',
+                'timestamp': 1756737997,
+                'view_count': 1254,
             },
         },
         {
@@ -27,8 +31,12 @@ class IzRuIE(InfoExtractor):
             'info_dict': {
                 'id': '1946727',
                 'title': 'Любимова о фильме "Красный шелк"',
+                'description': 'Любимова о фильме "Красный шелк"',
+                'duration': 238,
                 'ext': 'mp4',
                 'thumbnail': r're:https://cdn\.iz\.ru/.+\.(?:jpg|png)',
+                'timestamp': 1756737997,
+                'view_count': 1254,
             },
         },
     ]
@@ -48,7 +56,6 @@ class IzRuIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        date = self._match_valid_url(url).group('date')
         try:
             webpage = self._download_webpage(url, video_id)
         except ExtractorError:
@@ -57,12 +64,18 @@ class IzRuIE(InfoExtractor):
             r'<iframe\b[^>]+\bsrc=["\'](/video/embed/[^"\']+)', webpage, 'iframe URL',
         )
 
-        iframe_webpage = self._download_webpage(urljoin(self._BASE_URL, iframe_url), video_id)
-        info_json = self._extract_script_data(
-            iframe_webpage, r'window\.config\s*=\s*({.*?});',
+        iframe_webpage = self._download_webpage(urljoin(self._BASE_URL, iframe_url), video_id, 'Download player iframe')
+        info_json = self._extract_script_data(iframe_webpage, r'window\.config\s*=\s*({.*?});')
+        json_ld = self._parse_json(
+            self._search_regex(
+                JSON_LD_RE, iframe_webpage, 'JSON-LD', '{}', group='json_ld',
+            ),
+            video_id,
+            fatal=False,
         )
-        if not info_json:
-            raise ExtractorError('Can\'t get info_json from player\'s iframe')
+        json_ld_info = self._json_ld(json_ld, video_id, fatal=False) or {}
+        if not info_json or not json_ld_info:
+            raise ExtractorError('Can\'t get info_json or json_ld_info from player\'s iframe')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             traverse_obj(info_json, ('sources', -1, 'hls', {url_or_none})),
             video_id,
@@ -70,11 +83,8 @@ class IzRuIE(InfoExtractor):
             m3u8_id='hls',
         )
 
-        return {
-            'id': video_id,
-            'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
-            'thumbnail': traverse_obj(info_json, ('image', 'path', {url_or_none})),
-            'formats': formats,
-            'subtitles': subtitles,
-            'upload_date': unified_strdate(date),
-        }
+        json_ld_info.update(
+            {'formats': formats, 'subtitles': subtitles, 'id': video_id}
+        )
+
+        return json_ld_info
