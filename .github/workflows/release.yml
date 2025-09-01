@@ -88,8 +88,8 @@ jobs:
         run: |
           python -m devscripts.setup_variables process_inputs
 
-      - name: Setup variables (new)
-        id: setup_variables_new
+      - name: Setup variables
+        id: setup_variables
         env:
           INPUTS: ${{ toJSON(inputs) }}
           PROCESSED: ${{ toJSON(steps.process_inputs.outputs) }}
