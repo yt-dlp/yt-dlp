@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import argparse
 import contextlib
 import datetime as dt
+import json
 import sys
 
 from devscripts.utils import read_version, run_process, write_file
@@ -67,6 +68,9 @@ if __name__ == '__main__':
         '-o', '--output', default='yt_dlp/version.py',
         help='The output file to write to (default: %(default)s)')
     parser.add_argument(
+        '-j', '--json', action='store_true',
+        help='print JSON to stdout')
+    parser.add_argument(
         'version', nargs='?', default=None,
         help='A version or revision to use instead of generating one')
     args = parser.parse_args()
@@ -79,4 +83,11 @@ if __name__ == '__main__':
         version=version, git_head=git_head, channel=args.channel, origin=args.origin,
         package_version=f'{version}{args.suffix}'))
 
-    print(f'version={version} ({args.channel}), head={git_head}')
+    if args.json:
+        print(json.dumps({
+            'version': version,
+            'channel': args.channel,
+            'head': git_head,
+        }))
+    else:
+        print(f'version={version} ({args.channel}), head={git_head}')
