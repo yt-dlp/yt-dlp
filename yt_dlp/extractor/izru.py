@@ -83,8 +83,9 @@ class IzRuIE(InfoExtractor):
             m3u8_id='hls',
         )
 
-        json_ld_info.update(
-            {'formats': formats, 'subtitles': subtitles, 'id': video_id},
-        )
-
-        return json_ld_info
+        return {
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            **json_ld_info
+        }
