@@ -57,10 +57,9 @@ def setup_variables(environment):
     elif source_repo == 'yt-dlp/yt-dlp':
         resolved_source = 'stable'
 
+    revision = None
     if INPUTS['prerelease'] or not environment['PUSH_VERSION_COMMIT']:
         revision = dt.datetime.now(tz=dt.timezone.utc).strftime('%H%M%S')
-    else:
-        revision = ''
 
     version = calculate_version(INPUTS.get('version') or revision)
 
