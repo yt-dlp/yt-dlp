@@ -28,7 +28,7 @@ def compat_ord(c):
     return c if isinstance(c, int) else ord(c)
 
 
-def datetime_from_timestamp(timestamp):
+def compat_datetime_from_timestamp(timestamp):
     # Calling dt.datetime.fromtimestamp with negative timestamps throws error in Windows
     # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/81708,
     # https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642

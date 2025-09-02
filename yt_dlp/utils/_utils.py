@@ -50,7 +50,7 @@ from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
     compat_HTMLParseError,
-    datetime_from_timestamp,
+    compat_datetime_from_timestamp,
 )
 from ..dependencies import xattr
 from ..globals import IN_CLI, WINDOWS_VT_MODE
@@ -1386,7 +1386,7 @@ def datetime_round(dt_, precision='day'):
     }
     roundto = lambda x, n: ((x + n / 2) // n) * n
     timestamp = roundto(calendar.timegm(dt_.timetuple()) + dt_.microsecond / time_scale, unit_seconds[precision])
-    return datetime_from_timestamp(timestamp)
+    return compat_datetime_from_timestamp(timestamp)
 
 
 def hyphenate_date(date_str):
@@ -2058,7 +2058,7 @@ def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
     datetime_object = None
     try:
         if isinstance(timestamp, (int, float)):  # unix timestamp
-            datetime_object = datetime_from_timestamp(timestamp)
+            datetime_object = compat_datetime_from_timestamp(timestamp)
         elif isinstance(timestamp, str):  # assume YYYYMMDD
             datetime_object = dt.datetime.strptime(timestamp, '%Y%m%d')
         date_format = re.sub(  # Support %s on windows
