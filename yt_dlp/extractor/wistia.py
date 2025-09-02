@@ -408,7 +408,7 @@ class WistiaChannelIE(WistiaBaseIE):
 
         entries = [
             self.url_result(f'wistia:{video["hashedId"]}', WistiaIE, title=video.get('name'))
-            for video in traverse_obj(series, ('sections', ..., 'episodes', ...)) or []
+            for video in traverse_obj(series, ('sections', ..., ('videos', 'episodes'), ...)) or []
             if video.get('hashedId')
         ]
 
