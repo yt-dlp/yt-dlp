@@ -49,6 +49,7 @@ from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
     compat_HTMLParseError,
+    datetime_from_timestamp,
 )
 from ..dependencies import xattr
 
@@ -1365,13 +1366,6 @@ def datetime_add_months(dt_, months):
     month = month % 12 + 1
     day = min(dt_.day, calendar.monthrange(year, month)[1])
     return dt_.replace(year, month, day)
-
-
-def datetime_from_timestamp(timestamp):
-    # Calling dt.datetime.fromtimestamp with negative timestamps throws error in Windows
-    # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/81708,
-    # https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642
-    return (dt.datetime.fromtimestamp(0, dt.timezone.utc) + dt.timedelta(seconds=timestamp))
 
 
 def datetime_round(dt_, precision='day'):
