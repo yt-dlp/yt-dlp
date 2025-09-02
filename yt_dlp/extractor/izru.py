@@ -61,30 +61,24 @@ class IzRuIE(InfoExtractor):
         except ExtractorError:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
         iframe_url = self._search_regex(
-            r'<iframe\b[^>]+\bsrc=["\'](/video/embed/[^"\']+)', webpage, 'iframe URL',
-        )
+            r'<iframe\b[^>]+\bsrc=["\'](/video/embed/[^"\']+)', webpage, 'iframe URL')
 
         iframe_webpage = self._download_webpage(urljoin(self._BASE_URL, iframe_url), video_id, 'Download player iframe')
         info_json = self._extract_script_data(iframe_webpage, r'window\.config\s*=\s*({.*?});')
         json_ld = self._parse_json(
             self._search_regex(
-                JSON_LD_RE, iframe_webpage, 'JSON-LD', '{}', group='json_ld',
-            ),
-            video_id,
-            fatal=False,
-        )
+                JSON_LD_RE, iframe_webpage, 'JSON-LD', '{}', group='json_ld'),
+            video_id, fatal=False)
         json_ld_info = self._json_ld(json_ld, video_id, fatal=False) or {}
         if not info_json or not json_ld_info:
             raise ExtractorError('Can\'t get info_json or json_ld_info from player\'s iframe')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             traverse_obj(info_json, ('sources', -1, 'hls', {url_or_none})),
-            video_id,
-            'mp4',
-            m3u8_id='hls',
-        )
+            video_id, 'mp4', m3u8_id='hls')
 
         return {
             'id': video_id,
+            'url': traverse_obj(info_json, ("sources", -1, "reserve", "mp4", {url_or_none})),
             'formats': formats,
             'subtitles': subtitles,
             **json_ld_info,
