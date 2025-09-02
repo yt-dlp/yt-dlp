@@ -132,6 +132,7 @@ def _test(github_repository, note, repo_vars, repo_secrets, inputs, expected=Non
     secrets = {k.upper(): v for k, v in repo_secrets.items()}
 
     env = {
+        # Keep this in sync with prepare.setup_variables in release.yml
         'INPUTS': json.dumps(inp),
         'PROCESSED': json.dumps(processed),
         'REPOSITORY': github_repository,
@@ -151,6 +152,7 @@ def _test(github_repository, note, repo_vars, repo_secrets, inputs, expected=Non
     result = setup_variables(env)
     if not expected:
         print('        {\n' + '\n'.join(f'            {k!r}: {v!r},' for k, v in result.items()) + '\n        }')
+        return
 
     exp = expected.copy()
     if ignore_revision:
