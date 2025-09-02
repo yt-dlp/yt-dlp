@@ -78,7 +78,7 @@ class IzRuIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'url': traverse_obj(info_json, ("sources", -1, "reserve", "mp4", {url_or_none})),
+            'url': traverse_obj(info_json, ('sources', -1, 'reserve', 'mp4', {url_or_none})),
             'formats': formats,
             'subtitles': subtitles,
             **json_ld_info,
