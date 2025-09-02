@@ -10,6 +10,9 @@ import json
 from devscripts.utils import calculate_version
 
 
+STABLE_REPOSITORY = 'yt-dlp/yt-dlp'
+
+
 def setup_variables(environment):
     """
     `environment` must contain these keys:
@@ -42,7 +45,7 @@ def setup_variables(environment):
     source_repo = PROCESSED['source_repo']
     source_tag = PROCESSED['source_tag']
     if source_repo == 'stable':
-        source_repo = 'yt-dlp/yt-dlp'
+        source_repo = STABLE_REPOSITORY
     if not source_repo:
         source_repo = REPOSITORY
     elif environment['SOURCE_ARCHIVE_REPO']:
@@ -54,7 +57,7 @@ def setup_variables(environment):
     resolved_source = source_repo
     if source_tag:
         resolved_source = f'{resolved_source}@{source_tag}'
-    elif source_repo == 'yt-dlp/yt-dlp':
+    elif source_repo == STABLE_REPOSITORY:
         resolved_source = 'stable'
 
     revision = None
@@ -66,8 +69,12 @@ def setup_variables(environment):
     target_repo = PROCESSED['target_repo']
     target_tag = PROCESSED['target_tag']
     if target_repo:
+        if target_repo == 'stable':
+            target_repo = STABLE_REPOSITORY
         if not target_tag:
-            if environment['TARGET_ARCHIVE_REPO']:
+            if target_repo == STABLE_REPOSITORY:
+                target_tag = version
+            elif environment['TARGET_ARCHIVE_REPO']:
                 target_tag = source_tag or version
             else:
                 target_tag = target_repo
@@ -178,20 +185,22 @@ def _run_tests():
     BASE_REPO_SECRETS = {
         'ARCHIVE_REPO_TOKEN': '1',
     }
+    FORK_REPOSITORY = 'fork/yt-dlp'
+    FORK_ORG = FORK_REPOSITORY.partition('/')[0]
 
     _test(
-        'yt-dlp/yt-dlp', 'official vars/secrets, stable',
+        STABLE_REPOSITORY, 'official vars/secrets, stable',
         BASE_REPO_VARS, BASE_REPO_SECRETS, {}, {
             'channel': 'stable',
             'version': DEFAULT_VERSION,
-            'target_repo': 'yt-dlp/yt-dlp',
+            'target_repo': STABLE_REPOSITORY,
             'target_repo_token': None,
             'target_tag': DEFAULT_VERSION,
             'pypi_project': 'yt-dlp',
             'pypi_suffix': None,
         })
     _test(
-        'yt-dlp/yt-dlp', 'official vars/secrets, nightly (w/o target)',
+        STABLE_REPOSITORY, 'official vars/secrets, nightly (w/o target)',
         BASE_REPO_VARS, BASE_REPO_SECRETS, {
             'source': 'nightly',
             'prerelease': True,
@@ -205,7 +214,7 @@ def _run_tests():
             'pypi_suffix': 'dev',
         }, ignore_revision=True)
     _test(
-        'yt-dlp/yt-dlp', 'official vars/secrets, nightly',
+        STABLE_REPOSITORY, 'official vars/secrets, nightly',
         BASE_REPO_VARS, BASE_REPO_SECRETS, {
             'source': 'nightly',
             'target': 'nightly',
@@ -220,7 +229,7 @@ def _run_tests():
             'pypi_suffix': 'dev',
         }, ignore_revision=True)
     _test(
-        'yt-dlp/yt-dlp', 'official vars/secrets, master (w/o target)',
+        STABLE_REPOSITORY, 'official vars/secrets, master (w/o target)',
         BASE_REPO_VARS, BASE_REPO_SECRETS, {
             'source': 'master',
             'prerelease': True,
@@ -234,7 +243,7 @@ def _run_tests():
             'pypi_suffix': None,
         }, ignore_revision=True)
     _test(
-        'yt-dlp/yt-dlp', 'official vars/secrets, master',
+        STABLE_REPOSITORY, 'official vars/secrets, master',
         BASE_REPO_VARS, BASE_REPO_SECRETS, {
             'source': 'master',
             'target': 'master',
@@ -248,65 +257,93 @@ def _run_tests():
             'pypi_project': None,
             'pypi_suffix': None,
         }, ignore_revision=True)
+    _test(
+        STABLE_REPOSITORY, 'official vars/secrets, special tag, updates to stable',
+        BASE_REPO_VARS, BASE_REPO_SECRETS, {
+            'target': f'{STABLE_REPOSITORY}@experimental',
+            'prerelease': True,
+        }, {
+            'channel': 'stable',
+            'version': DEFAULT_VERSION_WITH_REVISION,
+            'target_repo': STABLE_REPOSITORY,
+            'target_repo_token': None,
+            'target_tag': 'experimental',
+            'pypi_project': None,
+            'pypi_suffix': None,
+        }, ignore_revision=True)
+    _test(
+        STABLE_REPOSITORY, 'official vars/secrets, special tag, "stable" as target repo',
+        BASE_REPO_VARS, BASE_REPO_SECRETS, {
+            'target': 'stable@experimental',
+            'prerelease': True,
+        }, {
+            'channel': 'stable',
+            'version': DEFAULT_VERSION_WITH_REVISION,
+            'target_repo': STABLE_REPOSITORY,
+            'target_repo_token': None,
+            'target_tag': 'experimental',
+            'pypi_project': None,
+            'pypi_suffix': None,
+        }, ignore_revision=True)
 
     _test(
-        'bashonly/yt-dlp', 'fork w/o vars/secrets, stable',
+        FORK_REPOSITORY, 'fork w/o vars/secrets, stable',
         {}, {}, {}, {
-            'channel': 'bashonly/yt-dlp',
+            'channel': FORK_REPOSITORY,
             'version': DEFAULT_VERSION_WITH_REVISION,
-            'target_repo': 'bashonly/yt-dlp',
+            'target_repo': FORK_REPOSITORY,
             'target_repo_token': None,
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': None,
             'pypi_suffix': None,
         }, ignore_revision=True)
     _test(
-        'bashonly/yt-dlp', 'fork w/o vars/secrets, prerelease',
+        FORK_REPOSITORY, 'fork w/o vars/secrets, prerelease',
         {}, {}, {'prerelease': True}, {
-            'channel': 'bashonly/yt-dlp',
+            'channel': FORK_REPOSITORY,
             'version': DEFAULT_VERSION_WITH_REVISION,
-            'target_repo': 'bashonly/yt-dlp',
+            'target_repo': FORK_REPOSITORY,
             'target_repo_token': None,
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': None,
             'pypi_suffix': None,
         }, ignore_revision=True)
     _test(
-        'bashonly/yt-dlp', 'fork w/o vars/secrets, nightly',
+        FORK_REPOSITORY, 'fork w/o vars/secrets, nightly',
         {}, {}, {
             'prerelease': True,
             'source': 'nightly',
             'target': 'nightly',
         }, {
-            'channel': 'bashonly/yt-dlp@nightly',
+            'channel': f'{FORK_REPOSITORY}@nightly',
             'version': DEFAULT_VERSION_WITH_REVISION,
-            'target_repo': 'bashonly/yt-dlp',
+            'target_repo': FORK_REPOSITORY,
             'target_repo_token': None,
             'target_tag': 'nightly',
             'pypi_project': None,
             'pypi_suffix': None,
         }, ignore_revision=True)
     _test(
-        'bashonly/yt-dlp', 'fork w/o vars/secrets, master',
+        FORK_REPOSITORY, 'fork w/o vars/secrets, master',
         {}, {}, {
             'prerelease': True,
             'source': 'master',
             'target': 'master',
         }, {
-            'channel': 'bashonly/yt-dlp@master',
+            'channel': f'{FORK_REPOSITORY}@master',
             'version': DEFAULT_VERSION_WITH_REVISION,
-            'target_repo': 'bashonly/yt-dlp',
+            'target_repo': FORK_REPOSITORY,
             'target_repo_token': None,
             'target_tag': 'master',
             'pypi_project': None,
             'pypi_suffix': None,
         }, ignore_revision=True)
     _test(
-        'bashonly/yt-dlp', 'fork w/o vars/secrets, revision',
+        FORK_REPOSITORY, 'fork w/o vars/secrets, revision',
         {}, {}, {'version': '123'}, {
-            'channel': 'bashonly/yt-dlp',
+            'channel': FORK_REPOSITORY,
             'version': f'{DEFAULT_VERSION}.123',
-            'target_repo': 'bashonly/yt-dlp',
+            'target_repo': FORK_REPOSITORY,
             'target_repo_token': None,
             'target_tag': f'{DEFAULT_VERSION}.123',
             'pypi_project': None,
@@ -314,22 +351,22 @@ def _run_tests():
         })
 
     _test(
-        'bashonly/yt-dlp', 'fork w/ PUSH_VERSION_COMMIT, stable',
+        FORK_REPOSITORY, 'fork w/ PUSH_VERSION_COMMIT, stable',
         {'PUSH_VERSION_COMMIT': '1'}, {}, {}, {
-            'channel': 'bashonly/yt-dlp',
+            'channel': FORK_REPOSITORY,
             'version': DEFAULT_VERSION,
-            'target_repo': 'bashonly/yt-dlp',
+            'target_repo': FORK_REPOSITORY,
             'target_repo_token': None,
             'target_tag': DEFAULT_VERSION,
             'pypi_project': None,
             'pypi_suffix': None,
         })
     _test(
-        'bashonly/yt-dlp', 'fork w/ PUSH_VERSION_COMMIT, prerelease',
+        FORK_REPOSITORY, 'fork w/ PUSH_VERSION_COMMIT, prerelease',
         {'PUSH_VERSION_COMMIT': '1'}, {}, {'prerelease': True}, {
-            'channel': 'bashonly/yt-dlp',
+            'channel': FORK_REPOSITORY,
             'version': DEFAULT_VERSION_WITH_REVISION,
-            'target_repo': 'bashonly/yt-dlp',
+            'target_repo': FORK_REPOSITORY,
             'target_repo_token': None,
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': None,
@@ -337,39 +374,39 @@ def _run_tests():
         }, ignore_revision=True)
 
     _test(
-        'bashonly/yt-dlp', 'fork w/NIGHTLY_ARCHIVE_REPO_TOKEN, nightly', {
-            'NIGHTLY_ARCHIVE_REPO': 'bashonly/yt-dlp-nightly-builds',
+        FORK_REPOSITORY, 'fork w/NIGHTLY_ARCHIVE_REPO_TOKEN, nightly', {
+            'NIGHTLY_ARCHIVE_REPO': f'{FORK_ORG}/yt-dlp-nightly-builds',
             'PYPI_PROJECT': 'yt-dlp-test',
         }, {
             'NIGHTLY_ARCHIVE_REPO_TOKEN': '1',
         }, {
-            'source': 'bashonly/yt-dlp-nightly-builds',
+            'source': f'{FORK_ORG}/yt-dlp-nightly-builds',
             'target': 'nightly',
             'prerelease': True,
         }, {
-            'channel': 'bashonly/yt-dlp-nightly-builds',
+            'channel': f'{FORK_ORG}/yt-dlp-nightly-builds',
             'version': DEFAULT_VERSION_WITH_REVISION,
-            'target_repo': 'bashonly/yt-dlp-nightly-builds',
+            'target_repo': f'{FORK_ORG}/yt-dlp-nightly-builds',
             'target_repo_token': 'NIGHTLY_ARCHIVE_REPO_TOKEN',
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': None,
             'pypi_suffix': None,
         }, ignore_revision=True)
     _test(
-        'bashonly/yt-dlp', 'fork w/MASTER_ARCHIVE_REPO_TOKEN, master', {
-            'MASTER_ARCHIVE_REPO': 'bashonly/yt-dlp-master-builds',
+        FORK_REPOSITORY, 'fork w/MASTER_ARCHIVE_REPO_TOKEN, master', {
+            'MASTER_ARCHIVE_REPO': f'{FORK_ORG}/yt-dlp-master-builds',
             'MASTER_PYPI_PROJECT': 'yt-dlp-test',
             'MASTER_PYPI_SUFFIX': 'dev',
         }, {
             'MASTER_ARCHIVE_REPO_TOKEN': '1',
         }, {
-            'source': 'bashonly/yt-dlp-master-builds',
+            'source': f'{FORK_ORG}/yt-dlp-master-builds',
             'target': 'master',
             'prerelease': True,
         }, {
-            'channel': 'bashonly/yt-dlp-master-builds',
+            'channel': f'{FORK_ORG}/yt-dlp-master-builds',
             'version': DEFAULT_VERSION_WITH_REVISION,
-            'target_repo': 'bashonly/yt-dlp-master-builds',
+            'target_repo': f'{FORK_ORG}/yt-dlp-master-builds',
             'target_repo_token': 'MASTER_ARCHIVE_REPO_TOKEN',
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': 'yt-dlp-test',
@@ -377,18 +414,18 @@ def _run_tests():
         }, ignore_revision=True)
 
     _test(
-        'bashonly/yt-dlp', 'fork, non-numeric tag',
+        FORK_REPOSITORY, 'fork, non-numeric tag',
         {}, {}, {'source': 'experimental'}, {
-            'channel': 'bashonly/yt-dlp@experimental',
+            'channel': f'{FORK_REPOSITORY}@experimental',
             'version': DEFAULT_VERSION_WITH_REVISION,
-            'target_repo': 'bashonly/yt-dlp',
+            'target_repo': FORK_REPOSITORY,
             'target_repo_token': None,
             'target_tag': 'experimental',
             'pypi_project': None,
             'pypi_suffix': None,
         }, ignore_revision=True)
     _test(
-        'bashonly/yt-dlp', 'fork, non-numeric tag, updates to stable',
+        FORK_REPOSITORY, 'fork, non-numeric tag, updates to stable',
         {}, {}, {
             'prerelease': True,
             'source': 'stable',
@@ -396,7 +433,7 @@ def _run_tests():
         }, {
             'channel': 'stable',
             'version': DEFAULT_VERSION_WITH_REVISION,
-            'target_repo': 'bashonly/yt-dlp',
+            'target_repo': FORK_REPOSITORY,
             'target_repo_token': None,
             'target_tag': 'experimental',
             'pypi_project': None,
