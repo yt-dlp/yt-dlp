@@ -22,7 +22,6 @@ import ssl
 import tempfile
 import threading
 import time
-import urllib.error
 import urllib.request
 import warnings
 import zlib
@@ -39,6 +38,7 @@ from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import brotli, curl_cffi, requests, urllib3
 from yt_dlp.networking import (
     HEADRequest,
+    PATCHRequest,
     PUTRequest,
     Request,
     RequestDirector,
@@ -222,10 +222,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
                 if encoding == 'br' and brotli:
                     payload = brotli.compress(payload)
                 elif encoding == 'gzip':
-                    buf = io.BytesIO()
-                    with gzip.GzipFile(fileobj=buf, mode='wb') as f:
-                        f.write(payload)
-                    payload = buf.getvalue()
+                    payload = gzip.compress(payload, mtime=0)
                 elif encoding == 'deflate':
                     payload = zlib.compress(payload)
                 elif encoding == 'unsupported':
@@ -614,7 +611,6 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 rh, Request(f'http://127.0.0.1:{self.http_port}/source_address')).read().decode()
             assert source_address == data
 
-    # Not supported by CurlCFFI
     @pytest.mark.skip_handler('CurlCFFI', 'not supported by curl-cffi')
     def test_gzip_trailing_garbage(self, handler):
         with handler() as rh:
@@ -719,6 +715,26 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 validate_and_send(
                     rh, Request(
                         f'http://127.0.0.1:{self.http_port}/headers', proxies={'all': 'http://10.255.255.255'})).close()
+
+    @pytest.mark.skip_handlers_if(lambda _, handler: handler not in ['Urllib', 'CurlCFFI'], 'handler does not support keep_header_casing')
+    def test_keep_header_casing(self, handler):
+        with handler() as rh:
+            res = validate_and_send(
+                rh, Request(
+                    f'http://127.0.0.1:{self.http_port}/headers', headers={'X-test-heaDer': 'test'}, extensions={'keep_header_casing': True})).read().decode()
+
+            assert 'X-test-heaDer: test' in res
+
+    def test_partial_read_then_full_read(self, handler):
+        with handler() as rh:
+            for encoding in ('', 'gzip', 'deflate'):
+                res = validate_and_send(rh, Request(
+                    f'http://127.0.0.1:{self.http_port}/content-encoding',
+                    headers={'ytdl-encoding': encoding}))
+                assert res.headers.get('Content-Encoding') == encoding
+                assert res.read(6) == b'<html>'
+                assert res.read(0) == b''
+                assert res.read() == b'<video src="/vid.mp4" /></html>'
 
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
@@ -1289,6 +1305,7 @@ class TestRequestHandlerValidation:
             ({'legacy_ssl': False}, False),
             ({'legacy_ssl': True}, False),
             ({'legacy_ssl': 'notabool'}, AssertionError),
+            ({'keep_header_casing': True}, UnsupportedRequest),
         ]),
         ('Requests', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
@@ -1299,6 +1316,9 @@ class TestRequestHandlerValidation:
             ({'legacy_ssl': False}, False),
             ({'legacy_ssl': True}, False),
             ({'legacy_ssl': 'notabool'}, AssertionError),
+            ({'keep_header_casing': False}, False),
+            ({'keep_header_casing': True}, False),
+            ({'keep_header_casing': 'notabool'}, AssertionError),
         ]),
         ('CurlCFFI', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
@@ -1844,6 +1864,7 @@ class TestRequest:
 
     def test_request_helpers(self):
         assert HEADRequest('http://example.com').method == 'HEAD'
+        assert PATCHRequest('http://example.com').method == 'PATCH'
         assert PUTRequest('http://example.com').method == 'PUT'
 
     def test_headers(self):

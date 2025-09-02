@@ -31,6 +31,7 @@ from ..utils import (
     timetuple_from_msec,
     try_call,
 )
+from ..utils._utils import _ProgressState
 
 
 class FileDownloader:
@@ -333,7 +334,7 @@ class FileDownloader:
             progress_dict), s.get('progress_idx') or 0)
         self.to_console_title(self.ydl.evaluate_outtmpl(
             progress_template.get('download-title') or 'yt-dlp %(progress._default_template)s',
-            progress_dict))
+            progress_dict), _ProgressState.from_dict(s), s.get('_percent'))
 
     def _format_progress(self, *args, **kwargs):
         return self.ydl._format_text(
@@ -357,6 +358,7 @@ class FileDownloader:
                 '_speed_str': self.format_speed(speed).strip(),
                 '_total_bytes_str': _format_bytes('total_bytes'),
                 '_elapsed_str': self.format_seconds(s.get('elapsed')),
+                '_percent': 100.0,
                 '_percent_str': self.format_percent(100),
             })
             self._report_progress_status(s, join_nonempty(
@@ -375,13 +377,15 @@ class FileDownloader:
                     return
                 self._progress_delta_time += update_delta
 
+        progress = try_call(
+            lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
+            lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
+            lambda: s['downloaded_bytes'] == 0 and 0)
         s.update({
             '_eta_str': self.format_eta(s.get('eta')).strip(),
             '_speed_str': self.format_speed(s.get('speed')),
-            '_percent_str': self.format_percent(try_call(
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
-                lambda: s['downloaded_bytes'] == 0 and 0)),
+            '_percent': progress,
+            '_percent_str': self.format_percent(progress),
             '_total_bytes_str': _format_bytes('total_bytes'),
             '_total_bytes_estimate_str': _format_bytes('total_bytes_estimate'),
             '_downloaded_bytes_str': _format_bytes('downloaded_bytes'),
@@ -451,14 +455,26 @@ class FileDownloader:
                 self._finish_multiline_status()
                 return True, False
 
+        sleep_note = ''
         if subtitle:
             sleep_interval = self.params.get('sleep_interval_subtitles') or 0
         else:
             min_sleep_interval = self.params.get('sleep_interval') or 0
+            max_sleep_interval = self.params.get('max_sleep_interval') or 0
+
+            if available_at := info_dict.get('available_at'):
+                forced_sleep_interval = available_at - int(time.time())
+                if forced_sleep_interval > min_sleep_interval:
+                    sleep_note = 'as required by the site'
+                    min_sleep_interval = forced_sleep_interval
+                if forced_sleep_interval > max_sleep_interval:
+                    max_sleep_interval = forced_sleep_interval
+
             sleep_interval = random.uniform(
-                min_sleep_interval, self.params.get('max_sleep_interval') or min_sleep_interval)
+                min_sleep_interval, max_sleep_interval or min_sleep_interval)
+
         if sleep_interval > 0:
-            self.to_screen(f'[download] Sleeping {sleep_interval:.2f} seconds ...')
+            self.to_screen(f'[download] Sleeping {sleep_interval:.2f} seconds {sleep_note}...')
             time.sleep(sleep_interval)
 
         ret = self.real_download(filename, info_dict)
@@ -491,3 +507,14 @@ class FileDownloader:
             exe = os.path.basename(args[0])
 
         self.write_debug(f'{exe} command line: {shell_quote(args)}')
+
+    def _get_impersonate_target(self, info_dict):
+        impersonate = info_dict.get('impersonate')
+        if impersonate is None:
+            return None
+        available_target, requested_targets = self.ydl._parse_impersonate_targets(impersonate)
+        if available_target:
+            return available_target
+        elif requested_targets:
+            self.report_warning(self.ydl._unavailable_targets_message(requested_targets))
+        return None

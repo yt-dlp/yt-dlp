@@ -1,7 +1,6 @@
-import json
-
 from .common import InfoExtractor
 from .kaltura import KalturaIE
+from ..utils.traversal import require, traverse_obj
 
 
 class AZMedienIE(InfoExtractor):
@@ -9,15 +8,15 @@ class AZMedienIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:www\.|tv\.)?
-                        (?P<host>
+                        (?:
                             telezueri\.ch|
                             telebaern\.tv|
                             telem1\.ch|
                             tvo-online\.ch
                         )/
-                        [^/]+/
+                        [^/?#]+/
                         (?P<id>
-                            [^/]+-(?P<article_id>\d+)
+                            [^/?#]+-\d+
                         )
                         (?:
                             \#video=
@@ -47,19 +46,17 @@ class AZMedienIE(InfoExtractor):
         'url': 'https://www.telebaern.tv/telebaern-news/montag-1-oktober-2018-ganze-sendung-133531189#video=0_7xjo9lf1',
         'only_matching': True,
     }]
-    _API_TEMPL = 'https://www.%s/api/pub/gql/%s/NewsArticleTeaser/a4016f65fe62b81dc6664dd9f4910e4ab40383be'
     _PARTNER_ID = '1719221'
 
     def _real_extract(self, url):
-        host, display_id, article_id, entry_id = self._match_valid_url(url).groups()
+        display_id, entry_id = self._match_valid_url(url).groups()
 
         if not entry_id:
-            entry_id = self._download_json(
-                self._API_TEMPL % (host, host.split('.')[0]), display_id, query={
-                    'variables': json.dumps({
-                        'contextId': 'NewsArticle:' + article_id,
-                    }),
-                })['data']['context']['mainAsset']['video']['kaltura']['kalturaId']
+            webpage = self._download_webpage(url, display_id)
+            data = self._search_json(
+                r'window\.__APOLLO_STATE__\s*=', webpage, 'video data', display_id)
+            entry_id = traverse_obj(data, (
+                lambda _, v: v['__typename'] == 'KalturaData', 'kalturaId', any, {require('kaltura id')}))
 
         return self.url_result(
             f'kaltura:{self._PARTNER_ID}:{entry_id}',

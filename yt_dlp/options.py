@@ -150,6 +150,15 @@ class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
         return opts
 
 
+_PRESET_ALIASES = {
+    'mp3': ['-f', 'ba[acodec^=mp3]/ba/b', '-x', '--audio-format', 'mp3'],
+    'aac': ['-f', 'ba[acodec^=aac]/ba[acodec^=mp4a.40.]/ba/b', '-x', '--audio-format', 'aac'],
+    'mp4': ['--merge-output-format', 'mp4', '--remux-video', 'mp4', '-S', 'vcodec:h264,lang,quality,res,fps,hdr:12,acodec:aac'],
+    'mkv': ['--merge-output-format', 'mkv', '--remux-video', 'mkv'],
+    'sleep': ['--sleep-subtitles', '5', '--sleep-requests', '0.75', '--sleep-interval', '10', '--max-sleep-interval', '20'],
+}
+
+
 class _YoutubeDLOptionParser(optparse.OptionParser):
     # optparse is deprecated since Python 3.2. So assume a stable interface even for private methods
     ALIAS_DEST = '_triggered_aliases'
@@ -214,6 +223,25 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
             if len({self._long_opt[p] for p in e.possibilities}) == 1:
                 return e.possibilities[0]
             raise
+
+    def format_option_help(self, formatter=None):
+        assert formatter, 'Formatter can not be None'
+        formatted_help = super().format_option_help(formatter=formatter)
+        formatter.indent()
+        heading = formatter.format_heading('Preset Aliases')
+        formatter.indent()
+        description = formatter.format_description(
+            'Predefined aliases for convenience and ease of use. Note that future versions of yt-dlp '
+            'may add or adjust presets, but the existing preset names will not be changed or removed')
+        result = []
+        for name, args in _PRESET_ALIASES.items():
+            option = optparse.Option('-t', help=shlex.join(args))
+            formatter.option_strings[option] = f'-t {name}'
+            result.append(formatter.format_option(option))
+        formatter.dedent()
+        formatter.dedent()
+        help_lines = '\n'.join(result)
+        return f'{formatted_help}\n{heading}{description}\n{help_lines}'
 
 
 def create_parser():
@@ -317,6 +345,13 @@ def create_parser():
         parser.rargs[:0] = shlex.split(
             opts if value is None else opts.format(*map(shlex.quote, value)))
 
+    def _preset_alias_callback(option, opt_str, value, parser):
+        if not value:
+            return
+        if value not in _PRESET_ALIASES:
+            raise optparse.OptionValueError(f'Unknown preset alias: {value}')
+        parser.rargs[:0] = _PRESET_ALIASES[value]
+
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
         '-h', '--help', dest='print_help', action='store_true',
@@ -398,7 +433,7 @@ def create_parser():
             '(Alias: --no-config)'))
     general.add_option(
         '--no-config-locations',
-        action='store_const', dest='config_locations', const=[],
+        action='store_const', dest='config_locations', const=None,
         help=(
             'Do not load any custom configuration files (default). When given inside a '
             'configuration file, ignore all previous --config-locations defined in the current file'))
@@ -410,12 +445,21 @@ def create_parser():
             '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
         '--plugin-dirs',
-        dest='plugin_dirs', metavar='PATH', action='append',
+        metavar='PATH',
+        dest='plugin_dirs',
+        action='callback',
+        callback=_list_from_options_callback,
+        type='str',
+        callback_kwargs={'delim': None},
+        default=['default'],
         help=(
             'Path to an additional directory to search for plugins. '
             'This option can be used multiple times to add multiple directories. '
-            'Note that this currently only works for extractor plugins; '
-            'postprocessor plugins can only be loaded from the default plugin directories'))
+            'Use "default" to search the default plugin directories (default)'))
+    general.add_option(
+        '--no-plugin-dirs',
+        dest='plugin_dirs', action='store_const', const=[],
+        help='Clear plugin directories to search, including defaults and those provided by previous --plugin-dirs')
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
@@ -429,7 +473,7 @@ def create_parser():
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
-        help='Download livestreams from the start. Currently only supported for YouTube (Experimental)')
+        help='Download livestreams from the start. Currently experimental and only supported for YouTube and Twitch')
     general.add_option(
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
@@ -485,13 +529,14 @@ def create_parser():
                 'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
-                'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext', 'prefer-vp9-sort',
+                'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext', 'prefer-vp9-sort', 'mtime-by-default',
             }, 'aliases': {
                 'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization'],
                 '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
-                '2023': ['prefer-vp9-sort'],
+                '2023': ['2024', 'prefer-vp9-sort'],
+                '2024': ['mtime-by-default'],
             },
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
@@ -503,11 +548,20 @@ def create_parser():
         help=(
             'Create aliases for an option string. Unless an alias starts with a dash "-", it is prefixed with "--". '
             'Arguments are parsed according to the Python string formatting mini-language. '
-            'E.g. --alias get-audio,-X "-S=aext:{0},abr -x --audio-format {0}" creates options '
+            'E.g. --alias get-audio,-X "-S aext:{0},abr -x --audio-format {0}" creates options '
             '"--get-audio" and "-X" that takes an argument (ARG0) and expands to '
-            '"-S=aext:ARG0,abr -x --audio-format ARG0". All defined aliases are listed in the --help output. '
+            '"-S aext:ARG0,abr -x --audio-format ARG0". All defined aliases are listed in the --help output. '
             'Alias options can trigger more aliases; so be careful to avoid defining recursive options. '
             f'As a safety measure, each alias may be triggered a maximum of {_YoutubeDLOptionParser.ALIAS_TRIGGER_LIMIT} times. '
+            'This option can be used multiple times'))
+    general.add_option(
+        '-t', '--preset-alias',
+        metavar='PRESET', dest='_', type='str',
+        action='callback', callback=_preset_alias_callback,
+        help=(
+            'Applies a predefined set of options. e.g. --preset-alias mp3. '
+            f'The following presets are available: {", ".join(_PRESET_ALIASES)}. '
+            'See the "Preset Aliases" section at the end for more info. '
             'This option can be used multiple times'))
 
     network = optparse.OptionGroup(parser, 'Network Options')
@@ -1412,12 +1466,12 @@ def create_parser():
         help='Do not use .part files - write directly into output file')
     filesystem.add_option(
         '--mtime',
-        action='store_true', dest='updatetime', default=True,
-        help='Use the Last-modified header to set the file modification time (default)')
+        action='store_true', dest='updatetime', default=None,
+        help='Use the Last-modified header to set the file modification time')
     filesystem.add_option(
         '--no-mtime',
         action='store_false', dest='updatetime',
-        help='Do not use the Last-modified header to set the file modification time')
+        help='Do not use the Last-modified header to set the file modification time (default)')
     filesystem.add_option(
         '--write-description',
         action='store_true', dest='writedescription', default=False,
@@ -1472,7 +1526,7 @@ def create_parser():
         action='store_false', dest='getcomments',
         help='Do not retrieve video comments unless the extraction is known to be quick (Alias: --no-get-comments)')
     filesystem.add_option(
-        '--load-info-json', '--load-info',
+        '--load-info-json',
         dest='load_info_filename', metavar='FILE',
         help='JSON file containing the video information (created with the "--write-info-json" option)')
     filesystem.add_option(
