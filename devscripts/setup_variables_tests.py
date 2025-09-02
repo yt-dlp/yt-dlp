@@ -6,6 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import datetime as dt
 import json
+
 from devscripts.setup_variables import STABLE_REPOSITORY, process_inputs, setup_variables
 from devscripts.utils import calculate_version
 
