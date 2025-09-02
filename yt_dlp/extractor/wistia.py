@@ -344,6 +344,15 @@ class WistiaChannelIE(WistiaBaseIE):
             'upload_date': '20210430',
         },
         'params': {'noplaylist': True, 'skip_download': True},
+    }, {
+        # Channel with episodes structure instead of videos
+        'url': 'https://fast.wistia.net/embed/channel/sapab9p6qd',
+        'info_dict': {
+            'id': 'sapab9p6qd',
+            'title': 'Credo: An RCIA Program',
+            'description': 'Presented by the Dominican Friars\nat the Thomistic Institute',
+        },
+        'playlist_mincount': 80,
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.profitwell.com/recur/boxed-out',
@@ -399,7 +408,7 @@ class WistiaChannelIE(WistiaBaseIE):
 
         entries = [
             self.url_result(f'wistia:{video["hashedId"]}', WistiaIE, title=video.get('name'))
-            for video in traverse_obj(series, ('sections', ..., 'videos', ...)) or []
+            for video in traverse_obj(series, ('sections', ..., 'episodes', ...)) or []
             if video.get('hashedId')
         ]
 
