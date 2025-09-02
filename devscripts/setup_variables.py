@@ -43,7 +43,7 @@ def setup_variables(environment):
     source_tag = PROCESSED['source_tag']
     if source_repo == 'stable':
         source_repo = 'yt-dlp/yt-dlp'
-    elif not source_repo:
+    if not source_repo:
         source_repo = REPOSITORY
     elif environment['SOURCE_ARCHIVE_REPO']:
         source_channel = environment['SOURCE_ARCHIVE_REPO']
@@ -156,13 +156,13 @@ def _test(github_repository, note, repo_vars, repo_secrets, inputs, expected=Non
 
     exp = expected.copy()
     if ignore_revision:
-        assert len(result['version']) == len(exp['version'])
+        assert len(result['version']) == len(exp['version']), f'revision missing: {github_repository} {note}'
         version_is_tag = result['version'] == result['target_tag']
         for dct in (result, exp):
             dct['version'] = '.'.join(dct['version'].split('.')[:3])
             if version_is_tag:
                 dct['target_tag'] = dct['version']
-    assert result == exp, f'{github_repository} {note}'
+    assert result == exp, f'unexpected result: {github_repository} {note}'
 
 
 def _run_tests():
