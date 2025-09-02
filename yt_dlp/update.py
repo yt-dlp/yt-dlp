@@ -194,16 +194,16 @@ def _sha256_file(path):
 
 
 def _make_label(origin, tag, version=None):
-    if '/' in origin:
+    suffix = ''
+    if '/' in origin and version == tag:
         channel = _INVERSE_UPDATE_SOURCES.get(origin, origin)
     else:
         channel = origin
-    label = f'{channel}@{tag}'
     if version and version != tag:
-        label += f' build {version}'
+        suffix = f' build {version}'
     if channel != origin:
-        label += f' from {origin}'
-    return label
+        suffix = f' from {origin}'
+    return f'{channel}@{tag}{suffix}'
 
 
 @dataclass
