@@ -87,5 +87,5 @@ class IzRuIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
-            **json_ld_info
+            **json_ld_info,
         }
