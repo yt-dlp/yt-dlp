@@ -61,6 +61,8 @@ permissions:
 
 jobs:
   prepare:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     outputs:
       channel: ${{ steps.setup_variables.outputs.channel }}
