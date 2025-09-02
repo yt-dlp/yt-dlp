@@ -173,7 +173,7 @@ def _test(github_repository, note, repo_vars, repo_secrets, inputs, expected=Non
 
 def _run_tests():
     DEFAULT_VERSION_WITH_REVISION = dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d.%H%M%S')
-    DEFAULT_VERSION = DEFAULT_VERSION_WITH_REVISION[:10]
+    DEFAULT_VERSION = calculate_version()
     BASE_REPO_VARS = {
         'MASTER_ARCHIVE_REPO': 'yt-dlp/yt-dlp-master-builds',
         'NIGHTLY_ARCHIVE_REPO': 'yt-dlp/yt-dlp-nightly-builds',
@@ -342,10 +342,10 @@ def _run_tests():
         FORK_REPOSITORY, 'fork w/o vars/secrets, revision',
         {}, {}, {'version': '123'}, {
             'channel': FORK_REPOSITORY,
-            'version': f'{DEFAULT_VERSION}.123',
+            'version': f'{DEFAULT_VERSION[:10]}.123',
             'target_repo': FORK_REPOSITORY,
             'target_repo_token': None,
-            'target_tag': f'{DEFAULT_VERSION}.123',
+            'target_tag': f'{DEFAULT_VERSION[:10]}.123',
             'pypi_project': None,
             'pypi_suffix': None,
         })
