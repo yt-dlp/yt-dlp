@@ -22,9 +22,13 @@ jobs:
             "yt_dlp/*.py"
             ':!yt_dlp/version.py'
             "bundle/*.py"
+            "bundle/docker/compose.yml"
+            "bundle/docker/linux/*"
             "pyproject.toml"
             "Makefile"
             ".github/workflows/build.yml"
+            ".github/workflows/release.yml"
+            ".github/workflows/release-nightly.yml"
           )
           echo "commit=$(git log --format=%H -1 --since="24 hours ago" -- "${relevant_files[@]}")" | tee "$GITHUB_OUTPUT"
 

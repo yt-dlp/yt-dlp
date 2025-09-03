@@ -6,10 +6,12 @@ on:
     paths:
       - "yt_dlp/**.py"
       - "!yt_dlp/version.py"
-      - "bundle/*.py"
+      - "bundle/**"
       - "pyproject.toml"
       - "Makefile"
       - ".github/workflows/build.yml"
+      - ".github/workflows/release.yml"
+      - ".github/workflows/release-master.yml"
 concurrency:
   group: release-master
 permissions:
