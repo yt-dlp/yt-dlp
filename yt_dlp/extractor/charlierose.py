@@ -6,7 +6,7 @@ class CharlieRoseIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?charlierose\.com/(?:video|episode)(?:s|/player)/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://charlierose.com/videos/27996',
-        'md5': 'fda41d49e67d4ce7c2411fd2c4702e09',
+        'md5': '4405b662f557f94aa256fa6a7baf7426',
         'info_dict': {
             'id': '27996',
             'ext': 'mp4',
@@ -28,6 +28,9 @@ class CharlieRoseIE(InfoExtractor):
     }]
 
     _PLAYER_BASE = 'https://charlierose.com/video/player/%s'
+
+    def _extract_m3u8_formats(self, *args, **kwargs):
+        return ()
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
