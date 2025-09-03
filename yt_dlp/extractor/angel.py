@@ -1,7 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import unified_strdate
+from ..utils import ExtractorError, GeoRestrictedError, unified_strdate
 from ..utils.traversal import traverse_obj
 
 
@@ -35,6 +35,10 @@ class AngelIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+
+        auth_cookie = ''
+        if (self._cookies_passed):
+            auth_cookie = self._get_cookies(url)['angel_jwt'].value
 
         # DOWNLOADING METADATA
         metadata = traverse_obj(self._download_json(
@@ -108,7 +112,13 @@ class AngelIE(InfoExtractor):
                 'variables': {'authenticated': True, 'guid': video_id, 'includePrerelease': True, 'projectSlug': 'case-for-christ', 'reactionsRollupInterval': 4000, 'skipsEnabled': False},
             }).encode(), headers={
                 'content-type': 'application/json',
+                'authorization': auth_cookie,
             }), ('data', 'episode'))
+
+        if (all(var is None for var in [metadata['guildAvailableDate'], metadata['publiclyAvailableDate'], metadata['earlyAccessDate']])):
+            raise GeoRestrictedError('This video is unavailable in your location!')
+        elif (metadata['publiclyAvailableDate'] is None):
+            raise ExtractorError('This is Members Only video. Please log in with your Guild account! ' + self._login_hint(), expected=True)
 
         # DOWNLOADING LIST OF M3U8 FILES
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(traverse_obj(metadata, ('source', 'url')), video_id)
