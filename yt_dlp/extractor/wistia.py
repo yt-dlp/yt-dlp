@@ -257,7 +257,6 @@ class WistiaIE(WistiaBaseIE):
         'info_dict': {
             'id': '8233354-embedding-your-media',
             'title': 'Embedding Your Media | Wistia Help Center',
-            'age_limit': 0,
             'description': 'md5:32a5edc0e266cd61e2d15be28873d614',
             'thumbnail': r're:https?://downloads\.intercomcdn\.com/.+\.jpg',
         },
