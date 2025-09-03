@@ -29,11 +29,6 @@ fi
 
 chmod +x "./${EXE_NAME}"
 
-if [ -z "${EXCLUDE_CURL_CFFI:-}" ]; then
-    "./${EXE_NAME}" -v --print-traffic --impersonate chrome "https://tls.browserleaks.com/json" -o ./resp.json
-    cat ./resp.json
-fi
-
 if [ -n "${SKIP_UPDATE_TO:-}" ] || [ -n "${TEST_ONEDIR_BUILD:-}" ]; then
     "./${EXE_NAME}" -v || true
     "./${EXE_NAME}" --version

@@ -149,6 +149,5 @@ services:
     environment:
       EXE_NAME: ${EXE_NAME}
       SKIP_UPDATE_TO: "1"  # TODO: remove when there is a musllinux_aarch64 release to --update-to
-      EXCLUDE_CURL_CFFI: "1"
     volumes:
       - ~/build:/build
