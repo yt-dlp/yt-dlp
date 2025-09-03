@@ -104,9 +104,9 @@ jobs:
           TARGET_PYPI_SUFFIX: ${{ vars[format('{0}_pypi_suffix', steps.process_inputs.outputs.target_repo)] }}
           SOURCE_ARCHIVE_REPO: ${{ vars[format('{0}_archive_repo', steps.process_inputs.outputs.source_repo)] }}
           TARGET_ARCHIVE_REPO: ${{ vars[format('{0}_archive_repo', steps.process_inputs.outputs.target_repo)] }}
-          HAS_SOURCE_ARCHIVE_REPO_TOKEN: ${{ toJSON(!!secrets[format('{0}_archive_repo_token', steps.process_inputs.outputs.source_repo)])}}
-          HAS_TARGET_ARCHIVE_REPO_TOKEN: ${{ toJSON(!!secrets[format('{0}_archive_repo_token', steps.process_inputs.outputs.target_repo)])}}
-          HAS_ARCHIVE_REPO_TOKEN: ${{ toJSON(!!secrets.ARCHIVE_REPO_TOKEN) }}
+          HAS_SOURCE_ARCHIVE_REPO_TOKEN: ${{ !!secrets[format('{0}_archive_repo_token', steps.process_inputs.outputs.source_repo)] }}
+          HAS_TARGET_ARCHIVE_REPO_TOKEN: ${{ !!secrets[format('{0}_archive_repo_token', steps.process_inputs.outputs.target_repo)] }}
+          HAS_ARCHIVE_REPO_TOKEN: ${{ !!secrets.ARCHIVE_REPO_TOKEN }}
         run: |
           python -m devscripts.setup_variables
 
