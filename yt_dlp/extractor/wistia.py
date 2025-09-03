@@ -1,4 +1,5 @@
 import base64
+import itertools
 import re
 import urllib.parse
 
@@ -160,6 +161,14 @@ class WistiaBaseIE(InfoExtractor):
             ''', webpage)
 
     @classmethod
+    def _extract_wistia_player(cls, webpage):
+        # https://docs.wistia.com/docs/player-embed-api
+        yield from re.finditer(
+            r'''(?sx)
+                <(?:wistia-player)[^>]+media-id=([\"'])(?P<id>[a-z0-9]{10})\1
+            ''', webpage)
+
+    @classmethod
     def _extract_url_media_id(cls, url):
         mobj = re.search(r'(?:wmediaid|wvideo(?:id)?)]?=(?P<id>[a-z0-9]{10})', urllib.parse.unquote_plus(url))
         if mobj:
@@ -261,6 +270,18 @@ class WistiaIE(WistiaBaseIE):
             'thumbnail': r're:https?://downloads\.intercomcdn\.com/.+\.jpg',
         },
         'playlist_count': 2,
+    }, {
+        'url': 'https://docs.wistia.com/docs/player-embed-api',
+        'info_dict': {
+            'id': 'rbsg3da4jd',
+            'title': 'The Wistia Player - Product Video',
+            'ext': 'mp4',
+            'timestamp': 1702407750,
+            'upload_date': '20231212',
+            'description': 'a 2025 Storefront Shopping Page Videos video',
+            'duration': 75.0005,
+            'thumbnail': r're:https?://embed(?:-ssl)?\.wistia\.com/.+\.(?:jpg|png)',
+        },
     }]
 
     def _real_extract(self, url):
@@ -274,8 +295,10 @@ class WistiaIE(WistiaBaseIE):
         for match in cls._extract_wistia_async_embed(webpage):
             if match.group('type') != 'wistia_channel':
                 urls.append('wistia:{}'.format(match.group('id')))
-        for match in re.finditer(r'(?:data-wistia-?id=["\']|Wistia\.embed\(["\']|id=["\']wistia_)(?P<id>[a-z0-9]{10})',
-                                 webpage):
+        for match in itertools.chain(
+                cls._extract_wistia_player(webpage),
+                re.finditer(r'(?:data-wistia-?id=["\']|Wistia\.embed\(["\']|id=["\']wistia_)(?P<id>[a-z0-9]{10})',
+                            webpage)):
             urls.append('wistia:{}'.format(match.group('id')))
         if not WistiaChannelIE._extract_embed_urls(url, webpage):  # Fallback
             media_id = cls._extract_url_media_id(url)
