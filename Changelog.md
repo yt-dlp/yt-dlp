@@ -4,6 +4,19 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.08.27
+
+#### Extractor changes
+- **generic**
+    - [Simplify invalid URL error message](https://github.com/yt-dlp/yt-dlp/commit/1ddbd033f0fd65917526b1271cea66913ac8647f) ([#14167](https://github.com/yt-dlp/yt-dlp/issues/14167)) by [seproDev](https://github.com/seproDev)
+    - [Use https as fallback protocol](https://github.com/yt-dlp/yt-dlp/commit/fec30c56f0e97e573ace659104ff0d72c4cc9809) ([#14160](https://github.com/yt-dlp/yt-dlp/issues/14160)) by [seproDev](https://github.com/seproDev)
+- **skeb**: [Support wav files](https://github.com/yt-dlp/yt-dlp/commit/d6950c27af31908363c5c815e3b7eb4f9ff41643) ([#14147](https://github.com/yt-dlp/yt-dlp/issues/14147)) by [seproDev](https://github.com/seproDev)
+- **youtube**
+    - [Add `tcc` player JS variant](https://github.com/yt-dlp/yt-dlp/commit/8f4a908300f55054bc96814bceeaa1034fdf4110) ([#14134](https://github.com/yt-dlp/yt-dlp/issues/14134)) by [bashonly](https://github.com/bashonly)
+    - [Deprioritize `web_safari` m3u8 formats](https://github.com/yt-dlp/yt-dlp/commit/5c7ad68ff1643ad80d18cef8be9db8fcab05ee6c) ([#14168](https://github.com/yt-dlp/yt-dlp/issues/14168)) by [bashonly](https://github.com/bashonly)
+    - [Player client maintenance](https://github.com/yt-dlp/yt-dlp/commit/3bd91544122142a87863d79e54e995c26cfd7f92) ([#14135](https://github.com/yt-dlp/yt-dlp/issues/14135)) by [bashonly](https://github.com/bashonly)
+    - [Use alternative `tv` user-agent when authenticated](https://github.com/yt-dlp/yt-dlp/commit/8cd37b85d492edb56a4f7506ea05527b85a6b02b) ([#14169](https://github.com/yt-dlp/yt-dlp/issues/14169)) by [bashonly](https://github.com/bashonly)
+
 ### 2025.08.22
 
 #### Core changes
