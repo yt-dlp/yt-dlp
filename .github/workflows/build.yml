@@ -588,7 +588,7 @@ jobs:
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp-master-builds 2025.08.12.232447 darwin_legacy_exe .+
-          lockV2 yt-dlp/yt-dlp-master-builds 2025.08.30.224204 linux_armv7l_exe .+
+          lockV2 yt-dlp/yt-dlp-master-builds 2025.09.05.212910 linux_armv7l_exe .+
           EOF
 
       - name: Sign checksum files
