@@ -1,0 +1,42 @@
+name: Test and lint workflows
+on:
+  push:
+    paths:
+      - .github/workflows/*.yml
+      - devscripts/setup_variables.py
+      - devscripts/setup_variables_tests.py
+      - devscripts/utils.py
+  pull_request:
+    paths:
+      - .github/workflows/*.yml
+      - devscripts/setup_variables.py
+      - devscripts/setup_variables_tests.py
+      - devscripts/utils.py
+permissions:
+  contents: read
+env:
+  ACTIONLINT_VERSION: 1.7.7
+
+jobs:
+  check:
+    name: Check workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install requirements
+        env:
+          ACTIONLINT_URL: https://github.com/rhysd/actionlint/releases/download/v${{ env.ACTIONLINT_VERSION }}/actionlint_${{ env.ACTIONLINT_VERSION }}_linux_amd64.tar.gz
+        run: |
+          sudo apt update && sudo apt -y install shellcheck
+          python -m pip install -U pyflakes
+          curl -L "${ACTIONLINT_URL}" | tar xvz actionlint
+          chmod +x actionlint
+      - name: Run actionlint
+        run: |
+          ./actionlint -color
+      - name: Test GHA devscripts
+        run: |
+          python -m devscripts.setup_variables_tests
