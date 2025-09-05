@@ -29,9 +29,6 @@ class CharlieRoseIE(InfoExtractor):
 
     _PLAYER_BASE = 'https://charlierose.com/video/player/%s'
 
-    def _extract_m3u8_formats(self, *args, **kwargs):
-        return ()
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(self._PLAYER_BASE % video_id, video_id)
@@ -42,6 +39,11 @@ class CharlieRoseIE(InfoExtractor):
             self._PLAYER_BASE % video_id, webpage, video_id,
             m3u8_entry_protocol='m3u8_native')[0]
         self._remove_duplicate_formats(info_dict['formats'])
+        for fmt in info_dict['formats']:
+            if fmt.get('protocol') == 'm3u8_native':
+                fmt['__needs_testing'] = True
+            else:
+                fmt.setdefault('preference', 0)
 
         info_dict.update({
             'id': video_id,
