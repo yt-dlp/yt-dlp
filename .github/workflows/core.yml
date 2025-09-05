@@ -37,7 +37,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         # CPython 3.9 is in quick-test
-        python-version: ['3.10', '3.11', '3.12', '3.13', pypy-3.10]
+        python-version: ['3.10', '3.11', '3.12', '3.13', pypy-3.11]
         include:
         # atleast one of each CPython/PyPy tests must be in windows
         - os: windows-latest
@@ -49,7 +49,7 @@ jobs:
         - os: windows-latest
           python-version: '3.13'
         - os: windows-latest
-          python-version: pypy-3.10
+          python-version: pypy-3.11
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}

@@ -28,13 +28,13 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13', pypy-3.10]
+        python-version: ['3.10', '3.11', '3.12', '3.13', pypy-3.11]
         include:
         # atleast one of each CPython/PyPy tests must be in windows
         - os: windows-latest
           python-version: '3.9'
         - os: windows-latest
-          python-version: pypy-3.10
+          python-version: pypy-3.11
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
