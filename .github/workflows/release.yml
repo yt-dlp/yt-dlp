@@ -14,6 +14,10 @@ on:
         required: false
         default: ''
         type: string
+      linux_armv7l:
+        required: false
+        default: false
+        type: boolean
       prerelease:
         required: false
         default: true
@@ -43,6 +47,10 @@ on:
         required: false
         default: ''
         type: string
+      linux_armv7l:
+        description: Include linux_armv7l
+        default: true
+        type: boolean
       prerelease:
         description: Pre-release
         default: false
@@ -77,135 +85,57 @@ jobs:
 
       - name: Process inputs
         id: process_inputs
+        env:
+          INPUTS: ${{ toJSON(inputs) }}
         run: |
-          cat << EOF
-          ::group::Inputs
-          prerelease=${{ inputs.prerelease }}
-          source=${{ inputs.source }}
-          target=${{ inputs.target }}
-          version=${{ inputs.version }}
-          ::endgroup::
-          EOF
-          IFS='@' read -r source_repo source_tag <<<"${{ inputs.source }}"
-          IFS='@' read -r target_repo target_tag <<<"${{ inputs.target }}"
-          cat << EOF >> "$GITHUB_OUTPUT"
-          source_repo=${source_repo}
-          source_tag=${source_tag}
-          target_repo=${target_repo}
-          target_tag=${target_tag}
-          EOF
+          python -m devscripts.setup_variables process_inputs
 
       - name: Setup variables
         id: setup_variables
         env:
-          source_repo: ${{ steps.process_inputs.outputs.source_repo }}
-          source_tag: ${{ steps.process_inputs.outputs.source_tag }}
-          target_repo: ${{ steps.process_inputs.outputs.target_repo }}
-          target_tag: ${{ steps.process_inputs.outputs.target_tag }}
+          INPUTS: ${{ toJSON(inputs) }}
+          PROCESSED: ${{ toJSON(steps.process_inputs.outputs) }}
+          REPOSITORY: ${{ github.repository }}
+          PUSH_VERSION_COMMIT: ${{ vars.PUSH_VERSION_COMMIT }}
+          PYPI_PROJECT: ${{ vars.PYPI_PROJECT }}
+          SOURCE_PYPI_PROJECT: ${{ vars[format('{0}_pypi_project', steps.process_inputs.outputs.source_repo)] }}
+          SOURCE_PYPI_SUFFIX: ${{ vars[format('{0}_pypi_suffix', steps.process_inputs.outputs.source_repo)] }}
+          TARGET_PYPI_PROJECT: ${{ vars[format('{0}_pypi_project', steps.process_inputs.outputs.target_repo)] }}
+          TARGET_PYPI_SUFFIX: ${{ vars[format('{0}_pypi_suffix', steps.process_inputs.outputs.target_repo)] }}
+          SOURCE_ARCHIVE_REPO: ${{ vars[format('{0}_archive_repo', steps.process_inputs.outputs.source_repo)] }}
+          TARGET_ARCHIVE_REPO: ${{ vars[format('{0}_archive_repo', steps.process_inputs.outputs.target_repo)] }}
+          HAS_SOURCE_ARCHIVE_REPO_TOKEN: ${{ !!secrets[format('{0}_archive_repo_token', steps.process_inputs.outputs.source_repo)] }}
+          HAS_TARGET_ARCHIVE_REPO_TOKEN: ${{ !!secrets[format('{0}_archive_repo_token', steps.process_inputs.outputs.target_repo)] }}
+          HAS_ARCHIVE_REPO_TOKEN: ${{ !!secrets.ARCHIVE_REPO_TOKEN }}
         run: |
-          # unholy bash monstrosity (sincere apologies)
-          fallback_token () {
-            if ${{ !secrets.ARCHIVE_REPO_TOKEN }}; then
-              echo "::error::Repository access secret ${target_repo_token^^} not found"
-              exit 1
-            fi
-            target_repo_token=ARCHIVE_REPO_TOKEN
-            return 0
-          }
+          python -m devscripts.setup_variables
 
-          source_is_channel=0
-          [[ "${source_repo}" == 'stable' ]] && source_repo='yt-dlp/yt-dlp'
-          if [[ -z "${source_repo}" ]]; then
-            source_repo='${{ github.repository }}'
-          elif [[ '${{ vars[format('{0}_archive_repo', env.source_repo)] }}' ]]; then
-            source_is_channel=1
-            source_channel='${{ vars[format('{0}_archive_repo', env.source_repo)] }}'
-          elif [[ -z "${source_tag}" && "${source_repo}" != */* ]]; then
-            source_tag="${source_repo}"
-            source_repo='${{ github.repository }}'
-          fi
-          resolved_source="${source_repo}"
-          if [[ "${source_tag}" ]]; then
-            resolved_source="${resolved_source}@${source_tag}"
-          elif [[ "${source_repo}" == 'yt-dlp/yt-dlp' ]]; then
-            resolved_source='stable'
-          fi
-
-          revision="${{ (inputs.prerelease || !vars.PUSH_VERSION_COMMIT) && '$(date -u +"%H%M%S")' || '' }}"
-          version="$(
-            python devscripts/update-version.py \
-            -c "${resolved_source}" -r "${{ github.repository }}" ${{ inputs.version || '$revision' }} | \
-            grep -Po "version=\K\d+\.\d+\.\d+(\.\d+)?")"
-
-          if [[ "${target_repo}" ]]; then
-            if [[ -z "${target_tag}" ]]; then
-              if [[ '${{ vars[format('{0}_archive_repo', env.target_repo)] }}' ]]; then
-                target_tag="${source_tag:-${version}}"
-              else
-                target_tag="${target_repo}"
-                target_repo='${{ github.repository }}'
-              fi
-            fi
-            if [[ "${target_repo}" != '${{ github.repository}}' ]]; then
-              target_repo='${{ vars[format('{0}_archive_repo', env.target_repo)] }}'
-              target_repo_token='${{ env.target_repo }}_archive_repo_token'
-              ${{ !!secrets[format('{0}_archive_repo_token', env.target_repo)] }} || fallback_token
-              pypi_project='${{ vars[format('{0}_pypi_project', env.target_repo)] }}'
-              pypi_suffix='${{ vars[format('{0}_pypi_suffix', env.target_repo)] }}'
-            fi
-          else
-            target_tag="${source_tag:-${version}}"
-            if ((source_is_channel)); then
-              target_repo="${source_channel}"
-              target_repo_token='${{ env.source_repo }}_archive_repo_token'
-              ${{ !!secrets[format('{0}_archive_repo_token', env.source_repo)] }} || fallback_token
-              pypi_project='${{ vars[format('{0}_pypi_project', env.source_repo)] }}'
-              pypi_suffix='${{ vars[format('{0}_pypi_suffix', env.source_repo)] }}'
-            else
-              target_repo='${{ github.repository }}'
-            fi
-          fi
-
-          if [[ "${target_repo}" == '${{ github.repository }}' ]] && ${{ !inputs.prerelease }}; then
-            pypi_project='${{ vars.PYPI_PROJECT }}'
-          fi
-
-          echo "::group::Output variables"
-          cat << EOF | tee -a "$GITHUB_OUTPUT"
-          channel=${resolved_source}
-          version=${version}
-          target_repo=${target_repo}
-          target_repo_token=${target_repo_token}
-          target_tag=${target_tag}
-          pypi_project=${pypi_project}
-          pypi_suffix=${pypi_suffix}
-          EOF
-          echo "::endgroup::"
-
-      - name: Update documentation
+      - name: Update version & documentation
         env:
-          version: ${{ steps.setup_variables.outputs.version }}
-          target_repo: ${{ steps.setup_variables.outputs.target_repo }}
-        if: |
-          !inputs.prerelease && env.target_repo == github.repository
+          CHANNEL: ${{ steps.setup_variables.outputs.channel }}
+          # Use base repo since this could be committed; build jobs will call this again with true origin
+          REPOSITORY: ${{ github.repository }}
+          VERSION: ${{ steps.setup_variables.outputs.version }}
         run: |
+          python devscripts/update-version.py -c "${CHANNEL}" -r "${REPOSITORY}" "${VERSION}"
           python devscripts/update_changelog.py -vv
           make doc
 
       - name: Push to release
         id: push_release
         env:
-          version: ${{ steps.setup_variables.outputs.version }}
-          target_repo: ${{ steps.setup_variables.outputs.target_repo }}
+          VERSION: ${{ steps.setup_variables.outputs.version }}
+          GITHUB_EVENT_SENDER_LOGIN: ${{ github.event.sender.login }}
+          GITHUB_EVENT_REF: ${{ github.event.ref }}
         if: |
-          !inputs.prerelease && env.target_repo == github.repository
+          !inputs.prerelease && steps.setup_variables.outputs.target_repo == github.repository
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -u
-          git commit -m "Release ${{ env.version }}" \
-            -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all"
-          git push origin --force ${{ github.event.ref }}:release
+          git commit -m "Release ${VERSION}" \
+            -m "Created by: ${GITHUB_EVENT_SENDER_LOGIN}" -m ":ci skip all"
+          git push origin --force "${GITHUB_EVENT_REF}:release"
 
       - name: Get target commitish
         id: get_target
@@ -214,10 +144,10 @@ jobs:
 
       - name: Update master
         env:
-          target_repo: ${{ steps.setup_variables.outputs.target_repo }}
+          GITHUB_EVENT_REF: ${{ github.event.ref }}
         if: |
-          vars.PUSH_VERSION_COMMIT != '' && !inputs.prerelease && env.target_repo == github.repository
-        run: git push origin ${{ github.event.ref }}
+          vars.PUSH_VERSION_COMMIT && !inputs.prerelease && steps.setup_variables.outputs.target_repo == github.repository
+        run: git push origin "${GITHUB_EVENT_REF}"
 
   build:
     needs: prepare
@@ -226,10 +156,9 @@ jobs:
       version: ${{ needs.prepare.outputs.version }}
       channel: ${{ needs.prepare.outputs.channel }}
       origin: ${{ needs.prepare.outputs.target_repo }}
+      linux_armv7l: ${{ inputs.linux_armv7l }}
     permissions:
       contents: read
-      packages: write  # For package cache
-      actions: write  # For cleaning up cache
     secrets:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
@@ -255,16 +184,16 @@ jobs:
 
       - name: Prepare
         env:
-          version: ${{ needs.prepare.outputs.version }}
-          suffix: ${{ needs.prepare.outputs.pypi_suffix }}
-          channel: ${{ needs.prepare.outputs.channel }}
-          target_repo: ${{ needs.prepare.outputs.target_repo }}
-          pypi_project: ${{ needs.prepare.outputs.pypi_project }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SUFFIX: ${{ needs.prepare.outputs.pypi_suffix }}
+          CHANNEL: ${{ needs.prepare.outputs.channel }}
+          TARGET_REPO: ${{ needs.prepare.outputs.target_repo }}
+          PYPI_PROJECT: ${{ needs.prepare.outputs.pypi_project }}
         run: |
-          python devscripts/update-version.py -c "${{ env.channel }}" -r "${{ env.target_repo }}" -s "${{ env.suffix }}" "${{ env.version }}"
+          python devscripts/update-version.py -c "${CHANNEL}" -r "${TARGET_REPO}" -s "${SUFFIX}" "${VERSION}"
           python devscripts/update_changelog.py -vv
           python devscripts/make_lazy_extractors.py
-          sed -i -E '0,/(name = ")[^"]+(")/s//\1${{ env.pypi_project }}\2/' pyproject.toml
+          sed -i -E '0,/(name = ")[^"]+(")/s//\1'"${PYPI_PROJECT}"'\2/' pyproject.toml
 
       - name: Build
         run: |
@@ -298,7 +227,11 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-
+    env:
+      TARGET_REPO: ${{ needs.prepare.outputs.target_repo }}
+      TARGET_TAG: ${{ needs.prepare.outputs.target_tag }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      HEAD_SHA: ${{ needs.prepare.outputs.head_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -314,81 +247,80 @@ jobs:
 
       - name: Generate release notes
         env:
-          head_sha: ${{ needs.prepare.outputs.head_sha }}
-          target_repo: ${{ needs.prepare.outputs.target_repo }}
-          target_tag: ${{ needs.prepare.outputs.target_tag }}
+          REPOSITORY: ${{ github.repository }}
+          BASE_REPO: yt-dlp/yt-dlp
+          NIGHTLY_REPO: yt-dlp/yt-dlp-nightly-builds
+          MASTER_REPO: yt-dlp/yt-dlp-master-builds
+          DOCS_PATH: ${{ env.TARGET_REPO == github.repository && format('/tree/{0}', env.TARGET_TAG) || '' }}
         run: |
           printf '%s' \
-            '[![Installation](https://img.shields.io/badge/-Which%20file%20to%20download%3F-white.svg?style=for-the-badge)]' \
-              '(https://github.com/${{ github.repository }}#installation "Installation instructions") ' \
-            '[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&labelColor=555555&label=&logo=discord&style=for-the-badge)]' \
-              '(https://discord.gg/H5MNcFW63r "Discord") ' \
-            '[![Donate](https://img.shields.io/badge/_-Donate-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)]' \
-              '(https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators "Donate") ' \
-            '[![Documentation](https://img.shields.io/badge/-Docs-brightgreen.svg?style=for-the-badge&logo=GitBook&labelColor=555555)]' \
-              '(https://github.com/${{ github.repository }}' \
-              '${{ env.target_repo == github.repository && format('/tree/{0}', env.target_tag) || '' }}#readme "Documentation") ' \
-            ${{ env.target_repo == 'yt-dlp/yt-dlp' && '\
+            "[![Installation](https://img.shields.io/badge/-Which%20file%20to%20download%3F-white.svg?style=for-the-badge)]" \
+              "(https://github.com/${REPOSITORY}#installation \"Installation instructions\") " \
+            "[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&labelColor=555555&label=&logo=discord&style=for-the-badge)]" \
+              "(https://discord.gg/H5MNcFW63r \"Discord\") " \
+            "[![Donate](https://img.shields.io/badge/_-Donate-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)]" \
+              "(https://github.com/${BASE_REPO}/blob/master/Collaborators.md#collaborators \"Donate\") " \
+            "[![Documentation](https://img.shields.io/badge/-Docs-brightgreen.svg?style=for-the-badge&logo=GitBook&labelColor=555555)]" \
+              "(https://github.com/${REPOSITORY}${DOCS_PATH}#readme \"Documentation\") " > ./RELEASE_NOTES
+          if [[ "${TARGET_REPO}" == "${BASE_REPO}" ]]; then
+            printf '%s' \
               "[![Nightly](https://img.shields.io/badge/Nightly%20builds-purple.svg?style=for-the-badge)]" \
-              "(https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest \"Nightly builds\") " \
+                "(https://github.com/${NIGHTLY_REPO}/releases/latest \"Nightly builds\") " \
               "[![Master](https://img.shields.io/badge/Master%20builds-lightblue.svg?style=for-the-badge)]" \
-              "(https://github.com/yt-dlp/yt-dlp-master-builds/releases/latest \"Master builds\")"' || '' }} > ./RELEASE_NOTES
+                "(https://github.com/${MASTER_REPO}/releases/latest \"Master builds\")" >> ./RELEASE_NOTES
+          fi
           printf '\n\n' >> ./RELEASE_NOTES
           cat >> ./RELEASE_NOTES << EOF
-          #### A description of the various files is in the [README](https://github.com/${{ github.repository }}#release-files)
+          #### A description of the various files is in the [README](https://github.com/${REPOSITORY}#release-files)
           ---
           $(python ./devscripts/make_changelog.py -vv --collapsible)
           EOF
           printf '%s\n\n' '**This is a pre-release build**' >> ./PRERELEASE_NOTES
           cat ./RELEASE_NOTES >> ./PRERELEASE_NOTES
-          printf '%s\n\n' 'Generated from: https://github.com/${{ github.repository }}/commit/${{ env.head_sha }}' >> ./ARCHIVE_NOTES
+          printf '%s\n\n' "Generated from: https://github.com/${REPOSITORY}/commit/${HEAD_SHA}" >> ./ARCHIVE_NOTES
           cat ./RELEASE_NOTES >> ./ARCHIVE_NOTES
 
       - name: Publish to archive repo
         env:
           GH_TOKEN: ${{ secrets[needs.prepare.outputs.target_repo_token] }}
           GH_REPO: ${{ needs.prepare.outputs.target_repo }}
-          version: ${{ needs.prepare.outputs.version }}
-          channel: ${{ needs.prepare.outputs.channel }}
+          TITLE_PREFIX: ${{ startswith(env.TARGET_REPO, 'yt-dlp/') && 'yt-dlp ' || '' }}
+          TITLE: ${{ inputs.target != env.TARGET_REPO && inputs.target || needs.prepare.outputs.channel }}
         if: |
-          inputs.prerelease && env.GH_TOKEN != '' && env.GH_REPO != '' && env.GH_REPO != github.repository
+          inputs.prerelease && env.GH_TOKEN && env.GH_REPO && env.GH_REPO != github.repository
         run: |
-          title="${{ startswith(env.GH_REPO, 'yt-dlp/') && 'yt-dlp ' || '' }}${{ env.channel }}"
           gh release create \
             --notes-file ARCHIVE_NOTES \
-            --title "${title} ${{ env.version }}" \
-            ${{ env.version }} \
+            --title "${TITLE_PREFIX}${TITLE} ${VERSION}" \
+            "${VERSION}" \
             artifact/*
 
       - name: Prune old release
         env:
           GH_TOKEN: ${{ github.token }}
-          version: ${{ needs.prepare.outputs.version }}
-          target_repo: ${{ needs.prepare.outputs.target_repo }}
-          target_tag: ${{ needs.prepare.outputs.target_tag }}
         if: |
-          env.target_repo == github.repository && env.target_tag != env.version
+          env.TARGET_REPO == github.repository && env.TARGET_TAG != env.VERSION
         run: |
-          gh release delete --yes --cleanup-tag "${{ env.target_tag }}" || true
-          git tag --delete "${{ env.target_tag }}" || true
+          gh release delete --yes --cleanup-tag "${TARGET_TAG}" || true
+          git tag --delete "${TARGET_TAG}" || true
           sleep 5  # Enough time to cover deletion race condition
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-          version: ${{ needs.prepare.outputs.version }}
-          target_repo: ${{ needs.prepare.outputs.target_repo }}
-          target_tag: ${{ needs.prepare.outputs.target_tag }}
-          head_sha: ${{ needs.prepare.outputs.head_sha }}
+          NOTES_FILE: ${{ inputs.prerelease && 'PRERELEASE_NOTES' || 'RELEASE_NOTES' }}
+          TITLE_PREFIX: ${{ github.repository == 'yt-dlp/yt-dlp' && 'yt-dlp ' || '' }}
+          TITLE: ${{ env.TARGET_TAG != env.VERSION && format('{0} ', env.TARGET_TAG) || '' }}
+          PRERELEASE: ${{ inputs.prerelease && '1' || '0' }}
         if: |
-          env.target_repo == github.repository
+          env.TARGET_REPO == github.repository
         run: |
-          title="${{ github.repository == 'yt-dlp/yt-dlp' && 'yt-dlp ' || '' }}"
-          title+="${{ env.target_tag != env.version && format('{0} ', env.target_tag) || '' }}"
-          gh release create \
-            --notes-file ${{ inputs.prerelease && 'PRERELEASE_NOTES' || 'RELEASE_NOTES' }} \
-            --target ${{ env.head_sha }} \
-            --title "${title}${{ env.version }}" \
-            ${{ inputs.prerelease && '--prerelease' || '' }} \
-            ${{ env.target_tag }} \
-            artifact/*
+          gh_options=(
+            --notes-file "${NOTES_FILE}"
+            --target "${HEAD_SHA}"
+            --title "${TITLE_PREFIX}${TITLE}${VERSION}"
+          )
+          if ((PRERELEASE)); then
+            gh_options+=(--prerelease)
+          fi
+          gh release create "${gh_options[@]}" "${TARGET_TAG}" artifact/*

@@ -1,10 +1,153 @@
 services:
-  static:
-    build: static
+
+  linux_x86_64:
+    build:
+      context: linux
+      target: build
+      platforms:
+        - "linux/amd64"
+      args:
+        BUILDIMAGE: ghcr.io/yt-dlp/manylinux2014_x86_64-shared:latest
     environment:
-      channel: ${channel}
-      origin: ${origin}
-      version: ${version}
+      EXE_NAME: ${EXE_NAME:?}
+      CHANNEL: ${CHANNEL:?}
+      ORIGIN: ${ORIGIN:?}
+      VERSION:
     volumes:
-      - ~/build:/build
       - ../..:/yt-dlp
+
+  linux_x86_64_verify:
+    build:
+      context: linux
+      target: verify
+      platforms:
+        - "linux/amd64"
+      args:
+        VERIFYIMAGE: quay.io/pypa/manylinux2014_x86_64:latest
+    environment:
+      EXE_NAME: ${EXE_NAME:?}
+    volumes:
+      - ../../dist:/build
+
+  linux_aarch64:
+    build:
+      context: linux
+      target: build
+      platforms:
+        - "linux/arm64"
+      args:
+        BUILDIMAGE: ghcr.io/yt-dlp/manylinux2014_aarch64-shared:latest
+    environment:
+      EXE_NAME: ${EXE_NAME:?}
+      CHANNEL: ${CHANNEL:?}
+      ORIGIN: ${ORIGIN:?}
+      VERSION:
+    volumes:
+      - ../..:/yt-dlp
+
+  linux_aarch64_verify:
+    build:
+      context: linux
+      target: verify
+      platforms:
+        - "linux/arm64"
+      args:
+        VERIFYIMAGE: quay.io/pypa/manylinux2014_aarch64:latest
+    environment:
+      EXE_NAME: ${EXE_NAME:?}
+      SKIP_UPDATE_TO: "1"  # TODO: remove when there is a glibc2.17 aarch64 release to --update-to
+    volumes:
+      - ../../dist:/build
+
+  linux_armv7l:
+    build:
+      context: linux
+      target: build
+      platforms:
+        - "linux/arm/v7"
+      args:
+        BUILDIMAGE: ghcr.io/yt-dlp/manylinux_2_31_armv7l-shared:latest
+    environment:
+      EXE_NAME: ${EXE_NAME:?}
+      CHANNEL: ${CHANNEL:?}
+      ORIGIN: ${ORIGIN:?}
+      VERSION:
+      SKIP_ONEFILE_BUILD: "1"
+    volumes:
+      - ../..:/yt-dlp
+      - ~/yt-dlp-build-venv:/yt-dlp-build-venv
+
+  linux_armv7l_verify:
+    build:
+      context: linux
+      target: verify
+      platforms:
+        - "linux/arm/v7"
+      args:
+        VERIFYIMAGE: arm32v7/debian:bullseye
+    environment:
+      EXE_NAME: ${EXE_NAME:?}
+      TEST_ONEDIR_BUILD: "1"
+    volumes:
+      - ../../dist:/build
+
+  musllinux_x86_64:
+    build:
+      context: linux
+      target: build
+      platforms:
+        - "linux/amd64"
+      args:
+        BUILDIMAGE: ghcr.io/yt-dlp/musllinux_1_2_x86_64-shared:latest
+    environment:
+      EXE_NAME: ${EXE_NAME:?}
+      CHANNEL: ${CHANNEL:?}
+      ORIGIN: ${ORIGIN:?}
+      VERSION:
+    volumes:
+      - ../..:/yt-dlp
+
+  musllinux_x86_64_verify:
+    build:
+      context: linux
+      target: verify
+      platforms:
+        - "linux/amd64"
+      args:
+        VERIFYIMAGE: alpine:3.22
+    environment:
+      EXE_NAME: ${EXE_NAME:?}
+      SKIP_UPDATE_TO: "1"  # TODO: remove when there is a musllinux_aarch64 release to --update-to
+    volumes:
+      - ../../dist:/build
+
+  musllinux_aarch64:
+    build:
+      context: linux
+      target: build
+      platforms:
+        - "linux/arm64"
+      args:
+        BUILDIMAGE: ghcr.io/yt-dlp/musllinux_1_2_aarch64-shared:latest
+    environment:
+      EXE_NAME: ${EXE_NAME:?}
+      CHANNEL: ${CHANNEL:?}
+      ORIGIN: ${ORIGIN:?}
+      VERSION:
+      EXCLUDE_CURL_CFFI: "1"
+    volumes:
+      - ../..:/yt-dlp
+
+  musllinux_aarch64_verify:
+    build:
+      context: linux
+      target: verify
+      platforms:
+        - "linux/arm64"
+      args:
+        VERIFYIMAGE: alpine:3.22
+    environment:
+      EXE_NAME: ${EXE_NAME:?}
+      SKIP_UPDATE_TO: "1"  # TODO: remove when there is a musllinux_aarch64 release to --update-to
+    volumes:
+      - ../../dist:/build

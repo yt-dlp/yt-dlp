@@ -12,10 +12,13 @@ on:
       unix:
         default: true
         type: boolean
-      linux_static:
+      linux:
         default: true
         type: boolean
-      linux_arm:
+      linux_armv7l:
+        default: true
+        type: boolean
+      musllinux:
         default: true
         type: boolean
       macos:
@@ -37,7 +40,9 @@ on:
       version:
         description: |
           VERSION: yyyy.mm.dd[.rev] or rev
-        required: true
+          (default: auto-generated)
+        required: false
+        default: ''
         type: string
       channel:
         description: |
@@ -49,12 +54,16 @@ on:
         description: yt-dlp, yt-dlp.tar.gz
         default: true
         type: boolean
-      linux_static:
-        description: yt-dlp_linux
+      linux:
+        description: yt-dlp_linux, yt-dlp_linux.zip, yt-dlp_linux_aarch64, yt-dlp_linux_aarch64.zip
         default: true
         type: boolean
-      linux_arm:
-        description: yt-dlp_linux_aarch64, yt-dlp_linux_armv7l
+      linux_armv7l:
+        description: yt-dlp_linux_armv7l.zip
+        default: true
+        type: boolean
+      musllinux:
+        description: yt-dlp_musllinux, yt-dlp_musllinux.zip, yt-dlp_musllinux_aarch64, yt-dlp_musllinux_aarch64.zip
         default: true
         type: boolean
       macos:
@@ -81,16 +90,51 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       origin: ${{ steps.process_origin.outputs.origin }}
+      timestamp: ${{ steps.process_origin.outputs.timestamp }}
+      version: ${{ steps.process_origin.outputs.version }}
     steps:
       - name: Process origin
         id: process_origin
+        env:
+          ORIGIN: ${{ inputs.origin }}
+          REPOSITORY: ${{ github.repository }}
+          VERSION: ${{ inputs.version }}
+        shell: python
         run: |
-          echo "origin=${{ inputs.origin == 'current repo' && github.repository || inputs.origin }}" | tee "$GITHUB_OUTPUT"
+          import datetime as dt
+          import json
+          import os
+          import re
+          origin = os.environ['ORIGIN']
+          timestamp = dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d.%H%M%S.%f')
+          version = os.getenv('VERSION')
+          if version and '.' not in version:
+              # build.yml was dispatched with only a revision as the version input value
+              version_parts = [*timestamp.split('.')[:3], version]
+          elif not version:
+              # build.yml was dispatched without any version input value, so include .HHMMSS revision
+              version_parts = timestamp.split('.')[:4]
+          else:
+              # build.yml was called or dispatched with a complete version input value
+              version_parts = version.split('.')
+          assert all(re.fullmatch(r'[0-9]+', part) for part in version_parts), 'Version must be numeric'
+          outputs = {
+              'origin': os.environ['REPOSITORY'] if origin == 'current repo' else origin,
+              'timestamp': timestamp,
+              'version': '.'.join(version_parts),
+          }
+          print(json.dumps(outputs, indent=2))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('\n'.join(f'{key}={value}' for key, value in outputs.items()))
 
   unix:
     needs: process
     if: inputs.unix
     runs-on: ubuntu-latest
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -103,7 +147,7 @@ jobs:
           sudo apt -y install zip pandoc man sed
       - name: Prepare
         run: |
-          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
           python devscripts/update_changelog.py -vv
           python devscripts/make_lazy_extractors.py
       - name: Build Unix platform-independent binary
@@ -117,7 +161,7 @@ jobs:
           version="$(./yt-dlp --version)"
           ./yt-dlp_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
           downgraded_version="$(./yt-dlp_downgraded --version)"
-          [[ "$version" != "$downgraded_version" ]]
+          [[ "${version}" != "${downgraded_version}" ]]
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -127,99 +171,156 @@ jobs:
             yt-dlp.tar.gz
           compression-level: 0
 
-  linux_static:
+  linux:
     needs: process
-    if: inputs.linux_static
-    runs-on: ubuntu-latest
+    if: inputs.linux
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - exe: yt-dlp_linux
+          platform: x86_64
+          runner: ubuntu-24.04
+        - exe: yt-dlp_linux_aarch64
+          platform: aarch64
+          runner: ubuntu-24.04-arm
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
+      EXE_NAME: ${{ matrix.exe }}
     steps:
       - uses: actions/checkout@v4
-      - name: Build static executable
+      - name: Build executable
         env:
-          channel: ${{ inputs.channel }}
-          origin: ${{ needs.process.outputs.origin }}
-          version: ${{ inputs.version }}
+          SERVICE: linux_${{ matrix.platform }}
         run: |
-          mkdir ~/build
+          mkdir -p ./dist
+          pushd bundle/docker
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+          popd
+          sudo chown "${USER}:docker" "./dist/${EXE_NAME}"
+      - name: Verify executable in container
+        if: vars.UPDATE_TO_VERIFICATION
+        env:
+          SERVICE: linux_${{ matrix.platform }}_verify
+        run: |
           cd bundle/docker
-          docker compose up --build static
-          sudo chown "${USER}:docker" ~/build/yt-dlp_linux
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          chmod +x ~/build/yt-dlp_linux
-          cp ~/build/yt-dlp_linux ~/build/yt-dlp_linux_downgraded
-          version="$(~/build/yt-dlp_linux --version)"
-          ~/build/yt-dlp_linux_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-          downgraded_version="$(~/build/yt-dlp_linux_downgraded --version)"
-          [[ "$version" != "$downgraded_version" ]]
+          chmod +x "./dist/${EXE_NAME}"
+          mkdir -p ~/testing
+          cp "./dist/${EXE_NAME}" ~/testing/"${EXE_NAME}_downgraded"
+          version="$("./dist/${EXE_NAME}" --version)"
+          ~/testing/"${EXE_NAME}_downgraded" -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(~/testing/"${EXE_NAME}_downgraded" --version)"
+          [[ "${version}" != "${downgraded_version}" ]]
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-${{ github.job }}_${{ matrix.platform }}
+          path: |
+            dist/${{ matrix.exe }}*
+          compression-level: 0
+
+  linux_armv7l:
+    needs: process
+    if: inputs.linux_armv7l
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04-arm
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
+      EXE_NAME: yt-dlp_linux_armv7l
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache requirements
+        id: cache-venv
+        uses: actions/cache@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: |
+            ~/yt-dlp-build-venv
+          key: cache-reqs-${{ github.job }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
+          restore-keys: |
+            cache-reqs-${{ github.job }}-${{ github.ref }}-
+            cache-reqs-${{ github.job }}-
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm/v7
+      - name: Build executable
+        env:
+          SERVICE: linux_armv7l
+        run: |
+          mkdir -p ./dist
+          mkdir -p ~/yt-dlp-build-venv
+          cd bundle/docker
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+      - name: Verify executable in container
+        if: vars.UPDATE_TO_VERIFICATION
+        env:
+          SERVICE: linux_armv7l_verify
+        run: |
+          cd bundle/docker
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-bin-${{ github.job }}
           path: |
-            ~/build/yt-dlp_linux
+            dist/yt-dlp_linux_armv7l.zip
           compression-level: 0
 
-  linux_arm:
+  musllinux:
     needs: process
-    if: inputs.linux_arm
-    permissions:
-      contents: read
-      packages: write # for creating cache
-    runs-on: ubuntu-latest
+    if: inputs.musllinux
+    runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
-        architecture:
-          - armv7
-          - aarch64
-
+        include:
+        - exe: yt-dlp_musllinux
+          platform: x86_64
+          runner: ubuntu-24.04
+        - exe: yt-dlp_musllinux_aarch64
+          platform: aarch64
+          runner: ubuntu-24.04-arm
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
+      EXE_NAME: ${{ matrix.exe }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: ./repo
-      - name: Virtualized Install, Prepare & Build
-        uses: yt-dlp/run-on-arch-action@v3
-        with:
-          # Ref: https://github.com/uraimo/run-on-arch-action/issues/55
-          env: |
-            GITHUB_WORKFLOW: build
-          githubToken: ${{ github.token }} # To cache image
-          arch: ${{ matrix.architecture }}
-          distro: ubuntu20.04 # Standalone executable should be built on minimum supported OS
-          dockerRunArgs: --volume "${PWD}/repo:/repo"
-          install: | # Installing Python 3.10 from the Deadsnakes repo raises errors
-            apt update
-            apt -y install zlib1g-dev libffi-dev python3.9 python3.9-dev python3.9-distutils python3-pip \
-              python3-secretstorage  # Cannot build cryptography wheel in virtual armv7 environment
-            python3.9 -m pip install -U pip wheel 'setuptools>=71.0.2'
-            # XXX: Keep this in sync with pyproject.toml (it can't be accessed at this stage) and exclude secretstorage
-            python3.9 -m pip install -U Pyinstaller mutagen pycryptodomex brotli certifi cffi \
-              'requests>=2.32.2,<3' 'urllib3>=2.0.2,<3' 'websockets>=13.0'
-
-          run: |
-            cd repo
-            python3.9 devscripts/install_deps.py -o --include build
-            python3.9 devscripts/install_deps.py --include pyinstaller  # Cached versions may be out of date
-            python3.9 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
-            python3.9 devscripts/make_lazy_extractors.py
-            python3.9 -m bundle.pyinstaller
-
-            if ${{ vars.UPDATE_TO_VERIFICATION && 'true' || 'false' }}; then
-              arch="${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}"
-              chmod +x ./dist/yt-dlp_linux_${arch}
-              cp ./dist/yt-dlp_linux_${arch} ./dist/yt-dlp_linux_${arch}_downgraded
-              version="$(./dist/yt-dlp_linux_${arch} --version)"
-              ./dist/yt-dlp_linux_${arch}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-              downgraded_version="$(./dist/yt-dlp_linux_${arch}_downgraded --version)"
-              [[ "$version" != "$downgraded_version" ]]
-            fi
-
+      - name: Build executable
+        env:
+          SERVICE: musllinux_${{ matrix.platform }}
+        run: |
+          mkdir -p ./dist
+          pushd bundle/docker
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+          popd
+          sudo chown "${USER}:docker" "./dist/${EXE_NAME}"
+      - name: Verify executable in container
+        if: vars.UPDATE_TO_VERIFICATION
+        env:
+          SERVICE: musllinux_${{ matrix.platform }}_verify
+        run: |
+          cd bundle/docker
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-bin-linux_${{ matrix.architecture }}
-          path: | # run-on-arch-action designates armv7l as armv7
-            repo/dist/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
+          name: build-bin-${{ github.job }}_${{ matrix.platform }}
+          path: |
+            dist/${{ matrix.exe }}*
           compression-level: 0
 
   macos:
@@ -227,22 +328,28 @@ jobs:
     if: inputs.macos
     permissions:
       contents: read
-      actions: write  # For cleaning up cache
     runs-on: macos-14
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
       # NB: Building universal2 does not work with python from actions/setup-python
 
-      - name: Restore cached requirements
-        id: restore-cache
-        uses: actions/cache/restore@v4
+      - name: Cache requirements
+        id: cache-venv
+        uses: actions/cache@v4
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
           path: |
             ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}-${{ github.ref }}
+          key: cache-reqs-${{ github.job }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
+          restore-keys: |
+            cache-reqs-${{ github.job }}-${{ github.ref }}-
+            cache-reqs-${{ github.job }}-
 
       - name: Install Requirements
         run: |
@@ -287,7 +394,7 @@ jobs:
 
       - name: Prepare
         run: |
-          python3 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python3 devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
           python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
@@ -315,27 +422,11 @@ jobs:
             dist/yt-dlp_macos.zip
           compression-level: 0
 
-      - name: Cleanup cache
-        if: steps.restore-cache.outputs.cache-hit == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          cache_key: cache-reqs-${{ github.job }}-${{ github.ref }}
-        run: |
-          gh cache delete "${cache_key}"
-
-      - name: Cache requirements
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}-${{ github.ref }}
-
   windows:
     needs: process
     if: inputs.windows
     permissions:
       contents: read
-      actions: write  # For cleaning up cache
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -353,6 +444,14 @@ jobs:
           runner: windows-11-arm
           python_version: '3.13'  # arm64 only has Python >= 3.11 available
           suffix: '_arm64'
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
+      SUFFIX: ${{ matrix.suffix }}
+      BASE_CACHE_KEY: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}
+      # Use custom PyInstaller built with https://github.com/yt-dlp/Pyinstaller-builds
+      PYINSTALLER_URL: https://yt-dlp.github.io/Pyinstaller-Builds/${{ matrix.arch }}/pyinstaller-6.15.0-py3-none-any.whl
 
     steps:
       - uses: actions/checkout@v4
@@ -361,49 +460,60 @@ jobs:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.arch }}
 
-      - name: Restore cached requirements
-        id: restore-cache
+      - name: Cache requirements
+        id: cache-venv
         if: matrix.arch == 'arm64'
-        uses: actions/cache/restore@v4
+        uses: actions/cache@v4
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
           path: |
             /yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
+          key: ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
+          restore-keys: |
+            ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-
+            ${{ env.BASE_CACHE_KEY }}-
 
       - name: Install Requirements
+        env:
+          ARCH: ${{ matrix.arch }}
+        shell: pwsh
         run: |
           python -m venv /yt-dlp-build-venv
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py ${{ (matrix.arch != 'x86' && '--include curl-cffi') || '' }}
-          # Use custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/${{ matrix.arch }}/pyinstaller-6.15.0-py3-none-any.whl"
+          if ("${Env:ARCH}" -eq "x86") {
+            python devscripts/install_deps.py
+          } else {
+            python devscripts/install_deps.py --include curl-cffi
+          }
+          python -m pip install -U "${Env:PYINSTALLER_URL}"
 
       - name: Prepare
+        shell: pwsh
         run: |
-          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python devscripts/update-version.py -c "${Env:CHANNEL}" -r "${Env:ORIGIN}" "${Env:VERSION}"
           python devscripts/make_lazy_extractors.py
 
       - name: Build
+        shell: pwsh
         run: |
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
-          Compress-Archive -Path ./dist/yt-dlp${{ matrix.suffix }}/* -DestinationPath ./dist/yt-dlp_win${{ matrix.suffix }}.zip
+          Compress-Archive -Path ./dist/yt-dlp${Env:SUFFIX}/* -DestinationPath ./dist/yt-dlp_win${Env:SUFFIX}.zip
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
+        shell: pwsh
         run: |
-          foreach ($name in @("yt-dlp${{ matrix.suffix }}")) {
-            Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
-            $version = & "./dist/${name}.exe" --version
-            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2025.08.20
-            $downgraded_version = & "./dist/${name}_downgraded.exe" --version
-            if ($version -eq $downgraded_version) {
-              exit 1
-            }
+          $name = "yt-dlp${Env:SUFFIX}"
+          Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
+          $version = & "./dist/${name}.exe" --version
+          & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2025.08.20
+          $downgraded_version = & "./dist/${name}_downgraded.exe" --version
+          if ($version -eq $downgraded_version) {
+            exit 1
           }
 
       - name: Upload artifacts
@@ -415,30 +525,14 @@ jobs:
             dist/yt-dlp_win${{ matrix.suffix }}.zip
           compression-level: 0
 
-      - name: Cleanup cache
-        if: |
-          matrix.arch == 'arm64' && steps.restore-cache.outputs.cache-hit == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          cache_key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
-        run: |
-          gh cache delete "${cache_key}"
-
-      - name: Cache requirements
-        if: matrix.arch == 'arm64'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            /yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}-${{ github.ref }}
-
   meta_files:
     if: always() && !cancelled()
     needs:
       - process
       - unix
-      - linux_static
-      - linux_arm
+      - linux
+      - linux_armv7l
+      - musllinux
       - macos
       - windows
     runs-on: ubuntu-latest
@@ -469,38 +563,38 @@ jobs:
           lock 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lock 2024.10.22 py2exe .+
-          lock 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
           lock 2024.10.22 zip Python 3\.8
           lock 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lock 2025.08.11 darwin_legacy_exe .+
+          lock 2025.08.27 linux_armv7l_exe .+
           lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
           lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp 2024.10.22 py2exe .+
-          lockV2 yt-dlp/yt-dlp 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
           lockV2 yt-dlp/yt-dlp 2024.10.22 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp 2025.08.11 darwin_legacy_exe .+
+          lockV2 yt-dlp/yt-dlp 2025.08.27 linux_armv7l_exe .+
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 py2exe .+
-          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2025.08.12.233030 darwin_legacy_exe .+
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2025.08.30.232839 linux_armv7l_exe .+
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.045052 py2exe .+
-          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp-master-builds 2025.08.12.232447 darwin_legacy_exe .+
+          lockV2 yt-dlp/yt-dlp-master-builds 2025.09.05.212910 linux_armv7l_exe .+
           EOF
 
       - name: Sign checksum files
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-        if: env.GPG_SIGNING_KEY != ''
+        if: env.GPG_SIGNING_KEY
         run: |
           gpg --batch --import <<< "${{ secrets.GPG_SIGNING_KEY }}"
           for signfile in ./SHA*SUMS; do
