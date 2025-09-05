@@ -30,3 +30,8 @@ plugin_ies_overrides = Indirect(defaultdict(list))
 IN_CLI = Indirect(False)
 LAZY_EXTRACTORS = Indirect(None)  # `False`=force, `None`=disabled, `True`=enabled
 WINDOWS_VT_MODE = Indirect(False if os.name == 'nt' else None)
+
+# JS Runtimes
+# If adding support for another runtime,
+# register it here to allow `js_runtimes` option to accept it.
+supported_js_runtimes = Indirect(['deno', 'node'])

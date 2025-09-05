@@ -42,6 +42,7 @@ from .globals import (
     plugin_pps,
     all_plugins_loaded,
     plugin_dirs,
+    supported_js_runtimes,
 )
 from .minicurses import format_text
 from .networking import HEADRequest, Request, RequestDirector
@@ -742,6 +743,10 @@ class YoutubeDL:
                 else:
                     raise
 
+        # Note: this must be after plugins are loaded
+        self.params['js_runtimes'] = self.params.get('js_runtimes') or {'deno': {}}
+        self._validate_js_runtimes(self.params['js_runtimes'])
+
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
         self._load_cookies(self.params['http_headers'].get('Cookie'))  # compat
@@ -857,6 +862,18 @@ class YoutubeDL:
             return archive
 
         self.archive = preload_download_archive(self.params.get('download_archive'))
+
+    def _validate_js_runtimes(self, runtimes):
+        if not (
+            isinstance(runtimes, dict)
+            and all(isinstance(k, str) and (v is None or isinstance(v, dict)) for k, v in runtimes.items())
+        ):
+            raise ValueError('Invalid js_runtimes format, expected a dict of {runtime: {config}}')
+
+        if unsupported_runtimes := set(runtimes.keys()) - set(supported_js_runtimes.value):
+            raise ValueError(
+                f'Unsupported JavaScript runtimes specified: {", ".join(unsupported_runtimes)}.'
+                f' Supported runtimes are: {", ".join(supported_js_runtimes.value)}')
 
     def warn_if_short_id(self, argv):
         # short YouTube ID starting with dash?

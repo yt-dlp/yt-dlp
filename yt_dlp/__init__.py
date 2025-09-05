@@ -805,7 +805,7 @@ def parse_options(argv=None):
         else None)
 
     js_runtimes = {
-        runtime: {'path': path} for runtime, path in (
+        runtime.lower(): {'path': path} for runtime, path in (
             [*arg.split(':', 1), None][:2] for arg in opts.js_runtimes)}
 
     return ParsedOptions(parser, opts, urls, {
