@@ -42,14 +42,13 @@ class CharlieRoseIE(InfoExtractor):
         for fmt in info_dict['formats']:
             if fmt.get('protocol') == 'm3u8_native':
                 fmt['__needs_testing'] = True
-            else:
-                fmt.setdefault('preference', 0)
 
         info_dict.update({
             'id': video_id,
             'title': title,
             'thumbnail': self._og_search_thumbnail(webpage),
             'description': self._og_search_description(webpage),
+            '_format_sort_fields': ('proto',),
         })
 
         return info_dict
