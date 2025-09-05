@@ -35,7 +35,7 @@ if [ -n "${SKIP_UPDATE_TO:-}" ] || [ -n "${TEST_ONEDIR_BUILD:-}" ]; then
     exit 0
 fi
 
-if [ -z "${UPDATE_TO}" ]; then
+if [ -z "${UPDATE_TO:-}" ]; then
     UPDATE_TO="yt-dlp/yt-dlp@2025.09.05"
 fi
 
