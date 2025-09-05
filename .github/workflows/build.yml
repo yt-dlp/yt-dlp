@@ -196,11 +196,10 @@ jobs:
         env:
           SERVICE: linux_${{ matrix.platform }}
         run: |
-          mkdir -p ~/build
+          mkdir -p ./dist
           cd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-          docker compose down
-          sudo chown "${USER}:docker" ~/build/"${EXE_NAME}"
+          sudo chown "${USER}:docker" "./dist/${EXE_NAME}"
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:
@@ -208,14 +207,13 @@ jobs:
         run: |
           cd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-          docker compose down
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          chmod +x ~/build/"${EXE_NAME}"
+          chmod +x "./dist/${EXE_NAME}"
           mkdir -p ~/testing
-          cp ~/build/"${EXE_NAME}" ~/testing/"${EXE_NAME}_downgraded"
-          version="$(~/build/"${EXE_NAME}" --version)"
+          cp "./dist/${EXE_NAME}" ~/testing/"${EXE_NAME}_downgraded"
+          version="$("./dist/${EXE_NAME}" --version)"
           ~/testing/"${EXE_NAME}_downgraded" -v --update-to yt-dlp/yt-dlp@2023.03.04
           downgraded_version="$(~/testing/"${EXE_NAME}_downgraded" --version)"
           [[ "${version}" != "${downgraded_version}" ]]
@@ -224,7 +222,7 @@ jobs:
         with:
           name: build-bin-${{ github.job }}_${{ matrix.platform }}
           path: |
-            ~/build/${{ matrix.exe }}*
+            dist/${{ matrix.exe }}*
           compression-level: 0
 
   linux_armv7l:
@@ -260,11 +258,10 @@ jobs:
         env:
           SERVICE: linux_armv7l
         run: |
-          mkdir -p ~/build
+          mkdir -p ./dist
           mkdir -p ~/yt-dlp-build-venv
           cd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-          docker compose down
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:
@@ -272,13 +269,12 @@ jobs:
         run: |
           cd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-          docker compose down
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-bin-${{ github.job }}
           path: |
-            ~/build/yt-dlp_linux_armv7l.zip
+            dist/yt-dlp_linux_armv7l.zip
           compression-level: 0
 
   musllinux:
@@ -306,11 +302,10 @@ jobs:
         env:
           SERVICE: musllinux_${{ matrix.platform }}
         run: |
-          mkdir -p ~/build
+          mkdir -p ./dist
           cd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-          docker compose down
-          sudo chown "${USER}:docker" ~/build/"${EXE_NAME}"
+          sudo chown "${USER}:docker" "./dist/"${EXE_NAME}"
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:
@@ -318,13 +313,12 @@ jobs:
         run: |
           cd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-          docker compose down
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-bin-${{ github.job }}_${{ matrix.platform }}
           path: |
-            ~/build/${{ matrix.exe }}*
+            dist/${{ matrix.exe }}*
           compression-level: 0
 
   macos:

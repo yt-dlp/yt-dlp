@@ -32,13 +32,21 @@ venvpy -m devscripts.make_lazy_extractors
 venvpy devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
 
 if [[ -z "${SKIP_ONEDIR_BUILD:-}" ]]; then
-    venvpy -m bundle.pyinstaller --onedir
-    pushd "./dist/${EXE_NAME}"
-    venvpy -m zipfile -c "/build/${EXE_NAME}.zip" ./
+    mkdir -p /build
+    venvpy -m bundle.pyinstaller --onedir --distpath=/build
+    pushd "/build/${EXE_NAME}"
+    chmod +x "${EXE_NAME}"
+    venvpy -m zipfile -c "/yt-dlp/dist/${EXE_NAME}.zip" ./
     popd
+    if [[ -n "${CHOWN_UID:-}" ]]; then
+       chown "${CHOWN_UID}:${CHOWN_UID}" "./dist/${EXE_NAME}.zip"
+    fi
 fi
 
 if [[ -z "${SKIP_ONEFILE_BUILD:-}" ]]; then
     venvpy -m bundle.pyinstaller
-    mv "./dist/${EXE_NAME}" /build/
+    chmod +x "./dist/${EXE_NAME}"
+    if [[ -n "${CHOWN_UID:-}" ]]; then
+        chown "${CHOWN_UID}:${CHOWN_UID}" "./dist/${EXE_NAME}"
+    fi
 fi
