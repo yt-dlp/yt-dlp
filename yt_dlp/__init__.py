@@ -804,6 +804,10 @@ def parse_options(argv=None):
         else opts.audioformat if (opts.extractaudio and opts.audioformat in FFmpegExtractAudioPP.SUPPORTED_EXTS)
         else None)
 
+    js_runtimes = {
+        runtime: {'path': path} for runtime, path in (
+            [*arg.split(':', 1), None][:2] for arg in opts.js_runtimes)}
+
     return ParsedOptions(parser, opts, urls, {
         'usenetrc': opts.usenetrc,
         'netrc_location': opts.netrc_location,
@@ -983,6 +987,7 @@ def parse_options(argv=None):
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
+        'js_runtimes': js_runtimes,
     })
 
 

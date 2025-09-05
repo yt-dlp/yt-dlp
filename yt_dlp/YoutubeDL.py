@@ -534,6 +534,12 @@ class YoutubeDL:
                        See "EXTRACTOR ARGUMENTS" for details.
                        Argument values must always be a list of string(s).
                        E.g. {'youtube': {'skip': ['dash', 'hls']}}
+    js_runtimes:       A dictionary of JavaScript runtime keys (in lower case) to enable
+                       and a dictionary of additional configuration for the runtime.
+                       If None, the default runtime of "deno" will be enabled.
+                       The runtime configuration dictionary can have the following keys:
+                        - path: Path to the executable (optional)
+                       E.g. {'deno': {'path': '/path/to/deno'}
     mark_watched:      Mark videos watched (even with --simulate). Only for YouTube
 
     The following options are deprecated and may be removed in the future:
