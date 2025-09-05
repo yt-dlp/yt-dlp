@@ -197,8 +197,10 @@ jobs:
           SERVICE: linux_${{ matrix.platform }}
         run: |
           mkdir -p ./dist
-          cd bundle/docker
-          CHOWN_ARG="${USER}:docker" docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+          pushd bundle/docker
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+          popd
+          sudo chown "${USER}:docker" "./dist/${EXE_NAME}"
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:
@@ -260,7 +262,7 @@ jobs:
           mkdir -p ./dist
           mkdir -p ~/yt-dlp-build-venv
           cd bundle/docker
-          CHOWN_ARG="${USER}:docker" docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:
@@ -302,8 +304,10 @@ jobs:
           SERVICE: musllinux_${{ matrix.platform }}
         run: |
           mkdir -p ./dist
-          cd bundle/docker
-          CHOWN_ARG="${USER}:docker" docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+          pushd bundle/docker
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+          popd
+          sudo chown "${USER}:docker" "./dist/${EXE_NAME}"
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:

@@ -38,15 +38,9 @@ if [[ -z "${SKIP_ONEDIR_BUILD:-}" ]]; then
     chmod +x "${EXE_NAME}"
     venvpy -m zipfile -c "/yt-dlp/dist/${EXE_NAME}.zip" ./
     popd
-    if [[ -n "${CHOWN_ARG:-}" ]]; then
-       chown "${CHOWN_ARG}" "./dist/${EXE_NAME}.zip"
-    fi
 fi
 
 if [[ -z "${SKIP_ONEFILE_BUILD:-}" ]]; then
     venvpy -m bundle.pyinstaller
     chmod +x "./dist/${EXE_NAME}"
-    if [[ -n "${CHOWN_ARG:-}" ]]; then
-        chown "${CHOWN_ARG}" "./dist/${EXE_NAME}"
-    fi
 fi

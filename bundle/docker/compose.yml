@@ -13,7 +13,6 @@ services:
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
-      CHOWN_ARG:
     volumes:
       - ../..:/yt-dlp
 
@@ -43,7 +42,6 @@ services:
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
-      CHOWN_ARG:
     volumes:
       - ../..:/yt-dlp
 
@@ -74,7 +72,6 @@ services:
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
-      CHOWN_ARG:
       SKIP_ONEFILE_BUILD: "1"
     volumes:
       - ../..:/yt-dlp
@@ -107,7 +104,6 @@ services:
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
-      CHOWN_ARG:
     volumes:
       - ../..:/yt-dlp
 
@@ -138,7 +134,6 @@ services:
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
-      CHOWN_ARG:
       EXCLUDE_CURL_CFFI: "1"
     volumes:
       - ../..:/yt-dlp
