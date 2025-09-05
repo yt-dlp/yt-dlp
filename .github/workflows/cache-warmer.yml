@@ -10,7 +10,7 @@ jobs:
       vars.KEEP_CACHE_WARM || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/build.yml
     with:
-      version: '123456'
+      version: '999999'
       channel: stable
       unix: false
       linux: false
