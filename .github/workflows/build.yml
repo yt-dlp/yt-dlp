@@ -198,8 +198,7 @@ jobs:
         run: |
           mkdir -p ./dist
           cd bundle/docker
-          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-          sudo chown "${USER}:docker" "./dist/${EXE_NAME}"
+          CHOWN_ARG="${USER}:docker" docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:
@@ -261,7 +260,7 @@ jobs:
           mkdir -p ./dist
           mkdir -p ~/yt-dlp-build-venv
           cd bundle/docker
-          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+          CHOWN_ARG="${USER}:docker" docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:
@@ -304,8 +303,7 @@ jobs:
         run: |
           mkdir -p ./dist
           cd bundle/docker
-          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-          sudo chown "${USER}:docker" "./dist/"${EXE_NAME}"
+          CHOWN_ARG="${USER}:docker" docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
       - name: Verify executable in container
         if: vars.UPDATE_TO_VERIFICATION
         env:

@@ -1,9 +1,9 @@
 #!/bin/bash
 set -exuo pipefail
 
-: "${USE_PYTHON_VERSION:="3.13"}"
-
-export USE_PYTHON_VERSION
+if [[ -z "${USE_PYTHON_VERSION:-}" ]]; then
+    USE_PYTHON_VERSION="3.13"
+fi
 
 function runpy {
     "/opt/shared-cpython-${USE_PYTHON_VERSION}/bin/python${USE_PYTHON_VERSION}" "$@"
@@ -38,15 +38,15 @@ if [[ -z "${SKIP_ONEDIR_BUILD:-}" ]]; then
     chmod +x "${EXE_NAME}"
     venvpy -m zipfile -c "/yt-dlp/dist/${EXE_NAME}.zip" ./
     popd
-    if [[ -n "${CHOWN_UID:-}" ]]; then
-       chown "${CHOWN_UID}:${CHOWN_UID}" "./dist/${EXE_NAME}.zip"
+    if [[ -n "${CHOWN_ARG:-}" ]]; then
+       chown "${CHOWN_ARG}" "./dist/${EXE_NAME}.zip"
     fi
 fi
 
 if [[ -z "${SKIP_ONEFILE_BUILD:-}" ]]; then
     venvpy -m bundle.pyinstaller
     chmod +x "./dist/${EXE_NAME}"
-    if [[ -n "${CHOWN_UID:-}" ]]; then
-        chown "${CHOWN_UID}:${CHOWN_UID}" "./dist/${EXE_NAME}"
+    if [[ -n "${CHOWN_ARG:-}" ]]; then
+        chown "${CHOWN_ARG}" "./dist/${EXE_NAME}"
     fi
 fi
