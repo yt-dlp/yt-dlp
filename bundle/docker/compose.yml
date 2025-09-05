@@ -26,6 +26,7 @@ services:
         VERIFYIMAGE: quay.io/pypa/manylinux2014_x86_64:latest
     environment:
       EXE_NAME: ${EXE_NAME:?}
+      UPDATE_TO:
     volumes:
       - ../../dist:/build
 
@@ -55,7 +56,7 @@ services:
         VERIFYIMAGE: quay.io/pypa/manylinux2014_aarch64:latest
     environment:
       EXE_NAME: ${EXE_NAME:?}
-      SKIP_UPDATE_TO: "1"  # TODO: remove when there is a glibc2.17 aarch64 release to --update-to
+      UPDATE_TO:
     volumes:
       - ../../dist:/build
 
@@ -87,6 +88,7 @@ services:
         VERIFYIMAGE: arm32v7/debian:bullseye
     environment:
       EXE_NAME: ${EXE_NAME:?}
+      UPDATE_TO:
       TEST_ONEDIR_BUILD: "1"
     volumes:
       - ../../dist:/build
@@ -117,7 +119,7 @@ services:
         VERIFYIMAGE: alpine:3.22
     environment:
       EXE_NAME: ${EXE_NAME:?}
-      SKIP_UPDATE_TO: "1"  # TODO: remove when there is a musllinux_aarch64 release to --update-to
+      UPDATE_TO:
     volumes:
       - ../../dist:/build
 
@@ -148,6 +150,6 @@ services:
         VERIFYIMAGE: alpine:3.22
     environment:
       EXE_NAME: ${EXE_NAME:?}
-      SKIP_UPDATE_TO: "1"  # TODO: remove when there is a musllinux_aarch64 release to --update-to
+      UPDATE_TO:
     volumes:
       - ../../dist:/build

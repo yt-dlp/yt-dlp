@@ -135,6 +135,7 @@ jobs:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
       VERSION: ${{ needs.process.outputs.version }}
+      UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
     steps:
       - uses: actions/checkout@v4
         with:
@@ -159,7 +160,7 @@ jobs:
           chmod +x ./yt-dlp
           cp ./yt-dlp ./yt-dlp_downgraded
           version="$(./yt-dlp --version)"
-          ./yt-dlp_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          ./yt-dlp_downgraded -v --update-to "${UPDATE_TO}"
           downgraded_version="$(./yt-dlp_downgraded --version)"
           [[ "${version}" != "${downgraded_version}" ]]
       - name: Upload artifacts
@@ -190,6 +191,7 @@ jobs:
       ORIGIN: ${{ needs.process.outputs.origin }}
       VERSION: ${{ needs.process.outputs.version }}
       EXE_NAME: ${{ matrix.exe }}
+      UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
     steps:
       - uses: actions/checkout@v4
       - name: Build executable
@@ -215,7 +217,7 @@ jobs:
           mkdir -p ~/testing
           cp "./dist/${EXE_NAME}" ~/testing/"${EXE_NAME}_downgraded"
           version="$("./dist/${EXE_NAME}" --version)"
-          ~/testing/"${EXE_NAME}_downgraded" -v --update-to yt-dlp/yt-dlp@2023.03.04
+          ~/testing/"${EXE_NAME}_downgraded" -v --update-to "${UPDATE_TO}"
           downgraded_version="$(~/testing/"${EXE_NAME}_downgraded" --version)"
           [[ "${version}" != "${downgraded_version}" ]]
       - name: Upload artifacts
@@ -333,6 +335,7 @@ jobs:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
       VERSION: ${{ needs.process.outputs.version }}
+      UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
       - uses: actions/checkout@v4
@@ -409,7 +412,7 @@ jobs:
           chmod +x ./dist/yt-dlp_macos
           cp ./dist/yt-dlp_macos ./dist/yt-dlp_macos_downgraded
           version="$(./dist/yt-dlp_macos --version)"
-          ./dist/yt-dlp_macos_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          ./dist/yt-dlp_macos_downgraded -v --update-to "${UPDATE_TO}"
           downgraded_version="$(./dist/yt-dlp_macos_downgraded --version)"
           [[ "$version" != "$downgraded_version" ]]
 
@@ -449,6 +452,7 @@ jobs:
       ORIGIN: ${{ needs.process.outputs.origin }}
       VERSION: ${{ needs.process.outputs.version }}
       SUFFIX: ${{ matrix.suffix }}
+      UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
       BASE_CACHE_KEY: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}
       # Use custom PyInstaller built with https://github.com/yt-dlp/Pyinstaller-builds
       PYINSTALLER_URL: https://yt-dlp.github.io/Pyinstaller-Builds/${{ matrix.arch }}/pyinstaller-6.15.0-py3-none-any.whl
@@ -510,7 +514,7 @@ jobs:
           $name = "yt-dlp${Env:SUFFIX}"
           Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
           $version = & "./dist/${name}.exe" --version
-          & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2025.08.20
+          & "./dist/${name}_downgraded.exe" -v --update-to "${Env:UPDATE_TO}"
           $downgraded_version = & "./dist/${name}_downgraded.exe" --version
           if ($version -eq $downgraded_version) {
             exit 1
