@@ -103,13 +103,13 @@ class TenPlayIE(InfoExtractor):
             f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
             content_id, 'Downloading video JSON')
         m3u8_url = self._request_webpage(
-            HEADRequest(video_data['items'][0]['HLSURL']),
+            HEADRequest(video_data['items'][0]['dashManifestUrl'].replace('manifest=mpeg-dash', 'manifest=m3u')),
             content_id, 'Checking stream URL').url
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
         # Attempt to get a higher quality stream
         formats = self._extract_m3u8_formats(
-            m3u8_url.replace(',150,75,55,0000', ',300,150,75,55,0000'),
+            m3u8_url.replace(',150,75,55,0000', ',500,300,150,75,55,0000'),
             content_id, 'mp4', fatal=False)
         if not formats:
             formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
