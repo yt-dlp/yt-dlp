@@ -68,7 +68,8 @@ DEPENDENCIES: list[Dependency] = [
     Dependency(
         name='mpdecimal',
         license='BSD-2-Clause',
-        license_url='https://gist.githubusercontent.com/seproDev/9e5dbfc08af35c3f2463e64eb9b27161/raw/61f5a98bc1a4ad7d48b1c793fc3314d4d43c2ab1/mpdecimal_COPYRIGHT.txt',  # No official repo URL
+        # No official repo URL
+        license_url='https://gist.githubusercontent.com/seproDev/9e5dbfc08af35c3f2463e64eb9b27161/raw/61f5a98bc1a4ad7d48b1c793fc3314d4d43c2ab1/mpdecimal_COPYRIGHT.txt',
         project_url='https://www.bytereef.org/mpdecimal/',
     ),
     Dependency(
@@ -143,7 +144,8 @@ DEPENDENCIES: list[Dependency] = [
     Dependency(
         name='librtmp',
         license='LGPL-2.1-or-later',
-        license_url='https://gist.githubusercontent.com/seproDev/31d8c691ccddebe37b8b379307cb232d/raw/053408e98547ea8c7d9ba3a80c965f33e163b881/librtmp_COPYING.txt',  # No official repo URL
+        # No official repo URL
+        license_url='https://gist.githubusercontent.com/seproDev/31d8c691ccddebe37b8b379307cb232d/raw/053408e98547ea8c7d9ba3a80c965f33e163b881/librtmp_COPYING.txt',
         comment='Only included in macOS builds',
         project_url='https://rtmpdump.mplayerhq.hu/',
     ),
@@ -214,14 +216,14 @@ DEPENDENCIES: list[Dependency] = [
         license_url='https://raw.githubusercontent.com/psf/requests/refs/heads/main/LICENSE',
         project_url='https://requests.readthedocs.io/',
     ),
-    # Dependencies of requests
+    # Dependency of requests
     Dependency(
         name='charset-normalizer',
         license='MIT',
         license_url='https://raw.githubusercontent.com/jawah/charset_normalizer/refs/heads/master/LICENSE',
         project_url='https://charset-normalizer.readthedocs.io/',
     ),
-    # Dependencies of requests
+    # Dependency of requests
     Dependency(
         name='idna',
         license='BSD-3-Clause',
@@ -241,7 +243,7 @@ DEPENDENCIES: list[Dependency] = [
         comment='Only included in Linux builds',
         project_url='https://secretstorage.readthedocs.io/',
     ),
-    # Dependencies of SecretStorage
+    # Dependency of SecretStorage
     Dependency(
         name='cryptography',
         license='Apache-2.0',  # Also available as BSD-3-Clause
@@ -249,7 +251,7 @@ DEPENDENCIES: list[Dependency] = [
         comment='Only included in Linux builds',
         project_url='https://cryptography.io/',
     ),
-    # Dependencies of SecretStorage
+    # Dependency of SecretStorage
     Dependency(
         name='Jeepney',
         license='MIT',
