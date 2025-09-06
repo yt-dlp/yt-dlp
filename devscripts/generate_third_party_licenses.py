@@ -281,6 +281,8 @@ def build_output() -> str:
     lines.append('')
     lines.append('This file aggregates license texts of third-party components bundled with the yt-dlp executables.')
     lines.append('yt-dlp itself is licensed under the Unlicense (see LICENSE file).')
+    lines.append('Source code for bundled third-party components is available from the original projects.')
+    lines.append('If you cannot obtain it, the maintainers will provide it as per license obligation; maintainer emails are listed in pyproject.toml.')
 
     for d in DEPENDENCIES:
         lines.append('\n')
