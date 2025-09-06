@@ -66,7 +66,7 @@ from .utils import (
 )
 from .utils.networking import std_headers
 from .utils._utils import _UnsafeExtensionError
-from .utils._jsruntime import _DenoJsRuntime
+from .utils._jsruntime import DenoJsRuntime as _DenoJsRuntime
 from .YoutubeDL import YoutubeDL
 
 

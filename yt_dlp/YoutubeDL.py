@@ -4144,10 +4144,13 @@ class YoutubeDL:
             join_nonempty(*get_package_info(m)) for m in available_dependencies.values()
         })) or 'none'))
 
-        write_debug('JS Runtimes: %s' % (', '.join(sorted({
-            join_nonempty(info.name, info.version) if info else f'{name} (unknown)'
-            for name, info in ((name, runtime.info if runtime else None) for name, runtime in self._js_runtimes.items())
-        })) or 'none'))
+        if not self.params.get('js_runtimes'):
+            write_debug('JS Runtimes: none (disabled)')
+        else:
+            write_debug('JS Runtimes: %s' % (', '.join(sorted(
+                f'{name} (unknown)' if runtime is None else join_nonempty(runtime.info.name, runtime.info.version)
+                for name, runtime in self._js_runtimes.items() if runtime is None or runtime.info is not None
+            )) or 'none'))
 
         write_debug(f'Proxy map: {self.proxies}')
         write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
