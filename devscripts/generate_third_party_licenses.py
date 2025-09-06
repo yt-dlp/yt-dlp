@@ -7,7 +7,7 @@ DEFAULT_OUTPUT = 'THIRD_PARTY_LICENSES.txt'
 CACHE_LOCATION = '.license_cache'
 HEADER = '''THIRD-PARTY LICENSES
 
-This file aggregates license texts of third-party components bundled with the yt-dlp executables.
+This file aggregates license texts of third-party components included with the yt-dlp PyInstaller-bundled executables.
 yt-dlp itself is licensed under the Unlicense (see LICENSE file).
 Source code for bundled third-party components is available from the original projects.
 If you cannot obtain it, the maintainers will provide it as per license obligation; maintainer emails are listed in pyproject.toml.'''

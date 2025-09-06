@@ -272,7 +272,9 @@ jobs:
           printf '\n\n' >> ./RELEASE_NOTES
           cat >> ./RELEASE_NOTES << EOF
           #### A description of the various files is in the [README](https://github.com/${REPOSITORY}#release-files)
-          The executables are subject to the licenses described in [THIRD_PARTY_LICENSES.txt](https://github.com/${BASE_REPO}/blob/master/THIRD_PARTY_LICENSES.txt)
+
+          The PyInstaller-bundled executables are subject to the licenses described in [THIRD_PARTY_LICENSES.txt](https://github.com/${BASE_REPO}/blob/master/THIRD_PARTY_LICENSES.txt)
+
           ---
           $(python ./devscripts/make_changelog.py -vv --collapsible)
           EOF
