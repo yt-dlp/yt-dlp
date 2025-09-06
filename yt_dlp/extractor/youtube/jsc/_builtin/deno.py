@@ -24,6 +24,7 @@ from yt_dlp.extractor.youtube.jsc.provider import (
 )
 from yt_dlp.extractor.youtube.pot._provider import BuiltinIEContentProvider
 from yt_dlp.utils import Popen
+from yt_dlp.utils._jsruntime import JsRuntimeInfo
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -165,7 +166,15 @@ class DenoJCP(JsChallengeProvider, BuiltinIEContentProvider):
             return None
         return response.read()
 
+    def _get_runtime_info(self, key) -> JsRuntimeInfo | bool:
+        runtime = self.ie._downloader._js_runtimes.get(key)
+        if not runtime or not runtime.info or not runtime.info.supported:
+            return False
+        return runtime.info
+
     def is_available(self, /) -> bool:
+        if not self._get_runtime_info('deno'):
+            return False
         return False  # TODO: self._bundle crashes @Grub4k
         if not bool(self._bundle):
             return False
@@ -179,7 +188,7 @@ class DenoJCP(JsChallengeProvider, BuiltinIEContentProvider):
         return True
 
     def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> Generator[JsChallengeProviderResponse, None, None]:
-        deno = self._configuration_arg('deno', default=['deno'])[0]
+        deno = self._get_runtime_info('deno').path
         self.logger.trace(f'Using deno: {deno}')
         cmd = [deno, *self._DENO_ARGS]
 

@@ -4145,9 +4145,9 @@ class YoutubeDL:
         })) or 'none'))
 
         if not self.params.get('js_runtimes'):
-            write_debug('JS Runtimes: none (disabled)')
+            write_debug('JS runtimes: none (disabled)')
         else:
-            write_debug('JS Runtimes: %s' % (', '.join(sorted(
+            write_debug('JS runtimes: %s' % (', '.join(sorted(
                 f'{name} (unknown)' if runtime is None else join_nonempty(runtime.info.name, runtime.info.version)
                 for name, runtime in self._js_runtimes.items() if runtime is None or runtime.info is not None
             )) or 'none'))
