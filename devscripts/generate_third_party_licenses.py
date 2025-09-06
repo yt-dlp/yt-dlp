@@ -277,7 +277,8 @@ def fetch_text(dep: Dependency) -> str:
     if cache_file.exists():
         return cache_file.read_text()
 
-    req = requests.get(dep.license_url, headers={'User-Agent': 'yt-dlp license fetcher'})  # needed since some domains block requests UA
+    # UA needed since some domains block requests default UA
+    req = requests.get(dep.license_url, headers={'User-Agent': 'yt-dlp license fetcher'})
     req.raise_for_status()
     text = req.text
     cache_file.write_text(text)
