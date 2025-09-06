@@ -121,6 +121,11 @@ File|Description
 [yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged Windows (Win8+) x64 executable (no auto-update)
 [yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS (10.15+) executable (no auto-update)
 
+
+While yt-dlp is licensed under the [Unlicense](LICENSE), most release files contain code from other projects with different licenses.
+Most notably the executables include GPLv3+ licensed code, as such the combined work is licensed under [GPLv3+](https://www.gnu.org/licenses/gpl-3.0.html).
+See [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt) for details.
+
 #### Misc
 
 File|Description
