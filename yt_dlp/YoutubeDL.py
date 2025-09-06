@@ -744,7 +744,7 @@ class YoutubeDL:
                     raise
 
         # Note: this must be after plugins are loaded
-        self.params['js_runtimes'] = self.params.get('js_runtimes') or {'deno': {}}
+        self.params['js_runtimes'] = self.params.get('js_runtimes', {'deno': {}})
         self._validate_js_runtimes(self.params['js_runtimes'])
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
@@ -870,10 +870,18 @@ class YoutubeDL:
         ):
             raise ValueError('Invalid js_runtimes format, expected a dict of {runtime: {config}}')
 
-        if unsupported_runtimes := set(runtimes.keys()) - set(supported_js_runtimes.value):
+        if unsupported_runtimes := set(runtimes.keys()) - set(supported_js_runtimes.value.keys()):
             raise ValueError(
                 f'Unsupported JavaScript runtimes specified: {", ".join(unsupported_runtimes)}.'
-                f' Supported runtimes are: {", ".join(supported_js_runtimes.value)}')
+                f' Supported runtimes are: {", ".join(supported_js_runtimes.value.keys())}')
+
+    @functools.cached_property
+    def _js_runtimes(self):
+        runtimes = {}
+        for name, config in self.params.get('js_runtimes', {}).items():
+            runtime_cls = supported_js_runtimes.value.get(name)
+            runtimes[name] = runtime_cls(path=config.get('path')) if runtime_cls else None
+        return runtimes
 
     def warn_if_short_id(self, argv):
         # short YouTube ID starting with dash?
@@ -4134,6 +4142,11 @@ class YoutubeDL:
 
         write_debug('Optional libraries: %s' % (', '.join(sorted({
             join_nonempty(*get_package_info(m)) for m in available_dependencies.values()
+        })) or 'none'))
+
+        write_debug('JS Runtimes: %s' % (', '.join(sorted({
+            join_nonempty(info.name, info.version) if info else f'{name} (unknown)'
+            for name, info in ((name, runtime.info if runtime else None) for name, runtime in self._js_runtimes.items())
         })) or 'none'))
 
         write_debug(f'Proxy map: {self.proxies}')

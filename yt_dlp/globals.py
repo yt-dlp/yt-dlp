@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 from collections import defaultdict
 
@@ -34,4 +35,4 @@ WINDOWS_VT_MODE = Indirect(False if os.name == 'nt' else None)
 # JS Runtimes
 # If adding support for another runtime,
 # register it here to allow `js_runtimes` option to accept it.
-supported_js_runtimes = Indirect(['deno', 'node'])
+supported_js_runtimes = Indirect({})
