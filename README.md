@@ -121,7 +121,6 @@ File|Description
 [yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged Windows (Win8+) x64 executable (no auto-update)
 [yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS (10.15+) executable (no auto-update)
 
-
 #### Misc
 
 File|Description
@@ -135,7 +134,7 @@ File|Description
 While yt-dlp is licensed under the [Unlicense](LICENSE), most release files contain code from other projects with different licenses.
 Most notably the executables include GPLv3+ licensed code, as such the combined work is licensed under [GPLv3+](https://www.gnu.org/licenses/gpl-3.0.html).
 See [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt) for details.
-`yt-dlp` (zipimport binary), `yt-dlp.tar.gz` (source tarball), and the pypi wheel only contain code licensed under the [Unlicense](LICENSE).
+`yt-dlp` (zipimport binary), `yt-dlp.tar.gz` (source tarball), and the PyPI wheel only contain code licensed under the [Unlicense](LICENSE).
 
 The public key that can be used to verify the GPG signatures is [available here](https://github.com/yt-dlp/yt-dlp/blob/master/public.key)
 Example usage:
