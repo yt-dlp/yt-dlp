@@ -26,6 +26,7 @@
         - [Trailing parentheses](#trailing-parentheses)
         - [Use convenience conversion and parsing functions](#use-convenience-conversion-and-parsing-functions)
     - [My pull request is labeled pending-fixes](#my-pull-request-is-labeled-pending-fixes)
+    - [Use of AI tools and LLMs](#use-of-ai-tools-and-llms)
 - [EMBEDDING YT-DLP](README.md#embedding-yt-dlp)
 
 
@@ -768,10 +769,23 @@ view_count = int_or_none(video.get('views'))
 ```
 
 
-# My pull request is labeled pending-fixes
+## My pull request is labeled pending-fixes
 
 The `pending-fixes` label is added when there are changes requested to a PR. When the necessary changes are made, the label should be removed. However, despite our best efforts, it may sometimes happen that the maintainer did not see the changes or forgot to remove the label. If your PR is still marked as `pending-fixes` a few days after all requested changes have been made, feel free to ping the maintainer who labeled your issue and ask them to re-review and remove the label.
 
+
+## Use of AI tools and LLMs
+
+You are responsible for your PRs. If you can not explain your code, you should not submit it.
+
+Prompting an LLM to generate code does not provide any value. If it were expedient, we would be doing so ourselves.
+
+The problem with LLMs is that they often hallucinate. This generally results in the reviewer having to rewrite the entire PR from scratch.
+Additionally, the LLM will not learn from the review feedback. A human author can learn from the review and their next PR will be better.
+
+Lastly, there are still unsolved questions regarding copyright. How can you dedicate something to the public domain you didn't write?
+
+Even for documentation or description, we appreciate a genuine attempt way more than having some generic LLM generated text.
 
 
 
