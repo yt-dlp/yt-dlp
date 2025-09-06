@@ -5,6 +5,12 @@ import hashlib
 
 DEFAULT_OUTPUT = 'THIRD_PARTY_LICENSES.txt'
 CACHE_LOCATION = '.license_cache'
+HEADER = '''THIRD-PARTY LICENSES
+
+This file aggregates license texts of third-party components bundled with the yt-dlp executables.
+yt-dlp itself is licensed under the Unlicense (see LICENSE file).
+Source code for bundled third-party components is available from the original projects.
+If you cannot obtain it, the maintainers will provide it as per license obligation; maintainer emails are listed in pyproject.toml.'''
 
 
 @dataclass(frozen=True)
@@ -277,14 +283,7 @@ def fetch_text(dep: Dependency) -> str:
 
 
 def build_output() -> str:
-    lines = []
-    lines.append('THIRD-PARTY LICENSES')
-    lines.append('')
-    lines.append('This file aggregates license texts of third-party components bundled with the yt-dlp executables.')
-    lines.append('yt-dlp itself is licensed under the Unlicense (see LICENSE file).')
-    lines.append('Source code for bundled third-party components is available from the original projects.')
-    lines.append('If you cannot obtain it, the maintainers will provide it as per license obligation; maintainer emails are listed in pyproject.toml.')
-
+    lines = [HEADER]
     for d in DEPENDENCIES:
         lines.append('\n')
         lines.append('-' * 80)
