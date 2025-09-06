@@ -167,12 +167,11 @@ run-cov = "echo Code coverage not implemented && exit 1"
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [
-    "3.9",
     "3.10",
     "3.11",
     "3.12",
     "3.13",
-    "pypy3.10",
+    "pypy3.11",
 ]
 
 [tool.ruff]
