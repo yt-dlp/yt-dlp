@@ -107,19 +107,17 @@ class JsChallengeProvider(IEContentProvider, abc.ABC, suffix='JCP'):
             raise JsChallengeProviderRejectedRequest(
                 f'JS Challenge type "{request.type}" is not supported by {self.PROVIDER_NAME}')
 
-    def bulk_solve(self, requests: list[JsChallengeRequest]) -> list[JsChallengeProviderResponse]:
+    def bulk_solve(self, requests: list[JsChallengeRequest]) -> typing.Generator[JsChallengeProviderResponse, None, None]:
         """Solve multiple JS challenges and return the results"""
-        responses = []
         validated_requests = []
         for request in requests:
             try:
                 self.__validate_request(request)
                 validated_requests.append(request)
             except JsChallengeProviderRejectedRequest as e:
-                responses.append(JsChallengeProviderResponse(request=request, error=e))
+                yield JsChallengeProviderResponse(request=request, error=e)
                 continue
-        responses.extend(self._real_bulk_solve(validated_requests))
-        return responses
+        yield from self._real_bulk_solve(validated_requests)
 
     @abc.abstractmethod
     def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> typing.Generator[JsChallengeProviderResponse, None, None]:
