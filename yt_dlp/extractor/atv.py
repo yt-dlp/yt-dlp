@@ -266,7 +266,7 @@ class AtvSeriesIE(AtvBaseIE):
             'info_dict': {
                 'id': '4a8459e8-ba0c-4eb8-a7d3-3982cea3a8a2',
             },
-            'playlist_count': 22,
+            'playlist_min_count': 23,
         },
         {
             'url': 'https://www.atv.com.tr/kara-para-ask/bolumler',
