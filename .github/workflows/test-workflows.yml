@@ -2,13 +2,13 @@ name: Test and lint workflows
 on:
   push:
     paths:
-      - .github/workflows/*.yml
+      - .github/workflows/*
       - devscripts/setup_variables.py
       - devscripts/setup_variables_tests.py
       - devscripts/utils.py
   pull_request:
     paths:
-      - .github/workflows/*.yml
+      - .github/workflows/*
       - devscripts/setup_variables.py
       - devscripts/setup_variables_tests.py
       - devscripts/utils.py
