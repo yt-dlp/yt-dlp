@@ -81,7 +81,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.10"  # Keep this in sync with test-workflows.yml
 
       - name: Process inputs
         id: process_inputs
