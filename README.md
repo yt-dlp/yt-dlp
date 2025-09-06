@@ -141,10 +141,13 @@ gpg --verify SHA2-512SUMS.sig SHA2-512SUMS
 
 #### Licensing
 
-While yt-dlp is licensed under the [Unlicense](LICENSE), most release files contain code from other projects with different licenses.
-Most notably the executables include GPLv3+ licensed code, as such the combined work is licensed under [GPLv3+](https://www.gnu.org/licenses/gpl-3.0.html).
+While yt-dlp is licensed under the [Unlicense](LICENSE), many of the release files contain code from other projects with different licenses.
+
+Most notably, the PyInstaller-bundled executables include GPLv3+ licensed code, and as such the combined work is licensed under [GPLv3+](https://www.gnu.org/licenses/gpl-3.0.html).
+
 See [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt) for details.
-`yt-dlp` (zipimport binary), `yt-dlp.tar.gz` (source tarball), and the PyPI wheel only contain code licensed under the [Unlicense](LICENSE).
+
+The zipimport binary (`yt-dlp`), the source tarball (`yt-dlp.tar.gz`), and the PyPI source distribution & wheel only contain code licensed under the [Unlicense](LICENSE).
 
 <!-- MANPAGE: END EXCLUDED SECTION -->
 

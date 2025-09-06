@@ -300,9 +300,9 @@ def build_output() -> str:
         if d.license:
             header += f' | {d.license}'
         if d.comment:
-            header += f' | Note: {d.comment}'
+            header += f'\nNote: {d.comment}'
         if d.project_url:
-            header += f' | URL: {d.project_url}'
+            header += f'\nURL: {d.project_url}'
         lines.append(header)
         lines.append('-' * 80)
 
