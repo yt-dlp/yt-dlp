@@ -1,8 +1,7 @@
 from __future__ import annotations
 import dataclasses
 import functools
-from ._utils import Popen
-import subprocess
+from ._utils import _get_exe_version_output, detect_exe_version
 
 
 @dataclasses.dataclass(frozen=True)
@@ -10,6 +9,7 @@ class RuntimeInfo:
     name: str
     path: str
     version: str
+    supported: bool = True
 
 
 class JsRuntime:
@@ -27,19 +27,18 @@ class JsRuntime:
 class DenoJsRuntime(JsRuntime):
     def _info(self):
         deno_path = self._path or 'deno'
-        with Popen(
-            [deno_path, '--version'],
-            text=True,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as proc:
-            stdout, stderr = proc.communicate()
-            if proc.returncode != 0:
-                return None
+        out = _get_exe_version_output(deno_path, ['--version'])
+        if not out:
+            return None
+        version = detect_exe_version(out, r'^deno (\S+)')
+        return RuntimeInfo(name='deno', path=deno_path, version=version)
 
-            return RuntimeInfo(
-                name='deno',
-                path=deno_path,
-                version=stdout.splitlines()[0].split()[1],
-            )
+
+class NodeJsRuntime(JsRuntime):
+    def _info(self):
+        node_path = self._path or 'node'
+        out = _get_exe_version_output(node_path, ['--version'])
+        if not out:
+            return None
+        version = detect_exe_version(out, r'^v(\S+)')
+        return RuntimeInfo(name='node', path=node_path, version=version)
