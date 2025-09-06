@@ -129,7 +129,6 @@ def windows_set_version(exe, version):
                 StringStruct('FileDescription', 'yt-dlp%s' % (MACHINE and f' ({MACHINE})')),
                 StringStruct('FileVersion', version),
                 StringStruct('InternalName', f'yt-dlp{suffix}'),
-                StringStruct('LegalCopyright', 'pukkandan.ytdlp@gmail.com | UNLICENSE'),
                 StringStruct('OriginalFilename', f'yt-dlp{suffix}.exe'),
                 StringStruct('ProductName', f'yt-dlp{suffix}'),
                 StringStruct(
