@@ -6,10 +6,12 @@ on:
     paths:
       - "yt_dlp/**.py"
       - "!yt_dlp/version.py"
-      - "bundle/*.py"
+      - "bundle/**"
       - "pyproject.toml"
       - "Makefile"
       - ".github/workflows/build.yml"
+      - ".github/workflows/release.yml"
+      - ".github/workflows/release-master.yml"
 concurrency:
   group: release-master
 permissions:
@@ -17,21 +19,20 @@ permissions:
 
 jobs:
   release:
-    if: vars.BUILD_MASTER != ''
+    if: vars.BUILD_MASTER
     uses: ./.github/workflows/release.yml
     with:
       prerelease: true
-      source: master
+      source: ${{ (github.repository != 'yt-dlp/yt-dlp' && vars.MASTER_ARCHIVE_REPO) || 'master' }}
+      target: 'master'
     permissions:
       contents: write
-      packages: write  # For package cache
-      actions: write  # For cleaning up cache
       id-token: write  # mandatory for trusted publishing
     secrets: inherit
 
   publish_pypi:
     needs: [release]
-    if: vars.MASTER_PYPI_PROJECT != ''
+    if: vars.MASTER_PYPI_PROJECT
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # mandatory for trusted publishing
