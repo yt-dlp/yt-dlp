@@ -154,7 +154,7 @@ def _get_binary_name():
 
 
 def _get_system_deprecation():
-    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 9), (3, 10)
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 10), (3, 10)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
