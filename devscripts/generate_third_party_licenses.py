@@ -5,6 +5,7 @@ import hashlib
 
 DEFAULT_OUTPUT = 'THIRD_PARTY_LICENSES.txt'
 
+
 @dataclass(frozen=True)
 class Dependency:
     name: str
@@ -42,18 +43,18 @@ DEPENDENCIES: list[Dependency] = [
     ),
     Dependency(
         name='SQLite',
-        license='Public Domain', # Technically does not need to be included
+        license='Public Domain',  # Technically does not need to be included
         source_url='https://sqlite.org/src/raw/e108e1e69ae8e8a59e93c455654b8ac9356a11720d3345df2a4743e9590fb20d?at=LICENSE.md',
     ),
     Dependency(
         name='liblzma',
-        license='0BSD', # Technically does not need to be included
+        license='0BSD',  # Technically does not need to be included
         source_url='https://raw.githubusercontent.com/tukaani-project/xz/refs/heads/master/COPYING',
     ),
     Dependency(
         name='mpdecimal',
         license='BSD-2-Clause',
-        source_url='https://gist.githubusercontent.com/seproDev/9e5dbfc08af35c3f2463e64eb9b27161/raw/61f5a98bc1a4ad7d48b1c793fc3314d4d43c2ab1/mpdecimal_COPYRIGHT.txt', # No official repo URL
+        source_url='https://gist.githubusercontent.com/seproDev/9e5dbfc08af35c3f2463e64eb9b27161/raw/61f5a98bc1a4ad7d48b1c793fc3314d4d43c2ab1/mpdecimal_COPYRIGHT.txt',  # No official repo URL
     ),
     Dependency(
         name='zlib',
@@ -117,7 +118,7 @@ DEPENDENCIES: list[Dependency] = [
     Dependency(
         name='librtmp',
         license='LGPL-2.1-or-later',
-        source_url='https://gist.githubusercontent.com/seproDev/31d8c691ccddebe37b8b379307cb232d/raw/053408e98547ea8c7d9ba3a80c965f33e163b881/librtmp_COPYING.txt', # No official repo URL
+        source_url='https://gist.githubusercontent.com/seproDev/31d8c691ccddebe37b8b379307cb232d/raw/053408e98547ea8c7d9ba3a80c965f33e163b881/librtmp_COPYING.txt',  # No official repo URL
         comment='Only included in macOS builds',
     ),
     Dependency(
@@ -148,7 +149,7 @@ DEPENDENCIES: list[Dependency] = [
     ),
     Dependency(
         name='cffi',
-        license='MIT-0', # Technically does not need to be included
+        license='MIT-0',  # Technically does not need to be included
         source_url='https://raw.githubusercontent.com/python-cffi/cffi/refs/heads/main/LICENSE',
     ),
     # Dependecy of cffi
@@ -203,7 +204,7 @@ DEPENDENCIES: list[Dependency] = [
     # Dependencies of SecretStorage
     Dependency(
         name='cryptography',
-        license='Apache-2.0', # Also available as BSD-3-Clause
+        license='Apache-2.0',  # Also available as BSD-3-Clause
         source_url='https://raw.githubusercontent.com/pyca/cryptography/refs/heads/main/LICENSE.APACHE',
         comment='Only included in Linux builds',
     ),
@@ -231,7 +232,7 @@ def fetch_text(dep: Dependency) -> str:
     if cache_file.exists():
         return cache_file.read_text()
 
-    req = requests.get(dep.source_url, headers={'User-Agent': 'yt-dlp license fetcher'}) # needed since some domains block requests UA
+    req = requests.get(dep.source_url, headers={'User-Agent': 'yt-dlp license fetcher'})  # needed since some domains block requests UA
     req.raise_for_status()
     text = req.text
     cache_file.write_text(text)
@@ -259,6 +260,7 @@ def build_output() -> str:
         text = fetch_text(d)
         lines.append(text.strip('\n') + '\n')
     return '\n'.join(lines)
+
 
 if __name__ == '__main__':
     content = build_output()
