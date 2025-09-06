@@ -4,6 +4,7 @@ from pathlib import Path
 import hashlib
 
 DEFAULT_OUTPUT = 'THIRD_PARTY_LICENSES.txt'
+CACHE_LOCATION = '.license_cache'
 
 
 @dataclass(frozen=True)
@@ -260,7 +261,7 @@ DEPENDENCIES: list[Dependency] = [
 
 
 def fetch_text(dep: Dependency) -> str:
-    cache_dir = Path('_cache')
+    cache_dir = Path(CACHE_LOCATION)
     cache_dir.mkdir(exist_ok=True)
     url_hash = hashlib.sha256(dep.license_url.encode('utf-8')).hexdigest()
     cache_file = cache_dir / f'{url_hash}.txt'
