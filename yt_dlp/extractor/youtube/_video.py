@@ -3251,15 +3251,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     # signature
                     # Attempt to load sig spec from cache
-                    spec_cache_id = self._sig_spec_cache_id(player_url, len(encrypted_sig))
-                    spec = self._load_sig_spec_from_cache(spec_cache_id)
-                    if spec:
-                        self.write_debug(f'Using cached signature function {spec_cache_id}', only_once=True)
-                        fmt_url += '&{}={}'.format(traverse_obj(sc, ('sp', -1)) or 'signature',
-                                                   solve_sig(encrypted_sig, spec))
-                    else:
-                        fmt['_jsc_s_challenge'] = encrypted_sig
-                        fmt['_jsc_s_sc'] = sc
+                    if encrypted_sig:
+                        spec_cache_id = self._sig_spec_cache_id(player_url, len(encrypted_sig))
+                        spec = self._load_sig_spec_from_cache(spec_cache_id)
+                        if spec:
+                            self.write_debug(f'Using cached signature function {spec_cache_id}', only_once=True)
+                            fmt_url += '&{}={}'.format(traverse_obj(sc, ('sp', -1)) or 'signature',
+                                                       solve_sig(encrypted_sig, spec))
+                        else:
+                            fmt['_jsc_s_challenge'] = encrypted_sig
+                            fmt['_jsc_s_sc'] = sc
 
                     # nsig
                     query = parse_qs(fmt_url)
