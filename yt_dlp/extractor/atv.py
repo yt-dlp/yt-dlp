@@ -49,6 +49,59 @@ class AtvBaseIE(InfoExtractor):
         path = next_url or f'/v2/link/17d1662c72?cid={category_id}'
         return self._api_call(path, category_id, f'Downlading episode list for page {page}')
 
+    def _request_secure_token(self, video_url):
+        # Extracted from https://i.tmgrup.com.tr/videojs/js/tmdplayersetupv2.js?v=792 at RequestSecureToken() function
+        return self._download_json(f'https://securevideotoken.tmgrup.com.tr/webtv/secure?url={video_url}', video_url, 'Getting secure token',
+                                   headers={'referer': 'https://www.atv.com.tr/'})
+
+    def _videojs_get_video(self, video_id, note, channel='atv'):
+        # These are the channels published by "Turkuvaz Haberlesme ve Yayincilik A.S."
+        # Extracted from https://i.tmgrup.com.tr/videojs/js/tmdplayersetupv2.js?v=792 at PlayerDaion() function
+        # | website url                     | website ID                           | channel     | ce | app ID                               | mobile | test |
+        # |---------------------------------|--------------------------------------|-------------|----|--------------------------------------|--------|------|
+        # | https://www.aspor.com.tr/       | 9bbe055a-4cf6-4bc3-a675-d40e89b55b91 | aspor       | 3  | b6bf3b55-0120-4e0f-983b-a6c7969f9ec6 | yes    | no   |
+        # | https://www.aspor.com.tr/       | 9bbe055a-4cf6-4bc3-a675-d40e89b55b91 | aspor       | 3  | 45f847c4-04e8-419a-a561-2ebf87084765 | no     | no   |
+        # | https://www.atv.com.tr/a2tv/    | 0c1bc8ff-c3b1-45be-a95b-f7bb9c8b03ed | a2tv        | 3  | 59363a60-be96-4f73-9eff-355d0ff2c758 | -      | no   |
+        # | https://www.minikago.com.tr/    | aae2e325-4eae-45b7-b017-26fd7ddb6ce4 | minikago    | 3  | mweb                                 | yes    | no   |
+        # | https://www.minikago.com.tr/    | aae2e325-4eae-45b7-b017-26fd7ddb6ce4 | minikago    | 3  | web                                  | no     | no   |
+        # | https://www.minikacocuk.com.tr/ | 01ed59f2-4067-4945-8204-45f6c6db4045 | minikacocuk | 3  | mweb                                 | yes    | no   |
+        # | https://www.atv.com.tr/         | 0fe2a405-8afa-4238-b429-e5f96aec3a5c | atv         | 3  | 866e32e3-9fea-477f-a5ef-64ebe32956f3 | -      | yes  |
+        # | https://www.atv.com.tr/         | 0fe2a405-8afa-4238-b429-e5f96aec3a5c | atv         | 3  | d5eb593f-39d9-4b01-9cfd-4748e8332cf0 | yes    | no   |
+        # | https://www.atv.com.tr/         | 0fe2a405-8afa-4238-b429-e5f96aec3a5c | atv         | 3  | d1ce2d40-5256-4550-b02e-e73c185a314e | no     | no   |
+        #
+        # These are mainly published by two different CDNs
+        # - https://trkvz-live.ercdn.net/{channel}/{channel}.m3u8
+        # - https://trkvz.daioncdn.net/{channel}/{channel}.m3u8
+        CHANNELS = {
+            'atv': {
+                'website_id': '0fe2a405-8afa-4238-b429-e5f96aec3a5c',
+                'website_url': 'https://www.atv.com.tr/',
+            },
+            'aspor': {
+                'website_id': '9bbe055a-4cf6-4bc3-a675-d40e89b55b91',
+                'website_url': 'https://www.aspor.com.tr/',
+            },
+            'a2tv': {
+                'website_id': '0c1bc8ff-c3b1-45be-a95b-f7bb9c8b03ed',
+                'website_url': 'https://www.atv.com.tr/',
+            },
+            'minikago': {
+                'website_id': 'aae2e325-4eae-45b7-b017-26fd7ddb6ce4',
+                'website_url': 'https://www.minikago.com.tr/',
+            },
+            'minikacocuk': {
+                'website_id': '01ed59f2-4067-4945-8204-45f6c6db4045',
+                'website_url': 'https://www.minikacocuk.com.tr/',
+            },
+        }
+        website_id = CHANNELS[channel]['website_id']
+        return self._download_json(f'https://videojs.tmgrup.com.tr/getvideo/{website_id}/{video_id}', website_id, note,
+                                   headers={'referer': CHANNELS[channel]['website_url']})
+
+    def _videojs_get_live_stream(self, channel='atv'):
+        video_id = '00000000-0000-0000-0000-000000000000'
+        return self._videojs_get_video(video_id, 'Get live stream metadata', channel=channel)
+
 
 class AtvIE(AtvBaseIE):
     _VALID_URL = r'https?://(?:www\.)?atv\.com\.tr/(?P<slug>[a-z\-]+)/(?P<episode>[0-9]+\-bolum)(/izle)?'
@@ -232,18 +285,23 @@ class AtvSeriesIE(AtvBaseIE):
     ]
 
     def _live_stream(self):
-        appid = 'd1ce2d40-5256-4550-b02e-e73c185a314e'
-        url = f'https://trkvz.daioncdn.net/atv/atv.m3u8?ce=3&app={appid}'
-        json = self._download_json(f'https://securevideotoken.tmgrup.com.tr/webtv/secure?url={url}', appid, 'Downloading live stream metadata',
-                                   headers={'referer': 'https://www.atv.com.tr/'})
+        json = self._videojs_get_live_stream()
+        if not json.get('success', False):
+            raise ExtractorError('Unable to fetch live stream url')
 
+        video_url = traverse_obj(json, ('video', 'VideoUrl'))
+
+        json = self._request_secure_token(video_url)
+        stream_url = json.get('Url') or json.get('AlternateUrl')
+        stream_id = 'canli-yayin'
+        formats = self._extract_m3u8_formats(stream_url, stream_id, 'mp4', m3u8_id='hls')
         return {
-            'id': appid,
+            'id': stream_id,
             'title': 'atv Canlı Yayın',
             'is_live:': True,
             'format_id': 'hls',
             'protocol': 'm3u8',
-            'url': json.get('Url') or json.get('AlternateUrl'),
+            'formats': formats,
         }
 
     def _entries(self, category_id):
