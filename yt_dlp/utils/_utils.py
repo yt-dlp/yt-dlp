@@ -47,10 +47,10 @@ import xml.etree.ElementTree
 from . import traversal
 
 from ..compat import (
+    compat_datetime_from_timestamp,
     compat_etree_fromstring,
     compat_expanduser,
     compat_HTMLParseError,
-    compat_datetime_from_timestamp,
 )
 from ..dependencies import xattr
 from ..globals import IN_CLI, WINDOWS_VT_MODE
