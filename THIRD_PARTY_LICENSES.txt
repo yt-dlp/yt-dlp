@@ -5,7 +5,7 @@ yt-dlp itself is licensed under the Unlicense (see LICENSE file).
 
 
 --------------------------------------------------------------------------------
-Python | PSF-2.0
+Python | PSF-2.0 | URL: https://www.python.org/
 --------------------------------------------------------------------------------
 A. HISTORY OF THE SOFTWARE
 ==========================
@@ -332,7 +332,7 @@ file, or by other licenses as marked.
 
 
 --------------------------------------------------------------------------------
-bzip2 | bzip2-1.0.6
+bzip2 | bzip2-1.0.6 | URL: https://sourceware.org/bzip2/
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------
 
@@ -379,7 +379,7 @@ bzip2/libbzip2 version 1.0.6 of 6 September 2010
 
 
 --------------------------------------------------------------------------------
-libffi | MIT
+libffi | MIT | URL: https://sourceware.org/libffi/
 --------------------------------------------------------------------------------
 libffi - Copyright (c) 1996-2025  Anthony Green, Red Hat, Inc and others.
 See source files for details.
@@ -406,7 +406,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-OpenSSL 3.0+ | Apache-2.0
+OpenSSL 3.0+ | Apache-2.0 | URL: https://www.openssl.org/
 --------------------------------------------------------------------------------
                                  Apache License
                            Version 2.0, January 2004
@@ -588,7 +588,7 @@ OpenSSL 3.0+ | Apache-2.0
 
 
 --------------------------------------------------------------------------------
-SQLite | Public Domain
+SQLite | Public Domain | URL: https://www.sqlite.org/
 --------------------------------------------------------------------------------
 License Information
 ===================
@@ -685,7 +685,7 @@ is left will be 100% public domain.
 
 
 --------------------------------------------------------------------------------
-liblzma | 0BSD
+liblzma | 0BSD | URL: https://tukaani.org/xz/
 --------------------------------------------------------------------------------
 XZ Utils Licensing
 ==================
@@ -759,7 +759,7 @@ XZ Utils Licensing
 
 
 --------------------------------------------------------------------------------
-mpdecimal | BSD-2-Clause
+mpdecimal | BSD-2-Clause | URL: https://www.bytereef.org/mpdecimal/
 --------------------------------------------------------------------------------
 Copyright (c) 2008-2025 Stefan Krah. All rights reserved.
 
@@ -788,7 +788,7 @@ SUCH DAMAGE.
 
 
 --------------------------------------------------------------------------------
-zlib | zlib
+zlib | zlib | URL: https://zlib.net/
 --------------------------------------------------------------------------------
 Copyright notice:
 
@@ -816,7 +816,7 @@ Copyright notice:
 
 
 --------------------------------------------------------------------------------
-ncurses | X11-distribute-modifications-variant | Note: Only included in Linux/macOS builds
+ncurses | X11-distribute-modifications-variant | Note: Only included in Linux/macOS builds | URL: https://invisible-island.net/ncurses/
 --------------------------------------------------------------------------------
 Copyright 2018-2022,2023 Thomas E. Dickey
 Copyright 1998-2017,2018 Free Software Foundation, Inc.
@@ -851,7 +851,7 @@ authorization.
 
 
 --------------------------------------------------------------------------------
-GNU Readline | GPL-3.0-or-later | Note: Only included in Linux builds
+GNU Readline | GPL-3.0-or-later | Note: Only included in Linux builds | URL: https://www.gnu.org/software/readline/
 --------------------------------------------------------------------------------
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
@@ -1531,7 +1531,7 @@ Public License instead of this License.  But first, please read
 
 
 --------------------------------------------------------------------------------
-libstdc++ | GPL-3.0-with-GCC-exception | Note: Only included in Linux builds
+libstdc++ | GPL-3.0-with-GCC-exception | Note: Only included in Linux builds | URL: https://gcc.gnu.org/onlinedocs/libstdc++/
 --------------------------------------------------------------------------------
 GCC RUNTIME LIBRARY EXCEPTION
 
@@ -1609,7 +1609,7 @@ requirements of the license of GCC.
 
 
 --------------------------------------------------------------------------------
-libgcc | GPL-3.0-with-GCC-exception | Note: Only included in Linux builds
+libgcc | GPL-3.0-with-GCC-exception | Note: Only included in Linux builds | URL: https://gcc.gnu.org/
 --------------------------------------------------------------------------------
 GCC RUNTIME LIBRARY EXCEPTION
 
@@ -1687,7 +1687,7 @@ requirements of the license of GCC.
 
 
 --------------------------------------------------------------------------------
-libuuid | BSD-3-Clause | Note: Only included in Linux builds
+libuuid | BSD-3-Clause | Note: Only included in Linux builds | URL: https://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git/tree/lib/uuid
 --------------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -1718,7 +1718,7 @@ DAMAGE.
 
 
 --------------------------------------------------------------------------------
-libintl | LGPL-2.1-or-later | Note: Only included in macOS builds
+libintl | LGPL-2.1-or-later | Note: Only included in macOS builds | URL: https://www.gnu.org/software/gettext/
 --------------------------------------------------------------------------------
                   GNU LESSER GENERAL PUBLIC LICENSE
                        Version 2.1, February 1999
@@ -2225,7 +2225,7 @@ That's all there is to it!
 
 
 --------------------------------------------------------------------------------
-libidn2 | LGPL-3.0-or-later | Note: Only included in macOS builds
+libidn2 | LGPL-3.0-or-later | Note: Only included in macOS builds | URL: https://www.gnu.org/software/libidn/
 --------------------------------------------------------------------------------
                    GNU LESSER GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
@@ -2396,7 +2396,7 @@ Library.
 
 
 --------------------------------------------------------------------------------
-libidn2 (Unicode character data files) | Unicode-TOU AND Unicode-DFS-2016 | Note: Only included in macOS builds
+libidn2 (Unicode character data files) | Unicode-TOU AND Unicode-DFS-2016 | Note: Only included in macOS builds | URL: https://www.gnu.org/software/libidn/
 --------------------------------------------------------------------------------
 A. Unicode Copyright.
 
@@ -2493,7 +2493,7 @@ written authorization of the copyright holder.
 
 
 --------------------------------------------------------------------------------
-libunistring | LGPL-3.0-or-later | Note: Only included in macOS builds
+libunistring | LGPL-3.0-or-later | Note: Only included in macOS builds | URL: https://www.gnu.org/software/libunistring/
 --------------------------------------------------------------------------------
 		   GNU LESSER GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
@@ -2664,7 +2664,7 @@ Library.
 
 
 --------------------------------------------------------------------------------
-librtmp | LGPL-2.1-or-later | Note: Only included in macOS builds
+librtmp | LGPL-2.1-or-later | Note: Only included in macOS builds | URL: https://rtmpdump.mplayerhq.hu/
 --------------------------------------------------------------------------------
                   GNU LESSER GENERAL PUBLIC LICENSE
                        Version 2.1, February 1999
@@ -3172,7 +3172,7 @@ That's all there is to it!
 
 
 --------------------------------------------------------------------------------
-zstd | BSD-3-Clause | Note: Only included in macOS builds
+zstd | BSD-3-Clause | Note: Only included in macOS builds | URL: https://facebook.github.io/zstd/
 --------------------------------------------------------------------------------
 BSD License
 
@@ -3208,7 +3208,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 --------------------------------------------------------------------------------
-brotli | MIT
+brotli | MIT | URL: https://brotli.org/
 --------------------------------------------------------------------------------
 Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors.
 
@@ -3233,7 +3233,7 @@ THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-curl_cffi | MIT | Note: Not included in `yt-dlp_x86` and `yt-dlp_musllinux_aarch64` builds
+curl_cffi | MIT | Note: Not included in `yt-dlp_x86` and `yt-dlp_musllinux_aarch64` builds | URL: https://curl-cffi.readthedocs.io/
 --------------------------------------------------------------------------------
 MIT License
 
@@ -3262,7 +3262,7 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-curl-impersonate | MIT | Note: Not included in `yt-dlp_x86` and `yt-dlp_musllinux_aarch64` builds
+curl-impersonate | MIT | Note: Not included in `yt-dlp_x86` and `yt-dlp_musllinux_aarch64` builds | URL: https://github.com/lexiforest/curl-impersonate
 --------------------------------------------------------------------------------
 MIT License
 
@@ -3289,7 +3289,7 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-cffi | MIT-0
+cffi | MIT-0 | URL: https://cffi.readthedocs.io/
 --------------------------------------------------------------------------------
 Except when otherwise stated (look for LICENSE files in directories or
 information at the beginning of each file) all software and
@@ -3316,7 +3316,7 @@ documentation is licensed as follows:
 
 
 --------------------------------------------------------------------------------
-pycparser | BSD-3-Clause
+pycparser | BSD-3-Clause | URL: https://github.com/eliben/pycparser
 --------------------------------------------------------------------------------
 pycparser -- A C parser in Python
 
@@ -3349,7 +3349,7 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 --------------------------------------------------------------------------------
-mutagen | GPL-2.0-or-later
+mutagen | GPL-2.0-or-later | URL: https://mutagen.readthedocs.io/
 --------------------------------------------------------------------------------
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991
@@ -3694,7 +3694,7 @@ Public License instead of this License.
 
 
 --------------------------------------------------------------------------------
-PyCryptodome | Public Domain and BSD-2-Clause
+PyCryptodome | Public Domain and BSD-2-Clause | URL: https://www.pycryptodome.org/
 --------------------------------------------------------------------------------
 The source code in PyCryptodome is partially in the public domain
 and partially released under the BSD 2-Clause license.
@@ -3761,7 +3761,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 --------------------------------------------------------------------------------
-certifi | MPL-2.0
+certifi | MPL-2.0 | URL: https://github.com/certifi/python-certifi
 --------------------------------------------------------------------------------
 This package contains a modified version of ca-bundle.crt:
 
@@ -3787,7 +3787,7 @@ one at http://mozilla.org/MPL/2.0/.
 
 
 --------------------------------------------------------------------------------
-requests | Apache-2.0
+requests | Apache-2.0 | URL: https://requests.readthedocs.io/
 --------------------------------------------------------------------------------
                                  Apache License
                            Version 2.0, January 2004
@@ -3967,7 +3967,7 @@ requests | Apache-2.0
 
 
 --------------------------------------------------------------------------------
-charset-normalizer | MIT
+charset-normalizer | MIT | URL: https://charset-normalizer.readthedocs.io/
 --------------------------------------------------------------------------------
 MIT License
 
@@ -3994,7 +3994,7 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-idna | BSD-3-Clause
+idna | BSD-3-Clause | URL: https://github.com/kjd/idna
 --------------------------------------------------------------------------------
 BSD 3-Clause License
 
@@ -4031,7 +4031,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 --------------------------------------------------------------------------------
-urllib3 | MIT
+urllib3 | MIT | URL: https://urllib3.readthedocs.io/
 --------------------------------------------------------------------------------
 MIT License
 
@@ -4058,7 +4058,7 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-SecretStorage | BSD-3-Clause | Note: Only included in Linux builds
+SecretStorage | BSD-3-Clause | Note: Only included in Linux builds | URL: https://secretstorage.readthedocs.io/
 --------------------------------------------------------------------------------
 Copyright 2012-2018 Dmitry Shachnev <mitya57@gmail.com>
 All rights reserved.
@@ -4089,7 +4089,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 --------------------------------------------------------------------------------
-cryptography | Apache-2.0 | Note: Only included in Linux builds
+cryptography | Apache-2.0 | Note: Only included in Linux builds | URL: https://cryptography.io/
 --------------------------------------------------------------------------------
                                  Apache License
                            Version 2.0, January 2004
@@ -4296,7 +4296,7 @@ cryptography | Apache-2.0 | Note: Only included in Linux builds
 
 
 --------------------------------------------------------------------------------
-Jeepney | MIT | Note: Only included in Linux builds
+Jeepney | MIT | Note: Only included in Linux builds | URL: https://jeepney.readthedocs.io/
 --------------------------------------------------------------------------------
 The MIT License (MIT)
 
@@ -4323,7 +4323,7 @@ THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-websockets | BSD-3-Clause
+websockets | BSD-3-Clause | URL: https://websockets.readthedocs.io/
 --------------------------------------------------------------------------------
 Copyright (c) Aymeric Augustin and contributors
 
