@@ -122,10 +122,6 @@ File|Description
 [yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS (10.15+) executable (no auto-update)
 
 
-While yt-dlp is licensed under the [Unlicense](LICENSE), most release files contain code from other projects with different licenses.
-Most notably the executables include GPLv3+ licensed code, as such the combined work is licensed under [GPLv3+](https://www.gnu.org/licenses/gpl-3.0.html).
-See [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt) for details.
-
 #### Misc
 
 File|Description
@@ -135,6 +131,11 @@ File|Description
 [SHA2-512SUMS.sig](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS.sig)|GPG signature file for SHA512 sums
 [SHA2-256SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS)|GNU-style SHA256 sums
 [SHA2-256SUMS.sig](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS.sig)|GPG signature file for SHA256 sums
+
+While yt-dlp is licensed under the [Unlicense](LICENSE), most release files contain code from other projects with different licenses.
+Most notably the executables include GPLv3+ licensed code, as such the combined work is licensed under [GPLv3+](https://www.gnu.org/licenses/gpl-3.0.html).
+See [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt) for details.
+`yt-dlp` (zipimport binary), `yt-dlp.tar.gz` (source tarball), and the pypi wheel only contain code licensed under the [Unlicense](LICENSE).
 
 The public key that can be used to verify the GPG signatures is [available here](https://github.com/yt-dlp/yt-dlp/blob/master/public.key)
 Example usage:
