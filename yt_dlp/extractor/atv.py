@@ -94,9 +94,10 @@ class AtvBaseIE(InfoExtractor):
                 'website_url': 'https://www.minikacocuk.com.tr/',
             },
         }
-        website_id = CHANNELS[channel]['website_id']
+        channel = CHANNELS[channel]
+        website_id = channel['website_id']
         return self._download_json(f'https://videojs.tmgrup.com.tr/getvideo/{website_id}/{video_id}', website_id, note,
-                                   headers={'referer': CHANNELS[channel]['website_url']})
+                                   headers={'referer': channel['website_url']})
 
     def _videojs_get_live_stream(self, channel='atv'):
         video_id = '00000000-0000-0000-0000-000000000000'
