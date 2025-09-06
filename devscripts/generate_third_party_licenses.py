@@ -82,7 +82,6 @@ DEPENDENCIES: list[Dependency] = [
         name='Expat',
         license='MIT',
         license_url='https://raw.githubusercontent.com/libexpat/libexpat/refs/heads/master/COPYING',
-        comment='Only included in Windows builds',
         project_url='https://libexpat.github.io/',
     ),
     Dependency(

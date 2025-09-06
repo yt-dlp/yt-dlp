@@ -818,7 +818,7 @@ Copyright notice:
 
 
 --------------------------------------------------------------------------------
-Expat | MIT | Note: Only included in Windows builds | URL: https://libexpat.github.io/
+Expat | MIT | URL: https://libexpat.github.io/
 --------------------------------------------------------------------------------
 Copyright (c) 1998-2000 Thai Open Source Software Center Ltd and Clark Cooper
 Copyright (c) 2001-2025 Expat maintainers
