@@ -15,7 +15,9 @@ on:
 permissions:
   contents: read
 env:
-  ACTIONLINT_VERSION: 1.7.7
+  ACTIONLINT_VERSION: "1.7.7"
+  ACTIONLINT_SHA256SUM: 023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+  ACTIONLINT_REPO: https://github.com/rhysd/actionlint
 
 jobs:
   check:
@@ -28,11 +30,13 @@ jobs:
           python-version: "3.10"
       - name: Install requirements
         env:
-          ACTIONLINT_URL: https://github.com/rhysd/actionlint/releases/download/v${{ env.ACTIONLINT_VERSION }}/actionlint_${{ env.ACTIONLINT_VERSION }}_linux_amd64.tar.gz
+          ACTIONLINT_TARBALL: format('actionlint_{0}_linux_amd64.tar.gz', env.ACTIONLINT_VERSION)
         run: |
           sudo apt update && sudo apt -y install shellcheck
           python -m pip install -U pyflakes
-          curl -L "${ACTIONLINT_URL}" | tar xvz actionlint
+          curl -LO "${ACTIONLINT_REPO}/releases/download/v${ACTIONLINT_VERSION}/${ACTIONLINT_TARBALL}"
+          printf '%s' "${ACTIONLINT_SHA256SUM} ${ACTIONLINT_TARBALL}" | sha256sum -c -
+          tar xvzf "${ACTIONLINT_TARBALL}" actionlint
           chmod +x actionlint
       - name: Run actionlint
         run: |
