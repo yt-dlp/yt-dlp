@@ -2,7 +2,14 @@ import itertools
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
-from ..utils import ExtractorError, int_or_none, traverse_obj, update_url_query, url_or_none, urljoin
+from ..utils import (
+    ExtractorError,
+    int_or_none,
+    update_url_query,
+    url_or_none,
+    urljoin,
+)
+from ..utils.traversal import traverse_obj
 
 
 class TenPlayIE(InfoExtractor):
