@@ -1,0 +1,46 @@
+name: Test and lint workflows
+on:
+  push:
+    paths:
+      - .github/workflows/*
+      - devscripts/setup_variables.py
+      - devscripts/setup_variables_tests.py
+      - devscripts/utils.py
+  pull_request:
+    paths:
+      - .github/workflows/*
+      - devscripts/setup_variables.py
+      - devscripts/setup_variables_tests.py
+      - devscripts/utils.py
+permissions:
+  contents: read
+env:
+  ACTIONLINT_VERSION: "1.7.7"
+  ACTIONLINT_SHA256SUM: 023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+  ACTIONLINT_REPO: https://github.com/rhysd/actionlint
+
+jobs:
+  check:
+    name: Check workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"  # Keep this in sync with release.yml's prepare job
+      - name: Install requirements
+        env:
+          ACTIONLINT_TARBALL: ${{ format('actionlint_{0}_linux_amd64.tar.gz', env.ACTIONLINT_VERSION) }}
+        run: |
+          sudo apt -y install shellcheck
+          python -m pip install -U pyflakes
+          curl -LO "${ACTIONLINT_REPO}/releases/download/v${ACTIONLINT_VERSION}/${ACTIONLINT_TARBALL}"
+          printf '%s  %s' "${ACTIONLINT_SHA256SUM}" "${ACTIONLINT_TARBALL}" | sha256sum -c -
+          tar xvzf "${ACTIONLINT_TARBALL}" actionlint
+          chmod +x actionlint
+      - name: Run actionlint
+        run: |
+          ./actionlint -color
+      - name: Test GHA devscripts
+        run: |
+          python -m devscripts.setup_variables_tests
