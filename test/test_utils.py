@@ -12,6 +12,7 @@ import datetime as dt
 import io
 import itertools
 import json
+import ntpath
 import pickle
 import subprocess
 import unittest
@@ -253,12 +254,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_path('abc.../def...'), 'abc..#\\def..#')
         self.assertEqual(sanitize_path('C:\\abc:%(title)s.%(ext)s'), 'C:\\abc#%(title)s.%(ext)s')
 
-        # Check with nt._path_normpath if available
-        try:
-            from nt import _path_normpath as nt_path_normpath
-        except ImportError:
-            nt_path_normpath = None
-
         for test, expected in [
             ('C:\\', 'C:\\'),
             ('../abc', '..\\abc'),
@@ -276,8 +271,7 @@ class TestUtil(unittest.TestCase):
             result = sanitize_path(test)
             assert result == expected, f'{test} was incorrectly resolved'
             assert result == sanitize_path(result), f'{test} changed after sanitizing again'
-            if nt_path_normpath:
-                assert result == nt_path_normpath(test), f'{test} does not match nt._path_normpath'
+            assert result == ntpath.normpath(test), f'{test} does not match ntpath.normpath'
 
     def test_sanitize_url(self):
         self.assertEqual(sanitize_url('//foo.bar'), 'http://foo.bar')
