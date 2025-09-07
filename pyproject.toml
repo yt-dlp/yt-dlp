@@ -4,8 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "yt-dlp"
-maintainers = [
+authors = [
     {name = "pukkandan", email = "pukkandan.ytdlp@gmail.com"},
+]
+maintainers = [
     {name = "Grub4K", email = "contact@grub4k.xyz"},
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
