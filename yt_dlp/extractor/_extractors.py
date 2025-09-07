@@ -44,6 +44,7 @@ from .abematv import (
     AbemaTVIE,
     AbemaTVTitleIE,
 )
+from .abgay import ABGayExtractorIE
 from .academicearth import AcademicEarthCourseIE
 from .acast import (
     ACastChannelIE,
