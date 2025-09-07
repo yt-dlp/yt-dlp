@@ -44,4 +44,4 @@ jobs:
           ./actionlint -color
       - name: Test GHA devscripts
         run: |
-          pytest -Werror --tb=short devscripts/setup_variables_tests.py
+          pytest -Werror --tb=short --color=yes devscripts/setup_variables_tests.py
