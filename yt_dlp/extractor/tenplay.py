@@ -2,7 +2,14 @@ import itertools
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
-from ..utils import int_or_none, traverse_obj, url_or_none, urljoin
+from ..utils import (
+    ExtractorError,
+    int_or_none,
+    update_url_query,
+    url_or_none,
+    urljoin,
+)
+from ..utils.traversal import traverse_obj
 
 
 class TenPlayIE(InfoExtractor):
@@ -102,14 +109,19 @@ class TenPlayIE(InfoExtractor):
         video_data = self._download_json(
             f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
             content_id, 'Downloading video JSON')
+        # Dash URL 403s, changing the m3u8 format works
         m3u8_url = self._request_webpage(
-            HEADRequest(video_data['items'][0]['HLSURL']),
+            HEADRequest(update_url_query(video_data['items'][0]['dashManifestUrl'], {
+                'manifest': 'm3u',
+            })),
             content_id, 'Checking stream URL').url
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
+        if '10play_unsupported' in m3u8_url:
+            raise ExtractorError('Unable to extract stream')
         # Attempt to get a higher quality stream
         formats = self._extract_m3u8_formats(
-            m3u8_url.replace(',150,75,55,0000', ',300,150,75,55,0000'),
+            m3u8_url.replace(',150,75,55,0000', ',500,300,150,75,55,0000'),
             content_id, 'mp4', fatal=False)
         if not formats:
             formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
