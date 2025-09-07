@@ -12,6 +12,7 @@ jobs:
     with:
       version: '999999'
       channel: stable
+      origin: ${{ github.repository }}
       unix: false
       linux: false
       linux_armv7l: true

@@ -9,6 +9,9 @@ on:
         required: false
         default: stable
         type: string
+      origin:
+        required: true
+        type: string
       unix:
         default: true
         type: boolean
@@ -27,10 +30,6 @@ on:
       windows:
         default: true
         type: boolean
-      origin:
-        required: false
-        default: ''
-        type: string
     secrets:
       GPG_SIGNING_KEY:
         required: false
@@ -74,13 +73,6 @@ on:
         description: yt-dlp.exe, yt-dlp_win.zip, yt-dlp_x86.exe, yt-dlp_win_x86.zip, yt-dlp_arm64.exe, yt-dlp_win_arm64.zip
         default: true
         type: boolean
-      origin:
-        description: Origin
-        required: false
-        default: 'current repo'
-        type: choice
-        options:
-        - 'current repo'
 
 permissions:
   contents: read
@@ -89,25 +81,24 @@ jobs:
   process:
     runs-on: ubuntu-latest
     outputs:
-      origin: ${{ steps.process_origin.outputs.origin }}
-      timestamp: ${{ steps.process_origin.outputs.timestamp }}
-      version: ${{ steps.process_origin.outputs.version }}
+      origin: ${{ steps.process_inputs.outputs.origin }}
+      timestamp: ${{ steps.process_inputs.outputs.timestamp }}
+      version: ${{ steps.process_inputs.outputs.version }}
     steps:
-      - name: Process origin
-        id: process_origin
+      - name: Process inputs
+        id: process_inputs
         env:
-          ORIGIN: ${{ inputs.origin }}
+          INPUTS: ${{ toJSON(inputs) }}
           REPOSITORY: ${{ github.repository }}
-          VERSION: ${{ inputs.version }}
         shell: python
         run: |
           import datetime as dt
           import json
           import os
           import re
-          origin = os.environ['ORIGIN']
+          INPUTS = json.loads(os.environ['INPUTS'])
           timestamp = dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d.%H%M%S.%f')
-          version = os.getenv('VERSION')
+          version = INPUTS.get('version')
           if version and '.' not in version:
               # build.yml was dispatched with only a revision as the version input value
               version_parts = [*timestamp.split('.')[:3], version]
@@ -119,7 +110,7 @@ jobs:
               version_parts = version.split('.')
           assert all(re.fullmatch(r'[0-9]+', part) for part in version_parts), 'Version must be numeric'
           outputs = {
-              'origin': os.environ['REPOSITORY'] if origin == 'current repo' else origin,
+              'origin': INPUTS.get('origin') or os.environ['REPOSITORY'],
               'timestamp': timestamp,
               'version': '.'.join(version_parts),
           }
