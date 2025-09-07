@@ -1925,6 +1925,7 @@ from .spankbang import (
     SpankBangIE,
     SpankBangPlaylistIE,
 )
+from .speedrun import SpeedRunIE
 from .spiegel import SpiegelIE
 from .sport5 import Sport5IE
 from .sportbox import SportBoxIE
