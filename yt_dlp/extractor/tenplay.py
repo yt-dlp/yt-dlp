@@ -106,8 +106,6 @@ class TenPlayIE(InfoExtractor):
         m3u8_url = self._request_webpage(
             HEADRequest(update_url_query(video_data['items'][0]['dashManifestUrl'], {
                 'manifest': 'm3u',
-                'mbr': 'true',
-                'format': 'redirect',
             })),
             content_id, 'Checking stream URL').url
         if '10play-not-in-oz' in m3u8_url:
