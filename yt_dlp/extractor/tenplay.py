@@ -109,7 +109,7 @@ class TenPlayIE(InfoExtractor):
         video_data = self._download_json(
             f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
             content_id, 'Downloading video JSON')
-        # Dash URL 403s, changing the m3u8 format works
+        # Dash URL 404s, changing the m3u8 format works
         m3u8_url = self._request_webpage(
             HEADRequest(update_url_query(video_data['items'][0]['dashManifestUrl'], {
                 'manifest': 'm3u',
