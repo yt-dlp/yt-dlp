@@ -102,7 +102,7 @@ class TenPlayIE(InfoExtractor):
         video_data = self._download_json(
             f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
             content_id, 'Downloading video JSON')
-        # Convert DASH to HLS using update_url_query
+        # Dash URL 403s, changing the m3u8 format works
         m3u8_url = self._request_webpage(
             HEADRequest(update_url_query(video_data['items'][0]['dashManifestUrl'], {
                 'manifest': 'm3u',
@@ -111,7 +111,7 @@ class TenPlayIE(InfoExtractor):
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
         if '10play_unsupported' in m3u8_url:
-            raise ExtractorError('Unable to extract stream (10Play says "unsupported")')
+            raise ExtractorError('Unable to extract stream')
         # Attempt to get a higher quality stream
         formats = self._extract_m3u8_formats(
             m3u8_url.replace(',150,75,55,0000', ',500,300,150,75,55,0000'),
