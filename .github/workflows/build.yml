@@ -455,8 +455,8 @@ jobs:
       SUFFIX: ${{ (matrix.arch != 'x64' && format('_{0}', matrix.arch)) || '' }}
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
       BASE_CACHE_KEY: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}
-      PYINSTALLER_REPO: https://github.com/bashonly/Pyinstaller-Builds
-      PYINSTALLER_WHEEL: pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
+      PYI_REPO: https://github.com/bashonly/Pyinstaller-Builds
+      PYI_WHEEL: pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
       - uses: actions/checkout@v4
@@ -482,8 +482,8 @@ jobs:
       - name: Install Requirements
         env:
           ARCH: ${{ matrix.arch }}
-          PYINSTALLER_URL: ${{ env.PYINSTALLER_REPO }}/releases/download/${{ matrix.pyi_tag }}/${{ env.PYINSTALLER_WHEEL }}
-          PYINSTALLER_HASH: ${{ matrix.pyi_hash }}
+          PYI_URL: ${{ env.PYI_REPO }}/releases/download/${{ matrix.pyi_tag }}/${{ env.PYI_WHEEL }}
+          PYI_HASH: ${{ matrix.pyi_hash }}
         shell: pwsh
         run: |
           python -m venv /yt-dlp-build-venv
@@ -495,13 +495,9 @@ jobs:
             python devscripts/install_deps.py --include curl-cffi
           }
           # Install custom PyInstaller build and verify hash
-          mkdir -Force /pyinstaller-wheels
-          python -m pip download \
-            -d /pyinstaller-wheels \
-            --no-deps \
-            --require-hashes \
-            "${Env:PYINSTALLER_URL}" --hash "${Env:PYINSTALLER_HASH}"
-          python -m pip install --force-reinstall -U "/pyinstaller-wheels/${Env:PYINSTALLER_WHEEL}"
+          mkdir /pyi-wheels
+          python -m pip download -d /pyi-wheels --no-deps --require-hashes "pyinstaller@${Env:PYI_URL}#sha256:${Env:PYI_HASH}"
+          python -m pip install --force-reinstall -U "/pyi-wheels/${Env:PYI_WHEEL}"
 
       - name: Prepare
         shell: pwsh
