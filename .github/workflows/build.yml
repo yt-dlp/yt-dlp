@@ -456,7 +456,7 @@ jobs:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
       BASE_CACHE_KEY: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}
       PYINSTALLER_REPO: https://github.com/bashonly/Pyinstaller-Builds
-      PYINSTALLER_PATH: /releases/download/${{ matrix.pyi_tag }}/pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
+      PYINSTALLER_WHEEL: pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
       - uses: actions/checkout@v4
@@ -479,21 +479,11 @@ jobs:
             ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-
             ${{ env.BASE_CACHE_KEY }}-
 
-      - name: Generate PyInstaller requirements
-        env:
-          PYINSTALLER_HASH: ${{ matrix.pyi_hash }}
-        shell: python
-        run: |
-          import os
-          pyi_repo = os.environ['PYINSTALLER_REPO']
-          pyi_path = os.environ['PYINSTALLER_PATH']
-          pyi_hash = os.environ['PYINSTALLER_HASH']
-          with open('requirements.txt', 'w') as f:
-              f.write(f'pyinstaller @ {pyi_repo}{pyi_path} --hash=sha256:{pyi_hash}')
-
       - name: Install Requirements
         env:
           ARCH: ${{ matrix.arch }}
+          PYINSTALLER_URL: ${{ env.PYINSTALLER_REPO }}/releases/download/${{ matrix.pyi_tag }}/${{ env.PYINSTALLER_WHEEL }}
+          PYINSTALLER_HASH: ${{ matrix.pyi_hash }}
         shell: pwsh
         run: |
           python -m venv /yt-dlp-build-venv
@@ -505,7 +495,13 @@ jobs:
             python devscripts/install_deps.py --include curl-cffi
           }
           # Install custom PyInstaller build and verify hash
-          python -m pip install -U --require-hashes -r requirements.txt
+          mkdir -force /pyinstaller-wheels
+          python -m pip download \
+            -d /pyinstaller-wheels \
+            --no-deps \
+            --require-hashes \
+            "${Env:PYINSTALLER_URL}" --hash "${Env:PYINSTALLER_HASH}"
+          python -m pip install --force-reinstall -U "/pyinstaller-wheels/${Env:PYINSTALLER_WHEEL}"
 
       - name: Prepare
         shell: pwsh
