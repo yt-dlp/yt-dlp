@@ -496,7 +496,7 @@ jobs:
           }
           # Install custom PyInstaller build and verify hash
           mkdir /pyi-wheels
-          python -m pip download -d /pyi-wheels --no-deps --require-hashes "pyinstaller@${Env:PYI_URL}#sha256:${Env:PYI_HASH}"
+          python -m pip download -d /pyi-wheels --no-deps --require-hashes "pyinstaller@${Env:PYI_URL}#sha256=${Env:PYI_HASH}"
           python -m pip install --force-reinstall -U "/pyi-wheels/${Env:PYI_WHEEL}"
 
       - name: Prepare
