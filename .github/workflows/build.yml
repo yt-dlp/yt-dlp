@@ -488,16 +488,17 @@ jobs:
         run: |
           python -m venv /yt-dlp-build-venv
           /yt-dlp-build-venv/Scripts/Activate.ps1
+          python -m pip install -U pip
+          # Install custom PyInstaller build and verify hash
+          mkdir /pyi-wheels
+          python -m pip download -d /pyi-wheels --no-deps --require-hashes "pyinstaller@${Env:PYI_URL}#sha256=${Env:PYI_HASH}"
+          python -m pip install --force-reinstall -U "/pyi-wheels/${Env:PYI_WHEEL}"
           python devscripts/install_deps.py -o --include build
           if ("${Env:ARCH}" -eq "x86") {
             python devscripts/install_deps.py
           } else {
             python devscripts/install_deps.py --include curl-cffi
           }
-          # Install custom PyInstaller build and verify hash
-          mkdir /pyi-wheels
-          python -m pip download -d /pyi-wheels --no-deps --require-hashes "pyinstaller@${Env:PYI_URL}#sha256=${Env:PYI_HASH}"
-          python -m pip install --force-reinstall -U "/pyi-wheels/${Env:PYI_WHEEL}"
 
       - name: Prepare
         shell: pwsh
