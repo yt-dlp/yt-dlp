@@ -14,6 +14,7 @@ class VideocampusSachsenIE(InfoExtractor):
         'dancehalldatabase.com',
         'demo.edu.medvc.eu',
         'drehzahl.tv',
+        'edu.medvc.eu',
         'educhannel.hs-gesundheit.de',  # Hochschule für Gesundheit NRW
         'emedia.ls.haw-hamburg.de',
         'etat.kiss.lu',
