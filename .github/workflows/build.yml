@@ -452,7 +452,7 @@ jobs:
       SUFFIX: ${{ (matrix.arch != 'x64' && format('_{0}', matrix.arch)) || '' }}
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
       BASE_CACHE_KEY: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}
-      PYINSTALLER_REPO: https://github.com/yt-dlp/Pyinstaller-builds
+      PYINSTALLER_REPO: https://github.com/bashonly/Pyinstaller-builds
       PYINSTALLER_PATH: /releases/download/${{ matrix.pyi_tag }}/pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
