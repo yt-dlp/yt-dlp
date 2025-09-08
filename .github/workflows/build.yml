@@ -427,19 +427,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - arch: x64
+        - arch: 'x64'
           runner: windows-2025
           python_version: '3.10'
           platform_tag: win_amd64
           pyi_version: '6.15.0'
           pyi_tag: '2025.09.08.193741'
-        - arch: x86
+        - arch: 'x86'
           runner: windows-2025
           python_version: '3.10'
           platform_tag: win32
           pyi_version: '6.15.0'
           pyi_tag: '2025.09.08.193741'
-        - arch: arm64
+        - arch: 'arm64'
           runner: windows-11-arm
           python_version: '3.13'  # arm64 only has Python >= 3.11 available
           platform_tag: win_arm64
