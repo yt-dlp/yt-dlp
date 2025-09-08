@@ -2,7 +2,7 @@ import functools
 import re
 
 from .common import InfoExtractor
-from ..utils import OnDemandPagedList, traverse_obj, urlencode_postdata
+from ..utils import OnDemandPagedList, format_field, mimetype2ext, traverse_obj, url_or_none, urlencode_postdata
 
 
 class VideocampusSachsenIE(InfoExtractor):
@@ -101,7 +101,7 @@ class VideocampusSachsenIE(InfoExtractor):
     )
     _VALID_URL = r'''(?x)https?://(?P<host>{})/(?:
         m/(?P<tmp_id>[0-9a-f]+)|
-        (?:category/)?video/(?P<display_id>[\w-]+)/(?P<id>[0-9a-f]{{32}})|
+        (?:category/|album/)?video/(?P<display_id>[\w-]+)/(?P<id>[0-9a-f]{{32}})|
         media/embed.*(?:\?|&)key=(?P<embed_id>[0-9a-f]{{32}}&?)
     )'''.format('|'.join(map(re.escape, _INSTANCES)))
 
@@ -156,6 +156,7 @@ class VideocampusSachsenIE(InfoExtractor):
             'info_dict': {
                 'id': 'fc99c527e4205b121cb7c74433469262',
                 'title': 'Was ist selbstgesteuertes Lernen?',
+                'description': 'md5:f5bba96b14b3c0df12c7a4270ba0de56',
                 'thumbnail': 'https://videocampus.sachsen.de/cache/a7765658ac3df9e75947a4d06aef7402.png',
                 'display_id': 'Was-ist-selbstgesteuertes-Lernen',
                 'ext': 'mp4',
@@ -166,6 +167,7 @@ class VideocampusSachsenIE(InfoExtractor):
             'info_dict': {
                 'id': '09d4ed029002eb1bdda610f1103dd54c',
                 'title': 'Tutorial zur Nutzung von Adobe Connect aus Veranstalter-Sicht',
+                'description': 'md5:59b715da97847f960546d7a356184194',
                 'thumbnail': 'https://videocampus.sachsen.de/cache/173fc4fe2133cc41b2905ca8976a4760.png',
                 'display_id': 'Tutorial-zur-Nutzung-von-Adobe-Connect-aus-Veranstalter-Sicht',
                 'ext': 'mp4',
@@ -196,35 +198,48 @@ class VideocampusSachsenIE(InfoExtractor):
     def _real_extract(self, url):
         host, video_id, tmp_id, display_id, embed_id = self._match_valid_url(url).group(
             'host', 'id', 'tmp_id', 'display_id', 'embed_id')
-        webpage = self._download_webpage(url, video_id or tmp_id, fatal=False) or ''
+        webpage = self._download_webpage(url, tmp_id or display_id or embed_id, fatal=False) or ''
 
         formats, subtitles = [], {}
-        title = description = thumbnail = None
+        description = thumbnail = None
 
-        metadata = self._search_json(r'var\s+options\s*=\s*', webpage, 'player options', video_id or tmp_id or embed_id, default=None, fatal=False)
+        metadata = self._search_json(r'var\s+options\s*=', webpage, 'player options', display_id, default=None)
+        title = self._html_search_regex(r'<h1[^>]*>([^<]+)</h1>', webpage, 'title', default=None)
+        if not (tmp_id or embed_id):
+            # /m/ and embed pages have only their instance name as description
+            description = self._html_search_meta(('og:description', 'twitter:description', 'description'), webpage, fatal=False)
 
         if metadata:
-            for source in metadata.get('sources', []):
-                if source.get('type') == 'application/x-mpegURL' and source.get('src'):
-                    _formats, _subtitles = self._extract_m3u8_formats_and_subtitles(source.get('src'), video_id or tmp_id or embed_id, fatal=False)
-                    formats.extend(_formats)
-                    subtitles.update(_subtitles)
-                elif source.get('src'):
+            # VIMP >= 5
+            for source in traverse_obj(metadata, ('sources', lambda _, v: url_or_none(v['src']))):
+                if mimetype2ext(source.get('type')) == 'm3u8':
+                    formats, subtitles = self._extract_m3u8_formats_and_subtitles(source['src'], display_id, 'mp4')
+                else:
                     formats.append({'url': source.get('src')})
 
-            thumbnail = f'https://{host}{metadata.get("poster")}'
-            video_id = traverse_obj(metadata, ('videojsVimpOptions', 'Mediakey'))
+            thumbnail = format_field(metadata, 'poster', f'https://{host}%s')
+            video_id = metadata['videojsVimpOptions']['Mediakey']
         else:
-            thumbnail = self._html_search_meta(('og:image', 'twitter:image'), webpage, fatal=False)
-            description = self._html_search_meta(('og:description', 'twitter:description', 'description'), webpage, fatal=False)
-            title = self._html_search_meta(('og:title', 'twitter:title', 'title'), webpage, fatal=False)
+            # VIMP <= 4
+            if not video_id:
+                video_id = embed_id
 
-        if not title:
-            title = self._html_search_regex(r'<h1[^>]*>([^<]+)</h1>', webpage, 'title', default=None, fatal=False)
+            # embed pages have only their instance short name as title
+            if not (display_id or tmp_id):
+                title = self._html_search_regex(r'<video-js[^>]* data-piwik-title="([^"<]+)"', webpage, 'title', default=None)  # Only available on VIMP == 4
+                title = title or self._html_search_regex(r'alt="([^"]+)"', webpage, 'title', default=None)
+                thumbnail = self._html_search_regex(r'<img[^>]+src="([^"]+)"[^>]+>', webpage, 'thumbnail', default=None)
+            else:
+                title = self._html_search_meta(('og:title', 'twitter:title', 'title'), webpage, fatal=False)
+                thumbnail = self._html_search_meta(('og:image', 'twitter:image'), webpage, default=None)
+
         if not title:
             embed_data = self._download_json(f'https://{host}/media/embedCode', video_id, data=f'key={video_id}'.encode(), fatal=False)
             if embed_data:
                 title = self._html_search_regex(r'title="([^"]+)"', embed_data.get('embedCode', ''), 'title', fatal=False)
+
+        if not video_id:
+            self.raise_no_formats('Unable to extract video ID')
 
         formats.append({'url': f'https://{host}/getMedium/{video_id}.mp4'})
 
