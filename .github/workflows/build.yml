@@ -417,6 +417,7 @@ jobs:
           compression-level: 0
 
   windows:
+    name: windows (${{ matrix.arch }})
     needs: process
     if: inputs.windows
     permissions:
@@ -429,24 +430,33 @@ jobs:
         - arch: 'x64'
           runner: windows-2025
           python_version: '3.10'
-          suffix: ''
+          platform_tag: win_amd64
+          pyi_version: '6.15.0'
+          pyi_tag: '2025.09.08.215938'
+          pyi_hash: f70e327d849b29562caf01c30db60e6e8b2facb68124612bb53b04f96ffe6852
         - arch: 'x86'
           runner: windows-2025
           python_version: '3.10'
-          suffix: '_x86'
+          platform_tag: win32
+          pyi_version: '6.15.0'
+          pyi_tag: '2025.09.08.215938'
+          pyi_hash: b9af6b49a3556d478935de2632cb7dbef41a0c226f7a8ce36efc3ca2aeab3d51
         - arch: 'arm64'
           runner: windows-11-arm
           python_version: '3.13'  # arm64 only has Python >= 3.11 available
-          suffix: '_arm64'
+          platform_tag: win_arm64
+          pyi_version: '6.15.0'
+          pyi_tag: '2025.09.08.215938'
+          pyi_hash: 5dac9f802085432dd3135708e835ef4c08570c308d07c3ef8154495b76bf2a83
     env:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
       VERSION: ${{ needs.process.outputs.version }}
-      SUFFIX: ${{ matrix.suffix }}
+      SUFFIX: ${{ (matrix.arch != 'x64' && format('_{0}', matrix.arch)) || '' }}
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
       BASE_CACHE_KEY: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}
-      # Use custom PyInstaller built with https://github.com/yt-dlp/Pyinstaller-builds
-      PYINSTALLER_URL: https://yt-dlp.github.io/Pyinstaller-Builds/${{ matrix.arch }}/pyinstaller-6.15.0-py3-none-any.whl
+      PYI_REPO: https://github.com/yt-dlp/Pyinstaller-Builds
+      PYI_WHEEL: pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
       - uses: actions/checkout@v4
@@ -472,17 +482,23 @@ jobs:
       - name: Install Requirements
         env:
           ARCH: ${{ matrix.arch }}
+          PYI_URL: ${{ env.PYI_REPO }}/releases/download/${{ matrix.pyi_tag }}/${{ env.PYI_WHEEL }}
+          PYI_HASH: ${{ matrix.pyi_hash }}
         shell: pwsh
         run: |
           python -m venv /yt-dlp-build-venv
           /yt-dlp-build-venv/Scripts/Activate.ps1
+          python -m pip install -U pip
+          # Install custom PyInstaller build and verify hash
+          mkdir /pyi-wheels
+          python -m pip download -d /pyi-wheels --no-deps --require-hashes "pyinstaller@${Env:PYI_URL}#sha256=${Env:PYI_HASH}"
+          python -m pip install --force-reinstall -U "/pyi-wheels/${Env:PYI_WHEEL}"
           python devscripts/install_deps.py -o --include build
           if ("${Env:ARCH}" -eq "x86") {
             python devscripts/install_deps.py
           } else {
             python devscripts/install_deps.py --include curl-cffi
           }
-          python -m pip install -U "${Env:PYINSTALLER_URL}"
 
       - name: Prepare
         shell: pwsh
@@ -516,8 +532,8 @@ jobs:
         with:
           name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
-            dist/yt-dlp${{ matrix.suffix }}.exe
-            dist/yt-dlp_win${{ matrix.suffix }}.zip
+            dist/yt-dlp${{ env.SUFFIX }}.exe
+            dist/yt-dlp_win${{ env.SUFFIX }}.zip
           compression-level: 0
 
   meta_files:
