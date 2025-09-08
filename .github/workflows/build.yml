@@ -495,7 +495,7 @@ jobs:
             python devscripts/install_deps.py --include curl-cffi
           }
           # Install custom PyInstaller build and verify hash
-          mkdir -force /pyinstaller-wheels
+          mkdir -Force /pyinstaller-wheels
           python -m pip download \
             -d /pyinstaller-wheels \
             --no-deps \
