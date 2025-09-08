@@ -432,22 +432,22 @@ jobs:
           python_version: '3.10'
           platform_tag: win_amd64
           pyi_version: '6.15.0'
-          pyi_tag: '2025.09.08.193741'
-          pyi_hash: a380ebe60e610a5d2fd9db5548fd7e80bf24db9744924e22060d8ad2faed147b
+          pyi_tag: '2025.09.08.215938'
+          pyi_hash: f70e327d849b29562caf01c30db60e6e8b2facb68124612bb53b04f96ffe6852
         - arch: 'x86'
           runner: windows-2025
           python_version: '3.10'
           platform_tag: win32
           pyi_version: '6.15.0'
-          pyi_tag: '2025.09.08.193741'
-          pyi_hash: 63852a91b004ded5ac9dcdb7eeb55a1254aae907edcf001b26459bd4364e5a73
+          pyi_tag: '2025.09.08.215938'
+          pyi_hash: b9af6b49a3556d478935de2632cb7dbef41a0c226f7a8ce36efc3ca2aeab3d51
         - arch: 'arm64'
           runner: windows-11-arm
           python_version: '3.13'  # arm64 only has Python >= 3.11 available
           platform_tag: win_arm64
           pyi_version: '6.15.0'
-          pyi_tag: '2025.09.08.193741'
-          pyi_hash: cedaccbb247020889dcf072c1e4417fef7d1ee259f7c5d3db9bfd6eaf52f206f
+          pyi_tag: '2025.09.08.215938'
+          pyi_hash: 5dac9f802085432dd3135708e835ef4c08570c308d07c3ef8154495b76bf2a83
     env:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
@@ -455,7 +455,7 @@ jobs:
       SUFFIX: ${{ (matrix.arch != 'x64' && format('_{0}', matrix.arch)) || '' }}
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
       BASE_CACHE_KEY: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}
-      PYI_REPO: https://github.com/bashonly/Pyinstaller-Builds
+      PYI_REPO: https://github.com/yt-dlp/Pyinstaller-Builds
       PYI_WHEEL: pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
