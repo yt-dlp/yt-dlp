@@ -433,18 +433,21 @@ jobs:
           platform_tag: win_amd64
           pyi_version: '6.15.0'
           pyi_tag: '2025.09.08.193741'
+          pyi_hash: a380ebe60e610a5d2fd9db5548fd7e80bf24db9744924e22060d8ad2faed147b
         - arch: 'x86'
           runner: windows-2025
           python_version: '3.10'
           platform_tag: win32
           pyi_version: '6.15.0'
           pyi_tag: '2025.09.08.193741'
+          pyi_hash: 63852a91b004ded5ac9dcdb7eeb55a1254aae907edcf001b26459bd4364e5a73
         - arch: 'arm64'
           runner: windows-11-arm
           python_version: '3.13'  # arm64 only has Python >= 3.11 available
           platform_tag: win_arm64
           pyi_version: '6.15.0'
           pyi_tag: '2025.09.08.193741'
+          pyi_hash: cedaccbb247020889dcf072c1e4417fef7d1ee259f7c5d3db9bfd6eaf52f206f
     env:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
@@ -452,7 +455,7 @@ jobs:
       SUFFIX: ${{ (matrix.arch != 'x64' && format('_{0}', matrix.arch)) || '' }}
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
       BASE_CACHE_KEY: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}
-      PYINSTALLER_REPO: https://github.com/bashonly/Pyinstaller-builds
+      PYINSTALLER_REPO: https://github.com/bashonly/Pyinstaller-Builds
       PYINSTALLER_PATH: /releases/download/${{ matrix.pyi_tag }}/pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
@@ -476,6 +479,18 @@ jobs:
             ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-
             ${{ env.BASE_CACHE_KEY }}-
 
+      - name: Generate PyInstaller requirements
+        env:
+          PYINSTALLER_HASH: ${{ matrix.pyi_hash }}
+        shell: python
+        run: |
+          import os
+          pyi_repo = os.environ['PYINSTALLER_REPO']
+          pyi_path = os.environ['PYINSTALLER_PATH']
+          pyi_hash = os.environ['PYINSTALLER_HASH']
+          with open('requirements.txt', 'w') as f:
+              f.write(f'pyinstaller @ {pyi_repo}{pyi_path} --hash=sha256:{pyi_hash}')
+
       - name: Install Requirements
         env:
           ARCH: ${{ matrix.arch }}
@@ -489,7 +504,8 @@ jobs:
           } else {
             python devscripts/install_deps.py --include curl-cffi
           }
-          python -m pip install -U "${Env:PYINSTALLER_REPO}${Env:PYINSTALLER_PATH}"
+          # Install custom PyInstaller build and verify hash
+          python -m pip install --force-reinstall --require-hashes -r requirements.txt
 
       - name: Prepare
         shell: pwsh
