@@ -505,7 +505,7 @@ jobs:
             python devscripts/install_deps.py --include curl-cffi
           }
           # Install custom PyInstaller build and verify hash
-          python -m pip install --force-reinstall --require-hashes -r requirements.txt
+          python -m pip install -U --require-hashes -r requirements.txt
 
       - name: Prepare
         shell: pwsh
