@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -22,7 +22,8 @@ keywords = [
     "sponsorblock",
     "yt-dlp",
 ]
-license = {file = "LICENSE"}
+license = "Unlicense"
+license-files = ["LICENSE"]
 classifiers = [
     "Topic :: Multimedia :: Video",
     "Development Status :: 5 - Production/Stable",
@@ -37,7 +38,6 @@ classifiers = [
     "Programming Language :: Python :: Implementation",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
-    "License :: OSI Approved :: The Unlicense (Unlicense)",
     "Operating System :: OS Independent",
 ]
 dynamic = ["version"]
@@ -63,7 +63,7 @@ secretstorage = [
 ]
 build = [
     "build",
-    "hatchling",
+    "hatchling>=1.27.0",
     "pip",
     "setuptools>=71.0.2,<81",  # See https://github.com/pyinstaller/pyinstaller/issues/9149
     "wheel",

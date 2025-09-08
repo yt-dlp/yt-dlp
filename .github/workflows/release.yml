@@ -81,7 +81,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.10"  # Keep this in sync with test-workflows.yml
 
       - name: Process inputs
         id: process_inputs
@@ -269,12 +269,11 @@ jobs:
               "[![Master](https://img.shields.io/badge/Master%20builds-lightblue.svg?style=for-the-badge)]" \
                 "(https://github.com/${MASTER_REPO}/releases/latest \"Master builds\")" >> ./RELEASE_NOTES
           fi
-          printf '\n\n' >> ./RELEASE_NOTES
-          cat >> ./RELEASE_NOTES << EOF
-          #### A description of the various files is in the [README](https://github.com/${REPOSITORY}#release-files)
-          ---
-          $(python ./devscripts/make_changelog.py -vv --collapsible)
-          EOF
+          printf '\n\n%s\n\n%s%s\n\n---\n' \
+            "#### A description of the various files is in the [README](https://github.com/${REPOSITORY}#release-files)" \
+            "The PyInstaller-bundled executables are subject to the licenses described in " \
+            "[THIRD_PARTY_LICENSES.txt](https://github.com/${BASE_REPO}/blob/master/THIRD_PARTY_LICENSES.txt)" >> ./RELEASE_NOTES
+          python ./devscripts/make_changelog.py -vv --collapsible >> ./RELEASE_NOTES
           printf '%s\n\n' '**This is a pre-release build**' >> ./PRERELEASE_NOTES
           cat ./RELEASE_NOTES >> ./PRERELEASE_NOTES
           printf '%s\n\n' "Generated from: https://github.com/${REPOSITORY}/commit/${HEAD_SHA}" >> ./ARCHIVE_NOTES

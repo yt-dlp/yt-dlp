@@ -47,6 +47,7 @@ import xml.etree.ElementTree
 from . import traversal
 
 from ..compat import (
+    compat_datetime_from_timestamp,
     compat_etree_fromstring,
     compat_expanduser,
     compat_HTMLParseError,
@@ -1376,6 +1377,7 @@ def datetime_round(dt_, precision='day'):
     if precision == 'microsecond':
         return dt_
 
+    time_scale = 1_000_000
     unit_seconds = {
         'day': 86400,
         'hour': 3600,
@@ -1383,8 +1385,8 @@ def datetime_round(dt_, precision='day'):
         'second': 1,
     }
     roundto = lambda x, n: ((x + n / 2) // n) * n
-    timestamp = roundto(calendar.timegm(dt_.timetuple()), unit_seconds[precision])
-    return dt.datetime.fromtimestamp(timestamp, dt.timezone.utc)
+    timestamp = roundto(calendar.timegm(dt_.timetuple()) + dt_.microsecond / time_scale, unit_seconds[precision])
+    return compat_datetime_from_timestamp(timestamp)
 
 
 def hyphenate_date(date_str):
@@ -2056,18 +2058,13 @@ def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
     datetime_object = None
     try:
         if isinstance(timestamp, (int, float)):  # unix timestamp
-            # Using naive datetime here can break timestamp() in Windows
-            # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/94414
-            # Also, dt.datetime.fromtimestamp breaks for negative timestamps
-            # Ref: https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642
-            datetime_object = (dt.datetime.fromtimestamp(0, dt.timezone.utc)
-                               + dt.timedelta(seconds=timestamp))
+            datetime_object = compat_datetime_from_timestamp(timestamp)
         elif isinstance(timestamp, str):  # assume YYYYMMDD
             datetime_object = dt.datetime.strptime(timestamp, '%Y%m%d')
         date_format = re.sub(  # Support %s on windows
             r'(?<!%)(%%)*%s', rf'\g<1>{int(datetime_object.timestamp())}', date_format)
         return datetime_object.strftime(date_format)
-    except (ValueError, TypeError, AttributeError):
+    except (ValueError, TypeError, AttributeError, OverflowError, OSError):
         return default
 
 
