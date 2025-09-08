@@ -132,137 +132,169 @@ class TestInfoExtractor(unittest.TestCase):
         self.assertRaises(RegexNotFoundError, ie._html_search_meta, ('z', 'x'), html, None, fatal=True)
 
     def test_search_json_ld_realworld(self):
-        _TESTS = [
+        _TESTS = [(
             # https://github.com/ytdl-org/youtube-dl/issues/23306
-            (
-                r'''<script type="application/ld+json">
-{
-"@context": "http://schema.org/",
-"@type": "VideoObject",
-"name": "1 On 1 With Kleio",
-"url": "https://www.eporner.com/hd-porn/xN49A1cT3eB/1-On-1-With-Kleio/",
-"duration": "PT0H12M23S",
-"thumbnailUrl": ["https://static-eu-cdn.eporner.com/thumbs/static4/7/78/780/780814/9_360.jpg", "https://imggen.eporner.com/780814/1920/1080/9.jpg"],
-"contentUrl": "https://gvideo.eporner.com/xN49A1cT3eB/xN49A1cT3eB.mp4",
-"embedUrl": "https://www.eporner.com/embed/xN49A1cT3eB/1-On-1-With-Kleio/",
-"image": "https://static-eu-cdn.eporner.com/thumbs/static4/7/78/780/780814/9_360.jpg",
-"width": "1920",
-"height": "1080",
-"encodingFormat": "mp4",
-"bitrate": "6617kbps",
-"isFamilyFriendly": "False",
-"description": "Kleio Valentien",
-"uploadDate": "2015-12-05T21:24:35+01:00",
-"interactionStatistic": {
-"@type": "InteractionCounter",
-"interactionType": { "@type": "http://schema.org/WatchAction" },
-"userInteractionCount": 1120958
-}, "aggregateRating": {
-"@type": "AggregateRating",
-"ratingValue": "88",
-"ratingCount": "630",
-"bestRating": "100",
-"worstRating": "0"
-}, "actor": [{
-"@type": "Person",
-"name": "Kleio Valentien",
-"url": "https://www.eporner.com/pornstar/kleio-valentien/"
-}]}
-                </script>''',
-                {
-                    'title': '1 On 1 With Kleio',
-                    'description': 'Kleio Valentien',
-                    'url': 'https://gvideo.eporner.com/xN49A1cT3eB/xN49A1cT3eB.mp4',
-                    'timestamp': 1449347075,
-                    'duration': 743.0,
-                    'view_count': 1120958,
-                    'width': 1920,
-                    'height': 1080,
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context": "http://schema.org/",
+                "@type": "VideoObject",
+                "name": "1 On 1 With Kleio",
+                "url": "https://www.eporner.com/hd-porn/xN49A1cT3eB/1-On-1-With-Kleio/",
+                "duration": "PT0H12M23S",
+                "thumbnailUrl": [
+                    "https://static-eu-cdn.eporner.com/thumbs/static4/7/78/780/780814/9_360.jpg",
+                    "https://imggen.eporner.com/780814/1920/1080/9.jpg"
+                ],
+                "contentUrl": "https://gvideo.eporner.com/xN49A1cT3eB/xN49A1cT3eB.mp4",
+                "embedUrl": "https://www.eporner.com/embed/xN49A1cT3eB/1-On-1-With-Kleio/",
+                "image": "https://static-eu-cdn.eporner.com/thumbs/static4/7/78/780/780814/9_360.jpg",
+                "width": "1920",
+                "height": "1080",
+                "encodingFormat": "mp4",
+                "bitrate": "6617kbps",
+                "isFamilyFriendly": "False",
+                "description": "Kleio Valentien",
+                "uploadDate": "2015-12-05T21:24:35+01:00",
+                "interactionStatistic": {
+                    "@type": "InteractionCounter",
+                    "interactionType": {
+                        "@type": "http://schema.org/WatchAction"
+                    },
+                    "userInteractionCount": 1120958
                 },
-                {},
-            ),
-            (
-                r'''<script type="application/ld+json">
-      {
-      "@context": "https://schema.org",
-      "@graph": [
-      {
-      "@type": "NewsArticle",
-      "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": "https://www.ant1news.gr/Society/article/620286/symmoria-anilikon-dikigoros-thymaton-ithelan-na-toys-apoteleiosoyn"
-      },
-      "headline": "Συμμορία ανηλίκων – δικηγόρος θυμάτων: ήθελαν να τους αποτελειώσουν",
-      "name": "Συμμορία ανηλίκων – δικηγόρος θυμάτων: ήθελαν να τους αποτελειώσουν",
-      "description": "Τα παιδιά δέχθηκαν την επίθεση επειδή αρνήθηκαν να γίνουν μέλη της συμμορίας, ανέφερε ο Γ. Ζαχαρόπουλος.",
-      "image": {
-      "@type": "ImageObject",
-      "url": "https://ant1media.azureedge.net/imgHandler/1100/a635c968-be71-447c-bf9c-80d843ece21e.jpg",
-      "width": 1100,
-      "height": 756            },
-      "datePublished": "2021-11-10T08:50:00+03:00",
-      "dateModified": "2021-11-10T08:52:53+03:00",
-      "author": {
-      "@type": "Person",
-      "@id": "https://www.ant1news.gr/",
-      "name": "Ant1news",
-      "image": "https://www.ant1news.gr/images/logo-e5d7e4b3e714c88e8d2eca96130142f6.png",
-      "url": "https://www.ant1news.gr/"
-      },
-      "publisher": {
-      "@type": "Organization",
-      "@id": "https://www.ant1news.gr#publisher",
-      "name": "Ant1news",
-      "url": "https://www.ant1news.gr",
-      "logo": {
-      "@type": "ImageObject",
-      "url": "https://www.ant1news.gr/images/logo-e5d7e4b3e714c88e8d2eca96130142f6.png",
-      "width": 400,
-      "height": 400                },
-      "sameAs": [
-      "https://www.facebook.com/Ant1news.gr",
-      "https://twitter.com/antennanews",
-      "https://www.youtube.com/channel/UC0smvAbfczoN75dP0Hw4Pzw",
-      "https://www.instagram.com/ant1news/"
-      ]
-      },
-
-      "keywords": "μαχαίρωμα,συμμορία ανηλίκων,ΕΙΔΗΣΕΙΣ,ΕΙΔΗΣΕΙΣ ΣΗΜΕΡΑ,ΝΕΑ,Κοινωνία - Ant1news",
-
-
-      "articleSection": "Κοινωνία"
-      }
-      ]
-      }
-                </script>''',
-                {
-                    'title': 'md5:91fe569e952e4d146485740ae927662b',
-                    'categories': ['Κοινωνία'],
-                    'creators': ['Ant1news'],
-                    'description': 'md5:16756d0a18f33bf550e683d134a72f3c',
-                    'modified_timestamp': 1636523573,
-                    'release_timestamp': 1636523400,
-                    'tags': 'count:6',
-                    'thumbnails': [{'url': 'https://ant1media.azureedge.net/imgHandler/1100/a635c968-be71-447c-bf9c-80d843ece21e.jpg'}],
-                    'uploader': 'Ant1news',
+                "aggregateRating": {
+                    "@type": "AggregateRating",
+                    "ratingValue": "88",
+                    "ratingCount": "630",
+                    "bestRating": "100",
+                    "worstRating": "0"
                 },
-                {'expected_type': 'NewsArticle'},
-            ),
-            (
-                r'''<script type="application/ld+json">
-                {"url":"/vrtnu/a-z/het-journaal/2021/het-journaal-het-journaal-19u-20211231/",
+                "actor": [{
+                    "@type": "Person",
+                    "name": "Kleio Valentien",
+                    "url": "https://www.eporner.com/pornstar/kleio-valentien/"
+                }]
+            }
+            </script>
+            ''', {
+                'ext': 'mp4',
+                'title': '1 On 1 With Kleio',
+                'age_limit': 18,
+                'artists': ['1 On 1 With Kleio'],
+                'average_rating': 88,
+                'description': 'Kleio Valentien',
+                'duration': 743,
+                'height': 1080,
+                'thumbnails': [
+                    {'url': 'https://static-eu-cdn.eporner.com/thumbs/static4/7/78/780/780814/9_360.jpg'},
+                    {'url': 'https://imggen.eporner.com/780814/1920/1080/9.jpg'},
+                ],
+                'timestamp': 1449347075,
+                'url': 'https://gvideo.eporner.com/xN49A1cT3eB/xN49A1cT3eB.mp4',
+                'view_count': 1120958,
+                'width': 1920,
+            }, {},
+        ), (
+            # https://github.com/yt-dlp/yt-dlp/pull/1983
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@graph": [{
+                    "@type": "NewsArticle",
+                    "name": "Rewilding Sharks - Inside the lucrative trade of shark fishing in Indonesia",
+                    "headline": "Rewilding Sharks - Inside the lucrative trade of shark fishing in Indonesia",
+                    "description": "“Arif”, an environmental journalist investigating the shark fishing trade in Surabaya, Indonesia, speaks to industry insiders to understand the business — from the port where fishermen sell a wide variety of sharks, to a drying facility where sharks are processed before exporters pick them up. Shark fishing is l",
+                    "about": [
+                        "leopard sharks",
+                        "Rewilding Sharks",
+                        "sustainability",
+                        "animals"
+                    ],
+                    "image": {
+                        "@type": "ImageObject",
+                        "url": "https://dam.mediacorp.sg/image/upload/s--0VYzW7We--/c_fill,g_auto,h_338,w_600/f_auto,q_auto/v1/mediacorp/cna/image/2025/03/17/1742148440-image.jpg?itok=rav-cQ_p",
+                        "width": "100",
+                        "height": "100"
+                    },
+                    "datePublished": "2025-03-17T01:58:00+08:00",
+                    "dateModified": "2025-04-08T12:07:12+08:00",
+                    "author": {
+                        "@type": "Person",
+                        "@id": "https://www.channelnewsasia.com/",
+                        "name": "CNA",
+                        "url": "https://www.channelnewsasia.com/"
+                    },
+                    "publisher": {
+                        "@type": "Organization",
+                        "@id": "https://www.channelnewsasia.com/",
+                        "name": "CNA",
+                        "url": "https://www.channelnewsasia.com/",
+                        "logo": {
+                            "@type": "ImageObject",
+                            "url": "https://www.channelnewsasia.com/sites/default/themes/mc_cna_theme/images/logo.svg",
+                            "width": "100",
+                            "height": "100"
+                        }
+                    },
+                    "mainEntityOfPage": "https://www.channelnewsasia.com/watch/rewilding-sharks/inside-lucrative-trade-shark-fishing-indonesia-5004256"
+                }, {
+                    "@type": "VideoObject",
+                    "thumbnailUrl": "https://cf-images.ap-southeast-1.prod.boltdns.net/v1/static/6057984932001/b49a7cc0-bbd3-4634-8049-756f0bf3d0c3/3e2f7ea5-0290-4760-889f-b084117a46e8/1280x720/match/image.jpg",
+                    "uploadDate": "2025-04-08T12:07:12+08:00",
+                    "description": "“Arif”, an environmental journalist investigating the shark fishing trade in Surabaya, Indonesia, speaks to industry insiders to understand the business — from the port where fishermen sell a wide variety of sharks, to a drying facility where sharks are processed before exporters pick them up. Shark fishing is legal in Indonesia, and sharks bring in good money. Some species are highly sought after. For example, leopard sharks are prized for their special skin. A fisherman revealed that he gets requests for up to 600kg of leopard shark in a month, worth about 282 million rupiah (US$17,000).",
+                    "name": "Inside the lucrative trade of shark fishing in Indonesia",
+                    "@id": "https://www.channelnewsasia.com/watch/rewilding-sharks/inside-lucrative-trade-shark-fishing-indonesia-5004256",
+                    "duration": "PT472S",
+                    "embedUrl": "https://www.channelnewsasia.com/watch/rewilding-sharks/inside-lucrative-trade-shark-fishing-indonesia-5004256?view=embed",
+                    "contentUrl": "https://www.channelnewsasia.com/watch/rewilding-sharks/inside-lucrative-trade-shark-fishing-indonesia-5004256"
+                }]
+            }
+            </script>
+            ''', {
+                'title': 'Rewilding Sharks - Inside the lucrative trade of shark fishing in Indonesia',
+                'creators': ['CNA'],
+                'description': 'md5:4ce967a72d546b32935cb98c8722346b',
+                'modified_timestamp': 1744085232,
+                'release_timestamp': 1742147880,
+                'thumbnails': [{
+                    'height': 100,
+                    'url': 'https://dam.mediacorp.sg/image/upload/s--0VYzW7We--/c_fill,g_auto,h_338,w_600/f_auto,q_auto/v1/mediacorp/cna/image/2025/03/17/1742148440-image.jpg?itok=rav-cQ_p',
+                    'width': 100,
+                }],
+            }, {'expected_type': 'NewsArticle'},
+        ), (
+            # https://github.com/yt-dlp/yt-dlp/pull/2031
+            r'''
+            <script type="application/ld+json">
+            {
+                "url":"/vrtnu/a-z/het-journaal/2021/het-journaal-het-journaal-19u-20211231/",
                 "name":"Het journaal 19u",
                 "description":"Het journaal 19u van vrijdag 31 december 2021.",
-                "potentialAction":{"url":"https://vrtnu.page.link/pfVy6ihgCAJKgHqe8","@type":"ShareAction"},
-                "mainEntityOfPage":{"@id":"1640092242445","@type":"WebPage"},
+                "potentialAction":{
+                    "url":"https://vrtnu.page.link/pfVy6ihgCAJKgHqe8",
+                    "@type":"ShareAction"
+                },
+                "mainEntityOfPage":{
+                    "@id":"1640092242445",
+                    "@type":"WebPage"
+                },
                 "publication":[{
                     "startDate":"2021-12-31T19:00:00.000+01:00",
                     "endDate":"2022-01-30T23:55:00.000+01:00",
-                    "publishedBy":{"name":"een","@type":"Organization"},
-                    "publishedOn":{"url":"https://www.vrt.be/vrtnu/","name":"VRT NU","@type":"BroadcastService"},
+                    "publishedBy":{
+                        "name":"een",
+                        "@type":"Organization"
+                    },
+                    "publishedOn":{
+                        "url":"https://www.vrt.be/vrtnu/",
+                        "name":"VRT NU",
+                        "@type":"BroadcastService"
+                    },
                     "@id":"pbs-pub-3a7ec233-da95-4c1e-9b2b-cf5fdfebcbe8",
                     "@type":"BroadcastEvent"
-                    }],
+                }],
                 "video":{
                     "name":"Het journaal - Aflevering 365 (Seizoen 2021)",
                     "description":"Het journaal 19u van vrijdag 31 december 2021. Bekijk aflevering 365 van seizoen 2021 met VRT NU via de site of app.",
@@ -279,7 +311,7 @@ class TestInfoExtractor(unittest.TestCase):
                         {"name":"Mentale gezondheid bij topsporters","startOffset":1575,"@type":"Clip"},
                         {"name":"Olympische Winterspelen","startOffset":1728,"@type":"Clip"},
                         {"name":"Sober oudjaar in Nederland","startOffset":1873,"@type":"Clip"}
-                        ],
+                    ],
                     "duration":"PT34M39.23S",
                     "uploadDate":"2021-12-31T19:00:00.000+01:00",
                     "@id":"vid-9457d0c6-b8ac-4aba-b5e1-15aa3a3295b5",
@@ -287,115 +319,309 @@ class TestInfoExtractor(unittest.TestCase):
                 },
                 "genre":["Nieuws en actua"],
                 "episodeNumber":365,
-                "partOfSeries":{"name":"Het journaal","@id":"222831405527","@type":"TVSeries"},
-                "partOfSeason":{"name":"Seizoen 2021","@id":"961809365527","@type":"TVSeason"},
-                "@context":"https://schema.org","@id":"961685295527","@type":"TVEpisode"}</script>
-                ''',
-                {
-                    'chapters': [
-                        {'title': 'Explosie Turnhout', 'start_time': 70, 'end_time': 440},
-                        {'title': 'Jaarwisseling', 'start_time': 440, 'end_time': 1179},
-                        {'title': 'Natuurbranden Colorado', 'start_time': 1179, 'end_time': 1263},
-                        {'title': 'Klimaatverandering', 'start_time': 1263, 'end_time': 1367},
-                        {'title': 'Zacht weer', 'start_time': 1367, 'end_time': 1383},
-                        {'title': 'Financiële balans', 'start_time': 1383, 'end_time': 1484},
-                        {'title': 'Club Brugge', 'start_time': 1484, 'end_time': 1575},
-                        {'title': 'Mentale gezondheid bij topsporters', 'start_time': 1575, 'end_time': 1728},
-                        {'title': 'Olympische Winterspelen', 'start_time': 1728, 'end_time': 1873},
-                        {'title': 'Sober oudjaar in Nederland', 'start_time': 1873, 'end_time': 2079.23},
-                    ],
-                    'title': 'Het journaal - Aflevering 365 (Seizoen 2021)',
-                }, {},
-            ),
-            (
-                # test multiple thumbnails in a list
-                r'''
-<script type="application/ld+json">
-{"@context":"https://schema.org",
-"@type":"VideoObject",
-"thumbnailUrl":["https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg"]}
-</script>''',
-                {
-                    'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
+                "partOfSeries":{
+                    "name":"Het journaal",
+                    "@id":"222831405527",
+                    "@type":"TVSeries"
                 },
-                {},
-            ),
-            (
-                # test single thumbnail
-                r'''
-<script type="application/ld+json">
-{"@context":"https://schema.org",
-"@type":"VideoObject",
-"thumbnailUrl":"https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg"}
-</script>''',
-                {
-                    'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
+                "partOfSeason":{
+                    "name":"Seizoen 2021",
+                    "@id":"961809365527",
+                    "@type":"TVSeason"
                 },
-                {},
-            ),
-            (
-                # test thumbnail_url key without URL scheme
-                r'''
-<script type="application/ld+json">
-{
-"@context": "https://schema.org",
-"@type": "VideoObject",
-"thumbnail_url": "//www.nobelprize.org/images/12693-landscape-medium-gallery.jpg"
-}</script>''',
-                {
-                    'thumbnails': [{'url': 'https://www.nobelprize.org/images/12693-landscape-medium-gallery.jpg'}],
-                },
-                {},
-            ),
-            (
-                r'''
-<script type="application/ld+json">
-{"@context":"https://schema.org",
-"@type":"NewsArticle",
-"mainEntityOfPage":{
-"@type":"WebPage",
-"@id":"https://www.telemb.be/actu/frameries-un-concours-pour-conducteurs-dengins-de-chantier/37879"
-},
-"headline":"Frameries - Un concours pour conducteurs d'engins de chantier",
-"image":[
-"//www.telemb.be/cdn/ff/pKwkkhB7a5GqSf98QdDUcn9WlvGTYyilvXisHO3fHpI/1747320854/public/2025-05/00006554_avc-tmb-093031.jpeg"
-],
-"articleSection":"Reportages",
-"keywords":"enseignement secondaire",
-"datePublished":"2025-05-15T16:32:00+02:00",
-"dateCreated":"2025-05-15T16:32:00+02:00",
-"dateModified":"2025-05-15T16:32:00+02:00",
-"author":{
-"@type":"Person",
-"name":"Sabine Dupont"
-},
-"publisher":{
-"@type":"Organization",
-"name":"Tele MB",
-"logo":{
-"@type":"ImageObject",
-"url":"https://www.telemb.be/modules/custom/local_tvs/modules/tele_mb/assets/logoTLMB_BE_2022.svg"
-}
-},
-"description":"Conduire des engins de chantier c'est un métier! Ce métier s'apprend dans 7 écoles techniques en Wallonie. 6 d’entre elles se sont retrouvées au centre de compétence du Forem à Sars-la-Bruyère pour une première édition d'un concours baptisé Engin Défi. ",
-"articleBody":"Creuser une tranchée, charger un camion, niveler un terrain, quelques-uns des défis proposés aux écoles techniques de Wallonie qui participent à ce premier concours Engin Défi. Par binôme, les 26 élèves sélectionnés doivent réaliser différentes tâches et démontrer ainsi leur savoir-faire en matière de manipulation d’engins de chantier.« On devait charger le gros dumper. Ca s’est bien passé mais je ne sais pas encore ce que le jury en pense » explique Clément Hennuy, Elève en 6ème conducteur d’engins de chantier aux Instituts Saint-Luc.Car Engin Defi est un concours ! A chaque épreuve, des professionnels sont là pour coter individuellement les élèves mais surtout pour les encadrer.« Ils sont évalués par poste de travail. Il y a des cotes de 5 à 20 mais on n’est pas là pour les casser. On est là pour leur donner des conseils avant et pendant l’épreuve » sourit Guy Laidoum, Conseiller en prévention et jury d’Engin Défi.Les professeurs des élèves choisis sont également présents pour les coacher.« Ils sont à l’épreuve de la tranchée qu’ils doivent faire bien plate, bien propre avec des bords bien tranchants. Quelque chose de nickel comme on leur a appris » insiste Loïc Cimino, professeur au Lycée Technique Hornu-Colfontaine. Engin Défi est une première organisation mise sur pied par plusieurs partenaires du secteur de la construction. Tous n’ont qu’un but, valoriser des métiers très recherchés et demandés.« On veut leur montrer que derrière l’école, il y a un secteur d’activités à la recherche de main d’œuvre qualifiée. Ils seront bientôt qualifiés, on veut leur montrer qu’on a besoin d’eux » insiste Xavier Maes, Manager chez Constructiv. Et pour susciter des vocations, une centaine d’élèves de deuxième secondaire viennent aussi découvrir, de manière plus ludique, ces métiers du secteur de la construction. Certains sont plus intéressés que d’autres…« Je ne ferais pas ces métiers là, non. Ce n’est pas dans mes délires ! » sourit Alissa, élève de 2ème secondaire à la Sainte-Union.« Moi j’aime les métiers manuels. Travailler dans la mécanique, c’est ce qui me passionne » souligne Mohamed, un autre élève. Des passionnés, c’est ce que le secteur recherche. Clément en tout cas semble avoir trouvé sa voie.« Je suis en 6ème. Je vais faire une 7ème pour mon diplôme et ma gestion, puis je vais travailler dans une entreprise. Plus tard, j’aimerais créer ma propre entreprise »"
-}</script>
-''',
-                {
-                    'title': 'md5:3f077843a74f01f768bbf0853c210855',
-                    'categories': ['Reportages'],
-                    'creators': ['Sabine Dupont'],
-                    'description': 'md5:1dc04a3aa56c5228503071baa8b4cc97',
-                    'modified_timestamp': 1747319520,
-                    'release_timestamp': 1747319520,
-                    'tags': 'count:1',
-                    'timestamp': 1747319520,
-                    'thumbnails': [{'url': 'https://www.telemb.be/cdn/ff/pKwkkhB7a5GqSf98QdDUcn9WlvGTYyilvXisHO3fHpI/1747320854/public/2025-05/00006554_avc-tmb-093031.jpeg'}],
-                    'uploader': 'Tele MB',
-                },
-                {},
-            ),
-        ]
+                "@context":"https://schema.org",
+                "@id":"961685295527",
+                "@type":"TVEpisode"
+            }
+            </script>
+            ''', {
+                'title': 'Het journaal - Aflevering 365 (Seizoen 2021)',
+                'artists': ['Het journaal - Aflevering 365 (Seizoen 2021)'],
+                'chapters': [
+                    {'title': 'Explosie Turnhout', 'start_time': 70, 'end_time': 440},
+                    {'title': 'Jaarwisseling', 'start_time': 440, 'end_time': 1179},
+                    {'title': 'Natuurbranden Colorado', 'start_time': 1179, 'end_time': 1263},
+                    {'title': 'Klimaatverandering', 'start_time': 1263, 'end_time': 1367},
+                    {'title': 'Zacht weer', 'start_time': 1367, 'end_time': 1383},
+                    {'title': 'Financiële balans', 'start_time': 1383, 'end_time': 1484},
+                    {'title': 'Club Brugge', 'start_time': 1484, 'end_time': 1575},
+                    {'title': 'Mentale gezondheid bij topsporters', 'start_time': 1575, 'end_time': 1728},
+                    {'title': 'Olympische Winterspelen', 'start_time': 1728, 'end_time': 1873},
+                    {'title': 'Sober oudjaar in Nederland', 'start_time': 1873, 'end_time': 2079.23},
+                ],
+                'description': 'Het journaal 19u van vrijdag 31 december 2021. Bekijk aflevering 365 van seizoen 2021 met VRT NU via de site of app.',
+                'duration': 2079.23,
+                'episode': 'Het journaal 19u',
+                'episode_number': 365,
+                'genres': ['Nieuws en actua'],
+                'season': 'Het journaal 19u',
+                'series': 'Het journaal',
+                'thumbnails': [{'url': 'https://images.vrt.be/width1280/2021/12/31/80d5ed00-6a64-11ec-b07d-02b7b76bf47f.jpg'}],
+                'timestamp': 1640973600,
+            }, {},
+        ), (
+            # thumbnailUrl, {str}
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context":"https://schema.org",
+                "@type":"VideoObject",
+                "thumbnailUrl":"https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg"
+            }
+            </script>
+            ''', {
+                'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
+            }, {},
+        ), (
+            # no scheme URL
+            # thumbnail_url, {str}
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "VideoObject",
+                "thumbnail_url": "//www.nobelprize.org/images/12693-landscape-medium-gallery.jpg"
+            }
+            </script>
+            ''', {
+                'thumbnails': [{'url': 'https://www.nobelprize.org/images/12693-landscape-medium-gallery.jpg'}],
+            }, {},
+        ), (
+            # no scheme URL
+            # thumbnailURL, {str}
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org/",
+                "@type": "VideoObject",
+                "thumbnailURL": "//images.ctfassets.net/o78em1y1w4i4/2XrBpSdjPK1OJXAAFYU8iw/76ffd0f25465502c9a704dcfc2aa6c64/Teaser-Elsevier-careers-video-thumbnail.jpg"
+            }
+            </script>
+            ''', {
+                'thumbnails': [{'url': 'https://images.ctfassets.net/o78em1y1w4i4/2XrBpSdjPK1OJXAAFYU8iw/76ffd0f25465502c9a704dcfc2aa6c64/Teaser-Elsevier-careers-video-thumbnail.jpg'}],
+            }, {},
+        ), (
+            # escaped URL
+            # image, {"url": {str}}
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context": "https:\/\/schema.org",
+                "@type": "NewsArticle",
+                "image": {
+                    "@context": "https:\/\/schema.org",
+                    "@type": "ImageObject",
+                    "height": 630,
+                    "width": 1200,
+                    "url": "https:\/\/assets1.cbsnewsstatic.com\/hub\/i\/r\/2025\/08\/29\/597b721d-9c95-424d-8720-05df6b8a4a4e\/thumbnail\/1200x630\/45e846ad5f209972ab225651b40d0b4d\/cbsn-fusion-al-gore-on-20-years-since-hurricane-katrina-thumbnail.jpg"
+                }
+            }
+            </script>
+            ''', {
+                'thumbnails': [{
+                    'height': 630,
+                    'url': 'https://assets1.cbsnewsstatic.com/hub/i/r/2025/08/29/597b721d-9c95-424d-8720-05df6b8a4a4e/thumbnail/1200x630/45e846ad5f209972ab225651b40d0b4d/cbsn-fusion-al-gore-on-20-years-since-hurricane-katrina-thumbnail.jpg',
+                    'width': 1200,
+                }],
+            }, {},
+        ), (
+            # nested width/height
+            # image, {"url": {str}}
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context": "http://schema.org",
+                "@type": "NewsArticle",
+                "image": {
+                    "@type": "ImageObject",
+                    "width": {
+                        "@type": "QuantitativeValue",
+                        "unitText": "px",
+                        "value": 1024
+                    },
+                    "height": {
+                        "@type": "QuantitativeValue",
+                        "unitText": "px",
+                        "value": 576
+                    },
+                    "url": "https://ichef.bbci.co.uk/ace/standard/1024/cpsprodpb/398e/live/1cc4dab0-8689-11f0-9cf6-cbf3e73ce2b9.jpg"
+                }
+            }
+            </script>
+            ''', {
+                'thumbnails': [{
+                    'height': 576,
+                    'url': 'https://ichef.bbci.co.uk/ace/standard/1024/cpsprodpb/398e/live/1cc4dab0-8689-11f0-9cf6-cbf3e73ce2b9.jpg',
+                    'width': 1024,
+                }],
+            }, {},
+        ), (
+            # image, {"url": [{str}]}
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org/",
+                "@type": [
+                    "NewsArticle",
+                    "Article"
+                ],
+                "image": {
+                    "@type": "ImageObject",
+                    "url": [
+                        "https://imagenes.elpais.com/resizer/v2/JUFK7HEHNNAIVJXC3WVUXNZT7M.jpg?auth=350ef4714331cf2e29299b840f86da4eb8b0ddde3a3bdb3f4302f0c90a9ae2d6&width=1960&height=1103&smart=true",
+                        "https://imagenes.elpais.com/resizer/v2/JUFK7HEHNNAIVJXC3WVUXNZT7M.jpg?auth=350ef4714331cf2e29299b840f86da4eb8b0ddde3a3bdb3f4302f0c90a9ae2d6&width=1960&height=1470&smart=true",
+                        "https://imagenes.elpais.com/resizer/v2/JUFK7HEHNNAIVJXC3WVUXNZT7M.jpg?auth=350ef4714331cf2e29299b840f86da4eb8b0ddde3a3bdb3f4302f0c90a9ae2d6&width=980&height=980&smart=true"
+                    ]
+                }
+            }
+            </script>
+            ''', {
+                'thumbnails': [{
+                    'height': 1103,
+                    'url': 'https://imagenes.elpais.com/resizer/v2/JUFK7HEHNNAIVJXC3WVUXNZT7M.jpg?auth=350ef4714331cf2e29299b840f86da4eb8b0ddde3a3bdb3f4302f0c90a9ae2d6&width=1960&height=1103&smart=true',
+                    'width': 1960,
+                }, {
+                    'height': 1470,
+                    'url': 'https://imagenes.elpais.com/resizer/v2/JUFK7HEHNNAIVJXC3WVUXNZT7M.jpg?auth=350ef4714331cf2e29299b840f86da4eb8b0ddde3a3bdb3f4302f0c90a9ae2d6&width=1960&height=1470&smart=true',
+                    'width': 1960,
+                }, {
+                    'height': 980,
+                    'url': 'https://imagenes.elpais.com/resizer/v2/JUFK7HEHNNAIVJXC3WVUXNZT7M.jpg?auth=350ef4714331cf2e29299b840f86da4eb8b0ddde3a3bdb3f4302f0c90a9ae2d6&width=980&height=980&smart=true',
+                    'width': 980,
+                }],
+            }, {},
+        ), (
+            # image, [{"contentUrl": {str}}]
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org/",
+                "@type": "VideoObject",
+                "image": [
+                    {
+                        "@type": "ImageObject",
+                        "contentUrl": "https://www.planet-wissen.de/sendungen/lebensglueck-frau-sprung-strand-100~_v-gseagaleriexl.jpg",
+                        "height": 900,
+                        "width": 1600
+                    },
+                    {
+                        "@type": "ImageObject",
+                        "contentUrl": "https://www.planet-wissen.de/sendungen/lebensglueck-frau-sprung-strand-100~_v-HintergrundL.jpg",
+                        "height": 1152,
+                        "width": 1536
+                    }
+                ]
+            }
+            </script>
+            ''', {
+                'thumbnails': [{
+                    'height': 900,
+                    'url': 'https://www.planet-wissen.de/sendungen/lebensglueck-frau-sprung-strand-100~_v-gseagaleriexl.jpg',
+                    'width': 1600,
+                }, {
+                    'height': 1152,
+                    'url': 'https://www.planet-wissen.de/sendungen/lebensglueck-frau-sprung-strand-100~_v-HintergrundL.jpg',
+                    'width': 1536,
+                }],
+            }, {},
+        ), (
+            # duplicate thumbnails
+            # image, [{"url": {str}}],
+            # thumbnail, [{"url": {str}}]
+            # thumbnailUrl, [{str}]
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "VideoObject",
+                "image": [{
+                    "@type": "ImageObject",
+                    "url": "https://images.sportschau.de/image/031d1445-9620-4b24-b1f5-9cbbff422f21/AAABmQQq_vA/AAABmKJiLwU/16x9-1920/leverkusen-322.jpg",
+                    "width": 1920,
+                    "height": 1080
+                }, {
+                    "@type": "ImageObject",
+                    "url": "https://images.sportschau.de/image/031d1445-9620-4b24-b1f5-9cbbff422f21/AAABmQQq_vA/AAABmKJibh0/1x1-1400/leverkusen-322.jpg",
+                    "width": 1400,
+                    "height": 1400
+                }, {
+                    "@type": "ImageObject",
+                    "url": "https://images.sportschau.de/image/031d1445-9620-4b24-b1f5-9cbbff422f21/AAABmQQq_vA/AAABmKJiwCE/4x3/leverkusen-322.jpg?width=1280",
+                    "width": 1280,
+                    "height": 960
+                }],
+                "thumbnail": [{
+                    "@type": "ImageObject",
+                    "url": "https://images.sportschau.de/image/031d1445-9620-4b24-b1f5-9cbbff422f21/AAABmQQq_vA/AAABmKJiLwU/16x9-1920/leverkusen-322.jpg",
+                    "width": 1920,
+                    "height": 1080
+                }, {
+                    "@type": "ImageObject",
+                    "url": "https://images.sportschau.de/image/031d1445-9620-4b24-b1f5-9cbbff422f21/AAABmQQq_vA/AAABmKJibh0/1x1-1400/leverkusen-322.jpg",
+                    "width": 1400,
+                    "height": 1400
+                }, {
+                    "@type": "ImageObject",
+                    "url": "https://images.sportschau.de/image/031d1445-9620-4b24-b1f5-9cbbff422f21/AAABmQQq_vA/AAABmKJiwCE/4x3/leverkusen-322.jpg?width=1280",
+                    "width": 1280,
+                    "height": 960
+                }],
+                "thumbnailUrl": [
+                    "https://images.sportschau.de/image/031d1445-9620-4b24-b1f5-9cbbff422f21/AAABmQQq_vA/AAABmKJiLwU/16x9-1920/leverkusen-322.jpg",
+                    "https://images.sportschau.de/image/031d1445-9620-4b24-b1f5-9cbbff422f21/AAABmQQq_vA/AAABmKJibh0/1x1-1400/leverkusen-322.jpg",
+                    "https://images.sportschau.de/image/031d1445-9620-4b24-b1f5-9cbbff422f21/AAABmQQq_vA/AAABmKJiwCE/4x3/leverkusen-322.jpg?width=1280"
+                ]
+            }
+            </script>
+            ''', {
+                'thumbnails': [{
+                    'height': 1080,
+                    'url': 'https://images.sportschau.de/image/031d1445-9620-4b24-b1f5-9cbbff422f21/AAABmQQq_vA/AAABmKJiLwU/16x9-1920/leverkusen-322.jpg',
+                    'width': 1920,
+                }, {
+                    'height': 1400,
+                    'url': 'https://images.sportschau.de/image/031d1445-9620-4b24-b1f5-9cbbff422f21/AAABmQQq_vA/AAABmKJibh0/1x1-1400/leverkusen-322.jpg',
+                    'width': 1400,
+                }, {
+                    'height': 960,
+                    'url': 'https://images.sportschau.de/image/031d1445-9620-4b24-b1f5-9cbbff422f21/AAABmQQq_vA/AAABmKJiwCE/4x3/leverkusen-322.jpg?width=1280',
+                    'width': 1280,
+                }],
+            }, {},
+        ), (
+            # dateCreated, \d{4}
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "Movie",
+                "dateCreated": "2025"
+            }
+            </script>
+            ''', {'release_year': 2025}, {},
+        ), (
+            # dateCreated, \d{4}-\d{2}-\d{2}
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "Movie",
+                "dateCreated": "2025-09-01"
+            }
+            </script>
+            ''', {'upload_date': '20250901'}, {},
+        ), (
+            # dateCreated, ISO 8601
+            r'''
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "Movie",
+                "dateCreated": "2025-09-01T00:00:00Z"
+            }
+            </script>
+            ''', {'timestamp': 1756684800}, {},
+        )]
         for html, expected_dict, search_json_ld_kwargs in _TESTS:
             expect_dict(
                 self,

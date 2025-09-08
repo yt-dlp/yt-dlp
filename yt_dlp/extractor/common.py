@@ -72,11 +72,13 @@ from ..utils import (
     mimetype2ext,
     netrc_from_content,
     orderedSet,
+    parse_age_limit,
     parse_bitrate,
     parse_codecs,
     parse_duration,
     parse_iso8601,
     parse_m3u8_attributes,
+    parse_qs,
     parse_resolution,
     qualities,
     sanitize_url,
@@ -84,13 +86,11 @@ from ..utils import (
     str_or_none,
     str_to_int,
     strip_or_none,
-    traverse_obj,
     truncate_string,
     try_call,
     try_get,
     unescapeHTML,
     unified_strdate,
-    unified_timestamp,
     url_basename,
     url_or_none,
     urlhandle_detect_ext,
@@ -102,6 +102,7 @@ from ..utils import (
 )
 from ..utils._utils import _request_dump_filename
 from ..utils.jslib import devalue
+from ..utils.traversal import traverse_obj
 
 
 class InfoExtractor:
@@ -1673,38 +1674,76 @@ class InfoExtractor:
                 chapters[-1]['end_time'] = chapters[-1]['end_time'] or info['duration']
                 info['chapters'] = chapters
 
+        def extract_thumbnail_information(e):
+            thumbnails = traverse_obj(e, ((
+                'image', 'thumbnail', 'thumbnailUrl', 'thumbnailURL', 'thumbnail_url',
+            ), (
+                ({str}, {url_or_none}, {'url': None}, filter),
+                ({dict}, 'url', {list}, ..., {'url': None}, filter),
+                (({list}, ({dict}, all)), lambda _, v:
+                    url_or_none(v.get('url')) or url_or_none(v.get('contentUrl'))),
+                ({list}, ..., {str}, {url_or_none}, {'url': None}, filter),
+            ), {
+                'height': ('height', (None, 'value'), {int_or_none}, any),
+                'url': (('contentUrl', 'url'), {str}, {unescapeHTML}, {self._proto_relative_url}, any),
+                'width': ('width', (None, 'value'), {int_or_none}, any),
+            }, all, {orderedSet}, lambda _, v: url_or_none(v['url'])))
+
+            dim_keys, url_table = {'height', 'width'}, {}
+            for thumbnail in thumbnails:
+                url = thumbnail['url']
+
+                query = parse_qs(thumbnail['url'])
+                for key, alt_keys in (
+                    ('height', ('height', 'h')),
+                    ('width', ('width', 'w')),
+                ):
+                    val = traverse_obj(query, (alt_keys, -1, {int_or_none}, any))
+                    if val is not None:
+                        thumbnail.setdefault(key, val)
+
+                res = parse_resolution(url_basename(url))
+                for key in dim_keys:
+                    val = res.get(key)
+                    if val is not None:
+                        thumbnail.setdefault(key, val)
+
+                current = url_table.get(url)
+                if not current or len(dim_keys & thumbnail.keys()) > len(dim_keys & current.keys()):
+                    url_table[url] = thumbnail
+
+            info['thumbnails'] = list(url_table.values()) or None
+
         def extract_video_object(e):
-            author = e.get('author')
-            info.update({
-                'url': url_or_none(e.get('contentUrl')),
-                'ext': mimetype2ext(e.get('encodingFormat')),
-                'title': unescapeHTML(e.get('name')),
-                'description': unescapeHTML(e.get('description')),
-                'thumbnails': traverse_obj(e, (('thumbnailUrl', 'thumbnailURL', 'thumbnail_url'), (None, ...), {
-                    'url': ({str}, {unescapeHTML}, {self._proto_relative_url}, {url_or_none}),
-                })),
-                'duration': parse_duration(e.get('duration')),
-                'timestamp': unified_timestamp(e.get('uploadDate')),
-                # author can be an instance of 'Organization' or 'Person' types.
-                # both types can have 'name' property(inherited from 'Thing' type). [1]
-                # however some websites are using 'Text' type instead.
-                # 1. https://schema.org/VideoObject
-                'uploader': author.get('name') if isinstance(author, dict) else author if isinstance(author, str) else None,
-                'artist': traverse_obj(e, ('byArtist', 'name'), expected_type=str),
-                'filesize': int_or_none(float_or_none(e.get('contentSize'))),
-                'tbr': int_or_none(e.get('bitrate')),
-                'width': int_or_none(e.get('width')),
-                'height': int_or_none(e.get('height')),
-                'view_count': int_or_none(e.get('interactionCount')),
-                'tags': try_call(lambda: e.get('keywords').split(',')),
-            })
+            info.update(traverse_obj(e, {
+                'ext': ('encodingFormat', {mimetype2ext}),
+                'title': ('name', {clean_html}, filter),
+                'age_limit': ('isFamilyFriendly', {str}, {lambda x: 18 if x.lower() in ('false', '0') else None}),
+                'artists': (('byArtist', 'name'), {clean_html}, filter, all, {orderedSet}, filter),
+                'description': ('description', {clean_html}, filter),
+                'duration': ('duration', {parse_duration}),
+                'filesize': ('contentSize', {float_or_none}, {int_or_none}),
+                'genres': ('genre', {clean_html}, filter, all, {orderedSet}, filter),
+                'height': ('height', {int_or_none}),
+                'is_live': ('publication', 'isLiveBroadcast', {bool}),
+                'release_timestamp': ('datePublished', {parse_iso8601}),
+                'tags': ('keywords', (None, ...), {clean_html},
+                         {lambda x: x.split(',')}, ..., {str.strip}, filter, all, {orderedSet}, filter),
+                'tbr': ('bitrate', {int_or_none}),
+                'timestamp': ('uploadDate', {parse_iso8601}),
+                'uploader': ('author', (None, 'name'), {clean_html}, filter, any),
+                'url': ('contentUrl', {self._proto_relative_url}, {url_or_none}),
+                'view_count': ('interactionCount', {int_or_none}),
+                'width': ('width', {int_or_none}),
+            }))
             if is_type(e, 'AudioObject'):
                 info.update({
+                    'abr': traverse_obj(e, ('bitrate', {int_or_none})),
                     'vcodec': 'none',
-                    'abr': int_or_none(e.get('bitrate')),
                 })
             extract_interaction_statistic(e)
             extract_chapter_information(e)
+            extract_thumbnail_information(e)
 
         def traverse_json_ld(json_ld, at_top_level=True):
             for e in variadic(json_ld):
@@ -1717,50 +1756,70 @@ class InfoExtractor:
                     continue
                 if expected_type is not None and not is_type(e, expected_type):
                     continue
-                rating = traverse_obj(e, ('aggregateRating', 'ratingValue'), expected_type=float_or_none)
+                rating = traverse_obj(e, ('aggregateRating', 'ratingValue', {float_or_none}))
                 if rating is not None:
                     info['average_rating'] = rating
                 if is_type(e, 'TVEpisode', 'Episode', 'PodcastEpisode'):
-                    episode_name = unescapeHTML(e.get('name'))
-                    info.update({
-                        'episode': episode_name,
-                        'episode_number': int_or_none(e.get('episodeNumber')),
-                        'description': unescapeHTML(e.get('description')),
-                    })
-                    if not info.get('title') and episode_name:
-                        info['title'] = episode_name
+                    info.update(traverse_obj(e, {
+                        'id': ('identifier', {str_or_none}),
+                        'ext': ('encodingFormat', {mimetype2ext}),
+                        'title': (('title', 'name'), {clean_html}, filter, any),
+                        'creators': ('productionCompany', {clean_html}, filter, all, {orderedSet}, filter),
+                        'description': ('description', {clean_html}, filter),
+                        'duration': ((('duration', {parse_duration}), ('timeRequired', {int_or_none})), any),
+                        'episode': ('name', {clean_html}, filter),
+                        'episode_number': ('episodeNumber', {int_or_none}),
+                        'genres': ('genre', ..., {clean_html}, filter, all, {orderedSet}, filter),
+                        'release_timestamp': ('datePublished', {parse_iso8601}),
+                    }))
+                    extract_thumbnail_information(e)
                     part_of_season = e.get('partOfSeason')
                     if is_type(part_of_season, 'TVSeason', 'Season', 'CreativeWorkSeason'):
-                        info.update({
-                            'season': unescapeHTML(part_of_season.get('name')),
-                            'season_number': int_or_none(part_of_season.get('seasonNumber')),
-                        })
+                        info.update(traverse_obj(e, {
+                            'season': ('name', {clean_html}, filter),
+                            'season_number': ('seasonNumber', {int_or_none}),
+                        }))
                     part_of_series = e.get('partOfSeries') or e.get('partOfTVSeries')
                     if is_type(part_of_series, 'TVSeries', 'Series', 'CreativeWorkSeries'):
-                        info['series'] = unescapeHTML(part_of_series.get('name'))
+                        info['series'] = traverse_obj(part_of_series, ('name', {clean_html}, filter))
                 elif is_type(e, 'Movie'):
-                    info.update({
-                        'title': unescapeHTML(e.get('name')),
-                        'description': unescapeHTML(e.get('description')),
-                        'duration': parse_duration(e.get('duration')),
-                        'timestamp': unified_timestamp(e.get('dateCreated')),
-                    })
+                    info.update(traverse_obj(e, {
+                        'title': ('name', {clean_html}, filter),
+                        'age_limit': ('contentRating', {parse_age_limit}),
+                        'cast': ('actor', ..., 'name', {clean_html}, filter, all, {orderedSet}, filter),
+                        'creators': ('director', (None, ((None, ...), 'name')), {clean_html}, filter, all, {orderedSet}, filter),
+                        'description': ('description', {clean_html}, filter),
+                        'duration': ('duration', {parse_duration}),
+                        'genres': ('genre', (None, ...), {clean_html}, filter, all, {orderedSet}, filter),
+                        'release_timestamp': ('datePublished', {parse_iso8601}),
+                    }))
+                    extract_thumbnail_information(e)
+                    if date := traverse_obj(e, ('dateCreated', {str_or_none})):
+                        if re.fullmatch(r'\d{4}', date):
+                            info['release_year'] = int_or_none(date)
+                        elif re.fullmatch(r'\d{4}-\d{2}-\d{2}', date):
+                            info['upload_date'] = unified_strdate(date)
+                        else:
+                            info['timestamp'] = parse_iso8601(date)
                 elif is_type(e, 'Article', 'NewsArticle'):
-                    info.update(**traverse_obj(e, {
+                    info.update(traverse_obj(e, {
                         'title': ('headline', {clean_html}, filter),
                         'alt_title': ('alternativeHeadline', {clean_html}, filter),
-                        'categories': ('articleSection', {clean_html}, filter, all, filter),
-                        'creators': ('author', (None, 'name'), {clean_html}, filter, all, filter),
+                        'categories': ('articleSection', (None, ...), {clean_html}, filter, all, {orderedSet}, filter),
+                        'comment_count': ('commentCount', {int_or_none}),
+                        'creators': ('author', (None, ...), 'name', {clean_html}, filter, all, {orderedSet}, filter),
                         'description': (('description', 'articleBody'), {clean_html}, filter, any),
+                        'duration': ('timeRequired', {int_or_none}),
+                        'genres': ('genre', (None, ...), {clean_html}, filter, all, {orderedSet}, filter),
+                        'location': ('contentLocation', 'name', {clean_html}, filter),
                         'modified_timestamp': ('dateModified', {parse_iso8601}),
                         'release_timestamp': ('datePublished', {parse_iso8601}),
-                        'tags': ('keywords', {clean_html}, {lambda x: x.split(',')}, ..., {str.strip}, filter, all, filter),
-                        'thumbnails': ('image', ..., {
-                            'url': ({str}, {unescapeHTML}, {self._proto_relative_url}, {url_or_none}),
-                        }),
+                        'tags': ('keywords', (None, ...), {clean_html},
+                                 {lambda x: x.split(',')}, ..., {str.strip}, filter, all, {orderedSet}, filter),
                         'timestamp': ('dateCreated', {parse_iso8601}),
                         'uploader': ('publisher', 'name', {clean_html}, filter),
                     }))
+                    extract_thumbnail_information(e)
                     if is_type(traverse_obj(e, ('video', 0)), 'VideoObject'):
                         extract_video_object(e['video'][0])
                     elif is_type(traverse_obj(e, ('subjectOf', 0)), 'VideoObject'):
