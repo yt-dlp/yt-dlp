@@ -417,6 +417,7 @@ jobs:
           compression-level: 0
 
   windows:
+    name: windows (${{ matrix.arch }})
     needs: process
     if: inputs.windows
     permissions:
@@ -426,27 +427,33 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - arch: 'x64'
+        - arch: x64
           runner: windows-2025
           python_version: '3.10'
-          suffix: ''
-        - arch: 'x86'
+          platform_tag: win_amd64
+          pyi_version: '6.15.0'
+          pyi_tag: '2025.09.08.193741'
+        - arch: x86
           runner: windows-2025
           python_version: '3.10'
-          suffix: '_x86'
-        - arch: 'arm64'
+          platform_tag: win32
+          pyi_version: '6.15.0'
+          pyi_tag: '2025.09.08.193741'
+        - arch: arm64
           runner: windows-11-arm
           python_version: '3.13'  # arm64 only has Python >= 3.11 available
-          suffix: '_arm64'
+          platform_tag: win_arm64
+          pyi_version: '6.15.0'
+          pyi_tag: '2025.09.08.193741'
     env:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
       VERSION: ${{ needs.process.outputs.version }}
-      SUFFIX: ${{ matrix.suffix }}
+      SUFFIX: ${{ (matrix.arch != 'x64' && format('_{0}', matrix.arch)) || '' }}
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
       BASE_CACHE_KEY: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}
-      # Use custom PyInstaller built with https://github.com/yt-dlp/Pyinstaller-builds
-      PYINSTALLER_URL: https://yt-dlp.github.io/Pyinstaller-Builds/${{ matrix.arch }}/pyinstaller-6.15.0-py3-none-any.whl
+      PYINSTALLER_REPO: https://github.com/yt-dlp/Pyinstaller-builds
+      PYINSTALLER_PATH: /releases/download/${{ matrix.pyi_tag }}/pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
       - uses: actions/checkout@v4
@@ -482,7 +489,7 @@ jobs:
           } else {
             python devscripts/install_deps.py --include curl-cffi
           }
-          python -m pip install -U "${Env:PYINSTALLER_URL}"
+          python -m pip install -U "${Env:PYINSTALLER_REPO}${Env:PYINSTALLER_PATH}"
 
       - name: Prepare
         shell: pwsh
@@ -516,8 +523,8 @@ jobs:
         with:
           name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
-            dist/yt-dlp${{ matrix.suffix }}.exe
-            dist/yt-dlp_win${{ matrix.suffix }}.zip
+            dist/yt-dlp${{ env.SUFFIX }}.exe
+            dist/yt-dlp_win${{ env.SUFFIX }}.zip
           compression-level: 0
 
   meta_files:
