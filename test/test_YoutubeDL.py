@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import contextlib
 import copy
+import itertools
 import json
 
 from test.helper import FakeYDL, assertRegexpMatches, try_rm
@@ -414,7 +415,7 @@ class TestFormatSelection(unittest.TestCase):
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
         self.assertEqual(downloaded_ids, ['248+141'])
 
-        for f1, f2 in zip(formats_order, formats_order[1:]):
+        for f1, f2 in itertools.pairwise(formats_order):
             info_dict = _make_result([f1, f2], extractor='youtube')
             ydl = YDL({'format': 'best/bestvideo'})
             ydl.sort_formats(info_dict)
