@@ -26,8 +26,8 @@ __all__ = [
     'JsChallengeType',
     'NSigChallengeInput',
     'NSigChallengeOutput',
-    'SigSpecChallengeInput',
-    'SigSpecChallengeOutput',
+    'SigChallengeInput',
+    'SigChallengeOutput',
     'register_preference',
     'register_provider',
 ]
@@ -35,13 +35,13 @@ __all__ = [
 
 class JsChallengeType(enum.Enum):
     NSIG = 'nsig'
-    SIG_SPEC = 'sig_spec'
+    SIG = 'sig'
 
 
 @dataclasses.dataclass(frozen=True)
 class JsChallengeRequest:
     type: JsChallengeType
-    input: NSigChallengeInput | SigSpecChallengeInput
+    input: NSigChallengeInput | SigChallengeInput
     video_id: str | None = None
 
 
@@ -52,10 +52,9 @@ class NSigChallengeInput:
 
 
 @dataclasses.dataclass(frozen=True)
-class SigSpecChallengeInput:
+class SigChallengeInput:
     player_url: str
-    # Length of signatures to generate a spec for
-    spec_ids: set[int] = dataclasses.field(default_factory=set)
+    challenges: list[str] = dataclasses.field(default_factory=list)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -64,9 +63,8 @@ class NSigChallengeOutput:
 
 
 @dataclasses.dataclass(frozen=True)
-class SigSpecChallengeOutput:
-    # Sig mapping specification, to use to transform future sig challenges.
-    specs: dict[int, list[int]] = dataclasses.field(default_factory=dict)
+class SigChallengeOutput:
+    results: dict[str, str] = dataclasses.field(default_factory=dict)
 
 
 @dataclasses.dataclass
@@ -79,7 +77,7 @@ class JsChallengeProviderResponse:
 @dataclasses.dataclass
 class JsChallengeResponse:
     type: JsChallengeType
-    output: NSigChallengeOutput | SigSpecChallengeOutput
+    output: NSigChallengeOutput | SigChallengeOutput
 
 
 class JsChallengeProviderRejectedRequest(IEContentProviderError):

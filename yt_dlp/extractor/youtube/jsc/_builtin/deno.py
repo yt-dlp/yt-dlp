@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 class DenoJCP(JsRuntimeJCPBase, BuiltinIEContentProvider):
     PROVIDER_NAME = 'deno'
     JS_RUNTIME_NAME = 'deno'
-    _SUPPORTED_TYPES = [JsChallengeType.NSIG, JsChallengeType.SIG_SPEC]
+    _SUPPORTED_TYPES = [JsChallengeType.NSIG, JsChallengeType.SIG]
 
     _DENO_ARGS = ['--location', 'https://www.youtube.com/watch?v=yt-dlp-wins', '--no-prompt']
     _SUPPORTED_VERSION = '0.0.1'

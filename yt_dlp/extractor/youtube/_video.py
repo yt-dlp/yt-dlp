@@ -25,7 +25,7 @@ from ._base import (
     short_client_name,
 )
 from .jsc._director import initialize_jsc_director
-from .jsc.provider import JsChallengeRequest, JsChallengeType, NSigChallengeInput, SigSpecChallengeInput
+from .jsc.provider import JsChallengeRequest, JsChallengeType, NSigChallengeInput, SigChallengeInput
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
 from ...networking.exceptions import HTTPError
@@ -3317,14 +3317,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         input=NSigChallengeInput(challenges=list(n_challenges.keys()), player_url=player_url)))
                 if s_challenges:
                     challenge_requests.append(JsChallengeRequest(
-                        type=JsChallengeType.SIG_SPEC,
+                        type=JsChallengeType.SIG,
                         video_id=video_id,
-                        input=SigSpecChallengeInput(spec_ids=set(s_challenges.keys()), player_url=player_url)))
+                        input=SigChallengeInput(challenges=[''.join(map(chr, range(spec_id))) for spec_id in s_challenges], player_url=player_url)))
 
                 if challenge_requests:
                     for _challenge_request, challenge_response in self._jsc_director.bulk_solve(challenge_requests):
-                        if challenge_response.type == JsChallengeType.SIG_SPEC:
-                            for spec_id, spec in challenge_response.output.specs.items():
+                        if challenge_response.type == JsChallengeType.SIG:
+                            for challenge, result in challenge_response.output.results.items():
+                                spec_id = len(challenge)
+                                spec = [ord(c) for c in result]
                                 self._store_sig_spec_to_cache(self._sig_spec_cache_id(player_url, spec_id), spec)
                                 s_challenge_data = s_challenges.pop(spec_id, {})
                                 if not s_challenge_data:
