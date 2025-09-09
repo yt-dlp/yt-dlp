@@ -163,9 +163,9 @@ jobs:
           }
           INPUTS = json.loads(os.environ['INPUTS'])
           matrix = [exe for key, group in EXE_MAP.items() for exe in group if INPUTS.get(key)]
-          skip = bool(matrix)
-          if not matrix:
-              # If we send an empty matrix when no linux inputs are given, "Build artifacts" fails
+          skip = not matrix
+          if skip:
+              # If we send an empty matrix when no linux inputs are given, the entire workflow fails
               matrix = [EXE_MAP['linux'][0]]
           for exe in matrix:
               exe['exe'] = '_'.join(filter(None, (
