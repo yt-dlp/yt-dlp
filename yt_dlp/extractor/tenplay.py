@@ -1,4 +1,5 @@
 import itertools
+import time
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -111,9 +112,7 @@ class TenPlayIE(InfoExtractor):
             content_id, 'Downloading video JSON')
         # Dash URL 403s, changing the m3u8 format works
         m3u8_url = self._request_webpage(
-            HEADRequest(update_url_query(video_data['items'][0]['dashManifestUrl'], {
-                'manifest': 'm3u',
-            })),
+            HEADRequest(f'https://10-selector.global.ssl.fastly.net/s/kYEXFC/media/{data["altId"]}?mbr=true&manifest=m3u&format=redirect&vtoken={int(time.time())}'),
             content_id, 'Checking stream URL').url
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
