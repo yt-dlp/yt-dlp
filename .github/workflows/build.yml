@@ -179,7 +179,10 @@ jobs:
               exe.setdefault('cache_requirements', False)
               exe.setdefault('verify_outside_container', False)
               exe.setdefault('update_to', os.environ['UPDATE_TO'])
-          print(json.dumps(matrix, indent=2))
+          if skip:
+              print('skipping linux job')
+          else:
+              print(json.dumps(matrix, indent=2))
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write('\n'.join((
                   f'skip={json.dumps(skip)}',
