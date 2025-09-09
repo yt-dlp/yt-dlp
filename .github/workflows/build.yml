@@ -149,6 +149,7 @@ jobs:
                   'qemu_platform': 'linux/arm/v7',
                   'onefile': False,
                   'cache_requirements': True,
+                  'update_to': 'yt-dlp/yt-dlp@2023.03.04',
               }],
               'musllinux': [{
                   'os': 'musllinux',
@@ -252,6 +253,9 @@ jobs:
       VERSION: ${{ needs.process.outputs.version }}
       EXE_NAME: ${{ matrix.exe }}
       UPDATE_TO: ${{ matrix.update_to }}
+      SKIP_UPDATE_TO: ${{ !vars.UPDATE_TO_VERIFICATION }}
+      SKIP_ONEDIR_BUILD: ${{ (!matrix.onedir && '1') || '' }}
+      SKIP_ONEFILE_BUILD: ${{ (!matrix.onefile && '1') || '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -264,7 +268,7 @@ jobs:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
           path: |
-            ~/yt-dlp-build-venv
+            venv
           key: cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
           restore-keys: |
             cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-${{ github.ref }}-
@@ -279,14 +283,13 @@ jobs:
       - name: Build executable
         env:
           SERVICE: ${{ matrix.os }}_${{ matrix.arch }}
-          ONEFILE: ${{ (matrix.onefile && '1') || '0' }}
         run: |
-          mkdir -p ~/yt-dlp-build-venv
+          mkdir -p ./venv
           mkdir -p ./dist
           pushd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
           popd
-          if ((ONEFILE)); then
+          if [[ -z "${SKIP_ONEFILE_BUILD}" ]]; then
             sudo chown "${USER}:docker" "./dist/${EXE_NAME}"
           fi
 

@@ -1,7 +1,11 @@
 #!/bin/sh
 set -eu
 
-if [ -n "${TEST_ONEDIR_BUILD:-}" ]; then
+if [ -n "${SKIP_ONEFILE_BUILD:-}" ]; then
+    if [ -n "${SKIP_ONEDIR_BUILD:-}" ]; then
+        echo "All executable builds were skipped"
+        exit 1
+    fi
     echo "Extracting zip to verify onedir build"
     if command -v python3 >/dev/null 2>&1; then
         python3 -m zipfile -e "/build/${EXE_NAME}.zip" ./
@@ -22,14 +26,17 @@ if [ -n "${TEST_ONEDIR_BUILD:-}" ]; then
         fi
         unzip "/build/${EXE_NAME}.zip" -d ./
     fi
-else
-    echo "Verifying onefile build"
-    cp "/build/${EXE_NAME}" ./
+    chmod +x "./${EXE_NAME}"
+    "./${EXE_NAME}" -v || true
+    "./${EXE_NAME}" --version
+    exit 0
 fi
 
+echo "Verifying onefile build"
+cp "/build/${EXE_NAME}" ./
 chmod +x "./${EXE_NAME}"
 
-if [ -n "${SKIP_UPDATE_TO:-}" ] || [ -n "${TEST_ONEDIR_BUILD:-}" ]; then
+if [ -n "${SKIP_UPDATE_TO:-}" ]; then
     "./${EXE_NAME}" -v || true
     "./${EXE_NAME}" --version
     exit 0
