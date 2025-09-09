@@ -85,7 +85,6 @@ jobs:
       timestamp: ${{ steps.process_inputs.outputs.timestamp }}
       version: ${{ steps.process_inputs.outputs.version }}
       linux_matrix: ${{ steps.linux_matrix.outputs.matrix }}
-      linux_skip: ${{ steps.linux_matrix.outputs.skip }}
 
     steps:
       - name: Process inputs
@@ -163,8 +162,7 @@ jobs:
           }
           INPUTS = json.loads(os.environ['INPUTS'])
           matrix = [exe for key, group in EXE_MAP.items() for exe in group if INPUTS.get(key)]
-          skip = not matrix
-          if skip:
+          if not matrix:
               # If we send an empty matrix when no linux inputs are given, the entire workflow fails
               matrix = [EXE_MAP['linux'][0]]
           for exe in matrix:
@@ -179,15 +177,12 @@ jobs:
               exe.setdefault('cache_requirements', False)
               exe.setdefault('verify_outside_container', False)
               exe.setdefault('update_to', os.environ['UPDATE_TO'])
-          if skip:
+          if not any(INPUTS.get(key) for key in EXE_MAP):
               print('skipping linux job')
           else:
               print(json.dumps(matrix, indent=2))
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write('\n'.join((
-                  f'skip={json.dumps(skip)}',
-                  f'matrix={json.dumps(matrix)}',
-              )))
+              f.write(f'matrix={json.dumps(matrix)}')
 
   unix:
     needs: process
@@ -243,7 +238,7 @@ jobs:
 
   linux:
     name: ${{ matrix.os }} (${{ matrix.arch }})
-    if: ${{ !fromJSON(needs.process.outputs.linux_skip) }}
+    if: inputs.linux || inputs.linux_armv7l || inputs.musllinux
     needs: process
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -304,7 +299,7 @@ jobs:
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
 
       - name: Verify --update-to
-        if: ${{ matrix.verify_outside_container && vars.UPDATE_TO_VERIFICATION }}
+        if: matrix.verify_outside_container && vars.UPDATE_TO_VERIFICATION
         run: |
           chmod +x "./dist/${EXE_NAME}"
           mkdir -p ~/testing
