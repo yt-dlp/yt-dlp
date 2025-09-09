@@ -4,7 +4,6 @@ import functools
 import http.client
 import logging
 import re
-import socket
 import warnings
 
 from ..dependencies import brotli, requests, urllib3
@@ -378,7 +377,7 @@ class SocksHTTPConnection(urllib3.connection.HTTPConnection):
                 source_address=self.source_address,
                 _create_socket_func=functools.partial(
                     create_socks_proxy_socket, (self.host, self.port), self._proxy_args))
-        except (socket.timeout, TimeoutError) as e:
+        except TimeoutError as e:
             raise urllib3.exceptions.ConnectTimeoutError(
                 self, f'Connection to {self.host} timed out. (connect timeout={self.timeout})') from e
         except SocksProxyError as e:
