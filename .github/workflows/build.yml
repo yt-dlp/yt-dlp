@@ -273,7 +273,7 @@ jobs:
             cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-
 
       - name: Set up QEMU
-        if: ${{ !!matrix.qemu_platform }}
+        if: matrix.qemu_platform
         uses: docker/setup-qemu-action@v3
         with:
           platforms: ${{ matrix.qemu_platform }}
