@@ -111,9 +111,21 @@ class TenPlayIE(InfoExtractor):
             f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
             content_id, 'Downloading video JSON')
         # Dash URL 403s, changing the m3u8 format works
-        m3u8_url = self._request_webpage(
-            HEADRequest(f'https://10-selector.global.ssl.fastly.net/s/kYEXFC/media/{data["altId"]}?mbr=true&manifest=m3u&format=redirect&vtoken={int(time.time())}'),
-            content_id, 'Checking stream URL').url
+        if 'items' in video_data and video_data['items'] and 'dashManifestUrl' in video_data['items'][0]:
+            m3u8_url = self._request_webpage(
+                HEADRequest(update_url_query(video_data['items'][0]['dashManifestUrl'], {
+                    'manifest': 'm3u',
+                })),
+                content_id, 'Checking stream URL').url
+        else:
+            try:
+                m3u8_url = self._request_webpage(
+                    HEADRequest(f'https://10-selector.global.ssl.fastly.net/s/kYEXFC/media/{data["altId"]}?mbr=true&manifest=m3u&format=redirect&vtoken={int(time.time())}'),
+                    content_id, 'Checking stream URL').url
+            except Exception as e:
+                raise ExtractorError(
+                    f'Both Brightcove and 10-selector methods failed: {e}'
+                )
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
         if '10play_unsupported' in m3u8_url:
