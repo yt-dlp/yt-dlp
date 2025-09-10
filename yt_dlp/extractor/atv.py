@@ -337,7 +337,7 @@ class AtvSeriesIE(AtvBaseIE):
                 # And it is wasteful having to download webpage then extract video id again.
 
                 url = smuggle_url('https://www.atv.com.tr/placeholder/1-bolum/izle', {'video_id': video_id})
-                yield self.url_result(url, AtvIE, video_id, title=f'{title} {spot}')
+                yield self.url_result(url, AtvIE, video_id, url_transparent=True, title=f'{title} {spot}')
 
             page += 1
 
