@@ -723,7 +723,7 @@ class VKWallPostIE(VKBaseIE):
     def _unmask_url(self, mask_url, vk_id):
         if 'audio_api_unavailable' in mask_url:
             extra = mask_url.split('?extra=')[1].split('#')
-            func, base = self._decode(extra[1]).split(chr(11))
+            _, base = self._decode(extra[1]).split(chr(11))
             mask_url = list(self._decode(extra[0]))
             url_len = len(mask_url)
             indexes = [None] * url_len
