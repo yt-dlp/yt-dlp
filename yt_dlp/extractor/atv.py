@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     extract_attributes,
+    int_or_none,
     parse_iso8601,
     smuggle_url,
     traverse_obj,
@@ -196,6 +197,17 @@ class AtvIE(AtvBaseIE):
                 'ext': 'mp4',
             },
         },
+        {  # invalid duration
+            'url': 'https://www.atv.com.tr/karadayi/113-bolum/izle',
+            'info_dict': {
+                'id': 'b428f689-30f7-4ff4-bb75-792519d43216',
+                'title': 'atv Ana Haber',
+                'duration': 0,
+                'release_date': '20250714',
+                'release_timestamp': 1752525577,
+                'ext': 'mp4',
+            },
+        },
     ]
 
     def _extract_video(self, video_id):
@@ -233,14 +245,13 @@ class AtvIE(AtvBaseIE):
                 },
             ]
 
-        # TODO: extract description
         return {
             'id': video_id,
             'title': video_player.get('title'),
             'formats': formats,
             'thumbnails': thumbnails,
             'language': 'tr',
-            'duration': int(video_player.get('videoDuration')),
+            'duration': int_or_none(video_player.get('videoDuration')),
             'release_timestamp': parse_iso8601(video_player.get('publishedDate')),
         }
 
