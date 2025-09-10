@@ -233,10 +233,9 @@ class XHamsterIE(InfoExtractor):
                                     continue
                                 decoded = try_call(lambda: base64.b64decode(standard_url))
                                 if decoded and decoded[:4] == b'xor_':
-                                    xor_url_content = decoded[4:]
-                                    standard_url = ''
-                                    for t in range(len(xor_url_content)):
-                                        standard_url += chr(xor_url_content[t] ^ b'xh7999'[t % 6])
+                                    standard_url = bytes(
+                                        a ^ b for a, b in
+                                        zip(decoded[4:], itertools.cycle(b'xh7999'), strict=False)).decode()
                                 standard_url = urljoin(url, standard_url)
                                 if not standard_url or standard_url in format_urls:
                                     continue
