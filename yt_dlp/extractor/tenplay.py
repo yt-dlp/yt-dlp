@@ -124,7 +124,7 @@ class TenPlayIE(InfoExtractor):
                     content_id, 'Checking stream URL').url
             except Exception as e:
                 raise ExtractorError(
-                    f'Both Brightcove and 10-selector methods failed: {e}'
+                    f'Both Brightcove and 10-selector methods failed: {e}',
                 )
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
