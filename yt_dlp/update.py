@@ -58,15 +58,28 @@ def _get_variant_and_executable_path():
     """@returns (variant, executable_path)"""
     if getattr(sys, 'frozen', False):
         path = sys.executable
-        # py2exe is unsupported but we should still correctly identify it for debugging purposes
+
+        # py2exe: No longer officially supported, but still identify it to block updates
         if not hasattr(sys, '_MEIPASS'):
             return 'py2exe', path
-        if sys._MEIPASS == os.path.dirname(path):
-            return f'{sys.platform}_dir', path
-        if sys.platform == 'darwin':
+
+        # staticx builds: sys.executable returns a /tmp/ path
+        # No longer officially supported, but still identify them to block updates
+        # Ref: https://staticx.readthedocs.io/en/latest/usage.html#run-time-information
+        if static_exe_path := os.getenv('STATICX_PROG_PATH'):
+            return 'linux_static_exe', static_exe_path
+
+        # We know it's a PyInstaller bundle, but is it "onedir" or "onefile"?
+        suffix = 'dir' if sys._MEIPASS == os.path.dirname(path) else 'exe'
+        system_platform = remove_end(sys.platform, '32')
+
+        if system_platform == 'darwin':
             # darwin_legacy_exe is no longer supported, but still identify it to block updates
             machine = '_legacy' if version_tuple(platform.mac_ver()[0]) < (10, 15) else ''
-            return f'darwin{machine}_exe', path
+            return f'darwin{machine}_{suffix}', path
+
+        if system_platform == 'linux' and platform.libc_ver()[0] != 'glibc':
+            system_platform = 'musllinux'
 
         machine = f'_{platform.machine().lower()}'
         is_64bits = sys.maxsize > 2**32
@@ -77,12 +90,8 @@ def _get_variant_and_executable_path():
         # See: https://github.com/yt-dlp/yt-dlp/issues/11813
         elif machine[1:] == 'aarch64' and not is_64bits:
             machine = '_armv7l'
-        # sys.executable returns a /tmp/ path for staticx builds (linux_static)
-        # Ref: https://staticx.readthedocs.io/en/latest/usage.html#run-time-information
-        if static_exe_path := os.getenv('STATICX_PROG_PATH'):
-            path = static_exe_path
 
-        return f'{remove_end(sys.platform, "32")}{machine}_exe', path
+        return f'{system_platform}{machine}_{suffix}', path
 
     path = os.path.dirname(__file__)
     if isinstance(__loader__, zipimporter):
@@ -118,7 +127,8 @@ _FILE_SUFFIXES = {
     'darwin_exe': '_macos',
     'linux_exe': '_linux',
     'linux_aarch64_exe': '_linux_aarch64',
-    'linux_armv7l_exe': '_linux_armv7l',
+    'musllinux_exe': '_musllinux',
+    'musllinux_aarch64_exe': '_musllinux_aarch64',
 }
 
 _NON_UPDATEABLE_REASONS = {
@@ -145,21 +155,6 @@ def _get_binary_name():
 
 def _get_system_deprecation():
     MIN_SUPPORTED, MIN_RECOMMENDED = (3, 9), (3, 10)
-
-    EXE_MSG_TMPL = ('Support for {} has been deprecated. '
-                    'See  https://github.com/yt-dlp/yt-dlp/{}  for details.\n{}')
-    STOP_MSG = 'You may stop receiving updates on this version at any time!'
-    variant = detect_variant()
-
-    # Temporary until linux_armv7l executable builds are discontinued
-    if variant == 'linux_armv7l_exe':
-        return EXE_MSG_TMPL.format(
-            f'{variant} (the PyInstaller-bundled executable for the Linux armv7l platform)',
-            'issues/13976', STOP_MSG)
-
-    # Temporary until linux_aarch64_exe is built with Python >=3.10 instead of Python 3.9
-    if variant == 'linux_aarch64_exe':
-        return None
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
@@ -199,16 +194,14 @@ def _sha256_file(path):
 
 
 def _make_label(origin, tag, version=None):
-    if '/' in origin:
-        channel = _INVERSE_UPDATE_SOURCES.get(origin, origin)
-    else:
-        channel = origin
-    label = f'{channel}@{tag}'
-    if version and version != tag:
-        label += f' build {version}'
-    if channel != origin:
-        label += f' from {origin}'
-    return label
+    if tag != version:
+        if version:
+            return f'{origin}@{tag} build {version}'
+        return f'{origin}@{tag}'
+
+    if channel := _INVERSE_UPDATE_SOURCES.get(origin):
+        return f'{channel}@{tag} from {origin}'
+    return f'{origin}@{tag}'
 
 
 @dataclass
