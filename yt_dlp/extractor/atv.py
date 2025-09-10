@@ -13,7 +13,7 @@ from ..utils import (
 )
 
 
-class AtvBaseIE(InfoExtractor):
+class TmGrupIE(InfoExtractor):
     # Checks if value is UUID.4
     def _is_id_valid(self, value):
         # API only accepts value that has length of 32 or 36 identification
@@ -57,55 +57,141 @@ class AtvBaseIE(InfoExtractor):
 
     def _videojs_get_video(self, video_id, note, channel='atv'):
         # These are the channels published by "Turkuvaz Haberlesme ve Yayincilik A.S."
-        # Extracted from https://i.tmgrup.com.tr/videojs/js/tmdplayersetupv2.js?v=792 at PlayerDaion() function
-        # | website url                     | website ID                           | channel     | ce | app ID                               | mobile | test |
-        # |---------------------------------|--------------------------------------|-------------|----|--------------------------------------|--------|------|
-        # | https://www.aspor.com.tr/       | 9bbe055a-4cf6-4bc3-a675-d40e89b55b91 | aspor       | 3  | b6bf3b55-0120-4e0f-983b-a6c7969f9ec6 | yes    | no   |
-        # | https://www.aspor.com.tr/       | 9bbe055a-4cf6-4bc3-a675-d40e89b55b91 | aspor       | 3  | 45f847c4-04e8-419a-a561-2ebf87084765 | no     | no   |
-        # | https://www.atv.com.tr/a2tv/    | 0c1bc8ff-c3b1-45be-a95b-f7bb9c8b03ed | a2tv        | 3  | 59363a60-be96-4f73-9eff-355d0ff2c758 | -      | no   |
-        # | https://www.minikago.com.tr/    | aae2e325-4eae-45b7-b017-26fd7ddb6ce4 | minikago    | 3  | mweb                                 | yes    | no   |
-        # | https://www.minikago.com.tr/    | aae2e325-4eae-45b7-b017-26fd7ddb6ce4 | minikago    | 3  | web                                  | no     | no   |
-        # | https://www.minikacocuk.com.tr/ | 01ed59f2-4067-4945-8204-45f6c6db4045 | minikacocuk | 3  | mweb                                 | yes    | no   |
-        # | https://www.atv.com.tr/         | 0fe2a405-8afa-4238-b429-e5f96aec3a5c | atv         | 3  | 866e32e3-9fea-477f-a5ef-64ebe32956f3 | -      | yes  |
-        # | https://www.atv.com.tr/         | 0fe2a405-8afa-4238-b429-e5f96aec3a5c | atv         | 3  | d5eb593f-39d9-4b01-9cfd-4748e8332cf0 | yes    | no   |
-        # | https://www.atv.com.tr/         | 0fe2a405-8afa-4238-b429-e5f96aec3a5c | atv         | 3  | d1ce2d40-5256-4550-b02e-e73c185a314e | no     | no   |
-        #
+        # Extracted from below functions at https://i.tmgrup.com.tr/videojs/js/tmdplayersetupv2.js?v=792
+        # - PlayerDaion()
+        # - TmdConfig.setConfigWebsiteExclusive()
         # These are mainly published by two different CDNs
         # - https://trkvz-live.ercdn.net/{channel}/{channel}.m3u8
         # - https://trkvz.daioncdn.net/{channel}/{channel}.m3u8
         CHANNELS = {
-            'atv': {
-                'website_id': '0fe2a405-8afa-4238-b429-e5f96aec3a5c',
-                'website_url': 'https://www.atv.com.tr/',
+            'a2tv': {
+                'website_id': '0c1bc8ff-c3b1-45be-a95b-f7bb9c8b03ed',
+                'domain': 'www.atv.com.tr',
+            },
+            'ahaber': {
+                'website_id': 'c0fbbd0d-b4cb-4e5b-b516-9993b9e506c3',
+                'domain': 'www.ahaber.com.tr',
+            },
+            'aktuel': {
+                'website_id': '36ED4123-943D-49FC-8AE5-24D37ECAA63E',
+                'domain': 'www.aktuel.com.tr',
+            },
+            'anews': {
+                'website_id': 'E88D795B-B27A-4B92-8FC0-D1F650213863',
+                'domain': 'www.anews.com.tr',
+            },
+            'apara': {
+                'website_id': '1c2ecfe1-ec83-4b4b-ba39-3af0e845f456',
+                'domain': 'www.apara.com.tr',
             },
             'aspor': {
                 'website_id': '9bbe055a-4cf6-4bc3-a675-d40e89b55b91',
-                'website_url': 'https://www.aspor.com.tr/',
+                'domain': 'www.aspor.com.tr',
             },
-            'a2tv': {
-                'website_id': '0c1bc8ff-c3b1-45be-a95b-f7bb9c8b03ed',
-                'website_url': 'https://www.atv.com.tr/',
+            'atv': {
+                'website_id': '0fe2a405-8afa-4238-b429-e5f96aec3a5c',
+                'domain': 'www.atv.com.tr',
             },
-            'minikago': {
-                'website_id': 'aae2e325-4eae-45b7-b017-26fd7ddb6ce4',
-                'website_url': 'https://www.minikago.com.tr/',
+            'atvavrupa': {
+                'website_id': '45D4CD69-814C-4E2E-BDAD-11DE9E4B9AFD',
+                'domain': 'www.atvavrupa.tv',
+            },
+            'atvdistribution': {
+                'website_id': 'EBACDD4C-74BC-43FC-92AA-D08159DF40FE',
+                'domain': 'www.atvdistribution.com',
+            },
+            'cosmopolitan': {
+                'website_id': '34CD4123-943D-49FC-8AE5-24D37ECAA669',
+                'domain': 'www.cosmopolitanturkiye.com',
+            },
+            'dailysabah': {
+                'website_id': '9f694053-ed61-4c74-a43a-8787e6002b58',
+                'domain': 'www.dailysabah.com',
+            },
+            'esquire': {
+                'website_id': '523E8243-B6BF-405A-9052-AEBF5A59FCF8',
+                'domain': 'www.esquire.com.tr',
+            },
+            'fikriyat': {
+                'website_id': '2bf2426b-2228-4b0e-9400-8d42f1b6895f',
+                'domain': 'www.fikriyat.com',
+            },
+            'fityasa': {
+                'website_id': 'ee86c4db-d4cb-4bd5-b928-56fd44384374',
+                'domain': 'www.fityasa.com.tr',
+            },
+            'fotomac': {
+                'website_id': 'ac97138b-a800-4e53-94e4-d6bf4e6782ab',
+                'domain': 'www.fotomac.com.tr',
+            },
+            'harpersbazaar': {
+                'website_id': '779B03FF-4989-46AC-A6FE-8C79D70ED60B',
+                'domain': 'www.harpersbazaar.com.tr',
             },
             'minikacocuk': {
                 'website_id': '01ed59f2-4067-4945-8204-45f6c6db4045',
-                'website_url': 'https://www.minikacocuk.com.tr/',
+                'domain': 'www.minikacocuk.com.tr',
+            },
+            'minikago': {
+                'website_id': 'aae2e325-4eae-45b7-b017-26fd7ddb6ce4',
+                'domain': 'www.minikago.com.tr',
+            },
+            'otohaber': {
+                'website_id': 'D6C0ED15-C37F-48CD-A5AF-BB187CDB3CFD',
+                'domain': 'www.otohaber.com.tr',
+            },
+            'sabah': {
+                'website_id': '50450b66-f39e-4dd8-867b-4d2e15726a5f',
+                'domain': 'www.sabah.com.tr',
+            },
+            'samdan': {
+                'website_id': '1A20B172-26B8-49D0-9B7F-A47E8EAE38BB',
+                'domain': 'www.samdan.com.tr',
+            },
+            'sofra': {
+                'website_id': '5397bf0c-1694-4ee5-80e3-a8598dfe2c39',
+                'domain': 'www.sofra.com.tr',
+            },
+            'takvim': {
+                'website_id': '0E497DBB-D79A-4F7A-9BEB-7E6C1BCD7216',
+                'domain': 'www.takvim.com.tr',
+            },
+            'teknokulis': {
+                'website_id': '56D89D93-90CE-4C16-A26E-27B4A91293B6',
+                'domain': 'www.teknokulis.com',
+            },
+            'turkuvapp': {
+                'website_id': '46c4d652-21a8-4945-9714-60d6560b1ca0',
+                'domain': 'www.turkuvapp.com',
+            },
+            'turkuvazradyo': {
+                'website_id': 'ed05f08d-f444-48cb-8c53-973a96daa466',
+                'domain': 'www.turkuvazradyolar.com',
+            },
+            'usasabah': {
+                'website_id': 'f5833018-f743-4f26-b1fc-88467c0816a4',
+                'domain': 'www.usasabah.com.tr',
+            },
+            'vavtv': {
+                'website_id': 'c71d7dd4-1b6c-4cf6-a4fe-38d864c6d052',
+                'domain': 'www.vavtv.com.tr',
+            },
+            'yeniasir': {
+                'website_id': '35CA7526-A797-40B0-9E44-7340F0225745',
+                'domain': 'www.yeniasir.com.tr',
             },
         }
         channel = CHANNELS[channel]
         website_id = channel['website_id']
         return self._download_json(f'https://videojs.tmgrup.com.tr/getvideo/{website_id}/{video_id}', website_id, note,
-                                   headers={'referer': channel['website_url']})
+                                   headers={'referer': f"https://{channel['domain']}/"})
 
     def _videojs_get_live_stream(self, channel='atv'):
         video_id = '00000000-0000-0000-0000-000000000000'
         return self._videojs_get_video(video_id, 'Get live stream metadata', channel=channel)
 
 
-class AtvIE(AtvBaseIE):
+class AtvIE(TmGrupIE):
     _VALID_URL = r'https?://(?:www\.)?atv\.com\.tr/(?P<slug>[a-z\-]+)/(?P<episode>[0-9]+\-bolum)(/izle)?'
     _TESTS = [
         {
@@ -270,7 +356,7 @@ class AtvIE(AtvBaseIE):
         return self._extract_video(video_id)
 
 
-class AtvSeriesIE(AtvBaseIE):
+class AtvSeriesIE(TmGrupIE):
     _VALID_URL = r'https?://(?:www\.)?atv\.com\.tr/(?P<id>[a-z\-]+)(/bolumler)?$'
     _TESTS = [
         {
