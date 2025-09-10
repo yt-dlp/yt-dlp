@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yt-dlp Music Downloader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .form-container {
+            padding: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95rem;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .status-container.show {
+            display: block;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .status-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .status-icon.loading {
+            background: #ffc107;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-icon.success {
+            background: #28a745;
+        }
+        
+        .status-icon.error {
+            background: #dc3545;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .log {
+            background: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 15px;
+        }
+        
+        .files-list {
+            margin-top: 15px;
+        }
+        
+        .file-item {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 4px solid #28a745;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 600px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Music Downloader</h1>
+            <p>Descarga música y playlists de YouTube Music fácilmente</p>
+        </div>
+        
+        <div class="form-container">
+            <form id="downloadForm">
+                <div class="form-group">
+                    <label for="url">🔗 URL de la playlist o video:</label>
+                    <input 
+                        type="url" 
+                        id="url" 
+                        name="url" 
+                        required 
+                        placeholder="https://music.youtube.com/playlist?list=..."
+                    >
+                </div>
+                
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="format">🎼 Formato:</label>
+                        <select id="format" name="format">
+                            <option value="mp3">🎵 MP3 (Solo audio)</option>
+                            <option value="mp4">🎬 MP4 (Video completo)</option>
+                            <option value="best">⭐ Mejor disponible</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="quality">🔊 Calidad:</label>
+                        <select id="quality" name="quality">
+                            <option value="0">🏆 Mejor calidad (VBR)</option>
+                            <option value="320K">320 kbps</option>
+                            <option value="256K">256 kbps</option>
+                            <option value="192K">192 kbps</option>
+                            <option value="128K">128 kbps</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="naming">📝 Formato de nombres:</label>
+                    <select id="naming" name="naming">
+                        <option value="artist-title">🎤 Artista - Título</option>
+                        <option value="title">📄 Solo título</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="output_dir">📁 Carpeta de descarga (obligatorio):</label>
+                    <input 
+                        type="text" 
+                        id="output_dir" 
+                        name="output_dir" 
+                        required
+                        placeholder="Ej: /Users/tuusuario/Downloads/musica"
+                    >
+                    <small style="color: #666; font-size: 0.85rem;">
+                        💡 Sugerencias: ~/Downloads, ~/Music, ~/Desktop/musica
+                    </small>
+                </div>
+                
+                <button type="submit" class="btn" id="downloadBtn">
+                    🚀 Iniciar Descarga
+                </button>
+            </form>
+            
+            <div id="statusContainer" class="status-container">
+                <div class="status">
+                    <div class="status-icon" id="statusIcon"></div>
+                    <strong id="statusText">Estado de descarga</strong>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                
+                <div id="jobInfo" style="margin-top: 10px; font-size: 0.9rem; color: #666;"></div>
+                
+                <div id="filesContainer" class="files-list" style="display: none;">
+                    <strong>✅ Archivos descargados:</strong>
+                    <div id="filesList"></div>
+                </div>
+                
+                <div id="logContainer" style="display: none;">
+                    <div class="log" id="logOutput"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Usar URL base relativa para funcionar tanto en local como en producción
+        const API_BASE = window.location.origin;
+        let currentJobId = null;
+        let statusInterval = null;
+
+        document.getElementById('downloadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            // Mostrar estado inicial
+            showStatus('loading', 'Iniciando descarga...');
+            setProgress(0);
+            clearFiles();
+            hideLog();
+            
+            // Deshabilitar botón
+            const btn = document.getElementById('downloadBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Descargando...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/download`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    currentJobId = result.job_id;
+                    document.getElementById('jobInfo').textContent = `Job ID: ${currentJobId}`;
+                    
+                    // Iniciar polling del estado
+                    statusInterval = setInterval(checkStatus, 2000);
+                } else {
+                    showStatus('error', `Error: ${result.error}`);
+                    resetButton();
+                }
+                
+            } catch (error) {
+                showStatus('error', `Error de conexión: ${error.message}`);
+                resetButton();
+            }
+        });
+
+        async function checkStatus() {
+            if (!currentJobId) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/status/${currentJobId}`);
+                const status = await response.json();
+                
+                updateStatusDisplay(status);
+                
+                if (status.status === 'completado' || status.status === 'error') {
+                    clearInterval(statusInterval);
+                    statusInterval = null;
+                    resetButton();
+                }
+                
+            } catch (error) {
+                console.error('Error checking status:', error);
+            }
+        }
+
+        function updateStatusDisplay(status) {
+            switch (status.status) {
+                case 'iniciando':
+                    showStatus('loading', 'Iniciando descarga...');
+                    setProgress(0);
+                    break;
+                
+                case 'descargando':
+                    showStatus('loading', 'Descargando archivos...');
+                    setProgress(50);
+                    break;
+                
+                case 'completado':
+                    showStatus('success', '✅ Descarga completada');
+                    setProgress(100);
+                    if (status.files && status.files.length > 0) {
+                        showFiles(status.files);
+                    }
+                    if (status.stdout) {
+                        showLog(status.stdout);
+                    }
+                    break;
+                
+                case 'error':
+                    showStatus('error', `❌ Error: ${status.error}`);
+                    setProgress(0);
+                    if (status.stdout) {
+                        showLog(`Error:\n${status.error}\n\nOutput:\n${status.stdout}`);
+                    }
+                    break;
+            }
+        }
+
+        function showStatus(type, text) {
+            const container = document.getElementById('statusContainer');
+            const icon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            
+            container.classList.add('show');
+            icon.className = `status-icon ${type}`;
+            statusText.textContent = text;
+        }
+
+        function setProgress(percent) {
+            document.getElementById('progressFill').style.width = `${percent}%`;
+        }
+
+        function showFiles(files) {
+            const container = document.getElementById('filesContainer');
+            const list = document.getElementById('filesList');
+            
+            list.innerHTML = '';
+            files.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.textContent = file.split('/').pop(); // Solo el nombre del archivo
+                list.appendChild(item);
+            });
+            
+            container.style.display = 'block';
+        }
+
+        function clearFiles() {
+            document.getElementById('filesContainer').style.display = 'none';
+        }
+
+        function showLog(text) {
+            const container = document.getElementById('logContainer');
+            const output = document.getElementById('logOutput');
+            
+            output.textContent = text;
+            container.style.display = 'block';
+        }
+
+        function hideLog() {
+            document.getElementById('logContainer').style.display = 'none';
+        }
+
+        function resetButton() {
+            const btn = document.getElementById('downloadBtn');
+            btn.disabled = false;
+            btn.textContent = '🚀 Iniciar Descarga';
+        }
+
+        // Cleanup al cerrar la página
+        window.addEventListener('beforeunload', function() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+            }
+        });
+    </script>
+</body>
+</html>

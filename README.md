@@ -2417,3 +2417,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md#contributing-to-yt-dlp) for instructions o
 
 # WIKI
 See the [Wiki](https://github.com/yt-dlp/yt-dlp/wiki) for more information
+
+## ejemplo 
+python3 -m yt_dlp -x --audio-format mp3 --audio-quality 0 -o "/Users/O002545/Music/playlist/%(title)s.%(ext)s" "https://music.youtube.com/playlist?list=PLHxRosSB9sj0FRQu8igy6rYnVy8aC2swf" solo cancion
+
+python3 -m yt_dlp -x --audio-format mp3 --audio-quality 0 -o "/Users/O002545/Music/playlist/%(artist|uploader|Unknown)s - %(title)s.%(ext)s" "https://music.youtube.com/playlist?list=PLHxRosSB9sj0BNosFiqMO3LdswN2_X6Dv"
+artista y cancion
