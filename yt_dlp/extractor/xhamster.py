@@ -1,3 +1,4 @@
+import base64
 import itertools
 import re
 
@@ -12,6 +13,7 @@ from ..utils import (
     int_or_none,
     parse_duration,
     str_or_none,
+    try_call,
     try_get,
     unified_strdate,
     url_or_none,
@@ -229,6 +231,12 @@ class XHamsterIE(InfoExtractor):
                                 standard_url = standard_format.get(standard_format_key)
                                 if not standard_url:
                                     continue
+                                decoded = try_call(lambda: base64.b64decode(standard_url))
+                                if decoded and decoded[:4] == b'xor_':
+                                    xor_url_content = decoded[4:]
+                                    standard_url = ''
+                                    for t in range(len(xor_url_content)):
+                                        standard_url += chr(xor_url_content[t] ^ b'xh7999'[t % 6])
                                 standard_url = urljoin(url, standard_url)
                                 if not standard_url or standard_url in format_urls:
                                     continue
