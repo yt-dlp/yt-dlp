@@ -42,6 +42,7 @@ class HotStarBaseIE(InfoExtractor):
     }
 
     def _has_active_subscription(self, cookies, server_time):
+        server_time = int_or_none(server_time) or int(time.time())
         expiry = traverse_obj(cookies, (
             self._TOKEN_NAME, 'value', {jwt_decode_hs256}, 'sub', {json.loads},
             'subscriptions', 'in', ..., 'expiry', {parse_iso8601}, all, {max})) or 0

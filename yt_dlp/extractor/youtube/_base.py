@@ -105,7 +105,6 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
         **WEB_PO_TOKEN_POLICIES,
-        'PLAYER_PARAMS': '8AEB',
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
     'web_safari': {
@@ -119,7 +118,6 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
         **WEB_PO_TOKEN_POLICIES,
-        'PLAYER_PARAMS': '8AEB',
     },
     'web_embedded': {
         'INNERTUBE_CONTEXT': {
@@ -261,9 +259,8 @@ INNERTUBE_CLIENTS = {
                 not_required_with_player_token=True,
             ),
             # HLS Livestreams require POT 30 seconds in
-            # TODO: Rolling out
             StreamingProtocol.HLS: GvsPoTokenPolicy(
-                required=False,
+                required=True,
                 recommended=True,
                 not_required_with_player_token=True,
             ),
@@ -313,7 +310,8 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
         'SUPPORTS_COOKIES': True,
-        'PLAYER_PARAMS': '8AEB',
+        # See: https://github.com/youtube/cobalt/blob/main/cobalt/browser/user_agent/user_agent_platform_info.cc#L506
+        'AUTHENTICATED_USER_AGENT': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko), Unknown_TV_Unknown_0/Unknown (Unknown, Unknown)',
     },
     'tv_simply': {
         'INNERTUBE_CONTEXT': {
@@ -372,6 +370,7 @@ def build_innertube_clients():
         ytcfg.setdefault('REQUIRE_AUTH', False)
         ytcfg.setdefault('SUPPORTS_COOKIES', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
+        ytcfg.setdefault('AUTHENTICATED_USER_AGENT', None)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
         _, base_client, variant = _split_innertube_client(client)
@@ -659,7 +658,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*='
 
     def _get_default_ytcfg(self, client='web'):
-        return copy.deepcopy(INNERTUBE_CLIENTS[client])
+        ytcfg = copy.deepcopy(INNERTUBE_CLIENTS[client])
+
+        # Currently, only the tv client needs to use an alternative user-agent when logged-in
+        if ytcfg.get('AUTHENTICATED_USER_AGENT') and self.is_authenticated:
+            client_context = ytcfg.setdefault('INNERTUBE_CONTEXT', {}).setdefault('client', {})
+            client_context['userAgent'] = ytcfg['AUTHENTICATED_USER_AGENT']
+
+        return ytcfg
 
     def _get_innertube_host(self, client='web'):
         return INNERTUBE_CLIENTS[client]['INNERTUBE_HOST']
@@ -954,7 +960,17 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             headers=traverse_obj(self._get_default_ytcfg(client), {
                 'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
             }))
-        return self.extract_ytcfg(video_id, webpage) or {}
+
+        ytcfg = self.extract_ytcfg(video_id, webpage) or {}
+
+        # Workaround for https://github.com/yt-dlp/yt-dlp/issues/12563
+        # But it's not effective when logged-in
+        if client == 'tv' and not self.is_authenticated:
+            config_info = traverse_obj(ytcfg, (
+                'INNERTUBE_CONTEXT', 'client', 'configInfo', {dict})) or {}
+            config_info.pop('appInstallData', None)
+
+        return ytcfg
 
     @staticmethod
     def _build_api_continuation_query(continuation, ctp=None):

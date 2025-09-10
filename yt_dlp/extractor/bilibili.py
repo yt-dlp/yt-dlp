@@ -304,7 +304,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)(?P<prefix>[aAbB][vV])(?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -353,7 +353,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'id': 'BV1bK411W797',
             'title': '物语中的人物是如何吐槽自己的OP的',
         },
-        'playlist_count': 18,
+        'playlist_count': 23,
         'playlist': [{
             'info_dict': {
                 'id': 'BV1bK411W797_p1',
@@ -373,6 +373,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 '_old_archive_ids': ['bilibili 498159642_part1'],
             },
         }],
+        'params': {'playlist_items': '2'},
     }, {
         'note': 'Specific page of Anthology',
         'url': 'https://www.bilibili.com/video/BV1bK411W797?p=1',
@@ -562,7 +563,7 @@ class BiliBiliIE(BilibiliBaseIE):
             },
         }],
     }, {
-        'note': '301 redirect to bangumi link',
+        'note': 'redirect from bvid to bangumi link via redirect_url',
         'url': 'https://www.bilibili.com/video/BV1TE411f7f1',
         'info_dict': {
             'id': '288525',
@@ -579,7 +580,27 @@ class BiliBiliIE(BilibiliBaseIE):
             'duration': 1183.957,
             'timestamp': 1571648124,
             'upload_date': '20191021',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(jpg|jpeg|png)$',
+        },
+    }, {
+        'note': 'redirect from aid to bangumi link via redirect_url',
+        'url': 'https://www.bilibili.com/video/av114868162141203',
+        'info_dict': {
+            'id': '1933368',
+            'title': 'PV 引爆变革的起点',
+            'ext': 'mp4',
+            'duration': 63.139,
+            'series': '时光代理人',
+            'series_id': '5183',
+            'season': '第三季',
+            'season_number': 4,
+            'season_id': '105212',
+            'episode': '引爆变革的起点',
+            'episode_number': 1,
+            'episode_id': '1933368',
+            'timestamp': 1752849001,
+            'upload_date': '20250718',
+            'thumbnail': r're:https?://.*\.(jpg|jpeg|png)$',
         },
     }, {
         'note': 'video has subtitles, which requires login',
@@ -635,7 +656,7 @@ class BiliBiliIE(BilibiliBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, prefix = self._match_valid_url(url).group('id', 'prefix')
         headers = self.geo_verification_headers()
         webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
         if not self._match_valid_url(urlh.url):
@@ -643,7 +664,24 @@ class BiliBiliIE(BilibiliBaseIE):
 
         headers['Referer'] = url
 
-        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id, default=None)
+        if not initial_state:
+            if self._search_json(r'\bwindow\._riskdata_\s*=', webpage, 'risk', video_id, default={}).get('v_voucher'):
+                raise ExtractorError('You have exceeded the rate limit. Try again later', expected=True)
+            query = {'platform': 'web'}
+            prefix = prefix.upper()
+            if prefix == 'BV':
+                query['bvid'] = prefix + video_id
+            elif prefix == 'AV':
+                query['aid'] = video_id
+            detail = self._download_json(
+                'https://api.bilibili.com/x/web-interface/wbi/view/detail', video_id,
+                note='Downloading redirection URL', errnote='Failed to download redirection URL',
+                query=self._sign_wbi(query, video_id), headers=headers)
+            new_url = traverse_obj(detail, ('data', 'View', 'redirect_url', {url_or_none}))
+            if new_url and BiliBiliBangumiIE.suitable(new_url):
+                return self.url_result(new_url, BiliBiliBangumiIE)
+            raise ExtractorError('Unable to extract initial state')
 
         if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
             self.raise_login_required()
@@ -899,13 +937,26 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 'Extracting episode', query={'fnval': 12240, 'ep_id': episode_id},
                 headers=headers))
 
-        geo_blocked = traverse_obj(play_info, (
-            ('result', ('raw', 'data')), 'plugins',
-            lambda _, v: v['name'] == 'AreaLimitPanel',
-            'config', 'is_block', {bool}, any))
-        premium_only = play_info.get('code') == -10403
+        # play_info can be structured in at least three different ways, e.g.:
+        # 1.) play_info['result']['video_info'] and play_info['code']
+        # 2.) play_info['raw']['data']['video_info'] and play_info['code']
+        # 3.) play_info['data']['result']['video_info'] and play_info['data']['code']
+        # So we need to transform any of the above into a common structure
+        status_code = play_info.get('code')
+        if 'raw' in play_info:
+            play_info = play_info['raw']
+        if 'data' in play_info:
+            play_info = play_info['data']
+        if status_code is None:
+            status_code = play_info.get('code')
+        if 'result' in play_info:
+            play_info = play_info['result']
 
-        video_info = traverse_obj(play_info, (('result', ('raw', 'data')), 'video_info', {dict}, any)) or {}
+        geo_blocked = traverse_obj(play_info, (
+            'plugins', lambda _, v: v['name'] == 'AreaLimitPanel', 'config', 'is_block', {bool}, any))
+        premium_only = status_code == -10403
+
+        video_info = traverse_obj(play_info, ('video_info', {dict})) or {}
         formats = self.extract_formats(video_info)
 
         if not formats:
@@ -915,8 +966,8 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 self.raise_login_required('This video is for premium members only')
 
         if traverse_obj(play_info, ((
-            ('result', 'play_check', 'play_detail'),  # 'PLAY_PREVIEW' vs 'PLAY_WHOLE'
-            (('result', ('raw', 'data')), 'play_video_type'),  # 'preview' vs 'whole' vs 'none'
+            ('play_check', 'play_detail'),  # 'PLAY_PREVIEW' vs 'PLAY_WHOLE' vs 'PLAY_NONE'
+            'play_video_type',              # 'preview' vs 'whole' vs 'none'
         ), any, {lambda x: x in ('PLAY_PREVIEW', 'preview')})):
             self.report_warning(
                 'Only preview format is available, '
@@ -1002,6 +1053,7 @@ class BiliBiliBangumiMediaIE(BilibiliBaseIE):
                 'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
             },
         }],
+        'params': {'playlist_items': '2'},
     }]
 
     def _real_extract(self, url):
@@ -1057,6 +1109,7 @@ class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
                 'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
             },
         }],
+        'params': {'playlist_items': '2'},
     }]
 
     def _real_extract(self, url):
@@ -1847,7 +1900,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
             'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1564836614,
             'upload_date': '20190803',
-            'uploader': 'tsukimi-つきみぐー',
+            'uploader': '十六夜tsukimiつきみぐ',
             'view_count': int,
         },
     }
@@ -1902,10 +1955,10 @@ class BilibiliAudioAlbumIE(BilibiliAudioBaseIE):
         'url': 'https://www.bilibili.com/audio/am10624',
         'info_dict': {
             'id': '10624',
-            'title': '每日新曲推荐（每日11:00更新）',
+            'title': '新曲推荐',
             'description': '每天11:00更新，为你推送最新音乐',
         },
-        'playlist_count': 19,
+        'playlist_count': 16,
     }
 
     def _real_extract(self, url):
