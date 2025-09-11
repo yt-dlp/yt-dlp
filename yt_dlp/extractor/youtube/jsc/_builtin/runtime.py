@@ -19,6 +19,7 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     NSigChallengeOutput,
     SigChallengeOutput,
 )
+from yt_dlp.globals import Indirect
 from yt_dlp.utils._jsruntime import JsRuntimeInfo
 
 TYPE_CHECKING = False
@@ -53,6 +54,9 @@ class _Bundle:
 
     def __str__(self, /):
         return f'<JSCBundle {self.type.value!r} v{self.version} (source: {self.source.value}) size={len(self.code)} hash={self.hash[:7]}...>'
+
+
+bundle_unavailable = Indirect({})
 
 
 class JsRuntimeJCPBase(JsChallengeProvider):
@@ -157,9 +161,12 @@ class JsRuntimeJCPBase(JsChallengeProvider):
                 return bundle
 
         self._available = False
+        bundle_unavailable.value[bundle_type] = True
+        self.logger.trace('marking all JsRuntime providers as unavailable due to missing bundle')
         raise JsChallengeProviderError(f'failed to find usable {bundle_type.value}')
 
     def _iter_bundles(self, bundle_type: BundleType, /) -> Generator[_Bundle]:
+        # TODO: consider bun/deno npm resolver bundles?
         try:
             import yt_dlp_jsc
         except ImportError:
@@ -200,5 +207,7 @@ class JsRuntimeJCPBase(JsChallengeProvider):
 
     def is_available(self, /) -> bool:
         if not self.runtime_info:
+            return False
+        if bundle_unavailable.value.get(BundleType.LIB) or bundle_unavailable.value.get(BundleType.JSC):
             return False
         return self._available
