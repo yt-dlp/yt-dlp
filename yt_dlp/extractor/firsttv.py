@@ -132,8 +132,8 @@ class FirstTVIE(InfoExtractor):
             if not mpd_list:
                 raise ExtractorError('Can\'t download json with mpd sources')
             formats, subtitles = self._extract_mpd_formats_and_subtitles(mpd_url=mpd_list[0], video_id='live')
-            for i, f in enumerate(formats):
-                formats[i].update({'downloader_options': {'ffmpeg_args': ['-re'], 'ffmpeg_args_out': ['-c', 'copy', '-f', 'mp4']}})
+            for f in formats:
+                f.update({'downloader_options': {'ffmpeg_args': ['-re'], 'ffmpeg_args_out': ['-c', 'copy', '-f', 'mp4']}})
             return {
                 'id': 'live',
                 'ext': 'mp4',
