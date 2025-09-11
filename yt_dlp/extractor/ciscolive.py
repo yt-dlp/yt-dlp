@@ -103,23 +103,29 @@ class CiscoLiveSessionIE(CiscoLiveBaseIE):
 
             self._HEADERS['Rfauthtoken'] = auth_token
             file = self._call_api('file', {'id': display_id})
-            rf_id = traverse_obj(file, ('items', 'file', 'rainfocusId', {str}))
+            rf_id = traverse_obj(file, (
+                'items', 'file', 'rainfocusId', {str}, {require('RainFocus ID')}))
         else:
             rf_id = display_id
+
+        item = traverse_obj(self._call_api('session', {'id': rf_id}), (
+            'items', lambda _, v: (arr := v['videos']) and any(dct.get('url') for dct in arr), any))
+        brightcove_id = traverse_obj(item, (
+            'videos', ..., 'url', {str, int}, {str_or_none}, any, {require('Brightcove ID')}))
 
         return {
             '_type': 'url_transparent',
             'ie_key': 'BrightcoveNew',
+            'id': brightcove_id,
             'display_id': display_id,
-            **traverse_obj(self._call_api('session', {'id': rf_id}), ('items', ..., {
+            'url': self.BRIGHTCOVE_URL_TEMPLATE % brightcove_id,
+            **traverse_obj(item, {
                 'title': ('title', {clean_html}),
-                'creators': ('participants', ..., 'fullName', {str}),
-                'description': ('abstract', {clean_html}),
+                'creators': ('participants', ..., 'fullName', {str}, filter, all, filter),
+                'description': ('abstract', {clean_html}, filter),
                 'series': ('eventName', {clean_html}),
                 'series_id': ('sessionID', {str}),
-                'url': ('videos', ..., 'url', {str_or_none},
-                        {lambda x: self.BRIGHTCOVE_URL_TEMPLATE % x}, any, {require('brightcove video ID')}),
-            }, any)),
+            }),
         }
 
 
@@ -132,7 +138,7 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
         'info_dict': {
             'id': 'search',
         },
-        'playlist_count': 500,
+        'playlist_maxcount': 500,
     }, {
         'url': 'https://www.ciscolive.com/on-demand/on-demand-library.html?search.event=1707169032930001EEu2&search.technology=1538390420915002wPJx#/',
         'info_dict': {
@@ -151,12 +157,14 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
             if not traverse_obj(search, 'sectionList'):
                 return
 
-            yield from [self.url_result(
-                f'{self._BASE_URL}/on-demand/on-demand-library.html#/session/{session_id}', CiscoLiveSessionIE)
-                for session_id in traverse_obj(search, (
-                    'sectionList', ..., 'items', ..., 'sessionID', {str_or_none}, filter, all, filter))]
+            for session_id in traverse_obj(search, (
+                'sectionList', ..., 'items', ..., 'sessionID', {str_or_none}, filter,
+            )):
+                yield self.url_result(
+                    f'{self._BASE_URL}/on-demand/on-demand-library.html#/session/{session_id}',
+                    CiscoLiveSessionIE)
 
-            from_val += int_or_none(payload['size'])
+            from_val += int(payload['size'])
             if from_val >= min(500, traverse_obj(search, (
                 'sectionList', ..., 'total', {int_or_none}, any,
             ))):
