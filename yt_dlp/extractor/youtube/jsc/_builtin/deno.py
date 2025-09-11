@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import contextlib
+import functools
 import shlex
 import subprocess
+from pathlib import Path
 
-from yt_dlp.extractor.youtube.jsc._builtin.runtime import JsRuntimeJCPBase
+from yt_dlp.extractor.youtube.jsc._builtin.runtime import BundleSource, BundleType, JsRuntimeJCPBase, _Bundle
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
@@ -20,10 +23,28 @@ class DenoJCP(JsRuntimeJCPBase, BuiltinIEContentProvider):
     PROVIDER_NAME = 'deno'
     JS_RUNTIME_NAME = 'deno'
 
-    _DENO_ARGS = ['run', '--no-prompt', '--no-remote', '-']
+    _DENO_OPTIONS = ['--no-prompt', '--no-remote']  # TODO: only add '--no-remote' when npm lib is not used
+    _NPM_LIB_BUNDLE_FILENAME = 'deno.lib.js'
+
+    @functools.cache
+    def _provider_bundle_hook(self, bundle_type: BundleType, /) -> _Bundle | None:
+        if bundle_type != BundleType.LIB:
+            return None
+        # TODO: check that npm downloads are available
+        try:
+            with open(Path(__file__).parent / 'bundle' / self._NPM_LIB_BUNDLE_FILENAME) as f:
+                code = f.read()
+        except OSError:
+            self.logger.warning(f'Failed to read deno jsc bundle from {self._NPM_LIB_BUNDLE_FILENAME!r}')
+        else:
+            # Need to allow npm imports
+            # TODO: can we add more restrictions in this case?
+            with contextlib.suppress(ValueError):
+                self._DENO_OPTIONS.remove('--no-remote')
+            return _Bundle(bundle_type, BundleSource.BUILTIN, self._SUPPORTED_VERSION, code)
 
     def _run_js_runtime(self, stdin: str, /) -> str:
-        cmd = [self.runtime_info.path, *self._DENO_ARGS]
+        cmd = [self.runtime_info.path, 'run', *self._DENO_OPTIONS, '-']
         self.logger.trace(f'Running deno: {shlex.join(cmd)}')
         with Popen(
             cmd,

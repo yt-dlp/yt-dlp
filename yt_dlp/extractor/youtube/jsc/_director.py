@@ -98,6 +98,8 @@ class JsChallengeRequestDirector:
         next_requests = requests[:]
 
         for provider in self._get_providers(next_requests):
+            if not next_requests:
+                break
             self.logger.trace(
                 f'Attempting to solve {len(next_requests)} challenges using "{provider.PROVIDER_NAME}" provider')
             try:

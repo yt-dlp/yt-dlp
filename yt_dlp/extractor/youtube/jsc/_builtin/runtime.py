@@ -8,6 +8,7 @@ import hashlib
 import importlib.resources
 import json
 import sys
+from pathlib import Path
 
 import yt_dlp
 from yt_dlp.extractor.youtube.jsc.provider import (
@@ -28,10 +29,12 @@ if TYPE_CHECKING:
 
     from yt_dlp.extractor.youtube.jsc.provider import JsChallengeRequest
 
+# TODO: decouple BundleType from the filename as there can be min and non-min versions
+
 
 class BundleType(enum.Enum):
-    LIB = 'lib.min.js'
-    JSC = 'jsc.min.js'
+    LIB = 'lib'
+    JSC = 'jsc'
 
 
 class BundleSource(enum.Enum):
@@ -39,6 +42,7 @@ class BundleSource(enum.Enum):
     BINARY = 'binary'
     CACHE = 'cache'
     WEB = 'web'
+    BUILTIN = 'builtin'
 
 
 @dataclasses.dataclass
@@ -71,11 +75,23 @@ class JsRuntimeJCPBase(JsChallengeProvider):
         BundleType.LIB: [
             'a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26',
             'a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26',
+            'cbd33afbfa778e436aef774f3983f0b1234ad7f737ea9dbd9783ee26dce195f4b3242d1e202b2038e748044960bc2f976372e883c76157b24acdea939dba7603',
         ],
         BundleType.JSC: [
             'a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26',
             'a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26',
+            '8abfd4818573b6cf397cfae227661e3449fb5ac737a272ac0cf8268d94447b04b1c9a15f459b336175bf0605678a376e962df99b2c8d5498f16db801735f771c',
         ],
+    }
+
+    _BUNDLE_FILENAMES = {
+        BundleType.LIB: 'lib.js',
+        BundleType.JSC: 'jsc.js',
+    }
+
+    _MIN_BUNDLE_FILENAMES = {
+        BundleType.LIB: 'lib.min.js',
+        BundleType.JSC: 'jsc.min.js',
     }
 
     def __init__(self, *args, **kwargs):
@@ -154,7 +170,7 @@ class JsRuntimeJCPBase(JsChallengeProvider):
                 self.logger.debug(f'Version {bundle.version} ({bundle.type.value} (source: {bundle.source.value}) is not supported')
 
             elif bundle.hash not in self._ALLOWED_HASHES[bundle.type] and not self._debug:
-                self.logger.warning(f'Hash mismatch on {bundle.type.value} (source: {bundle.source.value})!')
+                self.logger.warning(f'Hash mismatch on {bundle.type.value} (source: {bundle.source.value}, hash: {bundle.hash})!')
 
             else:
                 self.logger.debug(f'Using {bundle.type.value} v{bundle.version} (source: {bundle.source.value})')
@@ -179,13 +195,28 @@ class JsRuntimeJCPBase(JsChallengeProvider):
         if (
             # Use bundled JavaScript only in release binaries
             getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
-            and importlib.resources.is_resource(yt_dlp, bundle_type.value)
+            and importlib.resources.is_resource(yt_dlp, self._MIN_BUNDLE_FILENAMES[bundle_type])
         ):
-            code = importlib.resources.read_text(yt_dlp, bundle_type.value)
+            code = importlib.resources.read_text(yt_dlp, self._MIN_BUNDLE_FILENAMES[bundle_type])
             yield _Bundle(bundle_type, BundleSource.BINARY, self._SUPPORTED_VERSION, code)
 
         if data := self.ie.cache.load(self._CACHE_SECTION, bundle_type.value):
             yield _Bundle(bundle_type, BundleSource.CACHE, data['version'], data['code'])
+
+        # Check if included in source distribution
+        if (filename := self._BUNDLE_FILENAMES.get(bundle_type)) and (Path(__file__).parent / 'bundle' / filename).exists():
+            try:
+                with open(Path(__file__).parent / 'bundle' / filename) as f:
+                    code = f.read()
+            except OSError:
+                self.logger.warning(f'Failed to read jsc bundle from {filename!r}')
+            else:
+                yield _Bundle(bundle_type, BundleSource.BUILTIN, self._SUPPORTED_VERSION, code)
+
+        # Try provider bundle method
+        if bundle := self._provider_bundle_hook(bundle_type):
+            self.logger.trace('fetched bundle from provider hook')
+            yield bundle
 
         if code := self.ie._download_webpage(
             f'https://github.com/{self._REPOSITORY}/releases/download/{self._SUPPORTED_VERSION}/{bundle_type.value}',
@@ -197,6 +228,10 @@ class JsRuntimeJCPBase(JsChallengeProvider):
                 'code': code,
             })
             yield _Bundle(bundle_type, BundleSource.WEB, self._SUPPORTED_VERSION, code)
+
+    def _provider_bundle_hook(self, bundle_type: BundleType, /) -> _Bundle | None:
+        """To be implemented by providers"""
+        return None
 
     @property
     def runtime_info(self) -> JsRuntimeInfo | bool:
