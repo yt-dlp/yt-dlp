@@ -338,6 +338,7 @@ class AtvIE(TmGrupIE):
             'language': 'tr',
             'duration': int_or_none(video_player.get('videoDuration')),
             'release_timestamp': parse_iso8601(video_player.get('publishedDate')),
+            'webpage_url': traverse_obj(json, ('stats', 'firebase', 'event', 'dimensions', 'page_location')),
         }
 
     def _real_extract(self, url):
