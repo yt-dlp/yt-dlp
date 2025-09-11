@@ -133,8 +133,13 @@ class FirstTVIE(InfoExtractor):
             if not mpd_list:
                 raise ExtractorError('Can\'t download json with mpd sources')
             formats, subtitles = self._extract_mpd_formats_and_subtitles(mpd_url=mpd_list[0], video_id='live')
+
+            # It is mandatory to use the '-re' option for ffmpeg,
+            # otherwise the recording of fragments will stop after
+            # a while due to the speed n-times faster than real time.
             for f in formats:
                 f.update({'downloader_options': {'ffmpeg_args': ['-re'], 'ffmpeg_args_out': ['-c', 'copy', '-f', 'mp4']}})
+
             return {
                 'id': 'live',
                 'title': self._html_extract_title(webpage),
