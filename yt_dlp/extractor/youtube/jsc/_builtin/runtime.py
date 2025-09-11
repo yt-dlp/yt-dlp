@@ -8,9 +8,9 @@ import hashlib
 import importlib.resources
 import json
 import sys
-from pathlib import Path
 
 import yt_dlp
+from yt_dlp.extractor.youtube.jsc._builtin.bundle import load_bundle_code
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
@@ -204,14 +204,11 @@ class JsRuntimeJCPBase(JsChallengeProvider):
             yield _Bundle(bundle_type, BundleSource.CACHE, data['version'], data['code'])
 
         # Check if included in source distribution
-        if (filename := self._BUNDLE_FILENAMES.get(bundle_type)) and (Path(__file__).parent / 'bundle' / filename).exists():
-            try:
-                with open(Path(__file__).parent / 'bundle' / filename) as f:
-                    code = f.read()
-            except OSError:
-                self.logger.warning(f'Failed to read jsc bundle from {filename!r}')
-            else:
-                yield _Bundle(bundle_type, BundleSource.BUILTIN, self._SUPPORTED_VERSION, code)
+        code = load_bundle_code(
+            self._BUNDLE_FILENAMES[bundle_type],
+            error_hook=lambda _: self.logger.warning('Failed to read bundled jsc file from source distribution'))
+        if code:
+            yield _Bundle(bundle_type, BundleSource.BUILTIN, self._SUPPORTED_VERSION, code)
 
         # Try provider bundle method
         if bundle := self._provider_bundle_hook(bundle_type):
