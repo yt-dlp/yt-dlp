@@ -100,7 +100,7 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
     def _solve_nsig_challenge(self, challenge, video_id, player_url) -> str:
         """Turn the n field into a working signature"""
         try:
-            jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
+            jsi, _, func_code = self._extract_n_function_code(video_id, player_url)
         except ExtractorError as e:
             raise JsChallengeProviderError(f'Unable to extract nsig function code: {e}') from e
 
