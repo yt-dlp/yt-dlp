@@ -149,14 +149,14 @@ class FlvReader(io.BytesIO):
         segments_count = self.read_unsigned_char()
         segments = []
         for _ in range(segments_count):
-            box_size, box_type, box_data = self.read_box_info()
+            _box_size, box_type, box_data = self.read_box_info()
             assert box_type == b'asrt'
             segment = FlvReader(box_data).read_asrt()
             segments.append(segment)
         fragments_run_count = self.read_unsigned_char()
         fragments = []
         for _ in range(fragments_run_count):
-            box_size, box_type, box_data = self.read_box_info()  # noqa: RUF059
+            _box_size, box_type, box_data = self.read_box_info()
             assert box_type == b'afrt'
             fragments.append(FlvReader(box_data).read_afrt())
 
