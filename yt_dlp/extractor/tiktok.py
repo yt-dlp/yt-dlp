@@ -1518,19 +1518,22 @@ class TikTokLiveIE(TikTokBaseIE):
 
     def _real_extract(self, url):
         uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
-        webpage = self._download_webpage(
-            url, uploader or room_id, headers={'User-Agent': 'Mozilla/5.0'}, fatal=not room_id)
+        if not room_id:
+            webpage = self._download_webpage(
+                format_field(uploader, None, self._UPLOADER_URL_FORMAT), uploader)
+            room_id = traverse_obj(
+                self._get_universal_data(webpage, uploader),
+                ('webapp.user-detail', 'userInfo', 'user', 'roomId', {str}))
 
-        if webpage:
+        if not uploader or not room_id:
+            webpage = self._download_webpage(url, uploader or room_id, fatal=not room_id)
             data = self._get_sigi_state(webpage, uploader or room_id)
-            room_id = (
-                traverse_obj(data, ((
-                    ('LiveRoom', 'liveRoomUserInfo', 'user'),
-                    ('UserModule', 'users', ...)), 'roomId', {str}, any))
-                or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=room_id))
-            uploader = uploader or traverse_obj(
-                data, ('LiveRoom', 'liveRoomUserInfo', 'user', 'uniqueId'),
-                ('UserModule', 'users', ..., 'uniqueId'), get_all=False, expected_type=str)
+            room_id = room_id or traverse_obj(data, ((
+                ('LiveRoom', 'liveRoomUserInfo', 'user'),
+                ('UserModule', 'users', ...)), 'roomId', {str}, any))
+            uploader = uploader or traverse_obj(data, ((
+                ('LiveRoom', 'liveRoomUserInfo', 'user'),
+                ('UserModule', 'users', ...)), 'uniqueId', {str}, any))
 
         if not room_id:
             raise UserNotLive(video_id=uploader)

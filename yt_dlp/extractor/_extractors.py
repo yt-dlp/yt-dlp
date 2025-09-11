@@ -1523,10 +1523,6 @@ from .piramidetv import (
     PiramideTVChannelIE,
     PiramideTVIE,
 )
-from .pixivsketch import (
-    PixivSketchIE,
-    PixivSketchUserIE,
-)
 from .planetmarathi import PlanetMarathiIE
 from .platzi import (
     PlatziCourseIE,

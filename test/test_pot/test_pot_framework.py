@@ -153,7 +153,7 @@ class TestPoTokenProvider:
 
         with pytest.raises(
             PoTokenProviderRejectedRequest,
-            match='External requests by "example" provider do not support proxy scheme "socks4". Supported proxy '
+            match=r'External requests by "example" provider do not support proxy scheme "socks4"\. Supported proxy '
             'schemes: http, socks5h',
         ):
             provider.request_pot(pot_request)
