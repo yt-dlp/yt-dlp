@@ -18,6 +18,7 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     SigChallengeInput,
     SigChallengeOutput,
 )
+from yt_dlp.extractor.youtube.jsc._builtin.bun import BunJCP
 from yt_dlp.extractor.youtube.jsc._builtin.deno import DenoJCP
 from yt_dlp.extractor.youtube.jsc._builtin.node import NodeJCP
 
@@ -62,7 +63,7 @@ RESPONSES = [
 ]
 
 
-@pytest.fixture(params=[DenoJCP, NodeJCP])
+@pytest.fixture(params=[BunJCP, DenoJCP, NodeJCP])
 def jcp(request, ie, logger):
     obj = request.param(ie, logger, settings={'debug': ['true']})
     if not obj.is_available():

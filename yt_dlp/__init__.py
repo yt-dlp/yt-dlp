@@ -67,6 +67,7 @@ from .utils import (
 from .utils.networking import std_headers
 from .utils._utils import _UnsafeExtensionError
 from .utils._jsruntime import (
+    BunJsRuntime as _BunJsRuntime,
     DenoJsRuntime as _DenoJsRuntime,
     NodeJsRuntime as _NodeJsRuntime,
 )
@@ -1146,6 +1147,7 @@ from .extractor import gen_extractors, list_extractors
 from .globals import supported_js_runtimes
 supported_js_runtimes.value['deno'] = _DenoJsRuntime
 supported_js_runtimes.value['node'] = _NodeJsRuntime
+supported_js_runtimes.value['bun'] = _BunJsRuntime
 
 __all__ = [
     'YoutubeDL',

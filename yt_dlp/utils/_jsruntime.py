@@ -37,6 +37,16 @@ class DenoJsRuntime(JsRuntime):
         return JsRuntimeInfo(name='deno', path=deno_path, version=version)
 
 
+class BunJsRuntime(JsRuntime):
+    def _info(self):
+        path = self._path or 'bun'
+        out = _get_exe_version_output(path, ['--version'])
+        if not out:
+            return None
+        version = detect_exe_version(out, r'^(\S+)')
+        return JsRuntimeInfo(name='bun', path=path, version=version)
+
+
 class NodeJsRuntime(JsRuntime):
     def _info(self):
         node_path = self._path or 'node'
