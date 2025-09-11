@@ -1,0 +1,28 @@
+self-hosted-runner:
+  labels:
+    # Workaround for the outdated runner list in actionlint v1.7.7
+    # Ref: https://github.com/rhysd/actionlint/issues/533
+    - windows-11-arm
+
+config-variables:
+  - KEEP_CACHE_WARM
+  - PUSH_VERSION_COMMIT
+  - UPDATE_TO_VERIFICATION
+  - PYPI_PROJECT
+  - PYPI_SUFFIX
+  - NIGHTLY_PYPI_PROJECT
+  - NIGHTLY_PYPI_SUFFIX
+  - NIGHTLY_ARCHIVE_REPO
+  - BUILD_NIGHTLY
+  - MASTER_PYPI_PROJECT
+  - MASTER_PYPI_SUFFIX
+  - MASTER_ARCHIVE_REPO
+  - BUILD_MASTER
+  - ISSUE_LOCKDOWN
+  - SANITIZE_COMMENT
+
+paths:
+  .github/workflows/build.yml:
+    ignore:
+      # SC1090 "Can't follow non-constant source": ignore when using `source` to activate venv
+      - '.+SC1090.+'

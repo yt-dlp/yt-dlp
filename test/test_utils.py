@@ -12,6 +12,7 @@ import datetime as dt
 import io
 import itertools
 import json
+import ntpath
 import pickle
 import subprocess
 import unittest
@@ -101,11 +102,13 @@ from yt_dlp.utils import (
     remove_start,
     render_table,
     replace_extension,
+    datetime_round,
     rot47,
     sanitize_filename,
     sanitize_path,
     sanitize_url,
     shell_quote,
+    strftime_or_none,
     smuggle_url,
     str_to_int,
     strip_jsonp,
@@ -251,12 +254,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_path('abc.../def...'), 'abc..#\\def..#')
         self.assertEqual(sanitize_path('C:\\abc:%(title)s.%(ext)s'), 'C:\\abc#%(title)s.%(ext)s')
 
-        # Check with nt._path_normpath if available
-        try:
-            from nt import _path_normpath as nt_path_normpath
-        except ImportError:
-            nt_path_normpath = None
-
         for test, expected in [
             ('C:\\', 'C:\\'),
             ('../abc', '..\\abc'),
@@ -274,8 +271,7 @@ class TestUtil(unittest.TestCase):
             result = sanitize_path(test)
             assert result == expected, f'{test} was incorrectly resolved'
             assert result == sanitize_path(result), f'{test} changed after sanitizing again'
-            if nt_path_normpath:
-                assert result == nt_path_normpath(test), f'{test} does not match nt._path_normpath'
+            assert result == ntpath.normpath(test), f'{test} does not match ntpath.normpath'
 
     def test_sanitize_url(self):
         self.assertEqual(sanitize_url('//foo.bar'), 'http://foo.bar')
@@ -408,6 +404,25 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(datetime_from_str('20210131+59day', precision='day'), datetime_from_str('20210131+2month', precision='auto'))
         self.assertEqual(datetime_from_str('now+1day', precision='hour'), datetime_from_str('now+24hours', precision='auto'))
         self.assertEqual(datetime_from_str('now+23hours', precision='hour'), datetime_from_str('now+23hours', precision='auto'))
+
+    def test_datetime_round(self):
+        self.assertEqual(datetime_round(dt.datetime.strptime('1820-05-12T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ')),
+                         dt.datetime(1820, 5, 12, tzinfo=dt.timezone.utc))
+        self.assertEqual(datetime_round(dt.datetime.strptime('1969-12-31T23:34:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'hour'),
+                         dt.datetime(1970, 1, 1, 0, tzinfo=dt.timezone.utc))
+        self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'minute'),
+                         dt.datetime(2024, 12, 25, 1, 24, tzinfo=dt.timezone.utc))
+        self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.123Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
+                         dt.datetime(2024, 12, 25, 1, 23, 45, tzinfo=dt.timezone.utc))
+        self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.678Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
+                         dt.datetime(2024, 12, 25, 1, 23, 46, tzinfo=dt.timezone.utc))
+
+    def test_strftime_or_none(self):
+        self.assertEqual(strftime_or_none(-4722192000), '18200512')
+        self.assertEqual(strftime_or_none(0), '19700101')
+        self.assertEqual(strftime_or_none(1735084800), '20241225')
+        # Throws OverflowError
+        self.assertEqual(strftime_or_none(1735084800000), None)
 
     def test_daterange(self):
         _20century = DateRange('19000101', '20000101')
