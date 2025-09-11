@@ -2,6 +2,7 @@ import collections
 
 import pytest
 
+import yt_dlp.globals
 from yt_dlp import YoutubeDL
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.extractor.youtube.pot._provider import IEContentProviderLogger
@@ -17,7 +18,7 @@ class MockLogger(IEContentProviderLogger):
     def trace(self, message: str):
         self.messages['trace'].append(message)
 
-    def debug(self, message: str):
+    def debug(self, message: str, *, once=False):
         self.messages['debug'].append(message)
 
     def info(self, message: str):
@@ -32,7 +33,8 @@ class MockLogger(IEContentProviderLogger):
 
 @pytest.fixture
 def ie() -> InfoExtractor:
-    ydl = YoutubeDL()
+    runtime_names = yt_dlp.globals.supported_js_runtimes.value
+    ydl = YoutubeDL({'js_runtimes': {key: {} for key in runtime_names}})
     return ydl.get_info_extractor('Youtube')
 
 

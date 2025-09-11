@@ -870,7 +870,7 @@ class YoutubeDL:
         ):
             raise ValueError('Invalid js_runtimes format, expected a dict of {runtime: {config}}')
 
-        if unsupported_runtimes := set(runtimes.keys()) - set(supported_js_runtimes.value.keys()):
+        if unsupported_runtimes := runtimes.keys() - supported_js_runtimes.value.keys():
             raise ValueError(
                 f'Unsupported JavaScript runtimes specified: {", ".join(unsupported_runtimes)}.'
                 f' Supported runtimes are: {", ".join(supported_js_runtimes.value.keys())}')
