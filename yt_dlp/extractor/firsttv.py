@@ -76,7 +76,7 @@ class FirstTVIE(InfoExtractor):
         'info_dict': {
             'id': 'live',
             'ext': 'mp4',
-            'title': 'Первый канал. Эфир',
+            'title': 'ПЕРВЫЙ КАНАЛ ПРЯМОЙ ЭФИР СМОТРЕТЬ ОНЛАЙН',
             'is_live': True,
         },
     }]
@@ -125,6 +125,7 @@ class FirstTVIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         is_live = self._match_valid_url(url).group('live')
+        webpage = self._download_webpage(url, display_id)
 
         if is_live:
             mpd_list = self._parse_json(self._download_webpage('https://stream.1tv.ru/api/playlist/1tvch-v1_as_array.json', 'live'), 'live')
@@ -136,13 +137,13 @@ class FirstTVIE(InfoExtractor):
                 f.update({'downloader_options': {'ffmpeg_args': ['-re'], 'ffmpeg_args_out': ['-c', 'copy', '-f', 'mp4']}})
             return {
                 'id': 'live',
+                'title': self._html_extract_title(webpage),
                 'ext': 'mp4',
                 'formats': formats,
                 'subtitles': subtitles,
                 'is_live': True,
             }
 
-        webpage = self._download_webpage(url, display_id)
         playlist_url = urllib.parse.urljoin(url, self._html_search_regex(
             r'data-playlist-url=(["\'])(?P<url>(?:(?!\1).)+)\1',
             webpage, 'playlist url', group='url'))
