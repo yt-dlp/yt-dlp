@@ -286,11 +286,10 @@ class AtvIE(TmGrupIE):
         {  # invalid duration
             'url': 'https://www.atv.com.tr/karadayi/113-bolum/izle',
             'info_dict': {
-                'id': 'b428f689-30f7-4ff4-bb75-792519d43216',
-                'title': 'atv Ana Haber',
-                'duration': 0,
-                'release_date': '20250714',
-                'release_timestamp': 1752525577,
+                'id': '02f9fbe4-0e4d-434b-8b1c-ad8dc3425323',
+                'title': 'Karadayı',
+                'release_date': '20190725',
+                'release_timestamp': 1564076474,
                 'ext': 'mp4',
             },
         },
