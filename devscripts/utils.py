@@ -1,5 +1,7 @@
 import argparse
+import datetime as dt
 import functools
+import re
 import subprocess
 
 
@@ -18,6 +20,23 @@ def read_version(fname='yt_dlp/version.py', varname='__version__'):
     items = {}
     exec(compile(read_file(fname), fname, 'exec'), items)
     return items[varname]
+
+
+def calculate_version(version=None, fname='yt_dlp/version.py'):
+    if version and '.' in version:
+        return version
+
+    revision = version
+    version = dt.datetime.now(dt.timezone.utc).strftime('%Y.%m.%d')
+
+    if revision:
+        assert re.fullmatch(r'[0-9]+', revision), 'Revision must be numeric'
+    else:
+        old_version = read_version(fname=fname).split('.')
+        if version.split('.') == old_version[:3]:
+            revision = str(int(([*old_version, 0])[3]) + 1)
+
+    return f'{version}.{revision}' if revision else version
 
 
 def get_filename_args(has_infile=False, default_outfile=None):
