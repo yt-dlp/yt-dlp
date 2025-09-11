@@ -1779,7 +1779,6 @@ from .rutube import (
     RutubePlaylistIE,
     RutubeTagsIE,
 )
-from .rutv import RUTVIE
 from .ruutu import RuutuIE
 from .ruv import (
     RuvIE,
@@ -1877,7 +1876,12 @@ from .skynewsau import SkyNewsAUIE
 from .slideshare import SlideshareIE
 from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
-from .smotrim import SmotrimIE
+from .smotrim import (
+    SmotrimAudioIE,
+    SmotrimIE,
+    SmotrimLiveIE,
+    SmotrimPlaylistIE,
+)
 from .snapchat import SnapchatSpotlightIE
 from .snotr import SnotrIE
 from .softwhiteunderbelly import SoftWhiteUnderbellyIE
@@ -2284,7 +2288,6 @@ from .utreon import UtreonIE
 from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veo import VeoIE
-from .vesti import VestiIE
 from .vevo import (
     VevoIE,
     VevoPlaylistIE,
