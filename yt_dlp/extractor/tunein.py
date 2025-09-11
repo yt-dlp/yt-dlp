@@ -17,9 +17,9 @@ from ..utils.traversal import traverse_obj
 
 class TuneInBaseIE(InfoExtractor):
     def _call_api(self, item_id, endpoint=None, note='Downloading JSON metadata', fatal=False, query=None):
-        return self._download_json(join_nonempty(
-            'https://api.tunein.com/profiles', item_id, endpoint, delim='/',
-        ), item_id, note=note, fatal=fatal, query=query) or {}
+        return self._download_json(
+            join_nonempty('https://api.tunein.com/profiles', item_id, endpoint, delim='/'),
+            item_id, note=note, fatal=fatal, query=query) or {}
 
     def _extract_formats_and_subtitles(self, content_id):
         streams = self._download_json(
@@ -57,7 +57,7 @@ class TuneInStationIE(TuneInBaseIE):
             'alt_title': 'World Class Jazz',
             'channel_follower_count': int,
             'description': 'md5:d6d0b89063fd68d529fa7058ee98619b',
-            'location': 'Seattle-Tacoma, US',
+            'location': r're:Seattle-Tacoma, (?:US|WA)',
             'live_status': 'is_live',
             'thumbnail': r're:https?://.+',
         },
@@ -290,7 +290,7 @@ class TuneInShortenerIE(InfoExtractor):
             'alt_title': 'World Class Jazz',
             'channel_follower_count': int,
             'description': 'md5:d6d0b89063fd68d529fa7058ee98619b',
-            'location': 'Seattle-Tacoma, US',
+            'location': r're:Seattle-Tacoma, (?:US|WA)',
             'live_status': 'is_live',
             'thumbnail': r're:https?://.+',
         },
@@ -326,9 +326,10 @@ class TuneInShortenerIE(InfoExtractor):
         redirect_id = self._match_id(url)
         # The server doesn't support HEAD requests
         urlh = self._request_webpage(url, redirect_id, 'Downloading redirect page')
+        # Need to strip port from URL
         parsed = urllib.parse.urlparse(urlh.url)
-
-        new_url = urllib.parse.urlunparse(parsed._replace(netloc=parsed.hostname))
-        if self.suitable(new_url):  # Prevent infinite loop in case redirect fails
+        new_url = parsed._replace(netloc=parsed.hostname).geturl()
+        # Prevent infinite loop in case redirect fails
+        if self.suitable(new_url):
             raise UnsupportedError(new_url)
         return self.url_result(new_url)
