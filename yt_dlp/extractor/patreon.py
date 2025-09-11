@@ -19,7 +19,7 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
-from ..utils.traversal import traverse_obj, value
+from ..utils.traversal import require, traverse_obj, value
 
 
 class PatreonBaseIE(InfoExtractor):
@@ -340,8 +340,9 @@ class PatreonIE(PatreonBaseIE):
                     'channel_follower_count': ('attributes', 'patron_count', {int_or_none}),
                 }))
 
-        # all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, Vimeo
-        headers = {'referer': 'https://patreon.com/'}
+        # Must be all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, and Vimeo.
+        # patreon.com URLs redirect to www.patreon.com; this matters when requesting mux.com m3u8s
+        headers = {'referer': 'https://www.patreon.com/'}
 
         # handle Vimeo embeds
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
@@ -352,7 +353,7 @@ class PatreonIE(PatreonBaseIE):
                     v_url, video_id, 'Checking Vimeo embed URL', headers=headers,
                     fatal=False, errnote=False, expected_status=429):  # 429 is TLS fingerprint rejection
                 entries.append(self.url_result(
-                    VimeoIE._smuggle_referrer(v_url, 'https://patreon.com/'),
+                    VimeoIE._smuggle_referrer(v_url, headers['referer']),
                     VimeoIE, url_transparent=True))
 
         embed_url = traverse_obj(attributes, ('embed', 'url', {url_or_none}))
@@ -379,11 +380,13 @@ class PatreonIE(PatreonBaseIE):
                     'url': post_file['url'],
                 })
             elif name == 'video' or determine_ext(post_file.get('url')) == 'm3u8':
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(post_file['url'], video_id)
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                    post_file['url'], video_id, headers=headers)
                 entries.append({
                     'id': video_id,
                     'formats': formats,
                     'subtitles': subtitles,
+                    'http_headers': headers,
                 })
 
         can_view_post = traverse_obj(attributes, 'current_user_can_view')
@@ -459,7 +462,7 @@ class PatreonCampaignIE(PatreonBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?patreon\.com/(?:
             (?:m|api/campaigns)/(?P<campaign_id>\d+)|
-            (?:c/)?(?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
+            (?:cw?/)?(?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
         )(?:/posts)?/?(?:$|[?#])'''
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
@@ -528,6 +531,28 @@ class PatreonCampaignIE(PatreonBaseIE):
             'age_limit': 0,
         },
         'playlist_mincount': 331,
+        'skip': 'Channel removed',
+    }, {
+        # next.js v13 data, see https://github.com/yt-dlp/yt-dlp/issues/13622
+        'url': 'https://www.patreon.com/c/anythingelse/posts',
+        'info_dict': {
+            'id': '9631148',
+            'title': 'Anything Else?',
+            'description': 'md5:2ee1db4aed2f9460c2b295825a24aa08',
+            'uploader': 'dan ',
+            'uploader_id': '13852412',
+            'uploader_url': 'https://www.patreon.com/anythingelse',
+            'channel': 'Anything Else?',
+            'channel_id': '9631148',
+            'channel_url': 'https://www.patreon.com/anythingelse',
+            'channel_follower_count': int,
+            'age_limit': 0,
+            'thumbnail': r're:https?://.+/.+',
+        },
+        'playlist_mincount': 151,
+    }, {
+        'url': 'https://www.patreon.com/cw/anythingelse',
+        'only_matching': True,
     }, {
         'url': 'https://www.patreon.com/c/OgSog/posts',
         'only_matching': True,
@@ -569,8 +594,11 @@ class PatreonCampaignIE(PatreonBaseIE):
         campaign_id, vanity = self._match_valid_url(url).group('campaign_id', 'vanity')
         if campaign_id is None:
             webpage = self._download_webpage(url, vanity, headers={'User-Agent': self.patreon_user_agent})
-            campaign_id = self._search_nextjs_data(
-                webpage, vanity)['props']['pageProps']['bootstrapEnvelope']['pageBootstrap']['campaign']['data']['id']
+            campaign_id = traverse_obj(self._search_nextjs_data(webpage, vanity, default=None), (
+                'props', 'pageProps', 'bootstrapEnvelope', 'pageBootstrap', 'campaign', 'data', 'id', {str}))
+            if not campaign_id:
+                campaign_id = traverse_obj(self._search_nextjs_v13_data(webpage, vanity), (
+                    lambda _, v: v['type'] == 'campaign', 'id', {str}, any, {require('campaign ID')}))
 
         params = {
             'json-api-use-default-includes': 'false',
