@@ -370,14 +370,15 @@ class AtvSeriesIE(TmGrupIE):
             'info_dict': {
                 'id': '64c31827-2fb9-43e3-9e3c-1666ffc2d846',
             },
-            'playlist_count': 53,
+            'playlist_count': 54,
         },
         {
             'url': 'https://www.atv.com.tr/avrupa-yakasi/bolumler',
             'info_dict': {
                 'id': 'de68e8b2-4ec5-4321-8e81-1bfa2cef2a3f',
             },
-            'playlist_count': 190,
+            # Should be 190 but episodes 145 and 159 are missing
+            'playlist_count': 188,
         },
     ]
 
