@@ -1,6 +1,4 @@
 import base64
-import contextlib
-import datetime as dt
 import json
 
 from .common import InfoExtractor
@@ -11,6 +9,7 @@ from ..utils import (
     int_or_none,
     parse_qs,
     str_or_none,
+    strftime_or_none,
     update_url,
     url_or_none,
 )
@@ -50,7 +49,7 @@ class OnsenIE(InfoExtractor):
             'ext': 'mp4',
             'title': '第4回',
             'cast': 'count:5',
-            'description': 'md5:1d7f6a2f1f5a3e2a8ada4e9f652262dd',
+            'description': 'md5:bbca8a389d99c90cbbce8f383c85fedd',
             'display_id': 'MTgwMDE=',
             'media_type': 'movie',
             'section_start': 0,
@@ -74,8 +73,8 @@ class OnsenIE(InfoExtractor):
     def _perform_login(self, username, password):
         sign_in = self._download_json(
             f'{self._BASE_URL}/web_api/signin', None, 'Logging in', headers={
-                'Accept': 'application/json, text/plain, */*',
-                'Content-Type': 'application/json; charset=UTF-8',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
             }, data=json.dumps({
                 'session': {
                     'email': username,
@@ -119,19 +118,15 @@ class OnsenIE(InfoExtractor):
                 'This program is only available for premium supporters')
 
         display_id = enc_id(program)
-        upload_date = None
-        if date_str := self._search_regex(
-            rf'{program_id}0?(\d{{6}})', m3u8_url, 'date string', default=None,
-        ):
-            with contextlib.suppress(ValueError):
-                upload_date = dt.datetime.strptime(f'20{date_str}', '%Y%m%d').strftime('%Y%m%d')
+        date_str = self._search_regex(
+            rf'{program_id}0?(\d{{6}})', m3u8_url, 'date string', default=None)
 
         return {
             'display_id': display_id,
-            'formats': self._extract_m3u8_formats(m3u8_url, display_id, headers=self._HEADERS),
+            'formats': self._extract_m3u8_formats(m3u8_url, raw_id, headers=self._HEADERS),
             'http_headers': self._HEADERS,
             'section_start': int_or_none(query.get('t', 0)),
-            'upload_date': upload_date,
+            'upload_date': strftime_or_none(f'20{date_str}') if date_str else None,
             'webpage_url': f'{self._BASE_URL}/program/{program_id}?c={display_id}',
             **traverse_obj(program, {
                 'id': ('id', {str_or_none}),
@@ -144,7 +139,7 @@ class OnsenIE(InfoExtractor):
                 'series_id': ('directory_name', {str}),
             }),
             **traverse_obj(programs, ('program_info', {
-                'description': ('description', {clean_html}),
+                'description': ('description', {clean_html}, filter),
                 'series': ('title', {clean_html}),
                 'tags': ('hashtag_list', ..., {str}, filter, all, filter),
             })),
