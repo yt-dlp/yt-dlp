@@ -34,7 +34,6 @@ class NetEaseMusicBaseIE(InfoExtractor):
         'sky',       # SVIP tier; 沉浸环绕声 (Surround Audio); flac
     )
     _API_BASE = 'http://music.163.com/api/'
-    _GEO_BYPASS = False
 
     def _create_eapi_cipher(self, api_path, query_body, cookies):
         request_text = json.dumps({**query_body, 'header': cookies}, separators=(',', ':'))
@@ -64,6 +63,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 'MUSIC_U': ('MUSIC_U', {lambda i: i.value}),
             }),
         }
+        if self._x_forwarded_for_ip:
+            headers.setdefault('X-Real-IP', self._x_forwarded_for_ip)
         return self._download_json(
             urljoin('https://interface3.music.163.com/', f'/eapi{path}'), video_id,
             data=self._create_eapi_cipher(f'/api{path}', query_body, cookies), headers={

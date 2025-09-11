@@ -1,60 +1,42 @@
-from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-    try_get,
-)
+from .medialaan import MedialaanBaseIE
+from ..utils import str_or_none
+from ..utils.traversal import require, traverse_obj
 
 
-class VTMIE(InfoExtractor):
-    _WORKING = False
-    _VALID_URL = r'https?://(?:www\.)?vtm\.be/([^/?&#]+)~v(?P<id>[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})'
-    _TEST = {
+class VTMIE(MedialaanBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?vtm\.be/[^/?#]+~v(?P<id>[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12})'
+    _TESTS = [{
         'url': 'https://vtm.be/gast-vernielt-genkse-hotelkamer~ve7534523-279f-4b4d-a5c9-a33ffdbe23e1',
-        'md5': '37dca85fbc3a33f2de28ceb834b071f8',
         'info_dict': {
             'id': '192445',
             'ext': 'mp4',
             'title': 'Gast vernielt Genkse hotelkamer',
-            'timestamp': 1611060180,
-            'upload_date': '20210119',
+            'channel': 'VTM',
+            'channel_id': '867',
+            'description': 'md5:75fce957d219646ff1b65ba449ab97b5',
             'duration': 74,
-            # TODO: fix url _type result processing
-            # 'series': 'Op Interventie',
+            'genres': ['Documentaries'],
+            'release_date': '20210119',
+            'release_timestamp': 1611060180,
+            'series': 'Op Interventie',
+            'series_id': '2658',
+            'tags': 'count:2',
+            'thumbnail': r're:https?://images\.mychannels\.video/imgix/.+\.(?:jpe?g|png)',
+            'uploader': 'VTM',
+            'uploader_id': '74',
         },
-    }
+    }]
+
+    def _real_initialize(self):
+        if not self._get_cookies('https://vtm.be/').get('authId'):
+            self.raise_login_required()
 
     def _real_extract(self, url):
-        uuid = self._match_id(url)
-        video = self._download_json(
-            'https://omc4vm23offuhaxx6hekxtzspi.appsync-api.eu-west-1.amazonaws.com/graphql',
-            uuid, query={
-                'query': '''{
-  getComponent(type: Video, uuid: "%s") {
-    ... on Video {
-      description
-      duration
-      myChannelsVideo
-      program {
-        title
-      }
-      publishedAt
-      title
-    }
-  }
-}''' % uuid,  # noqa: UP031
-            }, headers={
-                'x-api-key': 'da2-lz2cab4tfnah3mve6wiye4n77e',
-            })['data']['getComponent']
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        apollo_state = self._search_json(
+            r'window\.__APOLLO_STATE__\s*=', webpage, 'apollo state', video_id)
+        mychannels_id = traverse_obj(apollo_state, (
+            f'Video:{{"uuid":"{video_id}"}}', 'myChannelsVideo', {str_or_none}, {require('mychannels ID')}))
 
-        return {
-            '_type': 'url',
-            'id': uuid,
-            'title': video.get('title'),
-            'url': 'http://mychannels.video/embed/%d' % video['myChannelsVideo'],
-            'description': video.get('description'),
-            'timestamp': parse_iso8601(video.get('publishedAt')),
-            'duration': int_or_none(video.get('duration')),
-            'series': try_get(video, lambda x: x['program']['title']),
-            'ie_key': 'Medialaan',
-        }
+        return self._extract_from_mychannels_api(mychannels_id)
