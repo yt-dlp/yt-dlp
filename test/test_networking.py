@@ -310,7 +310,11 @@ class TestRequestHandlerBase:
         cls.https_server_thread.start()
 
 
-@pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+@pytest.mark.parametrize('handler', [
+    'Urllib',
+    'Requests',
+    pytest.param('CurlCFFI', marks=pytest.mark.segfaults),
+], indirect=True)
 class TestHTTPRequestHandler(TestRequestHandlerBase):
 
     def test_verify_cert(self, handler):
@@ -737,7 +741,11 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 assert res.read() == b'<video src="/vid.mp4" /></html>'
 
 
-@pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+@pytest.mark.parametrize('handler', [
+    'Urllib',
+    'Requests',
+    pytest.param('CurlCFFI', marks=pytest.mark.segfaults),
+], indirect=True)
 class TestClientCertificate:
     @classmethod
     def setup_class(cls):
@@ -789,7 +797,7 @@ class TestClientCertificate:
         })
 
 
-@pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+@pytest.mark.parametrize('handler', [pytest.param('CurlCFFI', marks=pytest.mark.segfaults)], indirect=True)
 class TestHTTPImpersonateRequestHandler(TestRequestHandlerBase):
     def test_supported_impersonate_targets(self, handler):
         with handler(headers=std_headers) as rh:
@@ -824,8 +832,8 @@ class TestRequestHandlerMisc:
     """Misc generic tests for request handlers, not related to request or validation testing"""
     @pytest.mark.parametrize('handler,logger_name', [
         ('Requests', 'urllib3'),
-        ('Websockets', 'websockets.client'),
-        ('Websockets', 'websockets.server'),
+        pytest.param('Websockets', 'websockets.client', marks=pytest.mark.segfaults),
+        pytest.param('Websockets', 'websockets.server', marks=pytest.mark.segfaults),
     ], indirect=['handler'])
     def test_remove_logging_handler(self, handler, logger_name):
         # Ensure any logging handlers, which may contain a YoutubeDL instance,
@@ -1013,7 +1021,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         assert called
 
 
-@pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+@pytest.mark.parametrize('handler', [pytest.param('CurlCFFI', marks=pytest.mark.segfaults)], indirect=True)
 class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('params,extensions', [
@@ -1352,8 +1360,8 @@ class TestRequestHandlerValidation:
     @pytest.mark.parametrize('handler,fail,scheme', [
         ('Urllib', False, 'http'),
         ('Requests', False, 'http'),
-        ('CurlCFFI', False, 'http'),
-        ('Websockets', False, 'ws'),
+        pytest.param('CurlCFFI', False, 'http', marks=pytest.mark.segfaults),
+        pytest.param('Websockets', False, 'ws', marks=pytest.mark.segfaults),
     ], indirect=['handler'])
     def test_no_proxy(self, handler, fail, scheme):
         run_validation(handler, fail, Request(f'{scheme}://', proxies={'no': '127.0.0.1,github.com'}))
@@ -1363,8 +1371,8 @@ class TestRequestHandlerValidation:
         ('Urllib', 'http'),
         (HTTPSupportedRH, 'http'),
         ('Requests', 'http'),
-        ('CurlCFFI', 'http'),
-        ('Websockets', 'ws'),
+        pytest.param('CurlCFFI', 'http', marks=pytest.mark.segfaults),
+        pytest.param('Websockets', 'ws', marks=pytest.mark.segfaults),
     ], indirect=['handler'])
     def test_empty_proxy(self, handler, scheme):
         run_validation(handler, False, Request(f'{scheme}://', proxies={scheme: None}))
@@ -1375,42 +1383,54 @@ class TestRequestHandlerValidation:
         ('Urllib', 'http'),
         (HTTPSupportedRH, 'http'),
         ('Requests', 'http'),
-        ('CurlCFFI', 'http'),
-        ('Websockets', 'ws'),
+        pytest.param('CurlCFFI', 'http', marks=pytest.mark.segfaults),
+        pytest.param('Websockets', 'ws', marks=pytest.mark.segfaults),
     ], indirect=['handler'])
     def test_invalid_proxy_url(self, handler, scheme, proxy_url):
         run_validation(handler, UnsupportedRequest, Request(f'{scheme}://', proxies={scheme: proxy_url}))
 
     @pytest.mark.parametrize('handler,scheme,fail,handler_kwargs', [
-        (handler_tests[0], scheme, fail, handler_kwargs)
-        for handler_tests in URL_SCHEME_TESTS
-        for scheme, fail, handler_kwargs in handler_tests[1]
+        pytest.param(
+            handler, scheme, fail, handler_kwargs,
+            marks=[pytest.mark.segfaults] if handler in ['CurlCFFI', 'Websockets'] else [],
+        )
+        for handler, handler_tests in URL_SCHEME_TESTS
+        for scheme, fail, handler_kwargs in handler_tests
     ], indirect=['handler'])
     def test_url_scheme(self, handler, scheme, fail, handler_kwargs):
         run_validation(handler, fail, Request(f'{scheme}://'), **(handler_kwargs or {}))
 
     @pytest.mark.parametrize('handler,scheme,proxy_key,proxy_scheme,fail', [
-        (handler_tests[0], handler_tests[1], proxy_key, proxy_scheme, fail)
-        for handler_tests in PROXY_KEY_TESTS
-        for proxy_key, proxy_scheme, fail in handler_tests[2]
+        pytest.param(
+            handler, scheme, proxy_key, proxy_scheme, fail,
+            marks=[pytest.mark.segfaults] if handler in ['CurlCFFI', 'Websockets'] else [],
+        )
+        for handler, scheme, handler_tests in PROXY_KEY_TESTS
+        for proxy_key, proxy_scheme, fail in handler_tests
     ], indirect=['handler'])
     def test_proxy_key(self, handler, scheme, proxy_key, proxy_scheme, fail):
         run_validation(handler, fail, Request(f'{scheme}://', proxies={proxy_key: f'{proxy_scheme}://example.com'}))
         run_validation(handler, fail, Request(f'{scheme}://'), proxies={proxy_key: f'{proxy_scheme}://example.com'})
 
     @pytest.mark.parametrize('handler,req_scheme,scheme,fail', [
-        (handler_tests[0], handler_tests[1], scheme, fail)
-        for handler_tests in PROXY_SCHEME_TESTS
-        for scheme, fail in handler_tests[2]
+        pytest.param(
+            handler, scheme, proxy_scheme, fail,
+            marks=[pytest.mark.segfaults] if handler in ['CurlCFFI', 'Websockets'] else [],
+        )
+        for handler, scheme, handler_tests in PROXY_SCHEME_TESTS
+        for proxy_scheme, fail in handler_tests
     ], indirect=['handler'])
     def test_proxy_scheme(self, handler, req_scheme, scheme, fail):
         run_validation(handler, fail, Request(f'{req_scheme}://', proxies={req_scheme: f'{scheme}://example.com'}))
         run_validation(handler, fail, Request(f'{req_scheme}://'), proxies={req_scheme: f'{scheme}://example.com'})
 
     @pytest.mark.parametrize('handler,scheme,extensions,fail', [
-        (handler_tests[0], handler_tests[1], extensions, fail)
-        for handler_tests in EXTENSION_TESTS
-        for extensions, fail in handler_tests[2]
+        pytest.param(
+            handler, scheme, extensions, fail,
+            marks=[pytest.mark.segfaults] if handler in ['CurlCFFI', 'Websockets'] else [],
+        )
+        for handler, scheme, handler_tests in EXTENSION_TESTS
+        for extensions, fail in handler_tests
     ], indirect=['handler'])
     def test_extension(self, handler, scheme, extensions, fail):
         run_validation(
