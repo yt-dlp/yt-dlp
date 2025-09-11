@@ -11,6 +11,7 @@ from ..utils import (
     str_or_none,
     strftime_or_none,
     update_url,
+    update_url_query,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -70,6 +71,10 @@ class OnsenIE(InfoExtractor):
         'playlist_mincount': 35,
     }]
 
+    @staticmethod
+    def _get_encoded_id(program):
+        return base64.urlsafe_b64encode(str(program['id']).encode()).decode()
+
     def _perform_login(self, username, password):
         sign_in = self._download_json(
             f'{self._BASE_URL}/web_api/signin', None, 'Logging in', headers={
@@ -95,17 +100,17 @@ class OnsenIE(InfoExtractor):
                 raise ExtractorError('Invalid URL', expected=True)
             raise
 
-        enc_id = lambda p: base64.b64encode(str(p['id']).encode()).decode()
-        query = {k: v[0] for k, v in parse_qs(url).items() if v}
+        query = {k: v[-1] for k, v in parse_qs(url).items() if v}
         if 'c' not in query:
-            entries = [self.url_result(
-                f'{url}?c={enc_id(program)}', OnsenIE,
-            ) for program in traverse_obj(programs, ('contents', lambda _, v: v['id']))]
+            entries = [
+                self.url_result(update_url_query(url, {'c': self._get_encoded_id(program)}), OnsenIE)
+                for program in traverse_obj(programs, ('contents', lambda _, v: v['id']))
+            ]
 
             return self.playlist_result(
-                entries, program_id, programs['program_info']['title'])
+                entries, program_id, traverse_obj(programs, ('program_info', 'title', {clean_html})))
 
-        raw_id = base64.b64decode(query['c'] + '=' * (-len(query['c']) & 3)).decode()
+        raw_id = base64.urlsafe_b64decode(f'{query["c"]}===').decode()
         p_keys = ('contents', lambda _, v: v['id'] == int(raw_id))
 
         program = traverse_obj(programs, (*p_keys, any))
@@ -117,7 +122,7 @@ class OnsenIE(InfoExtractor):
             self.raise_login_required(
                 'This program is only available for premium supporters')
 
-        display_id = enc_id(program)
+        display_id = self._get_encoded_id(program)
         date_str = self._search_regex(
             rf'{program_id}0?(\d{{6}})', m3u8_url, 'date string', default=None)
 
@@ -126,21 +131,21 @@ class OnsenIE(InfoExtractor):
             'formats': self._extract_m3u8_formats(m3u8_url, raw_id, headers=self._HEADERS),
             'http_headers': self._HEADERS,
             'section_start': int_or_none(query.get('t', 0)),
-            'upload_date': strftime_or_none(f'20{date_str}') if date_str else None,
+            'upload_date': strftime_or_none(f'20{date_str}'),
             'webpage_url': f'{self._BASE_URL}/program/{program_id}?c={display_id}',
             **traverse_obj(program, {
-                'id': ('id', {str_or_none}),
+                'id': ('id', {int}, {str_or_none}),
                 'title': ('title', {clean_html}),
                 'media_type': ('media_type', {str}),
                 'thumbnail': ('poster_image_url', {url_or_none}, {update_url(query=None)}),
             }),
             **traverse_obj(programs, {
-                'cast': (('performers', (*p_keys, 'guests')), ..., 'name', {str}, filter, all, filter),
+                'cast': (('performers', (*p_keys, 'guests')), ..., 'name', {str}, filter),
                 'series_id': ('directory_name', {str}),
             }),
             **traverse_obj(programs, ('program_info', {
                 'description': ('description', {clean_html}, filter),
                 'series': ('title', {clean_html}),
-                'tags': ('hashtag_list', ..., {str}, filter, all, filter),
+                'tags': ('hashtag_list', ..., {str}, filter),
             })),
         }
