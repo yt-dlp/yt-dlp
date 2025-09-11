@@ -29,7 +29,7 @@ class SmotrimBaseIE(InfoExtractor):
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['RU']
 
-    def _call_api(self, typ, item_id):
+    def _extract_from_smotrim_api(self, typ, item_id):
         path = f'data{typ.replace("-", "")}/{"uid" if typ == "live" else "id"}'
         data = self._download_json(
             f'https://player.smotrim.ru/iframe/{path}/{item_id}/sid/smotrim', item_id)
@@ -136,7 +136,7 @@ class SmotrimIE(SmotrimBaseIE):
             'duration': 30,
             'series': 'Мы в разводе',
             'series_id': '71624',
-            'tags': 'mincount:7',
+            'tags': 'mincount:5',
             'thumbnail': r're:https?://cdn-st\d+\.smotrim\.ru/.+\.(?:jpg|png)',
             'timestamp': 1750670040,
             'upload_date': '20250623',
@@ -183,7 +183,7 @@ class SmotrimIE(SmotrimBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        return self._call_api('video', video_id)
+        return self._extract_from_smotrim_api('video', video_id)
 
 
 class SmotrimAudioIE(SmotrimBaseIE):
@@ -226,12 +226,25 @@ class SmotrimAudioIE(SmotrimBaseIE):
     def _real_extract(self, url):
         audio_id = self._match_id(url)
 
-        return self._call_api('audio', audio_id)
+        return self._extract_from_smotrim_api('audio', audio_id)
 
 
 class SmotrimLiveIE(SmotrimBaseIE):
     IE_NAME = 'smotrim:live'
-    _VALID_URL = r'(?:https?:)?//(?:(?:(?:test)?player|www)\.)?(?:smotrim\.ru|vgtrk\.com)(?:/iframe)?/(?P<type>channel|(?:audio-)?live)(?:/u?id)?/(?P<id>[\da-f-]+)'
+    _VALID_URL = r'''(?x:
+        (?:https?:)?//
+            (?:(?:(?:test)?player|www)\.)?
+            (?:
+                smotrim\.ru|
+                vgtrk\.com
+            )
+            (?:/iframe)?/
+            (?P<type>
+                channel|
+                (?:audio-)?live
+            )
+            (?:/u?id)?/(?P<id>[\da-f-]+)
+    )'''
     _EMBED_REGEX = [fr'<iframe\b[^>]+\bsrc=["\'](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://smotrim.ru/channel/76',
@@ -267,6 +280,7 @@ class SmotrimLiveIE(SmotrimBaseIE):
             'id': '19201',
             'ext': 'mp4',
             'title': str,
+            'channel_id': '4',
             'description': 'Смотрим прямой эфир «Россия К»',
             'display_id': '381308c7-a066-4c4f-9656-83e2e792a7b4',
             'live_status': 'is_live',
@@ -291,9 +305,10 @@ class SmotrimLiveIE(SmotrimBaseIE):
         typ, display_id = self._match_valid_url(url).group('type', 'id')
 
         if typ == 'live' and re.fullmatch(r'[0-9]+', display_id):
-            return self.url_result(
-                f'https://smotrim.ru/live/{display_id}', 'Generic')
-        elif typ == 'channel':
+            url = self._request_webpage(url, display_id).url
+            typ = self._match_valid_url(url).group('type')
+
+        if typ == 'channel':
             webpage = self._download_webpage(url, display_id)
             src_url = traverse_obj(webpage, ((
                 ({find_element(cls='main-player__frame', html=True)}, {extract_attributes}, 'src'),
@@ -306,7 +321,7 @@ class SmotrimLiveIE(SmotrimBaseIE):
 
         return {
             'display_id': display_id,
-            **self._call_api(typ, video_id),
+            **self._extract_from_smotrim_api(typ, video_id),
         }
 
 
@@ -321,7 +336,7 @@ class SmotrimPlaylistIE(SmotrimBaseIE):
             'id': '64356',
             'title': 'Большие и маленькие',
         },
-        'playlist_mincount': 53,
+        'playlist_mincount': 55,
     }, {
         # Video, season
         'url': 'https://smotrim.ru/brand/65293/3-sezon',
@@ -330,7 +345,7 @@ class SmotrimPlaylistIE(SmotrimBaseIE):
             'title': 'Спасская',
             'season': '3 сезон',
         },
-        'playlist_count': 17,
+        'playlist_count': 16,
     }, {
         # Audio
         'url': 'https://smotrim.ru/brand/68880',
@@ -338,7 +353,7 @@ class SmotrimPlaylistIE(SmotrimBaseIE):
             'id': '68880',
             'title': 'Веселый колобок',
         },
-        'playlist_mincount': 154,
+        'playlist_mincount': 156,
     }, {
         # Podcast
         'url': 'https://smotrim.ru/podcast/8021',
@@ -358,11 +373,10 @@ class SmotrimPlaylistIE(SmotrimBaseIE):
                 'limit': self._PAGE_SIZE,
                 'page': page,
             },
-        )['contents'][-1]['list']
+        )
 
-        if items:
-            for link in traverse_obj(items, (..., 'link', {str})):
-                yield self.url_result(urljoin(self._BASE_URL, link))
+        for link in traverse_obj(items, ('contents', -1, 'list', ..., 'link', {str})):
+            yield self.url_result(urljoin(self._BASE_URL, link))
 
     def _real_extract(self, url):
         playlist_type, playlist_id, season = self._match_valid_url(url).group('type', 'id', 'season')
@@ -373,13 +387,13 @@ class SmotrimPlaylistIE(SmotrimBaseIE):
         if season:
             return self.playlist_from_matches(traverse_obj(webpage, (
                 {find_elements(tag='a', attr='href', value=r'/video/\d+', html=True, regex=True)},
-                ..., {extract_attributes}, 'href', {str}, filter, {urljoin(self._BASE_URL)},
+                ..., {extract_attributes}, 'href', {str},
             )), playlist_id, playlist_title, season=traverse_obj(webpage, (
                 {find_element(cls='seasons__item seasons__item--selected')}, {clean_html},
             )), ie=SmotrimIE, getter=urljoin(self._BASE_URL))
 
         if traverse_obj(webpage, (
-            {find_element(tag='iframe', attr='name', value=r'smotrim_player_\d+', regex=True)},
+            {find_element(cls='brand-main-item__videos')}, {clean_html}, filter,
         )):
             endpoint = 'videos'
         else:
