@@ -35,6 +35,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
@@ -75,7 +76,7 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.12.0",
+    "ruff~=0.13.0",
 ]
 test = [
     "pytest~=8.1",
@@ -173,7 +174,8 @@ python = [
     "3.11",
     "3.12",
     "3.13",
-    "pypy3.10",
+    "3.14",
+    "pypy3.11",
 ]
 
 [tool.ruff]
