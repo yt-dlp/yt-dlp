@@ -2760,7 +2760,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if max_depth == 1 and parent:
             return
 
-        max_comments, max_parents, max_replies, max_replies_per_thread, *_ = (
+        _max_comments, max_parents, max_replies, max_replies_per_thread, *_ = (
             int_or_none(p, default=sys.maxsize) for p in self._configuration_arg('max_comments') + [''] * 4)
 
         continuation = self._extract_continuation(root_continuation_data)
