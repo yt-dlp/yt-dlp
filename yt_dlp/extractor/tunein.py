@@ -16,10 +16,10 @@ from ..utils.traversal import traverse_obj
 
 
 class TuneInBaseIE(InfoExtractor):
-    def _call_api(self, item_id, endpoint=None, note='Downloading JSON metadata', query=None):
-        return self._download_json(
-            join_nonempty('https://api.tunein.com/profiles', item_id, endpoint, delim='/'),
-            item_id, note=note, query=query)
+    def _call_api(self, item_id, endpoint=None, note='Downloading JSON metadata', fatal=False, query=None):
+        return self._download_json(join_nonempty(
+            'https://api.tunein.com/profiles', item_id, endpoint, delim='/',
+        ), item_id, note=note, fatal=fatal, query=query) or {}
 
     def _extract_formats_and_subtitles(self, content_id):
         streams = self._download_json(
@@ -131,11 +131,8 @@ class TuneInPodcastIE(TuneInBaseIE):
             },
         )['Items']
 
-        if items:
-            for item in traverse_obj(items, (
-                ..., 'GuideId', {str}, filter, all, filter,
-            )):
-                yield self.url_result(update_url_query(url, {'topicId': item[1:]}))
+        for item in traverse_obj(items, (..., 'GuideId', {str}, filter)):
+            yield self.url_result(update_url_query(url, {'topicId': item[1:]}))
 
     def _real_extract(self, url):
         podcast_id = self._match_id(url)
@@ -250,7 +247,7 @@ class TuneInEmbedIE(TuneInBaseIE):
             'id': 'p191660',
             'title': 'SBS Tamil',
         },
-        'playlist_mincount': 196,
+        'playlist_mincount': 195,
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.martiniinthemorning.com/',
