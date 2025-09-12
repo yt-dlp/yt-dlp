@@ -424,7 +424,6 @@ from .cpac import (
     CPACPlaylistIE,
 )
 from .cracked import CrackedIE
-from .crackle import CrackleIE
 from .craftsy import CraftsyIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
@@ -443,10 +442,6 @@ from .curiositystream import (
     CuriosityStreamCollectionsIE,
     CuriosityStreamIE,
     CuriosityStreamSeriesIE,
-)
-from .cwtv import (
-    CWTVIE,
-    CWTVMovieIE,
 )
 from .cybrary import (
     CybraryCourseIE,
@@ -1467,10 +1462,6 @@ from .panopto import (
     PanoptoListIE,
     PanoptoPlaylistIE,
 )
-from .paramountplus import (
-    ParamountPlusIE,
-    ParamountPlusSeriesIE,
-)
 from .parler import ParlerIE
 from .parlview import ParlviewIE
 from .parti import (
@@ -1849,7 +1840,6 @@ from .simplecast import (
     SimplecastPodcastIE,
 )
 from .sina import SinaIE
-from .sixplay import SixPlayIE
 from .skeb import SkebIE
 from .sky import (
     SkyNewsIE,
@@ -1930,10 +1920,6 @@ from .spiegel import SpiegelIE
 from .sport5 import Sport5IE
 from .sportbox import SportBoxIE
 from .sportdeutschland import SportDeutschlandIE
-from .spotify import (
-    SpotifyIE,
-    SpotifyShowIE,
-)
 from .spreaker import (
     SpreakerIE,
     SpreakerShowIE,
@@ -2477,7 +2463,6 @@ from .wykop import (
     WykopPostCommentIE,
     WykopPostIE,
 )
-from .xanimu import XanimuIE
 from .xboxclips import XboxClipsIE
 from .xhamster import (
     XHamsterEmbedIE,

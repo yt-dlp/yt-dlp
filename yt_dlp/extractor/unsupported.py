@@ -30,13 +30,13 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'play\.hbomax\.com',
         r'channel(?:4|5)\.com',
         r'peacocktv\.com',
-        r'(?:[\w\.]+\.)?disneyplus\.com',
-        r'open\.spotify\.com/(?:track|playlist|album|artist)',
+        r'(?:[\w.]+\.)?disneyplus\.com',
+        r'open\.spotify\.com',
         r'tvnz\.co\.nz',
         r'oneplus\.ch',
         r'artstation\.com/learning/courses',
         r'philo\.com',
-        r'(?:[\w\.]+\.)?mech-plus\.com',
+        r'(?:[\w.]+\.)?mech-plus\.com',
         r'aha\.video',
         r'mubi\.com',
         r'vootkids\.com',
@@ -57,6 +57,14 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'ctv\.ca',
         r'noovo\.ca',
         r'tsn\.ca',
+        r'paramountplus\.com',
+        r'(?:m\.)?(?:sony)?crackle\.com',
+        r'cw(?:tv(?:pr)?|seed)\.com',
+        r'6play\.fr',
+        r'rtlplay\.be',
+        r'play\.rtl\.hr',
+        r'rtlmost\.hu',
+        r'plus\.rtl\.de(?!/podcast/)',
     )
 
     _TESTS = [{
@@ -78,10 +86,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'url': r'https://www.disneyplus.com',
         'only_matching': True,
     }, {
-        'url': 'https://open.spotify.com/artist/',
-        'only_matching': True,
-    }, {
-        'url': 'https://open.spotify.com/track/',
+        'url': 'https://open.spotify.com',
         'only_matching': True,
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/4122
@@ -184,6 +189,39 @@ class KnownDRMIE(UnsupportedInfoExtractor):
     }, {
         'url': 'https://www.tsn.ca/video/relaxed-oilers-look-to-put-emotional-game-2-loss-in-the-rearview%7E3148747',
         'only_matching': True,
+    }, {
+        'url': 'https://www.paramountplus.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.crackle.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.sonycrackle.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.cwtv.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.cwseed.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://cwtvpr.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.6play.fr',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.rtlplay.be',
+        'only_matching': True,
+    }, {
+        'url': 'https://play.rtl.hr',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.rtlmost.hu',
+        'only_matching': True,
+    }, {
+        'url': 'https://plus.rtl.de/video-tv/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -222,6 +260,7 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'91porn\.com',
         r'einthusan\.(?:tv|com|ca)',
         r'yourupload\.com',
+        r'xanimu\.com',
     )
 
     _TESTS = [{
