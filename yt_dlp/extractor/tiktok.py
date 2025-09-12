@@ -81,7 +81,7 @@ class TikTokBaseIE(InfoExtractor):
             }
             self._APP_INFO_POOL = [
                 {**defaults, **dict(
-                    (k, v) for k, v in zip(self._APP_INFO_DEFAULTS, app_info.split('/')) if v
+                    (k, v) for k, v in zip(self._APP_INFO_DEFAULTS, app_info.split('/'), strict=False) if v
                 )} for app_info in self._KNOWN_APP_INFO
             ]
 

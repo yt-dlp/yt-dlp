@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import contextlib
 import copy
+import itertools
 import json
 
 from test.helper import FakeYDL, assertRegexpMatches, try_rm
@@ -414,7 +415,7 @@ class TestFormatSelection(unittest.TestCase):
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
         self.assertEqual(downloaded_ids, ['248+141'])
 
-        for f1, f2 in zip(formats_order, formats_order[1:]):
+        for f1, f2 in itertools.pairwise(formats_order):
             info_dict = _make_result([f1, f2], extractor='youtube')
             ydl = YDL({'format': 'best/bestvideo'})
             ydl.sort_formats(info_dict)
@@ -749,7 +750,7 @@ class TestYoutubeDL(unittest.TestCase):
 
             if not isinstance(expected, (list, tuple)):
                 expected = (expected, expected)
-            for (name, got), expect in zip((('outtmpl', out), ('filename', fname)), expected):
+            for (name, got), expect in zip((('outtmpl', out), ('filename', fname)), expected, strict=True):
                 if callable(expect):
                     self.assertTrue(expect(got), f'Wrong {name} from {tmpl}')
                 elif expect is not None:
@@ -1147,7 +1148,7 @@ class TestYoutubeDL(unittest.TestCase):
                 entries = func(evaluated)
                 results = [(v['playlist_autonumber'] - 1, (int(v['id']), v['playlist_index']))
                            for v in get_downloaded_info_dicts(params, entries)]
-                self.assertEqual(results, list(enumerate(zip(expected_ids, expected_ids))), f'Entries of {name} for {params}')
+                self.assertEqual(results, list(enumerate(zip(expected_ids, expected_ids, strict=True))), f'Entries of {name} for {params}')
                 self.assertEqual(sorted(evaluated), expected_eval, f'Evaluation of {name} for {params}')
 
         test_selection({}, INDICES)
