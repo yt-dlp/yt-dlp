@@ -1,4 +1,3 @@
-# Allow direct execution
 import os
 import sys
 
@@ -55,7 +54,7 @@ def _test(github_repository, note, repo_vars, repo_secrets, inputs, expected=Non
     assert result == exp, f'unexpected result: {github_repository} {note}'
 
 
-def main():
+def test_setup_variables():
     DEFAULT_VERSION_WITH_REVISION = dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d.%H%M%S')
     DEFAULT_VERSION = calculate_version()
     BASE_REPO_VARS = {
@@ -323,9 +322,3 @@ def main():
             'pypi_project': None,
             'pypi_suffix': None,
         }, ignore_revision=True)
-
-    print('all tests passed')
-
-
-if __name__ == '__main__':
-    main()
