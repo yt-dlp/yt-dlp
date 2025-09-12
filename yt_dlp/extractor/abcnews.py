@@ -1,5 +1,6 @@
 from .amp import AMPIE
 from .common import InfoExtractor
+from .. import traverse_obj
 from ..utils import (
     parse_duration,
     parse_iso8601,
@@ -78,7 +79,7 @@ class AbcNewsIE(InfoExtractor):
             'title': "Peter Billingsley: From child actor in 'A Christmas Story' to Hollywood power player",
             'description': 'Billingsley went from a child actor to Hollywood power player.',
         },
-        'playlist_count': 5,
+        'playlist_count': 1,
     }, {
         'url': 'http://abcnews.go.com/Entertainment/justin-timberlake-performs-stop-feeling-eurovision-2016/story?id=39125818',
         'info_dict': {
@@ -97,6 +98,16 @@ class AbcNewsIE(InfoExtractor):
         },
         'add_ie': ['AbcNewsVideo'],
     }, {
+        # playlist
+        'url': 'https://abcnews.go.com/Politics/obama-rallies-texas-democrats-left-state-block-gop/story?id=124657961',
+        'info_dict': {
+            'id': '124657961',
+            'title': "Texas Democrats get boost from Obama for blocking GOP redistricting plan",
+            'description': 'The former president said in a virtual meeting their action is inspiring others',
+        },
+        'playlist_count': 5,
+
+    }, {
         'url': 'http://abcnews.go.com/Technology/exclusive-apple-ceo-tim-cook-iphone-cracking-software/story?id=37173343',
         'only_matching': True,
     }, {
@@ -108,46 +119,49 @@ class AbcNewsIE(InfoExtractor):
     def _real_extract(self, url):
         story_id = self._match_id(url)
         webpage = self._download_webpage(url, story_id)
-        story = self._parse_json(self._search_regex(
+        story = traverse_obj(self._parse_json(self._search_regex(
             r"window\['__abcnews__'\]\s*=\s*({.+?});",
-            webpage, 'data'), story_id)['page']['content']['story']['everscroll'][0]
-        article_contents = story.get('articleContents') or {}
+            webpage, 'data'), story_id),('page','content','story','story'))
+        article_contents = story.get('featuredVideo') or {}
+        entry_count = 0
 
         def entries():
-            featured_video = story.get('featuredVideo') or {}
-            feed = try_get(featured_video, lambda x: x['video']['feed'])
-            if feed:
+            featured_video = story.get('leadMediaVideo') or {}
+            featured_id = featured_video.get('id')
+            feed = try_get(featured_video, lambda x: x['video']['video'])
+            if featured_id and feed:
                 yield {
                     '_type': 'url',
-                    'id': featured_video.get('id'),
+                    'id': featured_id,
                     'title': featured_video.get('name'),
-                    'url': feed,
+                    'url': story.get('url'),
                     'thumbnail': featured_video.get('images'),
                     'description': featured_video.get('description'),
                     'timestamp': parse_iso8601(featured_video.get('uploadDate')),
                     'duration': parse_duration(featured_video.get('duration')),
                     'ie_key': AbcNewsVideoIE.ie_key(),
                 }
-
-            for inline in (article_contents.get('inlines') or []):
-                inline_type = inline.get('type')
-                if inline_type == 'iframe':
-                    iframe_url = try_get(inline, lambda x: x['attrs']['src'])
-                    if iframe_url:
-                        yield self.url_result(iframe_url)
-                elif inline_type == 'video':
-                    video_id = inline.get('id')
-                    if video_id:
-                        yield {
-                            '_type': 'url',
-                            'id': video_id,
-                            'url': 'http://abcnews.go.com/video/embed?id=' + video_id,
-                            'thumbnail': inline.get('imgSrc') or inline.get('imgDefault'),
-                            'description': inline.get('description'),
-                            'duration': parse_duration(inline.get('duration')),
-                            'ie_key': AbcNewsVideoIE.ie_key(),
-                        }
+            playlist_contents = article_contents.get('contents')
+            if playlist_contents:
+                for inline in (playlist_contents['playlist'] or []):
+                    inline_type = inline.get('type')
+                    if inline_type == 'iframe':
+                        iframe_url = try_get(inline, lambda x: x['attrs']['src'])
+                        if iframe_url:
+                            yield self.url_result(iframe_url)
+                    elif inline_type == 'video':
+                        video_id = inline.get('id')
+                        if video_id and (video_id != featured_id):
+                            yield {
+                                '_type': 'url',
+                                'id': video_id,
+                                'url': 'http://abcnews.go.com/video/embed?id=' + video_id,
+                                'thumbnail': inline.get('imgSrc') or inline.get('imgDefault'),
+                                'description': inline.get('description'),
+                                'duration': parse_duration(inline.get('duration')),
+                                'ie_key': AbcNewsVideoIE.ie_key(),
+                            }
 
         return self.playlist_result(
-            entries(), story_id, article_contents.get('headline'),
-            article_contents.get('subHead'))
+            entries(), story_id, story.get('title'),
+            story.get('description'))

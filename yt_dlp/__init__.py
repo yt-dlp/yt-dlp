@@ -133,7 +133,7 @@ def print_extractor_information(opts, urls):
                     matched_urls = tuple(filter(ie.suitable, urls.keys()))
                     urls.update(dict.fromkeys(matched_urls, True))
                 # show only extractor with matched URL
-                if len(matched_urls):
+                if matched_urls:
                     data = {'index': e_index,
                             'name': ie.IE_NAME,
                             'desc': ie.IE_DESC if ie.IE_DESC else '',
