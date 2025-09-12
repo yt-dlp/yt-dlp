@@ -30,13 +30,13 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'play\.hbomax\.com',
         r'channel(?:4|5)\.com',
         r'peacocktv\.com',
-        r'(?:[\w\.]+\.)?disneyplus\.com',
+        r'(?:[\w.]+\.)?disneyplus\.com',
         r'open\.spotify\.com',
         r'tvnz\.co\.nz',
         r'oneplus\.ch',
         r'artstation\.com/learning/courses',
         r'philo\.com',
-        r'(?:[\w\.]+\.)?mech-plus\.com',
+        r'(?:[\w.]+\.)?mech-plus\.com',
         r'aha\.video',
         r'mubi\.com',
         r'vootkids\.com',
@@ -58,6 +58,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'noovo\.ca',
         r'tsn\.ca',
         r'paramountplus\.com',
+        r'(?:m\.)?(?:sony)?crackle\.com',
     )
 
     _TESTS = [{
@@ -184,6 +185,12 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.paramountplus.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.crackle.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.sonycrackle.com',
         'only_matching': True,
     }]
 

@@ -424,7 +424,6 @@ from .cpac import (
     CPACPlaylistIE,
 )
 from .cracked import CrackedIE
-from .crackle import CrackleIE
 from .craftsy import CraftsyIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
