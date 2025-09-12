@@ -1840,7 +1840,6 @@ from .simplecast import (
     SimplecastPodcastIE,
 )
 from .sina import SinaIE
-from .sixplay import SixPlayIE
 from .skeb import SkebIE
 from .sky import (
     SkyNewsIE,

@@ -60,6 +60,11 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'paramountplus\.com',
         r'(?:m\.)?(?:sony)?crackle\.com',
         r'cw(?:tv(?:pr)?|seed)\.com',
+        r'6play\.fr',
+        r'rtlplay\.be',
+        r'play\.rtl\.hr',
+        r'rtlmost\.hu',
+        r'plus\.rtl\.de(?!/podcast/)',
     )
 
     _TESTS = [{
@@ -201,6 +206,21 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://cwtvpr.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.6play.fr',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.rtlplay.be',
+        'only_matching': True,
+    }, {
+        'url': 'https://play.rtl.hr',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.rtlmost.hu',
+        'only_matching': True,
+    }, {
+        'url': 'https://plus.rtl.de/video-tv/',
         'only_matching': True,
     }]
 
