@@ -102,7 +102,7 @@ class AbcNewsIE(InfoExtractor):
         'url': 'https://abcnews.go.com/Politics/obama-rallies-texas-democrats-left-state-block-gop/story?id=124657961',
         'info_dict': {
             'id': '124657961',
-            'title': "Texas Democrats get boost from Obama for blocking GOP redistricting plan",
+            'title': 'Texas Democrats get boost from Obama for blocking GOP redistricting plan',
             'description': 'The former president said in a virtual meeting their action is inspiring others',
         },
         'playlist_count': 5,
@@ -121,9 +121,8 @@ class AbcNewsIE(InfoExtractor):
         webpage = self._download_webpage(url, story_id)
         story = traverse_obj(self._parse_json(self._search_regex(
             r"window\['__abcnews__'\]\s*=\s*({.+?});",
-            webpage, 'data'), story_id),('page','content','story','story'))
+            webpage, 'data'), story_id), ('page', 'content', 'story', 'story'))
         article_contents = story.get('featuredVideo') or {}
-        entry_count = 0
 
         def entries():
             featured_video = story.get('leadMediaVideo') or {}
