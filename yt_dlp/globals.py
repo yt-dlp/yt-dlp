@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 from collections import defaultdict
 
@@ -30,3 +31,8 @@ plugin_ies_overrides = Indirect(defaultdict(list))
 IN_CLI = Indirect(False)
 LAZY_EXTRACTORS = Indirect(None)  # `False`=force, `None`=disabled, `True`=enabled
 WINDOWS_VT_MODE = Indirect(False if os.name == 'nt' else None)
+
+# JS Runtimes
+# If adding support for another runtime, register it here to allow `js_runtimes` option to accept it.
+# key is the runtime name, value is None or a JsRuntime subclass (internal-only)
+supported_js_runtimes = Indirect({})

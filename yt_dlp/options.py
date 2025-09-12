@@ -461,6 +461,23 @@ def create_parser():
         dest='plugin_dirs', action='store_const', const=[],
         help='Clear plugin directories to search, including defaults and those provided by previous --plugin-dirs')
     general.add_option(
+        '--js-runtimes',
+        metavar='RUNTIME[:PATH]',
+        dest='js_runtimes',
+        action='callback',
+        callback=_list_from_options_callback,
+        type='str',
+        callback_kwargs={'delim': None},
+        default=['deno'],
+        help=(
+            'Additional JavaScript runtime to enable, with an optional path to the runtime location. '
+            'This option can be used multiple times to enable multiple runtimes. '
+            'Supported runtimes: deno, node. By default, only "deno" runtime is enabled.'))
+    general.add_option(
+        '--no-js-runtimes',
+        dest='js_runtimes', action='store_const', const=[],
+        help='Clear JavaScript runtimes to enable, including defaults and those provided by previous --js-runtimes')
+    general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
         help=(
