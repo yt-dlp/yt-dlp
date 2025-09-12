@@ -31,7 +31,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'channel(?:4|5)\.com',
         r'peacocktv\.com',
         r'(?:[\w\.]+\.)?disneyplus\.com',
-        r'open\.spotify\.com/(?:track|playlist|album|artist)',
+        r'open\.spotify\.com',
         r'tvnz\.co\.nz',
         r'oneplus\.ch',
         r'artstation\.com/learning/courses',
@@ -78,10 +78,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'url': r'https://www.disneyplus.com',
         'only_matching': True,
     }, {
-        'url': 'https://open.spotify.com/artist/',
-        'only_matching': True,
-    }, {
-        'url': 'https://open.spotify.com/track/',
+        'url': 'https://open.spotify.com',
         'only_matching': True,
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/4122

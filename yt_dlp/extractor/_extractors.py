@@ -1930,10 +1930,6 @@ from .spiegel import SpiegelIE
 from .sport5 import Sport5IE
 from .sportbox import SportBoxIE
 from .sportdeutschland import SportDeutschlandIE
-from .spotify import (
-    SpotifyIE,
-    SpotifyShowIE,
-)
 from .spreaker import (
     SpreakerIE,
     SpreakerShowIE,
