@@ -20,7 +20,6 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     NSigChallengeOutput,
     SigChallengeOutput,
 )
-from yt_dlp.globals import Indirect
 from yt_dlp.utils._jsruntime import JsRuntimeInfo
 
 TYPE_CHECKING = False
@@ -60,9 +59,6 @@ class _Bundle:
         return f'<JSCBundle {self.type.value!r} v{self.version} (source: {self.source.value}) size={len(self.code)} hash={self.hash[:7]}...>'
 
 
-bundle_unavailable = Indirect({})
-
-
 class JsRuntimeJCPBase(JsChallengeProvider):
     JS_RUNTIME_NAME: str
     _CACHE_SECTION = 'jsc-builtin'
@@ -73,13 +69,11 @@ class JsRuntimeJCPBase(JsChallengeProvider):
     # TODO: insert correct hashes here
     _ALLOWED_HASHES = {
         BundleType.LIB: [
-            'a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26',
-            'a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26',
+            '488c1903d8beb24ee9788400b2a91e724751b04988ba4de398320de0e36b4a9e3a8db58849189bf1d48df3fc4b0972d96b4aabfd80fea25d7c43988b437062fd',
             'cbd33afbfa778e436aef774f3983f0b1234ad7f737ea9dbd9783ee26dce195f4b3242d1e202b2038e748044960bc2f976372e883c76157b24acdea939dba7603',
         ],
         BundleType.JSC: [
-            'a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26',
-            'a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26',
+            'df0c08c152911dedd35a98bbbb6a1786718c11e4233c52abda3d19fd11d97c3ba09745dfbca913ddeed72fead18819f62139220420c41a04d5a66ed629fbde4e',
             '8abfd4818573b6cf397cfae227661e3449fb5ac737a272ac0cf8268d94447b04b1c9a15f459b336175bf0605678a376e962df99b2c8d5498f16db801735f771c',
         ],
     }
@@ -177,8 +171,6 @@ class JsRuntimeJCPBase(JsChallengeProvider):
                 return bundle
 
         self._available = False
-        bundle_unavailable.value[bundle_type] = True
-        self.logger.trace('marking all JsRuntime providers as unavailable due to missing bundle')
         raise JsChallengeProviderError(f'failed to find usable {bundle_type.value}')
 
     def _iter_bundles(self, bundle_type: BundleType, /) -> Generator[_Bundle]:
@@ -239,7 +231,5 @@ class JsRuntimeJCPBase(JsChallengeProvider):
 
     def is_available(self, /) -> bool:
         if not self.runtime_info:
-            return False
-        if bundle_unavailable.value.get(BundleType.LIB) or bundle_unavailable.value.get(BundleType.JSC):
             return False
         return self._available
