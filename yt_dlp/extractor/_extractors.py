@@ -2469,7 +2469,6 @@ from .wykop import (
     WykopPostCommentIE,
     WykopPostIE,
 )
-from .xanimu import XanimuIE
 from .xboxclips import XboxClipsIE
 from .xhamster import (
     XHamsterEmbedIE,
