@@ -1,11 +1,13 @@
 import json
-import re
 
 from .common import InfoExtractor
+from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
+    join_nonempty,
+    js_to_json,
     str_or_none,
     url_or_none,
 )
@@ -18,19 +20,9 @@ from ..utils.traversal import (
 
 
 class SteamIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-        https?://(?:store\.steampowered|steamcommunity)\.com/
-            (?:agecheck/)?
-            (?P<urltype>video|app)/ #If the page is only for videos or for a game
-            (?P<gameID>\d+)/?
-            (?P<videoID>\d*)(?P<extra>\??) # For urltype == video we sometimes get the videoID
-        |
-        https?://(?:www\.)?steamcommunity\.com/sharedfiles/filedetails/\?id=(?P<fileID>[0-9]+)
-    '''
-    _VIDEO_PAGE_TEMPLATE = 'https://store.steampowered.com/video/%s/'
-    _AGECHECK_TEMPLATE = 'https://store.steampowered.com/agecheck/video/%s/?snr=1_agecheck_agecheck__age-gate&ageDay=1&ageMonth=January&ageYear=1970'
+    _VALID_URL = r'https?://store\.steampowered\.com(?:/agecheck)?/app/(?P<id>\d+)/?(?:[^?/#]+/?)?(?:[?#]|$)'
     _TESTS = [{
-        'url': 'https://store.steampowered.com/video/105600/',
+        'url': 'https://store.steampowered.com/app/105600',
         'info_dict': {
             'id': '105600',
             'title': 'Terraria',
@@ -46,28 +38,15 @@ class SteamIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        m = self._match_valid_url(url)
-        file_id = m.group('fileID')
-        if file_id:
-            video_url = url
-            playlist_id = file_id
-        else:
-            game_id = m.group('gameID')
-            playlist_id = game_id
-            video_url = self._VIDEO_PAGE_TEMPLATE % playlist_id
+        app_id = self._match_id(url)
 
-        self._set_cookie('steampowered.com', 'wants_mature_content', '1')
-        self._set_cookie('steampowered.com', 'birthtime', '944006401')
-        self._set_cookie('steampowered.com', 'lastagecheckage', '1-0-2000')
+        self._set_cookie('store.steampowered.com', 'wants_mature_content', '1')
+        self._set_cookie('store.steampowered.com', 'birthtime', '946652401')
+        self._set_cookie('store.steampowered.com', 'lastagecheckage', '1-January-2000')
 
-        webpage = self._download_webpage(video_url, playlist_id)
-
-        if re.search('<div[^>]+>Please enter your birth date to continue:</div>', webpage) is not None:
-            video_url = self._AGECHECK_TEMPLATE % playlist_id
-            self.report_age_confirmation()
-            webpage = self._download_webpage(video_url, playlist_id)
-
+        webpage = self._download_webpage(url, app_id)
         app_name = traverse_obj(webpage, ({find_element(cls='apphub_AppName')}, {clean_html}))
+
         entries = []
         for data_prop in traverse_obj(webpage, (
             {find_elements(cls='highlight_player_item highlight_movie', html=True)},
@@ -76,50 +55,121 @@ class SteamIE(InfoExtractor):
             formats = []
             if hls_manifest := traverse_obj(data_prop, ('hlsManifest', {url_or_none})):
                 formats.extend(self._extract_m3u8_formats(
-                    hls_manifest, playlist_id, 'mp4', m3u8_id='hls', fatal=False))
-
+                    hls_manifest, app_id, 'mp4', m3u8_id='hls', fatal=False))
             for dash_manifest in traverse_obj(data_prop, ('dashManifests', ..., {url_or_none})):
                 formats.extend(self._extract_mpd_formats(
-                    dash_manifest, playlist_id, mpd_id='dash', fatal=False))
+                    dash_manifest, app_id, mpd_id='dash', fatal=False))
 
             movie_id = traverse_obj(data_prop, ('id', {trim_str(start='highlight_movie_')}))
             entries.append({
                 'id': movie_id,
-                'title': f'{app_name} video {movie_id}',
+                'title': join_nonempty(app_name, 'video', movie_id, delim=' '),
                 'formats': formats,
+                'series': app_name,
+                'series_id': app_id,
                 'thumbnail': traverse_obj(data_prop, ('screenshot', {url_or_none})),
             })
 
-        embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
-        for evideos in embedded_videos:
-            evideos = extract_attributes(evideos).get('src')
-            video_id = self._search_regex(r'youtube\.com/embed/([0-9A-Za-z_-]{11})', evideos, 'youtube_video_id', default=None)
-            if video_id:
-                entries.append({
-                    '_type': 'url_transparent',
-                    'id': video_id,
-                    'url': video_id,
-                    'ie_key': 'Youtube',
-                })
-        if not entries:
-            raise ExtractorError('Could not find any videos')
+        return self.playlist_result(entries, app_id, app_name)
 
-        return self.playlist_result(entries, playlist_id, app_name)
+
+class SteamCommunityIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?steamcommunity\.com/sharedfiles/filedetails(?:/?\?(?:[^#]+&)?id=|/)(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://steamcommunity.com/sharedfiles/filedetails/2717708756',
+        'info_dict': {
+            'id': '39Sp2mB1Ly8',
+            'ext': 'mp4',
+            'title': 'Gmod Stamina System + Customisable HUD',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Gaming'],
+            'channel': 'Zworld Gmod',
+            'channel_follower_count': int,
+            'channel_id': 'UCER1FWFSdMMiTKBnnEDBPaw',
+            'channel_url': 'https://www.youtube.com/channel/UCER1FWFSdMMiTKBnnEDBPaw',
+            'chapters': 'count:3',
+            'comment_count': int,
+            'description': 'md5:0ba8d8e550231211fa03fac920e5b0bf',
+            'duration': 162,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:20',
+            'thumbnail': r're:https?://i\.ytimg\.com/vi/.+',
+            'timestamp': 1641955348,
+            'upload_date': '20220112',
+            'uploader': 'Zworld Gmod',
+            'uploader_id': '@gmod-addons',
+            'uploader_url': 'https://www.youtube.com/@gmod-addons',
+            'view_count': int,
+        },
+        'add_ie': ['Youtube'],
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://steamcommunity.com/sharedfiles/filedetails/?id=3544291945',
+        'info_dict': {
+            'id': '5JZZlsAdsvI',
+            'ext': 'mp4',
+            'title': 'Memories',
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Gaming'],
+            'channel': 'Bombass Team',
+            'channel_follower_count': int,
+            'channel_id': 'UCIJgtNyCV53IeSkzg3FWSFA',
+            'channel_url': 'https://www.youtube.com/channel/UCIJgtNyCV53IeSkzg3FWSFA',
+            'comment_count': int,
+            'description': 'md5:1b8a103a5d67a3c48d07c065de7e2c63',
+            'duration': 83,
+            'like_count': int,
+            'live_status': 'not_live',
+            'media_type': 'video',
+            'playable_in_embed': True,
+            'tags': 'count:10',
+            'thumbnail': r're:https?://i\.ytimg\.com/vi/.+',
+            'timestamp': 1754427291,
+            'upload_date': '20250805',
+            'uploader': 'Bombass Team',
+            'uploader_id': '@BombassTeam',
+            'uploader_url': 'https://www.youtube.com/@BombassTeam',
+            'view_count': int,
+        },
+        'add_ie': ['Youtube'],
+        'params': {'skip_download': 'm3u8'},
+    }]
+
+    def _real_extract(self, url):
+        file_id = self._match_id(url)
+        webpage = self._download_webpage(url, file_id)
+
+        flashvars = self._search_json(
+            r'var\s+rgMovieFlashvars\s*=', webpage, 'flashvars',
+            file_id, default={}, transform_source=js_to_json)
+        youtube_id = (
+            traverse_obj(flashvars, (..., 'YOUTUBE_VIDEO_ID', {str}, any))
+            or traverse_obj(webpage, (
+                {find_element(cls='movieFrame modal', html=True)}, {extract_attributes}, 'id', {str})))
+        if not youtube_id:
+            raise ExtractorError('No video found', expected=True)
+
+        return self.url_result(youtube_id, YoutubeIE)
 
 
 class SteamCommunityBroadcastIE(InfoExtractor):
-    _VALID_URL = r'https?://steamcommunity\.(?:com)/broadcast/watch/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?steamcommunity\.com/broadcast/watch/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://steamcommunity.com/broadcast/watch/76561199073851486',
         'info_dict': {
             'id': '76561199073851486',
-            'title': r're:Steam Community :: pepperm!nt :: Broadcast 2022-06-26 \d{2}:\d{2}',
             'ext': 'mp4',
+            'title': str,
             'uploader_id': '1113585758',
             'uploader': 'pepperm!nt',
             'live_status': 'is_live',
         },
-        'skip': 'Stream has ended',
+        'params': {'skip_download': 'Livestream'},
     }]
 
     def _real_extract(self, url):

@@ -4,6 +4,53 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.09.05
+
+#### Core changes
+- [Fix `--id` deprecation warning](https://github.com/yt-dlp/yt-dlp/commit/76bb46002c9a9655f2b1d29d4840e75e79037cfa) ([#14190](https://github.com/yt-dlp/yt-dlp/issues/14190)) by [seproDev](https://github.com/seproDev)
+
+#### Extractor changes
+- **charlierose**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/603acdff07f0226088916886002d2ad8309ff9d3) ([#14231](https://github.com/yt-dlp/yt-dlp/issues/14231)) by [gitchasing](https://github.com/gitchasing)
+- **googledrive**: [Fix subtitles extraction](https://github.com/yt-dlp/yt-dlp/commit/18fe696df9d60804a8f5cb8cd74f38111d6eb711) ([#14139](https://github.com/yt-dlp/yt-dlp/issues/14139)) by [zakaryan2004](https://github.com/zakaryan2004)
+- **itvbtcc**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/0b51005b4819e7cea222fcbaf8e60391db4f732c) ([#14161](https://github.com/yt-dlp/yt-dlp/issues/14161)) by [garret1317](https://github.com/garret1317)
+- **kick**: vod: [Support ongoing livestream VODs](https://github.com/yt-dlp/yt-dlp/commit/1e28f6bf743627b909135bb9a88537ad2deccaf0) ([#14154](https://github.com/yt-dlp/yt-dlp/issues/14154)) by [InvalidUsernameException](https://github.com/InvalidUsernameException)
+- **lrt**: [Fix extractors](https://github.com/yt-dlp/yt-dlp/commit/ed24640943872c4cf30d7cc4601bec87b50ba03c) ([#14193](https://github.com/yt-dlp/yt-dlp/issues/14193)) by [seproDev](https://github.com/seproDev)
+- **tver**: [Extract more metadata](https://github.com/yt-dlp/yt-dlp/commit/223baa81f6637dcdef108f817180d8d1ae9fa213) ([#14165](https://github.com/yt-dlp/yt-dlp/issues/14165)) by [arabcoders](https://github.com/arabcoders)
+- **vevo**: [Restore extractors](https://github.com/yt-dlp/yt-dlp/commit/d925e92b710153d0d51d030f115b3c87226bc0f0) ([#14203](https://github.com/yt-dlp/yt-dlp/issues/14203)) by [seproDev](https://github.com/seproDev)
+
+#### Misc. changes
+- **build**: [Overhaul Linux builds and refactor release workflow](https://github.com/yt-dlp/yt-dlp/commit/50136eeeb3767289b236f140b759f23b39b00888) ([#13997](https://github.com/yt-dlp/yt-dlp/issues/13997)) by [bashonly](https://github.com/bashonly)
+
+### 2025.08.27
+
+#### Extractor changes
+- **generic**
+    - [Simplify invalid URL error message](https://github.com/yt-dlp/yt-dlp/commit/1ddbd033f0fd65917526b1271cea66913ac8647f) ([#14167](https://github.com/yt-dlp/yt-dlp/issues/14167)) by [seproDev](https://github.com/seproDev)
+    - [Use https as fallback protocol](https://github.com/yt-dlp/yt-dlp/commit/fec30c56f0e97e573ace659104ff0d72c4cc9809) ([#14160](https://github.com/yt-dlp/yt-dlp/issues/14160)) by [seproDev](https://github.com/seproDev)
+- **skeb**: [Support wav files](https://github.com/yt-dlp/yt-dlp/commit/d6950c27af31908363c5c815e3b7eb4f9ff41643) ([#14147](https://github.com/yt-dlp/yt-dlp/issues/14147)) by [seproDev](https://github.com/seproDev)
+- **youtube**
+    - [Add `tcc` player JS variant](https://github.com/yt-dlp/yt-dlp/commit/8f4a908300f55054bc96814bceeaa1034fdf4110) ([#14134](https://github.com/yt-dlp/yt-dlp/issues/14134)) by [bashonly](https://github.com/bashonly)
+    - [Deprioritize `web_safari` m3u8 formats](https://github.com/yt-dlp/yt-dlp/commit/5c7ad68ff1643ad80d18cef8be9db8fcab05ee6c) ([#14168](https://github.com/yt-dlp/yt-dlp/issues/14168)) by [bashonly](https://github.com/bashonly)
+    - [Player client maintenance](https://github.com/yt-dlp/yt-dlp/commit/3bd91544122142a87863d79e54e995c26cfd7f92) ([#14135](https://github.com/yt-dlp/yt-dlp/issues/14135)) by [bashonly](https://github.com/bashonly)
+    - [Use alternative `tv` user-agent when authenticated](https://github.com/yt-dlp/yt-dlp/commit/8cd37b85d492edb56a4f7506ea05527b85a6b02b) ([#14169](https://github.com/yt-dlp/yt-dlp/issues/14169)) by [bashonly](https://github.com/bashonly)
+
+### 2025.08.22
+
+#### Core changes
+- **cookies**: [Fix `--cookies-from-browser` with Firefox 142+](https://github.com/yt-dlp/yt-dlp/commit/f29acc4a6e73a9dc091686d40951288acae5a46d) ([#14114](https://github.com/yt-dlp/yt-dlp/issues/14114)) by [bashonly](https://github.com/bashonly), [Grub4K](https://github.com/Grub4K) (With fixes in [526410b](https://github.com/yt-dlp/yt-dlp/commit/526410b4af9c1ca73aa3503cdaf4d32e42308fd6) by [bashonly](https://github.com/bashonly))
+
+#### Extractor changes
+- **mediaklikk**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/4dbe96459d7e632d397826d0bb323f3f0ac8b057) ([#13975](https://github.com/yt-dlp/yt-dlp/issues/13975)) by [zhallgato](https://github.com/zhallgato)
+- **steam**: [Fix extractors](https://github.com/yt-dlp/yt-dlp/commit/fcea3edb5c5648638357f27431500c0aaf08b147) ([#14093](https://github.com/yt-dlp/yt-dlp/issues/14093)) by [doe1080](https://github.com/doe1080)
+- **youtube**
+    - [Improve `tv` client context](https://github.com/yt-dlp/yt-dlp/commit/39b7b8ddc7a4d0669e0cf39105c3bb84cb2736cc) ([#14122](https://github.com/yt-dlp/yt-dlp/issues/14122)) by [bashonly](https://github.com/bashonly)
+    - [Optimize playback wait times](https://github.com/yt-dlp/yt-dlp/commit/5c8bcfdbc638dfde13e93157637d8521413ed774) ([#14124](https://github.com/yt-dlp/yt-dlp/issues/14124)) by [bashonly](https://github.com/bashonly)
+    - [Replace `ios` with `tv_simply` in default clients](https://github.com/yt-dlp/yt-dlp/commit/895e762a834bbd729ab822c7d17329fdf815aaf2) ([#14123](https://github.com/yt-dlp/yt-dlp/issues/14123)) by [bashonly](https://github.com/bashonly), [coletdjnz](https://github.com/coletdjnz)
+    - [Update `tv` client config](https://github.com/yt-dlp/yt-dlp/commit/a03c37b44ec8f50fd472c409115096f92410346d) ([#14101](https://github.com/yt-dlp/yt-dlp/issues/14101)) by [seproDev](https://github.com/seproDev)
+
+#### Misc. changes
+- **build**: [Post-release workflow cleanup](https://github.com/yt-dlp/yt-dlp/commit/415b6d9ca868032a45b30b9139a50c5c06be2feb) ([#14090](https://github.com/yt-dlp/yt-dlp/issues/14090)) by [bashonly](https://github.com/bashonly)
+
 ### 2025.08.20
 
 #### Core changes
