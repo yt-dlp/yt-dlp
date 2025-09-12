@@ -59,6 +59,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'tsn\.ca',
         r'paramountplus\.com',
         r'(?:m\.)?(?:sony)?crackle\.com',
+        r'cw(?:tv(?:pr)?|seed)\.com',
     )
 
     _TESTS = [{
@@ -191,6 +192,15 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://m.sonycrackle.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.cwtv.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.cwseed.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://cwtvpr.com',
         'only_matching': True,
     }]
 
