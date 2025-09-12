@@ -57,6 +57,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'ctv\.ca',
         r'noovo\.ca',
         r'tsn\.ca',
+        r'paramountplus\.com',
     )
 
     _TESTS = [{
@@ -180,6 +181,9 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.tsn.ca/video/relaxed-oilers-look-to-put-emotional-game-2-loss-in-the-rearview%7E3148747',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.paramountplus.com',
         'only_matching': True,
     }]
 

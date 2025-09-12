@@ -1467,10 +1467,6 @@ from .panopto import (
     PanoptoListIE,
     PanoptoPlaylistIE,
 )
-from .paramountplus import (
-    ParamountPlusIE,
-    ParamountPlusSeriesIE,
-)
 from .parler import ParlerIE
 from .parlview import ParlviewIE
 from .parti import (
