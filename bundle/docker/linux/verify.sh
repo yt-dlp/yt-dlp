@@ -36,14 +36,10 @@ echo "Verifying onefile build"
 cp "/build/${EXE_NAME}" ./
 chmod +x "./${EXE_NAME}"
 
-if [ -n "${SKIP_UPDATE_TO:-}" ]; then
+if [ -z "${UPDATE_TO:-}" ]; then
     "./${EXE_NAME}" -v || true
     "./${EXE_NAME}" --version
     exit 0
-fi
-
-if [ -z "${UPDATE_TO:-}" ]; then
-    UPDATE_TO="yt-dlp/yt-dlp@2025.09.05"
 fi
 
 cp "./${EXE_NAME}" "./${EXE_NAME}_downgraded"

@@ -250,8 +250,7 @@ jobs:
       VERSION: ${{ needs.process.outputs.version }}
       EXE_NAME: ${{ matrix.exe }}
       PYTHON_VERSION: ${{ matrix.python_version }}
-      UPDATE_TO: ${{ matrix.update_to }}
-      SKIP_UPDATE_TO: ${{ (!vars.UPDATE_TO_VERIFICATION && '1') || '' }}
+      UPDATE_TO: ${{ (!vars.UPDATE_TO_VERIFICATION && matrix.update_to) || '' }}
       SKIP_ONEDIR_BUILD: ${{ (!matrix.onedir && '1') || '' }}
       SKIP_ONEFILE_BUILD: ${{ (!matrix.onefile && '1') || '' }}
 

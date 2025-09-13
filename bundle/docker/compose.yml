@@ -30,7 +30,6 @@ services:
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
-      SKIP_UPDATE_TO:
       SKIP_ONEDIR_BUILD:
       SKIP_ONEFILE_BUILD:
     volumes:
@@ -66,7 +65,6 @@ services:
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
-      SKIP_UPDATE_TO:
       SKIP_ONEDIR_BUILD:
       SKIP_ONEFILE_BUILD:
     volumes:
@@ -102,8 +100,7 @@ services:
         VERIFYIMAGE: arm32v7/debian:bullseye
     environment:
       EXE_NAME: ${EXE_NAME:?}
-      UPDATE_TO: ${UPDATE_TO:-yt-dlp/yt-dlp@2023.03.04}
-      SKIP_UPDATE_TO:
+      UPDATE_TO:
       SKIP_ONEDIR_BUILD:
       SKIP_ONEFILE_BUILD:
     volumes:
@@ -139,7 +136,6 @@ services:
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
-      SKIP_UPDATE_TO:
       SKIP_ONEDIR_BUILD:
       SKIP_ONEFILE_BUILD:
     volumes:
@@ -176,7 +172,6 @@ services:
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
-      SKIP_UPDATE_TO:
       SKIP_ONEDIR_BUILD:
       SKIP_ONEFILE_BUILD:
     volumes:
