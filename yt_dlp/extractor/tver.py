@@ -102,6 +102,7 @@ class TVerIE(StreaksBaseIE):
             'id': 't0134c7',
             'title': '千鳥',
         },
+        'playlist_mincount': 1,
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
     _HEADERS = {
@@ -150,9 +151,9 @@ class TVerIE(StreaksBaseIE):
         episode_ids = list(traverse_obj(episodes_info, (
             'result', 'contents', lambda _, v: v.get('type') == 'episode', 'content', 'id', {str})))
         if episode_ids:
-            for eid in episode_ids:
-                yield eid
-            return
+            yield from episode_ids
+        else:
+            self.report_warning('No episodes found for talent', video_id=talent_id)
 
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
