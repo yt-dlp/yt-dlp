@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import hmac
 import re
@@ -186,7 +187,7 @@ class ABCIViewIE(InfoExtractor):
         'info_dict': {
             'id': 'CO1211V001S00',
             'ext': 'mp4',
-            'title': 'Series 1 Ep 1 Wood For The Trees',
+            'title': 'Series 1 Episode 1 Wood For The Trees',
             'series': 'Utopia',
             'description': 'md5:0cfb2c183c1b952d1548fd65c8a95c00',
             'upload_date': '20230726',
@@ -197,6 +198,24 @@ class ABCIViewIE(InfoExtractor):
             'season': 'Season 1',
             'episode_number': 1,
             'episode': 'Wood For The Trees',
+            'duration': 1584,
+            'chapters': [
+                {
+                    'start_time': 0,
+                    'end_time': 1,
+                    'title': '<Untitled Chapter 1>',
+                },
+                {
+                    'start_time': 1,
+                    'end_time': 24,
+                    'title': 'opening-credits',
+                },
+                {
+                    'start_time': 1564,
+                    'end_time': 1584,
+                    'title': 'end-credits',
+                },
+            ],
             'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/co/CO1211V001S00_5ad8353f4df09_1280.jpg',
             'timestamp': 1690403700,
         },
@@ -205,24 +224,26 @@ class ABCIViewIE(InfoExtractor):
         },
     }, {
         'note': 'No episode name',
-        'url': 'https://iview.abc.net.au/show/gruen/series/11/video/LE1927H001S00',
+        'url': 'https://iview.abc.net.au/show/gruen/series/15/video/LE2327H001S00',
         'md5': '67715ce3c78426b11ba167d875ac6abf',
         'info_dict': {
-            'id': 'LE1927H001S00',
+            'id': 'LE2327H001S00',
             'ext': 'mp4',
-            'title': 'Series 11 Ep 1',
+            'title': 'Series 15 Episode 1',
             'series': 'Gruen',
-            'description': 'md5:52cc744ad35045baf6aded2ce7287f67',
-            'upload_date': '20190925',
+            'description': 'md5:ac3bf529d467d8436954db1e90d2f06d',
+            'upload_date': '20230621',
             'uploader_id': 'abc1',
-            'series_id': 'LE1927H',
-            'episode_id': 'LE1927H001S00',
-            'season_number': 11,
-            'season': 'Season 11',
+            'series_id': 'LE2327H',
+            'episode_id': 'LE2327H001S00',
+            'season_number': 15,
+            'season': 'Season 15',
             'episode_number': 1,
             'episode': 'Episode 1',
-            'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/le/LE1927H001S00_5d954fbd79e25_1280.jpg',
-            'timestamp': 1569445289,
+            'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/le/LE2327H001S00_649279152faea_3600.jpg',
+            'timestamp': 1687379421,
+            'duration': 2117,
+            'chapters': 'count:2',
         },
         'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         'params': {
@@ -247,7 +268,8 @@ class ABCIViewIE(InfoExtractor):
             'episode': 'Locking Up Kids',
             'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/nc/NC2203H039S00_636d8a0944a22_1920.jpg',
             'timestamp': 1668460497,
-
+            'duration': 2802,
+            'chapters': 'count:2',
         },
         'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         'params': {
@@ -271,7 +293,8 @@ class ABCIViewIE(InfoExtractor):
             'season': 'Season 2021',
             'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/rf/RF2004Q043S00_61a950639dbc0_1920.jpg',
             'timestamp': 1638710705,
-
+            'duration': 3381,
+            'chapters': 'count:2',
         },
         'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         'params': {
@@ -282,11 +305,17 @@ class ABCIViewIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_params = self._download_json(
-            'https://iview.abc.net.au/api/programs/' + video_id, video_id)
-        title = unescapeHTML(video_params.get('title') or video_params['seriesTitle'])
-        stream = next(s for s in video_params['playlist'] if s.get('type') in ('program', 'livestream'))
+            f'https://api.iview.abc.net.au/v3/video/{video_id}', video_id,
+            errnote='Failed to download API V3 JSON', fatal=False)
+        # fallback to legacy API, which will return some useful info even if the video is unavailable
+        if not video_params:
+            video_params = self._download_json(
+                f'https://iview.abc.net.au/api/programs/{video_id}', video_id,
+                note='Falling back to legacy API JSON')
+        stream = traverse_obj(video_params, (
+            ('_embedded', None), 'playlist', lambda _, v: v['type'] in ('program', 'livestream'), any)) or {}
 
-        house_number = video_params.get('episodeHouseNumber') or video_id
+        house_number = traverse_obj(video_params, 'houseNumber', 'episodeHouseNumber') or video_id
         path = f'/auth/hls/sign?ts={int(time.time())}&hn={house_number}&d=android-tablet'
         sig = hmac.new(
             b'android.content.res.Resources',
@@ -299,47 +328,62 @@ class ABCIViewIE(InfoExtractor):
                 'hdnea': token,
             })
 
-        for sd in ('1080', '720', 'sd', 'sd-low'):
-            sd_url = try_get(
-                stream, lambda x: x['streams']['hls'][sd], str)
-            if not sd_url:
-                continue
-            formats = self._extract_m3u8_formats(
-                tokenize_url(sd_url, token), video_id, 'mp4',
-                entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
-            if formats:
-                break
+        formats = []
+        # hls: pre-merged formats
+        # hls-latest: same as hls, but sometimes has separate audio tracks
+        # Note: pre-merged formats in hls-latest are treated as video-only if audio-only tracks
+        # are present, so we extract both types
+        for label in ('hls', 'hls-latest'):
+            for sd_url in traverse_obj(stream, ('streams', label, ('1080', '720', 'sd', 'sd-low'), {url_or_none})):
+                fmts = self._extract_m3u8_formats(
+                    tokenize_url(sd_url, token), video_id, 'mp4', m3u8_id=label, fatal=False)
+                if fmts:
+                    formats.extend(fmts)
+                    break
+
+        # deprioritize audio description tracks
+        for f in formats:
+            if 'description' in (f.get('format_note') or '').lower():
+                f['language_preference'] = -10
 
         subtitles = {}
-        src_vtt = stream.get('captions', {}).get('src-vtt')
-        if src_vtt:
+        if src_vtt := traverse_obj(stream, ('captions', 'src-vtt', {url_or_none})):
             subtitles['en'] = [{
                 'url': src_vtt,
                 'ext': 'vtt',
             }]
 
-        is_live = video_params.get('livestream') == '1'
+        title = traverse_obj(video_params, 'title', 'seriesTitle', 'showTitle', expected_type=unescapeHTML)
 
         return {
             'id': video_id,
             'title': title,
-            'description': video_params.get('description'),
-            'thumbnail': video_params.get('thumbnail'),
-            'duration': int_or_none(video_params.get('eventDuration')),
-            'timestamp': parse_iso8601(video_params.get('pubDate'), ' '),
-            'series': unescapeHTML(video_params.get('seriesTitle')),
-            'series_id': video_params.get('seriesHouseNumber') or video_id[:7],
+            'series_id': traverse_obj(
+                video_params, ('analytics', 'oztam', 'seriesId'), 'seriesHouseNumber') or video_id[:7],
             'season_number': int_or_none(self._search_regex(
                 r'\bSeries\s+(\d+)\b', title, 'season number', default=None)),
             'episode_number': int_or_none(self._search_regex(
-                r'\bEp\s+(\d+)\b', title, 'episode number', default=None)),
+                r'\bEp(?:isode)?\s+(\d+)\b', title, 'episode number', default=None)),
             'episode_id': house_number,
             'episode': self._search_regex(
-                r'^(?:Series\s+\d+)?\s*(?:Ep\s+\d+)?\s*(.*)$', title, 'episode', default='') or None,
-            'uploader_id': video_params.get('channel'),
+                r'^(?:Series\s+\d+)?\s*(?:Ep(?:isode)?\s+\d+)?\s*(.*)$', title, 'episode', default='') or None,
+            'is_live': video_params.get('livestream') == '1' or stream.get('type') == 'livestream',
             'formats': formats,
             'subtitles': subtitles,
-            'is_live': is_live,
+            **traverse_obj(video_params, {
+                'description': ('description', {str}),
+                'thumbnail': ((
+                    ('images', lambda _, v: v['name'] == 'episodeThumbnail', 'url'), 'thumbnail'), {url_or_none}, any),
+                'chapters': ('cuePoints', lambda _, v: int(v['start']) is not None, {
+                    'start_time': ('start', {int_or_none}),
+                    'end_time': ('end', {int_or_none}),
+                    'title': ('type', {str}),
+                }),
+                'duration': (('duration', 'eventDuration'), {int_or_none}, any),
+                'timestamp': ('pubDate', {functools.partial(parse_iso8601, delimiter=' ')}),
+                'series': (('seriesTitle', 'showTitle'), {unescapeHTML}, any),
+                'uploader_id': ('channel', {str}),
+            }),
         }
 
 
