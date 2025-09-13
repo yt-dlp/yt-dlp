@@ -108,7 +108,6 @@ include = [
     "/LICENSE",  # included as license
     "/pyproject.toml",  # included by default
     "/README.md",  # included as readme
-    "/setup.cfg",
     "/supportedsites.md",
 ]
 artifacts = [

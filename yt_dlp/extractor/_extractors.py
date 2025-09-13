@@ -424,7 +424,6 @@ from .cpac import (
     CPACPlaylistIE,
 )
 from .cracked import CrackedIE
-from .crackle import CrackleIE
 from .craftsy import CraftsyIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
@@ -443,10 +442,6 @@ from .curiositystream import (
     CuriosityStreamCollectionsIE,
     CuriosityStreamIE,
     CuriosityStreamSeriesIE,
-)
-from .cwtv import (
-    CWTVIE,
-    CWTVMovieIE,
 )
 from .cybrary import (
     CybraryCourseIE,
@@ -1433,6 +1428,7 @@ from .onet import (
     OnetPlIE,
 )
 from .onionstudios import OnionStudiosIE
+from .onsen import OnsenIE
 from .opencast import (
     OpencastIE,
     OpencastPlaylistIE,
@@ -1465,10 +1461,6 @@ from .panopto import (
     PanoptoIE,
     PanoptoListIE,
     PanoptoPlaylistIE,
-)
-from .paramountplus import (
-    ParamountPlusIE,
-    ParamountPlusSeriesIE,
 )
 from .parler import ParlerIE
 from .parlview import ParlviewIE
@@ -1779,7 +1771,6 @@ from .rutube import (
     RutubePlaylistIE,
     RutubeTagsIE,
 )
-from .rutv import RUTVIE
 from .ruutu import RuutuIE
 from .ruv import (
     RuvIE,
@@ -1849,7 +1840,6 @@ from .simplecast import (
     SimplecastPodcastIE,
 )
 from .sina import SinaIE
-from .sixplay import SixPlayIE
 from .skeb import SkebIE
 from .sky import (
     SkyNewsIE,
@@ -1877,7 +1867,12 @@ from .skynewsau import SkyNewsAUIE
 from .slideshare import SlideshareIE
 from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
-from .smotrim import SmotrimIE
+from .smotrim import (
+    SmotrimAudioIE,
+    SmotrimIE,
+    SmotrimLiveIE,
+    SmotrimPlaylistIE,
+)
 from .snapchat import SnapchatSpotlightIE
 from .snotr import SnotrIE
 from .softwhiteunderbelly import SoftWhiteUnderbellyIE
@@ -1925,10 +1920,6 @@ from .spiegel import SpiegelIE
 from .sport5 import Sport5IE
 from .sportbox import SportBoxIE
 from .sportdeutschland import SportDeutschlandIE
-from .spotify import (
-    SpotifyIE,
-    SpotifyShowIE,
-)
 from .spreaker import (
     SpreakerIE,
     SpreakerShowIE,
@@ -2149,6 +2140,7 @@ from .tubitv import (
 )
 from .tumblr import TumblrIE
 from .tunein import (
+    TuneInEmbedIE,
     TuneInPodcastEpisodeIE,
     TuneInPodcastIE,
     TuneInShortenerIE,
@@ -2283,7 +2275,6 @@ from .utreon import UtreonIE
 from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veo import VeoIE
-from .vesti import VestiIE
 from .vevo import (
     VevoIE,
     VevoPlaylistIE,
@@ -2472,7 +2463,6 @@ from .wykop import (
     WykopPostCommentIE,
     WykopPostIE,
 )
-from .xanimu import XanimuIE
 from .xboxclips import XboxClipsIE
 from .xhamster import (
     XHamsterEmbedIE,
