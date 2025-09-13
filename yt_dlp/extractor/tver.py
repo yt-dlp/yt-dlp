@@ -17,7 +17,7 @@ from ..utils.traversal import require, traverse_obj
 
 
 class TVerIE(StreaksBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?P<type>lp|corner|series|episodes?|feature)/)+(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?P<type>lp|corner|series|episodes?|feature|talents)/)+(?P<id>[a-zA-Z0-9]+)'
     _GEO_COUNTRIES = ['JP']
     _GEO_BYPASS = False
     _TESTS = [{
@@ -96,6 +96,12 @@ class TVerIE(StreaksBaseIE):
     }, {
         'url': 'https://tver.jp/series/srkq2shp9d',
         'only_matching': True,
+    }, {
+        'url': 'https://tver.jp/talents/t0134c7',
+        'info_dict': {
+            'id': 't0134c7',
+            'title': '千鳥',
+        },
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
     _HEADERS = {
@@ -137,6 +143,17 @@ class TVerIE(StreaksBaseIE):
             yield from traverse_obj(episodes_info, (
                 'result', 'contents', lambda _, v: v['type'] == 'episode', 'content', 'id', {str}))
 
+    def _yield_episode_ids_for_talent(self, talent_id):
+        episodes_info = self._call_platform_api(
+            f'v1/callTalentEpisode/{talent_id}', talent_id,
+            'Downloading talent episodes info', fatal=False, query={'require_data': 'later'})
+        episode_ids = list(traverse_obj(episodes_info, (
+            'result', 'contents', lambda _, v: v.get('type') == 'episode', 'content', 'id', {str})))
+        if episode_ids:
+            for eid in episode_ids:
+                yield eid
+            return
+
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
         backend = self._configuration_arg('backend', ['streaks'])[0]
@@ -149,6 +166,18 @@ class TVerIE(StreaksBaseIE):
             return self.playlist_from_matches(
                 self._yield_episode_ids_for_series(video_id), video_id,
                 traverse_obj(series_info, ('result', 'content', 'content', 'title', {str})),
+                ie=TVerIE, getter=lambda x: f'https://tver.jp/episodes/{x}')
+
+        if video_type == 'talents':
+            # Talent metadata (non-fatal). Prefer v1; adjust traversal flexibly.
+            talent_info = self._call_platform_api(
+                f'v1/callTalent/{video_id}', video_id, 'Downloading talent info', fatal=False)
+            talent_title = traverse_obj(talent_info, (
+                'result', ('content', 'talent'), 'content', ('title', 'name'), {str})) or traverse_obj(
+                talent_info, ('result', ('content', 'talent'), ('title', 'name'), {str}))
+            entries_iter = list(self._yield_episode_ids_for_talent(video_id))
+            return self.playlist_from_matches(
+                entries_iter, video_id, talent_title,
                 ie=TVerIE, getter=lambda x: f'https://tver.jp/episodes/{x}')
 
         if video_type != 'episodes':
