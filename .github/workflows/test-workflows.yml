@@ -3,12 +3,14 @@ on:
   push:
     paths:
       - .github/workflows/*
+      - bundle/docker/linux/*.sh
       - devscripts/setup_variables.py
       - devscripts/setup_variables_tests.py
       - devscripts/utils.py
   pull_request:
     paths:
       - .github/workflows/*
+      - bundle/docker/linux/*.sh
       - devscripts/setup_variables.py
       - devscripts/setup_variables_tests.py
       - devscripts/utils.py
@@ -42,6 +44,9 @@ jobs:
       - name: Run actionlint
         run: |
           ./actionlint -color
+      - name: Check Docker shell scripts
+        run: |
+          shellcheck bundle/docker/linux/*.sh
       - name: Test GHA devscripts
         run: |
           pytest -Werror --tb=short devscripts/setup_variables_tests.py
