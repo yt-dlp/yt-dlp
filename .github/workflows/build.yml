@@ -134,12 +134,10 @@ jobs:
                   'os': 'linux',
                   'arch': 'x86_64',
                   'runner': 'ubuntu-24.04',
-                  'verify_outside_container': True,
               }, {
                   'os': 'linux',
                   'arch': 'aarch64',
                   'runner': 'ubuntu-24.04-arm',
-                  'verify_outside_container': True,
               }],
               'linux_armv7l': [{
                   'os': 'linux',
@@ -175,7 +173,6 @@ jobs:
               exe.setdefault('onefile', True)
               exe.setdefault('onedir', True)
               exe.setdefault('cache_requirements', False)
-              exe.setdefault('verify_outside_container', False)
               exe.setdefault('update_to', os.environ['UPDATE_TO'])
           if not any(INPUTS.get(key) for key in EXE_MAP):
               print('skipping linux job')
@@ -297,17 +294,6 @@ jobs:
         run: |
           cd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-
-      - name: Verify --update-to
-        if: matrix.verify_outside_container && vars.UPDATE_TO_VERIFICATION
-        run: |
-          chmod +x "./dist/${EXE_NAME}"
-          mkdir -p ~/testing
-          cp "./dist/${EXE_NAME}" ~/testing/"${EXE_NAME}_downgraded"
-          version="$("./dist/${EXE_NAME}" --version)"
-          ~/testing/"${EXE_NAME}_downgraded" -v --update-to "${UPDATE_TO}"
-          downgraded_version="$(~/testing/"${EXE_NAME}_downgraded" --version)"
-          [[ "${version}" != "${downgraded_version}" ]]
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
