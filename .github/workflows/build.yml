@@ -124,6 +124,7 @@ jobs:
         id: linux_matrix
         env:
           INPUTS: ${{ toJSON(inputs) }}
+          PYTHON_VERSION: '3.13'
           UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
         shell: python
         run: |
@@ -173,6 +174,7 @@ jobs:
               exe.setdefault('onefile', True)
               exe.setdefault('onedir', True)
               exe.setdefault('cache_requirements', False)
+              exe.setdefault('python_version', os.environ['PYTHON_VERSION'])
               exe.setdefault('update_to', os.environ['UPDATE_TO'])
           if not any(INPUTS.get(key) for key in EXE_MAP):
               print('skipping linux job')
@@ -247,6 +249,7 @@ jobs:
       ORIGIN: ${{ needs.process.outputs.origin }}
       VERSION: ${{ needs.process.outputs.version }}
       EXE_NAME: ${{ matrix.exe }}
+      PYTHON_VERSION: ${{ matrix.python_version }}
       UPDATE_TO: ${{ matrix.update_to }}
       SKIP_UPDATE_TO: ${{ (!vars.UPDATE_TO_VERIFICATION && '1') || '' }}
       SKIP_ONEDIR_BUILD: ${{ (!matrix.onedir && '1') || '' }}
