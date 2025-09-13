@@ -2121,7 +2121,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             step = None
             # Quelch pyflakes warnings - start will be set when step is set
             start = '(Never used)'
-            for i, prev in zip(idxs[1:], idxs[:-1]):
+            for i, prev in zip(idxs[1:], idxs[:-1], strict=True):
                 if step is not None:
                     if i - prev == step:
                         continue
