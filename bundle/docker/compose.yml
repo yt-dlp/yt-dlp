@@ -13,6 +13,9 @@ services:
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
+      PYTHON_VERSION:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../..:/yt-dlp
 
@@ -27,6 +30,8 @@ services:
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../../dist:/build
 
@@ -43,6 +48,9 @@ services:
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
+      PYTHON_VERSION:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../..:/yt-dlp
 
@@ -57,6 +65,8 @@ services:
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../../dist:/build
 
@@ -73,10 +83,12 @@ services:
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
-      SKIP_ONEFILE_BUILD: "1"
+      PYTHON_VERSION:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../..:/yt-dlp
-      - ~/yt-dlp-build-venv:/yt-dlp-build-venv
+      - ../../venv:/yt-dlp-build-venv
 
   linux_armv7l_verify:
     build:
@@ -89,7 +101,8 @@ services:
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
-      TEST_ONEDIR_BUILD: "1"
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../../dist:/build
 
@@ -106,6 +119,9 @@ services:
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
+      PYTHON_VERSION:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../..:/yt-dlp
 
@@ -120,6 +136,8 @@ services:
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../../dist:/build
 
@@ -136,6 +154,9 @@ services:
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
+      PYTHON_VERSION:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
       EXCLUDE_CURL_CFFI: "1"
     volumes:
       - ../..:/yt-dlp
@@ -151,5 +172,7 @@ services:
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../../dist:/build
