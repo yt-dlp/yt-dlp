@@ -24,6 +24,7 @@ if [[ -z "${EXCLUDE_CURL_CFFI:-}" ]]; then
 fi
 
 runpy -m venv /yt-dlp-build-venv
+# shellcheck disable=SC1091
 source /yt-dlp-build-venv/bin/activate
 # Inside the venv we use venvpy instead of runpy
 venvpy -m ensurepip --upgrade --default-pip
