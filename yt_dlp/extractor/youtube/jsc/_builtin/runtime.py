@@ -77,14 +77,14 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     # TODO: insert correct hashes here
     # TODO: Integration tests for each kind of bundle source
     _ALLOWED_HASHES = {
-        ScriptType.LIB: [
-            '488c1903d8beb24ee9788400b2a91e724751b04988ba4de398320de0e36b4a9e3a8db58849189bf1d48df3fc4b0972d96b4aabfd80fea25d7c43988b437062fd',
-            'cbd33afbfa778e436aef774f3983f0b1234ad7f737ea9dbd9783ee26dce195f4b3242d1e202b2038e748044960bc2f976372e883c76157b24acdea939dba7603',
-        ],
-        ScriptType.CORE: [
-            'df0c08c152911dedd35a98bbbb6a1786718c11e4233c52abda3d19fd11d97c3ba09745dfbca913ddeed72fead18819f62139220420c41a04d5a66ed629fbde4e',
-            '8abfd4818573b6cf397cfae227661e3449fb5ac737a272ac0cf8268d94447b04b1c9a15f459b336175bf0605678a376e962df99b2c8d5498f16db801735f771c',
-        ],
+        ScriptType.LIB: {
+            ScriptTypeVariant.MINIFIED: '488c1903d8beb24ee9788400b2a91e724751b04988ba4de398320de0e36b4a9e3a8db58849189bf1d48df3fc4b0972d96b4aabfd80fea25d7c43988b437062fd',
+            ScriptTypeVariant.DENO_NPM: 'cbd33afbfa778e436aef774f3983f0b1234ad7f737ea9dbd9783ee26dce195f4b3242d1e202b2038e748044960bc2f976372e883c76157b24acdea939dba7603',
+        },
+        ScriptType.CORE: {
+            ScriptTypeVariant.MINIFIED: 'df0c08c152911dedd35a98bbbb6a1786718c11e4233c52abda3d19fd11d97c3ba09745dfbca913ddeed72fead18819f62139220420c41a04d5a66ed629fbde4e',
+            ScriptTypeVariant.UNMINIFIED: '8abfd4818573b6cf397cfae227661e3449fb5ac737a272ac0cf8268d94447b04b1c9a15f459b336175bf0605678a376e962df99b2c8d5498f16db801735f771c',
+        },
     }
 
     _SCRIPT_FILENAMES = {
@@ -165,30 +165,31 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
 
     @functools.cached_property
     def _lib_script(self, /):
-        return self._get_bundle(ScriptType.LIB)
+        return self._get_script(ScriptType.LIB)
 
     @functools.cached_property
     def _core_script(self, /):
-        return self._get_bundle(ScriptType.CORE)
+        return self._get_script(ScriptType.CORE)
 
-    def _get_bundle(self, bundle_type: ScriptType, /) -> Script:
-        for bundle in self._iter_script_sources(bundle_type):
-            if bundle.version != self._SUPPORTED_VERSION:
+    def _get_script(self, script_type: ScriptType, /) -> Script:
+        for script in self._iter_script_sources(script_type):
+            if script.version != self._SUPPORTED_VERSION:
                 self.logger.warning(
-                    f'Challenge solver {bundle_type.value} script version {bundle.version} '
-                    f'is not supported (source: {bundle.source.value}, supported version: {self._SUPPORTED_VERSION})')
+                    f'Challenge solver {script_type.value} script version {script.version} '
+                    f'is not supported (source: {script.source.value}, supported version: {self._SUPPORTED_VERSION})')
                 if not self.dev_mode:
                     continue
-            elif bundle.hash not in self._ALLOWED_HASHES[bundle.type] and not self.dev_mode:
+            script_hashes = self._ALLOWED_HASHES[script.type].get(script.variant, [])
+            if script_hashes and script.hash not in script_hashes and not self.dev_mode:
                 self.logger.warning(
-                    f'Hash mismatch on challenge solver {bundle.type.value} script '
-                    f'(source: {bundle.source.value}, hash: {bundle.hash})!{provider_bug_report_message(self)}')
+                    f'Hash mismatch on challenge solver {script.type.value} script '
+                    f'(source: {script.source.value}, hash: {script.hash})!{provider_bug_report_message(self)}')
             else:
-                self.logger.debug(f'Using challenge solver {bundle.type.value} script v{bundle.version} (source: {bundle.source.value}, variant: {bundle.variant.value})')
-                return bundle
+                self.logger.debug(f'Using challenge solver {script.type.value} script v{script.version} (source: {script.source.value}, variant: {script.variant.value})')
+                return script
 
         self._available = False
-        raise JsChallengeProviderRejectedRequest(f'No usable challenge solver {bundle_type.value} script available')
+        raise JsChallengeProviderRejectedRequest(f'No usable challenge solver {script_type.value} script available')
 
     def _iter_script_sources(self, script_type: ScriptType, /) -> Generator[Script]:
         for getter in (
@@ -251,9 +252,9 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     def _web_release_source(self, script_type: ScriptType, /) -> Script | None:
         # TODO: check if github downloads are enabled
         url = f'https://github.com/{self._REPOSITORY}/releases/download/{self._SUPPORTED_VERSION}/{self._MIN_SCRIPT_FILENAMES[script_type]}'
-        if code := self.ie._download_webpage(
-            url, None, f'Downloading challenge solver {script_type.value} script from  {url}',
-            f'Failed to download challenge solver {script_type.value} script', fatal=False,
+        if code := self.ie._download_webpage_with_retries(
+            url, None, f'[{self.logger.prefix}] Downloading challenge solver {script_type.value} script from  {url}',
+            f'[{self.logger.prefix}] Failed to download challenge solver {script_type.value} script', fatal=False,
         ):
             self.ie.cache.store(self._CACHE_SECTION, script_type.value, {
                 'version': self._SUPPORTED_VERSION,
