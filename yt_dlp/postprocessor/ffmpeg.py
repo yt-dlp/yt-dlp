@@ -676,7 +676,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
     @staticmethod
     def _options(target_ext):
-        audio_only = target_ext == 'm4a'
+        audio_only = target_ext in ('opus', 'wav')
         yield from FFmpegPostProcessor.stream_copy_opts(not audio_only)
         if audio_only:
             yield from ('-vn', '-acodec', 'copy')
