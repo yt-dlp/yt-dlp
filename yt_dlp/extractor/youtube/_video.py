@@ -3307,7 +3307,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     s_challenge = fmt.pop('_jsc_s_challenge', None)
                     if s_challenge is not None:
-                        s_challenges.setdefault(len(s_challenge), {'s': s_challenge, 'fmts': []})['fmts'].append(fmt)
+                        s_challenges.setdefault(len(s_challenge), {}).setdefault(s_challenge, []).append(fmt)
 
                 challenge_requests = []
                 if n_challenges:
@@ -3331,12 +3331,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                 s_challenge_data = s_challenges.pop(spec_id, {})
                                 if not s_challenge_data:
                                     continue
-                                solved_challenge = solve_sig(s_challenge_data['s'], spec)
-                                for fmt in s_challenge_data['fmts']:
-                                    sc = fmt.pop('_jsc_s_sc')
-                                    fmt['url'] += '&{}={}'.format(
-                                        traverse_obj(sc, ('sp', -1)) or 'signature',
-                                        solved_challenge)
+                                for s_challenge, fmts in s_challenge_data.items():
+                                    solved_challenge = solve_sig(s_challenge, spec)
+                                    for fmt in fmts:
+                                        sc = fmt.pop('_jsc_s_sc')
+                                        fmt['url'] += '&{}={}'.format(
+                                            traverse_obj(sc, ('sp', -1)) or 'signature',
+                                            solved_challenge)
 
                         elif challenge_response.type == JsChallengeType.N:
                             for challenge, result in challenge_response.output.results.items():
