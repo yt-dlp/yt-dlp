@@ -14,12 +14,14 @@ from yt_dlp.extractor.youtube.jsc._builtin.bundle import load_bundle_code
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
+    JsChallengeProviderRejectedRequest,
     JsChallengeProviderResponse,
     JsChallengeResponse,
     JsChallengeType,
-    NSigChallengeOutput,
+    NChallengeOutput,
     SigChallengeOutput,
 )
+from yt_dlp.extractor.youtube.pot.provider import provider_bug_report_message
 from yt_dlp.utils._jsruntime import JsRuntimeInfo
 
 TYPE_CHECKING = False
@@ -28,15 +30,20 @@ if TYPE_CHECKING:
 
     from yt_dlp.extractor.youtube.jsc.provider import JsChallengeRequest
 
-# TODO: decouple BundleType from the filename as there can be min and non-min versions
 
-
-class BundleType(enum.Enum):
+class ScriptType(enum.Enum):
     LIB = 'lib'
-    JSC = 'jsc'
+    CORE = 'core'
 
 
-class BundleSource(enum.Enum):
+class ScriptTypeVariant(enum.Enum):
+    UNKNOWN = 'unknown'
+    MINIFIED = 'minified'
+    UNMINIFIED = 'unminified'
+    DENO_NPM = 'deno_npm'
+
+
+class ScriptSource(enum.Enum):
     PYPACKAGE = 'python package'
     BINARY = 'binary'
     CACHE = 'cache'
@@ -45,9 +52,10 @@ class BundleSource(enum.Enum):
 
 
 @dataclasses.dataclass
-class _Bundle:
-    type: BundleType
-    source: BundleSource
+class Script:
+    type: ScriptType
+    variant: ScriptTypeVariant
+    source: ScriptSource
     version: str
     code: str
 
@@ -56,44 +64,46 @@ class _Bundle:
         return hashlib.sha3_512(self.code.encode()).hexdigest()
 
     def __str__(self, /):
-        return f'<JSCBundle {self.type.value!r} v{self.version} (source: {self.source.value}) size={len(self.code)} hash={self.hash[:7]}...>'
+        return f'<Script {self.type.value!r} v{self.version} (source: {self.source.value}) variant={self.variant.value!r} size={len(self.code)} hash={self.hash[:7]}...>'
 
 
-class JsRuntimeJCPBase(JsChallengeProvider):
+class JsRuntimeChalBaseJCP(JsChallengeProvider):
     JS_RUNTIME_NAME: str
-    _CACHE_SECTION = 'jsc-builtin'
+    _CACHE_SECTION = 'challenge-solver'
 
     _REPOSITORY = 'yt-dlp/yt-dlp-jsc-deno'
-    _SUPPORTED_TYPES = [JsChallengeType.NSIG, JsChallengeType.SIG]
+    _SUPPORTED_TYPES = [JsChallengeType.N, JsChallengeType.SIG]
     _SUPPORTED_VERSION = '0.0.1'
     # TODO: insert correct hashes here
+    # TODO: Integration tests for each kind of bundle source
     _ALLOWED_HASHES = {
-        BundleType.LIB: [
+        ScriptType.LIB: [
             '488c1903d8beb24ee9788400b2a91e724751b04988ba4de398320de0e36b4a9e3a8db58849189bf1d48df3fc4b0972d96b4aabfd80fea25d7c43988b437062fd',
             'cbd33afbfa778e436aef774f3983f0b1234ad7f737ea9dbd9783ee26dce195f4b3242d1e202b2038e748044960bc2f976372e883c76157b24acdea939dba7603',
         ],
-        BundleType.JSC: [
+        ScriptType.CORE: [
             'df0c08c152911dedd35a98bbbb6a1786718c11e4233c52abda3d19fd11d97c3ba09745dfbca913ddeed72fead18819f62139220420c41a04d5a66ed629fbde4e',
             '8abfd4818573b6cf397cfae227661e3449fb5ac737a272ac0cf8268d94447b04b1c9a15f459b336175bf0605678a376e962df99b2c8d5498f16db801735f771c',
         ],
     }
 
-    _BUNDLE_FILENAMES = {
-        BundleType.LIB: 'lib.js',
-        BundleType.JSC: 'jsc.js',
+    _SCRIPT_FILENAMES = {
+        ScriptType.LIB: 'lib.js',
+        ScriptType.CORE: 'core.js',
     }
 
-    _MIN_BUNDLE_FILENAMES = {
-        BundleType.LIB: 'lib.min.js',
-        BundleType.JSC: 'jsc.min.js',
+    _MIN_SCRIPT_FILENAMES = {
+        ScriptType.LIB: 'lib.min.js',
+        ScriptType.CORE: 'core.min.js',
     }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._debug = self.settings.get('debug', []) == ['true']
+        self.dev_mode = self.settings.get('dev_mode', []) == ['true']
         self._available = True
 
     def _run_js_runtime(self, stdin: str, /) -> str:
+        """To be implemented by subclasses"""
         raise NotImplementedError
 
     def _real_bulk_solve(self, /, requests: list[JsChallengeRequest]):
@@ -125,12 +135,13 @@ class JsRuntimeJCPBase(JsChallengeProvider):
                     yield JsChallengeProviderResponse(request, None, response_data['error'])
                 else:
                     yield JsChallengeProviderResponse(request, JsChallengeResponse(request.type, (
-                        NSigChallengeOutput(response_data['data']) if request.type is JsChallengeType.NSIG
+                        NChallengeOutput(response_data['data']) if request.type is JsChallengeType.N
                         else SigChallengeOutput(response_data['data']))))
 
     def _construct_stdin(self, player: str, preprocessed: bool, requests: list[JsChallengeRequest], /) -> str:
         json_requests = [{
-            'type': request.type.value,
+            # TODO: i despise nsig name
+            'type': 'nsig' if request.type.value == 'n' else request.type.value,
             'challenges': request.input.challenges,
         } for request in requests]
         data = {
@@ -144,83 +155,114 @@ class JsRuntimeJCPBase(JsChallengeProvider):
             'output_preprocessed': True,
         }
         return f'''\
-        {self._lib_bundle.code}
+        {self._lib_script.code}
         const {{ astring, meriyah }} = lib;
-        {self._jsc_bundle.code}
+        {self._core_script.code}
         console.log(JSON.stringify(jsc({json.dumps(data)})));
         '''
 
-    @functools.cached_property
-    def _lib_bundle(self, /):
-        return self._get_bundle(BundleType.LIB)
+    # region: challenge solver script
 
     @functools.cached_property
-    def _jsc_bundle(self, /):
-        return self._get_bundle(BundleType.JSC)
+    def _lib_script(self, /):
+        return self._get_bundle(ScriptType.LIB)
 
-    def _get_bundle(self, bundle_type: BundleType, /) -> _Bundle:
-        for bundle in self._iter_bundles(bundle_type):
+    @functools.cached_property
+    def _core_script(self, /):
+        return self._get_bundle(ScriptType.CORE)
+
+    def _get_bundle(self, bundle_type: ScriptType, /) -> Script:
+        for bundle in self._iter_script_sources(bundle_type):
             if bundle.version != self._SUPPORTED_VERSION:
-                self.logger.debug(f'Version {bundle.version} ({bundle.type.value} (source: {bundle.source.value}) is not supported')
-
-            elif bundle.hash not in self._ALLOWED_HASHES[bundle.type] and not self._debug:
-                self.logger.warning(f'Hash mismatch on {bundle.type.value} (source: {bundle.source.value}, hash: {bundle.hash})!')
-
+                self.logger.warning(
+                    f'Challenge solver {bundle_type.value} script version {bundle.version} '
+                    f'is not supported (source: {bundle.source.value}, supported version: {self._SUPPORTED_VERSION})')
+                if not self.dev_mode:
+                    continue
+            elif bundle.hash not in self._ALLOWED_HASHES[bundle.type] and not self.dev_mode:
+                self.logger.warning(
+                    f'Hash mismatch on challenge solver {bundle.type.value} script '
+                    f'(source: {bundle.source.value}, hash: {bundle.hash})!{provider_bug_report_message(self)}')
             else:
-                self.logger.debug(f'Using {bundle.type.value} v{bundle.version} (source: {bundle.source.value})')
+                self.logger.debug(f'Using challenge solver {bundle.type.value} script v{bundle.version} (source: {bundle.source.value}, variant: {bundle.variant.value})')
                 return bundle
 
         self._available = False
-        raise JsChallengeProviderError(f'failed to find usable {bundle_type.value}')
+        raise JsChallengeProviderRejectedRequest(f'No usable challenge solver {bundle_type.value} script available')
 
-    def _iter_bundles(self, bundle_type: BundleType, /) -> Generator[_Bundle]:
-        # TODO: consider bun/deno npm resolver bundles?
+    def _iter_script_sources(self, script_type: ScriptType, /) -> Generator[Script]:
+        for getter in (
+            self._pypackage_source,
+            self._binary_source,
+            self._cached_source,
+            self._builtin_source,
+            self._provider_hook_source,
+            self._web_release_source,
+        ):
+            # TODO: fix typing
+            script = getter(script_type)
+            if script:
+                yield script
+
+    def _pypackage_source(self, script_type: ScriptType, /) -> Script | None:
         try:
-            import yt_dlp_jsc
-        except ImportError:
-            if self._debug:
-                self.logger.warning('Failed to import yt_dlp_jsc package in debug mode')
-        else:
-            code = yt_dlp_jsc.jsc() if bundle_type is BundleType.JSC else yt_dlp_jsc.lib()
-            yield _Bundle(bundle_type, BundleSource.PYPACKAGE, yt_dlp_jsc.version, code)
+            import yt_dlp_jsc as yt_dlp_ejs
+        except ImportError as e:
+            self.logger.trace(f'yt_dlp_ejs python package unavailable, reason: {e}')
+            return None
+        # TODO: fix API naming
+        code = yt_dlp_ejs.jsc() if script_type is ScriptType.CORE else yt_dlp_ejs.lib()
+        return Script(script_type, ScriptTypeVariant.MINIFIED, ScriptSource.PYPACKAGE, yt_dlp_ejs.version, code)
 
+    def _binary_source(self, script_type: ScriptType, /) -> Script | None:
         if (
             # Use bundled JavaScript only in release binaries
             getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
-            and importlib.resources.is_resource(yt_dlp, self._MIN_BUNDLE_FILENAMES[bundle_type])
+            and importlib.resources.is_resource(yt_dlp, self._MIN_SCRIPT_FILENAMES[script_type])
         ):
-            code = importlib.resources.read_text(yt_dlp, self._MIN_BUNDLE_FILENAMES[bundle_type])
-            yield _Bundle(bundle_type, BundleSource.BINARY, self._SUPPORTED_VERSION, code)
+            code = importlib.resources.read_text(yt_dlp, self._MIN_SCRIPT_FILENAMES[script_type])
+            return Script(script_type, ScriptTypeVariant.MINIFIED, ScriptSource.BINARY, self._SUPPORTED_VERSION, code)
+        return None
 
-        if data := self.ie.cache.load(self._CACHE_SECTION, bundle_type.value):
-            yield _Bundle(bundle_type, BundleSource.CACHE, data['version'], data['code'])
+    def _cached_source(self, script_type: ScriptType, /) -> Script | None:
+        if data := self.ie.cache.load(self._CACHE_SECTION, script_type.value):
+            return Script(script_type, ScriptTypeVariant.MINIFIED, ScriptSource.CACHE, data['version'], data['code'])
+        return None
 
-        # Check if included in source distribution
+    def _builtin_source(self, script_type: ScriptType, /) -> Script | None:
+        error_hook = lambda _: self.logger.warning(
+            f'Failed to read builtin challenge solver {script_type.value} script{provider_bug_report_message(self)}')
         code = load_bundle_code(
-            self._BUNDLE_FILENAMES[bundle_type],
-            error_hook=lambda _: self.logger.warning('Failed to read bundled jsc file from source distribution'))
+            self._SCRIPT_FILENAMES[script_type], error_hook=error_hook)
         if code:
-            yield _Bundle(bundle_type, BundleSource.BUILTIN, self._SUPPORTED_VERSION, code)
+            return Script(script_type, ScriptTypeVariant.UNMINIFIED, ScriptSource.BUILTIN, self._SUPPORTED_VERSION, code)
+        return None
 
-        # Try provider bundle method
-        if bundle := self._provider_bundle_hook(bundle_type):
-            self.logger.trace('fetched bundle from provider hook')
-            yield bundle
+    def _provider_hook_source(self, script_type: ScriptType, /) -> Script | None:
+        if bundle := self._script_provider_hook(script_type):
+            self.logger.trace(f'Using challenge solver {script_type.value} script from provider hook')
+            return bundle
+        return None
 
+    def _script_provider_hook(self, script_type: ScriptType, /) -> Script | None:
+        """Optional additional source for scripts, to be implemented by providers"""
+        return None
+
+    def _web_release_source(self, script_type: ScriptType, /) -> Script | None:
+        # TODO: check if github downloads are enabled
+        url = f'https://github.com/{self._REPOSITORY}/releases/download/{self._SUPPORTED_VERSION}/{self._MIN_SCRIPT_FILENAMES[script_type]}'
         if code := self.ie._download_webpage(
-            f'https://github.com/{self._REPOSITORY}/releases/download/{self._SUPPORTED_VERSION}/{bundle_type.value}',
-            None, f'Downloading supplementary {bundle_type.value} file',
-            f'Failed to download supplementary {bundle_type.value} file', fatal=False,
+            url, None, f'Downloading challenge solver {script_type.value} script from  {url}',
+            f'Failed to download challenge solver {script_type.value} script', fatal=False,
         ):
-            self.ie.cache.store(self._CACHE_SECTION, bundle_type.value, {
+            self.ie.cache.store(self._CACHE_SECTION, script_type.value, {
                 'version': self._SUPPORTED_VERSION,
                 'code': code,
             })
-            yield _Bundle(bundle_type, BundleSource.WEB, self._SUPPORTED_VERSION, code)
-
-    def _provider_bundle_hook(self, bundle_type: BundleType, /) -> _Bundle | None:
-        """To be implemented by providers"""
+            return Script(script_type, ScriptTypeVariant.MINIFIED, ScriptSource.WEB, self._SUPPORTED_VERSION, code)
         return None
+
+    # endregion: challenge solver script
 
     @property
     def runtime_info(self) -> JsRuntimeInfo | bool:

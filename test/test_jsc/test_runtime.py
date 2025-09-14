@@ -13,8 +13,8 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeType,
     JsChallengeProviderResponse,
     JsChallengeResponse,
-    NSigChallengeInput,
-    NSigChallengeOutput,
+    NChallengeInput,
+    NChallengeOutput,
     SigChallengeInput,
     SigChallengeOutput,
 )
@@ -26,20 +26,20 @@ from yt_dlp.extractor.youtube.jsc._builtin.node import NodeJCP
 pytestmark = pytest.mark.skipif(not yt_dlp_jsc, reason='yt-dlp-jsc not available')
 
 TESTS = [
-    JsChallengeRequest(JsChallengeType.NSIG, NSigChallengeInput('https://www.youtube.com/s/player/3d3ba064/player_ias_tce.vflset/en_US/base.js', [
+    JsChallengeRequest(JsChallengeType.N, NChallengeInput('https://www.youtube.com/s/player/3d3ba064/player_ias_tce.vflset/en_US/base.js', [
         'ZdZIqFPQK-Ty8wId',
         '4GMrWHyKI5cEvhDO',
     ])),
     JsChallengeRequest(JsChallengeType.SIG, SigChallengeInput('https://www.youtube.com/s/player/3d3ba064/player_ias_tce.vflset/en_US/base.js', [
         'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt',
     ])),
-    JsChallengeRequest(JsChallengeType.NSIG, NSigChallengeInput('https://www.youtube.com/s/player/5ec65609/player_ias_tce.vflset/en_US/base.js', [
+    JsChallengeRequest(JsChallengeType.N, NChallengeInput('https://www.youtube.com/s/player/5ec65609/player_ias_tce.vflset/en_US/base.js', [
         '0eRGgQWJGfT5rFHFj',
     ])),
     JsChallengeRequest(JsChallengeType.SIG, SigChallengeInput('https://www.youtube.com/s/player/5ec65609/player_ias_tce.vflset/en_US/base.js', [
         'AAJAJfQdSswRQIhAMG5SN7-cAFChdrE7tLA6grH0rTMICA1mmDc0HoXgW3CAiAQQ4=CspfaF_vt82XH5yewvqcuEkvzeTsbRuHssRMyJQ=I',
     ])),
-    JsChallengeRequest(JsChallengeType.NSIG, NSigChallengeInput('https://www.youtube.com/s/player/6742b2b9/player_ias_tce.vflset/en_US/base.js', [
+    JsChallengeRequest(JsChallengeType.N, NChallengeInput('https://www.youtube.com/s/player/6742b2b9/player_ias_tce.vflset/en_US/base.js', [
         '_HPB-7GFg1VTkn9u',
         'K1t_fcB6phzuq2SF',
     ])),
@@ -50,7 +50,7 @@ TESTS = [
 
 RESPONSES = [
     JsChallengeProviderResponse(test, JsChallengeResponse(test.type, (
-        NSigChallengeOutput if test.type is JsChallengeType.NSIG else SigChallengeOutput
+        NChallengeOutput if test.type is JsChallengeType.N else SigChallengeOutput
     )(dict(zip(test.input.challenges, results)))))
     for test, results in zip(TESTS, [
         ['qmtUsIz04xxiNW', 'N9gmEX7YhKTSmw'],

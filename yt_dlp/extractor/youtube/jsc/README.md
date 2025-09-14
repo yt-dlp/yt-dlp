@@ -33,7 +33,7 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProviderRejectedRequest,
     JsChallengeType, 
     JsChallengeProviderResponse,
-    NSigChallengeOutput,
+    NChallengeOutput,
 )
 from yt_dlp.utils import traverse_obj, Popen
 import json
@@ -49,7 +49,7 @@ class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must
     
     # Set supported challenge types.
     # If None, the provider will handle all types.
-    _SUPPORTED_TYPES = [JsChallengeType.NSIG]
+    _SUPPORTED_TYPES = [JsChallengeType.N]
 
     def is_available(self) -> bool:
         """
@@ -107,8 +107,8 @@ class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must
             yield JsChallengeProviderResponse(
                 request=request, 
                 response=JsChallengeResponse(
-                    type=JsChallengeType.NSIG,
-                    output=NSigChallengeOutput(results=traverse_obj(json.loads(stdout))),
+                    type=JsChallengeType.N,
+                    output=NChallengeOutput(results=traverse_obj(json.loads(stdout))),
             ))
         
 

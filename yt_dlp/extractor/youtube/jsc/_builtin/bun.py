@@ -3,7 +3,7 @@ from __future__ import annotations
 import shlex
 import subprocess
 
-from yt_dlp.extractor.youtube.jsc._builtin.runtime import JsRuntimeJCPBase
+from yt_dlp.extractor.youtube.jsc._builtin.runtime import JsRuntimeChalBaseJCP
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
@@ -16,15 +16,17 @@ from yt_dlp.utils import Popen
 
 
 @register_provider
-class BunJCP(JsRuntimeJCPBase, BuiltinIEContentProvider):
+class BunJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
     PROVIDER_NAME = 'bun'
     JS_RUNTIME_NAME = 'bun'
 
     _ARGS = ['--bun', 'run', '-']
 
+    # TODO: bun npm script hook
+
     def _run_js_runtime(self, stdin: str, /) -> str:
         cmd = [self.runtime_info.path, *self._ARGS]
-        self.logger.trace(f'Running bun: {shlex.join(cmd)}')
+        self.logger.debug(f'Running bun: {shlex.join(cmd)}')
         with Popen(
             cmd,
             text=True,

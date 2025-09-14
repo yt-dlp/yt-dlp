@@ -3,7 +3,7 @@ from __future__ import annotations
 import shlex
 import subprocess
 
-from yt_dlp.extractor.youtube.jsc._builtin.runtime import JsRuntimeJCPBase
+from yt_dlp.extractor.youtube.jsc._builtin.runtime import JsRuntimeChalBaseJCP
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
@@ -16,7 +16,7 @@ from yt_dlp.utils import Popen
 
 
 @register_provider
-class NodeJCP(JsRuntimeJCPBase, BuiltinIEContentProvider):
+class NodeJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
     PROVIDER_NAME = 'node'
     JS_RUNTIME_NAME = 'node'
 
@@ -24,7 +24,7 @@ class NodeJCP(JsRuntimeJCPBase, BuiltinIEContentProvider):
 
     def _run_js_runtime(self, stdin: str, /) -> str:
         cmd = [self.runtime_info.path, *self._ARGS]
-        self.logger.trace(f'Running node: {shlex.join(cmd)}')
+        self.logger.debug(f'Running node: {shlex.join(cmd)}')
         with Popen(
             cmd,
             text=True,

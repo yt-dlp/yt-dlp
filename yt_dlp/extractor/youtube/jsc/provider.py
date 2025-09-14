@@ -24,8 +24,8 @@ __all__ = [
     'JsChallengeRequest',
     'JsChallengeResponse',
     'JsChallengeType',
-    'NSigChallengeInput',
-    'NSigChallengeOutput',
+    'NChallengeInput',
+    'NChallengeOutput',
     'SigChallengeInput',
     'SigChallengeOutput',
     'register_preference',
@@ -34,19 +34,19 @@ __all__ = [
 
 
 class JsChallengeType(enum.Enum):
-    NSIG = 'nsig'
+    N = 'n'
     SIG = 'sig'
 
 
 @dataclasses.dataclass(frozen=True)
 class JsChallengeRequest:
     type: JsChallengeType
-    input: NSigChallengeInput | SigChallengeInput
+    input: NChallengeInput | SigChallengeInput
     video_id: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
-class NSigChallengeInput:
+class NChallengeInput:
     player_url: str
     challenges: list[str] = dataclasses.field(default_factory=list)
 
@@ -58,7 +58,7 @@ class SigChallengeInput:
 
 
 @dataclasses.dataclass(frozen=True)
-class NSigChallengeOutput:
+class NChallengeOutput:
     results: dict[str, str] = dataclasses.field(default_factory=dict)
 
 
@@ -77,7 +77,7 @@ class JsChallengeProviderResponse:
 @dataclasses.dataclass
 class JsChallengeResponse:
     type: JsChallengeType
-    output: NSigChallengeOutput | SigChallengeOutput
+    output: NChallengeOutput | SigChallengeOutput
 
 
 class JsChallengeProviderRejectedRequest(IEContentProviderError):

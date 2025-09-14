@@ -25,7 +25,7 @@ from ._base import (
     short_client_name,
 )
 from .jsc._director import initialize_jsc_director
-from .jsc.provider import JsChallengeRequest, JsChallengeType, NSigChallengeInput, SigChallengeInput
+from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, SigChallengeInput
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
 from ...networking.exceptions import HTTPError
@@ -3312,9 +3312,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 challenge_requests = []
                 if n_challenges:
                     challenge_requests.append(JsChallengeRequest(
-                        type=JsChallengeType.NSIG,
+                        type=JsChallengeType.N,
                         video_id=video_id,
-                        input=NSigChallengeInput(challenges=list(n_challenges.keys()), player_url=player_url)))
+                        input=NChallengeInput(challenges=list(n_challenges.keys()), player_url=player_url)))
                 if s_challenges:
                     challenge_requests.append(JsChallengeRequest(
                         type=JsChallengeType.SIG,
@@ -3338,7 +3338,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                         traverse_obj(sc, ('sp', -1)) or 'signature',
                                         solved_challenge)
 
-                        elif challenge_response.type == JsChallengeType.NSIG:
+                        elif challenge_response.type == JsChallengeType.N:
                             for challenge, result in challenge_response.output.results.items():
                                 fmts = n_challenges.pop(challenge, [])
                                 for fmt in fmts:

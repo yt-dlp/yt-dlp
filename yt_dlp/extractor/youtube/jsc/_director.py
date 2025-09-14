@@ -16,8 +16,8 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeRequest,
     JsChallengeResponse,
     JsChallengeType,
-    NSigChallengeInput,
-    NSigChallengeOutput,
+    NChallengeInput,
+    NChallengeOutput,
     SigChallengeInput,
     SigChallengeOutput,
 )
@@ -203,20 +203,20 @@ def validate_provider_response(response: JsChallengeProviderResponse) -> bool:
 def validate_response(response: JsChallengeResponse, request: JsChallengeRequest) -> bool | str:
     if not isinstance(response, JsChallengeResponse):
         return 'Response is not a JsChallengeResponse'
-    if request.type == JsChallengeType.NSIG:
+    if request.type == JsChallengeType.N:
         return validate_nsig_challenge_output(response.output, request.input)
     else:
         return validate_sig_challenge_output(response.output, request.input)
 
 
-def validate_nsig_challenge_output(challenge_output: NSigChallengeOutput, challenge_input: NSigChallengeInput) -> bool | str:
+def validate_nsig_challenge_output(challenge_output: NChallengeOutput, challenge_input: NChallengeInput) -> bool | str:
     if not (
-        isinstance(challenge_output, NSigChallengeOutput)
+        isinstance(challenge_output, NChallengeOutput)
         and len(challenge_output.results) == len(challenge_input.challenges)
         and all(isinstance(k, str) and isinstance(v, str) for k, v in challenge_output.results.items())
         and all(challenge in challenge_output.results for challenge in challenge_input.challenges)
     ):
-        return 'Invalid NSigChallengeOutput'
+        return 'Invalid NChallengeOutput'
 
     # Validate nsig results are valid - if they end with the input challenge then the js function returned with an exception.
     for challenge, result in challenge_output.results.items():

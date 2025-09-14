@@ -11,8 +11,8 @@ from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeRequest,
     JsChallengeResponse,
     JsChallengeType,
-    NSigChallengeInput,
-    NSigChallengeOutput,
+    NChallengeInput,
+    NChallengeOutput,
     SigChallengeInput,
     SigChallengeOutput,
     register_provider,
@@ -25,7 +25,7 @@ from yt_dlp.utils import ExtractorError, filter_dict, js_to_json
 @register_provider
 class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
     PROVIDER_NAME = 'jsinterp'
-    _SUPPORTED_TYPES = [JsChallengeType.SIG, JsChallengeType.NSIG]
+    _SUPPORTED_TYPES = [JsChallengeType.SIG, JsChallengeType.N]
 
     _NSIG_FUNC_CACHE_ID = 'nsig func'
     _DUMMY_STRING = 'dlp_wins'
@@ -89,13 +89,13 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
     # endregion sig
 
     # region nsig
-    def _solve_nsig_challenges(self, video_id, nsig_input: NSigChallengeInput) -> NSigChallengeOutput:
+    def _solve_nsig_challenges(self, video_id, nsig_input: NChallengeInput) -> NChallengeOutput:
         """Turn the n field into a working signature"""
         results = {}
         self.logger.trace(f'Solving {len(nsig_input.challenges)} nsig challenges using player {nsig_input.player_url}')
         for challenge in nsig_input.challenges:
             results[challenge] = self._solve_nsig_challenge(challenge, video_id, nsig_input.player_url)
-        return NSigChallengeOutput(results=results)
+        return NChallengeOutput(results=results)
 
     def _solve_nsig_challenge(self, challenge, video_id, player_url) -> str:
         """Turn the n field into a working signature"""
