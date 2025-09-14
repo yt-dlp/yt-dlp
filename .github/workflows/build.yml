@@ -84,6 +84,8 @@ jobs:
       origin: ${{ steps.process_inputs.outputs.origin }}
       timestamp: ${{ steps.process_inputs.outputs.timestamp }}
       version: ${{ steps.process_inputs.outputs.version }}
+      linux_matrix: ${{ steps.linux_matrix.outputs.matrix }}
+
     steps:
       - name: Process inputs
         id: process_inputs
@@ -118,6 +120,69 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write('\n'.join(f'{key}={value}' for key, value in outputs.items()))
 
+      - name: Build Linux matrix
+        id: linux_matrix
+        env:
+          INPUTS: ${{ toJSON(inputs) }}
+          PYTHON_VERSION: '3.13'
+          UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
+        shell: python
+        run: |
+          import json
+          import os
+          EXE_MAP = {
+              'linux': [{
+                  'os': 'linux',
+                  'arch': 'x86_64',
+                  'runner': 'ubuntu-24.04',
+              }, {
+                  'os': 'linux',
+                  'arch': 'aarch64',
+                  'runner': 'ubuntu-24.04-arm',
+              }],
+              'linux_armv7l': [{
+                  'os': 'linux',
+                  'arch': 'armv7l',
+                  'runner': 'ubuntu-24.04-arm',
+                  'qemu_platform': 'linux/arm/v7',
+                  'onefile': False,
+                  'cache_requirements': True,
+                  'update_to': 'yt-dlp/yt-dlp@2023.03.04',
+              }],
+              'musllinux': [{
+                  'os': 'musllinux',
+                  'arch': 'x86_64',
+                  'runner': 'ubuntu-24.04',
+              }, {
+                  'os': 'musllinux',
+                  'arch': 'aarch64',
+                  'runner': 'ubuntu-24.04-arm',
+              }],
+          }
+          INPUTS = json.loads(os.environ['INPUTS'])
+          matrix = [exe for key, group in EXE_MAP.items() for exe in group if INPUTS.get(key)]
+          if not matrix:
+              # If we send an empty matrix when no linux inputs are given, the entire workflow fails
+              matrix = [EXE_MAP['linux'][0]]
+          for exe in matrix:
+              exe['exe'] = '_'.join(filter(None, (
+                  'yt-dlp',
+                  exe['os'],
+                  exe['arch'] != 'x86_64' and exe['arch'],
+              )))
+              exe.setdefault('qemu_platform', None)
+              exe.setdefault('onefile', True)
+              exe.setdefault('onedir', True)
+              exe.setdefault('cache_requirements', False)
+              exe.setdefault('python_version', os.environ['PYTHON_VERSION'])
+              exe.setdefault('update_to', os.environ['UPDATE_TO'])
+          if not any(INPUTS.get(key) for key in EXE_MAP):
+              print('skipping linux job')
+          else:
+              print(json.dumps(matrix, indent=2))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'matrix={json.dumps(matrix)}')
+
   unix:
     needs: process
     if: inputs.unix
@@ -127,24 +192,30 @@ jobs:
       ORIGIN: ${{ needs.process.outputs.origin }}
       VERSION: ${{ needs.process.outputs.version }}
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Needed for changelog
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
+
       - name: Install Requirements
         run: |
           sudo apt -y install zip pandoc man sed
+
       - name: Prepare
         run: |
           python devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
           python devscripts/update_changelog.py -vv
           python devscripts/make_lazy_extractors.py
+
       - name: Build Unix platform-independent binary
         run: |
           make all tar
+
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
@@ -154,6 +225,7 @@ jobs:
           ./yt-dlp_downgraded -v --update-to "${UPDATE_TO}"
           downgraded_version="$(./yt-dlp_downgraded --version)"
           [[ "${version}" != "${downgraded_version}" ]]
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -164,154 +236,71 @@ jobs:
           compression-level: 0
 
   linux:
+    name: ${{ matrix.os }} (${{ matrix.arch }})
+    if: inputs.linux || inputs.linux_armv7l || inputs.musllinux
     needs: process
-    if: inputs.linux
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-        - exe: yt-dlp_linux
-          platform: x86_64
-          runner: ubuntu-24.04
-        - exe: yt-dlp_linux_aarch64
-          platform: aarch64
-          runner: ubuntu-24.04-arm
+        include: ${{ fromJSON(needs.process.outputs.linux_matrix) }}
     env:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
       VERSION: ${{ needs.process.outputs.version }}
       EXE_NAME: ${{ matrix.exe }}
-      UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build executable
-        env:
-          SERVICE: linux_${{ matrix.platform }}
-        run: |
-          mkdir -p ./dist
-          pushd bundle/docker
-          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-          popd
-          sudo chown "${USER}:docker" "./dist/${EXE_NAME}"
-      - name: Verify executable in container
-        if: vars.UPDATE_TO_VERIFICATION
-        env:
-          SERVICE: linux_${{ matrix.platform }}_verify
-        run: |
-          cd bundle/docker
-          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-      - name: Verify --update-to
-        if: vars.UPDATE_TO_VERIFICATION
-        run: |
-          chmod +x "./dist/${EXE_NAME}"
-          mkdir -p ~/testing
-          cp "./dist/${EXE_NAME}" ~/testing/"${EXE_NAME}_downgraded"
-          version="$("./dist/${EXE_NAME}" --version)"
-          ~/testing/"${EXE_NAME}_downgraded" -v --update-to "${UPDATE_TO}"
-          downgraded_version="$(~/testing/"${EXE_NAME}_downgraded" --version)"
-          [[ "${version}" != "${downgraded_version}" ]]
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-bin-${{ github.job }}_${{ matrix.platform }}
-          path: |
-            dist/${{ matrix.exe }}*
-          compression-level: 0
+      PYTHON_VERSION: ${{ matrix.python_version }}
+      UPDATE_TO: ${{ (vars.UPDATE_TO_VERIFICATION && matrix.update_to) || '' }}
+      SKIP_ONEDIR_BUILD: ${{ (!matrix.onedir && '1') || '' }}
+      SKIP_ONEFILE_BUILD: ${{ (!matrix.onefile && '1') || '' }}
 
-  linux_armv7l:
-    needs: process
-    if: inputs.linux_armv7l
-    permissions:
-      contents: read
-    runs-on: ubuntu-24.04-arm
-    env:
-      CHANNEL: ${{ inputs.channel }}
-      ORIGIN: ${{ needs.process.outputs.origin }}
-      VERSION: ${{ needs.process.outputs.version }}
-      EXE_NAME: yt-dlp_linux_armv7l
     steps:
       - uses: actions/checkout@v4
+
       - name: Cache requirements
+        if: matrix.cache_requirements
         id: cache-venv
         uses: actions/cache@v4
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
           path: |
-            ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
+            venv
+          key: cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
           restore-keys: |
-            cache-reqs-${{ github.job }}-${{ github.ref }}-
-            cache-reqs-${{ github.job }}-
+            cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-${{ github.ref }}-
+            cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-
+
       - name: Set up QEMU
+        if: matrix.qemu_platform
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: linux/arm/v7
-      - name: Build executable
-        env:
-          SERVICE: linux_armv7l
-        run: |
-          mkdir -p ./dist
-          mkdir -p ~/yt-dlp-build-venv
-          cd bundle/docker
-          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-      - name: Verify executable in container
-        if: vars.UPDATE_TO_VERIFICATION
-        env:
-          SERVICE: linux_armv7l_verify
-        run: |
-          cd bundle/docker
-          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-bin-${{ github.job }}
-          path: |
-            dist/yt-dlp_linux_armv7l.zip
-          compression-level: 0
+          platforms: ${{ matrix.qemu_platform }}
 
-  musllinux:
-    needs: process
-    if: inputs.musllinux
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - exe: yt-dlp_musllinux
-          platform: x86_64
-          runner: ubuntu-24.04
-        - exe: yt-dlp_musllinux_aarch64
-          platform: aarch64
-          runner: ubuntu-24.04-arm
-    env:
-      CHANNEL: ${{ inputs.channel }}
-      ORIGIN: ${{ needs.process.outputs.origin }}
-      VERSION: ${{ needs.process.outputs.version }}
-      EXE_NAME: ${{ matrix.exe }}
-    steps:
-      - uses: actions/checkout@v4
       - name: Build executable
         env:
-          SERVICE: musllinux_${{ matrix.platform }}
+          SERVICE: ${{ matrix.os }}_${{ matrix.arch }}
         run: |
+          mkdir -p ./venv
           mkdir -p ./dist
           pushd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
           popd
-          sudo chown "${USER}:docker" "./dist/${EXE_NAME}"
+          if [[ -z "${SKIP_ONEFILE_BUILD}" ]]; then
+            sudo chown "${USER}:docker" "./dist/${EXE_NAME}"
+          fi
+
       - name: Verify executable in container
-        if: vars.UPDATE_TO_VERIFICATION
         env:
-          SERVICE: musllinux_${{ matrix.platform }}_verify
+          SERVICE: ${{ matrix.os }}_${{ matrix.arch }}_verify
         run: |
           cd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-bin-${{ github.job }}_${{ matrix.platform }}
+          name: build-bin-${{ matrix.os }}_${{ matrix.arch }}
           path: |
             dist/${{ matrix.exe }}*
           compression-level: 0
@@ -431,23 +420,23 @@ jobs:
           runner: windows-2025
           python_version: '3.10'
           platform_tag: win_amd64
-          pyi_version: '6.15.0'
-          pyi_tag: '2025.09.08.215938'
-          pyi_hash: f70e327d849b29562caf01c30db60e6e8b2facb68124612bb53b04f96ffe6852
+          pyi_version: '6.16.0'
+          pyi_tag: '2025.09.13.221251'
+          pyi_hash: b6496c7630c3afe66900cfa824e8234a8c2e2c81704bd7facd79586abc76c0e5
         - arch: 'x86'
           runner: windows-2025
           python_version: '3.10'
           platform_tag: win32
-          pyi_version: '6.15.0'
-          pyi_tag: '2025.09.08.215938'
-          pyi_hash: b9af6b49a3556d478935de2632cb7dbef41a0c226f7a8ce36efc3ca2aeab3d51
+          pyi_version: '6.16.0'
+          pyi_tag: '2025.09.13.221251'
+          pyi_hash: 2d881843580efdc54f3523507fc6d9c5b6051ee49c743a6d9b7003ac5758c226
         - arch: 'arm64'
           runner: windows-11-arm
           python_version: '3.13'  # arm64 only has Python >= 3.11 available
           platform_tag: win_arm64
-          pyi_version: '6.15.0'
-          pyi_tag: '2025.09.08.215938'
-          pyi_hash: 5dac9f802085432dd3135708e835ef4c08570c308d07c3ef8154495b76bf2a83
+          pyi_version: '6.16.0'
+          pyi_tag: '2025.09.13.221251'
+          pyi_hash: 4250c9085e34a95c898f3ee2f764914fc36ec59f0d97c28e6a75fcf21f7b144f
     env:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
@@ -542,8 +531,6 @@ jobs:
       - process
       - unix
       - linux
-      - linux_armv7l
-      - musllinux
       - macos
       - windows
     runs-on: ubuntu-latest
