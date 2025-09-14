@@ -67,6 +67,7 @@ class VideocampusSachsenIE(InfoExtractor):
         'videoportal.vm.uni-freiburg.de',  # Albert-Ludwigs-Universität Freiburg
         'videos.duoc.cl',
         'videos.uni-paderborn.de',  # Universität Paderborn
+        'videos.upb.de',  # Universität Paderborn
         'vimp-bemus.udk-berlin.de',
         'vimp.aekwl.de',
         'vimp.hs-mittweida.de',
