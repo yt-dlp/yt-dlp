@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-import functools
 import shlex
 import subprocess
 
@@ -33,7 +32,6 @@ class DenoJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
     _DENO_OPTIONS = ['--no-prompt', '--no-remote']
     DENO_NPM_LIB_FILENAME = 'deno.lib.js'
 
-    @functools.cache  # noqa: B019
     def _script_provider_hook(self, script_type: ScriptType, /) -> Script | None:
         if script_type != ScriptType.LIB:
             return None

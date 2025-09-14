@@ -41,6 +41,7 @@ class ScriptTypeVariant(enum.Enum):
     MINIFIED = 'minified'
     UNMINIFIED = 'unminified'
     DENO_NPM = 'deno_npm'
+    BUN_NPM = 'bun_npm'
 
 
 class ScriptSource(enum.Enum):
@@ -80,6 +81,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         ScriptType.LIB: {
             ScriptTypeVariant.MINIFIED: '488c1903d8beb24ee9788400b2a91e724751b04988ba4de398320de0e36b4a9e3a8db58849189bf1d48df3fc4b0972d96b4aabfd80fea25d7c43988b437062fd',
             ScriptTypeVariant.DENO_NPM: 'cbd33afbfa778e436aef774f3983f0b1234ad7f737ea9dbd9783ee26dce195f4b3242d1e202b2038e748044960bc2f976372e883c76157b24acdea939dba7603',
+            ScriptTypeVariant.BUN_NPM: '2065c7584b39d4e3fe62f147ff0572c051629a00b1bdb3dbd21d61db172a42ad0fac210e923e080a58ca21d1cbf7c6a22a727a726654bae83af045e12958a5a0',
         },
         ScriptType.CORE: {
             ScriptTypeVariant.MINIFIED: 'df0c08c152911dedd35a98bbbb6a1786718c11e4233c52abda3d19fd11d97c3ba09745dfbca913ddeed72fead18819f62139220420c41a04d5a66ed629fbde4e',
@@ -99,8 +101,17 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.dev_mode = self.settings.get('dev_mode', []) == ['true']
         self._available = True
+        # Note: developer use only, intentionally not documented.
+        # This bypasses verification of script hashes and versions.
+        # --extractor-args youtubejsc-{provider key}:dev=true
+        self.is_dev = self.settings.get('dev', []) == ['true']
+        if self.is_dev:
+            self.logger.warning(
+                f'You have enabled dev mode for {self.PROVIDER_KEY}JCP. '
+                f'This is a developer option intended for debugging. \n'
+                '         If you experience any issues while using this option, '
+                f'{self.ie._downloader._format_err("DO NOT", self.ie._downloader.Styles.ERROR)} open a bug report')
 
     def _run_js_runtime(self, stdin: str, /) -> str:
         """To be implemented by subclasses"""
@@ -173,14 +184,12 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
 
     def _get_script(self, script_type: ScriptType, /) -> Script:
         for script in self._iter_script_sources(script_type):
-            if script.version != self._SUPPORTED_VERSION:
+            if script.version != self._SUPPORTED_VERSION and not self.is_dev:
                 self.logger.warning(
                     f'Challenge solver {script_type.value} script version {script.version} '
                     f'is not supported (source: {script.source.value}, supported version: {self._SUPPORTED_VERSION})')
-                if not self.dev_mode:
-                    continue
             script_hashes = self._ALLOWED_HASHES[script.type].get(script.variant, [])
-            if script_hashes and script.hash not in script_hashes and not self.dev_mode:
+            if script_hashes and script.hash not in script_hashes and not self.is_dev:
                 self.logger.warning(
                     f'Hash mismatch on challenge solver {script.type.value} script '
                     f'(source: {script.source.value}, hash: {script.hash})!{provider_bug_report_message(self)}')
