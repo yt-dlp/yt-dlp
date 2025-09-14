@@ -478,6 +478,24 @@ def create_parser():
         dest='js_runtimes', action='store_const', const=[],
         help='Clear JavaScript runtimes to enable, including defaults and those provided by previous --js-runtimes')
     general.add_option(
+        '--download-ext-components',
+        metavar='COMPONENT',
+        dest='download_ext_components',
+        action='callback',
+        callback=_list_from_options_callback,
+        type='str',
+        callback_kwargs={'delim': None},
+        default=[],
+        help=(
+            'Specify external components that yt-dlp is allowed to download when needed. '
+            'You can use this option multiple times to allow multiple components. '
+            'Supported values: npm (JavaScript dependencies from npm), ejs-github (official JS scripts from yt-dlp-ejs GitHub). '
+            'By default, no external components are allowed.'))
+    general.add_option(
+        '--no-download-ext-components',
+        dest='download_ext_components', action='store_const', const=[],
+        help='Disallow downloading of all external components, including any previously allowed by --download-ext-components or defaults.')
+    general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
         help=(

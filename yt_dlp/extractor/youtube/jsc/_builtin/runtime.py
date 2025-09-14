@@ -72,6 +72,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     JS_RUNTIME_NAME: str
     _CACHE_SECTION = 'challenge-solver'
 
+    _JCP_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/YouTube-JS-Challenges'
     _REPOSITORY = 'yt-dlp/yt-dlp-jsc-deno'
     _SUPPORTED_TYPES = [JsChallengeType.N, JsChallengeType.SIG]
     _SUPPORTED_VERSION = '0.0.1'
@@ -245,6 +246,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         code = load_bundle_code(
             self._SCRIPT_FILENAMES[script_type], error_hook=error_hook)
         if code:
+            # TODO: strip internal header comments as to match published version
             return Script(script_type, ScriptTypeVariant.UNMINIFIED, ScriptSource.BUILTIN, self._SUPPORTED_VERSION, code)
         return None
 
@@ -259,7 +261,9 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         return None
 
     def _web_release_source(self, script_type: ScriptType, /) -> Script | None:
-        # TODO: check if github downloads are enabled
+        if 'ejs-github' not in self.ie.get_param('download_ext_components', []):
+            self._report_ext_component_skipped('ejs-github', 'challenge solver script')
+            return None
         url = f'https://github.com/{self._REPOSITORY}/releases/download/{self._SUPPORTED_VERSION}/{self._MIN_SCRIPT_FILENAMES[script_type]}'
         if code := self.ie._download_webpage_with_retries(
             url, None, f'[{self.logger.prefix}] Downloading challenge solver {script_type.value} script from  {url}',
@@ -285,3 +289,10 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         if not self.runtime_info:
             return False
         return self._available
+
+    def _report_ext_component_skipped(self, component: str, component_description: str):
+        self.logger.warning(
+            f'External {component_description} downloads are disabled. '
+            f'This may be required to solve JS challenges using {self.JS_RUNTIME_NAME} JS runtime. '
+            f'You can enable {component_description} downloads with "--download-ext-components {component}". '
+            f'For more information and alternatives, refer to  {self._JCP_GUIDE_URL}')

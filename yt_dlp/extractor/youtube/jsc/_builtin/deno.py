@@ -35,11 +35,12 @@ class DenoJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
     def _script_provider_hook(self, script_type: ScriptType, /) -> Script | None:
         if script_type != ScriptType.LIB:
             return None
-        # TODO: check that npm downloads are enabled
-
+        if 'npm' not in self.ie.get_param('download_ext_components', []):
+            self._report_ext_component_skipped('npm', 'NPM package')
+            return None
         # Deno-specific lib bundle that uses Deno NPM imports
         error_hook = lambda e: self.logger.warning(
-            f'Failed to read deno challenge solver lib file: {e}{provider_bug_report_message(self)}')
+            f'Failed to read deno challenge solver lib script: {e}{provider_bug_report_message(self)}')
         code = load_bundle_code(
             self.DENO_NPM_LIB_FILENAME, error_hook=error_hook)
         if code:

@@ -34,12 +34,14 @@ class BunJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
     def _script_provider_hook(self, script_type: ScriptType, /) -> Script | None:
         if script_type != ScriptType.LIB:
             return None
-        # TODO: check that npm downloads are enabled
+        if 'npm' not in self.ie.get_param('download_ext_components', []):
+            self._report_ext_component_skipped('npm', 'NPM package')
+            return None
 
         # Bun-specific lib bundle that uses Bun autoimport
         # https://bun.com/docs/runtime/autoimport
         error_hook = lambda e: self.logger.warning(
-            f'Failed to read bun challenge solver lib file: {e}{provider_bug_report_message(self)}')
+            f'Failed to read bun challenge solver lib script: {e}{provider_bug_report_message(self)}')
         code = load_bundle_code(
             self.BUN_NPM_LIB_FILENAME, error_hook=error_hook)
         if code:

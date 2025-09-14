@@ -365,6 +365,27 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
     --no-plugin-dirs                Clear plugin directories to search,
                                     including defaults and those provided by
                                     previous --plugin-dirs
+    --js-runtimes RUNTIME[:PATH]    Additional JavaScript runtime to enable,
+                                    with an optional path to the runtime
+                                    location. This option can be used multiple
+                                    times to enable multiple runtimes. Supported
+                                    runtimes: deno, node. By default, only
+                                    "deno" runtime is enabled.
+    --no-js-runtimes                Clear JavaScript runtimes to enable,
+                                    including defaults and those provided by
+                                    previous --js-runtimes
+    --download-ext-components COMPONENT
+                                    Specify external components that yt-dlp is
+                                    allowed to download when needed. You can use
+                                    this option multiple times to allow multiple
+                                    components. Supported values: npm
+                                    (JavaScript dependencies from npm), ejs-
+                                    github (official JS scripts from yt-dlp-ejs
+                                    GitHub). By default, no external components
+                                    are allowed.
+    --no-download-ext-components    Disallow downloading of all external
+                                    components, including any previously allowed
+                                    by --download-ext-components or defaults.
     --flat-playlist                 Do not extract a playlist's URL result
                                     entries; some entry metadata may be missing
                                     and downloading may be bypassed

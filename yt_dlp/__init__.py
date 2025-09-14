@@ -995,6 +995,7 @@ def parse_options(argv=None):
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
         'js_runtimes': js_runtimes,
+        'download_ext_components': opts.download_ext_components,
     })
 
 
