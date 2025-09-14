@@ -313,7 +313,7 @@ class SmotrimLiveIE(SmotrimBaseIE):
 
         if typ == 'channel':
             webpage = self._download_webpage(url, display_id)
-            
+
             if display_id != '270':
                 # This extract method doesn't work for https://smotrim.ru/channel/270.
                 # https://github.com/yt-dlp/yt-dlp/issues/14303
@@ -324,13 +324,14 @@ class SmotrimLiveIE(SmotrimBaseIE):
                 ), any, {self._proto_relative_url}, {url_or_none}, {require('src URL')}))
                 typ, video_id = self._match_valid_url(src_url).group('type', 'id')
             else:
-                # Added extraction method for another type of embedded player.
+                # Extraction method for another type of embedded player.
+
+                sources_api_url = 'https://media.mediavitrina.ru/balancer/v3/1tv/1tvch/streams.json?application_id=&player_referer_hostname=smotrim.ru&config_checksum_sha256=&egress_version_id=5942287&'
                 # 'sources_api_url' is a string obtained from the "embedUrl" json+ld key of the page data (webpage var)
                 # containing a link to the embedded player page, which contains this link in the
                 # <script></script> tag in the "vtvPlayerOpts" variable containing a javascript
                 # object in the "api" -> "sources" key.
 
-                sources_api_url = 'https://media.mediavitrina.ru/balancer/v3/1tv/1tvch/streams.json?application_id=&player_referer_hostname=smotrim.ru&config_checksum_sha256=&egress_version_id=5942287&'
                 headers = {'origin': 'https://player.mediavitrina.ru', 'referer': 'https://player.mediavitrina.ru/'}
 
                 try:
