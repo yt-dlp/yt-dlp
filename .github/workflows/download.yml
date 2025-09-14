@@ -28,7 +28,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13', pypy-3.11]
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14-dev', pypy-3.11]
         include:
         # atleast one of each CPython/PyPy tests must be in windows
         - os: windows-latest
