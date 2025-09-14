@@ -339,7 +339,7 @@ class SmotrimLiveIE(SmotrimBaseIE):
                     self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
 
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                    traverse_obj(self._parse_json(sources_webpage, display_id), ("hlsp", ..., {url_or_none}))[0],
+                    traverse_obj(self._parse_json(sources_webpage, display_id), ('hlsp', ..., {url_or_none}))[0],
                     display_id, 'mp4', m3u8_id='hlsp')
 
                 return {
