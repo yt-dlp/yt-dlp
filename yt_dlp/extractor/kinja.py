@@ -89,6 +89,15 @@ class KinjaEmbedIE(InfoExtractor):
         'url': 'https://kinja.com/ajax/inset/iframe?id=youtube-video-00QyL0AgPAE',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'http://www.clickhole.com/video/dont-understand-bitcoin-man-will-mumble-explanatio-2537',
+        'info_dict': {
+            'id': '106351',
+            'ext': 'mp4',
+            'title': 'Don’t Understand Bitcoin? This Man Will Mumble An Explanation At You',
+        },
+        'skip': 'Invalid URL',
+    }]
     _JWPLATFORM_PROVIDER = ('cdn.jwplayer.com/v2/media/', 'JWPlatform')
     _PROVIDER_MAP = {
         'fb': ('facebook.com/video.php?v=', 'Facebook'),
