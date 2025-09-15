@@ -3,14 +3,14 @@ from __future__ import annotations
 import shlex
 import subprocess
 
-from yt_dlp.extractor.youtube.jsc._builtin.bundle import load_bundle_code
 from yt_dlp.extractor.youtube.jsc._builtin.runtime import (
     JsRuntimeChalBaseJCP,
     Script,
     ScriptSource,
     ScriptType,
-    ScriptTypeVariant,
+    ScriptVariant,
 )
+from yt_dlp.extractor.youtube.jsc._builtin.scripts import load_script
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
@@ -44,14 +44,14 @@ class BunJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
             self._report_ext_component_skipped('npm', 'NPM package')
             return None
 
-        # Bun-specific lib bundle that uses Bun autoimport
+        # Bun-specific lib scripts that uses Bun autoimport
         # https://bun.com/docs/runtime/autoimport
         error_hook = lambda e: self.logger.warning(
             f'Failed to read bun challenge solver lib script: {e}{provider_bug_report_message(self)}')
-        code = load_bundle_code(
+        code = load_script(
             self.BUN_NPM_LIB_FILENAME, error_hook=error_hook)
         if code:
-            return Script(script_type, ScriptTypeVariant.BUN_NPM, ScriptSource.BUILTIN, self._SUPPORTED_VERSION, code)
+            return Script(script_type, ScriptVariant.BUN_NPM, ScriptSource.BUILTIN, self._SUPPORTED_VERSION, code)
         return None
 
     def _run_js_runtime(self, stdin: str, /) -> str:

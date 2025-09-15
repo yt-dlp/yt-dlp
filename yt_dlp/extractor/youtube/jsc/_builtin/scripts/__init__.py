@@ -1,7 +1,7 @@
 import importlib.resources
 
 
-def load_bundle_code(filename, error_hook=None):
+def load_script(filename, error_hook=None):
     if importlib.resources.is_resource(__package__, filename):
         try:
             return importlib.resources.read_text(__package__, filename)

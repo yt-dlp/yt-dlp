@@ -10,7 +10,7 @@ import json
 import sys
 
 import yt_dlp
-from yt_dlp.extractor.youtube.jsc._builtin.bundle import load_bundle_code
+from yt_dlp.extractor.youtube.jsc._builtin.scripts import load_script
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
@@ -36,7 +36,7 @@ class ScriptType(enum.Enum):
     CORE = 'core'
 
 
-class ScriptTypeVariant(enum.Enum):
+class ScriptVariant(enum.Enum):
     UNKNOWN = 'unknown'
     MINIFIED = 'minified'
     UNMINIFIED = 'unminified'
@@ -55,7 +55,7 @@ class ScriptSource(enum.Enum):
 @dataclasses.dataclass
 class Script:
     type: ScriptType
-    variant: ScriptTypeVariant
+    variant: ScriptVariant
     source: ScriptSource
     version: str
     code: str
@@ -77,16 +77,16 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     _SUPPORTED_TYPES = [JsChallengeType.N, JsChallengeType.SIG]
     _SUPPORTED_VERSION = '0.0.1'
     # TODO: insert correct hashes here
-    # TODO: Integration tests for each kind of bundle source
+    # TODO: Integration tests for each kind of scripts source
     _ALLOWED_HASHES = {
         ScriptType.LIB: {
-            ScriptTypeVariant.MINIFIED: '488c1903d8beb24ee9788400b2a91e724751b04988ba4de398320de0e36b4a9e3a8db58849189bf1d48df3fc4b0972d96b4aabfd80fea25d7c43988b437062fd',
-            ScriptTypeVariant.DENO_NPM: 'cbd33afbfa778e436aef774f3983f0b1234ad7f737ea9dbd9783ee26dce195f4b3242d1e202b2038e748044960bc2f976372e883c76157b24acdea939dba7603',
-            ScriptTypeVariant.BUN_NPM: '2065c7584b39d4e3fe62f147ff0572c051629a00b1bdb3dbd21d61db172a42ad0fac210e923e080a58ca21d1cbf7c6a22a727a726654bae83af045e12958a5a0',
+            ScriptVariant.MINIFIED: '488c1903d8beb24ee9788400b2a91e724751b04988ba4de398320de0e36b4a9e3a8db58849189bf1d48df3fc4b0972d96b4aabfd80fea25d7c43988b437062fd',
+            ScriptVariant.DENO_NPM: 'cbd33afbfa778e436aef774f3983f0b1234ad7f737ea9dbd9783ee26dce195f4b3242d1e202b2038e748044960bc2f976372e883c76157b24acdea939dba7603',
+            ScriptVariant.BUN_NPM: '2065c7584b39d4e3fe62f147ff0572c051629a00b1bdb3dbd21d61db172a42ad0fac210e923e080a58ca21d1cbf7c6a22a727a726654bae83af045e12958a5a0',
         },
         ScriptType.CORE: {
-            ScriptTypeVariant.MINIFIED: 'df0c08c152911dedd35a98bbbb6a1786718c11e4233c52abda3d19fd11d97c3ba09745dfbca913ddeed72fead18819f62139220420c41a04d5a66ed629fbde4e',
-            ScriptTypeVariant.UNMINIFIED: '8abfd4818573b6cf397cfae227661e3449fb5ac737a272ac0cf8268d94447b04b1c9a15f459b336175bf0605678a376e962df99b2c8d5498f16db801735f771c',
+            ScriptVariant.MINIFIED: 'df0c08c152911dedd35a98bbbb6a1786718c11e4233c52abda3d19fd11d97c3ba09745dfbca913ddeed72fead18819f62139220420c41a04d5a66ed629fbde4e',
+            ScriptVariant.UNMINIFIED: '8abfd4818573b6cf397cfae227661e3449fb5ac737a272ac0cf8268d94447b04b1c9a15f459b336175bf0605678a376e962df99b2c8d5498f16db801735f771c',
         },
     }
 
@@ -124,7 +124,6 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
             grouped[request.input.player_url].append(request)
 
         for player_url, grouped_requests in grouped.items():
-
             player = self.ie.cache.load(self._CACHE_SECTION, f'player:{player_url}')
             if player:
                 cached = True
@@ -220,41 +219,30 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
             return None
         # TODO: fix API naming
         code = yt_dlp_ejs.jsc() if script_type is ScriptType.CORE else yt_dlp_ejs.lib()
-        return Script(script_type, ScriptTypeVariant.MINIFIED, ScriptSource.PYPACKAGE, yt_dlp_ejs.version, code)
+        return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.PYPACKAGE, yt_dlp_ejs.version, code)
 
     def _binary_source(self, script_type: ScriptType, /) -> Script | None:
         if (
-            # Use bundled JavaScript only in release binaries
             getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
             and importlib.resources.is_resource(yt_dlp, self._MIN_SCRIPT_FILENAMES[script_type])
         ):
             code = importlib.resources.read_text(yt_dlp, self._MIN_SCRIPT_FILENAMES[script_type])
-            return Script(script_type, ScriptTypeVariant.MINIFIED, ScriptSource.BINARY, self._SUPPORTED_VERSION, code)
+            return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.BINARY, self._SUPPORTED_VERSION, code)
         return None
 
     def _cached_source(self, script_type: ScriptType, /) -> Script | None:
         if data := self.ie.cache.load(self._CACHE_SECTION, script_type.value):
-            return Script(script_type, ScriptTypeVariant.MINIFIED, ScriptSource.CACHE, data['version'], data['code'])
+            return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.CACHE, data['version'], data['code'])
         return None
 
     def _builtin_source(self, script_type: ScriptType, /) -> Script | None:
         error_hook = lambda _: self.logger.warning(
             f'Failed to read builtin challenge solver {script_type.value} script{provider_bug_report_message(self)}')
-        code = load_bundle_code(
+        code = load_script(
             self._SCRIPT_FILENAMES[script_type], error_hook=error_hook)
         if code:
             # TODO: strip internal header comments as to match published version
-            return Script(script_type, ScriptTypeVariant.UNMINIFIED, ScriptSource.BUILTIN, self._SUPPORTED_VERSION, code)
-        return None
-
-    def _provider_hook_source(self, script_type: ScriptType, /) -> Script | None:
-        if bundle := self._script_provider_hook(script_type):
-            self.logger.trace(f'Using challenge solver {script_type.value} script from provider hook')
-            return bundle
-        return None
-
-    def _script_provider_hook(self, script_type: ScriptType, /) -> Script | None:
-        """Optional additional source for scripts, to be implemented by providers"""
+            return Script(script_type, ScriptVariant.UNMINIFIED, ScriptSource.BUILTIN, self._SUPPORTED_VERSION, code)
         return None
 
     def _web_release_source(self, script_type: ScriptType, /) -> Script | None:
@@ -270,7 +258,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
                 'version': self._SUPPORTED_VERSION,
                 'code': code,
             })
-            return Script(script_type, ScriptTypeVariant.MINIFIED, ScriptSource.WEB, self._SUPPORTED_VERSION, code)
+            return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.WEB, self._SUPPORTED_VERSION, code)
         return None
 
     # endregion: challenge solver script

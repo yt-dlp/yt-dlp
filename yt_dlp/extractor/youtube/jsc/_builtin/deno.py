@@ -4,14 +4,14 @@ import contextlib
 import shlex
 import subprocess
 
-from yt_dlp.extractor.youtube.jsc._builtin.bundle import load_bundle_code
 from yt_dlp.extractor.youtube.jsc._builtin.runtime import (
     JsRuntimeChalBaseJCP,
     Script,
     ScriptSource,
     ScriptType,
-    ScriptTypeVariant,
+    ScriptVariant,
 )
+from yt_dlp.extractor.youtube.jsc._builtin.scripts import load_script
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
@@ -44,16 +44,16 @@ class DenoJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
         if 'npm' not in self.ie.get_param('download_ext_components', []):
             self._report_ext_component_skipped('npm', 'NPM package')
             return None
-        # Deno-specific lib bundle that uses Deno NPM imports
+        # Deno-specific lib scripts that uses Deno NPM imports
         error_hook = lambda e: self.logger.warning(
             f'Failed to read deno challenge solver lib script: {e}{provider_bug_report_message(self)}')
-        code = load_bundle_code(
+        code = load_script(
             self.DENO_NPM_LIB_FILENAME, error_hook=error_hook)
         if code:
             # TODO: any other permissions we want when not using --no-remote?
             with contextlib.suppress(ValueError):
                 self._DENO_OPTIONS.remove('--no-remote')
-            return Script(script_type, ScriptTypeVariant.DENO_NPM, ScriptSource.BUILTIN, self._SUPPORTED_VERSION, code)
+            return Script(script_type, ScriptVariant.DENO_NPM, ScriptSource.BUILTIN, self._SUPPORTED_VERSION, code)
         return None
 
     def _run_js_runtime(self, stdin: str, /) -> str:
