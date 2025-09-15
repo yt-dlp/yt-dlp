@@ -55,7 +55,7 @@ class WatchTheChosenIE(InfoExtractor):
                     }
                 }
                 fragment VideoFragment on Video {
-                    title description updatedAt thumbnail createdAt duration likeCount comments views
+                    title description updatedAt thumbnail createdAt duration likeCount comments views externalID
                 }''',
             }).encode(), headers={
                 'channelid': '12884901895',
@@ -63,7 +63,7 @@ class WatchTheChosenIE(InfoExtractor):
             }), ('data', 'video'))
 
         # DOWNLOADING LIST OF SOURCES (LIST OF M3U8 FILES)
-        hls_url = 'https://api.frontrow.cc/channels/12884901895/VIDEO/' + video_id + '/v2/hls.m3u8'
+        hls_url = 'https://api.frontrow.cc/channels/12884901895/VIDEO/' + metadata['externalID'] + '/v2/hls.m3u8'
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls_url, video_id)
 
         return {
