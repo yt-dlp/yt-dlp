@@ -1,57 +1,79 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError
+from ..utils import ExtractorError, parse_iso8601, traverse_obj
 
 
-class GoTo_WebinarIE(InfoExtractor):
-    _VALID_URL = r'https?://(register|attendee)\.gotowebinar\.com/recording/viewRecording/(?P<webinar_key>[0-9]+)/(?P<recording_key>[0-9]+)/(?P<email>[^?]+)(?:\?registrantKey=(?P<registrant_key>[0-9]+))?'
+class GoToWebinarIE(InfoExtractor):
+    _VALID_URL = r'''(?x)https?://
+        (register|attendee)\.gotowebinar\.com/recording/viewRecording/
+        (?P<webinar_key>[0-9]+)/(?P<recording_key>[0-9]+)/(?P<email>[^?#]+)
+        (?:\?(?:[^#]+&)?registrantKey=(?P<registrant_key>[0-9]+))?'''
     _TESTS = [
         {
-            # Source: https://community.intel.com/t5/Processors/Deriving-core-numbering-on-sockets-without-disabled-tiles/m-p/1263389
-            'url': 'https://register.gotowebinar.com/recording/viewRecording/8573274081823101697/1166504161772360449/mfratkin@tacc.utexas.edu?registrantKey=6636963737074316811&type=ATTENDEEEMAILRECORDINGLINK',
+            # Source: https://associationofanaesthetists-publications.onlinelibrary.wiley.com/doi/am-pdf/10.1111/anae.15209
+            'url': 'https://register.gotowebinar.com/recording/viewRecording/8054623469383961613/3917240379133570566/andrewmortimore@anaesthetists.org?registrantKey=2674782344143402252&type=ABSENTEEEMAILRECORDINGLINK',
             'info_dict': {
-                'id': '8573274081823101697-1166504161772360449',
-                'title': 'Topology and Cache Coherence in Knights Landing and Skylake Xeon Processors',
-                'description': 'md5:2d673910d31bfb4918a0605ea60561dd',
-                'creators': ['IXPUG Committee'],
+                'id': '8054623469383961613',
+                'title': 'Webinar: COVID-19: By Trainees, For Trainees ',
+                'description': 'md5:9702e0662f45ee74ff2168de4d6d5d6a',
+                'creators': ['E-education Dept'],
+                'timestamp': 1590824700,
+                'upload_date': '20200530',
+                'ext': 'mp4',
+            },
+        },
+        {
+            'url': 'https://attendee.gotowebinar.com/recording/viewRecording/7594846188203875084/5457693551948244743/stoll@berkeley.edu',
+            'info_dict': {
+                'id': '7594846188203875084',
+                'title': 'Climate change, mental health, and eco-anxiety:  How the global pandemic can help us prepare',
+                'description': 'md5:390f0dffd516a53a4728bd755c85def4',
+                'creators': ['Environmental  Public Health'],
+                'timestamp': 1586548800,
+                'upload_date': '20200410',
                 'ext': 'mp4',
             },
         },
     ]
 
     def _real_extract(self, url):
-        webinar_key, recording_key, email, registrant_key = self._match_valid_url(url).group('webinar_key', 'recording_key', 'email', 'registrant_key')
-        video_id = f'{webinar_key}-{recording_key}'
+        webinar_key, email, registrant_key = self._match_valid_url(url).group(
+            'webinar_key', 'email', 'registrant_key',
+        )
 
         if not registrant_key:
             registrant_metadata = self._download_json(
                 f'https://globalattspa.gotowebinar.com/api/webinars/{webinar_key}/registrants?email={email}',
-                video_id,
+                webinar_key,
                 note='Downloading registrant metadata',
-                errnote='Unable to download registrant metadata')
+                errnote='Unable to download registrant metadata',
+            )
             if not (registrant_key := registrant_metadata.get('registrantKey')):
                 raise ExtractorError('Unable to retrieve registrant key')
 
-        important_metadata = self._download_json(
+        recording_data = self._download_json(
             f'https://api.services.gotomeeting.com/registrationservice/api/v1/webinars/{webinar_key}/registrants/{registrant_key}/recordingAssets?type=FOLLOWUPEMAILRECORDINGLINK&client=spa',
-            video_id,
+            webinar_key,
             note='Downloading important recording metadata',
-            errnote='Unable to important download recording metadata')
+            errnote='Unable to important download recording metadata',
+        )
 
-        non_important_metadata = self._download_json(
+        metadata = self._download_json(
             f'https://global.gotowebinar.com/api/webinars/{webinar_key}',
-            video_id,
+            webinar_key,
             note='Downloading non-important recording metadata',
             errnote='Unable to non-important download recording metadata',
-            fatal=False)
-
-        creator = non_important_metadata.get('organizerName')
+            fatal=False,
+        )
 
         return {
-            'id': video_id,
-            'url': important_metadata.get('cdnLocation'),
+            'id': webinar_key,
+            'url': recording_data.get('cdnLocation'),
             'ext': 'mp4',
             'is_live': False,
-            'title': non_important_metadata.get('subject'),
-            'description': non_important_metadata.get('description'),
-            'creators': [creator] if creator else None,
+            **traverse_obj(metadata, {
+                'title': ('subject', {str}),
+                'description': ('description', {str}),
+                'creators': ('organizerName', {str}, all),
+                'timestamp': ('times', 0, 'startTime', {parse_iso8601}),
+            }),
         }
