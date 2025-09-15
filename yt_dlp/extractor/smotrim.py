@@ -324,7 +324,8 @@ class SmotrimLiveIE(SmotrimBaseIE):
                 ), any, {self._proto_relative_url}, {url_or_none}, {require('src URL')}))
                 typ, video_id = self._match_valid_url(src_url).group('type', 'id')
 
-            except ExtractorError: # Extraction method for another type of embedded player.
+            except ExtractorError:
+                # Extraction method for another type of embedded player.
 
                 # 'sources_api_url' is a string obtained from the "embedUrl" json+ld key of the page data (webpage var)
                 # containing a link to the embedded player page, which contains this link in the
