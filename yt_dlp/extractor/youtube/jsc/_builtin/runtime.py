@@ -184,7 +184,10 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         return self._get_script(ScriptType.CORE)
 
     def _get_script(self, script_type: ScriptType, /) -> Script:
-        for script in self._iter_script_sources(script_type):
+        for _, from_source in self._iter_script_sources():
+            script = from_source(script_type)
+            if not script:
+                continue
             if script.version != self._SUPPORTED_VERSION and not self.is_dev:
                 self.logger.warning(
                     f'Challenge solver {script_type.value} script version {script.version} '
@@ -201,19 +204,13 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         self._available = False
         raise JsChallengeProviderRejectedRequest(f'No usable challenge solver {script_type.value} script available')
 
-    def _iter_script_sources(self, script_type: ScriptType, /) -> Generator[Script]:
-        for getter in (
-            self._pypackage_source,
-            self._binary_source,
-            self._cached_source,
-            self._builtin_source,
-            self._provider_hook_source,
-            self._web_release_source,
-        ):
-            # TODO: fix typing
-            script = getter(script_type)
-            if script:
-                yield script
+    def _iter_script_sources(self) -> Generator[tuple[ScriptSource, callable]]:
+        yield from [
+            (ScriptSource.PYPACKAGE, self._pypackage_source),
+            (ScriptSource.BINARY, self._binary_source),
+            (ScriptSource.CACHE, self._cached_source),
+            (ScriptSource.BUILTIN, self._builtin_source),
+            (ScriptSource.WEB, self._web_release_source)]
 
     def _pypackage_source(self, script_type: ScriptType, /) -> Script | None:
         try:

@@ -31,7 +31,13 @@ class BunJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
     _ARGS = ['--bun', 'run', '-']
     BUN_NPM_LIB_FILENAME = 'bun.lib.js'
 
-    def _script_provider_hook(self, script_type: ScriptType, /) -> Script | None:
+    def _iter_script_sources(self):
+        for source, func in super()._iter_script_sources():
+            if source == ScriptSource.WEB:
+                yield ScriptSource.BUILTIN, self._bun_npm_source
+            yield source, func
+
+    def _bun_npm_source(self, script_type: ScriptType, /) -> Script | None:
         if script_type != ScriptType.LIB:
             return None
         if 'npm' not in self.ie.get_param('download_ext_components', []):
