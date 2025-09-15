@@ -289,16 +289,6 @@ class ArchiveOrgIE(InfoExtractor):
                 entries[p['orig']][track['label']] = {
                     'url': 'https://archive.org/' + track['file'].lstrip('/'),
                 }
-        # If the playlist didn't manage to download
-        if len(playlist) == 0:
-            entries['all_mixed'] = {
-                'formats': [],
-                'thumbnails': [],
-                'artist': '',
-                'track': '',
-                'subtitles': {},
-                'url': '',
-            }
 
         metadata = self._download_json('http://archive.org/metadata/' + identifier, identifier)
         m = metadata['metadata']
@@ -319,6 +309,17 @@ class ArchiveOrgIE(InfoExtractor):
             'id': identifier,
             'webpage_url': f'https://archive.org/details/{identifier}',
         })
+
+        # If the playlist didn't manage to download
+        if len(playlist) == 0:
+            entries['all_mixed'] = {
+                'formats': [],
+                'thumbnails': [],
+                'artist': m.get('creator') or None,
+                'track': m['title'],
+                'subtitles': {},
+                'url': info['webpage_url'],
+            }
 
         for f in metadata['files']:
             if f['name'] in entries:
