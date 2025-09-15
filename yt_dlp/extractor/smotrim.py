@@ -314,7 +314,7 @@ class SmotrimLiveIE(SmotrimBaseIE):
         if typ == 'channel':
             webpage = self._download_webpage(url, display_id)
 
-            if display_id != '270':
+            try:
                 # This extract method doesn't work for https://smotrim.ru/channel/270.
                 # https://github.com/yt-dlp/yt-dlp/issues/14303
                 src_url = traverse_obj(webpage, ((
@@ -323,19 +323,19 @@ class SmotrimLiveIE(SmotrimBaseIE):
                         {extract_attributes}, 'value', {urllib.parse.unquote}, {json.loads}, 'source'),
                 ), any, {self._proto_relative_url}, {url_or_none}, {require('src URL')}))
                 typ, video_id = self._match_valid_url(src_url).group('type', 'id')
-            else:
-                # Extraction method for another type of embedded player.
 
-                sources_api_url = 'https://media.mediavitrina.ru/balancer/v3/1tv/1tvch/streams.json?application_id=&player_referer_hostname=smotrim.ru&config_checksum_sha256=&egress_version_id=5942287&'
+            except ExtractorError: # Extraction method for another type of embedded player.
+
                 # 'sources_api_url' is a string obtained from the "embedUrl" json+ld key of the page data (webpage var)
                 # containing a link to the embedded player page, which contains this link in the
                 # <script></script> tag in the "vtvPlayerOpts" variable containing a javascript
-                # object in the "api" -> "sources" key.
-
-                headers = {'origin': 'https://player.mediavitrina.ru', 'referer': 'https://player.mediavitrina.ru/'}
+                # object in the "api" -> "sources" key. Json parsing is difficult because the value
+                # of the key 'licenseParamsHandler' is a 'function (message, session, engine) {}'
+                sources_api_url = 'https://media.mediavitrina.ru/balancer/v3/1tv/1tvch/streams.json?application_id=&player_referer_hostname=smotrim.ru&config_checksum_sha256=&egress_version_id=5942287&'
 
                 try:
-                    sources_webpage = self._download_webpage(sources_api_url, display_id, headers=headers)
+                    sources_webpage = self._download_webpage(
+                        sources_api_url, display_id, headers={'origin': 'https://player.mediavitrina.ru', 'referer': 'https://player.mediavitrina.ru/'})
                 except ExtractorError:
                     self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
 
