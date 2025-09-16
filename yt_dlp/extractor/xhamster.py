@@ -515,13 +515,13 @@ class XHamsterUserIE(InfoExtractor):
     }]
 
     def _entries(self, user_id, user_type, orientation):
-        if user_type == "celebrity":
+        if user_type == 'celebrity':
             prefix, suffix = ('celebrities', 'newest')
-        elif user_type == "channel":
+        elif user_type == 'channel':
             prefix, suffix = ('channels', 'newest')
-        elif user_type == "creator":
+        elif user_type == 'creator':
             prefix, suffix = ('creators', 'exclusive')
-        elif user_type == "pornstar":
+        elif user_type == 'pornstar':
             prefix, suffix = ('pornstars', 'newest')
         else:
             prefix, suffix = ('users', 'videos')
@@ -550,14 +550,14 @@ class XHamsterUserIE(InfoExtractor):
     def _real_extract(self, url):
         celebrity, channel, creator, orientation, pornstar, user_id = self._match_valid_url(url).group('celebrity', 'channel', 'creator', 'orientation', 'pornstar', 'id')
         if bool(celebrity):
-            user_type = "celebrity"
+            user_type = 'celebrity'
         elif bool(channel):
-            user_type = "channel"
+            user_type = 'channel'
         elif bool(creator):
-            user_type = "creator"
+            user_type = 'creator'
         elif bool(pornstar):
-            user_type = "pornstar"
+            user_type = 'pornstar'
         else:
-            user_type = "user"
-        orientation = orientation if orientation is not None else ""
+            user_type = 'user'
+        orientation = orientation if orientation is not None else ''
         return self.playlist_result(self._entries(user_id, user_type, orientation), user_id)
