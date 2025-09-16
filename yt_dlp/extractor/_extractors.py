@@ -164,10 +164,6 @@ from .asobichannel import (
 from .asobistage import AsobiStageIE
 from .atresplayer import AtresPlayerIE
 from .atscaleconf import AtScaleConfEventIE
-from .atv import (
-    AtvIE,
-    AtvSeriesIE,
-)
 from .atvat import ATVAtIE
 from .audimedia import AudiMediaIE
 from .audioboom import AudioBoomIE
@@ -2108,6 +2104,15 @@ from .tiktok import (
     TikTokTagIE,
     TikTokUserIE,
     TikTokVMIE,
+)
+from .tmgrup import (
+    AtvIE,
+    AtvSeriesIE,
+    A2tvLiveIE,
+    AHaberIE,
+    ANewsIE,
+    ASporIE,
+    FotomacIE,
 )
 from .tmz import TMZIE
 from .tnaflix import (
