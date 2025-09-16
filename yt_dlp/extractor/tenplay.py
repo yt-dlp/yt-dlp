@@ -324,9 +324,14 @@ class TenPlayIE(InfoExtractor):
                         filtered_lines.append(raw_line)
                         prev_extinf_index = len(filtered_lines) - 1
                         continue
+                    if not line.startswith('#'):
+                        try:
+                            abs_url = urljoin(media_url, line)
+                        except Exception:
+                            abs_url = ''
                     if (
                         not line.startswith('#')
-                        and 'redirector.googlevideo.com' in line
+                        and re.match(r'^https?://redirector\.googlevideo\.com(?::\d+)?(?:/|$)', abs_url, re.I)
                     ):
                         # Drop the preceding EXTINF if present, and skip this ad URL
                         if (
