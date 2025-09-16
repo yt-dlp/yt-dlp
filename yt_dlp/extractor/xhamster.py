@@ -460,8 +460,9 @@ class XHamsterEmbedIE(InfoExtractor):
 class XHamsterUserIE(InfoExtractor):
     _VALID_URL = (
         rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/'
-        r'(?:(users)|(?P<celebrity>celebrities)|(?P<orientation>(gay/)|(shemale/))?'
-        r'((?P<creator>creators)|(?P<channel>channels)|(?P<pornstar>pornstars)))/(?P<id>[^/?#&]+)')
+        r'(?:(?P<orientation>(?:gay/)|(?:shemale/))?'
+        r'(?P<user_type>(?:celebrities)|(?:channels)|(?:creators)|(?:pornstars)|(?:users)|))/'
+        r'(?P<id>[^/?#&]+)')
     _TESTS = [{
         # Paginated user profile
         'url': 'https://xhamster.com/users/netvideogirls/videos',
@@ -518,17 +519,13 @@ class XHamsterUserIE(InfoExtractor):
     }]
 
     def _entries(self, user_id, user_type, orientation):
-        if user_type == 'celebrity':
-            prefix, suffix = ('celebrities', 'newest')
-        elif user_type == 'channel':
-            prefix, suffix = ('channels', 'newest')
-        elif user_type == 'creator':
-            prefix, suffix = ('creators', 'exclusive')
-        elif user_type == 'pornstar':
-            prefix, suffix = ('pornstars', 'newest')
+        if user_type in ['celebrities', 'channels', 'pornstars']:
+            suffix = 'newest'
+        elif user_type == 'creators':
+            suffix = 'exclusive'
         else:
-            prefix, suffix = ('users', 'videos')
-        next_page_url = f'https://xhamster.com/{orientation}{prefix}/{user_id}/{suffix}/1'
+            suffix = 'videos'
+        next_page_url = f'https://xhamster.com/{orientation}{user_type}/{user_id}/{suffix}/1'
         for pagenum in itertools.count(1):
             page = self._download_webpage(
                 next_page_url, user_id, f'Downloading page {pagenum}')
@@ -551,18 +548,7 @@ class XHamsterUserIE(InfoExtractor):
                 break
 
     def _real_extract(self, url):
-        celebrity, channel, creator, orientation, pornstar, user_id = (
-            self._match_valid_url(url).group(
-                'celebrity', 'channel', 'creator', 'orientation', 'pornstar', 'id'))
-        if bool(celebrity):
-            user_type = 'celebrity'
-        elif bool(channel):
-            user_type = 'channel'
-        elif bool(creator):
-            user_type = 'creator'
-        elif bool(pornstar):
-            user_type = 'pornstar'
-        else:
-            user_type = 'user'
+        orientation, user_id, user_type = (
+            self._match_valid_url(url).group('orientation', 'id', 'user_type'))
         orientation = orientation if orientation is not None else ''
         return self.playlist_result(self._entries(user_id, user_type, orientation), user_id)
