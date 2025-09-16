@@ -458,7 +458,7 @@ class XHamsterEmbedIE(InfoExtractor):
 
 
 class XHamsterUserIE(InfoExtractor):
-    _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/(?:(?P<user>users)|(?P<orientation>(gay/)|(shemale/))?((?P<creator>creators)|(?P<channel>channels)))/(?P<id>[^/?#&]+)'
+    _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/(?:(?P<user>users)|(?P<celebrity>celebrities)|(?P<orientation>(gay/)|(shemale/))?((?P<creator>creators)|(?P<channel>channels)|(?P<pornstar>pornstars)))/(?P<id>[^/?#&]+)'
     _TESTS = [{
         # Paginated user profile
         'url': 'https://xhamster.com/users/netvideogirls/videos',
@@ -500,13 +500,29 @@ class XHamsterUserIE(InfoExtractor):
     }, {
         'url': 'https://xhamster.com/shemale/channels/hello-ladyboy',
         'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/pornstars/diamond-jackson',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/celebrities/ana-de-armas',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/gay/pornstars/jesse-rivera',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/shemale/pornstars/seang',
+        'only_matching': True,
     }]
 
     def _entries(self, user_id, user_type, orientation):
-        if user_type == "channel":
+        if user_type == "celebrity":
+            prefix, suffix = ('celebrities', 'newest')
+        elif user_type == "channel":
             prefix, suffix = ('channels', 'newest')
         elif user_type == "creator":
             prefix, suffix = ('creators', 'exclusive')
+        elif user_type == "pornstar":
+            prefix, suffix = ('pornstars', 'newest')
         else:
             prefix, suffix = ('users', 'videos')
         next_page_url = f'https://xhamster.com/{orientation}{prefix}/{user_id}/{suffix}/1'
@@ -532,11 +548,15 @@ class XHamsterUserIE(InfoExtractor):
                 break
 
     def _real_extract(self, url):
-        channel, creator, orientation, user_id = self._match_valid_url(url).group('channel', 'creator', 'orientation', 'id')
-        if bool(channel):
+        celebrity, channel, creator, orientation, pornstar, user_id = self._match_valid_url(url).group('celebrity', 'channel', 'creator', 'orientation', 'pornstar', 'id')
+        if bool(celebrity):
+            user_type = "celebrity"
+        elif bool(channel):
             user_type = "channel"
         elif bool(creator):
             user_type = "creator"
+        elif bool(pornstar):
+            user_type = "pornstar"
         else:
             user_type = "user"
         orientation = orientation if orientation is not None else ""
