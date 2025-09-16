@@ -460,7 +460,7 @@ class XHamsterEmbedIE(InfoExtractor):
 class XHamsterUserIE(InfoExtractor):
     _VALID_URL = (
         rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/'
-        r'(?:(?P<user>users)|(?P<celebrity>celebrities)|(?P<orientation>(gay/)|(shemale/))?'
+        r'(?:(users)|(?P<celebrity>celebrities)|(?P<orientation>(gay/)|(shemale/))?'
         r'((?P<creator>creators)|(?P<channel>channels)|(?P<pornstar>pornstars)))/(?P<id>[^/?#&]+)')
     _TESTS = [{
         # Paginated user profile
