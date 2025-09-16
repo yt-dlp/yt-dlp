@@ -458,7 +458,10 @@ class XHamsterEmbedIE(InfoExtractor):
 
 
 class XHamsterUserIE(InfoExtractor):
-    _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/(?:(?P<user>users)|(?P<celebrity>celebrities)|(?P<orientation>(gay/)|(shemale/))?((?P<creator>creators)|(?P<channel>channels)|(?P<pornstar>pornstars)))/(?P<id>[^/?#&]+)'
+    _VALID_URL = (
+        rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/'
+        r'(?:(?P<user>users)|(?P<celebrity>celebrities)|(?P<orientation>(gay/)|(shemale/))?'
+        r'((?P<creator>creators)|(?P<channel>channels)|(?P<pornstar>pornstars)))/(?P<id>[^/?#&]+)')
     _TESTS = [{
         # Paginated user profile
         'url': 'https://xhamster.com/users/netvideogirls/videos',
@@ -548,7 +551,9 @@ class XHamsterUserIE(InfoExtractor):
                 break
 
     def _real_extract(self, url):
-        celebrity, channel, creator, orientation, pornstar, user_id = self._match_valid_url(url).group('celebrity', 'channel', 'creator', 'orientation', 'pornstar', 'id')
+        celebrity, channel, creator, orientation, pornstar, user_id = (
+            self._match_valid_url(url).group(
+                'celebrity', 'channel', 'creator', 'orientation', 'pornstar', 'id'))
         if bool(celebrity):
             user_type = 'celebrity'
         elif bool(channel):
