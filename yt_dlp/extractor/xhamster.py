@@ -245,6 +245,8 @@ class XHamsterIE(InfoExtractor):
                                     standard_url = bytes(
                                         a ^ b for a, b in
                                         zip(decoded[4:], itertools.cycle(b'xh7999'))).decode()
+                                if decoded and decoded[:6] == b'rot13_':
+                                    standard_url=codecs.decode(decoded[6:].decode('ascii'), 'rot_13')
                                 standard_url = urljoin(url, standard_url)
                                 if not standard_url or standard_url in format_urls:
                                     continue
