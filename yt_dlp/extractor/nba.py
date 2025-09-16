@@ -19,7 +19,8 @@ from ..utils import (
 class NBACVPBaseIE(TurnerBaseIE):
     def _extract_nba_cvp_info(self, path, video_id, fatal=False):
         return self._extract_cvp_info(
-            f'http://secure.nba.com/{path}', video_id, {
+            # XXX: The 3rd argument (None) needs to be the AdobePass software_statement
+            f'http://secure.nba.com/{path}', video_id, None, {
                 'default': {
                     'media_src': 'http://nba.cdn.turner.com/nba/big',
                 },
@@ -94,6 +95,7 @@ class NBAWatchBaseIE(NBACVPBaseIE):
 
 
 class NBAWatchEmbedIE(NBAWatchBaseIE):
+    _WORKING = False
     IE_NAME = 'nba:watch:embed'
     _VALID_URL = NBAWatchBaseIE._VALID_URL_BASE + r'embed\?.*?\bid=(?P<id>\d+)'
     _TESTS = [{
@@ -115,6 +117,7 @@ class NBAWatchEmbedIE(NBAWatchBaseIE):
 
 
 class NBAWatchIE(NBAWatchBaseIE):
+    _WORKING = False
     IE_NAME = 'nba:watch'
     _VALID_URL = NBAWatchBaseIE._VALID_URL_BASE + r'(?:nba/)?video/(?P<id>.+?(?=/index\.html)|(?:[^/]+/)*[^/?#&]+)'
     _TESTS = [{
@@ -167,6 +170,7 @@ class NBAWatchIE(NBAWatchBaseIE):
 
 
 class NBAWatchCollectionIE(NBAWatchBaseIE):
+    _WORKING = False
     IE_NAME = 'nba:watch:collection'
     _VALID_URL = NBAWatchBaseIE._VALID_URL_BASE + r'list/collection/(?P<id>[^/?#&]+)'
     _TESTS = [{
@@ -336,6 +340,7 @@ class NBABaseIE(NBACVPBaseIE):
 
 
 class NBAEmbedIE(NBABaseIE):
+    _WORKING = False
     IE_NAME = 'nba:embed'
     _VALID_URL = r'https?://secure\.nba\.com/assets/amp/include/video/(?:topI|i)frame\.html\?.*?\bcontentId=(?P<id>[^?#&]+)'
     _TESTS = [{
@@ -358,6 +363,7 @@ class NBAEmbedIE(NBABaseIE):
 
 
 class NBAIE(NBABaseIE):
+    _WORKING = False
     IE_NAME = 'nba'
     _VALID_URL = NBABaseIE._VALID_URL_BASE + f'(?!{NBABaseIE._CHANNEL_PATH_REGEX})video/(?P<id>(?:[^/]+/)*[^/?#&]+)'
     _TESTS = [{
@@ -385,6 +391,7 @@ class NBAIE(NBABaseIE):
 
 
 class NBAChannelIE(NBABaseIE):
+    _WORKING = False
     IE_NAME = 'nba:channel'
     _VALID_URL = NBABaseIE._VALID_URL_BASE + f'(?:{NBABaseIE._CHANNEL_PATH_REGEX})/(?P<id>[^/?#&]+)'
     _TESTS = [{

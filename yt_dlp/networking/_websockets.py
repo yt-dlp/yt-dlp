@@ -11,8 +11,8 @@ from ._helper import (
     create_connection,
     create_socks_proxy_socket,
     make_socks_proxy_opts,
-    select_proxy,
 )
+from ..utils.networking import select_proxy
 from .common import Features, Response, register_rh
 from .exceptions import (
     CertificateVerifyError,
@@ -34,6 +34,7 @@ import websockets.version
 
 websockets_version = tuple(map(int_or_none, websockets.version.version.split('.')))
 if websockets_version < (13, 0):
+    websockets._yt_dlp__version = f'{websockets.version.version} (unsupported)'
     raise ImportError('Only websockets>=13.0 is supported')
 
 import websockets.sync.client
@@ -116,6 +117,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         extensions.pop('timeout', None)
         extensions.pop('cookiejar', None)
         extensions.pop('legacy_ssl', None)
+        extensions.pop('keep_header_casing', None)
 
     def close(self):
         # Remove the logging handler that contains a reference to our logger
@@ -123,15 +125,16 @@ class WebsocketsRH(WebSocketRequestHandler):
         for name, handler in self.__logging_handlers.items():
             logging.getLogger(name).removeHandler(handler)
 
-    def _send(self, request):
-        timeout = self._calculate_timeout(request)
-        headers = self._merge_headers(request.headers)
+    def _prepare_headers(self, request, headers):
         if 'cookie' not in headers:
             cookiejar = self._get_cookiejar(request)
             cookie_header = cookiejar.get_cookie_header(request.url)
             if cookie_header:
                 headers['cookie'] = cookie_header
 
+    def _send(self, request):
+        timeout = self._calculate_timeout(request)
+        headers = self._get_headers(request)
         wsuri = parse_uri(request.url)
         create_conn_kwargs = {
             'source_address': (self.source_address, 0) if self.source_address else None,
