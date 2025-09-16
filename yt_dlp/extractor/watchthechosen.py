@@ -1,4 +1,5 @@
 import json
+import urllib
 
 from .common import InfoExtractor
 from ..utils import unified_strdate
@@ -6,10 +7,10 @@ from ..utils.traversal import traverse_obj
 
 
 class WatchTheChosenIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?watch\.thechosen\.tv/video/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?watch\.thechosen\.tv/(?:video|group)/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://watch.thechosen.tv/video/184683594325',
-        'md5': 'a7030265262d659b9692a3418b189833',
+        'md5': '3f878b689588c71b38ec9943c54ff5b0',
         'info_dict': {
             'id': '184683594325',
             'ext': 'mp4',
@@ -25,7 +26,7 @@ class WatchTheChosenIE(InfoExtractor):
         },
     }, {
         'url': 'https://watch.thechosen.tv/video/184683596189',
-        'md5': '3bbfd4f0718b076481c5b823ec7a6760',
+        'md5': 'd581562f9d29ce82f5b7770415334151',
         'info_dict': {
             'id': '184683596189',
             'ext': 'mp4',
@@ -42,43 +43,122 @@ class WatchTheChosenIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        pageID = self._match_id(url)
+        info = {}
+        pathBase = urllib.parse.urlparse(url).path.strip('/').split('/')[0]
 
-        # DOWNLOADING METADATA
-        metadata = traverse_obj(self._download_json(
-            'https://api.frontrow.cc/query', video_id, data=json.dumps({
-                'operationName': 'Video',
-                'variables': {'channelID': '12884901895', 'videoID': video_id},
-                'query': r'''query Video($channelID: ID!, $videoID: ID!) {
-                    video(ChannelID: $channelID, VideoID: $videoID) {
-                        ...VideoFragment __typename
+        if pathBase == 'group':
+            info['_type'] = 'playlist'
+            entries = []
+            metadata = traverse_obj(self._download_json(
+                'https://api.frontrow.cc/query', pageID, note='Downloading playlist metadata', data=json.dumps({
+                    'operationName': 'PaginatedStaticPageContainer',
+                    'variables': {'channelID': '12884901895', 'first': 500, 'pageContainerID': pageID},
+                    'query': '''query PaginatedStaticPageContainer($after: Cursor, $channelID: ID!, $first: Int, $pageContainerID: ID!) {
+                                  pageContainer(ChannelID: $channelID, PageContainerID: $pageContainerID) {
+                                    ... on StaticPageContainer { ...PaginatedBasicStaticPageContainer __typename }
+                                    ... on DynamicPageContainer { ...PaginatedBasicDynamicPageContainer __typename }
+                                    __typename
+                                  }
+                                }
+
+                                fragment PaginatedBasicStaticPageContainer on StaticPageContainer {
+                                  id
+                                  audiences { id name __typename }
+                                  channelID pageID title layout language visibility position
+                                  itemRefs(First: $first, After: $after, OrderBy: {direction: ASC, field: POSITION}) {
+                                    ...BasicItemRefConnection __typename
+                                  }
+                                  createdAt updatedAt __typename
+                                }
+                                fragment PaginatedBasicDynamicPageContainer on DynamicPageContainer {
+                                  id
+                                  audiences { id name __typename }
+                                  channelID pageID title layout language visibility position
+                                  itemRefs(First: $first, After: $after) { ...BasicItemRefConnection __typename }
+                                  createdAt updatedAt __typename
+                                }
+
+                                fragment BasicItemRefConnection on ItemRefConnection {
+                                  edges { node { ...BasicItemRef __typename } cursor __typename }
+                                  totalCount __typename
+                                }
+
+                                fragment BasicItemRef on ItemRef {
+                                  id contentType contentID position
+                                  contentItem {
+                                    ... on ItemVideo     { videoItem: item     { ...PageContainerVideo __typename } __typename }
+                                    __typename
+                                  }
+                                  __typename
+                                }
+
+                                fragment PageContainerVideo on Video {
+                                  audiences { id name __typename }
+                                  title description updatedAt thumbnail createdAt duration likeCount comments views url id __typename
+                                }''',
+                }).encode(), headers={
+                    'channelid': '12884901895',
+                    'content-type': 'application/json',
+                }), ('data', 'pageContainer'))
+
+            for i in traverse_obj(metadata, ('itemRefs', 'edges')):
+                video_metadata = traverse_obj(i, ('node', 'contentItem', 'videoItem'))
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_metadata['url'], video_metadata['id'])
+                entry = {'formats': formats,
+                         'subtitles': subtitles,
+                         **traverse_obj(video_metadata, {
+                             'id': 'id',
+                             'title': 'title',
+                             'description': 'description',
+                             'thumbnail': 'thumbnail',
+                             'modified_date': ('updatedAt', {unified_strdate}),
+                             'upload_date': ('createdAt', {unified_strdate}),
+                             'duration': 'duration',
+                             'like_count': 'likeCount',
+                             'comment_count': 'comments',
+                             'view_count': 'views',
+                         }),
+                         }
+                entries.append(entry)
+            info['entries'] = entries
+            info['playlist_count'] = traverse_obj(metadata, ('itemRefs', 'totalCount'))
+
+        elif pathBase == 'video':
+            metadata = traverse_obj(self._download_json(
+                'https://api.frontrow.cc/query', pageID, data=json.dumps({
+                    'operationName': 'Video',
+                    'variables': {'channelID': '12884901895', 'videoID': pageID},
+                    'query': r'''query Video($channelID: ID!, $videoID: ID!) {
+                        video(ChannelID: $channelID, VideoID: $videoID) {
+                            ...VideoFragment __typename
+                        }
                     }
-                }
-                fragment VideoFragment on Video {
-                    title description updatedAt thumbnail createdAt duration likeCount comments views externalID
-                }''',
-            }).encode(), headers={
-                'channelid': '12884901895',
-                'content-type': 'application/json',
-            }), ('data', 'video'))
+                    fragment VideoFragment on Video {
+                        title description updatedAt thumbnail createdAt duration likeCount comments views url
+                    }''',
+                }).encode(), headers={
+                    'channelid': '12884901895',
+                    'content-type': 'application/json',
+                }), ('data', 'video'))
 
-        # DOWNLOADING LIST OF SOURCES (LIST OF M3U8 FILES)
-        hls_url = 'https://api.frontrow.cc/channels/12884901895/VIDEO/' + metadata['externalID'] + '/v2/hls.m3u8'
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls_url, video_id)
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(metadata['url'], pageID)
 
-        return {
-            'id': video_id,
-            'formats': formats,
-            'subtitles': subtitles,
-            **traverse_obj(metadata, {
-                'title': 'title',
-                'description': 'description',
-                'thumbnail': 'thumbnail',
-                'modified_date': ('updatedAt', {unified_strdate}),
-                'upload_date': ('createdAt', {unified_strdate}),
-                'duration': 'duration',
-                'like_count': 'likeCount',
-                'comment_count': 'comments',
-                'view_count': 'views',
-            }),
-        }
+            info = {
+                'id': pageID,
+                'formats': formats,
+                'subtitles': subtitles,
+                **traverse_obj(metadata, {
+                    'title': 'title',
+                    'description': 'description',
+                    'thumbnail': 'thumbnail',
+                    'modified_date': ('updatedAt', {unified_strdate}),
+                    'upload_date': ('createdAt', {unified_strdate}),
+                    'duration': 'duration',
+                    'like_count': 'likeCount',
+                    'comment_count': 'comments',
+                    'view_count': 'views',
+                }),
+            }
+
+        return info
