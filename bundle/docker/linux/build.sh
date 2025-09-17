@@ -1,16 +1,17 @@
 #!/bin/bash
 set -exuo pipefail
 
-if [[ -z "${USE_PYTHON_VERSION:-}" ]]; then
-    USE_PYTHON_VERSION="3.13"
+if [[ -z "${PYTHON_VERSION:-}" ]]; then
+    PYTHON_VERSION="3.13"
+    echo "Defaulting to using Python ${PYTHON_VERSION}"
 fi
 
 function runpy {
-    "/opt/shared-cpython-${USE_PYTHON_VERSION}/bin/python${USE_PYTHON_VERSION}" "$@"
+    "/opt/shared-cpython-${PYTHON_VERSION}/bin/python${PYTHON_VERSION}" "$@"
 }
 
 function venvpy {
-    "python${USE_PYTHON_VERSION}" "$@"
+    "python${PYTHON_VERSION}" "$@"
 }
 
 INCLUDES=(
@@ -23,6 +24,7 @@ if [[ -z "${EXCLUDE_CURL_CFFI:-}" ]]; then
 fi
 
 runpy -m venv /yt-dlp-build-venv
+# shellcheck disable=SC1091
 source /yt-dlp-build-venv/bin/activate
 # Inside the venv we use venvpy instead of runpy
 venvpy -m ensurepip --upgrade --default-pip

@@ -3,12 +3,14 @@ on:
   push:
     paths:
       - .github/workflows/*
+      - bundle/docker/linux/*.sh
       - devscripts/setup_variables.py
       - devscripts/setup_variables_tests.py
       - devscripts/utils.py
   pull_request:
     paths:
       - .github/workflows/*
+      - bundle/docker/linux/*.sh
       - devscripts/setup_variables.py
       - devscripts/setup_variables_tests.py
       - devscripts/utils.py
@@ -32,6 +34,7 @@ jobs:
         env:
           ACTIONLINT_TARBALL: ${{ format('actionlint_{0}_linux_amd64.tar.gz', env.ACTIONLINT_VERSION) }}
         run: |
+          python -m devscripts.install_deps -o --include test
           sudo apt -y install shellcheck
           python -m pip install -U pyflakes
           curl -LO "${ACTIONLINT_REPO}/releases/download/v${ACTIONLINT_VERSION}/${ACTIONLINT_TARBALL}"
@@ -41,6 +44,9 @@ jobs:
       - name: Run actionlint
         run: |
           ./actionlint -color
+      - name: Check Docker shell scripts
+        run: |
+          shellcheck bundle/docker/linux/*.sh
       - name: Test GHA devscripts
         run: |
-          python -m devscripts.setup_variables_tests
+          pytest -Werror --tb=short devscripts/setup_variables_tests.py
