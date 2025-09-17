@@ -259,12 +259,12 @@ class BilibiliBaseIE(InfoExtractor):
         cid_edges = cid_edges or {}
 
         params = {
-            "graph_version": graph_version,
-            "aid": aid,
-            "buvid": "20D6FDE7-B06C-1474-DA7C-5D4A5664FEFE26722infoc"
+            'graph_version': graph_version,
+            'aid': aid,
+            'buvid': '20D6FDE7-B06C-1474-DA7C-5D4A5664FEFE26722infoc'
         }
         if edge_id != 1:
-            params.update({"edge_id": edge_id})
+            params.update({'edge_id': edge_id})
         division_data = self._download_json(
             'https://api.bilibili.com/x/stein/edgeinfo_v2', video_id,
             query=params,
@@ -295,7 +295,7 @@ class BilibiliBaseIE(InfoExtractor):
         graph_version = traverse_obj(
             self._download_json(
                 'https://api.bilibili.com/x/player/wbi/v2', video_id,
-                'Extracting graph version', query={'bvid': video_id, 'cid': cid, "aid": aid}, headers=headers),
+                'Extracting graph version', query={'bvid': video_id, 'cid': cid, 'aid': aid}, headers=headers),
             ('data', 'interaction', 'graph_version', {int_or_none}))
         cid_edges = self._get_divisions(video_id, graph_version, {1: {'cid': cid}}, 1, aid=aid)
         for cid, edges in cid_edges.items():
