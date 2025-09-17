@@ -36,10 +36,10 @@ class KickBaseIE(InfoExtractor):
         viewer_count = traverse_obj(data, (
             ('viewer_count', ('livestream', 'viewer_count')), {int_or_none}, any), default=0)
 
-        def round_view_count(num):
+        def js_compatible_round(num):
             return math.floor(num + 0.5)
         # Reverse engineered from frontend JS code
-        return round_view_count(views + 2.25 * viewer_count)
+        return js_compatible_round(views + 2.25 * viewer_count)
 
 
 class KickIE(KickBaseIE):
