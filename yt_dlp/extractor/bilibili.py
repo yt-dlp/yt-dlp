@@ -261,7 +261,7 @@ class BilibiliBaseIE(InfoExtractor):
         params = {
             'graph_version': graph_version,
             'aid': aid,
-            'buvid': '20D6FDE7-B06C-1474-DA7C-5D4A5664FEFE26722infoc'
+            'buvid': '20D6FDE7-B06C-1474-DA7C-5D4A5664FEFE26722infoc',
         }
         if edge_id != 1:
             params.update({'edge_id': edge_id})
