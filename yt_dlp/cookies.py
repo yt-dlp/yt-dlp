@@ -213,7 +213,7 @@ def _extract_firefox_cookies(profile, container, logger):
             raise ValueError(f'could not find firefox container "{container}" in containers.json')
 
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
-        cursor = _open_database_copy(cookie_database_path, tmpdir)
+        cursor = _open_database_copy(cookie_database_path, tmpdir, logger=logger)
         with contextlib.closing(cursor.connection):
             db_schema_version = cursor.execute('PRAGMA user_version;').fetchone()[0]
             if db_schema_version > MAX_SUPPORTED_DB_SCHEMA_VERSION:
