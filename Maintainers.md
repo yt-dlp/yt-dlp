@@ -21,10 +21,11 @@ Core Maintainers are responsible for reviewing and merging contributions, publis
 
 ### [bashonly](https://github.com/bashonly)
 
-* `--update-to`, self-updater rewrite, automated/nightly/master releases
-* `--cookies-from-browser` support for Firefox containers, external downloader cookie handling overhaul
-* Added support for new websites like Dacast, Kick, NBCStations, Triller, VideoKen, Weverse, WrestleUniverse etc
-* Improved/fixed support for Anvato, Brightcove, Reddit, SlidesLive, TikTok, Twitter, Vimeo etc
+* Rewrote and maintains the build/release workflows and the self-updater: executables, automated/nightly/master releases, `--update-to`
+* Overhauled external downloader cookie handling
+* Added `--cookies-from-browser` support for Firefox containers
+* Overhauled and maintains support for sites like Youtube, Vimeo, Twitter, TikTok, etc
+* Added support for sites like Dacast, Kick, Loom, SproutVideo, Triller, Weverse, etc
 
 
 ### [Grub4K](https://github.com/Grub4K)
