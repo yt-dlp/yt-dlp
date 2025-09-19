@@ -3,15 +3,15 @@
 
 [![YT-DLP](https://raw.githubusercontent.com/yt-dlp/yt-dlp/master/.github/banner.svg)](#readme)
 
-[![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Download&style=for-the-badge)](#installation "Installation")
-[![PyPI](https://img.shields.io/badge/-PyPI-blue.svg?logo=pypi&labelColor=555555&style=for-the-badge)](https://pypi.org/project/yt-dlp "PyPI")
-[![Donate](https://img.shields.io/badge/_-Donate-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)](Collaborators.md#collaborators "Donate")
-[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&labelColor=555555&label=&logo=discord&style=for-the-badge)](https://discord.gg/H5MNcFW63r "Discord")
-[![Supported Sites](https://img.shields.io/badge/-Supported_Sites-brightgreen.svg?style=for-the-badge)](supportedsites.md "Supported Sites")
-[![License: Unlicense](https://img.shields.io/badge/-Unlicense-blue.svg?style=for-the-badge)](LICENSE "License")
-[![CI Status](https://img.shields.io/github/actions/workflow/status/yt-dlp/yt-dlp/core.yml?branch=master&label=Tests&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/actions "CI Status")
-[![Commits](https://img.shields.io/github/commit-activity/m/yt-dlp/yt-dlp?label=commits&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
-[![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master?label=&style=for-the-badge&display_timestamp=committer)](https://github.com/yt-dlp/yt-dlp/pulse/monthly "Last activity")
+[![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Download&style=plastic)](#installation "Installation")
+[![PyPI](https://img.shields.io/badge/-PyPI-blue.svg?logo=python&labelColor=yellow&style=plastic)](https://pypi.org/project/yt-dlp "PyPI")
+[![Donate](https://img.shields.io/badge/_-Donate-red.svg?logo=githubsponsors&labelColor=555555&style=plastic)](Collaborators.md#collaborators "Donate")
+[![Discord](https://img.shields.io/discord/807245652072857610?color=5865F2&labelColor=5865F2&label=&logo=discord&style=plastic&logoColor=white)](https://discord.gg/H5MNcFW63r "Discord")
+[![Supported Sites](https://img.shields.io/badge/-Supported_Sites-brightgreen.svg?style=plastic)](supportedsites.md "Supported Sites")
+[![License: Unlicense](https://img.shields.io/badge/-Unlicense-blue.svg?style=plastic)](LICENSE "License")
+[![CI Status](https://img.shields.io/github/actions/workflow/status/yt-dlp/yt-dlp/core.yml?branch=master&label=Tests&style=plastic)](https://github.com/yt-dlp/yt-dlp/actions "CI Status")
+[![Commits](https://img.shields.io/github/commit-activity/m/yt-dlp/yt-dlp?label=commits&style=plastic)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
+[![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master?label=Last%20Commit&style=plastic&display_timestamp=committer)](https://github.com/yt-dlp/yt-dlp/pulse/monthly "Last activity")
 
 </div>
 <!-- MANPAGE: END EXCLUDED SECTION -->
@@ -78,13 +78,13 @@ yt-dlp is a feature-rich command-line audio/video downloader with support for [t
 # INSTALLATION
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
-[![Windows](https://img.shields.io/badge/-Windows_x64-blue.svg?style=for-the-badge&logo=windows)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)
-[![Unix](https://img.shields.io/badge/-Linux/BSD-red.svg?style=for-the-badge&logo=linux)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)
-[![MacOS](https://img.shields.io/badge/-MacOS-lightblue.svg?style=for-the-badge&logo=apple)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)
-[![PyPI](https://img.shields.io/badge/-PyPI-blue.svg?logo=pypi&labelColor=555555&style=for-the-badge)](https://pypi.org/project/yt-dlp)
-[![Source Tarball](https://img.shields.io/badge/-Source_tar-green.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
-[![Other variants](https://img.shields.io/badge/-Other-grey.svg?style=for-the-badge)](#release-files)
-[![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases)
+[![Windows](https://img.shields.io/badge/-Windows_x64-blue.svg?style=plastic&logo=windows)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)
+[![Unix](https://img.shields.io/badge/-Linux/BSD-gold.svg?style=plastic&logo=linux&logoColor=black)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)
+[![MacOS](https://img.shields.io/badge/-MacOS-black.svg?style=plastic&logo=apple)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)
+[![PyPI](https://img.shields.io/badge/-PyPI-blue.svg?logo=python&labelColor=yellow&style=plastic)](https://pypi.org/project/yt-dlp)
+[![Source Tarball](https://img.shields.io/badge/-Source_tar-green.svg?style=plastic)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
+[![Other variants](https://img.shields.io/badge/-Other-grey.svg?style=plastic)](#release-files)
+[![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=plastic)](https://github.com/yt-dlp/yt-dlp/releases)
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 You can install yt-dlp using [the binaries](#release-files), [pip](https://pypi.org/project/yt-dlp) or one using a third-party package manager. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) for detailed instructions
