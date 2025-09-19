@@ -572,7 +572,7 @@ class VKUserVideosIE(VKBaseIE):
     IE_DESC = "VK - User's Videos"
     _BASE_URL_RE = r'https?://(?:(?:m|new)\.)?vk(?:video\.ru|\.com/video)'
     _VALID_URL = [
-        rf'{_BASE_URL_RE}/playlist/(?P<id>-?\d+_\d+)',
+        rf'{_BASE_URL_RE}/playlist/(?P<id>-?\d+_-?\d+)',
         rf'{_BASE_URL_RE}/(?P<id>@[^/?#]+)(?:/all)?/?(?!\?.*\bz=video)(?:[?#]|$)',
     ]
     _TESTS = [{
@@ -601,6 +601,9 @@ class VKUserVideosIE(VKBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://vk.com/video/playlist/-174476437_2',
+        'only_matching': True,
+    }, {
+        'url': 'https://vkvideo.ru/playlist/-51890028_-2',
         'only_matching': True,
     }]
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
