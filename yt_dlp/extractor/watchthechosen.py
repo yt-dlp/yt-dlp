@@ -104,6 +104,9 @@ class WatchTheChosenIE(InfoExtractor):
 
             for i in traverse_obj(metadata, ('itemRefs', 'edges')):
                 video_metadata = traverse_obj(i, ('node', 'contentItem', 'videoItem'))
+                # Skipping ghost-video
+                if video_metadata is None:
+                    continue
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_metadata['url'], video_metadata['id'])
                 entry = {'formats': formats,
                          'subtitles': subtitles,
@@ -141,7 +144,6 @@ class WatchTheChosenIE(InfoExtractor):
                     'channelid': '12884901895',
                     'content-type': 'application/json',
                 }), ('data', 'video'))
-
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(metadata['url'], pageID)
 
             info = {
