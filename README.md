@@ -241,8 +241,6 @@ The following provide support for impersonating browser requests. This may be re
 
 ### Deprecated
 
-* [**avconv** and **avprobe**](https://www.libav.org) - Now **deprecated** alternative to ffmpeg. License [depends on the build](https://libav.org/legal)
-* [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the now **deprecated** [sponskrub options](#sponskrub-options). Licensed under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
 * [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg can be used instead with `--downloader ffmpeg`. Licensed under [GPLv2+](http://rtmpdump.mplayerhq.hu)
 * [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp`/`mms` streams. ffmpeg can be used instead with `--downloader ffmpeg`. Licensed under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
 
@@ -2363,10 +2361,6 @@ While these options still work, their use is not recommended since there are oth
     --hls-prefer-ffmpeg              --downloader "m3u8:ffmpeg"
     --list-formats-old               --compat-options list-formats (Alias: --no-list-formats-as-table)
     --list-formats-as-table          --compat-options -list-formats [Default] (Alias: --no-list-formats-old)
-    --youtube-skip-dash-manifest     --extractor-args "youtube:skip=dash" (Alias: --no-youtube-include-dash-manifest)
-    --youtube-skip-hls-manifest      --extractor-args "youtube:skip=hls" (Alias: --no-youtube-include-hls-manifest)
-    --youtube-include-dash-manifest  Default (Alias: --no-youtube-skip-dash-manifest)
-    --youtube-include-hls-manifest   Default (Alias: --no-youtube-skip-hls-manifest)
     --geo-bypass                     --xff "default"
     --no-geo-bypass                  --xff "never"
     --geo-bypass-country CODE        --xff CODE
@@ -2377,18 +2371,13 @@ These options are not intended to be used by the end-user
 
     --test                           Download only part of video for testing extractors
     --load-pages                     Load pages dumped by --write-pages
-    --youtube-print-sig-code         For testing youtube signatures
     --allow-unplayable-formats       List unplayable formats also
     --no-allow-unplayable-formats    Default
 
 #### Old aliases
 These are aliases that are no longer documented for various reasons
 
-    --avconv-location                --ffmpeg-location
     --clean-infojson                 --clean-info-json
-    --cn-verification-proxy URL      --geo-verification-proxy URL
-    --dump-headers                   --print-traffic
-    --dump-intermediate-pages        --dump-pages
     --force-write-download-archive   --force-write-archive
     --no-clean-infojson              --no-clean-info-json
     --no-split-tracks                --no-split-chapters
@@ -2402,7 +2391,7 @@ These are aliases that are no longer documented for various reasons
     --yes-overwrites                 --force-overwrites
 
 #### Sponskrub Options
-Support for [SponSkrub](https://github.com/faissaloo/SponSkrub) has been deprecated in favor of the `--sponsorblock` options
+Support for [SponSkrub](https://github.com/faissaloo/SponSkrub) has been removed in favor of the `--sponsorblock` options
 
     --sponskrub                      --sponsorblock-mark all
     --no-sponskrub                   --no-sponsorblock
@@ -2424,6 +2413,17 @@ These options may no longer work as intended
     --no-include-ads                 Default
     --write-annotations              No supported site has annotations now
     --no-write-annotations           Default
+    --avconv-location                Removed alias for --ffmpeg-location
+    --cn-verification-proxy URL      Removed alias for --geo-verification-proxy URL
+    --dump-headers                   Removed alias for --print-traffic
+    --dump-intermediate-pages        Removed alias for --dump-pages
+    --youtube-skip-dash-manifest     Removed alias for --extractor-args "youtube:skip=dash" (Alias: --no-youtube-include-dash-manifest)
+    --youtube-skip-hls-manifest      Removed alias for --extractor-args "youtube:skip=hls" (Alias: --no-youtube-include-hls-manifest)
+    --youtube-include-dash-manifest  Default (Alias: --no-youtube-skip-dash-manifest)
+    --youtube-include-hls-manifest   Default (Alias: --no-youtube-skip-hls-manifest)
+    --youtube-print-sig-code         Removed testing functionality
+    --dump-user-agent                No longer supported
+    --xattr-set-filesize             No longer supported
     --compat-options seperate-video-versions  No longer needed
     --compat-options no-youtube-prefer-utc-upload-date  No longer supported
 

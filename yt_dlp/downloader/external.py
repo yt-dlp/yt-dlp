@@ -563,7 +563,7 @@ class FFmpegFD(ExternalFD):
                     f'{cookie.name}={cookie.value}; path={cookie.path}; domain={cookie.domain};\r\n'
                     for cookie in cookies)])
             if fmt.get('http_headers') and is_http:
-                # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
+                # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg:
                 # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
                 args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in fmt['http_headers'].items())])
 
@@ -652,10 +652,6 @@ class FFmpegFD(ExternalFD):
                     proc.kill(timeout=None)
                 raise
             return retval
-
-
-class AVconvFD(FFmpegFD):
-    pass
 
 
 _BY_NAME = {
