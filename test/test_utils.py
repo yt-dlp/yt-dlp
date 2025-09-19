@@ -1863,7 +1863,7 @@ Line 1
 
         self.assertEqual(
             list(get_elements_text_and_html_by_attribute('class', 'foo bar', html)),
-            list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES)))
+            list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES, strict=True)))
         self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'foo', html)), [])
         self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html)), [])
 
