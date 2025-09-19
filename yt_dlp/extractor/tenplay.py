@@ -1,12 +1,16 @@
+import base64
+import datetime as dt
 import itertools
+import json
+import re
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
     int_or_none,
-    update_url_query,
     url_or_none,
+    urlencode_postdata,
     urljoin,
 )
 from ..utils.traversal import traverse_obj
@@ -16,6 +20,7 @@ class TenPlayIE(InfoExtractor):
     IE_NAME = '10play'
     _VALID_URL = r'https?://(?:www\.)?10(?:play)?\.com\.au/(?:[^/?#]+/)+(?P<id>tpv\d{6}[a-z]{5})'
     _NETRC_MACHINE = '10play'
+
     _TESTS = [{
         # Geo-restricted to Australia
         'url': 'https://10.com.au/australian-survivor/web-extras/season-10-brains-v-brawn-ii/myless-journey/tpv250414jdmtf',
@@ -101,38 +106,258 @@ class TenPlayIE(InfoExtractor):
         'X': 18,
     }
 
+    def _perform_login(self, username, password):
+        if hasattr(self, '_cached_token') and self._cached_token:
+            return self._cached_token
+
+        timestamp = dt.datetime.utcnow().strftime('%Y%m%d000000')
+        auth_header = base64.b64encode(timestamp.encode('ascii')).decode('ascii')
+
+        login_data = self._download_json(
+            'https://10play.com.au/api/user/auth',
+            None,
+            'Logging in',
+            'Unable to log in',
+            data=json.dumps({'email': username, 'password': password}).encode(),
+            headers={
+                'X-Network-Ten-Auth': auth_header,
+                'Content-Type': 'application/json',
+            },
+        )
+
+        token = traverse_obj(login_data, ('jwt', 'accessToken'))
+        if not token:
+            if hasattr(self, '_cached_token'):
+                delattr(self, '_cached_token')
+            raise ExtractorError('Unable to extract access token from login response')
+
+        self._cached_token = 'Bearer ' + token
+        return self._cached_token
+
+    def _get_dai_stream_manifest(self, content_source_id, video_id, dai_auth_token, episode_url):
+        form_data = {
+            'cmsid': content_source_id,
+            'vid': video_id,
+            'auth-token': dai_auth_token,
+            'url': episode_url,
+        }
+
+        dai_url = f'https://dai.google.com/ondemand/hls/content/{content_source_id}/vid/{video_id}/streams'
+
+        response = self._download_json(
+            dai_url,
+            video_id,
+            'Getting DAI stream manifest',
+            data=urlencode_postdata(form_data),
+            headers={
+                'Accept': '*/*',
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Referer': episode_url,
+            },
+        )
+
+        if not response or not isinstance(response, dict):
+            raise ExtractorError('Invalid DAI response format')
+
+        manifest_url = traverse_obj(
+            response,
+            (('stream_manifest', 'manifest', 'url'), {url_or_none}),
+            get_all=False,
+        )
+        if manifest_url:
+            return manifest_url
+
+        streams = traverse_obj(response, ('streams', ..., {dict})) or []
+        for stream in streams:
+            if stream.get('format', '').upper() == 'HLS' and stream.get('url'):
+                return stream['url']
+
+        raise ExtractorError('Unable to extract stream manifest from DAI response')
+
+    def _extract_m3u8_url(self, playback_data, dai_auth_token, url):
+        direct_source = traverse_obj(playback_data, ('source', {url_or_none}))
+        if direct_source and direct_source != 'https://':
+            return direct_source
+
+        dai_info = traverse_obj(playback_data, ('dai', {dict})) or {}
+        content_source_id = dai_info.get('contentSourceId')
+        video_id = dai_info.get('videoId')
+
+        if content_source_id and video_id:
+            return self._get_dai_stream_manifest(
+                content_source_id, video_id, dai_auth_token, url)
+
+        return None
+
+    def _filter_ads_from_playlist(self, lines, m3u8_url):
+        filtered_lines = []
+        prev_extinf_idx = None
+
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('#EXTINF:'):
+                filtered_lines.append(line)
+                prev_extinf_idx = len(filtered_lines) - 1
+            elif not stripped.startswith('#'):
+                if re.match(r'^https?://redirector\.googlevideo\.com', urljoin(m3u8_url, stripped), re.I):
+                    if prev_extinf_idx == len(filtered_lines) - 1:
+                        filtered_lines.pop()
+                    prev_extinf_idx = None
+                else:
+                    filtered_lines.append(line)
+                    prev_extinf_idx = None
+            else:
+                filtered_lines.append(line)
+
+        return filtered_lines
+
+    def _create_1080_playlist(self, filtered_lines):
+        fhd_lines = [re.sub(r'(-TEN-)(15|30)(\d*)', r'\g<1>50\3', line) for line in filtered_lines]
+        fhd_urls = [
+            new.strip() for old, new in zip(filtered_lines, fhd_lines)
+            if old != new and not new.strip().startswith('#')]
+
+        return fhd_lines, fhd_urls
+
+    def _probe_segments_for_bitrate(self, fhd_urls, m3u8_url, fhd_lines):
+        bitrate = 0
+        durations = [float(line.split(':')[1].split(',')[0]) for line in fhd_lines if line.startswith('#EXTINF:')]
+
+        for i in [0, len(fhd_urls) // 2, max(0, len(fhd_urls) - 2)]:
+            try:
+                _, urlh = self._download_webpage_handle(
+                    HEADRequest(urljoin(m3u8_url, fhd_urls[i])),
+                    None, note=f'Probing 1080p segment {i + 1}', fatal=False)
+                if urlh and 'Content-Length' in urlh.headers:
+                    size = int_or_none(urlh.headers['Content-Length'], default=0)
+                    duration = durations[i] if i < len(durations) else 6.0
+                    raw_bitrate = size * 8 // int(duration * 1000)
+                    bitrate = max(bitrate, int(raw_bitrate * 0.83))  # Handle overhead from probing AES-128 streams w/o decrypting.
+                else:
+                    return 0
+            except ExtractorError:
+                return 0
+
+        return bitrate
+
+    def _access_1080p_streams(self, m3u8_url, content_id, formats):
+        if any(fmt.get('height') == 1080 for fmt in formats):
+            return
+
+        try:
+            playlist_content = self._download_webpage(
+                m3u8_url, content_id, 'Downloading master playlist', fatal=False)
+            if not playlist_content:
+                return
+
+            if '#EXT-X-STREAM-INF' in playlist_content:
+                for line in playlist_content.splitlines():
+                    if line.strip() and not line.strip().startswith('#'):
+                        m3u8_url = urljoin(m3u8_url, line.strip())
+                        break
+                playlist_content = self._download_webpage(
+                    m3u8_url, content_id, 'Downloading media playlist', fatal=False)
+
+            if not (playlist_content and '#EXTINF:' in playlist_content):
+                return
+
+            lines = playlist_content.splitlines()
+            filtered_lines = self._filter_ads_from_playlist(lines, m3u8_url)
+            fhd_lines, fhd_urls = self._create_1080_playlist(filtered_lines)
+
+            if not fhd_urls:
+                self.report_warning('No FHD URLs found - 1080p stream not available')
+                return
+
+            try:
+                bitrate = self._probe_segments_for_bitrate(fhd_urls, m3u8_url, fhd_lines)
+                if bitrate == 0:
+                    self.report_warning('1080p stream segments not accessible - skipping 1080p stream')
+                    return
+            except ExtractorError as e:
+                self.report_warning(f'Failed to probe 1080p segments: {e}')
+                return
+
+            for fmt in formats:
+                if fmt.get('url') == m3u8_url:
+                    fmt['hls_media_playlist_data'] = '\n'.join(filtered_lines)
+                    break
+
+            formats.append({
+                **formats[0],
+                'format_id': str(bitrate),
+                'height': 1080,
+                'width': 1920,
+                'tbr': bitrate,
+                'hls_media_playlist_data': '\n'.join(fhd_lines),
+            })
+
+        except ExtractorError as e:
+            self.report_warning(f'Failed to process M3U8 for 1080p access: {e}')
+
     def _real_extract(self, url):
         content_id = self._match_id(url)
-        data = self._download_json(
-            'https://10.com.au/api/v1/videos/' + content_id, content_id)
 
-        video_data = self._download_json(
-            f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
-            content_id, 'Downloading video JSON')
-        # Dash URL 403s, changing the m3u8 format works
-        m3u8_url = self._request_webpage(
-            HEADRequest(update_url_query(video_data['items'][0]['dashManifestUrl'], {
-                'manifest': 'm3u',
-            })),
-            content_id, 'Checking stream URL').url
+        username, password = self._get_login_info()
+        if not username or not password:
+            raise ExtractorError(
+                '10Play requires authentication. Please use --username and --password with valid 10Play credentials.',
+            )
+
+        jwt_token = self._perform_login(username, password)
+        auth_headers = {
+            'Authorization': jwt_token,
+            'tp-acceptfeature': 'v1/fw;v1/drm',
+        }
+
+        try:
+            video_data = self._download_json(
+                'https://10.com.au/api/v1/videos/' + content_id,
+                content_id,
+                'Downloading video metadata',
+                headers=auth_headers,
+            )
+
+            playback_api_url = video_data.get('playbackApiEndpoint')
+            if not playback_api_url:
+                raise ExtractorError('Missing playback API endpoint in video metadata')
+
+            playback_data, playback_response = self._download_json_handle(
+                playback_api_url + '?platform=samsung',
+                content_id,
+                'Downloading playback data',
+                headers=auth_headers,
+            )
+        except ExtractorError as e:
+            if '401' in str(e) or '403' in str(e) or 'unauthorized' in str(e).lower():
+                if hasattr(self, '_cached_token'):
+                    delattr(self, '_cached_token')
+            raise
+
+        dai_auth_token = playback_response.headers.get('x-dai-auth')
+        if not dai_auth_token:
+            raise ExtractorError(
+                'Missing DAI auth token. The content is not available or the API response format has changed.',
+            )
+
+        m3u8_url = self._extract_m3u8_url(playback_data, dai_auth_token, url)
+
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
         if '10play_unsupported' in m3u8_url:
             raise ExtractorError('Unable to extract stream')
-        # Attempt to get a higher quality stream
-        formats = self._extract_m3u8_formats(
-            m3u8_url.replace(',150,75,55,0000', ',500,300,150,75,55,0000'),
-            content_id, 'mp4', fatal=False)
-        if not formats:
-            formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
+
+        formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
+
+        self._access_1080p_streams(m3u8_url, content_id, formats)
 
         return {
             'id': content_id,
             'formats': formats,
-            'subtitles': {'en': [{'url': data['captionUrl']}]} if url_or_none(data.get('captionUrl')) else None,
+            'subtitles': {'en': [{'url': video_data['captionUrl']}]} if url_or_none(video_data.get('captionUrl')) else None,
             'uploader': 'Channel 10',
             'uploader_id': '2199827728001',
-            **traverse_obj(data, {
+            **traverse_obj(video_data, {
                 'id': ('altId', {str}),
                 'duration': ('duration', {int_or_none}),
                 'title': ('subtitle', {str}),
