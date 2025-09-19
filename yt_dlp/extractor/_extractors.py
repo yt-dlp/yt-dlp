@@ -1456,6 +1456,7 @@ from .palcomp3 import (
     PalcoMP3IE,
     PalcoMP3VideoIE,
 )
+from .pandavideo import PandaVideoIE
 from .panopto import (
     PanoptoIE,
     PanoptoListIE,
