@@ -241,7 +241,6 @@ class TenPlayIE(InfoExtractor):
         return bitrate
 
     def _access_1080p_streams(self, m3u8_url, content_id, formats):
-        # Check if 1080p already exists
         if any(fmt.get('height') == 1080 for fmt in formats):
             return
 
@@ -294,7 +293,7 @@ class TenPlayIE(InfoExtractor):
             })
 
         except ExtractorError as e:
-            self.report_warning(f'Could not process M3U8 for 1080p access: {e}')
+            self.report_warning(f'Failed to process M3U8 for 1080p access: {e}')
 
     def _real_extract(self, url):
         content_id = self._match_id(url)
@@ -338,15 +337,10 @@ class TenPlayIE(InfoExtractor):
         dai_auth_token = playback_response.headers.get('x-dai-auth')
         if not dai_auth_token:
             raise ExtractorError(
-                'Missing DAI auth token. This may indicate the content requires different authentication or is not available.',
+                'Missing DAI auth token. The content is not available or the API response format has changed.',
             )
 
         m3u8_url = self._extract_m3u8_url(playback_data, dai_auth_token, url)
-
-        if not m3u8_url:
-            raise ExtractorError(
-                'Unable to extract stream URL. The content may be geo-restricted or require different authentication.',
-            )
 
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
@@ -354,8 +348,6 @@ class TenPlayIE(InfoExtractor):
             raise ExtractorError('Unable to extract stream')
 
         formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
-        if not formats:
-            raise ExtractorError('No formats found')
 
         self._access_1080p_streams(m3u8_url, content_id, formats)
 
