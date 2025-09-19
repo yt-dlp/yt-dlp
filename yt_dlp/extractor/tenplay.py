@@ -21,13 +21,6 @@ class TenPlayIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?10(?:play)?\.com\.au/(?:[^/?#]+/)+(?P<id>tpv\d{6}[a-z]{5})'
     _NETRC_MACHINE = '10play'
 
-    _BASE_HEADERS = {
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-AU,en;q=0.9',
-        'Origin': 'https://10play.com.au',
-        'Referer': 'https://10play.com.au/',
-    }
-
     _TESTS = [{
         # Geo-restricted to Australia
         'url': 'https://10.com.au/australian-survivor/web-extras/season-10-brains-v-brawn-ii/myless-journey/tpv250414jdmtf',
@@ -129,7 +122,6 @@ class TenPlayIE(InfoExtractor):
             headers={
                 'X-Network-Ten-Auth': auth_header,
                 'Content-Type': 'application/json',
-                **self._BASE_HEADERS,
             },
         )
 
@@ -317,7 +309,6 @@ class TenPlayIE(InfoExtractor):
         auth_headers = {
             'Authorization': jwt_token,
             'tp-acceptfeature': 'v1/fw;v1/drm',
-            **self._BASE_HEADERS,
         }
 
         try:
