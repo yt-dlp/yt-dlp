@@ -1,3 +1,4 @@
+import bisect
 import copy
 import heapq
 import os
@@ -13,13 +14,16 @@ DEFAULT_SPONSORBLOCK_CHAPTER_TITLE = '[SponsorBlock]: %(category_names)l'
 
 class ModifyChaptersPP(FFmpegPostProcessor):
     def __init__(self, downloader, remove_chapters_patterns=None, remove_sponsor_segments=None, remove_ranges=None,
-                 *, sponsorblock_chapter_title=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, force_keyframes=False):
+                 *, sponsorblock_chapter_title=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, force_keyframes=False,
+                 round_to_keyframes=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._remove_chapters_patterns = set(remove_chapters_patterns or [])
-        self._remove_sponsor_segments = set(remove_sponsor_segments or []) - set(SponsorBlockPP.NON_SKIPPABLE_CATEGORIES.keys())
+        self._remove_sponsor_segments = set(remove_sponsor_segments or []) - set(
+            SponsorBlockPP.NON_SKIPPABLE_CATEGORIES.keys())
         self._ranges_to_remove = set(remove_ranges or [])
         self._sponsorblock_chapter_title = sponsorblock_chapter_title
         self._force_keyframes = force_keyframes
+        self._round_to_keyframes = round_to_keyframes
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
@@ -35,7 +39,12 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         if not chapters:
             chapters = [{'start_time': 0, 'end_time': info.get('duration') or real_duration, 'title': info['title']}]
 
-        info['chapters'], cuts = self._remove_marked_arrange_sponsors(chapters + sponsor_chapters)
+        chapters += sponsor_chapters
+        if self._round_to_keyframes:
+            keyframes = self.get_keyframe_timestamps(info['filepath'])
+            self._round_remove_chapters(keyframes, chapters, info.get('duration') or real_duration)
+
+        info['chapters'], cuts = self._remove_marked_arrange_sponsors(chapters)
         if not cuts:
             return [], info
         elif not info['chapters']:
@@ -54,7 +63,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 self.write_debug('Expected and actual durations mismatch')
 
         concat_opts = self._make_concat_opts(cuts, real_duration)
-        self.write_debug('Concat spec = {}'.format(', '.join(f'{c.get("inpoint", 0.0)}-{c.get("outpoint", "inf")}' for c in concat_opts)))
+        self.write_debug('Concat spec = {}'.format(
+            ', '.join(f'{c.get("inpoint", 0.0)}-{c.get("outpoint", "inf")}' for c in concat_opts)))
 
         def remove_chapters(file, is_sub):
             return file, self.remove_chapters(file, cuts, concat_opts, self._force_keyframes and not is_sub)
@@ -117,7 +127,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 continue
             ext = sub['ext']
             if ext not in FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS:
-                self.report_warning(f'Cannot remove chapters from external {ext} subtitles; "{sub_file}" is now out of sync')
+                self.report_warning(
+                    f'Cannot remove chapters from external {ext} subtitles; "{sub_file}" is now out of sync')
                 continue
             # TODO: create __real_download for subs?
             yield sub_file
@@ -314,12 +325,30 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         in_file = filename
         out_file = prepend_extension(in_file, 'temp')
         if force_keyframes:
-            in_file = self.force_keyframes(in_file, (t for c in ranges_to_cut for t in (c['start_time'], c['end_time'])))
+            in_file = self.force_keyframes(in_file,
+                                           (t for c in ranges_to_cut for t in (c['start_time'], c['end_time'])))
         self.to_screen(f'Removing chapters from {filename}')
         self.concat_files([in_file] * len(concat_opts), out_file, concat_opts)
         if in_file != filename:
             self._delete_downloaded_files(in_file, msg=None)
         return out_file
+
+    @staticmethod
+    def _round_remove_chapters(keyframes, chapters, duration):
+        result = []
+        for c in chapters:
+            if not c.get('remove', False) or not keyframes:
+                result.append(c)
+                continue
+
+            if c['end_time'] > keyframes[-1] and c['end_time'] != duration:
+                continue
+
+            if c['end_time'] < keyframes[-1]:
+                c['end_time'] = keyframes[bisect.bisect_right(keyframes, c['end_time']) - 1]
+            result.append(c)
+
+        return result
 
     @staticmethod
     def _make_concat_opts(chapters_to_remove, duration):
