@@ -522,7 +522,7 @@ class XHamsterUserIE(InfoExtractor):
         if user_type in ['celebrities', 'channels', 'pornstars']:
             suffix = 'newest'
         elif user_type == 'creators':
-            suffix = 'exclusive'
+            suffix = 'newest/exclusive'
         else:
             suffix = 'videos'
         next_page_url = f'https://xhamster.com/{orientation}{user_type}/{user_id}/{suffix}/1'
