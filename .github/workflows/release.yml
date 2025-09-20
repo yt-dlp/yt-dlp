@@ -272,7 +272,7 @@ jobs:
           printf '\n\n%s\n\n%s%s\n\n---\n' \
             "#### A description of the various files is in the [README](https://github.com/${REPOSITORY}#release-files)" \
             "The PyInstaller-bundled executables are subject to the licenses described in " \
-            "[THIRD_PARTY_LICENSES.txt](https://github.com/${BASE_REPO}/blob/master/THIRD_PARTY_LICENSES.txt)" >> ./RELEASE_NOTES
+            "[THIRD_PARTY_LICENSES.txt](https://github.com/${BASE_REPO}/blob/${HEAD_SHA}/THIRD_PARTY_LICENSES.txt)" >> ./RELEASE_NOTES
           python ./devscripts/make_changelog.py -vv --collapsible >> ./RELEASE_NOTES
           printf '%s\n\n' '**This is a pre-release build**' >> ./PRERELEASE_NOTES
           cat ./RELEASE_NOTES >> ./PRERELEASE_NOTES
