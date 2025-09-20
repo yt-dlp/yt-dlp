@@ -52,12 +52,21 @@ class TwitchBaseIE(InfoExtractor):
         'VideoMetadata': '49b5b8f268cdeb259d75b58dcb0c1a748e3b575003448a2333dc5cdafd49adad',
         'VideoPlayer_ChapterSelectButtonVideo': '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
         'VideoPlayer_VODSeekbarPreviewVideo': '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
+        'VideoCommentsByOffsetOrCursor': 'b70a3591ff0f4e0313d126c6a1502d79a1c02baebb288227c582044aa76adf6a',
     }
 
     @property
     def _CLIENT_ID(self):
         return self._configuration_arg(
             'client_id', ['ue6666qo983tsx6so1t0vnawi233wa'], ie_key='Twitch', casesense=True)[0]
+
+    @property
+    def _DEVICE_ID(self):
+        return self._configuration_arg('device_id', [None], ie_key='Twitch', casesense=True)[0]
+
+    @property
+    def _CLIENT_INTEGRITY(self):
+        return self._configuration_arg('client_integrity', [None], ie_key='Twitch', casesense=True)[0]
 
     def _perform_login(self, username, password):
         def fail(message):
@@ -143,6 +152,14 @@ class TwitchBaseIE(InfoExtractor):
         gql_auth = self._get_cookies('https://gql.twitch.tv').get('auth-token')
         if gql_auth:
             headers['Authorization'] = 'OAuth ' + gql_auth.value
+
+        # TODO: remove existence checks when the values will be generated
+        if self._DEVICE_ID:
+            headers['X-Device-Id'] = self._DEVICE_ID
+
+        if self._CLIENT_INTEGRITY:
+            headers['Client-Integrity'] = self._CLIENT_INTEGRITY
+
         return self._download_json(
             'https://gql.twitch.tv/gql', video_id, note,
             data=json.dumps(ops).encode(),
@@ -340,6 +357,7 @@ class TwitchVodIE(TwitchBaseIE):
             'view_count': int,
         },
         'params': {
+            'subtitleslangs': ['live_chat'],
             'skip_download': True,
         },
     }, {
@@ -566,6 +584,64 @@ class TwitchVodIE(TwitchBaseIE):
                 } for path in images],
             }
 
+    def _get_subtitles(self, vod_id):
+        chat_history = []
+        has_more_pages = True
+        pagenum = 1
+        gql_ops = [{
+            'operationName': 'VideoCommentsByOffsetOrCursor',
+            'variables': {'videoID': vod_id},
+            # 'variables.cursor': <filled in in subsequent requests>
+        }]
+
+        while has_more_pages:
+            response = None
+
+            for retry in self.RetryManager():
+                response = self._download_gql(vod_id, gql_ops, 'Downloading chat fragment page %d' % pagenum, fatal=False)
+
+                if response is False:
+                    retry.error = ExtractorError("f'Unable to fetch next chat history fragment.'", video_id=vod_id, ie=self)
+
+                    # TODO: when this happens, should I forget a partial chat history, or is it better to keep it?
+                    #       I think if I keep it, it might be better to persist a warning that it is incomplete
+
+            response_errors = traverse_obj(response, (..., 'errors'))
+            if response_errors:
+                self.report_warning(f'Error response recevied for fetching next chat history fragment: {response_errors}')
+
+            comments_obj = traverse_obj(response, (0, 'data', 'video', 'comments'))
+            chat_history.extend(traverse_obj(comments_obj, ('edges', ..., 'node')))
+
+            has_more_pages = traverse_obj(comments_obj, ('pageInfo', 'hasNextPage'))
+
+            if has_more_pages:
+                cursor = traverse_obj(comments_obj, ('edges', 0, 'cursor'))
+                if cursor is None:
+                    self.report_warning('Cannot continue downloading chat history: cursor is missing. There are additional chat pages to download.')
+                    break
+
+                pagenum += 1
+                gql_ops[0]['variables']['cursor'] = cursor
+
+            if has_more_pages is None:
+                cursor = traverse_obj(comments_obj, ('edges', 0, 'cursor'))
+
+                if cursor is not None:
+                    self.report_warning('Next page indication is missing, but found cursor. Continuing chat history download.')
+                else:  # In this case maintenance might be needed. Purpose is to prevent silent errors.
+                    self.report_warning('Next page indication is missing, and cursor not found.')
+
+        if not chat_history:
+            return
+        else:
+            self.write_debug(f'Extracted {len(chat_history)} chat messages')
+
+        return {'rechat': [{
+            'data': json.dumps(chat_history),
+            'ext': 'twitch-gql-20221228.json',
+        }]}
+
     def _real_extract(self, url):
         vod_id = self._match_id(url)
 
@@ -586,16 +662,8 @@ class TwitchVodIE(TwitchBaseIE):
         if 't' in query:
             info['start_time'] = parse_duration(query['t'][0])
 
-        if info.get('timestamp') is not None:
-            info['subtitles'] = {
-                'rechat': [{
-                    'url': update_url_query(
-                        f'https://api.twitch.tv/v5/videos/{vod_id}/comments', {
-                            'client_id': self._CLIENT_ID,
-                        }),
-                    'ext': 'json',
-                }],
-            }
+        if info.get('timestamp'):
+            info['__post_extractor'] = lambda: {'requested_subtitles': {'rechat': traverse_obj(self.extract_subtitles(vod_id), ['rechat', 0])}}
 
         return info
 
