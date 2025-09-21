@@ -97,7 +97,7 @@ class ABCIE(InfoExtractor):
             'title': 'Wagner Group retreating from Russia, leader Prigozhin to move to Belarus',
             'ext': 'mp4',
             'description': 'Wagner troops leave Rostov-on-Don and\xa0Yevgeny Prigozhin will move to Belarus under a deal brokered by Belarusian President Alexander Lukashenko to end the mutiny.',
-            'thumbnail': 'https://live-production.wcms.abc-cdn.net.au/0c170f5b57f0105c432f366c0e8e267b?impolicy=wcms_watermark_news&cropH=2813&cropW=5000&xPos=0&yPos=249&width=862&height=485&imformat=generic',        },
+            'thumbnail': 'https://live-production.wcms.abc-cdn.net.au/0c170f5b57f0105c432f366c0e8e267b?impolicy=wcms_watermark_news&cropH=2813&cropW=5000&xPos=0&yPos=249&width=862&height=485&imformat=generic'       },
     }, {
         'url': 'https://www.abc.net.au/listen/programs/the-followers-madness-of-two/presents-followers-madness-of-two/105697646',
         'info_dict': {
