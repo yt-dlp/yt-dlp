@@ -1,3 +1,5 @@
+import builtins
+import contextlib
 import functools
 import re
 import time
@@ -31,7 +33,7 @@ from ..utils.traversal import require, traverse_obj, trim_str
 
 class CBCIE(InfoExtractor):
     IE_NAME = 'cbc.ca'
-    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?!player/)(?:[^/]+/)+(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?!player/|listen/)(?:[^/]+/)+(?P<id>[^/?#]+)'
     _TESTS = [{
         # with mediaId
         'url': 'http://www.cbc.ca/22minutes/videos/clips-season-23/don-cherry-play-offs',
@@ -111,12 +113,6 @@ class CBCIE(InfoExtractor):
         },
         'playlist_mincount': 6,
     }]
-
-    @classmethod
-    def suitable(cls, url):
-        EXCLUDE_IE = (CBCPlayerIE, CBCListenIE)
-        return (False if any(ie.suitable(url) for ie in EXCLUDE_IE)
-                else super().suitable(url))
 
     def _extract_player_init(self, player_init, display_id):
         player_info = self._parse_json(player_init, display_id, js_to_json)
@@ -919,7 +915,7 @@ class CBCGemLiveIE(InfoExtractor):
 
 class CBCListenIE(InfoExtractor):
     IE_NAME = 'cbc.ca:listen'
-    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(:?listen/)(?:cbc-podcasts|live-radio)/(?:[^/]+/)+(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/listen/(?:cbc-podcasts|live-radio)/[\w-]+/[\w-]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.cbc.ca/listen/cbc-podcasts/1353-the-naked-emperor/episode/16142603-introducing-understood-who-broke-the-internet',
         'info_dict': {
@@ -928,7 +924,10 @@ class CBCListenIE(InfoExtractor):
             'ext': 'mp3',
             'description': 'md5:c605117500084e43f08a950adc6a708c',
             'duration': 229,
-            'timestamp': 1745827200000,
+            'timestamp': 1745812800,
+            'release_timestamp': 1745827200,
+            'release_date': '20250428',
+            'upload_date': '20250428',
         },
     }, {
         'url': 'https://www.cbc.ca/listen/live-radio/1-64-the-house/clip/16170773-should-canada-suck-stand-donald-trump',
@@ -938,17 +937,16 @@ class CBCListenIE(InfoExtractor):
             'ext': 'mp3',
             'description': 'md5:7385194f1cdda8df27ba3764b35e7976',
             'duration': 3159,
-            'timestamp': 1758254400000,
+            'timestamp': 1758340800,
+            'release_timestamp': 1758254400,
+            'release_date': '20250919',
+            'upload_date': '20250920',
         },
     }]
 
     def _download_api_json(self, video_id):
-        api_url = f'https://www.cbc.ca/listen/api/v1/clips/{video_id}'
-        raw = self._download_webpage(api_url, video_id,
-                                     note='Downloading episode JSON')
-        api_json = self._parse_json(raw, video_id)
-
-        return api_json.get('data')
+        return traverse_obj(self._download_json(
+            f'https://www.cbc.ca/listen/api/v1/clips/{video_id}', video_id), 'data', {dict})
 
     def _extract_webpage_data(self, url, video_id):
         webpage = self._download_webpage(url, video_id)
@@ -956,33 +954,27 @@ class CBCListenIE(InfoExtractor):
             r'window\.__PRELOADED_STATE__\s*=', webpage, 'preloaded state',
             video_id, transform_source=js_to_json)
 
-        show_data = traverse_obj(preloaded_state, (
-            ['podcastDetailData', 'showDetailData'], ..., {dict}, any))
-
-        return traverse_obj(show_data, (
-            'episodes', lambda _, v: str(v['clipID']) == video_id, any, {require('episode data')}))
+        return traverse_obj(preloaded_state, (
+            ('podcastDetailData', 'showDetailData'), ..., 'episodes',
+            lambda _, v: str(v['clipID']) == video_id, any, {require('episode data')}))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data = self._extract_webpage_data(url, video_id)
-
-        if not data:
-            self.to_screen('Unable to extract data from webpage. Trying public api.')
+        data = None
+        with contextlib.suppress(builtins.BaseException):
             data = self._download_api_json(video_id)
-
-            if not data:
-                raise ExtractorError('Unable to extract urls', expected=True)
-
-        formats = [{
-            'url': data.get('url') or data.get('src'),
-        }]
+        if not data:
+            self.report_warning('Api returned no data. Falling back to webpage parsing')
+            data = self._extract_webpage_data(url, video_id)
 
         return {
             'id': video_id,
-            'title': data.get('title'),
-            'description': data.get('description'),
-            'timestamp': data.get('releasedAt'),
-            'formats': formats,
-            'duration': data.get('duration'),
-            'webpage_url': url,
+            **traverse_obj(data, {
+                'url': (('src', 'url'), {url_or_none}, any),
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'release_timestamp': ('releasedAt', {int_or_none(scale=1000)}),
+                'timestamp': ('airdate', {int_or_none(scale=1000)}),
+                'duration': ('duration', {int_or_none}),
+            }),
         }
