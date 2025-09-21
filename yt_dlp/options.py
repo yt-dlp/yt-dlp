@@ -1912,7 +1912,7 @@ def create_parser():
         '--no-prefer-ffmpeg',
         '--prefer-ffmpeg',
         '--no-prefer-avconv',
-        '-C',
+        '-C',  # this needs to remain deprecated until at least 2028
         '--call-home',
         '--no-call-home',
         '--include-ads',
