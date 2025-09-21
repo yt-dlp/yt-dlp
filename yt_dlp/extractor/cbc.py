@@ -925,7 +925,7 @@ class CBCListenIE(InfoExtractor):
             'id': '16142603',
             'title': 'Introducing Understood: Who Broke the Internet?',
             'ext': 'mp3',
-            'description': 'md5:2af325731fbea1c2772473c55dead9de',
+            'description': 'md5:c605117500084e43f08a950adc6a708c',
             'duration': 229,
             'timestamp': 1745827200000,
         },
@@ -935,7 +935,7 @@ class CBCListenIE(InfoExtractor):
             'id': '16170773',
             'title': 'Should Canada suck up or stand up to Donald Trump?',
             'ext': 'mp3',
-            'description': 'md5:9336dbe1b807063127b1c7886d63b841',
+            'description': 'md5:7385194f1cdda8df27ba3764b35e7976',
             'duration': 3159,
             'timestamp': 1758254400000,
         },
@@ -945,27 +945,41 @@ class CBCListenIE(InfoExtractor):
         api_url = f'https://www.cbc.ca/listen/api/v1/clips/{video_id}'
         raw = self._download_webpage(api_url, video_id,
                                      note='Downloading episode JSON')
-        try:
-            return self._parse_json(raw, video_id)['data']
-        except Exception as exc:
-            raise ExtractorError(f'API JSON parse error: {exc}', expected=True)
+        api_json =  self._parse_json(raw, video_id)
 
+        return api_json.get('data')
+
+    def _extract_webpage_data(self, url, video_id):
+        webpage = self._download_webpage(url, video_id)
+        preloaded_state = self._search_json(
+            r'window\.__PRELOADED_STATE__\s*=', webpage, 'preloaded state',
+            video_id, transform_source=js_to_json)
+
+        show_data = traverse_obj(preloaded_state, (
+            ['podcastDetailData', 'showDetailData'], ..., {dict}, any))
+
+        return traverse_obj(show_data, (
+                'episodes', lambda _, v: str(v['clipID']) == video_id, any, {require('episode data')}))
 
     def _real_extract(self, url):
-        # using _download_webpage with the url does not provide all the necessary data
-        # to get the required url for download. it would be contained in PRELOADED_STATE
-        # but the data is truncated. using the api instead.
         video_id = self._match_id(url)
+        data = self._extract_webpage_data(url, video_id)
 
-        data = self._download_api_json(video_id)
+        if not data:
+            self.to_screen('Unable to extract data from webpage. Trying public api.')
+            data = self._download_api_json(video_id)
+
+            if not data:
+                raise ExtractorError('Unable to extract urls', expected=True)
+
         formats = [{
-            'url': data.get('src'),
+            'url': data.get('url') or data.get('src'),
         }]
 
         return {
             'id': video_id,
             'title': data.get('title'),
-            'description': data.get('showDescription'),
+            'description': data.get('description'),
             'timestamp': data.get('releasedAt'),
             'formats': formats,
             'duration': data.get('duration'),
