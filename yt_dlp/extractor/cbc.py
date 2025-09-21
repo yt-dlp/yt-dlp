@@ -114,7 +114,9 @@ class CBCIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if CBCPlayerIE.suitable(url) else super().suitable(url)
+        EXCLUDE_IE = (CBCPlayerIE, CBCListenIE)
+        return (False if any(ie.suitable(url) for ie in EXCLUDE_IE)
+                else super().suitable(url))
 
     def _extract_player_init(self, player_init, display_id):
         player_info = self._parse_json(player_init, display_id, js_to_json)
@@ -912,4 +914,60 @@ class CBCGemLiveIE(InfoExtractor):
                 'description': ('description', {str}),
                 'thumbnail': ('images', 'card', 'url'),
             }),
+        }
+
+class CBCListenIE(InfoExtractor):
+    IE_NAME = 'cbc.ca:listen'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(:?listen/)(?:cbc-podcasts|live-radio)/(?:[^/]+/)+(?P<id>\d+)'
+    _TESTS = [{
+        'url':  'https://www.cbc.ca/listen/cbc-podcasts/1353-the-naked-emperor/episode/16142603-introducing-understood-who-broke-the-internet',
+        'info_dict': {
+            'id': '16142603',
+            'title': 'Introducing Understood: Who Broke the Internet?',
+            'ext': 'mp3',
+            'description': 'md5:2af325731fbea1c2772473c55dead9de',
+            'duration': 229,
+            'timestamp': 1745827200000,
+        },
+    },{
+        'url':  'https://www.cbc.ca/listen/live-radio/1-64-the-house/clip/16170773-should-canada-suck-stand-donald-trump',
+        'info_dict': {
+            'id': '16170773',
+            'title': 'Should Canada suck up or stand up to Donald Trump?',
+            'ext': 'mp3',
+            'description': 'md5:9336dbe1b807063127b1c7886d63b841',
+            'duration': 3159,
+            'timestamp': 1758254400000,
+        },
+    }]
+
+    def _download_api_json(self, video_id):
+        api_url = f'https://www.cbc.ca/listen/api/v1/clips/{video_id}'
+        raw = self._download_webpage(api_url, video_id,
+                                     note='Downloading episode JSON')
+        try:
+            return self._parse_json(raw, video_id)['data']
+        except Exception as exc:
+            raise ExtractorError(f'API JSON parse error: {exc}', expected=True)
+
+
+    def _real_extract(self, url):
+        # using _download_webpage with the url does not provide all the necessary data
+        # to get the required url for download. it would be contained in PRELOADED_STATE
+        # but the data is truncated. using the api instead.
+        video_id = self._match_id(url)
+
+        data = self._download_api_json(video_id)
+        formats = [{
+            'url': data.get('src'),
+        }]
+
+        return {
+            'id': video_id,
+            'title': data.get('title'),
+            'description': data.get('showDescription'),
+            'timestamp': data.get('releasedAt'),
+            'formats': formats,
+            'duration': data.get('duration'),
+            'webpage_url': url,
         }
