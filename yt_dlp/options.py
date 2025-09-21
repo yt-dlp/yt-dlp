@@ -1892,7 +1892,7 @@ def create_parser():
 
     deprecated_switches = [
         '--xattr-set-filesize',
-        '--dump-user-agent'
+        '--dump-user-agent',
         '--youtube-include-dash-manifest',
         '--no-youtube-skip-dash-manifest',
         '--youtube-skip-dash-manifest',
