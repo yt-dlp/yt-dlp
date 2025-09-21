@@ -916,11 +916,12 @@ class CBCGemLiveIE(InfoExtractor):
             }),
         }
 
+
 class CBCListenIE(InfoExtractor):
     IE_NAME = 'cbc.ca:listen'
     _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(:?listen/)(?:cbc-podcasts|live-radio)/(?:[^/]+/)+(?P<id>\d+)'
     _TESTS = [{
-        'url':  'https://www.cbc.ca/listen/cbc-podcasts/1353-the-naked-emperor/episode/16142603-introducing-understood-who-broke-the-internet',
+        'url': 'https://www.cbc.ca/listen/cbc-podcasts/1353-the-naked-emperor/episode/16142603-introducing-understood-who-broke-the-internet',
         'info_dict': {
             'id': '16142603',
             'title': 'Introducing Understood: Who Broke the Internet?',
@@ -929,8 +930,8 @@ class CBCListenIE(InfoExtractor):
             'duration': 229,
             'timestamp': 1745827200000,
         },
-    },{
-        'url':  'https://www.cbc.ca/listen/live-radio/1-64-the-house/clip/16170773-should-canada-suck-stand-donald-trump',
+    }, {
+        'url': 'https://www.cbc.ca/listen/live-radio/1-64-the-house/clip/16170773-should-canada-suck-stand-donald-trump',
         'info_dict': {
             'id': '16170773',
             'title': 'Should Canada suck up or stand up to Donald Trump?',
@@ -945,7 +946,7 @@ class CBCListenIE(InfoExtractor):
         api_url = f'https://www.cbc.ca/listen/api/v1/clips/{video_id}'
         raw = self._download_webpage(api_url, video_id,
                                      note='Downloading episode JSON')
-        api_json =  self._parse_json(raw, video_id)
+        api_json = self._parse_json(raw, video_id)
 
         return api_json.get('data')
 
@@ -959,7 +960,7 @@ class CBCListenIE(InfoExtractor):
             ['podcastDetailData', 'showDetailData'], ..., {dict}, any))
 
         return traverse_obj(show_data, (
-                'episodes', lambda _, v: str(v['clipID']) == video_id, any, {require('episode data')}))
+            'episodes', lambda _, v: str(v['clipID']) == video_id, any, {require('episode data')}))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
