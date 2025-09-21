@@ -12,7 +12,7 @@
     - [Is your question about yt-dlp?](#is-your-question-about-yt-dlp)
     - [Are you willing to share account details if needed?](#are-you-willing-to-share-account-details-if-needed)
     - [Is the website primarily used for piracy](#is-the-website-primarily-used-for-piracy)
-- [AUTOMATED CONTRIBUTIONS (AI / LLM) POLICY](#automated-contributions-ai-llm-policy)
+- [AUTOMATED CONTRIBUTIONS (AI / LLM) POLICY](#automated-contributions-ai--llm-policy)
 - [DEVELOPER INSTRUCTIONS](#developer-instructions)
     - [Adding new feature or making overarching changes](#adding-new-feature-or-making-overarching-changes)
     - [Adding support for a new site](#adding-support-for-a-new-site)
