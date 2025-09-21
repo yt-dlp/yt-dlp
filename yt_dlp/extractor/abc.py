@@ -21,7 +21,7 @@ from ..utils import (
 
 class ABCIE(InfoExtractor):
     IE_NAME = 'abc.net.au'
-    _VALID_URL = r'https?://(?:www\.)?abc\.net\.au/(?:news|btn)/(?:[^/]+/){1,4}(?P<id>\d{5,})'
+    _VALID_URL = r'https?://(?:www\.)?abc\.net\.au/(?:news|btn|listen)/(?:[^/]+/){1,4}(?P<id>\d{5,})'
 
     _TESTS = [{
         'url': 'http://www.abc.net.au/news/2014-11-05/australia-to-staff-ebola-treatment-centre-in-sierra-leone/5868334',
@@ -94,6 +94,14 @@ class ABCIE(InfoExtractor):
             'ext': 'mp4',
             'description': 'Wagner troops leave Rostov-on-Don and\xa0Yevgeny Prigozhin will move to Belarus under a deal brokered by Belarusian President Alexander Lukashenko to end the mutiny.',
             'thumbnail': 'https://live-production.wcms.abc-cdn.net.au/0c170f5b57f0105c432f366c0e8e267b?impolicy=wcms_crop_resize&cropH=2813&cropW=5000&xPos=0&yPos=249&width=862&height=485',
+        },
+    }, {
+        'url': 'https://www.abc.net.au/listen/programs/the-followers-madness-of-two/presents-followers-madness-of-two/105697646',
+        'info_dict': {
+            'id': '105697646',
+            'title': 'INTRODUCING — The Followers: Madness of Two',
+            'ext': 'mp3',
+            'description': 'md5:228db587ddb7a10275a0c5f624e4719a',
         },
     }]
 
