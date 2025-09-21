@@ -2184,7 +2184,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         player_url = urljoin('https://www.youtube.com', player_url)
 
         try:
-            jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
+            jsi, _, func_code = self._extract_n_function_code(video_id, player_url)
         except ExtractorError as e:
             raise ExtractorError('Unable to extract nsig function code', cause=e)
 
