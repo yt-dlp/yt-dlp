@@ -2107,47 +2107,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return lambda s: ''.join(s[i] for i in cache_spec)
 
-    def _print_sig_code(self, func, example_sig):
-        if not self.get_param('youtube_print_sig_code'):
-            return
-
-        def gen_sig_code(idxs):
-            def _genslice(start, end, step):
-                starts = '' if start == 0 else str(start)
-                ends = (':%d' % (end + step)) if end + step >= 0 else ':'
-                steps = '' if step == 1 else (':%d' % step)
-                return f's[{starts}{ends}{steps}]'
-
-            step = None
-            # Quelch pyflakes warnings - start will be set when step is set
-            start = '(Never used)'
-            for i, prev in zip(idxs[1:], idxs[:-1]):
-                if step is not None:
-                    if i - prev == step:
-                        continue
-                    yield _genslice(start, prev, step)
-                    step = None
-                    continue
-                if i - prev in [-1, 1]:
-                    step = i - prev
-                    start = prev
-                    continue
-                else:
-                    yield 's[%d]' % prev
-            if step is None:
-                yield 's[%d]' % i
-            else:
-                yield _genslice(start, i, step)
-
-        test_string = ''.join(map(chr, range(len(example_sig))))
-        cache_res = func(test_string)
-        cache_spec = [ord(c) for c in cache_res]
-        expr_code = ' + '.join(gen_sig_code(cache_spec))
-        signature_id_tuple = '({})'.format(', '.join(str(len(p)) for p in example_sig.split('.')))
-        code = (f'if tuple(len(p) for p in s.split(\'.\')) == {signature_id_tuple}:\n'
-                f'    return {expr_code}\n')
-        self.to_screen('Extracted signature function:\n' + code)
-
     def _parse_sig_js(self, jscode, player_url):
         # Examples where `sig` is funcname:
         # sig=function(a){a=a.split(""); ... ;return a.join("")};
@@ -2216,7 +2175,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         extract_sig = self._cached(
             self._extract_signature_function, 'sig', player_url, self._signature_cache_id(s))
         func = extract_sig(video_id, player_url, s)
-        self._print_sig_code(func, s)
         return func(s)
 
     def _decrypt_nsig(self, s, video_id, player_url):
@@ -2226,11 +2184,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         player_url = urljoin('https://www.youtube.com', player_url)
 
         try:
-            jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
+            jsi, _, func_code = self._extract_n_function_code(video_id, player_url)
         except ExtractorError as e:
             raise ExtractorError('Unable to extract nsig function code', cause=e)
-        if self.get_param('youtube_print_sig_code'):
-            self.to_screen(f'Extracted nsig function from {player_id}:\n{func_code[1]}\n')
 
         try:
             extract_nsig = self._cached(self._extract_n_function_from_code, self._NSIG_FUNC_CACHE_ID, player_url)
@@ -3580,23 +3536,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         needs_live_processing = self._needs_live_processing(live_status, duration)
         skip_bad_formats = 'incomplete' not in format_types
-        if self._configuration_arg('include_incomplete_formats'):
-            skip_bad_formats = False
-            self._downloader.deprecated_feature('[youtube] include_incomplete_formats extractor argument is deprecated. '
-                                                'Use formats=incomplete extractor argument instead')
 
         skip_manifests = set(self._configuration_arg('skip'))
-        if (not self.get_param('youtube_include_hls_manifest', True)
-                or needs_live_processing == 'is_live'  # These will be filtered out by YoutubeDL anyway
+        if (needs_live_processing == 'is_live'  # These will be filtered out by YoutubeDL anyway
                 or (needs_live_processing and skip_bad_formats)):
             skip_manifests.add('hls')
-
-        if not self.get_param('youtube_include_dash_manifest', True):
-            skip_manifests.add('dash')
-        if self._configuration_arg('include_live_dash'):
-            self._downloader.deprecated_feature('[youtube] include_live_dash extractor argument is deprecated. '
-                                                'Use formats=incomplete extractor argument instead')
-        elif skip_bad_formats and live_status == 'is_live' and needs_live_processing != 'is_live':
+        if skip_bad_formats and live_status == 'is_live' and needs_live_processing != 'is_live':
             skip_manifests.add('dash')
 
         def process_manifest_format(f, proto, client_name, itag, missing_pot):
