@@ -1601,6 +1601,8 @@ The only reliable way to check if a site is supported is to try it.
  - **Vbox7**
  - **Veo**
  - **Vesti**: Вести.Ru (**Currently broken**)
+ - **Vevo**
+ - **VevoPlaylist**
  - **VGTV**: VGTV, BTTV, FTV, Aftenposten and Aftonbladet
  - **vh1.com**
  - **vhx:embed**: [*vimeo*](## "netrc machine")
