@@ -33,7 +33,7 @@ from ..utils.traversal import require, traverse_obj, trim_str
 
 class CBCIE(InfoExtractor):
     IE_NAME = 'cbc.ca'
-    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?!player/|listen/)(?:[^/]+/)+(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?!player/|listen/|i/caffeine/syndicate/)(?:[^/]+/)+(?P<id>[^/?#]+)'
     _TESTS = [{
         # with mediaId
         'url': 'http://www.cbc.ca/22minutes/videos/clips-season-23/don-cherry-play-offs',
