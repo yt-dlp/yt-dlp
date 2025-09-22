@@ -2019,10 +2019,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         player_js_version = self._configuration_arg('player_js_version', [''])[0] or '20348@0004de42'
         if player_js_version == 'actual':
             return None, None
-        if not re.match(r'^[0-9]+@[0-9a-f]{8}$', player_js_version):
+        if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', player_js_version):
             self.report_warning(
                 f'Invalid player JS version "{player_js_version}" specified. '
-                f'It should be "actual" or in the form "sts@hash" i.e. "20348@0004de42"', only_once=True)
+                f'It should be "actual" or in the format of STS@HASH', only_once=True)
             return None, None
         return player_js_version.split('@')
 
