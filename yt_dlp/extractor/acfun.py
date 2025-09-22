@@ -7,6 +7,7 @@ from ..utils import (
     parse_qs,
     str_or_none,
     traverse_obj,
+    update_url_query,
 )
 
 
@@ -78,6 +79,13 @@ class AcFunVideoIE(AcFunVideoBaseIE):
             'thumbnail': r're:^https?://.*\.(jpg|jpeg)',
             'description': 'md5:67583aaf3a0f933bd606bc8a2d3ebb17',
         },
+    }, {
+        'url': 'https://www.acfun.cn/v/ac35468952',
+        'info_dict': {
+            'id': '35468952',
+            'title': 'regex:.+',
+        },
+        'playlist_mincount': 2,
     }]
 
     def _real_extract(self, url):
@@ -89,6 +97,25 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         title = json_all.get('title')
         video_list = json_all.get('videoList') or []
         video_internal_id = traverse_obj(json_all, ('currentVideoInfo', 'id'))
+        playlist_id = video_id.partition('_')[0]
+        if video_id == playlist_id and len(video_list) > 1 and self._yes_playlist(playlist_id, video_id):
+            entries = []
+            query = parse_qs(url)
+            for idx, part_video_info in enumerate(video_list, start=1):
+                part_suffix = '' if idx == 1 else f'_{idx}'
+                part_id = f'{playlist_id}{part_suffix}'
+                entry_url = update_url_query(f'https://www.acfun.cn/v/ac{part_id}', query)
+                entries.append(self.url_result(
+                    entry_url, ie=self.ie_key(), video_id=part_id,
+                    video_title=traverse_obj(part_video_info, 'title')))
+
+            return self.playlist_result(
+                entries, playlist_id, title,
+                description=json_all.get('description'),
+                thumbnail=json_all.get('coverUrl'),
+                uploader=traverse_obj(json_all, ('user', 'name')),
+                uploader_id=traverse_obj(json_all, ('user', 'href')))
+
         if video_internal_id and len(video_list) > 1:
             part_idx, part_video_info = next(
                 (idx + 1, v) for (idx, v) in enumerate(video_list)
