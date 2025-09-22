@@ -2401,7 +2401,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         """
         player_sts_override = self._get_player_js_version()[0]
         if player_sts_override:
-            return int_or_none(player_sts_override)
+            return int(player_sts_override)
 
         if sts := traverse_obj(ytcfg, ('STS', {int_or_none})):
             return sts
