@@ -1,4 +1,3 @@
-import builtins
 import contextlib
 import functools
 import re
@@ -961,8 +960,8 @@ class CBCListenIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = None
-        with contextlib.suppress(builtins.BaseException):
-            data = self._download_api_json(video_id)
+        with contextlib.suppress(ExtractorError):
+            data = self._download_api_json(video_id=video_id)
         if not data:
             self.report_warning('Api returned no data. Falling back to webpage parsing')
             data = self._extract_webpage_data(url, video_id)
