@@ -1,4 +1,3 @@
-import contextlib
 import functools
 import re
 import time
@@ -943,10 +942,6 @@ class CBCListenIE(InfoExtractor):
         },
     }]
 
-    def _download_api_json(self, video_id):
-        return traverse_obj(self._download_json(
-            f'https://www.cbc.ca/listen/api/v1/clips/{video_id}', video_id), 'data', {dict})
-
     def _extract_webpage_data(self, url, video_id):
         webpage = self._download_webpage(url, video_id)
         preloaded_state = self._search_json(
@@ -959,9 +954,9 @@ class CBCListenIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data = None
-        with contextlib.suppress(ExtractorError):
-            data = self._download_api_json(video_id=video_id)
+
+        data = traverse_obj(self._download_json(
+            f'https://www.cbc.ca/listen/api/v1/clips/{video_id}', video_id, fatal=False), 'data', {dict})
         if not data:
             self.report_warning('Api returned no data. Falling back to webpage parsing')
             data = self._extract_webpage_data(url, video_id)
