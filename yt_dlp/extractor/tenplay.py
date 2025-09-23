@@ -115,7 +115,7 @@ class TenPlayIE(InfoExtractor):
     def _filter_ads_from_m3u8(m3u8_doc):
         out = []
         for line in m3u8_doc.splitlines():
-            if line.startswith('https://redirector.googlevideo.com'):
+            if line.startswith('https://redirector.googlevideo.com/'):
                 out.pop()
                 continue
             out.append(line)
