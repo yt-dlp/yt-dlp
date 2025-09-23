@@ -2015,16 +2015,28 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
+    def _get_player_js_version(self):
+        player_js_version = self._configuration_arg('player_js_version', [''])[0] or '20348@0004de42'
+        if player_js_version == 'actual':
+            return None, None
+        if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', player_js_version):
+            self.report_warning(
+                f'Invalid player JS version "{player_js_version}" specified. '
+                f'It should be "actual" or in the format of STS@HASH', only_once=True)
+            return None, None
+        return player_js_version.split('@')
+
     def _extract_player_url(self, *ytcfgs, webpage=None):
         player_url = traverse_obj(
             ytcfgs, (..., 'PLAYER_JS_URL'), (..., 'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
             get_all=False, expected_type=str)
         if not player_url:
             return
+        player_id_override = self._get_player_js_version()[1]
 
         requested_js_variant = self._configuration_arg('player_js_variant', [''])[0] or 'main'
         if requested_js_variant in self._PLAYER_JS_VARIANT_MAP:
-            player_id = self._extract_player_info(player_url)
+            player_id = player_id_override or self._extract_player_info(player_url)
             original_url = player_url
             player_url = f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[requested_js_variant]}'
             if original_url != player_url:
@@ -2387,6 +2399,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         Extract signatureTimestamp (sts)
         Required to tell API what sig/player version is in use.
         """
+        player_sts_override = self._get_player_js_version()[0]
+        if player_sts_override:
+            return int(player_sts_override)
+
         if sts := traverse_obj(ytcfg, ('STS', {int_or_none})):
             return sts
 
