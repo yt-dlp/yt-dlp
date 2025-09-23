@@ -2217,7 +2217,6 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     * Fix for [n-sig based throttling](https://github.com/ytdl-org/youtube-dl/issues/29326) **\***
     * Download livestreams from the start using `--live-from-start` (*experimental*)
     * Channel URLs download all uploads of the channel, including shorts and live
-    * Support for [logging in with OAuth](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#logging-in-with-oauth)
 
 * **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE][::CONTAINER]`
 
@@ -2361,7 +2360,7 @@ While these options still work, their use is not recommended since there are oth
     --hls-prefer-native              --downloader "m3u8:native"
     --hls-prefer-ffmpeg              --downloader "m3u8:ffmpeg"
     --list-formats-old               --compat-options list-formats (Alias: --no-list-formats-as-table)
-    --list-formats-as-table          --compat-options -list-formats [Default] (Alias: --no-list-formats-old)
+    --list-formats-as-table          --compat-options -list-formats [Default]
     --geo-bypass                     --xff "default"
     --no-geo-bypass                  --xff "never"
     --geo-bypass-country CODE        --xff CODE
