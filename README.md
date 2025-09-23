@@ -320,7 +320,6 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     playlist (default)
     --abort-on-error                Abort downloading of further videos if an
                                     error occurs (Alias: --no-ignore-errors)
-    --dump-user-agent               Display the current user-agent and exit
     --list-extractors               List all supported extractors and exit
     --extractor-descriptions        Output descriptions of all supported
                                     extractors and exit
@@ -571,8 +570,6 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     --playlist-random and --playlist-reverse
     --no-lazy-playlist              Process videos in the playlist only after
                                     the entire playlist is parsed (default)
-    --xattr-set-filesize            Set file xattribute ytdl.filesize with
-                                    expected file size
     --hls-use-mpegts                Use the mpegts container for HLS videos;
                                     allowing some players to play the video
                                     while downloading, and reducing the chance
@@ -596,9 +593,9 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     use (optionally) prefixed by the protocols
                                     (http, ftp, m3u8, dash, rstp, rtmp, mms) to
                                     use it for. Currently supports native,
-                                    aria2c, avconv, axel, curl, ffmpeg, httpie,
-                                    wget. You can use this option multiple times
-                                    to set different downloaders for different
+                                    aria2c, axel, curl, ffmpeg, httpie, wget.
+                                    You can use this option multiple times to
+                                    set different downloaders for different
                                     protocols. E.g. --downloader aria2c
                                     --downloader "dash,m3u8:native" will use
                                     aria2c for http/ftp downloads, and the
