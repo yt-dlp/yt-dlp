@@ -231,9 +231,9 @@ class TenPlayIE(InfoExtractor):
             fmt['hls_media_playlist_data'] = m3u8_doc
 
         # Attempt format upgrade
-        if m3u8_doc and re.search(r'(?m)-(300|150|75|55)0000-(\d+)\.ts$', m3u8_doc):
-            m3u8_doc = re.sub(r'(?m)-(300|150|75|55)0000-(\d+)\.ts$', r'-5000000-\2.ts', m3u8_doc)
-            m3u8_doc = re.sub(r'-(300|150|75|55)0000\.key"', r'-5000000.key"', m3u8_doc)
+        if m3u8_doc and re.search(r'(?m)-(?:300|150|75|55)0000-\d+\.ts$', m3u8_doc):
+            m3u8_doc = re.sub(r'(?m)-(?:300|150|75|55)0000-(\d+)\.ts$', r'-5000000-\1.ts', m3u8_doc)
+            m3u8_doc = re.sub(r'-(?:300|150|75|55)0000\.key"', r'-5000000.key"', m3u8_doc)
             formats.append({
                 'format_id': 'hls-1080p',
                 'url': formats[0]['url'],
