@@ -232,7 +232,7 @@ class TenPlayIE(InfoExtractor):
                     size = int_or_none(urlh.headers['Content-Length'], default=0)
                     duration = durations[i] if i < len(durations) else 6.0
                     raw_bitrate = size * 8 // int(duration * 1000)
-                    bitrate = max(bitrate, int(raw_bitrate * 0.83))  # Handle overhead from probing AES-128 streams w/o decrypting.
+                    bitrate = max(bitrate, int(raw_bitrate * 0.63))  # Account for Audio Bitrate and Encryption
                 else:
                     return 0
             except ExtractorError:
@@ -244,56 +244,33 @@ class TenPlayIE(InfoExtractor):
         if any(fmt.get('height') == 1080 for fmt in formats):
             return
 
-        try:
-            playlist_content = self._download_webpage(
-                m3u8_url, content_id, 'Downloading master playlist', fatal=False)
-            if not playlist_content:
-                return
+        for fmt in formats:
+            if fmt.get('hls_media_playlist_data'):
+                try:
+                    lines = fmt['hls_media_playlist_data'].splitlines()
+                    fhd_lines, fhd_urls = self._create_1080_playlist(lines)
 
-            if '#EXT-X-STREAM-INF' in playlist_content:
-                for line in playlist_content.splitlines():
-                    if line.strip() and not line.strip().startswith('#'):
-                        m3u8_url = urljoin(m3u8_url, line.strip())
-                        break
-                playlist_content = self._download_webpage(
-                    m3u8_url, content_id, 'Downloading media playlist', fatal=False)
+                    if not fhd_urls:
+                        self.report_warning('No FHD URLs found - 1080p stream not available')
+                        return
 
-            if not (playlist_content and '#EXTINF:' in playlist_content):
-                return
+                    bitrate = self._probe_segments_for_bitrate(fhd_urls, fmt['url'], fhd_lines)
+                    if bitrate == 0:
+                        self.report_warning('1080p stream segments not accessible - skipping 1080p stream')
+                        return
 
-            lines = playlist_content.splitlines()
-            filtered_lines = self._filter_ads_from_playlist(lines, m3u8_url)
-            fhd_lines, fhd_urls = self._create_1080_playlist(filtered_lines)
-
-            if not fhd_urls:
-                self.report_warning('No FHD URLs found - 1080p stream not available')
-                return
-
-            try:
-                bitrate = self._probe_segments_for_bitrate(fhd_urls, m3u8_url, fhd_lines)
-                if bitrate == 0:
-                    self.report_warning('1080p stream segments not accessible - skipping 1080p stream')
+                    formats.append({
+                        **formats[0],
+                        'format_id': str(bitrate),
+                        'height': 1080,
+                        'width': 1920,
+                        'tbr': bitrate,
+                        'hls_media_playlist_data': '\n'.join(fhd_lines),
+                    })
                     return
-            except ExtractorError as e:
-                self.report_warning(f'Failed to probe 1080p segments: {e}')
-                return
-
-            for fmt in formats:
-                if fmt.get('url') == m3u8_url:
-                    fmt['hls_media_playlist_data'] = '\n'.join(filtered_lines)
-                    break
-
-            formats.append({
-                **formats[0],
-                'format_id': str(bitrate),
-                'height': 1080,
-                'width': 1920,
-                'tbr': bitrate,
-                'hls_media_playlist_data': '\n'.join(fhd_lines),
-            })
-
-        except ExtractorError as e:
-            self.report_warning(f'Failed to process M3U8 for 1080p access: {e}')
+                except Exception as e:
+                    self.report_warning(f'Failed to process 1080p stream: {e}')
+                    return
 
     def _real_extract(self, url):
         content_id = self._match_id(url)
@@ -348,6 +325,22 @@ class TenPlayIE(InfoExtractor):
             raise ExtractorError('Unable to extract stream')
 
         formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
+
+        for fmt in formats:
+            if fmt.get('url') and 'm3u8' in fmt.get('url', ''):
+                try:
+                    playlist_content = self._download_webpage(
+                        fmt['url'],
+                        fmt.get('format_id', 'unknown'),
+                        'Downloading playlist for ad filtering',
+                        fatal=False,
+                    )
+                    if playlist_content and '#EXTINF:' in playlist_content:
+                        lines = playlist_content.splitlines()
+                        filtered_lines = self._filter_ads_from_playlist(lines, fmt['url'])
+                        fmt['hls_media_playlist_data'] = '\n'.join(filtered_lines)
+                except Exception as e:
+                    self.report_warning(f'Failed to apply ad filtering to format {fmt.get("format_id", "unknown")}: {e}')
 
         self._access_1080p_streams(m3u8_url, content_id, formats)
 
