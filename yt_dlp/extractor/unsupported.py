@@ -65,6 +65,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'play\.rtl\.hr',
         r'rtlmost\.hu',
         r'plus\.rtl\.de(?!/podcast/)',
+        r'mediasetinfinity\.es',
     )
 
     _TESTS = [{
@@ -221,6 +222,9 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://plus.rtl.de/video-tv/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.mediasetinfinity.es/',
         'only_matching': True,
     }]
 

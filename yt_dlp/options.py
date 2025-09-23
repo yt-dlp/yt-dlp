@@ -390,10 +390,6 @@ def create_parser():
         action='store_false', dest='ignoreerrors',
         help='Abort downloading of further videos if an error occurs (Alias: --no-ignore-errors)')
     general.add_option(
-        '--dump-user-agent',
-        action='store_true', dest='dump_user_agent', default=False,
-        help='Display the current user-agent and exit')
-    general.add_option(
         '--list-extractors',
         action='store_true', dest='list_extractors', default=False,
         help='List all supported extractors and exit')
@@ -617,10 +613,6 @@ def create_parser():
             'Use this proxy to verify the IP address for some geo-restricted sites. '
             'The default proxy specified by --proxy (or none, if the option is not present) is used for the actual downloading'))
     geo.add_option(
-        '--cn-verification-proxy',
-        dest='cn_verification_proxy', default=None, metavar='URL',
-        help=optparse.SUPPRESS_HELP)
-    geo.add_option(
         '--xff', metavar='VALUE',
         dest='geo_bypass', default='default',
         help=(
@@ -778,14 +770,6 @@ def create_parser():
         '--skip-playlist-after-errors', metavar='N',
         dest='skip_playlist_after_errors', default=None, type=int,
         help='Number of allowed failures until the rest of the playlist is skipped')
-    selection.add_option(
-        '--include-ads',
-        dest='include_ads', action='store_true',
-        help=optparse.SUPPRESS_HELP)
-    selection.add_option(
-        '--no-include-ads',
-        dest='include_ads', action='store_false',
-        help=optparse.SUPPRESS_HELP)
 
     authentication = optparse.OptionGroup(parser, 'Authentication Options')
     authentication.add_option(
@@ -1072,10 +1056,6 @@ def create_parser():
         action='store_false', dest='lazy_playlist',
         help='Process videos in the playlist only after the entire playlist is parsed (default)')
     downloader.add_option(
-        '--xattr-set-filesize',
-        dest='xattr_set_filesize', action='store_true',
-        help='Set file xattribute ytdl.filesize with expected file size')
-    downloader.add_option(
         '--hls-prefer-native',
         dest='hls_prefer_native', action='store_true', default=None,
         help=optparse.SUPPRESS_HELP)
@@ -1335,7 +1315,7 @@ def create_parser():
         action='store_true', dest='verbose', default=False,
         help='Print various debugging information')
     verbosity.add_option(
-        '--dump-pages', '--dump-intermediate-pages',
+        '--dump-pages',
         action='store_true', dest='dump_intermediate_pages', default=False,
         help='Print downloaded pages encoded using base64 to debug problems (very verbose)')
     verbosity.add_option(
@@ -1347,23 +1327,9 @@ def create_parser():
         action='store_true', dest='load_pages', default=False,
         help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
-        '--youtube-print-sig-code',
-        action='store_true', dest='youtube_print_sig_code', default=False,
-        help=optparse.SUPPRESS_HELP)
-    verbosity.add_option(
-        '--print-traffic', '--dump-headers',
+        '--print-traffic',
         dest='debug_printtraffic', action='store_true', default=False,
         help='Display sent and read HTTP traffic')
-    verbosity.add_option(
-        '-C', '--call-home',
-        dest='call_home', action='store_true', default=False,
-        # help='Contact the yt-dlp server for debugging')
-        help=optparse.SUPPRESS_HELP)
-    verbosity.add_option(
-        '--no-call-home',
-        dest='call_home', action='store_false',
-        # help='Do not contact the yt-dlp server for debugging (default)')
-        help=optparse.SUPPRESS_HELP)
 
     filesystem = optparse.OptionGroup(parser, 'Filesystem Options')
     filesystem.add_option(
@@ -1488,14 +1454,6 @@ def create_parser():
         '--no-write-info-json',
         action='store_false', dest='writeinfojson',
         help='Do not write video metadata (default)')
-    filesystem.add_option(
-        '--write-annotations',
-        action='store_true', dest='writeannotations', default=False,
-        help=optparse.SUPPRESS_HELP)
-    filesystem.add_option(
-        '--no-write-annotations',
-        action='store_false', dest='writeannotations',
-        help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '--write-playlist-metafiles',
         action='store_true', dest='allow_playlist_files', default=None,
@@ -1755,15 +1713,7 @@ def create_parser():
             'detect_or_warn (the default; fix the file if we can, warn otherwise), '
             'force (try fixing even if the file already exists)'))
     postproc.add_option(
-        '--prefer-avconv', '--no-prefer-ffmpeg',
-        action='store_false', dest='prefer_ffmpeg',
-        help=optparse.SUPPRESS_HELP)
-    postproc.add_option(
-        '--prefer-ffmpeg', '--no-prefer-avconv',
-        action='store_true', dest='prefer_ffmpeg', default=True,
-        help=optparse.SUPPRESS_HELP)
-    postproc.add_option(
-        '--ffmpeg-location', '--avconv-location', metavar='PATH',
+        '--ffmpeg-location', metavar='PATH',
         dest='ffmpeg_location',
         help='Location of the ffmpeg binary; either the path to the binary or its containing directory')
     postproc.add_option(
@@ -1900,38 +1850,6 @@ def create_parser():
         default='https://sponsor.ajay.app', dest='sponsorblock_api',
         help='SponsorBlock API location, defaults to %default')
 
-    sponsorblock.add_option(
-        '--sponskrub',
-        action='store_true', dest='sponskrub', default=False,
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--no-sponskrub',
-        action='store_false', dest='sponskrub',
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--sponskrub-cut', default=False,
-        action='store_true', dest='sponskrub_cut',
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--no-sponskrub-cut',
-        action='store_false', dest='sponskrub_cut',
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--sponskrub-force', default=False,
-        action='store_true', dest='sponskrub_force',
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--no-sponskrub-force',
-        action='store_true', dest='sponskrub_force',
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--sponskrub-location', metavar='PATH',
-        dest='sponskrub_path', default='',
-        help=optparse.SUPPRESS_HELP)
-    sponsorblock.add_option(
-        '--sponskrub-args', dest='sponskrub_args', metavar='ARGS',
-        help=optparse.SUPPRESS_HELP)
-
     extractor = optparse.OptionGroup(parser, 'Extractor Options')
     extractor.add_option(
         '--extractor-retries',
@@ -1967,22 +1885,56 @@ def create_parser():
         }, help=(
             'Pass ARGS arguments to the IE_KEY extractor. See "EXTRACTOR ARGUMENTS" for details. '
             'You can use this option multiple times to give arguments for different extractors'))
-    extractor.add_option(
-        '--youtube-include-dash-manifest', '--no-youtube-skip-dash-manifest',
-        action='store_true', dest='youtube_include_dash_manifest', default=True,
-        help=optparse.SUPPRESS_HELP)
-    extractor.add_option(
-        '--youtube-skip-dash-manifest', '--no-youtube-include-dash-manifest',
-        action='store_false', dest='youtube_include_dash_manifest',
-        help=optparse.SUPPRESS_HELP)
-    extractor.add_option(
-        '--youtube-include-hls-manifest', '--no-youtube-skip-hls-manifest',
-        action='store_true', dest='youtube_include_hls_manifest', default=True,
-        help=optparse.SUPPRESS_HELP)
-    extractor.add_option(
-        '--youtube-skip-hls-manifest', '--no-youtube-include-hls-manifest',
-        action='store_false', dest='youtube_include_hls_manifest',
-        help=optparse.SUPPRESS_HELP)
+
+    def _deprecated_option_callback(option, opt_str, value, parser):
+        current = getattr(parser.values, '_deprecated_options', [])
+        parser.values._deprecated_options = [*current, opt_str]
+
+    deprecated_switches = [
+        '--xattr-set-filesize',
+        '--dump-user-agent',
+        '--youtube-include-dash-manifest',
+        '--no-youtube-skip-dash-manifest',
+        '--youtube-skip-dash-manifest',
+        '--no-youtube-include-dash-manifest',
+        '--youtube-include-hls-manifest',
+        '--no-youtube-skip-hls-manifest',
+        '--youtube-skip-hls-manifest',
+        '--no-youtube-include-hls-manifest',
+        '--youtube-print-sig-code',
+        '--sponskrub',
+        '--no-sponskrub',
+        '--sponskrub-cut',
+        '--no-sponskrub-cut',
+        '--sponskrub-force',
+        '--no-sponskrub-force',
+        '--prefer-avconv',
+        '--no-prefer-ffmpeg',
+        '--prefer-ffmpeg',
+        '--no-prefer-avconv',
+        '-C',  # this needs to remain deprecated until at least 2028
+        '--call-home',
+        '--no-call-home',
+        '--include-ads',
+        '--no-include-ads',
+        '--write-annotations',
+        '--no-write-annotations',
+    ]
+    deprecated_arguments = [
+        '--sponskrub-location',
+        '--sponskrub-args',
+        '--cn-verification-proxy',
+    ]
+
+    for opt in deprecated_switches:
+        parser.add_option(
+            opt, action='callback', callback=_deprecated_option_callback,
+            help=optparse.SUPPRESS_HELP)
+    for opt in deprecated_arguments:
+        parser.add_option(
+            opt, action='callback', callback=_deprecated_option_callback,
+            metavar='ARG', dest='_', type='str',
+            help=optparse.SUPPRESS_HELP)
 
     parser.add_option_group(general)
     parser.add_option_group(network)

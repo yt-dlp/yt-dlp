@@ -96,12 +96,12 @@ class VKIE(VKBaseIE):
                     https?://
                         (?:
                             (?:
-                                (?:(?:m|new)\.)?vk(?:(?:video)?\.ru|\.com)/video_|
+                                (?:(?:m|new|vksport)\.)?vk(?:(?:video)?\.ru|\.com)/video_|
                                 (?:www\.)?daxab\.com/
                             )
                             ext\.php\?(?P<embed_query>.*?\boid=(?P<oid>-?\d+).*?\bid=(?P<id>\d+).*)|
                             (?:
-                                (?:(?:m|new)\.)?vk(?:(?:video)?\.ru|\.com)/(?:.+?\?.*?z=)?(?:video|clip)|
+                                (?:(?:m|new|vksport)\.)?vk(?:(?:video)?\.ru|\.com)/(?:.+?\?.*?z=)?(?:video|clip)|
                                 (?:www\.)?daxab\.com/embed/
                             )
                             (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
@@ -359,6 +359,10 @@ class VKIE(VKBaseIE):
             'url': 'https://vk.ru/video-220754053_456242564',
             'only_matching': True,
         },
+        {
+            'url': 'https://vksport.vkvideo.ru/video-124096712_456240773',
+            'only_matching': True,
+        },
     ]
 
     def _real_extract(self, url):
@@ -568,7 +572,7 @@ class VKUserVideosIE(VKBaseIE):
     IE_DESC = "VK - User's Videos"
     _BASE_URL_RE = r'https?://(?:(?:m|new)\.)?vk(?:video\.ru|\.com/video)'
     _VALID_URL = [
-        rf'{_BASE_URL_RE}/playlist/(?P<id>-?\d+_\d+)',
+        rf'{_BASE_URL_RE}/playlist/(?P<id>-?\d+_-?\d+)',
         rf'{_BASE_URL_RE}/(?P<id>@[^/?#]+)(?:/all)?/?(?!\?.*\bz=video)(?:[?#]|$)',
     ]
     _TESTS = [{
@@ -597,6 +601,9 @@ class VKUserVideosIE(VKBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://vk.com/video/playlist/-174476437_2',
+        'only_matching': True,
+    }, {
+        'url': 'https://vkvideo.ru/playlist/-51890028_-2',
         'only_matching': True,
     }]
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
