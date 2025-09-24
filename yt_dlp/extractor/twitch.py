@@ -6,6 +6,7 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -43,7 +44,7 @@ class TwitchBaseIE(InfoExtractor):
         'CollectionSideBar': '27111f1b382effad0b6def325caef1909c733fe6a4fbabf54f8d491ef2cf2f14',
         'FilterableVideoTower_Videos': 'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
         'ClipsCards__User': 'b73ad2bfaecfd30a9e6c28fada15bd97032c83ec77a0440766a56fe0bd632777',
-        'ShareClipRenderStatus': 'f130048a462a0ac86bb54d653c968c514e9ab9ca94db52368c1179e97b0f16eb',
+        'ShareClipRenderStatus': 'e0a46b287d760c6890a39d1ccd736af5ec9479a267d02c710e9ac33326b651d2',
         'ChannelCollectionsContent': '447aec6a0cc1e8d0a8d7732d47eb0762c336a2294fdb009e9c9d854e49d484b9',
         'StreamMetadata': 'a647c2a13599e5991e175155f798ca7f1ecddde73f7f341f39009c14dbf59962',
         'ComscoreStreamingQuery': 'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
@@ -188,19 +189,39 @@ class TwitchBaseIE(InfoExtractor):
         }] if thumbnail else None
 
     def _extract_twitch_m3u8_formats(self, path, video_id, token, signature, live_from_start=False):
-        formats = self._extract_m3u8_formats(
-            f'{self._USHER_BASE}/{path}/{video_id}.m3u8', video_id, 'mp4', query={
-                'allow_source': 'true',
-                'allow_audio_only': 'true',
-                'allow_spectre': 'true',
-                'p': random.randint(1000000, 10000000),
-                'platform': 'web',
-                'player': 'twitchweb',
-                'supported_codecs': 'av1,h265,h264',
-                'playlist_include_framerate': 'true',
-                'sig': signature,
-                'token': token,
-            })
+        try:
+            formats = self._extract_m3u8_formats(
+                f'{self._USHER_BASE}/{path}/{video_id}.m3u8', video_id, 'mp4', query={
+                    'allow_source': 'true',
+                    'allow_audio_only': 'true',
+                    'allow_spectre': 'true',
+                    'p': random.randint(1000000, 10000000),
+                    'platform': 'web',
+                    'player': 'twitchweb',
+                    'supported_codecs': 'av1,h265,h264',
+                    'playlist_include_framerate': 'true',
+                    'sig': signature,
+                    'token': token,
+                })
+        except ExtractorError as e:
+            if (
+                not isinstance(e.cause, HTTPError)
+                or e.cause.status != 403
+                or e.cause.response.get_header('content-type') != 'application/json'
+            ):
+                raise
+
+            error_info = traverse_obj(e.cause.response.read(), ({json.loads}, 0, {dict})) or {}
+            if error_info.get('error_code') in ('vod_manifest_restricted', 'unauthorized_entitlements'):
+                common_msg = 'access to this subscriber-only content'
+                if self._get_cookies('https://gql.twitch.tv').get('auth-token'):
+                    raise ExtractorError(f'Your account does not have {common_msg}', expected=True)
+                self.raise_login_required(f'You must be logged into an account that has {common_msg}')
+
+            if error_msg := join_nonempty('error_code', 'error', from_dict=error_info, delim=': '):
+                raise ExtractorError(error_msg, expected=True)
+            raise
+
         for fmt in formats:
             if fmt.get('vcodec') and fmt['vcodec'].startswith('av01'):
                 # mpegts does not yet have proper support for av1
@@ -1132,8 +1153,8 @@ class TwitchClipsIE(TwitchBaseIE):
             'channel_id': '25163635',
             'channel_is_verified': False,
             'channel_follower_count': int,
-            'uploader': 'EA',
-            'uploader_id': '25163635',
+            'uploader': 'stereotype_',
+            'uploader_id': '43566419',
         },
     }, {
         'url': 'https://www.twitch.tv/xqc/clip/CulturedAmazingKuduDatSheffy-TiZ_-ixAGYR3y2Uy',
@@ -1153,8 +1174,8 @@ class TwitchClipsIE(TwitchBaseIE):
             'channel_id': '71092938',
             'channel_is_verified': True,
             'channel_follower_count': int,
-            'uploader': 'xQc',
-            'uploader_id': '71092938',
+            'uploader': 'okSTFUdude',
+            'uploader_id': '744085721',
             'categories': ['Just Chatting'],
         },
     }, {

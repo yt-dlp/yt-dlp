@@ -222,6 +222,14 @@ class LocalNameSpace(collections.ChainMap):
     def __delitem__(self, key):
         raise NotImplementedError('Deleting is not supported')
 
+    def set_local(self, key, value):
+        self.maps[0][key] = value
+
+    def get_local(self, key):
+        if key in self.maps[0]:
+            return self.maps[0][key]
+        return JS_Undefined
+
 
 class Debugger:
     import sys
@@ -271,6 +279,7 @@ class JSInterpreter:
     def __init__(self, code, objects=None):
         self.code, self._functions = code, {}
         self._objects = {} if objects is None else objects
+        self._undefined_varnames = set()
 
     class Exception(ExtractorError):  # noqa: A001
         def __init__(self, msg, expr=None, *args, **kwargs):
@@ -381,7 +390,7 @@ class JSInterpreter:
             return self._named_object(namespace, obj)
 
     @Debugger.wrap_interpreter
-    def interpret_statement(self, stmt, local_vars, allow_recursion=100):
+    def interpret_statement(self, stmt, local_vars, allow_recursion=100, _is_var_declaration=False):
         if allow_recursion < 0:
             raise self.Exception('Recursion limit reached')
         allow_recursion -= 1
@@ -401,6 +410,7 @@ class JSInterpreter:
             if m.group('throw'):
                 raise JS_Throw(self.interpret_expression(expr, local_vars, allow_recursion))
             should_return = not m.group('var')
+            _is_var_declaration = _is_var_declaration or bool(m.group('var'))
         if not expr:
             return None, should_return
 
@@ -585,7 +595,8 @@ class JSInterpreter:
         sub_expressions = list(self._separate(expr))
         if len(sub_expressions) > 1:
             for sub_expr in sub_expressions:
-                ret, should_abort = self.interpret_statement(sub_expr, local_vars, allow_recursion)
+                ret, should_abort = self.interpret_statement(
+                    sub_expr, local_vars, allow_recursion, _is_var_declaration=_is_var_declaration)
                 if should_abort:
                     return ret, True
             return ret, False
@@ -599,8 +610,12 @@ class JSInterpreter:
             left_val = local_vars.get(m.group('out'))
 
             if not m.group('index'):
-                local_vars[m.group('out')] = self._operator(
+                eval_result = self._operator(
                     m.group('op'), left_val, m.group('expr'), expr, local_vars, allow_recursion)
+                if _is_var_declaration:
+                    local_vars.set_local(m.group('out'), eval_result)
+                else:
+                    local_vars[m.group('out')] = eval_result
                 return local_vars[m.group('out')], should_return
             elif left_val in (None, JS_Undefined):
                 raise self.Exception(f'Cannot index undefined variable {m.group("out")}', expr)
@@ -654,7 +669,19 @@ class JSInterpreter:
             return float('NaN'), should_return
 
         elif m and m.group('return'):
-            return local_vars.get(m.group('name'), JS_Undefined), should_return
+            var = m.group('name')
+            # Declared variables
+            if _is_var_declaration:
+                ret = local_vars.get_local(var)
+                # Register varname in local namespace
+                # Set value as JS_Undefined or its pre-existing value
+                local_vars.set_local(var, ret)
+            else:
+                ret = local_vars.get(var, NO_DEFAULT)
+                if ret is NO_DEFAULT:
+                    ret = JS_Undefined
+                    self._undefined_varnames.add(var)
+            return ret, should_return
 
         with contextlib.suppress(ValueError):
             return json.loads(js_to_json(expr, strict=True)), should_return
@@ -857,7 +884,7 @@ class JSInterpreter:
         obj = {}
         obj_m = re.search(
             r'''(?x)
-                (?<!\.)%s\s*=\s*{\s*
+                (?<![a-zA-Z$0-9.])%s\s*=\s*{\s*
                     (?P<fields>(%s\s*:\s*function\s*\(.*?\)\s*{.*?}(?:,\s*)?)*)
                 }\s*;
             ''' % (re.escape(objname), _FUNC_NAME_RE),
