@@ -335,8 +335,8 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
 
         playlist_info = self._download_json(f'https://api.arte.tv/api/opa/v3/programs/{lang}/{playlist_id}', playlist_id,
                                             headers={
-                                            'Authorization': f'Bearer {_API_TOKEN}',
-                                            })
+                                                'Authorization': f'Bearer {_API_TOKEN}',
+        })
 
         season_ids = traverse_obj(playlist_info, ('programs', ..., 'children', (lambda _, v: v['catalogType'] == 'SEASON'), 'programId'))
         return self.playlist_result(self._entries(season_ids, lang, playlist_id),
