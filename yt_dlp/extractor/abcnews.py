@@ -1,6 +1,5 @@
 from .amp import AMPIE
 from .common import InfoExtractor
-from .. import traverse_obj
 from ..utils import (
     parse_duration,
     parse_iso8601,
