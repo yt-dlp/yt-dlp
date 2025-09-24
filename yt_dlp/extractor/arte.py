@@ -309,42 +309,40 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
         },
     }]
 
-    def _entries(self, playlist_data, playlist_id):
-        playlist_item_filter = lambda _, v: re.match(rf'collection_(?:videos|subcollection)_{playlist_id}', v['code'])
-        collections = traverse_obj(playlist_data,
-                                   ('data',
-                                    'zones',
-                                    playlist_item_filter,
-                                    'content',
-                                    'data',
-                                    ...))
+    def _entries(self, season_ids, lang, playlist_id):
+        for season_id in season_ids:
+            season_data = self._download_json(f'{self._API_BASE}/playlist/{lang}/{season_id}', season_id, headers={
+                'x-validated-age': '18',
+            })
 
-        for video in collections:
-            yield {
-                '_type': 'url_transparent',
-                'url': 'https://www.arte.tv' + video['url'],
-                'ie_key': ArteTVIE.ie_key(),
-                'id': video['id'],
-                'title': video.get('title'),
-                'alt_title': video.get('subtitle'),
-                'duration': int_or_none(traverse_obj(video, ('duration'))),
-                'age_limit': int_or_none(traverse_obj(video, 'ageRating')),
-            }
+            collection = traverse_obj(season_data, ('data', 'attributes', 'items'))
+
+            for video in collection:
+                yield {
+                    '_type': 'url_transparent',
+                    'url': traverse_obj(video, ('link', 'url')),
+                    'ie_key': ArteTVIE.ie_key(),
+                    'id': video['providerId'],
+                    'title': video.get('title'),
+                    'alt_title': video.get('subtitle'),
+                    'duration': int_or_none(traverse_obj(video, ('duration', 'seconds'))),
+                    'age_limit': int_or_none(traverse_obj(video, 'ageRating')),
+                }
 
     def _real_extract(self, url):
+        _API_TOKEN = 'Nzc1Yjc1ZjJkYjk1NWFhN2I2MWEwMmRlMzAzNjI5NmU3NWU3ODg4ODJjOWMxNTMxYzEzZGRjYjg2ZGE4MmIwOA'
         lang, playlist_id = self._match_valid_url(url).group('lang', 'id')
-        webpage = self._download_webpage(url, playlist_id)
 
-        unescape_func = lambda jstring: jstring.replace('\\"', '"').replace('\\\\', '\\')
-        json_data = self._search_json(r'\$L23.+?', webpage, 'series data',
-                                      playlist_id,
-                                      end_pattern=r'\],\[\[',
-                                      transform_source=unescape_func)
+        playlist_info = self._download_json(f'https://api.arte.tv/api/opa/v3/programs/{lang}/{playlist_id}', playlist_id,
+                                            headers={
+                                            'Authorization': f'Bearer {_API_TOKEN}',
+                                            })
 
-        return self.playlist_result(self._entries(json_data, playlist_id),
+        season_ids = traverse_obj(playlist_info, ('programs', ..., 'children', (lambda _, v: v['catalogType'] == 'SEASON'), 'programId'))
+        return self.playlist_result(self._entries(season_ids, lang, playlist_id),
                                     playlist_id,
-                                    traverse_obj(json_data, ('data', 'metadata', 'title')),
-                                    traverse_obj(json_data, ('data', 'metadata', 'description')))
+                                    traverse_obj(playlist_info, ('programs', ..., 'title')),
+                                    traverse_obj(playlist_info, ('programs', ..., 'shortDescription')))
 
 
 class ArteTVCategoryIE(ArteTVBaseIE):
