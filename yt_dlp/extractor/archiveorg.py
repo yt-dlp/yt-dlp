@@ -16,6 +16,7 @@ from ..utils import (
     dict_get,
     extract_attributes,
     get_element_by_id,
+    get_element_text_and_html_by_tag,
     int_or_none,
     join_nonempty,
     js_to_json,
@@ -32,7 +33,6 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
     urlhandle_detect_ext,
-    variadic,
 )
 
 
@@ -72,6 +72,7 @@ class ArchiveOrgIE(InfoExtractor):
             'display_id': 'Cops-v2.mp4',
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
             'duration': 1091.96,
+            'track': 'Cops-v2',
         },
     }, {
         'url': 'http://archive.org/embed/XD300-23_68HighlightsAResearchCntAugHumanIntellect',
@@ -86,6 +87,7 @@ class ArchiveOrgIE(InfoExtractor):
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
             'duration': 59.77,
             'display_id': 'Commercial-JFK1960ElectionAdCampaignJingle.mpg',
+            'track': 'Commercial-JFK1960ElectionAdCampaignJingle',
         },
     }, {
         'url': 'https://archive.org/details/Election_Ads/Commercial-Nixon1960ElectionAdToughonDefense.mpg',
@@ -102,6 +104,7 @@ class ArchiveOrgIE(InfoExtractor):
             'duration': 59.51,
             'license': 'http://creativecommons.org/licenses/publicdomain/',
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
+            'track': 'Commercial-Nixon1960ElectionAdToughonDefense',
         },
     }, {
         'url': 'https://archive.org/details/gd1977-05-08.shure57.stevenson.29303.flac16',
@@ -182,6 +185,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'duration': 130.46,
                     'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel1_01_000117.jpg',
                     'display_id': 'irelandthemakingofarepublicreel1_01.mov',
+                    'track': 'irelandthemakingofarepublicreel1 01',
                 },
             }, {
                 'md5': '67335ee3b23a0da930841981c1e79b02',
@@ -192,6 +196,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'title': 'irelandthemakingofarepublicreel1_02.mov',
                     'display_id': 'irelandthemakingofarepublicreel1_02.mov',
                     'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel1_02_001374.jpg',
+                    'track': 'irelandthemakingofarepublicreel1 02',
                 },
             }, {
                 'md5': 'e470e86787893603f4a341a16c281eb5',
@@ -202,6 +207,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'title': 'irelandthemakingofarepublicreel2.mov',
                     'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel2_001554.jpg',
                     'display_id': 'irelandthemakingofarepublicreel2.mov',
+                    'track': 'irelandthemakingofarepublicreel2',
                 },
             },
         ],
@@ -225,19 +231,29 @@ class ArchiveOrgIE(InfoExtractor):
             'release_date': '19950402',
             'timestamp': 1084927901,
         },
+    }, {
+        # metadata['metadata']['description'] is a list of strings instead of str
+        'url': 'https://archive.org/details/pra-KZ1908.02',
+        'info_dict': {
+            'id': 'pra-KZ1908.02',
+            'ext': 'mp3',
+            'display_id': 'KZ1908.02_01.wav',
+            'title': 'Crips and Bloods speak about gang life',
+            'description': 'md5:2b56b35ff021311e3554b47a285e70b3',
+            'uploader': 'jake@archive.org',
+            'duration': 1733.74,
+            'track': 'KZ1908.02 01',
+            'track_number': 1,
+            'timestamp': 1336026026,
+            'upload_date': '20120503',
+            'release_year': 1992,
+        },
     }]
 
     @staticmethod
     def _playlist_data(webpage):
-        element = re.findall(r'''(?xs)
-            <input
-            (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
-            \s+class=['"]?js-play8-playlist['"]?
-            (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
-            \s*/>
-        ''', webpage)[0]
-
-        return json.loads(extract_attributes(element)['value'])
+        element = get_element_text_and_html_by_tag('play-av', webpage)[1]
+        return json.loads(extract_attributes(element)['playlist'])
 
     def _real_extract(self, url):
         video_id = urllib.parse.unquote_plus(self._match_id(url))
@@ -274,34 +290,40 @@ class ArchiveOrgIE(InfoExtractor):
         m = metadata['metadata']
         identifier = m['identifier']
 
-        info = {
+        info = traverse_obj(m, {
+            'title': ('title', {str}),
+            'description': ('description', ({str}, (..., all, {' '.join})), {clean_html}, filter, any),
+            'uploader': (('uploader', 'adder'), {str}, any),
+            'creators': ('creator', (None, ...), {str}, filter, all, filter),
+            'license': ('licenseurl', {url_or_none}),
+            'release_date': ('date', {unified_strdate}),
+            'timestamp': (('publicdate', 'addeddate'), {unified_timestamp}, any),
+            'location': ('venue', {str}),
+            'release_year': ('year', {int_or_none}),
+        })
+        info.update({
             'id': identifier,
-            'title': m['title'],
-            'description': clean_html(m.get('description')),
-            'uploader': dict_get(m, ['uploader', 'adder']),
-            'creators': traverse_obj(m, ('creator', {variadic}, {lambda x: x[0] and list(x)})),
-            'license': m.get('licenseurl'),
-            'release_date': unified_strdate(m.get('date')),
-            'timestamp': unified_timestamp(dict_get(m, ['publicdate', 'addeddate'])),
             'webpage_url': f'https://archive.org/details/{identifier}',
-            'location': m.get('venue'),
-            'release_year': int_or_none(m.get('year'))}
+        })
 
         for f in metadata['files']:
             if f['name'] in entries:
                 entries[f['name']] = merge_dicts(entries[f['name']], {
                     'id': identifier + '/' + f['name'],
-                    'title': f.get('title') or f['name'],
-                    'display_id': f['name'],
-                    'description': clean_html(f.get('description')),
-                    'creators': traverse_obj(f, ('creator', {variadic}, {lambda x: x[0] and list(x)})),
-                    'duration': parse_duration(f.get('length')),
-                    'track_number': int_or_none(f.get('track')),
-                    'album': f.get('album'),
-                    'discnumber': int_or_none(f.get('disc')),
-                    'release_year': int_or_none(f.get('year'))})
+                    **traverse_obj(f, {
+                        'title': (('title', 'name'), {str}, any),
+                        'display_id': ('name', {str}),
+                        'description': ('description', ({str}, (..., all, {' '.join})), {clean_html}, filter, any),
+                        'creators': ('creator', (None, ...), {str}, filter, all, filter),
+                        'duration': ('length', {parse_duration}),
+                        'track_number': ('track', {int_or_none}),
+                        'album': ('album', {str}),
+                        'discnumber': ('disc', {int_or_none}),
+                        'release_year': ('year', {int_or_none}),
+                    }),
+                })
                 entry = entries[f['name']]
-            elif traverse_obj(f, 'original', expected_type=str) in entries:
+            elif traverse_obj(f, ('original', {str})) in entries:
                 entry = entries[f['original']]
             else:
                 continue

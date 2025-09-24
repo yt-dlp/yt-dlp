@@ -9,31 +9,27 @@ on:
         required: false
         default: stable
         type: string
+      origin:
+        required: true
+        type: string
       unix:
         default: true
         type: boolean
-      linux_static:
+      linux:
         default: true
         type: boolean
-      linux_arm:
+      linux_armv7l:
+        default: true
+        type: boolean
+      musllinux:
         default: true
         type: boolean
       macos:
         default: true
         type: boolean
-      macos_legacy:
-        default: true
-        type: boolean
       windows:
         default: true
         type: boolean
-      windows32:
-        default: true
-        type: boolean
-      origin:
-        required: false
-        default: ''
-        type: string
     secrets:
       GPG_SIGNING_KEY:
         required: false
@@ -43,7 +39,9 @@ on:
       version:
         description: |
           VERSION: yyyy.mm.dd[.rev] or rev
-        required: true
+          (default: auto-generated)
+        required: false
+        default: ''
         type: string
       channel:
         description: |
@@ -55,37 +53,26 @@ on:
         description: yt-dlp, yt-dlp.tar.gz
         default: true
         type: boolean
-      linux_static:
-        description: yt-dlp_linux
+      linux:
+        description: yt-dlp_linux, yt-dlp_linux.zip, yt-dlp_linux_aarch64, yt-dlp_linux_aarch64.zip
         default: true
         type: boolean
-      linux_arm:
-        description: yt-dlp_linux_aarch64, yt-dlp_linux_armv7l
+      linux_armv7l:
+        description: yt-dlp_linux_armv7l.zip
+        default: true
+        type: boolean
+      musllinux:
+        description: yt-dlp_musllinux, yt-dlp_musllinux.zip, yt-dlp_musllinux_aarch64, yt-dlp_musllinux_aarch64.zip
         default: true
         type: boolean
       macos:
         description: yt-dlp_macos, yt-dlp_macos.zip
         default: true
         type: boolean
-      macos_legacy:
-        description: yt-dlp_macos_legacy
-        default: true
-        type: boolean
       windows:
-        description: yt-dlp.exe, yt-dlp_win.zip
+        description: yt-dlp.exe, yt-dlp_win.zip, yt-dlp_x86.exe, yt-dlp_win_x86.zip, yt-dlp_arm64.exe, yt-dlp_win_arm64.zip
         default: true
         type: boolean
-      windows32:
-        description: yt-dlp_x86.exe
-        default: true
-        type: boolean
-      origin:
-        description: Origin
-        required: false
-        default: 'current repo'
-        type: choice
-        options:
-        - 'current repo'
 
 permissions:
   contents: read
@@ -94,44 +81,151 @@ jobs:
   process:
     runs-on: ubuntu-latest
     outputs:
-      origin: ${{ steps.process_origin.outputs.origin }}
+      origin: ${{ steps.process_inputs.outputs.origin }}
+      timestamp: ${{ steps.process_inputs.outputs.timestamp }}
+      version: ${{ steps.process_inputs.outputs.version }}
+      linux_matrix: ${{ steps.linux_matrix.outputs.matrix }}
+
     steps:
-      - name: Process origin
-        id: process_origin
+      - name: Process inputs
+        id: process_inputs
+        env:
+          INPUTS: ${{ toJSON(inputs) }}
+          REPOSITORY: ${{ github.repository }}
+        shell: python
         run: |
-          echo "origin=${{ inputs.origin == 'current repo' && github.repository || inputs.origin }}" | tee "$GITHUB_OUTPUT"
+          import datetime as dt
+          import json
+          import os
+          import re
+          INPUTS = json.loads(os.environ['INPUTS'])
+          timestamp = dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d.%H%M%S.%f')
+          version = INPUTS.get('version')
+          if version and '.' not in version:
+              # build.yml was dispatched with only a revision as the version input value
+              version_parts = [*timestamp.split('.')[:3], version]
+          elif not version:
+              # build.yml was dispatched without any version input value, so include .HHMMSS revision
+              version_parts = timestamp.split('.')[:4]
+          else:
+              # build.yml was called or dispatched with a complete version input value
+              version_parts = version.split('.')
+          assert all(re.fullmatch(r'[0-9]+', part) for part in version_parts), 'Version must be numeric'
+          outputs = {
+              'origin': INPUTS.get('origin') or os.environ['REPOSITORY'],
+              'timestamp': timestamp,
+              'version': '.'.join(version_parts),
+          }
+          print(json.dumps(outputs, indent=2))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('\n'.join(f'{key}={value}' for key, value in outputs.items()))
+
+      - name: Build Linux matrix
+        id: linux_matrix
+        env:
+          INPUTS: ${{ toJSON(inputs) }}
+          PYTHON_VERSION: '3.13'
+          UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
+        shell: python
+        run: |
+          import json
+          import os
+          EXE_MAP = {
+              'linux': [{
+                  'os': 'linux',
+                  'arch': 'x86_64',
+                  'runner': 'ubuntu-24.04',
+              }, {
+                  'os': 'linux',
+                  'arch': 'aarch64',
+                  'runner': 'ubuntu-24.04-arm',
+              }],
+              'linux_armv7l': [{
+                  'os': 'linux',
+                  'arch': 'armv7l',
+                  'runner': 'ubuntu-24.04-arm',
+                  'qemu_platform': 'linux/arm/v7',
+                  'onefile': False,
+                  'cache_requirements': True,
+                  'update_to': 'yt-dlp/yt-dlp@2023.03.04',
+              }],
+              'musllinux': [{
+                  'os': 'musllinux',
+                  'arch': 'x86_64',
+                  'runner': 'ubuntu-24.04',
+              }, {
+                  'os': 'musllinux',
+                  'arch': 'aarch64',
+                  'runner': 'ubuntu-24.04-arm',
+              }],
+          }
+          INPUTS = json.loads(os.environ['INPUTS'])
+          matrix = [exe for key, group in EXE_MAP.items() for exe in group if INPUTS.get(key)]
+          if not matrix:
+              # If we send an empty matrix when no linux inputs are given, the entire workflow fails
+              matrix = [EXE_MAP['linux'][0]]
+          for exe in matrix:
+              exe['exe'] = '_'.join(filter(None, (
+                  'yt-dlp',
+                  exe['os'],
+                  exe['arch'] != 'x86_64' and exe['arch'],
+              )))
+              exe.setdefault('qemu_platform', None)
+              exe.setdefault('onefile', True)
+              exe.setdefault('onedir', True)
+              exe.setdefault('cache_requirements', False)
+              exe.setdefault('python_version', os.environ['PYTHON_VERSION'])
+              exe.setdefault('update_to', os.environ['UPDATE_TO'])
+          if not any(INPUTS.get(key) for key in EXE_MAP):
+              print('skipping linux job')
+          else:
+              print(json.dumps(matrix, indent=2))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'matrix={json.dumps(matrix)}')
 
   unix:
     needs: process
     if: inputs.unix
     runs-on: ubuntu-latest
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
+      UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Needed for changelog
-      - uses: actions/setup-python@v5
+
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
+
       - name: Install Requirements
         run: |
           sudo apt -y install zip pandoc man sed
+
       - name: Prepare
         run: |
-          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
           python devscripts/update_changelog.py -vv
           python devscripts/make_lazy_extractors.py
+
       - name: Build Unix platform-independent binary
         run: |
           make all tar
+
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
           chmod +x ./yt-dlp
           cp ./yt-dlp ./yt-dlp_downgraded
           version="$(./yt-dlp --version)"
-          ./yt-dlp_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          ./yt-dlp_downgraded -v --update-to "${UPDATE_TO}"
           downgraded_version="$(./yt-dlp_downgraded --version)"
-          [[ "$version" != "$downgraded_version" ]]
+          [[ "${version}" != "${downgraded_version}" ]]
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -141,99 +235,74 @@ jobs:
             yt-dlp.tar.gz
           compression-level: 0
 
-  linux_static:
+  linux:
+    name: ${{ matrix.os }} (${{ matrix.arch }})
+    if: inputs.linux || inputs.linux_armv7l || inputs.musllinux
     needs: process
-    if: inputs.linux_static
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build static executable
-        env:
-          channel: ${{ inputs.channel }}
-          origin: ${{ needs.process.outputs.origin }}
-          version: ${{ inputs.version }}
-        run: |
-          mkdir ~/build
-          cd bundle/docker
-          docker compose up --build static
-          sudo chown "${USER}:docker" ~/build/yt-dlp_linux
-      - name: Verify --update-to
-        if: vars.UPDATE_TO_VERIFICATION
-        run: |
-          chmod +x ~/build/yt-dlp_linux
-          cp ~/build/yt-dlp_linux ~/build/yt-dlp_linux_downgraded
-          version="$(~/build/yt-dlp_linux --version)"
-          ~/build/yt-dlp_linux_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-          downgraded_version="$(~/build/yt-dlp_linux_downgraded --version)"
-          [[ "$version" != "$downgraded_version" ]]
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-bin-${{ github.job }}
-          path: |
-            ~/build/yt-dlp_linux
-          compression-level: 0
-
-  linux_arm:
-    needs: process
-    if: inputs.linux_arm
-    permissions:
-      contents: read
-      packages: write # for creating cache
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
-        architecture:
-          - armv7
-          - aarch64
+        include: ${{ fromJSON(needs.process.outputs.linux_matrix) }}
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
+      EXE_NAME: ${{ matrix.exe }}
+      PYTHON_VERSION: ${{ matrix.python_version }}
+      UPDATE_TO: ${{ (vars.UPDATE_TO_VERIFICATION && matrix.update_to) || '' }}
+      SKIP_ONEDIR_BUILD: ${{ (!matrix.onedir && '1') || '' }}
+      SKIP_ONEFILE_BUILD: ${{ (!matrix.onefile && '1') || '' }}
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: ./repo
-      - name: Virtualized Install, Prepare & Build
-        uses: yt-dlp/run-on-arch-action@v2
-        with:
-          # Ref: https://github.com/uraimo/run-on-arch-action/issues/55
-          env: |
-            GITHUB_WORKFLOW: build
-          githubToken: ${{ github.token }} # To cache image
-          arch: ${{ matrix.architecture }}
-          distro: ubuntu20.04 # Standalone executable should be built on minimum supported OS
-          dockerRunArgs: --volume "${PWD}/repo:/repo"
-          install: | # Installing Python 3.10 from the Deadsnakes repo raises errors
-            apt update
-            apt -y install zlib1g-dev libffi-dev python3.9 python3.9-dev python3.9-distutils python3-pip \
-              python3-secretstorage  # Cannot build cryptography wheel in virtual armv7 environment
-            python3.9 -m pip install -U pip wheel 'setuptools>=71.0.2'
-            # XXX: Keep this in sync with pyproject.toml (it can't be accessed at this stage) and exclude secretstorage
-            python3.9 -m pip install -U Pyinstaller mutagen pycryptodomex brotli certifi cffi \
-              'requests>=2.32.2,<3' 'urllib3>=1.26.17,<3' 'websockets>=13.0'
 
-          run: |
-            cd repo
-            python3.9 devscripts/install_deps.py -o --include build
-            python3.9 devscripts/install_deps.py --include pyinstaller  # Cached versions may be out of date
-            python3.9 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
-            python3.9 devscripts/make_lazy_extractors.py
-            python3.9 -m bundle.pyinstaller
+      - name: Cache requirements
+        if: matrix.cache_requirements
+        id: cache-venv
+        uses: actions/cache@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: |
+            venv
+          key: cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
+          restore-keys: |
+            cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-${{ github.ref }}-
+            cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-
 
-            if ${{ vars.UPDATE_TO_VERIFICATION && 'true' || 'false' }}; then
-              arch="${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}"
-              chmod +x ./dist/yt-dlp_linux_${arch}
-              cp ./dist/yt-dlp_linux_${arch} ./dist/yt-dlp_linux_${arch}_downgraded
-              version="$(./dist/yt-dlp_linux_${arch} --version)"
-              ./dist/yt-dlp_linux_${arch}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-              downgraded_version="$(./dist/yt-dlp_linux_${arch}_downgraded --version)"
-              [[ "$version" != "$downgraded_version" ]]
-            fi
+      - name: Set up QEMU
+        if: matrix.qemu_platform
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ matrix.qemu_platform }}
+
+      - name: Build executable
+        env:
+          SERVICE: ${{ matrix.os }}_${{ matrix.arch }}
+        run: |
+          mkdir -p ./venv
+          mkdir -p ./dist
+          pushd bundle/docker
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
+          popd
+          if [[ -z "${SKIP_ONEFILE_BUILD}" ]]; then
+            sudo chown "${USER}:docker" "./dist/${EXE_NAME}"
+          fi
+
+      - name: Verify executable in container
+        env:
+          SERVICE: ${{ matrix.os }}_${{ matrix.arch }}_verify
+        run: |
+          cd bundle/docker
+          docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-bin-linux_${{ matrix.architecture }}
-          path: | # run-on-arch-action designates armv7l as armv7
-            repo/dist/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
+          name: build-bin-${{ matrix.os }}_${{ matrix.arch }}
+          path: |
+            dist/${{ matrix.exe }}*
           compression-level: 0
 
   macos:
@@ -241,26 +310,35 @@ jobs:
     if: inputs.macos
     permissions:
       contents: read
-      actions: write  # For cleaning up cache
-    runs-on: macos-13
+    runs-on: macos-14
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
+      UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
       - uses: actions/checkout@v4
       # NB: Building universal2 does not work with python from actions/setup-python
 
-      - name: Restore cached requirements
-        id: restore-cache
-        uses: actions/cache/restore@v4
+      - name: Cache requirements
+        id: cache-venv
+        uses: actions/cache@v4
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
           path: |
             ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}
+          key: cache-reqs-${{ github.job }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
+          restore-keys: |
+            cache-reqs-${{ github.job }}-${{ github.ref }}-
+            cache-reqs-${{ github.job }}-
 
       - name: Install Requirements
         run: |
           brew install coreutils
+          # We need to use system Python in order to roll our own universal2 curl_cffi wheel
+          brew uninstall --ignore-dependencies python3
           python3 -m venv ~/yt-dlp-build-venv
           source ~/yt-dlp-build-venv/bin/activate
           python3 devscripts/install_deps.py -o --include build
@@ -299,7 +377,7 @@ jobs:
 
       - name: Prepare
         run: |
-          python3 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python3 devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
           python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
@@ -314,7 +392,7 @@ jobs:
           chmod +x ./dist/yt-dlp_macos
           cp ./dist/yt-dlp_macos ./dist/yt-dlp_macos_downgraded
           version="$(./dist/yt-dlp_macos --version)"
-          ./dist/yt-dlp_macos_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          ./dist/yt-dlp_macos_downgraded -v --update-to "${UPDATE_TO}"
           downgraded_version="$(./dist/yt-dlp_macos_downgraded --version)"
           [[ "$version" != "$downgraded_version" ]]
 
@@ -327,168 +405,124 @@ jobs:
             dist/yt-dlp_macos.zip
           compression-level: 0
 
-      - name: Cleanup cache
-        if: steps.restore-cache.outputs.cache-hit == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          cache_key: cache-reqs-${{ github.job }}
-          repository: ${{ github.repository }}
-          branch: ${{ github.ref }}
-        run: |
-          gh extension install actions/gh-actions-cache
-          gh actions-cache delete "${cache_key}" -R "${repository}" -B "${branch}" --confirm
-
-      - name: Cache requirements
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}
-
-  macos_legacy:
-    needs: process
-    if: inputs.macos_legacy
-    runs-on: macos-13
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Python
-        # We need the official Python, because the GA ones only support newer macOS versions
-        env:
-          PYTHON_VERSION: 3.10.5
-          MACOSX_DEPLOYMENT_TARGET: 10.9 # Used up by the Python build tools
-        run: |
-          # Hack to get the latest patch version. Uncomment if needed
-          #brew install python@3.10
-          #export PYTHON_VERSION=$( $(brew --prefix)/opt/python@3.10/bin/python3 --version | cut -d ' ' -f 2 )
-          curl "https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg" -o "python.pkg"
-          sudo installer -pkg python.pkg -target /
-          python3 --version
-      - name: Install Requirements
-        run: |
-          brew install coreutils
-          python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --user --include pyinstaller
-
-      - name: Prepare
-        run: |
-          python3 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
-          python3 devscripts/make_lazy_extractors.py
-      - name: Build
-        run: |
-          python3 -m bundle.pyinstaller
-          mv dist/yt-dlp_macos dist/yt-dlp_macos_legacy
-
-      - name: Verify --update-to
-        if: vars.UPDATE_TO_VERIFICATION
-        run: |
-          chmod +x ./dist/yt-dlp_macos_legacy
-          cp ./dist/yt-dlp_macos_legacy ./dist/yt-dlp_macos_legacy_downgraded
-          version="$(./dist/yt-dlp_macos_legacy --version)"
-          ./dist/yt-dlp_macos_legacy_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-          downgraded_version="$(./dist/yt-dlp_macos_legacy_downgraded --version)"
-          [[ "$version" != "$downgraded_version" ]]
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-bin-${{ github.job }}
-          path: |
-            dist/yt-dlp_macos_legacy
-          compression-level: 0
-
   windows:
+    name: windows (${{ matrix.arch }})
     needs: process
     if: inputs.windows
-    runs-on: windows-latest
+    permissions:
+      contents: read
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - arch: 'x64'
+          runner: windows-2025
+          python_version: '3.10'
+          platform_tag: win_amd64
+          pyi_version: '6.16.0'
+          pyi_tag: '2025.09.13.221251'
+          pyi_hash: b6496c7630c3afe66900cfa824e8234a8c2e2c81704bd7facd79586abc76c0e5
+        - arch: 'x86'
+          runner: windows-2025
+          python_version: '3.10'
+          platform_tag: win32
+          pyi_version: '6.16.0'
+          pyi_tag: '2025.09.13.221251'
+          pyi_hash: 2d881843580efdc54f3523507fc6d9c5b6051ee49c743a6d9b7003ac5758c226
+        - arch: 'arm64'
+          runner: windows-11-arm
+          python_version: '3.13'  # arm64 only has Python >= 3.11 available
+          platform_tag: win_arm64
+          pyi_version: '6.16.0'
+          pyi_tag: '2025.09.13.221251'
+          pyi_hash: 4250c9085e34a95c898f3ee2f764914fc36ec59f0d97c28e6a75fcf21f7b144f
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      ORIGIN: ${{ needs.process.outputs.origin }}
+      VERSION: ${{ needs.process.outputs.version }}
+      SUFFIX: ${{ (matrix.arch != 'x64' && format('_{0}', matrix.arch)) || '' }}
+      UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
+      BASE_CACHE_KEY: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}
+      PYI_REPO: https://github.com/yt-dlp/Pyinstaller-Builds
+      PYI_WHEEL: pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.10"
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.arch }}
+
+      - name: Cache requirements
+        id: cache-venv
+        if: matrix.arch == 'arm64'
+        uses: actions/cache@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: |
+            /yt-dlp-build-venv
+          key: ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
+          restore-keys: |
+            ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-
+            ${{ env.BASE_CACHE_KEY }}-
+
       - name: Install Requirements
-        run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
+        env:
+          ARCH: ${{ matrix.arch }}
+          PYI_URL: ${{ env.PYI_REPO }}/releases/download/${{ matrix.pyi_tag }}/${{ env.PYI_WHEEL }}
+          PYI_HASH: ${{ matrix.pyi_hash }}
+        shell: pwsh
+        run: |
+          python -m venv /yt-dlp-build-venv
+          /yt-dlp-build-venv/Scripts/Activate.ps1
+          python -m pip install -U pip
+          # Install custom PyInstaller build and verify hash
+          mkdir /pyi-wheels
+          python -m pip download -d /pyi-wheels --no-deps --require-hashes "pyinstaller@${Env:PYI_URL}#sha256=${Env:PYI_HASH}"
+          python -m pip install --force-reinstall -U "/pyi-wheels/${Env:PYI_WHEEL}"
           python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py --include curl-cffi
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-6.11.1-py3-none-any.whl"
+          if ("${Env:ARCH}" -eq "x86") {
+            python devscripts/install_deps.py
+          } else {
+            python devscripts/install_deps.py --include curl-cffi
+          }
 
       - name: Prepare
+        shell: pwsh
         run: |
-          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python devscripts/update-version.py -c "${Env:CHANNEL}" -r "${Env:ORIGIN}" "${Env:VERSION}"
           python devscripts/make_lazy_extractors.py
+
       - name: Build
+        shell: pwsh
         run: |
+          /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
-          Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
+          Compress-Archive -Path ./dist/yt-dlp${Env:SUFFIX}/* -DestinationPath ./dist/yt-dlp_win${Env:SUFFIX}.zip
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
+        shell: pwsh
         run: |
-          foreach ($name in @("yt-dlp")) {
-            Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
-            $version = & "./dist/${name}.exe" --version
-            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
-            $downgraded_version = & "./dist/${name}_downgraded.exe" --version
-            if ($version -eq $downgraded_version) {
-              exit 1
-            }
+          $name = "yt-dlp${Env:SUFFIX}"
+          Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
+          $version = & "./dist/${name}.exe" --version
+          & "./dist/${name}_downgraded.exe" -v --update-to "${Env:UPDATE_TO}"
+          $downgraded_version = & "./dist/${name}_downgraded.exe" --version
+          if ($version -eq $downgraded_version) {
+            exit 1
           }
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-bin-${{ github.job }}
+          name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
-            dist/yt-dlp.exe
-            dist/yt-dlp_win.zip
-          compression-level: 0
-
-  windows32:
-    needs: process
-    if: inputs.windows32
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-          architecture: "x86"
-      - name: Install Requirements
-        run: |
-          python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-6.11.1-py3-none-any.whl"
-
-      - name: Prepare
-        run: |
-          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
-          python devscripts/make_lazy_extractors.py
-      - name: Build
-        run: |
-          python -m bundle.pyinstaller
-
-      - name: Verify --update-to
-        if: vars.UPDATE_TO_VERIFICATION
-        run: |
-          foreach ($name in @("yt-dlp_x86")) {
-            Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
-            $version = & "./dist/${name}.exe" --version
-            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
-            $downgraded_version = & "./dist/${name}_downgraded.exe" --version
-            if ($version -eq $downgraded_version) {
-              exit 1
-            }
-          }
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-bin-${{ github.job }}
-          path: |
-            dist/yt-dlp_x86.exe
+            dist/yt-dlp${{ env.SUFFIX }}.exe
+            dist/yt-dlp_win${{ env.SUFFIX }}.zip
           compression-level: 0
 
   meta_files:
@@ -496,12 +530,9 @@ jobs:
     needs:
       - process
       - unix
-      - linux_static
-      - linux_arm
+      - linux
       - macos
-      - macos_legacy
       - windows
-      - windows32
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -530,34 +561,38 @@ jobs:
           lock 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lock 2024.10.22 py2exe .+
-          lock 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
-          lock 2024.10.22 (?!\w+_exe).+ Python 3\.8
+          lock 2024.10.22 zip Python 3\.8
           lock 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
+          lock 2025.08.11 darwin_legacy_exe .+
+          lock 2025.08.27 linux_armv7l_exe .+
           lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
           lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp 2024.10.22 py2exe .+
-          lockV2 yt-dlp/yt-dlp 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
-          lockV2 yt-dlp/yt-dlp 2024.10.22 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp 2024.10.22 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
+          lockV2 yt-dlp/yt-dlp 2025.08.11 darwin_legacy_exe .+
+          lockV2 yt-dlp/yt-dlp 2025.08.27 linux_armv7l_exe .+
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 py2exe .+
-          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
-          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2025.08.12.233030 darwin_legacy_exe .+
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2025.08.30.232839 linux_armv7l_exe .+
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.045052 py2exe .+
-          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
-          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
+          lockV2 yt-dlp/yt-dlp-master-builds 2025.08.12.232447 darwin_legacy_exe .+
+          lockV2 yt-dlp/yt-dlp-master-builds 2025.09.05.212910 linux_armv7l_exe .+
           EOF
 
       - name: Sign checksum files
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-        if: env.GPG_SIGNING_KEY != ''
+        if: env.GPG_SIGNING_KEY
         run: |
           gpg --batch --import <<< "${{ secrets.GPG_SIGNING_KEY }}"
           for signfile in ./SHA*SUMS; do
