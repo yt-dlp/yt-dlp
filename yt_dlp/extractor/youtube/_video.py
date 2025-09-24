@@ -2026,8 +2026,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return None, None
         return player_js_version.split('@')
 
-    def _construct_player_url(self, player_id, varient):
-        return f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[varient]}'
+    def _construct_player_url(self, player_id, variant):
+        return f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[variant]}'
 
     def _extract_player_url(self, *ytcfgs, webpage=None):
         player_url = traverse_obj(
