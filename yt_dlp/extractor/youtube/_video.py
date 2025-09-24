@@ -2054,10 +2054,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return urljoin('https://www.youtube.com', player_url)
 
     def _download_player_url(self, video_id, fatal=False):
+        requested_js_variant = self._configuration_arg('player_js_variant', [''])[0] or 'main'
+        if requested_js_variant == 'actual':
+            requested_js_variant = 'main'
+        if requested_js_variant not in self._PLAYER_JS_VARIANT_MAP:
+            self.report_warning(
+                f'Invalid player JS variant name "{requested_js_variant}" requested. '
+                f'Valid choices are: {", ".join(self._PLAYER_JS_VARIANT_MAP)}', only_once=True)
+            requested_js_variant = 'main'
         player_id_override = self._get_player_js_version()[1]
         if player_id_override:
             self.write_debug(f'Forcing player {player_id_override}')
-            return urljoin('https://www.youtube.com', self._construct_player_url(player_id_override, 'main'))
+            return urljoin('https://www.youtube.com', self._construct_player_url(player_id_override, requested_js_variant))
         iframe_webpage = self._download_webpage_with_retries(
             'https://www.youtube.com/iframe_api',
             note='Downloading iframe API JS',
@@ -2067,7 +2075,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_version = self._search_regex(
                 r'player\\?/([0-9a-fA-F]{8})\\?/', iframe_webpage, 'player version', fatal=fatal)
             if player_version:
-                return urljoin('https://www.youtube.com', self._construct_player_url(player_version, 'main'))
+                return urljoin('https://www.youtube.com', self._construct_player_url(player_version, requested_js_variant))
 
     def _player_js_cache_key(self, player_url):
         player_id = self._extract_player_info(player_url)
