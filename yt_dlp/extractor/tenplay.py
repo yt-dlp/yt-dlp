@@ -224,18 +224,21 @@ class TenPlayIE(InfoExtractor):
         formats, _ = self._extract_m3u8_formats_and_subtitles(
             dai_data['stream_manifest'], content_id, 'mp4')
 
+        already_have_1080p = False
         for fmt in formats:
             m3u8_doc = self._download_webpage(
                 fmt['url'], content_id, note='Downloading m3u8 information')
             m3u8_doc = self._filter_ads_from_m3u8(m3u8_doc)
             fmt['hls_media_playlist_data'] = m3u8_doc
+            if fmt.get('height') == 1080:
+                already_have_1080p = True
 
         # Attempt format upgrade
-        if m3u8_doc and re.search(r'(?m)-(?:300|150|75|55)0000-\d+\.ts$', m3u8_doc):
+        if not already_have_1080p and m3u8_doc and re.search(r'(?m)-(?:300|150|75|55)0000-\d+\.ts$', m3u8_doc):
             m3u8_doc = re.sub(r'(?m)-(?:300|150|75|55)0000-(\d+)\.ts$', r'-5000000-\1.ts', m3u8_doc)
             m3u8_doc = re.sub(r'-(?:300|150|75|55)0000\.key"', r'-5000000.key"', m3u8_doc)
             formats.append({
-                'format_id': 'hls-1080p',
+                'format_id': 'upgrade-attempt-1080p',
                 'url': formats[0]['url'],
                 'hls_media_playlist_data': m3u8_doc,
                 'width': 1920,
