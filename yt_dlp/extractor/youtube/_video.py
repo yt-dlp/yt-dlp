@@ -2026,6 +2026,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return None, None
         return player_js_version.split('@')
 
+    def _construct_player_url(self, player_id, varient):
+        return f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[varient]}'
+
     def _extract_player_url(self, *ytcfgs, webpage=None):
         player_url = traverse_obj(
             ytcfgs, (..., 'PLAYER_JS_URL'), (..., 'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
@@ -2038,7 +2041,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if requested_js_variant in self._PLAYER_JS_VARIANT_MAP:
             player_id = player_id_override or self._extract_player_info(player_url)
             original_url = player_url
-            player_url = f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[requested_js_variant]}'
+            player_url = self._construct_player_url(player_id, requested_js_variant)
             if original_url != player_url:
                 self.write_debug(
                     f'Forcing "{requested_js_variant}" player JS variant for player {player_id}\n'
@@ -2051,6 +2054,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return urljoin('https://www.youtube.com', player_url)
 
     def _download_player_url(self, video_id, fatal=False):
+        player_id_override = self._get_player_js_version()[1]
+        if player_id_override:
+            self.write_debug(f'Forcing player {player_id_override}')
+            return urljoin('https://www.youtube.com', self._construct_player_url(player_id_override, 'main'))
         iframe_webpage = self._download_webpage_with_retries(
             'https://www.youtube.com/iframe_api',
             note='Downloading iframe API JS',
@@ -2060,7 +2067,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_version = self._search_regex(
                 r'player\\?/([0-9a-fA-F]{8})\\?/', iframe_webpage, 'player version', fatal=fatal)
             if player_version:
-                return f'https://www.youtube.com/s/player/{player_version}/player_ias.vflset/en_US/base.js'
+                return urljoin('https://www.youtube.com', self._construct_player_url(player_version, 'main'))
 
     def _player_js_cache_key(self, player_url):
         player_id = self._extract_player_info(player_url)
