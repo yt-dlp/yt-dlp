@@ -1916,6 +1916,11 @@ from .spankbang import (
     SpankBangPlaylistIE,
 )
 from .spiegel import SpiegelIE
+from .spike import (
+    BellatorIE,
+    ParamountNetworkIE,
+)
+from .sponsr import SponsrIE
 from .sport5 import Sport5IE
 from .sportbox import SportBoxIE
 from .sportdeutschland import SportDeutschlandIE
