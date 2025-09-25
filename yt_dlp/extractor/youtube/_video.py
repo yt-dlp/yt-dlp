@@ -2271,14 +2271,39 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             (?(var),[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,(?P=var)\))''',
             jscode, 'n function name', group=('nfunc', 'idx'), default=(None, None))
         if not funcname:
-            self.report_warning(join_nonempty(
-                'Falling back to generic n function search',
-                player_url and f'         player = {player_url}', delim='\n'), only_once=True)
-            return self._search_regex(
-                r'''(?xs)
-                ;\s*(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
-                \s*\{(?:(?!};).)+?return\s*(?P<q>["'])[\w-]+_w8_(?P=q)\s*\+\s*[a-zA-Z0-9_$]+''',
-                jscode, 'Initial JS player n function name', group='name')
+            inline_pattern = block_pattern = None
+            set_idx = next((i for i, v in enumerate(global_list or []) if v == 'set'), None)
+            n_idx = next((i for i, v in enumerate(global_list or []) if v == 'n'), None)
+            if set_idx is not None and n_idx is not None:
+                inline_pattern = rf'''(?sx)
+                    if\s*\([^)]*\)\s*
+                    (?P<var>[A-Za-z0-9_$]+)\s*=\s*
+                    (?P<array>[A-Za-z0-9_$]+)\[(?P<idx>\d+)\]\(\s*(?P=var)\s*\)
+                    \s*,\s*
+                    [A-Za-z0-9_$]+\[\s*{re.escape(varname)}\[{set_idx}\]\s*\]\(\s*{re.escape(varname)}\[{n_idx}\]\s*,\s*(?P=var)\s*\)
+                '''
+                block_pattern = rf'''(?sx)
+                    (?P<prefix>if\s*\([^)]*\)\s*\{{\s*)?
+                    (?P<var>[A-Za-z0-9_$]+)\s*=\s*
+                    (?P<array>[A-Za-z0-9_$]+)\[(?P<idx>\d+)\]\(\s*(?P=var)\s*\)
+                    \s*;\s*
+                    [A-Za-z0-9_$]+\[\s*{re.escape(varname)}\[{set_idx}\]\s*\]\(\s*{re.escape(varname)}\[{n_idx}\]\s*,\s*(?P=var)\s*\)
+                    (?:\s*;?\s*\}})?
+                '''
+                for pattern in (inline_pattern, block_pattern):
+                    match = pattern and re.search(pattern, jscode)
+                    if match:
+                        funcname, idx = match.group('array', 'idx')
+                        break
+            if not funcname:
+                self.report_warning(join_nonempty(
+                    'Falling back to generic n function search',
+                    player_url and f'         player = {player_url}', delim='\n'), only_once=True)
+                return self._search_regex(
+                    r'''(?xs)
+                    ;\s*(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
+                    \s*\{(?:(?!};).)+?return\s*(?P<q>["'])[\w-]+_w8_(?P=q)\s*\+\s*[a-zA-Z0-9_$]+''',
+                    jscode, 'Initial JS player n function name', group='name')
         elif not idx:
             return funcname
 
@@ -2301,6 +2326,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     )
                 )[;,]
             ''', jscode, 'global variable', group=('code', 'name', 'value'), default=(None, None, None))
+        if not varcode:
+            # Fallback: search without requiring a nearby 'use strict'
+            varcode, varname, varvalue = self._search_regex(
+                r'''(?x)
+                    var\s+(?P<name>[a-zA-Z0-9_$]+)\s*=\s*
+                    (?P<value>
+                        (?P<q2>["\'])(?:(?!(?P=q2)).|\\.)+(?P=q2)
+                        \.split\((?P<q3>["\'])(?:(?!(?P=q3)).)+(?P=q3)\)
+                        |\[\s*(?:(?P<q4>["\'])(?:(?!(?P=q4)).|\\.)*(?P=q4)\s*,?\s*)+\]
+                    )
+                [;,]
+                ''', jscode, 'global variable (loose)', group=('value', 'name', 'value'), default=(None, None, None))
+            if varcode:
+                # Reconstruct minimal code for JSInterpreter context
+                varcode = f'var {varname}={varcode};'
         if not varcode:
             self.write_debug(join_nonempty(
                 'No global array variable found in player JS',
@@ -2335,31 +2375,122 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_url and f'        player = {player_url}', delim='\n'), only_once=True)
 
         # Fixup global funcs
-        jsi = JSInterpreter(fixed_code)
         cache_id = (self._NSIG_FUNC_CACHE_ID, player_url)
-        try:
-            self._cached(
-                self._extract_n_function_from_code, *cache_id)(jsi, (argnames, fixed_code))(self._DUMMY_STRING)
-        except JSInterpreter.Exception:
-            self._player_cache.pop(cache_id, None)
+        inlined_globals = set()
 
-        global_funcnames = jsi._undefined_varnames
-        debug_names = []
+        while True:
+            jsi = JSInterpreter(fixed_code)
+            try:
+                self._cached(
+                    self._extract_n_function_from_code, *cache_id)(jsi, (argnames, fixed_code))(self._DUMMY_STRING)
+            except JSInterpreter.Exception as exc:
+                self._player_cache.pop(cache_id, None)
+
+                missing_name = None
+                msg = getattr(exc, 'orig_msg', None) or str(exc)
+                preview = fixed_code.replace('\n', ' ')[:400]
+                self.write_debug(join_nonempty(
+                    'nsig inline execution failed; attempting helper injection',
+                    f'        error = {msg}',
+                    f'        fixed_code head = {preview}...',
+                    player_url and f'        player = {player_url}', delim='\n'))
+                match = re.search(r'Could not find (?:function "(?P<func>[a-zA-Z0-9_$]+)"|object (?P<obj>[a-zA-Z0-9_$]+))', msg)
+                if match:
+                    missing_name = match.group('func') or match.group('obj')
+
+                if not missing_name or missing_name in inlined_globals:
+                    if not missing_name:
+                        self.write_debug(join_nonempty(
+                            'Helper lookup gave no candidate; aborting inline retry',
+                            player_url and f'        player = {player_url}', delim='\n'))
+                    break
+
+                try:
+                    func_args, func_code = JSInterpreter(jscode).extract_function_code(missing_name)
+                except JSInterpreter.Exception:
+                    try:
+                        func_args, func_code = self._extract_js_function(jscode, missing_name)
+                    except JSInterpreter.Exception:
+                        self.write_debug(join_nonempty(
+                            f'Unable to extract helper {missing_name} body from player JS',
+                            player_url and f'        player = {player_url}', delim='\n'))
+                        break
+                except Exception:
+                    self.write_debug(join_nonempty(
+                        f'Unexpected failure extracting helper {missing_name} from player JS',
+                        player_url and f'        player = {player_url}', delim='\n'))
+                    break
+
+                self.write_debug(join_nonempty(
+                    f'Inlining global nsig helper {missing_name}',
+                    f'        body = {func_code}',
+                    player_url and f'        player = {player_url}', delim='\n'))
+                fixed_code = f'var {missing_name} = function({", ".join(func_args)}) {{ {func_code} }}; {fixed_code}'
+                inlined_globals.add(missing_name)
+                continue
+            else:
+                break
+
+        global_funcnames = jsi._undefined_varnames | inlined_globals
+        debug_names = sorted(inlined_globals)
         jsi = JSInterpreter(jscode)
         for func_name in global_funcnames:
+            if func_name in inlined_globals:
+                continue
             try:
                 func_args, func_code = jsi.extract_function_code(func_name)
-                fixed_code = f'var {func_name} = function({", ".join(func_args)}) {{ {func_code} }}; {fixed_code}'
-                debug_names.append(func_name)
+            except JSInterpreter.Exception:
+                try:
+                    func_args, func_code = self._extract_js_function(jscode, func_name)
+                except Exception:
+                    self.report_warning(join_nonempty(
+                        f'Unable to extract global nsig function {func_name} from player JS',
+                        player_url and f'        player = {player_url}', delim='\n'), only_once=True)
+                    continue
             except Exception:
                 self.report_warning(join_nonempty(
                     f'Unable to extract global nsig function {func_name} from player JS',
                     player_url and f'        player = {player_url}', delim='\n'), only_once=True)
+                continue
+
+            fixed_code = f'var {func_name} = function({", ".join(func_args)}) {{ {func_code} }}; {fixed_code}'
+            debug_names.append(func_name)
 
         if debug_names:
             self.write_debug(f'Extracted global nsig functions: {", ".join(debug_names)}')
 
         return argnames, fixed_code
+
+    def _extract_js_function(self, jscode, func_name):
+        pattern = re.compile(rf'''(?x)
+            (?P<prefix>
+                function\s+{re.escape(func_name)}\s*\((?P<args_decl>[^)]*)\)|
+                (?<![a-zA-Z0-9_$]){re.escape(func_name)}\s*=\s*function\s*\((?P<args_expr>[^)]*)\)|
+                (?:var|const|let)\s+{re.escape(func_name)}\s*=\s*function\s*\((?P<args_var>[^)]*)\)
+            )
+        ''')
+        match = pattern.search(jscode)
+        if not match:
+            raise JSInterpreter.Exception(f'Could not parse function {func_name}')
+
+        args = next(filter(None, match.group('args_decl', 'args_expr', 'args_var')), '')
+        brace_start = jscode.find('{', match.end())
+        if brace_start == -1:
+            raise JSInterpreter.Exception(f'Could not parse function {func_name}')
+
+        depth = 0
+        for idx in range(brace_start, len(jscode)):
+            ch = jscode[idx]
+            if ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0:
+                    func_code = jscode[brace_start + 1:idx]
+                    arg_list = [a.strip() for a in args.split(',') if a.strip()]
+                    return arg_list, func_code
+
+        raise JSInterpreter.Exception(f'Could not parse function {func_name}')
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
