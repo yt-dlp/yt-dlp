@@ -184,6 +184,9 @@ class XHamsterIE(InfoExtractor):
             return int_or_none(self._search_regex(
                 r'^(\d+)[pP]', s, 'height', default=None))
 
+        preload_urls = re.findall(r'<link rel="preload" href="([^"]+)" as', webpage)
+        playlist_url = next((url for url in preload_urls if re.search(r'video(?:-[a-z]+|\d+)\.xhcdn\.com', url) is not None), None)
+        thumbnail_url = next((url for url in preload_urls if re.search(r'ic-vt(?:-[a-z]+|\d+)\.xhcdn\.com', url) is not None), None)
         initials = self._parse_json(
             self._search_regex(
                 (r'window\.initials\s*=\s*({.+?})\s*;\s*</script>',
@@ -196,6 +199,14 @@ class XHamsterIE(InfoExtractor):
             formats = []
             format_urls = set()
             format_sizes = {}
+
+            # New method, pull URL from HTML `head` preloads
+            format_urls.add(playlist_url)
+            formats.extend(self._extract_m3u8_formats(
+                playlist_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                m3u8_id='hls', fatal=False))
+
+            # Old method of checking `window.initials` JSON body
             sources = try_get(video, lambda x: x['sources'], dict) or {}
             for format_id, formats_dict in sources.items():
                 if not isinstance(formats_dict, dict):
@@ -230,17 +241,18 @@ class XHamsterIE(InfoExtractor):
             if xplayer_sources:
                 hls_sources = xplayer_sources.get('hls')
                 if isinstance(hls_sources, dict):
-                    for hls_format_key in ('url', 'fallback'):
-                        hls_url = hls_sources.get(hls_format_key)
-                        if not hls_url:
-                            continue
-                        hls_url = self._decipher_format_url(hls_url, f'hls-{hls_format_key}')
-                        if not hls_url or hls_url in format_urls:
-                            continue
-                        format_urls.add(hls_url)
-                        formats.extend(self._extract_m3u8_formats(
-                            hls_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                            m3u8_id='hls', fatal=False))
+                    if 'url' in hls_sources or 'fallback' in hls_sources:
+                        for hls_format_key in ('url', 'fallback'):
+                            hls_url = hls_sources.get(hls_format_key)
+                            if not hls_url:
+                                continue
+                            hls_url = self._decipher_format_url(hls_url, f'hls-{hls_format_key}')
+                            if not hls_url or hls_url in format_urls:
+                                continue
+                            format_urls.add(hls_url)
+                            formats.extend(self._extract_m3u8_formats(
+                                hls_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                                m3u8_id='hls', fatal=False))
                 standard_sources = xplayer_sources.get('standard')
                 if isinstance(standard_sources, dict):
                     for identifier, formats_list in standard_sources.items():
@@ -302,7 +314,7 @@ class XHamsterIE(InfoExtractor):
                     video, lambda x: x['author']['name'], str),
                 'uploader_url': uploader_url,
                 'uploader_id': uploader_url.split('/')[-1] if uploader_url else None,
-                'thumbnail': video.get('thumbURL'),
+                'thumbnail': video.get('thumbURL') or thumbnail_url,
                 'duration': int_or_none(video.get('duration')),
                 'view_count': int_or_none(video.get('views')),
                 'like_count': int_or_none(try_get(
