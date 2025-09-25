@@ -967,7 +967,6 @@ from .kika import (
     KikaIE,
     KikaPlaylistIE,
 )
-from .kinescope import KinescopeIE
 from .kinja import KinjaEmbedIE
 from .kinopoisk import KinoPoiskIE
 from .kommunetv import KommunetvIE
