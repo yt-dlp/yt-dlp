@@ -81,13 +81,13 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     # TODO: Integration tests for each kind of scripts source
     _ALLOWED_HASHES = {
         ScriptType.LIB: {
-            ScriptVariant.MINIFIED: '488c1903d8beb24ee9788400b2a91e724751b04988ba4de398320de0e36b4a9e3a8db58849189bf1d48df3fc4b0972d96b4aabfd80fea25d7c43988b437062fd',
-            ScriptVariant.DENO_NPM: 'cbd33afbfa778e436aef774f3983f0b1234ad7f737ea9dbd9783ee26dce195f4b3242d1e202b2038e748044960bc2f976372e883c76157b24acdea939dba7603',
-            ScriptVariant.BUN_NPM: '2065c7584b39d4e3fe62f147ff0572c051629a00b1bdb3dbd21d61db172a42ad0fac210e923e080a58ca21d1cbf7c6a22a727a726654bae83af045e12958a5a0',
+            ScriptVariant.MINIFIED: 'e11bfeadf92647b462d38a815f1a908ae4d22a0c28ee4a8f761c36ec05bc901780db88b1bd752c07e907d56792478c3e674b4756043c66b3e44f4b9b5956b1ba',
+            ScriptVariant.DENO_NPM: '757159fe195bec5228a801e399084e65163b1be0f8c588986bdf775f42295c2c18fdfa0ef70b7e32431b5c6b51342972945daf4ecd92494856fc95d8d62ccd88',
+            ScriptVariant.BUN_NPM: '88433fa4318fb092f976b0e904208f810bcdc19adcb3a02deb074886a4fec353aedbd6d0acf7df17135fae51895448878b7d96ce5440b4907cf25adde93c7619',
         },
         ScriptType.CORE: {
-            ScriptVariant.MINIFIED: '069e7213b0053a8ea9f733cd7c3dd472ef1fadc40ff954d433e8894938e64538730f5041279849a7caac210a6c84c078fe4b9b2bd5c16adb8a7425d0c02e85f9',
-            ScriptVariant.UNMINIFIED: '4db8f510a674a375fe9b17d3b2f35b02ba469ebdf7e25260883c765189f85082433dd751ff15251558827d69551c114773e6af374bee8f81a8a1ad7d9d04f295',
+            ScriptVariant.MINIFIED: 'ad26b12c8b45577f6048c34b5cbbd43423d0c37bfb453a882053193b78737d781cd80b6eeb1f621394f691c59d878995e0128844c00ee88bf6278c1040baad55',
+            ScriptVariant.UNMINIFIED: 'c8d38d6ea4a4552e4815bb46835d7228f48bfc62a778ced96fa981fa98109f9d098835c1d3716c05afe681bdcec372bba33a61ef69fd7173c04dde740c1c7a23',
         },
     }
 
