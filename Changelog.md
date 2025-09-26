@@ -4,6 +4,16 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.09.26
+
+#### Extractor changes
+- **twitch**: vod: [Fix `live_status` detection](https://github.com/yt-dlp/yt-dlp/commit/50e452fd7dfb8a648bd3b9aaabc8f94f37ce2051) ([#14457](https://github.com/yt-dlp/yt-dlp/issues/14457)) by [bashonly](https://github.com/bashonly)
+- **youtube**
+    - [Fix player JS overrides](https://github.com/yt-dlp/yt-dlp/commit/b7b7910d96359a539b7997890342ab4a59dd685d) ([#14430](https://github.com/yt-dlp/yt-dlp/issues/14430)) by [bashonly](https://github.com/bashonly), [seproDev](https://github.com/seproDev)
+    - [Improve PO token logging](https://github.com/yt-dlp/yt-dlp/commit/7df5acc546dccd32213c3a125d721e32b06d71b0) ([#14447](https://github.com/yt-dlp/yt-dlp/issues/14447)) by [seproDev](https://github.com/seproDev)
+    - [Player client maintenance](https://github.com/yt-dlp/yt-dlp/commit/94c5622be96474ca3c637e52898c4daee4d8fb69) ([#14448](https://github.com/yt-dlp/yt-dlp/issues/14448)) by [seproDev](https://github.com/seproDev)
+    - [Replace `tv_simply` with `web_safari` in default clients](https://github.com/yt-dlp/yt-dlp/commit/12b57d2858845c0c7fb33bf9aa8ed7be6905535d) ([#14465](https://github.com/yt-dlp/yt-dlp/issues/14465)) by [bashonly](https://github.com/bashonly)
+
 ### 2025.09.23
 
 #### Important changes
