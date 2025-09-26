@@ -20,7 +20,6 @@ The only reliable way to check if a site is supported is to try it.
  - **3sat**
  - **4tube**
  - **56.com**
- - **6play**
  - **7plus**
  - **8tracks**
  - **9c9media**
@@ -299,7 +298,6 @@ The only reliable way to check if a site is supported is to try it.
  - **cpac**
  - **cpac:playlist**
  - **Cracked**
- - **Crackle**
  - **Craftsy**
  - **CrooksAndLiars**
  - **CrowdBunker**
@@ -314,8 +312,6 @@ The only reliable way to check if a site is supported is to try it.
  - **curiositystream**: [*curiositystream*](## "netrc machine")
  - **curiositystream:collections**: [*curiositystream*](## "netrc machine")
  - **curiositystream:series**: [*curiositystream*](## "netrc machine")
- - **cwtv**
- - **cwtv:movie**
  - **Cybrary**: [*cybrary*](## "netrc machine")
  - **CybraryCourse**: [*cybrary*](## "netrc machine")
  - **DacastPlaylist**
@@ -450,7 +446,6 @@ The only reliable way to check if a site is supported is to try it.
  - **Filmweb**
  - **FiveThirtyEight**
  - **FiveTV**
- - **FlexTV**
  - **Flickr**
  - **Floatplane**
  - **FloatplaneChannel**
@@ -798,7 +793,6 @@ The only reliable way to check if a site is supported is to try it.
  - **mirrativ**
  - **mirrativ:user**
  - **MirrorCoUK**
- - **MiTele**: mitele.es
  - **mixch**
  - **mixch:archive**
  - **mixch:movie**
@@ -1009,6 +1003,7 @@ The only reliable way to check if a site is supported is to try it.
  - **onet.tv:channel**
  - **OnetMVP**
  - **OnionStudios**
+ - **onsen**: [*onsen*](## "netrc machine") インターネットラジオステーション＜音泉＞
  - **Opencast**
  - **OpencastPlaylist**
  - **openrec**
@@ -1033,8 +1028,6 @@ The only reliable way to check if a site is supported is to try it.
  - **Panopto**
  - **PanoptoList**
  - **PanoptoPlaylist**
- - **ParamountPlus**
- - **ParamountPlusSeries**
  - **ParamountPressExpress**
  - **Parler**: Posts on parler.com
  - **parliamentlive.tv**: UK parliament videos
@@ -1069,8 +1062,6 @@ The only reliable way to check if a site is supported is to try it.
  - **PinterestCollection**
  - **PiramideTV**
  - **PiramideTVChannel**
- - **pixiv:sketch**
- - **pixiv:​sketch:user**
  - **PlanetMarathi**
  - **Platzi**: [*platzi*](## "netrc machine")
  - **PlatziCourse**: [*platzi*](## "netrc machine")
@@ -1257,7 +1248,6 @@ The only reliable way to check if a site is supported is to try it.
  - **rutube:person**: Rutube person videos
  - **rutube:playlist**: Rutube playlists
  - **rutube:tags**: Rutube tags
- - **RUTV**: RUTV.RU
  - **Ruutu**: (**Currently broken**)
  - **Ruv**
  - **ruv.is:spila**
@@ -1332,7 +1322,10 @@ The only reliable way to check if a site is supported is to try it.
  - **Slideshare**
  - **SlidesLive**
  - **Slutload**
- - **Smotrim**
+ - **smotrim**
+ - **smotrim:audio**
+ - **smotrim:live**
+ - **smotrim:playlist**
  - **SnapchatSpotlight**
  - **Snotr**
  - **SoftWhiteUnderbelly**: [*softwhiteunderbelly*](## "netrc machine")
@@ -1370,8 +1363,6 @@ The only reliable way to check if a site is supported is to try it.
  - **Sport5**
  - **SportBox**: (**Currently broken**)
  - **SportDeutschland**
- - **spotify**: Spotify episodes (**Currently broken**)
- - **spotify:show**: Spotify shows (**Currently broken**)
  - **Spreaker**
  - **SpreakerShow**
  - **SpringboardPlatform**
@@ -1510,15 +1501,17 @@ The only reliable way to check if a site is supported is to try it.
  - **TrueID**
  - **TruNews**
  - **Truth**
+ - **ttinglive**: 띵라이브 (formerly FlexTV)
  - **Tube8**: (**Currently broken**)
  - **TubeTuGraz**: [*tubetugraz*](## "netrc machine") tube.tugraz.at
  - **TubeTuGrazSeries**: [*tubetugraz*](## "netrc machine")
  - **tubitv**: [*tubitv*](## "netrc machine")
  - **tubitv:series**
  - **Tumblr**: [*tumblr*](## "netrc machine")
- - **TuneInPodcast**
- - **TuneInPodcastEpisode**
- - **TuneInStation**
+ - **tunein:embed**
+ - **tunein:podcast**
+ - **tunein:​podcast:program**
+ - **tunein:station**
  - **tv.dfb.de**
  - **TV2**
  - **TV2Article**
@@ -1600,7 +1593,8 @@ The only reliable way to check if a site is supported is to try it.
  - **Varzesh3**: (**Currently broken**)
  - **Vbox7**
  - **Veo**
- - **Vesti**: Вести.Ru (**Currently broken**)
+ - **Vevo**
+ - **VevoPlaylist**
  - **VGTV**: VGTV, BTTV, FTV, Aftenposten and Aftonbladet
  - **vh1.com**
  - **vhx:embed**: [*vimeo*](## "netrc machine")
@@ -1746,7 +1740,6 @@ The only reliable way to check if a site is supported is to try it.
  - **wykop:​dig:comment**
  - **wykop:post**
  - **wykop:​post:comment**
- - **Xanimu**
  - **XboxClips**
  - **XHamster**
  - **XHamsterEmbed**

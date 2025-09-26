@@ -59,11 +59,9 @@ from .utils import (
     render_table,
     setproctitle,
     shell_quote,
-    traverse_obj,
     variadic,
     write_string,
 )
-from .utils.networking import std_headers
 from .utils._utils import _UnsafeExtensionError
 from .YoutubeDL import YoutubeDL
 
@@ -523,7 +521,6 @@ def validate_options(opts):
 
     if report_args_compat('post-processor', opts.postprocessor_args, 'default-compat', 'default'):
         opts.postprocessor_args['default'] = opts.postprocessor_args.pop('default-compat')
-        opts.postprocessor_args.setdefault('sponskrub', [])
 
     def report_conflict(arg1, opt1, arg2='--allow-unplayable-formats', opt2='allow_unplayable_formats',
                         val1=NO_DEFAULT, val2=NO_DEFAULT, default=False):
@@ -548,11 +545,6 @@ def validate_options(opts):
                     '"--exec before_dl:"', 'exec_cmd', val2=opts.exec_cmd.get('before_dl'))
     report_conflict('--id', 'useid', '--output', 'outtmpl', val2=opts.outtmpl.get('default'))
     report_conflict('--remux-video', 'remuxvideo', '--recode-video', 'recodevideo')
-    report_conflict('--sponskrub', 'sponskrub', '--remove-chapters', 'remove_chapters')
-    report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-mark', 'sponsorblock_mark')
-    report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-remove', 'sponsorblock_remove')
-    report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters',
-                    val1=opts.sponskrub and opts.sponskrub_cut)
 
     # Conflicts with --allow-unplayable-formats
     report_conflict('--embed-metadata', 'addmetadata')
@@ -565,23 +557,15 @@ def validate_options(opts):
     report_conflict('--recode-video', 'recodevideo')
     report_conflict('--remove-chapters', 'remove_chapters', default=[])
     report_conflict('--remux-video', 'remuxvideo')
-    report_conflict('--sponskrub', 'sponskrub')
     report_conflict('--sponsorblock-remove', 'sponsorblock_remove', default=set())
     report_conflict('--xattrs', 'xattrs')
 
-    # Fully deprecated options
-    def report_deprecation(val, old, new=None):
-        if not val:
-            return
+    if hasattr(opts, '_deprecated_options'):
         deprecation_warnings.append(
-            f'{old} is deprecated and may be removed in a future version. Use {new} instead' if new
-            else f'{old} is deprecated and may not work as expected')
-
-    report_deprecation(opts.sponskrub, '--sponskrub', '--sponsorblock-mark or --sponsorblock-remove')
-    report_deprecation(not opts.prefer_ffmpeg, '--prefer-avconv', 'ffmpeg')
-    # report_deprecation(opts.include_ads, '--include-ads')  # We may re-implement this in future
-    # report_deprecation(opts.call_home, '--call-home')  # We may re-implement this in future
-    # report_deprecation(opts.writeannotations, '--write-annotations')  # It's just that no website has it
+            f'The following options have been deprecated: {", ".join(opts._deprecated_options)}\n'
+            'Please remove them from your command/configuration to avoid future errors.\n'
+            'See  https://github.com/yt-dlp/yt-dlp/issues/14198  for more details')
+        del opts._deprecated_options
 
     # Dependent options
     opts.date = DateRange.day(opts.date) if opts.date else DateRange(opts.dateafter, opts.datebefore)
@@ -711,21 +695,6 @@ def get_postprocessors(opts):
             'add_chapters': opts.addchapters,
             'add_metadata': opts.addmetadata,
             'add_infojson': opts.embed_infojson,
-        }
-    # Deprecated
-    # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
-    # but must be below EmbedSubtitle and FFmpegMetadata
-    # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29
-    # If opts.sponskrub is None, sponskrub is used, but it silently fails if the executable can't be found
-    if opts.sponskrub is not False:
-        yield {
-            'key': 'SponSkrub',
-            'path': opts.sponskrub_path,
-            'args': opts.sponskrub_args,
-            'cut': opts.sponskrub_cut,
-            'force': opts.sponskrub_force,
-            'ignoreerror': opts.sponskrub is None,
-            '_from_cli': True,
         }
     if opts.embedthumbnail:
         yield {
@@ -885,7 +854,6 @@ def parse_options(argv=None):
         'nopart': opts.nopart,
         'updatetime': opts.updatetime,
         'writedescription': opts.writedescription,
-        'writeannotations': opts.writeannotations,
         'writeinfojson': opts.writeinfojson,
         'allow_playlist_files': opts.allow_playlist_files,
         'clean_infojson': opts.clean_infojson,
@@ -919,7 +887,6 @@ def parse_options(argv=None):
         'max_views': opts.max_views,
         'daterange': opts.date,
         'cachedir': opts.cachedir,
-        'youtube_print_sig_code': opts.youtube_print_sig_code,
         'age_limit': opts.age_limit,
         'download_archive': opts.download_archive,
         'break_on_existing': opts.break_on_existing,
@@ -937,13 +904,9 @@ def parse_options(argv=None):
         'socket_timeout': opts.socket_timeout,
         'bidi_workaround': opts.bidi_workaround,
         'debug_printtraffic': opts.debug_printtraffic,
-        'prefer_ffmpeg': opts.prefer_ffmpeg,
-        'include_ads': opts.include_ads,
         'default_search': opts.default_search,
         'dynamic_mpd': opts.dynamic_mpd,
         'extractor_args': opts.extractor_args,
-        'youtube_include_dash_manifest': opts.youtube_include_dash_manifest,
-        'youtube_include_hls_manifest': opts.youtube_include_hls_manifest,
         'encoding': opts.encoding,
         'extract_flat': opts.extract_flat,
         'live_from_start': opts.live_from_start,
@@ -955,7 +918,6 @@ def parse_options(argv=None):
         'fixup': opts.fixup,
         'source_address': opts.source_address,
         'impersonate': opts.impersonate,
-        'call_home': opts.call_home,
         'sleep_interval_requests': opts.sleep_interval_requests,
         'sleep_interval': opts.sleep_interval,
         'max_sleep_interval': opts.max_sleep_interval,
@@ -965,7 +927,6 @@ def parse_options(argv=None):
         'force_keyframes_at_cuts': opts.force_keyframes_at_cuts,
         'list_thumbnails': opts.list_thumbnails,
         'playlist_items': opts.playlist_items,
-        'xattr_set_filesize': opts.xattr_set_filesize,
         'match_filter': opts.match_filter,
         'color': opts.color,
         'ffmpeg_location': opts.ffmpeg_location,
@@ -974,7 +935,6 @@ def parse_options(argv=None):
         'hls_split_discontinuity': opts.hls_split_discontinuity,
         'external_downloader_args': opts.external_downloader_args,
         'postprocessor_args': opts.postprocessor_args,
-        'cn_verification_proxy': opts.cn_verification_proxy,
         'geo_verification_proxy': opts.geo_verification_proxy,
         'geo_bypass': opts.geo_bypass,
         'geo_bypass_country': opts.geo_bypass_country,
@@ -991,12 +951,6 @@ def _real_main(argv=None):
     setproctitle('yt-dlp')
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
-
-    # Dump user agent
-    if opts.dump_user_agent:
-        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
-        write_string(f'{ua}\n', out=sys.stdout)
-        return
 
     if print_extractor_information(opts, all_urls):
         return
