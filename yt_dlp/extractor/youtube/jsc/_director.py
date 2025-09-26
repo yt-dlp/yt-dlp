@@ -218,10 +218,10 @@ def validate_nsig_challenge_output(challenge_output: NChallengeOutput, challenge
     ):
         return 'Invalid NChallengeOutput'
 
-    # Validate nsig results are valid - if they end with the input challenge then the js function returned with an exception.
+    # Validate n results are valid - if they end with the input challenge then the js function returned with an exception.
     for challenge, result in challenge_output.results.items():
         if result.endswith(challenge):
-            return f'nsig result is invalid for {challenge!r}: {result!r}'
+            return f'n result is invalid for {challenge!r}: {result!r}'
     return True
 
 

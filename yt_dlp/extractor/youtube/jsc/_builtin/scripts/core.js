@@ -1,6 +1,3 @@
-// This file is auto-generated from https://github.com/Grub4K/yt-dlp-jsc-deno
-// Do not edit, changes will be overwritten.
-// TODO: make this automatically updated
 var jsc = (function (meriyah, astring) {
   'use strict';
 
@@ -310,7 +307,7 @@ var jsc = (function (meriyah, astring) {
       params: [
         {
           type: "Identifier",
-          name: "nsig",
+          name: "n",
         },
       ],
       body: {
@@ -322,7 +319,7 @@ var jsc = (function (meriyah, astring) {
         arguments: [
           {
             type: "Identifier",
-            name: "nsig",
+            name: "n",
           },
         ],
         optional: false,
@@ -379,13 +376,13 @@ let self = globalThis;
     })();
 
     const found = {
-      nsig: [] ,
+      n: [] ,
       sig: [] ,
     };
     const plainExpressions = block.body.filter((node) => {
-      const nsig = extract(node);
-      if (nsig) {
-        found.nsig.push(nsig);
+      const n = extract(node);
+      if (n) {
+        found.n.push(n);
       }
       const sig = extract$1(node);
       if (sig) {
@@ -442,7 +439,7 @@ let self = globalThis;
 
 
    {
-    const resultObj = { nsig: null, sig: null };
+    const resultObj = { n: null, sig: null };
     Function("_result", code)(resultObj);
     return resultObj;
   }
@@ -455,7 +452,7 @@ let self = globalThis;
 
     const responses = input.requests.map(
       (input) => {
-        if (!isOneOf(input.type, "nsig", "sig")) {
+        if (!isOneOf(input.type, "n", "sig")) {
           return {
             type: "error",
             error: `Unknown request type: ${input.type}`,

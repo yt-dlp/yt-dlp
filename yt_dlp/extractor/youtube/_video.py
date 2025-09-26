@@ -3262,7 +3262,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             fmt['_jsc_s_challenge'] = encrypted_sig
                             fmt['_jsc_s_sc'] = sc
 
-                    # nsig
+                    # n challenge
                     query = parse_qs(fmt_url)
                     if query.get('n'):
                         n_challenge = query['n'][0]
@@ -3295,8 +3295,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         fmt['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
                         https_fmts.append(fmt)
 
-                # Bulk process sig/nsig handling
-                # Retrieve all JSC Sig and Nsig requests for this player response in one go
+                # Bulk process sig/n handling
+                # Retrieve all JSC Sig and n requests for this player response in one go
                 n_challenges = {}
                 s_challenges = {}
                 for fmt in https_fmts:
@@ -3357,7 +3357,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             video_id=video_id, only_once=True)
                     if n_challenges:
                         self.report_warning(
-                            'nsig extraction failed: Some formats may be missing',
+                            'n challenge extraction failed: Some formats may be missing',
                             video_id=video_id, only_once=True)
 
                     for cfmts in list(s_challenges.values()) + list(n_challenges.values()):

@@ -4,9 +4,9 @@ import json
 
 import pytest
 try:
-    import yt_dlp_jsc
+    import yt_dlp_ejs
 except ImportError:
-    yt_dlp_jsc = None
+    yt_dlp_ejs = None
 
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeRequest,
@@ -23,7 +23,7 @@ from yt_dlp.extractor.youtube.jsc._builtin.deno import DenoJCP
 from yt_dlp.extractor.youtube.jsc._builtin.node import NodeJCP
 
 
-pytestmark = pytest.mark.skipif(not yt_dlp_jsc, reason='yt-dlp-jsc not available')
+pytestmark = pytest.mark.skipif(not yt_dlp_ejs, reason='yt-dlp-ejs not available')
 
 TESTS = [
     JsChallengeRequest(JsChallengeType.N, NChallengeInput('https://www.youtube.com/s/player/3d3ba064/player_ias_tce.vflset/en_US/base.js', [
@@ -65,7 +65,7 @@ RESPONSES = [
 
 @pytest.fixture(params=[BunJCP, DenoJCP, NodeJCP])
 def jcp(request, ie, logger):
-    obj = request.param(ie, logger, settings={'debug': ['true']})
+    obj = request.param(ie, logger, settings={'dev_mode': ['true']})
     if not obj.is_available():
         pytest.skip(f'{obj.PROVIDER_NAME} is not available')
     return obj

@@ -10,6 +10,7 @@ import json
 import sys
 
 import yt_dlp
+from yt_dlp.dependencies import yt_dlp_ejs
 from yt_dlp.extractor.youtube.jsc._builtin.scripts import load_script
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
@@ -73,7 +74,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     _CACHE_SECTION = 'challenge-solver'
 
     _JCP_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/YouTube-JS-Challenges'
-    _REPOSITORY = 'yt-dlp/yt-dlp-jsc-deno'
+    _REPOSITORY = 'yt-dlp/ejs'
     _SUPPORTED_TYPES = [JsChallengeType.N, JsChallengeType.SIG]
     _SUPPORTED_VERSION = '0.0.1'
     # TODO: insert correct hashes here
@@ -85,8 +86,8 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
             ScriptVariant.BUN_NPM: '2065c7584b39d4e3fe62f147ff0572c051629a00b1bdb3dbd21d61db172a42ad0fac210e923e080a58ca21d1cbf7c6a22a727a726654bae83af045e12958a5a0',
         },
         ScriptType.CORE: {
-            ScriptVariant.MINIFIED: 'df0c08c152911dedd35a98bbbb6a1786718c11e4233c52abda3d19fd11d97c3ba09745dfbca913ddeed72fead18819f62139220420c41a04d5a66ed629fbde4e',
-            ScriptVariant.UNMINIFIED: '8abfd4818573b6cf397cfae227661e3449fb5ac737a272ac0cf8268d94447b04b1c9a15f459b336175bf0605678a376e962df99b2c8d5498f16db801735f771c',
+            ScriptVariant.MINIFIED: '069e7213b0053a8ea9f733cd7c3dd472ef1fadc40ff954d433e8894938e64538730f5041279849a7caac210a6c84c078fe4b9b2bd5c16adb8a7425d0c02e85f9',
+            ScriptVariant.UNMINIFIED: '4db8f510a674a375fe9b17d3b2f35b02ba469ebdf7e25260883c765189f85082433dd751ff15251558827d69551c114773e6af374bee8f81a8a1ad7d9d04f295',
         },
     }
 
@@ -151,8 +152,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
 
     def _construct_stdin(self, player: str, preprocessed: bool, requests: list[JsChallengeRequest], /) -> str:
         json_requests = [{
-            # TODO: i despise nsig name
-            'type': 'nsig' if request.type.value == 'n' else request.type.value,
+            'type': request.type.value,
             'challenges': request.input.challenges,
         } for request in requests]
         data = {
@@ -187,12 +187,12 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
             script = from_source(script_type)
             if not script:
                 continue
-            if script.version != self._SUPPORTED_VERSION and not self.is_dev:
+            if not self.is_dev and script.version != self._SUPPORTED_VERSION:
                 self.logger.warning(
                     f'Challenge solver {script_type.value} script version {script.version} '
                     f'is not supported (source: {script.source.value}, supported version: {self._SUPPORTED_VERSION})')
             script_hashes = self._ALLOWED_HASHES[script.type].get(script.variant, [])
-            if script_hashes and script.hash not in script_hashes and not self.is_dev:
+            if not self.is_dev and script_hashes and script.hash not in script_hashes:
                 self.logger.warning(
                     f'Hash mismatch on challenge solver {script.type.value} script '
                     f'(source: {script.source.value}, hash: {script.hash})!{provider_bug_report_message(self)}')
@@ -212,13 +212,9 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
             (ScriptSource.WEB, self._web_release_source)]
 
     def _pypackage_source(self, script_type: ScriptType, /) -> Script | None:
-        try:
-            import yt_dlp_jsc as yt_dlp_ejs
-        except ImportError as e:
-            self.logger.trace(f'yt_dlp_ejs python package unavailable, reason: {e}')
+        if not yt_dlp_ejs:
             return None
-        # TODO: fix API naming
-        code = yt_dlp_ejs.jsc() if script_type is ScriptType.CORE else yt_dlp_ejs.lib()
+        code = yt_dlp_ejs.yt_solver_core() if script_type is ScriptType.CORE else yt_dlp_ejs.yt_solver_lib()
         return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.PYPACKAGE, yt_dlp_ejs.version, code)
 
     def _binary_source(self, script_type: ScriptType, /) -> Script | None:
