@@ -150,7 +150,8 @@ class XHamsterIE(InfoExtractor):
             lambda: base64.b64decode(format_url).decode().partition('_')) or [None] * 3
 
         if not cipher_type or not ciphertext:
-            self.report_warning(f'Skipping format "{format_id}": failed to decipher URL')
+            # This is expected to fail if we are receiving the new encrypted URL strings,
+            # and we do not want to raise a warning to the user.
             return None
 
         if cipher_type == 'xor':
