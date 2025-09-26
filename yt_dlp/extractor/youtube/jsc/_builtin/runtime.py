@@ -173,7 +173,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         }
         return f'''\
         {self._lib_script.code}
-        const {{ astring, meriyah }} = lib;
+        Object.assign(globalThis, lib);
         {self._core_script.code}
         console.log(JSON.stringify(jsc({json.dumps(data)})));
         '''
