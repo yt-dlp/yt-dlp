@@ -293,33 +293,56 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://www.arte.tv/pl/videos/RC-014123/arte-reportage/',
-        'playlist_mincount': 100,
+        'playlist_mincount': 20,
         'info_dict': {
             'description': 'md5:84e7bf1feda248bc325ebfac818c476e',
             'id': 'RC-014123',
             'title': 'ARTE Reportage - najlepsze reportaże',
         },
+    }, {
+        'url': 'https://www.arte.tv/de/videos/RC-025470/ramy/',
+        'playlist_mincount': 30,
+        'info_dict': {
+            'description': 'md5:8766d73504ddccd12dbd1395a1d56815',
+            'id': 'RC-025470',
+            'title': 'Ramy',
+        },
     }]
 
+    def _entries(self, season_ids, lang, playlist_id):
+        for season_id in season_ids:
+            season_data = self._download_json(f'{self._API_BASE}/playlist/{lang}/{season_id}', season_id, headers={
+                'x-validated-age': '18',
+            })
+
+            collection = traverse_obj(season_data, ('data', 'attributes', 'items'))
+
+            for video in collection:
+                yield {
+                    '_type': 'url_transparent',
+                    'url': traverse_obj(video, ('link', 'url')),
+                    'ie_key': ArteTVIE.ie_key(),
+                    'id': video['providerId'],
+                    'title': video.get('title'),
+                    'alt_title': video.get('subtitle'),
+                    'duration': int_or_none(traverse_obj(video, ('duration', 'seconds'))),
+                    'age_limit': int_or_none(traverse_obj(video, 'ageRating')),
+                }
+
     def _real_extract(self, url):
+        _API_TOKEN = 'Nzc1Yjc1ZjJkYjk1NWFhN2I2MWEwMmRlMzAzNjI5NmU3NWU3ODg4ODJjOWMxNTMxYzEzZGRjYjg2ZGE4MmIwOA'
         lang, playlist_id = self._match_valid_url(url).group('lang', 'id')
-        playlist = self._download_json(
-            f'{self._API_BASE}/playlist/{lang}/{playlist_id}', playlist_id)['data']['attributes']
 
-        entries = [{
-            '_type': 'url_transparent',
-            'url': video['config']['url'],
-            'ie_key': ArteTVIE.ie_key(),
-            'id': video.get('providerId'),
-            'title': video.get('title'),
-            'alt_title': video.get('subtitle'),
-            'thumbnail': url_or_none(traverse_obj(video, ('mainImage', 'url'))),
-            'duration': int_or_none(traverse_obj(video, ('duration', 'seconds'))),
-        } for video in traverse_obj(playlist, ('items', lambda _, v: v['config']['url']))]
+        playlist_info = self._download_json(f'https://api.arte.tv/api/opa/v3/programs/{lang}/{playlist_id}', playlist_id,
+                                            headers={
+                                                'Authorization': f'Bearer {_API_TOKEN}',
+                                            })
 
-        return self.playlist_result(entries, playlist_id,
-                                    traverse_obj(playlist, ('metadata', 'title')),
-                                    traverse_obj(playlist, ('metadata', 'description')))
+        season_ids = traverse_obj(playlist_info, ('programs', ..., 'children', (lambda _, v: v['catalogType'] == 'SEASON'), 'programId'))
+        return self.playlist_result(self._entries(season_ids, lang, playlist_id),
+                                    playlist_id,
+                                    traverse_obj(playlist_info, ('programs', ..., 'title')),
+                                    traverse_obj(playlist_info, ('programs', ..., 'shortDescription')))
 
 
 class ArteTVCategoryIE(ArteTVBaseIE):
