@@ -3,7 +3,11 @@ import abc
 import dataclasses
 import functools
 
-from ._utils import _get_exe_version_output, detect_exe_version
+from ._utils import _get_exe_version_output, detect_exe_version, int_or_none
+
+
+def version_tuple(v):
+    return tuple(int_or_none(x, default=0) for x in v.split('.'))
 
 
 @dataclasses.dataclass(frozen=True)
@@ -11,6 +15,7 @@ class JsRuntimeInfo:
     name: str
     path: str
     version: str
+    version_tuple: tuple[int, ...]
     supported: bool = True
 
 
@@ -28,30 +33,45 @@ class JsRuntime(abc.ABC):
 
 
 class DenoJsRuntime(JsRuntime):
+    MIN_SUPPORTED_VERSION = (2, 0, 0)
+
     def _info(self):
-        deno_path = self._path or 'deno'
-        out = _get_exe_version_output(deno_path, ['--version'])
+        path = self._path or 'deno'
+        out = _get_exe_version_output(path, ['--version'])
         if not out:
             return None
         version = detect_exe_version(out, r'^deno (\S+)')
-        return JsRuntimeInfo(name='deno', path=deno_path, version=version)
+        vt = version_tuple(version)
+        return JsRuntimeInfo(
+            name='deno', path=path, version=version, version_tuple=vt,
+            supported=vt >= self.MIN_SUPPORTED_VERSION)
 
 
 class BunJsRuntime(JsRuntime):
+    MIN_SUPPORTED_VERSION = (0, 0, 0)  # TODO: confirm min supported bun version
+
     def _info(self):
         path = self._path or 'bun'
         out = _get_exe_version_output(path, ['--version'])
         if not out:
             return None
         version = detect_exe_version(out, r'^(\S+)')
-        return JsRuntimeInfo(name='bun', path=path, version=version)
+        vt = version_tuple(version)
+        return JsRuntimeInfo(
+            name='bun', path=path, version=version, version_tuple=vt,
+            supported=vt >= self.MIN_SUPPORTED_VERSION)
 
 
 class NodeJsRuntime(JsRuntime):
+    MIN_SUPPORTED_VERSION = (21, 0, 0)
+
     def _info(self):
-        node_path = self._path or 'node'
-        out = _get_exe_version_output(node_path, ['--version'])
+        path = self._path or 'node'
+        out = _get_exe_version_output(path, ['--version'])
         if not out:
             return None
         version = detect_exe_version(out, r'^v(\S+)')
-        return JsRuntimeInfo(name='node', path=node_path, version=version)
+        vt = version_tuple(version)
+        return JsRuntimeInfo(
+            name='node', path=path, version=version, version_tuple=vt,
+            supported=vt >= self.MIN_SUPPORTED_VERSION)
