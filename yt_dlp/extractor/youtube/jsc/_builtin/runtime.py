@@ -92,13 +92,13 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     }
 
     _SCRIPT_FILENAMES = {
-        ScriptType.LIB: 'lib.js',
-        ScriptType.CORE: 'core.js',
+        ScriptType.LIB: 'yt.solver.lib.js',
+        ScriptType.CORE: 'yt.solver.core.js',
     }
 
     _MIN_SCRIPT_FILENAMES = {
-        ScriptType.LIB: 'lib.min.js',
-        ScriptType.CORE: 'core.min.js',
+        ScriptType.LIB: 'yt.solver.lib.min.js',
+        ScriptType.CORE: 'yt.solver.core.min.js',
     }
 
     # currently disabled as files are large and we do not support rotation
@@ -196,14 +196,16 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
             if not self.is_dev and script.version != self._SUPPORTED_VERSION:
                 self.logger.warning(
                     f'Challenge solver {script_type.value} script version {script.version} '
-                    f'is not supported (source: {script.source.value}, supported version: {self._SUPPORTED_VERSION})')
+                    f'is not supported (source: {script.source.value}, variant: {script.variant}, supported version: {self._SUPPORTED_VERSION})')
             script_hashes = self._ALLOWED_HASHES[script.type].get(script.variant, [])
             if not self.is_dev and script_hashes and script.hash not in script_hashes:
                 self.logger.warning(
                     f'Hash mismatch on challenge solver {script.type.value} script '
-                    f'(source: {script.source.value}, hash: {script.hash})!{provider_bug_report_message(self)}')
+                    f'(source: {script.source.value}, variant: {script.variant}, hash: {script.hash})!{provider_bug_report_message(self)}')
             else:
-                self.logger.debug(f'Using challenge solver {script.type.value} script v{script.version} (source: {script.source.value}, variant: {script.variant.value})')
+                self.logger.debug(
+                    f'Using challenge solver {script.type.value} script v{script.version} '
+                    f'(source: {script.source.value}, variant: {script.variant.value})')
                 return script
 
         self._available = False

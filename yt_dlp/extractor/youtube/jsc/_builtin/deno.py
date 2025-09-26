@@ -30,7 +30,7 @@ class DenoJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
     JS_RUNTIME_NAME = 'deno'
 
     _DENO_OPTIONS = ['--no-prompt', '--no-remote']
-    DENO_NPM_LIB_FILENAME = 'deno.lib.js'
+    DENO_NPM_LIB_FILENAME = 'yt.solver.deno.lib.js'
 
     def _iter_script_sources(self):
         for source, func in super()._iter_script_sources():

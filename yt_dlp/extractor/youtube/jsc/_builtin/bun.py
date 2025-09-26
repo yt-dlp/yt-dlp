@@ -29,7 +29,7 @@ class BunJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
     JS_RUNTIME_NAME = 'bun'
 
     _ARGS = ['--bun', 'run', '-']
-    BUN_NPM_LIB_FILENAME = 'bun.lib.js'
+    BUN_NPM_LIB_FILENAME = 'yt.solver.bun.lib.js'
 
     def _iter_script_sources(self):
         for source, func in super()._iter_script_sources():
