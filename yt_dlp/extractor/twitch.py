@@ -514,7 +514,10 @@ class TwitchVodIE(TwitchBaseIE):
         is_live = None
         if thumbnail:
             if re.findall(r'/404_processing_[^.?#]+\.png', thumbnail):
-                is_live, thumbnail = True, None
+                # False positive for is_live if info.get('broadcastType') == 'HIGHLIGHT'
+                # See https://github.com/yt-dlp/yt-dlp/issues/14455
+                is_live = info.get('broadcastType') == 'ARCHIVE'
+                thumbnail = None
             else:
                 is_live = False
 
