@@ -3,7 +3,6 @@ import re
 import traceback
 from collections.abc import Generator
 
-from yt_dlp import join_nonempty, traverse_obj
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
@@ -19,7 +18,7 @@ from yt_dlp.extractor.youtube.jsc.provider import (
 )
 from yt_dlp.extractor.youtube.pot._provider import BuiltinIEContentProvider
 from yt_dlp.jsinterp import JSInterpreter, LocalNameSpace
-from yt_dlp.utils import ExtractorError, filter_dict, js_to_json
+from yt_dlp.utils import ExtractorError, filter_dict, join_nonempty, js_to_json, traverse_obj
 
 
 @register_provider
