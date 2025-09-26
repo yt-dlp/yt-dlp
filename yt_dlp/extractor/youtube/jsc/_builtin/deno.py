@@ -53,7 +53,7 @@ class DenoJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
             # TODO: any other permissions we want when not using --no-remote?
             with contextlib.suppress(ValueError):
                 self._DENO_OPTIONS.remove('--no-remote')
-            return Script(script_type, ScriptVariant.DENO_NPM, ScriptSource.BUILTIN, self._SUPPORTED_VERSION, code)
+            return Script(script_type, ScriptVariant.DENO_NPM, ScriptSource.BUILTIN, self._SCRIPT_VERSION, code)
         return None
 
     def _run_js_runtime(self, stdin: str, /) -> str:

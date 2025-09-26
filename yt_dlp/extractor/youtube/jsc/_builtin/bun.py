@@ -51,7 +51,7 @@ class BunJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
         code = load_script(
             self.BUN_NPM_LIB_FILENAME, error_hook=error_hook)
         if code:
-            return Script(script_type, ScriptVariant.BUN_NPM, ScriptSource.BUILTIN, self._SUPPORTED_VERSION, code)
+            return Script(script_type, ScriptVariant.BUN_NPM, ScriptSource.BUILTIN, self._SCRIPT_VERSION, code)
         return None
 
     def _run_js_runtime(self, stdin: str, /) -> str:

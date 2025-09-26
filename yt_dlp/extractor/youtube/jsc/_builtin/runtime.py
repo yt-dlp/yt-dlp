@@ -76,7 +76,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     _JCP_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/YouTube-JS-Challenges'
     _REPOSITORY = 'yt-dlp/ejs'
     _SUPPORTED_TYPES = [JsChallengeType.N, JsChallengeType.SIG]
-    _SUPPORTED_VERSION = '0.0.1'
+    _SCRIPT_VERSION = '0.0.1'
     # TODO: insert correct hashes here
     # TODO: Integration tests for each kind of scripts source
     _ALLOWED_HASHES = {
@@ -107,16 +107,34 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._available = True
+
         # Note: developer use only, intentionally not documented.
-        # This bypasses verification of script hashes and versions.
-        # --extractor-args youtubejsc-{provider key}:dev=true
-        self.is_dev = self.settings.get('dev', []) == ['true']
+        # - dev: bypasses verification of script hashes and versions.
+        # - repo: use a custom GitHub repository to fetch web script from.
+        # - script_version: use a custom script version.
+        # E.g. --extractor-args "youtubejsc-ejs:dev=true;script_version=0.1.4"
+        self.ejs_settings = self.ie.get_param('extractor_args', {}).get('youtubejsc-ejs', {})
+
+        self.is_dev = self.ejs_settings.get('dev', []) == ['true']
         if self.is_dev:
-            self.logger.warning(
-                f'You have enabled dev mode for {self.PROVIDER_KEY}JCP. '
-                f'This is a developer option intended for debugging. \n'
-                '         If you experience any issues while using this option, '
-                f'{self.ie._downloader._format_err("DO NOT", self.ie._downloader.Styles.ERROR)} open a bug report')
+            self.report_dev_option('You have enabled dev mode for EJS JCP Providers.')
+
+        custom_repo = self.ejs_settings.get('repo', [None])[0]
+        if custom_repo:
+            self.report_dev_option(f'You have set a custom GitHub repository for EJS JCP Providers ({custom_repo}).')
+            self._REPOSITORY = custom_repo
+
+        custom_version = self.ejs_settings.get('script_version', [None])[0]
+        if custom_version:
+            self.report_dev_option(f'You have set a custom EJS script version for EJS JCP Providers ({custom_version}).')
+            self._SCRIPT_VERSION = custom_version
+
+    def report_dev_option(self, message: str):
+        self.ie.report_warning(
+            f'{message} '
+            f'This is a developer option intended for debugging. \n'
+            '         If you experience any issues while using this option, '
+            f'{self.ie._downloader._format_err("DO NOT", self.ie._downloader.Styles.ERROR)} open a bug report', only_once=True)
 
     def _run_js_runtime(self, stdin: str, /) -> str:
         """To be implemented by subclasses"""
@@ -193,10 +211,10 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
             script = from_source(script_type)
             if not script:
                 continue
-            if not self.is_dev and script.version != self._SUPPORTED_VERSION:
+            if not self.is_dev and script.version != self._SCRIPT_VERSION:
                 self.logger.warning(
                     f'Challenge solver {script_type.value} script version {script.version} '
-                    f'is not supported (source: {script.source.value}, variant: {script.variant}, supported version: {self._SUPPORTED_VERSION})')
+                    f'is not supported (source: {script.source.value}, variant: {script.variant}, supported version: {self._SCRIPT_VERSION})')
             script_hashes = self._ALLOWED_HASHES[script.type].get(script.variant, [])
             if not self.is_dev and script_hashes and script.hash not in script_hashes:
                 self.logger.warning(
@@ -231,7 +249,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
             and importlib.resources.is_resource(yt_dlp, self._MIN_SCRIPT_FILENAMES[script_type])
         ):
             code = importlib.resources.read_text(yt_dlp, self._MIN_SCRIPT_FILENAMES[script_type])
-            return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.BINARY, self._SUPPORTED_VERSION, code)
+            return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.BINARY, self._SCRIPT_VERSION, code)
         return None
 
     def _cached_source(self, script_type: ScriptType, /) -> Script | None:
@@ -245,23 +263,23 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         code = load_script(
             self._SCRIPT_FILENAMES[script_type], error_hook=error_hook)
         if code:
-            return Script(script_type, ScriptVariant.UNMINIFIED, ScriptSource.BUILTIN, self._SUPPORTED_VERSION, code)
+            return Script(script_type, ScriptVariant.UNMINIFIED, ScriptSource.BUILTIN, self._SCRIPT_VERSION, code)
         return None
 
     def _web_release_source(self, script_type: ScriptType, /) -> Script | None:
         if 'ejs-github' not in self.ie.get_param('download_ext_components', []):
             self._report_ext_component_skipped('ejs-github', 'challenge solver script')
             return None
-        url = f'https://github.com/{self._REPOSITORY}/releases/download/{self._SUPPORTED_VERSION}/{self._MIN_SCRIPT_FILENAMES[script_type]}'
+        url = f'https://github.com/{self._REPOSITORY}/releases/download/{self._SCRIPT_VERSION}/{self._MIN_SCRIPT_FILENAMES[script_type]}'
         if code := self.ie._download_webpage_with_retries(
             url, None, f'[{self.logger.prefix}] Downloading challenge solver {script_type.value} script from  {url}',
             f'[{self.logger.prefix}] Failed to download challenge solver {script_type.value} script', fatal=False,
         ):
             self.ie.cache.store(self._CACHE_SECTION, script_type.value, {
-                'version': self._SUPPORTED_VERSION,
+                'version': self._SCRIPT_VERSION,
                 'code': code,
             })
-            return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.WEB, self._SUPPORTED_VERSION, code)
+            return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.WEB, self._SCRIPT_VERSION, code)
         return None
 
     # endregion: challenge solver script
