@@ -188,3 +188,63 @@ class EuroParlWebstreamIE(InfoExtractor):
             'release_timestamp': parse_iso8601(json_info.get('startDateTime')),
             'is_live': traverse_obj(webpage_nextjs, ('mediaItem', 'mediaSubType')) == 'Live',
         }
+
+
+class EuropeanCommissionIE(InfoExtractor):
+    _VALID_URL = r'https?://webcast\.ec\.europa\.eu/(?P<id>[^/?#&]+)'
+    _TESTS = [{
+        'url': 'https://webcast.ec.europa.eu/2nd-dma-enforcement-workshop-apple-update-on-first-year-of-dma-compliance-2025-06-30',
+        'md5': 'ba9eefc2bb245a95854d23b222697d1f',
+        'info_dict': {
+            'id': '2nd-dma-enforcement-workshop-apple-update-on-first-year-of-dma-compliance-2025-06-30',
+            'ext': 'mp4',
+            'title': '2nd DMA enforcement workshop: Apple - Update on first year of DMA compliance',
+            'release_date': '20250630',
+            'release_timestamp': 1751275800,
+        },
+    }, {
+        'url': 'https://webcast.ec.europa.eu/2nd-dma-enforcement-workshop-alphabet-update-on-first-year-of-dma-compliance-2025-07-01',
+        'md5': '5d5b1b4e6365ac51daa84d8920491af0',
+        'info_dict': {
+            'id': '2nd-dma-enforcement-workshop-alphabet-update-on-first-year-of-dma-compliance-2025-07-01',
+            'ext': 'mp4',
+            'title': '2nd DMA enforcement workshop: Alphabet - Update on first year of DMA compliance',
+            'release_date': '20250701',
+            'release_timestamp': 1751362200,
+        },
+    }, {
+        'url': 'https://webcast.ec.europa.eu/concordi-day-iii-policy-panel-conclusions-and-closing-2025-09-26',
+        'info_dict': {
+            'id': 'concordi-day-iii-policy-panel-conclusions-and-closing-2025-09-26',
+            'ext': 'mp4',
+            'title': r're:CONCORDi Day III - Policy panel, conclusions and closing 2025-09-26',
+            'release_date': '20250926',
+            'release_timestamp': 1758889200,
+            'live_status': 'is_live',
+        },
+        'skip': 'live stream',
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        playlist_data = self._download_json(
+            'https://webcast.ec.europa.eu/session_playlist', video_id, 'Downloading session playlist JSON',
+            query={'reference': video_id})
+        session_data = self._download_json(
+            'https://webcast.ec.europa.eu/session_by_reference', video_id, 'Downloading session data',
+            query={'reference': video_id})['data']
+        formats = []
+        for playlist in traverse_obj(playlist_data, ('playlists', ..., 'playlist', ...)):
+            if (traverse_obj(playlist, ('source', 'smil'))):
+                formats.extend(self._extract_m3u8_formats(f'https://{playlist_data["server"]}/{playlist_data["application"]}/smil:{playlist["source"]["smil"]}/playlist.m3u8', video_id))
+            for source in traverse_obj(playlist, ('source', 'qualities', ..., ...)):
+                formats.extend(self._extract_m3u8_formats(f'https://{playlist_data["server"]}/{playlist_data["application"]}/{source}/playlist.m3u8', video_id))
+
+        return {
+            'id': video_id,
+            'title': session_data.get('name'),
+            'description': session_data.get('description') or None,
+            'release_timestamp': parse_iso8601(session_data.get('startDateTime'), ' '),
+            'formats': formats,
+            'is_live': traverse_obj(session_data, ('channels', ..., 'status'), get_all=False) == 'live',
+        }
