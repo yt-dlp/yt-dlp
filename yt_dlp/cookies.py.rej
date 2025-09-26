@@ -1,0 +1,66 @@
+--- yt_dlp/cookies.py
++++ yt_dlp/cookies.py
+@@ -1093,40 +1093,34 @@
+                 con.close()
+ 
+         try:
++            con.row_factory = sqlite3.Row
+             cur = con.cursor()
+             cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='moz_cookies'")
+             if cur.fetchone():
+                 # Correct schema found, extract cookies
+-                # This is for Firefox >= 86
+-                # See https://bugzilla.mozilla.org/show_bug.cgi?id=1699994
+-                # It is faster to just select all columns than to check for the presence of the 'sameSite' column
+-                try:
+-                    cur.execute(
+-                        'SELECT host, path, isSecure, expiry, name, value, sameSite, isHttpOnly, originAttributes FROM moz_cookies')
+-                except sqlite3.OperationalError:
+-                    # For Firefox < 96, the 'originAttributes' column does not exist
+-                    # See https://bugzilla.mozilla.org/show_bug.cgi?id=1729926
+-                    try:
+-                        cur.execute('SELECT host, path, isSecure, expiry, name, value, sameSite, isHttpOnly FROM moz_cookies')
+-                        self.is_ff_next_gen = True
+-                    except sqlite3.OperationalError:
+-                        # For Firefox < 86, the 'sameSite' column does not exist
+-                        # See https://bugzilla.mozilla.org/show_bug.cgi?id=1622643
+-                        cur.execute('SELECT host, path, isSecure, expiry, name, value, isHttpOnly FROM moz_cookies')
+-                        self.is_ff_legacy = True
+-                for item in cur.fetchall():
+-                    if self.is_ff_legacy:
+-                        host, path, is_secure, expiry, name, value, is_http_only = item
+-                        samesite = None
+-                        origin_attributes = ''
+-                    elif self.is_ff_next_gen:
+-                        host, path, is_secure, expiry, name, value, samesite, is_http_only = item
+-                        origin_attributes = ''
+-                    else:
+-                        host, path, is_secure, expiry, name, value, samesite, is_http_only, origin_attributes = item
++                # Introspect the table to see which columns are available
++                cur.execute('PRAGMA table_info(moz_cookies)')
++                columns = {row['name'] for row in cur.fetchall()}
++
++                # Define the columns we want to select, in order of preference
++                select_columns = [
++                    'host', 'path', 'isSecure', 'expiry', 'name', 'value', 'isHttpOnly',
++                    'sameSite', 'originAttributes'
++                ]
++                # Filter down to the columns that actually exist in the table
++                query_columns = [col for col in select_columns if col in columns]
++
++                # Dynamically build the SELECT statement
++                cur.execute(f'SELECT {", ".join(query_columns)} FROM moz_cookies')
++
++                for row in cur.fetchall():
++                    samesite = row['sameSite'] if 'sameSite' in row else None
++                    origin_attributes = row['originAttributes'] if 'originAttributes' in row else ''
++
+                     c = self._make_cookie(
+-                        name, value, host, path, is_secure, expiry,
+-                        is_http_only, samesite, origin_attributes)
++                        row['name'], row['value'], row['host'], row['path'],
++                        row['isSecure'], row['expiry'], row['isHttpOnly'],
++                        samesite, origin_attributes)
+                     if not ignore_discard and c.discard:
+                         continue
+                     if not ignore_expires and c.is_expired(now):

@@ -1106,40 +1106,31 @@ def _open_database_copy(database_path, tmpdir):
     shutil.copy(database_path, database_copy_path)
     conn = sqlite3.connect(database_copy_path)
     return conn.cursor()
-                # Introspect the table to see which columns are available
-                cur.execute("PRAGMA table_info(moz_cookies)")
-                columns = {row[1] for row in cur.fetchall()}
 
-            if domains:
-                # We need to check hosts that are superdomains of the given domains
-                # See https://bugzilla.mozilla.org/show_bug.cgi?id=130332
-                # and https://github.com/python/cpython/pull/1721
-                # Also, some hosts are stored with a preceding dot.
-                hosts_to_check = set()
-                for domain in domains:
-                    hosts_to_check.add(domain)
-                    hosts_to_check.add(f'.{domain}')
-                    domain_parts = domain.split('.')
-                    for i in range(1, len(domain_parts)):
-                        superdomain = f".{'.'.join(domain_parts[i:])}"
-                        # Heuristic to avoid TLDs: require the superdomain to have a dot within it (e.g. .co.uk)
-                        # This is not perfect, but avoids a dependency on a public suffix list
-                        if '.' in superdomain[1:]:
-                            hosts_to_check.add(superdomain)
 
-                query += f' WHERE host IN ({",".join("?" for _ in hosts_to_check)})'
-                args = tuple(hosts_to_check)
-                cur.execute(query, args)
-                    for row in cur.fetchall():
-                        host, path, is_secure, expiry, name, value, samesite, is_http_only = row
-                        origin_attributes = ""
-                else:
-                    # Firefox < 86
-                    cur.execute("SELECT host, path, isSecure, expiry, name, value, isHttpOnly FROM moz_cookies")
-                    for row in cur.fetchall():
-                        host, path, is_secure, expiry, name, value, is_http_only = row
-                        samesite = None
-                        origin_attributes = ""
+def _get_column_names(cursor, table_name):
+    table_info = cursor.execute(f'PRAGMA table_info({table_name})').fetchall()
+    return [row[1].decode() for row in table_info]
+
+
+def _newest(files):
+    return max(files, key=lambda path: os.lstat(path).st_mtime, default=None)
+
+
+def _find_files(root, filename, logger):
+    # if there are multiple browser profiles, take the most recently used one
+    i = 0
+    with _create_progress_bar(logger) as progress_bar:
+        for curr_root, _, files in os.walk(root):
+            for file in files:
+                i += 1
+                progress_bar.print(f'Searching for "{filename}": {i: 6d} files searched')
+                if file == filename:
+                    yield os.path.join(curr_root, file)
+
+
+def _merge_cookie_jars(jars):
+    output_jar = YoutubeDLCookieJar()
     for jar in jars:
         for cookie in jar:
             output_jar.set_cookie(cookie)
