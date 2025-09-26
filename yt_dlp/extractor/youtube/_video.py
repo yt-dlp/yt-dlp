@@ -1815,6 +1815,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'params': {'skip_download': True},
     }]
 
+    _DEFAULT_PLAYER_JS_VERSION = '20348@0004de42'  # TODO: revert to 'actual' when n/sig is fixed
     _DEFAULT_PLAYER_JS_VARIANT = 'main'
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
@@ -2017,7 +2018,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
     def _get_player_js_version(self):
-        player_js_version = self._configuration_arg('player_js_version', [''])[0] or '20348@0004de42'
+        player_js_version = self._configuration_arg('player_js_version', [''])[0] or self._DEFAULT_PLAYER_JS_VERSION
         if player_js_version == 'actual':
             return None, None
         if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', player_js_version):
