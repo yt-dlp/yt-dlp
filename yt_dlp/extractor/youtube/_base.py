@@ -320,6 +320,20 @@ INNERTUBE_CLIENTS = {
                 'clientVersion': '1.0',
             },
         },
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+            ),
+            StreamingProtocol.DASH: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+            ),
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
+                recommended=True,
+            ),
+        },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 75,
     },
     # This client now requires sign-in for every video

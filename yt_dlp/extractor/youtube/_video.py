@@ -257,7 +257,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('tv_simply', 'tv', 'web')
+    _DEFAULT_CLIENTS = ('tv', 'web_safari', 'web')
     _DEFAULT_AUTHED_CLIENTS = ('tv', 'web_safari', 'web')
     # Premium does not require POT (except for subtitles)
     _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web_creator', 'web')
