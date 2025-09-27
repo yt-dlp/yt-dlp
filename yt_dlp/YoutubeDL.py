@@ -540,11 +540,11 @@ class YoutubeDL:
                        The runtime configuration dictionary can have the following keys:
                         - path: Path to the executable (optional)
                        E.g. {'deno': {'path': '/path/to/deno'}
-    download_ext_components: A list of external components that are allowed to be downloaded when required.
+    remote_components: A list of remote components that are allowed to be fetched when required.
                        Supported components:
-                       - `npm` (JS Dependencies from npm)
-                       - `ejs-github` (Official JS Scripts from yt-dlp-ejs GitHub).
-                       By default, no external components are allowed to be downloaded.
+                       - `ejs:npm` (external JavaScript dependencies from npm)
+                       - `ejs:github` (external JavaScript dependencies from yt-dlp-ejs GitHub)
+                       By default, no remote components are allowed to be fetched.
     mark_watched:      Mark videos watched (even with --simulate). Only for YouTube
 
     The following options are deprecated and may be removed in the future:

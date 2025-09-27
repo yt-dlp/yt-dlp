@@ -371,18 +371,17 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
     --no-js-runtimes                Clear JavaScript runtimes to enable,
                                     including defaults and those provided by
                                     previous --js-runtimes
-    --download-ext-components COMPONENT
-                                    Specify external components that yt-dlp is
-                                    allowed to download when needed. You can use
-                                    this option multiple times to allow multiple
-                                    components. Supported values: npm
-                                    (JavaScript dependencies from npm), ejs-
-                                    github (official JS scripts from yt-dlp-ejs
-                                    GitHub). By default, no external components
-                                    are allowed.
-    --no-download-ext-components    Disallow downloading of all external
-                                    components, including any previously allowed
-                                    by --download-ext-components or defaults.
+    --remote-components COMPONENT   Remote components to allow yt-dlp to fetch
+                                    when required. You can use this option
+                                    multiple times to allow multiple components.
+                                    Supported values: ejs:npm (external
+                                    JavaScript dependencies from npm),
+                                    ejs:github (external JavaScript dependencies
+                                    from yt-dlp-ejs GitHub). By default, no
+                                    remote components are allowed.
+    --no-remote-components          Disallow fetching of all remote components,
+                                    including any previously allowed by
+                                    --remote-components or defaults.
     --flat-playlist                 Do not extract a playlist's URL result
                                     entries; some entry metadata may be missing
                                     and downloading may be bypassed

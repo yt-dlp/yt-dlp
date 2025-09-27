@@ -474,23 +474,23 @@ def create_parser():
         dest='js_runtimes', action='store_const', const=[],
         help='Clear JavaScript runtimes to enable, including defaults and those provided by previous --js-runtimes')
     general.add_option(
-        '--download-ext-components',
+        '--remote-components',
         metavar='COMPONENT',
-        dest='download_ext_components',
+        dest='remote_components',
         action='callback',
         callback=_list_from_options_callback,
         type='str',
         callback_kwargs={'delim': None},
         default=[],
         help=(
-            'Specify external components that yt-dlp is allowed to download when needed. '
+            'Remote components to allow yt-dlp to fetch when required. '
             'You can use this option multiple times to allow multiple components. '
-            'Supported values: npm (JavaScript dependencies from npm), ejs-github (official JS scripts from yt-dlp-ejs GitHub). '
-            'By default, no external components are allowed.'))
+            'Supported values: ejs:npm (external JavaScript dependencies from npm), ejs:github (external JavaScript dependencies from yt-dlp-ejs GitHub). '
+            'By default, no remote components are allowed.'))
     general.add_option(
-        '--no-download-ext-components',
-        dest='download_ext_components', action='store_const', const=[],
-        help='Disallow downloading of all external components, including any previously allowed by --download-ext-components or defaults.')
+        '--no-remote-components',
+        dest='remote_components', action='store_const', const=[],
+        help='Disallow fetching of all remote components, including any previously allowed by --remote-components or defaults.')
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,

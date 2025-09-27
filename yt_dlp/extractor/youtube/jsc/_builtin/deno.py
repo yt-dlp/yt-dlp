@@ -49,16 +49,16 @@ class DenoJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
             self.DENO_NPM_LIB_FILENAME, error_hook=error_hook)
         if not code:
             return None
-        if 'npm' not in self.ie.get_param('download_ext_components', []):
+        if 'ejs:npm' not in self.ie.get_param('remote_components', []):
             # We may still be able to continue if the npm packages are available/cached
             self._NPM_PACKAGES_CACHED = self._npm_packages_cached(code)
             if not self._NPM_PACKAGES_CACHED:
-                self._report_ext_component_skipped('npm', 'NPM package')
+                self._report_remote_component_skipped('ejs:npm', 'NPM package')
                 return None
         return Script(script_type, ScriptVariant.DENO_NPM, ScriptSource.BUILTIN, self._SCRIPT_VERSION, code)
 
     def _npm_packages_cached(self, stdin: str) -> bool:
-        # Check if npm packages are cached, so we can run without --download-ext-components npm
+        # Check if npm packages are cached, so we can run without --remote-components ejs:npm
         self.logger.debug('Checking if npm packages are cached')
         try:
             self._run_deno(stdin, [*self._DENO_BASE_OPTIONS, '--cached-only'])

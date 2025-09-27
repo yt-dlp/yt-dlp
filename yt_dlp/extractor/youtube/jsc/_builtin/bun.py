@@ -49,8 +49,8 @@ class BunJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
     def _bun_npm_source(self, script_type: ScriptType, /) -> Script | None:
         if script_type != ScriptType.LIB:
             return None
-        if 'npm' not in self.ie.get_param('download_ext_components', []):
-            self._report_ext_component_skipped('npm', 'NPM package')
+        if 'ejs:npm' not in self.ie.get_param('remote_components', []):
+            self._report_remote_component_skipped('ejs:npm', 'NPM package')
             return None
 
         # Bun-specific lib scripts that uses Bun autoimport

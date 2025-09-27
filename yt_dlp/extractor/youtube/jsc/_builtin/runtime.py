@@ -272,8 +272,8 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         return None
 
     def _web_release_source(self, script_type: ScriptType, /) -> Script | None:
-        if 'ejs-github' not in (self.ie.get_param('download_ext_components') or ()):
-            self._report_ext_component_skipped('ejs-github', 'challenge solver script')
+        if 'ejs:github' not in (self.ie.get_param('remote_components') or ()):
+            self._report_remote_component_skipped('ejs:github', 'challenge solver script')
             return None
         url = f'https://github.com/{self._REPOSITORY}/releases/download/{self._SCRIPT_VERSION}/{self._MIN_SCRIPT_FILENAMES[script_type]}'
         if code := self.ie._download_webpage_with_retries(
@@ -302,9 +302,9 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
             return False
         return self._available
 
-    def _report_ext_component_skipped(self, component: str, component_description: str):
+    def _report_remote_component_skipped(self, component: str, component_description: str):
         self.logger.warning(
-            f'External {component_description} downloads are disabled. '
+            f'Remote {component_description} downloads are disabled. '
             f'This may be required to solve JS challenges using {self.JS_RUNTIME_NAME} JS runtime. '
-            f'You can enable {component_description} downloads with "--download-ext-components {component}". '
+            f'You can enable {component_description} downloads with "--remote-components {component}". '
             f'For more information and alternatives, refer to  {self._JCP_GUIDE_URL}')
