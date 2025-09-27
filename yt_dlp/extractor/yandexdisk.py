@@ -1,4 +1,6 @@
 import json
+import os.path
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -30,7 +32,7 @@ class YandexDiskIE(InfoExtractor):
                     u[az]|
                     ru
                 )
-        )/(?:[di]/|public.*?\bhash=)(?P<id>[^/?#&]+)'''
+        )/(?:[di]/|public.*?\bhash=)(?P<id>[^/?#&]+)(?P<path_in_folder>/.*)?'''
 
     _TESTS = [{
         'url': 'https://yadi.sk/i/VdOeDou8eZs6Y',
@@ -57,7 +59,7 @@ class YandexDiskIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        domain, video_id = self._match_valid_url(url).groups()
+        domain, video_id, path_in_folder = self._match_valid_url(url).groups()
 
         webpage = self._download_webpage(url, video_id)
         store = self._parse_json(self._search_regex(
@@ -77,6 +79,8 @@ class YandexDiskIE(InfoExtractor):
             video_id, query={'public_key': url}, fatal=False) or {}).get('href')
         video_streams = resource.get('videoStreams') or {}
         video_hash = resource.get('hash') or url
+        if path_in_folder:
+            video_hash += f':{path_in_folder}'
         environment = store.get('environment') or {}
         sk = environment.get('sk')
         yandexuid = environment.get('yandexuid')
@@ -131,6 +135,10 @@ class YandexDiskIE(InfoExtractor):
 
         uid = resource.get('uid')
         display_name = try_get(store, lambda x: x['users'][uid]['displayName'])
+        if path_in_folder:
+            path_in_folder = urllib.parse.unquote(path_in_folder)
+            filename = os.path.basename(path_in_folder)
+            title = os.path.splitext(filename)[0]
 
         return {
             'id': video_id,
