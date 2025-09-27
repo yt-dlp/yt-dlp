@@ -220,7 +220,7 @@ class TikTokBaseIE(InfoExtractor):
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
         video_data, status = {}, -1
 
-        res = self._download_webpage_handle(url, video_id, fatal=fatal, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.50 Safari/537.37'})
+        res = self._download_webpage_handle(url, video_id, fatal=fatal)
         if res is False:
             return video_data, status
 
@@ -1071,7 +1071,7 @@ class TikTokUserIE(TikTokBaseIE):
             webpage = self._download_webpage(
                 self._UPLOADER_URL_FORMAT % user_name, user_name,
                 'Downloading user webpage', 'Unable to download user webpage',
-                fatal=False, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.50 Safari/537.37'}) or ''
+                fatal=False) or ''
             detail = traverse_obj(
                 self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
             if detail.get('statusCode') == 10222:
