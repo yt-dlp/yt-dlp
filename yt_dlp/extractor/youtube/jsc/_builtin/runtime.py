@@ -240,7 +240,12 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     def _pypackage_source(self, script_type: ScriptType, /) -> Script | None:
         if not yt_dlp_ejs:
             return None
-        code = yt_dlp_ejs.yt_solver_core() if script_type is ScriptType.CORE else yt_dlp_ejs.yt_solver_lib()
+        try:
+            code = yt_dlp_ejs.yt.solver.core() if script_type is ScriptType.CORE else yt_dlp_ejs.yt.solver.lib()
+        except Exception as e:
+            self.logger.warning(
+                f'Failed to load challenge solver {script_type.value} script from python package: {e}{provider_bug_report_message(self)}')
+            return None
         return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.PYPACKAGE, yt_dlp_ejs.version, code)
 
     def _binary_source(self, script_type: ScriptType, /) -> Script | None:
