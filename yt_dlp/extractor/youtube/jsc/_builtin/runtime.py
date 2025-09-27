@@ -254,7 +254,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
 
     def _cached_source(self, script_type: ScriptType, /) -> Script | None:
         if data := self.ie.cache.load(self._CACHE_SECTION, script_type.value):
-            return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.CACHE, data['version'], data['code'])
+            return Script(script_type, ScriptVariant(data['variant']), ScriptSource.CACHE, data['version'], data['code'])
         return None
 
     def _builtin_source(self, script_type: ScriptType, /) -> Script | None:
@@ -277,6 +277,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         ):
             self.ie.cache.store(self._CACHE_SECTION, script_type.value, {
                 'version': self._SCRIPT_VERSION,
+                'variant': ScriptVariant.MINIFIED.value,
                 'code': code,
             })
             return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.WEB, self._SCRIPT_VERSION, code)
