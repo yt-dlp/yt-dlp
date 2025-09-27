@@ -42,7 +42,7 @@ def get_webpo_content_binding(
     if not client_name or client_name not in webpo_clients:
         return None, None
 
-    if request._gvs_bind_to_video_id:
+    if request.context == PoTokenContext.GVS and request._gvs_bind_to_video_id:
         return request.video_id, ContentBindingType.VIDEO_ID
 
     if request.context == PoTokenContext.GVS or client_name in ('WEB_REMIX', ):
