@@ -58,6 +58,20 @@ class VidyardBaseIE(InfoExtractor):
 
         return subs
 
+    def _get_chapters(self, video_id):
+        sections_json = self._download_json(
+            f'https://play.vidyard.com/video/{video_id}', video_id, note='Downloading chapter metadata', fatal=False)
+
+        if sections_json:
+            return traverse_obj(sections_json, {
+                'chapters': ('videoSections', ..., {
+                    'title': ('title', {str}),
+                    'start_time': ('milliseconds', {float_or_none(scale=1000)}),
+                }),
+            })
+
+        return {}
+
     def _fetch_video_json(self, video_id):
         return self._download_json(
             f'https://play.vidyard.com/player/{video_id}.json', video_id)['payload']
@@ -81,6 +95,7 @@ class VidyardBaseIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'http_headers': self._HEADERS,
+            **self._get_chapters(json_data['facadeUuid']),
         }
 
 
@@ -112,6 +127,29 @@ class VidyardIE(VidyardBaseIE):
             'title': 'Inline Embed',
             'thumbnail': 'https://cdn.vidyard.com/thumbnails/spacer.gif',
             'duration': 41.186,
+        },
+    }, {
+        'url': 'https://share.vidyard.com/watch/wL237MtNgZUHo6e8WPiJbF',
+        'info_dict': {
+            'id': 'wL237MtNgZUHo6e8WPiJbF',
+            'display_id': '25926870',
+            'ext': 'mp4',
+            'title': 'Adding & Editing Video Chapters',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/25926870/bvSEZS3dGY7DByQ_bzB57avIZ_hsvhr4_small.jpg',
+            'duration': 135.46,
+            'chapters': [{
+                'title': 'Adding new chapters',
+                'start_time': 0,
+            }, {
+                'title': 'Previewing your video',
+                'start_time': 74,
+            }, {
+                'title': 'Editing your chapters',
+                'start_time': 91,
+            }, {
+                'title': 'Share a link to a specific chapter',
+                'start_time': 105,
+            }],
         },
     }, {
         'url': 'https://embed.vidyard.com/share/oTDMPlUv--51Th455G5u7Q',
