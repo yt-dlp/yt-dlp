@@ -27,7 +27,7 @@ from yt_dlp.utils._jsruntime import JsRuntimeInfo
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Callable, Generator
 
     from yt_dlp.extractor.youtube.jsc.provider import JsChallengeRequest
 
@@ -229,7 +229,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         self._available = False
         raise JsChallengeProviderRejectedRequest(f'No usable challenge solver {script_type.value} script available')
 
-    def _iter_script_sources(self) -> Generator[tuple[ScriptSource, callable]]:
+    def _iter_script_sources(self) -> Generator[tuple[ScriptSource, Callable[[ScriptType], Script | None]]]:
         yield from [
             (ScriptSource.PYPACKAGE, self._pypackage_source),
             (ScriptSource.BINARY, self._binary_source),
@@ -272,7 +272,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         return None
 
     def _web_release_source(self, script_type: ScriptType, /) -> Script | None:
-        if 'ejs-github' not in self.ie.get_param('download_ext_components', []):
+        if 'ejs-github' not in (self.ie.get_param('download_ext_components') or ()):
             self._report_ext_component_skipped('ejs-github', 'challenge solver script')
             return None
         url = f'https://github.com/{self._REPOSITORY}/releases/download/{self._SCRIPT_VERSION}/{self._MIN_SCRIPT_FILENAMES[script_type]}'
@@ -291,10 +291,10 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     # endregion: challenge solver script
 
     @property
-    def runtime_info(self) -> JsRuntimeInfo | bool:
+    def runtime_info(self) -> JsRuntimeInfo | None:
         runtime = self.ie._downloader._js_runtimes.get(self.JS_RUNTIME_NAME)
         if not runtime or not runtime.info or not runtime.info.supported:
-            return False
+            return None
         return runtime.info
 
     def is_available(self, /) -> bool:
