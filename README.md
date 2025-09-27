@@ -375,10 +375,10 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     when required. You can use this option
                                     multiple times to allow multiple components.
                                     Supported values: ejs:npm (external
-                                    JavaScript dependencies from npm),
-                                    ejs:github (external JavaScript dependencies
-                                    from yt-dlp-ejs GitHub). By default, no
-                                    remote components are allowed.
+                                    JavaScript components from npm), ejs:github
+                                    (external JavaScript components from yt-dlp-
+                                    ejs GitHub). By default, no remote
+                                    components are allowed.
     --no-remote-components          Disallow fetching of all remote components,
                                     including any previously allowed by
                                     --remote-components or defaults.

@@ -485,7 +485,7 @@ def create_parser():
         help=(
             'Remote components to allow yt-dlp to fetch when required. '
             'You can use this option multiple times to allow multiple components. '
-            'Supported values: ejs:npm (external JavaScript dependencies from npm), ejs:github (external JavaScript dependencies from yt-dlp-ejs GitHub). '
+            'Supported values: ejs:npm (external JavaScript components from npm), ejs:github (external JavaScript components from yt-dlp-ejs GitHub). '
             'By default, no remote components are allowed.'))
     general.add_option(
         '--no-remote-components',
