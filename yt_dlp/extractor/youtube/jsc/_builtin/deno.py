@@ -98,7 +98,7 @@ class DenoJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
     def _clean_stderr(self, stderr):
         return '\n'.join(
             line for line in stderr.splitlines()
-            if not re.match(r'^Download\s+https[^\s]+$', remove_terminal_sequences(line))
+            if not re.match(r'^Download\s+https\S+$', remove_terminal_sequences(line))
         )
 
 
