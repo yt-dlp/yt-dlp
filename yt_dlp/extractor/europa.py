@@ -256,22 +256,34 @@ class EuropeanCommissionIE(InfoExtractor):
         for playlist in traverse_obj(playlist_data, ('playlists', ..., 'playlist', ...)):
             smil = traverse_obj(playlist, ('source', 'smil'))
             if (isinstance(smil, str)):
-                formats.extend(self._extract_m3u8_formats(f'https://{playlist_data["server"]}/{playlist_data["application"]}/smil:{smil}/playlist.m3u8', video_id, m3u8_id='smil'))
+                formats.extend(self._extract_m3u8_formats(
+                    f'https://{playlist_data["server"]}/{playlist_data["application"]}/smil:{smil}/playlist.m3u8',
+                    video_id, m3u8_id='smil'))
             else:
                 for lang, name in dict.items(smil or {}):
                     if (lang == 'or'):
-                        formats.extend(self._extract_m3u8_formats(f'https://{playlist_data["server"]}/{playlist_data["application"]}/{name}/playlist.m3u8', video_id, m3u8_id='smil'))
+                        formats.extend(self._extract_m3u8_formats(
+                            f'https://{playlist_data["server"]}/{playlist_data["application"]}/{name}/playlist.m3u8',
+                            video_id, m3u8_id='smil'))
                     else:
-                        formats.append({**self._m3u8_meta_format(f'https://{playlist_data["server"]}/{playlist_data["application"]}/{name}/playlist.m3u8', 'mp4', m3u8_id=f'smil-{lang}'), 'language': lang})
+                        formats.append({**self._m3u8_meta_format(
+                            f'https://{playlist_data["server"]}/{playlist_data["application"]}/{name}/playlist.m3u8',
+                            'mp4', m3u8_id=f'smil-{lang}'), 'language': lang})
             for quality, value in traverse_obj(playlist, ('source', 'qualities', {dict.items})):
                 if (isinstance(value, str)):
-                    formats.extend(self._extract_m3u8_formats(f'https://{playlist_data["server"]}/{playlist_data["application"]}/{value}/playlist.m3u8', video_id, m3u8_id=quality, quality=self.QUALITIES.get(quality, {}).get('quality')))
+                    formats.extend(self._extract_m3u8_formats(
+                        f'https://{playlist_data["server"]}/{playlist_data["application"]}/{value}/playlist.m3u8',
+                        video_id, m3u8_id=quality, quality=self.QUALITIES.get(quality, {}).get('quality')))
                 else:
                     for lang, name in dict.items(value or {}):
                         if (lang == 'or'):
-                            formats.extend(self._extract_m3u8_formats(f'https://{playlist_data["server"]}/{playlist_data["application"]}/{name}/playlist.m3u8', video_id, m3u8_id=quality, quality=self.QUALITIES.get(quality, {}).get('quality')))
+                            formats.extend(self._extract_m3u8_formats(
+                                f'https://{playlist_data["server"]}/{playlist_data["application"]}/{name}/playlist.m3u8',
+                                video_id, m3u8_id=quality, quality=self.QUALITIES.get(quality, {}).get('quality')))
                         else:
-                            formats.append({**self._m3u8_meta_format(f'https://{playlist_data["server"]}/{playlist_data["application"]}/{name}/playlist.m3u8', 'mp4', m3u8_id=f'{quality}-{lang}'), 'language': lang, **self.QUALITIES.get(quality, {})})
+                            formats.append({**self._m3u8_meta_format(
+                                f'https://{playlist_data["server"]}/{playlist_data["application"]}/{name}/playlist.m3u8',
+                                'mp4', m3u8_id=f'{quality}-{lang}'), 'language': lang, **self.QUALITIES.get(quality, {})})
         status = traverse_obj(session_data, ('channels', ..., 'status'), get_all=False)
         if (status == 'planned'):
             self.raise_no_formats('This live broadcast has not yet started', expected=True)
