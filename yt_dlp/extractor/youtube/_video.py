@@ -257,7 +257,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('tv_simply', 'tv', 'web')
+    _DEFAULT_CLIENTS = ('tv', 'web_safari', 'web')
     _DEFAULT_AUTHED_CLIENTS = ('tv', 'web_safari', 'web')
     # Premium does not require POT (except for subtitles)
     _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web_creator', 'web')
@@ -1815,6 +1815,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'params': {'skip_download': True},
     }]
 
+    _DEFAULT_PLAYER_JS_VERSION = '20348@0004de42'  # TODO: revert to 'actual' when n/sig is fixed
+    _DEFAULT_PLAYER_JS_VARIANT = 'main'
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
         'tcc': 'player_ias_tcc.vflset/en_US/base.js',
@@ -2016,7 +2018,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
     def _get_player_js_version(self):
-        player_js_version = self._configuration_arg('player_js_version', [''])[0] or '20348@0004de42'
+        player_js_version = self._configuration_arg('player_js_version', [''])[0] or self._DEFAULT_PLAYER_JS_VERSION
         if player_js_version == 'actual':
             return None, None
         if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', player_js_version):
@@ -2026,31 +2028,64 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return None, None
         return player_js_version.split('@')
 
+    def _construct_player_url(self, *, player_id=None, player_url=None):
+        assert player_id or player_url, '_construct_player_url must take one of player_id or player_url'
+        if not player_id:
+            player_id = self._extract_player_info(player_url)
+
+        force_player_id = False
+        player_id_override = self._get_player_js_version()[1]
+        if player_id_override and player_id_override != player_id:
+            force_player_id = f'Forcing player {player_id_override} in place of player {player_id}'
+            player_id = player_id_override
+
+        variant = self._configuration_arg('player_js_variant', [''])[0] or self._DEFAULT_PLAYER_JS_VARIANT
+        if variant not in (*self._PLAYER_JS_VARIANT_MAP, 'actual'):
+            self.report_warning(
+                f'Invalid player JS variant name "{variant}" requested. '
+                f'Valid choices are: {", ".join(self._PLAYER_JS_VARIANT_MAP)}', only_once=True)
+            variant = self._DEFAULT_PLAYER_JS_VARIANT
+
+        if not player_url:
+            if force_player_id:
+                self.write_debug(force_player_id, only_once=True)
+            if variant == 'actual':
+                # We don't have an actual variant so we always use 'main' & don't need to write debug
+                variant = 'main'
+            return urljoin('https://www.youtube.com', f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[variant]}')
+
+        actual_variant = self._get_player_id_variant_and_path(player_url)[1]
+        if not force_player_id and (variant == 'actual' or variant == actual_variant):
+            return urljoin('https://www.youtube.com', player_url)
+
+        if variant == 'actual':
+            if actual_variant:
+                variant = actual_variant
+            else:
+                # We need to force player_id but can't determine variant; fall back to 'main' variant
+                variant = 'main'
+
+        self.write_debug(join_nonempty(
+            force_player_id,
+            variant != actual_variant and f'Forcing "{variant}" player JS variant for player {player_id}',
+            f'original url = {player_url}',
+            delim='\n        '), only_once=True)
+
+        return urljoin('https://www.youtube.com', f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[variant]}')
+
     def _extract_player_url(self, *ytcfgs, webpage=None):
         player_url = traverse_obj(
             ytcfgs, (..., 'PLAYER_JS_URL'), (..., 'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
             get_all=False, expected_type=str)
         if not player_url:
             return
-        player_id_override = self._get_player_js_version()[1]
-
-        requested_js_variant = self._configuration_arg('player_js_variant', [''])[0] or 'main'
-        if requested_js_variant in self._PLAYER_JS_VARIANT_MAP:
-            player_id = player_id_override or self._extract_player_info(player_url)
-            original_url = player_url
-            player_url = f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[requested_js_variant]}'
-            if original_url != player_url:
-                self.write_debug(
-                    f'Forcing "{requested_js_variant}" player JS variant for player {player_id}\n'
-                    f'        original url = {original_url}', only_once=True)
-        elif requested_js_variant != 'actual':
-            self.report_warning(
-                f'Invalid player JS variant name "{requested_js_variant}" requested. '
-                f'Valid choices are: {", ".join(self._PLAYER_JS_VARIANT_MAP)}', only_once=True)
-
-        return urljoin('https://www.youtube.com', player_url)
+        return self._construct_player_url(player_url=player_url)
 
     def _download_player_url(self, video_id, fatal=False):
+        if player_id_override := self._get_player_js_version()[1]:
+            self.write_debug(f'Forcing player {player_id_override}', only_once=True)
+            return self._construct_player_url(player_id=player_id_override)
+
         iframe_webpage = self._download_webpage_with_retries(
             'https://www.youtube.com/iframe_api',
             note='Downloading iframe API JS',
@@ -2060,9 +2095,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_version = self._search_regex(
                 r'player\\?/([0-9a-fA-F]{8})\\?/', iframe_webpage, 'player version', fatal=fatal)
             if player_version:
-                return f'https://www.youtube.com/s/player/{player_version}/player_ias.vflset/en_US/base.js'
+                return self._construct_player_url(player_id=player_version)
 
-    def _player_js_cache_key(self, player_url):
+    def _get_player_id_variant_and_path(self, player_url):
         player_id = self._extract_player_info(player_url)
         player_path = remove_start(urllib.parse.urlparse(player_url).path, f'/s/player/{player_id}/')
         variant = self._INVERSE_PLAYER_JS_VARIANT_MAP.get(player_path) or next((
@@ -2072,8 +2107,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.write_debug(
                 f'Unable to determine player JS variant\n'
                 f'        player = {player_url}', only_once=True)
+        return player_id, variant, player_path
+
+    def _player_js_cache_key(self, player_url):
+        player_id, variant, player_path = self._get_player_id_variant_and_path(player_url)
+        if not variant:
             variant = re.sub(r'[^a-zA-Z0-9]', '_', remove_end(player_path, '.js'))
-        return join_nonempty(player_id, variant)
+        return f'{player_id}-{variant}'
 
     def _signature_cache_id(self, example_sig):
         """ Return a string representation of a signature """
@@ -2920,7 +2960,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if player_url and context == _PoTokenContext.GVS and not visitor_data and not self.is_authenticated:
             self.report_warning(
                 f'Unable to fetch GVS PO Token for {client} client: Missing required Visitor Data. '
-                f'You may need to pass Visitor Data with --extractor-args "youtube:visitor_data=XXX"')
+                f'You may need to pass Visitor Data with --extractor-args "youtube:visitor_data=XXX"', only_once=True)
             return
 
         if context == _PoTokenContext.PLAYER and not video_id:
@@ -2943,7 +2983,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if player_url and context == _PoTokenContext.GVS and not data_sync_id and self.is_authenticated:
             self.report_warning(
                 f'Unable to fetch GVS PO Token for {client} client: Missing required Data Sync ID for account. '
-                f'You may need to pass a Data Sync ID with --extractor-args "youtube:data_sync_id=XXX"')
+                f'You may need to pass a Data Sync ID with --extractor-args "youtube:data_sync_id=XXX"', only_once=True)
             return
 
         po_token = self._fetch_po_token(
