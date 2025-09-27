@@ -1,3 +1,5 @@
+import datetime
+
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -192,6 +194,23 @@ class EuroParlWebstreamIE(InfoExtractor):
 
 class EuropeanCommissionIE(InfoExtractor):
     _VALID_URL = r'https?://webcast\.ec\.europa\.eu/(?P<id>[^/?#&]+)'
+    QUALITIES = {
+        'low': {
+            'width': 426,
+            'height': 240,
+            'quality': 1,
+        },
+        'medium': {
+            'width': 854,
+            'height': 480,
+            'quality': 2,
+        },
+        'high': {
+            'width': 1280,
+            'height': 720,
+            'quality': 3,
+        },
+    }
     _TESTS = [{
         'url': 'https://webcast.ec.europa.eu/2nd-dma-enforcement-workshop-apple-update-on-first-year-of-dma-compliance-2025-06-30',
         'md5': 'ba9eefc2bb245a95854d23b222697d1f',
@@ -200,7 +219,7 @@ class EuropeanCommissionIE(InfoExtractor):
             'ext': 'mp4',
             'title': '2nd DMA enforcement workshop: Apple - Update on first year of DMA compliance',
             'release_date': '20250630',
-            'release_timestamp': 1751275800,
+            'release_timestamp': 1751268600,
         },
     }, {
         'url': 'https://webcast.ec.europa.eu/2nd-dma-enforcement-workshop-alphabet-update-on-first-year-of-dma-compliance-2025-07-01',
@@ -210,16 +229,16 @@ class EuropeanCommissionIE(InfoExtractor):
             'ext': 'mp4',
             'title': '2nd DMA enforcement workshop: Alphabet - Update on first year of DMA compliance',
             'release_date': '20250701',
-            'release_timestamp': 1751362200,
+            'release_timestamp': 1751355000,
         },
     }, {
-        'url': 'https://webcast.ec.europa.eu/concordi-day-iii-policy-panel-conclusions-and-closing-2025-09-26',
+        'url': 'https://webcast.ec.europa.eu/high-level-launch-of-the-young-citizens-assembly-on-pollinators-2025-09-27',
         'info_dict': {
-            'id': 'concordi-day-iii-policy-panel-conclusions-and-closing-2025-09-26',
+            'id': 'high-level-launch-of-the-young-citizens-assembly-on-pollinators-2025-09-27',
             'ext': 'mp4',
-            'title': r're:CONCORDi Day III - Policy panel, conclusions and closing 2025-09-26',
-            'release_date': '20250926',
-            'release_timestamp': 1758889200,
+            'title': r're:HIGH-LEVEL LAUNCH OF THE YOUNG CITIZENS ASSEMBLY ON POLLINATORS 2025-09-27',
+            'release_date': '20250927',
+            'release_timestamp': 1758983400,
             'live_status': 'is_live',
         },
         'skip': 'live stream',
@@ -235,16 +254,33 @@ class EuropeanCommissionIE(InfoExtractor):
             query={'reference': video_id})['data']
         formats = []
         for playlist in traverse_obj(playlist_data, ('playlists', ..., 'playlist', ...)):
-            if (traverse_obj(playlist, ('source', 'smil'))):
-                formats.extend(self._extract_m3u8_formats(f'https://{playlist_data["server"]}/{playlist_data["application"]}/smil:{playlist["source"]["smil"]}/playlist.m3u8', video_id))
-            for source in traverse_obj(playlist, ('source', 'qualities', ..., ...)):
-                formats.extend(self._extract_m3u8_formats(f'https://{playlist_data["server"]}/{playlist_data["application"]}/{source}/playlist.m3u8', video_id))
+            smil = traverse_obj(playlist, ('source', 'smil'))
+            if (isinstance(smil, str)):
+                formats.extend(self._extract_m3u8_formats(f'https://{playlist_data["server"]}/{playlist_data["application"]}/smil:{smil}/playlist.m3u8', video_id, m3u8_id='smil'))
+            else:
+                for lang, name in dict.items(smil or {}):
+                    if (lang == 'or'):
+                        formats.extend(self._extract_m3u8_formats(f'https://{playlist_data["server"]}/{playlist_data["application"]}/{name}/playlist.m3u8', video_id, m3u8_id='smil'))
+                    else:
+                        formats.append({**self._m3u8_meta_format(f'https://{playlist_data["server"]}/{playlist_data["application"]}/{name}/playlist.m3u8', 'mp4', m3u8_id=f'smil-{lang}'), 'language': lang})
+            for quality, value in traverse_obj(playlist, ('source', 'qualities', {dict.items})):
+                if (isinstance(value, str)):
+                    formats.extend(self._extract_m3u8_formats(f'https://{playlist_data["server"]}/{playlist_data["application"]}/{value}/playlist.m3u8', video_id, m3u8_id=quality, quality=self.QUALITIES.get(quality, {}).get('quality')))
+                else:
+                    for lang, name in dict.items(value or {}):
+                        if (lang == 'or'):
+                            formats.extend(self._extract_m3u8_formats(f'https://{playlist_data["server"]}/{playlist_data["application"]}/{name}/playlist.m3u8', video_id, m3u8_id=quality, quality=self.QUALITIES.get(quality, {}).get('quality')))
+                        else:
+                            formats.append({**self._m3u8_meta_format(f'https://{playlist_data["server"]}/{playlist_data["application"]}/{name}/playlist.m3u8', 'mp4', m3u8_id=f'{quality}-{lang}'), 'language': lang, **self.QUALITIES.get(quality, {})})
+        status = traverse_obj(session_data, ('channels', ..., 'status'), get_all=False)
+        if (status == 'planned'):
+            self.raise_no_formats('This live broadcast has not yet started', expected=True)
 
         return {
             'id': video_id,
             'title': session_data.get('name'),
             'description': session_data.get('description') or None,
-            'release_timestamp': parse_iso8601(session_data.get('startDateTime'), ' '),
+            'release_timestamp': parse_iso8601(session_data.get('startDateTime'), ' ', datetime.timedelta(hours=2)),
             'formats': formats,
-            'is_live': traverse_obj(session_data, ('channels', ..., 'status'), get_all=False) == 'live',
+            'live_status': 'is_live' if status == 'live' else 'is_upcoming' if status == 'planned' else None,
         }
