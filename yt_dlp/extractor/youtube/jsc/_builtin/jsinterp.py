@@ -30,7 +30,7 @@ class JsInterpJCP(JsChallengeProvider, BuiltinIEContentProvider):
     _DUMMY_STRING = 'dlp_wins'
 
     def is_available(self) -> bool:
-        return True
+        return False
 
     def _real_bulk_solve(self, requests: list[JsChallengeRequest]) -> Generator[JsChallengeProviderResponse, None, None]:
         for request in requests:

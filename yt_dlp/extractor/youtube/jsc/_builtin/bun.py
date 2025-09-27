@@ -22,20 +22,29 @@ from yt_dlp.extractor.youtube.pot._provider import BuiltinIEContentProvider
 from yt_dlp.extractor.youtube.pot.provider import provider_bug_report_message
 from yt_dlp.utils import Popen
 
+# KNOWN ISSUES:
+# - If node_modules is present and includes a requested lib, the version we request is ignored
+#   and whatever installed in node_modules is used.
+# - No way to ignore existing node_modules, lock files, etc.
+# - No sandboxing options available
+# - Cannot detect if npm packages are cached without potentially downloading them.
+#   `--no-install` appears to disable the cache.
+
 
 @register_provider
 class BunJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
     PROVIDER_NAME = 'bun'
     JS_RUNTIME_NAME = 'bun'
-
-    _ARGS = ['--bun', 'run', '-']
     BUN_NPM_LIB_FILENAME = 'yt.solver.bun.lib.js'
 
     def _iter_script_sources(self):
         for source, func in super()._iter_script_sources():
             if source == ScriptSource.WEB:
+                # Prioritize GitHub scripts over Bun NPM script as bun NPM auto-install is unreliable.
+                yield source, func
                 yield ScriptSource.BUILTIN, self._bun_npm_source
-            yield source, func
+            else:
+                yield source, func
 
     def _bun_npm_source(self, script_type: ScriptType, /) -> Script | None:
         if script_type != ScriptType.LIB:
@@ -55,8 +64,16 @@ class BunJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
         return None
 
     def _run_js_runtime(self, stdin: str, /) -> str:
-        cmd = [self.runtime_info.path, *self._ARGS]
+        # https://bun.com/docs/cli/run
+        options = ['--no-addons', '--prefer-offline']
+        if self._lib_script.variant == ScriptVariant.BUN_NPM:
+            # Enable auto-install even if node_modules is present
+            options.append('--install=fallback')
+        else:
+            options.append('--no-install')
+        cmd = [self.runtime_info.path, '--bun', 'run', *options, '-']
         self.logger.debug(f'Running bun: {shlex.join(cmd)}')
+
         with Popen(
             cmd,
             text=True,
@@ -70,7 +87,6 @@ class BunJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
                 if stderr:
                     msg = f'{msg}: {stderr}'
                 raise JsChallengeProviderError(msg)
-
         return stdout
 
 
