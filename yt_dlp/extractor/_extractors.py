@@ -619,6 +619,10 @@ from .fancode import (
     FancodeLiveIE,
     FancodeVodIE,
 )
+from .fanicon import (
+    FaniconFCIE,
+    FaniconIE,
+)
 from .fathom import FathomIE
 from .faulio import (
     FaulioIE,
