@@ -66,17 +66,33 @@ from .utils._utils import _UnsafeExtensionError
 from .YoutubeDL import YoutubeDL
 
 
-def _exit(status=0, *args):
-    for msg in args:
-        sys.stderr.write(msg)
-    raise SystemExit(status)
-
-
-def get_urls(urls, batchfile, verbose):
+def _exit(status: int, *messages: str) -> None:
     """
-    @param verbose      -1: quiet, 0: normal, 1: verbose
+    Print error messages to stderr and exit the program.
+
+    Args:
+        status (int): Exit code.
+        *messages (str): Messages to print before exiting.
     """
-    batch_urls = []
+    for msg in messages:
+        sys.stderr.write(str(msg) + '\n')
+    sys.exit(status)
+
+from typing import List, Optional
+
+def get_urls(urls: Optional[List[str]], batchfile: Optional[str], verbose: bool = False) -> List[str]:
+    """
+    Combine URLs from CLI input and batch file.
+
+    Args:
+        urls (Optional[List[str]]): List of URLs passed via CLI.
+        batchfile (Optional[str]): Path to file containing URLs.
+        verbose (bool): Print messages about loaded URLs if True.
+
+    Returns:
+        List[str]: List of all valid URLs.
+    """
+    all_urls: List[str] = []
     if batchfile is not None:
         try:
             batch_urls = read_batch_urls(
