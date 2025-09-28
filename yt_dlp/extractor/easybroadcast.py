@@ -75,8 +75,7 @@ class EasyBroadcastLiveIE(InfoExtractor):
         formats = self._extract_m3u8_formats(m3u8_url, video_id=event_id, ext='mp4', m3u8_id='hls', live=True)
 
         if token:
-            for fmt in formats:
-                fmt['url'] = fmt['url'] + '?' + token
+            formats = [{**fmt, 'url': fmt['url'] + '?' + token} for fmt in formats]
 
         return {
             'id': event_id,
