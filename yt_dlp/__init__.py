@@ -13,6 +13,8 @@ import optparse
 import os
 import re
 import traceback
+from __future__ import annotations
+
 
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS, CookieLoadError
 from .downloader.external import get_external_downloader
@@ -91,8 +93,13 @@ def get_urls(urls: Optional[List[str]], batchfile: Optional[str], verbose: bool 
 
     Returns:
         List[str]: List of all valid URLs.
-    """
-    all_urls: List[str] = []
+    """# Using future annotations + built-in types
+    some_urls: list[str] = []
+    other_urls: list[str] | None = None
+
+# If `all_urls` is not used, remove it
+# all_urls: list[str] = []
+ 
     if batchfile is not None:
         try:
             batch_urls = read_batch_urls(
