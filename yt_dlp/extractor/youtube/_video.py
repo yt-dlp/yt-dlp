@@ -2955,9 +2955,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # TODO(future): This validation should be moved into pot framework.
         #  Some sort of middleware or validation provider perhaps?
 
+        gvs_bind_to_video_id = False
+        experiments = traverse_obj(ytcfg, (
+            'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentFlags', {urllib.parse.parse_qs}))
+        if 'true' in traverse_obj(experiments, (..., 'html5_generate_content_po_token', -1)):
+            self.write_debug(
+                f'{video_id}: Detected experiment to bind GVS PO Token to video id.', only_once=True)
+            gvs_bind_to_video_id = True
+
         # GVS WebPO Token is bound to visitor_data / Visitor ID when logged out.
         # Must have visitor_data for it to function.
-        if player_url and context == _PoTokenContext.GVS and not visitor_data and not self.is_authenticated:
+        if (
+            player_url and context == _PoTokenContext.GVS
+            and not visitor_data and not self.is_authenticated and not gvs_bind_to_video_id
+        ):
             self.report_warning(
                 f'Unable to fetch GVS PO Token for {client} client: Missing required Visitor Data. '
                 f'You may need to pass Visitor Data with --extractor-args "youtube:visitor_data=XXX"', only_once=True)
@@ -2971,7 +2982,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         config_po_token = self._get_config_po_token(client, context)
         if config_po_token:
             # GVS WebPO token is bound to data_sync_id / account Session ID when logged in.
-            if player_url and context == _PoTokenContext.GVS and not data_sync_id and self.is_authenticated:
+            if (
+                player_url and context == _PoTokenContext.GVS
+                and not data_sync_id and self.is_authenticated and not gvs_bind_to_video_id
+            ):
                 self.report_warning(
                     f'Got a GVS PO Token for {client} client, but missing Data Sync ID for account. Formats may not work.'
                     f'You may need to pass a Data Sync ID with --extractor-args "youtube:data_sync_id=XXX"')
@@ -2997,6 +3011,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             video_id=video_id,
             video_webpage=webpage,
             required=required,
+            _gvs_bind_to_video_id=gvs_bind_to_video_id,
             **kwargs,
         )
 
@@ -3040,6 +3055,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             data_sync_id=kwargs.get('data_sync_id'),
             video_id=kwargs.get('video_id'),
             request_cookiejar=self._downloader.cookiejar,
+            _gvs_bind_to_video_id=kwargs.get('_gvs_bind_to_video_id', False),
 
             # All requests that would need to be proxied should be in the
             # context of www.youtube.com or the innertube host
