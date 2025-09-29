@@ -1137,7 +1137,6 @@ from .mit import (
     OCWMITIE,
     TechTVMITIE,
 )
-from .mitele import MiTeleIE
 from .mixch import (
     MixchArchiveIE,
     MixchIE,
