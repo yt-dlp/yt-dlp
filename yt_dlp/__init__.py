@@ -1,3 +1,4 @@
+from __future__ import annotations
 import sys
 
 if sys.version_info < (3, 9):
@@ -13,7 +14,7 @@ import optparse
 import os
 import re
 import traceback
-from __future__ import annotations
+
 
 
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS, CookieLoadError
