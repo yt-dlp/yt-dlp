@@ -20,11 +20,13 @@ def parse_args():
     parser.add_argument(
         '-k', help='run a test matching EXPRESSION. Same as "pytest -k"', metavar='EXPRESSION')
     parser.add_argument(
+        '--plugins', help='load plugins', action='store_true')
+    parser.add_argument(
         '--pytest-args', help='arguments to passthrough to pytest')
     return parser.parse_args()
 
 
-def run_tests(*tests, pattern=None, ci=False):
+def run_tests(*tests, pattern=None, ci=False, load_plugins=False):
     # XXX: hatch uses `tests` if no arguments are passed
     run_core = 'core' in tests or 'tests' in tests or (not pattern and not tests)
     run_download = 'download' in tests
@@ -47,7 +49,10 @@ def run_tests(*tests, pattern=None, ci=False):
 
     print(f'Running {arguments}', flush=True)
     try:
-        return subprocess.call(arguments)
+        return subprocess.call(arguments, env={
+            **os.environ,
+            'YTDLP_NO_PLUGINS': '1' if os.environ.get('YTDLP_NO_PLUGINS') or not load_plugins else '',
+        })
     except FileNotFoundError:
         pass
 
@@ -72,6 +77,6 @@ if __name__ == '__main__':
         args = parse_args()
 
         os.chdir(Path(__file__).parent.parent)
-        sys.exit(run_tests(*args.test, pattern=args.k, ci=bool(os.getenv('CI'))))
+        sys.exit(run_tests(*args.test, pattern=args.k, ci=bool(os.getenv('CI')), load_plugins=args.plugins))
     except KeyboardInterrupt:
         pass
