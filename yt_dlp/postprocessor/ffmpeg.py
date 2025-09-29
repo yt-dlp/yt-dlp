@@ -88,7 +88,6 @@ class FFmpegPostProcessor(PostProcessor):
 
     def __init__(self, downloader=None):
         PostProcessor.__init__(self, downloader)
-        self._prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
         self._paths = self._determine_executables()
 
     @staticmethod
@@ -100,10 +99,8 @@ class FFmpegPostProcessor(PostProcessor):
     def get_versions(downloader=None):
         return FFmpegPostProcessor.get_versions_and_features(downloader)[0]
 
-    _ffmpeg_to_avconv = {'ffmpeg': 'avconv', 'ffprobe': 'avprobe'}
-
     def _determine_executables(self):
-        programs = [*self._ffmpeg_to_avconv.keys(), *self._ffmpeg_to_avconv.values()]
+        programs = ['ffmpeg', 'ffprobe']
 
         location = self.get_param('ffmpeg_location', self._ffmpeg_location.get())
         if location is None:
@@ -119,8 +116,6 @@ class FFmpegPostProcessor(PostProcessor):
             filename = os.path.basename(location)
             basename = next((p for p in programs if p in filename), 'ffmpeg')
             dirname = os.path.dirname(os.path.abspath(location))
-            if basename in self._ffmpeg_to_avconv:
-                self._prefer_ffmpeg = True
 
         paths = {p: os.path.join(dirname, p) for p in programs}
         if basename and basename in filename:
@@ -179,17 +174,12 @@ class FFmpegPostProcessor(PostProcessor):
 
     def _get_version(self, kind):
         executables = (kind, )
-        if not self._prefer_ffmpeg:
-            executables = (kind, self._ffmpeg_to_avconv[kind])
         basename, version, features = next(filter(
             lambda x: x[1], ((p, *self._get_ffmpeg_version(p)) for p in executables)), (None, None, {}))
         if kind == 'ffmpeg':
             self.basename, self._features = basename, features
         else:
             self.probe_basename = basename
-        if basename == self._ffmpeg_to_avconv[kind]:
-            self.deprecated_feature(f'Support for {self._ffmpeg_to_avconv[kind]} is deprecated and '
-                                    f'may be removed in a future version. Use {kind} instead')
         return version
 
     @functools.cached_property
@@ -231,7 +221,7 @@ class FFmpegPostProcessor(PostProcessor):
         if not self.available:
             raise FFmpegPostProcessorError('ffmpeg not found. Please install or provide the path using --ffmpeg-location')
 
-        required_version = '10-0' if self.basename == 'avconv' else '1.0'
+        required_version = '1.0'
         if is_outdated_version(self._version, required_version):
             self.report_warning(f'Your copy of {self.basename} is outdated, update {self.basename} '
                                 f'to version {required_version} or newer if you encounter any errors')
@@ -842,17 +832,6 @@ class FFmpegMergerPP(FFmpegPostProcessor):
 
     def can_merge(self):
         # TODO: figure out merge-capable ffmpeg version
-        if self.basename != 'avconv':
-            return True
-
-        required_version = '10-0'
-        if is_outdated_version(
-                self._versions[self.basename], required_version):
-            warning = (f'Your copy of {self.basename} is outdated and unable to properly mux separate video and audio files, '
-                       'yt-dlp will download single file media. '
-                       f'Update {self.basename} to version {required_version} or newer to fix this.')
-            self.report_warning(warning)
-            return False
         return True
 
 

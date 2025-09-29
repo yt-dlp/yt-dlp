@@ -293,5 +293,10 @@
         "action": "add",
         "when": "c76ce28e06c816eb5b261dfb6aff6e69dd9b7382",
         "short": "[priority] **linux_armv7l_exe builds are being discontinued**\nThis release's `yt-dlp_linux_armv7l` binary could be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13976)"
+    },
+    {
+        "action": "add",
+        "when": "08d78996831bd8e1e3c2592d740c3def00bbf548",
+        "short": "[priority] **Several options have been deprecated**\nIn order to simplify the codebase and reduce maintenance burden, various options have been deprecated. Please remove them from your commands/configurations. [Read more](https://github.com/yt-dlp/yt-dlp/issues/14198)"
     }
 ]
