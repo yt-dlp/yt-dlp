@@ -1,4 +1,5 @@
 import base64
+import codecs
 import itertools
 import re
 
@@ -11,13 +12,13 @@ from ..utils import (
     extract_attributes,
     float_or_none,
     int_or_none,
+    join_nonempty,
     parse_duration,
     str_or_none,
     try_call,
     try_get,
     unified_strdate,
     url_or_none,
-    urljoin,
 )
 
 
@@ -142,6 +143,27 @@ class XHamsterIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _XOR_KEY = b'xh7999'
+
+    def _decipher_format_url(self, format_url, format_id):
+        cipher_type, _, ciphertext = try_call(
+            lambda: base64.b64decode(format_url).decode().partition('_')) or [None] * 3
+
+        if not cipher_type or not ciphertext:
+            self.report_warning(f'Skipping format "{format_id}": failed to decipher URL')
+            return None
+
+        if cipher_type == 'xor':
+            return bytes(
+                a ^ b for a, b in
+                zip(ciphertext.encode(), itertools.cycle(self._XOR_KEY))).decode()
+
+        if cipher_type == 'rot13':
+            return codecs.decode(ciphertext, cipher_type)
+
+        self.report_warning(f'Skipping format "{format_id}": unsupported cipher type "{cipher_type}"')
+        return None
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id') or mobj.group('id_2')
@@ -212,7 +234,7 @@ class XHamsterIE(InfoExtractor):
                         hls_url = hls_sources.get(hls_format_key)
                         if not hls_url:
                             continue
-                        hls_url = urljoin(url, hls_url)
+                        hls_url = self._decipher_format_url(hls_url, f'hls-{hls_format_key}')
                         if not hls_url or hls_url in format_urls:
                             continue
                         format_urls.add(hls_url)
@@ -221,7 +243,7 @@ class XHamsterIE(InfoExtractor):
                             m3u8_id='hls', fatal=False))
                 standard_sources = xplayer_sources.get('standard')
                 if isinstance(standard_sources, dict):
-                    for format_id, formats_list in standard_sources.items():
+                    for identifier, formats_list in standard_sources.items():
                         if not isinstance(formats_list, list):
                             continue
                         for standard_format in formats_list:
@@ -231,12 +253,11 @@ class XHamsterIE(InfoExtractor):
                                 standard_url = standard_format.get(standard_format_key)
                                 if not standard_url:
                                     continue
-                                decoded = try_call(lambda: base64.b64decode(standard_url))
-                                if decoded and decoded[:4] == b'xor_':
-                                    standard_url = bytes(
-                                        a ^ b for a, b in
-                                        zip(decoded[4:], itertools.cycle(b'xh7999'))).decode()
-                                standard_url = urljoin(url, standard_url)
+                                quality = (str_or_none(standard_format.get('quality'))
+                                           or str_or_none(standard_format.get('label'))
+                                           or '')
+                                format_id = join_nonempty(identifier, quality)
+                                standard_url = self._decipher_format_url(standard_url, format_id)
                                 if not standard_url or standard_url in format_urls:
                                     continue
                                 format_urls.add(standard_url)
@@ -246,11 +267,9 @@ class XHamsterIE(InfoExtractor):
                                         standard_url, video_id, 'mp4', entry_protocol='m3u8_native',
                                         m3u8_id='hls', fatal=False))
                                     continue
-                                quality = (str_or_none(standard_format.get('quality'))
-                                           or str_or_none(standard_format.get('label'))
-                                           or '')
+
                                 formats.append({
-                                    'format_id': f'{format_id}-{quality}',
+                                    'format_id': format_id,
                                     'url': standard_url,
                                     'ext': ext,
                                     'height': get_height(quality),
