@@ -2,6 +2,7 @@ import base64
 import codecs
 import itertools
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -146,13 +147,16 @@ class XHamsterIE(InfoExtractor):
     _XOR_KEY = b'xh7999'
 
     def _decipher_format_url(self, format_url, format_id):
+        # New version of encrypted URLs that are present in site's JSON
+        decrypted = try_call(lambda: self._deobfuscate_url(format_url)) or None
+        if decrypted is not None:
+            return decrypted
+
         cipher_type, _, ciphertext = try_call(
             lambda: base64.b64decode(format_url).decode().partition('_')) or [None] * 3
 
         if not cipher_type or not ciphertext:
-            # This is expected to fail if we are receiving the new encrypted URL strings,
-            # and we do not want to raise a warning to the user.
-            return None
+            self.report_warning(f'Skipping format "{format_id}": failed to decipher URL')
 
         if cipher_type == 'xor':
             return bytes(
@@ -164,6 +168,73 @@ class XHamsterIE(InfoExtractor):
 
         self.report_warning(f'Skipping format "{format_id}": unsupported cipher type "{cipher_type}"')
         return None
+
+    def _deobfuscate_url(self, hex_string: str) -> str:
+        """
+        Deobfuscates a URL from a hex string, replicating the logic
+        from the original JavaScript function.
+        """
+
+        def to_signed_32(n: int) -> int:
+            """Converts a number to a 32-bit signed integer using bitwise math."""
+            n &= 0xFFFFFFFF
+            if n & 0x80000000:
+                return n - 0x100000000
+            return n
+
+        def create_prng(algo_id: int, seed: int):
+            s = to_signed_32(seed)
+
+            def algo1():
+                nonlocal s
+                s = to_signed_32(s * 1664525 + 1013904223)
+                return s & 0xFF
+
+            def algo2():
+                nonlocal s
+                s = to_signed_32(s ^ (s << 13))
+                s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 17))
+                s = to_signed_32(s ^ (s << 5))
+                return s & 0xFF
+
+            def algo3():
+                nonlocal s
+                s = to_signed_32(s + 0x9e3779b9)
+                e = s
+                e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 16))
+                e = to_signed_32(e * to_signed_32(0x85ebca77))
+                e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 13))
+                e = to_signed_32(e * to_signed_32(0xc2b2ae3d))
+                e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 16))
+                return e & 0xFF
+
+            if algo_id == 1:
+                return algo1
+            if algo_id == 2:
+                return algo2
+            if algo_id == 3:
+                return algo3
+            raise ValueError(f'Unknown algorithm ID: {algo_id}')
+
+        try:
+            byte_data = bytes.fromhex(hex_string)
+        except ValueError as e:
+            raise ValueError(f'Invalid hex string provided: {e}')
+
+        if len(byte_data) < 5:
+            raise ValueError('Hex string is too short.')
+
+        algo_id = byte_data[0]
+        seed = int.from_bytes(byte_data[1:5], byteorder='little', signed=True)
+
+        get_next_byte = create_prng(algo_id, seed)
+
+        decrypted_bytes = bytearray(
+            byte_data[i] ^ get_next_byte() for i in range(5, len(byte_data))
+        )
+
+        temp_string = decrypted_bytes.decode('latin-1')
+        return urllib.parse.unquote(temp_string)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -185,9 +256,6 @@ class XHamsterIE(InfoExtractor):
             return int_or_none(self._search_regex(
                 r'^(\d+)[pP]', s, 'height', default=None))
 
-        preload_urls = re.findall(r'<link rel="preload" href="([^"]+)" as', webpage)
-        playlist_url = next((url for url in preload_urls if re.search(r'video(?:-[a-z]+|\d+)\.xhcdn\.com', url) is not None), None)
-        thumbnail_url = next((url for url in preload_urls if re.search(r'ic-vt(?:-[a-z]+|\d+)\.xhcdn\.com', url) is not None), None)
         initials = self._parse_json(
             self._search_regex(
                 (r'window\.initials\s*=\s*({.+?})\s*;\s*</script>',
@@ -201,13 +269,6 @@ class XHamsterIE(InfoExtractor):
             format_urls = set()
             format_sizes = {}
 
-            # New method, pull URL from HTML `head` preloads
-            format_urls.add(playlist_url)
-            formats.extend(self._extract_m3u8_formats(
-                playlist_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                m3u8_id='hls', fatal=False))
-
-            # Old method of checking `window.initials` JSON body
             sources = try_get(video, lambda x: x['sources'], dict) or {}
             for format_id, formats_dict in sources.items():
                 if not isinstance(formats_dict, dict):
@@ -315,7 +376,7 @@ class XHamsterIE(InfoExtractor):
                     video, lambda x: x['author']['name'], str),
                 'uploader_url': uploader_url,
                 'uploader_id': uploader_url.split('/')[-1] if uploader_url else None,
-                'thumbnail': video.get('thumbURL') or thumbnail_url,
+                'thumbnail': video.get('thumbURL'),
                 'duration': int_or_none(video.get('duration')),
                 'view_count': int_or_none(video.get('views')),
                 'like_count': int_or_none(try_get(
