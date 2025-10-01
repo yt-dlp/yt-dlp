@@ -78,13 +78,20 @@ class MGTVIE(InfoExtractor):
         video_id = self._match_id(url)
         tk2 = base64.urlsafe_b64encode(
             f'did={uuid.uuid4()}|pno=1030|ver=0.3.0301|clit={int(time.time())}'.encode())[::-1]
+
+        cookies = self._get_cookies('https://mgtv.com')
+        cookie_header = '; '.join([f'{k}={v.value}' for k, v in cookies.items()])
+        headers = {
+            'Cookie': cookie_header,
+            **self.geo_verification_headers(),
+        }
         try:
             api_data = self._download_json(
                 'https://pcweb.api.mgtv.com/player/video', video_id, query={
                     'tk2': tk2,
                     'video_id': video_id,
                     'type': 'pch5',
-                }, headers=self.geo_verification_headers())['data']
+                }, headers=headers)['data']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 error = self._parse_json(e.cause.response.read().decode(), None)
@@ -93,14 +100,15 @@ class MGTVIE(InfoExtractor):
                 raise ExtractorError(error['msg'], expected=True)
             raise
 
+        url = 'https://tinker.glb.mgtv.com/player/getSource' if cookies else 'https://pcweb.api.mgtv.com/player/getSource'
         stream_data = self._download_json(
-            'https://pcweb.api.mgtv.com/player/getSource', video_id, query={
+            url, video_id, query={
                 'tk2': tk2,
                 'pm2': api_data['atc']['pm2'],
                 'video_id': video_id,
                 'type': 'pch5',
                 'src': 'intelmgtv',
-            }, headers=self.geo_verification_headers())['data']
+            }, headers=headers)['data']
         stream_domain = traverse_obj(stream_data, ('stream_domain', ..., {url_or_none}), get_all=False)
 
         formats = []
