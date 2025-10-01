@@ -16,23 +16,25 @@ class UrortPlaylistIE(InfoExtractor):
     IE_DESC = 'NRK P3 Urørt Playlist'
     _VALID_URL = r'https?://(?:www\.)?urort\.p3\.no/(?:artist|playlist)/(?P<id>[^/?#]+)$'
 
-    # FIXME: make a proper playlist test
-    _TEST = {
+    _TESTS = [{
+        'note': 'artist playlist',
         'url': 'https://urort.p3.no/artist/Gerilja',
-        'md5': '5ed31a924be8a05e47812678a86e127b',
         'info_dict': {
-            'id': '33124-24',
-            'ext': 'mp3',
-            'title': 'The Bomb',
-            'thumbnail': r're:^https?://.+\.jpg',
-            'uploader': 'Gerilja',
-            'uploader_id': 'Gerilja',
-            'upload_date': '20100323',
+            'id': str,
+            'title': 'Gerilja',
+            'description': 'Hør Gerilja\'s låter på Urørt netsiden | ',
         },
-        'params': {
-            'matchtitle': '^The Bomb$',  # To test, we want just one video
+        'playlist_mincount': 10,
+    }, {
+        'note': 'track playlist',
+        'url': 'https://urort.p3.no/playlist/rock',
+        'info_dict': {
+            'id': str,
+            'title': 'Rock/metall',
+            'description': 'Anbefalte låter i sjangeren rock/metall | NRK P3 Urørt',
         },
-    }
+        'playlist_mincount': 100,
+    }]
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -60,22 +62,40 @@ class UrortIE(InfoExtractor):
     IE_DESC = 'NRK P3 Urørt'
     _VALID_URL = r'https?://(?:www\.)?urort\.p3\.no/track/[^/]+/(?P<id>[^/&?#$]+)'
 
-    _TEST = {
+    _TESTS = [{
+        'note': 'MP4 AAC and default empty PNG thunbnail',
         'url': 'https://urort.p3.no/track/Gerilja/the-bomb',
-        'md5': '5ed31a924be8a05e47812678a86e127b',
+        'md5': '9eee22c88598e285a3b4fa06ac387f79',
         'info_dict': {
-            'id': '33124-24',
+            'id': '1356',
+            'display_id': 'the-bomb',
+            'ext': 'm4a',
+            'title': 'Gerilja: The Bomb',
+            'thumbnail': r're:^https?://.+\.(jpg|png)',
+        },
+    }, {
+        'note': 'MP3 and custom thunbnail',
+        'url': 'https://urort.p3.no/track/lokal-politikk/svarteper-1',
+        'md5': 'b9cc2b97820016a89b1140f11cf78fac',
+        'info_dict': {
+            'id': '191567',
+            'display_id': 'svarteper-1',
             'ext': 'mp3',
-            'title': 'The Bomb',
-            'thumbnail': r're:^https?://.+\.jpg',
-            'uploader': 'Gerilja',
-            'uploader_id': 'Gerilja',
-            'upload_date': '20100323',
+            'title': 'Lokal Politikk : Svarteper',
+            'thumbnail': r're:^https?://',
         },
-        'params': {
-            'matchtitle': '^The Bomb$',  # To test, we want just one video
+    }, {
+        'note': 'WAV and custom thunbnail',
+        'url': 'https://urort.p3.no/track/girl-group/shut-your-mouth-sometimes',
+        'md5': '625873985ccdbbc37d05078d8927a522',
+        'info_dict': {
+            'id': '224148',
+            'display_id': 'shut-your-mouth-sometimes',
+            'ext': 'wav',
+            'title': 'Girl Group: Shut Your Mouth (Sometimes) ',
+            'thumbnail': r're:^https?://',
         },
-    }
+    }]
 
     def _real_extract(self, url):
         title_id = self._match_id(url)
