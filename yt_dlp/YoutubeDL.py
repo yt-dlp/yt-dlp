@@ -42,6 +42,7 @@ from .globals import (
     plugin_pps,
     all_plugins_loaded,
     plugin_dirs,
+    supported_js_runtimes,
 )
 from .minicurses import format_text
 from .networking import HEADRequest, Request, RequestDirector
@@ -533,6 +534,17 @@ class YoutubeDL:
                        See "EXTRACTOR ARGUMENTS" for details.
                        Argument values must always be a list of string(s).
                        E.g. {'youtube': {'skip': ['dash', 'hls']}}
+    js_runtimes:       A dictionary of JavaScript runtime keys (in lower case) to enable
+                       and a dictionary of additional configuration for the runtime.
+                       If None, the default runtime of "deno" will be enabled.
+                       The runtime configuration dictionary can have the following keys:
+                        - path: Path to the executable (optional)
+                       E.g. {'deno': {'path': '/path/to/deno'}
+    remote_components: A list of remote components that are allowed to be fetched when required.
+                       Supported components:
+                       - `ejs:npm` (external JavaScript components from npm)
+                       - `ejs:github` (external JavaScript components from yt-dlp-ejs GitHub)
+                       By default, no remote components are allowed to be fetched.
     mark_watched:      Mark videos watched (even with --simulate). Only for YouTube
 
     The following options are deprecated and may be removed in the future:
@@ -717,6 +729,10 @@ class YoutubeDL:
                 else:
                     raise
 
+        # Note: this must be after plugins are loaded
+        self.params['js_runtimes'] = self.params.get('js_runtimes', {'deno': {}})
+        self._clean_js_runtimes(self.params['js_runtimes'])
+
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
         self._load_cookies(self.params['http_headers'].get('Cookie'))  # compat
@@ -828,6 +844,28 @@ class YoutubeDL:
             return archive
 
         self.archive = preload_download_archive(self.params.get('download_archive'))
+
+    def _clean_js_runtimes(self, runtimes):
+        if not (
+            isinstance(runtimes, dict)
+            and all(isinstance(k, str) and (v is None or isinstance(v, dict)) for k, v in runtimes.items())
+        ):
+            raise ValueError('Invalid js_runtimes format, expected a dict of {runtime: {config}}')
+
+        if unsupported_runtimes := runtimes.keys() - supported_js_runtimes.value.keys():
+            self.report_warning(
+                f'Ignoring unsupported JavaScript runtime(s): {", ".join(unsupported_runtimes)}.'
+                f' Supported runtimes: {", ".join(supported_js_runtimes.value.keys())}.')
+            for rt in unsupported_runtimes:
+                runtimes.pop(rt)
+
+    @functools.cached_property
+    def _js_runtimes(self):
+        runtimes = {}
+        for name, config in self.params.get('js_runtimes', {}).items():
+            runtime_cls = supported_js_runtimes.value.get(name)
+            runtimes[name] = runtime_cls(path=config.get('path')) if runtime_cls else None
+        return runtimes
 
     def warn_if_short_id(self, argv):
         # short YouTube ID starting with dash?
@@ -4063,6 +4101,18 @@ class YoutubeDL:
         write_debug('Optional libraries: %s' % (', '.join(sorted({
             join_nonempty(*get_package_info(m)) for m in available_dependencies.values()
         })) or 'none'))
+
+        if not self.params.get('js_runtimes'):
+            write_debug('JS runtimes: none (disabled)')
+        else:
+            write_debug('JS runtimes: %s' % (', '.join(sorted(
+                f'{name} (unknown)' if runtime is None
+                else join_nonempty(
+                    runtime.info.name,
+                    runtime.info.version + (' (unsupported)' if runtime.info.supported is False else ''),
+                )
+                for name, runtime in self._js_runtimes.items() if runtime is None or runtime.info is not None
+            )) or 'none'))
 
         write_debug(f'Proxy map: {self.proxies}')
         write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
