@@ -11,7 +11,6 @@ from ..utils import (
     make_archive_id,
     orderedSet,
     parse_duration,
-    remove_end,
     traverse_obj,
     try_call,
     unescapeHTML,
@@ -23,96 +22,39 @@ from ..utils import (
 
 
 class NhkBaseIE(InfoExtractor):
-    _API_URL_TEMPLATE = 'https://nwapi.nhk.jp/nhkworld/%sod%slist/v7b/%s/%s/%s/all%s.json'
+    _API_URL_TEMPLATE = 'https://api.nhkworld.jp/showsapi/v1/{lang}/{content_type}_{page_type}/{m_id}'
     _BASE_URL_REGEX = r'https?://www3\.nhk\.or\.jp/nhkworld/(?P<lang>[a-z]{2})/'
 
     def _call_api(self, m_id, lang, is_video, is_episode, is_clip):
         return self._download_json(
-            self._API_URL_TEMPLATE % (
-                'v' if is_video else 'r',
-                'clip' if is_clip else 'esd',
-                'episode' if is_episode else 'program',
-                m_id, lang, '/all' if is_video else ''),
-            m_id, query={'apikey': 'EJfK8jdS57GqlupFgAfAAwr573q01y6k'})['data']['episodes'] or []
-
-    def _get_api_info(self, refresh=True):
-        if not refresh:
-            return self.cache.load('nhk', 'api_info')
-
-        self.cache.store('nhk', 'api_info', {})
-        movie_player_js = self._download_webpage(
-            'https://movie-a.nhk.or.jp/world/player/js/movie-player.js', None,
-            note='Downloading stream API information')
-        api_info = {
-            'url': self._search_regex(
-                r'prod:[^;]+\bapiUrl:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API url'),
-            'token': self._search_regex(
-                r'prod:[^;]+\btoken:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API token'),
-        }
-        self.cache.store('nhk', 'api_info', api_info)
-        return api_info
-
-    def _extract_stream_info(self, vod_id):
-        for refresh in (False, True):
-            api_info = self._get_api_info(refresh)
-            if not api_info:
-                continue
-
-            api_url = api_info.pop('url')
-            meta = traverse_obj(
-                self._download_json(
-                    api_url, vod_id, 'Downloading stream url info', fatal=False, query={
-                        **api_info,
-                        'type': 'json',
-                        'optional_id': vod_id,
-                        'active_flg': 1,
-                    }), ('meta', 0))
-            stream_url = traverse_obj(
-                meta, ('movie_url', ('mb_auto', 'auto_sp', 'auto_pc'), {url_or_none}), get_all=False)
-
-            if stream_url:
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, vod_id)
-                return {
-                    **traverse_obj(meta, {
-                        'duration': ('duration', {int_or_none}),
-                        'timestamp': ('publication_date', {unified_timestamp}),
-                        'release_timestamp': ('insert_date', {unified_timestamp}),
-                        'modified_timestamp': ('update_date', {unified_timestamp}),
-                    }),
-                    'formats': formats,
-                    'subtitles': subtitles,
-                }
-        raise ExtractorError('Unable to extract stream url')
+            self._API_URL_TEMPLATE.format(
+                lang=lang,
+                content_type='video' if is_video else 'audio',
+                page_type='clips' if is_clip else 'episodes' if is_episode else 'programs',
+                m_id=m_id,
+            ), video_id=join_nonempty(m_id, lang),
+        )
+        # FOR EXAMPLE:
+        # https://api.nhkworld.jp/showsapi/v1/en/video_episodes/2024117
+        # https://api.nhkworld.jp/showsapi/v1/en/video_clips/9999011
+        # https://api.nhkworld.jp/showsapi/v1/en/audio_episodes/r_l_japannews-20250203-1
+        # https://api.nhkworld.jp/showsapi/v1/en/video_programs/dwc
+        # https://api.nhkworld.jp/showsapi/v1/en/audio_programs/r_l_japannews
+        # no such thing as an audio_clips
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
         lang, m_type, episode_id = NhkVodIE._match_valid_url(url).group('lang', 'type', 'id')
         is_video = m_type != 'audio'
 
-        if is_video:
-            episode_id = episode_id[:4] + '-' + episode_id[4:]
-
         if fetch_episode:
             episode = self._call_api(
-                episode_id, lang, is_video, True, episode_id[:4] == '9999')[0]
+                episode_id, lang, is_video, is_episode=True, is_clip=episode_id[:4] == '9999')
 
-        def get_clean_field(key):
-            return clean_html(episode.get(key + '_clean') or episode.get(key))
+        video_id = join_nonempty('id', 'lang', from_dict=episode)
 
-        title = get_clean_field('sub_title')
-        series = get_clean_field('title')
-
-        thumbnails = []
-        for s, w, h in [('', 640, 360), ('_l', 1280, 720)]:
-            img_path = episode.get('image' + s)
-            if not img_path:
-                continue
-            thumbnails.append({
-                'id': f'{h}p',
-                'height': h,
-                'width': w,
-                'url': 'https://www3.nhk.or.jp' + img_path,
-            })
+        title = episode.get('title')
+        series = traverse_obj(episode, (('video_program', 'audio_program'), any, 'title'))
 
         episode_name = title
         if series and title:
@@ -125,37 +67,45 @@ class NhkBaseIE(InfoExtractor):
             episode_name = None
 
         info = {
-            'id': episode_id + '-' + lang,
+            'id': video_id,
             'title': title,
-            'description': get_clean_field('description'),
-            'thumbnails': thumbnails,
             'series': series,
             'episode': episode_name,
+            **traverse_obj(episode, ({
+                'description': 'description',
+                'timestamp': ('first_broadcasted_at', {unified_timestamp}),
+                'categories': ('categories', ..., 'name'),
+                'tags': ('tags', ..., 'name'),
+                'thumbnails': ('images', ..., {
+                    'url': ('url', {lambda x: urljoin(url, x)}, {url_or_none}),
+                    'width': 'width',
+                    'height': 'height',
+                }),
+            })),
         }
 
-        if is_video:
-            vod_id = episode['vod_id']
+        # FOOLISH ASSUMPTION: an episode can't be video and audio at the same time
+        stream_info = traverse_obj(episode, (('video', 'audio'), any))
+        if not stream_info:
+            self.raise_no_formats('Stream not found; it has most likely expired', expected=True)
+        else:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_info.get('url'), video_id)
             info.update({
-                **self._extract_stream_info(vod_id),
-                'id': vod_id,
+                'formats': formats,
+                'subtitles': subtitles,
+                **traverse_obj(stream_info, ({
+                    'duration': 'duration',
+                    'release_timestamp': ('published_at', {unified_timestamp}),
+                })),
             })
 
-        else:
-            if fetch_episode:
-                # From https://www3.nhk.or.jp/nhkworld/common/player/radio/inline/rod.html
-                audio_path = remove_end(episode['audio']['audio'], '.m4a')
-                info['formats'] = self._extract_m3u8_formats(
-                    f'{urljoin("https://vod-stream.nhk.jp", audio_path)}/index.m3u8',
-                    episode_id, 'm4a', entry_protocol='m3u8_native',
-                    m3u8_id='hls', fatal=False)
-                for f in info['formats']:
-                    f['language'] = lang
-            else:
-                info.update({
-                    '_type': 'url_transparent',
-                    'ie_key': NhkVodIE.ie_key(),
-                    'url': url,
-                })
+        if not is_video:
+            info.update({
+                '_type': 'url_transparent',
+                'ie_key': NhkVodIE.ie_key(),
+                'url': url,
+            })
+
         return info
 
 
