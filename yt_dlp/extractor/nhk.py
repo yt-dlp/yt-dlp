@@ -73,7 +73,7 @@ class NhkBaseIE(InfoExtractor):
             'episode': episode_name,
             **traverse_obj(episode, ({
                 'description': 'description',
-                'timestamp': ('first_broadcasted_at', {unified_timestamp}),
+                'release_timestamp': ('first_broadcasted_at', {unified_timestamp}),
                 'categories': ('categories', ..., 'name'),
                 'tags': ('tags', ..., 'name'),
                 'thumbnails': ('images', ..., {
@@ -95,7 +95,7 @@ class NhkBaseIE(InfoExtractor):
                 'subtitles': subtitles,
                 **traverse_obj(stream_info, ({
                     'duration': 'duration',
-                    'release_timestamp': ('published_at', {unified_timestamp}),
+                    'timestamp': ('published_at', {unified_timestamp}),
                 })),
             })
 
@@ -118,29 +118,28 @@ class NhkVodIE(NhkBaseIE):
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
     _TESTS = [{
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2049126/',
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/2049165/',
         'info_dict': {
-            'id': 'nw_vod_v_en_2049_126_20230413233000_01_1681398302',
+            'id': '2049165-en',
             'ext': 'mp4',
-            'title': 'Japan Railway Journal - The Tohoku Shinkansen: Full Speed Ahead',
-            'description': 'md5:49f7c5b206e03868a2fdf0d0814b92f6',
+            'title': 'Japan Railway Journal - Choshi Electric Railway: Fighting to Get Back on Track',
+            'description': 'md5:ab57df2fca7f04245148c2e787bb203d',
             'thumbnail': r're:https://.+/.+\.jpg',
-            'episode': 'The Tohoku Shinkansen: Full Speed Ahead',
+            'episode': 'Choshi Electric Railway: Fighting to Get Back on Track',
             'series': 'Japan Railway Journal',
-            'modified_timestamp': 1707217907,
-            'timestamp': 1681428600,
-            'release_timestamp': 1693883728,
-            'duration': 1679,
-            'upload_date': '20230413',
-            'modified_date': '20240206',
-            'release_date': '20230905',
+            'duration': 1680,
+            'categories': ['Biz & Tech'],
+            'timestamp': 1758810600,
+            'upload_date': '20250925',
+            'release_timestamp': 1758810600,
+            'release_date': '20250925',
         },
     }, {
         # video clip
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999011/',
         'md5': '153c3016dfd252ba09726588149cf0e7',
         'info_dict': {
-            'id': 'lpZXIwaDE6_Z-976CPsFdxyICyWUzlT5',
+            'id': '9999011-en',
             'ext': 'mp4',
             'title': 'Dining with the Chef - Chef Saito\'s Family recipe: MENCHI-KATSU',
             'description': 'md5:5aee4a9f9d81c26281862382103b0ea5',
@@ -148,24 +147,22 @@ class NhkVodIE(NhkBaseIE):
             'series': 'Dining with the Chef',
             'episode': 'Chef Saito\'s Family recipe: MENCHI-KATSU',
             'duration': 148,
-            'upload_date': '20190816',
-            'release_date': '20230902',
-            'release_timestamp': 1693619292,
-            'modified_timestamp': 1707217907,
-            'modified_date': '20240206',
-            'timestamp': 1565997540,
+            'categories': ['Food'],
+            'tags': ['Washoku'],
+            'timestamp': 1548212400,
+            'upload_date': '20190123',
         },
     }, {
         # radio
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/livinginjapan-20231001-1/',
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/audio/livinginjapan-20240901-1/',
         'info_dict': {
-            'id': 'livinginjapan-20231001-1-en',
+            'id': 'livinginjapan-20240901-1-en',
             'ext': 'm4a',
-            'title': 'Living in Japan - Tips for Travelers to Japan / Ramen Vending Machines',
+            'title': 'Living in Japan - Weekend Hiking / Self-protection from crime',
             'series': 'Living in Japan',
             'description': 'md5:0a0e2077d8f07a03071e990a6f51bfab',
             'thumbnail': r're:https://.+/.+\.jpg',
-            'episode': 'Tips for Travelers to Japan / Ramen Vending Machines',
+            'episode': 'Weekend Hiking / Self-protection from crime',
         },
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2015173/',
