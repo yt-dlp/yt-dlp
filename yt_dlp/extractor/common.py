@@ -3674,7 +3674,7 @@ class InfoExtractor:
             if not isinstance(source, dict):
                 continue
             source_url = urljoin(
-                base_url, self._proto_relative_url(source.get('file')))
+                base_url, self._proto_relative_url(source.get('file') or source.get('src')))
             if not source_url or source_url in urls:
                 continue
             urls.add(source_url)
