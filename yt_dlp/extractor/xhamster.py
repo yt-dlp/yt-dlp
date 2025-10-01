@@ -2,6 +2,7 @@ import base64
 import codecs
 import itertools
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -146,12 +147,16 @@ class XHamsterIE(InfoExtractor):
     _XOR_KEY = b'xh7999'
 
     def _decipher_format_url(self, format_url, format_id):
+        # New version of encrypted URLs that are present in site's JSON
+        decrypted = try_call(lambda: self._deobfuscate_url(format_url)) or None
+        if decrypted is not None:
+            return decrypted
+
         cipher_type, _, ciphertext = try_call(
             lambda: base64.b64decode(format_url).decode().partition('_')) or [None] * 3
 
         if not cipher_type or not ciphertext:
             self.report_warning(f'Skipping format "{format_id}": failed to decipher URL')
-            return None
 
         if cipher_type == 'xor':
             return bytes(
@@ -163,6 +168,73 @@ class XHamsterIE(InfoExtractor):
 
         self.report_warning(f'Skipping format "{format_id}": unsupported cipher type "{cipher_type}"')
         return None
+
+    def _deobfuscate_url(self, hex_string: str) -> str:
+        """
+        Deobfuscates a URL from a hex string, replicating the logic
+        from the original JavaScript function.
+        """
+
+        def to_signed_32(n: int) -> int:
+            """Converts a number to a 32-bit signed integer using bitwise math."""
+            n &= 0xFFFFFFFF
+            if n & 0x80000000:
+                return n - 0x100000000
+            return n
+
+        def create_prng(algo_id: int, seed: int):
+            s = to_signed_32(seed)
+
+            def algo1():
+                nonlocal s
+                s = to_signed_32(s * 1664525 + 1013904223)
+                return s & 0xFF
+
+            def algo2():
+                nonlocal s
+                s = to_signed_32(s ^ (s << 13))
+                s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 17))
+                s = to_signed_32(s ^ (s << 5))
+                return s & 0xFF
+
+            def algo3():
+                nonlocal s
+                s = to_signed_32(s + 0x9e3779b9)
+                e = s
+                e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 16))
+                e = to_signed_32(e * to_signed_32(0x85ebca77))
+                e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 13))
+                e = to_signed_32(e * to_signed_32(0xc2b2ae3d))
+                e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 16))
+                return e & 0xFF
+
+            if algo_id == 1:
+                return algo1
+            if algo_id == 2:
+                return algo2
+            if algo_id == 3:
+                return algo3
+            raise ValueError(f'Unknown algorithm ID: {algo_id}')
+
+        try:
+            byte_data = bytes.fromhex(hex_string)
+        except ValueError as e:
+            raise ValueError(f'Invalid hex string provided: {e}')
+
+        if len(byte_data) < 5:
+            raise ValueError('Hex string is too short.')
+
+        algo_id = byte_data[0]
+        seed = int.from_bytes(byte_data[1:5], byteorder='little', signed=True)
+
+        get_next_byte = create_prng(algo_id, seed)
+
+        decrypted_bytes = bytearray(
+            byte_data[i] ^ get_next_byte() for i in range(5, len(byte_data))
+        )
+
+        temp_string = decrypted_bytes.decode('latin-1')
+        return urllib.parse.unquote(temp_string)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -196,6 +268,7 @@ class XHamsterIE(InfoExtractor):
             formats = []
             format_urls = set()
             format_sizes = {}
+
             sources = try_get(video, lambda x: x['sources'], dict) or {}
             for format_id, formats_dict in sources.items():
                 if not isinstance(formats_dict, dict):
@@ -230,17 +303,18 @@ class XHamsterIE(InfoExtractor):
             if xplayer_sources:
                 hls_sources = xplayer_sources.get('hls')
                 if isinstance(hls_sources, dict):
-                    for hls_format_key in ('url', 'fallback'):
-                        hls_url = hls_sources.get(hls_format_key)
-                        if not hls_url:
-                            continue
-                        hls_url = self._decipher_format_url(hls_url, f'hls-{hls_format_key}')
-                        if not hls_url or hls_url in format_urls:
-                            continue
-                        format_urls.add(hls_url)
-                        formats.extend(self._extract_m3u8_formats(
-                            hls_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                            m3u8_id='hls', fatal=False))
+                    if 'url' in hls_sources or 'fallback' in hls_sources:
+                        for hls_format_key in ('url', 'fallback'):
+                            hls_url = hls_sources.get(hls_format_key)
+                            if not hls_url:
+                                continue
+                            hls_url = self._decipher_format_url(hls_url, f'hls-{hls_format_key}')
+                            if not hls_url or hls_url in format_urls:
+                                continue
+                            format_urls.add(hls_url)
+                            formats.extend(self._extract_m3u8_formats(
+                                hls_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                                m3u8_id='hls', fatal=False))
                 standard_sources = xplayer_sources.get('standard')
                 if isinstance(standard_sources, dict):
                     for identifier, formats_list in standard_sources.items():
