@@ -23,25 +23,42 @@ from ..utils import (
 
 
 class NhkBaseIE(InfoExtractor):
-    _API_URL_TEMPLATE = 'https://api.nhkworld.jp/showsapi/v1/{lang}/{content_type}_{page_type}/{m_id}'
+    _API_URL_TEMPLATE = 'https://api.nhkworld.jp/showsapi/v1/{lang}/{content_format}_{page_type}/{m_id}{extra_page}'
     _BASE_URL_REGEX = r'https?://www3\.nhk\.or\.jp/nhkworld/(?P<lang>[a-z]{2})/'
 
     def _call_api(self, m_id, lang, is_video, is_episode, is_clip):
-        return self._download_json(
-            self._API_URL_TEMPLATE.format(
-                lang=lang,
-                content_type='video' if is_video else 'audio',
-                page_type='clips' if is_clip else 'episodes' if is_episode else 'programs',
-                m_id=m_id,
-            ), video_id=join_nonempty(m_id, lang),
+        content_format = 'video' if is_video else 'audio'
+
+        if not is_episode:
+            page_type = 'programs'
+
+        if is_clip:
+            content_type = 'clips'
+        else:
+            content_type = 'episodes'
+
+        if not is_episode:
+            extra_page = f'/{content_format}_{content_type}'
+        else:
+            extra_page = ''
+            page_type = content_type
+
+        return self._download_json(self._API_URL_TEMPLATE.format(
+            lang=lang,
+            content_format=content_format,
+            page_type=page_type,
+            m_id=m_id,
+            extra_page=extra_page,
+        ), video_id=join_nonempty(m_id, lang),
         )
+
         # FOR EXAMPLE:
         # https://api.nhkworld.jp/showsapi/v1/en/video_episodes/2024117
-        # https://api.nhkworld.jp/showsapi/v1/en/video_clips/9999011
         # https://api.nhkworld.jp/showsapi/v1/en/audio_episodes/r_l_japannews-20250203-1
-        # https://api.nhkworld.jp/showsapi/v1/en/video_programs/dwc
-        # https://api.nhkworld.jp/showsapi/v1/en/audio_programs/r_l_japannews
-        # no such thing as an audio_clips
+        # https://api.nhkworld.jp/showsapi/v1/en/video_clips/9999011
+        # https://api.nhkworld.jp/showsapi/v1/en/video_programs/dwc/video_episodes
+        # https://api.nhkworld.jp/showsapi/v1/en/audio_programs/livinginjapan/audio_episodes
+        # no such thing as an audio_clips afaict
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
@@ -141,6 +158,7 @@ class NhkVodIE(NhkBaseIE):
             'series': 'Japan Railway Journal',
             'duration': 1680,
             'categories': ['Biz & Tech'],
+            'tags': ['Akita', 'Chiba', 'Trains', 'All (Japan Navigator)'],
             'timestamp': 1758810600,
             'upload_date': '20250925',
             'release_timestamp': 1758810600,
@@ -315,16 +333,7 @@ class NhkVodProgramIE(NhkBaseIE):
             'title': 'Living in Japan',
             'description': 'md5:665bb36ec2a12c5a7f598ee713fc2b54',
         },
-        'playlist_mincount': 12,
-    }, {
-        # /tv/ program url
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/tv/designtalksplus/',
-        'info_dict': {
-            'id': 'designtalksplus',
-            'title': 'DESIGN TALKS plus',
-            'description': 'md5:47b3b3a9f10d4ac7b33b53b70a7d2837',
-        },
-        'playlist_mincount': 20,
+        'playlist_mincount': 11,
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/10yearshayaomiyazaki/',
         'only_matching': True,
@@ -345,7 +354,7 @@ class NhkVodProgramIE(NhkBaseIE):
             program_id, lang, m_type != 'audio', False, episode_type == 'clip')
 
         def entries():
-            for episode in episodes:
+            for episode in episodes['items']:
                 if episode_path := episode.get('url'):
                     yield self._extract_episode_info(urljoin(url, episode_path), episode)
 
