@@ -307,9 +307,17 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
             'id': 'RC-025470',
             'title': 'Ramy',
         },
+    }, {
+        'url': 'https://www.arte.tv/de/videos/RC-027148/zucker-genuss-um-welchen-preis/',
+        'playlist_mincount': 1,
+        'info_dict': {
+            'description': 'md5:4c06c2b63970f78276bcadaea2d0df0b',
+            'id': 'RC-027148',
+            'title': 'Zucker, Genuss um welchen Preis?',
+        },
     }]
 
-    def _entries(self, season_ids, lang, playlist_id):
+    def _season_entries(self, season_ids, lang):
         for season_id in season_ids:
             season_data = self._download_json(f'{self._API_BASE}/playlist/{lang}/{season_id}', season_id, headers={
                 'x-validated-age': '18',
@@ -337,12 +345,21 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
                                             headers={
                                                 'Authorization': f'Bearer {_API_TOKEN}',
                                             })
+        playlist_info = traverse_obj(playlist_info, ('programs', ...), get_all=False)
+        metadata = traverse_obj(playlist_info, {'title': 'title', 'description': 'shortDescription'}, get_all=False)
 
-        season_ids = traverse_obj(playlist_info, ('programs', ..., 'children', (lambda _, v: v['catalogType'] == 'SEASON'), 'programId'))
-        return self.playlist_result(self._entries(season_ids, lang, playlist_id),
+        # Check first if there are seasons
+        season_ids = traverse_obj(playlist_info, ('children', (lambda _, v: v['catalogType'] == 'SEASON'), 'programId'))
+        if season_ids:
+            return self.playlist_result(self._season_entries(season_ids, lang),
+                                        playlist_id,
+                                        **metadata)
+
+        # It might be a mini series comprised of a few shows
+        shows = traverse_obj(playlist_info, ('videos', (lambda _, v: v['kind'] == 'SHOW')))
+        return self.playlist_result([self.url_result(show['url'], ArteTVIE) for show in shows],
                                     playlist_id,
-                                    traverse_obj(playlist_info, ('programs', ..., 'title')),
-                                    traverse_obj(playlist_info, ('programs', ..., 'shortDescription')))
+                                    **metadata)
 
 
 class ArteTVCategoryIE(ArteTVBaseIE):
