@@ -2169,6 +2169,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # {var H=u,k=f.sp,v=sig(decodeURIComponent(f.s));H.set(k,encodeURIComponent(v))}
         funcname = self._search_regex(
             (r'\b(?P<var>[a-zA-Z0-9_$]+)&&\((?P=var)=(?P<sig>[a-zA-Z0-9_$]{2,})\(decodeURIComponent\((?P=var)\)\)',
+             r'(?P<sig>[a-zA-Z0-9_$]{2,3})=function\([^)]*\)\{[^}]*decodeURIComponent\([^}]*\[[a-zA-Z0-9_$]+\[',
              r'(?P<sig>[a-zA-Z0-9_$]+)\s*=\s*function\(\s*(?P<arg>[a-zA-Z0-9_$]+)\s*\)\s*{\s*(?P=arg)\s*=\s*(?P=arg)\.split\(\s*""\s*\)\s*;\s*[^}]+;\s*return\s+(?P=arg)\.join\(\s*""\s*\)',
              r'(?:\b|[^a-zA-Z0-9_$])(?P<sig>[a-zA-Z0-9_$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)(?:;[a-zA-Z0-9_$]{2}\.[a-zA-Z0-9_$]{2}\(a,\d+\))?',
              # Old patterns
@@ -2310,6 +2311,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
             (?(var),[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,(?P=var)\))''',
             jscode, 'n function name', group=('nfunc', 'idx'), default=(None, None))
+        if not funcname:
+            # Try static array declaration pattern as fallback:
+            # var S1U=[lg6];g.N=g.Ue.prototype;g.N.Nq=function(v){this.segments.push(  (81567a87)
+            # var OB5=[$zo];g.S=g.fo.prototype;g.S.Vr=function(k){this.segments.push(  (2b83d2e0)
+            funcname = self._search_regex(
+                r'(?ms)^\s*var\s+[a-zA-Z0-9_$]+\s*=\s*\[\s*(?P<n>[a-zA-Z0-9_$]+)\s*\]\s*;.*?this\.segments\.push\(',
+                jscode, 'n function name from static array', group='n', default=None)
+            if funcname:
+                self.write_debug(join_nonempty(
+                    'Identified nsig function from static array declaration',
+                    player_url and f'        player = {player_url}', delim='\n'), only_once=True)
+                return funcname
+
         if not funcname:
             self.report_warning(join_nonempty(
                 'Falling back to generic n function search',
