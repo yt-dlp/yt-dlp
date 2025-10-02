@@ -11,6 +11,7 @@ from ..utils import (
     make_archive_id,
     orderedSet,
     parse_duration,
+    remove_end,
     traverse_obj,
     try_call,
     unescapeHTML,
@@ -89,22 +90,33 @@ class NhkBaseIE(InfoExtractor):
         if not stream_info:
             self.raise_no_formats('Stream not found; it has most likely expired', expected=True)
         else:
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_info.get('url'), video_id)
-            info.update({
-                'formats': formats,
-                'subtitles': subtitles,
-                **traverse_obj(stream_info, ({
-                    'duration': 'duration',
-                    'timestamp': ('published_at', {unified_timestamp}),
-                })),
-            })
-
-        if not is_video:
-            info.update({
-                '_type': 'url_transparent',
-                'ie_key': NhkVodIE.ie_key(),
-                'url': url,
-            })
+            stream_url = stream_info.get('url')
+            if is_video:
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, video_id)
+                info.update({
+                    'formats': formats,
+                    'subtitles': subtitles,
+                    **traverse_obj(stream_info, ({
+                        'duration': 'duration',
+                        'timestamp': ('published_at', {unified_timestamp}),
+                    })),
+                })
+            else:
+                if fetch_episode:
+                    # From https://www3.nhk.or.jp/nhkworld/common/player/radio/inline/rod.html
+                    audio_path = remove_end(stream_url, '.m4a')
+                    info['formats'] = self._extract_m3u8_formats(
+                        f'{urljoin("https://vod-stream.nhk.jp", audio_path)}/index.m3u8',
+                        episode_id, 'm4a', entry_protocol='m3u8_native',
+                        m3u8_id='hls', fatal=False)
+                    for f in info['formats']:
+                        f['language'] = lang
+                else:
+                    info.update({
+                        '_type': 'url_transparent',
+                        'ie_key': NhkVodIE.ie_key(),
+                        'url': url,
+                    })
 
         return info
 
