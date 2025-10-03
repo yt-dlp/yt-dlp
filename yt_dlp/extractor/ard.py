@@ -609,7 +609,7 @@ class ARDAudiothekIE(InfoExtractor):
         (?:www\.)?ardaudiothek\.de/
         (?:episode|(?P<playlist>sendung))/
         (?:(?(playlist)[a-zA-Z-]+)/)?
-        (?P<id>urn:ard:(episode|section|extra|show):[a-f0-9]{16})/$'''
+        (?P<id>urn:ard:(?:episode|section|extra|show):[a-f0-9]{16})/$'''
 
     _TESTS = [
         {
