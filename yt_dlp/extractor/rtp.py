@@ -16,7 +16,7 @@ from ..utils.traversal import traverse_obj
 
 
 class RTPIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rtp\.pt/play/(?:[^/#?]+/)?p(?P<program_id>\d+)/(?P<id>e\d+)'
+    _VALID_URL = r'https?://(?:www\.)?rtp\.pt/play/(?:[^/#?]+/)?p(?P<program_id>\d+)/(?P<id>e\d+)(?:/[A-Za-z0-9_-]+/(?P<part_id>\d+))?'
     _TESTS = [{
         'url': 'http://www.rtp.pt/play/p405/e174042/paixoes-cruzadas',
         'md5': 'e736ce0c665e459ddb818546220b4ef8',
@@ -50,6 +50,22 @@ class RTPIE(InfoExtractor):
             'episode_number': 2,
             'episode': 'Estudar ou não estudar',
             'modified_date': '20240404',
+        },
+    }, {
+        'url': 'https://www.rtp.pt/play/p14263/e819812/telejornal/1297689',
+        'md5': '46b303dfe1be1d85222b9689d4dd6659',
+        'info_dict': {
+            'id': 'e819812_2',
+            'ext': 'mp4',
+            'title': 'Telejornal',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'timestamp': 1735764807,
+            'duration': 4191.0,
+            'upload_date': '20250101',
+            'modified_timestamp': 1735766883,
+            'series': 'Telejornal',
+            'modified_date': '20250101',
+            'season': '2025',
         },
     }, {
         # Episode not accessible through API
@@ -114,7 +130,7 @@ class RTPIE(InfoExtractor):
                 })
         return formats, subtitles
 
-    def _extract_from_api(self, program_id, episode_id):
+    def _extract_from_api(self, program_id, episode_id, part_id):
         auth_token = self._fetch_auth_token()
         if not auth_token:
             return
@@ -128,7 +144,15 @@ class RTPIE(InfoExtractor):
             }, fatal=False), 'result', {dict})
         if not episode_data:
             return
-        asset_urls = traverse_obj(episode_data, ('assets', 0, 'asset_url', {dict}))
+
+        asset_index = 0
+        if part_id:
+            for idx, asset in enumerate(traverse_obj(episode_data, ('assets', ..., {dict})) or []):
+                if str(traverse_obj(asset, ('asset_id', {int_or_none}))) == part_id:
+                    asset_index = idx
+                    break
+
+        asset_urls = traverse_obj(episode_data, ('assets', asset_index, 'asset_url', {dict}))
         media_urls = traverse_obj(asset_urls, (
             ((('hls', 'dash'), 'stream_url'), ('multibitrate', ('url_hls', 'url_dash'))),))
         formats, subtitles = self._extract_formats(media_urls, episode_id)
@@ -140,10 +164,10 @@ class RTPIE(InfoExtractor):
             })
 
         return {
-            'id': episode_id,
+            'id': f'{episode_id}_{asset_index + 1}' if asset_index > 0 else episode_id,
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': traverse_obj(episode_data, ('assets', 0, 'asset_thumbnail', {url_or_none})),
+            'thumbnail': traverse_obj(episode_data, ('assets', asset_index, 'asset_thumbnail', {url_or_none})),
             **traverse_obj(episode_data, ('episode', {
                 'title': (('episode_title', 'program_title'), {str}, filter, any),
                 'alt_title': ('episode_subtitle', {str}, filter),
@@ -192,5 +216,5 @@ class RTPIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
-        program_id, episode_id = self._match_valid_url(url).group('program_id', 'id')
-        return self._extract_from_api(program_id, episode_id) or self._extract_from_html(url, episode_id)
+        program_id, episode_id, part_id = self._match_valid_url(url).group('program_id', 'id', 'part_id')
+        return self._extract_from_api(program_id, episode_id, part_id) or self._extract_from_html(url, episode_id)
