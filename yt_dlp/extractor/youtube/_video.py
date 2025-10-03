@@ -1,6 +1,7 @@
 import base64
 import binascii
 import collections
+import contextlib
 import datetime as dt
 import functools
 import itertools
@@ -9,6 +10,8 @@ import math
 import os.path
 import random
 import re
+import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -2159,6 +2162,613 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return lambda s: ''.join(s[i] for i in cache_spec)
 
+    def _execute_js_with_nodejs(self, jscode, funcname, *args, security_mode='default'):
+        """
+        Execute JavaScript function using Node.js with full browser-like sandbox.
+
+        This is a generic fallback when JSInterpreter fails to handle complex JavaScript.
+
+        Args:
+            jscode: Complete Player JS code
+            funcname: Function name to execute
+            *args: Arguments to pass to the function
+            security_mode: Security level ('default', 'strict', 'paranoid')
+                - 'default': Basic sandbox with file system access (current behavior)
+                - 'strict': Enhanced sandbox - no eval, no Node.js modules, stdin input
+                - 'paranoid': Maximum restrictions (for future use with Deno/Docker)
+
+        Returns:
+            Result of the function execution as string
+        """
+        import tempfile
+
+        # Detect Node.js path
+        node_path = shutil.which('node')
+        if not node_path:
+            raise ExtractorError(
+                'Node.js not found. Please install Node.js or add it to PATH. '
+                'JSInterpreter cannot handle this JavaScript function.')
+
+        # Strategy:
+        # 1. Find IIFE invocation marker: ';})(
+        # 2. Inject code to export function to GLOBAL_OBJECT before invocation
+        # 3. Execute in full browser-like sandbox using vm module
+        # 4. Call the exported function with provided arguments
+
+        # Find IIFE invocation marker
+        marker = ';})('
+        marker_idx = jscode.find(marker)
+
+        if marker_idx == -1:
+            raise ExtractorError('Cannot find IIFE invocation marker in Player JS')
+
+        # Create injection code to export the function
+        injection = f';GLOBAL_OBJECT.Functions=GLOBAL_OBJECT.Functions||{{}};GLOBAL_OBJECT.Functions["{funcname}"]={funcname}'
+
+        # Patch the code with injection before IIFE invocation
+        patched_code = jscode[:marker_idx] + injection + jscode[marker_idx:]
+
+        # Safely encode arguments for Node.js (convert all args to JSON)
+        args_json = ', '.join(json.dumps(arg) for arg in args)
+
+        # Security configuration based on mode
+        if security_mode == 'strict':
+            # Enhanced security: disable eval, remove Node.js globals, shorter timeout
+            timeout = 10
+            use_stdin = True
+            vm_options = '''
+        codeGeneration: {
+            strings: false,  // Disable eval()
+            wasm: false,     // Disable WebAssembly
+        },'''
+            sandbox_cleanup = '''
+    // Remove dangerous Node.js APIs
+    require: undefined,
+    process: undefined,
+    Buffer: undefined,
+    global: undefined,
+    __dirname: undefined,
+    __filename: undefined,
+    module: undefined,
+    exports: undefined,
+    eval: undefined,
+    Function: undefined,'''
+        elif security_mode == 'paranoid':
+            # Future: maximum restrictions (Deno/Docker)
+            timeout = 5
+            use_stdin = True
+            vm_options = '''
+        codeGeneration: {
+            strings: false,
+            wasm: false,
+        },'''
+            sandbox_cleanup = '''
+    require: undefined,
+    process: undefined,
+    Buffer: undefined,
+    global: undefined,
+    __dirname: undefined,
+    __filename: undefined,
+    module: undefined,
+    exports: undefined,
+    eval: undefined,
+    Function: undefined,'''
+        else:  # 'default'
+            # Current behavior: basic sandbox
+            timeout = 30
+            use_stdin = False
+            vm_options = ''
+            sandbox_cleanup = ''
+
+        # Create Node.js script using vm module with full browser-like sandbox
+        # This sandbox environment is based on test_js_inject.js which successfully runs YouTube Player JS
+        if use_stdin:
+            # Read from stdin for better security (no temp file for player JS)
+            node_script = f'''const vm = require('vm');
+
+// Read patched Player JS from stdin
+let code = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', chunk => {{ code += chunk; }});
+process.stdin.on('end', () => {{ executeInSandbox(code); }});
+
+function executeInSandbox(code) {{
+// Create full browser-like sandbox environment
+const noop = () => {{}};
+const sandbox = {{}};
+
+function createNode() {{
+    return {{
+        style: {{}},
+        appendChild: noop,
+        removeChild: noop,
+        remove: noop,
+        setAttribute: noop,
+        removeAttribute: noop,
+        addEventListener: noop,
+        removeEventListener: noop,
+        getContext: () => ({{
+            fillRect: noop,
+            beginPath: noop,
+            moveTo: noop,
+            lineTo: noop,
+            stroke: noop,
+            closePath: noop,
+        }}),
+        getBoundingClientRect: () => ({{ top: 0, left: 0, width: 0, height: 0 }}),
+        cloneNode: () => createNode(),
+        contentWindow: sandbox,
+        contentDocument: null,
+    }};
+}}
+
+const document = {{
+    createElement: () => createNode(),
+    createElementNS: () => createNode(),
+    createTextNode: (text = '') => ({{ data: text, nodeType: 3 }}),
+    getElementById: () => createNode(),
+    getElementsByTagName: () => [],
+    querySelector: () => createNode(),
+    querySelectorAll: () => [],
+    addEventListener: noop,
+    removeEventListener: noop,
+    dispatchEvent: noop,
+    body: createNode(),
+    head: createNode(),
+    documentElement: createNode(),
+    readyState: 'complete',
+}};
+
+document.defaultView = sandbox;
+
+const navigator = {{
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    language: 'en-US',
+    languages: ['en-US'],
+    platform: 'Win32',
+    appName: 'Netscape',
+    connection: {{}},
+    clipboard: {{}},
+    geolocation: {{ getCurrentPosition: noop }},
+    mediaDevices: {{ getUserMedia: () => Promise.reject(new Error('Not supported')) }},
+}};
+
+const location = {{
+    hash: '',
+    host: 'www.youtube.com',
+    hostname: 'www.youtube.com',
+    href: 'https://www.youtube.com/watch?v=dummy',
+    origin: 'https://www.youtube.com',
+    pathname: '/watch',
+    protocol: 'https:',
+    search: '',
+    replace: noop,
+}};
+
+const performance = {{
+    now: () => Date.now(),
+    mark: noop,
+    clearMarks: noop,
+    measure: noop,
+    clearMeasures: noop,
+    timing: {{}},
+}};
+
+class MutationObserver {{
+    constructor() {{}}
+    disconnect() {{}}
+    observe() {{}}
+    takeRecords() {{ return []; }}
+}}
+
+class IntersectionObserver {{
+    constructor() {{}}
+    disconnect() {{}}
+    observe() {{}}
+    unobserve() {{}}
+    takeRecords() {{ return []; }}
+}}
+
+class ResizeObserver {{
+    constructor() {{}}
+    disconnect() {{}}
+    observe() {{}}
+    unobserve() {{}}
+}}
+
+function XMLHttpRequest() {{
+    this.readyState = 4;
+    this.status = 200;
+    this.responseText = '';
+    this.open = noop;
+    this.send = noop;
+    this.setRequestHeader = noop;
+    this.addEventListener = noop;
+    this.removeEventListener = noop;
+    this.abort = noop;
+}}
+
+const atob = (str) => Buffer.from(str, 'base64').toString('binary');
+const btoa = (str) => Buffer.from(str, 'binary').toString('base64');
+
+Object.assign(sandbox, {{
+    GLOBAL_OBJECT: {{ Functions: {{}} }},
+    console,
+    setTimeout,
+    clearTimeout,
+    setInterval,
+    clearInterval,
+    queueMicrotask,
+    requestAnimationFrame: (cb) => setTimeout(cb, 0),
+    cancelAnimationFrame: (id) => clearTimeout(id),
+    fetch: async () => ({{ ok: false, status: 501, json: async () => ({{}}), text: async () => '' }}),
+    navigator,
+    location,
+    document,
+    performance,
+    MutationObserver,
+    IntersectionObserver,
+    ResizeObserver,
+    XMLHttpRequest,
+    Image: function Image() {{ return createNode(); }},
+    history: {{ replaceState: noop, pushState: noop, state: {{}} }},
+    addEventListener: noop,
+    removeEventListener: noop,
+    atob,
+    btoa,
+    Promise,
+    Array,
+    Object,
+    Map,
+    Set,
+    WeakMap,
+    WeakSet,
+    Date,
+    Math,
+    Number,
+    String,
+    Boolean,
+    RegExp,
+    Error,
+    EvalError,
+    TypeError,
+    URIError,
+    JSON,
+    URL,
+    URLSearchParams,
+    Intl,
+    {sandbox_cleanup}
+}});
+
+sandbox.window = sandbox;
+sandbox.self = sandbox;
+sandbox.global = sandbox;
+sandbox.globalThis = sandbox;
+document.body.ownerDocument = document;
+document.head.ownerDocument = document;
+document.documentElement.ownerDocument = document;
+
+// Create VM context with security options
+const context = vm.createContext(sandbox, {{{vm_options}
+}});
+
+// Execute patched Player JS with timeout
+try {{
+    vm.runInContext(code, context, {{
+        filename: 'player.js',
+        timeout: {timeout * 1000},
+    }});
+}} catch (e) {{
+    // Player JS may throw errors during execution, but our injection should work
+}}
+
+// Get the exported function
+const targetFn = sandbox.GLOBAL_OBJECT && sandbox.GLOBAL_OBJECT.Functions && sandbox.GLOBAL_OBJECT.Functions["{funcname}"];
+if (typeof targetFn !== 'function') {{
+    console.log('__ERROR__:Function {funcname} not exported');
+    process.exit(1);
+}}
+
+// Call the function with provided arguments
+try {{
+    const result = targetFn({args_json});
+    console.log('__RESULT__:' + result);
+}} catch (e) {{
+    console.log('__ERROR__:' + e.message);
+}}
+}}
+'''
+        else:
+            # Default mode: read from file
+            node_script = f'''const fs = require('fs');
+const vm = require('vm');
+
+// Read patched Player JS
+const code = fs.readFileSync(process.argv[2], 'utf8');
+
+// Create full browser-like sandbox environment
+const noop = () => {{}};
+const sandbox = {{}};
+
+function createNode() {{
+    return {{
+        style: {{}},
+        appendChild: noop,
+        removeChild: noop,
+        remove: noop,
+        setAttribute: noop,
+        removeAttribute: noop,
+        addEventListener: noop,
+        removeEventListener: noop,
+        getContext: () => ({{
+            fillRect: noop,
+            beginPath: noop,
+            moveTo: noop,
+            lineTo: noop,
+            stroke: noop,
+            closePath: noop,
+        }}),
+        getBoundingClientRect: () => ({{ top: 0, left: 0, width: 0, height: 0 }}),
+        cloneNode: () => createNode(),
+        contentWindow: sandbox,
+        contentDocument: null,
+    }};
+}}
+
+const document = {{
+    createElement: () => createNode(),
+    createElementNS: () => createNode(),
+    createTextNode: (text = '') => ({{ data: text, nodeType: 3 }}),
+    getElementById: () => createNode(),
+    getElementsByTagName: () => [],
+    querySelector: () => createNode(),
+    querySelectorAll: () => [],
+    addEventListener: noop,
+    removeEventListener: noop,
+    dispatchEvent: noop,
+    body: createNode(),
+    head: createNode(),
+    documentElement: createNode(),
+    readyState: 'complete',
+}};
+
+document.defaultView = sandbox;
+
+const navigator = {{
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    language: 'en-US',
+    languages: ['en-US'],
+    platform: 'Win32',
+    appName: 'Netscape',
+    connection: {{}},
+    clipboard: {{}},
+    geolocation: {{ getCurrentPosition: noop }},
+    mediaDevices: {{ getUserMedia: () => Promise.reject(new Error('Not supported')) }},
+}};
+
+const location = {{
+    hash: '',
+    host: 'www.youtube.com',
+    hostname: 'www.youtube.com',
+    href: 'https://www.youtube.com/watch?v=dummy',
+    origin: 'https://www.youtube.com',
+    pathname: '/watch',
+    protocol: 'https:',
+    search: '',
+    replace: noop,
+}};
+
+const performance = {{
+    now: () => Date.now(),
+    mark: noop,
+    clearMarks: noop,
+    measure: noop,
+    clearMeasures: noop,
+    timing: {{}},
+}};
+
+class MutationObserver {{
+    constructor() {{}}
+    disconnect() {{}}
+    observe() {{}}
+    takeRecords() {{ return []; }}
+}}
+
+class IntersectionObserver {{
+    constructor() {{}}
+    disconnect() {{}}
+    observe() {{}}
+    unobserve() {{}}
+    takeRecords() {{ return []; }}
+}}
+
+class ResizeObserver {{
+    constructor() {{}}
+    disconnect() {{}}
+    observe() {{}}
+    unobserve() {{}}
+}}
+
+function XMLHttpRequest() {{
+    this.readyState = 4;
+    this.status = 200;
+    this.responseText = '';
+    this.open = noop;
+    this.send = noop;
+    this.setRequestHeader = noop;
+    this.addEventListener = noop;
+    this.removeEventListener = noop;
+    this.abort = noop;
+}}
+
+const atob = (str) => Buffer.from(str, 'base64').toString('binary');
+const btoa = (str) => Buffer.from(str, 'binary').toString('base64');
+
+Object.assign(sandbox, {{
+    GLOBAL_OBJECT: {{ Functions: {{}} }},
+    console,
+    setTimeout,
+    clearTimeout,
+    setInterval,
+    clearInterval,
+    queueMicrotask,
+    requestAnimationFrame: (cb) => setTimeout(cb, 0),
+    cancelAnimationFrame: (id) => clearTimeout(id),
+    fetch: async () => ({{ ok: false, status: 501, json: async () => ({{}}), text: async () => '' }}),
+    navigator,
+    location,
+    document,
+    performance,
+    MutationObserver,
+    IntersectionObserver,
+    ResizeObserver,
+    XMLHttpRequest,
+    Image: function Image() {{ return createNode(); }},
+    history: {{ replaceState: noop, pushState: noop, state: {{}} }},
+    addEventListener: noop,
+    removeEventListener: noop,
+    atob,
+    btoa,
+    Promise,
+    Array,
+    Object,
+    Map,
+    Set,
+    WeakMap,
+    WeakSet,
+    Date,
+    Math,
+    Number,
+    String,
+    Boolean,
+    RegExp,
+    Error,
+    EvalError,
+    TypeError,
+    URIError,
+    JSON,
+    URL,
+    URLSearchParams,
+    Intl,
+}});
+
+sandbox.window = sandbox;
+sandbox.self = sandbox;
+sandbox.global = sandbox;
+sandbox.globalThis = sandbox;
+document.body.ownerDocument = document;
+document.head.ownerDocument = document;
+document.documentElement.ownerDocument = document;
+
+// Create VM context
+const context = vm.createContext(sandbox);
+
+// Execute patched Player JS
+try {{
+    vm.runInContext(code, context, {{ filename: 'player.js' }});
+}} catch (e) {{
+    // Player JS may throw errors during execution, but our injection should work
+}}
+
+// Get the exported function
+const targetFn = sandbox.GLOBAL_OBJECT && sandbox.GLOBAL_OBJECT.Functions && sandbox.GLOBAL_OBJECT.Functions["{funcname}"];
+if (typeof targetFn !== 'function') {{
+    console.log('__ERROR__:Function {funcname} not exported');
+    process.exit(1);
+}}
+
+// Call the function with provided arguments
+try {{
+    const result = targetFn({args_json});
+    console.log('__RESULT__:' + result);
+}} catch (e) {{
+    console.log('__ERROR__:' + e.message);
+}}
+'''
+
+        try:
+            if use_stdin:
+                # Write Node.js script only
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8') as f:
+                    f.write(node_script)
+                    script_file = f.name
+
+                try:
+                    # Execute with Node.js, passing player JS via stdin
+                    result = subprocess.run(
+                        [node_path, script_file],
+                        input=patched_code,
+                        capture_output=True,
+                        text=True,
+                        timeout=timeout,
+                        check=True,
+                    )
+
+                    output = result.stdout.strip()
+
+                    # Parse the result
+                    if output.startswith('__RESULT__:'):
+                        decrypted = output.replace('__RESULT__:', '', 1)
+                        self.write_debug(f'[youtube] Node.js ({security_mode}) successfully executed {funcname}: {decrypted[:50]}...')
+                        return decrypted
+                    elif output.startswith('__ERROR__:'):
+                        error_msg = output.replace('__ERROR__:', '', 1)
+                        raise ExtractorError(f'Node.js function execution error: {error_msg}')
+                    else:
+                        raise ExtractorError(f'Unexpected Node.js output: {output[:1000]}')
+
+                finally:
+                    # Clean up temp script file
+                    with contextlib.suppress(OSError):
+                        os.unlink(script_file)
+            else:
+                # Write patched code to temp file
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8') as f:
+                    f.write(patched_code)
+                    code_file = f.name
+
+                # Write Node.js script
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8') as f:
+                    f.write(node_script)
+                    script_file = f.name
+
+                try:
+                    # Execute with Node.js
+                    result = subprocess.run(
+                        [node_path, script_file, code_file],
+                        capture_output=True,
+                        text=True,
+                        timeout=timeout,
+                        check=True,
+                    )
+
+                    output = result.stdout.strip()
+
+                    # Parse the result
+                    if output.startswith('__RESULT__:'):
+                        return output.replace('__RESULT__:', '', 1)
+                    elif output.startswith('__ERROR__:'):
+                        error_msg = output.replace('__ERROR__:', '', 1)
+                        raise ExtractorError(f'Node.js function execution error: {error_msg}')
+                    else:
+                        raise ExtractorError(f'Unexpected Node.js output: {output[:1000]}')
+
+                finally:
+                    # Clean up temp files
+                    with contextlib.suppress(OSError):
+                        os.unlink(code_file)
+                        os.unlink(script_file)
+
+        except subprocess.TimeoutExpired:
+            raise ExtractorError(f'Node.js execution timeout ({timeout}s)')
+        except subprocess.CalledProcessError as e:
+            error_msg = e.stderr if e.stderr else e.stdout if e.stdout else 'Unknown error'
+            self.write_debug(f'[youtube] Node.js stderr: {e.stderr[:500] if e.stderr else "empty"}')
+            self.write_debug(f'[youtube] Node.js stdout: {e.stdout[:500] if e.stdout else "empty"}')
+            raise ExtractorError(f'Node.js execution failed: {error_msg[:500]}')
+        except Exception as e:
+            raise ExtractorError(f'Node.js execution error: {e}')
+
     def _parse_sig_js(self, jscode, player_url):
         # Examples where `sig` is funcname:
         # sig=function(a){a=a.split(""); ... ;return a.join("")};
@@ -2167,27 +2777,80 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # sig=function(J){J=J.split(""); ... ;return J.join("")};
         # ;N&&(N=sig(decodeURIComponent(N)),J.set(R,encodeURIComponent(N)));return J};
         # {var H=u,k=f.sp,v=sig(decodeURIComponent(f.s));H.set(k,encodeURIComponent(v))}
-        funcname = self._search_regex(
-            (r'\b(?P<var>[a-zA-Z0-9_$]+)&&\((?P=var)=(?P<sig>[a-zA-Z0-9_$]{2,})\(decodeURIComponent\((?P=var)\)\)',
-             r'(?P<sig>[a-zA-Z0-9_$]{2,3})=function\([^)]*\)\{[^}]*decodeURIComponent\([^}]*\[[a-zA-Z0-9_$]+\[',
-             r'(?P<sig>[a-zA-Z0-9_$]+)\s*=\s*function\(\s*(?P<arg>[a-zA-Z0-9_$]+)\s*\)\s*{\s*(?P=arg)\s*=\s*(?P=arg)\.split\(\s*""\s*\)\s*;\s*[^}]+;\s*return\s+(?P=arg)\.join\(\s*""\s*\)',
-             r'(?:\b|[^a-zA-Z0-9_$])(?P<sig>[a-zA-Z0-9_$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)(?:;[a-zA-Z0-9_$]{2}\.[a-zA-Z0-9_$]{2}\(a,\d+\))?',
-             # Old patterns
-             r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\bm=(?P<sig>[a-zA-Z0-9$]{2,})\(decodeURIComponent\(h\.s\)\)',
-             # Obsolete patterns
-             r'("|\')signature\1\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\.sig\|\|(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\('),
-            jscode, 'Initial JS player signature function name', group='sig')
+        # New pattern (2025): matches signatures after set("alr","yes")
+        # e&&(e=iVz(decodeURIComponent(e)) - no extra param
+        # d&&(d=nY(11,decodeURIComponent(d)) - with extra param 11
+        # c&&(c=Qt(13,decodeURIComponent(c)) - with extra param 13
+
+        funcname = None
+        extra_param = None
+
+        # First, try to extract signature function with optional leading parameter
+        # Try new pattern with parameter first
+        match = self._search_regex(
+            r'\.set\(["\']alr["\'],["\']yes["\']\);[a-zA-Z0-9_$]+&&\([a-zA-Z0-9_$]+=(?P<sig>[a-zA-Z0-9_$]{2,})\((?P<param>\d+),decodeURIComponent\(',
+            jscode, 'signature function with parameter', group=('sig', 'param'), fatal=False)
+
+        if match:
+            funcname, extra_param = match
+            self.write_debug(f'[youtube] Found signature function {funcname} with extra parameter: {extra_param}')
+
+        # If not found, try patterns without parameter
+        if not funcname:
+            funcname = self._search_regex(
+                (r'\.set\(["\']alr["\'],["\']yes["\']\);[a-zA-Z0-9_$]+&&\([a-zA-Z0-9_$]+=(?P<sig>[a-zA-Z0-9_$]{2,})\(decodeURIComponent\(',
+                 r'\b(?P<var>[a-zA-Z0-9_$]+)&&\((?P=var)=(?P<sig>[a-zA-Z0-9_$]{2,})\(decodeURIComponent\((?P=var)\)\)',
+                 r'(?P<sig>[a-zA-Z0-9_$]+)\s*=\s*function\(\s*(?P<arg>[a-zA-Z0-9_$]+)\s*\)\s*{\s*(?P=arg)\s*=\s*(?P=arg)\.split\(\s*""\s*\)\s*;\s*[^}]+;\s*return\s+(?P=arg)\.join\(\s*""\s*\)',
+                 r'(?:\b|[^a-zA-Z0-9_$])(?P<sig>[a-zA-Z0-9_$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)(?:;[a-zA-Z0-9_$]{2}\.[a-zA-Z0-9_$]{2}\(a,\d+\))?',
+                 # Old patterns
+                 r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
+                 r'\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
+                 r'\bm=(?P<sig>[a-zA-Z0-9$]{2,})\(decodeURIComponent\(h\.s\)\)',
+                 # Obsolete patterns
+                 r'("|\')signature\1\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
+                 r'\.sig\|\|(?P<sig>[a-zA-Z0-9$]+)\(',
+                 r'yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*(?P<sig>[a-zA-Z0-9$]+)\(',
+                 r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
+                 r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\('),
+                jscode, 'Initial JS player signature function name', group='sig')
 
         varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
-        jsi = JSInterpreter(jscode)
-        initial_function = jsi.extract_function(funcname, filter_dict({varname: global_list}))
-        return lambda s: initial_function([s])
+
+        # Try JSInterpreter first, fallback to Node.js if it fails
+        try:
+            jsi = JSInterpreter(jscode)
+            initial_function = jsi.extract_function(funcname, filter_dict({varname: global_list}))
+
+            # Test if JSInterpreter can execute the function
+            test_sig = ''.join(map(chr, range(65, 75)))  # "ABCDEFGHIJ"
+            try:
+                if extra_param:
+                    _ = initial_function([int(extra_param), test_sig])
+                else:
+                    _ = initial_function([test_sig])
+
+                # JSInterpreter works, return wrapper function
+                if extra_param:
+                    return lambda s: initial_function([int(extra_param), s])
+                else:
+                    return lambda s: initial_function([s])
+
+            except JSInterpreter.Exception as e:
+                # JSInterpreter can't execute, fallback to Node.js
+                self.write_debug(f'[youtube] JSInterpreter failed on test: {str(e)[:100]}...')
+                raise
+
+        except JSInterpreter.Exception as e:
+            # JSInterpreter failed, fallback to Node.js
+            self.write_debug(f'[youtube] JSInterpreter failed: {str(e)[:100]}...')
+            self.write_debug(f'[youtube] Falling back to Node.js for signature function {funcname}')
+
+            # Return wrapper that uses Node.js
+            # Note: extra_param is injected as first argument if present
+            if extra_param:
+                return lambda s: self._execute_js_with_nodejs(jscode, funcname, int(extra_param), s)
+            else:
+                return lambda s: self._execute_js_with_nodejs(jscode, funcname, s)
 
     def _cached(self, func, *cache_id):
         def inner(*args, **kwargs):
@@ -2223,12 +2886,151 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.cache.store(*cache_id, data)
             self._player_cache[cache_id] = data
 
+    def _decrypt_info(self, s, video_id, player_url, jscode=None):
+        """
+        Extract decryption function information for signature and nsig.
+
+        This method provides metadata about the decryption functions by calling
+        the actual extraction methods (_parse_sig_js and _extract_n_function_name)
+        and intercepting their results. This ensures we're using the same logic
+        as the real decryption process.
+
+        Args:
+            s: Encrypted string (signature or nsig)
+            video_id: YouTube video ID
+            player_url: URL to the player JS file (or local path)
+            jscode: Optional pre-loaded player JS code (for testing with local files)
+
+        Returns:
+            dict: {
+                'signature_function': str,     # Name of signature function (e.g., 'nY', 'iVz')
+                'signature_param': int|None,   # Extra parameter if present (e.g., 11, 13)
+                'nsig_function': str,          # Name of n-signature function (e.g., 'xNl', 'LMm')
+                'player_url': str,             # Full player URL
+                'has_signature': bool,         # Whether signature function was found
+                'has_nsig': bool,              # Whether nsig function was found
+            }
+        """
+        if player_url is None:
+            raise ExtractorError('Cannot extract function info without player_url')
+
+        player_url = urljoin('https://www.youtube.com', player_url)
+
+        # Allow passing jscode directly for testing with local files
+        if jscode is None:
+            jscode = self._load_player(video_id, player_url)
+
+        result = {
+            'player_url': player_url,
+            'signature_function': None,
+            'signature_param': None,
+            'nsig_function': None,
+            'has_signature': False,
+            'has_nsig': False,
+        }
+
+        # Create a temporary downloader if not exists
+        if not hasattr(self, '_downloader') or self._downloader is None:
+            # Create a mock downloader with all required attributes
+            mock_styles = type('Styles', (object,), {
+                'EMPHASIS': 'emphasis',
+                'ERROR': 'error',
+                'WARNING': 'warning',
+                'SUPPRESS': 'suppress',
+            })()
+            self._downloader = type('obj', (object,), {
+                'write_debug': lambda *args, **kwargs: None,
+                'report_warning': lambda *args, **kwargs: None,
+                '_format_err': lambda msg, *args, **kwargs: msg,
+                'Styles': mock_styles,
+            })()
+
+        # Extract signature function info by hooking into _parse_sig_js
+        try:
+            # Hook _search_regex and write_debug to capture function name and parameter
+            original_search_regex = self._search_regex
+            original_write_debug = self.write_debug
+            captured_info = {'funcname': None, 'param': None}
+
+            def hooked_search_regex(patterns, string, name, **kwargs):
+                """Intercept _search_regex to capture signature function info"""
+                result_match = original_search_regex(patterns, string, name, **kwargs)
+
+                # Capture from 'signature function with parameter' search
+                if name == 'signature function with parameter' and result_match:
+                    captured_info['funcname'] = result_match[0]
+                    captured_info['param'] = result_match[1]
+                # Capture from 'Initial JS player signature function name' search
+                elif name == 'Initial JS player signature function name' and result_match:
+                    if captured_info['funcname'] is None:  # Don't override if already captured
+                        captured_info['funcname'] = result_match
+
+                return result_match
+
+            def hooked_write_debug(msg, **kwargs):
+                """Intercept write_debug to capture extra parameter info"""
+                if isinstance(msg, str) and 'Found signature function' in msg and 'with extra parameter' in msg:
+                    # Format: [youtube] Found signature function nY with extra parameter: 11
+                    match = re.search(r'Found signature function (\w+) with extra parameter: (\d+)', msg)
+                    if match:
+                        captured_info['funcname'] = match.group(1)
+                        captured_info['param'] = match.group(2)
+                # Don't call original to avoid debug output in info mode
+
+            # Temporarily replace methods
+            self._search_regex = hooked_search_regex
+            self.write_debug = hooked_write_debug
+
+            try:
+                # Call _parse_sig_js to extract signature function
+                self._parse_sig_js(jscode, player_url)
+
+                # Restore captured info
+                if captured_info['funcname']:
+                    result['signature_function'] = captured_info['funcname']
+                    result['signature_param'] = int(captured_info['param']) if captured_info['param'] else None
+                    result['has_signature'] = True
+
+            finally:
+                # Always restore original methods
+                self._search_regex = original_search_regex
+                self.write_debug = original_write_debug
+
+        except Exception:
+            # Restore methods in case of error
+            if hasattr(self, '_search_regex'):
+                self._search_regex = original_search_regex
+            if hasattr(self, 'write_debug'):
+                self.write_debug = original_write_debug
+            # Note: This is expected for testing, so don't treat as error
+            pass
+
+        # Extract nsig function info by calling _extract_n_function_name
+        try:
+            nsig_funcname = self._extract_n_function_name(jscode, player_url=player_url)
+            if nsig_funcname:
+                result['nsig_function'] = nsig_funcname
+                result['has_nsig'] = True
+        except Exception:
+            # Try without player_url as fallback (for local file testing)
+            try:
+                nsig_funcname = self._extract_n_function_name(jscode, player_url=None)
+                if nsig_funcname:
+                    result['nsig_function'] = nsig_funcname
+                    result['has_nsig'] = True
+            except Exception:
+                pass  # Both attempts failed, leave as None
+
+        return result
+
     def _decrypt_signature(self, s, video_id, player_url):
         """Turn the encrypted s field into a working signature"""
         extract_sig = self._cached(
             self._extract_signature_function, 'sig', player_url, self._signature_cache_id(s))
         func = extract_sig(video_id, player_url, s)
-        return func(s)
+        ret = func(s)
+        self.write_debug(f'Decrypted signature {s} => {ret}')
+        return ret
 
     def _decrypt_nsig(self, s, video_id, player_url):
         """Turn the encrypted n field into a working signature"""
@@ -2241,10 +3043,29 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         except ExtractorError as e:
             raise ExtractorError('Unable to extract nsig function code', cause=e)
 
+        # Get function name for potential Node.js fallback
+        func_name = self._extract_n_function_name(self._load_player(video_id, player_url), player_url=player_url)
+
         try:
             extract_nsig = self._cached(self._extract_n_function_from_code, self._NSIG_FUNC_CACHE_ID, player_url)
             ret = extract_nsig(jsi, func_code)(s)
         except JSInterpreter.Exception as e:
+            # First, try Node.js fallback if available
+            if shutil.which('node'):
+                self.write_debug(f'[youtube] JSInterpreter failed for nsig: {str(e)[:100]}...')
+                self.write_debug(f'[youtube] Falling back to Node.js for nsig function {func_name}')
+                try:
+                    jscode = self._load_player(video_id, player_url)
+                    ret = self._execute_js_with_nodejs(jscode, func_name, s)
+                    self.write_debug(f'Decrypted nsig {s} => {ret}')
+                    # Only cache nsig func JS code to disk if successful, and only once
+                    self._store_player_data_to_cache('nsig', player_url, func_code)
+                    return ret
+                except ExtractorError as node_error:
+                    self.write_debug(f'[youtube] Node.js fallback also failed: {node_error}')
+                    # Continue to PhantomJS fallback
+
+            # If Node.js not available or failed, try PhantomJS
             try:
                 jsi = PhantomJSwrapper(self, timeout=5000)
             except ExtractorError:
@@ -2280,7 +3101,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 ''' % re.escape(match.group('argname')[::-1])
                 if match := re.search(pattern, jscode[match.start()::-1]):
                     a, b = match.group('funcname_a', 'funcname_b')
-                    return (a or b)[::-1]
+                    funcname = (a or b)[::-1]
+                    self.write_debug(join_nonempty(
+                        f'Extracted n function name (via -_w8_ rule): {funcname}',
+                        player_url and f'        player = {player_url}', delim='\n'))
+                    return funcname
+
             self.write_debug(join_nonempty(
                 'Initial search was unable to find nsig function name',
                 player_url and f'        player = {player_url}', delim='\n'), only_once=True)
@@ -2311,6 +3137,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
             (?(var),[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,(?P=var)\))''',
             jscode, 'n function name', group=('nfunc', 'idx'), default=(None, None))
+        if funcname:
+            self.write_debug(join_nonempty(
+                f'Extracted n function name (main pattern): {funcname}' + (f'[{idx}]' if idx else ''),
+                player_url and f'        player = {player_url}', delim='\n'))
         if not funcname:
             # Try static array declaration pattern as fallback:
             # var S1U=[lg6];g.N=g.Ue.prototype;g.N.Nq=function(v){this.segments.push(  (81567a87)
@@ -2320,7 +3150,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 jscode, 'n function name from static array', group='n', default=None)
             if funcname:
                 self.write_debug(join_nonempty(
-                    'Identified nsig function from static array declaration',
+                    f'Extracted n function name (static array): {funcname}',
                     player_url and f'        player = {player_url}', delim='\n'), only_once=True)
                 return funcname
 
@@ -2328,17 +3158,28 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(join_nonempty(
                 'Falling back to generic n function search',
                 player_url and f'         player = {player_url}', delim='\n'), only_once=True)
-            return self._search_regex(
+            funcname = self._search_regex(
                 r'''(?xs)
                 ;\s*(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
                 \s*\{(?:(?!};).)+?return\s*(?P<q>["'])[\w-]+_w8_(?P=q)\s*\+\s*[a-zA-Z0-9_$]+''',
                 jscode, 'Initial JS player n function name', group='name')
+            self.write_debug(join_nonempty(
+                f'Extracted n function name (generic fallback): {funcname}',
+                player_url and f'        player = {player_url}', delim='\n'))
+            return funcname
         elif not idx:
+            self.write_debug(join_nonempty(
+                f'Using n function name (no index): {funcname}',
+                player_url and f'        player = {player_url}', delim='\n'))
             return funcname
 
-        return json.loads(js_to_json(self._search_regex(
+        final_funcname = json.loads(js_to_json(self._search_regex(
             rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])\s*[,;]', jscode,
             f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
+        self.write_debug(join_nonempty(
+            f'Extracted n function name (from array): {funcname}[{idx}] = {final_funcname}',
+            player_url and f'        player = {player_url}', delim='\n'))
+        return final_funcname
 
     def _interpret_player_js_global_var(self, jscode, player_url):
         """Returns tuple of: variable name string, variable value list"""
@@ -3477,6 +4318,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             fmt_url = fmt.get('url')
             if not fmt_url:
                 sc = urllib.parse.parse_qs(fmt.get('signatureCipher'))
+                # Debug: show signatureCipher
+                # if sc:
+                #     self.write_debug(f'signatureCipher data for itag {fmt.get("itag")}:')
+                #     self.write_debug(f'  s (encrypted_sig): {sc.get("s", ["N/A"])[0]}')
+                #     self.write_debug(f'  sp (sig_param): {sc.get("sp", ["N/A"])[0]}')
+                #     self.write_debug(f'  url (base): {sc.get("url", ["N/A"])[0]}')
+
                 fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
                 encrypted_sig = try_get(sc, lambda x: x['s'][0])
                 if not all((sc, fmt_url, player_url, encrypted_sig)):
@@ -3496,6 +4344,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         traverse_obj(sc, ('sp', -1)) or 'signature',
                         self._decrypt_signature(encrypted_sig, video_id, player_url),
                     )
+                    # Debug: show decrypted info
+                    # self.write_debug(f'  Full URL: {fmt_url}')
                 except ExtractorError as e:
                     self.report_warning(
                         f'Signature extraction failed: Some formats may be missing\n'
