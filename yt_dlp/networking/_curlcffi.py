@@ -282,7 +282,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 headers=headers,
                 data=request.data,
                 verify=self.verify,
-                max_redirects=5,
+                max_redirects=5 if request.allow_redirects else 0,
                 timeout=(timeout, timeout),
                 impersonate=self._SUPPORTED_IMPERSONATE_TARGET_MAP.get(
                     self._get_request_target(request)),

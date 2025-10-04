@@ -394,6 +394,7 @@ class Request:
     @param query: URL query parameters to update the url with.
     @param method: HTTP method to use. If no method specified, will use POST if payload data is present else GET
     @param extensions: Dictionary of Request extensions to add, as supported by handlers.
+    @param allow_redirects: Allow HTTP redirects to be handled automatically
     """
 
     def __init__(
@@ -405,6 +406,7 @@ class Request:
             query: dict | None = None,
             method: str | None = None,
             extensions: dict | None = None,
+            allow_redirects: bool = True
     ):
 
         self._headers = HTTPHeaderDict()
@@ -420,6 +422,7 @@ class Request:
         self.data = data  # note: must be done after setting headers
         self.proxies = proxies or {}
         self.extensions = extensions or {}
+        self.allow_redirects = allow_redirects
 
     @property
     def url(self):
@@ -487,11 +490,12 @@ class Request:
         else:
             raise TypeError('headers must be a mapping')
 
-    def update(self, url=None, data=None, headers=None, query=None, extensions=None):
+    def update(self, url=None, data=None, headers=None, query=None, extensions=None, allow_redirects=True):
         self.data = data if data is not None else self.data
         self.headers.update(headers or {})
         self.extensions.update(extensions or {})
         self.url = update_url_query(url or self.url, query or {})
+        self.allow_redirects = allow_redirects
 
     def copy(self):
         return self.__class__(

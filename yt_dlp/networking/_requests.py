@@ -125,6 +125,10 @@ class RequestsResponseAdapter(Response):
             # Work around issue with `.read(amt)` then `.read()`
             # See: https://github.com/urllib3/urllib3/issues/3636
             if amt is None:
+                # FIXME: requests appears to consume the data for these requests,
+                # disregarding stream=True set during request.
+                if 300 <= self.status < 400:
+                    return self._requests_response.content
                 # Python 3.9 preallocates the whole read buffer, read in chunks
                 read_chunk = functools.partial(self.fp.read, 1 << 20, decode_content=True)
                 return b''.join(iter(read_chunk, b''))
@@ -324,7 +328,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
                 headers=headers,
                 timeout=self._calculate_timeout(request),
                 proxies=self._get_proxies(request),
-                allow_redirects=True,
+                allow_redirects=request.allow_redirects,
                 stream=True,
             )
 
