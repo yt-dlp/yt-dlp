@@ -2,16 +2,23 @@ import itertools
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
-from ..utils import int_or_none, traverse_obj, url_or_none, urljoin
+from ..utils import (
+    ExtractorError,
+    int_or_none,
+    update_url_query,
+    url_or_none,
+    urljoin,
+)
+from ..utils.traversal import traverse_obj
 
 
 class TenPlayIE(InfoExtractor):
     IE_NAME = '10play'
-    _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?:[^/?#]+/)+(?P<id>tpv\d{6}[a-z]{5})'
+    _VALID_URL = r'https?://(?:www\.)?10(?:play)?\.com\.au/(?:[^/?#]+/)+(?P<id>tpv\d{6}[a-z]{5})'
     _NETRC_MACHINE = '10play'
     _TESTS = [{
         # Geo-restricted to Australia
-        'url': 'https://10play.com.au/australian-survivor/web-extras/season-10-brains-v-brawn-ii/myless-journey/tpv250414jdmtf',
+        'url': 'https://10.com.au/australian-survivor/web-extras/season-10-brains-v-brawn-ii/myless-journey/tpv250414jdmtf',
         'info_dict': {
             'id': '7440980000013868',
             'ext': 'mp4',
@@ -32,7 +39,7 @@ class TenPlayIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
     }, {
         # Geo-restricted to Australia
-        'url': 'https://10play.com.au/neighbours/episodes/season-42/episode-9107/tpv240902nzqyp',
+        'url': 'https://10.com.au/neighbours/episodes/season-42/episode-9107/tpv240902nzqyp',
         'info_dict': {
             'id': '9000000000091177',
             'ext': 'mp4',
@@ -55,7 +62,7 @@ class TenPlayIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
     }, {
         # Geo-restricted to Australia; upgrading the m3u8 quality fails and we need the fallback
-        'url': 'https://10play.com.au/tiny-chef-show/episodes/season-1/episode-2/tpv240228pofvt',
+        'url': 'https://10.com.au/tiny-chef-show/episodes/season-1/episode-2/tpv240228pofvt',
         'info_dict': {
             'id': '9000000000084116',
             'ext': 'mp4',
@@ -77,6 +84,7 @@ class TenPlayIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Failed to download m3u8 information: HTTP Error 502'],
+        'skip': 'video unavailable',
     }, {
         'url': 'https://10play.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
         'only_matching': True,
@@ -96,19 +104,24 @@ class TenPlayIE(InfoExtractor):
     def _real_extract(self, url):
         content_id = self._match_id(url)
         data = self._download_json(
-            'https://10play.com.au/api/v1/videos/' + content_id, content_id)
+            'https://10.com.au/api/v1/videos/' + content_id, content_id)
 
         video_data = self._download_json(
             f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
             content_id, 'Downloading video JSON')
+        # Dash URL 404s, changing the m3u8 format works
         m3u8_url = self._request_webpage(
-            HEADRequest(video_data['items'][0]['HLSURL']),
+            HEADRequest(update_url_query(video_data['items'][0]['dashManifestUrl'], {
+                'manifest': 'm3u',
+            })),
             content_id, 'Checking stream URL').url
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
+        if '10play_unsupported' in m3u8_url:
+            raise ExtractorError('Unable to extract stream')
         # Attempt to get a higher quality stream
         formats = self._extract_m3u8_formats(
-            m3u8_url.replace(',150,75,55,0000', ',300,150,75,55,0000'),
+            m3u8_url.replace(',150,75,55,0000', ',500,300,150,75,55,0000'),
             content_id, 'mp4', fatal=False)
         if not formats:
             formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
@@ -137,21 +150,24 @@ class TenPlayIE(InfoExtractor):
 
 class TenPlaySeasonIE(InfoExtractor):
     IE_NAME = '10play:season'
-    _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?P<show>[^/?#]+)/episodes/(?P<season>[^/?#]+)/?(?:$|[?#])'
+    _VALID_URL = r'https?://(?:www\.)?10(?:play)?\.com\.au/(?P<show>[^/?#]+)/episodes/(?P<season>[^/?#]+)/?(?:$|[?#])'
     _TESTS = [{
-        'url': 'https://10play.com.au/masterchef/episodes/season-15',
+        'url': 'https://10.com.au/masterchef/episodes/season-15',
         'info_dict': {
             'title': 'Season 15',
             'id': 'MTQ2NjMxOQ==',
         },
         'playlist_mincount': 50,
     }, {
-        'url': 'https://10play.com.au/the-bold-and-the-beautiful-fast-tracked/episodes/season-2024',
+        'url': 'https://10.com.au/the-bold-and-the-beautiful-fast-tracked/episodes/season-2024',
         'info_dict': {
             'title': 'Season 2024',
             'id': 'Mjc0OTIw',
         },
         'playlist_mincount': 159,
+    }, {
+        'url': 'https://10play.com.au/the-bold-and-the-beautiful-fast-tracked/episodes/season-2024',
+        'only_matching': True,
     }]
 
     def _entries(self, load_more_url, display_id=None):
@@ -172,7 +188,7 @@ class TenPlaySeasonIE(InfoExtractor):
     def _real_extract(self, url):
         show, season = self._match_valid_url(url).group('show', 'season')
         season_info = self._download_json(
-            f'https://10play.com.au/api/shows/{show}/episodes/{season}', f'{show}/{season}')
+            f'https://10.com.au/api/shows/{show}/episodes/{season}', f'{show}/{season}')
 
         episodes_carousel = traverse_obj(season_info, (
             'content', 0, 'components', (

@@ -99,7 +99,7 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
     if external_downloader is None:
         if info_dict['to_stdout'] and FFmpegFD.can_merge_formats(info_dict, params):
             return FFmpegFD
-    elif external_downloader.lower() != 'native':
+    elif external_downloader.lower() != 'native' and info_dict.get('impersonate') is None:
         ed = get_external_downloader(external_downloader)
         if ed.can_download(info_dict, external_downloader):
             return ed

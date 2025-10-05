@@ -65,7 +65,7 @@ class TikTokBaseIE(InfoExtractor):
 
     @functools.cached_property
     def _DEVICE_ID(self):
-        return self._KNOWN_DEVICE_ID or str(random.randint(7250000000000000000, 7351147085025500000))
+        return self._KNOWN_DEVICE_ID or str(random.randint(7250000000000000000, 7325099899999994577))
 
     @functools.cached_property
     def _API_HOSTNAME(self):
@@ -220,7 +220,7 @@ class TikTokBaseIE(InfoExtractor):
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
         video_data, status = {}, -1
 
-        res = self._download_webpage_handle(url, video_id, fatal=fatal, headers={'User-Agent': 'Mozilla/5.0'})
+        res = self._download_webpage_handle(url, video_id, fatal=fatal, impersonate=True)
         if res is False:
             return video_data, status
 
@@ -921,6 +921,8 @@ class TikTokUserIE(TikTokBaseIE):
             'id': 'MS4wLjABAAAAepiJKgwWhulvCpSuUVsp7sgVVsFJbbNaLeQ6OQ0oAJERGDUIXhb2yxxHZedsItgT',
             'title': 'corgibobaa',
         },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
     }, {
         'url': 'https://www.tiktok.com/@6820838815978423302',
         'playlist_mincount': 5,
@@ -928,6 +930,8 @@ class TikTokUserIE(TikTokBaseIE):
             'id': 'MS4wLjABAAAA0tF1nBwQVVMyrGu3CqttkNgM68Do1OXUFuCY0CRQk8fEtSVDj89HqoqvbSTmUP2W',
             'title': '6820838815978423302',
         },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
     }, {
         'url': 'https://www.tiktok.com/@meme',
         'playlist_mincount': 593,
@@ -935,14 +939,17 @@ class TikTokUserIE(TikTokBaseIE):
             'id': 'MS4wLjABAAAAiKfaDWeCsT3IHwY77zqWGtVRIy9v4ws1HbVi7auP1Vx7dJysU_hc5yRiGywojRD6',
             'title': 'meme',
         },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
     }, {
         'url': 'tiktokuser:MS4wLjABAAAAM3R2BtjzVT-uAtstkl2iugMzC6AtnpkojJbjiOdDDrdsTiTR75-8lyWJCY5VvDrZ',
         'playlist_mincount': 31,
         'info_dict': {
             'id': 'MS4wLjABAAAAM3R2BtjzVT-uAtstkl2iugMzC6AtnpkojJbjiOdDDrdsTiTR75-8lyWJCY5VvDrZ',
         },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
     }]
-    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0'
     _API_BASE_URL = 'https://www.tiktok.com/api/creator/item_list/'
 
     def _build_web_query(self, sec_uid, cursor):
@@ -980,15 +987,29 @@ class TikTokUserIE(TikTokBaseIE):
             'webcast_language': 'en',
         }
 
-    def _entries(self, sec_uid, user_name):
+    def _entries(self, sec_uid, user_name, fail_early=False):
         display_id = user_name or sec_uid
         seen_ids = set()
 
         cursor = int(time.time() * 1E3)
         for page in itertools.count(1):
-            response = self._download_json(
-                self._API_BASE_URL, display_id, f'Downloading page {page}',
-                query=self._build_web_query(sec_uid, cursor), headers={'User-Agent': self._USER_AGENT})
+            for retry in self.RetryManager():
+                response = self._download_json(
+                    self._API_BASE_URL, display_id, f'Downloading page {page}',
+                    query=self._build_web_query(sec_uid, cursor))
+
+                # Avoid infinite loop caused by bad device_id
+                # See: https://github.com/yt-dlp/yt-dlp/issues/14031
+                current_batch = sorted(traverse_obj(response, ('itemList', ..., 'id', {str})))
+                if current_batch and current_batch == sorted(seen_ids):
+                    message = 'TikTok API keeps sending the same page'
+                    if self._KNOWN_DEVICE_ID:
+                        raise ExtractorError(
+                            f'{message}. Try again with a different device_id', expected=True)
+                    # The user didn't pass a device_id so we can reset it and retry
+                    del self._DEVICE_ID
+                    retry.error = ExtractorError(
+                        f'{message}. Taking measures to avoid an infinite loop', expected=True)
 
             for video in traverse_obj(response, ('itemList', lambda _, v: v['id'])):
                 video_id = video['id']
@@ -1008,42 +1029,60 @@ class TikTokUserIE(TikTokBaseIE):
                 cursor = old_cursor - 7 * 86_400_000
             # In case 'hasMorePrevious' is wrong, break if we have gone back before TikTok existed
             if cursor < 1472706000000 or not traverse_obj(response, 'hasMorePrevious'):
-                break
+                return
 
-    def _get_sec_uid(self, user_url, user_name, msg):
+            # This code path is ideally only reached when one of the following is true:
+            # 1. TikTok profile is private and webpage detection was bypassed due to a tiktokuser:sec_uid URL
+            # 2. TikTok profile is *not* private but all of their videos are private
+            if fail_early and not seen_ids:
+                self.raise_login_required(
+                    'This user\'s account is likely either private or all of their videos are private. '
+                    'Log into an account that has access')
+
+    def _extract_sec_uid_from_embed(self, user_name):
         webpage = self._download_webpage(
-            user_url, user_name, fatal=False, headers={'User-Agent': 'Mozilla/5.0'},
-            note=f'Downloading {msg} webpage', errnote=f'Unable to download {msg} webpage') or ''
-        return (traverse_obj(self._get_universal_data(webpage, user_name),
-                             ('webapp.user-detail', 'userInfo', 'user', 'secUid', {str}))
-                or traverse_obj(self._get_sigi_state(webpage, user_name),
-                                ('LiveRoom', 'liveRoomUserInfo', 'user', 'secUid', {str}),
-                                ('UserModule', 'users', ..., 'secUid', {str}, any)))
+            f'https://www.tiktok.com/embed/@{user_name}', user_name,
+            'Downloading user embed page', errnote=False, fatal=False)
+        if not webpage:
+            self.report_warning('This user\'s account is either private or has embedding disabled')
+            return None
+
+        data = traverse_obj(self._search_json(
+            r'<script[^>]+\bid=[\'"]__FRONTITY_CONNECT_STATE__[\'"][^>]*>',
+            webpage, 'data', user_name, default={}),
+            ('source', 'data', f'/embed/@{user_name}', {dict}))
+
+        for aweme_id in traverse_obj(data, ('videoList', ..., 'id', {str})):
+            webpage_url = self._create_url(user_name, aweme_id)
+            video_data, _ = self._extract_web_data_and_status(webpage_url, aweme_id, fatal=False)
+            sec_uid = self._parse_aweme_video_web(
+                video_data, webpage_url, aweme_id, extract_flat=True).get('channel_id')
+            if sec_uid:
+                return sec_uid
+
+        return None
 
     def _real_extract(self, url):
         user_name, sec_uid = self._match_id(url), None
-        if mobj := re.fullmatch(r'MS4wLjABAAAA[\w-]{64}', user_name):
-            user_name, sec_uid = None, mobj.group(0)
+        if re.fullmatch(r'MS4wLjABAAAA[\w-]{64}', user_name):
+            user_name, sec_uid = None, user_name
+            fail_early = True
         else:
-            sec_uid = (self._get_sec_uid(self._UPLOADER_URL_FORMAT % user_name, user_name, 'user')
-                       or self._get_sec_uid(self._UPLOADER_URL_FORMAT % f'{user_name}/live', user_name, 'live'))
-
-        if not sec_uid:
             webpage = self._download_webpage(
-                f'https://www.tiktok.com/embed/@{user_name}', user_name,
-                note='Downloading user embed page', fatal=False) or ''
-            data = traverse_obj(self._search_json(
-                r'<script[^>]+\bid=[\'"]__FRONTITY_CONNECT_STATE__[\'"][^>]*>',
-                webpage, 'data', user_name, default={}),
-                ('source', 'data', f'/embed/@{user_name}', {dict}))
-
-            for aweme_id in traverse_obj(data, ('videoList', ..., 'id', {str})):
-                webpage_url = self._create_url(user_name, aweme_id)
-                video_data, _ = self._extract_web_data_and_status(webpage_url, aweme_id, fatal=False)
-                sec_uid = self._parse_aweme_video_web(
-                    video_data, webpage_url, aweme_id, extract_flat=True).get('channel_id')
-                if sec_uid:
-                    break
+                self._UPLOADER_URL_FORMAT % user_name, user_name,
+                'Downloading user webpage', 'Unable to download user webpage',
+                fatal=False, impersonate=True) or ''
+            detail = traverse_obj(
+                self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
+            if detail.get('statusCode') == 10222:
+                self.raise_login_required(
+                    'This user\'s account is private. Log into an account that has access')
+            sec_uid = traverse_obj(detail, ('userInfo', 'user', 'secUid', {str}))
+            if sec_uid:
+                fail_early = not traverse_obj(detail, ('userInfo', 'itemList', ...))
+            else:
+                sec_uid = self._extract_sec_uid_from_embed(user_name)
+                fail_early = False
 
         if not sec_uid:
             raise ExtractorError(
@@ -1051,7 +1090,7 @@ class TikTokUserIE(TikTokBaseIE):
                 'from a video posted by this user, try using "tiktokuser:channel_id" as the '
                 'input URL (replacing `channel_id` with its actual value)', expected=True)
 
-        return self.playlist_result(self._entries(sec_uid, user_name), sec_uid, user_name)
+        return self.playlist_result(self._entries(sec_uid, user_name, fail_early), sec_uid, user_name)
 
 
 class TikTokBaseListIE(TikTokBaseIE):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
@@ -1479,19 +1518,22 @@ class TikTokLiveIE(TikTokBaseIE):
 
     def _real_extract(self, url):
         uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
-        webpage = self._download_webpage(
-            url, uploader or room_id, headers={'User-Agent': 'Mozilla/5.0'}, fatal=not room_id)
+        if not room_id:
+            webpage = self._download_webpage(
+                format_field(uploader, None, self._UPLOADER_URL_FORMAT), uploader, impersonate=True)
+            room_id = traverse_obj(
+                self._get_universal_data(webpage, uploader),
+                ('webapp.user-detail', 'userInfo', 'user', 'roomId', {str}))
 
-        if webpage:
+        if not uploader or not room_id:
+            webpage = self._download_webpage(url, uploader or room_id, fatal=not room_id)
             data = self._get_sigi_state(webpage, uploader or room_id)
-            room_id = (
-                traverse_obj(data, ((
-                    ('LiveRoom', 'liveRoomUserInfo', 'user'),
-                    ('UserModule', 'users', ...)), 'roomId', {str}, any))
-                or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=room_id))
-            uploader = uploader or traverse_obj(
-                data, ('LiveRoom', 'liveRoomUserInfo', 'user', 'uniqueId'),
-                ('UserModule', 'users', ..., 'uniqueId'), get_all=False, expected_type=str)
+            room_id = room_id or traverse_obj(data, ((
+                ('LiveRoom', 'liveRoomUserInfo', 'user'),
+                ('UserModule', 'users', ...)), 'roomId', {str}, any))
+            uploader = uploader or traverse_obj(data, ((
+                ('LiveRoom', 'liveRoomUserInfo', 'user'),
+                ('UserModule', 'users', ...)), 'uniqueId', {str}, any))
 
         if not room_id:
             raise UserNotLive(video_id=uploader)
