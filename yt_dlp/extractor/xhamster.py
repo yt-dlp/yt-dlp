@@ -183,55 +183,48 @@ class XHamsterIE(InfoExtractor):
                 return n - 0x100000000
             return n
 
-        def create_prng(algo_id: int, seed: int):
-            s = to_signed_32(seed)
+        class prng:
+            def __init__(self, algo_id: int, seed: int):
+                try:
+                    self._the_algo = getattr(self, f'_algo{algo_id}')
+                except AttributeError:
+                    raise ValueError(f'Unknown algorithm ID: {algo_id}')
+                self._s = to_signed_32(seed)
 
-            def algo1():
-                nonlocal s
-                s = to_signed_32(s * 1664525 + 1013904223)
-                return s & 0xFF
+            def _algo1(self, s):
+                s = self._s = to_signed_32(s * 1664525 + 1013904223)
+                return s
 
-            def algo2():
-                nonlocal s
+            def _algo2(self, s):
                 s = to_signed_32(s ^ (s << 13))
                 s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 17))
-                s = to_signed_32(s ^ (s << 5))
-                return s & 0xFF
+                s = self._s = to_signed_32(s ^ (s << 5))
+                return s
 
-            def algo3():
-                nonlocal s
-                s = to_signed_32(s + 0x9e3779b9)
-                e = s
-                e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 16))
-                e = to_signed_32(e * to_signed_32(0x85ebca77))
-                e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 13))
-                e = to_signed_32(e * to_signed_32(0xc2b2ae3d))
-                e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 16))
-                return e & 0xFF
+            def _algo3(self, s):
+                s = self._s = to_signed_32(s + 0x9e3779b9)
+                s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 16))
+                s = to_signed_32(s * to_signed_32(0x85ebca77))
+                s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 13))
+                s = to_signed_32(s * to_signed_32(0xc2b2ae3d))
+                return to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 16))
 
-            if algo_id == 1:
-                return algo1
-            if algo_id == 2:
-                return algo2
-            if algo_id == 3:
-                return algo3
-            raise ValueError(f'Unknown algorithm ID: {algo_id}')
+            def next(self):
+                return self._the_algo(self._s) & 0xFF
 
         try:
             byte_data = bytes.fromhex(hex_string)
-        except ValueError as e:
+            byte_data[4]
+        except (ValueError, IndexError) as e:
             raise ValueError(f'Invalid hex string provided: {e}')
-
-        if len(byte_data) < 5:
-            raise ValueError('Hex string is too short.')
 
         algo_id = byte_data[0]
         seed = int.from_bytes(byte_data[1:5], byteorder='little', signed=True)
 
-        get_next_byte = create_prng(algo_id, seed)
+        byte_gen = prng(algo_id, seed)
 
         decrypted_bytes = bytearray(
-            byte_data[i] ^ get_next_byte() for i in range(5, len(byte_data))
+            byte_data[i] ^ byte_gen.next() for i in range(5, len(byte_data))
         )
 
         temp_string = decrypted_bytes.decode('latin-1')
