@@ -16,6 +16,7 @@ from ..utils import (
     join_nonempty,
     parse_duration,
     str_or_none,
+    traverse_obj,
     try_call,
     try_get,
     unified_strdate,
@@ -303,55 +304,62 @@ class XHamsterIE(InfoExtractor):
             if xplayer_sources:
                 hls_sources = xplayer_sources.get('hls')
                 if isinstance(hls_sources, dict):
-                    if 'url' in hls_sources or 'fallback' in hls_sources:
-                        for hls_format_key in ('url', 'fallback'):
-                            hls_url = hls_sources.get(hls_format_key)
-                            if not hls_url:
-                                continue
-                            hls_url = self._decipher_format_url(hls_url, f'hls-{hls_format_key}')
-                            if not hls_url or hls_url in format_urls:
-                                continue
+                    hls_entries = (
+                        (key, str_or_none(url))
+                        for key, url in traverse_obj(
+                            hls_sources,
+                            ({dict.items}, lambda _, item: item[0] in ('url', 'fallback') and item[1]),
+                            default=[])
+                    )
+                    for hls_format_key, encrypted_url in hls_entries:
+                        if not encrypted_url:
+                            continue
+                        hls_url = self._decipher_format_url(encrypted_url, f'hls-{hls_format_key}')
+                        if hls_url and hls_url not in format_urls:
                             format_urls.add(hls_url)
                             formats.extend(self._extract_m3u8_formats(
                                 hls_url, video_id, 'mp4', entry_protocol='m3u8_native',
                                 m3u8_id='hls', fatal=False))
                 standard_sources = xplayer_sources.get('standard')
                 if isinstance(standard_sources, dict):
-                    for identifier, formats_list in standard_sources.items():
-                        if not isinstance(formats_list, list):
+                    standard_entries = (
+                        (identifier, format_dict, url_key, str_or_none(format_dict.get(url_key)))
+                        for identifier, format_list in traverse_obj(
+                            standard_sources,
+                            ({dict.items}, lambda _, item: isinstance(item[1], list) and item),
+                            default=[])
+                        for format_dict in traverse_obj(format_list, (..., {dict}), default=[])
+                        for url_key in ('url', 'fallback')
+                    )
+                    for identifier, format_dict, url_key, encrypted_url in standard_entries:
+                        if not encrypted_url:
                             continue
-                        for standard_format in formats_list:
-                            if not isinstance(standard_format, dict):
-                                continue
-                            for standard_format_key in ('url', 'fallback'):
-                                standard_url = standard_format.get(standard_format_key)
-                                if not standard_url:
-                                    continue
-                                quality = (str_or_none(standard_format.get('quality'))
-                                           or str_or_none(standard_format.get('label'))
-                                           or '')
-                                format_id = join_nonempty(identifier, quality)
-                                standard_url = self._decipher_format_url(standard_url, format_id)
-                                if not standard_url or standard_url in format_urls:
-                                    continue
-                                format_urls.add(standard_url)
-                                ext = determine_ext(standard_url, 'mp4')
-                                if ext == 'm3u8':
-                                    formats.extend(self._extract_m3u8_formats(
-                                        standard_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                                        m3u8_id='hls', fatal=False))
-                                    continue
-
-                                formats.append({
-                                    'format_id': format_id,
-                                    'url': standard_url,
-                                    'ext': ext,
-                                    'height': get_height(quality),
-                                    'filesize': format_sizes.get(quality),
-                                    'http_headers': {
-                                        'Referer': standard_url,
-                                    },
-                                })
+                        quality = (str_or_none(format_dict.get('quality'))
+                                   or str_or_none(format_dict.get('label'))
+                                   or '')
+                        format_id = join_nonempty(identifier, quality)
+                        if url_key == 'fallback':
+                            format_id = join_nonempty(format_id, url_key)
+                        standard_url = self._decipher_format_url(encrypted_url, format_id)
+                        if not standard_url or standard_url in format_urls:
+                            continue
+                        format_urls.add(standard_url)
+                        ext = determine_ext(standard_url, 'mp4')
+                        if ext == 'm3u8':
+                            formats.extend(self._extract_m3u8_formats(
+                                standard_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                                m3u8_id='hls', fatal=False))
+                        else:
+                            formats.append({
+                                'format_id': format_id,
+                                'url': standard_url,
+                                'ext': ext,
+                                'height': get_height(quality),
+                                'filesize': format_sizes.get(quality),
+                                'http_headers': {
+                                    'Referer': standard_url,
+                                },
+                            })
 
             categories_list = video.get('categories')
             if isinstance(categories_list, list):
