@@ -6,6 +6,7 @@ import logging
 import re
 import socket
 import warnings
+import io
 
 from ..dependencies import brotli, requests, urllib3
 from ..utils import bug_reports_message, int_or_none, variadic
@@ -119,6 +120,7 @@ class RequestsResponseAdapter(Response):
             status=res.status_code, reason=res.reason)
 
         self._requests_response = res
+        self._content_adapated = False
 
     def read(self, amt: int | None = None):
         try:
@@ -127,13 +129,19 @@ class RequestsResponseAdapter(Response):
             if amt is None:
                 # FIXME: requests appears to consume the data for these requests,
                 # disregarding stream=True set during request.
-                if 300 <= self.status < 400:
+                if self._requests_response._content_consumed:
                     return self._requests_response.content
+
                 # Python 3.9 preallocates the whole read buffer, read in chunks
                 read_chunk = functools.partial(self.fp.read, 1 << 20, decode_content=True)
                 return b''.join(iter(read_chunk, b''))
+
+            if not self._content_adapted and self._requests_response._content_consumed:
+                self.fp = io.BytesIO(self._requests_response.content)
+                self._content_adapated = True
+
             # Interact with urllib3 response directly.
-            return self.fp.read(amt, decode_content=True)
+            return self.fp.read(amt) if self._content_adapated else self.fp.read(amt, decode_content=True)
 
         # See urllib3.response.HTTPResponse.read() for exceptions raised on read
         except urllib3.exceptions.SSLError as e:
@@ -290,6 +298,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         extensions.pop('timeout', None)
         extensions.pop('legacy_ssl', None)
         extensions.pop('keep_header_casing', None)
+        extensions.pop('allow_redirects', None)
 
     def _create_instance(self, cookiejar, legacy_ssl_support=None):
         session = RequestsSession()
@@ -320,6 +329,9 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
             legacy_ssl_support=request.extensions.get('legacy_ssl'),
         )
 
+        allow_redirects = request.extensions.get('allow_redirects')
+        allow_redirects = True if allow_redirects is None else allow_redirects
+
         try:
             requests_res = session.request(
                 method=request.method,
@@ -328,7 +340,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
                 headers=headers,
                 timeout=self._calculate_timeout(request),
                 proxies=self._get_proxies(request),
-                allow_redirects=request.allow_redirects,
+                allow_redirects=allow_redirects,
                 stream=True,
             )
 
