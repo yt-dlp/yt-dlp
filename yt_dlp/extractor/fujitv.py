@@ -44,15 +44,16 @@ class FujiTVFODPlus7IE(InfoExtractor):
         import random, string
         series_id, video_id = self._match_valid_url(url).groups()
         # 1. 取得 CT token
-        front_page = self._download_webpage(
-            self._FRONTEND_URL, video_id, note='Downloading front page for CT token', fatal=False)
+        # Use HEADRequest to fetch cookies (CT token)
+        self._request_webpage(HEADRequest(self._FRONTEND_URL), video_id)
         token = None
-        # 嘗試從 cookie 取得 CT
         cookies = self._get_cookies(self._FRONTEND_URL)
         if cookies and 'CT' in cookies:
             token = cookies['CT']['value']
         if not token:
-            # 從 HTML 嘗試正則抓取
+            # Fallback: try to fetch from HTML if needed (rare)
+            front_page = self._download_webpage(
+                self._FRONTEND_URL, video_id, note='Downloading front page for CT token', fatal=False)
             token = self._search_regex(r'CT=([^;]+);', front_page or '', 'ct token', default=None)
         if not token:
             raise self.raise_no_formats('Unable to get CT token; login/cookies may be required')
