@@ -41,7 +41,7 @@ import subprocess
 import typing
 
 @register_provider
-class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must end with "JSP"
+class MyJsChallengeProviderJCP(JsChallengeProvider):  # Provider class name must end with "JCP"
     PROVIDER_VERSION = '0.2.1'
     # Define a unique display name for the provider
     PROVIDER_NAME = 'my-provider'
@@ -115,7 +115,7 @@ class MyJsChallengeProviderJSP(JsChallengeProvider):  # Provider class name must
 # If there are multiple JS Challenge Providers that can handle the same JsChallengeRequest(s),
 # you can define a preference function to increase/decrease the priority of providers.
 
-@register_preference(MyJsChallengeProviderJSP)
+@register_preference(MyJsChallengeProviderJCP)
 def my_provider_preference(provider: JsChallengeProvider, requests: list[JsChallengeRequest]) -> int:
     return 50
 ```

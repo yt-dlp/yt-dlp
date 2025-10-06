@@ -73,7 +73,6 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     JS_RUNTIME_NAME: str
     _CACHE_SECTION = 'challenge-solver'
 
-    _JCP_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/YouTube-JS-Challenges'
     _REPOSITORY = 'yt-dlp/ejs'
     _SUPPORTED_TYPES = [JsChallengeType.N, JsChallengeType.SIG]
     _SCRIPT_VERSION = '0.0.1'
@@ -307,4 +306,4 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
             f'Remote {component_description} downloads are disabled. '
             f'This may be required to solve JS challenges using {self.JS_RUNTIME_NAME} JS runtime. '
             f'You can enable {component_description} downloads with "--remote-components {component}". '
-            f'For more information and alternatives, refer to  {self._JCP_GUIDE_URL}')
+            f'For more information and alternatives, refer to  {self.ie._EJS_WIKI_URL}')

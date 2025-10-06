@@ -260,6 +260,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     _GEO_BYPASS = False
 
+    _EJS_WIKI_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/EJS'
+
     IE_NAME = 'youtube'
     _TESTS = [{
         'url': 'https://www.youtube.com/watch?v=BaW_jenozKc&t=1s&end=9',
@@ -3404,16 +3406,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     # Raise warning if any challenge requests remain
                     # Depending on type of challenge request
-                    # TODO: this could happen as there are no supported JSC Providers
-                    # TODO: cleanup
+
+                    help_message = (
+                        'Ensure you have a supported JS Runtime and challenge solver script distribution installed. '
+                        'Review any warnings presented before this message. '
+                        f'For more details, refer to  {self._EJS_WIKI_URL}')
 
                     if s_challenges:
                         self.report_warning(
-                            'Signature extraction failed: Some formats may be missing',
+                            f'Signature solving failed: Some formats may be missing. {help_message}',
                             video_id=video_id, only_once=True)
                     if n_challenges:
                         self.report_warning(
-                            'n challenge extraction failed: Some formats may be missing',
+                            f'n challenge solving failed: Some formats may be missing. {help_message}',
                             video_id=video_id, only_once=True)
 
                     for cfmts in list(s_challenges.values()) + list(n_challenges.values()):
