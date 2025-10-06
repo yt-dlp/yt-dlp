@@ -41,7 +41,8 @@ class FujiTVFODPlus7IE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        import random, string
+        import random
+        import string
         series_id, video_id = self._match_valid_url(url).groups()
         # 1. 取得 CT token
         # Use HEADRequest to fetch cookies (CT token)
@@ -79,7 +80,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
         settings_json = self._download_json(
             auth_url, video_id, headers={
                 'x-authorization': f'Bearer {token}',
-                'User-Agent': 'Mozilla/5.0 (Linux; Android 9; SHIELD Android TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 9; SHIELD Android TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36',
             }, fatal=False)
         if not settings_json or 'settings' not in settings_json:
             raise self.raise_no_formats('Failed to get settings url')
