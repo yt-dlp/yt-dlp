@@ -7,11 +7,11 @@ from .common import InfoExtractor
 from ..utils import ExtractorError
 
 
-class PornDeadIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?porndead\.org/video/(?P<id>[0-9a-f]+)'
+class SexDeadIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?sexdead\.org/video/(?P<id>[0-9a-f]+)'
     _TESTS = [
         {
-            'url': 'https://porndead.org/video/65fefcb523810',
+            'url': 'https://sexdead.org/video/65fefcb523810',
             'info_dict': {
                 'id': '65fefcb523810',
                 'ext': 'mp4',
@@ -23,10 +23,9 @@ class PornDeadIE(InfoExtractor):
 
     def _real_extract(self, url):
         url = url.strip().lower()
-
         # if www is missing, add it because the relative URLs seem to depend on it
-        if '://porndead.org' in url:
-            url = url.replace('://porndead.org', '://www.porndead.org')
+        if '://sexdead.org' in url:
+            url = url.replace('://sexdead.org', '://www.sexdead.org')
 
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)

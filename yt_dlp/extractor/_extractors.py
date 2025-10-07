@@ -1819,6 +1819,7 @@ from .senategov import (
 from .sendtonews import SendtoNewsIE
 from .servus import ServusIE
 from .sevenplus import SevenPlusIE
+from .sexdead import SexDeadIE
 from .sexu import SexuIE
 from .seznamzpravy import (
     SeznamZpravyArticleIE,
