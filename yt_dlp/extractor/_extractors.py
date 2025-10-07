@@ -1554,6 +1554,7 @@ from .polskieradio import (
 from .popcorntimes import PopcorntimesIE
 from .popcorntv import PopcornTVIE
 from .pornbox import PornboxIE
+from .porndead import PornDeadIE
 from .pornflip import PornFlipIE
 from .pornhub import (
     PornHubIE,
