@@ -25,8 +25,10 @@ class PornDeadIE(InfoExtractor):
         url = url.strip().lower()
 
         # if www is missing, add it because the relative URLs seem to depend on it
-        if '://porndead.org' in url:
-            url = url.replace('://porndead.org', '://www.porndead.org')
+        parsed = urllib.parse.urlparse(url)
+        if parsed.netloc == 'porndead.org':
+            parsed = parsed._replace(netloc='www.porndead.org')
+            url = urllib.parse.urlunparse(parsed)
 
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)

@@ -24,8 +24,10 @@ class SexDeadIE(InfoExtractor):
     def _real_extract(self, url):
         url = url.strip().lower()
         # if www is missing, add it because the relative URLs seem to depend on it
-        if '://sexdead.org' in url:
-            url = url.replace('://sexdead.org', '://www.sexdead.org')
+        parsed = urllib.parse.urlparse(url)
+        if parsed.netloc == 'sexdead.org':
+            parsed = parsed._replace(netloc='www.sexdead.org')
+            url = urllib.parse.urlunparse(parsed)
 
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
