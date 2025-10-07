@@ -16,11 +16,16 @@ class PornDeadIE(InfoExtractor):
                 'id': '65fefcb523810',
                 'ext': 'mp4',
                 'title': 'Hysterical Literature - Isabel Love',
+                'age_limit': 18,
             },
         },
     ]
 
     def _real_extract(self, url):
+        # if www is missing, add it because the relative URLs seem to depend on it
+        if '://porndead.org' in url:
+            url = url.replace('://porndead.org', '://www.porndead.org')
+
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
@@ -69,7 +74,6 @@ class PornDeadIE(InfoExtractor):
                 data=b'',  # empty body to force POST where supported
             )
         except Exception as e:
-            print(e)
             raise ExtractorError(
                 f'Failed to download options from {player_endpoint}: {e}',
                 expected=True,
@@ -77,19 +81,12 @@ class PornDeadIE(InfoExtractor):
 
         formats = []
 
-        # write options_html to a file for debugging
-        with open(f'/tmp/porndead_{video_id}_options.mp4', 'w') as f:
-            f.write(options_html or '')
-            print(f'Wrote options HTML to /tmp/porndead_{video_id}_options.mp4')
-
         # try to find direct mp4 links in the returned HTML (anchors with class href_mp4)
         links = re.findall(
             r'<a[^>]+class=["\']href_mp4["\'][^>]*href=["\']([^"\']+)["\'][^>]*>([^<]+)</a>',
             options_html or '',
             flags=re.IGNORECASE,
         )
-
-        print(links)
 
         for href, label in links:
             full_url = urllib.parse.urljoin(url, href)
@@ -117,18 +114,6 @@ class PornDeadIE(InfoExtractor):
             fmt['http_headers'] = {'Referer': url, 'User-Agent': 'Mozilla/5.0'}
 
             formats.append(fmt)
-
-        # we can also get the m3u8 by GET on the player_url without &type=1
-        formats.extend(
-            self._extract_m3u8_formats(
-                player_url,
-                video_id,
-                'mp4',
-                entry_protocol='m3u8_native',
-                m3u8_id='hls',
-                fatal=False,
-            ),
-        )
 
         return {
             'id': video_id,
