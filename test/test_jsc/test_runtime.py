@@ -65,9 +65,10 @@ RESPONSES = [
 
 @pytest.fixture(params=[BunJCP, DenoJCP, NodeJCP])
 def jcp(request, ie, logger):
-    obj = request.param(ie, logger, settings={'dev_mode': ['true']})
+    obj = request.param(ie, logger)
     if not obj.is_available():
         pytest.skip(f'{obj.PROVIDER_NAME} is not available')
+    obj.is_dev = True
     return obj
 
 
