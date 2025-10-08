@@ -1,6 +1,5 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj
-from ..utils import unified_timestamp
+from ..utils import traverse_obj, unified_timestamp
 
 
 class IdagioTrackIE(InfoExtractor):
@@ -38,7 +37,7 @@ class IdagioTrackIE(InfoExtractor):
             'track': 'Sonata for Piano No. 14 in C sharp minor op. 27/2: I. Adagio sostenuto',
             'track_id': '20514478',
             'timestamp': 1518076337511,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -63,7 +62,7 @@ class IdagioTrackIE(InfoExtractor):
             'track': work_name + ': ' + traverse_obj(track_info, ('piece', 'title')),
             'track_id': track_id,
             'artists': (artists + (traverse_obj(track_info, ('recording', 'ensembles', ..., 'name')) or [])
-            + (traverse_obj(track_info, ('recording', 'soloists', ..., 'name')) or [])),
+                        + (traverse_obj(track_info, ('recording', 'soloists', ..., 'name')) or [])),
             'composers': [traverse_obj(track_info, ('piece', 'workpart', 'work', 'composer', 'name'))],
             'genres': [traverse_obj(track_info, ('piece', 'workpart', 'work', 'genre', 'title')),
                        traverse_obj(track_info, ('piece', 'workpart', 'work', 'subgenre', 'title'))],
