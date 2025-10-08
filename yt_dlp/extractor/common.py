@@ -870,7 +870,10 @@ class InfoExtractor:
             sleep_interval = self.get_param('sleep_interval_requests') or 0
             if sleep_interval > 0:
                 self.to_screen(f'Sleeping {sleep_interval} seconds ...')
-                time.sleep(sleep_interval)
+                for remaining in range(int(sleep_interval), 0, -1):
+                    self.to_screen(f'  [wait] {remaining:>3}s remaining', quiet=True)
+                    time.sleep(1)
+
         else:
             self._downloader._first_webpage_request = False
 
