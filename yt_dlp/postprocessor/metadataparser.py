@@ -44,7 +44,7 @@ class MetadataParserPP(PostProcessor):
         """
         if not re.search(r'%\(\w+\)s', fmt):
             if re.match(r'\w+', fmt):
-                return r'(?P<' + fmt + '>.+)'
+                return rf'(?P<{fmt}>.+)'
             return fmt
         lastpos = 0
         regex = ''
