@@ -159,7 +159,7 @@ class IdagioAlbumIE(InfoExtractor):
 
 
 class IdagioPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/playlists/(?P<id>[a-z\-]+)\??.*'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/playlists/(?!personal/)(?P<id>[a-z\-]+)\??.*'
     _TESTS = [{
         'url': 'https://app.idagio.com/playlists/beethoven-the-most-beautiful-piano-music',
         'info_dict': {
@@ -195,7 +195,7 @@ class IdagioPlaylistIE(InfoExtractor):
 
 
 class IdagioPersonalPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/playlists/personal/(?P<id>[0-9a-z\-]+)'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/playlists/personal/(?P<id>[0-9a-f\-]+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/playlists/personal/99dad72e-7b3a-45a4-b216-867c08046ed8',
         'info_dict': {
