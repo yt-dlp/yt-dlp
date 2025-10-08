@@ -187,7 +187,7 @@ class IdagioPersonalPlaylistIE(InfoExtractor):
             'id': '99dad72e-7b3a-45a4-b216-867c08046ed8',
             'title': 'Test',
             'creators': ['1a6f16a6-4514-4d0c-b481-3a9877835626'],
-            'thumbnail': 'https://idagio-images.global.ssl.fastly.net/public/production/playlists/99dad72e-7b3a-45a4-b216-867c08046ed8/1755616667669.jpg',
+            'thumbnail': 'https://idagio-images.global.ssl.fastly.net/artists/86371/main.jpg?_alt=sys/ph/artist-default.jpg',
             'timestamp': 1602859138286,
             'modified_timestamp': 1755616667629,
         },
