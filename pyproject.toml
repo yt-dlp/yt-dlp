@@ -398,6 +398,3 @@ addopts = [
 markers = [
     "download",
 ]
-
-[tool.poetry.dependencies]
-tqdm = "^4.0"
