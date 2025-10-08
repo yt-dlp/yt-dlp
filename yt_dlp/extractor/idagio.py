@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from .. import traverse_obj
+from ..utils import traverse_obj
 from ..utils import unified_timestamp
 
 
@@ -24,6 +24,21 @@ class IdagioTrackIE(InfoExtractor):
             'track_id': '30576943',
             'timestamp': 1554474370029,
         },
+    }, {
+        'url': 'https://api.idagio.com/v2.0/metadata/tracks/20514478',
+        'md5': '3acef2ea0feadf889123b70e5a1e7fa7',
+        'info_dict': {
+            'id': '20514478',
+            'ext': 'mp3',
+            'title': 'Sonata for Piano No. 14 in C sharp minor op. 27/2: I. Adagio sostenuto',
+            'duration': 316,
+            'composers': ['Ludwig van Beethoven'],
+            'artists': [],
+            'genres': ['Keyboard', 'Sonata (Keyboard)'],
+            'track': 'Sonata for Piano No. 14 in C sharp minor op. 27/2: I. Adagio sostenuto',
+            'track_id': '20514478',
+            'timestamp': 1518076337511,
+        }
     }]
 
     def _real_extract(self, url):
@@ -34,6 +49,8 @@ class IdagioTrackIE(InfoExtractor):
         content_info: dict = self._download_json(f'https://api.idagio.com/v1.8/content/track/{track_id}?quality=0&format=2&client_type=web-4', track_id)
 
         work_name = traverse_obj(track_info, ('piece', 'workpart', 'work', 'title'))
+        conductor = traverse_obj(track_info, ('recording', 'conductor', 'name'))
+        artists = [] if conductor is None else [conductor]
 
         return {
             'id': str(traverse_obj(track_info, ('id',))),
@@ -45,9 +62,8 @@ class IdagioTrackIE(InfoExtractor):
             'duration': traverse_obj(track_info, ('duration',)),
             'track': work_name + ': ' + traverse_obj(track_info, ('piece', 'title')),
             'track_id': track_id,
-            'artists': ([traverse_obj(track_info, ('recording', 'conductor', 'name'))])
-            + (traverse_obj(track_info, ('recording', 'ensembles', ..., 'name')) or [])
-            + (traverse_obj(track_info, ('recording', 'soloists', ..., 'name')) or []),
+            'artists': (artists + (traverse_obj(track_info, ('recording', 'ensembles', ..., 'name')) or [])
+            + (traverse_obj(track_info, ('recording', 'soloists', ..., 'name')) or [])),
             'composers': [traverse_obj(track_info, ('piece', 'workpart', 'work', 'composer', 'name'))],
             'genres': [traverse_obj(track_info, ('piece', 'workpart', 'work', 'genre', 'title')),
                        traverse_obj(track_info, ('piece', 'workpart', 'work', 'subgenre', 'title'))],
