@@ -43,7 +43,7 @@ class MetadataParserPP(PostProcessor):
            '(?P<title>.+)\ \-\ (?P<artist>.+)'
         """
         if not re.search(r'%\(\w+\)s', fmt):
-            return fmt
+            return r'(?P<' + fmt + '>.+)'
         lastpos = 0
         regex = ''
         # replace %(..)s with regex group and escape other string parts
