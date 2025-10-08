@@ -1062,6 +1062,12 @@ class TikTokUserIE(TikTokBaseIE):
 
         return None
 
+    def _extract_video_count(self, detail):
+        video_count = int_or_none(traverse_obj(detail, ('userInfo', 'stats', 'videoCount')))
+        if video_count is None:
+            return int_or_none(traverse_obj(detail, ('userInfo', 'statsV2', 'videoCount')))
+        return video_count
+
     def _real_extract(self, url):
         user_name, sec_uid = self._match_id(url), None
         if re.fullmatch(r'MS4wLjABAAAA[\w-]{64}', user_name):
@@ -1074,9 +1080,12 @@ class TikTokUserIE(TikTokBaseIE):
                 fatal=False, impersonate=True) or ''
             detail = traverse_obj(
                 self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
-            if detail.get('statusCode') == 10222:
+            # No reason to fail if we can't extract the video count;
+            # we should at least try to extract the video list.
+            if self._extract_video_count(detail) == 0:
                 self.raise_login_required(
-                    'This user\'s account is private. Log into an account that has access')
+                    'This user\'s account is private or has no videos posted. Log into an account '
+                    'that has access')
             sec_uid = traverse_obj(detail, ('userInfo', 'user', 'secUid', {str}))
             if sec_uid:
                 fail_early = not traverse_obj(detail, ('userInfo', 'itemList', ...))
