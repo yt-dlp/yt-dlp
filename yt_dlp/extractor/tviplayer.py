@@ -19,7 +19,7 @@ class TVIPlayerIE(InfoExtractor):
     _TESTS = [
         {
             'url': 'https://tviplayer.iol.pt/programa/a-protegida/67a63479d34ef72ee441fa79/episodio/t1e120',
-            "info_dict": {
+            'info_dict': {
                 'id': '689683000cf20ac1d5f35341',
                 'ext': 'mp4',
                 'duration': 1593,
@@ -80,7 +80,7 @@ class TVIPlayerIE(InfoExtractor):
         video_url = first_of('videoUrl', 'url', 'video_url')
         if not video_url:
             m = re.search(
-                r'["\']videoUrl["\']\s*:\s*["\'](https?://[^"\']+)["\']', webpage
+                r'["\']videoUrl["\']\s*:\s*["\'](https?://[^"\']+)["\']', webpage,
             )
             if m:
                 video_url = m.group(1)
@@ -94,7 +94,7 @@ class TVIPlayerIE(InfoExtractor):
             else {}
         )
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            video_url, video_id, ext='mp4', query=query, fatal=False
+            video_url, video_id, ext='mp4', query=query, fatal=False,
         )
 
         season_number = traverse_obj(json_data, ('program', 'seasonNum'))
