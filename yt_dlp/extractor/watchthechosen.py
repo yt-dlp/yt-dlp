@@ -2,7 +2,7 @@ import json
 import urllib
 
 from .common import InfoExtractor
-from ..utils import unified_strdate
+from ..utils import ExtractorError, unified_strdate
 from ..utils.traversal import traverse_obj
 
 
@@ -46,6 +46,11 @@ class WatchTheChosenIE(InfoExtractor):
         pageID = self._match_id(url)
         info = {}
         pathBase = urllib.parse.urlparse(url).path.strip('/').split('/')[0]
+        auth_cookie = ''
+        token_type = ''
+        if (self._cookies_passed):
+            auth_cookie = self._get_cookies(url)['frAccessToken'].value
+            token_type = self._get_cookies(url)['frTokenType'].value
 
         if pathBase == 'group':
             info['_type'] = 'playlist'
@@ -95,18 +100,26 @@ class WatchTheChosenIE(InfoExtractor):
 
                                 fragment PageContainerVideo on Video {
                                   audiences { id name __typename }
-                                  title description updatedAt thumbnail createdAt duration likeCount comments views url id __typename
+                                  title description updatedAt thumbnail createdAt duration likeCount comments views url hasAccess id __typename
                                 }''',
                 }).encode(), headers={
                     'channelid': '12884901895',
                     'content-type': 'application/json',
+                    'authorization': token_type + ' ' + auth_cookie,
                 }), ('data', 'pageContainer'))
+
+            if metadata is None:
+                raise ExtractorError('This group does not exist!', expected=True)
 
             for i in traverse_obj(metadata, ('itemRefs', 'edges')):
                 video_metadata = traverse_obj(i, ('node', 'contentItem', 'videoItem'))
                 # Skipping ghost-video
                 if video_metadata is None:
                     continue
+                if not video_metadata['hasAccess']:
+                    self.report_warning('Skipping Members Only video. ' + self._login_hint())
+                    continue
+
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_metadata['url'], video_metadata['id'])
                 entry = {'formats': formats,
                          'subtitles': subtitles,
@@ -138,12 +151,18 @@ class WatchTheChosenIE(InfoExtractor):
                         }
                     }
                     fragment VideoFragment on Video {
-                        title description updatedAt thumbnail createdAt duration likeCount comments views url
+                        title description updatedAt thumbnail createdAt duration likeCount comments views url hasAccess
                     }''',
                 }).encode(), headers={
                     'channelid': '12884901895',
                     'content-type': 'application/json',
+                    'authorization': token_type + ' ' + auth_cookie,
                 }), ('data', 'video'))
+            if metadata is None:
+                raise ExtractorError('This video does not exist!', expected=True)
+            if not metadata['hasAccess']:
+                raise ExtractorError('This is Members Only video. Please log in with your account! ' + self._login_hint(), expected=True)
+
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(metadata['url'], pageID)
 
             info = {
