@@ -8,7 +8,6 @@ from ..utils import (
     js_to_json,
 )
 from ..utils.traversal import (
-    require,
     traverse_obj,
 )
 
@@ -55,7 +54,7 @@ class TVIPlayerIE(InfoExtractor):
         )
 
         # Structured metadata from ld+json
-        info = self._search_json_ld(webpage, video_id, default={}) or {}
+        _ = self._search_json_ld(webpage, video_id, default={}) or {}
 
         # Merge data safely without type errors
         def first_of(*keys):
