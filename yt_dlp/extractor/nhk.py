@@ -370,7 +370,7 @@ class NhkVodProgramIE(NhkBaseIE):
             'tAudioProgramMain__info',  # /shows/audio/programs/
             'p-program-description'], html)  # /tv/
 
-        return self.playlist_result(entries(), program_id, program_title, program_description)
+        return self.playlist_result(entries(), program_id, program_title, program_description, series=program_title)
 
 
 class NhkForSchoolBangumiIE(InfoExtractor):
