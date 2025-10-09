@@ -119,15 +119,14 @@ class NhkBaseIE(InfoExtractor):
                     })),
                 })
             else:
-                if fetch_episode:
-                    # From https://www3.nhk.or.jp/nhkworld/common/player/radio/inline/rod.html
-                    audio_path = remove_end(stream_url, '.m4a')
-                    info['formats'] = self._extract_m3u8_formats(
-                        f'{urljoin("https://vod-stream.nhk.jp", audio_path)}/index.m3u8',
-                        episode_id, 'm4a', entry_protocol='m3u8_native',
-                        m3u8_id='hls', fatal=False)
-                    for f in info['formats']:
-                        f['language'] = lang
+                # From https://www3.nhk.or.jp/nhkworld/common/player/radio/inline/rod.html
+                audio_path = remove_end(stream_url, '.m4a')
+                info['formats'] = self._extract_m3u8_formats(
+                    f'{urljoin("https://vod-stream.nhk.jp", audio_path)}/index.m3u8',
+                    episode_id, 'm4a', entry_protocol='m3u8_native',
+                    m3u8_id='hls', fatal=False)
+                for f in info['formats']:
+                    f['language'] = lang
 
             info.update({
                 'extractor_key': NhkVodIE.ie_key(),
