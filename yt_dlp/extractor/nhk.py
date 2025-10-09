@@ -128,12 +128,11 @@ class NhkBaseIE(InfoExtractor):
                         m3u8_id='hls', fatal=False)
                     for f in info['formats']:
                         f['language'] = lang
-                else:
-                    info.update({
-                        '_type': 'url_transparent',
-                        'ie_key': NhkVodIE.ie_key(),
-                        'url': url,
-                    })
+
+            info.update({
+                'extractor_key': NhkVodIE.ie_key(),
+                'extractor': NhkVodIE.ie_key(),
+            })
 
         return info
 
