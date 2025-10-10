@@ -53,25 +53,20 @@ class IdagioTrackIE(InfoExtractor):
                 'client_type': 'web-4',
             })
 
-        work_name = traverse_obj(track_info, ('piece', 'workpart', 'work', 'title'))
-        conductor = traverse_obj(track_info, ('recording', 'conductor', 'name'))
-        artists = [] if conductor is None else [conductor]
-
         return {
-            'id': str(traverse_obj(track_info, ('id',))),
-            'title': work_name + ': ' + traverse_obj(track_info, ('piece', 'title')),
-            'url': traverse_obj(content_info, ('url', )),
             'ext': 'mp3',
-            'timestamp': traverse_obj(track_info, ('recording', 'created_at')),
-            'location': traverse_obj(track_info, ('recording', 'location')),
-            'duration': traverse_obj(track_info, ('duration',)),
-            'track': work_name + ': ' + traverse_obj(track_info, ('piece', 'title')),
-            'track_id': track_id,
-            'artists': (artists + (traverse_obj(track_info, ('recording', 'ensembles', ..., 'name')) or [])
-                        + (traverse_obj(track_info, ('recording', 'soloists', ..., 'name')) or [])),
-            'composers': [traverse_obj(track_info, ('piece', 'workpart', 'work', 'composer', 'name'))],
-            'genres': [traverse_obj(track_info, ('piece', 'workpart', 'work', 'genre', 'title')),
-                       traverse_obj(track_info, ('piece', 'workpart', 'work', 'subgenre', 'title'))],
+            'id': track_id,
+            'url': traverse_obj(content_info, ('url', {url_or_none})),
+            **traverse_obj(track_info, ('result', {
+                'title': ('piece', 'title', {str}),
+                'timestamp': ('recording', 'created_at', {int_or_none(scale=1000)}),
+                'location': ('recording', 'location', {str}),
+                'duration': ('duration', {int_or_none}),
+                'track': ('piece', 'title', {str}),
+                'artists': ('recording', ('conductor', ('ensembles', ...), ('soloists', ...)), 'name', {str}, all),
+                'composers': ('piece', 'workpart', 'work', 'composer', 'name', {str}, all),
+                'genres': ('piece', 'workpart', 'work', ('genre', 'subgenre'), 'title', {str}, all),
+            })),
         }
 
 
