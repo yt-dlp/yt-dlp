@@ -107,6 +107,7 @@ class TenPlayIE(InfoExtractor):
         'R': 18,
         'X': 18,
     }
+    _SEGMENT_BITRATE_RE = r'(?m)-(?:300|150|75|55)0000-(\d+(?:-[\da-f]+)?)\.ts$'
 
     _refresh_token = None
     _access_token = None
@@ -234,8 +235,8 @@ class TenPlayIE(InfoExtractor):
                 already_have_1080p = True
 
         # Attempt format upgrade
-        if not already_have_1080p and m3u8_doc and re.search(r'(?m)-(?:300|150|75|55)0000-\d+\.ts$', m3u8_doc):
-            m3u8_doc = re.sub(r'(?m)-(?:300|150|75|55)0000-(\d+)\.ts$', r'-5000000-\1.ts', m3u8_doc)
+        if not already_have_1080p and m3u8_doc and re.search(self._SEGMENT_BITRATE_RE, m3u8_doc):
+            m3u8_doc = re.sub(self._SEGMENT_BITRATE_RE, r'-5000000-\1.ts', m3u8_doc)
             m3u8_doc = re.sub(r'-(?:300|150|75|55)0000\.key"', r'-5000000.key"', m3u8_doc)
             formats.append({
                 'format_id': 'upgrade-attempt-1080p',
