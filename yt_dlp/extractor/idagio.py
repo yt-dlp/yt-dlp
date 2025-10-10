@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj, unified_timestamp
+from ..utils import int_or_none, traverse_obj, unified_timestamp, url_or_none
 
 
 class IdagioTrackIE(InfoExtractor):
@@ -14,14 +14,14 @@ class IdagioTrackIE(InfoExtractor):
         'info_dict': {
             'id': '30576943',
             'ext': 'mp3',
-            'title': 'Variations on an Original Theme op. 36: Theme. Andante',
+            'title': 'Theme. Andante',
             'duration': 82,
             'composers': ['Edward Elgar'],
             'artists': ['Vasily Petrenko', 'Royal Liverpool Philharmonic Orchestra'],
             'genres': ['Orchestral', 'Other Orchestral Music'],
-            'track': 'Variations on an Original Theme op. 36: Theme. Andante',
-            'track_id': '30576943',
-            'timestamp': 1554474370029,
+            'track': 'Theme. Andante',
+            'timestamp': 1554474370,
+            'upload_date': '20190405',
         },
     }, {
         'url': 'https://api.idagio.com/v2.0/metadata/tracks/20514478',
@@ -29,14 +29,14 @@ class IdagioTrackIE(InfoExtractor):
         'info_dict': {
             'id': '20514478',
             'ext': 'mp3',
-            'title': 'Sonata for Piano No. 14 in C sharp minor op. 27/2: I. Adagio sostenuto',
+            'title': 'I. Adagio sostenuto',
             'duration': 316,
             'composers': ['Ludwig van Beethoven'],
             'artists': [],
             'genres': ['Keyboard', 'Sonata (Keyboard)'],
-            'track': 'Sonata for Piano No. 14 in C sharp minor op. 27/2: I. Adagio sostenuto',
-            'track_id': '20514478',
-            'timestamp': 1518076337511,
+            'track': 'I. Adagio sostenuto',
+            'timestamp': 1518076337,
+            'upload_date': '20180208',
         },
     }]
 
@@ -80,9 +80,11 @@ class IdagioRecordingIE(InfoExtractor):
             'composers': ['Edward Elgar'],
             'artists': ['Vasily Petrenko', 'Royal Liverpool Philharmonic Orchestra'],
             'genres': ['Orchestral', 'Other Orchestral Music'],
-            'timestamp': 1554474370029,
-            'modified_timestamp': 1554481570.0,
+            'timestamp': 1554474370,
+            'modified_timestamp': 1554474370,
             'modified_date': '20190405',
+            'upload_date': '20190405',
+            'tags': [],
         },
         'playlist_count': 15,
     }]
@@ -96,27 +98,26 @@ class IdagioRecordingIE(InfoExtractor):
 
         return {
             '_type': 'multi_video',
+            'ext': 'mp3',
             'id': recording_id,
-            'title': traverse_obj(recording_info, ('work', 'title')),
             'entries': [self.url_result(f'https://api.idagio.com/v2.0/metadata/tracks/{track_id}',
                                         ie='IdagioTrack', video_id=track_id, track_number=i)
                         for i, track_id in enumerate(track_ids, start=1)],
-            'ext': 'mp3',
-            'timestamp': traverse_obj(recording_info, ('created_at',)),
-            'modified_timestamp': unified_timestamp(recording_info.get('lastModified')),
-            'location': traverse_obj(recording_info, ('location',)),
-            'artists': ([traverse_obj(recording_info, ('conductor', 'name'))])
-            + (traverse_obj(recording_info, ('ensembles', ..., 'name')) or [])
-            + (traverse_obj(recording_info, ('soloists', ..., 'name')) or []),
-            'composers': [traverse_obj(recording_info, ('work', 'composer', 'name'))],
-            'genres': [traverse_obj(recording_info, ('work', 'genre', 'title')),
-                       traverse_obj(recording_info, ('work', 'subgenre', 'title'))],
-            'tags': traverse_obj(recording_info, ('tags',)) or None,
+            **traverse_obj(recording_info, {
+                'title': ('work', 'title', {str}),
+                'timestamp': ('created_at', {int_or_none(scale=1000)}),
+                'modified_timestamp': ('created_at', {int_or_none(scale=1000)}),
+                'location': ('location', {str}),
+                'artists': (('conductor', ('ensembles', ...), ('soloists', ...)), 'name', {str}, all),
+                'composers': ('work', 'composer', 'name', {str}, all),
+                'genres': ('work', ('genre', 'subgenre'), 'title', {str}, all),
+                'tags': ('tags', {list}),
+            }),
         }
 
 
 class IdagioAlbumIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/albums/(?P<id>[a-z\-]+)'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/albums/(?P<id>[a-zA-Z0-9\-]+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/albums/elgar-enigma-variations-in-the-south-serenade-for-strings',
         'info_dict': {
@@ -125,7 +126,6 @@ class IdagioAlbumIE(InfoExtractor):
             'title': 'Elgar: Enigma Variations, In the South, Serenade for Strings',
             'description': '',
             'thumbnail': 'https://idagio-images.global.ssl.fastly.net/albums/880040420521/main.jpg',
-            'tags': [],
             'artists': ['Vasily Petrenko', 'Royal Liverpool Philharmonic Orchestra', 'Edward Elgar'],
             'timestamp': 1553817600,
             'upload_date': '20190329',
@@ -144,23 +144,25 @@ class IdagioAlbumIE(InfoExtractor):
 
         return {
             '_type': 'playlist',
-            'id': traverse_obj(album_info, ('id',)),
             'display_id': album_display_id,
-            'title': traverse_obj(album_info, ('title',)),
             'entries': [self.url_result(f'https://api.idagio.com/v2.0/metadata/tracks/{track_id}',
                                         ie='IdagioTrack', video_id=track_id, track_number=i)
                         for i, track_id in enumerate(track_ids, start=1)],
-            'timestamp': unified_timestamp(album_info.get('publishDate')),
-            'modified_timestamp': unified_timestamp(album_info.get('lastModified')),
-            'thumbnail': traverse_obj(album_info, ('imageUrl',)),
-            'description': traverse_obj(album_info, ('description',)),
-            'artists': traverse_obj(album_info, ('participants', ..., 'name')) or [],
-            'tags': traverse_obj(album_info, ('tags',)) or [],
+            **traverse_obj(album_info, {
+                'id': ('id', {str}),
+                'title': ('title', {str}),
+                'timestamp': ('publishDate', {unified_timestamp}),
+                'modified_timestamp': ('lastModified', {unified_timestamp}),
+                'thumbnail': ('imageUrl', {url_or_none}),
+                'description': ('description', {str}),
+                'artists': ('participants', ..., 'name', {str}, all),
+                'tags': ('tags', {list}),
+            }),
         }
 
 
 class IdagioPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/playlists/(?!personal/)(?P<id>[a-z\-]+)\??.*'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/playlists/(?!personal/)(?P<id>[a-zA-Z0-9\-]+)\??.*'
     _TESTS = [{
         'url': 'https://app.idagio.com/playlists/beethoven-the-most-beautiful-piano-music',
         'info_dict': {
@@ -183,15 +185,17 @@ class IdagioPlaylistIE(InfoExtractor):
 
         return {
             '_type': 'playlist',
-            'id': traverse_obj(playlist_info, ('id',)),
             'display_id': playlist_display_id,
-            'title': traverse_obj(playlist_info, ('title',)),
             'entries': [self.url_result(f'https://api.idagio.com/v2.0/metadata/tracks/{track_id}',
                                         ie='IdagioTrack', video_id=track_id, track_number=i)
                         for i, track_id in enumerate(track_ids, start=1)],
-            'thumbnail': traverse_obj(playlist_info, ('imageUrl',)),
-            'description': traverse_obj(playlist_info, ('description',)),
-            'creators': [traverse_obj(playlist_info, ('curator', 'name'))],
+            **traverse_obj(playlist_info, {
+                'id': ('id', {str}),
+                'title': ('title', {str}),
+                'thumbnail': ('imageUrl', {url_or_none}),
+                'description': ('description', {str}),
+                'creators': ('curator', 'name', {str}, all),
+            }),
         }
 
 
@@ -204,8 +208,10 @@ class IdagioPersonalPlaylistIE(InfoExtractor):
             'title': 'Test',
             'creators': ['1a6f16a6-4514-4d0c-b481-3a9877835626'],
             'thumbnail': 'https://idagio-images.global.ssl.fastly.net/artists/86371/main.jpg?_alt=sys/ph/artist-default.jpg',
-            'timestamp': 1602859138286,
-            'modified_timestamp': 1755616667629,
+            'timestamp': 1602859138,
+            'modified_timestamp': 1755616667,
+            'upload_date': '20201016',
+            'modified_date': '20250819',
         },
         'playlist_count': 100,
     }]
@@ -220,12 +226,14 @@ class IdagioPersonalPlaylistIE(InfoExtractor):
         return {
             '_type': 'playlist',
             'id': playlist_id,
-            'title': traverse_obj(playlist_info, ('title',)),
             'entries': [self.url_result(f'https://api.idagio.com/v2.0/metadata/tracks/{track_id}',
                                         ie='IdagioTrack', video_id=track_id, track_number=i)
                         for i, track_id in enumerate(track_ids, start=1)],
-            'thumbnail': traverse_obj(playlist_info, ('image_url',)),
-            'creators': [traverse_obj(playlist_info, ('user_id',))],
-            'timestamp': traverse_obj(playlist_info, ('created_at',)),
-            'modified_timestamp': traverse_obj(playlist_info, ('updated_at',)),
+            **traverse_obj(playlist_info, {
+                'title': ('title', {str}),
+                'thumbnail': ('image_url', {url_or_none}),
+                'creators': ('user_id', {str}, all),
+                'timestamp': ('created_at', {int_or_none(scale=1000)}),
+                'modified_timestamp': ('updated_at', {int_or_none(scale=1000)}),
+            }),
         }
