@@ -41,11 +41,17 @@ class IdagioTrackIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        track_id: str = self._match_id(url)
-        track_info: dict = self._download_json(f'https://api.idagio.com/v2.0/metadata/tracks/{track_id}',
-                                               track_id).get('result')
+        track_id = self._match_id(url)
+        track_info = self._download_json(
+            f'https://api.idagio.com/v2.0/metadata/tracks/{track_id}', track_id, fatal=False)
 
-        content_info: dict = self._download_json(f'https://api.idagio.com/v1.8/content/track/{track_id}?quality=0&format=2&client_type=web-4', track_id)
+        content_info = self._download_json(
+            f'https://api.idagio.com/v1.8/content/track/{track_id}', track_id,
+            query={
+                'quality': '0',
+                'format': '2',
+                'client_type': 'web-4',
+            })
 
         work_name = traverse_obj(track_info, ('piece', 'workpart', 'work', 'title'))
         conductor = traverse_obj(track_info, ('recording', 'conductor', 'name'))
