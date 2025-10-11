@@ -273,6 +273,7 @@ class VidyardIE(VidyardBaseIE):
     }, {
         # <script ... id="vidyard_embed_code_DXx2sW4WaLA6hTdGFz7ja8" src="//play.vidyard.com/DXx2sW4WaLA6hTdGFz7ja8.js?
         'url': 'http://videos.vivint.com/watch/DXx2sW4WaLA6hTdGFz7ja8',
+        'skip': 'URL certificate expired 2025-09-10. Alternative script embed test case not yet available',
         'info_dict': {
             'id': 'DXx2sW4WaLA6hTdGFz7ja8',
             'display_id': '2746529',
