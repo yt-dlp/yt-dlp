@@ -80,7 +80,6 @@ class IdagioRecordingIE(InfoExtractor):
             'modified_timestamp': 1554474370,
             'modified_date': '20190405',
             'upload_date': '20190405',
-            'tags': [],
         },
         'playlist_count': 15,
     }]
@@ -142,7 +141,7 @@ class IdagioAlbumIE(InfoExtractor):
             'timestamp': 1760054400,
             'upload_date': '20251010',
             'modified_timestamp': 1760101611,
-            'modified_date': '20251010'
+            'modified_date': '20251010',
         },
         'playlist_count': 7,
     }]
