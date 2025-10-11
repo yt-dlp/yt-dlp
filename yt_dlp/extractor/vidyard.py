@@ -295,10 +295,44 @@ class VidyardIE(VidyardBaseIE):
             'thumbnail': 'https://play.vidyard.com/MIBHhiLVTxga7wqLsuoDjQ.jpg',
         },
     }, {
-        # <div class="vidyard-player-embed" data-uuid="pMk8eNCYzukzJaEPoo1Hgn"
+        # <iframe ... src="//play.vidyard.com/d61w8EQoZv1LDuPxDkQP2Q/type/background?preview=1"
+        'skip': 'URL changed embed method to \'class="vidyard-player-embed"\'. An alternative iframe embed test case is not yet available',
         'url': 'https://www.avaya.com/en/',
         'info_dict': {
             # These values come from the generic extractor and don't matter
+            'id': str,
+            'title': str,
+            'age_limit': 0,
+            'upload_date': str,
+            'description': str,
+            'thumbnail': str,
+            'timestamp': float,
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'd61w8EQoZv1LDuPxDkQP2Q',
+                'display_id': '42456529',
+                'ext': 'mp4',
+                'title': 'GettyImages-1027',
+                'duration': 6.0,
+                'thumbnail': 'https://play.vidyard.com/d61w8EQoZv1LDuPxDkQP2Q.jpg',
+            },
+        }, {
+            'info_dict': {
+                'id': 'VAsYDi7eiqZRbHodUA2meC',
+                'display_id': '42456569',
+                'ext': 'mp4',
+                'title': 'GettyImages-1325598833',
+                'duration': 6.083,
+                'thumbnail': 'https://play.vidyard.com/VAsYDi7eiqZRbHodUA2meC.jpg',
+            },
+        }],
+        'playlist_count': 2,
+    }, {
+        # <div class="vidyard-player-embed" data-uuid="pMk8eNCYzukzJaEPoo1Hgn"
+        # URL previously used iframe embeds and was used for that test case
+        'url': 'https://www.avaya.com/en/',
+        'info_dict': {
             'id': 'pMk8eNCYzukzJaEPoo1Hgn',
             'display_id': '47074153',
             'ext': 'mp4',
