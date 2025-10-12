@@ -9,6 +9,7 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    encode_data_uri,
     filter_dict,
     int_or_none,
     jwt_decode_hs256,
@@ -240,7 +241,7 @@ class TenPlayIE(InfoExtractor):
             m3u8_doc = re.sub(r'-(?:300|150|75|55)0000\.key"', r'-5000000.key"', m3u8_doc)
             formats.append({
                 'format_id': 'upgrade-attempt-1080p',
-                'url': formats[0]['url'],
+                'url': encode_data_uri(m3u8_doc.encode(), 'application/x-mpegurl'),
                 'hls_media_playlist_data': m3u8_doc,
                 'width': 1920,
                 'height': 1080,
