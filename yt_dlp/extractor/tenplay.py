@@ -183,27 +183,28 @@ class TenPlayIE(InfoExtractor):
         self._access_token = auth_data['jwt']['accessToken']
         self.cache.store(self._NETRC_MACHINE, 'token_data', [self._refresh_token, self._access_token])
 
-    def _call_playback_api(self, content_id, is_retry=False):
+    def _call_playback_api(self, content_id):
         if self._access_token and self._is_jwt_expired(self._access_token):
             self._refresh_access_token()
-        try:
-            return self._download_json_handle(
-                f'https://10.com.au/api/v1/videos/playback/{content_id}/', content_id,
-                note='Downloading video JSON', query={'platform': 'samsung'},
-                headers=filter_dict({
-                    'TP-AcceptFeature': 'v1/fw;v1/drm',
-                    'Authorization': f'Bearer {self._access_token}' if self._access_token else None,
-                }))
-        except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
-                if self._access_token:
-                    self.report_warning('Access token has expired; refreshing')
-                    self._refresh_access_token()
-                    if not is_retry:
-                        return self._call_playback_api(content_id, True)
-                elif not self._get_login_info()[0]:
-                    self.raise_login_required('Login required to access this video', method='password')
-            raise
+        for is_retry in (False, True):
+            try:
+                return self._download_json_handle(
+                    f'https://10.com.au/api/v1/videos/playback/{content_id}/', content_id,
+                    note='Downloading video JSON', query={'platform': 'samsung'},
+                    headers=filter_dict({
+                        'TP-AcceptFeature': 'v1/fw;v1/drm',
+                        'Authorization': f'Bearer {self._access_token}' if self._access_token else None,
+                    }))
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                    if self._access_token:
+                        self.report_warning('Access token has expired; refreshing')
+                        self._refresh_access_token()
+                        if not is_retry:
+                            continue
+                    elif not self._get_login_info()[0]:
+                        self.raise_login_required('Login required to access this video', method='password')
+                raise
 
     def _real_extract(self, url):
         content_id = self._match_id(url)
