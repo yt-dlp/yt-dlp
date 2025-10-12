@@ -108,6 +108,7 @@ class TenPlayIE(InfoExtractor):
         'R': 18,
         'X': 18,
     }
+    _TOKEN_CACHE_KEY = 'token_data'
     _SEGMENT_BITRATE_RE = r'(?m)-(?:300|150|75|55)0000-(\d+(?:-[\da-f]+)?)\.ts$'
 
     _refresh_token = None
@@ -146,23 +147,23 @@ class TenPlayIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 self._refresh_token = self._access_token = None
-                self.cache.store(self._NETRC_MACHINE, 'token_data', [None, None])
+                self.cache.store(self._NETRC_MACHINE, self._TOKEN_CACHE_KEY, [None, None])
                 self.report_warning('Refresh token has been invalidated; retrying with credentials')
                 self._perform_login(*self._get_login_info())
                 return
             raise
         self._access_token = refresh_data['accessToken']
         self._refresh_token = refresh_data['refreshToken']
-        self.cache.store(self._NETRC_MACHINE, 'token_data', [self._refresh_token, self._access_token])
+        self.cache.store(self._NETRC_MACHINE, self._TOKEN_CACHE_KEY, [self._refresh_token, self._access_token])
 
     def _perform_login(self, username, password):
         if not self._refresh_token:
             self._refresh_token, self._access_token = self.cache.load(
-                self._NETRC_MACHINE, 'token_data', default=[None, None])
-
+                self._NETRC_MACHINE, self._TOKEN_CACHE_KEY, default=[None, None])
         if self._refresh_token and self._access_token:
             self.write_debug('Using cached refresh token')
             return
+
         try:
             auth_data = self._download_json(
                 'https://10.com.au/api/user/auth', None, 'Logging in',
@@ -181,7 +182,7 @@ class TenPlayIE(InfoExtractor):
 
         self._refresh_token = auth_data['jwt']['refreshToken']
         self._access_token = auth_data['jwt']['accessToken']
-        self.cache.store(self._NETRC_MACHINE, 'token_data', [self._refresh_token, self._access_token])
+        self.cache.store(self._NETRC_MACHINE, self._TOKEN_CACHE_KEY, [self._refresh_token, self._access_token])
 
     def _call_playback_api(self, content_id):
         if self._access_token and self._is_jwt_expired(self._access_token):
@@ -198,7 +199,7 @@ class TenPlayIE(InfoExtractor):
             except ExtractorError as e:
                 if not is_retry and isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     if self._access_token:
-                        self.report_warning('Access token has expired; refreshing')
+                        self.to_screen('Access token has expired; refreshing')
                         self._refresh_access_token()
                         continue
                     elif not self._get_login_info()[0]:
