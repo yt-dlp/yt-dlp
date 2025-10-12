@@ -21,7 +21,7 @@ class DropoutIE(InfoExtractor):
     _LOGIN_URL = 'https://watch.dropout.tv/login'
     _NETRC_MACHINE = 'dropout'
 
-    _VALID_URL = r'https?://(?:watch\.)?dropout\.tv/(?:[^/]+/)*videos/(?P<id>[^/]+)/?$'
+    _VALID_URL = r'https?://(?:watch\.)?dropout\.tv/(?:[^/?#]+/)*videos/(?P<id>[^/?#]+)/?(?:[?#]|$)'
     _TESTS = [
         {
             'url': 'https://watch.dropout.tv/game-changer/season:2/videos/yes-or-no',
