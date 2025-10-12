@@ -166,5 +166,5 @@ class PrankCastPostIE(InfoExtractor):
                         {value(post.get('user_name'))},
                         ('guests_json', {json.loads}, ..., 'name'),
                     ), {str}, filter, all),
-            })
+            }),
         }
