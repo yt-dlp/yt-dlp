@@ -155,7 +155,7 @@ def set_compat_opts(opts):
     if 'format-sort' in opts.compat_opts:
         opts.format_sort.extend(FormatSorter.ytdl_default)
     elif 'prefer-vp9-sort' in opts.compat_opts:
-        opts.format_sort.extend(FormatSorter._prefer_vp9_sort)
+        FormatSorter.default = FormatSorter._prefer_vp9_sort
 
     if 'mtime-by-default' in opts.compat_opts:
         if opts.updatetime is None:
