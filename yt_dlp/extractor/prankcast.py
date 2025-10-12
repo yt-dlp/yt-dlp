@@ -1,7 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import float_or_none, url_or_none, parse_iso8601, str_or_none, try_call
+from ..utils import float_or_none, parse_iso8601, str_or_none, try_call, url_or_none
 from ..utils.traversal import traverse_obj, value
 
 
@@ -143,9 +143,6 @@ class PrankCastPostIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         post = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['ssr_data_posts']
         content = self._parse_json(post['post_contents_json'], video_id)[0]
-
-        uploader = post.get('user_name')
-        guests_json = traverse_obj(content, ('guests_json', {json.loads}, {dict})) or {}
 
         return {
             'id': video_id,
