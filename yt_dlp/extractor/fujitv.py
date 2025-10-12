@@ -209,7 +209,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
         '''
 
         detail = json_response
-        # UA must be set to Android TV to get the settings URL otherwise, the URL won’t appear
+        # UA must be set to Android TV to get the settings URL otherwise, the URL wont appear
         # We dont know which UA is required to get the `android_tv` URL (if we manage to find out, we can use it here)
         settings_json = self._download_json(
             self._AUTH_API,
