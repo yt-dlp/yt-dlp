@@ -220,7 +220,7 @@ class TikTokBaseIE(InfoExtractor):
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
         video_data, status = {}, -1
 
-        res = self._download_webpage_handle(url, video_id, fatal=fatal, headers={'User-Agent': 'Mozilla/5.0'})
+        res = self._download_webpage_handle(url, video_id, fatal=fatal, impersonate=True)
         if res is False:
             return video_data, status
 
@@ -1071,7 +1071,7 @@ class TikTokUserIE(TikTokBaseIE):
             webpage = self._download_webpage(
                 self._UPLOADER_URL_FORMAT % user_name, user_name,
                 'Downloading user webpage', 'Unable to download user webpage',
-                fatal=False, headers={'User-Agent': 'Mozilla/5.0'}) or ''
+                fatal=False, impersonate=True) or ''
             detail = traverse_obj(
                 self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
             if detail.get('statusCode') == 10222:
@@ -1520,7 +1520,7 @@ class TikTokLiveIE(TikTokBaseIE):
         uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
         if not room_id:
             webpage = self._download_webpage(
-                format_field(uploader, None, self._UPLOADER_URL_FORMAT), uploader)
+                format_field(uploader, None, self._UPLOADER_URL_FORMAT), uploader, impersonate=True)
             room_id = traverse_obj(
                 self._get_universal_data(webpage, uploader),
                 ('webapp.user-detail', 'userInfo', 'user', 'roomId', {str}))

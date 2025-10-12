@@ -4110,7 +4110,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else 'video'),
             'release_timestamp': live_start_time,
             '_format_sort_fields': (  # source_preference is lower for potentially damaged formats
-                'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec', 'channels', 'acodec', 'lang', 'proto'),
+                'quality', 'res', 'fps', 'hdr:12', 'source',
+                'vcodec:vp9.2' if 'prefer-vp9-sort' in self.get_param('compat_opts', []) else 'vcodec',
+                'channels', 'acodec', 'lang', 'proto'),
         }
 
         def get_lang_code(track):
