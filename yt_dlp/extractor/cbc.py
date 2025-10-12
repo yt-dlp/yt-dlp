@@ -31,7 +31,7 @@ from ..utils.traversal import require, traverse_obj, trim_str
 
 class CBCIE(InfoExtractor):
     IE_NAME = 'cbc.ca'
-    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?!player/|listen/|i/caffeine/syndicate/)(?:[^/]+/)+(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?!player/|listen/|i/caffeine/syndicate/)(?:[^/?#]+/)+(?P<id>[^/?#]+)'
     _TESTS = [{
         # with mediaId
         'url': 'http://www.cbc.ca/22minutes/videos/clips-season-23/don-cherry-play-offs',
@@ -942,24 +942,21 @@ class CBCListenIE(InfoExtractor):
         },
     }]
 
-    def _extract_webpage_data(self, url, video_id):
-        webpage = self._download_webpage(url, video_id)
-        preloaded_state = self._search_json(
-            r'window\.__PRELOADED_STATE__\s*=', webpage, 'preloaded state',
-            video_id, transform_source=js_to_json)
-
-        return traverse_obj(preloaded_state, (
-            ('podcastDetailData', 'showDetailData'), ..., 'episodes',
-            lambda _, v: str(v['clipID']) == video_id, any, {require('episode data')}))
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        data = traverse_obj(self._download_json(
-            f'https://www.cbc.ca/listen/api/v1/clips/{video_id}', video_id, fatal=False), 'data', {dict})
+        response = self._download_json(
+            f'https://www.cbc.ca/listen/api/v1/clips/{video_id}', video_id, fatal=False)
+        data = traverse_obj(response, ('data', {dict}))
         if not data:
-            self.report_warning('Api returned no data. Falling back to webpage parsing')
-            data = self._extract_webpage_data(url, video_id)
+            self.report_warning('API failed to return data. Falling back to webpage parsing')
+            webpage = self._download_webpage(url, video_id)
+            preloaded_state = self._search_json(
+                r'window\.__PRELOADED_STATE__\s*=', webpage, 'preloaded state',
+                video_id, transform_source=js_to_json)
+            data = traverse_obj(preloaded_state, (
+                ('podcastDetailData', 'showDetailData'), ..., 'episodes',
+                lambda _, v: str(v['clipID']) == video_id, any, {require('episode data')}))
 
         return {
             'id': video_id,
