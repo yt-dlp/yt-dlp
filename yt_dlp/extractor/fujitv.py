@@ -1,5 +1,7 @@
+
 from .common import InfoExtractor
 from ..networking import HEADRequest
+from ..utils import traverse_obj, random_uuidv4
 
 
 class FujiTVFODPlus7IE(InfoExtractor):
@@ -41,11 +43,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        import random
-        import string
         series_id, video_id = self._match_valid_url(url).groups()
-        # 1. 取得 CT token
-        # Use HEADRequest to fetch cookies (CT token)
         self._request_webpage(HEADRequest(self._FRONTEND_URL), video_id)
         token = None
         cookies = self._get_cookies(self._FRONTEND_URL)
@@ -57,48 +55,43 @@ class FujiTVFODPlus7IE(InfoExtractor):
                 self._FRONTEND_URL, video_id, note='Downloading front page for CT token', fatal=False)
             token = self._search_regex(r'CT=([^;]+);', front_page or '', 'ct token', default=None)
         if not token:
-            raise self.raise_no_formats('Unable to get CT token; login/cookies may be required')
+            raise ExtractorError('CT token not found')
 
-        # 2. 取得節目資訊
-        api_url = f'{self._API_URL}/apps/api/c/v2/lineup/detail/?lu_id={series_id}&is_premium=false'
         json_response = self._download_json(
-            api_url, series_id, headers={'x-authorization': f'Bearer {token}'}, fatal=False)
-        if not json_response:
-            raise self.raise_no_formats('API response is empty, site structure may have changed')
+            f'{self._API_URL}/apps/api/c/v2/lineup/detail/', series_id, headers={'x-authorization': f'Bearer {token}'}, query={'is_premium': 'false', 'lu_id': series_id})
 
-        episodes = json_response.get('episodes') or []
-        detail = json_response.get('detail') or {}
-        episode = next((ep for ep in episodes if str(ep.get('ep_id')) == video_id), None)
+        episode = traverse_obj(json_response, ('episodes', lambda _, v: str(v.get('ep_id')) == video_id))  
         if not episode:
-            raise self.raise_no_formats('Episode not found in API response')
-
-        # 3. 取得 settings_url (授權)
-        uuid = ''.join(random.choices(string.ascii_lowercase + string.digits, k=36))
-        site_id = 'fodapp'
-        auth_url = (f'{self._AUTH_API}?'
-                    f'site_id={site_id}&ep_id={video_id}&qa=high&uuid={uuid}&starttime=0&is_pt=true')
+            self.report_warning(f'Unable to find episode {video_id} in series {series_id}')
+    
+        # UA must be set to Android TV to get the settings URL otherwise, the URL won’t appear
+        # We dont know which UA is required to get the `android_tv` URL (if we manage to find out, we can use it here)
         settings_json = self._download_json(
-            auth_url, video_id, headers={
+            self._AUTH_API, video_id, headers={
                 'x-authorization': f'Bearer {token}',
                 'User-Agent': 'Mozilla/5.0 (Linux; Android 9; SHIELD Android TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36',
-            }, fatal=False)
+            }, 
+            query={
+                'site_id': 'fodapp',
+                'ep_id': video_id,
+                'qa': 'high',
+                'uuid': random_uuidv4(),
+                'starttime': 0,
+                'is_pt': 'true',
+            }
+            )
         if not settings_json or 'settings' not in settings_json:
-            raise self.raise_no_formats('Failed to get settings url')
+            raise ExtractorError('Unable to fetch video settings')
+
+        # We dont know which UA is required to get the `android_tv` URL
+        # as closest we can get is `sp_android` so we replace it with `tv_android` in the URL
         settings_url = settings_json['settings'].replace('sp_android', 'tv_android')
 
-        # 4. 取得 m3u8 url
         video_selector_json = self._download_json(
+            # UA must be set to Android TV to get the settings URL
             settings_url, video_id, headers={'User-Agent': 'Mozilla/5.0 (Linux; Android 9; SHIELD Android TV)'}, fatal=False)
-        if not video_selector_json or 'video_selector' not in video_selector_json:
-            raise self.raise_no_formats('Failed to get video selector')
-        video_selector = video_selector_json['video_selector']
-        # video_selector 可能是 list
-        if isinstance(video_selector, list):
-            m3u8_url = video_selector[-1]['url']
-        else:
-            m3u8_url = video_selector
 
-        # 5. 解析格式
+
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             m3u8_url, video_id, ext=None, m3u8_id='hls', fatal=False)
 
