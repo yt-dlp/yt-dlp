@@ -1,8 +1,8 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import float_or_none, parse_iso8601, str_or_none, try_call
-from ..utils.traversal import traverse_obj
+from ..utils import float_or_none, url_or_none, parse_iso8601, str_or_none, try_call
+from ..utils.traversal import traverse_obj, value
 
 
 class PrankCastIE(InfoExtractor):
@@ -149,21 +149,25 @@ class PrankCastPostIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': post.get('post_title') or self._og_search_title(webpage),
             'display_id': display_id,
-            'url': content.get('secure_url') or content.get('url'),
-            'timestamp': parse_iso8601(content.get('start_date') or content.get('crdate'), ' ') or parse_iso8601(content.get('created_at')),
-            'uploader': uploader,
-            'channel_id': str_or_none(post.get('user_id')),
-            'duration': float_or_none(content.get('duration')),
-            'cast': list(filter(None, [uploader, *traverse_obj(guests_json, (..., 'name'))])),
-            'description': post.get('post_body'),
-            'categories': list(filter(None, [content.get('category')])),
-            'tags': try_call(lambda: list(filter('', post['post_tags'].split(',')))),
-            'subtitles': {
-                'live_chat': [{
-                    'url': f'https://prankcast.com/api/private/chat/select-broadcast?id={post["content_id"]}&cache=',
-                    'ext': 'json',
-                }],
-            } if post.get('content_id') else None,
+            'title': self._og_search_title(webpage),
+            **traverse_obj(post, {
+                'title': ('post_title', {str}),
+                'description': ('post_body', {str}),
+                'tags': ('post_tags', {lambda x: x.split(',')}, ..., {str.strip}, filter, all, filter),
+                'channel_id': ('user_id', {int}, {str_or_none}),
+                'uploader': ('user_name', {str}),
+            }),
+            **traverse_obj(content, {
+                'url': (('secure_url', 'url'), {url_or_none}, any),
+                'timestamp': (
+                    ((('start_date', 'crdate'), {parse_iso8601(delimiter=' ')}),
+                    ('created_at', {parse_iso8601})), {int}, any),
+                'duration': ('duration', {float_or_none}),
+                'categories': ('category', {str}, all),
+                'cast': ((
+                        {value(post.get('user_name'))},
+                        ('guests_json', {json.loads}, ..., 'name'),
+                    ), {str}, filter, all),
+            })
         }
