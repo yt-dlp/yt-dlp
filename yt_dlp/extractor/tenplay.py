@@ -196,12 +196,11 @@ class TenPlayIE(InfoExtractor):
                         'Authorization': f'Bearer {self._access_token}' if self._access_token else None,
                     }))
             except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                if not is_retry and isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     if self._access_token:
                         self.report_warning('Access token has expired; refreshing')
                         self._refresh_access_token()
-                        if not is_retry:
-                            continue
+                        continue
                     elif not self._get_login_info()[0]:
                         self.raise_login_required('Login required to access this video', method='password')
                 raise
