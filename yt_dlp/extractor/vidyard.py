@@ -227,6 +227,72 @@ class VidyardIE(VidyardBaseIE):
         },
         'playlist_count': 6,
     }, {
+        # Non hubs.vidyard.com playlist
+        'url': 'https://salesforce.vidyard.com/watch/d4vqPjs7Q5EzVEis5QT3jd',
+        'skip': 'URL now 404s. Alternative non hubs.vidyard.com playlist not yet available',
+        'info_dict': {
+            'id': 'd4vqPjs7Q5EzVEis5QT3jd',
+            'title': 'How To: Service Cloud: Import External Content in Lightning Knowledge',
+            'entries': [{
+                'id': 'mcjDpSZir2iSttbvFkx6Rv',
+                'display_id': '29479036',
+                'ext': 'mp4',
+                'title': 'Welcome to this Expert Coaching Series',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/ouyQi9WuwyiOupChUWNmjQ/7170d3485ba602e012df05_small.jpg',
+                'duration': 38.205,
+            }, {
+                'id': '84bPYwpg243G6xYEfJdYw9',
+                'display_id': '21820704',
+                'ext': 'mp4',
+                'title': 'Chapter 1 - Title + Agenda',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/HFPN0ZgQq4Ow8BghGcQSow/bfaa30123c8f6601e7d7f2_small.jpg',
+                'duration': 98.016,
+            }, {
+                'id': 'nP17fMuvA66buVHUrzqjTi',
+                'display_id': '21820707',
+                'ext': 'mp4',
+                'title': 'Chapter 2 - Import Options',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/rGRIF5nFjPI9OOA2qJ_Dbg/86a8d02bfec9a566845dd4_small.jpg',
+                'duration': 199.136,
+            }, {
+                'id': 'm54EcwXdpA5gDBH5rgCYoV',
+                'display_id': '21820710',
+                'ext': 'mp4',
+                'title': 'Chapter 3 - Importing Article Translations',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/IVX4XR8zpSsiNIHx45kz-A/1ccbf8a29a33856d06b3ed_small.jpg',
+                'duration': 184.352,
+            }, {
+                'id': 'j4nzS42oq4hE9oRV73w3eQ',
+                'display_id': '21820716',
+                'ext': 'mp4',
+                'title': 'Chapter 4 - Best Practices',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/BtrRrQpRDLbA4AT95YQyog/1f1e6b8e7fdc3fa95ec8d3_small.jpg',
+                'duration': 296.960,
+            }, {
+                'id': 'y28PYfW5pftvers9PXzisC',
+                'display_id': '21820727',
+                'ext': 'mp4',
+                'title': 'Chapter 5 - Migration Steps',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/K2CdQOXDfLcrVTF60r0bdw/a09239ada28b6ffce12b1f_small.jpg',
+                'duration': 620.640,
+            }, {
+                'id': 'YWU1eQxYvhj29SjYoPw5jH',
+                'display_id': '21820733',
+                'ext': 'mp4',
+                'title': 'Chapter 6 - Demo',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/rsmhP-cO8dAa8ilvFGCX0g/7911ef415167cd14032068_small.jpg',
+                'duration': 631.456,
+            }, {
+                'id': 'nmEvVqpwdJUgb74zKsLGxn',
+                'display_id': '29479037',
+                'ext': 'mp4',
+                'title': 'Schedule Your Follow-Up',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/Rtwc7X4PEkF4Ae5kHi-Jvw/174ebed3f34227b1ffa1d0_small.jpg',
+                'duration': 33.608,
+            }],
+        },
+        'playlist_count': 8,
+    }, {
         # URL of iframe embed src
         'url': 'https://play.vidyard.com/iDqTwWGrd36vaLuaCY3nTs.html',
         'info_dict': {
