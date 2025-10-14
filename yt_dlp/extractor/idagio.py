@@ -67,6 +67,7 @@ class IdagioTrackIE(InfoExtractor):
             })),
         }
 
+
 class IdagioPlaylistBaseIE(InfoExtractor):
     def _entries(self, recording_info):
         for track_data in traverse_obj(recording_info, ('tracks', lambda _, v: v['id'] and v['recording']['id'])):
@@ -75,6 +76,7 @@ class IdagioPlaylistBaseIE(InfoExtractor):
             yield self.url_result(
                 f'https://app.idagio.com/recordings/{recording_id}?trackId={track_id}',
                 ie=IdagioTrackIE, video_id=track_id)
+
 
 class IdagioRecordingIE(IdagioPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/recordings/(?P<id>\d+)(?![^#]*[&?]trackId=\d+)'
