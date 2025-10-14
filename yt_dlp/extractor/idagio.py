@@ -40,7 +40,10 @@ class IdagioTrackIE(InfoExtractor):
     def _real_extract(self, url):
         track_id = self._match_id(url)
         track_info = self._download_json(
-            f'https://api.idagio.com/v2.0/metadata/tracks/{track_id}', track_id, fatal=False)
+            f'https://api.idagio.com/v2.0/metadata/tracks/{track_id}',
+            track_id, fatal=False, expected_status=406)
+        if traverse_obj(track_info, 'error_code') == 'idagio.error.blocked.location':
+            self.raise_geo_restricted()
 
         content_info = self._download_json(
             f'https://api.idagio.com/v1.8/content/track/{track_id}', track_id,
