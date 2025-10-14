@@ -121,9 +121,9 @@ class IdagioRecordingIE(IdagioPlaylistBaseIE):
             'timestamp': ('created_at', {int_or_none(scale=1000)}),
             'modified_timestamp': ('created_at', {int_or_none(scale=1000)}),
             'location': ('location', {str}),
-            'artists': (('conductor', ('ensembles', ...), ('soloists', ...)), 'name', {str}, all),
+            'artists': (('conductor', ('ensembles', ...), ('soloists', ...)), 'name', {str}),
             'composers': ('work', 'composer', 'name', {str}, all),
-            'genres': ('work', ('genre', 'subgenre'), 'title', {str}, all),
+            'genres': ('work', ('genre', 'subgenre'), 'title', {str}),
             'tags': ('tags', ..., {str}),
         })
 
@@ -173,7 +173,7 @@ class IdagioAlbumIE(IdagioPlaylistBaseIE):
             'modified_timestamp': ('lastModified', {unified_timestamp}),
             'thumbnail': ('imageUrl', {url_or_none}),
             'description': ('description', {str}),
-            'artists': ('participants', ..., 'name', {str}, all),
+            'artists': ('participants', ..., 'name', {str}),
             'tags': ('tags', ..., {str}),
         })
 
