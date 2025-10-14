@@ -346,7 +346,7 @@ class VidyardIE(VidyardBaseIE):
             'ext': 'mp4',
             'title': 'How To Powercycle the Smart Hub Panel',
             'duration': 30.613,
-            'thumbnail': 'https://play.vidyard.com/DXx2sW4WaLA6hTdGFz7ja8.jpg',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/_-6cw8xQUJ3qiCs_JENc_A/b21d7a5e47967f49399d30_small.jpg',
         },
     }, {
         # <script id="vidyard_embed_code_MIBHhiLVTxga7wqLsuoDjQ" src="//embed.vidyard.com/embed/MIBHhiLVTxga7wqLsuoDjQ/inline?v=2.1">
@@ -381,7 +381,7 @@ class VidyardIE(VidyardBaseIE):
                 'ext': 'mp4',
                 'title': 'GettyImages-1027',
                 'duration': 6.0,
-                'thumbnail': 'https://play.vidyard.com/d61w8EQoZv1LDuPxDkQP2Q.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/42061563/p6bY08d2N4e4IDz-7J4_wkgsPq3-qgcx_small.jpg',
             },
         }, {
             'info_dict': {
@@ -390,7 +390,7 @@ class VidyardIE(VidyardBaseIE):
                 'ext': 'mp4',
                 'title': 'GettyImages-1325598833',
                 'duration': 6.083,
-                'thumbnail': 'https://play.vidyard.com/VAsYDi7eiqZRbHodUA2meC.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/42052358/y3qrbDpn_2quWr_5XBi7yzS3UvEI__ZM_small.jpg',
             },
         }],
         'playlist_count': 2,

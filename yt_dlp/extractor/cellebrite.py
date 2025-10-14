@@ -12,7 +12,7 @@ class CellebriteIE(VidyardBaseIE):
             'ext': 'mp4',
             'title': 'How to Lawfully Collect the Maximum Amount of Data From Android Devices',
             'description': 'md5:0e943a9ac14c374d5d74faed634d773c',
-            'thumbnail': 'https://play.vidyard.com/QV1U8a2yzcxigw7VFnqKyg.jpg',
+            'thumbnail': 'https://cellebrite.com/wp-content/uploads/2022/07/How-to-Lawfully-Collect-the-Maximum-Amount-of-Data-From-Android-Devices.png',
             'duration': 134.315,
             '_old_archive_ids': ['cellebrite 29018255'],
         },
