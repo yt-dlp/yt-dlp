@@ -69,13 +69,28 @@ class IdagioTrackIE(InfoExtractor):
 
 
 class IdagioPlaylistBaseIE(InfoExtractor):
-    def _entries(self, recording_info):
-        for track_data in traverse_obj(recording_info, ('tracks', lambda _, v: v['id'] and v['recording']['id'])):
+    """Subclasses must set _API_URL_TMPL and define _parse_playlist_metadata"""
+    _PLAYLIST_ID_KEY = 'id'  # vs. 'display_id'
+
+    def _entries(self, playlist_info):
+        for track_data in traverse_obj(playlist_info, ('tracks', lambda _, v: v['id'] and v['recording']['id'])):
             track_id = track_data['id']
             recording_id = track_data['recording']['id']
             yield self.url_result(
                 f'https://app.idagio.com/recordings/{recording_id}?trackId={track_id}',
                 ie=IdagioTrackIE, video_id=track_id)
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        playlist_info = self._download_json(
+            self._API_URL_TMPL.format(playlist_id), playlist_id)['result']
+
+        return {
+            '_type': 'playlist',
+            self._PLAYLIST_ID_KEY: playlist_id,
+            'entries': self._entries(playlist_info),
+            **self._parse_playlist_metadata(playlist_info),
+        }
 
 
 class IdagioRecordingIE(IdagioPlaylistBaseIE):
@@ -95,27 +110,19 @@ class IdagioRecordingIE(IdagioPlaylistBaseIE):
         },
         'playlist_count': 15,
     }]
+    _API_URL_TMPL = 'https://api.idagio.com/v2.0/metadata/recordings/{}'
 
-    def _real_extract(self, url):
-        recording_id = self._match_id(url)
-        recording_info = self._download_json(
-            f'https://api.idagio.com/v2.0/metadata/recordings/{recording_id}', recording_id)['result']
-
-        return {
-            '_type': 'playlist',
-            'id': recording_id,
-            'entries': self._entries(recording_info),
-            **traverse_obj(recording_info, {
-                'title': ('work', 'title', {str}),
-                'timestamp': ('created_at', {int_or_none(scale=1000)}),
-                'modified_timestamp': ('created_at', {int_or_none(scale=1000)}),
-                'location': ('location', {str}),
-                'artists': (('conductor', ('ensembles', ...), ('soloists', ...)), 'name', {str}, all),
-                'composers': ('work', 'composer', 'name', {str}, all),
-                'genres': ('work', ('genre', 'subgenre'), 'title', {str}, all),
-                'tags': ('tags', ..., {str}),
-            }),
-        }
+    def _parse_playlist_metadata(self, playlist_info):
+        return traverse_obj(playlist_info, {
+            'title': ('work', 'title', {str}),
+            'timestamp': ('created_at', {int_or_none(scale=1000)}),
+            'modified_timestamp': ('created_at', {int_or_none(scale=1000)}),
+            'location': ('location', {str}),
+            'artists': (('conductor', ('ensembles', ...), ('soloists', ...)), 'name', {str}, all),
+            'composers': ('work', 'composer', 'name', {str}, all),
+            'genres': ('work', ('genre', 'subgenre'), 'title', {str}, all),
+            'tags': ('tags', ..., {str}),
+        })
 
 
 class IdagioAlbumIE(IdagioPlaylistBaseIE):
@@ -152,27 +159,20 @@ class IdagioAlbumIE(IdagioPlaylistBaseIE):
         },
         'playlist_count': 7,
     }]
+    _API_URL_TMPL = 'https://api.idagio.com/v2.0/metadata/albums/{}'
+    _PLAYLIST_ID_KEY = 'display_id'
 
-    def _real_extract(self, url):
-        album_display_id = self._match_id(url)
-        album_info = self._download_json(
-            f'https://api.idagio.com/v2.0/metadata/albums/{album_display_id}', album_display_id)['result']
-
-        return {
-            '_type': 'playlist',
-            'display_id': album_display_id,
-            'entries': self._entries(album_info),
-            **traverse_obj(album_info, {
-                'id': ('id', {str}),
-                'title': ('title', {str}),
-                'timestamp': ('publishDate', {unified_timestamp}),
-                'modified_timestamp': ('lastModified', {unified_timestamp}),
-                'thumbnail': ('imageUrl', {url_or_none}),
-                'description': ('description', {str}),
-                'artists': ('participants', ..., 'name', {str}, all),
-                'tags': ('tags', ..., {str}),
-            }),
-        }
+    def _parse_playlist_metadata(self, playlist_info):
+        return traverse_obj(playlist_info, {
+            'id': ('id', {str}),
+            'title': ('title', {str}),
+            'timestamp': ('publishDate', {unified_timestamp}),
+            'modified_timestamp': ('lastModified', {unified_timestamp}),
+            'thumbnail': ('imageUrl', {url_or_none}),
+            'description': ('description', {str}),
+            'artists': ('participants', ..., 'name', {str}, all),
+            'tags': ('tags', ..., {str}),
+        })
 
 
 class IdagioPlaylistIE(IdagioPlaylistBaseIE):
@@ -189,24 +189,17 @@ class IdagioPlaylistIE(IdagioPlaylistBaseIE):
         },
         'playlist_count': 17,
     }]
+    _API_URL_TMPL = 'https://api.idagio.com/v2.0/playlists/{}'
+    _PLAYLIST_ID_KEY = 'display_id'
 
-    def _real_extract(self, url):
-        playlist_display_id = self._match_id(url)
-        playlist_info = self._download_json(
-            f'https://api.idagio.com/v2.0/playlists/{playlist_display_id}', playlist_display_id)['result']
-
-        return {
-            '_type': 'playlist',
-            'display_id': playlist_display_id,
-            'entries': self._entries(playlist_info),
-            **traverse_obj(playlist_info, {
-                'id': ('id', {str}),
-                'title': ('title', {str}),
-                'thumbnail': ('imageUrl', {url_or_none}),
-                'description': ('description', {str}),
-                'creators': ('curator', 'name', {str}, all),
-            }),
-        }
+    def _parse_playlist_metadata(self, playlist_info):
+        return traverse_obj(playlist_info, {
+            'id': ('id', {str}),
+            'title': ('title', {str}),
+            'thumbnail': ('imageUrl', {url_or_none}),
+            'description': ('description', {str}),
+            'creators': ('curator', 'name', {str}, all),
+        })
 
 
 class IdagioPersonalPlaylistIE(IdagioPlaylistBaseIE):
@@ -225,21 +218,13 @@ class IdagioPersonalPlaylistIE(IdagioPlaylistBaseIE):
         },
         'playlist_count': 100,
     }]
+    _API_URL_TMPL = 'https://api.idagio.com/v1.0/personal-playlists/{}'
 
-    def _real_extract(self, url):
-        playlist_id = self._match_id(url)
-        playlist_info = self._download_json(
-            f'https://api.idagio.com/v1.0/personal-playlists/{playlist_id}', playlist_id)['result']
-
-        return {
-            '_type': 'playlist',
-            'id': playlist_id,
-            'entries': self._entries(playlist_info),
-            **traverse_obj(playlist_info, {
-                'title': ('title', {str}),
-                'thumbnail': ('image_url', {url_or_none}),
-                'creators': ('user_id', {str}, all),
-                'timestamp': ('created_at', {int_or_none(scale=1000)}),
-                'modified_timestamp': ('updated_at', {int_or_none(scale=1000)}),
-            }),
-        }
+    def _parse_playlist_metadata(self, playlist_info):
+        return traverse_obj(playlist_info, {
+            'title': ('title', {str}),
+            'thumbnail': ('image_url', {url_or_none}),
+            'creators': ('user_id', {str}, all),
+            'timestamp': ('created_at', {int_or_none(scale=1000)}),
+            'modified_timestamp': ('updated_at', {int_or_none(scale=1000)}),
+        })
