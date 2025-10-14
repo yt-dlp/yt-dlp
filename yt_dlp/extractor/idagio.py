@@ -1,5 +1,6 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, traverse_obj, unified_timestamp, url_or_none
+from ..utils import int_or_none, unified_timestamp, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class IdagioTrackIE(InfoExtractor):
@@ -60,14 +61,22 @@ class IdagioTrackIE(InfoExtractor):
                 'location': ('recording', 'location', {str}),
                 'duration': ('duration', {int_or_none}),
                 'track': ('piece', 'title', {str}),
-                'artists': ('recording', ('conductor', ('ensembles', ...), ('soloists', ...)), 'name', {str}, all),
-                'composers': ('piece', 'workpart', 'work', 'composer', 'name', {str}, all),
-                'genres': ('piece', 'workpart', 'work', ('genre', 'subgenre'), 'title', {str}, all),
+                'artists': ('recording', ('conductor', ('ensembles', ...), ('soloists', ...)), 'name', {str}, filter),
+                'composers': ('piece', 'workpart', 'work', 'composer', 'name', {str}, filter, all, filter),
+                'genres': ('piece', 'workpart', 'work', ('genre', 'subgenre'), 'title', {str}, filter),
             })),
         }
 
+class IdagioPlaylistBaseIE(InfoExtractor):
+    def _entries(self, recording_info):
+        for track_data in traverse_obj(recording_info, ('tracks', lambda _, v: v['id'] and v['recording']['id'])):
+            track_id = track_data['id']
+            recording_id = track_data['recording']['id']
+            yield self.url_result(
+                f'https://app.idagio.com/recordings/{recording_id}?trackId={track_id}',
+                ie=IdagioTrackIE, video_id=track_id)
 
-class IdagioRecordingIE(InfoExtractor):
+class IdagioRecordingIE(IdagioPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/recordings/(?P<id>\d+)(?![^#]*[&?]trackId=\d+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/recordings/30576934',
@@ -87,20 +96,14 @@ class IdagioRecordingIE(InfoExtractor):
 
     def _real_extract(self, url):
         recording_id = self._match_id(url)
-        recording_info = self._download_json(f'https://api.idagio.com/v2.0/metadata/recordings/{recording_id}',
-                                             recording_id)['result']
-
-        def construct_track_url(track_id):
-            return self.url_result(
-                f'https://app.idagio.com/recordings/{recording_id}?trackId={track_id}',
-                ie=IdagioTrackIE, video_id=track_id)
+        recording_info = self._download_json(
+            f'https://api.idagio.com/v2.0/metadata/recordings/{recording_id}', recording_id)['result']
 
         return {
             '_type': 'playlist',
-            'ext': 'mp3',
             'id': recording_id,
+            'entries': self._entries(recording_info),
             **traverse_obj(recording_info, {
-                'entries': ('tracks', ..., 'id', {int}, {construct_track_url}),
                 'title': ('work', 'title', {str}),
                 'timestamp': ('created_at', {int_or_none(scale=1000)}),
                 'modified_timestamp': ('created_at', {int_or_none(scale=1000)}),
@@ -113,7 +116,7 @@ class IdagioRecordingIE(InfoExtractor):
         }
 
 
-class IdagioAlbumIE(InfoExtractor):
+class IdagioAlbumIE(IdagioPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/albums/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/albums/elgar-enigma-variations-in-the-south-serenade-for-strings',
@@ -150,22 +153,14 @@ class IdagioAlbumIE(InfoExtractor):
 
     def _real_extract(self, url):
         album_display_id = self._match_id(url)
-        album_info = self._download_json(f'https://api.idagio.com/v2.0/metadata/albums/{album_display_id}',
-                                         album_display_id)['result']
-
-        def construct_track_url(track_id, recording_id):
-            return self.url_result(
-                f'https://app.idagio.com/recordings/{recording_id}?trackId={track_id}',
-                ie=IdagioTrackIE, video_id=track_id)
+        album_info = self._download_json(
+            f'https://api.idagio.com/v2.0/metadata/albums/{album_display_id}', album_display_id)['result']
 
         return {
             '_type': 'playlist',
             'display_id': album_display_id,
+            'entries': self._entries(album_info),
             **traverse_obj(album_info, {
-                'entries': ('tracks', ..., {
-                    'track_id': ('id', {int}),
-                    'recording_id': ('recording', 'id', {int}),
-                }, {lambda ids: construct_track_url(**ids)}),
                 'id': ('id', {str}),
                 'title': ('title', {str}),
                 'timestamp': ('publishDate', {unified_timestamp}),
@@ -178,7 +173,7 @@ class IdagioAlbumIE(InfoExtractor):
         }
 
 
-class IdagioPlaylistIE(InfoExtractor):
+class IdagioPlaylistIE(IdagioPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/playlists/(?!personal/)(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/playlists/beethoven-the-most-beautiful-piano-music',
@@ -195,22 +190,14 @@ class IdagioPlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_display_id = self._match_id(url)
-        playlist_info = self._download_json(f'https://api.idagio.com/v2.0/playlists/{playlist_display_id}',
-                                            playlist_display_id)['result']
-
-        def construct_track_url(track_id, recording_id):
-            return self.url_result(
-                f'https://app.idagio.com/recordings/{recording_id}?trackId={track_id}',
-                ie=IdagioTrackIE, video_id=track_id)
+        playlist_info = self._download_json(
+            f'https://api.idagio.com/v2.0/playlists/{playlist_display_id}', playlist_display_id)['result']
 
         return {
             '_type': 'playlist',
             'display_id': playlist_display_id,
+            'entries': self._entries(playlist_info),
             **traverse_obj(playlist_info, {
-                'entries': ('tracks', ..., {
-                    'track_id': ('id', {int}),
-                    'recording_id': ('recording', 'id', {int}),
-                }, {lambda ids: construct_track_url(**ids)}),
                 'id': ('id', {str}),
                 'title': ('title', {str}),
                 'thumbnail': ('imageUrl', {url_or_none}),
@@ -220,7 +207,7 @@ class IdagioPlaylistIE(InfoExtractor):
         }
 
 
-class IdagioPersonalPlaylistIE(InfoExtractor):
+class IdagioPersonalPlaylistIE(IdagioPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/playlists/personal/(?P<id>[\da-f-]+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/playlists/personal/99dad72e-7b3a-45a4-b216-867c08046ed8',
@@ -239,22 +226,14 @@ class IdagioPersonalPlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        playlist_info = self._download_json(f'https://api.idagio.com/v1.0/personal-playlists/{playlist_id}',
-                                            playlist_id)['result']
-
-        def construct_track_url(track_id, recording_id):
-            return self.url_result(
-                f'https://app.idagio.com/recordings/{recording_id}?trackId={track_id}',
-                ie=IdagioTrackIE, video_id=track_id)
+        playlist_info = self._download_json(
+            f'https://api.idagio.com/v1.0/personal-playlists/{playlist_id}', playlist_id)['result']
 
         return {
             '_type': 'playlist',
             'id': playlist_id,
+            'entries': self._entries(playlist_info),
             **traverse_obj(playlist_info, {
-                'entries': ('tracks', ..., {
-                    'track_id': ('id', {str}),
-                    'recording_id': ('recording', 'id', {int}),
-                }, {lambda ids: construct_track_url(**ids)}),
                 'title': ('title', {str}),
                 'thumbnail': ('image_url', {url_or_none}),
                 'creators': ('user_id', {str}, all),
