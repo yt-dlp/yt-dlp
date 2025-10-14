@@ -2944,6 +2944,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'x-ms-asf': 'asf',
         'x-ms-wmv': 'wmv',
         'x-msvideo': 'avi',
+        'vnd.dlna.mpeg-tts': 'mpeg',
 
         # application (streaming playlists)
         'dash+xml': 'mpd',
