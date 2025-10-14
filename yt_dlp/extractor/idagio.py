@@ -187,7 +187,7 @@ class IdagioPlaylistIE(IdagioPlaylistBaseIE):
             'display_id': 'beethoven-the-most-beautiful-piano-music',
             'title': 'Beethoven: the most beautiful piano music',
             'description': 'md5:d41bb04b8896bb69377f5c2cd9345ad1',
-            'thumbnail': 'https://idagio-images.global.ssl.fastly.net/playlists/31652bec-8c5b-460e-a3f0-cf1f69817f53/main.jpg?_alt=sys/ph/artist-default.jpg',
+            'thumbnail': r're:https://.+/playlists/31652bec-8c5b-460e-a3f0-cf1f69817f53/main\.jpg',
             'creators': ['IDAGIO'],
         },
         'playlist_mincount': 16,  # one entry is geo-restricted
@@ -213,7 +213,7 @@ class IdagioPersonalPlaylistIE(IdagioPlaylistBaseIE):
             'id': '99dad72e-7b3a-45a4-b216-867c08046ed8',
             'title': 'Test',
             'creators': ['1a6f16a6-4514-4d0c-b481-3a9877835626'],
-            'thumbnail': 'https://idagio-images.global.ssl.fastly.net/artists/86371/main.jpg?_alt=sys/ph/artist-default.jpg',
+            'thumbnail': r're:https://.+/artists/86371/main\.jpg',
             'timestamp': 1602859138,
             'modified_timestamp': 1755616667,
             'upload_date': '20201016',
