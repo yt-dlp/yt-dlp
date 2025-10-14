@@ -55,7 +55,7 @@ class ABCIE(InfoExtractor):
             'ext': 'mp3',
             'title': 'NAB lifts interest rates, following Westpac and CBA - ABC listen',
             'description': 'md5:f13d8edc81e462fce4a0437c7dc04728',
-            'thumbnail': r're:https://live-production.wcms.abc-cdn.net.au/2193d7437c84b25eafd6360c82b5fa21',
+            'thumbnail': r're:https://live-production\.wcms\.abc-cdn\.net\.au/2193d7437c84b25eafd6360c82b5fa21',
         },
     }, {
         'url': 'http://www.abc.net.au/news/2015-10-19/6866214',
@@ -67,7 +67,7 @@ class ABCIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'WWI Centenary - Behind The News',
             'description': 'md5:fa4405939ff750fade46ff0cd4c66a52',
-            'thumbnail': r're:https://live-production.wcms.abc-cdn.net.au/bcc3433c97bf992dff32ec5a768713c9',
+            'thumbnail': r're:https://live-production\.wcms\.abc-cdn\.net\.au/bcc3433c97bf992dff32ec5a768713c9',
         },
     }, {
         'url': 'https://www.abc.net.au/news/programs/the-world/2020-06-10/black-lives-matter-protests-spawn-support-for/12342074',
@@ -76,7 +76,7 @@ class ABCIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Black Lives Matter protests spawn support for Papuans in Indonesia',
             'description': 'md5:625257209f2d14ce23cb4e3785da9beb',
-            'thumbnail': r're:https://live-production.wcms.abc-cdn.net.au/7ee6f190de6d7dbb04203e514bfae9ec',
+            'thumbnail': r're:https://live-production\.wcms\.abc-cdn\.net\.au/7ee6f190de6d7dbb04203e514bfae9ec',
         },
     }, {
         'url': 'https://www.abc.net.au/btn/newsbreak/btn-newsbreak-20200814/12560476',
@@ -96,7 +96,7 @@ class ABCIE(InfoExtractor):
             'title': 'Wagner Group retreating from Russia, leader Prigozhin to move to Belarus',
             'ext': 'mp4',
             'description': 'Wagner troops leave Rostov-on-Don and\xa0Yevgeny Prigozhin will move to Belarus under a deal brokered by Belarusian President Alexander Lukashenko to end the mutiny.',
-            'thumbnail': r're:https://live-production.wcms.abc-cdn.net.au/0c170f5b57f0105c432f366c0e8e267b',
+            'thumbnail': r're:https://live-production\.wcm\.abc-cdn\.net\.au/0c170f5b57f0105c432f366c0e8e267b',
         },
     }, {
         'url': 'https://www.abc.net.au/listen/programs/the-followers-madness-of-two/presents-followers-madness-of-two/105697646',
@@ -105,7 +105,7 @@ class ABCIE(InfoExtractor):
             'title': 'INTRODUCING — The Followers: Madness of Two - ABC listen',
             'ext': 'mp3',
             'description': 'md5:2310cd0d440a4e01656abea15db8d1f3',
-            'thumbnail': r're:https://live-production.wcms.abc-cdn.net.au/90d7078214e5d66553ffb7fcf0da0cda',
+            'thumbnail': r're:https://live-production\.wcms\.abc-cdn\.net\.au/90d7078214e5d66553ffb7fcf0da0cda',
         },
     }]
 
