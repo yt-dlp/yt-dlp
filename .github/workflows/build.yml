@@ -153,10 +153,12 @@ jobs:
                   'os': 'musllinux',
                   'arch': 'x86_64',
                   'runner': 'ubuntu-24.04',
+                  'python_version': '3.14',
               }, {
                   'os': 'musllinux',
                   'arch': 'aarch64',
                   'runner': 'ubuntu-24.04-arm',
+                  'python_version': '3.14',
               }],
           }
           INPUTS = json.loads(os.environ['INPUTS'])
