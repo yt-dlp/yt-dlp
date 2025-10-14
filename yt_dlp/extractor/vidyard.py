@@ -66,7 +66,7 @@ class VidyardBaseIE(InfoExtractor):
             'title': ('name', {str}),
             'duration': ('seconds', {int_or_none}),
             'thumbnail': ('thumbnailUrl', {url_or_none}),
-            'chapters': ('videoSections', ..., {
+            'chapters': ('videoSections', lambda _, v: float_or_none(v['milliseconds']) is not None, {
                 'title': ('title', {str}),
                 'start_time': ('milliseconds', {float_or_none(scale=1000)}),
             }),
