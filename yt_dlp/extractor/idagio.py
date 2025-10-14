@@ -187,7 +187,7 @@ class IdagioPlaylistIE(IdagioPlaylistBaseIE):
             'thumbnail': 'https://idagio-images.global.ssl.fastly.net/playlists/31652bec-8c5b-460e-a3f0-cf1f69817f53/main.jpg?_alt=sys/ph/artist-default.jpg',
             'creators': ['IDAGIO'],
         },
-        'playlist_count': 17,
+        'playlist_mincount': 16,  # one entry is geo-restricted
     }]
     _API_URL_TMPL = 'https://api.idagio.com/v2.0/playlists/{}'
     _PLAYLIST_ID_KEY = 'display_id'
