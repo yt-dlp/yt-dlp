@@ -49,7 +49,7 @@ jobs:
         - os: windows-latest
           python-version: '3.13'
         - os: windows-latest
-          python-version: '3.14-dev'
+          python-version: '3.14'
         - os: windows-latest
           python-version: pypy-3.11
     steps:
