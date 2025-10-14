@@ -100,7 +100,6 @@ class PrankCastPostIE(InfoExtractor):
             'duration': 263.287,
             'cast': ['despicabledogs'],
             'description': 'https://imgur.com/a/vtxLvKU',
-            'categories': [],
             'upload_date': '20240104',
         },
     }, {
@@ -116,7 +115,6 @@ class PrankCastPostIE(InfoExtractor):
             'duration': 2176.464,
             'cast': ['DrTomServo'],
             'description': '',
-            'categories': [],
             'upload_date': '20250803',
         },
     }, {
@@ -132,7 +130,6 @@ class PrankCastPostIE(InfoExtractor):
             'duration': 19018.392,
             'cast': ['DrTomServo'],
             'description': '',
-            'categories': [],
             'upload_date': '20250817',
         },
     }]
