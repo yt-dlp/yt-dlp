@@ -214,7 +214,7 @@ class TenPlayIE(InfoExtractor):
             if (
                 isinstance(e.cause, HTTPError) and e.cause.status == 403
                 and 'Error 54113' in e.cause.response.read().decode()
-               ):
+            ):
                 self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
             raise
 
