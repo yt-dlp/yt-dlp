@@ -6,13 +6,15 @@ from ..utils import (
     determine_ext,
     int_or_none,
     str_or_none,
+    traverse_obj,
     url_or_none,
 )
 
 
 class AnimeOnegaiIE(InfoExtractor):
     _NETRC_MACHINE = 'animeonegai'
-    _VALID_URL = r'https?://(?:www\.)?animeonegai\.com/(?P<language>[a-z]{2})/watch/(?P<id>[a-zA-Z0-9]+)(?:\?|&)(\w+)=([^&]*)'
+    _VALID_URL = r'https?://(?:www\.)?animeonegai\.com/(?P<language>[a-z]{2})/watch/(?P<id>\w+)'
+    _GEO_COUNTRIES = ['MX']
     _TESTS = [{
         'url': 'https://www.animeonegai.com/es/watch/4Bpd6m6gGYVxdspKn?time=0&serie=true',
         'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
@@ -44,52 +46,58 @@ class AnimeOnegaiIE(InfoExtractor):
 
     def _real_extract(self, url):
         if (self._HEADERS['Authorization'] is None):
-            raise ExtractorError('Use "--username token" and ""--password <auth_token>"" to log in', expected=True)
+            raise ExtractorError(
+                'Use "--username token" and "--password <ott_token>" to log in. The ott_token can be found in Local Storage using the Developer Tools, after login in a browser window to Anime Onegai site', expected=True)
 
         language, video_id = self._match_valid_url(url).group('language', 'id')
 
-        if (language is None):
-            language = 'es'
+        self._initialize_geo_bypass({
+            'countries': self._GEO_COUNTRIES,
+        })
 
-        if (video_id is None):
-            raise ExtractorError('Video id not provided', expected=True)
+        chapter_data = self._download_json(
+            f'https://api.animeonegai.com/v1/restricted/chapter/entry/{video_id}',
+            video_id, 'Downloading Chapter Data', headers=self._HEADERS, query={'lang': language})
 
-        chapter_json = self._download_json(f'https://api.animeonegai.com/v1/restricted/chapter/entry/{video_id}?lang={language}', video_id, 'Downloading Chapter Data', headers=self._HEADERS)
-
-        if (chapter_json is None or chapter_json.get('ID') == 0):
+        if (chapter_data.get('ID') == 0):
             raise ExtractorError('Chapter data not found', expected=True)
 
-        asset_id = int_or_none(chapter_json.get('asset_id'))
-        asset_json = self._download_json(f'https://api.animeonegai.com/v1/restricted/asset/public/{asset_id}?lang={language}&cache=true', video_id, 'Downloading Asset Data', headers=self._HEADERS)
+        asset_id = int_or_none(chapter_data.get('asset_id'))
+        asset_data = self._download_json(
+            f'https://api.animeonegai.com/v1/restricted/asset/public/{asset_id}',
+            video_id, 'Downloading Asset Data', headers=self._HEADERS, query={'lang': language, 'cache': 'true'})
 
-        video_entry = str_or_none(chapter_json.get('video_entry'))
-        video_json = self._download_json(f'https://api.animeonegai.com/v1/media/{video_entry}?tv=false&mobile=false&device_id={self._DEVICE_ID}&platform=web', video_id, 'Downloading Video Data', headers=self._HEADERS)
+        video_entry = str_or_none(chapter_data.get('video_entry'))
+        video_data = self._download_json(
+            f'https://api.animeonegai.com/v1/media/{video_entry}',
+            video_id, 'Downloading Video Data', headers=self._HEADERS,
+            query={'tv': 'false', 'mobile': 'false', 'device_id': self._DEVICE_ID, 'platform': 'web'})
 
-        if (video_json is None or video_json.get('ID') == 0):
-            raise ExtractorError('Video data not found', expected=True)
+        if (video_data.get('drm') and not self.get_param('allow_unplayable_formats')):
+            raise ExtractorError('The video is DRM protected', expected=True)
 
-        formats = self._extract_mpd_formats(url_or_none(video_json.get('dash')), video_id, mpd_id='dash', fatal=False)
+        formats = self._extract_mpd_formats(video_data['dash'], video_id)
         subtitles = {}
-        tags = []
 
-        for subtitle in video_json.get('subtitles') or []:
+        for subtitle in video_data.get('subtitles') or []:
             subtitles.setdefault(str_or_none(subtitle.get('lang', language)), []).append({
                 'url': url_or_none(subtitle.get('url')),
                 'ext': determine_ext(str_or_none(subtitle.get('url'))),
                 'name': str_or_none(subtitle.get('name')),
             })
 
-        for tag in asset_json.get('tags_list') or []:
-            tags.append(str_or_none(tag.get('name')))
-
         return {
             'id': video_id,
-            'title': str_or_none(chapter_json.get('name')),
             'formats': formats,
-            'thumbnail': str_or_none(chapter_json.get('thumbnail')),
-            'description': str_or_none(chapter_json.get('description')),
             'subtitles': subtitles,
-            'tags': tags,
-            'series': str_or_none(asset_json.get('title')),
-            'episode_number': int_or_none(chapter_json.get('number')),
+            **traverse_obj(chapter_data, {
+                'title': ('name', {str}),
+                'thumbnail': ('thumbnail', {url_or_none}),
+                'description': ('description', {str}),
+                'episode_number': ('number', {int_or_none}),
+            }),
+            **traverse_obj(asset_data, {
+                'series': ('title', {str}),
+                'tags': ('tags_list', ..., 'name', {str}),
+            }),
         }
