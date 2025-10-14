@@ -207,6 +207,7 @@ class RequestHandler(abc.ABC):
     - `timeout`: socket timeout to use for this request.
     - `legacy_ssl`: Enable legacy SSL options for this request. See legacy_ssl_support.
     - `keep_header_casing`: Keep the casing of headers when sending the request.
+    - `allow_redirects`: Allow or disallow HTTP redirects when doing the request.
     To enable these, add extensions.pop('<extension>', None) to _check_extensions
 
     Apart from the url protocol, proxies dict may contain the following keys:
@@ -336,6 +337,7 @@ class RequestHandler(abc.ABC):
         assert isinstance(extensions.get('timeout'), (float, int, NoneType))
         assert isinstance(extensions.get('legacy_ssl'), (bool, NoneType))
         assert isinstance(extensions.get('keep_header_casing'), (bool, NoneType))
+        assert isinstance(extensions.get('allow_redirects'), (bool, NoneType))
 
     def _validate(self, request):
         self._check_url_scheme(request)
@@ -393,7 +395,7 @@ class Request:
     @param proxies: proxy dict mapping of proto:proxy to use for the request and any redirects.
     @param query: URL query parameters to update the url with.
     @param method: HTTP method to use. If no method specified, will use POST if payload data is present else GET
-    @param extensions: Dictionary of Request extensions to add, as supported by handlers.
+    @param extensions: Dictionary of Request extensions to add, as supported by handlers; see RequestHandler base class.
     """
 
     def __init__(

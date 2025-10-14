@@ -211,6 +211,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         # CurlCFFIRH ignores legacy ssl options currently.
         # Impersonation generally uses a looser SSL configuration than urllib/requests.
         extensions.pop('legacy_ssl', None)
+        extensions.pop('allow_redirects', None)
 
     def send(self, request: Request) -> Response:
         target = self._get_request_target(request)
@@ -275,6 +276,9 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         session.curl.setopt(CurlOpt.LOW_SPEED_LIMIT, 1)  # 1 byte per second
         session.curl.setopt(CurlOpt.LOW_SPEED_TIME, math.ceil(timeout))
 
+        allow_redirects = request.extensions.get('allow_redirects')
+        max_redirs = 5 if isinstance(allow_redirects, (True, None)) else 0
+
         try:
             curl_response = session.request(
                 method=request.method,
@@ -282,7 +286,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 headers=headers,
                 data=request.data,
                 verify=self.verify,
-                max_redirects=5,
+                max_redirects=max_redirs,
                 timeout=(timeout, timeout),
                 impersonate=self._SUPPORTED_IMPERSONATE_TARGET_MAP.get(
                     self._get_request_target(request)),
