@@ -263,6 +263,7 @@ class InfoExtractor:
                                 * a string in the format of CLIENT[:OS]
                                 * a list or a tuple of CLIENT[:OS] strings or ImpersonateTarget instances
                                 * a boolean value; True means any impersonate target is sufficient
+                    * available_at  Unix timestamp of when a format will be available to download
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
