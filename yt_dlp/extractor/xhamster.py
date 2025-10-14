@@ -214,7 +214,6 @@ class XHamsterIE(InfoExtractor):
 
     def _fixup_formats(self, formats):
         for f in formats:
-            self.to_screen(f.get('format_id'))
             if f.get('vcodec'):
                 continue
             for vcodec in ('av1', 'h264'):
