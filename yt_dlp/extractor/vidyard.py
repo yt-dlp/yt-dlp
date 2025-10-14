@@ -58,6 +58,20 @@ class VidyardBaseIE(InfoExtractor):
 
         return subs
 
+    def _get_additional_metadata(self, video_id):
+        additional_metadata = self._download_json(
+            f'https://play.vidyard.com/video/{video_id}', video_id,
+            note='Downloading additional metadata', fatal=False)
+        return traverse_obj(additional_metadata, {
+            'title': ('name', {str}),
+            'duration': ('seconds', {int_or_none}),
+            'thumbnails': ('thumbnailUrl', {'url': {url_or_none}}, all),
+            'chapters': ('videoSections', lambda _, v: float_or_none(v['milliseconds']) is not None, {
+                'title': ('title', {str}),
+                'start_time': ('milliseconds', {float_or_none(scale=1000)}),
+            }),
+        })
+
     def _fetch_video_json(self, video_id):
         return self._download_json(
             f'https://play.vidyard.com/player/{video_id}.json', video_id)['payload']
@@ -67,6 +81,7 @@ class VidyardBaseIE(InfoExtractor):
         self._merge_subtitles(self._get_direct_subtitles(json_data.get('captions')), target=subtitles)
 
         return {
+            **self._get_additional_metadata(json_data['facadeUuid']),
             **traverse_obj(json_data, {
                 'id': ('facadeUuid', {str}),
                 'display_id': ('videoId', {int}, {str_or_none}),
@@ -114,6 +129,29 @@ class VidyardIE(VidyardBaseIE):
             'duration': 41.186,
         },
     }, {
+        'url': 'https://share.vidyard.com/watch/wL237MtNgZUHo6e8WPiJbF',
+        'info_dict': {
+            'id': 'wL237MtNgZUHo6e8WPiJbF',
+            'display_id': '25926870',
+            'ext': 'mp4',
+            'title': 'Adding & Editing Video Chapters',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/25926870/bvSEZS3dGY7DByQ_bzB57avIZ_hsvhr4_small.jpg',
+            'duration': 135.46,
+            'chapters': [{
+                'title': 'Adding new chapters',
+                'start_time': 0,
+            }, {
+                'title': 'Previewing your video',
+                'start_time': 74,
+            }, {
+                'title': 'Editing your chapters',
+                'start_time': 91,
+            }, {
+                'title': 'Share a link to a specific chapter',
+                'start_time': 105,
+            }],
+        },
+    }, {
         'url': 'https://embed.vidyard.com/share/oTDMPlUv--51Th455G5u7Q',
         'info_dict': {
             'id': 'oTDMPlUv--51Th455G5u7Q',
@@ -132,8 +170,8 @@ class VidyardIE(VidyardBaseIE):
             'id': 'SyStyHtYujcBHe5PkZc5DL',
             'display_id': '41974005',
             'ext': 'mp4',
-            'title': 'Prepare the Frame and Track for Palm Beach Polysatin Shutters With BiFold Track',
-            'description': r're:In this video, you will learn how to prepare the frame.+',
+            'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 1 of 6)',
+            'description': r're:In this video, you will learn the first step.+',
             'thumbnail': 'https://cdn.vidyard.com/thumbnails/41974005/IJw7oCaJcF1h7WWu3OVZ8A_small.png',
             'duration': 258.666,
         },
@@ -147,42 +185,42 @@ class VidyardIE(VidyardBaseIE):
                 'id': 'SyStyHtYujcBHe5PkZc5DL',
                 'display_id': '41974005',
                 'ext': 'mp4',
-                'title': 'Prepare the Frame and Track for Palm Beach Polysatin Shutters With BiFold Track',
+                'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 1 of 6)',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/41974005/IJw7oCaJcF1h7WWu3OVZ8A_small.png',
                 'duration': 258.666,
             }, {
                 'id': '1Fw4B84jZTXLXWqkE71RiM',
                 'display_id': '5861113',
                 'ext': 'mp4',
-                'title': 'Palm Beach - Bi-Fold Track System "Frame Installation"',
+                'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 2 of 6)',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/5861113/29CJ54s5g1_aP38zkKLHew_small.jpg',
                 'duration': 167.858,
             }, {
                 'id': 'DqP3wBvLXSpxrcqpT5kEeo',
                 'display_id': '41976334',
                 'ext': 'mp4',
-                'title': 'Install the Track for Palm Beach Polysatin Shutters With BiFold Track',
+                'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 3 of 6)',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/5861090/RwG2VaTylUa6KhSTED1r1Q_small.png',
                 'duration': 94.229,
             }, {
                 'id': 'opfybfxpzQArxqtQYB6oBU',
                 'display_id': '41976364',
                 'ext': 'mp4',
-                'title': 'Install the Panel for Palm Beach Polysatin Shutters With BiFold Track',
+                'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 4 of 6)',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/5860926/JIOaJR08dM4QgXi_iQ2zGA_small.png',
                 'duration': 191.467,
             }, {
                 'id': 'rWrXvkbTNNaNqD6189HJya',
                 'display_id': '41976382',
                 'ext': 'mp4',
-                'title': 'Adjust the Panels for Palm Beach Polysatin Shutters With BiFold Track',
+                'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 5 of 6)',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/5860687/CwHxBv4UudAhOh43FVB4tw_small.png',
                 'duration': 138.155,
             }, {
                 'id': 'eYPTB521MZ9TPEArSethQ5',
                 'display_id': '41976409',
                 'ext': 'mp4',
-                'title': 'Assemble and Install the Valance for Palm Beach Polysatin Shutters With BiFold Track',
+                'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 6 of 6)',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/5861425/0y68qlMU4O5VKU7bJ8i_AA_small.png',
                 'duration': 148.224,
             }],
@@ -191,6 +229,7 @@ class VidyardIE(VidyardBaseIE):
     }, {
         # Non hubs.vidyard.com playlist
         'url': 'https://salesforce.vidyard.com/watch/d4vqPjs7Q5EzVEis5QT3jd',
+        'skip': 'URL now 404s. Alternative non hubs.vidyard.com playlist not yet available',
         'info_dict': {
             'id': 'd4vqPjs7Q5EzVEis5QT3jd',
             'title': 'How To: Service Cloud: Import External Content in Lightning Knowledge',
@@ -300,6 +339,7 @@ class VidyardIE(VidyardBaseIE):
     }, {
         # <script ... id="vidyard_embed_code_DXx2sW4WaLA6hTdGFz7ja8" src="//play.vidyard.com/DXx2sW4WaLA6hTdGFz7ja8.js?
         'url': 'http://videos.vivint.com/watch/DXx2sW4WaLA6hTdGFz7ja8',
+        'skip': 'URL certificate expired 2025-09-10. Alternative script embed test case not yet available',
         'info_dict': {
             'id': 'DXx2sW4WaLA6hTdGFz7ja8',
             'display_id': '2746529',
@@ -317,11 +357,12 @@ class VidyardIE(VidyardBaseIE):
             'ext': 'mp4',
             'title': 'Lesson 1 - Opening an MT4 Account',
             'description': 'Never heard of MetaTrader4? Here\'s the 411 on the popular trading platform!',
-            'duration': 168,
+            'duration': 168.16,
             'thumbnail': 'https://cdn.vidyard.com/thumbnails/20291/IM-G2WXQR9VBLl2Cmzvftg_small.jpg',
         },
     }, {
         # <iframe ... src="//play.vidyard.com/d61w8EQoZv1LDuPxDkQP2Q/type/background?preview=1"
+        'skip': 'URL changed embed method to \'class="vidyard-player-embed"\'. An alternative iframe embed test case is not yet available',
         'url': 'https://www.avaya.com/en/',
         'info_dict': {
             # These values come from the generic extractor and don't matter
@@ -354,46 +395,18 @@ class VidyardIE(VidyardBaseIE):
         }],
         'playlist_count': 2,
     }, {
-        # <div class="vidyard-player-embed" data-uuid="vpCWTVHw3qrciLtVY94YkS"
-        'url': 'https://www.gogoair.com/',
+        # <div class="vidyard-player-embed" data-uuid="pMk8eNCYzukzJaEPoo1Hgn"
+        # URL previously used iframe embeds and was used for that test case
+        'url': 'https://www.avaya.com/en/',
         'info_dict': {
-            # These values come from the generic extractor and don't matter
-            'id': str,
-            'title': str,
-            'description': str,
-            'age_limit': 0,
+            'id': 'pMk8eNCYzukzJaEPoo1Hgn',
+            'display_id': '47074153',
+            'ext': 'mp4',
+            'title': 'Avaya Infinity Helps Redefine the Contact Center as Your Connection Center',
+            'description': r're:Our mission is to help you turn single engagements.+',
+            'duration': 81.55,
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/47074153/MZOLKhXdbiUWwp2ROnT5HaXL0oau6JtR_small.jpg',
         },
-        'playlist': [{
-            'info_dict': {
-                'id': 'vpCWTVHw3qrciLtVY94YkS',
-                'display_id': '40780699',
-                'ext': 'mp4',
-                'title': 'Upgrade to AVANCE 100% worth it - Jason Talley, Owner and Pilot, Testimonial',
-                'description': 'md5:f609824839439a51990cef55ffc472aa',
-                'duration': 70.737,
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/40780699/KzjfYZz5MZl2gHF_e-4i2c6ib1cLDweQ_small.jpg',
-            },
-        }, {
-            'info_dict': {
-                'id': 'xAmV9AsLbnitCw35paLBD8',
-                'display_id': '31130867',
-                'ext': 'mp4',
-                'title': 'Brad Keselowski goes faster with Gogo AVANCE inflight Wi-Fi',
-                'duration': 132.565,
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/31130867/HknyDtLdm2Eih9JZ4A5XLjhfBX_6HRw5_small.jpg',
-            },
-        }, {
-            'info_dict': {
-                'id': 'RkkrFRNxfP79nwCQavecpF',
-                'display_id': '39009815',
-                'ext': 'mp4',
-                'title': 'Live Demo of Gogo Galileo',
-                'description': 'md5:e2df497236f4e12c3fef8b392b5f23e0',
-                'duration': 112.128,
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/38144873/CWLlxfUbJ4Gh0ThbUum89IsEM4yupzMb_small.jpg',
-            },
-        }],
-        'playlist_count': 3,
     }]
 
     @classmethod

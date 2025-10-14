@@ -1,12 +1,20 @@
+import base64
+import datetime as dt
 import itertools
+import json
+import re
+import time
 
 from .common import InfoExtractor
-from ..networking import HEADRequest
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    encode_data_uri,
+    filter_dict,
     int_or_none,
-    update_url_query,
+    jwt_decode_hs256,
     url_or_none,
+    urlencode_postdata,
     urljoin,
 )
 from ..utils.traversal import traverse_obj
@@ -100,31 +108,148 @@ class TenPlayIE(InfoExtractor):
         'R': 18,
         'X': 18,
     }
+    _TOKEN_CACHE_KEY = 'token_data'
+    _SEGMENT_BITRATE_RE = r'(?m)-(?:300|150|75|55)0000-(\d+(?:-[\da-f]+)?)\.ts$'
+
+    _refresh_token = None
+    _access_token = None
+
+    @staticmethod
+    def _filter_ads_from_m3u8(m3u8_doc):
+        out = []
+        for line in m3u8_doc.splitlines():
+            if line.startswith('https://redirector.googlevideo.com/'):
+                out.pop()
+                continue
+            out.append(line)
+
+        return '\n'.join(out)
+
+    @staticmethod
+    def _generate_xnetwork_ten_auth_token():
+        ts = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')
+        return base64.b64encode(ts.encode()).decode()
+
+    @staticmethod
+    def _is_jwt_expired(token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 300
+
+    def _refresh_access_token(self):
+        try:
+            refresh_data = self._download_json(
+                'https://10.com.au/api/token/refresh', None, 'Refreshing access token',
+                headers={
+                    'Content-Type': 'application/json',
+                }, data=json.dumps({
+                    'accessToken': self._access_token,
+                    'refreshToken': self._refresh_token,
+                }).encode())
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
+                self._refresh_token = self._access_token = None
+                self.cache.store(self._NETRC_MACHINE, self._TOKEN_CACHE_KEY, [None, None])
+                self.report_warning('Refresh token has been invalidated; retrying with credentials')
+                self._perform_login(*self._get_login_info())
+                return
+            raise
+        self._access_token = refresh_data['accessToken']
+        self._refresh_token = refresh_data['refreshToken']
+        self.cache.store(self._NETRC_MACHINE, self._TOKEN_CACHE_KEY, [self._refresh_token, self._access_token])
+
+    def _perform_login(self, username, password):
+        if not self._refresh_token:
+            self._refresh_token, self._access_token = self.cache.load(
+                self._NETRC_MACHINE, self._TOKEN_CACHE_KEY, default=[None, None])
+        if self._refresh_token and self._access_token:
+            self.write_debug('Using cached refresh token')
+            return
+
+        try:
+            auth_data = self._download_json(
+                'https://10.com.au/api/user/auth', None, 'Logging in',
+                headers={
+                    'Content-Type': 'application/json',
+                    'X-Network-Ten-Auth': self._generate_xnetwork_ten_auth_token(),
+                    'Referer': 'https://10.com.au/',
+                }, data=json.dumps({
+                    'email': username,
+                    'password': password,
+                }).encode())
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
+                raise ExtractorError('Invalid username/password', expected=True)
+            raise
+
+        self._refresh_token = auth_data['jwt']['refreshToken']
+        self._access_token = auth_data['jwt']['accessToken']
+        self.cache.store(self._NETRC_MACHINE, self._TOKEN_CACHE_KEY, [self._refresh_token, self._access_token])
+
+    def _call_playback_api(self, content_id):
+        if self._access_token and self._is_jwt_expired(self._access_token):
+            self._refresh_access_token()
+        for is_retry in (False, True):
+            try:
+                return self._download_json_handle(
+                    f'https://10.com.au/api/v1/videos/playback/{content_id}/', content_id,
+                    note='Downloading video JSON', query={'platform': 'samsung'},
+                    headers=filter_dict({
+                        'TP-AcceptFeature': 'v1/fw;v1/drm',
+                        'Authorization': f'Bearer {self._access_token}' if self._access_token else None,
+                    }))
+            except ExtractorError as e:
+                if not is_retry and isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                    if self._access_token:
+                        self.to_screen('Access token has expired; refreshing')
+                        self._refresh_access_token()
+                        continue
+                    elif not self._get_login_info()[0]:
+                        self.raise_login_required('Login required to access this video', method='password')
+                raise
 
     def _real_extract(self, url):
         content_id = self._match_id(url)
         data = self._download_json(
-            'https://10.com.au/api/v1/videos/' + content_id, content_id)
+            f'https://10.com.au/api/v1/videos/{content_id}', content_id)
 
-        video_data = self._download_json(
-            f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
-            content_id, 'Downloading video JSON')
-        # Dash URL 404s, changing the m3u8 format works
-        m3u8_url = self._request_webpage(
-            HEADRequest(update_url_query(video_data['items'][0]['dashManifestUrl'], {
-                'manifest': 'm3u',
-            })),
-            content_id, 'Checking stream URL').url
-        if '10play-not-in-oz' in m3u8_url:
-            self.raise_geo_restricted(countries=['AU'])
-        if '10play_unsupported' in m3u8_url:
-            raise ExtractorError('Unable to extract stream')
-        # Attempt to get a higher quality stream
-        formats = self._extract_m3u8_formats(
-            m3u8_url.replace(',150,75,55,0000', ',500,300,150,75,55,0000'),
-            content_id, 'mp4', fatal=False)
-        if not formats:
-            formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
+        video_data, urlh = self._call_playback_api(content_id)
+        content_source_id = video_data['dai']['contentSourceId']
+        video_id = video_data['dai']['videoId']
+        auth_token = urlh.get_header('x-dai-auth')
+        if not auth_token:
+            raise ExtractorError('Failed to get DAI auth token')
+
+        dai_data = self._download_json(
+            f'https://pubads.g.doubleclick.net/ondemand/hls/content/{content_source_id}/vid/{video_id}/streams',
+            content_id, note='Downloading DAI JSON',
+            data=urlencode_postdata({'auth-token': auth_token}))
+
+        # Ignore subs to avoid ad break cleanup
+        formats, _ = self._extract_m3u8_formats_and_subtitles(
+            dai_data['stream_manifest'], content_id, 'mp4')
+
+        already_have_1080p = False
+        for fmt in formats:
+            m3u8_doc = self._download_webpage(
+                fmt['url'], content_id, note='Downloading m3u8 information')
+            m3u8_doc = self._filter_ads_from_m3u8(m3u8_doc)
+            fmt['hls_media_playlist_data'] = m3u8_doc
+            if fmt.get('height') == 1080:
+                already_have_1080p = True
+
+        # Attempt format upgrade
+        if not already_have_1080p and m3u8_doc and re.search(self._SEGMENT_BITRATE_RE, m3u8_doc):
+            m3u8_doc = re.sub(self._SEGMENT_BITRATE_RE, r'-5000000-\1.ts', m3u8_doc)
+            m3u8_doc = re.sub(r'-(?:300|150|75|55)0000\.key"', r'-5000000.key"', m3u8_doc)
+            formats.append({
+                'format_id': 'upgrade-attempt-1080p',
+                'url': encode_data_uri(m3u8_doc.encode(), 'application/x-mpegurl'),
+                'hls_media_playlist_data': m3u8_doc,
+                'width': 1920,
+                'height': 1080,
+                'ext': 'mp4',
+                'protocol': 'm3u8_native',
+                '__needs_testing': True,
+            })
 
         return {
             'id': content_id,
