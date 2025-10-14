@@ -151,20 +151,21 @@ class PrankCastPostIE(InfoExtractor):
             **traverse_obj(post, {
                 'title': ('post_title', {str}),
                 'description': ('post_body', {str}),
-                'tags': ('post_tags', {lambda x: x.split(',')}, ..., {str.strip}, filter, all, filter),
+                'tags': ('post_tags', {lambda x: x.split(',')}, ..., {str.strip}, filter),
                 'channel_id': ('user_id', {int}, {str_or_none}),
                 'uploader': ('user_name', {str}),
             }),
             **traverse_obj(content, {
                 'url': (('secure_url', 'url'), {url_or_none}, any),
-                'timestamp': (
-                    ((('start_date', 'crdate'), {parse_iso8601(delimiter=' ')}),
-                     ('created_at', {parse_iso8601})), {int}, any),
+                'timestamp': ((
+                    (('start_date', 'crdate'), {parse_iso8601(delimiter=' ')}),
+                    ('created_at', {parse_iso8601}),
+                ), any),
                 'duration': ('duration', {float_or_none}),
-                'categories': ('category', {str}, all),
+                'categories': ('category', {str}, filter, all, filter),
                 'cast': ((
                     {value(post.get('user_name'))},
                     ('guests_json', {json.loads}, ..., 'name'),
-                ), {str}, filter, all),
+                ), {str}, filter),
             }),
         }
