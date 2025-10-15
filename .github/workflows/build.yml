@@ -194,7 +194,7 @@ jobs:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0  # Needed for changelog
 
@@ -255,7 +255,7 @@ jobs:
       SKIP_ONEFILE_BUILD: ${{ (!matrix.onefile && '1') || '' }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Cache requirements
         if: matrix.cache_requirements
@@ -318,7 +318,7 @@ jobs:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # NB: Building universal2 does not work with python from actions/setup-python
 
       - name: Cache requirements
@@ -448,7 +448,7 @@ jobs:
       PYI_WHEEL: pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python_version }}

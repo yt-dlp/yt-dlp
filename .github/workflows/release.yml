@@ -75,7 +75,7 @@ jobs:
       head_sha: ${{ steps.get_target.outputs.head_sha }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -170,7 +170,7 @@ jobs:
       id-token: write  # mandatory for trusted publishing
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v6
@@ -233,7 +233,7 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       HEAD_SHA: ${{ needs.prepare.outputs.head_sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - uses: actions/download-artifact@v4
