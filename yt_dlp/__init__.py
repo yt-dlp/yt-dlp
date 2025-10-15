@@ -974,13 +974,8 @@ def _real_main(argv=None):
 
         try:
             updater = Updater(ydl, opts.update_self)
-            if opts.update_self and updater.update() and actual_use:
-                if updater.cmd:
-                    return updater.restart()
-                # This code is reachable only for zip variant in py < 3.10
-                # It makes sense to exit here, but the old behavior is to continue
-                ydl.report_warning('Restart yt-dlp to use the updated version')
-                # return 100, 'ERROR: The program must exit for the update to complete'
+            if opts.update_self and updater.update() and actual_use and updater.cmd:
+                return updater.restart()
         except Exception:
             traceback.print_exc()
             ydl._download_retcode = 100

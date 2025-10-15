@@ -570,7 +570,7 @@ class Updater:
 
     def restart(self):
         """Restart the executable"""
-        assert self.cmd, 'Must be frozen'
+        assert self.cmd, 'Unable to determine argv'
         self.ydl.write_debug(f'Restarting: {shell_quote(self.cmd)}')
         _, _, returncode = Popen.run(self.cmd)
         return returncode
