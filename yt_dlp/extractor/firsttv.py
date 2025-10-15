@@ -128,7 +128,7 @@ class FirstTVIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         if is_live:
-            mpd_list = self._parse_json(self._download_webpage('https://stream.1tv.ru/api/playlist/1tvch-v1_as_array.json', 'live'), 'live')
+            mpd_list = self._download_json('https://stream.1tv.ru/api/playlist/1tvch-v1_as_array.json', 'live')
             mpd_list = traverse_obj(mpd_list, ('mpd', ..., {url_or_none}))
             if not mpd_list:
                 raise ExtractorError('Can\'t download json with mpd sources')
