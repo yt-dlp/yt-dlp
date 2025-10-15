@@ -62,7 +62,6 @@ class FileDownloader:
     test:               Download only first bytes to test the downloader.
     min_filesize:       Skip files smaller than this size
     max_filesize:       Skip files larger than this size
-    xattr_set_filesize: Set ytdl.filesize user xattribute with expected size.
     progress_delta:     The minimum time between progress output, in seconds
     external_downloader_args:  A dictionary of downloader keys (in lower case)
                         and a list of additional command-line arguments for the
@@ -455,14 +454,26 @@ class FileDownloader:
                 self._finish_multiline_status()
                 return True, False
 
+        sleep_note = ''
         if subtitle:
             sleep_interval = self.params.get('sleep_interval_subtitles') or 0
         else:
             min_sleep_interval = self.params.get('sleep_interval') or 0
+            max_sleep_interval = self.params.get('max_sleep_interval') or 0
+
+            if available_at := info_dict.get('available_at'):
+                forced_sleep_interval = available_at - int(time.time())
+                if forced_sleep_interval > min_sleep_interval:
+                    sleep_note = 'as required by the site'
+                    min_sleep_interval = forced_sleep_interval
+                if forced_sleep_interval > max_sleep_interval:
+                    max_sleep_interval = forced_sleep_interval
+
             sleep_interval = random.uniform(
-                min_sleep_interval, self.params.get('max_sleep_interval') or min_sleep_interval)
+                min_sleep_interval, max_sleep_interval or min_sleep_interval)
+
         if sleep_interval > 0:
-            self.to_screen(f'[download] Sleeping {sleep_interval:.2f} seconds ...')
+            self.to_screen(f'[download] Sleeping {sleep_interval:.2f} seconds {sleep_note}...')
             time.sleep(sleep_interval)
 
         ret = self.real_download(filename, info_dict)

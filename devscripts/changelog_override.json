@@ -287,11 +287,21 @@
     {
         "action": "add",
         "when": "cc5a5caac5fbc0d605b52bde0778d6fd5f97b5ab",
-        "short": "[priority] **darwin_legacy_exe builds are being discontinued**\nThis release's `yt-dlp_macos_legacy` binary will likely be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13857)"
+        "short": "[priority] **darwin_legacy_exe builds are being discontinued**\nThis release's `yt-dlp_macos_legacy` binary will likely be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13856)"
     },
     {
         "action": "add",
         "when": "c76ce28e06c816eb5b261dfb6aff6e69dd9b7382",
         "short": "[priority] **linux_armv7l_exe builds are being discontinued**\nThis release's `yt-dlp_linux_armv7l` binary could be the last one. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13976)"
+    },
+    {
+        "action": "add",
+        "when": "08d78996831bd8e1e3c2592d740c3def00bbf548",
+        "short": "[priority] **Several options have been deprecated**\nIn order to simplify the codebase and reduce maintenance burden, various options have been deprecated. Please remove them from your commands/configurations. [Read more](https://github.com/yt-dlp/yt-dlp/issues/14198)"
+    },
+    {
+        "action": "add",
+        "when": "4e6a693057cfaf1ce1f07b019ed3bfce2bf936f6",
+        "short": "[priority] **The minimum *required* Python version has been raised to 3.10**\nPython 3.9 has reached its end-of-life as of October 2025, and yt-dlp has now removed support for it. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13858)"
     }
 ]

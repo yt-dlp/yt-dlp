@@ -263,6 +263,7 @@ class InfoExtractor:
                                 * a string in the format of CLIENT[:OS]
                                 * a list or a tuple of CLIENT[:OS] strings or ImpersonateTarget instances
                                 * a boolean value; True means any impersonate target is sufficient
+                    * available_at  Unix timestamp of when a format will be available to download
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
@@ -1662,7 +1663,7 @@ class InfoExtractor:
                 'end_time': part.get('endOffset'),
             } for part in variadic(e.get('hasPart') or []) if part.get('@type') == 'Clip']
             for idx, (last_c, current_c, next_c) in enumerate(zip(
-                    [{'end_time': 0}, *chapters], chapters, chapters[1:])):
+                    [{'end_time': 0}, *chapters], chapters, chapters[1:], strict=False)):
                 current_c['end_time'] = current_c['end_time'] or next_c['start_time']
                 current_c['start_time'] = current_c['start_time'] or last_c['end_time']
                 if None in current_c.values():
@@ -1847,7 +1848,7 @@ class InfoExtractor:
             return {}
 
         args = dict(zip(arg_keys.split(','), map(json.dumps, self._parse_json(
-            f'[{arg_vals}]', video_id, transform_source=js_to_json, fatal=fatal) or ())))
+            f'[{arg_vals}]', video_id, transform_source=js_to_json, fatal=fatal) or ()), strict=True))
 
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
@@ -3107,7 +3108,6 @@ class InfoExtractor:
                         else:
                             # $Number*$ or $Time$ in media template with S list available
                             # Example $Number*$: http://www.svtplay.se/klipp/9023742/stopptid-om-bjorn-borg
-                            # Example $Time$: https://play.arkena.com/embed/avp/v2/player/media/b41dda37-d8e7-4d3f-b1b5-9a9db578bdfe/1/129411
                             representation_ms_info['fragments'] = []
                             segment_time = 0
                             segment_d = None
