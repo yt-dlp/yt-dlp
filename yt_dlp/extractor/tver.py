@@ -45,6 +45,8 @@ class TVerIE(StreaksBaseIE):
             'release_timestamp': 1651453200,
             'release_date': '20220502',
             '_old_archive_ids': ['brightcovenew ref:baeebeac-a2a6-4dbf-9eb3-c40d59b40068'],
+            'series_id': 'sru35hwdd2',
+            'season_id': 'ss2lcn4af6',
         },
     }, {
         # via Brightcove backend (deprecated)
@@ -67,6 +69,8 @@ class TVerIE(StreaksBaseIE):
             'upload_date': '20220501',
             'release_timestamp': 1651453200,
             'release_date': '20220502',
+            'series_id': 'sru35hwdd2',
+            'season_id': 'ss2lcn4af6',
         },
         'params': {'extractor_args': {'tver': {'backend': ['brightcove']}}},
     }, {
@@ -202,6 +206,8 @@ class TVerIE(StreaksBaseIE):
                 'description': ('description', {str}),
                 'release_timestamp': ('viewStatus', 'startAt', {int_or_none}),
                 'episode_number': ('no', {int_or_none}),
+                'series_id': ('seriesID', {str}),
+                'season_id': ('seasonID', {str}),
             }),
         }
 

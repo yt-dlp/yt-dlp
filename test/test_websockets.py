@@ -20,7 +20,7 @@ import random
 import ssl
 import threading
 
-from yt_dlp import socks, traverse_obj
+from yt_dlp import socks
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import websockets
 from yt_dlp.networking import Request
@@ -32,6 +32,7 @@ from yt_dlp.networking.exceptions import (
     SSLError,
     TransportError,
 )
+from yt_dlp.utils.traversal import traverse_obj
 from yt_dlp.utils.networking import HTTPHeaderDict
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
