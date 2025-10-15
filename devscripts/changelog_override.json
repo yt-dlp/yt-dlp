@@ -298,5 +298,10 @@
         "action": "add",
         "when": "08d78996831bd8e1e3c2592d740c3def00bbf548",
         "short": "[priority] **Several options have been deprecated**\nIn order to simplify the codebase and reduce maintenance burden, various options have been deprecated. Please remove them from your commands/configurations. [Read more](https://github.com/yt-dlp/yt-dlp/issues/14198)"
+    },
+    {
+        "action": "add",
+        "when": "4e6a693057cfaf1ce1f07b019ed3bfce2bf936f6",
+        "short": "[priority] **The minimum *required* Python version has been raised to 3.10**\nPython 3.9 has reached its end-of-life as of October 2025, and yt-dlp has now removed support for it. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13858)"
     }
 ]
