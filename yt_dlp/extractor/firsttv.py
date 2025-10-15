@@ -2,6 +2,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
     int_or_none,
     join_nonempty,
@@ -16,7 +17,7 @@ from ..utils.traversal import traverse_obj
 class FirstTVIE(InfoExtractor):
     IE_NAME = '1tv'
     IE_DESC = 'Первый канал'
-    _VALID_URL = r'https?://(?:www\.)?(?:sport)?1tv\.ru/(?:[^/?#]+/)+(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:sport)?1tv\.ru/(?:(?:[^/?#]+/)*(?:(?P<live>live)|(?P<id>[^/?#]+)))'
 
     _TESTS = [{
         # single format; has item.id
@@ -70,6 +71,14 @@ class FirstTVIE(InfoExtractor):
     }, {
         'url': 'https://www.sport1tv.ru/sport/chempionat-rossii-po-figurnomu-kataniyu-2025',
         'only_matching': True,
+    }, {
+        'url': 'https://www.1tv.ru/live',
+        'info_dict': {
+            'id': 'live',
+            'ext': 'mp4',
+            'title': 'ПЕРВЫЙ КАНАЛ ПРЯМОЙ ЭФИР СМОТРЕТЬ ОНЛАЙН',
+            'is_live': True,
+        },
     }]
 
     def _entries(self, items):
@@ -115,8 +124,31 @@ class FirstTVIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-
+        is_live = self._match_valid_url(url).group('live')
         webpage = self._download_webpage(url, display_id)
+
+        if is_live:
+            mpd_list = self._download_json('https://stream.1tv.ru/api/playlist/1tvch-v1_as_array.json', 'live')
+            mpd_list = traverse_obj(mpd_list, ('mpd', ..., {url_or_none}))
+            if not mpd_list:
+                raise ExtractorError('Can\'t download json with mpd sources')
+            formats, subtitles = self._extract_mpd_formats_and_subtitles(mpd_url=mpd_list[0], video_id='live')
+
+            # It is mandatory to use the '-re' option for ffmpeg,
+            # otherwise the recording of fragments will stop after
+            # a while due to the speed n-times faster than real time.
+            for f in formats:
+                f.update({'downloader_options': {'ffmpeg_args': ['-re'], 'ffmpeg_args_out': ['-c', 'copy', '-f', 'mp4']}})
+
+            return {
+                'id': 'live',
+                'title': self._html_extract_title(webpage),
+                'ext': 'mp4',
+                'formats': formats,
+                'subtitles': subtitles,
+                'is_live': True,
+            }
+
         playlist_url = urllib.parse.urljoin(url, self._html_search_regex(
             r'data-playlist-url=(["\'])(?P<url>(?:(?!\1).)+)\1',
             webpage, 'playlist url', group='url'))
