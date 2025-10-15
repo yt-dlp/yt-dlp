@@ -67,14 +67,13 @@ class TVNoeIE(InfoExtractor):
         return {
             'id': video_id,
             'description': clean_html(self._search_regex(
-                r'<p\s+class="">(.+)</p>', webpage, 'description', default='')),
+                r'<p\s+class="">(.+?)</p>', webpage, 'description', default=None)),
             'formats': formats,
             **traverse_obj(webpage, {
                 'title': ({find_element(tag='h2')}, {clean_html}),
                 'release_date': (
                     {clean_html}, {re.compile(r'Premiéra:\s*(\d{1,2}\.\d{1,2}\.\d{4})').findall},
-                    ..., {str}, filter, {unified_strdate}, any,
-                ),
+                    ..., {str}, {unified_strdate}, any),
                 'series': ({find_element(tag='h1')}, {clean_html}),
                 'thumbnail': (
                     {find_element(id='player-live', html=True)}, {extract_attributes},
