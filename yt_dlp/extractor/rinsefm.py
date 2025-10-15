@@ -48,6 +48,17 @@ class RinseFMIE(RinseFMBaseIE):
         webpage = self._download_webpage(url, display_id)
         entry = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['entry']
 
+        next_data = self._search_nextjs_v13_data(webpage, display_id)
+        entry = None
+        for chunk_data in next_data.values():
+            entry = traverse_obj(chunk_data, ('episode',), get_all=False)
+            if entry:
+                break
+
+        if not entry:
+            entry = self._search_nextjs_data(webpage, display_id, fatal=False)
+            entry = traverse_obj(entry, ('props', 'pageProps', 'entry'))
+
         return self._parse_entry(entry)
 
 
@@ -72,9 +83,15 @@ class RinseFMArtistPlaylistIE(RinseFMBaseIE):
     }]
 
     def _entries(self, data):
-        for episode in traverse_obj(data, (
-            'props', 'pageProps', 'episodes', lambda _, v: determine_ext(v['fileUrl']) in MEDIA_EXTENSIONS.audio),
-        ):
+        episodes = traverse_obj(data, (
+            'props', 'pageProps', 'episodes',
+            lambda _, v: determine_ext(v['fileUrl']) in MEDIA_EXTENSIONS.audio,
+        )) or traverse_obj(data, (
+            ..., 'episodes',
+            lambda _, v: determine_ext(v['fileUrl']) in MEDIA_EXTENSIONS.audio,
+        ))
+
+        for episode in episodes or []:
             yield self._parse_entry(episode)
 
     def _real_extract(self, url):
@@ -83,7 +100,19 @@ class RinseFMArtistPlaylistIE(RinseFMBaseIE):
         title = self._og_search_title(webpage) or self._html_search_meta('title', webpage)
         description = self._og_search_description(webpage) or self._html_search_meta(
             'description', webpage)
-        data = self._search_nextjs_data(webpage, playlist_id)
+
+        next_data = self._search_nextjs_v13_data(webpage, playlist_id)
+        data = None
+        for chunk_data in next_data.values():
+            episodes = traverse_obj(chunk_data, ('episodes',), get_all=False)
+            page_props = traverse_obj(chunk_data, ('props', 'pageProps'), get_all=False)
+            if episodes or page_props:
+                data = chunk_data
+                break
+
+        # Fall back to the old method for backward compatibility
+        if not data:
+            data = self._search_nextjs_data(webpage, playlist_id, fatal=False)
 
         return self.playlist_result(
             self._entries(data), playlist_id, title, description=description)
