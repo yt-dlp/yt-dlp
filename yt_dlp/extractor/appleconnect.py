@@ -1,7 +1,11 @@
+import time
+
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     extract_attributes,
     float_or_none,
+    jwt_decode_hs256,
     jwt_encode,
     parse_resolution,
     qualities,
@@ -55,23 +59,38 @@ class AppleConnectIE(InfoExtractor):
         },
     }]
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+    _jwt = None
+
+    @staticmethod
+    def _jwt_is_expired(token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 120
+
+    def _get_token(self, webpage, video_id):
+        if self._jwt and not self._jwt_is_expired(self._jwt):
+            return self._jwt
 
         js_url = traverse_obj(webpage, (
             {find_element(tag='script', attr='crossorigin', value='', html=True)},
             {extract_attributes}, 'src', {urljoin(self._BASE_URL)}, {require('JS URL')}))
-        js = self._download_webpage(js_url, video_id)
+        js = self._download_webpage(
+            js_url, video_id, 'Downloading token JS', 'Unable to download token JS')
 
         header = jwt_encode({}, '', headers={'alg': 'ES256', 'kid': 'WebPlayKid'}).split('.')[0]
-        jwt = self._search_regex(
+        self._jwt = self._search_regex(
             fr'(["\'])(?P<jwt>{header}(?:\.[\w-]+){{2}})\1', js, 'JSON Web Token', group='jwt')
+        if self._jwt_is_expired(self._jwt):
+            raise ExtractorError('The fetched token is already expired')
+
+        return self._jwt
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
 
         videos = self._download_json(
             'https://amp-api.music.apple.com/v1/catalog/us/uploaded-videos',
             video_id, headers={
-                'Authorization': f'Bearer {jwt}',
+                'Authorization': f'Bearer {self._get_token(webpage, video_id)}',
                 'Origin': self._BASE_URL,
             }, query={'ids': video_id, 'l': 'en-US'})
         attributes = traverse_obj(videos, (
