@@ -194,7 +194,7 @@ When running a yt-dlp version that is older than 90 days, you will see a warning
 You can suppress this warning by adding `--no-update` to your command or configuration file.
 
 ## DEPENDENCIES
-Python versions 3.9+ (CPython) and 3.11+ (PyPy) are supported. Other versions and implementations may or may not work correctly.
+Python versions 3.10+ (CPython) and 3.11+ (PyPy) are supported. Other versions and implementations may or may not work correctly.
 
 <!-- Python 3.5+ uses VC++14 and it is already embedded in the binary created
 <!x-- https://www.microsoft.com/en-us/download/details.aspx?id=26999 --x>
@@ -273,7 +273,7 @@ On some systems, you may need to use `py` or `python` instead of `python3`.
 **Important**: Running `pyinstaller` directly **instead of** using `python -m bundle.pyinstaller` is **not** officially supported. This may or may not work correctly.
 
 ### Platform-independent Binary (UNIX)
-You will need the build tools `python` (3.9+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
+You will need the build tools `python` (3.10+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
 
 After installing these, simply run `make`.
 
@@ -2255,7 +2255,7 @@ Features marked with a **\*** have been back-ported to youtube-dl
 
 Some of yt-dlp's default options are different from that of youtube-dl and youtube-dlc:
 
-* yt-dlp supports only [Python 3.9+](## "Windows 8"), and will remove support for more versions as they [become EOL](https://devguide.python.org/versions/#python-release-cycle); while [youtube-dl still supports Python 2.6+ and 3.2+](https://github.com/ytdl-org/youtube-dl/issues/30568#issue-1118238743)
+* yt-dlp supports only [Python 3.10+](## "Windows 8"), and will remove support for more versions as they [become EOL](https://devguide.python.org/versions/#python-release-cycle); while [youtube-dl still supports Python 2.6+ and 3.2+](https://github.com/ytdl-org/youtube-dl/issues/30568#issue-1118238743)
 * The options `--auto-number` (`-A`), `--title` (`-t`) and `--literal` (`-l`), no longer work. See [removed options](#Removed) for details
 * `avconv` is not supported as an alternative to `ffmpeg`
 * yt-dlp stores config files in slightly different locations to youtube-dl. See [CONFIGURATION](#configuration) for a list of correct locations
