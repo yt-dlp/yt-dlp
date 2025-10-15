@@ -47,7 +47,7 @@ class TVNoeIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         player = self._search_json(
             r'var\s+INIT_PLAYER\s*=', webpage, 'init player',
-            video_id, transform_source=js_to_json, fatal=True)
+            video_id, transform_source=js_to_json)
 
         formats = []
         for source in traverse_obj(player, ('tracks', ..., lambda _, v: url_or_none(v['src']))):
