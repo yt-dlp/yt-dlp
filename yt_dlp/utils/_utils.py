@@ -2402,6 +2402,7 @@ class PlaylistEntries:
 
     def __init__(self, ydl, info_dict):
         self.ydl = ydl
+
         # _entries must be assigned now since infodict can change during iteration
         entries = info_dict.get('entries')
         if entries is None:
