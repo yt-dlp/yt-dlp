@@ -362,7 +362,8 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'upload_date': '20221021',
         },
         'skip': 'subscriber only',
-    }, {
+    }]
+    _WEBPAGE_TESTS = [{
         'note': 'SHTA',
         'url': 'https://tenshi-nano.com/video/smSJwhvbLZmsACSWafZQJyui',
         'info_dict': {
