@@ -9,11 +9,11 @@ jobs:
     if: "contains(github.event.head_commit.message, 'ci run dl')"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: 3.9
+        python-version: '3.10'
     - name: Install test requirements
       run: python3 ./devscripts/install_deps.py --include dev
     - name: Run tests
@@ -28,15 +28,15 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14-dev', pypy-3.11]
+        python-version: ['3.11', '3.12', '3.13', '3.14', pypy-3.11]
         include:
         # atleast one of each CPython/PyPy tests must be in windows
         - os: windows-latest
-          python-version: '3.9'
+          python-version: '3.10'
         - os: windows-latest
           python-version: pypy-3.11
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:

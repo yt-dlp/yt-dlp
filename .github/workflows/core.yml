@@ -36,12 +36,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        # CPython 3.9 is in quick-test
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14-dev', pypy-3.11]
+        # CPython 3.10 is in quick-test
+        python-version: ['3.11', '3.12', '3.13', '3.14', pypy-3.11]
         include:
         # atleast one of each CPython/PyPy tests must be in windows
-        - os: windows-latest
-          python-version: '3.9'
         - os: windows-latest
           python-version: '3.10'
         - os: windows-latest
@@ -51,11 +49,11 @@ jobs:
         - os: windows-latest
           python-version: '3.13'
         - os: windows-latest
-          python-version: '3.14-dev'
+          python-version: '3.14'
         - os: windows-latest
           python-version: pypy-3.11
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:

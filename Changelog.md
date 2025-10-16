@@ -4,6 +4,32 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.10.14
+
+#### Core changes
+- [Fix `prefer-vp9-sort` compat option](https://github.com/yt-dlp/yt-dlp/commit/a6673a8e82276ea529c1773ed09e5bc4a22e822a) ([#14603](https://github.com/yt-dlp/yt-dlp/issues/14603)) by [seproDev](https://github.com/seproDev)
+
+#### Extractor changes
+- **10play**
+    - [Handle geo-restriction errors](https://github.com/yt-dlp/yt-dlp/commit/ad55bfcfb700fbfc1364c04e3425761d6f95c0a7) ([#14618](https://github.com/yt-dlp/yt-dlp/issues/14618)) by [bashonly](https://github.com/bashonly)
+    - [Rework extractor](https://github.com/yt-dlp/yt-dlp/commit/eafedc21817bb0de20e9aaccd7151a1d4c4e1ebd) ([#14417](https://github.com/yt-dlp/yt-dlp/issues/14417)) by [seproDev](https://github.com/seproDev), [Sipherdrakon](https://github.com/Sipherdrakon)
+- **abc.net.au**: [Support listen URLs](https://github.com/yt-dlp/yt-dlp/commit/0ea5d5882def84415f946907cfc00ab431c18fed) ([#14389](https://github.com/yt-dlp/yt-dlp/issues/14389)) by [uoag](https://github.com/uoag)
+- **cbc.ca**: listen: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/df160ab18db523f6629f2e7e20123d7a3551df28) ([#14391](https://github.com/yt-dlp/yt-dlp/issues/14391)) by [uoag](https://github.com/uoag)
+- **dropout**: [Update extractor for new domain](https://github.com/yt-dlp/yt-dlp/commit/8eb8695139dece6351aac10463df63b87b45b000) ([#14531](https://github.com/yt-dlp/yt-dlp/issues/14531)) by [cecilia-sanare](https://github.com/cecilia-sanare)
+- **idagio**: [Add extractors](https://github.com/yt-dlp/yt-dlp/commit/a98e7f9f58a9492d2cb216baa59c890ed8ce02f3) ([#14586](https://github.com/yt-dlp/yt-dlp/issues/14586)) by [robin-mu](https://github.com/robin-mu)
+- **musescore**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/87be1bb96ac47abaaa4cfc6d7dd651e511b74551) ([#14598](https://github.com/yt-dlp/yt-dlp/issues/14598)) by [seproDev](https://github.com/seproDev)
+- **prankcastpost**: [Rework extractor](https://github.com/yt-dlp/yt-dlp/commit/5d7678195a7d0c045a9fe0418383171a71a7ea43) ([#14445](https://github.com/yt-dlp/yt-dlp/issues/14445)) by [columndeeply](https://github.com/columndeeply)
+- **slideslive**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/c2e124881f9aa02097589e853b3d3505e78372c4) ([#14619](https://github.com/yt-dlp/yt-dlp/issues/14619)) by [bashonly](https://github.com/bashonly)
+- **soundcloud**: [Support new API URLs](https://github.com/yt-dlp/yt-dlp/commit/6d41aaf21c61a87e74564646abd0a8ee887e888d) ([#14449](https://github.com/yt-dlp/yt-dlp/issues/14449)) by [seproDev](https://github.com/seproDev)
+- **tiktok**
+    - [Support browser impersonation](https://github.com/yt-dlp/yt-dlp/commit/5513036104ed9710f624c537fb3644b07a0680db) ([#14473](https://github.com/yt-dlp/yt-dlp/issues/14473)) by [bashonly](https://github.com/bashonly), [thanhtaivtt](https://github.com/thanhtaivtt)
+    - user: [Fix private account extraction](https://github.com/yt-dlp/yt-dlp/commit/cdc533b114c35ceb8a2e9dd3eb9c172a8737ae5e) ([#14585](https://github.com/yt-dlp/yt-dlp/issues/14585)) by [CasualYT31](https://github.com/CasualYT31)
+- **vidyard**: [Extract chapters](https://github.com/yt-dlp/yt-dlp/commit/5f94f054907c12e68129cd9ac2508ed8aba1b223) ([#14478](https://github.com/yt-dlp/yt-dlp/issues/14478)) by [exterrestris](https://github.com/exterrestris)
+- **xhamster**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/739125d40f8ede3beb7be68fc4df55bec0d226fd) ([#14446](https://github.com/yt-dlp/yt-dlp/issues/14446)) by [dhwz](https://github.com/dhwz), [dirkf](https://github.com/dirkf), [shssoichiro](https://github.com/shssoichiro)
+- **youtube**
+    - [Detect experiment binding GVS PO Token to video id](https://github.com/yt-dlp/yt-dlp/commit/bd5ed90419eea18adfb2f0d8efa9d22b2029119f) ([#14471](https://github.com/yt-dlp/yt-dlp/issues/14471)) by [coletdjnz](https://github.com/coletdjnz)
+    - tab: [Fix approximate timestamp extraction for feeds](https://github.com/yt-dlp/yt-dlp/commit/ccc25d6710a4aa373b7e15c558e07f8a2ffae5f3) ([#14539](https://github.com/yt-dlp/yt-dlp/issues/14539)) by [coletdjnz](https://github.com/coletdjnz)
+
 ### 2025.09.26
 
 #### Extractor changes
