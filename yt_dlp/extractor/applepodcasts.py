@@ -134,7 +134,7 @@ class ApplePodcastsPlaylistIE(ApplePodcastsBaseIE):
             js_code = self._download_webpage(js_url, 'Generic authorization token', fatal=False, note=f'Scanning {js_url}')
             if not js_code:
                 continue
-            match = re.search(r'const\s+Ml\s*=\s*"((?:eyJ)[^"]+)"', js_code)
+            match = re.search(r'const\s+mc="((?:eyJ)[^"]+)"', js_code)
             if match:
                 auth_token = match.group(1)
                 break
