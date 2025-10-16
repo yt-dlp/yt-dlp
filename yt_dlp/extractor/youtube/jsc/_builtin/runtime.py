@@ -165,7 +165,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
             if self._ENABLE_PREPROCESSED_PLAYER_CACHE and (preprocessed := output.get('preprocessed_player')):
                 self.ie.cache.store(self._CACHE_SECTION, f'player:{player_url}', preprocessed)
 
-            for request, response_data in zip(grouped_requests, output['responses']):
+            for request, response_data in zip(grouped_requests, output['responses'], strict=True):
                 if response_data['type'] == 'error':
                     yield JsChallengeProviderResponse(request, None, response_data['error'])
                 else:

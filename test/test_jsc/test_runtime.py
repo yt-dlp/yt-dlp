@@ -51,7 +51,7 @@ TESTS = [
 RESPONSES = [
     JsChallengeProviderResponse(test, JsChallengeResponse(test.type, (
         NChallengeOutput if test.type is JsChallengeType.N else SigChallengeOutput
-    )(dict(zip(test.input.challenges, results)))))
+    )(dict(zip(test.input.challenges, results, strict=True)))))
     for test, results in zip(TESTS, [
         ['qmtUsIz04xxiNW', 'N9gmEX7YhKTSmw'],
         ['ttJC2JfQdSswRAIgGBCxZyAfKyi0cjXCb3gqEctUw-NYdNmOEvaepit0zJAtIEsgOV2SXZjhSHMNy0NXNG_1kNyBf6HPuAuCduh-a7O'],
@@ -59,7 +59,7 @@ RESPONSES = [
         ['AJfQdSswRQIhAMG5SN7-cAFChdrE7tLA6grI0rTMICA1mmDc0HoXgW3CAiAQQ4HCspfaF_vt82XH5yewvqcuEkvzeTsbRuHssRMyJQ=='],
         ['qUAsPryAO_ByYg', 'Y7PcOt3VE62mog'],
         ['AJfQdSswRAIgMVVvrovTbw6UNh99kPa4D_XQjGT4qYu7S6SHM8EjoCACIEQnz-nKN5RgG6iUTnNJC58csYPSrnS_SzricuUMJZGM'],
-    ])
+    ], strict=True)
 ]
 
 
