@@ -303,6 +303,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
     IE_DESC = 'ニコニコチャンネルプラス'
     _VALID_URL = r'https?://nicochannel\.jp/(?P<channel>[\w.-]+)/(?:video|live)/(?P<code>sm\w+)'
     _TESTS = [{
+        'note': 'CHPL',
         'url': 'https://nicochannel.jp/renge/video/smjHSEPCxd4ohY4zg8iyGKnX',
         'info_dict': {
             'id': 'smjHSEPCxd4ohY4zg8iyGKnX',
@@ -361,6 +362,49 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'upload_date': '20221021',
         },
         'skip': 'subscriber only',
+    }, {
+        'note': 'SHTA',
+        'url': 'https://tenshi-nano.com/video/smSJwhvbLZmsACSWafZQJyui',
+        'info_dict': {
+            'id': 'smSJwhvbLZmsACSWafZQJyui',
+            'title': 'md5:7e9e180baf8b4e39c8f52cbd0a75dd74',
+            'description': 'md5:e7b416c5631fee682e4d221c5b140b71',
+            'ext': 'mp4',
+            'channel': '天使なのファンクラブ',
+            'channel_id': 'tenshi-nano_com',
+            'channel_url': 'https://tenshi-nano.com',
+            'age_limit': 15,
+            'live_status': 'was_live',
+            'thumbnail': r're:https://tenshi-nano\.com/public_html/.*',
+            'timestamp': 1717260361,
+            'upload_date': '20240601',
+            'release_timestamp': 1717423200,
+            'release_date': '20240603',
+            'duration': 2927,
+            'comment_count': int,
+            'view_count': int,
+            'tags': ['etc.♡無料アーカイブ'],
+        },
+    }, {
+        'note': 'JOQR',
+        'url': 'https://qlover.jp/naoliving/video/smU2Jh79UoDrfgNFu8CYPPUy',
+        'info_dict': {
+            'id': 'smU2Jh79UoDrfgNFu8CYPPUy',
+            'title': '『東山奈央のラジオ＠リビング』第420回（2025年10月13日放送）',
+            'description': 'md5:4a2e89142323c0ff71abadca55e26355',
+            'ext': 'mp4',
+            'channel': '東山奈央のラジオ＠リビング',
+            'channel_id': 'qlover_jp_naoliving',
+            'channel_url': 'https://qlover.jp/naoliving',
+            'age_limit': 0,
+            'live_status': 'not_live',
+            'thumbnail': r're:https://qlover\.jp/public_html/.*',
+            'timestamp': 1760518800,
+            'upload_date': '20251015',
+            'duration': 1740,
+            'comment_count': int,
+            'view_count': int,
+        },
     }]
 
     @staticmethod
@@ -381,22 +425,26 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
         if self._match_video_id(url) and self._is_channel_plus_webpage(webpage):
             yield self._real_extract(url)
 
+    def _download_channel_data(self, url, *args, headers={}, **kwargs):
+        headers['fc_site_id'] = self._get_fanclub_site_id(url)
+        return self._download_api_json(url, *args, headers=headers, **kwargs)['data']
+
     def _real_extract(self, url):
         video_id = self._match_video_id(url).group('id')
 
-        video_info = self._download_api_json(url, f'/video_pages/{video_id}', video_id,
-                                             note='Downloading video info')['data']['video_page']
+        video_info = self._download_channel_data(url, f'/video_pages/{video_id}', video_id,
+                                                 note='Downloading video info')['video_page']
 
         live_status, session_payload, timestamp = self._parse_live_status(video_id, video_info)
         if video_info.get('video'):
-            session_id = self._download_api_json(
+            session_id = self._download_channel_data(
                 url, f'/video_pages/{video_id}/session_ids', video_id, data=json.dumps(session_payload).encode(),
-                headers={'content-type': 'application/json'}, note='Downloading video session')['data']['session_id']
+                headers={'content-type': 'application/json'}, note='Downloading video session')['session_id']
             formats = self._extract_m3u8_formats(
                 video_info['video_stream']['authenticated_url'].format(session_id=session_id), video_id)
         elif video_info.get('audio'):
-            audio_url = self._download_api_json(
-                url, f'/video_pages/{video_id}/content_access', video_id)['data']['resource']
+            audio_url = self._download_channel_data(
+                url, f'/video_pages/{video_id}/content_access', video_id)['resource']
             format_id = traverse_obj(video_info, ('audio_filename_transcoded_list', lambda _, v: v['url'] == audio_url, 'video_filename_type', 'value', any))
             if format_id != 'audio_paid':
                 self.report_warning('The audio may be empty, or incomplete and contains only trial parts.')
@@ -680,7 +728,7 @@ class NiconicoChannelPlusChannelLivesIE(NiconicoChannelPlusChannelBaseIE):
         'url': 'https://nicochannel.jp/testjirou/lives',
         'info_dict': {
             'id': 'testjirou-lives',
-            'title': 'チャンネルプラステスト二郎-lives',
+            'title': 'チャンネルプラステスト"二郎21-lives',
         },
         'playlist_mincount': 6,
     }]
