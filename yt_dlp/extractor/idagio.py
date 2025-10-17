@@ -4,7 +4,7 @@ from ..utils.traversal import traverse_obj
 
 
 class IdagioTrackIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/recordings/\d+\?(?:[^#]+&)?trackId=(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]+)?/recordings/\d+\?(?:[^#]+&)?trackId=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/recordings/30576934?trackId=30576943',
         'md5': '15148bd71804b2450a2508931a116b56',
@@ -29,7 +29,6 @@ class IdagioTrackIE(InfoExtractor):
             'title': 'I. Adagio sostenuto',
             'duration': 316,
             'composers': ['Ludwig van Beethoven'],
-            'artists': [],
             'genres': ['Keyboard', 'Sonata (Keyboard)'],
             'track': 'I. Adagio sostenuto',
             'timestamp': 1518076337,
@@ -97,7 +96,7 @@ class IdagioPlaylistBaseIE(InfoExtractor):
 
 
 class IdagioRecordingIE(IdagioPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/recordings/(?P<id>\d+)(?![^#]*[&?]trackId=\d+)'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]+)?/recordings/(?P<id>\d+)(?![^#]*[&?]trackId=\d+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/recordings/30576934',
         'info_dict': {
@@ -112,6 +111,19 @@ class IdagioRecordingIE(IdagioPlaylistBaseIE):
             'upload_date': '20190405',
         },
         'playlist_count': 15,
+    }, {
+        'url': 'https://app.idagio.com/de/recordings/20514467',
+        'info_dict': {
+            'id': '20514467',
+            'title': 'Sonata for Piano No. 14 in C sharp minor op. 27/2',
+            'composers': ['Ludwig van Beethoven'],
+            'genres': ['Keyboard', 'Sonata (Keyboard)'],
+            'timestamp': 1518076337,
+            'upload_date': '20180208',
+            'modified_timestamp': 1518076337,
+            'modified_date': '20180208',
+        },
+        'playlist_count': 3,
     }]
     _API_URL_TMPL = 'https://api.idagio.com/v2.0/metadata/recordings/{}'
 
@@ -129,7 +141,7 @@ class IdagioRecordingIE(IdagioPlaylistBaseIE):
 
 
 class IdagioAlbumIE(IdagioPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/albums/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]+)?/albums/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/albums/elgar-enigma-variations-in-the-south-serenade-for-strings',
         'info_dict': {
@@ -146,19 +158,19 @@ class IdagioAlbumIE(IdagioPlaylistBaseIE):
         },
         'playlist_count': 19,
     }, {
-        'url': 'https://app.idagio.com/albums/brahms-ein-deutsches-requiem-3B403DF6-62D7-4A42-807B-47173F3E0192',
+        'url': 'https://app.idagio.com/de/albums/brahms-ein-deutsches-requiem-3B403DF6-62D7-4A42-807B-47173F3E0192',
         'info_dict': {
             'id': '2862ad4e-4a61-45ad-9ce4-7fcf0c2626fe',
             'display_id': 'brahms-ein-deutsches-requiem-3B403DF6-62D7-4A42-807B-47173F3E0192',
             'title': 'Brahms: Ein deutsches Requiem',
-            'description': '',
+            'description': 'GRAMOPHONE CLASSICAL MUSIC AWARDS 2025 Recording of the Year & Choral',
             'thumbnail': 'https://idagio-images.global.ssl.fastly.net/albums/3149020954522/main.jpg',
-            'tags': ['recent-release'],
             'artists': ['Sabine Devieilhe', 'Stéphane Degout', 'Raphaël Pichon', 'Pygmalion', 'Johannes Brahms'],
             'timestamp': 1760054400,
             'upload_date': '20251010',
-            'modified_timestamp': 1760101611,
-            'modified_date': '20251010',
+            'modified_timestamp': 1760624868,
+            'modified_date': '20251016',
+            'tags': ['recommended', 'recent-release'],
         },
         'playlist_count': 7,
     }]
@@ -179,7 +191,7 @@ class IdagioAlbumIE(IdagioPlaylistBaseIE):
 
 
 class IdagioPlaylistIE(IdagioPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/playlists/(?!personal/)(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]+)?/playlists/(?!personal/)(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/playlists/beethoven-the-most-beautiful-piano-music',
         'info_dict': {
@@ -206,7 +218,7 @@ class IdagioPlaylistIE(IdagioPlaylistBaseIE):
 
 
 class IdagioPersonalPlaylistIE(IdagioPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com/playlists/personal/(?P<id>[\da-f-]+)'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]+)?/playlists/personal/(?P<id>[\da-f-]+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/playlists/personal/99dad72e-7b3a-45a4-b216-867c08046ed8',
         'info_dict': {
