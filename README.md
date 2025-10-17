@@ -1760,8 +1760,8 @@ Metadata fields            | From
 `track`                    | `track_number`
 `artist`                   | `artist`, `artists`, `creator`, `creators`, `uploader` or `uploader_id`
 `composer`                 | `composer` or `composers`
-`genre`                    | `genre` or `genres`
-`album`                    | `album`
+`genre`                    | `genre`, `genres`, `tags` or `categories`
+`album`                    | `album` or `series`
 `album_artist`             | `album_artist` or `album_artists`
 `disc`                     | `disc_number`
 `show`                     | `series`
