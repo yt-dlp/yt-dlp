@@ -4,7 +4,7 @@ from ..utils.traversal import traverse_obj
 
 
 class IdagioTrackIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]+)?/recordings/\d+\?(?:[^#]+&)?trackId=(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]{2})?/recordings/\d+\?(?:[^#]+&)?trackId=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/recordings/30576934?trackId=30576943',
         'md5': '15148bd71804b2450a2508931a116b56',
@@ -34,6 +34,21 @@ class IdagioTrackIE(InfoExtractor):
             'timestamp': 1518076337,
             'upload_date': '20180208',
         },
+    }, {
+        'url': 'https://app.idagio.com/de/recordings/20514467?trackId=20514483&utm_source=pcl',
+        'md5': 'fe834a94294058ea54cd743ce3ecf624',
+        'info_dict': {
+            'id': '20514483',
+            'ext': 'mp3',
+            'title': 'II. Allegretto',
+            'duration': 131,
+            'composers': ['Ludwig van Beethoven'],
+            'genres': ['Keyboard', 'Sonata (Keyboard)'],
+            'track': 'II. Allegretto',
+            'timestamp': 1518076337,
+            'upload_date': '20180208',
+        },
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -96,7 +111,7 @@ class IdagioPlaylistBaseIE(InfoExtractor):
 
 
 class IdagioRecordingIE(IdagioPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]+)?/recordings/(?P<id>\d+)(?![^#]*[&?]trackId=\d+)'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]{2})?/recordings/(?P<id>\d+)(?![^#]*[&?]trackId=\d+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/recordings/30576934',
         'info_dict': {
@@ -141,7 +156,7 @@ class IdagioRecordingIE(IdagioPlaylistBaseIE):
 
 
 class IdagioAlbumIE(IdagioPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]+)?/albums/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]{2})?/albums/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/albums/elgar-enigma-variations-in-the-south-serenade-for-strings',
         'info_dict': {
@@ -149,7 +164,7 @@ class IdagioAlbumIE(IdagioPlaylistBaseIE):
             'display_id': 'elgar-enigma-variations-in-the-south-serenade-for-strings',
             'title': 'Elgar: Enigma Variations, In the South, Serenade for Strings',
             'description': '',
-            'thumbnail': 'https://idagio-images.global.ssl.fastly.net/albums/880040420521/main.jpg',
+            'thumbnail': r're:https://.+/albums/880040420521/main\.jpg',
             'artists': ['Vasily Petrenko', 'Royal Liverpool Philharmonic Orchestra', 'Edward Elgar'],
             'timestamp': 1553817600,
             'upload_date': '20190329',
@@ -164,7 +179,7 @@ class IdagioAlbumIE(IdagioPlaylistBaseIE):
             'display_id': 'brahms-ein-deutsches-requiem-3B403DF6-62D7-4A42-807B-47173F3E0192',
             'title': 'Brahms: Ein deutsches Requiem',
             'description': 'GRAMOPHONE CLASSICAL MUSIC AWARDS 2025 Recording of the Year & Choral',
-            'thumbnail': 'https://idagio-images.global.ssl.fastly.net/albums/3149020954522/main.jpg',
+            'thumbnail': r're:https://.+/albums/3149020954522/main\.jpg',
             'artists': ['Sabine Devieilhe', 'Stéphane Degout', 'Raphaël Pichon', 'Pygmalion', 'Johannes Brahms'],
             'timestamp': 1760054400,
             'upload_date': '20251010',
@@ -191,7 +206,7 @@ class IdagioAlbumIE(IdagioPlaylistBaseIE):
 
 
 class IdagioPlaylistIE(IdagioPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]+)?/playlists/(?!personal/)(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]{2})?/playlists/(?!personal/)(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/playlists/beethoven-the-most-beautiful-piano-music',
         'info_dict': {
@@ -203,6 +218,18 @@ class IdagioPlaylistIE(IdagioPlaylistBaseIE):
             'creators': ['IDAGIO'],
         },
         'playlist_mincount': 16,  # one entry is geo-restricted
+    }, {
+        'url': 'https://app.idagio.com/de/playlists/piano-music-for-an-autumn-day',
+        'info_dict': {
+            'id': 'd70e9c7f-7080-4308-ae0f-f890dddeda82',
+            'display_id': 'piano-music-for-an-autumn-day',
+            'title': 'Piano Music for an Autumn Day',
+            'description': 'Get ready to snuggle up and enjoy all the musical colours of this cosy, autumnal playlist.',
+            'thumbnail': r're:https://.+/playlists/d70e9c7f-7080-4308-ae0f-f890dddeda82/main\.jpg',
+            'creators': ['IDAGIO'],
+        },
+        'playlist_count': 35,
+        'only_matching': True,
     }]
     _API_URL_TMPL = 'https://api.idagio.com/v2.0/playlists/{}'
     _PLAYLIST_ID_KEY = 'display_id'
@@ -218,7 +245,7 @@ class IdagioPlaylistIE(IdagioPlaylistBaseIE):
 
 
 class IdagioPersonalPlaylistIE(IdagioPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]+)?/playlists/personal/(?P<id>[\da-f-]+)'
+    _VALID_URL = r'https?://(?:www\.)?app\.idagio\.com(?:/[a-z]{2})?/playlists/personal/(?P<id>[\da-f-]+)'
     _TESTS = [{
         'url': 'https://app.idagio.com/playlists/personal/99dad72e-7b3a-45a4-b216-867c08046ed8',
         'info_dict': {
@@ -232,6 +259,20 @@ class IdagioPersonalPlaylistIE(IdagioPlaylistBaseIE):
             'modified_date': '20250819',
         },
         'playlist_count': 100,
+    }, {
+        'url': 'https://app.idagio.com/de/playlists/personal/99dad72e-7b3a-45a4-b216-867c08046ed8',
+        'info_dict': {
+            'id': '99dad72e-7b3a-45a4-b216-867c08046ed8',
+            'title': 'Test',
+            'thumbnail': r're:https://.+/artists/86371/main\.jpg',
+            'creators': ['1a6f16a6-4514-4d0c-b481-3a9877835626'],
+            'timestamp': 1602859138,
+            'upload_date': '20201016',
+            'modified_timestamp': 1755616667,
+            'modified_date': '20250819',
+        },
+        'playlist_count': 100,
+        'only_matching': True,
     }]
     _API_URL_TMPL = 'https://api.idagio.com/v1.0/personal-playlists/{}'
 
