@@ -35,19 +35,7 @@ class IdagioTrackIE(InfoExtractor):
             'upload_date': '20180208',
         },
     }, {
-        'url': 'https://app.idagio.com/de/recordings/20514467?trackId=20514483&utm_source=pcl',
-        'md5': 'fe834a94294058ea54cd743ce3ecf624',
-        'info_dict': {
-            'id': '20514483',
-            'ext': 'mp3',
-            'title': 'II. Allegretto',
-            'duration': 131,
-            'composers': ['Ludwig van Beethoven'],
-            'genres': ['Keyboard', 'Sonata (Keyboard)'],
-            'track': 'II. Allegretto',
-            'timestamp': 1518076337,
-            'upload_date': '20180208',
-        },
+        'url': 'https://app.idagio.com/de/recordings/20514467?trackId=20514478&utm_source=pcl',
         'only_matching': True,
     }]
 
@@ -229,7 +217,6 @@ class IdagioPlaylistIE(IdagioPlaylistBaseIE):
             'creators': ['IDAGIO'],
         },
         'playlist_count': 35,
-        'only_matching': True,
     }]
     _API_URL_TMPL = 'https://api.idagio.com/v2.0/playlists/{}'
     _PLAYLIST_ID_KEY = 'display_id'
@@ -261,17 +248,6 @@ class IdagioPersonalPlaylistIE(IdagioPlaylistBaseIE):
         'playlist_count': 100,
     }, {
         'url': 'https://app.idagio.com/de/playlists/personal/99dad72e-7b3a-45a4-b216-867c08046ed8',
-        'info_dict': {
-            'id': '99dad72e-7b3a-45a4-b216-867c08046ed8',
-            'title': 'Test',
-            'thumbnail': r're:https://.+/artists/86371/main\.jpg',
-            'creators': ['1a6f16a6-4514-4d0c-b481-3a9877835626'],
-            'timestamp': 1602859138,
-            'upload_date': '20201016',
-            'modified_timestamp': 1755616667,
-            'modified_date': '20250819',
-        },
-        'playlist_count': 100,
         'only_matching': True,
     }]
     _API_URL_TMPL = 'https://api.idagio.com/v1.0/personal-playlists/{}'
