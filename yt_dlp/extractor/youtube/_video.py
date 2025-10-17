@@ -80,7 +80,7 @@ STREAMING_DATA_PLAYER_TOKEN_PROVIDED = '__yt_dlp_player_token_provided'
 STREAMING_DATA_INNERTUBE_CONTEXT = '__yt_dlp_innertube_context'
 STREAMING_DATA_IS_PREMIUM_SUBSCRIBER = '__yt_dlp_is_premium_subscriber'
 STREAMING_DATA_FETCHED_TIMESTAMP = '__yt_dlp_fetched_timestamp'
-STREAMING_DATA_PREROLL_LENGTH = '__yt_dlp_preroll_length'
+STREAMING_DATA_PREROLL_LENGTH_MSEC = '__yt_dlp_preroll_length_msec'
 
 PO_TOKEN_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide'
 
@@ -3276,7 +3276,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Save client details for introspection later
                 innertube_context = traverse_obj(player_ytcfg or self._get_default_ytcfg(client), 'INNERTUBE_CONTEXT')
                 fetched_timestamp = int(time.time())
-                preroll_length = self._get_preroll_length(pr)
+                preroll_length_msec = self._get_preroll_length(pr)
                 sd = pr.setdefault('streamingData', {})
                 sd[STREAMING_DATA_CLIENT_NAME] = client
                 sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
@@ -3290,7 +3290,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER] = is_premium_subscriber
                     f[STREAMING_DATA_PLAYER_TOKEN_PROVIDED] = bool(player_po_token)
                     f[STREAMING_DATA_FETCHED_TIMESTAMP] = fetched_timestamp
-                    f[STREAMING_DATA_PREROLL_LENGTH] = preroll_length
+                    f[STREAMING_DATA_PREROLL_LENGTH_MSEC] = preroll_length_msec
                 if deprioritize_pr:
                     deprioritized_prs.append(pr)
                 else:
@@ -3409,8 +3409,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         for fmt in streaming_formats:
             client_name = fmt[STREAMING_DATA_CLIENT_NAME]
-            preroll_length = fmt.get(STREAMING_DATA_PREROLL_LENGTH, 0)
-            available_at = fmt[STREAMING_DATA_FETCHED_TIMESTAMP] + preroll_length / 1000
+            preroll_length_sec = fmt.get(STREAMING_DATA_PREROLL_LENGTH_MSEC, 0) / 1000
+            # For handling potential pre-playback required waiting period
+            playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=preroll_length_sec)
+            available_at = fmt[STREAMING_DATA_FETCHED_TIMESTAMP] + playback_wait
             if fmt.get('targetDurationSec'):
                 continue
 
@@ -3785,18 +3787,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return webpage
 
     def _get_preroll_length(self, ad_slot_lists):
-        for ad_slot in traverse_obj(ad_slot_lists, ('adSlots'), []):
-            slot_renderer = traverse_obj(ad_slot, ('adSlotRenderer'))
-            trigger = traverse_obj(slot_renderer, ('adSlotMetadata', 'triggerEvent'))
-            if trigger != 'SLOT_TRIGGER_EVENT_BEFORE_CONTENT':
+        for slot_renderer in traverse_obj(ad_slot_lists, ('adSlots', ..., 'adSlotRenderer', {dict})):
+            if traverse_obj(slot_renderer, ('adSlotMetadata', 'triggerEvent')) != 'SLOT_TRIGGER_EVENT_BEFORE_CONTENT':
                 continue
-            instream_ad_renderer = traverse_obj(slot_renderer, ('fulfillmentContent', 'fulfilledLayout', 'playerBytesAdLayoutRenderer', 'renderingContent', 'instreamVideoAdRenderer'))
-            skip_time = traverse_obj(instream_ad_renderer, ('skipOffsetMilliseconds'))
-            if skip_time is not None:
-                return skip_time
-            length = traverse_obj(instream_ad_renderer, ('playerVars', {urllib.parse.parse_qs}, 'length_seconds', 0))
-            if length is not None:
-                return int(length) * 1000
+            instream_ad_renderer = traverse_obj(slot_renderer, (
+                'fulfillmentContent', 'fulfilledLayout', 'playerBytesAdLayoutRenderer',
+                'renderingContent', 'instreamVideoAdRenderer', {dict})) or {}
+            length_ms = traverse_obj(instream_ad_renderer, ('skipOffsetMilliseconds', {int}))
+            if length_ms is not None:
+                self.write_debug(f'Detected a {length_ms}ms skippable ad')
+                return length_ms
+            length_ms = traverse_obj(instream_ad_renderer, ('playerVars', {urllib.parse.parse_qs}, 'length_seconds', -1, {int_or_none(invscale=1000)}))
+            if length_ms is not None:
+                self.write_debug(f'Detected a {length_ms}ms non-skippable ad')
+                return length_ms
         return 0
 
     def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
