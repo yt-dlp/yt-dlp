@@ -8,6 +8,7 @@ authors = [
     {name = "pukkandan", email = "pukkandan.ytdlp@gmail.com"},
 ]
 maintainers = [
+    {email = "maintainers@yt-dlp.org"},
     {name = "Grub4K", email = "contact@grub4k.xyz"},
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
