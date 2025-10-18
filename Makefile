@@ -157,7 +157,7 @@ yt-dlp.tar.gz: all
 		--exclude '.git' \
 		-- \
 		README.md supportedsites.md Changelog.md LICENSE \
-		CONTRIBUTING.md Collaborators.md CONTRIBUTORS AUTHORS \
+		CONTRIBUTING.md Maintainers.md CONTRIBUTORS AUTHORS \
 		Makefile yt-dlp.1 README.txt completions .gitignore \
 		yt-dlp yt_dlp pyproject.toml devscripts test
 

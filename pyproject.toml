@@ -4,8 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "yt-dlp"
-maintainers = [
+authors = [
     {name = "pukkandan", email = "pukkandan.ytdlp@gmail.com"},
+]
+maintainers = [
+    {email = "maintainers@yt-dlp.org"},
     {name = "Grub4K", email = "contact@grub4k.xyz"},
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
@@ -89,7 +92,7 @@ pyinstaller = [
 Documentation = "https://github.com/yt-dlp/yt-dlp#readme"
 Repository = "https://github.com/yt-dlp/yt-dlp"
 Tracker = "https://github.com/yt-dlp/yt-dlp/issues"
-Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators"
+Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Maintainers.md#maintainers"
 
 [project.scripts]
 yt-dlp = "yt_dlp:main"
