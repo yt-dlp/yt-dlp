@@ -144,6 +144,7 @@ from .arcpublishing import ArcPublishingIE
 from .ard import (
     ARDIE,
     ARDAudiothekIE,
+    ARDAudiothekPlaylistIE,
     ARDBetaMediathekIE,
     ARDMediathekCollectionIE,
 )

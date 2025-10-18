@@ -604,12 +604,27 @@ class ARDMediathekCollectionIE(InfoExtractor):
             title=page_data.get('title'), description=page_data.get('synopsis'))
 
 
-class ARDAudiothekIE(InfoExtractor):
+class ARDAudiothekBaseIE(InfoExtractor):
+    _GRAPHQL_ENDPOINT = 'https://api.ardaudiothek.de/graphql'
+
+    def _graphql_query(self, urn, query):
+        return self._download_json(
+            self._GRAPHQL_ENDPOINT,
+            urn,
+            data=json.dumps({'query': query,
+                             'variables': {'id': urn},
+                             }).encode(),
+            headers={
+                'Content-Type': 'application/json',
+            },
+        )['data']
+
+
+class ARDAudiothekIE(ARDAudiothekBaseIE):
     _VALID_URL = r'''(?x)https:?//
         (?:www\.)?ardaudiothek\.de/
-        (?:episode|(?P<playlist>sendung))/
-        (?:(?(playlist)[a-zA-Z-]+)/)?
-        (?P<id>urn:ard:(?:episode|section|extra|show):[a-f0-9]{16})/$'''
+        episode/
+        (?P<id>urn:ard:(?:episode|section|extra):[a-f0-9]{16})/$'''
 
     _TESTS = [
         {
@@ -628,23 +643,15 @@ class ARDAudiothekIE(InfoExtractor):
                 'channel': 'WDR',
                 'episode': 'Episode 4',
                 'episode_number': 4,
+                'abr': 256,
+                'acodec': 'MP3',
             },
-        },
-        {
-            'url': 'https://www.ardaudiothek.de/sendung/mia-insomnia/urn:ard:show:c405aa26d9a4060a/',
-            'info_dict': {
-                'display_id': 'urn:ard:show:c405aa26d9a4060a',
-                'title': 'Mia Insomnia',
-                'id': 'urn:ard:show:c405aa26d9a4060a',
-                'description': 'md5:d9ceb7a6b4d26a4db3316573bb564292',
-            },
-            'playlist_mincount': 30,
         },
         {
             'url': 'https://www.ardaudiothek.de/episode/urn:ard:section:855c7a53dac72e0a/',
             'info_dict': {
                 'id': 'urn:ard:section:855c7a53dac72e0a',
-                'ext': 'mp3',
+                'ext': 'mp4',
                 'upload_date': '20241231',
                 'duration': 3304,
                 'title': 'Illegaler DDR-Detektiv: Doberschütz und die letzte Staatsjagd (1/2) - Wendezeit',
@@ -656,22 +663,28 @@ class ARDAudiothekIE(InfoExtractor):
                 'channel': 'ARD',
                 'episode': 'Episode 1',
                 'episode_number': 1,
+                'abr': 192,
+                'acodec': 'AAC',
+            },
+        },
+        {
+            'url': 'https://www.ardaudiothek.de/episode/urn:ard:extra:d2fe7303d2dcbf5d/',
+            'info_dict': {
+                'id': 'urn:ard:extra:d2fe7303d2dcbf5d',
+                'ext': 'mp3',
+                'title': 'Trailer: Fanta Vier Forever, Baby!?!',
+                'description': 'md5:b64a586f2e976b8bb5ea0a79dbd8751c',
+                'channel': 'SWR',
+                'duration': 62,
+                'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:48d3c255969be803',
+                'series': 'Fanta Vier Forever, Baby!?!',
+                'timestamp': 1732108217,
+                'upload_date': '20241120',
+                'abr': 128,
+                'acodec': 'MP3',
             },
         },
     ]
-
-    _QUERY_PLAYLIST = '''
-    query($id: ID!) {
-        show(id: $id) {
-            title
-            description
-            items(filter: { isPublished: { equalTo: true } }) {
-                nodes {
-                    url
-                }
-            }
-        }
-    }'''
 
     _QUERY_ITEM = '''\
     query($id: ID!) {
@@ -679,6 +692,8 @@ class ARDAudiothekIE(InfoExtractor):
             audioList {
                 href
                 distributionType
+                audioBitrate
+                audioCodec
             }
             show {
               title
@@ -699,52 +714,74 @@ class ARDAudiothekIE(InfoExtractor):
         }
     }'''
 
-    _GRAPHQL_ENDPOINT = 'https://api.ardaudiothek.de/graphql'
-
-    def _graphql_query(self, urn, query):
-        return self._download_json(
-            self._GRAPHQL_ENDPOINT,
-            urn,
-            data=json.dumps({'query': query,
-                             'variables': {'id': urn},
-                             }).encode(),
-            headers={
-                'Content-Type': 'application/json',
-            },
-        )['data']
-
     def _real_extract(self, url):
-        urn, playlist_type = self._match_valid_url(url).group('id', 'playlist')
-
-        if playlist_type:
-            playlist_info = self._graphql_query(urn, self._QUERY_PLAYLIST)['show']
-            episodes = playlist_info['items']['nodes']
-            entries = []
-            for episode in episodes:
-                entries.append(self.url_result(
-                    episode['url'],
-                    ie=ARDAudiothekIE.ie_key()))
-            return self.playlist_result(entries, urn, display_id=urn, **traverse_obj(playlist_info, {
-                'title': ('title', {str}),
-                'description': ('description', {str}),
-            }))
-
+        urn = self._match_valid_url(url).group('id')
         item = self._graphql_query(urn, self._QUERY_ITEM)['item']
         return {
             'formats': traverse_obj(item, (
                 'audioList', lambda _, v: url_or_none(v['href']), {
                     'url': 'href',
                     'format_id': ('distributionType', {str}),
+                    'abr': ('audioBitrate', {int}),
+                    'acodec': ('audioCodec', {str}),
                 })),
             'id': urn,
             **traverse_obj(item, {
                 'channel': ('programSet', 'publicationService', 'organizationName', {str}),
                 'description': ('description', {str}),
                 'duration': ('duration', {int_or_none}),
-                'series': ('show', 'title'),
+                'series': ('show', 'title', {str}),
                 'episode_number': ('episodeNumber', {int_or_none}),
                 'thumbnail': ('image', 'url1X1', {lambda v: v.split('?')[0] if isinstance(v, str) else None}),
                 'timestamp': ('startDate', {parse_iso8601}),
                 'title': ('title', {str}),
             }),
         }
+
+
+class ARDAudiothekPlaylistIE(ARDAudiothekBaseIE):
+    _VALID_URL = r'''(?x)https:?//
+        (?:www\.)?ardaudiothek\.de/
+        sendung/
+        (?P<playlist>[a-zA-Z-]+)/
+        (?P<id>urn:ard:show:[a-f0-9]{16})/$'''
+
+    _TESTS = [
+        {
+            'url': 'https://www.ardaudiothek.de/sendung/mia-insomnia/urn:ard:show:c405aa26d9a4060a/',
+            'info_dict': {
+                'display_id': 'mia-insomnia',
+                'title': 'Mia Insomnia',
+                'id': 'urn:ard:show:c405aa26d9a4060a',
+                'description': 'md5:d9ceb7a6b4d26a4db3316573bb564292',
+            },
+            'playlist_mincount': 37,
+        },
+    ]
+
+    _QUERY_PLAYLIST = '''
+    query($id: ID!) {
+        show(id: $id) {
+            title
+            description
+            items(filter: { isPublished: { equalTo: true } }) {
+                nodes {
+                    url
+                }
+            }
+        }
+    }'''
+
+    def _real_extract(self, url):
+        urn, playlist = self._match_valid_url(url).group('id', 'playlist')
+        playlist_info = self._graphql_query(urn, self._QUERY_PLAYLIST)['show']
+        episodes = playlist_info['items']['nodes']
+        entries = []
+        for episode in episodes:
+            entries.append(self.url_result(
+                episode['url'],
+                ie=ARDAudiothekIE.ie_key()))
+        return self.playlist_result(entries, urn, display_id=playlist, **traverse_obj(playlist_info, {
+            'title': ('title', {str}),
+            'description': ('description', {str}),
+        }))
