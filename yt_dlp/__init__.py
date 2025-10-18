@@ -61,8 +61,14 @@ from .utils import (
     shell_quote,
     variadic,
     write_string,
+
 )
 from .utils._utils import _UnsafeExtensionError
+from .utils._jsruntime import (
+    BunJsRuntime as _BunJsRuntime,
+    DenoJsRuntime as _DenoJsRuntime,
+    NodeJsRuntime as _NodeJsRuntime,
+)
 from .YoutubeDL import YoutubeDL
 
 
@@ -773,6 +779,10 @@ def parse_options(argv=None):
         else opts.audioformat if (opts.extractaudio and opts.audioformat in FFmpegExtractAudioPP.SUPPORTED_EXTS)
         else None)
 
+    js_runtimes = {
+        runtime.lower(): {'path': path} for runtime, path in (
+            [*arg.split(':', 1), None][:2] for arg in opts.js_runtimes)}
+
     return ParsedOptions(parser, opts, urls, {
         'usenetrc': opts.usenetrc,
         'netrc_location': opts.netrc_location,
@@ -944,6 +954,8 @@ def parse_options(argv=None):
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
+        'js_runtimes': js_runtimes,
+        'remote_components': opts.remote_components,
     })
 
 
@@ -1080,6 +1092,12 @@ def main(argv=None):
 
 
 from .extractor import gen_extractors, list_extractors
+
+# Register JS runtimes
+from .globals import supported_js_runtimes
+supported_js_runtimes.value['deno'] = _DenoJsRuntime
+supported_js_runtimes.value['node'] = _NodeJsRuntime
+supported_js_runtimes.value['bun'] = _BunJsRuntime
 
 __all__ = [
     'YoutubeDL',

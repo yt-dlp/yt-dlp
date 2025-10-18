@@ -362,6 +362,26 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
     --no-plugin-dirs                Clear plugin directories to search,
                                     including defaults and those provided by
                                     previous --plugin-dirs
+    --js-runtimes RUNTIME[:PATH]    Additional JavaScript runtime to enable,
+                                    with an optional path to the runtime
+                                    location. This option can be used multiple
+                                    times to enable multiple runtimes. Supported
+                                    runtimes: deno, node, bun. By default, only
+                                    "deno" runtime is enabled.
+    --no-js-runtimes                Clear JavaScript runtimes to enable,
+                                    including defaults and those provided by
+                                    previous --js-runtimes
+    --remote-components COMPONENT   Remote components to allow yt-dlp to fetch
+                                    when required. You can use this option
+                                    multiple times to allow multiple components.
+                                    Supported values: ejs:npm (external
+                                    JavaScript components from npm), ejs:github
+                                    (external JavaScript components from yt-dlp-
+                                    ejs GitHub). By default, no remote
+                                    components are allowed.
+    --no-remote-components          Disallow fetching of all remote components,
+                                    including any previously allowed by
+                                    --remote-components or defaults.
     --flat-playlist                 Do not extract a playlist's URL result
                                     entries; some entry metadata may be missing
                                     and downloading may be bypassed
