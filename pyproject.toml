@@ -92,7 +92,7 @@ pyinstaller = [
 Documentation = "https://github.com/yt-dlp/yt-dlp#readme"
 Repository = "https://github.com/yt-dlp/yt-dlp"
 Tracker = "https://github.com/yt-dlp/yt-dlp/issues"
-Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Maintainers.md#Maintainers"
+Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Maintainers.md#maintainers"
 
 [project.scripts]
 yt-dlp = "yt_dlp:main"
