@@ -414,7 +414,7 @@ class RadioFranceProgramScheduleIE(RadioFranceBaseIE):
     _VALID_URL = rf'''(?x)
         {RadioFranceBaseIE._VALID_URL_BASE}
         /(?P<station>{RadioFranceBaseIE._STATIONS_RE})
-        /grille-programmes(?:\?date=(?P<date>[\d-]+))?
+        /grille-programmes
     '''
 
     _TESTS = [{
@@ -463,7 +463,7 @@ class RadioFranceProgramScheduleIE(RadioFranceBaseIE):
                 }))
 
     def _real_extract(self, url):
-        station, date = self._match_valid_url(url).group('station', 'date')
+        station = self._match_valid_url(url).group('station')
         webpage = self._download_webpage(url, station)
         grid_data = self._extract_data_from_webpage(webpage, station, 'grid')
         upload_date = strftime_or_none(grid_data.get('date'), '%Y%m%d')

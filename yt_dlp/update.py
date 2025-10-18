@@ -154,7 +154,7 @@ def _get_binary_name():
 
 
 def _get_system_deprecation():
-    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 9), (3, 10)
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 10), (3, 10)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
@@ -559,11 +559,9 @@ class Updater:
     @functools.cached_property
     def cmd(self):
         """The command-line to run the executable, if known"""
-        argv = None
-        # There is no sys.orig_argv in py < 3.10. Also, it can be [] when frozen
-        if getattr(sys, 'orig_argv', None):
-            argv = sys.orig_argv
-        elif getattr(sys, 'frozen', False):
+        argv = sys.orig_argv
+        # sys.orig_argv can be [] when frozen
+        if not argv and getattr(sys, 'frozen', False):
             argv = sys.argv
         # linux_static exe's argv[0] will be /tmp/staticx-NNNN/yt-dlp_linux if we don't fixup here
         if argv and os.getenv('STATICX_PROG_PATH'):
@@ -572,7 +570,7 @@ class Updater:
 
     def restart(self):
         """Restart the executable"""
-        assert self.cmd, 'Must be frozen or Py >= 3.10'
+        assert self.cmd, 'Unable to determine argv'
         self.ydl.write_debug(f'Restarting: {shell_quote(self.cmd)}')
         _, _, returncode = Popen.run(self.cmd)
         return returncode
