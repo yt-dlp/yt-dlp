@@ -8,18 +8,16 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 
 Core Maintainers are responsible for reviewing and merging contributions, publishing releases, and steering the overall direction of the project.
 
-You can contact the core maintainers via `maintainers@yt-dlp.org`.
+**You can contact the core maintainers via `maintainers@yt-dlp.org`.**
 
 ### [coletdjnz](https://github.com/coletdjnz)
 
 [![gh-sponsor](https://img.shields.io/badge/_-Github-white.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/coletdjnz)
 
-* Improved plugin architecture
-* Rewrote the networking infrastructure, implemented support for `requests`
-* YouTube improvements including: age-gate bypass, private playlists, multiple-clients (to avoid throttling) and a lot of under-the-hood improvements
-* Added support for new websites YoutubeWebArchive, MainStreaming, PRX, nzherald, Mediaklikk, StarTV etc
-* Improved/fixed support for Patreon, panopto, gfycat, itv, pbs, SouthParkDE etc
-
+* Overhauled the networking stack and implemented support for `requests` and `curl_cffi` (`--impersonate`) HTTP clients
+* Reworked the plugin architecture to support installing plugins across all yt-dlp distributions (exe, pip, etc.)
+* Maintains support for YouTube
+* Added and fixed support for various other sites
 
 ### [bashonly](https://github.com/bashonly)
 
