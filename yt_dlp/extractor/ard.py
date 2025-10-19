@@ -608,15 +608,13 @@ class ARDMediathekCollectionIE(InfoExtractor):
 class ARDAudiothekBaseIE(InfoExtractor):
     def _graphql_query(self, urn, query):
         return self._download_json(
-            'https://api.ardaudiothek.de/graphql',
-            urn,
-            data=json.dumps({'query': query,
-                             'variables': {'id': urn},
-                             }).encode(),
-            headers={
+            'https://api.ardaudiothek.de/graphql', urn,
+            data=json.dumps({
+                'query': query,
+                'variables': {'id': urn},
+            }).encode(), headers={
                 'Content-Type': 'application/json',
-            },
-        )['data']
+            })['data']
 
 
 class ARDAudiothekIE(ARDAudiothekBaseIE):
@@ -717,8 +715,6 @@ class ARDAudiothekIE(ARDAudiothekBaseIE):
                     'acodec': ('audioCodec', {str}),
                     'vcodec': {value('none')},
                 }),
-            }),
-            **traverse_obj(item, {
                 'channel': ('programSet', 'publicationService', 'organizationName', {str}),
                 'description': ('description', {str}),
                 'duration': ('duration', {int_or_none}),
@@ -732,7 +728,7 @@ class ARDAudiothekIE(ARDAudiothekBaseIE):
 
 
 class ARDAudiothekPlaylistIE(ARDAudiothekBaseIE):
-    _VALID_URL = r'''https:?//(?:www\.)?ardaudiothek\.de/sendung/(?P<playlist>[a-zA-Z-]+)/(?P<id>urn:ard:show:[a-f0-9]{16})'''
+    _VALID_URL = r'''https:?//(?:www\.)?ardaudiothek\.de/sendung/(?P<playlist>[\w-]+)/(?P<id>urn:ard:show:[a-f0-9]{16})'''
 
     _TESTS = [
         {
@@ -744,6 +740,10 @@ class ARDAudiothekPlaylistIE(ARDAudiothekBaseIE):
                 'description': 'md5:d9ceb7a6b4d26a4db3316573bb564292',
             },
             'playlist_mincount': 37,
+        },
+        {
+            'url': 'https://www.ardaudiothek.de/sendung/100-berlin/urn:ard:show:4d248e0806ce37bc/',
+            'only_matching': True,
         },
     ]
 
