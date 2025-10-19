@@ -46,11 +46,8 @@ class WatchTheChosenIE(InfoExtractor):
         pageID = self._match_id(url)
         info = {}
         pathBase = urllib.parse.urlparse(url).path.strip('/').split('/')[0]
-        auth_cookie = ''
-        token_type = ''
-        if (self._cookies_passed):
-            auth_cookie = self._get_cookies(url)['frAccessToken'].value
-            token_type = self._get_cookies(url)['frTokenType'].value
+        auth_cookie = try_call(lambda: self._get_cookies(url)['frAccessToken'].value)
+        token_type = try_call(lambda: self._get_cookies(url)['frTokenType'].value)
 
         if pathBase == 'group':
             info['_type'] = 'playlist'
