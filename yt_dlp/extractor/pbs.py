@@ -189,7 +189,7 @@ class PBSIE(InfoExtractor):
             (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/?#]+) |
             # Direct video URL, or article with embedded player
             (?:{})/(?:
-              (?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/#]|$) |
+              (?:(?:vir|port)alplayer|video)/(?P<id>[0-9a-zA-Z-]+)(?:[?/#]|$) |
               (?:[^/?#]+/){{1,5}}(?P<presumptive_id>[^/?#]+?)(?:\.html)?/?(?:$|[?#])
             )
         )
@@ -250,9 +250,12 @@ class PBSIE(InfoExtractor):
             'info_dict': {
                 'id': '2201174722',
                 'ext': 'mp4',
-                'title': 'PBS NewsHour - Cyber Schools Gain Popularity, but Quality Questions Persist',
-                'description': 'md5:86ab9a3d04458b876147b355788b8781',
+                'title': 'PBS News Hour - Cyber Schools Gain Popularity, but Quality Questions Persist',
+                'description': 'md5:e145f95a1e667414ba7e1a4ba9272a91',
                 'duration': 801,
+                'display_id': 'education-jan-june12-cyberschools_02-23',
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'chapters': list,
             },
         },
         {
@@ -266,6 +269,7 @@ class PBSIE(InfoExtractor):
                 'duration': 6559,
                 'thumbnail': r're:^https?://.*\.jpg$',
             },
+            'skip': 'Unavailable video',
         },
         {
             'url': 'http://www.pbs.org/wgbh/nova/earth/killer-typhoon.html',
@@ -297,15 +301,15 @@ class PBSIE(InfoExtractor):
             'playlist_count': 3,
         },
         {
-            'url': 'http://www.pbs.org/wgbh/americanexperience/films/death/player/',
+            'url': 'https://www.pbs.org/wgbh/americanexperience/films/mr-polaroid/',
             'info_dict': {
-                'id': '2276541483',
-                'display_id': 'player',
+                'id': '3100967977',
+                'display_id': '3100967977',
                 'ext': 'mp4',
-                'title': 'American Experience - Death and the Civil War, Chapter 1',
-                'description': 'md5:67fa89a9402e2ee7d08f53b920674c18',
-                'duration': 682,
+                'title': 'American Experience - Mr. Polaroid',
+                'duration': 3140,
                 'thumbnail': r're:^https?://.*\.jpg$',
+                'chapters': list,
             },
             'params': {
                 'skip_download': True,  # requires ffmpeg
@@ -319,9 +323,21 @@ class PBSIE(InfoExtractor):
                 'display_id': '2365245528',
                 'ext': 'mp4',
                 'title': 'FRONTLINE - United States of Secrets (Part One)',
-                'description': 'md5:55756bd5c551519cc4b7703e373e217e',
                 'duration': 6851,
                 'thumbnail': r're:^https?://.*\.jpg$',
+                'chapters': [
+                    {'start_time': 0.0, 'end_time': 623.0, 'title': 'The Snowden Leak  '},
+                    {'start_time': 622.0, 'end_time': 1408.0, 'title': '"The Program" Begins     '},
+                    {'start_time': 1407.0, 'end_time': 1986.0, 'title': 'ThinThread '},
+                    {'start_time': 1985.0, 'end_time': 2437.0, 'title': '"They Have Gone Rogue"      '},
+                    {'start_time': 2436.0, 'end_time': 3626.0, 'title': 'Concerns at the Justice Department     '},
+                    {'start_time': 3625.0, 'end_time': 4800.0, 'title': 'Page One News     '},
+                    {'start_time': 4799.0, 'end_time': 5906.0, 'title': 'A Hunt for the Leaker        '},
+                    {'start_time': 5905.0, 'end_time': 6852.0, 'title': 'Obama Inherits "The Program"     '},
+                ],
+            },
+            'params': {
+                'skip_download': True,  # video unavailable
             },
         },
         {
@@ -339,6 +355,21 @@ class PBSIE(InfoExtractor):
                 'duration': 1480,
                 'thumbnail': r're:^https?://.*\.jpg$',
             },
+            'skip': 'Video unavailable',
+        },
+        {
+            'url': 'https://www.pbs.org/food/stories/tips-tricks-make-medieval-meat-roasting-pit',
+            'md5': 'c765f6b407b0b24de54bc622f2fed040',
+            'info_dict': {
+                'id': '2365807145',
+                'display_id': 'tips-tricks-make-medieval-meat-roasting-pit',
+                'ext': 'mp4',
+                'title': 'ChefSteps - Tips & Tricks: Make a Medieval Meat-Roasting Pit',
+                'description': 'md5:5f998c530823f7a0617c86361391e0b5',
+                'duration': 117,
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'chapters': list,
+            },
         },
         {
             # Frontline video embedded via flp2012.js
@@ -351,6 +382,7 @@ class PBSIE(InfoExtractor):
                 'description': 'md5:f677e4520cfacb4a5ce1471e31b57800',
                 'duration': 723,
                 'thumbnail': r're:^https?://.*\.jpg$',
+                'chapters': list,
             },
             'params': {
                 'skip_download': True,  # requires ffmpeg
@@ -359,29 +391,40 @@ class PBSIE(InfoExtractor):
         {
             # Serves hd only via wigget/partnerplayer page
             'url': 'http://www.pbs.org/video/2365641075/',
-            'md5': 'fdf907851eab57211dd589cf12006666',
+            'md5': '2b138265167346172b771d65eea1bf9a',
             'info_dict': {
                 'id': '2365641075',
                 'ext': 'mp4',
                 'title': 'FRONTLINE - Netanyahu at War',
                 'duration': 6852,
                 'thumbnail': r're:^https?://.*\.jpg$',
-                'formats': 'mincount:8',
+                'formats': 'mincount:7',
+                'chapters': [
+                    {'start_time': 0.0, 'end_time': 1212.0, 'title': 'Soldier, Pundit, Envoy'},
+                    {'start_time': 1211.0, 'end_time': 2380.0, 'title': 'The Rabin Assassination'},
+                    {'start_time': 2379.0, 'end_time': 3594.0, 'title': 'Netanyahu, Clinton and Obama'},
+                    {'start_time': 3593.0, 'end_time': 4780.0, 'title': 'The Relationship Sours'},
+                    {'start_time': 4779.0, 'end_time': 6083.0, 'title': 'Netanyahu and the 2012 Elections'},
+                    {'start_time': 6082.0, 'end_time': 6853.0, 'title': '"A Very, Very Bad Deal"'},
+                ],
             },
         },
         {
             # https://github.com/ytdl-org/youtube-dl/issues/13801
-            'url': 'https://www.pbs.org/video/pbs-newshour-full-episode-july-31-2017-1501539057/',
+            'url': 'https://www.pbs.org/video/e25-thank-you-roger-cook-ask-this-old-house-ZKzAfs/',
+            'md5': '78d7e9cf38cfb509a2b5ce461c4f400b',
             'info_dict': {
-                'id': '3003333873',
+                'id': 'e25-thank-you-roger-cook-ask-this-old-house-ZKzAfs',
                 'ext': 'mp4',
-                'title': 'PBS NewsHour - full episode July 31, 2017',
-                'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
-                'duration': 3265,
+                'title': 'Ask This Old House - E25 | Thank You, Roger Cook | Ask This Old House',
+                'duration': 1422,
                 'thumbnail': r're:^https?://.*\.jpg$',
-            },
-            'params': {
-                'skip_download': True,
+                'chapters': [
+                    {'start_time': 0.0, 'end_time': 45.0, 'title': 'Coming Up on Ask This Old House'},
+                    {'start_time': 45.09, 'end_time': 502.09000000000003, 'title': 'Roger Cook’s Secret to Hard Work and Teaching'},
+                    {'start_time': 502.03, 'end_time': 884.03, 'title': 'Getting Dirty, Loving Nature, Doing It Right'},
+                    {'start_time': 884.12, 'end_time': 1422.12, 'title': 'How Roger Cook Built His Legacy'},
+                ],
             },
         },
         {
@@ -408,6 +451,14 @@ class PBSIE(InfoExtractor):
                 'description': 'md5:37efbac85e0c09b009586523ec143652',
                 'duration': 6292,
                 'thumbnail': r're:^https?://.*\.(?:jpg|JPG)$',
+                'display_id': 'victoria-s2-e1',
+                'chapters': [
+                    {'start_time': 0.0, 'end_time': 510.0, 'title': '1.'},
+                    {'start_time': 510.04, 'end_time': 1416.04, 'title': '2.'},
+                    {'start_time': 1416.048, 'end_time': 4465.048, 'title': '3.'},
+                    {'start_time': 4465.056, 'end_time': 5074.056, 'title': '4.'},
+                    {'start_time': 5074.0, 'end_time': 6292.0, 'title': '5.'},
+                ],
             },
             'params': {
                 'skip_download': True,
@@ -422,6 +473,8 @@ class PBSIE(InfoExtractor):
                 'title': 'Stories from the Stage - Road Trip',
                 'duration': 1619,
                 'thumbnail': r're:^https?://.*\.(?:jpg|JPG)$',
+                'display_id': 'tOz9tM5ljOXQqIIWke53UA==',
+                'chapters': list,
             },
             'params': {
                 'skip_download': True,
@@ -433,7 +486,7 @@ class PBSIE(InfoExtractor):
             'info_dict': {
                 'id': '3091549094',
                 'ext': 'mp4',
-                'title': 'PBS NewsHour - Capehart and Johnson on the unusual Biden-Trump debate plans',
+                'title': 'PBS News Hour - Capehart and Johnson on the unusual Biden-Trump debate plans',
                 'description': 'Capehart and Johnson on how the Biden-Trump debates could shape the campaign season',
                 'display_id': 'capehart-johnson-1715984001',
                 'duration': 593,
