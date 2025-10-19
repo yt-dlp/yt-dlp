@@ -16,11 +16,12 @@ from ..utils import (
     remove_start,
     str_or_none,
     unified_strdate,
+    update_url,
     update_url_query,
     url_or_none,
     xpath_text,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import traverse_obj, value
 
 
 class ARDMediathekBaseIE(InfoExtractor):
@@ -605,11 +606,9 @@ class ARDMediathekCollectionIE(InfoExtractor):
 
 
 class ARDAudiothekBaseIE(InfoExtractor):
-    _GRAPHQL_ENDPOINT = 'https://api.ardaudiothek.de/graphql'
-
     def _graphql_query(self, urn, query):
         return self._download_json(
-            self._GRAPHQL_ENDPOINT,
+            'https://api.ardaudiothek.de/graphql',
             urn,
             data=json.dumps({'query': query,
                              'variables': {'id': urn},
@@ -621,10 +620,7 @@ class ARDAudiothekBaseIE(InfoExtractor):
 
 
 class ARDAudiothekIE(ARDAudiothekBaseIE):
-    _VALID_URL = r'''(?x)https:?//
-        (?:www\.)?ardaudiothek\.de/
-        episode/
-        (?P<id>urn:ard:(?:episode|section|extra):[a-f0-9]{16})/$'''
+    _VALID_URL = r'''https:?//(?:www\.)?ardaudiothek\.de/episode/(?P<id>urn:ard:(?:episode|section|extra):[a-f0-9]{16})'''
 
     _TESTS = [
         {
@@ -643,8 +639,6 @@ class ARDAudiothekIE(ARDAudiothekBaseIE):
                 'channel': 'WDR',
                 'episode': 'Episode 4',
                 'episode_number': 4,
-                'abr': 256,
-                'acodec': 'MP3',
             },
         },
         {
@@ -663,8 +657,6 @@ class ARDAudiothekIE(ARDAudiothekBaseIE):
                 'channel': 'ARD',
                 'episode': 'Episode 1',
                 'episode_number': 1,
-                'abr': 192,
-                'acodec': 'AAC',
             },
         },
         {
@@ -680,8 +672,6 @@ class ARDAudiothekIE(ARDAudiothekBaseIE):
                 'series': 'Fanta Vier Forever, Baby!?!',
                 'timestamp': 1732108217,
                 'upload_date': '20241120',
-                'abr': 128,
-                'acodec': 'MP3',
             },
         },
     ]
@@ -715,24 +705,26 @@ class ARDAudiothekIE(ARDAudiothekBaseIE):
     }'''
 
     def _real_extract(self, url):
-        urn = self._match_valid_url(url).group('id')
+        urn = self._match_id(url)
         item = self._graphql_query(urn, self._QUERY_ITEM)['item']
         return {
-            'formats': traverse_obj(item, (
-                'audioList', lambda _, v: url_or_none(v['href']), {
+            'id': urn,
+            **traverse_obj(item, {
+                'formats': ('audioList', lambda _, v: url_or_none(v['href']), {
                     'url': 'href',
                     'format_id': ('distributionType', {str}),
-                    'abr': ('audioBitrate', {int}),
+                    'abr': ('audioBitrate', {int_or_none}),
                     'acodec': ('audioCodec', {str}),
-                })),
-            'id': urn,
+                    'vcodec': {value('none')},
+                }),
+            }),
             **traverse_obj(item, {
                 'channel': ('programSet', 'publicationService', 'organizationName', {str}),
                 'description': ('description', {str}),
                 'duration': ('duration', {int_or_none}),
                 'series': ('show', 'title', {str}),
                 'episode_number': ('episodeNumber', {int_or_none}),
-                'thumbnail': ('image', 'url1X1', {lambda v: v.split('?')[0] if isinstance(v, str) else None}),
+                'thumbnail': ('image', 'url1X1', {url_or_none}, {update_url(query=None)}),
                 'timestamp': ('startDate', {parse_iso8601}),
                 'title': ('title', {str}),
             }),
@@ -740,11 +732,7 @@ class ARDAudiothekIE(ARDAudiothekBaseIE):
 
 
 class ARDAudiothekPlaylistIE(ARDAudiothekBaseIE):
-    _VALID_URL = r'''(?x)https:?//
-        (?:www\.)?ardaudiothek\.de/
-        sendung/
-        (?P<playlist>[a-zA-Z-]+)/
-        (?P<id>urn:ard:show:[a-f0-9]{16})/$'''
+    _VALID_URL = r'''https:?//(?:www\.)?ardaudiothek\.de/sendung/(?P<playlist>[a-zA-Z-]+)/(?P<id>urn:ard:show:[a-f0-9]{16})'''
 
     _TESTS = [
         {
@@ -775,12 +763,9 @@ class ARDAudiothekPlaylistIE(ARDAudiothekBaseIE):
     def _real_extract(self, url):
         urn, playlist = self._match_valid_url(url).group('id', 'playlist')
         playlist_info = self._graphql_query(urn, self._QUERY_PLAYLIST)['show']
-        episodes = playlist_info['items']['nodes']
         entries = []
-        for episode in episodes:
-            entries.append(self.url_result(
-                episode['url'],
-                ie=ARDAudiothekIE.ie_key()))
+        for url in traverse_obj(playlist_info, ('items', 'nodes', ..., 'url', {url_or_none})):
+            entries.append(self.url_result(url, ie=ARDAudiothekIE))
         return self.playlist_result(entries, urn, display_id=playlist, **traverse_obj(playlist_info, {
             'title': ('title', {str}),
             'description': ('description', {str}),
