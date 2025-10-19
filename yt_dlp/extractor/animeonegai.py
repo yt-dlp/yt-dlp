@@ -3,12 +3,10 @@ import uuid
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    determine_ext,
     int_or_none,
-    str_or_none,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import subs_list_to_dict, traverse_obj
 
 
 class AnimeOnegaiIE(InfoExtractor):
@@ -17,7 +15,7 @@ class AnimeOnegaiIE(InfoExtractor):
     _GEO_COUNTRIES = ['MX']
     _TESTS = [{
         'url': 'https://www.animeonegai.com/es/watch/4Bpd6m6gGYVxdspKn?time=0&serie=true',
-        'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
+        'md5': '14267b6a820872df1f7eef973c44e70f',
         'info_dict': {
             'id': '4Bpd6m6gGYVxdspKn',
             'ext': 'mp4',
@@ -28,32 +26,30 @@ class AnimeOnegaiIE(InfoExtractor):
             'series': 'GTO',
             'episode_number': 1,
         },
-        'skip': 'Login Required',
     }]
+    _LOGIN_HINT = ('Use --username token --password ACCESS_TOKEN where ACCESS_TOKEN '
+                   'is the "ott_token" from your browser local storage')
     _DEVICE_ID = str(uuid.uuid4())
     _HEADERS = {
         'Authorization': None,
         'Content-Type': 'application/json',
-        'Host': 'api.animeonegai.com',
     }
 
     def _perform_login(self, username, password):
-        if (username.lower() == 'token' and password is not None):
-            self._HEADERS['Authorization'] = f'Bearer {password}'
-            self.report_login()
-        elif (username.lower() != 'token' and password is not None):
-            raise ExtractorError('Login type not supported', expected=True)
+        if self._HEADERS['Authorization']:
+            return
+
+        if username != 'token':
+            self.raise_login_required(f'Only token-based login is supported. {self._LOGIN_HINT}', method=None)
+
+        self._HEADERS['Authorization'] = f'Bearer {password}'
+
+    def _real_initialize(self):
+        if not self._HEADERS['Authorization']:
+            self.raise_login_required(f'Login required. {self._LOGIN_HINT}', method=None)
 
     def _real_extract(self, url):
-        if (self._HEADERS['Authorization'] is None):
-            raise ExtractorError(
-                'Use "--username token" and "--password <ott_token>" to log in. The ott_token can be found in Local Storage using the Developer Tools, after login in a browser window to Anime Onegai site', expected=True)
-
         language, video_id = self._match_valid_url(url).group('language', 'id')
-
-        self._initialize_geo_bypass({
-            'countries': self._GEO_COUNTRIES,
-        })
 
         chapter_data = self._download_json(
             f'https://api.animeonegai.com/v1/restricted/chapter/entry/{video_id}',
@@ -62,29 +58,24 @@ class AnimeOnegaiIE(InfoExtractor):
         if (chapter_data.get('ID') == 0):
             raise ExtractorError('Chapter data not found', expected=True)
 
-        asset_id = int_or_none(chapter_data.get('asset_id'))
         asset_data = self._download_json(
-            f'https://api.animeonegai.com/v1/restricted/asset/public/{asset_id}',
+            f'https://api.animeonegai.com/v1/restricted/asset/public/{chapter_data["asset_id"]}',
             video_id, 'Downloading Asset Data', headers=self._HEADERS, query={'lang': language, 'cache': 'true'})
 
-        video_entry = str_or_none(chapter_data.get('video_entry'))
         video_data = self._download_json(
-            f'https://api.animeonegai.com/v1/media/{video_entry}',
+            f'https://api.animeonegai.com/v1/media/{chapter_data["video_entry"]}',
             video_id, 'Downloading Video Data', headers=self._HEADERS,
             query={'tv': 'false', 'mobile': 'false', 'device_id': self._DEVICE_ID, 'platform': 'web'})
 
         if (video_data.get('drm') and not self.get_param('allow_unplayable_formats')):
-            raise ExtractorError('The video is DRM protected', expected=True)
+            self.report_drm(video_id)
 
         formats = self._extract_mpd_formats(video_data['dash'], video_id)
-        subtitles = {}
-
-        for subtitle in video_data.get('subtitles') or []:
-            subtitles.setdefault(str_or_none(subtitle.get('lang', language)), []).append({
-                'url': url_or_none(subtitle.get('url')),
-                'ext': determine_ext(str_or_none(subtitle.get('url'))),
-                'name': str_or_none(subtitle.get('name')),
-            })
+        subtitles = traverse_obj(video_data, ('subtitles', ..., {
+            'id': ('lang', {str}),
+            'url': ('url', {url_or_none}),
+            'name': ('name', {str}),
+        }, all, {subs_list_to_dict(lang=language)}))
 
         return {
             'id': video_id,
