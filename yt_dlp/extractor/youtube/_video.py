@@ -1667,6 +1667,68 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'view_count': int,
         },
         'params': {'skip_download': True},
+    }, {
+        # Video with two collaborators
+        'url': 'https://www.youtube.com/watch?v=brhfDfLdDZ8',
+        'info_dict': {
+            'id': 'brhfDfLdDZ8',
+            'ext': 'mp4',
+            'title': 'This is the WORST Movie Science We\'ve Ever Seen',
+            'description': 'md5:8afd0a3cd69ec63438fc573580436f92',
+            'media_type': 'video',
+            'uploader': 'Open Sauce',
+            'uploader_id': '@opensaucelive',
+            'uploader_url': 'https://www.youtube.com/@opensaucelive',
+            'channel': 'Open Sauce',
+            'channel_id': 'UC2EiGVmCeD79l_vZ204DUSw',
+            'channel_url': 'https://www.youtube.com/channel/UC2EiGVmCeD79l_vZ204DUSw',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 1664,
+            'thumbnail': 'https://i.ytimg.com/vi/brhfDfLdDZ8/hqdefault.jpg',
+            'categories': ['Entertainment'],
+            'tags': ['Moonfall', 'Bad Science', 'Open Sauce', 'Sauce+', 'The Backyard Scientist', 'William Osman', 'Allen Pan'],
+            'creators': ['Open Sauce', 'William Osman 2'],
+            'timestamp': 1759452918,
+            'upload_date': '20251003',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
+        },
+        'params': {'skip_download': True},
+    }, {
+        # Video with three collaborators
+        'url': 'https://www.youtube.com/watch?v=vRJQIuzUDS4',
+        'info_dict': {
+            'id': 'vRJQIuzUDS4',
+            'ext': 'mp4',
+            'title': 'ASMR Body Scan & Soothing Hand Movements, Guided Relaxation in English & Portuguese ft @AlsoMayaASMR',
+            'description': 'md5:0549b8b3882aebb4b38365ed319ccb50',
+            'media_type': 'video',
+            'uploader': 'Ruby True ',
+            'uploader_id': '@Rubytrue',
+            'uploader_url': 'https://www.youtube.com/@Rubytrue',
+            'channel': 'Ruby True ',
+            'channel_id': 'UC9fR4A5Bxj2WoPCr37fdKKA',
+            'channel_url': 'https://www.youtube.com/channel/UC9fR4A5Bxj2WoPCr37fdKKA',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 1277,
+            'thumbnail': 'https://i.ytimg.com/vi/vRJQIuzUDS4/maxresdefault.jpg',
+            'categories': ['Entertainment'],
+            'tags': 'count:30',
+            'creators': ['Ruby True ', 'Also Maya ASMR', 'Maya ASMR'],
+            'timestamp': 1760981427,
+            'upload_date': '20251020',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
+        },
+        'params': {'skip_download': True},
     }]
     _WEBPAGE_TESTS = [{
         # <object>
@@ -4374,9 +4436,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         vsir = get_first(contents, 'videoSecondaryInfoRenderer')
         if vsir:
             vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
+            collaborators = traverse_obj(vor, (
+                'attributedTitle', 'commandRuns', ..., 'onTap', 'innertubeCommand', 'showDialogCommand',
+                'panelLoadingStrategy', 'inlineContent', 'dialogViewModel', 'customContent', 'listViewModel',
+                'listItems', ..., 'listItemViewModel', 'title', 'content', {str}))
             info.update({
-                'channel': self._get_text(vor, 'title'),
-                'channel_follower_count': self._get_count(vor, 'subscriberCountText')})
+                'channel': self._get_text(vor, 'title') or (collaborators[0] if collaborators else None),
+                'channel_follower_count': self._get_count(vor, 'subscriberCountText'),
+                'creators': collaborators if collaborators else None,
+            })
 
             if not channel_handle:
                 channel_handle = self.handle_from_url(
