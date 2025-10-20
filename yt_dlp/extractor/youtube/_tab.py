@@ -341,7 +341,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'contentImage', *thumb_keys, 'thumbnailViewModel', 'image'), final_key='sources'),
             duration=traverse_obj(view_model, (
                 'contentImage', 'thumbnailViewModel', 'overlays', ...,
-                (('thumbnailBottomOverlayViewModel', 'badges'), ('thumbnailOverlayBadgeViewModel', 'thumbnailBadges'))
+                (('thumbnailBottomOverlayViewModel', 'badges'), ('thumbnailOverlayBadgeViewModel', 'thumbnailBadges')),
                 ..., 'thumbnailBadgeViewModel', 'text', {parse_duration}, any)),
             timestamp=(traverse_obj(view_model, (
                 'metadata', 'lockupMetadataViewModel', 'metadata', 'contentMetadataViewModel', 'metadataRows',
