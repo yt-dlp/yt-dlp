@@ -48,7 +48,7 @@ class DenoJsRuntime(JsRuntime):
 
 
 class BunJsRuntime(JsRuntime):
-    MIN_SUPPORTED_VERSION = (0, 0, 0)  # TODO: confirm min supported bun version
+    MIN_SUPPORTED_VERSION = (1, 0, 31)
 
     def _info(self):
         path = self._path or 'bun'
@@ -63,7 +63,7 @@ class BunJsRuntime(JsRuntime):
 
 
 class NodeJsRuntime(JsRuntime):
-    MIN_SUPPORTED_VERSION = (21, 0, 0)
+    MIN_SUPPORTED_VERSION = (22, 0, 0)
 
     def _info(self):
         path = self._path or 'node'
