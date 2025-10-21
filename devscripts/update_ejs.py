@@ -19,6 +19,7 @@ HASHES = {{
 PACKAGE_PATH = pathlib.Path(__file__).parent.parent / 'yt_dlp/extractor/youtube/jsc/_builtin/vendor'
 RELEASE_URL = 'https://api.github.com/repos/yt-dlp/ejs/releases/latest'
 ASSETS = {
+    'yt.solver.lib.js': False,
     'yt.solver.lib.min.js': False,
     'yt.solver.deno.lib.js': True,
     'yt.solver.bun.lib.js': True,

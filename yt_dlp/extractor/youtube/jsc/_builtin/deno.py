@@ -11,7 +11,7 @@ from yt_dlp.extractor.youtube.jsc._builtin.runtime import (
     ScriptType,
     ScriptVariant,
 )
-from yt_dlp.extractor.youtube.jsc._builtin.scripts import load_script
+from yt_dlp.extractor.youtube.jsc._builtin.vendor import load_script
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
