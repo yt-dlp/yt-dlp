@@ -40,6 +40,21 @@ class YandexVideoIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
+        'url': 'https://frontend.vh.yandex.ru/player/vjHNY0YjZUQI',
+        'info_dict': {
+            'id': 'vjHNY0YjZUQI',
+            'ext': 'mp4',
+            'title': 'YandexVideo video #vjHNY0YjZUQI',
+            'thumbnail': r're:^https?://',
+            'timestamp': 1750165995,
+            'duration': 42,
+            'upload_date': '20250617',
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
         'url': 'https://yandex.ru/portal/efir?stream_id=4dbb262b4fe5cf15a215de4f34eee34d&from=morda',
         'only_matching': True,
     }, {
@@ -99,7 +114,7 @@ class YandexVideoIE(InfoExtractor):
                 })
         content = player['content']
 
-        title = content.get('title') or content['computed_title']
+        title = content.get('title') or content.get('computed_title') or ''
 
         formats = []
         streams = content.get('streams') or []
