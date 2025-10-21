@@ -25,17 +25,15 @@ class YandexVideoIE(InfoExtractor):
                         (?P<id>(?:[\da-f]{32}|[\w-]{12}))
                     '''
     _TESTS = [{
-        'url': 'https://yandex.ru/portal/video?stream_id=4dbb36ec4e0526d58f9f2dc8f0ecf374',
+        'url': 'https://frontend.vh.yandex.ru/player/vIsS3AJqE7Y4',
         'info_dict': {
-            'id': '4dbb36ec4e0526d58f9f2dc8f0ecf374',
+            'id': 'vIsS3AJqE7Y4',
             'ext': 'mp4',
-            'title': 'Русский Вудсток - главный рок-фест в истории СССР / вДудь',
-            'description': 'md5:7d6b8d4bc4a3b9a56499916c1ea5b5fa',
+            'title': 'Как отличить привлечение внимания (допустим, в одежде) от выражения себя?',
             'thumbnail': r're:^https?://',
-            'timestamp': 1549972939,
-            'duration': 5575,
-            'age_limit': 18,
-            'upload_date': '20190212',
+            'timestamp': 1583951470,
+            'duration': 128,
+            'upload_date': '20200311',
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
@@ -150,18 +148,20 @@ class YandexVideoIE(InfoExtractor):
 class YandexVideoPreviewIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?yandex\.\w{2,3}(?:\.(?:am|ge|il|tr))?/video/preview(?:/?\?.*?filmId=|/)(?P<id>\d+)'
     _TESTS = [{  # Odnoklassniki
-        'url': 'https://yandex.ru/video/preview/?filmId=10682852472978372885&text=summer',
+        'url': 'https://yandex.ru/video/preview/15420813425117153170',
         'info_dict': {
-            'id': '1352565459459',
+            'id': '-225089484_456239986',
             'ext': 'mp4',
             'like_count': int,
-            'upload_date': '20191202',
-            'age_limit': 0,
-            'duration': 196,
-            'thumbnail': 'https://i.mycdn.me/videoPreview?id=544866765315&type=37&idx=13&tkn=TY5qjLYZHxpmcnK8U2LgzYkgmaU&fn=external_8',
-            'uploader_id': '481054701571',
-            'title': 'LOFT - summer, summer, summer HD',
-            'uploader': 'АРТЁМ КУДРОВ',
+            'comment_count': int,
+            'description': str,
+            'timestamp': 1744475106,
+            'upload_date': '20250412',
+            'duration': 2699,
+            'thumbnail': 'https://sun9-60.userapi.com/impg/785rYq3d4LqBchaPINIw1G0Js8V4-j1-wlbBxQ/ZJz_puhVmYw.jpg?size=800x450&quality=95&keep_aspect_ratio=1&background=000000&sign=c74aee9e7921b86c2be1b8f2ba87920e&type=video_thumb',
+            'uploader_id': '-225089484',
+            'title': 'Дикая природа Индии/ Хищники джунглей.',
+            'uploader': 'ПЛАНЕТА КОНТРАСТОВ',
         },
     }, {  # youtube
         'url': 'https://yandex.ru/video/preview/?filmId=4479424425337895262&source=main_redirect&text=видео&utm_source=main_stripe_big',
@@ -183,9 +183,9 @@ class YandexVideoPreviewIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        data_raw = self._search_regex(r'window.Ya.__inline_params__\s*=\s*JSON.parse\(\'([^"]+?\\u0022video\\u0022:[^"]+?})\'\);', webpage, 'data_raw')
+        data_raw = self._search_regex(r'<noframes[^>]*>({.+})<\/noframes>', webpage, 'data_raw')
         data_json = self._parse_json(data_raw, video_id, transform_source=lowercase_escape)
-        return self.url_result(data_json['video']['url'])
+        return self.url_result(next(iter(data_json['clips']['dups'].values()))['host']['href'])
 
 
 class ZenYandexBaseIE(InfoExtractor):
