@@ -72,10 +72,12 @@ def jcp(request, ie, logger):
     return obj
 
 
+@pytest.mark.download
 def test_bulk_requests(jcp):
     assert list(jcp.bulk_solve(TESTS)) == RESPONSES
 
 
+@pytest.mark.download
 def test_using_cached_player(jcp):
     requests = TESTS[:3]
     player = jcp._get_player(requests[0].video_id, requests[0].input.player_url)

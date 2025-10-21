@@ -3,12 +3,12 @@ on:
   push:
     paths:
       - .github/workflows/signature-tests.yml
-      - test/test_youtube_signature.py
+      - test/test_jsc/
       - yt_dlp/jsinterp.py
   pull_request:
     paths:
       - .github/workflows/signature-tests.yml
-      - test/test_youtube_signature.py
+      - test/test_jsc/
       - yt_dlp/jsinterp.py
 permissions:
   contents: read
@@ -32,10 +32,22 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install Deno
+      uses: denoland/setup-deno@v2
+      with:
+        deno-version: v2.0.0
+    - name: Install Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: 1.0.12
+    - name: Install Node
+      uses: actions/setup-node@v6
+      with:
+        node-version: '20.0'
     - name: Install test requirements
-      run: python3 ./devscripts/install_deps.py --only-optional --include test
+      run: python3 ./devscripts/install_deps.py --include test
     - name: Run tests
       timeout-minutes: 15
       run: |
         python3 -m yt_dlp -v || true  # Print debug head
-        python3 ./devscripts/run_tests.py test/test_youtube_signature.py
+        python3 ./devscripts/run_tests.py test/test_jsc/
