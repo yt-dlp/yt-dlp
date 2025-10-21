@@ -39,7 +39,7 @@ jobs:
     - name: Install Bun
       uses: oven-sh/setup-bun@v2
       with:
-        bun-version: ${{ matrix.os != "windows-latest" && "1.0.31" || "1.1.0" }}
+        bun-version: ${{ (matrix.os != 'windows-latest') && '1.0.31' || '1.1.0' }}
     - name: Install Node
       uses: actions/setup-node@v6
       with:
