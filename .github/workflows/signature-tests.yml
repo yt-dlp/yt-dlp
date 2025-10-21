@@ -39,11 +39,11 @@ jobs:
     - name: Install Bun
       uses: oven-sh/setup-bun@v2
       with:
-        bun-version: 1.0.12
+        bun-version: ${{ matrix.os !== "windows-latest" && "1.0.31" || "1.1.0" }}
     - name: Install Node
       uses: actions/setup-node@v6
       with:
-        node-version: '20.0'
+        node-version: '22.0'
     - name: Install test requirements
       run: python3 ./devscripts/install_deps.py --include test
     - name: Run tests
