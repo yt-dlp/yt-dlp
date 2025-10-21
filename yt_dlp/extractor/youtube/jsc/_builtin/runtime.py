@@ -11,7 +11,7 @@ import sys
 
 import yt_dlp
 from yt_dlp.dependencies import yt_dlp_ejs
-from yt_dlp.extractor.youtube.jsc._builtin.scripts import load_script
+from yt_dlp.extractor.youtube.jsc._builtin import vendor
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
@@ -75,18 +75,18 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
 
     _REPOSITORY = 'yt-dlp/ejs'
     _SUPPORTED_TYPES = [JsChallengeType.N, JsChallengeType.SIG]
-    _SCRIPT_VERSION = '0.0.1'
-    # TODO: insert correct hashes here
+    _SCRIPT_VERSION = vendor.VERSION
     # TODO: Integration tests for each kind of scripts source
     _ALLOWED_HASHES = {
         ScriptType.LIB: {
-            ScriptVariant.MINIFIED: 'e11bfeadf92647b462d38a815f1a908ae4d22a0c28ee4a8f761c36ec05bc901780db88b1bd752c07e907d56792478c3e674b4756043c66b3e44f4b9b5956b1ba',
-            ScriptVariant.DENO_NPM: '757159fe195bec5228a801e399084e65163b1be0f8c588986bdf775f42295c2c18fdfa0ef70b7e32431b5c6b51342972945daf4ecd92494856fc95d8d62ccd88',
-            ScriptVariant.BUN_NPM: '88433fa4318fb092f976b0e904208f810bcdc19adcb3a02deb074886a4fec353aedbd6d0acf7df17135fae51895448878b7d96ce5440b4907cf25adde93c7619',
+            ScriptVariant.UNMINIFIED: vendor.HASHES['yt.solver.lib.js'],
+            ScriptVariant.MINIFIED: vendor.HASHES['yt.solver.lib.min.js'],
+            ScriptVariant.DENO_NPM: vendor.HASHES['yt.solver.deno.lib.js'],
+            ScriptVariant.BUN_NPM: vendor.HASHES['yt.solver.bun.lib.js'],
         },
         ScriptType.CORE: {
-            ScriptVariant.MINIFIED: 'ad26b12c8b45577f6048c34b5cbbd43423d0c37bfb453a882053193b78737d781cd80b6eeb1f621394f691c59d878995e0128844c00ee88bf6278c1040baad55',
-            ScriptVariant.UNMINIFIED: 'c8d38d6ea4a4552e4815bb46835d7228f48bfc62a778ced96fa981fa98109f9d098835c1d3716c05afe681bdcec372bba33a61ef69fd7173c04dde740c1c7a23',
+            ScriptVariant.MINIFIED: vendor.HASHES['yt.solver.core.min.js'],
+            ScriptVariant.UNMINIFIED: vendor.HASHES['yt.solver.core.js'],
         },
     }
 
@@ -264,7 +264,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
     def _builtin_source(self, script_type: ScriptType, /) -> Script | None:
         error_hook = lambda _: self.logger.warning(
             f'Failed to read builtin challenge solver {script_type.value} script{provider_bug_report_message(self)}')
-        code = load_script(
+        code = vendor.load_script(
             self._SCRIPT_FILENAMES[script_type], error_hook=error_hook)
         if code:
             return Script(script_type, ScriptVariant.UNMINIFIED, ScriptSource.BUILTIN, self._SCRIPT_VERSION, code)
