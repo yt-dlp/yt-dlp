@@ -2049,9 +2049,6 @@ class YoutubeDL:
 
         failures = 0
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
-
-        self.to_screen(f'[download] Processing playlist with {n_entries} items')
-
         for i, (playlist_index, entry) in enumerate(entries):
             if lazy:
                 resolved_entries.append((playlist_index, entry))
@@ -2068,10 +2065,6 @@ class YoutubeDL:
                 'playlist_index': playlist_index,
                 'playlist_autonumber': i + 1,
             })
-
-            progress = f'[{i + 1}/{n_entries}]'
-            sys.stdout.write(f'\r[download] {progress} Downloading item {i + 1} of {n_entries}\n')
-            sys.stdout.flush()
 
             if self._match_entry(entry_copy, incomplete=True) is not None:
                 # For compatabilty with youtube-dl. See https://github.com/yt-dlp/yt-dlp/issues/4369
