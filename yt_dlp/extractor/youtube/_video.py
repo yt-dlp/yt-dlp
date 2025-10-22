@@ -257,10 +257,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('tv', 'web_safari', 'web')
+    _DEFAULT_CLIENTS = ('android_sdkless', 'tv', 'web_safari', 'web')
     _DEFAULT_AUTHED_CLIENTS = ('tv', 'web_safari', 'web')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web_creator', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web_creator', 'web_safari', 'web')
 
     _GEO_BYPASS = False
 
@@ -1815,7 +1815,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'params': {'skip_download': True},
     }]
 
-    _DEFAULT_PLAYER_JS_VERSION = '20348@0004de42'  # TODO: revert to 'actual' when n/sig is fixed
+    _DEFAULT_PLAYER_JS_VERSION = 'actual'
     _DEFAULT_PLAYER_JS_VARIANT = 'main'
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
