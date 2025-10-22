@@ -63,7 +63,7 @@ class BunJsRuntime(JsRuntime):
 
 
 class NodeJsRuntime(JsRuntime):
-    MIN_SUPPORTED_VERSION = (22, 0, 0)
+    MIN_SUPPORTED_VERSION = (20, 0, 0)
 
     def _info(self):
         path = self._path or 'node'
