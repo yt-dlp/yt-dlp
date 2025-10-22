@@ -151,7 +151,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'Referer': self._LOGIN_URL,
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status in (405, 418):
+            if isinstance(e.cause, HTTPError) and e.cause.status in (404, 405, 418):
                 raise ExtractorError(
                     'Unable to log in: bad username or password',
                     expected=True)

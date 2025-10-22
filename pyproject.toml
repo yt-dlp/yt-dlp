@@ -1,11 +1,14 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27.0"]
 build-backend = "hatchling.build"
 
 [project]
 name = "yt-dlp"
-maintainers = [
+authors = [
     {name = "pukkandan", email = "pukkandan.ytdlp@gmail.com"},
+]
+maintainers = [
+    {email = "maintainers@yt-dlp.org"},
     {name = "Grub4K", email = "contact@grub4k.xyz"},
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
@@ -13,7 +16,7 @@ maintainers = [
 ]
 description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = [
     "cli",
     "downloader",
@@ -22,22 +25,22 @@ keywords = [
     "sponsorblock",
     "yt-dlp",
 ]
-license = {file = "LICENSE"}
+license = "Unlicense"
+license-files = ["LICENSE"]
 classifiers = [
     "Topic :: Multimedia :: Video",
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
-    "License :: OSI Approved :: The Unlicense (Unlicense)",
     "Operating System :: OS Independent",
 ]
 dynamic = ["version"]
@@ -63,7 +66,7 @@ secretstorage = [
 ]
 build = [
     "build",
-    "hatchling",
+    "hatchling>=1.27.0",
     "pip",
     "setuptools>=71.0.2,<81",  # See https://github.com/pyinstaller/pyinstaller/issues/9149
     "wheel",
@@ -75,7 +78,7 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.12.0",
+    "ruff~=0.14.0",
 ]
 test = [
     "pytest~=8.1",
@@ -89,7 +92,7 @@ pyinstaller = [
 Documentation = "https://github.com/yt-dlp/yt-dlp#readme"
 Repository = "https://github.com/yt-dlp/yt-dlp"
 Tracker = "https://github.com/yt-dlp/yt-dlp/issues"
-Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators"
+Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Maintainers.md#maintainers"
 
 [project.scripts]
 yt-dlp = "yt_dlp:main"
@@ -107,7 +110,6 @@ include = [
     "/LICENSE",  # included as license
     "/pyproject.toml",  # included by default
     "/README.md",  # included as readme
-    "/setup.cfg",
     "/supportedsites.md",
 ]
 artifacts = [
@@ -168,12 +170,12 @@ run-cov = "echo Code coverage not implemented && exit 1"
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [
-    "3.9",
     "3.10",
     "3.11",
     "3.12",
     "3.13",
-    "pypy3.10",
+    "3.14",
+    "pypy3.11",
 ]
 
 [tool.ruff]
