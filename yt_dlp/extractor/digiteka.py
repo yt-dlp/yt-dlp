@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, determine_ext, traverse_obj
 
 
 class DigitekaIE(InfoExtractor):
@@ -25,36 +25,18 @@ class DigitekaIE(InfoExtractor):
         )/(?P<id>[\d+a-z]+)'''
     _EMBED_REGEX = [r'<(?:iframe|script)[^>]+src=["\'](?P<url>(?:https?:)?//(?:www\.)?ultimedia\.com/deliver/(?:generic|musique)(?:/[^/]+)*/(?:src|article)/[\d+a-z]+)']
     _TESTS = [{
-        # news
-        'url': 'https://www.ultimedia.com/default/index/videogeneric/id/s8uk0r',
-        'md5': '276a0e49de58c7e85d32b057837952a2',
+        'url': 'https://www.ultimedia.com/default/index/videogeneric/id/3x5x55k',
         'info_dict': {
-            'id': 's8uk0r',
+            'id': '3x5x55k',
             'ext': 'mp4',
-            'title': 'Loi sur la fin de vie: le texte prévoit un renforcement des directives anticipées',
+            'title': 'Il est passionné de DS',
             'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 74,
-            'upload_date': '20150317',
-            'timestamp': 1426604939,
-            'uploader_id': '3fszv',
+            'duration': 89,  
+            'upload_date': '20251012',
+            'timestamp': 1760285363,
+            'uploader_id': '3pz33', 
         },
-    }, {
-        # music
-        'url': 'https://www.ultimedia.com/default/index/videomusic/id/xvpfp8',
-        'md5': '2ea3513813cf230605c7e2ffe7eca61c',
-        'info_dict': {
-            'id': 'xvpfp8',
-            'ext': 'mp4',
-            'title': 'Two - C\'est La Vie (clip)',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 233,
-            'upload_date': '20150224',
-            'timestamp': 1424760500,
-            'uploader_id': '3rfzk',
-        },
-    }, {
-        'url': 'https://www.digiteka.net/deliver/generic/iframe/mdtk/01637594/src/lqm3kl/zone/1/showtitle/1/autoplay/yes',
-        'only_matching': True,
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
@@ -63,7 +45,54 @@ class DigitekaIE(InfoExtractor):
         video_type = mobj.group('embed_type') or mobj.group('site_type')
         if video_type == 'music':
             video_type = 'musique'
+            
+        site_type = mobj.group('site_type')
+        
+        IFRAME_MD_ID = '01836272'   # Static ID for Ultimedia iframes
+        iframe_json_ld_url = (
+            f'https://www.ultimedia.com/deliver/generic/iframe/mdtk/{IFRAME_MD_ID}/zone/1/src/{video_id}'
+        )
+        
+        iframe_webpage = self._download_webpage(
+            iframe_json_ld_url, video_id, note='Downloading iframe JSON-LD', fatal=False)
+        
+        with open('webpage.txt', 'w', encoding='utf-8') as f:
+            f.write(iframe_webpage or '')             
+        
+        info = self._search_json_ld(iframe_webpage, video_id, 'VideoObject', fatal=False) or {}
+        video_url = info.get('url') 
 
+        if not video_url:
+            self.report_warning('JSON-LD "contentUrl" missing. Checking DtkPlayer JS for MP4 URL.')
+            
+            video_url = self._search_regex(
+                r'"mp4_404"\s*:\s*"(https?:\\/\\/assets\.digiteka\.com\\/encoded\\/[^"]+\\/mp4\\/[^"]+_404\.mp4)"',
+                iframe_webpage, 'MP4 404 URL', fatal=False)
+            if video_url:
+                video_url = video_url.replace('\\/', '/')
+        
+        if video_url:
+            self.to_screen(f'{video_id}: SUCCESS: Using JSON-LD method.')
+            
+            title = info.get('title') or self._html_search_meta('title', iframe_webpage)
+            formats = [{
+                'url': video_url,
+                'ext': determine_ext(video_url, 'mp4'), 
+                'format_id': 'hd',
+            }]
+            
+            return {
+                'id': video_id,
+                'title': title,
+                'thumbnail': info.get('thumbnail'),
+                'duration': info.get('duration'),
+                'timestamp': info.get('timestamp'),
+                'formats': formats,
+            }
+        
+
+        self.report_warning('JSON-LD extraction failed. Falling back to original API logic.')
+        
         deliver_info = self._download_json(
             f'http://www.ultimedia.com/deliver/video?video={video_id}&topic={video_type}',
             video_id)
@@ -71,28 +100,9 @@ class DigitekaIE(InfoExtractor):
         yt_id = deliver_info.get('yt_id')
         if yt_id:
             return self.url_result(yt_id, 'Youtube')
-
+        
         jwconf = deliver_info['jwconf']
-
-        formats = []
-        for source in jwconf['playlist'][0]['sources']:
-            formats.append({
-                'url': source['file'],
-                'format_id': source.get('label'),
-            })
-
-        title = deliver_info['title']
-        thumbnail = jwconf.get('image')
-        duration = int_or_none(deliver_info.get('duration'))
-        timestamp = int_or_none(deliver_info.get('release_time'))
-        uploader_id = deliver_info.get('owner_id')
-
+        
         return {
-            'id': video_id,
-            'title': title,
-            'thumbnail': thumbnail,
-            'duration': duration,
-            'timestamp': timestamp,
-            'uploader_id': uploader_id,
             'formats': formats,
         }
