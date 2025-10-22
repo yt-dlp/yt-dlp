@@ -1819,7 +1819,7 @@ The following extractors use this feature:
 * `webpage_skip`: Skip extraction of embedded webpage data. One or both of `player_response`, `initial_data`. These options are for testing purposes and don't skip any network requests
 * `player_params`: YouTube player parameters to use for player requests. Will overwrite any default ones set by yt-dlp.
 * `player_js_variant`: The player javascript variant to use for n/sig deciphering. The known variants are: `main`, `tcc`, `tce`, `es5`, `es6`, `tv`, `tv_es6`, `phone`, `tablet`. The default is `main`, and the others are for debugging purposes. You can use `actual` to go with what is prescribed by the site
-* `player_js_version`: The player javascript version to use for n/sig deciphering, in the format of `signature_timestamp@hash`. Currently, the default is to force `20348@0004de42`. You can use `actual` to go with what is prescribed by the site
+* `player_js_version`: The player javascript version to use for n/sig deciphering, in the format of `signature_timestamp@hash` (eg `20348@0004de42`). You can use `actual` to go with what is prescribed by the site (default)
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
