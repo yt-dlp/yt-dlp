@@ -85,7 +85,7 @@ The only reliable way to check if a site is supported is to try it.
  - **aol.com**: Yahoo screen and movies (**Currently broken**)
  - **APA**
  - **Aparat**
- - **AppleConnect**
+ - **apple:​music:connect**: Apple Music Connect
  - **AppleDaily**: 臺灣蘋果日報
  - **ApplePodcasts**
  - **appletrailers**
@@ -1541,7 +1541,7 @@ The only reliable way to check if a site is supported is to try it.
  - **tvigle**: Интернет-телевидение Tvigle.ru
  - **TVIPlayer**
  - **TVN24**: (**Currently broken**)
- - **TVNoe**: (**Currently broken**)
+ - **tvnoe**: Televize Noe
  - **tvopengr:embed**: tvopen.gr embedded videos
  - **tvopengr:watch**: tvopen.gr (and ethnos.gr) videos
  - **tvp**: Telewizja Polska
