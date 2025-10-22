@@ -303,5 +303,10 @@
         "action": "add",
         "when": "4e6a693057cfaf1ce1f07b019ed3bfce2bf936f6",
         "short": "[priority] **The minimum *required* Python version has been raised to 3.10**\nPython 3.9 has reached its end-of-life as of October 2025, and yt-dlp has now removed support for it. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13858)"
+    },
+    {
+        "action": "add",
+        "when": "2c9091e355a7ba5d1edb69796ecdca48199b77fb",
+        "short": "[priority] **A stopgap release with a *TEMPORARY partial* fix for YouTube support**\nSome formats may still be unavailable, especially if cookies are passed to yt-dlp. The ***NEXT*** release, expected very soon, **will require an external JS runtime (e.g. Deno)** in order for YouTube downloads to work properly. [Read more](https://github.com/yt-dlp/yt-dlp/issues/14404)"
     }
 ]
