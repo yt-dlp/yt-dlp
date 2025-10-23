@@ -16,7 +16,10 @@ HASHES = {{
 {hash_mapping}
 }}
 '''
-PACKAGE_PATH = pathlib.Path(__file__).parent.parent / 'yt_dlp/extractor/youtube/jsc/_builtin/vendor'
+PREFIX = '    "yt-dlp-ejs=='
+BASE_PATH = pathlib.Path(__file__).parent.parent
+PYPROJECT_PATH = BASE_PATH / 'pyproject.toml'
+PACKAGE_PATH = BASE_PATH / 'yt_dlp/extractor/youtube/jsc/_builtin/vendor'
 RELEASE_URL = 'https://api.github.com/repos/yt-dlp/ejs/releases/latest'
 ASSETS = {
     'yt.solver.lib.js': False,
@@ -33,10 +36,26 @@ def request(url: str):
 
 
 def main():
+    current_version = None
+    with PYPROJECT_PATH.open() as file:
+        for line in file:
+            if not line.startswith(PREFIX):
+                continue
+            current_version, _, _ = line.removeprefix(PREFIX).partition('"')
+
+    if not current_version:
+        print('yt-dlp-ejs dependency line could not be found')
+        return
+
     with request(RELEASE_URL) as resp:
         info = json.load(resp)
 
     version = info['tag_name']
+    if version == current_version:
+        print(f'yt-dlp-ejs is up to date! ({version})')
+        return
+
+    print(f'Updating yt-dlp-ejs from {current_version} to {version}')
     hashes = []
     for asset in info['assets']:
         name = asset['name']
@@ -62,6 +81,10 @@ def main():
         version=version,
         hash_mapping='\n'.join(hashes),
     ))
+
+    content = PYPROJECT_PATH.read_text()
+    updated = content.replace(PREFIX + current_version, PREFIX + version)
+    PYPROJECT_PATH.write_text(updated)
 
 
 if __name__ == '__main__':
