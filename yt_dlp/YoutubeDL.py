@@ -1849,7 +1849,8 @@ class YoutubeDL:
                 self.add_extra_info(info_copy, extra_info)
                 info_copy, _ = self.pre_process(info_copy)
                 self._fill_common_fields(info_copy, False)
-                self.__forced_printings(info_copy)
+                if self._match_entry(info_copy, incomplete=True) is None:
+                    self.__forced_printings(info_copy)
                 self._raise_pending_errors(info_copy)
                 if self.params.get('force_write_download_archive', False):
                     self.record_download_archive(info_copy)
