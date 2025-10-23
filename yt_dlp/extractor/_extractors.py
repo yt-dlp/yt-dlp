@@ -2515,6 +2515,7 @@ from .yappy import (
     YappyProfileIE,
 )
 from .yle_areena import YleAreenaIE
+from .ynet import YnetIE
 from .youjizz import YouJizzIE
 from .youku import (
     YoukuIE,
