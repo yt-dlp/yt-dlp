@@ -21,6 +21,12 @@ var jsc = (function (meriyah, astring) {
       if ('or' in structure) {
         return structure.or.some((node) => matchesStructure(obj, node));
       }
+      if ('anykey' in structure && Array.isArray(structure.anykey)) {
+        const haystack = Array.isArray(obj) ? obj : Object.values(obj);
+        return structure.anykey.every((value) =>
+          haystack.some((el) => matchesStructure(el, value)),
+        );
+      }
       for (const [key, value] of Object.entries(structure)) {
         if (!matchesStructure(obj[key], value)) {
           return false;
@@ -117,28 +123,68 @@ var jsc = (function (meriyah, astring) {
         },
       },
       { type: 'FunctionDeclaration', params: [{}, {}, {}] },
+      {
+        type: 'VariableDeclaration',
+        declarations: {
+          anykey: [
+            {
+              type: 'VariableDeclarator',
+              init: { type: 'FunctionExpression', params: [{}, {}, {}] },
+            },
+          ],
+        },
+      },
     ],
   };
   function extract$1(node) {
     if (!matchesStructure(node, identifier$1)) {
       return null;
     }
-    const block =
+    let block;
+    if (
       node.type === 'ExpressionStatement' &&
       node.expression.type === 'AssignmentExpression' &&
       node.expression.right.type === 'FunctionExpression'
-        ? node.expression.right.body
-        : node.type === 'FunctionDeclaration'
-          ? node.body
-          : null;
+    ) {
+      block = node.expression.right.body;
+    } else if (node.type === 'VariableDeclaration') {
+      for (const decl of node.declarations) {
+        if (
+          decl.type === 'VariableDeclarator' &&
+          _optionalChain$2([
+            decl,
+            'access',
+            (_) => _.init,
+            'optionalAccess',
+            (_2) => _2.type,
+          ]) === 'FunctionExpression' &&
+          _optionalChain$2([
+            decl,
+            'access',
+            (_3) => _3.init,
+            'optionalAccess',
+            (_4) => _4.params,
+            'access',
+            (_5) => _5.length,
+          ]) === 3
+        ) {
+          block = decl.init.body;
+          break;
+        }
+      }
+    } else if (node.type === 'FunctionDeclaration') {
+      block = node.body;
+    } else {
+      return null;
+    }
     const relevantExpression = _optionalChain$2([
       block,
       'optionalAccess',
-      (_) => _.body,
+      (_6) => _6.body,
       'access',
-      (_2) => _2.at,
+      (_7) => _7.at,
       'call',
-      (_3) => _3(-2),
+      (_8) => _8(-2),
     ]);
     if (!matchesStructure(relevantExpression, logicalExpression)) {
       return null;
@@ -147,7 +193,7 @@ var jsc = (function (meriyah, astring) {
       _optionalChain$2([
         relevantExpression,
         'optionalAccess',
-        (_4) => _4.type,
+        (_9) => _9.type,
       ]) !== 'ExpressionStatement' ||
       relevantExpression.expression.type !== 'LogicalExpression' ||
       relevantExpression.expression.right.type !== 'SequenceExpression' ||
@@ -314,7 +360,7 @@ var jsc = (function (meriyah, astring) {
     };
   }
   const setupNodes = meriyah.parse(
-    `\nif (typeof globalThis.XMLHttpRequest === "undefined") {\n    globalThis.XMLHttpRequest = { prototype: {} };\n}\nif (typeof globalThis.window === "undefined") {\n    globalThis.window = Object.create(null);\n}\nif (typeof URL === "undefined") {\n    globalThis.window.location = {\n        hash: "",\n        host: "www.youtube.com",\n        hostname: "www.youtube.com",\n        href: "https://www.youtube.com/watch?v=yt-dlp-wins",\n        origin: "https://www.youtube.com",\n        password: "",\n        pathname: "/watch",\n        port: "",\n        protocol: "https:",\n        search: "?v=yt-dlp-wins",\n        username: "",\n    };\n} else {\n    globalThis.window.location = new URL("https://www.youtube.com/watch?v=yt-dlp-wins");\n}\nif (typeof globalThis.document === "undefined") {\n    globalThis.document = Object.create(null);\n}\nif (typeof globalThis.navigator === "undefined") {\n    globalThis.navigator = Object.create(null);\n}\nif (typeof globalThis.self === "undefined") {\n    globalThis.self = globalThis;\n}\n`,
+    `\nif (typeof globalThis.XMLHttpRequest === "undefined") {\n    globalThis.XMLHttpRequest = { prototype: {} };\n}\nconst window = Object.create(null);\nif (typeof URL === "undefined") {\n    window.location = {\n        hash: "",\n        host: "www.youtube.com",\n        hostname: "www.youtube.com",\n        href: "https://www.youtube.com/watch?v=yt-dlp-wins",\n        origin: "https://www.youtube.com",\n        password: "",\n        pathname: "/watch",\n        port: "",\n        protocol: "https:",\n        search: "?v=yt-dlp-wins",\n        username: "",\n    };\n} else {\n    window.location = new URL("https://www.youtube.com/watch?v=yt-dlp-wins");\n}\nif (typeof globalThis.document === "undefined") {\n    globalThis.document = Object.create(null);\n}\nif (typeof globalThis.navigator === "undefined") {\n    globalThis.navigator = Object.create(null);\n}\nif (typeof globalThis.self === "undefined") {\n    globalThis.self = globalThis;\n}\n`,
   ).body;
   function _optionalChain(ops) {
     let lastAccessLHS = undefined;
