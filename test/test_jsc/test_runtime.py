@@ -3,10 +3,9 @@ from __future__ import annotations
 import json
 
 import pytest
-try:
-    import yt_dlp_ejs
-except ImportError:
-    yt_dlp_ejs = None
+import importlib.util
+
+_has_ejs = bool(importlib.util.find_spec('yt_dlp_ejs'))
 
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeRequest,
@@ -23,7 +22,7 @@ from yt_dlp.extractor.youtube.jsc._builtin.deno import DenoJCP
 from yt_dlp.extractor.youtube.jsc._builtin.node import NodeJCP
 
 
-pytestmark = pytest.mark.skipif(not yt_dlp_ejs, reason='yt-dlp-ejs not available')
+pytestmark = pytest.mark.skipif(not _has_ejs, reason='yt-dlp-ejs not available')
 
 TESTS = [
     JsChallengeRequest(JsChallengeType.N, NChallengeInput('https://www.youtube.com/s/player/3d3ba064/player_ias_tce.vflset/en_US/base.js', [

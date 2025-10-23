@@ -1,6 +1,5 @@
 import re
 import pathlib
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -39,6 +38,23 @@ def ie() -> InfoExtractor:
     return ie
 
 
+class MockLogger:
+    def trace(self, message: str):
+        print(f'trace: {message}')
+
+    def debug(self, message: str, *, once=False):
+        print(f'debug: {message}')
+
+    def info(self, message: str):
+        print(f'info: {message}')
+
+    def warning(self, message: str, *, once=False):
+        print(f'warning: {message}')
+
+    def error(self, message: str):
+        print(f'error: {message}')
+
+
 @pytest.fixture
 def logger():
-    return MagicMock()
+    return MockLogger()

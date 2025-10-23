@@ -10,7 +10,7 @@ import json
 import sys
 
 import yt_dlp
-from yt_dlp.dependencies import yt_dlp_ejs
+from yt_dlp.dependencies import yt_dlp_ejs as _has_ejs
 from yt_dlp.extractor.youtube.jsc._builtin import vendor
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
@@ -24,6 +24,9 @@ from yt_dlp.extractor.youtube.jsc.provider import (
 )
 from yt_dlp.extractor.youtube.pot.provider import provider_bug_report_message
 from yt_dlp.utils._jsruntime import JsRuntimeInfo
+
+if _has_ejs:
+    import yt_dlp_ejs.yt.solver
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -237,7 +240,7 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
             (ScriptSource.WEB, self._web_release_source)]
 
     def _pypackage_source(self, script_type: ScriptType, /) -> Script | None:
-        if not yt_dlp_ejs:
+        if not _has_ejs:
             return None
         try:
             code = yt_dlp_ejs.yt.solver.core() if script_type is ScriptType.CORE else yt_dlp_ejs.yt.solver.lib()
