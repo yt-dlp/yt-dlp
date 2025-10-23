@@ -1,5 +1,4 @@
 import json
-import socket
 
 from .common import InfoExtractor
 from ..utils import (
@@ -56,7 +55,7 @@ class DTubeIE(InfoExtractor):
             try:
                 self.to_screen(f'{video_id}: Checking {format_id} video format URL')
                 self._downloader._opener.open(video_url, timeout=5).close()
-            except socket.timeout:
+            except TimeoutError:
                 self.to_screen(
                     f'{video_id}: {format_id} URL is invalid, skipping')
                 continue

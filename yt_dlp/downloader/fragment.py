@@ -9,10 +9,9 @@ import time
 from .common import FileDownloader
 from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import compat_os_name
 from ..networking import Request
 from ..networking.exceptions import HTTPError, IncompleteRead
-from ..utils import DownloadError, RetryManager, encodeFilename, traverse_obj
+from ..utils import DownloadError, RetryManager, traverse_obj
 from ..utils.networking import HTTPHeaderDict
 from ..utils.progress import ProgressCalculator
 
@@ -152,7 +151,7 @@ class FragmentFD(FileDownloader):
             if self.__do_ytdl_file(ctx):
                 self._write_ytdl_file(ctx)
             if not self.params.get('keep_fragments', False):
-                self.try_remove(encodeFilename(ctx['fragment_filename_sanitized']))
+                self.try_remove(ctx['fragment_filename_sanitized'])
             del ctx['fragment_filename_sanitized']
 
     def _prepare_frag_download(self, ctx):
@@ -188,7 +187,7 @@ class FragmentFD(FileDownloader):
         })
 
         if self.__do_ytdl_file(ctx):
-            ytdl_file_exists = os.path.isfile(encodeFilename(self.ytdl_filename(ctx['filename'])))
+            ytdl_file_exists = os.path.isfile(self.ytdl_filename(ctx['filename']))
             continuedl = self.params.get('continuedl', True)
             if continuedl and ytdl_file_exists:
                 self._read_ytdl_file(ctx)
@@ -303,7 +302,7 @@ class FragmentFD(FileDownloader):
         elif to_file:
             self.try_rename(ctx['tmpfilename'], ctx['filename'])
             filetime = ctx.get('fragment_filetime')
-            if self.params.get('updatetime', True) and filetime:
+            if self.params.get('updatetime') and filetime:
                 with contextlib.suppress(Exception):
                     os.utime(ctx['filename'], (time.time(), filetime))
 
@@ -390,7 +389,7 @@ class FragmentFD(FileDownloader):
             def __exit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-        if compat_os_name == 'nt':
+        if os.name == 'nt':
             def future_result(future):
                 while True:
                     try:
