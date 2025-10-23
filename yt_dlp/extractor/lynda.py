@@ -1,4 +1,3 @@
-import itertools
 import re
 import urllib.parse
 
@@ -217,7 +216,7 @@ class LyndaIE(LyndaBaseIE):
     def _fix_subtitles(self, subs):
         srt = ''
         seq_counter = 0
-        for seq_current, seq_next in itertools.pairwise(subs):
+        for seq_current, seq_next in zip(subs, subs[1:]):
             m_current = re.match(self._TIMECODE_REGEX, seq_current['Timecode'])
             if m_current is None:
                 continue

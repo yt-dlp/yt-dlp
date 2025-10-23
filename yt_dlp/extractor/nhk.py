@@ -503,7 +503,7 @@ class NhkForSchoolBangumiIE(InfoExtractor):
                 'start_time': s,
                 'end_time': e,
                 'title': t,
-            } for s, e, t in zip(start_time, end_time, chapter_titles, strict=True)]
+            } for s, e, t in zip(start_time, end_time, chapter_titles)]
 
         return {
             'id': video_id,
