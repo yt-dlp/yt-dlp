@@ -337,6 +337,7 @@ from .cbc import (
     CBCGemIE,
     CBCGemLiveIE,
     CBCGemPlaylistIE,
+    CBCListenIE,
     CBCPlayerIE,
     CBCPlayerPlaylistIE,
 )
@@ -823,6 +824,13 @@ from .ichinanalive import (
     IchinanaLiveIE,
     IchinanaLiveVODIE,
 )
+from .idagio import (
+    IdagioAlbumIE,
+    IdagioPersonalPlaylistIE,
+    IdagioPlaylistIE,
+    IdagioRecordingIE,
+    IdagioTrackIE,
+)
 from .idolplus import IdolPlusIE
 from .ign import (
     IGNIE,
@@ -1136,7 +1144,6 @@ from .mit import (
     OCWMITIE,
     TechTVMITIE,
 )
-from .mitele import MiTeleIE
 from .mixch import (
     MixchArchiveIE,
     MixchIE,

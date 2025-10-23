@@ -75,7 +75,7 @@ jobs:
       head_sha: ${{ steps.get_target.outputs.head_sha }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -170,7 +170,7 @@ jobs:
       id-token: write  # mandatory for trusted publishing
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v6
@@ -233,10 +233,10 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       HEAD_SHA: ${{ needs.prepare.outputs.head_sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: artifact
           pattern: build-*
@@ -259,7 +259,7 @@ jobs:
             "[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&labelColor=555555&label=&logo=discord&style=for-the-badge)]" \
               "(https://discord.gg/H5MNcFW63r \"Discord\") " \
             "[![Donate](https://img.shields.io/badge/_-Donate-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)]" \
-              "(https://github.com/${BASE_REPO}/blob/master/Collaborators.md#collaborators \"Donate\") " \
+              "(https://github.com/${BASE_REPO}/blob/master/Maintainers.md#maintainers \"Donate\") " \
             "[![Documentation](https://img.shields.io/badge/-Docs-brightgreen.svg?style=for-the-badge&logo=GitBook&labelColor=555555)]" \
               "(https://github.com/${REPOSITORY}${DOCS_PATH}#readme \"Documentation\") " > ./RELEASE_NOTES
           if [[ "${TARGET_REPO}" == "${BASE_REPO}" ]]; then
@@ -272,7 +272,7 @@ jobs:
           printf '\n\n%s\n\n%s%s\n\n---\n' \
             "#### A description of the various files is in the [README](https://github.com/${REPOSITORY}#release-files)" \
             "The PyInstaller-bundled executables are subject to the licenses described in " \
-            "[THIRD_PARTY_LICENSES.txt](https://github.com/${BASE_REPO}/blob/master/THIRD_PARTY_LICENSES.txt)" >> ./RELEASE_NOTES
+            "[THIRD_PARTY_LICENSES.txt](https://github.com/${BASE_REPO}/blob/${HEAD_SHA}/THIRD_PARTY_LICENSES.txt)" >> ./RELEASE_NOTES
           python ./devscripts/make_changelog.py -vv --collapsible >> ./RELEASE_NOTES
           printf '%s\n\n' '**This is a pre-release build**' >> ./PRERELEASE_NOTES
           cat ./RELEASE_NOTES >> ./PRERELEASE_NOTES

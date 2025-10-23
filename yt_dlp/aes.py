@@ -447,7 +447,7 @@ def key_schedule_core(data, rcon_iteration):
 
 
 def xor(data1, data2):
-    return [x ^ y for x, y in zip(data1, data2)]
+    return [x ^ y for x, y in zip(data1, data2, strict=False)]
 
 
 def iter_mix_columns(data, matrix):

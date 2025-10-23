@@ -341,7 +341,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'contentImage', *thumb_keys, 'thumbnailViewModel', 'image'), final_key='sources'),
             duration=traverse_obj(view_model, (
                 'contentImage', 'thumbnailViewModel', 'overlays', ..., 'thumbnailOverlayBadgeViewModel',
-                'thumbnailBadges', ..., 'thumbnailBadgeViewModel', 'text', {parse_duration}, any)))
+                'thumbnailBadges', ..., 'thumbnailBadgeViewModel', 'text', {parse_duration}, any)),
+            timestamp=(traverse_obj(view_model, (
+                'metadata', 'lockupMetadataViewModel', 'metadata', 'contentMetadataViewModel', 'metadataRows',
+                ..., 'metadataParts', ..., 'text', 'content', {lambda t: self._parse_time_text(t, report_failure=False)}, any))
+                if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE) else None))
 
     def _rich_entries(self, rich_grid_renderer):
         if lockup_view_model := traverse_obj(rich_grid_renderer, ('content', 'lockupViewModel', {dict})):
