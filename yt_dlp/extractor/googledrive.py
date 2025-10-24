@@ -99,8 +99,11 @@ class GoogleDriveIE(InfoExtractor):
                 'fmt': fmt,
             })
 
-    def _get_subtitles(self, video_id, timed_text_base_url):
+    def _get_subtitles(self, video_id, video_info):
         subtitles = {}
+        timed_text_base_url = traverse_obj(video_info, ('timedTextDetails', 'timedTextBaseUrl', {url_or_none}))
+        if not timed_text_base_url:
+            return subtitles
         subtitle_data = self._download_xml(
             timed_text_base_url, video_id, 'Downloading subtitles XML', fatal=False, query={
                 'hl': 'en-US',
@@ -150,7 +153,6 @@ class GoogleDriveIE(InfoExtractor):
             })
 
         title = traverse_obj(video_info, ('mediaMetadata', 'title', {str}))
-        timed_text_base_url = traverse_obj(video_info, ('timedTextDetails', 'timedTextBaseUrl', {url_or_none}))
 
         source_url = update_url_query(
             'https://drive.usercontent.google.com/download', {
@@ -214,7 +216,7 @@ class GoogleDriveIE(InfoExtractor):
                 }),
             }),
             'formats': formats,
-            'subtitles': self.extract_subtitles(video_id, timed_text_base_url) if timed_text_base_url else {},
+            'subtitles': self.extract_subtitles(video_id, video_info),
         }
 
 
