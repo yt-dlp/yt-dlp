@@ -52,9 +52,16 @@ jobs:
       with:
         node-version: '20.0'  # minimum supported version
     - name: Install test requirements
-      run: python3 ./devscripts/install_deps.py --include test
+      run: |
+        python ./devscripts/install_deps.py \
+          --include test \
+          --exclude brotli \
+          --exclude brotlicffi \
+          --exclude mutagen \
+          --exclude pycryptodomex \
+          --exclude websockets
     - name: Run tests
       timeout-minutes: 15
       run: |
-        python3 -m yt_dlp -v || true  # Print debug head
-        python3 ./devscripts/run_tests.py test/test_jsc/
+        python -m yt_dlp -v || true  # Print debug head
+        python ./devscripts/run_tests.py test/test_jsc/
