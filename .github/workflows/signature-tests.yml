@@ -3,13 +3,19 @@ on:
   push:
     paths:
       - .github/workflows/signature-tests.yml
-      - test/test_jsc/
-      - yt_dlp/jsinterp.py
+      - test/test_jsc/*.py
+      - yt_dlp/extractor/youtube/jsc/**.js
+      - yt_dlp/extractor/youtube/jsc/**.py
+      - yt_dlp/extractor/youtube/pot/**.py
+      - yt_dlp/utils/_jsruntime.py
   pull_request:
     paths:
       - .github/workflows/signature-tests.yml
-      - test/test_jsc/
-      - yt_dlp/jsinterp.py
+      - test/test_jsc/*.py
+      - yt_dlp/extractor/youtube/jsc/**.js
+      - yt_dlp/extractor/youtube/jsc/**.py
+      - yt_dlp/extractor/youtube/pot/**.py
+      - yt_dlp/utils/_jsruntime.py
 permissions:
   contents: read
 
