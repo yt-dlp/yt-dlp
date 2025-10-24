@@ -41,15 +41,16 @@ jobs:
     - name: Install Deno
       uses: denoland/setup-deno@v2
       with:
-        deno-version: v2.0.0
+        deno-version: '2.0.0'  # minimum supported version
     - name: Install Bun
       uses: oven-sh/setup-bun@v2
       with:
-        bun-version: ${{ (matrix.os != 'windows-latest') && '1.0.31' || '1.1.0' }}
+        # minimum supported version is 1.0.31 but earliest available Windows version is 1.1.0
+        bun-version: ${{ (matrix.os == 'windows-latest' && '1.1.0') || '1.0.31' }}
     - name: Install Node
       uses: actions/setup-node@v6
       with:
-        node-version: '22.0'
+        node-version: '20.0'  # minimum supported version
     - name: Install test requirements
       run: python3 ./devscripts/install_deps.py --include test
     - name: Run tests
