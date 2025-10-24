@@ -251,12 +251,11 @@ class JsRuntimeChalBaseJCP(JsChallengeProvider):
         return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.PYPACKAGE, yt_dlp_ejs.version, code)
 
     def _binary_source(self, script_type: ScriptType, /) -> Script | None:
-        if (
-            getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
-            and importlib.resources.is_resource(yt_dlp, self._MIN_SCRIPT_FILENAMES[script_type])
-        ):
-            code = importlib.resources.read_text(yt_dlp, self._MIN_SCRIPT_FILENAMES[script_type])
-            return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.BINARY, self._SCRIPT_VERSION, code)
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            file = importlib.resources.files(yt_dlp) / self._MIN_SCRIPT_FILENAMES[script_type]
+            if file.is_file():
+                code = file.read_text(encoding='utf-8')
+                return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.BINARY, self._SCRIPT_VERSION, code)
         return None
 
     def _cached_source(self, script_type: ScriptType, /) -> Script | None:
