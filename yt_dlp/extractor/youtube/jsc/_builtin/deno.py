@@ -84,6 +84,7 @@ class DenoJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
         options = os.environ.copy()  # pass through existing deno env vars
         request_proxies = self.ie._downloader.proxies.copy()
         clean_proxies(request_proxies, HTTPHeaderDict())
+        # Apply 'all' proxy first, then allow per-scheme overrides
         if 'all' in request_proxies and request_proxies['all'] is not None:
             options['HTTP_PROXY'] = options['HTTPS_PROXY'] = request_proxies['all']
         for key, env in (('http', 'HTTP_PROXY'), ('https', 'HTTPS_PROXY'), ('no', 'NO_PROXY')):
