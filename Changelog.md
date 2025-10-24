@@ -4,6 +4,30 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2025.10.22
+
+#### Important changes
+- **A stopgap release with a *TEMPORARY partial* fix for YouTube support**
+Some formats may still be unavailable, especially if cookies are passed to yt-dlp. The ***NEXT*** release, expected very soon, **will require an external JS runtime (e.g. Deno)** in order for YouTube downloads to work properly. [Read more](https://github.com/yt-dlp/yt-dlp/issues/14404)
+- **The minimum *required* Python version has been raised to 3.10**
+Python 3.9 has reached its end-of-life as of October 2025, and yt-dlp has now removed support for it. [Read more](https://github.com/yt-dlp/yt-dlp/issues/13858)
+
+#### Core changes
+- [Remove Python 3.9 support](https://github.com/yt-dlp/yt-dlp/commit/4e6a693057cfaf1ce1f07b019ed3bfce2bf936f6) ([#13861](https://github.com/yt-dlp/yt-dlp/issues/13861)) by [bashonly](https://github.com/bashonly)
+
+#### Extractor changes
+- **appleconnect**: [Rework extractor](https://github.com/yt-dlp/yt-dlp/commit/78748b506f0dca8236ac0045ed7f72f7cf334b62) ([#13229](https://github.com/yt-dlp/yt-dlp/issues/13229)) by [doe1080](https://github.com/doe1080)
+- **idagio**: [Support URLs with country codes](https://github.com/yt-dlp/yt-dlp/commit/c9356f308dd3c5f9f494cb40ed14c5df017b4fe0) ([#14655](https://github.com/yt-dlp/yt-dlp/issues/14655)) by [robin-mu](https://github.com/robin-mu)
+- **tvnoe**: [Rework Extractor](https://github.com/yt-dlp/yt-dlp/commit/fe5ae54a7b08ebe679f03afdeafbe1cee5784d5b) ([#13369](https://github.com/yt-dlp/yt-dlp/issues/13369)) by [doe1080](https://github.com/doe1080)
+- **youtube**: [Use temporary player client workaround](https://github.com/yt-dlp/yt-dlp/commit/2c9091e355a7ba5d1edb69796ecdca48199b77fb) ([#14693](https://github.com/yt-dlp/yt-dlp/issues/14693)) by [gamer191](https://github.com/gamer191)
+
+#### Misc. changes
+- **cleanup**
+    - Miscellaneous
+        - [c7bda21](https://github.com/yt-dlp/yt-dlp/commit/c7bda2192aa24afce40fdbbbe056d269aa3b2872) by [bashonly](https://github.com/bashonly), [seproDev](https://github.com/seproDev)
+        - [de7b3c0](https://github.com/yt-dlp/yt-dlp/commit/de7b3c0705022cb777c5b4b7f0c69c59ad6ff538) by [bashonly](https://github.com/bashonly)
+- **docs**: [Update list of maintainers](https://github.com/yt-dlp/yt-dlp/commit/dfc0a84c192a7357dd1768cc345d590253a14fe5) ([#14148](https://github.com/yt-dlp/yt-dlp/issues/14148)) by [bashonly](https://github.com/bashonly), [coletdjnz](https://github.com/coletdjnz), [seproDev](https://github.com/seproDev)
+
 ### 2025.10.14
 
 #### Core changes
