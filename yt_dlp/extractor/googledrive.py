@@ -99,6 +99,26 @@ class GoogleDriveIE(InfoExtractor):
                 'fmt': fmt,
             })
 
+    def _get_subtitles(self, video_id, timed_text_base_url):
+        subtitles = {}
+        subtitle_data = self._download_xml(
+            timed_text_base_url, video_id, 'Downloading subtitles XML', fatal=False, query={
+                'hl': 'en-US',
+                'type': 'list',
+                'tlangs': 1,
+                'v': video_id,
+                'vssids': 1,
+            })
+        subtitle_formats = traverse_obj(subtitle_data, (lambda _, v: v.tag == 'format', {lambda x: x.get('fmt_code')}, {str}))
+        for track in traverse_obj(subtitle_data, (lambda _, v: v.tag == 'track' and v.get('lang_code'))):
+            language = track.get('lang_code')
+            subtitles.setdefault(language, []).extend([{
+                'url': self._construct_subtitle_url(timed_text_base_url, video_id, language, sub_fmt),
+                'name': track.get('lang_original'),
+                'ext': sub_fmt,
+            } for sub_fmt in subtitle_formats])
+        return subtitles
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_info = self._download_json(
@@ -128,26 +148,9 @@ class GoogleDriveIE(InfoExtractor):
                     'http_chunk_size': 10 << 20,
                 },
             })
-        subtitles = {}
-        timed_text_base_url = traverse_obj(video_info, ('timedTextDetails', 'timedTextBaseUrl', {url_or_none}))
-        if timed_text_base_url:
-            subtitle_data = self._download_xml(
-                timed_text_base_url, video_id, 'Downloading subtitles XML', fatal=False, query={
-                    'hl': 'en-US',
-                    'type': 'list',
-                    'tlangs': 1,
-                    'v': video_id,
-                    'vssids': 1,
-                })
-            subtitle_formats = traverse_obj(subtitle_data, (lambda _, v: v.tag == 'format', {lambda x: x.get('fmt_code')}, {str}))
-            for track in traverse_obj(subtitle_data, (lambda _, v: v.tag == 'track' and v.get('lang_code'))):
-                language = track.get('lang_code')
-                subtitles.setdefault(language, []).extend([{
-                    'url': self._construct_subtitle_url(timed_text_base_url, video_id, language, sub_fmt),
-                    'name': track.get('lang_original'),
-                    'ext': sub_fmt,
-                } for sub_fmt in subtitle_formats])
+
         title = traverse_obj(video_info, ('mediaMetadata', 'title', {str}))
+        timed_text_base_url = traverse_obj(video_info, ('timedTextDetails', 'timedTextBaseUrl', {url_or_none}))
 
         source_url = update_url_query(
             'https://drive.usercontent.google.com/download', {
@@ -206,7 +209,7 @@ class GoogleDriveIE(InfoExtractor):
                 }),
             }),
             'formats': formats,
-            'subtitles': subtitles,
+            'subtitles': self.extract_subtitles(video_id, timed_text_base_url) if timed_text_base_url else {},
         }
 
 
