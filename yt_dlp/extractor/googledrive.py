@@ -166,6 +166,11 @@ class GoogleDriveIE(InfoExtractor):
         urlh = request_source_file(source_url, 'source')
         if urlh:
             def add_source_format(urlh):
+                nonlocal title
+                if not title:
+                    title = self._search_regex(
+                        r'\bfilename="([^"]+)"', urlh.headers.get('Content-Disposition'),
+                        'title', default=None)
                 formats.append({
                     # Use redirect URLs as download URLs in order to calculate
                     # correct cookies in _calc_cookies.
