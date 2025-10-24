@@ -52,6 +52,7 @@ jobs:
       with:
         node-version: '20.0'  # minimum supported version
     - name: Install test requirements
+      shell: bash
       run: |
         python ./devscripts/install_deps.py \
           --include test \
@@ -62,6 +63,7 @@ jobs:
           --exclude websockets
     - name: Run tests
       timeout-minutes: 15
+      shell: bash
       run: |
         python -m yt_dlp -v || true  # Print debug head
         python ./devscripts/run_tests.py test/test_jsc/
