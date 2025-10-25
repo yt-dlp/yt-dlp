@@ -748,7 +748,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
     _OLDEST_CAPTURE_DATE = 20050214000000
     _NEWEST_CAPTURE_DATE = 20500101000000
 
-    _formats = {
+    _FORMATS = {
         '5': {'ext': 'flv', 'width': 400, 'height': 240, 'acodec': 'mp3', 'vcodec': 'h263'},
         '6': {'ext': 'flv', 'width': 450, 'height': 270, 'acodec': 'mp3', 'vcodec': 'h263'},
         '13': {'ext': '3gp', 'acodec': 'aac', 'vcodec': 'mp4v'},
@@ -1094,7 +1094,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             format_id = traverse_obj(fmt, ('url', {parse_qs}, 'itag', 0))
             formats.append({
                 'format_id': format_id,
-                **self._formats.get(format_id, {}),
+                **self._FORMATS.get(format_id, {}),
                 **traverse_obj(fmt, {
                     'url': ('url', {lambda x: f'https://web.archive.org/web/2id_/{x}'}),
                     'ext': ('ext', {str}),
