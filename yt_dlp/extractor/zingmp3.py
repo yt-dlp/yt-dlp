@@ -476,7 +476,7 @@ class ZingMp3UserIE(ZingMp3BaseIE):
 
 class ZingMp3HubIE(ZingMp3BaseIE):
     IE_NAME = 'zingmp3:hub'
-    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<type>hub)/(?P<regions>[^/]+)/(?P<id>[^\.]+)'
+    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<type>hub)/[^/?#]+/(?P<id>[^./?#]+)'
     _TESTS = [{
         'url': 'https://zingmp3.vn/hub/Nhac-Moi/IWZ9Z0CA.html',
         'info_dict': {
@@ -496,7 +496,7 @@ class ZingMp3HubIE(ZingMp3BaseIE):
     }]
 
     def _real_extract(self, url):
-        song_id, regions, url_type = self._match_valid_url(url).group('id', 'regions', 'type')
+        song_id, url_type = self._match_valid_url(url).group('id', 'type')
         hub_detail = self._call_api(url_type, {'id': song_id})
         entries = self._parse_items(traverse_obj(hub_detail, (
             'sections', lambda _, v: v['sectionId'] == 'hub', 'items', ...)))

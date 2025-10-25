@@ -1,3 +1,5 @@
+import json
+
 from .theplatform import ThePlatformIE
 from ..utils import (
     ExtractorError,
@@ -6,7 +8,6 @@ from ..utils import (
     remove_start,
     traverse_obj,
     update_url_query,
-    urlencode_postdata,
 )
 
 
@@ -110,11 +111,9 @@ class AENetworksIE(AENetworksBaseIE):
     IE_NAME = 'aenetworks'
     IE_DESC = 'A+E Networks: A&E, Lifetime, History.com, FYI Network and History Vault'
     _VALID_URL = AENetworksBaseIE._BASE_URL_REGEX + r'''(?P<id>
-        shows/[^/]+/season-\d+/episode-\d+|
-        (?:
-            (?:movie|special)s/[^/]+|
-            (?:shows/[^/]+/)?videos
-        )/[^/?#&]+
+        shows/[^/?#]+/season-\d+/episode-\d+|
+        (?P<type>movie|special)s/[^/?#]+(?P<extra>/[^/?#]+)?|
+        (?:shows/[^/?#]+/)?videos/[^/?#]+
     )'''
     _TESTS = [{
         'url': 'http://www.history.com/shows/mountain-men/season-1/episode-1',
@@ -127,7 +126,7 @@ class AENetworksIE(AENetworksBaseIE):
             'upload_date': '20120529',
             'uploader': 'AENE-NEW',
             'duration': 2592.0,
-            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'chapters': 'count:5',
             'tags': 'count:14',
             'categories': ['Mountain Men'],
@@ -138,10 +137,7 @@ class AENetworksIE(AENetworksBaseIE):
             'series': 'Mountain Men',
             'age_limit': 0,
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
         'add_ie': ['ThePlatform'],
         'skip': 'Geo-restricted - This content is not available in your location.',
     }, {
@@ -155,7 +151,7 @@ class AENetworksIE(AENetworksBaseIE):
             'upload_date': '20160112',
             'uploader': 'AENE-NEW',
             'duration': 1277.695,
-            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'chapters': 'count:4',
             'tags': 'count:23',
             'episode': 'Inlawful Entry',
@@ -165,10 +161,53 @@ class AENetworksIE(AENetworksBaseIE):
             'series': 'Duck Dynasty',
             'age_limit': 0,
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
+        'params': {'skip_download': 'm3u8'},
+        'add_ie': ['ThePlatform'],
+    }, {
+        'url': 'https://play.mylifetime.com/movies/v-c-andrews-web-of-dreams',
+        'info_dict': {
+            'id': '1590627395981',
+            'ext': 'mp4',
+            'title': 'VC Andrews\' Web of Dreams',
+            'description': 'md5:2a8ba13ae64271c79eb65c0577d312ce',
+            'uploader': 'AENE-NEW',
+            'age_limit': 14,
+            'duration': 5253.665,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'chapters': 'count:8',
+            'tags': ['lifetime', 'mylifetime', 'lifetime channel', "VC Andrews' Web of Dreams"],
+            'series': '',
+            'season': 'Season 0',
+            'season_number': 0,
+            'episode': 'VC Andrews\' Web of Dreams',
+            'episode_number': 0,
+            'timestamp': 1566489703.0,
+            'upload_date': '20190822',
         },
+        'params': {'skip_download': 'm3u8'},
+        'add_ie': ['ThePlatform'],
+    }, {
+        'url': 'https://www.aetv.com/specials/hunting-jonbenets-killer-the-untold-story',
+        'info_dict': {
+            'id': '1488235587551',
+            'ext': 'mp4',
+            'title': 'Hunting JonBenet\'s Killer: The Untold Story',
+            'description': 'md5:209869425ee392d74fe29201821e48b4',
+            'uploader': 'AENE-NEW',
+            'age_limit': 14,
+            'duration': 5003.903,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'chapters': 'count:10',
+            'tags': 'count:11',
+            'series': '',
+            'season': 'Season 0',
+            'season_number': 0,
+            'episode': 'Hunting JonBenet\'s Killer: The Untold Story',
+            'episode_number': 0,
+            'timestamp': 1554987697.0,
+            'upload_date': '20190411',
+        },
+        'params': {'skip_download': 'm3u8'},
         'add_ie': ['ThePlatform'],
     }, {
         'url': 'http://www.fyi.tv/shows/tiny-house-nation/season-1/episode-8',
@@ -197,25 +236,28 @@ class AENetworksIE(AENetworksBaseIE):
     }]
 
     def _real_extract(self, url):
-        domain, canonical = self._match_valid_url(url).groups()
+        domain, canonical, url_type, extra = self._match_valid_url(url).group('domain', 'id', 'type', 'extra')
+        if url_type in ('movie', 'special') and not extra:
+            canonical += f'/full-{url_type}'
         return self._extract_aetn_info(domain, 'canonical', '/' + canonical, url)
 
 
 class AENetworksListBaseIE(AENetworksBaseIE):
     def _call_api(self, resource, slug, brand, fields):
         return self._download_json(
-            'https://yoga.appsvcs.aetnd.com/graphql',
-            slug, query={'brand': brand}, data=urlencode_postdata({
+            'https://yoga.appsvcs.aetnd.com/graphql', slug,
+            query={'brand': brand}, headers={'Content-Type': 'application/json'},
+            data=json.dumps({
                 'query': '''{
   %s(slug: "%s") {
     %s
   }
 }''' % (resource, slug, fields),  # noqa: UP031
-            }))['data'][resource]
+            }).encode())['data'][resource]
 
     def _real_extract(self, url):
         domain, slug = self._match_valid_url(url).groups()
-        _, brand = self._DOMAIN_MAP[domain]
+        _, brand, _ = self._DOMAIN_MAP[domain]
         playlist = self._call_api(self._RESOURCE, slug, brand, self._FIELDS)
         base_url = f'http://watch.{domain}'
 
