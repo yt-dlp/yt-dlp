@@ -407,7 +407,7 @@ class CDAFolderIE(InfoExtractor):
                 f'https://www.cda.pl/{channel}/folder/{folder_id}/vfilm/{page + 1}', folder_id,
                 f'Downloading page {page + 1}', expected_status=404)
             items = re.findall(r'<a[^>]+href="/video/([0-9a-z]+)"', webpage)
-            for video_id in items:
+            for video_id in dict.fromkeys(items):
                 yield self.url_result(f'https://www.cda.pl/video/{video_id}', CDAIE, video_id)
 
         return self.playlist_result(
