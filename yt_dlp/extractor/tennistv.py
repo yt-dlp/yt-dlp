@@ -1,3 +1,6 @@
+import base64
+import hashlib
+import random
 import urllib.parse
 
 from .common import InfoExtractor
@@ -43,7 +46,8 @@ class TennisTVIE(InfoExtractor):
     access_token, refresh_token = None, None
     _PARTNER_ID = 3001482
     _FORMAT_URL = 'https://open.http.mp.streamamg.com/p/{partner}/sp/{partner}00/playManifest/entryId/{entry}/format/applehttp/protocol/https/a.m3u8?ks={session}'
-    _AUTH_BASE_URL = 'https://sso.tennistv.com/auth/realms/TennisTV/protocol/openid-connect'
+    _AUTH_BASE_URL = 'https://sso.tennistv.com/auth/realms/tennistv/protocol/openid-connect'
+    _REDIRECT_URI = 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html'
     _HEADERS = {
         'origin': 'https://www.tennistv.com',
         'referer': 'https://www.tennistv.com/',
@@ -51,45 +55,46 @@ class TennisTVIE(InfoExtractor):
     }
 
     def _perform_login(self, username, password):
+        state = random_uuidv4()
+        nonce = random_uuidv4()
+
+        # PKCE auth
+        charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+        code_verifier = ''.join([charset[random.randrange(0, 62)] for _ in range(97)])
+        hex_digest = hashlib.sha256(code_verifier.encode('ascii')).digest()
+        code_challenge = base64.b64encode(hex_digest, b'-_').decode('ascii').replace('=', '')
+
         login_page = self._download_webpage(
             f'{self._AUTH_BASE_URL}/auth', None, 'Downloading login page',
             query={
                 'client_id': 'tennis-tv-web',
-                'redirect_uri': 'https://tennistv.com',
+                'redirect_uri': self._REDIRECT_URI,
                 'response_mode': 'fragment',
                 'response_type': 'code',
                 'scope': 'openid',
+                'state': state,
+                'nonce': nonce,
+                'code_challenge': code_challenge,
+                'code_challenge_method': 'S256',
             })
 
         post_url = self._html_search_regex(r'action=["\']([^"\']+?)["\']\s+method=["\']post["\']', login_page, 'login POST url')
-        temp_page = self._download_webpage(
+        temp_page, handle = self._download_webpage_handle(
             post_url, None, 'Sending login data', 'Unable to send login data',
             headers=self._HEADERS, data=urlencode_postdata({
                 'username': username,
                 'password': password,
-                'submitAction': 'Log In',
+                'credentialId': '',
             }))
-        if 'Your username or password was incorrect' in temp_page:
+        if 'invalid username or password' in temp_page.lower():
             raise ExtractorError('Your username or password was incorrect', expected=True)
-
-        handle = self._request_webpage(
-            f'{self._AUTH_BASE_URL}/auth', None, 'Logging in', headers=self._HEADERS,
-            query={
-                'client_id': 'tennis-tv-web',
-                'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html',
-                'state': random_uuidv4(),
-                'response_mode': 'fragment',
-                'response_type': 'code',
-                'scope': 'openid',
-                'nonce': random_uuidv4(),
-                'prompt': 'none',
-            })
 
         self.get_token(None, {
             'code': urllib.parse.parse_qs(handle.url)['code'][-1],
             'grant_type': 'authorization_code',
             'client_id': 'tennis-tv-web',
-            'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html',
+            'redirect_uri': self._REDIRECT_URI,
+            'code_verifier': code_verifier,
         })
 
     def get_token(self, video_id, payload):
@@ -144,7 +149,8 @@ class TennisTVIE(InfoExtractor):
             'description': self._html_search_regex(
                 (r'<span itemprop="description" content=["\']([^"\']+)["\']>', *self._og_regexes('description')),
                 webpage, 'description', fatal=False),
-            'thumbnail': f'https://open.http.mp.streamamg.com/p/{self._PARTNER_ID}/sp/{self._PARTNER_ID}00/thumbnail/entry_id/{entryid}/version/100001/height/1920',
+            'thumbnail': self._html_search_regex(r'<span itemprop=["\']thumbnailUrl["\']\s*?content=["\']([^"\']+)["\']>', webpage, 'thumbnail url', fatal=False)
+            or f'https://open.http.mp.streamamg.com/p/{self._PARTNER_ID}/sp/{self._PARTNER_ID}00/thumbnail/entry_id/{entryid}/version/100001/height/1920',
             'timestamp': unified_timestamp(self._html_search_regex(
                 r'<span itemprop="uploadDate" content=["\']([^"\']+)["\']>', webpage, 'upload time', fatal=False)),
             'series': self._html_search_regex(r'data-series\s*?=\s*?"(.*?)"', webpage, 'series', fatal=False) or None,
