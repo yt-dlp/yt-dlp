@@ -721,8 +721,7 @@ class NicovideoSearchBaseIE(InfoExtractor):
         query = query or {}
         pages = [query['page']] if 'page' in query else itertools.count(1)
         for page_num in pages:
-            current_page = query['page'] + page_num if isinstance(pages, list) else page_num
-            query['page'] = str(current_page)
+            query['page'] = str(page_num)
             webpage = self._download_webpage(url, item_id, query=query, note=note % {'page': page_num})
 
             server_response = self._search_regex(r'<meta\s+name=["\']server-response["\']\s+content=["\']([^"\']+)["\']', webpage, 'videos json')
@@ -736,7 +735,7 @@ class NicovideoSearchBaseIE(InfoExtractor):
                 yield self.url_result(f'https://www.nicovideo.jp/watch/{item}', 'Niconico', item)
 
             has_next = traverse_obj(sr_json, ('data', 'response', '$getSearchVideoV2', 'data', 'hasNext'), default=None)
-            if has_next is not None and not has_next:
+            if has_next is not None and has_next is False:
                 break
             if not results:
                 break
