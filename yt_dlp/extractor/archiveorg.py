@@ -1090,7 +1090,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         info['thumbnails'] = self._extract_thumbnails(video_id)
 
         formats = []
-        for fmt in traverse_obj(video_info, ('formats', ...)):
+        for fmt in traverse_obj(video_info, ('formats', lambda _, v: url_or_none(v['url']))):
             format_id = traverse_obj(fmt, ('url', {parse_qs}, 'itag', 0))
             formats.append({
                 'format_id': format_id,
