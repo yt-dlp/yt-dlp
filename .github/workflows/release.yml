@@ -180,7 +180,7 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt -y install pandoc man
-          python devscripts/install_deps.py -o --include build
+          python devscripts/install_deps.py --only-optional-groups --include-group build
 
       - name: Prepare
         env:
