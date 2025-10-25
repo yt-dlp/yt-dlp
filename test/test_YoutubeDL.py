@@ -13,12 +13,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import contextlib
 import copy
-import itertools
 import json
 
 from test.helper import FakeYDL, assertRegexpMatches, try_rm
 from yt_dlp import YoutubeDL
-from yt_dlp.extractor import YoutubeIE
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
 from yt_dlp.utils import (
@@ -336,99 +334,6 @@ class TestFormatSelection(unittest.TestCase):
 
         ydl = YDL({'format': '[format_id!*=-]'})
         self.assertRaises(ExtractorError, ydl.process_ie_result, info_dict.copy())
-
-    def test_youtube_format_selection(self):
-        # FIXME: Rewrite in accordance with the new format sorting options
-        return
-
-        order = [
-            '38', '37', '46', '22', '45', '35', '44', '18', '34', '43', '6', '5', '17', '36', '13',
-            # Apple HTTP Live Streaming
-            '96', '95', '94', '93', '92', '132', '151',
-            # 3D
-            '85', '84', '102', '83', '101', '82', '100',
-            # Dash video
-            '137', '248', '136', '247', '135', '246',
-            '245', '244', '134', '243', '133', '242', '160',
-            # Dash audio
-            '141', '172', '140', '171', '139',
-        ]
-
-        def format_info(f_id):
-            info = YoutubeIE._formats[f_id].copy()
-
-            # XXX: In real cases InfoExtractor._parse_mpd_formats() fills up 'acodec'
-            # and 'vcodec', while in tests such information is incomplete since
-            # commit a6c2c24479e5f4827ceb06f64d855329c0a6f593
-            # test_YoutubeDL.test_youtube_format_selection is broken without
-            # this fix
-            if 'acodec' in info and 'vcodec' not in info:
-                info['vcodec'] = 'none'
-            elif 'vcodec' in info and 'acodec' not in info:
-                info['acodec'] = 'none'
-
-            info['format_id'] = f_id
-            info['url'] = 'url:' + f_id
-            return info
-        formats_order = [format_info(f_id) for f_id in order]
-
-        info_dict = _make_result(list(formats_order), extractor='youtube')
-        ydl = YDL({'format': 'bestvideo+bestaudio'})
-        ydl.sort_formats(info_dict)
-        ydl.process_ie_result(info_dict)
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '248+172')
-        self.assertEqual(downloaded['ext'], 'mp4')
-
-        info_dict = _make_result(list(formats_order), extractor='youtube')
-        ydl = YDL({'format': 'bestvideo[height>=999999]+bestaudio/best'})
-        ydl.sort_formats(info_dict)
-        ydl.process_ie_result(info_dict)
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '38')
-
-        info_dict = _make_result(list(formats_order), extractor='youtube')
-        ydl = YDL({'format': 'bestvideo/best,bestaudio'})
-        ydl.sort_formats(info_dict)
-        ydl.process_ie_result(info_dict)
-        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['137', '141'])
-
-        info_dict = _make_result(list(formats_order), extractor='youtube')
-        ydl = YDL({'format': '(bestvideo[ext=mp4],bestvideo[ext=webm])+bestaudio'})
-        ydl.sort_formats(info_dict)
-        ydl.process_ie_result(info_dict)
-        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['137+141', '248+141'])
-
-        info_dict = _make_result(list(formats_order), extractor='youtube')
-        ydl = YDL({'format': '(bestvideo[ext=mp4],bestvideo[ext=webm])[height<=720]+bestaudio'})
-        ydl.sort_formats(info_dict)
-        ydl.process_ie_result(info_dict)
-        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['136+141', '247+141'])
-
-        info_dict = _make_result(list(formats_order), extractor='youtube')
-        ydl = YDL({'format': '(bestvideo[ext=none]/bestvideo[ext=webm])+bestaudio'})
-        ydl.sort_formats(info_dict)
-        ydl.process_ie_result(info_dict)
-        downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['248+141'])
-
-        for f1, f2 in itertools.pairwise(formats_order):
-            info_dict = _make_result([f1, f2], extractor='youtube')
-            ydl = YDL({'format': 'best/bestvideo'})
-            ydl.sort_formats(info_dict)
-            ydl.process_ie_result(info_dict)
-            downloaded = ydl.downloaded_info_dicts[0]
-            self.assertEqual(downloaded['format_id'], f1['format_id'])
-
-            info_dict = _make_result([f2, f1], extractor='youtube')
-            ydl = YDL({'format': 'best/bestvideo'})
-            ydl.sort_formats(info_dict)
-            ydl.process_ie_result(info_dict)
-            downloaded = ydl.downloaded_info_dicts[0]
-            self.assertEqual(downloaded['format_id'], f1['format_id'])
 
     def test_audio_only_extractor_format_selection(self):
         # For extractors with incomplete formats (all formats are audio-only or
