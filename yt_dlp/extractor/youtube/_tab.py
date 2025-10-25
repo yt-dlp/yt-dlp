@@ -340,8 +340,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             thumbnails=self._extract_thumbnails(view_model, (
                 'contentImage', *thumb_keys, 'thumbnailViewModel', 'image'), final_key='sources'),
             duration=traverse_obj(view_model, (
-                'contentImage', 'thumbnailViewModel', 'overlays', ..., 'thumbnailOverlayBadgeViewModel',
-                'thumbnailBadges', ..., 'thumbnailBadgeViewModel', 'text', {parse_duration}, any)),
+                'contentImage', 'thumbnailViewModel', 'overlays', ...,
+                (('thumbnailBottomOverlayViewModel', 'badges'), ('thumbnailOverlayBadgeViewModel', 'thumbnailBadges')),
+                ..., 'thumbnailBadgeViewModel', 'text', {parse_duration}, any)),
             timestamp=(traverse_obj(view_model, (
                 'metadata', 'lockupMetadataViewModel', 'metadata', 'contentMetadataViewModel', 'metadataRows',
                 ..., 'metadataParts', ..., 'text', 'content', {lambda t: self._parse_time_text(t, report_failure=False)}, any))
