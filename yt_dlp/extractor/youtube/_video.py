@@ -1594,7 +1594,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'extractor_args': {'youtube': {'lang': ['en']}},
             'skip_download': True,
         },
-    },]
+    }]
     _WEBPAGE_TESTS = [{
         # <object>
         # https://github.com/ytdl-org/youtube-dl/pull/12696
@@ -4297,7 +4297,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     info['concurrent_view_count'] = vc
                 elif info.get('view_count') is None:
                     info['view_count'] = vc
-        
+
             if self._preferred_lang:
                 info['title'] = traverse_obj(
                     vpir, ('title', 'runs', 0, 'text', {str}), default=info['title'])
