@@ -341,14 +341,14 @@ jobs:
           brew uninstall --ignore-dependencies python3
           python3 -m venv ~/yt-dlp-build-venv
           source ~/yt-dlp-build-venv/bin/activate
-          python3 devscripts/install_deps.py -o --include build
-          python3 devscripts/install_deps.py --print --include pyinstaller > requirements.txt
+          python3 devscripts/install_deps.py --only-optional-groups --include-group build
+          python3 devscripts/install_deps.py --print --include-group pyinstaller > requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
           python3 -m pip install -U --no-binary :all: -r requirements.txt
           # We need to fuse our own universal2 wheels for curl_cffi
           python3 -m pip install -U 'delocate==0.11.0'
           mkdir curl_cffi_whls curl_cffi_universal2
-          python3 devscripts/install_deps.py --print -o --include curl-cffi > requirements.txt
+          python3 devscripts/install_deps.py --print --only-optional-groups --include-group curl-cffi > requirements.txt
           for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
             python3 -m pip download \
               --only-binary=:all: \
@@ -482,11 +482,11 @@ jobs:
           mkdir /pyi-wheels
           python -m pip download -d /pyi-wheels --no-deps --require-hashes "pyinstaller@${Env:PYI_URL}#sha256=${Env:PYI_HASH}"
           python -m pip install --force-reinstall -U "/pyi-wheels/${Env:PYI_WHEEL}"
-          python devscripts/install_deps.py -o --include build
+          python devscripts/install_deps.py --only-optional-groups --include-group build
           if ("${Env:ARCH}" -eq "x86") {
             python devscripts/install_deps.py
           } else {
-            python devscripts/install_deps.py --include curl-cffi
+            python devscripts/install_deps.py --include-group curl-cffi
           }
 
       - name: Prepare

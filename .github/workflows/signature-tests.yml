@@ -33,7 +33,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install test requirements
-      run: python3 ./devscripts/install_deps.py --only-optional --include test
+      run: python ./devscripts/install_deps.py --only-optional-groups --include-group test
     - name: Run tests
       timeout-minutes: 15
       run: |
