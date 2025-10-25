@@ -16,7 +16,6 @@ from yt_dlp.extractor.youtube.jsc._builtin.vendor import load_script
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
-    JsChallengeProviderRejectedRequest,
     JsChallengeRequest,
     register_preference,
     register_provider,
@@ -58,6 +57,15 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
             self._report_remote_component_skipped('ejs:npm', 'NPM package')
             return None
 
+        # Check to see if the environment proxies are compatible with Bun npm source
+        if unsupported_scheme := self._check_env_proxies(self._get_env_options()):
+            self.logger.warning(
+                f'Bun NPM package downloads only support HTTP/HTTPS proxies; skipping remote NPM package downloads. '
+                f'Provide another distribution of the challenge solver script or use '
+                f'another JS runtime that supports "{unsupported_scheme}" proxies. '
+                f'For more information and alternatives, refer to  {self.ie._EJS_WIKI_URL}')
+            return None
+
         # Bun-specific lib scripts that uses Bun autoimport
         # https://bun.com/docs/runtime/autoimport
         error_hook = lambda e: self.logger.warning(
@@ -66,6 +74,17 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
             self.BUN_NPM_LIB_FILENAME, error_hook=error_hook)
         if code:
             return Script(script_type, ScriptVariant.BUN_NPM, ScriptSource.BUILTIN, self._SCRIPT_VERSION, code)
+        return None
+
+    def _check_env_proxies(self, env):
+        # check that the schemes of both HTTP_PROXY and HTTPS_PROXY are supported
+        for key in ('HTTP_PROXY', 'HTTPS_PROXY'):
+            proxy = env.get(key)
+            if not proxy:
+                continue
+            scheme = urllib.parse.urlparse(proxy).scheme.lower()
+            if scheme not in self.SUPPORTED_PROXY_SCHEMES:
+                return scheme
         return None
 
     def _get_env_options(self) -> dict[str, str]:
@@ -80,24 +99,6 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
             val = request_proxies.get(key)
             if val is not None:
                 options[env] = val
-
-        # check that the schemes of both HTTP_PROXY and HTTPS_PROXY are supported
-        for env in ('HTTP_PROXY', 'HTTPS_PROXY'):
-            proxy = options.get(env)
-            if not proxy:
-                continue
-            scheme = urllib.parse.urlparse(proxy).scheme.lower()
-            if scheme not in self.SUPPORTED_PROXY_SCHEMES:
-                scheme = urllib.parse.urlparse(proxy).scheme.lower()
-                self.logger.warning(
-                    f'Bun NPM requests only support HTTP/HTTPS proxies; skipping provider. '
-                    f'Provide another distribution of the challenge solver script or use '
-                    f'another JS runtime that supports "{scheme}" proxies (e.g. deno). '
-                    f'For more information, refer to  {self.ie._EJS_WIKI_URL}')
-                raise JsChallengeProviderRejectedRequest(
-                    f'External requests by "{self.PROVIDER_NAME}" provider do not '
-                    f'support proxy scheme "{scheme}". Supported proxy schemes: '
-                    f'{", ".join(self.SUPPORTED_PROXY_SCHEMES)}.')
         if self.ie.get_param('nocheckcertificate'):
             options['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
         return options
