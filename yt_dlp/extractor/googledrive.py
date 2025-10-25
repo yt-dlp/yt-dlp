@@ -1,21 +1,19 @@
 import re
-import urllib.parse
 
 from .common import InfoExtractor
-from .youtube import YoutubeIE
 from ..utils import (
-    ExtractorError,
-    bug_reports_message,
     determine_ext,
     extract_attributes,
     get_element_by_class,
     get_element_html_by_id,
     int_or_none,
-    lowercase_escape,
-    parse_qs,
-    try_get,
+    mimetype2ext,
+    parse_duration,
+    str_or_none,
     update_url_query,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj, value
 
 
 class GoogleDriveIE(InfoExtractor):
@@ -38,8 +36,8 @@ class GoogleDriveIE(InfoExtractor):
             'id': '0ByeS4oOUV-49Zzh4R1J6R09zazQ',
             'ext': 'mp4',
             'title': 'Big Buck Bunny.mp4',
-            'duration': 45,
-            'thumbnail': 'https://drive.google.com/thumbnail?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
+            'duration': 45.069,
+            'thumbnail': r're:https://lh3\.googleusercontent\.com/drive-storage/',
         },
     }, {
         # has itag 50 which is not in YoutubeIE._formats (royalty Free music from 1922)
@@ -49,8 +47,18 @@ class GoogleDriveIE(InfoExtractor):
             'id': '1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
             'ext': 'mp3',
             'title': 'My Buddy - Henry Burr - Gus Kahn - Walter Donaldson.mp3',
-            'duration': 184,
-            'thumbnail': 'https://drive.google.com/thumbnail?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
+            'duration': 184.68,
+        },
+    }, {
+        # Has subtitle track
+        'url': 'https://drive.google.com/file/d/1RAGWRgzn85TXCaCk4gxnwF6TGUaZatzE/view',
+        'md5': '05488c528da6ef737ec8c962bfa9724e',
+        'info_dict': {
+            'id': '1RAGWRgzn85TXCaCk4gxnwF6TGUaZatzE',
+            'ext': 'mp4',
+            'title': 'test.mp4',
+            'duration': 9.999,
+            'thumbnail': r're:https://lh3\.googleusercontent\.com/drive-storage/',
         },
     }, {
         # video can't be watched anonymously due to view count limit reached,
@@ -71,17 +79,6 @@ class GoogleDriveIE(InfoExtractor):
         'url': 'https://drive.usercontent.google.com/download?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
         'only_matching': True,
     }]
-    _FORMATS_EXT = {
-        **{k: v['ext'] for k, v in YoutubeIE._formats.items() if v.get('ext')},
-        '50': 'm4a',
-    }
-    _BASE_URL_CAPTIONS = 'https://drive.google.com/timedtext'
-    _CAPTIONS_ENTRY_TAG = {
-        'subtitles': 'track',
-        'automatic_captions': 'target',
-    }
-    _caption_formats_ext = []
-    _captions_xml = None
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -91,129 +88,71 @@ class GoogleDriveIE(InfoExtractor):
         if mobj:
             yield 'https://drive.google.com/file/d/{}'.format(mobj.group('id'))
 
-    def _download_subtitles_xml(self, video_id, subtitles_id, hl):
-        if self._captions_xml:
-            return
-        self._captions_xml = self._download_xml(
-            self._BASE_URL_CAPTIONS, video_id, query={
-                'id': video_id,
-                'vid': subtitles_id,
-                'hl': hl,
+    @staticmethod
+    def _construct_subtitle_url(base_url, video_id, language, fmt):
+        return update_url_query(
+            base_url, {
+                'hl': 'en-US',
                 'v': video_id,
+                'type': 'track',
+                'lang': language,
+                'fmt': fmt,
+            })
+
+    def _get_subtitles(self, video_id, video_info):
+        subtitles = {}
+        timed_text_base_url = traverse_obj(video_info, ('timedTextDetails', 'timedTextBaseUrl', {url_or_none}))
+        if not timed_text_base_url:
+            return subtitles
+        subtitle_data = self._download_xml(
+            timed_text_base_url, video_id, 'Downloading subtitles XML', fatal=False, query={
+                'hl': 'en-US',
                 'type': 'list',
-                'tlangs': '1',
-                'fmts': '1',
-                'vssids': '1',
-            }, note='Downloading subtitles XML',
-            errnote='Unable to download subtitles XML', fatal=False)
-        if self._captions_xml:
-            for f in self._captions_xml.findall('format'):
-                if f.attrib.get('fmt_code') and not f.attrib.get('default'):
-                    self._caption_formats_ext.append(f.attrib['fmt_code'])
-
-    def _get_captions_by_type(self, video_id, subtitles_id, caption_type,
-                              origin_lang_code=None, origin_lang_name=None):
-        if not subtitles_id or not caption_type:
-            return
-        captions = {}
-        for caption_entry in self._captions_xml.findall(
-                self._CAPTIONS_ENTRY_TAG[caption_type]):
-            caption_lang_code = caption_entry.attrib.get('lang_code')
-            caption_name = caption_entry.attrib.get('name') or origin_lang_name
-            if not caption_lang_code or not caption_name:
-                self.report_warning(f'Missing necessary caption metadata. '
-                                    f'Need lang_code and name attributes. '
-                                    f'Found: {caption_entry.attrib}')
-                continue
-            caption_format_data = []
-            for caption_format in self._caption_formats_ext:
-                query = {
-                    'vid': subtitles_id,
-                    'v': video_id,
-                    'fmt': caption_format,
-                    'lang': (caption_lang_code if origin_lang_code is None
-                             else origin_lang_code),
-                    'type': 'track',
-                    'name': caption_name,
-                    'kind': '',
-                }
-                if origin_lang_code is not None:
-                    query.update({'tlang': caption_lang_code})
-                caption_format_data.append({
-                    'url': update_url_query(self._BASE_URL_CAPTIONS, query),
-                    'ext': caption_format,
-                })
-            captions[caption_lang_code] = caption_format_data
-        return captions
-
-    def _get_subtitles(self, video_id, subtitles_id, hl):
-        if not subtitles_id or not hl:
-            return
-        self._download_subtitles_xml(video_id, subtitles_id, hl)
-        if not self._captions_xml:
-            return
-        return self._get_captions_by_type(video_id, subtitles_id, 'subtitles')
-
-    def _get_automatic_captions(self, video_id, subtitles_id, hl):
-        if not subtitles_id or not hl:
-            return
-        self._download_subtitles_xml(video_id, subtitles_id, hl)
-        if not self._captions_xml:
-            return
-        track = next((t for t in self._captions_xml.findall('track') if t.attrib.get('cantran') == 'true'), None)
-        if track is None:
-            return
-        origin_lang_code = track.attrib.get('lang_code')
-        origin_lang_name = track.attrib.get('name')
-        if not origin_lang_code or not origin_lang_name:
-            return
-        return self._get_captions_by_type(
-            video_id, subtitles_id, 'automatic_captions', origin_lang_code, origin_lang_name)
+                'tlangs': 1,
+                'v': video_id,
+                'vssids': 1,
+            })
+        subtitle_formats = traverse_obj(subtitle_data, (lambda _, v: v.tag == 'format', {lambda x: x.get('fmt_code')}, {str}))
+        for track in traverse_obj(subtitle_data, (lambda _, v: v.tag == 'track' and v.get('lang_code'))):
+            language = track.get('lang_code')
+            subtitles.setdefault(language, []).extend([{
+                'url': self._construct_subtitle_url(timed_text_base_url, video_id, language, sub_fmt),
+                'name': track.get('lang_original'),
+                'ext': sub_fmt,
+            } for sub_fmt in subtitle_formats])
+        return subtitles
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = urllib.parse.parse_qs(self._download_webpage(
-            'https://drive.google.com/get_video_info',
-            video_id, 'Downloading video webpage', query={'docid': video_id}))
-
-        def get_value(key):
-            return try_get(video_info, lambda x: x[key][0])
-
-        reason = get_value('reason')
-        title = get_value('title')
+        video_info = self._download_json(
+            f'https://content-workspacevideo-pa.googleapis.com/v1/drive/media/{video_id}/playback',
+            video_id, 'Downloading video webpage', query={'key': 'AIzaSyDVQw45DwoYh632gvsP5vPDqEKvb-Ywnb8'},
+            headers={'Referer': 'https://drive.google.com/'})
 
         formats = []
-        fmt_stream_map = (get_value('fmt_stream_map') or '').split(',')
-        fmt_list = (get_value('fmt_list') or '').split(',')
-        if fmt_stream_map and fmt_list:
-            resolutions = {}
-            for fmt in fmt_list:
-                mobj = re.search(
-                    r'^(?P<format_id>\d+)/(?P<width>\d+)[xX](?P<height>\d+)', fmt)
-                if mobj:
-                    resolutions[mobj.group('format_id')] = (
-                        int(mobj.group('width')), int(mobj.group('height')))
+        for fmt in traverse_obj(video_info, (
+                'mediaStreamingData', 'formatStreamingData', ('adaptiveTranscodes', 'progressiveTranscodes'),
+                lambda _, v: url_or_none(v['url']))):
+            formats.append({
+                **traverse_obj(fmt, {
+                    'url': 'url',
+                    'format_id': ('itag', {int}, {str_or_none}),
+                }),
+                **traverse_obj(fmt, ('transcodeMetadata', {
+                    'ext': ('mimeType', {mimetype2ext}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                    'fps': ('videoFps', {int_or_none}),
+                    'filesize': ('contentLength', {int_or_none}),
+                    'vcodec': ((('videoCodecString', {str}), {value('none')}), any),
+                    'acodec': ((('audioCodecString', {str}), {value('none')}), any),
+                })),
+                'downloader_options': {
+                    'http_chunk_size': 10 << 20,
+                },
+            })
 
-            for fmt_stream in fmt_stream_map:
-                fmt_stream_split = fmt_stream.split('|')
-                if len(fmt_stream_split) < 2:
-                    continue
-                format_id, format_url = fmt_stream_split[:2]
-                ext = self._FORMATS_EXT.get(format_id)
-                if not ext:
-                    self.report_warning(f'Unknown format {format_id}{bug_reports_message()}')
-                f = {
-                    'url': lowercase_escape(format_url),
-                    'format_id': format_id,
-                    'ext': ext,
-                }
-                resolution = resolutions.get(format_id)
-                if resolution:
-                    f.update({
-                        'width': resolution[0],
-                        'height': resolution[1],
-                    })
-                formats.append(f)
+        title = traverse_obj(video_info, ('mediaMetadata', 'title', {str}))
 
         source_url = update_url_query(
             'https://drive.usercontent.google.com/download', {
@@ -264,30 +203,20 @@ class GoogleDriveIE(InfoExtractor):
                             or get_element_by_class('uc-error-caption', confirmation_webpage)
                             or 'unable to extract confirmation code')
 
-        if not formats and reason:
-            if title:
-                self.raise_no_formats(reason, expected=True)
-            else:
-                raise ExtractorError(reason, expected=True)
-
-        hl = get_value('hl')
-        subtitles_id = None
-        ttsurl = get_value('ttsurl')
-        if ttsurl:
-            # the subtitles ID is the vid param of the ttsurl query
-            subtitles_id = parse_qs(ttsurl).get('vid', [None])[-1]
-
-        self.cookiejar.clear(domain='.google.com', path='/', name='NID')
-
         return {
             'id': video_id,
             'title': title,
-            'thumbnail': 'https://drive.google.com/thumbnail?id=' + video_id,
-            'duration': int_or_none(get_value('length_seconds')),
+            **traverse_obj(video_info, {
+                'duration': ('mediaMetadata', 'duration', {parse_duration}),
+                'thumbnails': ('thumbnails', lambda _, v: url_or_none(v['url']), {
+                    'url': 'url',
+                    'ext': ('mimeType', {mimetype2ext}),
+                    'width': ('width', {int}),
+                    'height': ('height', {int}),
+                }),
+            }),
             'formats': formats,
-            'subtitles': self.extract_subtitles(video_id, subtitles_id, hl),
-            'automatic_captions': self.extract_automatic_captions(
-                video_id, subtitles_id, hl),
+            'subtitles': self.extract_subtitles(video_id, video_info),
         }
 
 
