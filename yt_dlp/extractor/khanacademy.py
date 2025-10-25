@@ -27,6 +27,10 @@ class KhanAcademyBaseIE(InfoExtractor):
         self._MAIN_JS_URL = search('khanacademy')
 
     def _extract_graphql(self, query_name):
+        main_js = self._download_webpage(self._MAIN_JS_URL, None, 'Downloading khanacademy.js')
+        if f'query {query_name}' in main_js:
+            return self._parse_graphql_js(main_js)
+
         # runtime.js contains hash version for each js file, which is needed for building js src url
         runtime_js = self._download_webpage(self._RUNTIME_JS_URL, None, 'Downloading runtime.js')
         version_hashes = self._search_json(
@@ -34,7 +38,6 @@ class KhanAcademyBaseIE(InfoExtractor):
             transform_source=lambda s: re.sub(r'([\da-f]+):', r'"\1":', s))  # cannot use js_to_json, due to #13621
 
         # iterate all lazy-loaded js to find query-containing js file
-        main_js = self._download_webpage(self._MAIN_JS_URL, None, 'Downloading khanacademy.js')
         for lazy_load in re.finditer(r'lazy\(function\(\)\{return Promise\.all\(\[(.+?)\]\)\.then', main_js):
             for js_name in re.finditer(r'X.e\("([0-9a-f]+)"\)', lazy_load[1]):
                 if not (js_hash := version_hashes.get(js_name[1])):
@@ -48,18 +51,10 @@ class KhanAcademyBaseIE(InfoExtractor):
 
     def _parse_graphql_js(self, src):
         # extract gql strings for each object
-        queries = {match['obj_id']: json.loads(js_to_json(match['body'])) for match in re.finditer(
-            r'function (?P<obj_id>_templateObject\d*)\(\)\{var n=\(0,r\._\)\((?P<body>\[.+?\])\);return', src)}
-
-        # extract variable name to object query map at end: `x=o()(_templateObject00(), m, n, k)`
-        return {
-            match['name']: {
-                'sort': match['sort'] is not None,
-                'query': queries[match['obj_id']][0],
-                'embeds': match['embeds'].strip(',').split(',') if match['embeds'] else [],
-            } for match in re.finditer(
-                r'(?:var |,)(?P<name>[A-Za-z$_]+)=(?P<sort>\(0,s\.Fv\)\()?'
-                r'o\(\)\((?P<obj_id>_templateObject\d*)\(\)(?P<embeds>(?:,[A-Za-z$_]+)*)\)', src)}
+        queries = [self._sanitize_query(''.join(json.loads(js_to_json(match['body'])))) for match in re.finditer(
+            r'function (?P<obj_id>_templateObject\d*).*?\((?P<body>\[.+?\])\);return', src)]
+        return {self._search_regex(r'^(?:fragment|query|mutation) (\w+)', query,
+                                   'query name', default=None): query for query in queries}
 
     def _sanitize_query(self, query: str):
         outlines = []
@@ -69,7 +64,7 @@ class KhanAcademyBaseIE(InfoExtractor):
             if not line or line.startswith('#'):
                 continue
             if line == '}':
-                # unlike fragment, query has no __typename at its ends
+                # unlike fragment, query has no __typename at its very end
                 # only object inside query has tailing __typename
                 if indent > 2 or outlines[0].startswith('fragment'):
                     outlines.append(f'{" " * indent}__typename')
@@ -79,17 +74,19 @@ class KhanAcademyBaseIE(InfoExtractor):
                 indent += 2
         return '\n'.join(outlines)
 
-    def _compose_query(self, query_objs, key):
-        def _get_fragments(key):
-            yield self._sanitize_query(query_objs[key]['query'])
-            for sub in query_objs[key]['embeds']:
-                yield from _get_fragments(sub)
+    def _compose_query(self, query_objs, name):
+        fragments = {}
 
-        queries = set(_get_fragments(key))
-        if not (query := next((q for q in queries if q.startswith('query ')), None)):
-            raise ExtractorError(f'Failed to find "{key}" query from query objects')
-        fragments = sorted(q for q in queries if q.startswith('fragment '))
-        return '\n\n'.join([query, *fragments])
+        def _add_fragment(parent_name):
+            for frag_name in re.findall(r'\.\.\.(\w+)', query_objs[parent_name]):
+                if frag_name not in fragments:
+                    fragments[frag_name] = query_objs[frag_name]
+                    _add_fragment(frag_name)
+        try:
+            _add_fragment(name)
+            return '\n\n'.join([query_objs[name], *(fragments[name] for name in sorted(fragments))])
+        except KeyError as e:
+            raise ExtractorError(f'Failed to find query object for {name}->{e.args}')
 
     def _string_hash(self, input_str):
         str_hash = 5381
@@ -98,21 +95,16 @@ class KhanAcademyBaseIE(InfoExtractor):
         return str_hash
 
     def _get_query_hash(self, query_name):
+        # change in version hash may indicate change of graphql schema
+        #   consider cached hash as invalidated upon such change
+        js_version = f'{self._RUNTIME_JS_URL}{self._MAIN_JS_URL}'
         if cache := self.cache.load('khanacademy', f'{query_name}-hash'):
-            # change in hash of runtime.js may indicate change of graphql schema
-            #   consider cached hash as invalidated upon such change
-            if cache['runtime_js'] == self._RUNTIME_JS_URL:
+            if cache['js_version'] == js_version:
                 return cache['hash']
 
-        # iterate all query objects to find matching query
-        query_objs = self._extract_graphql(query_name)
-        for key, query_obj in query_objs.items():
-            if f'query {query_name}' in query_obj['query']:
-                query_hash = self._string_hash(self._compose_query(query_objs, key))
-                self.cache.store('khanacademy', f'{query_name}-hash', {
-                    'hash': query_hash, 'runtime_js': self._RUNTIME_JS_URL})
-                return query_hash
-        raise ExtractorError(f'Failed to find query object for {query_name}')
+        query_hash = self._string_hash(self._compose_query(self._extract_graphql(query_name), query_name))
+        self.cache.store('khanacademy', f'{query_name}-hash', {'hash': query_hash, 'js_version': js_version})
+        return query_hash
 
     def _parse_video(self, video):
         return {
