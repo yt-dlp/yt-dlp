@@ -52,18 +52,12 @@ jobs:
       with:
         node-version: '20.0'  # minimum supported version
     - name: Install test requirements
-      shell: bash
       run: |
-        python ./devscripts/install_deps.py \
-          --include test \
-          --exclude brotli \
-          --exclude brotlicffi \
-          --exclude mutagen \
-          --exclude pycryptodomex \
-          --exclude websockets
+        python ./devscripts/install_deps.py --print --only-optional-groups --include-group test > requirements.txt
+        python ./devscripts/install_deps.py --print -c certifi -c requests -c urllib3 -c yt-dlp-ejs >> requirements.txt
+        python -m pip install -U -r requirements.txt
     - name: Run tests
       timeout-minutes: 15
-      shell: bash
       run: |
         python -m yt_dlp -v || true  # Print debug head
         python ./devscripts/run_tests.py test/test_jsc -k download
