@@ -28,10 +28,10 @@ def parse_args():
         '-i', '--include-group', metavar='GROUP', action='append',
         help='include an optional dependency group (can be used multiple times)')
     parser.add_argument(
-        '-d', '--only-include-dependency', metavar='DEPENDENCY', action='append',
+        '-c', '--cherry-pick', metavar='DEPENDENCY', action='append',
         help=(
-            'only include a specific dependency from the default dependencies '
-            'or a group specified with --include-group (can be used multiple times)'))
+            'only include a specific dependency from the resulting dependency list '
+            '(can be used multiple times)'))
     parser.add_argument(
         '-o', '--only-optional-groups', action='store_true',
         help='omit default dependencies unless the "default" group is specified with --include-group')
@@ -44,31 +44,35 @@ def parse_args():
     return parser.parse_args()
 
 
+def uniq(arg) -> dict[str, None]:
+    return dict.fromkeys(map(str.lower, arg or ()))
+
+
 def main():
     args = parse_args()
     project_table = parse_toml(read_file(args.input))['project']
     recursive_pattern = re.compile(rf'{project_table["name"]}\[(?P<group_name>[\w-]+)\]')
     optional_groups = project_table['optional-dependencies']
-    excludes = list(map(str.lower, args.exclude_dependency or []))
-    only_includes = list(map(str.lower, args.only_include_dependency or []))
+
+    excludes = uniq(args.exclude_dependency)
+    only_includes = uniq(args.cherry_pick)
+    include_groups = uniq(args.include_group)
 
     def yield_deps(group):
         for dep in group:
             if mobj := recursive_pattern.fullmatch(dep):
-                yield from optional_groups.get(mobj.group('group_name'), [])
+                yield from optional_groups.get(mobj.group('group_name'), ())
             else:
                 yield dep
 
-    include_groups = list(dict.fromkeys(map(str.lower, args.include_group or [])))
-    targets = []
+    targets = {}
     if not args.only_optional_groups:
-        targets.extend(project_table['dependencies'])  # legacy: 'dependencies' is empty now
-        targets.extend(yield_deps(optional_groups['default']))
-        # `--include default` shouldn't duplicate the default dependency group
-        include_groups = list(filter(lambda group: group != 'default', include_groups))
+        # legacy: 'dependencies' is empty now
+        targets.update(dict.fromkeys(project_table['dependencies']))
+        targets.update(dict.fromkeys(yield_deps(optional_groups['default'])))
 
     for include in filter(None, map(optional_groups.get, include_groups)):
-        targets.extend(yield_deps(include))
+        targets.update(dict.fromkeys(yield_deps(include)))
 
     def target_filter(target):
         name = re.match(r'[\w-]+', target).group(0).lower()
