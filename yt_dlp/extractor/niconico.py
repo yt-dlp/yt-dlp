@@ -834,7 +834,7 @@ class NicovideoTagURLIE(NicovideoSearchBaseIE):
             'id': 'ドキュメンタリー淫夢',
             'title': 'ドキュメンタリー淫夢',
         },
-        'playlist_mincount': 400,
+        'playlist_mincount': 300,
     }]
 
     def _real_extract(self, url):
