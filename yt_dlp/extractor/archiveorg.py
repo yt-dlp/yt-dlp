@@ -1070,7 +1070,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
         if not traverse_obj(video_info, 'formats'):
             self.raise_no_formats(
-                'The requested video is not archived, indexed, or there is an issue with web.archive.org (try again later)', expected=True)
+                'The requested video is not archived or indexed', expected=True)
 
         capture_dates = self._get_capture_dates(video_id, int_or_none(url_date))
         self.write_debug('Captures to try: ' + join_nonempty(*capture_dates, delim=', '))
