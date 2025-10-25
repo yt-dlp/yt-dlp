@@ -1558,7 +1558,43 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'view_count': int,
         },
         'params': {'skip_download': True},
-    }]
+    }, {
+        # 'Enraizar: Acodo y Esquejes en Macetas' with English metadata specified
+        # https://github.com/yt-dlp/yt-dlp/issues/13363
+        'url': 'https://www.youtube.com/watch?v=8047tcn3o5U',
+        'info_dict': {
+            'id': '8047tcn3o5U',
+            'ext': 'mp4',
+            'title': 'Rooting: Layering and Cuttings in Pots',
+            'description': r're:➤When making new plants,',
+            'uploader': 'MiradasBiologicas in English',
+            'uploader_id': '@Miradasbiologicas',
+            'uploader_url': 'https://www.youtube.com/@Miradasbiologicas',
+            'channel': 'MiradasBiologicas in English',
+            'channel_id': 'UCNUwfzPMUFZYXOOCHaYnp7g',
+            'channel_url': 'https://www.youtube.com/channel/UCNUwfzPMUFZYXOOCHaYnp7g',
+            'channel_is_verified': True,
+            'thumbnail': r're:https?://.+/.+\.(?:jpg|webp)',
+            'playable_in_embed': False,
+            'age_limit': 0,
+            'duration': 601,
+            'timestamp': 1699623740,
+            'upload_date': '20231110',
+            'availability': 'public',
+            'live_status': 'not_live',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'channel_follower_count': int,
+            'categories': ['Howto & Style'],
+            'tags': 'count:27',
+            'media_type': 'video',
+        },
+        'params': {
+            'extractor_args': {'youtube': {'lang': ['en']}},
+            'skip_download': True,
+        },
+    },]
     _WEBPAGE_TESTS = [{
         # <object>
         # https://github.com/ytdl-org/youtube-dl/pull/12696
@@ -4261,9 +4297,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     info['concurrent_view_count'] = vc
                 elif info.get('view_count') is None:
                     info['view_count'] = vc
+        
+            if self._preferred_lang:
+                info['title'] = traverse_obj(
+                    vpir, ('title', 'runs', 0, 'text', {str}), default=info['title'])
 
         vsir = get_first(contents, 'videoSecondaryInfoRenderer')
         if vsir:
+            if self._preferred_lang:
+                info['description'] = traverse_obj(
+                    vsir, ('attributedDescription', 'content', {str}), default=info['description'])
             vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
             info.update({
                 'channel': self._get_text(vor, 'title'),
