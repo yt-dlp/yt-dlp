@@ -72,7 +72,7 @@ class Script:
         return f'<Script {self.type.value!r} v{self.version} (source: {self.source.value}) variant={self.variant.value!r} size={len(self.code)} hash={self.hash[:7]}...>'
 
 
-class JsRuntimeChalBaseJCP(JsChallengeProvider):
+class EJSBaseJCP(JsChallengeProvider):
     JS_RUNTIME_NAME: str
     _CACHE_SECTION = 'challenge-solver'
 

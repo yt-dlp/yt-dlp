@@ -5,8 +5,8 @@ import re
 import shlex
 import subprocess
 
-from yt_dlp.extractor.youtube.jsc._builtin.runtime import (
-    JsRuntimeChalBaseJCP,
+from yt_dlp.extractor.youtube.jsc._builtin.ejs import (
+    EJSBaseJCP,
     Script,
     ScriptSource,
     ScriptType,
@@ -27,7 +27,7 @@ from yt_dlp.utils.networking import HTTPHeaderDict, clean_proxies
 
 
 @register_provider
-class DenoJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
+class DenoJCP(EJSBaseJCP, BuiltinIEContentProvider):
     PROVIDER_NAME = 'deno'
     JS_RUNTIME_NAME = 'deno'
 

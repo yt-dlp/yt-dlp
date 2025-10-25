@@ -11,7 +11,7 @@ As part of the YouTube extractor, we have a framework for solving JS Challenges 
 - `yt_dlp.extractor.youtube.jsc.provider`
 - `yt_dlp.extractor.youtube.jsc.utils`
 
-Everything else is internal-only and no guarantees are made about the API stability.
+Everything else is **internal-only** and no guarantees are made about the API stability.
 
 > [!WARNING]
 > We will try our best to maintain stability with the public APIs.

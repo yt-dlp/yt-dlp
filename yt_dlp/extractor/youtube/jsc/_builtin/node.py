@@ -3,7 +3,7 @@ from __future__ import annotations
 import shlex
 import subprocess
 
-from yt_dlp.extractor.youtube.jsc._builtin.runtime import JsRuntimeChalBaseJCP
+from yt_dlp.extractor.youtube.jsc._builtin.ejs import EJSBaseJCP
 from yt_dlp.extractor.youtube.jsc.provider import (
     JsChallengeProvider,
     JsChallengeProviderError,
@@ -16,7 +16,7 @@ from yt_dlp.utils import Popen
 
 
 @register_provider
-class NodeJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
+class NodeJCP(EJSBaseJCP, BuiltinIEContentProvider):
     PROVIDER_NAME = 'node'
     JS_RUNTIME_NAME = 'node'
 

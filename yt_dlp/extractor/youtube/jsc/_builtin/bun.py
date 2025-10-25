@@ -5,8 +5,8 @@ import shlex
 import subprocess
 import urllib.parse
 
-from yt_dlp.extractor.youtube.jsc._builtin.runtime import (
-    JsRuntimeChalBaseJCP,
+from yt_dlp.extractor.youtube.jsc._builtin.ejs import (
+    EJSBaseJCP,
     Script,
     ScriptSource,
     ScriptType,
@@ -36,7 +36,7 @@ from yt_dlp.utils.networking import HTTPHeaderDict, clean_proxies
 
 
 @register_provider
-class BunJCP(JsRuntimeChalBaseJCP, BuiltinIEContentProvider):
+class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
     PROVIDER_NAME = 'bun'
     JS_RUNTIME_NAME = 'bun'
     BUN_NPM_LIB_FILENAME = 'yt.solver.bun.lib.js'
