@@ -765,7 +765,7 @@ class RaiCulturaIE(RaiNewsIE):  # XXX: Do not subclass from concrete IE
 
 
 class RaiSudtirolIE(RaiBaseIE):
-    _VALID_URL = r'https?://raisudtirol\.rai\.it/.+media=(?P<id>\w+)'
+    _VALID_URL = r'https?://rai(?:bz|sudtirol)\.rai\.it/.+media=(?P<id>\w+)'
     _TESTS = [{
         # mp4 file
         'url': 'https://raisudtirol.rai.it/la/index.php?media=Ptv1619729460',
@@ -791,6 +791,9 @@ class RaiSudtirolIE(RaiBaseIE):
             'formats': 'count:6',
         },
         'params': {'skip_download': True},
+    }, {
+        'url': 'https://raibz.rai.it/de/index.php?media=Ptv1751660400',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

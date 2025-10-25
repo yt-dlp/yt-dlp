@@ -14,6 +14,7 @@ import json
 
 from test.helper import (
     assertGreaterEqual,
+    assertLessEqual,
     expect_info_dict,
     expect_warnings,
     get_params,
@@ -121,10 +122,13 @@ def generator(test_case, tname):
         params = get_params(test_case.get('params', {}))
         params['outtmpl'] = tname + '_' + params['outtmpl']
         if is_playlist and 'playlist' not in test_case:
-            params.setdefault('extract_flat', 'in_playlist')
-            params.setdefault('playlistend', test_case.get(
-                'playlist_mincount', test_case.get('playlist_count', -2) + 1))
+            params.setdefault('playlistend', max(
+                test_case.get('playlist_mincount', -1),
+                test_case.get('playlist_count', -2) + 1,
+                test_case.get('playlist_maxcount', -2) + 1))
             params.setdefault('skip_download', True)
+            if 'playlist_duration_sum' not in test_case:
+                params.setdefault('extract_flat', 'in_playlist')
 
         ydl = YoutubeDL(params, auto_init=False)
         ydl.add_default_info_extractors()
@@ -159,6 +163,7 @@ def generator(test_case, tname):
                 try_rm(os.path.splitext(tc_filename)[0] + '.info.json')
         try_rm_tcs_files()
         try:
+            test_url = test_case['url']
             try_num = 1
             while True:
                 try:
@@ -166,7 +171,7 @@ def generator(test_case, tname):
                     # for outside error handling, and returns the exit code
                     # instead of the result dict.
                     res_dict = ydl.extract_info(
-                        test_case['url'],
+                        test_url,
                         force_generic_extractor=params.get('force_generic_extractor', False))
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
@@ -194,23 +199,23 @@ def generator(test_case, tname):
                 self.assertTrue('entries' in res_dict)
                 expect_info_dict(self, res_dict, test_case.get('info_dict', {}))
 
+            num_entries = len(res_dict.get('entries', []))
             if 'playlist_mincount' in test_case:
+                mincount = test_case['playlist_mincount']
                 assertGreaterEqual(
-                    self,
-                    len(res_dict['entries']),
-                    test_case['playlist_mincount'],
-                    'Expected at least %d in playlist %s, but got only %d' % (
-                        test_case['playlist_mincount'], test_case['url'],
-                        len(res_dict['entries'])))
+                    self, num_entries, mincount,
+                    f'Expected at least {mincount} entries in playlist {test_url}, but got only {num_entries}')
             if 'playlist_count' in test_case:
+                count = test_case['playlist_count']
+                got = num_entries if num_entries <= count else 'more'
                 self.assertEqual(
-                    len(res_dict['entries']),
-                    test_case['playlist_count'],
-                    'Expected %d entries in playlist %s, but got %d.' % (
-                        test_case['playlist_count'],
-                        test_case['url'],
-                        len(res_dict['entries']),
-                    ))
+                    num_entries, count,
+                    f'Expected exactly {count} entries in playlist {test_url}, but got {got}')
+            if 'playlist_maxcount' in test_case:
+                maxcount = test_case['playlist_maxcount']
+                assertLessEqual(
+                    self, num_entries, maxcount,
+                    f'Expected at most {maxcount} entries in playlist {test_url}, but got more')
             if 'playlist_duration_sum' in test_case:
                 got_duration = sum(e['duration'] for e in res_dict['entries'])
                 self.assertEqual(
