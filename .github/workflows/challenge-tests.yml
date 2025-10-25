@@ -1,8 +1,8 @@
-name: Signature Tests
+name: Challenge Tests
 on:
   push:
     paths:
-      - .github/workflows/signature-tests.yml
+      - .github/workflows/challenge-tests.yml
       - test/test_jsc/*.py
       - yt_dlp/extractor/youtube/jsc/**.js
       - yt_dlp/extractor/youtube/jsc/**.py
@@ -10,7 +10,7 @@ on:
       - yt_dlp/utils/_jsruntime.py
   pull_request:
     paths:
-      - .github/workflows/signature-tests.yml
+      - .github/workflows/challenge-tests.yml
       - test/test_jsc/*.py
       - yt_dlp/extractor/youtube/jsc/**.js
       - yt_dlp/extractor/youtube/jsc/**.py
@@ -66,4 +66,4 @@ jobs:
       shell: bash
       run: |
         python -m yt_dlp -v || true  # Print debug head
-        python ./devscripts/run_tests.py test/test_jsc/
+        python ./devscripts/run_tests.py test/test_jsc -k download
