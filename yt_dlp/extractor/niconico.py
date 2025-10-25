@@ -2,7 +2,6 @@ import datetime as dt
 import functools
 import itertools
 import json
-import re
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..networking.exceptions import HTTPError
@@ -22,6 +21,7 @@ from ..utils import (
     str_or_none,
     time_seconds,
     truncate_string,
+    unescapeHTML,
     unified_timestamp,
     update_url_query,
     url_basename,
@@ -721,11 +721,23 @@ class NicovideoSearchBaseIE(InfoExtractor):
         query = query or {}
         pages = [query['page']] if 'page' in query else itertools.count(1)
         for page_num in pages:
-            query['page'] = str(page_num)
+            current_page = query['page'] + page_num if isinstance(pages, list) else page_num
+            query['page'] = str(current_page)
             webpage = self._download_webpage(url, item_id, query=query, note=note % {'page': page_num})
-            results = re.findall(r'(?<=data-video-id=)["\']?(?P<videoid>.*?)(?=["\'])', webpage)
+
+            server_response = self._search_regex(r'<meta\s+name=["\']server-response["\']\s+content=["\']([^"\']+)["\']', webpage, 'videos json')
+            sr_json = self._parse_json(unescapeHTML(server_response), 'search response') or {}
+            results = traverse_obj(
+                sr_json,
+                ('data', 'response', '$getSearchVideoV2', 'data', 'items', ..., ('id')),
+            ) or []
+
             for item in results:
                 yield self.url_result(f'https://www.nicovideo.jp/watch/{item}', 'Niconico', item)
+
+            has_next = traverse_obj(sr_json, ('data', 'response', '$getSearchVideoV2', 'data', 'hasNext'), default=None)
+            if has_next is not None and not has_next:
+                break
             if not results:
                 break
 
