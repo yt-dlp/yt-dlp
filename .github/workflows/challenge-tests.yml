@@ -32,6 +32,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', pypy-3.11]
+    env:
+      QJS_VERSION: '2025-04-26'  # Earliest version with rope strings
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
@@ -51,6 +53,17 @@ jobs:
       uses: actions/setup-node@v6
       with:
         node-version: '20.0'  # minimum supported version
+    - name: Install QuickJS (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+          wget "https://bellard.org/quickjs/binary_releases/quickjs-linux-x86_64-${QJS_VERSION}.zip" -O quickjs.zip
+          unzip quickjs.zip qjs
+          sudo install qjs /usr/local/bin/qjs
+    - name: Install QuickJS (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+          Invoke-WebRequest "https://bellard.org/quickjs/binary_releases/quickjs-win-x86_64-$env:QJS_VERSION.zip" -OutFile quickjs.zip
+          unzip quickjs.zip
     - name: Install test requirements
       run: |
         python ./devscripts/install_deps.py --print --only-optional-groups --include-group test > requirements.txt

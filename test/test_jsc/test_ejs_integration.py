@@ -20,6 +20,7 @@ from yt_dlp.extractor.youtube.jsc.provider import (
 from yt_dlp.extractor.youtube.jsc._builtin.bun import BunJCP
 from yt_dlp.extractor.youtube.jsc._builtin.deno import DenoJCP
 from yt_dlp.extractor.youtube.jsc._builtin.node import NodeJCP
+from yt_dlp.extractor.youtube.jsc._builtin.quickjs import QuickJSJCP
 
 
 pytestmark = pytest.mark.skipif(not _has_ejs, reason='yt-dlp-ejs not available')
@@ -62,7 +63,7 @@ RESPONSES = [
 ]
 
 
-@pytest.fixture(params=[BunJCP, DenoJCP, NodeJCP])
+@pytest.fixture(params=[BunJCP, DenoJCP, NodeJCP, QuickJSJCP])
 def jcp(request, ie, logger):
     obj = request.param(ie, logger, None)
     if not obj.is_available():
