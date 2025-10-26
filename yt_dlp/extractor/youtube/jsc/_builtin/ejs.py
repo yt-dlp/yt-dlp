@@ -50,7 +50,6 @@ class ScriptVariant(enum.Enum):
 
 class ScriptSource(enum.Enum):
     PYPACKAGE = 'python package'
-    BINARY = 'binary'
     CACHE = 'cache'
     WEB = 'web'
     BUILTIN = 'builtin'
@@ -236,7 +235,6 @@ class EJSBaseJCP(JsChallengeProvider):
     def _iter_script_sources(self) -> Generator[tuple[ScriptSource, Callable[[ScriptType], Script | None]]]:
         yield from [
             (ScriptSource.PYPACKAGE, self._pypackage_source),
-            (ScriptSource.BINARY, self._binary_source),
             (ScriptSource.CACHE, self._cached_source),
             (ScriptSource.BUILTIN, self._builtin_source),
             (ScriptSource.WEB, self._web_release_source)]
@@ -251,14 +249,6 @@ class EJSBaseJCP(JsChallengeProvider):
                 f'Failed to load challenge solver {script_type.value} script from python package: {e}{provider_bug_report_message(self)}')
             return None
         return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.PYPACKAGE, yt_dlp_ejs.version, code)
-
-    def _binary_source(self, script_type: ScriptType, /) -> Script | None:
-        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-            file = importlib.resources.files(yt_dlp) / self._MIN_SCRIPT_FILENAMES[script_type]
-            if file.is_file():
-                code = file.read_text(encoding='utf-8')
-                return Script(script_type, ScriptVariant.MINIFIED, ScriptSource.BINARY, self._SCRIPT_VERSION, code)
-        return None
 
     def _cached_source(self, script_type: ScriptType, /) -> Script | None:
         if data := self.ie.cache.load(self._CACHE_SECTION, script_type.value):
