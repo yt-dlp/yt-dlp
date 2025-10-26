@@ -6,7 +6,9 @@ import functools
 from ._utils import _get_exe_version_output, detect_exe_version, int_or_none
 
 
-def version_tuple(v):
+# NOT public API
+def runtime_version_tuple(v):
+    # NB: will return (0,) if `v` is an invalid version string
     return tuple(int_or_none(x, default=0) for x in v.split('.'))
 
 
@@ -40,8 +42,8 @@ class DenoJsRuntime(JsRuntime):
         out = _get_exe_version_output(path, ['--version'])
         if not out:
             return None
-        version = detect_exe_version(out, r'^deno (\S+)')
-        vt = version_tuple(version)
+        version = detect_exe_version(out, r'^deno (\S+)', 'unknown')
+        vt = runtime_version_tuple(version)
         return JsRuntimeInfo(
             name='deno', path=path, version=version, version_tuple=vt,
             supported=vt >= self.MIN_SUPPORTED_VERSION)
@@ -55,8 +57,8 @@ class BunJsRuntime(JsRuntime):
         out = _get_exe_version_output(path, ['--version'])
         if not out:
             return None
-        version = detect_exe_version(out, r'^(\S+)')
-        vt = version_tuple(version)
+        version = detect_exe_version(out, r'^(\S+)', 'unknown')
+        vt = runtime_version_tuple(version)
         return JsRuntimeInfo(
             name='bun', path=path, version=version, version_tuple=vt,
             supported=vt >= self.MIN_SUPPORTED_VERSION)
@@ -70,8 +72,8 @@ class NodeJsRuntime(JsRuntime):
         out = _get_exe_version_output(path, ['--version'])
         if not out:
             return None
-        version = detect_exe_version(out, r'^v(\S+)')
-        vt = version_tuple(version)
+        version = detect_exe_version(out, r'^v(\S+)', 'unknown')
+        vt = runtime_version_tuple(version)
         return JsRuntimeInfo(
             name='node', path=path, version=version, version_tuple=vt,
             supported=vt >= self.MIN_SUPPORTED_VERSION)
@@ -88,12 +90,12 @@ class QuickJsRuntime(JsRuntime):
             return None
         is_ng = 'QuickJS-ng' in out
 
-        version = detect_exe_version(out, r'^QuickJS(?:-ng)?\s+version\s+(\S+)')
-        vt = version_tuple(version.replace('-', '.'))
+        version = detect_exe_version(out, r'^QuickJS(?:-ng)?\s+version\s+(\S+)', 'unknown')
+        vt = runtime_version_tuple(version.replace('-', '.'))
         if is_ng:
             return JsRuntimeInfo(
                 name='quickjs-ng', path=path, version=version, version_tuple=vt,
-                supported=True)
+                supported=vt > (0,))
         return JsRuntimeInfo(
             name='quickjs', path=path, version=version, version_tuple=vt,
             supported=vt >= self.MIN_SUPPORTED_VERSION)
