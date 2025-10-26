@@ -468,7 +468,7 @@ def create_parser():
         help=(
             'Additional JavaScript runtime to enable, with an optional path to the runtime location. '
             'This option can be used multiple times to enable multiple runtimes. '
-            'Supported runtimes: deno, node, bun. By default, only "deno" runtime is enabled.'))
+            'Supported runtimes: deno, node, bun, quickjs. By default, only "deno" runtime is enabled.'))
     general.add_option(
         '--no-js-runtimes',
         dest='js_runtimes', action='store_const', const=[],

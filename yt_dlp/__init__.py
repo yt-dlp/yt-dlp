@@ -68,6 +68,7 @@ from .utils._jsruntime import (
     BunJsRuntime as _BunJsRuntime,
     DenoJsRuntime as _DenoJsRuntime,
     NodeJsRuntime as _NodeJsRuntime,
+    QuickJsRuntime as _QuickJsRuntime,
 )
 from .YoutubeDL import YoutubeDL
 
@@ -1098,6 +1099,7 @@ from .globals import supported_js_runtimes
 supported_js_runtimes.value['deno'] = _DenoJsRuntime
 supported_js_runtimes.value['node'] = _NodeJsRuntime
 supported_js_runtimes.value['bun'] = _BunJsRuntime
+supported_js_runtimes.value['quickjs'] = _QuickJsRuntime
 
 __all__ = [
     'YoutubeDL',

@@ -75,3 +75,25 @@ class NodeJsRuntime(JsRuntime):
         return JsRuntimeInfo(
             name='node', path=path, version=version, version_tuple=vt,
             supported=vt >= self.MIN_SUPPORTED_VERSION)
+
+
+class QuickJsRuntime(JsRuntime):
+    MIN_SUPPORTED_VERSION = (2023, 12, 9)
+
+    def _info(self):
+        path = self._path or 'qjs'
+        # quickjs does not have --version and --help returns a status code of 1
+        out = _get_exe_version_output(path, ['--help'], ignore_return_code=True)
+        if not out:
+            return None
+        is_ng = 'QuickJS-ng' in out
+
+        version = detect_exe_version(out, r'^QuickJS(?:-ng)?\s+version\s+(\S+)')
+        vt = version_tuple(version.replace('-', '.'))
+        if is_ng:
+            return JsRuntimeInfo(
+                name='quickjs-ng', path=path, version=version, version_tuple=vt,
+                supported=True)
+        return JsRuntimeInfo(
+            name='quickjs', path=path, version=version, version_tuple=vt,
+            supported=vt >= self.MIN_SUPPORTED_VERSION)
