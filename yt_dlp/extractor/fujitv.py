@@ -68,7 +68,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
             query={'is_premium': 'false', 'lu_id': series_id},
         )
 
-        episode = traverse_obj(json_response, ('episodes', lambda _, v: str(v.get('ep_id')) == video_id))
+        episode = traverse_obj(json_response, ('episodes', lambda _, v: str(v.get('ep_id')) == video_id, any))
         if not episode:
             self.report_warning(f'Unable to find episode {video_id} in series {series_id}')
 
