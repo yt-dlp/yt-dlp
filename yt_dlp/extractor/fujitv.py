@@ -212,8 +212,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
         # UA must be set to Android TV to get the settings URL otherwise, the URL wont appear
         # We dont know which UA is required to get the `android_tv` URL (if we manage to find out, we can use it here)
         settings_json = self._download_json(
-            self._AUTH_API,
-            video_id,
+            'https://fod.fujitv.co.jp/apps/api/1/auth/contents/web',video_id,
             headers={
                 'x-authorization': f'Bearer {token}',
                 'User-Agent': 'Mozilla/5.0 (Linux; Android 9; SHIELD Android TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36',
