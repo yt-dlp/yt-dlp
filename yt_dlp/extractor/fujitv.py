@@ -51,7 +51,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
         token = None
         cookies = self._get_cookies(self._FRONTEND_URL)
         if cookies and 'CT' in cookies:
-            token = cookies['CT']['value']
+            token = cookies['CT'].value
         if not token:
             # Fallback: try to fetch from HTML if needed (rare)
             front_page = self._download_webpage(
