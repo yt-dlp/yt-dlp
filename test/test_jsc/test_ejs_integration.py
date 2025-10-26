@@ -27,8 +27,7 @@ pytestmark = pytest.mark.skipif(not _has_ejs, reason='yt-dlp-ejs not available')
 
 TESTS = [
     JsChallengeRequest(JsChallengeType.N, NChallengeInput('https://www.youtube.com/s/player/3d3ba064/player_ias_tce.vflset/en_US/base.js', [
-        'ZdZIqFPQK-Ty8wId',
-        '4GMrWHyKI5cEvhDO',
+        'ZdZIqFPQK-Ty8wId', '4GMrWHyKI5cEvhDO',
     ])),
     JsChallengeRequest(JsChallengeType.SIG, SigChallengeInput('https://www.youtube.com/s/player/3d3ba064/player_ias_tce.vflset/en_US/base.js', [
         'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt',
@@ -40,8 +39,7 @@ TESTS = [
         'AAJAJfQdSswRQIhAMG5SN7-cAFChdrE7tLA6grH0rTMICA1mmDc0HoXgW3CAiAQQ4=CspfaF_vt82XH5yewvqcuEkvzeTsbRuHssRMyJQ=I',
     ])),
     JsChallengeRequest(JsChallengeType.N, NChallengeInput('https://www.youtube.com/s/player/6742b2b9/player_ias_tce.vflset/en_US/base.js', [
-        '_HPB-7GFg1VTkn9u',
-        'K1t_fcB6phzuq2SF',
+        '_HPB-7GFg1VTkn9u', 'K1t_fcB6phzuq2SF',
     ])),
     JsChallengeRequest(JsChallengeType.SIG, SigChallengeInput('https://www.youtube.com/s/player/6742b2b9/player_ias_tce.vflset/en_US/base.js', [
         'MMGZJMUucirzS_SnrSPYsc85CJNnTUi6GgR5NKn-znQEICACojE8MHS6S7uYq4TGjQX_D4aPk99hNU6wbTvorvVVMgIARwsSdQfJAA',
@@ -53,10 +51,13 @@ RESPONSES = [
         NChallengeOutput if test.type is JsChallengeType.N else SigChallengeOutput
     )(dict(zip(test.input.challenges, results, strict=True)))))
     for test, results in zip(TESTS, [
+        # https://www.youtube.com/s/player/3d3ba064/player_ias_tce.vflset/en_US/base.js
         ['qmtUsIz04xxiNW', 'N9gmEX7YhKTSmw'],
         ['ttJC2JfQdSswRAIgGBCxZyAfKyi0cjXCb3gqEctUw-NYdNmOEvaepit0zJAtIEsgOV2SXZjhSHMNy0NXNG_1kNyBf6HPuAuCduh-a7O'],
+        # https://www.youtube.com/s/player/5ec65609/player_ias_tce.vflset/en_US/base.js
         ['4SvMpDQH-vBJCw'],
         ['AJfQdSswRQIhAMG5SN7-cAFChdrE7tLA6grI0rTMICA1mmDc0HoXgW3CAiAQQ4HCspfaF_vt82XH5yewvqcuEkvzeTsbRuHssRMyJQ=='],
+        # https://www.youtube.com/s/player/6742b2b9/player_ias_tce.vflset/en_US/base.js
         ['qUAsPryAO_ByYg', 'Y7PcOt3VE62mog'],
         ['AJfQdSswRAIgMVVvrovTbw6UNh99kPa4D_XQjGT4qYu7S6SHM8EjoCACIEQnz-nKN5RgG6iUTnNJC58csYPSrnS_SzricuUMJZGM'],
     ], strict=True)
