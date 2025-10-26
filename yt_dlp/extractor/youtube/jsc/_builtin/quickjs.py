@@ -56,4 +56,4 @@ class QuickJSJCP(EJSBaseJCP, BuiltinIEContentProvider):
 
 @register_preference(QuickJSJCP)
 def preference(provider: JsChallengeProvider, requests: list[JsChallengeRequest]) -> int:
-    return 950
+    return 850
