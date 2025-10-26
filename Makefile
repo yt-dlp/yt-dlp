@@ -31,7 +31,7 @@ clean-test:
 clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
 	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS \
-	.ejs-* yt_dlp_ejs/
+	yt-dlp.zip .ejs-* yt_dlp_ejs/
 clean-cache:
 	find . \( \
 		-type d -name ".*_cache" -o -type d -name __pycache__ -o -name "*.pyc" -o -name "*.class" \
