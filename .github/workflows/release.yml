@@ -271,6 +271,7 @@ jobs:
           fi
           printf '\n\n%s\n\n%s%s\n\n---\n' \
             "#### A description of the various files is in the [README](https://github.com/${REPOSITORY}#release-files)" \
+            "The Unix zipimport binary (`yt-dlp`) contains code licensed under ISC and MIT. " \
             "The PyInstaller-bundled executables are subject to the licenses described in " \
             "[THIRD_PARTY_LICENSES.txt](https://github.com/${BASE_REPO}/blob/${HEAD_SHA}/THIRD_PARTY_LICENSES.txt)" >> ./RELEASE_NOTES
           python ./devscripts/make_changelog.py -vv --collapsible >> ./RELEASE_NOTES

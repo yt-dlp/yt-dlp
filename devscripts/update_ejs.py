@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import contextlib
+import io
 import json
 import hashlib
 import pathlib
 import urllib.request
+import zipfile
 
 
 TEMPLATE = '''\
@@ -29,10 +31,51 @@ ASSETS = {
     'yt.solver.core.min.js': False,
     'yt.solver.core.js': True,
 }
+MAKEFILE_PATH = BASE_PATH / 'Makefile'
 
 
 def request(url: str):
     return contextlib.closing(urllib.request.urlopen(url))
+
+
+def makefile_variables(
+        version: str | None = None,
+        name: str | None = None,
+        digest: str | None = None,
+        data: bytes | None = None,
+        keys_only: bool = False,
+) -> dict[str, str | None]:
+    return {
+        'EJS_VERSION': version,
+        'EJS_WHEEL_NAME': name,
+        'EJS_WHEEL_HASH': digest,
+        'EJS_PY_FOLDERS': None if keys_only else list_wheel_contents(data, 'py', files=False),
+        'EJS_PY_FILES': None if keys_only else list_wheel_contents(data, 'py', folders=False),
+        'EJS_JS_FOLDERS': None if keys_only else list_wheel_contents(data, 'js', files=False),
+        'EJS_JS_FILES': None if keys_only else list_wheel_contents(data, 'js', folders=False),
+    }
+
+
+def list_wheel_contents(
+        wheel_data: bytes,
+        suffix: str | None = None,
+        folders: bool = True,
+        files: bool = True,
+) -> str:
+    path_gen = (zinfo.filename for zinfo in zipfile.ZipFile(io.BytesIO(wheel_data)).infolist())
+    filtered = filter(lambda path: path.startswith('yt_dlp_ejs/'), path_gen)
+    if suffix:
+        filtered = filter(lambda path: path.endswith(f'.{suffix}'), filtered)
+
+    files_list = list(filtered)
+    if not folders:
+        return ' '.join(files_list)
+
+    folders_list = list(dict.fromkeys(path.rpartition('/')[0] for path in files_list))
+    if not files:
+        return ' '.join(folders_list)
+
+    return ' '.join(folders_list + files_list)
 
 
 def main():
@@ -47,6 +90,15 @@ def main():
         print('yt-dlp-ejs dependency line could not be found')
         return
 
+    makefile_info = makefile_variables(keys_only=True)
+    prefixes = tuple(f'{key} = ' for key in makefile_info)
+    with MAKEFILE_PATH.open() as file:
+        for line in file:
+            if not line.startswith(prefixes):
+                continue
+            key, _, val = line.partition(' = ')
+            makefile_info[key] = val.rstrip()
+
     with request(RELEASE_URL) as resp:
         info = json.load(resp)
 
@@ -57,9 +109,11 @@ def main():
 
     print(f'Updating yt-dlp-ejs from {current_version} to {version}')
     hashes = []
+    wheel_info = None
     for asset in info['assets']:
         name = asset['name']
-        if name not in ASSETS:
+        is_wheel = name.startswith('yt_dlp_ejs-') and name.endswith('.whl')
+        if not is_wheel and name not in ASSETS:
             continue
         with request(asset['browser_download_url']) as resp:
             data = resp.read()
@@ -70,6 +124,10 @@ def main():
         hexdigest = hashlib.new(algo, data).hexdigest()
         assert hexdigest == expected, f'downloaded attest mismatch ({hexdigest!r} != {expected!r})'
 
+        if is_wheel:
+            wheel_info = makefile_variables(version, name, digest, data)
+            continue
+
         # calculate sha3-512 digest
         asset_hash = hashlib.sha3_512(data).hexdigest()
         hashes.append(f'    {name!r}: {asset_hash!r},')
@@ -77,15 +135,24 @@ def main():
         if ASSETS[name]:
             (PACKAGE_PATH / name).write_bytes(data)
 
+    hash_mapping = '\n'.join(hashes)
+    for asset_name in ASSETS:
+        assert asset_name in hash_mapping, f'{asset_name} not found in release'
+    assert len(list(filter(None, wheel_info.values()))) == 7, 'wheel info not found in release'
+
     (PACKAGE_PATH / '_info.py').write_text(TEMPLATE.format(
         version=version,
-        hash_mapping='\n'.join(hashes),
+        hash_mapping=hash_mapping,
     ))
 
     content = PYPROJECT_PATH.read_text()
     updated = content.replace(PREFIX + current_version, PREFIX + version)
     PYPROJECT_PATH.write_text(updated)
 
+    makefile = MAKEFILE_PATH.read_text()
+    for key in wheel_info:
+        makefile = makefile.replace(f'{key} = {makefile_info[key]}', f'{key} = {wheel_info[key]}')
+    MAKEFILE_PATH.write_text(makefile)
 
 if __name__ == '__main__':
     main()

@@ -147,7 +147,7 @@ Most notably, the PyInstaller-bundled executables include GPLv3+ licensed code, 
 
 See [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt) for details.
 
-The zipimport binary (`yt-dlp`), the source tarball (`yt-dlp.tar.gz`), and the PyPI source distribution & wheel only contain code licensed under the [Unlicense](LICENSE).
+The git repository, the source tarball (`yt-dlp.tar.gz`), the PyPI source distribution and the PyPI built distribution (wheel) only contain code licensed under the [Unlicense](LICENSE).
 
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
