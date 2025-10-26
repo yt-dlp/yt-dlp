@@ -46,10 +46,10 @@ class ScriptVariant(enum.Enum):
 
 
 class ScriptSource(enum.Enum):
-    PYPACKAGE = 'python package'
-    CACHE = 'cache'
-    WEB = 'web'
-    BUILTIN = 'builtin'
+    PYPACKAGE = 'python package'  # PyPI, PyInstaller exe, zipimport binary, etc
+    CACHE = 'cache'  # GitHub release assets (cached)
+    WEB = 'web'  # GitHub release assets (downloaded)
+    BUILTIN = 'builtin'  # vendored (full core script; import-only lib script + NPM cache)
 
 
 @dataclasses.dataclass
