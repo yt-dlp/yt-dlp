@@ -26,23 +26,40 @@ from yt_dlp.extractor.youtube.jsc._builtin.quickjs import QuickJSJCP
 pytestmark = pytest.mark.skipif(not _has_ejs, reason='yt-dlp-ejs not available')
 
 TESTS = [
+    # 3d3ba064-tce
     JsChallengeRequest(JsChallengeType.N, NChallengeInput('https://www.youtube.com/s/player/3d3ba064/player_ias_tce.vflset/en_US/base.js', [
         'ZdZIqFPQK-Ty8wId', '4GMrWHyKI5cEvhDO',
     ])),
     JsChallengeRequest(JsChallengeType.SIG, SigChallengeInput('https://www.youtube.com/s/player/3d3ba064/player_ias_tce.vflset/en_US/base.js', [
         'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt',
     ])),
+    # 5ec65609-tce
     JsChallengeRequest(JsChallengeType.N, NChallengeInput('https://www.youtube.com/s/player/5ec65609/player_ias_tce.vflset/en_US/base.js', [
         '0eRGgQWJGfT5rFHFj',
     ])),
     JsChallengeRequest(JsChallengeType.SIG, SigChallengeInput('https://www.youtube.com/s/player/5ec65609/player_ias_tce.vflset/en_US/base.js', [
         'AAJAJfQdSswRQIhAMG5SN7-cAFChdrE7tLA6grH0rTMICA1mmDc0HoXgW3CAiAQQ4=CspfaF_vt82XH5yewvqcuEkvzeTsbRuHssRMyJQ=I',
     ])),
+    # 6742b2b9-tce
     JsChallengeRequest(JsChallengeType.N, NChallengeInput('https://www.youtube.com/s/player/6742b2b9/player_ias_tce.vflset/en_US/base.js', [
         '_HPB-7GFg1VTkn9u', 'K1t_fcB6phzuq2SF',
     ])),
     JsChallengeRequest(JsChallengeType.SIG, SigChallengeInput('https://www.youtube.com/s/player/6742b2b9/player_ias_tce.vflset/en_US/base.js', [
         'MMGZJMUucirzS_SnrSPYsc85CJNnTUi6GgR5NKn-znQEICACojE8MHS6S7uYq4TGjQX_D4aPk99hNU6wbTvorvVVMgIARwsSdQfJAA',
+    ])),
+    # 2b83d2e0-main
+    JsChallengeRequest(JsChallengeType.N, NChallengeInput('https://www.youtube.com/s/player/2b83d2e0/player_ias.vflset/en_US/base.js', [
+        '0eRGgQWJGfT5rFHFj',
+    ])),
+    JsChallengeRequest(JsChallengeType.SIG, SigChallengeInput('https://www.youtube.com/s/player/2b83d2e0/player_ias.vflset/en_US/base.js', [
+        'MMGZJMUucirzS_SnrSPYsc85CJNnTUi6GgR5NKn-znQEICACojE8MHS6S7uYq4TGjQX_D4aPk99hNU6wbTvorvVVMgIARwsSdQfJA',
+    ])),
+    # 638ec5c6-main
+    JsChallengeRequest(JsChallengeType.N, NChallengeInput('https://www.youtube.com/s/player/638ec5c6/player_ias.vflset/en_US/base.js', [
+        'ZdZIqFPQK-Ty8wId',
+    ])),
+    JsChallengeRequest(JsChallengeType.SIG, SigChallengeInput('https://www.youtube.com/s/player/638ec5c6/player_ias.vflset/en_US/base.js', [
+        'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt',
     ])),
 ]
 
@@ -51,15 +68,21 @@ RESPONSES = [
         NChallengeOutput if test.type is JsChallengeType.N else SigChallengeOutput
     )(dict(zip(test.input.challenges, results, strict=True)))))
     for test, results in zip(TESTS, [
-        # https://www.youtube.com/s/player/3d3ba064/player_ias_tce.vflset/en_US/base.js
+        # 3d3ba064-tce
         ['qmtUsIz04xxiNW', 'N9gmEX7YhKTSmw'],
         ['ttJC2JfQdSswRAIgGBCxZyAfKyi0cjXCb3gqEctUw-NYdNmOEvaepit0zJAtIEsgOV2SXZjhSHMNy0NXNG_1kNyBf6HPuAuCduh-a7O'],
-        # https://www.youtube.com/s/player/5ec65609/player_ias_tce.vflset/en_US/base.js
+        # 5ec65609-tce
         ['4SvMpDQH-vBJCw'],
         ['AJfQdSswRQIhAMG5SN7-cAFChdrE7tLA6grI0rTMICA1mmDc0HoXgW3CAiAQQ4HCspfaF_vt82XH5yewvqcuEkvzeTsbRuHssRMyJQ=='],
-        # https://www.youtube.com/s/player/6742b2b9/player_ias_tce.vflset/en_US/base.js
+        # 6742b2b9-tce
         ['qUAsPryAO_ByYg', 'Y7PcOt3VE62mog'],
         ['AJfQdSswRAIgMVVvrovTbw6UNh99kPa4D_XQjGT4qYu7S6SHM8EjoCACIEQnz-nKN5RgG6iUTnNJC58csYPSrnS_SzricuUMJZGM'],
+        # 2b83d2e0-main
+        ['euHbygrCMLksxd'],
+        ['-MGZJMUucirzS_SnrSPYsc85CJNnTUi6GgR5NKnMznQEICACojE8MHS6S7uYq4TGjQX_D4aPk99hNU6wbTvorvVVMgIARwsSdQfJ'],
+        # 638ec5c6-main
+        ['1qov8-KM-yH'],
+        ['MhudCuAuP-6fByOk1_GNXN7gNHHShjyXS2VOgsEItAJz0tipeav0OmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt'],
     ], strict=True)
 ]
 
