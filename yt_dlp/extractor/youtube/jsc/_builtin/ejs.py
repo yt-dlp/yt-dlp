@@ -5,11 +5,8 @@ import dataclasses
 import enum
 import functools
 import hashlib
-import importlib.resources
 import json
-import sys
 
-import yt_dlp
 from yt_dlp.dependencies import yt_dlp_ejs as _has_ejs
 from yt_dlp.extractor.youtube.jsc._builtin import vendor
 from yt_dlp.extractor.youtube.jsc.provider import (
