@@ -45,10 +45,12 @@ def makefile_variables(
         data: bytes | None = None,
         keys_only: bool = False,
 ) -> dict[str, str | None]:
+    assert keys_only or all(arg is not None for arg in (version, name, digest, data))
+
     return {
-        'EJS_VERSION': version,
-        'EJS_WHEEL_NAME': name,
-        'EJS_WHEEL_HASH': digest,
+        'EJS_VERSION': None if keys_only else version,
+        'EJS_WHEEL_NAME': None if keys_only else name,
+        'EJS_WHEEL_HASH': None if keys_only else digest,
         'EJS_PY_FOLDERS': None if keys_only else list_wheel_contents(data, 'py', files=False),
         'EJS_PY_FILES': None if keys_only else list_wheel_contents(data, 'py', folders=False),
         'EJS_JS_FOLDERS': None if keys_only else list_wheel_contents(data, 'js', files=False),
