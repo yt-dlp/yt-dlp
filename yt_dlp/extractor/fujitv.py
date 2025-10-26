@@ -256,5 +256,4 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': f'{self._IMG_BASE}/{series_id}/episode/{video_id}_a.jpg',
-            '_format_sort_fields': ('tbr',),
         }
