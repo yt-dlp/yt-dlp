@@ -62,7 +62,7 @@ jobs:
     - name: Install QuickJS (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-          Invoke-WebRequest "https://bellard.org/quickjs/binary_releases/quickjs-win-x86_64-$env:QJS_VERSION.zip" -OutFile quickjs.zip
+          Invoke-WebRequest "https://bellard.org/quickjs/binary_releases/quickjs-win-x86_64-${Env:QJS_VERSION}.zip" -OutFile quickjs.zip
           unzip quickjs.zip
     - name: Install test requirements
       run: |
@@ -72,5 +72,5 @@ jobs:
     - name: Run tests
       timeout-minutes: 15
       run: |
-        python -m yt_dlp -v || true  # Print debug head
+        python -m yt_dlp -v --js-runtimes node --js-runtimes bun --js-runtimes quickjs || true
         python ./devscripts/run_tests.py test/test_jsc -k download
