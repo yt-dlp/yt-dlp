@@ -154,5 +154,6 @@ def main():
         makefile = makefile.replace(f'{key} = {makefile_info[key]}', f'{key} = {wheel_info[key]}')
     MAKEFILE_PATH.write_text(makefile)
 
+
 if __name__ == '__main__':
     main()
