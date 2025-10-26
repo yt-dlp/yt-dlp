@@ -145,7 +145,9 @@ While yt-dlp is licensed under the [Unlicense](LICENSE), many of the release fil
 
 Most notably, the PyInstaller-bundled executables include GPLv3+ licensed code, and as such the combined work is licensed under [GPLv3+](https://www.gnu.org/licenses/gpl-3.0.html).
 
-See [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt) for details.
+The zipimport Unix executable (`yt-dlp`) contains [ISC](https://github.com/meriyah/meriyah/blob/main/LICENSE.md) licensed code from [`meriyah`](https://github.com/meriyah/meriyah) and [MIT](https://github.com/davidbonnet/astring/blob/main/LICENSE) licensed code from [`astring`](https://github.com/davidbonnet/astring).
+
+See [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt) for more details.
 
 The git repository, the source tarball (`yt-dlp.tar.gz`), the PyPI source distribution and the PyPI built distribution (wheel) only contain code licensed under the [Unlicense](LICENSE).
 
