@@ -50,14 +50,9 @@ class FujiTVFODPlus7IE(InfoExtractor):
         self._request_webpage(HEADRequest(self._FRONTEND_URL), video_id)
         token = None
         cookies = self._get_cookies(self._FRONTEND_URL)
-        if cookies and 'CT' in cookies:
-            token = cookies['CT'].value
-        if not token:
-            # Fallback: try to fetch from HTML if needed (rare)
-            front_page = self._download_webpage(
-                self._FRONTEND_URL, video_id, note='Downloading front page for CT token', fatal=False,
-            )
-            token = self._search_regex(r'CT=([^;]+);', front_page or '', 'ct token', default=None)
+        # use UT token if available, else fall back to CT token
+        token = cookies.get('UT').value if cookies and 'UT' in cookies else None
+
         if not token:
             raise ExtractorError('CT token not found')
 
@@ -72,19 +67,18 @@ class FujiTVFODPlus7IE(InfoExtractor):
         if not episode:
             self.report_warning(f'Unable to find episode {video_id} in series {series_id}')
 
-        json_response = self._download_json(
+        detail = self._download_json(
             f'{self._API_URL}/apps/api/c/v2/episode/detail/',
             series_id,
             headers={'x-authorization': f'Bearer {token}'},
             query={'is_premium': 'false', 'lu_id': series_id, 'ep_id': video_id},
         )
 
-
-        detail = json_response
         # UA must be set to Android TV to get the settings URL otherwise, the URL wont appear
         # We dont know which UA is required to get the `android_tv` URL (if we manage to find out, we can use it here)
         settings_json = self._download_json(
-            'https://fod.fujitv.co.jp/apps/api/1/auth/contents/web',video_id,
+            'https://fod.fujitv.co.jp/apps/api/1/auth/contents/web',
+            video_id,
             headers={
                 'x-authorization': f'Bearer {token}',
                 'User-Agent': 'Mozilla/5.0 (Linux; Android 9; SHIELD Android TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36',
@@ -110,13 +104,17 @@ class FujiTVFODPlus7IE(InfoExtractor):
             settings_url,
             video_id,
             headers={'User-Agent': 'Mozilla/5.0 (Linux; Android 9; SHIELD Android TV)'},
-            fatal=False,
+            fatal=True,
         )
 
         m3u8_url = traverse_obj(video_selector_json, ('video_selector', -1, 'url'))
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            m3u8_url, video_id, ext=None, m3u8_id='hls', fatal=False,
+            m3u8_url,
+            video_id,
+            ext=None,
+            m3u8_id='hls',
+            fatal=True,
         )
 
         return {
