@@ -1,5 +1,5 @@
 all: lazy-extractors yt-dlp doc pypi-files
-ejs-all: lazy-extractors yt-dlp-with-ejs doc pypi-files
+all-extra: lazy-extractors yt-dlp-extra doc pypi-files
 clean: clean-test clean-dist
 clean-all: clean clean-cache
 completions: completion-bash completion-fish completion-zsh
@@ -17,7 +17,7 @@ pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
         completions completion-bash completion-fish completion-zsh \
         doc issuetemplates supportedsites ot offlinetest codetest test \
         tar pypi-files lazy-extractors install uninstall \
-        ejs-all current-ejs-version yt-dlp-with-ejs
+        all-extra yt-dlp-extra current-ejs-version
 
 .IGNORE: current-ejs-version
 .SILENT: current-ejs-version
@@ -191,7 +191,7 @@ EJS_PY_FILES = yt_dlp_ejs/__init__.py yt_dlp_ejs/_version.py yt_dlp_ejs/yt/__ini
 EJS_JS_FOLDERS = yt_dlp_ejs/yt/solver
 EJS_JS_FILES = yt_dlp_ejs/yt/solver/core.min.js yt_dlp_ejs/yt/solver/lib.min.js
 
-yt-dlp-with-ejs: current-ejs-version .ejs-$(EJS_VERSION) $(EJS_PY_FILES) $(EJS_JS_FILES) yt-dlp.zip
+yt-dlp-extra: current-ejs-version .ejs-$(EJS_VERSION) $(EJS_PY_FILES) $(EJS_JS_FILES) yt-dlp.zip
 	mkdir -p zip
 	for d in $(EJS_PY_FOLDERS) ; do \
 	  mkdir -p zip/$$d ;\
