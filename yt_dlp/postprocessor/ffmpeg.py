@@ -671,13 +671,17 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
                              f'-metadata:s:s:{i}', f'title={name}'])
 
         for json_lang, json_filename in json_subs.items():
-            escaped_json_filename = self._ffmpeg_filename_argument(json_filename)
-            json_basename = os.path.basename(json_filename)
+            filename_arg = self._ffmpeg_filename_argument(json_filename)
+            # Stream selectors use colons as their separator. Any colon in the
+            # filename (protocol included) needs to be escaped.
+            filename_arg_escaped = filename_arg.replace(':', r'\:')
+
+
             opts.extend([
                 '-map', f'-0:m:filename:{json_lang}.json?',
-                '-attach', escaped_json_filename,
-                f'-metadata:s:m:filename:{json_basename}', 'mimetype=application/json',
-                f'-metadata:s:m:filename:{json_basename}', f'filename={json_lang}.json',
+                '-attach', filename_arg,
+                f'-metadata:s:m:filename:{filename_arg_escaped}', 'mimetype=application/json',
+                f'-metadata:s:m:filename:{filename_arg_escaped}', f'filename={json_lang}.json',
             ])
 
         temp_filename = prepend_extension(filename, 'temp')
@@ -828,8 +832,10 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             write_json_file(self._downloader.sanitize_info(info, self.get_param('clean_infojson', True)), infofn)
             info['infojson_filename'] = infofn
 
-        escaped_name = self._ffmpeg_filename_argument(infofn)
-        info_basename = os.path.basename(infofn)
+        filename_arg = self._ffmpeg_filename_argument(infofn)
+        # Stream selectors use colons as their separator. Any colon in the
+        # filename (protocol included) needs to be escaped.
+        filename_arg_escaped = filename_arg.replace(':', r'\:')
 
         yield (
             # In order to override any old info.json reliably we need to
@@ -839,9 +845,9 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             # This map operation allows us to actually replace any previous
             # info.json data.
             '-map', '-0:m:filename:info.json?',
-            '-attach', escaped_name,
-            f'-metadata:s:m:filename:{info_basename}', 'mimetype=application/json',
-            f'-metadata:s:m:filename:{info_basename}', 'filename=info.json',
+            '-attach', filename_arg,
+            f'-metadata:s:m:filename:{filename_arg_escaped}', 'mimetype=application/json',
+            f'-metadata:s:m:filename:{filename_arg_escaped}', 'filename=info.json',
         )
 
 
