@@ -175,6 +175,7 @@ from .audiomack import (
     AudiomackAlbumIE,
     AudiomackIE,
 )
+from .audible import AudibleIE
 from .audius import (
     AudiusIE,
     AudiusPlaylistIE,
