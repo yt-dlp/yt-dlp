@@ -123,7 +123,12 @@ artifacts = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["yt_dlp"]
-artifacts = ["/yt_dlp/extractor/lazy_extractors.py"]
+artifacts = [
+    "/yt_dlp/extractor/lazy_extractors.py",
+]
+exclude = [
+    "/yt_dlp/**/*.md",
+]
 
 [tool.hatch.build.targets.wheel.shared-data]
 "completions/bash/yt-dlp" = "share/bash-completion/completions/yt-dlp"
