@@ -6,7 +6,6 @@ import json
 import os
 import random
 import ssl
-import sys
 import threading
 from http.server import BaseHTTPRequestHandler
 from socketserver import ThreadingTCPServer
@@ -248,7 +247,7 @@ def ctx(request):
 
 @pytest.mark.parametrize(
     'handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
-    @pytest.mark.parametrize('ctx', ['http'], indirect=True)  # pure http proxy can only support http
+@pytest.mark.parametrize('ctx', ['http'], indirect=True)  # pure http proxy can only support http
 class TestHTTPProxy:
     def test_http_no_auth(self, handler, ctx):
         with ctx.http_server(HTTPProxyHandler) as server_address:
@@ -293,10 +292,6 @@ class TestHTTPProxy:
                 assert 'Proxy-Authorization' not in proxy_info['headers']
 
     @pytest.mark.skip_handler('Urllib', 'urllib does not support https proxies')
-    @pytest.mark.skip_handlers_if(
-        lambda request, handler: sys.platform == 'win32' and handler.RH_KEY == 'CurlCFFI',
-        'curl_cffi is unstable with self-signed proxies on Windows',
-    )
     def test_https_verify_failed(self, handler, ctx):
         with ctx.http_server(HTTPSProxyHandler) as server_address:
             with handler(verify=True, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
@@ -315,11 +310,11 @@ class TestHTTPProxy:
                 assert proxy_info['headers']['Host'].split(':', 1)[0] == 'xn--fiq228c.tw'
 
 
-    @pytest.mark.parametrize(
-        'handler,ctx', [
-            ('Requests', 'https'),
-            ('CurlCFFI', 'https'),
-        ], indirect=True)
+@pytest.mark.parametrize(
+    'handler,ctx', [
+        ('Requests', 'https'),
+        ('CurlCFFI', 'https'),
+    ], indirect=True)
 class TestHTTPConnectProxy:
     def test_http_connect_no_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler) as server_address:
@@ -363,10 +358,6 @@ class TestHTTPConnectProxy:
                 assert 'Proxy-Authorization' not in proxy_info['headers']
 
     @pytest.mark.skipif(urllib3 is None, reason='requires urllib3 to test')
-    @pytest.mark.skip_handlers_if(
-        lambda request, handler: sys.platform == 'win32' and handler.RH_KEY == 'CurlCFFI',
-        'curl_cffi is unstable with self-signed proxies on Windows',
-    )
     def test_https_connect_verify_failed(self, handler, ctx):
         with ctx.http_server(HTTPSConnectProxyHandler) as server_address:
             with handler(verify=True, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
