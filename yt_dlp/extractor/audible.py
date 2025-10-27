@@ -6,8 +6,8 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
-    float_or_none,
     extract_attributes,
+    float_or_none,
     int_or_none,
     traverse_obj,
     update_url_query,
@@ -197,7 +197,7 @@ class AudibleIE(InfoExtractor):
                 }
                 self.report_warning(
                     'Audible streaming titles are DRM-protected DASH audio. yt-dlp cannot decrypt them. '
-                    'For full audiobook downloads, use audible-cli: https://github.com/mkb79/audible-cli'
+                    'For full audiobook downloads, use audible-cli: https://github.com/mkb79/audible-cli',
                 )
                 allow_unplayable = bool(getattr(getattr(self, '_downloader', None), 'params', {}).get('allow_unplayable_formats'))
                 if allow_unplayable:
@@ -241,7 +241,7 @@ class AudibleIE(InfoExtractor):
             if any(fmt.get('has_drm') for fmt in formats):
                 self.report_warning(
                     'Only the free Audible sample is playable via yt-dlp. '
-                    'For full audiobook downloads in AAX format, use audible-cli: https://github.com/mkb79/audible-cli'
+                    'For full audiobook downloads in AAX format, use audible-cli: https://github.com/mkb79/audible-cli',
                 )
 
         if formats and all(fmt.get('has_drm') for fmt in formats):
@@ -332,11 +332,6 @@ class AudibleIE(InfoExtractor):
             return None
 
         session_id = find_cookie(['session-id', 'sess-at-ac'])
-        session_token = find_cookie(['session-token'])
-        x_acbca = find_cookie(['x-acbca']) or traverse_obj(player_attrs, 'data-audibleapilphtoken')
-        at_acbca = find_cookie(['at-acbca'])
-        sess_at_acbca = find_cookie(['sess-at-acbca'])
-
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
@@ -376,7 +371,7 @@ class AudibleIE(InfoExtractor):
                 self.report_warning(
                     f'Unable to fetch streaming license (HTTP {status}). '
                     'Falling back to sample audio. '
-                    'For full audiobook downloads, see: https://github.com/mkb79/audible-cli'
+                    'For full audiobook downloads, see: https://github.com/mkb79/audible-cli',
                 )
                 return {}
             raise
@@ -398,7 +393,7 @@ class AudibleIE(InfoExtractor):
                 self.report_warning(
                     'Unable to access full audiobook - authentication required. '
                     'Use --cookies-from-browser BROWSER to provide credentials. '
-                    'Falling back to free sample.'
+                    'Falling back to free sample.',
                 )
             else:
                 # Show simplified denial messages for other cases

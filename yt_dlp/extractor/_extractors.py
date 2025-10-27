@@ -165,6 +165,7 @@ from .asobistage import AsobiStageIE
 from .atresplayer import AtresPlayerIE
 from .atscaleconf import AtScaleConfEventIE
 from .atvat import ATVAtIE
+from .audible import AudibleIE
 from .audimedia import AudiMediaIE
 from .audioboom import AudioBoomIE
 from .audiodraft import (
@@ -175,7 +176,6 @@ from .audiomack import (
     AudiomackAlbumIE,
     AudiomackIE,
 )
-from .audible import AudibleIE
 from .audius import (
     AudiusIE,
     AudiusPlaylistIE,
