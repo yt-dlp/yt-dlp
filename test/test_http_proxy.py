@@ -6,6 +6,7 @@ import json
 import os
 import random
 import ssl
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler
 from socketserver import ThreadingTCPServer
@@ -292,6 +293,10 @@ class TestHTTPProxy:
                 assert 'Proxy-Authorization' not in proxy_info['headers']
 
     @pytest.mark.skip_handler('Urllib', 'urllib does not support https proxies')
+    @pytest.mark.skip_handlers_if(
+        lambda request, handler: sys.platform == 'win32' and handler.RH_KEY == 'CurlCFFI',
+        'curl_cffi is unstable with self-signed proxies on Windows',
+    )
     def test_https_verify_failed(self, handler, ctx):
         with ctx.http_server(HTTPSProxyHandler) as server_address:
             with handler(verify=True, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
