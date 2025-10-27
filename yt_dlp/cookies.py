@@ -46,7 +46,7 @@ from .utils import (
 from .utils._utils import _YDLLogger
 from .utils.networking import normalize_url
 
-CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi', 'whale'}
+CHROMIUM_BASED_BROWSERS = {'brave', 'brave-nightly', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi', 'whale'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
@@ -229,6 +229,7 @@ def _get_chromium_based_browser_settings(browser_name):
         appdata_roaming = os.path.expandvars('%APPDATA%')
         browser_dir = {
             'brave': os.path.join(appdata_local, R'BraveSoftware\Brave-Browser\User Data'),
+            'brave-nightly': os.path.join(appdata_local, R'BraveSoftware\Brave-Browser-Nightly\User Data'),
             'chrome': os.path.join(appdata_local, R'Google\Chrome\User Data'),
             'chromium': os.path.join(appdata_local, R'Chromium\User Data'),
             'edge': os.path.join(appdata_local, R'Microsoft\Edge\User Data'),
@@ -241,6 +242,7 @@ def _get_chromium_based_browser_settings(browser_name):
         appdata = os.path.expanduser('~/Library/Application Support')
         browser_dir = {
             'brave': os.path.join(appdata, 'BraveSoftware/Brave-Browser'),
+            'brave-nightly': os.path.join(appdata, 'BraveSoftware/Brave-Browser-Nightly'),
             'chrome': os.path.join(appdata, 'Google/Chrome'),
             'chromium': os.path.join(appdata, 'Chromium'),
             'edge': os.path.join(appdata, 'Microsoft Edge'),
@@ -253,6 +255,7 @@ def _get_chromium_based_browser_settings(browser_name):
         config = _config_home()
         browser_dir = {
             'brave': os.path.join(config, 'BraveSoftware/Brave-Browser'),
+            'brave-nightly': os.path.join(config, 'BraveSoftware/Brave-Browser-Nightly'),
             'chrome': os.path.join(config, 'google-chrome'),
             'chromium': os.path.join(config, 'chromium'),
             'edge': os.path.join(config, 'microsoft-edge'),
@@ -265,6 +268,7 @@ def _get_chromium_based_browser_settings(browser_name):
     # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"
     keyring_name = {
         'brave': 'Brave',
+        'brave-nightly': 'Brave',  # Brave Nightly uses the same keyring as Brave
         'chrome': 'Chrome',
         'chromium': 'Chromium',
         'edge': 'Microsoft Edge' if sys.platform == 'darwin' else 'Chromium',
