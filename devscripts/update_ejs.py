@@ -113,7 +113,7 @@ def main():
 
     print(f'Updating yt-dlp-ejs from {current_version} to {version}')
     hashes = []
-    wheel_info = None
+    wheel_info = {}
     for asset in info['assets']:
         name = asset['name']
         is_wheel = name.startswith('yt_dlp_ejs-') and name.endswith('.whl')
