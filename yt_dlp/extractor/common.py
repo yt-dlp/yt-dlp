@@ -78,6 +78,7 @@ from ..utils import (
     parse_iso8601,
     parse_m3u8_attributes,
     parse_resolution,
+    parse_range_spec,
     qualities,
     sanitize_url,
     smuggle_url,
@@ -2885,6 +2886,14 @@ class InfoExtractor:
         def extract_multisegment_info(element, ms_parent_info):
             ms_info = ms_parent_info.copy()
 
+            def build_segment_entry(url, range_dict):
+                if not url:
+                    return None
+                entry = {'url': url}
+                if range_dict and range_dict.get('start') is not None and range_dict.get('end') is not None:
+                    entry['byte_range'] = range_dict
+                return entry
+
             # As per [1, 5.3.9.2.2] SegmentList and SegmentTemplate share some
             # common attributes and elements.  We will only extract relevant
             # for us.
@@ -2917,7 +2926,12 @@ class InfoExtractor:
             def extract_Initialization(source):
                 initialization = source.find(_add_ns('Initialization'))
                 if initialization is not None:
-                    ms_info['initialization_url'] = initialization.attrib['sourceURL']
+                    init_url = initialization.attrib.get('sourceURL')
+                    init_range = parse_range_spec(initialization.attrib.get('range'))
+                    if init_url:
+                        ms_info['initialization_url'] = init_url
+                    if init_range and init_range.get('start') is not None and init_range.get('end') is not None:
+                        ms_info['initialization_range'] = init_range
 
             segment_list = element.find(_add_ns('SegmentList'))
             if segment_list is not None:
@@ -2925,7 +2939,15 @@ class InfoExtractor:
                 extract_Initialization(segment_list)
                 segment_urls_e = segment_list.findall(_add_ns('SegmentURL'))
                 if segment_urls_e:
-                    ms_info['segment_urls'] = [segment.attrib['media'] for segment in segment_urls_e]
+                    segment_entries = []
+                    for segment in segment_urls_e:
+                        segment_url = segment.attrib.get('media')
+                        segment_range = parse_range_spec(segment.attrib.get('mediaRange'))
+                        entry = build_segment_entry(segment_url, segment_range)
+                        if entry:
+                            segment_entries.append(entry)
+                    if segment_entries:
+                        ms_info['segment_urls'] = segment_entries
             else:
                 segment_template = element.find(_add_ns('SegmentTemplate'))
                 if segment_template is not None:
@@ -2938,6 +2960,14 @@ class InfoExtractor:
                         ms_info['initialization'] = initialization
                     else:
                         extract_Initialization(segment_template)
+                else:
+                    segment_base = element.find(_add_ns('SegmentBase'))
+                    if segment_base is not None:
+                        extract_common(segment_base)
+                        initialization = segment_base.get('initialization')
+                        if initialization:
+                            ms_info['initialization'] = initialization
+                        extract_Initialization(segment_base)
             return ms_info
 
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
@@ -3144,11 +3174,16 @@ class InfoExtractor:
                         for s in representation_ms_info['s']:
                             duration = float_or_none(s['d'], timescale)
                             for _ in range(s.get('r', 0) + 1):
-                                segment_uri = representation_ms_info['segment_urls'][segment_index]
-                                fragments.append({
+                                segment_entry = representation_ms_info['segment_urls'][segment_index]
+                                segment_uri = segment_entry.get('url') or base_url
+                                fragment = {
                                     location_key(segment_uri): segment_uri,
                                     'duration': duration,
-                                })
+                                }
+                                byte_range = segment_entry.get('byte_range')
+                                if byte_range:
+                                    fragment['byte_range'] = byte_range
+                                fragments.append(fragment)
                                 segment_index += 1
                         representation_ms_info['fragments'] = fragments
                     elif 'segment_urls' in representation_ms_info:
@@ -3159,10 +3194,14 @@ class InfoExtractor:
                         segment_duration = float_or_none(
                             representation_ms_info['segment_duration'],
                             representation_ms_info['timescale']) if 'segment_duration' in representation_ms_info else None
-                        for segment_url in representation_ms_info['segment_urls']:
+                        for segment_entry in representation_ms_info['segment_urls']:
+                            segment_url = segment_entry.get('url') or base_url
                             fragment = {
                                 location_key(segment_url): segment_url,
                             }
+                            byte_range = segment_entry.get('byte_range')
+                            if byte_range:
+                                fragment['byte_range'] = byte_range
                             if segment_duration:
                                 fragment['duration'] = segment_duration
                             fragments.append(fragment)
@@ -3179,11 +3218,16 @@ class InfoExtractor:
                             'fragments': [],
                             'protocol': 'mhtml' if mime_type in ('image/avif', 'image/jpeg') else 'http_dash_segments',
                         })
-                        if 'initialization_url' in representation_ms_info:
-                            initialization_url = representation_ms_info['initialization_url']
+                        initialization_url = representation_ms_info.get('initialization_url')
+                        initialization_range = representation_ms_info.get('initialization_range')
+                        if initialization_url or initialization_range:
+                            init_location = initialization_url or base_url
                             if not f.get('url'):
-                                f['url'] = initialization_url
-                            f['fragments'].append({location_key(initialization_url): initialization_url})
+                                f['url'] = init_location
+                            init_fragment = {location_key(init_location): init_location}
+                            if initialization_range:
+                                init_fragment['byte_range'] = initialization_range
+                            f['fragments'].append(init_fragment)
                         f['fragments'].extend(representation_ms_info['fragments'])
                         if not period_duration:
                             period_duration = try_get(

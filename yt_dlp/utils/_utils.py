@@ -4869,6 +4869,51 @@ def parse_http_range(range):
     return int(crg.group(1)), int_or_none(crg.group(2)), int_or_none(crg.group(3))
 
 
+def parse_range_spec(range_spec, *, allow_open_end=False):
+    """Parse byte range specifiers (e.g. ``"123-456"``) into a dict with
+    inclusive ``start`` and exclusive ``end`` values.
+
+    Open-ended ranges (``"123-"``) are accepted when ``allow_open_end`` is
+    True and will omit the ``end`` key. Returns ``None`` if parsing fails.
+    """
+    if range_spec is None:
+        return None
+
+    range_spec = str(range_spec).strip()
+    if not range_spec or '-' not in range_spec:
+        return None
+
+    start_str, _, end_str = range_spec.partition('-')
+    if not start_str and not end_str:
+        return None
+
+    try:
+        start = int(start_str) if start_str else None
+    except ValueError:
+        return None
+
+    try:
+        end = int(end_str) if end_str else None
+    except ValueError:
+        return None
+
+    if start is not None and start < 0:
+        return None
+    if end is not None:
+        if end < 0 or (start is not None and end < start):
+            return None
+        end += 1
+    elif not allow_open_end:
+        return None
+
+    result = {}
+    if start is not None:
+        result['start'] = start
+    if end is not None:
+        result['end'] = end
+    return result or None
+
+
 def read_stdin(what):
     if what:
         eof = 'Ctrl+Z' if os.name == 'nt' else 'Ctrl+D'
