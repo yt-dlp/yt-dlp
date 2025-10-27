@@ -114,15 +114,20 @@ yt-dlp.zip: $(PY_CODE_FILES) $(JS_CODE_FILES)
 	  cp -pPR $$d/*.js zip/$$d/ ;\
 	done
 	(cd zip && touch -t 200001010101 $(PY_CODE_FILES) $(JS_CODE_FILES))
-	mv zip/yt_dlp/__main__.py zip/
-	(cd zip && zip -q ../yt-dlp.zip $(PY_CODE_FILES) $(JS_CODE_FILES) __main__.py)
+	rm -f zip/yt_dlp/__main__.py
+	(cd zip && zip -q ../yt-dlp.zip $(PY_CODE_FILES) $(JS_CODE_FILES))
 	rm -rf zip
 
 yt-dlp: yt-dlp.zip
+	mkdir -p zip
+	cp -pP yt_dlp/__main__.py zip/
+	touch -t 200001010101 zip/__main__.py
+	(cd zip && zip -q ../yt-dlp.zip __main__.py)
 	echo '#!$(PYTHON)' > yt-dlp
 	cat yt-dlp.zip >> yt-dlp
 	rm yt-dlp.zip
 	chmod a+x yt-dlp
+	rm -rf zip
 
 README.md: $(PY_CODE_FILES) devscripts/make_readme.py
 	COLUMNS=80 $(PYTHON) yt_dlp/__main__.py --ignore-config --help | $(PYTHON) devscripts/make_readme.py
@@ -217,11 +222,14 @@ yt-dlp-extra: current-ejs-version .ejs-$(EJS_VERSION) $(EJS_PY_FILES) $(EJS_JS_F
 	done
 	(cd zip && touch -t 200001010101 $(EJS_PY_FILES) $(EJS_JS_FILES))
 	(cd zip && zip -q ../yt-dlp.zip $(EJS_PY_FILES) $(EJS_JS_FILES))
-	rm -rf zip
+	cp -pP yt_dlp/__main__.py zip/
+	touch -t 200001010101 zip/__main__.py
+	(cd zip && zip -q ../yt-dlp.zip __main__.py)
 	echo '#!$(PYTHON)' > yt-dlp
 	cat yt-dlp.zip >> yt-dlp
 	rm yt-dlp.zip
 	chmod a+x yt-dlp
+	rm -rf zip
 
 .ejs-$(EJS_VERSION):
 	@echo Downloading yt-dlp-ejs
