@@ -146,12 +146,10 @@ class TheChosenGroupIE(InfoExtractor):
                 self.report_warning('Skipping Members Only video. ' + self._login_hint())
                 continue
 
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_metadata['url'], video_metadata['id'])
-            entry = {'formats': formats,
-                     'subtitles': subtitles,
+            entry = {'_type': 'url_transparent',
                      **traverse_obj(video_metadata, {
                          'id': 'id',
-                         'display_id': 'id',
+                         'url': 'url',
                          'title': 'title',
                          'description': 'description',
                          'thumbnail': 'thumbnail',
@@ -168,3 +166,18 @@ class TheChosenGroupIE(InfoExtractor):
         info['playlist_count'] = traverse_obj(metadata, ('itemRefs', 'totalCount'))
 
         return info
+
+
+class TheChosenLazyIE(InfoExtractor):
+    _VALID_URL = r'https://api\.frontrow\.cc\/channels/\d+/VIDEO/(?P<videoUUID>[0-9a-fA-F-]+)/v2/hls\.m3u8(?:\?.*)?'
+
+    def _real_extract(self, url):
+        hls_id = self._match_valid_url(url).group('videoUUID')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, hls_id)
+
+        return {
+            'url': url,
+            'id': hls_id,
+            'formats': formats,
+            'subtitles': subtitles,
+        }
