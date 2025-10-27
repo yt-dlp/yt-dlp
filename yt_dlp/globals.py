@@ -34,5 +34,8 @@ WINDOWS_VT_MODE = Indirect(False if os.name == 'nt' else None)
 
 # JS Runtimes
 # If adding support for another runtime, register it here to allow `js_runtimes` option to accept it.
-# key is the runtime name, value is None or a JsRuntime subclass (internal-only)
+# key is the runtime name, value a JsRuntime subclass (internal-only) or None
 supported_js_runtimes = Indirect({})
+
+# List of remote components supported with --remote-components option
+supported_remote_components = Indirect([])
