@@ -99,7 +99,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20250312.04.00',
+                'clientVersion': '2.20250925.01.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
@@ -111,7 +111,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20250312.04.00',
+                'clientVersion': '2.20250925.01.00',
                 'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)',
             },
         },
@@ -123,7 +123,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
-                'clientVersion': '1.20250310.01.00',
+                'clientVersion': '1.20250923.21.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
@@ -134,7 +134,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_REMIX',
-                'clientVersion': '1.20250310.01.00',
+                'clientVersion': '1.20250922.03.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
@@ -163,7 +163,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_CREATOR',
-                'clientVersion': '1.20250312.03.01',
+                'clientVersion': '1.20250922.03.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
@@ -220,16 +220,30 @@ INNERTUBE_CLIENTS = {
         },
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
     },
+    # Doesn't require a PoToken for some reason
+    'android_sdkless': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID',
+                'clientVersion': '20.10.38',
+                'userAgent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip',
+                'osName': 'Android',
+                'osVersion': '11',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
+        'REQUIRE_JS_PLAYER': False,
+    },
     # YouTube Kids videos aren't returned on this client for some reason
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_VR',
-                'clientVersion': '1.62.27',
+                'clientVersion': '1.65.10',
                 'deviceMake': 'Oculus',
                 'deviceModel': 'Quest 3',
                 'androidSdkVersion': 32,
-                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.62.27 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
+                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
                 'osName': 'Android',
                 'osVersion': '12L',
             },
@@ -274,7 +288,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'MWEB',
-                'clientVersion': '2.20250311.03.00',
+                'clientVersion': '2.20250925.01.00',
                 # mweb previously did not require PO Token with this UA
                 'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
@@ -304,7 +318,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'TVHTML5',
-                'clientVersion': '7.20250312.16.00',
+                'clientVersion': '7.20250923.13.00',
                 'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
             },
         },
@@ -319,6 +333,20 @@ INNERTUBE_CLIENTS = {
                 'clientName': 'TVHTML5_SIMPLY',
                 'clientVersion': '1.0',
             },
+        },
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+            ),
+            StreamingProtocol.DASH: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+            ),
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
+                recommended=True,
+            ),
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 75,
     },
@@ -1182,7 +1210,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             except ValueError:
                 return None
 
-    def _parse_time_text(self, text):
+    def _parse_time_text(self, text, report_failure=True):
         if not text:
             return
         dt_ = self.extract_relative_time(text)
@@ -1197,7 +1225,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                         (r'([a-z]+\s*\d{1,2},?\s*20\d{2})', r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*(?:on|for))?\s*(.+\d)'),
                         text.lower(), 'time text', default=None)))
 
-        if text and timestamp is None and self._preferred_lang in (None, 'en'):
+        if report_failure and text and timestamp is None and self._preferred_lang in (None, 'en'):
             self.report_warning(
                 f'Cannot parse localized time text "{text}"', only_once=True)
         return timestamp

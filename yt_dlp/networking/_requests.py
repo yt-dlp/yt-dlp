@@ -4,7 +4,6 @@ import functools
 import http.client
 import logging
 import re
-import socket
 import warnings
 
 from ..dependencies import brotli, requests, urllib3
@@ -125,7 +124,7 @@ class RequestsResponseAdapter(Response):
             # Work around issue with `.read(amt)` then `.read()`
             # See: https://github.com/urllib3/urllib3/issues/3636
             if amt is None:
-                # Python 3.9 preallocates the whole read buffer, read in chunks
+                # compat: py3.9: Python 3.9 preallocates the whole read buffer, read in chunks
                 read_chunk = functools.partial(self.fp.read, 1 << 20, decode_content=True)
                 return b''.join(iter(read_chunk, b''))
             # Interact with urllib3 response directly.
@@ -378,7 +377,7 @@ class SocksHTTPConnection(urllib3.connection.HTTPConnection):
                 source_address=self.source_address,
                 _create_socket_func=functools.partial(
                     create_socks_proxy_socket, (self.host, self.port), self._proxy_args))
-        except (socket.timeout, TimeoutError) as e:
+        except TimeoutError as e:
             raise urllib3.exceptions.ConnectTimeoutError(
                 self, f'Connection to {self.host} timed out. (connect timeout={self.timeout})') from e
         except SocksProxyError as e:

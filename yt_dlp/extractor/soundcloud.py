@@ -438,7 +438,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                             (?P<title>[\w\d-]+)
                             (?:/(?P<token>(?!(?:albums|sets|recommended))[^?]+?))?
                             (?:[?].*)?$)
-                       |(?:api(?:-v2)?\.soundcloud\.com/tracks/(?P<track_id>\d+)
+                       |(?:api(?:-v2)?\.soundcloud\.com/tracks/(?:soundcloud%3Atracks%3A)?(?P<track_id>\d+)
                           (?:/?\?secret_token=(?P<secret_token>[^&]+))?)
                     )
                     '''
@@ -691,6 +691,9 @@ class SoundcloudIE(SoundcloudBaseIE):
     }, {
         # Go+ (account with active subscription needed)
         'url': 'https://soundcloud.com/taylorswiftofficial/look-what-you-made-me-do',
+        'only_matching': True,
+    }, {
+        'url': 'https://api.soundcloud.com/tracks/soundcloud%3Atracks%3A1083788353',
         'only_matching': True,
     }]
 
