@@ -676,7 +676,6 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             # filename (protocol included) needs to be escaped.
             filename_arg_escaped = filename_arg.replace(':', r'\:')
 
-
             opts.extend([
                 '-map', f'-0:m:filename:{json_lang}.json?',
                 '-attach', filename_arg,
