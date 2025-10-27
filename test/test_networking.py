@@ -571,6 +571,10 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert b'test2: test2' not in data
             assert b'test3: test3' in data
 
+    @pytest.mark.skip_handlers_if(
+        lambda request, handler: sys.platform == 'win32' and handler.RH_KEY == 'CurlCFFI',
+        'curl_cffi read-timeout is unstable on Windows',
+    )
     def test_read_timeout(self, handler):
         with handler() as rh:
             # Default timeout is 20 seconds, so this should go through
