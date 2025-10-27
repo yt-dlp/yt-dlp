@@ -2407,7 +2407,10 @@ from .washingtonpost import (
     WashingtonPostIE,
 )
 from .wat import WatIE
-from .watchthechosen import WatchTheChosenIE
+from .watchthechosen import (
+    TheChosenGroupIE,
+    TheChosenIE,
+)
 from .wdr import (
     WDRIE,
     WDRElefantIE,

@@ -1,13 +1,12 @@
 import json
-import urllib
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, try_call, unified_strdate
 from ..utils.traversal import traverse_obj
 
 
-class WatchTheChosenIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?watch\.thechosen\.tv/(?:video|group)/(?P<id>[0-9]+)'
+class TheChosenIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?watch\.thechosen\.tv/video/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://watch.thechosen.tv/video/184683594325',
         'md5': '3f878b689588c71b38ec9943c54ff5b0',
@@ -44,139 +43,128 @@ class WatchTheChosenIE(InfoExtractor):
 
     def _real_extract(self, url):
         pageID = self._match_id(url)
-        info = {}
-        pathBase = urllib.parse.urlparse(url).path.strip('/').split('/')[0]
-        auth_cookie = try_call(lambda: self._get_cookies(url)['frAccessToken'].value)
-        token_type = try_call(lambda: self._get_cookies(url)['frTokenType'].value)
+        auth_cookie = try_call(lambda: self._get_cookies(url)['frAccessToken'].value) or ''
+        token_type = try_call(lambda: self._get_cookies(url)['frTokenType'].value) or ''
 
-        if pathBase == 'group':
-            info['_type'] = 'playlist'
-            entries = []
-            metadata = traverse_obj(self._download_json(
-                'https://api.frontrow.cc/query', pageID, note='Downloading playlist metadata', data=json.dumps({
-                    'operationName': 'PaginatedStaticPageContainer',
-                    'variables': {'channelID': '12884901895', 'first': 500, 'pageContainerID': pageID},
-                    'query': '''query PaginatedStaticPageContainer($after: Cursor, $channelID: ID!, $first: Int, $pageContainerID: ID!) {
-                                  pageContainer(ChannelID: $channelID, PageContainerID: $pageContainerID) {
-                                    ... on StaticPageContainer { ...PaginatedBasicStaticPageContainer __typename }
-                                    ... on DynamicPageContainer { ...PaginatedBasicDynamicPageContainer __typename }
-                                    __typename
-                                  }
-                                }
-
-                                fragment PaginatedBasicStaticPageContainer on StaticPageContainer {
-                                  id
-                                  audiences { id name __typename }
-                                  channelID pageID title layout language visibility position
-                                  itemRefs(First: $first, After: $after, OrderBy: {direction: ASC, field: POSITION}) {
-                                    ...BasicItemRefConnection __typename
-                                  }
-                                  createdAt updatedAt __typename
-                                }
-                                fragment PaginatedBasicDynamicPageContainer on DynamicPageContainer {
-                                  id
-                                  audiences { id name __typename }
-                                  channelID pageID title layout language visibility position
-                                  itemRefs(First: $first, After: $after) { ...BasicItemRefConnection __typename }
-                                  createdAt updatedAt __typename
-                                }
-
-                                fragment BasicItemRefConnection on ItemRefConnection {
-                                  edges { node { ...BasicItemRef __typename } cursor __typename }
-                                  totalCount __typename
-                                }
-
-                                fragment BasicItemRef on ItemRef {
-                                  id contentType contentID position
-                                  contentItem {
-                                    ... on ItemVideo     { videoItem: item     { ...PageContainerVideo __typename } __typename }
-                                    __typename
-                                  }
-                                  __typename
-                                }
-
-                                fragment PageContainerVideo on Video {
-                                  audiences { id name __typename }
-                                  title description updatedAt thumbnail createdAt duration likeCount comments views url hasAccess id __typename
-                                }''',
-                }).encode(), headers={
-                    'channelid': '12884901895',
-                    'content-type': 'application/json',
-                    'authorization': token_type + ' ' + auth_cookie,
-                }), ('data', 'pageContainer'))
-
-            if metadata is None:
-                raise ExtractorError('This group does not exist!', expected=True)
-
-            for i in traverse_obj(metadata, ('itemRefs', 'edges')):
-                video_metadata = traverse_obj(i, ('node', 'contentItem', 'videoItem'))
-                # Skipping ghost-video
-                if video_metadata is None:
-                    continue
-                if not video_metadata['hasAccess']:
-                    self.report_warning('Skipping Members Only video. ' + self._login_hint())
-                    continue
-
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_metadata['url'], video_metadata['id'])
-                entry = {'formats': formats,
-                         'subtitles': subtitles,
-                         **traverse_obj(video_metadata, {
-                             'id': 'id',
-                             'title': 'title',
-                             'description': 'description',
-                             'thumbnail': 'thumbnail',
-                             'modified_date': ('updatedAt', {unified_strdate}),
-                             'upload_date': ('createdAt', {unified_strdate}),
-                             'duration': 'duration',
-                             'like_count': 'likeCount',
-                             'comment_count': 'comments',
-                             'view_count': 'views',
-                         }),
-                         }
-                entries.append(entry)
-            info['entries'] = entries
-            info['playlist_count'] = traverse_obj(metadata, ('itemRefs', 'totalCount'))
-
-        elif pathBase == 'video':
-            metadata = traverse_obj(self._download_json(
-                'https://api.frontrow.cc/query', pageID, data=json.dumps({
-                    'operationName': 'Video',
-                    'variables': {'channelID': '12884901895', 'videoID': pageID},
-                    'query': r'''query Video($channelID: ID!, $videoID: ID!) {
-                        video(ChannelID: $channelID, VideoID: $videoID) {
-                            ...VideoFragment __typename
-                        }
+        metadata = traverse_obj(self._download_json(
+            'https://api.frontrow.cc/query', pageID, data=json.dumps({
+                'operationName': 'Video',
+                'variables': {'channelID': '12884901895', 'videoID': pageID},
+                'query': r'''query Video($channelID: ID!, $videoID: ID!) {
+                    video(ChannelID: $channelID, VideoID: $videoID) {
+                        ... on Video {title description updatedAt thumbnail createdAt duration likeCount comments views url hasAccess}
                     }
-                    fragment VideoFragment on Video {
-                        title description updatedAt thumbnail createdAt duration likeCount comments views url hasAccess
-                    }''',
-                }).encode(), headers={
-                    'channelid': '12884901895',
-                    'content-type': 'application/json',
-                    'authorization': token_type + ' ' + auth_cookie,
-                }), ('data', 'video'))
-            if metadata is None:
-                raise ExtractorError('This video does not exist!', expected=True)
-            if not metadata['hasAccess']:
-                raise ExtractorError('This is Members Only video. Please log in with your account! ' + self._login_hint(), expected=True)
+                }''',
+            }).encode(), headers={
+                'channelid': '12884901895',
+                'content-type': 'application/json',
+                'authorization': token_type + ' ' + auth_cookie,
+            }), ('data', 'video'))
+        if metadata is None:
+            raise ExtractorError('This video does not exist!', expected=True)
+        if not metadata['hasAccess']:
+            raise ExtractorError('This is Members Only video. Please log in with your account! ' + self._login_hint(), expected=True)
 
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(metadata['url'], pageID)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(metadata['url'], pageID)
 
-            info = {
-                'id': pageID,
-                'formats': formats,
-                'subtitles': subtitles,
-                **traverse_obj(metadata, {
-                    'title': 'title',
-                    'description': 'description',
-                    'thumbnail': 'thumbnail',
-                    'modified_date': ('updatedAt', {unified_strdate}),
-                    'upload_date': ('createdAt', {unified_strdate}),
-                    'duration': 'duration',
-                    'like_count': 'likeCount',
-                    'comment_count': 'comments',
-                    'view_count': 'views',
-                }),
-            }
+        return {
+            'id': pageID,
+            'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(metadata, {
+                'title': 'title',
+                'description': 'description',
+                'thumbnail': 'thumbnail',
+                'modified_date': ('updatedAt', {unified_strdate}),
+                'upload_date': ('createdAt', {unified_strdate}),
+                'duration': 'duration',
+                'like_count': 'likeCount',
+                'comment_count': 'comments',
+                'view_count': 'views',
+            }),
+        }
+
+
+class TheChosenGroupIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?watch\.thechosen\.tv/group/(?P<id>[0-9]+)'
+    _TESTS = [{
+        'url': 'https://watch.thechosen.tv/group/309237658592',
+        'md5': 'e60f36c633cf8e54d2595ec390fd69d5',
+        'info_dict': {
+            'id': '184683594324',
+            'ext': 'mp4',
+            'title': 'Season 3 Episode 1: Homecoming',
+            'description': 'Jesus delivers the most life-altering sermon in history. The result? More followers, more enemies, and disciples ready to follow Jesus anywhere. Simon and Eden reunite, Matthew faces his past, and Andrew visits John the Baptist in prison. ',
+            'thumbnail': 'https://fastly.frontrowcdn.com/channels/12884901895/VIDEO_THUMBNAIL/184683594324/8e502db2-6f26-4e7e-8141-011fdc661498.VIDEO_THUMBNAIL',
+            'modified_date': str,
+            'upload_date': '20231102',
+            'duration': 3676,
+            'like_count': int,
+            'comment_count': int,
+            'view_count': int,
+        },
+
+    }]
+
+    def _real_extract(self, url):
+        pageID = self._match_id(url)
+        info = {}
+        auth_cookie = try_call(lambda: self._get_cookies(url)['frAccessToken'].value) or ''
+        token_type = try_call(lambda: self._get_cookies(url)['frTokenType'].value) or ''
+
+        info['_type'] = 'playlist'
+        entries = []
+        metadata = traverse_obj(self._download_json(
+            'https://api.frontrow.cc/query', pageID, note='Downloading playlist metadata', data=json.dumps({
+                'operationName': 'PaginatedStaticPageContainer',
+                'variables': {'channelID': '12884901895', 'first': 500, 'pageContainerID': pageID},
+                'query': '''query PaginatedStaticPageContainer($channelID: ID!, $pageContainerID: ID!) {
+                              pageContainer(ChannelID: $channelID, PageContainerID: $pageContainerID) {
+                                ... on StaticPageContainer { id title itemRefs {edges {node {
+                                        id contentItem { ... on ItemVideo { videoItem: item {
+                                            title description updatedAt thumbnail createdAt duration likeCount comments views url hasAccess id
+                                        }}}
+                                    }}}
+                                }
+                              }
+                            }''',
+            }).encode(), headers={
+                'channelid': '12884901895',
+                'content-type': 'application/json',
+                'authorization': token_type + ' ' + auth_cookie,
+            }), ('data', 'pageContainer'))
+
+        if metadata is None:
+            raise ExtractorError('This group does not exist!', expected=True)
+
+        for i in traverse_obj(metadata, ('itemRefs', 'edges')):
+            video_metadata = traverse_obj(i, ('node', 'contentItem', 'videoItem'))
+            # Skipping ghost-video
+            if video_metadata is None:
+                continue
+            if not video_metadata['hasAccess']:
+                self.report_warning('Skipping Members Only video. ' + self._login_hint())
+                continue
+
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_metadata['url'], video_metadata['id'])
+            entry = {'formats': formats,
+                     'subtitles': subtitles,
+                     **traverse_obj(video_metadata, {
+                         'id': 'id',
+                         'display_id': 'id',
+                         'title': 'title',
+                         'description': 'description',
+                         'thumbnail': 'thumbnail',
+                         'modified_date': ('updatedAt', {unified_strdate}),
+                         'upload_date': ('createdAt', {unified_strdate}),
+                         'duration': 'duration',
+                         'like_count': 'likeCount',
+                         'comment_count': 'comments',
+                         'view_count': 'views',
+                     }),
+                     }
+            entries.append(entry)
+        info['entries'] = entries
+        info['playlist_count'] = traverse_obj(metadata, ('itemRefs', 'totalCount'))
 
         return info
