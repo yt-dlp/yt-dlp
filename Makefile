@@ -87,21 +87,35 @@ test:
 offlinetest: codetest
 	$(PYTHON) -m pytest -Werror -m "not download"
 
-CODE_FOLDERS_CMD = find yt_dlp -type f -name '__init__.py' | sed 's,/__init__.py,,' | grep -v '/__' | sort
-CODE_FOLDERS != $(CODE_FOLDERS_CMD)
-CODE_FOLDERS ?= $(shell $(CODE_FOLDERS_CMD))
-CODE_FILES_CMD = for f in $(CODE_FOLDERS) ; do echo "$$f" | sed 's,$$,/*.py,' ; done
-CODE_FILES != $(CODE_FILES_CMD)
-CODE_FILES ?= $(shell $(CODE_FILES_CMD))
-yt-dlp.zip: $(CODE_FILES)
+PY_CODE_FOLDERS_CMD = find yt_dlp -type f -name '__init__.py' | sed 's|/__init__\.py||' | grep -v '/__' | sort
+PY_CODE_FOLDERS != $(PY_CODE_FOLDERS_CMD)
+PY_CODE_FOLDERS ?= $(shell $(PY_CODE_FOLDERS_CMD))
+
+PY_CODE_FILES_CMD = for f in $(PY_CODE_FOLDERS) ; do echo "$$f" | sed 's|$$|/*.py|' ; done
+PY_CODE_FILES != $(PY_CODE_FILES_CMD)
+PY_CODE_FILES ?= $(shell $(PY_CODE_FILES_CMD))
+
+JS_CODE_FOLDERS_CMD = find yt_dlp -type f -name '*.js' | sed 's|/[^/]\{1,\}\.js$$||' | uniq
+JS_CODE_FOLDERS != $(JS_CODE_FOLDERS_CMD)
+JS_CODE_FOLDERS ?= $(shell $(JS_CODE_FOLDERS_CMD))
+
+JS_CODE_FILES_CMD = for f in $(JS_CODE_FOLDERS) ; do echo "$$f" | sed 's|$$|/*.js|' ; done
+JS_CODE_FILES != $(JS_CODE_FILES_CMD)
+JS_CODE_FILES ?= $(shell $(JS_CODE_FILES_CMD))
+
+yt-dlp.zip: $(PY_CODE_FILES) $(JS_CODE_FILES)
 	mkdir -p zip
-	for d in $(CODE_FOLDERS) ; do \
+	for d in $(PY_CODE_FOLDERS) ; do \
 	  mkdir -p zip/$$d ;\
 	  cp -pPR $$d/*.py zip/$$d/ ;\
 	done
-	(cd zip && touch -t 200001010101 $(CODE_FILES))
+	for d in $(JS_CODE_FOLDERS) ; do \
+	  mkdir -p zip/$$d ;\
+	  cp -pPR $$d/*.js zip/$$d/ ;\
+	done
+	(cd zip && touch -t 200001010101 $(PY_CODE_FILES) $(JS_CODE_FILES))
 	mv zip/yt_dlp/__main__.py zip/
-	(cd zip && zip -q ../yt-dlp.zip $(CODE_FILES) __main__.py)
+	(cd zip && zip -q ../yt-dlp.zip $(PY_CODE_FILES) $(JS_CODE_FILES) __main__.py)
 	rm -rf zip
 
 yt-dlp: yt-dlp.zip
@@ -110,7 +124,7 @@ yt-dlp: yt-dlp.zip
 	rm yt-dlp.zip
 	chmod a+x yt-dlp
 
-README.md: $(CODE_FILES) devscripts/make_readme.py
+README.md: $(PY_CODE_FILES) devscripts/make_readme.py
 	COLUMNS=80 $(PYTHON) yt_dlp/__main__.py --ignore-config --help | $(PYTHON) devscripts/make_readme.py
 
 CONTRIBUTING.md: README.md devscripts/make_contributing.py
@@ -135,15 +149,15 @@ yt-dlp.1: README.md devscripts/prepare_manpage.py
 	pandoc -s -f $(MARKDOWN) -t man yt-dlp.1.temp.md -o yt-dlp.1
 	rm -f yt-dlp.1.temp.md
 
-completions/bash/yt-dlp: $(CODE_FILES) devscripts/bash-completion.in
+completions/bash/yt-dlp: $(PY_CODE_FILES) devscripts/bash-completion.in
 	mkdir -p completions/bash
 	$(PYTHON) devscripts/bash-completion.py
 
-completions/zsh/_yt-dlp: $(CODE_FILES) devscripts/zsh-completion.in
+completions/zsh/_yt-dlp: $(PY_CODE_FILES) devscripts/zsh-completion.in
 	mkdir -p completions/zsh
 	$(PYTHON) devscripts/zsh-completion.py
 
-completions/fish/yt-dlp.fish: $(CODE_FILES) devscripts/fish-completion.in
+completions/fish/yt-dlp.fish: $(PY_CODE_FILES) devscripts/fish-completion.in
 	mkdir -p completions/fish
 	$(PYTHON) devscripts/fish-completion.py
 
