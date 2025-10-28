@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     extract_attributes,
+    filter_dict,
     get_element_by_class,
     get_element_html_by_id,
     int_or_none,
@@ -61,6 +62,17 @@ class GoogleDriveIE(InfoExtractor):
             'thumbnail': r're:https://lh3\.googleusercontent\.com/drive-storage/',
         },
     }, {
+        # Has subtitle track with kind 'asr'
+        'url': 'https://drive.google.com/file/d/1Prvv9-mtDDfN_gkJgtt1OFvIULK8c3Ev/view',
+        'md5': 'ccae12d07f18b5988900b2c8b92801fc',
+        'info_dict': {
+            'id': '1Prvv9-mtDDfN_gkJgtt1OFvIULK8c3Ev',
+            'ext': 'mp4',
+            'title': 'LEE NA GYUNG-3410-VOICE_MESSAGE.mp4',
+            'duration': 8.766,
+            'thumbnail': r're:https://lh3\.googleusercontent\.com/drive-storage/',
+        },
+    }, {
         # video can't be watched anonymously due to view count limit reached,
         # but can be downloaded (see https://github.com/ytdl-org/youtube-dl/issues/14046)
         'url': 'https://drive.google.com/file/d/0B-vUyvmDLdWDcEt4WjBqcmI2XzQ/view',
@@ -89,15 +101,16 @@ class GoogleDriveIE(InfoExtractor):
             yield 'https://drive.google.com/file/d/{}'.format(mobj.group('id'))
 
     @staticmethod
-    def _construct_subtitle_url(base_url, video_id, language, fmt):
+    def _construct_subtitle_url(base_url, video_id, language, fmt, kind):
         return update_url_query(
-            base_url, {
+            base_url, filter_dict({
                 'hl': 'en-US',
                 'v': video_id,
                 'type': 'track',
                 'lang': language,
                 'fmt': fmt,
-            })
+                'kind': kind,
+            }))
 
     def _get_subtitles(self, video_id, video_info):
         subtitles = {}
@@ -116,7 +129,8 @@ class GoogleDriveIE(InfoExtractor):
         for track in traverse_obj(subtitle_data, (lambda _, v: v.tag == 'track' and v.get('lang_code'))):
             language = track.get('lang_code')
             subtitles.setdefault(language, []).extend([{
-                'url': self._construct_subtitle_url(timed_text_base_url, video_id, language, sub_fmt),
+                'url': self._construct_subtitle_url(
+                    timed_text_base_url, video_id, language, sub_fmt, track.get('kind')),
                 'name': track.get('lang_original'),
                 'ext': sub_fmt,
             } for sub_fmt in subtitle_formats])
