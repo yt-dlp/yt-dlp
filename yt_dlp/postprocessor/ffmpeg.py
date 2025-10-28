@@ -394,6 +394,16 @@ class FFmpegPostProcessor(PostProcessor):
         string = string[1:] if string[0] == "'" else "'" + string
         return string[:-1] if string[-1] == "'" else string + "'"
 
+    def _escape_stream_specifier(self, string):
+        if (is_outdated_version(self._get_version('ffmpeg'), '7.1')):
+            # Versions older than 7.1 take arguments with colons verbatim.
+            return string
+
+        # Since 7.1, stream specifier arguments with colons must be escaped or
+        # they will be interpreted as part of the specifier. This was done to
+        # reduce ambiguity, but it also broke compatibility.
+        return string.replace(':', r'\:')
+
     def force_keyframes(self, filename, timestamps):
         timestamps = orderedSet(timestamps)
         if timestamps[0] == 0:
@@ -672,9 +682,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
         for json_lang, json_filename in json_subs.items():
             filename_arg = self._ffmpeg_filename_argument(json_filename)
-            # Stream selectors use colons as their separator. Any colon in the
-            # filename (protocol included) needs to be escaped.
-            filename_arg_escaped = filename_arg.replace(':', r'\:')
+            filename_arg_escaped = self._escape_stream_specifier(filename_arg)
 
             opts.extend([
                 '-map', f'-0:m:filename:{json_lang}.json?',
@@ -832,9 +840,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             info['infojson_filename'] = infofn
 
         filename_arg = self._ffmpeg_filename_argument(infofn)
-        # Stream selectors use colons as their separator. Any colon in the
-        # filename (protocol included) needs to be escaped.
-        filename_arg_escaped = filename_arg.replace(':', r'\:')
+        filename_arg_escaped = self._escape_stream_specifier(filename_arg)
 
         yield (
             # In order to override any old info.json reliably we need to
