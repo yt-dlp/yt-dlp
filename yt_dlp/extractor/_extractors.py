@@ -2410,7 +2410,6 @@ from .wat import WatIE
 from .watchthechosen import (
     TheChosenGroupIE,
     TheChosenIE,
-    TheChosenLazyIE,
 )
 from .wdr import (
     WDRIE,

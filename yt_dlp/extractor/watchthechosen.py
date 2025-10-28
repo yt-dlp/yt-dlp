@@ -122,7 +122,7 @@ class TheChosenGroupIE(InfoExtractor):
                               pageContainer(ChannelID: $channelID, PageContainerID: $pageContainerID) {
                                 ... on StaticPageContainer { id title itemRefs {edges {node {
                                         id contentItem { ... on ItemVideo { videoItem: item {
-                                            title description updatedAt thumbnail createdAt duration likeCount comments views url hasAccess id
+                                            hasAccess id
                                         }}}
                                     }}}
                                 }
@@ -147,37 +147,12 @@ class TheChosenGroupIE(InfoExtractor):
                 continue
 
             entry = {'_type': 'url_transparent',
-                     **traverse_obj(video_metadata, {
-                         'id': 'id',
-                         'url': 'url',
-                         'title': 'title',
-                         'description': 'description',
-                         'thumbnail': 'thumbnail',
-                         'modified_date': ('updatedAt', {unified_strdate}),
-                         'upload_date': ('createdAt', {unified_strdate}),
-                         'duration': 'duration',
-                         'like_count': 'likeCount',
-                         'comment_count': 'comments',
-                         'view_count': 'views',
-                     }),
+                     'ie_key': 'TheChosen',
+                     'url': 'https://watch.thechosen.tv/video/' + video_metadata['id'],
+                     'id': video_metadata['id'],
                      }
             entries.append(entry)
         info['entries'] = entries
         info['playlist_count'] = traverse_obj(metadata, ('itemRefs', 'totalCount'))
 
         return info
-
-
-class TheChosenLazyIE(InfoExtractor):
-    _VALID_URL = r'https://api\.frontrow\.cc\/channels/\d+/VIDEO/(?P<videoUUID>[0-9a-fA-F-]+)/v2/hls\.m3u8(?:\?.*)?'
-
-    def _real_extract(self, url):
-        hls_id = self._match_valid_url(url).group('videoUUID')
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, hls_id)
-
-        return {
-            'url': url,
-            'id': hls_id,
-            'formats': formats,
-            'subtitles': subtitles,
-        }
