@@ -214,12 +214,18 @@ class EJSBaseJCP(JsChallengeProvider):
                     self.logger.warning(
                         f'Challenge solver {script_type.value} script version {script.version} '
                         f'is not supported (source: {script.source.value}, variant: {script.variant}, supported version: {self._SCRIPT_VERSION})')
+                    if script.source is ScriptSource.CACHE:
+                        self.logger.debug('Clearing outdated cached script')
+                        self.ie.cache.store(self._CACHE_SECTION, script_type.value, None)
                     continue
                 script_hashes = self._ALLOWED_HASHES[script.type].get(script.variant, [])
                 if script_hashes and script.hash not in script_hashes:
                     self.logger.warning(
                         f'Hash mismatch on challenge solver {script.type.value} script '
                         f'(source: {script.source.value}, variant: {script.variant}, hash: {script.hash})!{provider_bug_report_message(self)}')
+                    if script.source is ScriptSource.CACHE:
+                         self.logger.debug('Clearing invalid cached script')
+                         self.ie.cache.store(self._CACHE_SECTION, script_type.value, None)
                     continue
             self.logger.debug(
                 f'Using challenge solver {script.type.value} script v{script.version} '
