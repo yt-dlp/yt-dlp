@@ -36,10 +36,8 @@ class DenoJCP(EJSBaseJCP, BuiltinIEContentProvider):
     _NPM_PACKAGES_CACHED = False
 
     def _iter_script_sources(self):
-        for source, func in super()._iter_script_sources():
-            if source == ScriptSource.WEB:
-                yield ScriptSource.BUILTIN, self._deno_npm_source
-            yield source, func
+        yield from super()._iter_script_sources()
+        yield ScriptSource.BUILTIN, self._deno_npm_source
 
     def _deno_npm_source(self, script_type: ScriptType, /) -> Script | None:
         if script_type != ScriptType.LIB:
