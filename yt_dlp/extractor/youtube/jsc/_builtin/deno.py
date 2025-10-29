@@ -76,6 +76,9 @@ class DenoJCP(EJSBaseJCP, BuiltinIEContentProvider):
             options.append('--cached-only')
         if self.ie.get_param('nocheckcertificate'):
             options.append('--unsafely-ignore-certificate-errors')
+        # XXX: Convert this extractor-arg into a general option if/when a JSI framework is implemented
+        if self.ie._configuration_arg('deno_v8_jitless', ['false'], ie_key='youtube-ejs') != ['false']:
+            options.append('--v8-flags=--jitless')
         return self._run_deno(stdin, options)
 
     def _get_env_options(self) -> dict[str, str]:

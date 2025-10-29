@@ -1861,6 +1861,9 @@ The following extractors use this feature:
 * `playback_wait`: Duration (in seconds) to wait inbetween the extraction and download stages in order to ensure the formats are available. The default is `6` seconds
 * `jsc_trace`: Enable debug logging for JS Challenge fetching. Either `true` or `false` (default)
 
+#### youtube-ejs
+* `deno_v8_jitless`: Run Deno in V8 JIT-less mode. Provides better security at the cost of performance/speed. Either `true` or `false` (default)
+
 #### youtubepot-webpo
 * `bind_to_visitor_id`: Whether to use the Visitor ID instead of Visitor Data for caching WebPO tokens. Either `true` (default) or `false`
 
