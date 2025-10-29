@@ -1132,9 +1132,13 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         country = 'GB' if domain == 'dplay.co.uk' else 'DE'
         realm = 'questuk' if country == 'GB' else domain.replace('.', '')
         meta = self._download_json(
-            f'https://de-api.loma-cms.com/feloma/videos/{alternate_id}/?environment=dmax&v=2&filter[show.slug]={programme}',
-            alternate_id, fatal=False)
-        video_id = traverse_obj(meta, ('uid', {lambda s: s[-7:]})) or f'{programme}/{alternate_id}'
+            f'https://de-api.loma-cms.com/feloma/videos/{alternate_id}/',
+            alternate_id, query={
+                'environment': 'dmax',
+                'v': '2',
+                'filter[show.slug]': programme,
+            }, fatal=False)
+        video_id = traverse_obj(meta, ('uid', {str}, {lambda s: s[-7:]})) or f'{programme}/{alternate_id}'
 
         return self._get_disco_api_info(
             url, video_id, 'eu1-prod.disco-api.com', realm, country)
