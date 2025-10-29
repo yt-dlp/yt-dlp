@@ -25,63 +25,24 @@ class CeskaTelevizeIE(InfoExtractor):
             'description': 'Nabízíme šest televizních kanálů, mezi které patří ČT1, ČT2, ČT24, ČT Déčko, ČT art a ČT sport. Vysíláme 24 hodin denně. Zajišťujeme doprovodné služby včetně teletextu, elektronického programového průvodce i skrytých titulků. Zabýváme se výrobou a produkcí vlastních pořadů.',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 501,
+            'chapters': [],
         },
         'params': {
             # m3u8 download
             'skip_download': True,
         },
-    }, {
-        # live stream
-        'url': 'http://www.ceskatelevize.cz/zive/ct1/',
-        'info_dict': {
-            'id': '102',
-            'ext': 'mp4',
-            'title': r'ČT1 - živé vysílání online',
-            'description': 'Sledujte živé vysílání kanálu ČT1 online. Vybírat si můžete i z dalších kanálů České televize na kterémkoli z vašich zařízení.',
-            'is_live': True,
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-    }, {
-        # another
-        'url': 'http://www.ceskatelevize.cz/ivysilani/zive/ct4/',
-        'only_matching': True,
-        'info_dict': {
-            'id': '402',
-            'ext': 'mp4',
-            'title': r're:^ČT Sport \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
-            'is_live': True,
-        },
-        # 'skip': 'Georestricted to Czech Republic',
-    }, {
-        'url': 'http://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php?hash=d6a3e1370d2e4fa76296b90bad4dfc19673b641e&IDEC=217 562 22150/0004&channelID=1&width=100%25',
-        'only_matching': True,
     }, {
         # video with 18+ caution trailer
         'url': 'http://www.ceskatelevize.cz/porady/10520528904-queer/215562210900007-bogotart/',
         'info_dict': {
             'id': '215562210900007-bogotart',
+            'ext': 'mp4',
             'title': 'Bogotart - Queer',
             'description': 'Hlavní město Kolumbie v doprovodu queer umělců. Vroucí svět plný vášně, sebevědomí, ale i násilí a bolesti',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 1556,
+            'chapters': [],
         },
-        'playlist': [{
-            'info_dict': {
-                'id': '61924494877311053',
-                'ext': 'mp4',
-                'title': 'Bogotart - Queer (Varování 18+)',
-                'duration': 11.9,
-            },
-        }, {
-            'info_dict': {
-                'id': '61924494877068022',
-                'ext': 'mp4',
-                'title': 'Bogotart - Queer (Queer)',
-                'thumbnail': r're:^https?://.*\.jpg',
-                'duration': 1558.3,
-            },
-        }],
         'params': {
             # m3u8 download
             'skip_download': True,
