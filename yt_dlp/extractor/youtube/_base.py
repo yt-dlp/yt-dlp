@@ -220,6 +220,20 @@ INNERTUBE_CLIENTS = {
         },
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
     },
+    # Doesn't require a PoToken for some reason
+    'android_sdkless': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID',
+                'clientVersion': '20.10.38',
+                'userAgent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip',
+                'osName': 'Android',
+                'osVersion': '11',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
+        'REQUIRE_JS_PLAYER': False,
+    },
     # YouTube Kids videos aren't returned on this client for some reason
     'android_vr': {
         'INNERTUBE_CONTEXT': {
@@ -1196,7 +1210,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             except ValueError:
                 return None
 
-    def _parse_time_text(self, text):
+    def _parse_time_text(self, text, report_failure=True):
         if not text:
             return
         dt_ = self.extract_relative_time(text)
@@ -1211,7 +1225,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                         (r'([a-z]+\s*\d{1,2},?\s*20\d{2})', r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*(?:on|for))?\s*(.+\d)'),
                         text.lower(), 'time text', default=None)))
 
-        if text and timestamp is None and self._preferred_lang in (None, 'en'):
+        if report_failure and text and timestamp is None and self._preferred_lang in (None, 'en'):
             self.report_warning(
                 f'Cannot parse localized time text "{text}"', only_once=True)
         return timestamp
