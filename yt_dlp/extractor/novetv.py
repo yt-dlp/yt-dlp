@@ -31,7 +31,7 @@ class NoveTVLiveIE(NoveTVBase):
     _TESTS = [{
         'url': 'https://www.nove.tv/live-streaming-nove',
         'info_dict': {
-            'id': 'nove-tv-live',
+            'id': 'live-streaming-nove',
             'ext': 'mp4',
             'title': r're:Nove TV Live',
             'live_status': 'is_live',
@@ -39,17 +39,17 @@ class NoveTVLiveIE(NoveTVBase):
     }]
 
     def _real_extract(self, url):
-        token = self.get_token('nove-tv-live')
+        token = self.get_token('live-streaming-nove')
         playback_info = self._download_json(
-            'https://public.aurora.enhanced.live/playback/v3/channelPlaybackInfo', 'nove-tv-live', 'Downloading playback info',
+            'https://public.aurora.enhanced.live/playback/v3/channelPlaybackInfo', 'live-streaming-nove', 'Downloading playback info',
             headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
             data=json.dumps({**self._BASE_DATA, 'channelId': '3'}).encode())
 
         return {
-            'id': 'nove-tv-live',
+            'id': 'live-streaming-nove',
             'title': 'Nove TV Live',
             'is_live': True,
-            'formats': self.extract_formats(playback_info, 'nove-tv-live'),
+            'formats': self.extract_formats(playback_info, 'live-streaming-nove'),
         }
 
 
