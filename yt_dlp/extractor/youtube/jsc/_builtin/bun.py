@@ -42,13 +42,8 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
     SUPPORTED_PROXY_SCHEMES = ['http', 'https']
 
     def _iter_script_sources(self):
-        for source, func in super()._iter_script_sources():
-            if source == ScriptSource.WEB:
-                # Prioritize GitHub scripts over Bun NPM script as bun NPM auto-install is unreliable.
-                yield source, func
-                yield ScriptSource.BUILTIN, self._bun_npm_source
-            else:
-                yield source, func
+        yield from super()._iter_script_sources()
+        yield ScriptSource.BUILTIN, self._bun_npm_source
 
     def _bun_npm_source(self, script_type: ScriptType, /) -> Script | None:
         if script_type != ScriptType.LIB:
