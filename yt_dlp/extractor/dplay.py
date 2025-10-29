@@ -10,6 +10,7 @@ from ..utils import (
     int_or_none,
     remove_start,
     strip_or_none,
+    traverse_obj,
     try_get,
     unified_timestamp,
 )
@@ -1062,7 +1063,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'ext': 'mp4',
             'title': 'German Gold',
             'description': 'md5:f3073306553a8d9b40e6ac4cdbf09fc6',
-            'display_id': 'goldrausch-in-australien/german-gold',
+            'display_id': '4756322',
             'episode': 'Episode 1',
             'episode_number': 1,
             'season': 'Season 5',
@@ -1106,14 +1107,37 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
     }, {
         'url': 'https://tlc.de/sendungen/breaking-amish/die-welt-da-drauen/',
         'only_matching': True,
+    }, {
+        'url': 'https://dmax.de/sendungen/feuerwache-3-alarm-in-muenchen/24-stunden-auf-der-feuerwache-3',
+        'info_dict': {
+            'id': '8873549',
+            'ext': 'mp4',
+            'title': '24 Stunden auf der Feuerwache 3',
+            'description': 'md5:f2a79516eb08ae812d3ce07940a5224f',
+            'display_id': '8873549',
+            'episode_number': 1,
+            'season_number': 1,
+            'series': 'Feuerwache 3 - Alarm in München',
+            'duration': 2632.0,
+            'timestamp': 1760645100,
+            'creators': ['DMAX'],
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2025/10/14/0bdee68c-a8d8-33d9-9204-16eb61108552.jpeg',
+            'tags': [],
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
         domain, programme, alternate_id = self._match_valid_url(url).groups()
         country = 'GB' if domain == 'dplay.co.uk' else 'DE'
         realm = 'questuk' if country == 'GB' else domain.replace('.', '')
+        meta = self._download_json(
+            f'https://de-api.loma-cms.com/feloma/videos/{alternate_id}/?environment=dmax&v=2&filter[show.slug]={programme}',
+            alternate_id, fatal=False)
+        video_id = traverse_obj(meta, ('uid', {lambda s: s[-7:]})) or f'{programme}/{alternate_id}'
+
         return self._get_disco_api_info(
-            url, f'{programme}/{alternate_id}', 'eu1-prod.disco-api.com', realm, country)
+            url, video_id, 'eu1-prod.disco-api.com', realm, country)
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
