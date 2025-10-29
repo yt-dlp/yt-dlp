@@ -224,8 +224,8 @@ class EJSBaseJCP(JsChallengeProvider):
                         f'Hash mismatch on challenge solver {script.type.value} script '
                         f'(source: {script.source.value}, variant: {script.variant}, hash: {script.hash})!{provider_bug_report_message(self)}')
                     if script.source is ScriptSource.CACHE:
-                         self.logger.debug('Clearing invalid cached script')
-                         self.ie.cache.store(self._CACHE_SECTION, script_type.value, None)
+                        self.logger.debug('Clearing invalid cached script')
+                        self.ie.cache.store(self._CACHE_SECTION, script_type.value, None)
                     continue
             self.logger.debug(
                 f'Using challenge solver {script.type.value} script v{script.version} '
