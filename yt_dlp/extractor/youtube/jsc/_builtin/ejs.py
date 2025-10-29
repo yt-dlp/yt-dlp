@@ -111,7 +111,9 @@ class EJSBaseJCP(JsChallengeProvider):
         # - repo: use a custom GitHub repository to fetch web script from.
         # - script_version: use a custom script version.
         # E.g. --extractor-args "youtubejsc-ejs:dev=true;script_version=0.1.4"
-        self.ejs_settings = self.ie.get_param('extractor_args', {}).get('youtubejsc-ejs', {})
+        self.ejs_settings = {
+            k.lower(): v for k, v in self.ie.get_param('extractor_args', {}).get('youtubejsc-ejs', {}).items()
+        }
 
         self.is_dev = self.ejs_settings.get('dev', []) == ['true']
         if self.is_dev:
