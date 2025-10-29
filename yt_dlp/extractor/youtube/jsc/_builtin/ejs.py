@@ -21,6 +21,7 @@ from yt_dlp.extractor.youtube.jsc.provider import (
 )
 from yt_dlp.extractor.youtube.pot.provider import provider_bug_report_message
 from yt_dlp.utils._jsruntime import JsRuntimeInfo
+from yt_dlp.utils.traversal import traverse_obj
 
 if _has_ejs:
     import yt_dlp_ejs.yt.solver
@@ -112,7 +113,11 @@ class EJSBaseJCP(JsChallengeProvider):
         # - script_version: use a custom script version.
         # E.g. --extractor-args "youtubejsc-ejs:dev=true;script_version=0.1.4"
         self.ejs_settings = {
-            k.lower(): v for k, v in self.ie.get_param('extractor_args', {}).get('youtubejsc-ejs', {}).items()
+            k.lower(): v
+            for k, v in traverse_obj(
+                self.ie.get_param('extractor_args'),
+                ('youtubejsc-ejs', {dict.items}, ...),
+                casesense=False)
         }
 
         self.is_dev = self.ejs_settings.get('dev', []) == ['true']
