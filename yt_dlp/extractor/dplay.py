@@ -10,10 +10,10 @@ from ..utils import (
     int_or_none,
     remove_start,
     strip_or_none,
-    traverse_obj,
     try_get,
     unified_timestamp,
 )
+from ..utils.traversal import traverse_obj
 
 
 class DPlayBaseIE(InfoExtractor):
