@@ -1,10 +1,10 @@
 import json
 
-from .common import InfoExtractor, parse_iso8601
+from .common import InfoExtractor, float_or_none, parse_iso8601
 from ..utils import traverse_obj
 
 
-class NoteTVBase(InfoExtractor):
+class NoveTVBase(InfoExtractor):
     _BASE_DATA = {'deviceInfo':
                   {'adBlocker': False, 'drmSupported': True, 'hdrCapabilities': ['SDR'],
                    'hwDecodingCapabilities': [], 'soundCapabilities': ['STEREO']},
@@ -25,7 +25,7 @@ class NoteTVBase(InfoExtractor):
         return formats
 
 
-class NoveTVLiveIE(NoteTVBase):
+class NoveTVLiveIE(NoveTVBase):
     _VALID_URL = r'https?://(?:www\.)?nove\.tv/live-streaming-nove'
 
     _TESTS = [{
@@ -53,11 +53,11 @@ class NoveTVLiveIE(NoteTVBase):
         }
 
 
-class NoveTVIE(NoteTVBase):
-    _VALID_URL = r'https?://(?:www\.)?nove\.tv/(?P<id>[^/?#]+)'
+class NoveTVIE(NoveTVBase):
+    _VALID_URL = r'https?://(?:www\.)?nove\.tv/(?!live-streaming-nove)(?P<id>[^/?#]+)'
 
     _TESTS = [{
-        'url': 'https://www.nove.tv/fratelli-di-crozza-puntata-24-ottobre-2025-video',
+        'url': 'https://nove.tv/fratelli-di-crozza-puntata-24-ottobre-2025-video',
         'md5': 'b3627d875a5a3ef1300b704c7a7a7df8',
         'info_dict': {
             'id': '15906',
@@ -74,6 +74,8 @@ class NoveTVIE(NoteTVBase):
             'season_number': 9,
             'episode': 'Puntata 24 ottobre 2025',
             'episode_number': 15,
+            'release_timestamp': 1761375600,
+            'release_date': '20251025',
         },
     }]
 
@@ -81,7 +83,7 @@ class NoveTVIE(NoteTVBase):
         slug = self._match_id(url)
         video_data = self._download_json(f'https://public.aurora.enhanced.live/site/page/{slug}?include=default&filter[environment]=nove',
                                          slug, 'Downloading video data')
-        attributes = next(data['attributes'] for data in video_data['included'] if traverse_obj(data, ('attributes', 'type')) == 'sonicVideoBlock')
+        attributes = traverse_obj(video_data, ('included', lambda _, v: v['attributes']['type'] == 'sonicVideoBlock', 'attributes'), get_all=False)
         video_id = attributes['videoId']
         token = self.get_token(video_id)
         playback_info = self._download_json(
@@ -98,13 +100,13 @@ class NoveTVIE(NoteTVBase):
             **traverse_obj(attributes, ('item', {
                 'channel': ('channel'),
                 'description': ('description'),
-                'duration': ('videoDuration'),
+                'duration': ('videoDuration', {float_or_none(scale=1000)}),
                 'episode_number': ('episodeNumber'),
                 'episode': ('title'),
+                'release_timestamp': ('publishStart', {parse_iso8601}),
                 'season_number': ('seasonNumber'),
                 'series_id': ('show', 'id'),
                 'series': ('show', 'title'),
                 'thumbnail': ('poster', 'src'),
-                'timestamp': ('publishStart', parse_iso8601),
             })),
         }
