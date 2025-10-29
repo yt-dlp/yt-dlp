@@ -155,6 +155,9 @@ class EJSBaseJCP(JsChallengeProvider):
                 video_id = next((request.video_id for request in grouped_requests), None)
                 player = self._get_player(video_id, player_url)
 
+            # NB: This output belongs after the player request
+            self.logger.info(f'Solving JS challenges using {self.PROVIDER_NAME}')
+
             stdin = self._construct_stdin(player, cached, grouped_requests)
             stdout = self._run_js_runtime(stdin)
             output = json.loads(stdout)
