@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shlex
 import subprocess
 import urllib.parse
@@ -118,12 +119,18 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
             env=self._get_env_options(),
         ) as proc:
             stdout, stderr = proc.communicate_or_kill(stdin)
+            stderr = self._clean_stderr(stderr)
             if proc.returncode or stderr:
-                msg = 'Error running bun process'
+                msg = f'Error running bun process (returncode: {proc.returncode})'
                 if stderr:
-                    msg = f'{msg}: {stderr}'
+                    msg = f'{msg}: {stderr.strip()}'
                 raise JsChallengeProviderError(msg)
         return stdout
+
+    def _clean_stderr(self, stderr):
+        return '\n'.join(
+            line for line in stderr.splitlines()
+            if not re.match(r'^Bun v\d+\.\d+\.\d+ \([\w\s]+\)$', line))
 
 
 @register_preference(BunJCP)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shlex
 import subprocess
 
@@ -40,13 +41,23 @@ class NodeJCP(EJSBaseJCP, BuiltinIEContentProvider):
             stderr=subprocess.PIPE,
         ) as proc:
             stdout, stderr = proc.communicate_or_kill(stdin)
+            stderr = self._clean_stderr(stderr)
             if proc.returncode or stderr:
-                msg = 'Error running node process'
+                msg = f'Error running node process (returncode: {proc.returncode})'
                 if stderr:
-                    msg = f'{msg}: {stderr}'
+                    msg = f'{msg}: {stderr.strip()}'
                 raise JsChallengeProviderError(msg)
 
         return stdout
+
+    def _clean_stderr(self, stderr):
+        return '\n'.join(
+            line for line in stderr.splitlines()
+            if not (
+                re.match(r'^\[stdin\]:', line)
+                or re.match(r'^var jsc', line)
+                or '(Use `node --trace-uncaught ...` to show where the exception was thrown)' == line
+                or re.match(r'^Node\.js v\d+\.\d+\.\d+$', line)))
 
 
 @register_preference(NodeJCP)

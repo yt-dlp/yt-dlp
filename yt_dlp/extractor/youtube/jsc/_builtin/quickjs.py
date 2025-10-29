@@ -44,9 +44,9 @@ class QuickJSJCP(EJSBaseJCP, BuiltinIEContentProvider):
             ) as proc:
                 stdout, stderr = proc.communicate_or_kill()
                 if proc.returncode or stderr:
-                    msg = 'Error running QuickJS process'
+                    msg = f'Error running QuickJS process (returncode: {proc.returncode})'
                     if stderr:
-                        msg = f'{msg}: {stderr}'
+                        msg = f'{msg}: {stderr.strip()}'
                     raise JsChallengeProviderError(msg)
         finally:
             pathlib.Path(temp_file.name).unlink(missing_ok=True)

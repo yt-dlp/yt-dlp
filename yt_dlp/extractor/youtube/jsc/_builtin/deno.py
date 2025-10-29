@@ -106,7 +106,7 @@ class DenoJCP(EJSBaseJCP, BuiltinIEContentProvider):
             if proc.returncode or stderr:
                 msg = f'Error running deno process (returncode: {proc.returncode})'
                 if stderr:
-                    msg = f'{msg}: {stderr}'
+                    msg = f'{msg}: {stderr.strip()}'
                 raise JsChallengeProviderError(msg)
         return stdout
 
