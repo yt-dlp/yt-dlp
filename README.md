@@ -372,8 +372,8 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     with an optional path to the runtime
                                     location. This option can be used multiple
                                     times to enable multiple runtimes. Supported
-                                    runtimes: deno, node, bun. By default, only
-                                    "deno" runtime is enabled.
+                                    runtimes: deno, node, bun, quickjs. By
+                                    default, only "deno" runtime is enabled.
     --no-js-runtimes                Clear JavaScript runtimes to enable,
                                     including defaults and those provided by
                                     previous --js-runtimes
