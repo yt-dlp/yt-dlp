@@ -161,7 +161,7 @@ class FirstTVLiveIE(InfoExtractor):
         if not mpd_list:
             raise ExtractorError('Can\'t download json with mpd streams')
         mpd_formats, mpd_subtitles = self._extract_mpd_formats_and_subtitles(
-            mpd_url=mpd_list[0], video_id='live_mpd'
+            mpd_url=mpd_list[0], video_id='live_mpd',
         )
 
         # It is mandatory to use the '-re' option for ffmpeg,
@@ -173,8 +173,8 @@ class FirstTVLiveIE(InfoExtractor):
                     'downloader_options': {
                         'ffmpeg_args': ['-re'],
                         'ffmpeg_args_out': ['-c', 'copy', '-f', 'mp4'],
-                    }
-                }
+                    },
+                },
             )
 
         return {
