@@ -370,7 +370,7 @@ def initialize_pot_director(ie):
         extractor_key = f'{EXTRACTOR_ARG_PREFIX}-{provider.PROVIDER_KEY.lower()}'
         return (
             YoutubeIEContentProviderLogger(ie, logger_prefix, log_level=log_level),
-            ie.get_param('extractor_args', {}).get(extractor_key, {}))
+            {k.lower(): v for k, v in ie.get_param('extractor_args', {}).get(extractor_key, {}).items()})
 
     cache_providers = []
     for cache_provider in _pot_cache_providers.value.values():
