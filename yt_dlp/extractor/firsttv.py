@@ -168,14 +168,7 @@ class FirstTVLiveIE(InfoExtractor):
         # otherwise the recording of fragments will stop after
         # a while due to the speed n-times faster than real time.
         for f in mpd_formats:
-            f.update(
-                {
-                    'downloader_options': {
-                        'ffmpeg_args': ['-re'],
-                        'ffmpeg_args_out': ['-c', 'copy', '-f', 'mp4'],
-                    },
-                },
-            )
+            f.update({'downloader_options': {'ffmpeg_args': ['-re'], 'ffmpeg_args_out': ['-c', 'copy', '-f', 'mp4']}})
 
         return {
             'id': display_id,
