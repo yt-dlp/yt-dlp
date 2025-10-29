@@ -142,7 +142,8 @@ def main():
     hash_mapping = '\n'.join(hashes)
     for asset_name in ASSETS:
         assert asset_name in hash_mapping, f'{asset_name} not found in release'
-    assert len(list(filter(None, wheel_info.values()))) == 7, 'wheel info not found in release'
+
+    assert all(wheel_info.get(key) for key in makefile_info), 'wheel info not found in release'
 
     (PACKAGE_PATH / '_info.py').write_text(TEMPLATE.format(
         version=version,
