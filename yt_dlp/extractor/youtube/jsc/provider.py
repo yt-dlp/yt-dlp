@@ -83,6 +83,10 @@ class JsChallengeResponse:
 class JsChallengeProviderRejectedRequest(IEContentProviderError):
     """Reject the JsChallengeRequest (cannot handle the request)"""
 
+    def __init__(self, msg=None, expected: bool = False, *, _skipped_components=None):
+        super().__init__(msg, expected)
+        self._skipped_components = _skipped_components
+
 
 class JsChallengeProviderError(IEContentProviderError):
     """An error occurred while solving the challenge"""

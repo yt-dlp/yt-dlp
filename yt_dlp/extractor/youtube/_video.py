@@ -24,6 +24,7 @@ from ._base import (
     _split_innertube_client,
     short_client_name,
 )
+from .jsc._builtin.ejs import _EJS_WIKI_URL
 from .jsc._director import initialize_jsc_director
 from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, SigChallengeInput
 from .pot._director import initialize_pot_director
@@ -151,8 +152,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web_creator', 'web')
 
     _GEO_BYPASS = False
-
-    _EJS_WIKI_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/EJS'
 
     IE_NAME = 'youtube'
     _TESTS = [{
@@ -3320,7 +3319,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     help_message = (
                         'Ensure you have a supported JS Runtime and challenge solver script distribution installed. '
                         'Review any warnings presented before this message. '
-                        f'For more details, refer to  {self._EJS_WIKI_URL}')
+                        f'For more details, refer to  {_EJS_WIKI_URL}')
 
                     if s_challenges:
                         self.report_warning(

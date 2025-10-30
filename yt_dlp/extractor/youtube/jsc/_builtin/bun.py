@@ -7,6 +7,7 @@ import subprocess
 import urllib.parse
 
 from yt_dlp.extractor.youtube.jsc._builtin.ejs import (
+    _EJS_WIKI_URL,
     EJSBaseJCP,
     Script,
     ScriptSource,
@@ -48,12 +49,11 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
         yield from super()._iter_script_sources()
         yield ScriptSource.BUILTIN, self._bun_npm_source
 
-    def _bun_npm_source(self, script_type: ScriptType, /) -> Script | None:
+    def _bun_npm_source(self, script_type: ScriptType, /):
         if script_type != ScriptType.LIB:
             return None
         if 'ejs:npm' not in self.ie.get_param('remote_components', []):
-            self._report_remote_component_skipped('ejs:npm', 'NPM package')
-            return None
+            return self._skip_component('ejs:npm')
 
         # Check to see if the environment proxies are compatible with Bun npm source
         if unsupported_scheme := self._check_env_proxies(self._get_env_options()):
@@ -61,7 +61,7 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
                 f'Bun NPM package downloads only support HTTP/HTTPS proxies; skipping remote NPM package downloads. '
                 f'Provide another distribution of the challenge solver script or use '
                 f'another JS runtime that supports "{unsupported_scheme}" proxies. '
-                f'For more information and alternatives, refer to  {self.ie._EJS_WIKI_URL}')
+                f'For more information and alternatives, refer to  {_EJS_WIKI_URL}')
             return None
 
         # Bun-specific lib scripts that uses Bun autoimport

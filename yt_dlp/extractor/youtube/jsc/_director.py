@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import collections
 import dataclasses
 import typing
-from collections.abc import Iterable
 
+from yt_dlp.extractor.youtube.jsc._builtin.ejs import _EJS_WIKI_URL
 from yt_dlp.extractor.youtube.jsc._registry import (
     _jsc_preferences,
     _jsc_providers,
@@ -30,6 +31,9 @@ from yt_dlp.extractor.youtube.pot.provider import (
 )
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from yt_dlp.extractor.youtube.jsc._builtin.ejs import _SkippedComponent
     from yt_dlp.extractor.youtube.jsc.provider import Preference as JsChallengePreference
 
 
@@ -97,6 +101,7 @@ class JsChallengeRequestDirector:
         results = []
         next_requests = requests[:]
 
+        skipped_components = []
         for provider in self._get_providers(next_requests):
             if not next_requests:
                 break
@@ -130,8 +135,13 @@ class JsChallengeRequestDirector:
                         continue
                     results.append((response.request, response.response))
             except Exception as e:
+                if isinstance(e, JsChallengeProviderRejectedRequest) and e._skipped_components:
+                    skipped_components.extend(e._skipped_components)
                 self._handle_error(e, provider, next_requests)
                 continue
+
+        if skipped_components:
+            self.__report_skipped_components(skipped_components)
 
         if len(results) != len(requests):
             self.logger.trace(
@@ -140,6 +150,42 @@ class JsChallengeRequestDirector:
         else:
             self.logger.trace(f'Solved all {len(requests)} requested JS Challenges')
         return results
+
+    def __report_skipped_components(self, components: list[_SkippedComponent], /):
+        runtime_components = collections.defaultdict(list)
+        for component in components:
+            runtime_components[component.component].append(component.runtime)
+        for runtimes in runtime_components.values():
+            runtimes.sort()
+
+        description_lookup = {
+            'ejs:npm': 'NPM package',
+            'ejs:github': 'challenge solver script',
+        }
+
+        descriptions = [
+            f'{description_lookup.get(component, component)} ({", ".join(runtimes)})'
+            for component, runtimes in runtime_components.items()
+            if runtimes
+        ]
+        flags = [
+            f' --remote-components {f"{component}  (recommended)" if component == "ejs:github" else f"{component} "}'
+            for component, runtimes in runtime_components.items()
+            if runtimes
+        ]
+
+        def join_parts(parts, joiner):
+            if not parts:
+                return ''
+            if len(parts) == 1:
+                return parts[0]
+            return f'{", ".join(parts[:-1])} {joiner} {parts[-1]}'
+
+        self.logger.warning(
+            f'Remote components {join_parts(descriptions, "and")} were skipped. '
+            f'These may be required to solve JS challenges. '
+            f'You can enable these downloads with {join_parts(flags, "or")}, respectively. '
+            f'For more information and alternatives, refer to  {_EJS_WIKI_URL}')
 
     def close(self):
         for provider in self.providers.values():
