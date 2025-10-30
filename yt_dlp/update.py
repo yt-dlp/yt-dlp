@@ -70,7 +70,17 @@ def _get_variant_and_executable_path():
             return 'linux_static_exe', static_exe_path
 
         # We know it's a PyInstaller bundle, but is it "onedir" or "onefile"?
-        suffix = 'dir' if sys._MEIPASS == os.path.dirname(path) else 'exe'
+        if (
+            # PyInstaller >= 6.0.0 sets sys._MEIPASS for onedir to its `_internal` subdirectory
+            # Ref: https://pyinstaller.org/en/v6.0.0/CHANGES.html#incompatible-changes
+            sys._MEIPASS == f'{os.path.dirname(path)}/_internal'
+            # compat: PyInstaller < 6.0.0
+            or sys._MEIPASS == os.path.dirname(path)
+        ):
+            suffix = 'dir'
+        else:
+            suffix = 'exe'
+
         system_platform = remove_end(sys.platform, '32')
 
         if system_platform == 'darwin':
@@ -133,8 +143,9 @@ _FILE_SUFFIXES = {
 
 _NON_UPDATEABLE_REASONS = {
     **dict.fromkeys(_FILE_SUFFIXES),  # Updatable
-    **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
-       for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
+    **dict.fromkeys(
+        ['linux_armv7l_dir', *(f'{variant[:-4]}_dir' for variant in _FILE_SUFFIXES if variant.endswith('_exe'))],
+        'Auto-update is not supported for unpackaged executables; Re-download the latest release'),
     'py2exe': 'py2exe is no longer supported by yt-dlp; This executable cannot be updated',
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
     'unknown': 'You installed yt-dlp from a manual build or with a package manager; Use that to update',
@@ -154,7 +165,7 @@ def _get_binary_name():
 
 
 def _get_system_deprecation():
-    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 9), (3, 10)
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 10), (3, 10)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
@@ -559,11 +570,9 @@ class Updater:
     @functools.cached_property
     def cmd(self):
         """The command-line to run the executable, if known"""
-        argv = None
-        # There is no sys.orig_argv in py < 3.10. Also, it can be [] when frozen
-        if getattr(sys, 'orig_argv', None):
-            argv = sys.orig_argv
-        elif getattr(sys, 'frozen', False):
+        argv = sys.orig_argv
+        # sys.orig_argv can be [] when frozen
+        if not argv and getattr(sys, 'frozen', False):
             argv = sys.argv
         # linux_static exe's argv[0] will be /tmp/staticx-NNNN/yt-dlp_linux if we don't fixup here
         if argv and os.getenv('STATICX_PROG_PATH'):
@@ -572,7 +581,7 @@ class Updater:
 
     def restart(self):
         """Restart the executable"""
-        assert self.cmd, 'Must be frozen or Py >= 3.10'
+        assert self.cmd, 'Unable to determine argv'
         self.ydl.write_debug(f'Restarting: {shell_quote(self.cmd)}')
         _, _, returncode = Popen.run(self.cmd)
         return returncode
