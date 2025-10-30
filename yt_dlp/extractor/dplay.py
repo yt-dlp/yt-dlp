@@ -1125,20 +1125,63 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'tags': [],
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://tlc.de/sendungen/evil-gesichter-des-boesen/das-geheimnis-meines-bruders',
+        'info_dict': {
+            'id': '7792288',
+            'ext': 'mp4',
+            'title': 'Das Geheimnis meines Bruders',
+            'description': 'md5:3167550bb582eb9c92875c86a0a20882',
+            'display_id': '7792288',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 1',
+            'season_number': 1,
+            'series': 'Evil - Gesichter des Bösen',
+            'duration': 2626.0,
+            'upload_date': '20240926',
+            'timestamp': 1727388000,
+            'creators': ['TLC'],
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2024/11/29/e9f3e3ae-74ec-3631-81b7-fc7bbe844741.jpeg',
+            'tags': ['kriminalfall', 'böse', 'verbrecher', 'zusammenleben', 'mord', 'familie', 'ermittler', 'leben', 'fälle', 'opfer', 'tod', 'mörder', 'crime'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://tlc.de/sendungen/ghost-adventures/der-poltergeist-im-kostumladen',
+        'info_dict': {
+            'id': '4550602',
+            'ext': 'mp4',
+            'title': 'Der Poltergeist im Kostümladen',
+            'description': 'md5:20b52b9736a0a3a7873d19a238fad7fc',
+            'display_id': '4550602',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 25',
+            'season_number': 25,
+            'series': 'Ghost Adventures',
+            'duration': 2493.0,
+            'upload_date': '20241223',
+            'timestamp': 1734948900,
+            'creators': ['TLC'],
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2023/04/05/59941d26-a81b-365f-829f-69d8cd81fd0f.jpeg',
+            'tags': [],
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
         domain, programme, alternate_id = self._match_valid_url(url).groups()
         country = 'DE'
         realm = domain.replace('.', '')
+        environment = domain.split('.')[0]
         meta = self._download_json(
             f'https://de-api.loma-cms.com/feloma/videos/{alternate_id}/',
             alternate_id, query={
-                'environment': 'dmax',
+                'environment': environment,
                 'v': '2',
                 'filter[show.slug]': programme,
             }, fatal=False)
-        video_id = traverse_obj(meta, ('uid', {str}, {lambda s: s[-7:]})) or f'{programme}/{alternate_id}'
+        video_id = traverse_obj(meta, ('uid', {str}, {lambda s: s[-7:]}))
 
         return self._get_disco_api_info(
             url, video_id, 'eu1-prod.disco-api.com', realm, country)
