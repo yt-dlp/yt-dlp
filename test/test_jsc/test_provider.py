@@ -1,9 +1,19 @@
 
 import pytest
 
-from yt_dlp.extractor.youtube.jsc.provider import JsChallengeProvider, JsChallengeRequest, JsChallengeProviderResponse, \
-    JsChallengeProviderRejectedRequest, JsChallengeType, JsChallengeResponse, NChallengeOutput, NChallengeInput, \
-    JsChallengeProviderError, register_provider, register_preference
+from yt_dlp.extractor.youtube.jsc.provider import (
+    JsChallengeProvider,
+    JsChallengeRequest,
+    JsChallengeProviderResponse,
+    JsChallengeProviderRejectedRequest,
+    JsChallengeType,
+    JsChallengeResponse,
+    NChallengeOutput,
+    NChallengeInput,
+    JsChallengeProviderError,
+    register_provider,
+    register_preference,
+)
 from yt_dlp.extractor.youtube.pot._provider import IEContentProvider
 from yt_dlp.utils import ExtractorError
 from yt_dlp.extractor.youtube.jsc._registry import _jsc_preferences, _jsc_providers
