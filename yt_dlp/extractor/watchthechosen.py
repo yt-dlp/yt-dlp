@@ -108,11 +108,9 @@ class TheChosenGroupIE(InfoExtractor):
 
     def _real_extract(self, url):
         pageID = self._match_id(url)
-        info = {}
         auth_cookie = try_call(lambda: self._get_cookies(url)['frAccessToken'].value) or ''
         token_type = try_call(lambda: self._get_cookies(url)['frTokenType'].value) or ''
 
-        info['_type'] = 'playlist'
         entries = []
         metadata = traverse_obj(self._download_json(
             'https://api.frontrow.cc/query', pageID, note='Downloading playlist metadata', data=json.dumps({
@@ -120,7 +118,7 @@ class TheChosenGroupIE(InfoExtractor):
                 'variables': {'channelID': '12884901895', 'first': 500, 'pageContainerID': pageID},
                 'query': '''query PaginatedStaticPageContainer($channelID: ID!, $pageContainerID: ID!) {
                               pageContainer(ChannelID: $channelID, PageContainerID: $pageContainerID) {
-                                ... on StaticPageContainer { id title itemRefs {edges {node {
+                                ... on StaticPageContainer { id title updatedAt itemRefs {edges {node {
                                         id contentItem { ... on ItemVideo { videoItem: item {
                                             hasAccess id
                                         }}}
@@ -146,13 +144,18 @@ class TheChosenGroupIE(InfoExtractor):
                 self.report_warning('Skipping Members Only video. ' + self._login_hint())
                 continue
 
-            entry = {'_type': 'url_transparent',
-                     'ie_key': 'TheChosen',
-                     'url': 'https://watch.thechosen.tv/video/' + video_metadata['id'],
-                     'id': video_metadata['id'],
-                     }
+            entry = {
+                '_type': 'url_transparent',
+                'ie_key': 'TheChosen',
+                'url': 'https://watch.thechosen.tv/video/' + video_metadata['id'],
+                'id': video_metadata['id'],
+            }
             entries.append(entry)
-        info['entries'] = entries
-        info['playlist_count'] = traverse_obj(metadata, ('itemRefs', 'totalCount'))
 
-        return info
+        return {
+            'title': metadata['title'],
+            'modified_date': unified_strdate(metadata['updatedAt']),
+            '_type': 'playlist',
+            'entries': entries,
+            'playlist_count': traverse_obj(metadata, ('itemRefs', 'totalCount')),
+        }
