@@ -1,6 +1,6 @@
 # YoutubeIE JS Challenge Provider Framework
 
-As part of the YouTube extractor, we have a framework for solving JS Challenges programmatically (sig, nsig). This can be used by plugins.
+As part of the YouTube extractor, we have a framework for solving n/sig JS Challenges programmatically. This can be used by plugins.
 
 > [!TIP]
 > If publishing a JS Challenge Provider plugin to GitHub, add the [yt-dlp-jsc-provider](https://github.com/topics/yt-dlp-jsc-provider) topic to your repository to help users find it.
@@ -9,7 +9,6 @@ As part of the YouTube extractor, we have a framework for solving JS Challenges 
 ## Public APIs
 
 - `yt_dlp.extractor.youtube.jsc.provider`
-- `yt_dlp.extractor.youtube.jsc.utils`
 
 Everything else is **internal-only** and no guarantees are made about the API stability.
 
@@ -122,7 +121,11 @@ def my_provider_preference(provider: JsChallengeProvider, requests: list[JsChall
 
 ## Logging Guidelines
 
-todo
+- Use the `self.logger` object to log messages.
+- When making HTTP requests or any other time-expensive operation, use `self.logger.info` to log a message to standard non-verbose output.
+  - This lets users know what is happening when a time-expensive operation is taking place.
+- Technical information such as a command being executed should be logged to `self.logger.debug`
+- Use `self.logger.trace` for very detailed information that is only useful for debugging to avoid cluttering the debug log.
 
 ## Debugging
 
