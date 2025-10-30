@@ -33,6 +33,8 @@ from yt_dlp.utils.networking import HTTPHeaderDict, clean_proxies
 # - No sandboxing options available
 # - Cannot detect if npm packages are cached without potentially downloading them.
 #   `--no-install` appears to disable the cache.
+# - npm auto-install may fail with an integrity error when using HTTP proxies
+# - npm auto-install HTTP proxy support may be limited on older Bun versions
 
 
 @register_provider

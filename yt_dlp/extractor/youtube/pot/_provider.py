@@ -114,15 +114,26 @@ class IEContentProvider(abc.ABC):
         @param default      The default value to return when the key is not present (default: [])
         @param casesense    When false, the values are converted to lower case
         """
-        val = traverse_obj(self.settings, key)
-        if val is None:
-            return [] if default is NO_DEFAULT else default
-        return list(val) if casesense else [x.lower() for x in val]
+        return configuration_arg(self.settings, key, default=default, casesense=casesense)
 
 
 class BuiltinIEContentProvider(IEContentProvider, abc.ABC):
     PROVIDER_VERSION = __version__
     BUG_REPORT_MESSAGE = bug_reports_message(before='')
+
+
+def configuration_arg(config, key, default=NO_DEFAULT, *, casesense=False):
+    """
+    @returns            A list of values for the setting given by "key"
+                        or "default" if no such key is present
+    @param config       The configuration dictionary
+    @param default      The default value to return when the key is not present (default: [])
+    @param casesense    When false, the values are converted to lower case
+    """
+    val = traverse_obj(config, key)
+    if val is None:
+        return [] if default is NO_DEFAULT else default
+    return list(val) if casesense else [x.lower() for x in val]
 
 
 def register_provider_generic(
