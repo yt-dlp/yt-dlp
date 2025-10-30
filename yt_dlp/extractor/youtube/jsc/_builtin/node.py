@@ -24,14 +24,19 @@ class NodeJCP(EJSBaseJCP, BuiltinIEContentProvider):
     _ARGS = ['-']
 
     def _run_js_runtime(self, stdin: str, /) -> str:
-        # Node permission flag changed from experimental to stable in v23.5.0
-        perm_flag = (
-            ['--permission']
-            if self.runtime_info.version_tuple >= (23, 5, 0)
-            else ['--experimental-permission', '--no-warnings=ExperimentalWarning']
-        )
+        args = []
 
-        cmd = [self.runtime_info.path, *perm_flag, *self._ARGS]
+        if self.ejs_setting('jitless', ['false']) != ['false']:
+            args.append('--v8-flags=--jitless')
+
+        # Node permission flag changed from experimental to stable in v23.5.0
+        if self.runtime_info.version_tuple < (23, 5, 0):
+            args.append('--experimental-permission')
+            args.append('--no-warnings=ExperimentalWarning')
+        else:
+            args.append('--permission')
+
+        cmd = [self.runtime_info.path, *args, *self._ARGS]
         self.logger.debug(f'Running node: {shlex.join(cmd)}')
         with Popen(
             cmd,

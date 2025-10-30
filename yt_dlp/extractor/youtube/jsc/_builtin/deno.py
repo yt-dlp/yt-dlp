@@ -77,7 +77,7 @@ class DenoJCP(EJSBaseJCP, BuiltinIEContentProvider):
         if self.ie.get_param('nocheckcertificate'):
             options.append('--unsafely-ignore-certificate-errors')
         # XXX: Convert this extractor-arg into a general option if/when a JSI framework is implemented
-        if self.ejs_setting('deno_v8_jitless', ['false']) != ['false']:
+        if self.ejs_setting('jitless', ['false']) != ['false']:
             options.append('--v8-flags=--jitless')
         return self._run_deno(stdin, options)
 

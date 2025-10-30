@@ -99,6 +99,12 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
                 options[env] = val
         if self.ie.get_param('nocheckcertificate'):
             options['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
+
+        # Prevent segfault: <https://github.com/oven-sh/bun/issues/22901>
+        options.pop('JSC_useJIT', None)
+        if self.ejs_setting('jitless', ['false']) != ['false']:
+            options['BUN_JSC_useJIT'] = '0'
+
         return options
 
     def _run_js_runtime(self, stdin: str, /) -> str:
