@@ -5,7 +5,114 @@ from ..utils import ExtractorError, try_call, unified_strdate
 from ..utils.traversal import traverse_obj
 
 
-class TheChosenIE(InfoExtractor):
+class FrontroBaseIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?api\.frontrow\.cc/query'
+
+    def _real_extract(self, url):
+        pageID = self._match_id(url)
+        auth_cookie = try_call(lambda: self._get_cookies(url)['frAccessToken'].value) or ''
+        token_type = try_call(lambda: self._get_cookies(url)['frTokenType'].value) or ''
+
+        metadata = traverse_obj(self._download_json(
+            'https://api.frontrow.cc/query', pageID, data=json.dumps({
+                'operationName': 'Video',
+                'variables': {'channelID': self.channelID, 'videoID': pageID},
+                'query': r'''query Video($channelID: ID!, $videoID: ID!) {
+                    video(ChannelID: $channelID, VideoID: $videoID) {
+                        ... on Video {title description updatedAt thumbnail createdAt duration likeCount comments views url hasAccess}
+                    }
+                }''',
+            }).encode(), headers={
+                'channelid': self.channelID,
+                'content-type': 'application/json',
+                'authorization': token_type + ' ' + auth_cookie,
+            }), ('data', 'video'))
+        if metadata is None:
+            raise ExtractorError('This video does not exist!', expected=True)
+        if not metadata['hasAccess']:
+            raise ExtractorError('''Seems like you don't have access to this video. Maybe try logging in with your account? ''' + self._login_hint(), expected=True)
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(metadata['url'], pageID)
+
+        return {
+            'id': pageID,
+            'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(metadata, {
+                'title': 'title',
+                'description': 'description',
+                'thumbnail': 'thumbnail',
+                'modified_date': ('updatedAt', {unified_strdate}),
+                'upload_date': ('createdAt', {unified_strdate}),
+                'duration': 'duration',
+                'like_count': 'likeCount',
+                'comment_count': 'comments',
+                'view_count': 'views',
+            }),
+        }
+
+
+class FrontroGroupBaseIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?api\.frontrow\.cc/query'
+
+    def _real_extract(self, url):
+        pageID = self._match_id(url)
+        auth_cookie = try_call(lambda: self._get_cookies(url)['frAccessToken'].value) or ''
+        token_type = try_call(lambda: self._get_cookies(url)['frTokenType'].value) or ''
+
+        entries = []
+        metadata = traverse_obj(self._download_json(
+            'https://api.frontrow.cc/query', pageID, note='Downloading playlist metadata', data=json.dumps({
+                'operationName': 'PaginatedStaticPageContainer',
+                'variables': {'channelID': self.channelID, 'first': 500, 'pageContainerID': pageID},
+                'query': '''query PaginatedStaticPageContainer($channelID: ID!, $pageContainerID: ID!) {
+                              pageContainer(ChannelID: $channelID, PageContainerID: $pageContainerID) {
+                                ... on StaticPageContainer { id title updatedAt itemRefs {edges {node {
+                                        id contentItem { ... on ItemVideo { videoItem: item {
+                                            hasAccess id
+                                        }}}
+                                    }}}
+                                }
+                              }
+                            }''',
+            }).encode(), headers={
+                'channelid': self.channelID,
+                'content-type': 'application/json',
+                'authorization': token_type + ' ' + auth_cookie,
+            }), ('data', 'pageContainer'))
+
+        if metadata is None:
+            raise ExtractorError('This group does not exist!', expected=True)
+
+        for i in traverse_obj(metadata, ('itemRefs', 'edges')):
+            video_metadata = traverse_obj(i, ('node', 'contentItem', 'videoItem'))
+            # Skipping ghost-video
+            if video_metadata is None:
+                continue
+            if not video_metadata['hasAccess']:
+                self.report_warning('Skipping inaccessible video. Maybe try logging in with your account? ' + self._login_hint())
+                continue
+
+            entry = {
+                '_type': 'url_transparent',
+                'ie_key': self.videoIE,
+                'url': self.videoRootLink + video_metadata['id'],
+                'id': video_metadata['id'],
+            }
+            entries.append(entry)
+
+        return {
+            'title': metadata['title'],
+            'modified_date': unified_strdate(metadata['updatedAt']),
+            '_type': 'playlist',
+            'entries': entries,
+            'playlist_count': traverse_obj(metadata, ('itemRefs', 'totalCount')),
+        }
+
+
+class TheChosenIE(FrontroBaseIE):
+    channelID = '12884901895'
+
     _VALID_URL = r'https?://(?:www\.)?watch\.thechosen\.tv/video/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://watch.thechosen.tv/video/184683594325',
@@ -41,51 +148,12 @@ class TheChosenIE(InfoExtractor):
         },
     }]
 
-    def _real_extract(self, url):
-        pageID = self._match_id(url)
-        auth_cookie = try_call(lambda: self._get_cookies(url)['frAccessToken'].value) or ''
-        token_type = try_call(lambda: self._get_cookies(url)['frTokenType'].value) or ''
 
-        metadata = traverse_obj(self._download_json(
-            'https://api.frontrow.cc/query', pageID, data=json.dumps({
-                'operationName': 'Video',
-                'variables': {'channelID': '12884901895', 'videoID': pageID},
-                'query': r'''query Video($channelID: ID!, $videoID: ID!) {
-                    video(ChannelID: $channelID, VideoID: $videoID) {
-                        ... on Video {title description updatedAt thumbnail createdAt duration likeCount comments views url hasAccess}
-                    }
-                }''',
-            }).encode(), headers={
-                'channelid': '12884901895',
-                'content-type': 'application/json',
-                'authorization': token_type + ' ' + auth_cookie,
-            }), ('data', 'video'))
-        if metadata is None:
-            raise ExtractorError('This video does not exist!', expected=True)
-        if not metadata['hasAccess']:
-            raise ExtractorError('This is Members Only video. Please log in with your account! ' + self._login_hint(), expected=True)
+class TheChosenGroupIE(FrontroGroupBaseIE):
+    channelID = '12884901895'
+    videoIE = 'TheChosen'
+    videoRootLink = 'https://watch.thechosen.tv/video/'
 
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(metadata['url'], pageID)
-
-        return {
-            'id': pageID,
-            'formats': formats,
-            'subtitles': subtitles,
-            **traverse_obj(metadata, {
-                'title': 'title',
-                'description': 'description',
-                'thumbnail': 'thumbnail',
-                'modified_date': ('updatedAt', {unified_strdate}),
-                'upload_date': ('createdAt', {unified_strdate}),
-                'duration': 'duration',
-                'like_count': 'likeCount',
-                'comment_count': 'comments',
-                'view_count': 'views',
-            }),
-        }
-
-
-class TheChosenGroupIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?watch\.thechosen\.tv/group/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://watch.thechosen.tv/group/309237658592',
@@ -105,57 +173,3 @@ class TheChosenGroupIE(InfoExtractor):
         },
 
     }]
-
-    def _real_extract(self, url):
-        pageID = self._match_id(url)
-        auth_cookie = try_call(lambda: self._get_cookies(url)['frAccessToken'].value) or ''
-        token_type = try_call(lambda: self._get_cookies(url)['frTokenType'].value) or ''
-
-        entries = []
-        metadata = traverse_obj(self._download_json(
-            'https://api.frontrow.cc/query', pageID, note='Downloading playlist metadata', data=json.dumps({
-                'operationName': 'PaginatedStaticPageContainer',
-                'variables': {'channelID': '12884901895', 'first': 500, 'pageContainerID': pageID},
-                'query': '''query PaginatedStaticPageContainer($channelID: ID!, $pageContainerID: ID!) {
-                              pageContainer(ChannelID: $channelID, PageContainerID: $pageContainerID) {
-                                ... on StaticPageContainer { id title updatedAt itemRefs {edges {node {
-                                        id contentItem { ... on ItemVideo { videoItem: item {
-                                            hasAccess id
-                                        }}}
-                                    }}}
-                                }
-                              }
-                            }''',
-            }).encode(), headers={
-                'channelid': '12884901895',
-                'content-type': 'application/json',
-                'authorization': token_type + ' ' + auth_cookie,
-            }), ('data', 'pageContainer'))
-
-        if metadata is None:
-            raise ExtractorError('This group does not exist!', expected=True)
-
-        for i in traverse_obj(metadata, ('itemRefs', 'edges')):
-            video_metadata = traverse_obj(i, ('node', 'contentItem', 'videoItem'))
-            # Skipping ghost-video
-            if video_metadata is None:
-                continue
-            if not video_metadata['hasAccess']:
-                self.report_warning('Skipping Members Only video. ' + self._login_hint())
-                continue
-
-            entry = {
-                '_type': 'url_transparent',
-                'ie_key': 'TheChosen',
-                'url': 'https://watch.thechosen.tv/video/' + video_metadata['id'],
-                'id': video_metadata['id'],
-            }
-            entries.append(entry)
-
-        return {
-            'title': metadata['title'],
-            'modified_date': unified_strdate(metadata['updatedAt']),
-            '_type': 'playlist',
-            'entries': entries,
-            'playlist_count': traverse_obj(metadata, ('itemRefs', 'totalCount')),
-        }

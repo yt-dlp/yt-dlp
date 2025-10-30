@@ -689,6 +689,12 @@ from .frontendmasters import (
     FrontendMastersIE,
     FrontendMastersLessonIE,
 )
+from .frontro import (
+    FrontroBaseIE,
+    FrontroGroupBaseIE,
+    TheChosenGroupIE,
+    TheChosenIE,
+)
 from .fujitv import FujiTVFODPlus7IE
 from .funk import FunkIE
 from .funker530 import Funker530IE
@@ -2407,10 +2413,6 @@ from .washingtonpost import (
     WashingtonPostIE,
 )
 from .wat import WatIE
-from .watchthechosen import (
-    TheChosenGroupIE,
-    TheChosenIE,
-)
 from .wdr import (
     WDRIE,
     WDRElefantIE,
