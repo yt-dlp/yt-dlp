@@ -1054,7 +1054,7 @@ class DiscoveryPlusIndiaIE(DiscoveryPlusBaseIE):
 
 
 class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:tlc|dmax)\.de|dplay\.co\.uk)/(?:programme|show|sendungen)/(?P<programme>[^/]+)/(?:video/)?(?P<alternate_id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:tlc|dmax)\.de)/(?:programme|show|sendungen)/(?P<programme>[^/]+)/(?:video/)?(?P<alternate_id>[^/]+)'
 
     _TESTS = [{
         'url': 'https://dmax.de/sendungen/goldrausch-in-australien/german-gold',
@@ -1102,9 +1102,6 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         'url': 'https://www.dmax.de/programme/dmax-highlights/video/tuning-star-sidney-hoffmann-exklusiv-bei-dmax/191023082312316',
         'only_matching': True,
     }, {
-        'url': 'https://www.dplay.co.uk/show/ghost-adventures/video/hotel-leger-103620/EHD_280313B',
-        'only_matching': True,
-    }, {
         'url': 'https://tlc.de/sendungen/breaking-amish/die-welt-da-drauen/',
         'only_matching': True,
     }, {
@@ -1132,8 +1129,8 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
 
     def _real_extract(self, url):
         domain, programme, alternate_id = self._match_valid_url(url).groups()
-        country = 'GB' if domain == 'dplay.co.uk' else 'DE'
-        realm = 'questuk' if country == 'GB' else domain.replace('.', '')
+        country = 'DE'
+        realm = domain.replace('.', '')
         meta = self._download_json(
             f'https://de-api.loma-cms.com/feloma/videos/{alternate_id}/',
             alternate_id, query={
