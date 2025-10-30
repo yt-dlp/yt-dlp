@@ -106,13 +106,13 @@ class EJSBaseJCP(JsChallengeProvider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._available = True
+        self.ejs_settings = self.ie.get_param('extractor_args', {}).get('youtube-ejs', {})
 
-        # Note: developer use only, intentionally not documented.
+        # Note: The following 3 args are for developer use only & intentionally not documented.
         # - dev: bypasses verification of script hashes and versions.
         # - repo: use a custom GitHub repository to fetch web script from.
         # - script_version: use a custom script version.
         # E.g. --extractor-args "youtube-ejs:dev=true;script_version=0.1.4"
-        self.ejs_settings = self.ie.get_param('extractor_args', {}).get('youtube-ejs', {})
 
         self.is_dev = self.ejs_setting('dev', ['false'])[0] == 'true'
         if self.is_dev:
