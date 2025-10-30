@@ -22,15 +22,11 @@ if os.name == 'nt':
 
     def getproxies_registry_patched():
         proxies = getproxies_registry()
-        if (
-            sys.version_info >= (3, 10, 5)  # https://docs.python.org/3.10/whatsnew/changelog.html#python-3-10-5-final
-            or (3, 9, 13) <= sys.version_info < (3, 10)  # https://docs.python.org/3.9/whatsnew/changelog.html#python-3-9-13-final
-        ):
-            return proxies
 
-        for scheme in ('https', 'ftp'):
-            if scheme in proxies and proxies[scheme].startswith(f'{scheme}://'):
-                proxies[scheme] = 'http' + proxies[scheme][len(scheme):]
+        if sys.version_info < (3, 10, 5):  # https://docs.python.org/3.10/whatsnew/changelog.html#python-3-10-5-final
+            for scheme in ('https', 'ftp'):
+                if scheme in proxies and proxies[scheme].startswith(f'{scheme}://'):
+                    proxies[scheme] = 'http' + proxies[scheme][len(scheme):]
 
         return proxies
 

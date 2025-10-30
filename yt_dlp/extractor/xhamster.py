@@ -2,6 +2,7 @@ import base64
 import codecs
 import itertools
 import re
+import string
 
 from .common import InfoExtractor
 from ..utils import (
@@ -20,6 +21,47 @@ from ..utils import (
     unified_strdate,
     url_or_none,
 )
+
+
+def to_signed_32(n):
+    return n % ((-1 if n < 0 else 1) * 2**32)
+
+
+class _ByteGenerator:
+    def __init__(self, algo_id, seed):
+        try:
+            self._algorithm = getattr(self, f'_algo{algo_id}')
+        except AttributeError:
+            raise ExtractorError(f'Unknown algorithm ID: {algo_id}')
+        self._s = to_signed_32(seed)
+
+    def _algo1(self, s):
+        # LCG (a=1664525, c=1013904223, m=2^32)
+        # Ref: https://en.wikipedia.org/wiki/Linear_congruential_generator
+        s = self._s = to_signed_32(s * 1664525 + 1013904223)
+        return s
+
+    def _algo2(self, s):
+        # xorshift32
+        # Ref: https://en.wikipedia.org/wiki/Xorshift
+        s = to_signed_32(s ^ (s << 13))
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 17))
+        s = self._s = to_signed_32(s ^ (s << 5))
+        return s
+
+    def _algo3(self, s):
+        # Weyl Sequence (k≈2^32*φ, m=2^32) + MurmurHash3 (fmix32)
+        # Ref: https://en.wikipedia.org/wiki/Weyl_sequence
+        # https://commons.apache.org/proper/commons-codec/jacoco/org.apache.commons.codec.digest/MurmurHash3.java.html
+        s = self._s = to_signed_32(s + 0x9e3779b9)
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 16))
+        s = to_signed_32(s * to_signed_32(0x85ebca77))
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 13))
+        s = to_signed_32(s * to_signed_32(0xc2b2ae3d))
+        return to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 16))
+
+    def __next__(self):
+        return self._algorithm(self._s) & 0xFF
 
 
 class XHamsterIE(InfoExtractor):
@@ -146,6 +188,12 @@ class XHamsterIE(InfoExtractor):
     _XOR_KEY = b'xh7999'
 
     def _decipher_format_url(self, format_url, format_id):
+        if all(char in string.hexdigits for char in format_url):
+            byte_data = bytes.fromhex(format_url)
+            seed = int.from_bytes(byte_data[1:5], byteorder='little', signed=True)
+            byte_gen = _ByteGenerator(byte_data[0], seed)
+            return bytearray(byte ^ next(byte_gen) for byte in byte_data[5:]).decode('latin-1')
+
         cipher_type, _, ciphertext = try_call(
             lambda: base64.b64decode(format_url).decode().partition('_')) or [None] * 3
 
@@ -163,6 +211,16 @@ class XHamsterIE(InfoExtractor):
 
         self.report_warning(f'Skipping format "{format_id}": unsupported cipher type "{cipher_type}"')
         return None
+
+    def _fixup_formats(self, formats):
+        for f in formats:
+            if f.get('vcodec'):
+                continue
+            for vcodec in ('av1', 'h264'):
+                if any(f'.{vcodec}.' in f_url for f_url in (f['url'], f.get('manifest_url', ''))):
+                    f['vcodec'] = vcodec
+                    break
+        return formats
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -312,7 +370,8 @@ class XHamsterIE(InfoExtractor):
                 'comment_count': int_or_none(video.get('comments')),
                 'age_limit': age_limit if age_limit is not None else 18,
                 'categories': categories,
-                'formats': formats,
+                'formats': self._fixup_formats(formats),
+                '_format_sort_fields': ('res', 'proto', 'tbr'),
             }
 
         # Old layout fallback

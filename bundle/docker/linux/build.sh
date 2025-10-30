@@ -15,12 +15,12 @@ function venvpy {
 }
 
 INCLUDES=(
-    --include pyinstaller
-    --include secretstorage
+    --include-group pyinstaller
+    --include-group secretstorage
 )
 
 if [[ -z "${EXCLUDE_CURL_CFFI:-}" ]]; then
-    INCLUDES+=(--include curl-cffi)
+    INCLUDES+=(--include-group curl-cffi)
 fi
 
 runpy -m venv /yt-dlp-build-venv
@@ -28,7 +28,7 @@ runpy -m venv /yt-dlp-build-venv
 source /yt-dlp-build-venv/bin/activate
 # Inside the venv we use venvpy instead of runpy
 venvpy -m ensurepip --upgrade --default-pip
-venvpy -m devscripts.install_deps -o --include build
+venvpy -m devscripts.install_deps --only-optional-groups --include-group build
 venvpy -m devscripts.install_deps "${INCLUDES[@]}"
 venvpy -m devscripts.make_lazy_extractors
 venvpy devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"

@@ -8,6 +8,7 @@ from ..utils import (
     try_get,
     unified_timestamp,
 )
+from ..utils.traversal import traverse_obj
 
 
 class URPlayIE(InfoExtractor):
@@ -25,7 +26,7 @@ class URPlayIE(InfoExtractor):
             'upload_date': '20171214',
             'series': 'UR Samtiden - Livet, universum och rymdens märkliga musik',
             'duration': 2269,
-            'categories': ['Vetenskap & teknik'],
+            'categories': ['Kultur & historia'],
             'tags': ['Kritiskt tänkande', 'Vetenskap', 'Vetenskaplig verksamhet'],
             'episode': 'Om vetenskap, kritiskt tänkande och motstånd',
             'age_limit': 15,
@@ -78,7 +79,7 @@ class URPlayIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         urplayer_data = self._search_nextjs_data(webpage, video_id, fatal=False) or {}
         if urplayer_data:
-            urplayer_data = try_get(urplayer_data, lambda x: x['props']['pageProps']['program'], dict)
+            urplayer_data = traverse_obj(urplayer_data, ('props', 'pageProps', 'productData', {dict}))
             if not urplayer_data:
                 raise ExtractorError('Unable to parse __NEXT_DATA__')
         else:

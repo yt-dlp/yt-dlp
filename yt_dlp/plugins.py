@@ -11,7 +11,6 @@ import os
 import pkgutil
 import sys
 import traceback
-import zipimport
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -202,16 +201,10 @@ def load_plugins(plugin_spec: PluginSpec):
         if any(x.startswith('_') for x in module_name.split('.')):
             continue
         try:
-            if sys.version_info < (3, 10) and isinstance(finder, zipimport.zipimporter):
-                # zipimporter.load_module() is deprecated in 3.10 and removed in 3.12
-                # The exec_module branch below is the replacement for >= 3.10
-                # See: https://docs.python.org/3/library/zipimport.html#zipimport.zipimporter.exec_module
-                module = finder.load_module(module_name)
-            else:
-                spec = finder.find_spec(module_name)
-                module = importlib.util.module_from_spec(spec)
-                sys.modules[module_name] = module
-                spec.loader.exec_module(module)
+            spec = finder.find_spec(module_name)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = module
+            spec.loader.exec_module(module)
         except Exception:
             write_string(
                 f'Error while importing module {module_name!r}\n{traceback.format_exc(limit=-1)}',

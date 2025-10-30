@@ -98,7 +98,7 @@ class TenPlayIE(InfoExtractor):
         'only_matching': True,
     }]
     _GEO_BYPASS = False
-
+    _GEO_COUNTRIES = ['AU']
     _AUS_AGES = {
         'G': 0,
         'PG': 15,
@@ -208,8 +208,15 @@ class TenPlayIE(InfoExtractor):
 
     def _real_extract(self, url):
         content_id = self._match_id(url)
-        data = self._download_json(
-            f'https://10.com.au/api/v1/videos/{content_id}', content_id)
+        try:
+            data = self._download_json(f'https://10.com.au/api/v1/videos/{content_id}', content_id)
+        except ExtractorError as e:
+            if (
+                isinstance(e.cause, HTTPError) and e.cause.status == 403
+                and 'Error 54113' in e.cause.response.read().decode()
+            ):
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+            raise
 
         video_data, urlh = self._call_playback_api(content_id)
         content_source_id = video_data['dai']['contentSourceId']
