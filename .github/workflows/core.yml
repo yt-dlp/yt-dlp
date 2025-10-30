@@ -59,7 +59,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install test requirements
-      run: python3 ./devscripts/install_deps.py --include test --include curl-cffi
+      run: python ./devscripts/install_deps.py --include-group test --include-group curl-cffi
     - name: Run tests
       timeout-minutes: 15
       continue-on-error: False
