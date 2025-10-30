@@ -83,11 +83,11 @@ class TestJsChallengeProvider:
             type=JsChallengeType.N,
             input=NChallengeInput(player_url=PLAYER_URL, challenges=['example-challenge']))
 
-        requestTwo = JsChallengeRequest(
+        request_two = JsChallengeRequest(
             type=JsChallengeType.N,
             input=NChallengeInput(player_url=PLAYER_URL, challenges=['example-challenge-2']))
 
-        responses = list(provider.bulk_solve([request, requestTwo]))
+        responses = list(provider.bulk_solve([request, request_two]))
         assert len(responses) == 2
         assert all(isinstance(r, JsChallengeProviderResponse) for r in responses)
         assert responses == [
@@ -99,7 +99,7 @@ class TestJsChallengeProvider:
                 ),
             ),
             JsChallengeProviderResponse(
-                request=requestTwo,
+                request=request_two,
                 response=JsChallengeResponse(
                     type=JsChallengeType.N,
                     output=NChallengeOutput(results={'example-challenge-2': 'example-solution'}),
