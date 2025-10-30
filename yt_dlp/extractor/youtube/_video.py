@@ -145,6 +145,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     )
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
     _DEFAULT_CLIENTS = ('tv', 'android_sdkless', 'web')
+    _DEFAULT_JSLESS_CLIENTS = ('android_sdkless', 'web_safari', 'web')
     _DEFAULT_AUTHED_CLIENTS = ('tv', 'web_safari', 'web')
     # Premium does not require POT (except for subtitles)
     _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web_creator', 'web')
@@ -2771,9 +2772,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _get_requested_clients(self, url, smuggled_data, is_premium_subscriber):
         requested_clients = []
         excluded_clients = []
+        js_runtime_available = any(p.is_available() for p in self._jsc_director.providers.values())
         default_clients = (
             self._DEFAULT_PREMIUM_CLIENTS if is_premium_subscriber
             else self._DEFAULT_AUTHED_CLIENTS if self.is_authenticated
+            else self._DEFAULT_JSLESS_CLIENTS if not js_runtime_available
             else self._DEFAULT_CLIENTS
         )
         allowed_clients = sorted(
