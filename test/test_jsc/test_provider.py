@@ -46,7 +46,7 @@ class TestJsChallengeProvider:
     def test_base_type(self):
         assert issubclass(JsChallengeProvider, IEContentProvider)
 
-    def test_create_provider_missing_bulK_solve_method(self, ie, logger):
+    def test_create_provider_missing_bulk_solve_method(self, ie, logger):
         class MissingMethodsJCP(JsChallengeProvider):
             def is_available(self) -> bool:
                 return True
