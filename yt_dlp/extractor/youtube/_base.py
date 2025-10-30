@@ -384,7 +384,8 @@ def build_innertube_clients():
     THIRD_PARTY = {
         'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
     }
-    BASE_CLIENTS = ('ios', 'web', 'tv', 'mweb', 'android')
+    # From highest to lowest priority
+    BASE_CLIENTS = ('tv', 'web', 'mweb', 'android', 'ios')
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
@@ -406,9 +407,6 @@ def build_innertube_clients():
 
         if variant == 'embedded':
             ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
-            ytcfg['priority'] -= 2
-        elif variant:
-            ytcfg['priority'] -= 3
 
 
 build_innertube_clients()
