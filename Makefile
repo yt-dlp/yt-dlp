@@ -234,8 +234,8 @@ yt-dlp-extra: current-ejs-version .ejs-$(EJS_VERSION) $(EJS_PY_FILES) $(EJS_JS_F
 .ejs-$(EJS_VERSION):
 	@echo Downloading yt-dlp-ejs
 	@echo "yt-dlp-ejs==$(EJS_VERSION) --hash $(EJS_WHEEL_HASH)" > .ejs-requirements.txt
-	$(PYTHON) -m pip download -d ./dist --no-deps --require-hashes -r .ejs-requirements.txt
-	unzip -o dist/$(EJS_WHEEL_NAME) "yt_dlp_ejs/*"
+	$(PYTHON) -m pip download -d ./build --no-deps --require-hashes -r .ejs-requirements.txt
+	unzip -o build/$(EJS_WHEEL_NAME) "yt_dlp_ejs/*"
 	@touch .ejs-$(EJS_VERSION)
 
 current-ejs-version:
