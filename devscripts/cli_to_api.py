@@ -21,7 +21,6 @@ def parse_patched_options(opts):
         'extract_flat': False,
         'concat_playlist': 'never',
         'update_self': False,
-        'js_runtimes': {},
     })
     yt_dlp.options.create_parser = lambda: patched_parser
     try:
