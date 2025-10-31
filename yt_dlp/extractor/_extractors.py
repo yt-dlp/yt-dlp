@@ -143,6 +143,8 @@ from .archiveorg import (
 from .arcpublishing import ArcPublishingIE
 from .ard import (
     ARDIE,
+    ARDAudiothekIE,
+    ARDAudiothekPlaylistIE,
     ARDBetaMediathekIE,
     ARDMediathekCollectionIE,
 )
@@ -337,6 +339,7 @@ from .cbc import (
     CBCGemIE,
     CBCGemLiveIE,
     CBCGemPlaylistIE,
+    CBCListenIE,
     CBCPlayerIE,
     CBCPlayerPlaylistIE,
 )
@@ -822,6 +825,13 @@ from .ichinanalive import (
     IchinanaLiveClipIE,
     IchinanaLiveIE,
     IchinanaLiveVODIE,
+)
+from .idagio import (
+    IdagioAlbumIE,
+    IdagioPersonalPlaylistIE,
+    IdagioPlaylistIE,
+    IdagioRecordingIE,
+    IdagioTrackIE,
 )
 from .idolplus import IdolPlusIE
 from .ign import (

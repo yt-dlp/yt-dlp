@@ -4,9 +4,7 @@ import collections
 import datetime as dt
 import functools
 import itertools
-import json
 import math
-import os.path
 import random
 import re
 import sys
@@ -26,11 +24,12 @@ from ._base import (
     _split_innertube_client,
     short_client_name,
 )
+from .jsc._builtin.ejs import _EJS_WIKI_URL
+from .jsc._director import initialize_jsc_director
+from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, SigChallengeInput
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
-from ..openload import PhantomJSwrapper
 from ...dependencies import protobug
-from ...jsinterp import JSInterpreter, LocalNameSpace
 from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
@@ -40,13 +39,11 @@ from ...utils import (
     clean_html,
     datetime_from_str,
     filesize_from_tbr,
-    filter_dict,
     float_or_none,
     format_field,
     get_first,
     int_or_none,
     join_nonempty,
-    js_to_json,
     mimetype2ext,
     orderedSet,
     parse_codecs,
@@ -148,117 +145,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         r'/(?P<id>[a-zA-Z0-9_-]{8,})/player(?:_ias\.vflset(?:/[a-zA-Z]{2,3}_[a-zA-Z]{2,3})?|-plasma-ias-(?:phone|tablet)-[a-z]{2}_[A-Z]{2}\.vflset)/base\.js$',
         r'\b(?P<id>vfl[a-zA-Z0-9_-]+)\b.*?\.js$',
     )
-    _formats = {  # NB: Used in YoutubeWebArchiveIE and GoogleDriveIE
-        '5': {'ext': 'flv', 'width': 400, 'height': 240, 'acodec': 'mp3', 'abr': 64, 'vcodec': 'h263'},
-        '6': {'ext': 'flv', 'width': 450, 'height': 270, 'acodec': 'mp3', 'abr': 64, 'vcodec': 'h263'},
-        '13': {'ext': '3gp', 'acodec': 'aac', 'vcodec': 'mp4v'},
-        '17': {'ext': '3gp', 'width': 176, 'height': 144, 'acodec': 'aac', 'abr': 24, 'vcodec': 'mp4v'},
-        '18': {'ext': 'mp4', 'width': 640, 'height': 360, 'acodec': 'aac', 'abr': 96, 'vcodec': 'h264'},
-        '22': {'ext': 'mp4', 'width': 1280, 'height': 720, 'acodec': 'aac', 'abr': 192, 'vcodec': 'h264'},
-        '34': {'ext': 'flv', 'width': 640, 'height': 360, 'acodec': 'aac', 'abr': 128, 'vcodec': 'h264'},
-        '35': {'ext': 'flv', 'width': 854, 'height': 480, 'acodec': 'aac', 'abr': 128, 'vcodec': 'h264'},
-        # itag 36 videos are either 320x180 (BaW_jenozKc) or 320x240 (__2ABJjxzNo), abr varies as well
-        '36': {'ext': '3gp', 'width': 320, 'acodec': 'aac', 'vcodec': 'mp4v'},
-        '37': {'ext': 'mp4', 'width': 1920, 'height': 1080, 'acodec': 'aac', 'abr': 192, 'vcodec': 'h264'},
-        '38': {'ext': 'mp4', 'width': 4096, 'height': 3072, 'acodec': 'aac', 'abr': 192, 'vcodec': 'h264'},
-        '43': {'ext': 'webm', 'width': 640, 'height': 360, 'acodec': 'vorbis', 'abr': 128, 'vcodec': 'vp8'},
-        '44': {'ext': 'webm', 'width': 854, 'height': 480, 'acodec': 'vorbis', 'abr': 128, 'vcodec': 'vp8'},
-        '45': {'ext': 'webm', 'width': 1280, 'height': 720, 'acodec': 'vorbis', 'abr': 192, 'vcodec': 'vp8'},
-        '46': {'ext': 'webm', 'width': 1920, 'height': 1080, 'acodec': 'vorbis', 'abr': 192, 'vcodec': 'vp8'},
-        '59': {'ext': 'mp4', 'width': 854, 'height': 480, 'acodec': 'aac', 'abr': 128, 'vcodec': 'h264'},
-        '78': {'ext': 'mp4', 'width': 854, 'height': 480, 'acodec': 'aac', 'abr': 128, 'vcodec': 'h264'},
-
-
-        # 3D videos
-        '82': {'ext': 'mp4', 'height': 360, 'format_note': '3D', 'acodec': 'aac', 'abr': 128, 'vcodec': 'h264', 'preference': -20},
-        '83': {'ext': 'mp4', 'height': 480, 'format_note': '3D', 'acodec': 'aac', 'abr': 128, 'vcodec': 'h264', 'preference': -20},
-        '84': {'ext': 'mp4', 'height': 720, 'format_note': '3D', 'acodec': 'aac', 'abr': 192, 'vcodec': 'h264', 'preference': -20},
-        '85': {'ext': 'mp4', 'height': 1080, 'format_note': '3D', 'acodec': 'aac', 'abr': 192, 'vcodec': 'h264', 'preference': -20},
-        '100': {'ext': 'webm', 'height': 360, 'format_note': '3D', 'acodec': 'vorbis', 'abr': 128, 'vcodec': 'vp8', 'preference': -20},
-        '101': {'ext': 'webm', 'height': 480, 'format_note': '3D', 'acodec': 'vorbis', 'abr': 192, 'vcodec': 'vp8', 'preference': -20},
-        '102': {'ext': 'webm', 'height': 720, 'format_note': '3D', 'acodec': 'vorbis', 'abr': 192, 'vcodec': 'vp8', 'preference': -20},
-
-        # Apple HTTP Live Streaming
-        '91': {'ext': 'mp4', 'height': 144, 'format_note': 'HLS', 'acodec': 'aac', 'abr': 48, 'vcodec': 'h264', 'preference': -10},
-        '92': {'ext': 'mp4', 'height': 240, 'format_note': 'HLS', 'acodec': 'aac', 'abr': 48, 'vcodec': 'h264', 'preference': -10},
-        '93': {'ext': 'mp4', 'height': 360, 'format_note': 'HLS', 'acodec': 'aac', 'abr': 128, 'vcodec': 'h264', 'preference': -10},
-        '94': {'ext': 'mp4', 'height': 480, 'format_note': 'HLS', 'acodec': 'aac', 'abr': 128, 'vcodec': 'h264', 'preference': -10},
-        '95': {'ext': 'mp4', 'height': 720, 'format_note': 'HLS', 'acodec': 'aac', 'abr': 256, 'vcodec': 'h264', 'preference': -10},
-        '96': {'ext': 'mp4', 'height': 1080, 'format_note': 'HLS', 'acodec': 'aac', 'abr': 256, 'vcodec': 'h264', 'preference': -10},
-        '132': {'ext': 'mp4', 'height': 240, 'format_note': 'HLS', 'acodec': 'aac', 'abr': 48, 'vcodec': 'h264', 'preference': -10},
-        '151': {'ext': 'mp4', 'height': 72, 'format_note': 'HLS', 'acodec': 'aac', 'abr': 24, 'vcodec': 'h264', 'preference': -10},
-
-        # DASH mp4 video
-        '133': {'ext': 'mp4', 'height': 240, 'format_note': 'DASH video', 'vcodec': 'h264'},
-        '134': {'ext': 'mp4', 'height': 360, 'format_note': 'DASH video', 'vcodec': 'h264'},
-        '135': {'ext': 'mp4', 'height': 480, 'format_note': 'DASH video', 'vcodec': 'h264'},
-        '136': {'ext': 'mp4', 'height': 720, 'format_note': 'DASH video', 'vcodec': 'h264'},
-        '137': {'ext': 'mp4', 'height': 1080, 'format_note': 'DASH video', 'vcodec': 'h264'},
-        '138': {'ext': 'mp4', 'format_note': 'DASH video', 'vcodec': 'h264'},  # Height can vary (https://github.com/ytdl-org/youtube-dl/issues/4559)
-        '160': {'ext': 'mp4', 'height': 144, 'format_note': 'DASH video', 'vcodec': 'h264'},
-        '212': {'ext': 'mp4', 'height': 480, 'format_note': 'DASH video', 'vcodec': 'h264'},
-        '264': {'ext': 'mp4', 'height': 1440, 'format_note': 'DASH video', 'vcodec': 'h264'},
-        '298': {'ext': 'mp4', 'height': 720, 'format_note': 'DASH video', 'vcodec': 'h264', 'fps': 60},
-        '299': {'ext': 'mp4', 'height': 1080, 'format_note': 'DASH video', 'vcodec': 'h264', 'fps': 60},
-        '266': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'h264'},
-
-        # Dash mp4 audio
-        '139': {'ext': 'm4a', 'format_note': 'DASH audio', 'acodec': 'aac', 'abr': 48, 'container': 'm4a_dash'},
-        '140': {'ext': 'm4a', 'format_note': 'DASH audio', 'acodec': 'aac', 'abr': 128, 'container': 'm4a_dash'},
-        '141': {'ext': 'm4a', 'format_note': 'DASH audio', 'acodec': 'aac', 'abr': 256, 'container': 'm4a_dash'},
-        '256': {'ext': 'm4a', 'format_note': 'DASH audio', 'acodec': 'aac', 'container': 'm4a_dash'},
-        '258': {'ext': 'm4a', 'format_note': 'DASH audio', 'acodec': 'aac', 'container': 'm4a_dash'},
-        '325': {'ext': 'm4a', 'format_note': 'DASH audio', 'acodec': 'dtse', 'container': 'm4a_dash'},
-        '328': {'ext': 'm4a', 'format_note': 'DASH audio', 'acodec': 'ec-3', 'container': 'm4a_dash'},
-
-        # Dash webm
-        '167': {'ext': 'webm', 'height': 360, 'width': 640, 'format_note': 'DASH video', 'container': 'webm', 'vcodec': 'vp8'},
-        '168': {'ext': 'webm', 'height': 480, 'width': 854, 'format_note': 'DASH video', 'container': 'webm', 'vcodec': 'vp8'},
-        '169': {'ext': 'webm', 'height': 720, 'width': 1280, 'format_note': 'DASH video', 'container': 'webm', 'vcodec': 'vp8'},
-        '170': {'ext': 'webm', 'height': 1080, 'width': 1920, 'format_note': 'DASH video', 'container': 'webm', 'vcodec': 'vp8'},
-        '218': {'ext': 'webm', 'height': 480, 'width': 854, 'format_note': 'DASH video', 'container': 'webm', 'vcodec': 'vp8'},
-        '219': {'ext': 'webm', 'height': 480, 'width': 854, 'format_note': 'DASH video', 'container': 'webm', 'vcodec': 'vp8'},
-        '278': {'ext': 'webm', 'height': 144, 'format_note': 'DASH video', 'container': 'webm', 'vcodec': 'vp9'},
-        '242': {'ext': 'webm', 'height': 240, 'format_note': 'DASH video', 'vcodec': 'vp9'},
-        '243': {'ext': 'webm', 'height': 360, 'format_note': 'DASH video', 'vcodec': 'vp9'},
-        '244': {'ext': 'webm', 'height': 480, 'format_note': 'DASH video', 'vcodec': 'vp9'},
-        '245': {'ext': 'webm', 'height': 480, 'format_note': 'DASH video', 'vcodec': 'vp9'},
-        '246': {'ext': 'webm', 'height': 480, 'format_note': 'DASH video', 'vcodec': 'vp9'},
-        '247': {'ext': 'webm', 'height': 720, 'format_note': 'DASH video', 'vcodec': 'vp9'},
-        '248': {'ext': 'webm', 'height': 1080, 'format_note': 'DASH video', 'vcodec': 'vp9'},
-        '271': {'ext': 'webm', 'height': 1440, 'format_note': 'DASH video', 'vcodec': 'vp9'},
-        # itag 272 videos are either 3840x2160 (e.g. RtoitU2A-3E) or 7680x4320 (sLprVF6d7Ug)
-        '272': {'ext': 'webm', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'vp9'},
-        '302': {'ext': 'webm', 'height': 720, 'format_note': 'DASH video', 'vcodec': 'vp9', 'fps': 60},
-        '303': {'ext': 'webm', 'height': 1080, 'format_note': 'DASH video', 'vcodec': 'vp9', 'fps': 60},
-        '308': {'ext': 'webm', 'height': 1440, 'format_note': 'DASH video', 'vcodec': 'vp9', 'fps': 60},
-        '313': {'ext': 'webm', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'vp9'},
-        '315': {'ext': 'webm', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'vp9', 'fps': 60},
-
-        # Dash webm audio
-        '171': {'ext': 'webm', 'acodec': 'vorbis', 'format_note': 'DASH audio', 'abr': 128},
-        '172': {'ext': 'webm', 'acodec': 'vorbis', 'format_note': 'DASH audio', 'abr': 256},
-
-        # Dash webm audio with opus inside
-        '249': {'ext': 'webm', 'format_note': 'DASH audio', 'acodec': 'opus', 'abr': 50},
-        '250': {'ext': 'webm', 'format_note': 'DASH audio', 'acodec': 'opus', 'abr': 70},
-        '251': {'ext': 'webm', 'format_note': 'DASH audio', 'acodec': 'opus', 'abr': 160},
-
-        # RTMP (unnamed)
-        '_rtmp': {'protocol': 'rtmp'},
-
-        # av01 video only formats sometimes served with "unknown" codecs
-        '394': {'ext': 'mp4', 'height': 144, 'format_note': 'DASH video', 'vcodec': 'av01.0.00M.08'},
-        '395': {'ext': 'mp4', 'height': 240, 'format_note': 'DASH video', 'vcodec': 'av01.0.00M.08'},
-        '396': {'ext': 'mp4', 'height': 360, 'format_note': 'DASH video', 'vcodec': 'av01.0.01M.08'},
-        '397': {'ext': 'mp4', 'height': 480, 'format_note': 'DASH video', 'vcodec': 'av01.0.04M.08'},
-        '398': {'ext': 'mp4', 'height': 720, 'format_note': 'DASH video', 'vcodec': 'av01.0.05M.08'},
-        '399': {'ext': 'mp4', 'height': 1080, 'format_note': 'DASH video', 'vcodec': 'av01.0.08M.08'},
-        '400': {'ext': 'mp4', 'height': 1440, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
-        '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
-    }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('tv', 'web_safari', 'web')
+    _DEFAULT_CLIENTS = ('tv', 'android_sdkless', 'web')
+    _DEFAULT_JSLESS_CLIENTS = ('android_sdkless', 'web_safari', 'web')
     _DEFAULT_AUTHED_CLIENTS = ('tv', 'web_safari', 'web')
     # Premium does not require POT (except for subtitles)
     _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web_creator', 'web')
@@ -1816,7 +1705,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'params': {'skip_download': True},
     }]
 
-    _DEFAULT_PLAYER_JS_VERSION = '20348@0004de42'  # TODO: revert to 'actual' when n/sig is fixed
+    _DEFAULT_PLAYER_JS_VERSION = 'actual'
     _DEFAULT_PLAYER_JS_VARIANT = 'main'
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
@@ -1830,8 +1719,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',
     }
     _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
-    _NSIG_FUNC_CACHE_ID = 'nsig func'
-    _DUMMY_STRING = 'dlp_wins'
 
     @classmethod
     def suitable(cls, url):
@@ -1851,6 +1738,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _real_initialize(self):
         super()._real_initialize()
         self._pot_director = initialize_pot_director(self)
+        self._jsc_director = initialize_jsc_director(self)
 
     def _prepare_live_from_start_formats(self, formats, video_id, live_start_time, url, webpage_url, smuggled_data, is_live):
         lock = threading.Lock()
@@ -2117,10 +2005,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             variant = re.sub(r'[^a-zA-Z0-9]', '_', remove_end(player_path, '.js'))
         return f'{player_id}-{variant}'
 
-    def _signature_cache_id(self, example_sig):
-        """ Return a string representation of a signature """
-        return '.'.join(str(len(part)) for part in example_sig.split('.'))
-
     @classmethod
     def _extract_player_info(cls, player_url):
         for player_re in cls._PLAYER_INFO_RE:
@@ -2142,53 +2026,35 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self._code_cache[player_js_key] = code
         return self._code_cache.get(player_js_key)
 
-    def _extract_signature_function(self, video_id, player_url, example_sig):
-        # Read from filesystem cache
-        func_id = join_nonempty(
-            self._player_js_cache_key(player_url), self._signature_cache_id(example_sig))
-        assert os.path.basename(func_id) == func_id
+    def _sig_spec_cache_id(self, player_url, spec_id):
+        return join_nonempty(self._player_js_cache_key(player_url), str(spec_id))
 
-        self.write_debug(f'Extracting signature function {func_id}')
-        cache_spec, code = self.cache.load('youtube-sigfuncs', func_id, min_ver='2025.07.21'), None
+    def _load_sig_spec_from_cache(self, spec_cache_id):
+        # This is almost identical to _load_player_data_from_cache
+        # I hate it
+        if spec_cache_id in self._player_cache:
+            return self._player_cache[spec_cache_id]
+        spec = self.cache.load('youtube-sigfuncs', spec_cache_id, min_ver='2025.07.21')
+        if spec:
+            self._player_cache[spec_cache_id] = spec
+        return spec
 
-        if not cache_spec:
-            code = self._load_player(video_id, player_url)
-        if code:
-            res = self._parse_sig_js(code, player_url)
-            test_string = ''.join(map(chr, range(len(example_sig))))
-            cache_spec = [ord(c) for c in res(test_string)]
-            self.cache.store('youtube-sigfuncs', func_id, cache_spec)
+    def _store_sig_spec_to_cache(self, spec_cache_id, spec):
+        if spec_cache_id not in self._player_cache:
+            self._player_cache[spec_cache_id] = spec
+            self.cache.store('youtube-sigfuncs', spec_cache_id, spec)
 
-        return lambda s: ''.join(s[i] for i in cache_spec)
+    def _load_player_data_from_cache(self, name, player_url):
+        cache_id = (f'youtube-{name}', self._player_js_cache_key(player_url))
 
-    def _parse_sig_js(self, jscode, player_url):
-        # Examples where `sig` is funcname:
-        # sig=function(a){a=a.split(""); ... ;return a.join("")};
-        # ;c&&(c=sig(decodeURIComponent(c)),a.set(b,encodeURIComponent(c)));return a};
-        # {var l=f,m=h.sp,n=sig(decodeURIComponent(h.s));l.set(m,encodeURIComponent(n))}
-        # sig=function(J){J=J.split(""); ... ;return J.join("")};
-        # ;N&&(N=sig(decodeURIComponent(N)),J.set(R,encodeURIComponent(N)));return J};
-        # {var H=u,k=f.sp,v=sig(decodeURIComponent(f.s));H.set(k,encodeURIComponent(v))}
-        funcname = self._search_regex(
-            (r'\b(?P<var>[a-zA-Z0-9_$]+)&&\((?P=var)=(?P<sig>[a-zA-Z0-9_$]{2,})\(decodeURIComponent\((?P=var)\)\)',
-             r'(?P<sig>[a-zA-Z0-9_$]+)\s*=\s*function\(\s*(?P<arg>[a-zA-Z0-9_$]+)\s*\)\s*{\s*(?P=arg)\s*=\s*(?P=arg)\.split\(\s*""\s*\)\s*;\s*[^}]+;\s*return\s+(?P=arg)\.join\(\s*""\s*\)',
-             r'(?:\b|[^a-zA-Z0-9_$])(?P<sig>[a-zA-Z0-9_$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)(?:;[a-zA-Z0-9_$]{2}\.[a-zA-Z0-9_$]{2}\(a,\d+\))?',
-             # Old patterns
-             r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\bm=(?P<sig>[a-zA-Z0-9$]{2,})\(decodeURIComponent\(h\.s\)\)',
-             # Obsolete patterns
-             r'("|\')signature\1\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\.sig\|\|(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\('),
-            jscode, 'Initial JS player signature function name', group='sig')
+        if data := self._player_cache.get(cache_id):
+            return data
 
-        varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
-        jsi = JSInterpreter(jscode)
-        initial_function = jsi.extract_function(funcname, filter_dict({varname: global_list}))
-        return lambda s: initial_function([s])
+        data = self.cache.load(*cache_id, min_ver='2025.07.21')
+        if data:
+            self._player_cache[cache_id] = data
+
+        return data
 
     def _cached(self, func, *cache_id):
         def inner(*args, **kwargs):
@@ -2206,246 +2072,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return ret
         return inner
 
-    def _load_player_data_from_cache(self, name, player_url):
-        cache_id = (f'youtube-{name}', self._player_js_cache_key(player_url))
-
-        if data := self._player_cache.get(cache_id):
-            return data
-
-        data = self.cache.load(*cache_id, min_ver='2025.07.21')
-        if data:
-            self._player_cache[cache_id] = data
-
-        return data
-
     def _store_player_data_to_cache(self, name, player_url, data):
         cache_id = (f'youtube-{name}', self._player_js_cache_key(player_url))
         if cache_id not in self._player_cache:
             self.cache.store(*cache_id, data)
             self._player_cache[cache_id] = data
 
-    def _decrypt_signature(self, s, video_id, player_url):
-        """Turn the encrypted s field into a working signature"""
-        extract_sig = self._cached(
-            self._extract_signature_function, 'sig', player_url, self._signature_cache_id(s))
-        func = extract_sig(video_id, player_url, s)
-        return func(s)
-
-    def _decrypt_nsig(self, s, video_id, player_url):
-        """Turn the encrypted n field into a working signature"""
-        if player_url is None:
-            raise ExtractorError('Cannot decrypt nsig without player_url')
-        player_url = urljoin('https://www.youtube.com', player_url)
-
-        try:
-            jsi, _, func_code = self._extract_n_function_code(video_id, player_url)
-        except ExtractorError as e:
-            raise ExtractorError('Unable to extract nsig function code', cause=e)
-
-        try:
-            extract_nsig = self._cached(self._extract_n_function_from_code, self._NSIG_FUNC_CACHE_ID, player_url)
-            ret = extract_nsig(jsi, func_code)(s)
-        except JSInterpreter.Exception as e:
-            try:
-                jsi = PhantomJSwrapper(self, timeout=5000)
-            except ExtractorError:
-                raise e
-            self.report_warning(
-                f'Native nsig extraction failed: Trying with PhantomJS\n'
-                f'         n = {s} ; player = {player_url}', video_id)
-            self.write_debug(e, only_once=True)
-
-            args, func_body = func_code
-            ret = jsi.execute(
-                f'console.log(function({", ".join(args)}) {{ {func_body} }}({s!r}));',
-                video_id=video_id, note='Executing signature code').strip()
-
-        self.write_debug(f'Decrypted nsig {s} => {ret}')
-        # Only cache nsig func JS code to disk if successful, and only once
-        self._store_player_data_to_cache('nsig', player_url, func_code)
-        return ret
-
-    def _extract_n_function_name(self, jscode, player_url=None):
-        varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
-        if debug_str := traverse_obj(global_list, (lambda _, v: v.endswith('-_w8_'), any)):
-            pattern = r'''(?x)
-                \{\s*return\s+%s\[%d\]\s*\+\s*(?P<argname>[a-zA-Z0-9_$]+)\s*\}
-            ''' % (re.escape(varname), global_list.index(debug_str))
-            if match := re.search(pattern, jscode):
-                pattern = r'''(?x)
-                    \{\s*\)%s\(\s*
-                    (?:
-                        (?P<funcname_a>[a-zA-Z0-9_$]+)\s*noitcnuf\s*
-                        |noitcnuf\s*=\s*(?P<funcname_b>[a-zA-Z0-9_$]+)(?:\s+rav)?
-                    )[;\n]
-                ''' % re.escape(match.group('argname')[::-1])
-                if match := re.search(pattern, jscode[match.start()::-1]):
-                    a, b = match.group('funcname_a', 'funcname_b')
-                    return (a or b)[::-1]
-            self.write_debug(join_nonempty(
-                'Initial search was unable to find nsig function name',
-                player_url and f'        player = {player_url}', delim='\n'), only_once=True)
-
-        # Examples (with placeholders nfunc, narray, idx):
-        # *  .get("n"))&&(b=nfunc(b)
-        # *  .get("n"))&&(b=narray[idx](b)
-        # *  b=String.fromCharCode(110),c=a.get(b))&&c=narray[idx](c)
-        # *  a.D&&(b="nn"[+a.D],c=a.get(b))&&(c=narray[idx](c),a.set(b,c),narray.length||nfunc("")
-        # *  a.D&&(PL(a),b=a.j.n||null)&&(b=narray[0](b),a.set("n",b),narray.length||nfunc("")
-        # *  a.D&&(b="nn"[+a.D],vL(a),c=a.j[b]||null)&&(c=narray[idx](c),a.set(b,c),narray.length||nfunc("")
-        # *  J.J="";J.url="";J.Z&&(R="nn"[+J.Z],mW(J),N=J.K[R]||null)&&(N=narray[idx](N),J.set(R,N))}};
-        funcname, idx = self._search_regex(
-            r'''(?x)
-            (?:
-                \.get\("n"\)\)&&\(b=|
-                (?:
-                    b=String\.fromCharCode\(110\)|
-                    (?P<str_idx>[a-zA-Z0-9_$.]+)&&\(b="nn"\[\+(?P=str_idx)\]
-                )
-                (?:
-                    ,[a-zA-Z0-9_$]+\(a\))?,c=a\.
-                    (?:
-                        get\(b\)|
-                        [a-zA-Z0-9_$]+\[b\]\|\|null
-                    )\)&&\(c=|
-                \b(?P<var>[a-zA-Z0-9_$]+)=
-            )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
-            (?(var),[a-zA-Z0-9_$]+\.set\((?:"n+"|[a-zA-Z0-9_$]+)\,(?P=var)\))''',
-            jscode, 'n function name', group=('nfunc', 'idx'), default=(None, None))
-        if not funcname:
-            self.report_warning(join_nonempty(
-                'Falling back to generic n function search',
-                player_url and f'         player = {player_url}', delim='\n'), only_once=True)
-            return self._search_regex(
-                r'''(?xs)
-                ;\s*(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
-                \s*\{(?:(?!};).)+?return\s*(?P<q>["'])[\w-]+_w8_(?P=q)\s*\+\s*[a-zA-Z0-9_$]+''',
-                jscode, 'Initial JS player n function name', group='name')
-        elif not idx:
-            return funcname
-
-        return json.loads(js_to_json(self._search_regex(
-            rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])\s*[,;]', jscode,
-            f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
-
-    def _interpret_player_js_global_var(self, jscode, player_url):
-        """Returns tuple of: variable name string, variable value list"""
-        extract_global_var = self._cached(self._search_regex, 'js global array', player_url)
-        varcode, varname, varvalue = extract_global_var(
-            r'''(?x)
-                (?P<q1>["\'])use\s+strict(?P=q1);\s*
-                (?P<code>
-                    var\s+(?P<name>[a-zA-Z0-9_$]+)\s*=\s*
-                    (?P<value>
-                        (?P<q2>["\'])(?:(?!(?P=q2)).|\\.)+(?P=q2)
-                        \.split\((?P<q3>["\'])(?:(?!(?P=q3)).)+(?P=q3)\)
-                        |\[\s*(?:(?P<q4>["\'])(?:(?!(?P=q4)).|\\.)*(?P=q4)\s*,?\s*)+\]
-                    )
-                )[;,]
-            ''', jscode, 'global variable', group=('code', 'name', 'value'), default=(None, None, None))
-        if not varcode:
-            self.write_debug(join_nonempty(
-                'No global array variable found in player JS',
-                player_url and f'        player = {player_url}', delim='\n'), only_once=True)
-            return None, None
-
-        jsi = JSInterpreter(varcode)
-        interpret_global_var = self._cached(jsi.interpret_expression, 'js global list', player_url)
-        return varname, interpret_global_var(varvalue, LocalNameSpace(), allow_recursion=10)
-
-    def _fixup_n_function_code(self, argnames, nsig_code, jscode, player_url):
-        # Fixup global array
-        varname, global_list = self._interpret_player_js_global_var(jscode, player_url)
-        if varname and global_list:
-            nsig_code = f'var {varname}={json.dumps(global_list)}; {nsig_code}'
-        else:
-            varname = self._DUMMY_STRING
-            global_list = []
-
-        # Fixup typeof check
-        undefined_idx = global_list.index('undefined') if 'undefined' in global_list else r'\d+'
-        fixed_code = re.sub(
-            fr'''(?x)
-                ;\s*if\s*\(\s*typeof\s+[a-zA-Z0-9_$]+\s*===?\s*(?:
-                    (["\'])undefined\1|
-                    {re.escape(varname)}\[{undefined_idx}\]
-                )\s*\)\s*return\s+{re.escape(argnames[0])};
-            ''', ';', nsig_code)
-        if fixed_code == nsig_code:
-            self.write_debug(join_nonempty(
-                'No typeof statement found in nsig function code',
-                player_url and f'        player = {player_url}', delim='\n'), only_once=True)
-
-        # Fixup global funcs
-        jsi = JSInterpreter(fixed_code)
-        cache_id = (self._NSIG_FUNC_CACHE_ID, player_url)
-        try:
-            self._cached(
-                self._extract_n_function_from_code, *cache_id)(jsi, (argnames, fixed_code))(self._DUMMY_STRING)
-        except JSInterpreter.Exception:
-            self._player_cache.pop(cache_id, None)
-
-        global_funcnames = jsi._undefined_varnames
-        debug_names = []
-        jsi = JSInterpreter(jscode)
-        for func_name in global_funcnames:
-            try:
-                func_args, func_code = jsi.extract_function_code(func_name)
-                fixed_code = f'var {func_name} = function({", ".join(func_args)}) {{ {func_code} }}; {fixed_code}'
-                debug_names.append(func_name)
-            except Exception:
-                self.report_warning(join_nonempty(
-                    f'Unable to extract global nsig function {func_name} from player JS',
-                    player_url and f'        player = {player_url}', delim='\n'), only_once=True)
-
-        if debug_names:
-            self.write_debug(f'Extracted global nsig functions: {", ".join(debug_names)}')
-
-        return argnames, fixed_code
-
-    def _extract_n_function_code(self, video_id, player_url):
-        player_id = self._extract_player_info(player_url)
-        func_code = self._load_player_data_from_cache('nsig', player_url)
-        jscode = func_code or self._load_player(video_id, player_url)
-        jsi = JSInterpreter(jscode)
-
-        if func_code:
-            return jsi, player_id, func_code
-
-        func_name = self._extract_n_function_name(jscode, player_url=player_url)
-
-        # XXX: Work around (a) global array variable, (b) `typeof` short-circuit, (c) global functions
-        func_code = self._fixup_n_function_code(*jsi.extract_function_code(func_name), jscode, player_url)
-
-        return jsi, player_id, func_code
-
-    def _extract_n_function_from_code(self, jsi, func_code):
-        func = jsi.extract_function_from_code(*func_code)
-
-        def extract_nsig(s):
-            try:
-                ret = func([s])
-            except JSInterpreter.Exception:
-                raise
-            except Exception as e:
-                raise JSInterpreter.Exception(traceback.format_exc(), cause=e)
-
-            if ret.startswith('enhanced_except_') or ret.endswith(s):
-                raise JSInterpreter.Exception('Signature function returned an exception')
-            return ret
-
-        return extract_nsig
-
     def _extract_signature_timestamp(self, video_id, player_url, ytcfg=None, fatal=False):
         """
         Extract signatureTimestamp (sts)
         Required to tell API what sig/player version is in use.
         """
+        CACHE_ENABLED = False  # TODO: enable when preprocessed player JS cache is solved/enabled
+
         player_sts_override = self._get_player_js_version()[0]
         if player_sts_override:
             return int(player_sts_override)
 
-        if sts := traverse_obj(ytcfg, ('STS', {int_or_none})):
+        sts = traverse_obj(ytcfg, ('STS', {int_or_none}))
+        if sts:
             return sts
 
         if not player_url:
@@ -2455,15 +2100,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(error_msg)
             return None
 
-        sts = self._load_player_data_from_cache('sts', player_url)
-        if sts:
+        if CACHE_ENABLED and (sts := self._load_player_data_from_cache('sts', player_url)):
             return sts
 
         if code := self._load_player(video_id, player_url, fatal=fatal):
             sts = int_or_none(self._search_regex(
                 r'(?:signatureTimestamp|sts)\s*:\s*(?P<sts>[0-9]{5})', code,
                 'JS player signature timestamp', group='sts', fatal=fatal))
-            if sts:
+            if CACHE_ENABLED and sts:
                 self._store_player_data_to_cache('sts', player_url, sts)
 
         return sts
@@ -2967,9 +2611,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # TODO(future): This validation should be moved into pot framework.
         #  Some sort of middleware or validation provider perhaps?
 
+        gvs_bind_to_video_id = False
+        experiments = traverse_obj(ytcfg, (
+            'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentFlags', {urllib.parse.parse_qs}))
+        if 'true' in traverse_obj(experiments, (..., 'html5_generate_content_po_token', -1)):
+            self.write_debug(
+                f'{video_id}: Detected experiment to bind GVS PO Token to video id.', only_once=True)
+            gvs_bind_to_video_id = True
+
         # GVS WebPO Token is bound to visitor_data / Visitor ID when logged out.
         # Must have visitor_data for it to function.
-        if player_url and context == _PoTokenContext.GVS and not visitor_data and not self.is_authenticated:
+        if (
+            player_url and context == _PoTokenContext.GVS
+            and not visitor_data and not self.is_authenticated and not gvs_bind_to_video_id
+        ):
             self.report_warning(
                 f'Unable to fetch GVS PO Token for {client} client: Missing required Visitor Data. '
                 f'You may need to pass Visitor Data with --extractor-args "youtube:visitor_data=XXX"', only_once=True)
@@ -2983,7 +2638,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         config_po_token = self._get_config_po_token(client, context)
         if config_po_token and not bypass_cache:
             # GVS WebPO token is bound to data_sync_id / account Session ID when logged in.
-            if player_url and context == _PoTokenContext.GVS and not data_sync_id and self.is_authenticated:
+            if (
+                player_url and context == _PoTokenContext.GVS
+                and not data_sync_id and self.is_authenticated and not gvs_bind_to_video_id
+            ):
                 self.report_warning(
                     f'Got a GVS PO Token for {client} client, but missing Data Sync ID for account. Formats may not work.'
                     f'You may need to pass a Data Sync ID with --extractor-args "youtube:data_sync_id=XXX"')
@@ -3010,6 +2668,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             video_webpage=webpage,
             bypass_cache=bypass_cache,
             required=required,
+            _gvs_bind_to_video_id=gvs_bind_to_video_id,
             **kwargs,
         )
 
@@ -3053,6 +2712,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             data_sync_id=kwargs.get('data_sync_id'),
             video_id=kwargs.get('video_id'),
             request_cookiejar=self._downloader.cookiejar,
+            _gvs_bind_to_video_id=kwargs.get('_gvs_bind_to_video_id', False),
 
             # All requests that would need to be proxied should be in the
             # context of www.youtube.com or the innertube host
@@ -3126,9 +2786,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _get_requested_clients(self, url, smuggled_data, is_premium_subscriber):
         requested_clients = []
         excluded_clients = []
+        js_runtime_available = any(p.is_available() for p in self._jsc_director.providers.values())
         default_clients = (
             self._DEFAULT_PREMIUM_CLIENTS if is_premium_subscriber
             else self._DEFAULT_AUTHED_CLIENTS if self.is_authenticated
+            else self._DEFAULT_JSLESS_CLIENTS if not js_runtime_available
             else self._DEFAULT_CLIENTS
         )
         allowed_clients = sorted(
@@ -3145,6 +2807,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.report_warning(f'Skipping unsupported client "{client}"')
             else:
                 requested_clients.append(client)
+
+        if not (requested_clients or excluded_clients) and default_clients == self._DEFAULT_JSLESS_CLIENTS:
+            self.report_warning(
+                f'No supported JavaScript runtime could be found. YouTube extraction without '
+                f'a JS runtime has been deprecated, and some formats may be missing. '
+                f'See  {_EJS_WIKI_URL}  for details on installing one. To silence this warning, '
+                f'you can use  --extractor-args "youtube:player_client=default"', only_once=True)
+
         if not requested_clients:
             requested_clients.extend(default_clients)
         for excluded_client in excluded_clients:
@@ -3369,29 +3039,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         else:
             self.report_warning(msg, only_once=True)
 
-    def _process_n_param(self, gvs_url, video_id, player_url, proto='https'):
-        query = parse_qs(gvs_url)
-        if query.get('n'):
-            try:
-                decrypt_nsig = self._cached(self._decrypt_nsig, 'nsig', query['n'][0])
-                return update_url_query(gvs_url, {
-                    'n': decrypt_nsig(query['n'][0], video_id, player_url),
-                })
-            except ExtractorError as e:
-                if player_url:
-                    self.report_warning(
-                        f'nsig extraction failed: Some {proto} formats may be missing\n'
-                        f'         n = {query["n"][0]} ; player = {player_url}\n'
-                        f'         {bug_reports_message(before="")}',
-                        video_id=video_id, only_once=True)
-                    self.write_debug(e, only_once=True)
-                else:
-                    self.report_warning(
-                        f'Cannot decrypt nsig without player_url: Some {proto} formats may be missing',
-                        video_id=video_id, only_once=True)
-                return None
-        return gvs_url
-
     def _reload_sabr_config(self, video_id, client_name, reload_playback_token):
         # xxx: may also update client info?
         url = 'https://www.youtube.com/watch?v=' + video_id
@@ -3430,6 +3077,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             all_formats = True
             self._downloader.deprecated_feature('[youtube] include_duplicate_formats extractor argument is deprecated. '
                                                 'Use formats=duplicate extractor argument instead')
+
+        def solve_sig(s, spec):
+            return ''.join(s[i] for i in spec)
 
         def build_fragments(f):
             return LazyList({
@@ -3559,6 +3209,182 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                 return dct
 
+            def process_https_formats():
+                proto = 'https'
+                https_fmts = []
+                for fmt_stream in streaming_formats:
+                    if fmt_stream.get('targetDurationSec'):
+                        continue
+
+                    # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
+                    # (adding `&sq=0` to the URL) and parsing emsg box to determine the
+                    # number of fragment that would subsequently requested with (`&sq=N`)
+                    if fmt_stream.get('type') == 'FORMAT_STREAM_TYPE_OTF' and not bool(fmt_stream.get('drmFamilies')):
+                        continue
+
+                    stream_id = get_stream_id(fmt_stream)
+                    if not all_formats:
+                        if stream_id in stream_ids:
+                            continue
+
+                    pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.HTTPS]
+
+                    require_po_token = (
+                        stream_id[0] not in ['18']
+                        and gvs_pot_required(pot_policy, is_premium_subscriber, player_token_provided))
+
+                    po_token = (
+                        gvs_pots.get(client_name)
+                        or fetch_po_token_func(required=require_po_token or pot_policy.recommended))
+                    if po_token:
+                        if client_name not in gvs_pots:
+                            gvs_pots[client_name] = po_token
+
+                    fmt_url = fmt_stream.get('url')
+                    encrypted_sig, sc = None, None
+                    if not fmt_url:
+                        sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
+                        fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
+                        encrypted_sig = try_get(sc, lambda x: x['s'][0])
+                        if not all((sc, fmt_url, player_url, encrypted_sig)):
+                            msg = f'Some {client_name} client https formats have been skipped as they are missing a url. '
+                            if client_name in ('web', 'web_safari'):
+                                msg += 'YouTube is forcing SABR streaming for this client. '
+                            else:
+                                msg += (
+                                    f'YouTube may have enabled the SABR-only or Server-Side Ad Placement experiment for '
+                                    f'{"your account" if self.is_authenticated else "the current session"}. '
+                                )
+                            msg += 'See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details'
+                            self.report_warning(msg, video_id, only_once=True)
+                            continue
+
+                    fmt = process_format_stream(fmt_stream, proto, missing_pot=require_po_token and not po_token)
+                    if not fmt:
+                        continue
+
+                    # signature
+                    # Attempt to load sig spec from cache
+                    if encrypted_sig:
+                        spec_cache_id = self._sig_spec_cache_id(player_url, len(encrypted_sig))
+                        spec = self._load_sig_spec_from_cache(spec_cache_id)
+                        if spec:
+                            self.write_debug(f'Using cached signature function {spec_cache_id}', only_once=True)
+                            fmt_url += '&{}={}'.format(traverse_obj(sc, ('sp', -1)) or 'signature',
+                                                       solve_sig(encrypted_sig, spec))
+                        else:
+                            fmt['_jsc_s_challenge'] = encrypted_sig
+                            fmt['_jsc_s_sc'] = sc
+
+                    # n challenge
+                    query = parse_qs(fmt_url)
+                    if query.get('n'):
+                        n_challenge = query['n'][0]
+                        if n_challenge in self._player_cache:
+                            fmt_url = update_url_query(fmt_url, {'n': self._player_cache[n_challenge]})
+                        else:
+                            fmt['_jsc_n_challenge'] = n_challenge
+
+                    if po_token:
+                        fmt_url = update_url_query(fmt_url, {'pot': po_token})
+
+                    fmt['url'] = fmt_url
+
+                    if stream_id[0]:
+                        itags[stream_id[0]].add((proto, fmt.get('language')))
+                        stream_ids.append(stream_id)
+
+                    # For handling potential pre-playback required waiting period
+                    if live_status not in ('is_live', 'post_live'):
+                        fmt['available_at'] = available_at
+
+                    if (all_formats or 'dashy' in format_types) and fmt['filesize']:
+                        https_fmts.append({
+                            **fmt,
+                            'format_id': f'{fmt["format_id"]}-dashy' if all_formats else fmt['format_id'],
+                            'protocol': 'http_dash_segments',
+                            'fragments': build_fragments(fmt),
+                        })
+                    if all_formats or 'dashy' not in format_types:
+                        fmt['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
+                        https_fmts.append(fmt)
+
+                # Bulk process sig/n handling
+                # Retrieve all JSC Sig and n requests for this player response in one go
+                n_challenges = {}
+                s_challenges = {}
+                for fmt in https_fmts:
+                    # This will de-duplicate requests
+                    n_challenge = fmt.pop('_jsc_n_challenge', None)
+                    if n_challenge is not None:
+                        n_challenges.setdefault(n_challenge, []).append(fmt)
+
+                    s_challenge = fmt.pop('_jsc_s_challenge', None)
+                    if s_challenge is not None:
+                        s_challenges.setdefault(len(s_challenge), {}).setdefault(s_challenge, []).append(fmt)
+
+                challenge_requests = []
+                if n_challenges:
+                    challenge_requests.append(JsChallengeRequest(
+                        type=JsChallengeType.N,
+                        video_id=video_id,
+                        input=NChallengeInput(challenges=list(n_challenges.keys()), player_url=player_url)))
+                if s_challenges:
+                    challenge_requests.append(JsChallengeRequest(
+                        type=JsChallengeType.SIG,
+                        video_id=video_id,
+                        input=SigChallengeInput(challenges=[''.join(map(chr, range(spec_id))) for spec_id in s_challenges], player_url=player_url)))
+
+                if challenge_requests:
+                    for _challenge_request, challenge_response in self._jsc_director.bulk_solve(challenge_requests):
+                        if challenge_response.type == JsChallengeType.SIG:
+                            for challenge, result in challenge_response.output.results.items():
+                                spec_id = len(challenge)
+                                spec = [ord(c) for c in result]
+                                self._store_sig_spec_to_cache(self._sig_spec_cache_id(player_url, spec_id), spec)
+                                s_challenge_data = s_challenges.pop(spec_id, {})
+                                if not s_challenge_data:
+                                    continue
+                                for s_challenge, fmts in s_challenge_data.items():
+                                    solved_challenge = solve_sig(s_challenge, spec)
+                                    for fmt in fmts:
+                                        sc = fmt.pop('_jsc_s_sc')
+                                        fmt['url'] += '&{}={}'.format(
+                                            traverse_obj(sc, ('sp', -1)) or 'signature',
+                                            solved_challenge)
+
+                        elif challenge_response.type == JsChallengeType.N:
+                            for challenge, result in challenge_response.output.results.items():
+                                fmts = n_challenges.pop(challenge, [])
+                                for fmt in fmts:
+                                    self._player_cache[challenge] = result
+                                    fmt['url'] = update_url_query(fmt['url'], {'n': result})
+
+                    # Raise warning if any challenge requests remain
+                    # Depending on type of challenge request
+
+                    help_message = (
+                        'Ensure you have a supported JavaScript runtime and '
+                        'challenge solver script distribution installed. '
+                        'Review any warnings presented before this message. '
+                        f'For more details, refer to  {_EJS_WIKI_URL}')
+
+                    if s_challenges:
+                        self.report_warning(
+                            f'Signature solving failed: Some formats may be missing. {help_message}',
+                            video_id=video_id, only_once=True)
+                    if n_challenges:
+                        self.report_warning(
+                            f'n challenge solving failed: Some formats may be missing. {help_message}',
+                            video_id=video_id, only_once=True)
+
+                    for cfmts in list(s_challenges.values()) + list(n_challenges.values()):
+                        for fmt in cfmts:
+                            if fmt in https_fmts:
+                                https_fmts.remove(fmt)
+
+                yield from https_fmts
+
             def process_sabr_formats_and_subtitles():
                 proto = 'sabr'
                 server_abr_streaming_url = (self._process_n_param
@@ -3633,93 +3459,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if stream_id[0]:
                             itags[stream_id[0]].add((proto, fmt.get('language')))
                             stream_ids.append(stream_id)
-                        yield fmt
-
-            def process_https_formats():
-                proto = 'https'
-                for fmt_stream in streaming_formats:
-                    if fmt_stream.get('targetDurationSec'):
-                        continue
-
-                    # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
-                    # (adding `&sq=0` to the URL) and parsing emsg box to determine the
-                    # number of fragment that would subsequently requested with (`&sq=N`)
-                    if fmt_stream.get('type') == 'FORMAT_STREAM_TYPE_OTF' and not bool(fmt_stream.get('drmFamilies')):
-                        continue
-
-                    stream_id = get_stream_id(fmt_stream)
-                    if not all_formats:
-                        if stream_id in stream_ids:
-                            continue
-
-                    pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.HTTPS]
-
-                    require_po_token = (
-                        stream_id[0] not in ['18']
-                        and gvs_pot_required(pot_policy, is_premium_subscriber, player_token_provided))
-
-                    po_token = (
-                        gvs_pots.get(client_name)
-                        or fetch_po_token_func(required=require_po_token or pot_policy.recommended))
-                    if po_token:
-                        if client_name not in gvs_pots:
-                            gvs_pots[client_name] = po_token
-
-                    fmt = process_format_stream(fmt_stream, proto, missing_pot=require_po_token and not po_token)
-                    if not fmt:
-                        continue
-
-                    fmt_url = fmt_stream.get('url')
-                    if not fmt_url:
-                        sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
-                        fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
-                        encrypted_sig = try_get(sc, lambda x: x['s'][0])
-                        if not all((sc, fmt_url, player_url, encrypted_sig)):
-                            continue
-                        try:
-                            fmt_url += '&{}={}'.format(
-                                traverse_obj(sc, ('sp', -1)) or 'signature',
-                                self._decrypt_signature(encrypted_sig, video_id, player_url),
-                            )
-                        except ExtractorError as e:
-                            self.report_warning(
-                                f'Signature extraction failed: Some formats may be missing\n'
-                                f'         player = {player_url}\n'
-                                f'         {bug_reports_message(before="")}',
-                                video_id=video_id, only_once=True)
-                            self.write_debug(
-                                f'{video_id}: Signature extraction failure info:\n'
-                                f'         encrypted sig = {encrypted_sig}\n'
-                                f'         player = {player_url}')
-                            self.write_debug(e, only_once=True)
-                            continue
-
-                    fmt_url = self._process_n_param(fmt_url, video_id, player_url, proto)
-                    if not fmt_url:
-                        continue
-
-                    if po_token:
-                        fmt_url = update_url_query(fmt_url, {'pot': po_token})
-
-                    fmt['url'] = fmt_url
-
-                    if stream_id[0]:
-                        itags[stream_id[0]].add((proto, fmt.get('language')))
-                        stream_ids.append(stream_id)
-
-                    # For handling potential pre-playback required waiting period
-                    if live_status not in ('is_live', 'post_live'):
-                        fmt['available_at'] = available_at
-
-                    if (all_formats or 'dashy' in format_types) and fmt['filesize']:
-                        yield {
-                            **fmt,
-                            'format_id': f'{fmt["format_id"]}-dashy' if all_formats else fmt['format_id'],
-                            'protocol': 'http_dash_segments',
-                            'fragments': build_fragments(fmt),
-                        }
-                    if all_formats or 'dashy' not in format_types:
-                        fmt['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
                         yield fmt
 
             yield from process_https_formats()
@@ -3837,7 +3576,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                 r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
                             if needs_live_processing:
                                 f['is_from_start'] = True
-
                             yield f
         yield subtitles
 
@@ -3911,7 +3649,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                        else 'not_live' if False in (is_live, live_content)
                        else None)
         *formats, subtitles = self._extract_formats_and_subtitles(video_id, player_responses, player_url, live_status, duration)
-
         if all(f.get('has_drm') for f in formats):
             # If there are no formats that definitely don't have DRM, all have DRM
             for f in formats:
@@ -4224,7 +3961,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else 'video'),
             'release_timestamp': live_start_time,
             '_format_sort_fields': (  # source_preference is lower for potentially damaged formats
-                'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec', 'channels', 'acodec', 'lang', 'proto'),
+                'quality', 'res', 'fps', 'hdr:12', 'source',
+                'vcodec:vp9.2' if 'prefer-vp9-sort' in self.get_param('compat_opts', []) else 'vcodec',
+                'channels', 'acodec', 'lang', 'proto'),
         }
 
         def get_lang_code(track):
