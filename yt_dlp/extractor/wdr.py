@@ -264,6 +264,25 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             },
             'skip': ' AssertionError: dictionaries differ',
         },
+        {
+            'url': 'https://www.wdrmaus.de/filme/sachgeschichten/rollenherstellung.php5',
+            'info_dict': {
+                'id': 'sophora-ecf1f738-836e-4d41-bcb2-a6740e3f80a6',
+                'ext': 'mp4',
+                'title': 'Rollen-Herstellung',
+                'alt_title': 'Die Sendung mit der Maus',
+                'thumbnail': 'https:////kinder.wdr.de/tv/die-sendung-mit-der-maus/20250921-die-sendung-mit-der-maus-vom-104.jpg',
+                'upload_date': '20250921',
+            },
+        },
+        {
+            'url': 'https://www.wdrmaus.de/filme/lachgeschichten/kaeptn_blaubaer_warum_ist_hein_so_bloed.php5#modul86878',
+            'info_dict': {
+                'id': 'mdb-1375961',
+                'ext': 'mp4',
+                'title': ' Käpt\'n Blaubärs Seemannsgarn: Warum ist Hein so blöd?',
+            },
+        },
     ]
 
     def _real_extract(self, url):
