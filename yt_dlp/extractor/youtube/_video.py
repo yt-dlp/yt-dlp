@@ -2081,11 +2081,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         Extract signatureTimestamp (sts)
         Required to tell API what sig/player version is in use.
         """
+        CACHE_ENABLED = False  # TODO: enable when preprocessed player JS cache is solved/enabled
+
         player_sts_override = self._get_player_js_version()[0]
         if player_sts_override:
             return int(player_sts_override)
 
-        if sts := traverse_obj(ytcfg, ('STS', {int_or_none})):
+        sts = traverse_obj(ytcfg, ('STS', {int_or_none}))
+        if sts:
             return sts
 
         if not player_url:
@@ -2095,15 +2098,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(error_msg)
             return None
 
-        sts = self._load_player_data_from_cache('sts', player_url)
-        if sts:
+        if CACHE_ENABLED and (sts := self._load_player_data_from_cache('sts', player_url)):
             return sts
 
         if code := self._load_player(video_id, player_url, fatal=fatal):
             sts = int_or_none(self._search_regex(
                 r'(?:signatureTimestamp|sts)\s*:\s*(?P<sts>[0-9]{5})', code,
                 'JS player signature timestamp', group='sts', fatal=fatal))
-            if sts:
+            if CACHE_ENABLED and sts:
                 self._store_player_data_to_cache('sts', player_url, sts)
 
         return sts
