@@ -296,7 +296,10 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 if jsonp_url.endswith('.assetjsonp'):
                     asset = self._download_json(
                         jsonp_url, display_id, fatal=False, transform_source=strip_jsonp)
-                    clip_id = try_get(asset, lambda x: x['trackerData']['trackerClipId'], str)
+                    if try_get(asset, lambda x: x['trackerData']['trackerClipId'], str).startswith('sophora-'):
+                        clip_id = None
+                    else:
+                        clip_id = try_get(asset, lambda x: x['trackerData']['trackerClipId'], str)
                 if clip_id:
                     jsonp_url = self._asset_url(clip_id[4:])
                 entries.append(self.url_result(jsonp_url, ie=WDRIE.ie_key()))
