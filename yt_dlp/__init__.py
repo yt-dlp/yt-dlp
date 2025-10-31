@@ -951,12 +951,12 @@ def parse_options(argv=None):
         'geo_bypass_country': opts.geo_bypass_country,
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
         'useid': opts.useid or None,
+        'js_runtimes': js_runtimes,
+        'remote_components': opts.remote_components,
         'warn_when_outdated': opts.update_self is None,
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
-        'js_runtimes': js_runtimes,
-        'remote_components': opts.remote_components,
     })
 
 
