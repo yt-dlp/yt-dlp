@@ -83,7 +83,7 @@ class NBCUniversalBaseIE(ThePlatformBaseIE):
             orig_fmts, subtitles = self._extract_m3u8_formats_and_subtitles(
                 orig_m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
             formats = [f for f in orig_fmts if not f.get('has_drm')]
-            if not formats:
+            if orig_fmts and not formats:
                 self.report_drm(video_id)
 
         return formats, subtitles
