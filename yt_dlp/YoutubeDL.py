@@ -544,8 +544,8 @@ class YoutubeDL:
                        E.g. {'deno': {'path': '/path/to/deno'}
     remote_components: A list of remote components that are allowed to be fetched when required.
                        Supported components:
-                       - `ejs:npm` (external JavaScript components from npm)
-                       - `ejs:github` (external JavaScript components from yt-dlp-ejs GitHub)
+                       - ejs:npm (external JavaScript components from npm)
+                       - ejs:github (external JavaScript components from yt-dlp-ejs GitHub)
                        By default, no remote components are allowed to be fetched.
     mark_watched:      Mark videos watched (even with --simulate). Only for YouTube
 
