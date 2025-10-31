@@ -181,11 +181,18 @@ class JsChallengeRequestDirector:
                 return parts[0]
             return f'{", ".join(parts[:-1])} {joiner} {parts[-1]}'
 
-        self.logger.warning(
-            f'Remote components {join_parts(descriptions, "and")} were skipped. '
-            f'These may be required to solve JS challenges. '
-            f'You can enable these downloads with {join_parts(flags, "or")}, respectively. '
-            f'For more information and alternatives, refer to  {_EJS_WIKI_URL}')
+        if len(descriptions) > 1:
+            msg = (
+                f'Remote component {descriptions[0]} was skipped. '
+                f'It may be required to solve JS challenges. '
+                f'You can enable the download with {flags[0]}')
+        else:
+            msg = (
+                f'Remote components {join_parts(descriptions, "and")} were skipped. '
+                f'These may be required to solve JS challenges. '
+                f'You can enable these downloads with {join_parts(flags, "or")}, respectively')
+
+        self.logger.warning(f'{msg}. For more information and alternatives, refer to  {_EJS_WIKI_URL}')
 
     def close(self):
         for provider in self.providers.values():
