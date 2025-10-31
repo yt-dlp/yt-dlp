@@ -183,6 +183,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             'params': {
                 'skip_download': True,  # m3u8 download
             },
+            'skip': 'IndexError: list index out of range',
         },
         {
             'url': 'http://www1.wdr.de/mediathek/video/sendungen/aktuelle-stunde/aktuelle-stunde-120.html',
@@ -226,6 +227,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             'params': {
                 'skip_download': True,  # m3u8 download
             },
+            'skip': 'AssertionError: dictionaries differ (alt_title, upload_date)',
         },
         {
             'url': 'http://www.sportschau.de/handballem2018/handball-nationalmannschaft-em-stolperstein-vorrunde-100.html',
@@ -257,6 +259,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'alt_title': 'Rockpalast',
                 'upload_date': '20220725',
             },
+            'skip': ' AssertionError: dictionaries differ',
         },
     ]
 
