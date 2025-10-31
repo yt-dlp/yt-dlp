@@ -214,7 +214,7 @@ jobs:
 
       - name: Build Unix platform-independent binary
         run: |
-          make all tar
+          make all-extra tar
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
