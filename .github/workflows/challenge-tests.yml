@@ -61,6 +61,7 @@ jobs:
           sudo install qjs /usr/local/bin/qjs
     - name: Install QuickJS (Windows)
       if: matrix.os == 'windows-latest'
+      shell: pwsh
       run: |
           Invoke-WebRequest "https://bellard.org/quickjs/binary_releases/quickjs-win-x86_64-${Env:QJS_VERSION}.zip" -OutFile quickjs.zip
           unzip quickjs.zip
