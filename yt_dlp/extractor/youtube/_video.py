@@ -2794,6 +2794,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.report_warning(f'Skipping unsupported client "{client}"')
             else:
                 requested_clients.append(client)
+
+        if not (requested_clients or excluded_clients) and default_clients == self._DEFAULT_JSLESS_CLIENTS:
+            self.report_warning(
+                f'No supported JavaScript runtime could be found. YouTube extraction without '
+                f'a JS runtime has been deprecated, and some formats may be missing. '
+                f'See  {_EJS_WIKI_URL}  for details on installing one. To silence this warning, '
+                f'you can use  --extractor-args "youtube:player_client=default"', only_once=True)
+
         if not requested_clients:
             requested_clients.extend(default_clients)
         for excluded_client in excluded_clients:
@@ -3319,7 +3327,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Depending on type of challenge request
 
                     help_message = (
-                        'Ensure you have a supported JS Runtime and challenge solver script distribution installed. '
+                        'Ensure you have a supported JavaScript runtime and '
+                        'challenge solver script distribution installed. '
                         'Review any warnings presented before this message. '
                         f'For more details, refer to  {_EJS_WIKI_URL}')
 
