@@ -60,6 +60,40 @@ class _ByteGenerator:
         s = to_signed_32(s * to_signed_32(0xc2b2ae3d))
         return to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 16))
 
+
+    def _algo4(self, s):
+        # Custom scrambling function involving a left rotation (ROL)
+        s = self._s = to_signed_32(s + 0x6d2b79f5)
+        s = to_signed_32((s << 7) | ((s & 0xFFFFFFFF) >> 25))  # ROL 7
+        s = to_signed_32(s + 0x9e3779b9)
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 11))
+        s = to_signed_32(s * 0x27d4eb2d)
+        return s
+
+    def _algo5(self, s):
+        # xorshift variant with a final addition
+        s = to_signed_32(s ^ (s << 7))
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 9))
+        s = to_signed_32(s ^ (s << 8))
+        s = self._s = to_signed_32(s + 0xa5a5a5a5)
+        return s
+
+    def _algo6(self, s):
+        # LCG (a=0x2c9277b5, c=0xac564b05) with a variable right shift scrambler
+        s = self._s = to_signed_32(s * to_signed_32(0x2c9277b5) + to_signed_32(0xac564b05))
+        s2 = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 18))
+        shift = (s & 0xFFFFFFFF) >> 27 & 31
+        return to_signed_32((s2 & 0xFFFFFFFF) >> shift)
+
+    def _algo7(self, s):
+        # Weyl Sequence (k=0x9e3779b9) + custom multiply-xor-shift mixing function
+        s = self._s = to_signed_32(s + to_signed_32(0x9e3779b9))
+        e = to_signed_32(s ^ (s << 5))
+        e = to_signed_32(e * to_signed_32(0x7feb352d))
+        e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 15))
+        e = to_signed_32(e * to_signed_32(0x846ca68b))
+        return e
+
     def __next__(self):
         return self._algorithm(self._s) & 0xFF
 
@@ -198,8 +232,7 @@ class XHamsterIE(InfoExtractor):
             lambda: base64.b64decode(format_url).decode().partition('_')) or [None] * 3
 
         if not cipher_type or not ciphertext:
-            # This is expected to fail if we are receiving the new encrypted URL strings,
-            # and we do not want to raise a warning to the user.
+            self.report_warning(f'Skipping format "{format_id}": failed to decipher URL')
             return None
 
         if cipher_type == 'xor':
@@ -243,9 +276,6 @@ class XHamsterIE(InfoExtractor):
             return int_or_none(self._search_regex(
                 r'^(\d+)[pP]', s, 'height', default=None))
 
-        preload_urls = re.findall(r'<link rel="preload" href="([^"]+)" as', webpage)
-        playlist_url = next((url for url in preload_urls if re.search(r'video(?:-[a-z]+|\d+)\.xhcdn\.com', url) is not None), None)
-        thumbnail_url = next((url for url in preload_urls if re.search(r'ic-vt(?:-[a-z]+|\d+)\.xhcdn\.com', url) is not None), None)
         initials = self._parse_json(
             self._search_regex(
                 (r'window\.initials\s*=\s*({.+?})\s*;\s*</script>',
@@ -258,14 +288,6 @@ class XHamsterIE(InfoExtractor):
             formats = []
             format_urls = set()
             format_sizes = {}
-
-            # New method, pull URL from HTML `head` preloads
-            format_urls.add(playlist_url)
-            formats.extend(self._extract_m3u8_formats(
-                playlist_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                m3u8_id='hls', fatal=False))
-
-            # Old method of checking `window.initials` JSON body
             sources = try_get(video, lambda x: x['sources'], dict) or {}
             for format_id, formats_dict in sources.items():
                 if not isinstance(formats_dict, dict):
@@ -300,18 +322,17 @@ class XHamsterIE(InfoExtractor):
             if xplayer_sources:
                 hls_sources = xplayer_sources.get('hls')
                 if isinstance(hls_sources, dict):
-                    if 'url' in hls_sources or 'fallback' in hls_sources:
-                        for hls_format_key in ('url', 'fallback'):
-                            hls_url = hls_sources.get(hls_format_key)
-                            if not hls_url:
-                                continue
-                            hls_url = self._decipher_format_url(hls_url, f'hls-{hls_format_key}')
-                            if not hls_url or hls_url in format_urls:
-                                continue
-                            format_urls.add(hls_url)
-                            formats.extend(self._extract_m3u8_formats(
-                                hls_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                                m3u8_id='hls', fatal=False))
+                    for hls_format_key in ('url', 'fallback'):
+                        hls_url = hls_sources.get(hls_format_key)
+                        if not hls_url:
+                            continue
+                        hls_url = self._decipher_format_url(hls_url, f'hls-{hls_format_key}')
+                        if not hls_url or hls_url in format_urls:
+                            continue
+                        format_urls.add(hls_url)
+                        formats.extend(self._extract_m3u8_formats(
+                            hls_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                            m3u8_id='hls', fatal=False))
                 standard_sources = xplayer_sources.get('standard')
                 if isinstance(standard_sources, dict):
                     for identifier, formats_list in standard_sources.items():
@@ -373,7 +394,7 @@ class XHamsterIE(InfoExtractor):
                     video, lambda x: x['author']['name'], str),
                 'uploader_url': uploader_url,
                 'uploader_id': uploader_url.split('/')[-1] if uploader_url else None,
-                'thumbnail': video.get('thumbURL') or thumbnail_url,
+                'thumbnail': video.get('thumbURL'),
                 'duration': int_or_none(video.get('duration')),
                 'view_count': int_or_none(video.get('views')),
                 'like_count': int_or_none(try_get(
