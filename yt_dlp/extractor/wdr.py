@@ -117,7 +117,7 @@ class WDRIE(InfoExtractor):
                     'ext': determine_ext(format_url, None) or ext,
                 })
 
-        return {
+        info_dict = {
             'id': tracker_data.get('trackerClipId', video_id),
             'title': title,
             'alt_title': tracker_data.get('trackerClipSubcategory'),
@@ -126,6 +126,9 @@ class WDRIE(InfoExtractor):
             'upload_date': unified_strdate(tracker_data.get('trackerClipAirTime')),
             'is_live': is_live,
         }
+        if 'previewImage' in media_resource:
+            info_dict['thumbnail'] = 'https://' + media_resource['previewImage'].replace('~_v-%%FORMAT%%', '')
+        return info_dict
 
 
 class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
