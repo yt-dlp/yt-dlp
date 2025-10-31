@@ -127,7 +127,7 @@ class WDRIE(InfoExtractor):
             'is_live': is_live,
         }
         if 'previewImage' in media_resource:
-            info_dict['thumbnail'] = 'https://' + media_resource['previewImage'].replace('~_v-%%FORMAT%%', '')
+            info_dict['thumbnail'] = 'https:' + media_resource['previewImage'].replace('~_v-%%FORMAT%%', '')
         return info_dict
 
 
@@ -271,7 +271,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'ext': 'mp4',
                 'title': 'Rollen-Herstellung',
                 'alt_title': 'Die Sendung mit der Maus',
-                'thumbnail': 'https:////kinder.wdr.de/tv/die-sendung-mit-der-maus/20250921-die-sendung-mit-der-maus-vom-104.jpg',
+                'thumbnail': 'https://kinder.wdr.de/tv/die-sendung-mit-der-maus/20250921-die-sendung-mit-der-maus-vom-104.jpg',
                 'upload_date': '20250921',
             },
         },
