@@ -3387,8 +3387,31 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             def process_sabr_formats_and_subtitles():
                 proto = 'sabr'
-                server_abr_streaming_url = (self._process_n_param
-                                            (streaming_data.get('serverAbrStreamingUrl'), video_id, player_url, proto))
+                server_abr_streaming_url = streaming_data.get('serverAbrStreamingUrl')
+
+                query = parse_qs(server_abr_streaming_url)
+                if query.get('n'):
+                    n_challenge = query['n'][0]
+                    if n_challenge in self._player_cache:
+                        server_abr_streaming_url = update_url_query(server_abr_streaming_url, {'n': self._player_cache[n_challenge]})
+                    else:
+                        _, challenge_response = traverse_obj(self._jsc_director.bulk_solve([JsChallengeRequest(
+                                type=JsChallengeType.N,
+                                video_id=video_id,
+                                input=NChallengeInput(challenges=[n_challenge], player_url=player_url))]), 0) or (None, None)
+                        if not challenge_response or n_challenge not in challenge_response.output.results:
+                            self.report_warning(
+                                f'SABR n challenge solving failed: SABR formats may be missing. '
+                                f'Ensure you have a supported JavaScript runtime and '
+                                f'challenge solver script distribution installed. '
+                                'Review any warnings presented before this message. '
+                                f'For more details, refer to  {_EJS_WIKI_URL}',
+                                video_id=video_id, only_once=True)
+                            return
+                        solved_n = challenge_response.output.results[n_challenge]
+                        self._player_cache[n_challenge] = solved_n
+                        server_abr_streaming_url = update_url_query(server_abr_streaming_url, {'n': solved_n})
+
                 video_playback_ustreamer_config = traverse_obj(
                     pr, ('playerConfig', 'mediaCommonConfig', 'mediaUstreamerRequestConfig', 'videoPlaybackUstreamerConfig'))
 
