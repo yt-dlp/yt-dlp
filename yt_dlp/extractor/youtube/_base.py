@@ -387,7 +387,8 @@ def _fix_embedded_ytcfg(ytcfg):
 
 
 def build_innertube_clients():
-    BASE_CLIENTS = ('ios', 'web', 'tv', 'mweb', 'android')
+    # From highest to lowest priority
+    BASE_CLIENTS = ('tv', 'web', 'mweb', 'android', 'ios')
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
@@ -409,9 +410,6 @@ def build_innertube_clients():
 
         if variant == 'embedded':
             _fix_embedded_ytcfg(ytcfg)
-            ytcfg['priority'] -= 2
-        elif variant:
-            ytcfg['priority'] -= 3
 
 
 build_innertube_clients()
