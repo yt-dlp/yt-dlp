@@ -162,7 +162,7 @@ class EJSBaseJCP(JsChallengeProvider):
                 player = self._get_player(video_id, player_url)
 
             # NB: This output belongs after the player request
-            self.logger.info(f'Solving JS challenges using {self.PROVIDER_NAME}')
+            self.logger.info(f'Solving JS challenges using {self.JS_RUNTIME_NAME}')
 
             stdin = self._construct_stdin(player, cached, grouped_requests)
             stdout = self._run_js_runtime(stdin)
