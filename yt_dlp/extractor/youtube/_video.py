@@ -3261,16 +3261,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if live_status not in ('is_live', 'post_live'):
                         fmt['available_at'] = available_at
 
-                    if (all_formats or 'dashy' in format_types) and fmt['filesize']:
-                        https_fmts.append({
-                            **fmt,
-                            'format_id': f'{fmt["format_id"]}-dashy' if all_formats else fmt['format_id'],
-                            'protocol': 'http_dash_segments',
-                            'fragments': build_fragments(fmt),
-                        })
-                    if all_formats or 'dashy' not in format_types:
-                        fmt['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
-                        https_fmts.append(fmt)
+                    https_fmts.append(fmt)
 
                 # Bulk process sig/n handling
                 # Retrieve all JSC Sig and n requests for this player response in one go
@@ -3346,7 +3337,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             if fmt in https_fmts:
                                 https_fmts.remove(fmt)
 
-                yield from https_fmts
+                for fmt in https_fmts:
+                    if (all_formats or 'dashy' in format_types) and fmt['filesize']:
+                        yield {
+                            **fmt,
+                            'format_id': f'{fmt["format_id"]}-dashy' if all_formats else fmt['format_id'],
+                            'protocol': 'http_dash_segments',
+                            'fragments': build_fragments(fmt),
+                        }
+                    if all_formats or 'dashy' not in format_types:
+                        fmt['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
+                        yield fmt
 
             yield from process_https_formats()
 
