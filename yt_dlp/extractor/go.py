@@ -211,35 +211,47 @@ class GoIE(AdobePassIE):
                     'device': '001',
                     'app_name': 'webplayer-abc',
                 }
-                if video_data.get('accesslevel') == '1':
-                    provider_id = site_info['provider_id']
-                    software_statement = traverse_obj(data, ('app', 'config', (
-                        ('features', 'auth', 'softwareStatement'),
-                        ('tvAuth', 'SOFTWARE_STATEMENTS', 'PRODUCTION'),
-                    ), {str}, any)) or site_info['software_statement']
-                    resource = site_info.get('resource_id') or self._get_mvpd_resource(
-                        provider_id, title, video_id, None)
-                    auth = self._extract_mvpd_auth(
-                        url, video_id, site_info['requestor_id'], resource, software_statement)
-                    data.update({
-                        'token': auth,
-                        'token_type': 'ap',
-                        'adobe_requestor_id': provider_id,
-                    })
-                else:
-                    self._initialize_geo_bypass({'countries': ['US']})
+
+                self._initialize_geo_bypass({'countries': ['US']})
+
                 entitlement = self._download_json(
                     'https://prod.gatekeeper.us-abc.symphony.edgedatg.go.com/vp2/ws-secure/entitlement/2020/playmanifest_secure.json',
                     video_id, data=urlencode_postdata(data))
                 errors = entitlement.get('errors', {}).get('errors', [])
-                if errors:
-                    for error in errors:
-                        if error.get('code') == 1002:
-                            self.raise_geo_restricted(
-                                error['message'], countries=['US'])
-                    error_message = ', '.join([error['message'] for error in errors])
-                    raise ExtractorError(f'{self.IE_NAME} said: {error_message}', expected=True)
-                asset_url += '?' + entitlement['entitlement']['uplynkData']['sessionKey']
+
+                m3u8_url = traverse_obj(entitlement, ('video', 'assets', 'asset', 0, 'value'))
+                if not errors and m3u8_url and '.m3u8' in m3u8_url.lower():
+                    asset_url = m3u8_url
+                else:
+                    if video_data.get('accesslevel') == '1':
+                        provider_id = site_info['provider_id']
+                        software_statement = traverse_obj(data, ('app', 'config', (
+                            ('features', 'auth', 'softwareStatement'),
+                            ('tvAuth', 'SOFTWARE_STATEMENTS', 'PRODUCTION'),
+                        ), {str}, any)) or site_info['software_statement']
+                        resource = site_info.get('resource_id') or self._get_mvpd_resource(
+                            provider_id, title, video_id, None)
+                        auth = self._extract_mvpd_auth(
+                            url, video_id, site_info['requestor_id'], resource, software_statement)
+                        data.update({
+                            'token': auth,
+                            'token_type': 'ap',
+                            'adobe_requestor_id': provider_id,
+                        })
+                        entitlement = self._download_json(
+                            'https://prod.gatekeeper.us-abc.symphony.edgedatg.go.com/vp2/ws-secure/entitlement/2020/playmanifest_secure.json',
+                            video_id, data=urlencode_postdata(data))
+                        errors = entitlement.get('errors', {}).get('errors', [])
+
+                    if errors:
+                        for error in errors:
+                            if error.get('code') == 1002:
+                                self.raise_geo_restricted(error['message'], countries=['US'])
+                        raise ExtractorError(
+                            f'{self.IE_NAME} said: {", ".join([error["message"] for error in errors])}',
+                            expected=True)
+
+                    asset_url += '?' + entitlement['entitlement']['uplynkData']['sessionKey']
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     asset_url, video_id, 'mp4', m3u8_id=format_id or 'hls', fatal=False)
                 formats.extend(fmts)
