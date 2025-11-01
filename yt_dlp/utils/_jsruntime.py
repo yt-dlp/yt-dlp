@@ -35,7 +35,7 @@ class JsRuntime(abc.ABC):
 
 
 class DenoJsRuntime(JsRuntime):
-    MIN_SUPPORTED_VERSION = (2, 0, 0)
+    MIN_SUPPORTED_VERSION = (1, 42, 1)
 
     def _info(self):
         path = self._path or 'deno'
