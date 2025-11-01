@@ -2244,6 +2244,7 @@ from .udemy import (
     UdemyCourseIE,
     UdemyIE,
 )
+from .udio import UdioIE, UdioListIE
 from .udn import UDNEmbedIE
 from .ufctv import (
     UFCTVIE,
