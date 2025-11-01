@@ -177,7 +177,7 @@ While it is strongly recommended to use `hatch` for yt-dlp development, if you a
 
 ```shell
 # To only install development dependencies:
-$ python -m devscripts.install_deps --include dev
+$ python -m devscripts.install_deps --include-group dev
 
 # Or, for an editable install plus dev dependencies:
 $ python -m pip install -e ".[default,dev]"

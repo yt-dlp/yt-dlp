@@ -189,7 +189,7 @@ Example usage:
 yt-dlp --update-to nightly
 
 # To install nightly with pip:
-python3 -m pip install -U --pre "yt-dlp[default]"
+python -m pip install -U --pre "yt-dlp[default]"
 ```
 
 When running a yt-dlp version that is older than 90 days, you will see a warning message suggesting to update to the latest version.
@@ -265,12 +265,12 @@ To build the standalone executable, you must have Python and `pyinstaller` (plus
 You can run the following commands:
 
 ```
-python3 devscripts/install_deps.py --include pyinstaller
-python3 devscripts/make_lazy_extractors.py
-python3 -m bundle.pyinstaller
+python devscripts/install_deps.py --include-group pyinstaller
+python devscripts/make_lazy_extractors.py
+python -m bundle.pyinstaller
 ```
 
-On some systems, you may need to use `py` or `python` instead of `python3`.
+On some systems, you may need to use `py` or `python3` instead of `python`.
 
 `python -m bundle.pyinstaller` accepts any arguments that can be passed to `pyinstaller`, such as `--onefile/-F` or `--onedir/-D`, which is further [documented here](https://pyinstaller.org/en/stable/usage.html#what-to-generate).
 
