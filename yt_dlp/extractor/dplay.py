@@ -1167,7 +1167,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'timestamp': 1727388000,
             'creators': ['TLC'],
             'thumbnail': 'https://eu1-prod-images.disco-api.com/2024/11/29/e9f3e3ae-74ec-3631-81b7-fc7bbe844741.jpeg',
-            'tags': ['kriminalfall', 'böse', 'verbrecher', 'zusammenleben', 'mord', 'familie', 'ermittler', 'leben', 'fälle', 'opfer', 'tod', 'mörder', 'crime'],
+            'tags': 'count:13',
             'categories': ['True Crime', 'Mord'],
         },
         'params': {'skip_download': 'm3u8'},
@@ -1183,11 +1183,13 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
                 'filter[show.slug]': programme,
             }, fatal=False)
         video_id = traverse_obj(meta, ('uid', {str}, {lambda s: s[-7:]})) or alternate_id
+
         disco_api_info = self._get_disco_api_info(
             url, video_id, 'eu1-prod.disco-api.com', domain.replace('.', ''), 'DE')
         disco_api_info['display_id'] = alternate_id
         disco_api_info['categories'] = traverse_obj(meta, (
             'taxonomies', lambda _, v: v['category'] == 'genre', 'title', {str.strip}, filter, all, filter))
+
         return disco_api_info
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
