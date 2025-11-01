@@ -635,6 +635,7 @@ from .fc2 import (
 )
 from .fczenit import FczenitIE
 from .fifa import FifaIE
+from .filmarchiv import FilmArchivIE
 from .filmon import (
     FilmOnChannelIE,
     FilmOnIE,
