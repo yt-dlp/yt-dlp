@@ -1054,7 +1054,7 @@ class DiscoveryPlusIndiaIE(DiscoveryPlusBaseIE):
 
 
 class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:tlc|dmax)\.de)/(?:programme|show|sendungen)/(?P<programme>[^/]+)/(?:video/)?(?P<alternate_id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:tlc|dmax)\.de)/(?:programme|show|sendungen)/(?P<programme>[^/?#]+)/(?:video/)?(?P<alternate_id>[^/?#]+)'
 
     _TESTS = [{
         'url': 'https://dmax.de/sendungen/goldrausch-in-australien/german-gold',
