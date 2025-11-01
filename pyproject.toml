@@ -56,6 +56,7 @@ default = [
     "requests>=2.32.2,<3",
     "urllib3>=2.0.2,<3",
     "websockets>=13.0",
+    "protobug==0.3.0",
     "yt-dlp-ejs==0.3.0",
 ]
 curl-cffi = [
