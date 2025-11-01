@@ -31,7 +31,7 @@ class DenoJCP(EJSBaseJCP, BuiltinIEContentProvider):
     PROVIDER_NAME = 'deno'
     JS_RUNTIME_NAME = 'deno'
 
-    _DENO_BASE_OPTIONS = ['--no-prompt', '--no-remote', '--no-lock', '--node-modules-dir=none', '--no-config']
+    _DENO_BASE_OPTIONS = ['--ext=js', '--no-code-cache', '--no-prompt', '--no-remote', '--no-lock', '--node-modules-dir=none', '--no-config']
     DENO_NPM_LIB_FILENAME = 'yt.solver.deno.lib.js'
     _NPM_PACKAGES_CACHED = False
 
