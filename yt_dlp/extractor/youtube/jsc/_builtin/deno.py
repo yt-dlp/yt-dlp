@@ -25,13 +25,19 @@ from yt_dlp.extractor.youtube.pot.provider import provider_bug_report_message
 from yt_dlp.utils import Popen, remove_terminal_sequences
 from yt_dlp.utils.networking import HTTPHeaderDict, clean_proxies
 
+# KNOWN ISSUES:
+# - Can't avoid analysis cache: https://github.com/yt-dlp/yt-dlp/pull/14849#issuecomment-3475840821
+
 
 @register_provider
 class DenoJCP(EJSBaseJCP, BuiltinIEContentProvider):
     PROVIDER_NAME = 'deno'
     JS_RUNTIME_NAME = 'deno'
 
-    _DENO_BASE_OPTIONS = ['--no-prompt', '--no-remote', '--no-lock', '--node-modules-dir=none', '--no-config']
+    _DENO_BASE_OPTIONS = [
+        '--ext=js', '--no-code-cache', '--no-prompt', '--no-remote',
+        '--no-lock', '--node-modules-dir=none', '--no-config',
+    ]
     DENO_NPM_LIB_FILENAME = 'yt.solver.deno.lib.js'
     _NPM_PACKAGES_CACHED = False
 

@@ -36,6 +36,7 @@ from yt_dlp.utils.networking import HTTPHeaderDict, clean_proxies
 #   `--no-install` appears to disable the cache.
 # - npm auto-install may fail with an integrity error when using HTTP proxies
 # - npm auto-install HTTP proxy support may be limited on older Bun versions
+# - Cannot disable the transpiler / specify lang for stdin
 
 
 @register_provider
@@ -99,6 +100,9 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
                 options[env] = val
         if self.ie.get_param('nocheckcertificate'):
             options['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
+
+        # Disable Bun transpiler cache
+        options['BUN_RUNTIME_TRANSPILER_CACHE_PATH'] = '0'
 
         # Prevent segfault: <https://github.com/oven-sh/bun/issues/22901>
         options.pop('JSC_useJIT', None)
